@@ -1,8 +1,8 @@
-class HUBFLOWError(Exception):
+class HubFlowError(Exception):
     pass
 
-class FlowObjectPickleFileError(HUBFLOWError):
+class FlowObjectPickleFileError(HubFlowError):
     '''File is not a valid pickle file.'''
 
-class FlowObjectTypeError(HUBFLOWError):
+class FlowObjectTypeError(HubFlowError):
     '''Wrong flow object type.'''

@@ -58,12 +58,10 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
             self.uiTargets().removeItem(0)
         if field is not None:
             definitions = library.attributeDefinitions()
-            if field in definitions:
-                if isinstance(definitions[field], ClassDefinition):
-                    self.names = definitions[field].names()
-                else:
-                    assert 0 # todo
-            else:
+            try:
+                classDefinition = AttributeDefinitionEditor.makeClassDefinition(definitions=definitions, attribute=field)
+                self.names = classDefinition.names()
+            except:
                 self.names = []
             self.uiTargets().addItems(self.names)
         self.uiTargets().selectAllOptions()
@@ -78,16 +76,13 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
 
     def initOutputFolder(self):
         assert isinstance(self.uiOutputFolder_, QgsFileWidget)
-        self.uiOutputFolder_.setStorageMode(self.uiOutputFolder_.SaveFile)
+        self.uiOutputFolder_.setStorageMode(self.uiOutputFolder_.GetDirectory)
         import tempfile
-        self.uiOutputFolder_.setFilePath(join(tempfile.gettempdir(), 'synthmixEnsemble.bsq'))
+        self.uiOutputFolder_.setFilePath(join(tempfile.gettempdir(), 'RegressionBasedUnmixing'))
+        self.uiOutputBasename_.setText('fraction.bsq')
 
     def initAggregations(self):
-        #self.uiAggregations_.setItemCheckState(1, True)
-
         self.uiAggregations_.setCheckedItems(['mean'])
-        #self.uiAggregations_.setItemCheckState(1, True)
-        # self.uiAggregations_.showContextMenu(QPoint(0,0))
 
     def execute(self, *args):
         self.uiInfo().setText('')
@@ -108,7 +103,6 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
                 return
             raster = Raster(filename=self.uiRaster().currentLayer().source())
 
-            #names = library.raster().dataset().metadataItem(key=field, domain='CLASS_NAMES')
             targets = [self.names.index(name)+1 for name in self.uiTargets().checkedItems()]
             if len(targets) == 0:
                 self.uiInfo().setText('Error: no target classes selected')
@@ -116,7 +110,7 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
 
             mixingComplexities = dict()
 
-            for key, ui in zip([2,3,4,5], [self.uiComplexity2_, self.uiComplexity3_, self.uiComplexity4_, self.uiComplexity5_]):
+            for key, ui in zip([2,3,4], [self.uiComplexity2_, self.uiComplexity3_, self.uiComplexity4_]):
                 try:
                     mixingComplexities[key] = float(ui.text())
                     assert mixingComplexities[key] >= 0 and mixingComplexities[key] <= 1
@@ -128,7 +122,7 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
                 self.uiInfo().setText('Error: mixing complexity likelihoods must sum to 1')
                 return
 
-            classLikelihoods = self.uiClassLikelihoods_.currentText()
+            classLikelihoods = self.uiClassLikelihoods_.currentText().lower()
 
             includeEndmember = self.uiIncludeLibrarySpectra_.isChecked()
             includeWithinclassMixtures = self.uiIncludeWithinclassMixtures_.isChecked()
@@ -169,7 +163,8 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
 
             self.uiExecute().setEnabled(False)
 
-            synthmixRegressionEnsemble(filename=self.uiOutputFolder_.filePath(),
+            filename = join(self.uiOutputFolder_.filePath(), self.uiOutputBasename_.text())
+            synthmixRegressionEnsemble(filename=filename,
                                        classificationSample=classificationSample,
                                        targets=targets,
                                        regressor=Regressor(sklEstimator=sklEstimator),
@@ -187,6 +182,7 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
                                        saveIQR=self.uiAggregations_.itemCheckState(2) != 0 and useEnsemble,
                                        saveStd=self.uiAggregations_.itemCheckState(3) != 0 and useEnsemble,
                                        saveRGB=self.uiSaveRGB_.isChecked() != 0,
+                                       saveClassification=self.uiSaveClassification_.isChecked() != 0,
                                        clip=True,
                                        ui=self)
 

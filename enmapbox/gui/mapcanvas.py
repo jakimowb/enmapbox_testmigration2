@@ -27,9 +27,8 @@ from qgis.PyQt.QtWidgets import *
 
 import numpy as np
 
+from enmapbox.gui import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.utils import KeepRefs
-from enmapbox.gui.crosshair import CrosshairMapCanvasItem, CrosshairStyle
 from enmapbox.gui.mimedata import *
 
 LINK_ON_SCALE = 'SCALE'
@@ -161,7 +160,7 @@ class CanvasLinkDialog(QDialog):
     def __init__(self, *args, **kwds):
         super(CanvasLinkDialog, self).__init__(*args, **kwds)
 
-        self.setWindowIcon(QIcon(':/enmapbox/icons/enmapbox.svg'))
+        self.setWindowIcon(QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg'))
         self.setWindowTitle('Map Linking')
         self.setLayout(QVBoxLayout())
 
@@ -559,20 +558,21 @@ class CanvasLink(QObject):
 
         if linkType == LINK_ON_CENTER:
             a = QAction('Link map center', None)
-            a.setIcon(QIcon(':/enmapbox/icons/link_center.svg'))
+
+            a.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_center.svg'))
             a.setToolTip('Link map center')
         elif linkType == LINK_ON_SCALE:
             a = QAction('Link map scale ("Zoom")', None)
-            a.setIcon(QIcon(':/enmapbox/icons/link_mapscale.svg'))
+            a.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_mapscale.svg'))
             a.setToolTip('Link to scale between both maps')
         elif linkType == LINK_ON_CENTER_SCALE:
             a = QAction('Link map scale and center', None)
             a.setToolTip('Link map scale and center')
-            a.setIcon(QIcon(':/enmapbox/icons/link_mapscale_center.svg'))
+            a.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_mapscale_center.svg'))
         elif linkType == UNLINK:
             a = QAction('Unlink', None)
             a.setToolTip('Removes an existing link between both canvases')
-            a.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
+            a.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_open.svg'))
         else:
             raise Exception('Unknown link type : {}'.format(linkType))
 
@@ -706,13 +706,13 @@ class CanvasLink(QObject):
     def icon(self):
 
         if self.linkType == LINK_ON_SCALE:
-            src = ":/enmapbox/icons/link_mapscale.svg"
+            src = ":/enmapbox/gui/ui/icons/link_mapscale.svg"
         elif self.linkType == LINK_ON_CENTER:
-            src = ":/enmapbox/icons/link_center.svg"
+            src = ":/enmapbox/gui/ui/icons/link_center.svg"
         elif self.linkType == LINK_ON_CENTER_SCALE:
-            src = ":/enmapbox/icons/link_mapscale_center.svg"
+            src = ":/enmapbox/gui/ui/icons/link_mapscale_center.svg"
         elif self.linkType == UNLINK:
-            src = ":/enmapbox/icons/link_open.svg"
+            src = ":/enmapbox/gui/ui/icons/link_open.svg"
         else:
             raise NotImplementedError('unknown link type: {}'.format(self.linkType))
 
@@ -819,6 +819,7 @@ class MapCanvas(QgsMapCanvas):
     sigSpatialExtentChanged = pyqtSignal(SpatialExtent)
     sigCrsChanged  = pyqtSignal(QgsCoordinateReferenceSystem)
 
+    sigLayersCleared = pyqtSignal()
     sigLayersRemoved = pyqtSignal(list)
     sigLayersAdded = pyqtSignal(list)
 
@@ -844,7 +845,7 @@ class MapCanvas(QgsMapCanvas):
         #self.mapdock = parentMapDock
         #self.enmapbox = self.mapdock.enmapbox
         self.acceptDrops()
-
+        self.setExtent(QgsRectangle(-1,-1,1,1))
 
         self.mCrosshairItem = CrosshairMapCanvasItem(self)
 
@@ -867,7 +868,6 @@ class MapCanvas(QgsMapCanvas):
 
         b = event.button() == Qt.LeftButton
         if b and isinstance(self.mapTool(), QgsMapTool):
-            from enmapbox.gui.maptools import CursorLocationMapTool
             b = isinstance(self.mapTool(), (QgsMapToolIdentify, CursorLocationMapTool))
 
         super(MapCanvas, self).mousePressEvent(event)
@@ -910,34 +910,34 @@ class MapCanvas(QgsMapCanvas):
         menu = QMenu()
 
         action = menu.addAction('Link with other maps')
-        action.setIcon(QIcon(':/enmapbox/icons/link_basic.svg'))
+        action.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_basic.svg'))
         action.triggered.connect(lambda: CanvasLink.ShowMapLinkTargets(self))
         action = menu.addAction('Remove links to other maps')
-        action.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
+        action.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_open.svg'))
         action.triggered.connect(lambda: self.removeAllCanvasLinks())
 
         qgisApp = qgisAppQgisInterface()
         b = isinstance(qgisApp, QgisInterface)
         menu.addSeparator()
-        action = menu.addAction('Use QGIS map center')
+        m = menu.addMenu('QGIS...')
+        m.setIcon(QIcon(r':/images/themes/default/providerQgis.svg'))
+        action = m.addAction('Use map center')
         action.setEnabled(b)
         if b: action.triggered.connect(lambda : self.setCenter(SpatialPoint.fromMapCanvasCenter(qgisApp.mapCanvas())))
 
 
-        action = menu.addAction('Set QGIS map center')
+        action = m.addAction('Set map center')
         action.setEnabled(b)
         if b: action.triggered.connect(lambda: qgisApp.mapCanvas().setCenter(self.spatialCenter().toCrs(qgisApp.mapCanvas().mapSettings().destinationCrs())))
 
 
-        action = menu.addAction('Use QGIS map extent')
+        action = m.addAction('Use map extent')
         action.setEnabled(b)
         if b: action.triggered.connect(lambda: self.setExtent(SpatialExtent.fromMapCanvas(qgisApp.mapCanvas())))
 
-
-        action = menu.addAction('Set QGIS map extent')
+        action = m.addAction('Set map extent')
         action.setEnabled(b)
         if b: action.triggered.connect(lambda: qgisApp.mapCanvas().setExtent(self.spatialExtent().toCrs(qgisApp.mapCanvas().mapSettings().destinationCrs())))
-
 
         menu.addSeparator()
         m = menu.addMenu('Crosshair')
@@ -949,7 +949,7 @@ class MapCanvas(QgsMapCanvas):
             action = m.addAction('Show')
             action.triggered.connect(lambda: self.setCrosshairVisibility(True))
 
-        from enmapbox.gui.crosshair import CrosshairDialog
+
         action = m.addAction('Style')
         action.triggered.connect(lambda : self.setCrosshairStyle(
             CrosshairDialog.getCrosshairStyle(
@@ -958,9 +958,9 @@ class MapCanvas(QgsMapCanvas):
         ))
 
         mPxGrid = m.addMenu('Pixel Grid')
-        if self.mCrosshairItem.mCrosshairStyle.mShowPixelBorder:
+        if self.mCrosshairItem.crosshairStyle().mShowPixelBorder:
             action = mPxGrid.addAction('Hide')
-            action.triggered.connect(lambda : self.mCrosshairItem.mCrosshairStyle.setShowPixelBorder(False))
+            action.triggered.connect(lambda : self.mCrosshairItem.crosshairStyle().setShowPixelBorder(False))
 
         mPxGrid.addSeparator()
 
@@ -968,7 +968,7 @@ class MapCanvas(QgsMapCanvas):
 
         def onShowRasterGrid(layer:QgsRasterLayer):
             self.mCrosshairItem.setVisibility(True)
-            self.mCrosshairItem.mCrosshairStyle.setShowPixelBorder(True)
+            self.mCrosshairItem.crosshairStyle().setShowPixelBorder(True)
             self.mCrosshairItem.setRasterGridLayer(layer)
 
 
@@ -994,11 +994,11 @@ class MapCanvas(QgsMapCanvas):
         menu.addSeparator()
 
         action = menu.addAction('Zoom Full')
-        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomFullExtent.svg'))
+        action.setIcon(QIcon(':/images/themes/default/mActionZoomFullExtent.svg'))
         action.triggered.connect(lambda: self.setExtent(self.fullExtent()))
 
         action = menu.addAction('Zoom Native Resolution')
-        action.setIcon(QIcon(':/enmapbox/icons/mActionZoomActual.svg'))
+        action.setIcon(QIcon(':/images/themes/default/mActionZoomActual.svg'))
         action.triggered.connect(lambda: self.zoomToPixelScale(spatialPoint=spatialPoint))
 
         menu.addSeparator()
@@ -1016,19 +1016,27 @@ class MapCanvas(QgsMapCanvas):
         menu.addSeparator()
 
         action = menu.addAction('Refresh')
-        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.svg"))
+        action.setIcon(QIcon(":/qps/ui/icons/refresh_green.svg"))
         action.triggered.connect(lambda: self.refresh())
 
 
         action = menu.addAction('Refresh all layers')
-        action.setIcon(QIcon(":/enmapbox/icons/mActionRefresh.svg"))
+        action.setIcon(QIcon(":/qps/ui/icons/refresh_green.svg"))
         action.triggered.connect(lambda: self.refreshAllLayers())
+
+        action = menu.addAction('Clear')
+        action.triggered.connect(self.clearLayers)
 
         menu.addSeparator()
         action = menu.addAction('Set CRS...')
         action.triggered.connect(self.setCRSfromDialog)
 
         return menu
+
+
+    def clearLayers(self, *args):
+        self.setLayers([])
+        self.sigLayersCleared.emit()
 
     def layerPaths(self):
         """
@@ -1060,6 +1068,10 @@ class MapCanvas(QgsMapCanvas):
 
 
     def setCRSfromDialog(self, *args):
+        """
+        Opens a dialog to specify the QgsCoordinateReferenceSystem
+        :param args:
+        """
         setMapCanvasCRSfromDialog(self)
 
     def setCrosshairStyle(self, crosshairStyle:CrosshairStyle):
@@ -1070,7 +1082,11 @@ class MapCanvas(QgsMapCanvas):
         if isinstance(crosshairStyle, CrosshairStyle):
             self.mCrosshairItem.setCrosshairStyle(crosshairStyle)
 
-    def crosshairStyle(self):
+    def crosshairStyle(self)->CrosshairStyle:
+        """
+        Returns the CrosshairStyle
+        :return: CrosshairStyle
+        """
         return self.mCrosshairItem.mCrosshairStyle
 
     def setShowCrosshair(self,b):
@@ -1078,8 +1094,6 @@ class MapCanvas(QgsMapCanvas):
         self.setCrosshairVisibility(b)
 
     def setCrosshairVisibility(self, b:bool):
-        if b and self.mCrosshairItem.mPosition is None:
-            self.mCrosshairItem.setPosition(self.spatialCenter())
         self.mCrosshairItem.setVisibility(b)
 
     def crosshairIsVisible(self):
@@ -1210,10 +1224,6 @@ class MapCanvas(QgsMapCanvas):
         """
         return SpatialPoint.fromMapCanvasCenter(self)
 
-    def setLayerSet(self, *arg, **kwds):
-        raise Exception('Deprecated: Not supported any more (QGIS 3)')
-
-
     def createCanvasLink(self, otherCanvas:QgsMapCanvas, linkType):
         assert isinstance(otherCanvas, MapCanvas)
         return self.addCanvasLink(CanvasLink(self, otherCanvas, linkType))
@@ -1306,12 +1316,12 @@ class MapDockLabel(DockLabel):
 
         self.addMapLink = QToolButton(self)
         self.addMapLink.setToolTip('Link with other map(s)')
-        self.addMapLink.setIcon(QIcon(':/enmapbox/icons/link_basic.svg'))
+        self.addMapLink.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_basic.svg'))
         self.mButtons.append(self.addMapLink)
 
         self.removeMapLink = QToolButton(self)
         self.removeMapLink.setToolTip('Remove links to this map')
-        self.removeMapLink.setIcon(QIcon(':/enmapbox/icons/link_open.svg'))
+        self.removeMapLink.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_open.svg'))
         self.mButtons.append(self.removeMapLink)
 
 
@@ -1343,7 +1353,6 @@ class MapDock(Dock):
     #sigCursorLocationRequest = pyqtSignal(SpatialPoint)
     #sigSpectrumRequest = pyqtSignal(SpatialPoint)
     sigLayersAdded = pyqtSignal(list)
-    sigLayersRemoved = pyqtSignal(list)
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
 
     def __init__(self, *args, **kwds):
@@ -1351,44 +1360,19 @@ class MapDock(Dock):
         super(MapDock, self).__init__(*args, **kwds)
         self.mBaseName = self.title()
 
-        #self.actionLinkExtent = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Link to map extent', self)
-        #self.actionLinkCenter = QAction(QtGui.QApplication.style().standardIcon(QtGui.QStyle.SP_CommandLink), 'Linkt to map center', self)
-        #self.label.buttons.append(self.actionLinkCenter.getButton())
-
         self.mCanvas = MapCanvas(self)
         self.mCanvas.setName(self.title())
         self.mCanvas.sigNameChanged.connect(self.setTitle)
+
         self.sigTitleChanged.connect(self.mCanvas.setName)
-        #self.label.setText(self.basename)
-        #self.canvas.setScaleLocked(True)
-        #self.canvas.customContextMenuRequested.connect(self.onCanvasContextMenuEvent)
-        #self.canvas.sigContextMenuEvent.connect(self.onCanvasContextMenuEvent)
         self.mCanvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
-        self.mCanvas.sigLayersRemoved.connect(self.sigLayersRemoved.emit)
         self.mCanvas.sigCrsChanged.connect(self.sigCrsChanged.emit)
 
         settings = QSettings()
         assert isinstance(self.mCanvas, QgsMapCanvas)
         self.mCanvas.setCanvasColor(Qt.black)
         self.mCanvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
-        #self.canvas.useImageToRender(settings.value('/qgis/use_image_to_render', False, type=bool))
         self.layout.addWidget(self.mCanvas)
-
-        """
-        The problem still exists in QGis 2.0.1-3 available through OSGeo4W distribution. New style connection always return the same error:
-        TypeError: connect() failed between geometryChanged(QgsFeatureId,QgsGeometry) and unislot()
-        A possible workaround is to use old signal/slot code:
-
-        QObject.connect(my_vectlayer,SIGNAL("geometryChanged(QgsFeatureId, QgsGeometry&)"),mynicehandler)
-        instead of expected:
-
-        my_vectlayer.geometryChanged.connect(mynicehandler)
-        """
-        #QObject.connect(self.toolIdentify,
-        #                SIGNAL("changedRasterResults(QList<QgsMapToolIdentify::IdentifyResult>&)"),
-        #                self.identifyChangedRasterResults)
-        #self.toolIdentify.changedRasterResults.connect(self.identifyChangedRasterResults)
-
 
         self.label.addMapLink.clicked.connect(lambda:CanvasLink.ShowMapLinkTargets(self))
         self.label.removeMapLink.clicked.connect(lambda: self.mCanvas.removeAllCanvasLinks())
@@ -1400,14 +1384,16 @@ class MapDock(Dock):
             if len(lyrs) > 0:
                 self.mCanvas.setLayers(lyrs)
 
-    def cursorLocationValueRequest(self,*args):
-        self.sigCursorLocationRequest.emit(*args)
-
     def contextMenu(self)->QMenu:
-        m = super(MapDock, self).contextMenu()
-        from enmapbox.gui.utils import appendItemsToMenu
+        """
+        Returns the MapDock context menu
+        :return: QMenu
+        """
 
-        return appendItemsToMenu(m, self.mCanvas.contextMenu())
+        menuDock = super(MapDock, self).contextMenu()
+
+        menuCanvas = self.mCanvas.contextMenu()
+        return appendItemsToMenu(menuDock, menuCanvas)
 
     def _createLabel(self, *args, **kwds)->MapDockLabel:
         return MapDockLabel(self, *args, **kwds)
@@ -1427,12 +1413,18 @@ class MapDock(Dock):
         assert isinstance(canvas, QgsMapCanvas)
         canvas.createCanvasLink(canvas, linkType)
 
-
-
     def layers(self)->list:
+        """
+        Returns the list of QgsMapLayers shown in the MapCanvas
+        :return: [list-of-QgsMapLayers]
+        """
         return self.mCanvas.layers()
 
-    def setLayers(self, mapLayers):
+    def setLayers(self, mapLayers:list):
+        """
+        Sets the QgsMapLayers to be shown in the QgsMapCanvas
+        :param mapLayers: [list-of-QgsMapLayers]
+        """
         assert isinstance(mapLayers, list)
         self.mCanvas.setLayers(mapLayers)
 
@@ -1468,6 +1460,10 @@ class MapDock(Dock):
             self.removeLayers(to_remove)
 
     def mapCanvas(self)->MapCanvas:
+        """
+        Returns the MapCanvas
+        :return: MapCanvas
+        """
         return self.mCanvas
 
     def removeLayers(self, mapLayers):

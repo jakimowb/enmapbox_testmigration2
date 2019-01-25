@@ -1,6 +1,6 @@
 from os.path import join, dirname, basename
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QMenu, QAction
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 from enmapboxapplications.imagemathapp.core import ImageMathApp
 from enmapboxapplications.imagestatistics.core import ImageStatisticsApp
@@ -107,7 +107,7 @@ class EnMAPBoxSynthmixApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
         super().__init__(enmapBox, parent=parent)
 
-        self.name = 'SynthmixRegressionMapper'
+        self.name = 'Regression-based unmixing (synthMix)'
         self.version = 'dev'
         self.licence = 'GNU GPL-3'
 
@@ -116,7 +116,7 @@ class EnMAPBoxSynthmixApp(EnMAPBoxApplication):
 
     def menu(self, appMenu):
         assert isinstance(appMenu, QMenu)
-        a = appMenu.addAction('Synthmix Regression Mapper')
+        a = appMenu.addAction('Regression-based unmixing (synthMix)')
         assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)

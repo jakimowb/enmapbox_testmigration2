@@ -17,9 +17,11 @@
 ***************************************************************************
 """
 import collections, uuid
-
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from enmapbox.gui import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.speclib.spectrallibraries import SpectralLibrary, SpectralProfile
+from qps.speclib.spectrallibraries import AbstractSpectralLibraryIO
 from osgeo import gdal, ogr
 
 
@@ -185,7 +187,7 @@ class DataSourceFactory(object):
 
             if isinstance(src, str):
                 if os.path.exists(src):
-                    from enmapbox.gui.speclib.spectrallibraries import AbstractSpectralLibraryIO
+
                     for cls in AbstractSpectralLibraryIO.__subclasses__():
                         if cls.canRead(src):
                             uri = src
@@ -670,7 +672,7 @@ class HubFlowDataSource(DataSource):
         super(HubFlowDataSource, self).__init__(id, name, icon)
 
         if not isinstance(icon, QIcon):
-            self.mIcon = QIcon(':/enmapbox/icons/alg.svg')
+            self.mIcon = QIcon(':/enmapbox/gui/ui/icons/processingAlgorithm.svg')
 
         self.mFlowObj = obj
 
@@ -686,7 +688,7 @@ class DataSourceSpectralLibrary(DataSourceSpatial):
 
     def __init__(self, uri, name=None, icon=None):
         if icon is None:
-            icon = QIcon(':/speclib/icons/speclib.svg')
+            icon = QIcon(':/qps/ui/icons/speclib.svg')
         super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='ogr')
 
         self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
@@ -778,7 +780,7 @@ class DataSourceRaster(DataSourceSpatial):
 
             gt = ds.GetGeoTransform()
 
-            from enmapbox.gui.utils import px2geo
+
             v = px2geo(QPoint(0, 0), gt) - px2geo(QPoint(1, 1), gt)
             self.mPxSize = QSizeF(abs(v.x()), abs(v.y()))
 
@@ -798,7 +800,6 @@ class DataSourceRaster(DataSourceSpatial):
             self.mDatasetMetadata = fetchMetadata(ds)
 
 
-            from enmapbox.gui.classification.classificationscheme import ClassificationScheme
             for b in range(ds.RasterCount):
                 band = ds.GetRasterBand(b+1)
                 assert isinstance(band, gdal.Band)
@@ -837,13 +838,13 @@ class DataSourceRaster(DataSourceSpatial):
 
         #update the datassource icon
         if hasClassInfo is True:
-            icon = QIcon(':/enmapbox/icons/filelist_classification.svg')
+            icon = QIcon(':/enmapbox/gui/ui/icons/filelist_classification.svg')
         elif self.mDataType in [gdal.GDT_Byte] and ds.RasterCount == 1:
-            icon = QIcon(':/enmapbox/icons/filelist_mask.svg')
+            icon = QIcon(':/enmapbox/gui/ui/icons/filelist_mask.svg')
         elif self.nBands == 1:
-            icon = QIcon(':/enmapbox/icons/filelist_regression.svg')
+            icon = QIcon(':/enmapbox/gui/ui/icons/filelist_regression.svg')
         else:
-            icon = QIcon(':/enmapbox/icons/filelist_image.svg')
+            icon = QIcon(':/enmapbox/gui/ui/icons/filelist_image.svg')
         self.setIcon(icon)
 
     def createUnregisteredMapLayer(self)->QgsRasterLayer:
@@ -886,11 +887,11 @@ class DataSourceVector(DataSourceSpatial):
         self.mGeomType = lyr.geometryType()
 
         if self.mGeomType in [QgsWkbTypes.PointGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconPointLayer.svg')
+            self.mIcon = QIcon(':/enmapbox/gui/ui/icons/mIconPointLayer.svg')
         elif self.mGeomType in [QgsWkbTypes.LineGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconLineLayer.svg')
+            self.mIcon = QIcon(':/images/themes/default/mIconLineLayer.svg')
         elif self.mGeomType in [QgsWkbTypes.PolygonGeometry]:
-            self.mIcon = QIcon(':/enmapbox/icons/mIconPolygonLayer.svg')
+            self.mIcon = QIcon(':/images/themes/default/mIconPolygonLayer.svg')
 
 
 class DataSourceListModel(QAbstractListModel):

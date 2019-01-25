@@ -3,7 +3,7 @@
 """
 ***************************************************************************
     deploy.py
-    Script to build the EnMAP-Box from Repository code
+    Script to build the EnMAP-Box QGIS Plugin from Repository code
     ---------------------
     Date                 : August 2017
     Copyright            : (C) 2017 by Benjamin Jakimow
@@ -25,7 +25,7 @@ from requests.auth import HTTPBasicAuth
 from http.client import responses
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
-from enmapboxtesting import initQgisApplication
+from enmapbox.testing import initQgisApplication
 qgisApp = initQgisApplication()
 
 
@@ -417,17 +417,19 @@ def uploadDeveloperPlugin():
 
 if __name__ == "__main__":
 
-    #1. update deploy/enmapboxplugin and
-    #   create deploy/enmapboxplugin.<version>.<branch>.zip
+    # 1. update deploy/enmapboxplugin and
+    #    create deploy/enmapboxplugin.<version>.<branch>.zip
     build()
 
-    #2. run updateRepositoryXML() to create QGIS Plugin Repository XMLs
+    # 2. run updateRepositoryXML() to create QGIS Plugin Repository XMLs
     # deploy/qgis_plugin_develop.xml (remote, points on https://bitbucket.org/hu-geomatics/enmap-box/src/<branch>/qgis_plugin_develop.xml)
     # deploy/qgis_plugin_develop.xml (local, points on deploy/enmapboxplugin.<version>.<branch>.zip
     updateRepositoryXML()
 
-    #3. Upload to Repository
+    # 3. Upload to Repository
     # upload deploy/enmapboxplugin.<version>.<branch>.zip to https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/downloads
+    # this step requires to provide upload credentials
     uploadDeveloperPlugin()
 
+    exit()
 

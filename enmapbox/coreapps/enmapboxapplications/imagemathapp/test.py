@@ -1,10 +1,10 @@
+from enmapbox.testing import initQgisApplication
 from enmapboxapplications.widgets.core import *
 from enmapboxapplications.imagemathapp.core import *
 
 if __name__ == '__main__':
 
-    qgsApp = QgsApplication([], True)
-    qgsApp.initQgis()
+    qgsApp = initQgisApplication()
 
     import qgisresources.images
     qgisresources.images.qInitResources()

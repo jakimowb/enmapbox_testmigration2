@@ -21,11 +21,11 @@
 
 import os, re
 from osgeo import gdal
-from enmapbox.gui.classification.classificationscheme import ClassificationScheme
+from enmapbox.gui import ClassificationScheme
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QSize
 import numpy as np
-
+import hubflow.core
 
 from enmapbox.gui.utils import gdalDataset as getDataset
 
@@ -56,7 +56,7 @@ def reclassify(pathSrc:str, pathDst:str, dstClassScheme, labelLookup,
                drvDst = None,
                bandIndices=0, tileSize=None, co=None):
     """
-    Interal wrapper to reclassify raster images based on hub-flow API.
+    Internal wrapper to reclassify raster images based on hub-flow API.
     :param pathSrc: str, path of source image
     :param pathDst: str, path of destination image
     :param dstClassScheme: ClassificationScheme
@@ -74,19 +74,38 @@ def reclassify(pathSrc:str, pathDst:str, dstClassScheme, labelLookup,
 
     import hubflow.core
     classification = hubflow.core.Classification(pathSrc)
+
     names = dstClassScheme.classNames()
     colors = dstClassScheme.classColors()
-    #workaround for https://bitbucket.org/hu-geomatics/enmap-box/issues/203/hubflow-reclassify-unclassified-class-name
-    if len(names) > 0 and re.search(r'unclassified', names[0], re.I):
-        names = names[1:]
-        colors = colors[1:]
 
-    newDef = hubflow.core.ClassDefinition(names=names, colors=[c.name() for c in colors])
+    # hubflow requires to handel the `unclassified` class (label = 0, always first position) separately
+    newDef = hubflow.core.ClassDefinition(names=names[1:], colors=[c.name() for c in colors[1:]])
+    newDef.setNoDataNameAndColor(names[0], colors[0])
+
+
     classification.reclassify(filename=pathDst,
                           classDefinition=newDef,
                           mapping=labelLookup)
     return gdal.Open(pathDst)
 
+
+def guessRasterDriver(path:str)->hubflow.core.RasterDriver:
+    """
+    Converts a file path into the corresponding a raster driver
+    :param path: str, file path
+    :return: hubflow.core.RasterDriver, ENVIBSQDriver by default.
+    """
+    assert isinstance(path, str)
+
+    if re.search(r'\.(bsq|bil|bip)$', path, re.I):
+        return hubflow.core.EnviDriver
+    elif re.search(r'\.g?tiff?$', path, re.I):
+        return hubflow.core.GTiffDriver()
+    elif re.search(r'\.vrt$', path,  re.I):
+        return hubflow.core.VrtDriver()
+    elif re.search(r'\.(img|hfa)', path , re.I):
+        return hubflow.core.ErdasDriver()
+    return hubflow.core.EnviDriver()
 
 
 def depr_reclassify(pathSrc, pathDst, labelLookup,

@@ -76,3 +76,119 @@ class UiLabeledLibrary(QWidget, loadUIFormClass(pathUi=join(pathUi, 'labeledLiba
             return None
         else:
             return text
+
+class UiWorkflowMainWindow(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
+
+    def __init__(self, parent=None):
+        QMainWindow.__init__(self, parent)
+        self.setupUi(self)
+
+        self.uiRun().clicked.connect(self.run)
+        self.uiCancel().clicked.connect(self.cancel)
+        self.uiCancel().hide()
+
+        self.worker = self.worker()
+        self.worker.sigFinished.connect(self.onFinished)
+        self.worker.sigProgressChanged.connect(self.onProgressChanged)
+        self.worker.sigErrorRaised.connect(self.onError)
+
+    def uiRun(self):
+        obj = self.uiRun_
+        assert isinstance(obj, QToolButton)
+        return obj
+
+    def uiCancel(self):
+        obj = self.uiCancel_
+        assert isinstance(obj, QToolButton)
+        return obj
+
+    def uiInfo(self):
+        if not hasattr(self, 'uiInfo_'):
+            self.uiInfo_ = QLabel()
+            self.statusBar().addWidget(self.uiInfo_, 1)
+
+        obj = self.uiInfo_
+        assert isinstance(obj, QLabel)
+        return obj
+
+    def uiProgressBar(self):
+        obj = self.uiProgressBar_
+        assert isinstance(obj, QProgressBar)
+        return obj
+
+    def log(self, text):
+        self.uiInfo().setText(str(text))
+        QCoreApplication.processEvents()
+
+    def run(self):
+
+        if not self.worker.isRunning():
+            self.log('Calculation started.')
+            self.uiRun().hide()
+            self.uiCancel().show()
+            self.worker.start()
+        else:
+            self.log('Calculation is already running!')
+
+    def cancel(self):
+        if self.worker.isRunning():
+            self.worker.terminate()
+        self.uiProgressBar().setValue(0)
+        self.uiRun().show()
+        self.uiCancel().hide()
+
+        self.log('Calculation canceled.')
+
+    def onProgressChanged(self, percent):
+        self.uiProgressBar().setValue(percent)
+
+    def onError(self, error, tb):
+        self.log('Error: {} (see log for details)'.format(error))
+        print(tb)
+        self.uiRun().show()
+        self.uiCancel().hide()
+
+    def onFinished(self, *args):
+        self.uiProgressBar().setValue(0)
+        self.uiRun().show()
+        self.uiCancel().hide()
+
+        self.log('Calculation finished.')
+        #self.myWorker.quit()
+        #self.myWorker.wait()
+        #self.myWorker.terminate()
+
+    def closeEvent(self, event):
+
+        if not self.worker.isRunning():
+            event.accept()  # let the window close
+        else:
+            self.log('Calculation still running!')
+            event.ignore()
+
+    def worker(self):
+        raise NotImplementedError()
+        return QThread()
+
+class WorkflowWorker(QThread):
+    sigProgressChanged = pyqtSignal(int)
+    sigFinished = pyqtSignal()
+    sigErrorRaised = pyqtSignal(Exception, str)
+
+    def run(self):
+
+        def progressCallback(percent):
+            self.sigProgressChanged.emit(percent)
+
+        try:
+            self.run_(progressCallback)
+        except Exception as error:
+            import traceback
+            tb = traceback.format_exc()
+            self.sigErrorRaised.emit(error, tb)
+            return
+
+        self.sigFinished.emit()
+
+    def run_(self, *args, **kwargs):
+        pass

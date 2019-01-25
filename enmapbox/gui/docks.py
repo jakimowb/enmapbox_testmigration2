@@ -125,10 +125,10 @@ class Dock(pgDock, KeepRefs):
 
         if self.isVisible():
             a = menu.addAction('Hide Dock')
-            a.triggered.connect(lambda : self.setVisible(True))
+            a.triggered.connect(lambda : self.setVisible(False))
         else:
             a = menu.addAction('Show Dock')
-            a.triggered.connect(lambda : self.setVisible(False))
+            a.triggered.connect(lambda : self.setVisible(True))
 
         a = menu.addAction('Close Dock')
         a.triggered.connect(lambda : self.close())
@@ -606,66 +606,6 @@ class DockLabel(pgDockLabel):
 
 
 
-class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
-
-    FILTERS = ';;'.join(["Textfiles (*.txt *.csv *.hdr)", \
-                        "HTML (*.html)" \
-                        "Any file (*.*)"
-                         ])
-
-    sigSourceChanged = pyqtSignal(str)
-    def __init__(self, parent=None):
-        super(TextDockWidget, self).__init__(parent=parent)
-        self.setupUi(self)
-        self.mFile = None
-
-        self.btnLoadFile.setIcon(QApplication.style().standardIcon(QStyle.SP_DialogOpenButton))
-        self.btnLoadFile.clicked.connect(lambda: self.loadFile(
-            QFileDialog.getOpenFileName(self, 'Open File', directory=self.mFile, filter=TextDockWidget.FILTERS)))
-        self.btnSaveFile.clicked.connect(lambda: self.save(saveAs=False))
-        self.btnSaveAs.clicked.connect(lambda :self.save(saveAs=True))
-
-    def loadFile(self, path):
-        if os.path.isfile(path):
-            data = None
-            with codecs.open(path, 'r', 'utf-8') as file:
-                data = ''.join(file.readlines())
-
-            ext = os.path.splitext(path)[-1].lower()
-            if data is not None:
-                if ext in ['.html']:
-                    self.textEdit.setHtml(data)
-                else:
-                    self.textEdit.setText(data)
-
-                self.mFile = path
-
-        else:
-            self.mFile = None
-        self.sigSourceChanged.emit(str(path))
-
-
-    def save(self, saveAs=False):
-        if self.mFile is None or saveAs:
-            path = QFileDialog.getSaveFileName(self, 'Save file...', \
-                                        directory=self.mFile,
-                                        filter=TextDockWidget.FILTERS)
-            s = ""
-            if len(path) > 0:
-                self.mFile = path
-
-        if self.mFile is not None and len(self.mFile) > 0:
-            ext = os.path.splitext(self.mFile)[-1].lower()
-            import codecs
-            if ext in ['.txt','.csv', '.hdr']:
-
-                with codecs.open(self.mFile, 'w', 'utf-8') as file:
-                    file.write(self.textEdit.toPlainText())
-            elif ext in ['.html']:
-                with codecs.open(self.mFile, 'w', 'utf-8') as file:
-                    file.write(self.textEdit.toHtml())
-
-
 class MimeDataTextEdit(QTextEdit):
 
     def __init__(self, *args, **kwargs):
@@ -758,9 +698,127 @@ class MimeDataDockWidget(QWidget, loadUI('mimedatadockwidget.ui')):
                     file.write(self.textEdit.toHtml())
 
 
+
+class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
+    """
+    A widget to display text files
+    """
+    FILTERS = ';;'.join(["Textfiles (*.txt *.csv *.hdr)", \
+                        "HTML (*.html)" \
+                        "Any file (*.*)"
+                         ])
+
+    sigSourceChanged = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        """
+        Constructor
+        :param parent:
+        """
+        super(TextDockWidget, self).__init__(parent=parent)
+        self.setupUi(self)
+
+        self.mFile = None
+
+        self.btnLoadFile.setDefaultAction(self.actionLoadFile)
+        self.btnSaveFile.setDefaultAction(self.actionSaveFile)
+        self.btnSaveFileAs.setDefaultAction(self.actionSaveFileAs)
+        self.actionLoadFile.triggered.connect(lambda: self.loadFile(
+            QFileDialog.getOpenFileName(self, 'Open File', directory=self.mFile, filter=TextDockWidget.FILTERS)))
+
+        self.actionSaveFile.triggered.connect(lambda: self.save(saveAs=False))
+        self.actionSaveFileAs.triggered.connect(lambda :self.save(saveAs=True))
+
+        self.actionSaveFile.setEnabled(False)
+
+
+    def file(self)->str:
+        """
+        Returns the path of a file added with `loadFile`
+        :return: str
+        """
+        if self.mFile is None:
+            return ''
+        else:
+            return self.mFile
+
+    def loadFile(self, path):
+        """
+        Loads a text file from `path`
+        :param path: str
+        """
+        if os.path.isfile(path):
+            data = None
+            with codecs.open(path, 'r', 'utf-8') as file:
+                data = ''.join(file.readlines())
+
+            ext = os.path.splitext(path)[-1].lower()
+            if data is not None:
+                if ext in ['.html']:
+                    self.mTextEdit.setHtml(data)
+                else:
+                    self.mTextEdit.setText(data)
+
+                self.mFile = path
+
+        else:
+            self.mFile = None
+        self.actionSaveFile.setEnabled(os.path.isfile(self.file()))
+        self.sigSourceChanged.emit(str(path))
+
+    def setText(self, *args, **kwds):
+        """
+        Sets text. See
+        :param args:
+        :param kwds:
+        :return:
+        """
+        self.mTextEdit.setPlainText(*args, **kwds)
+
+    def text(self)->str:
+        """
+        Returns the plain text
+        :return: str
+        """
+        return self.mTextEdit.toPlainText()
+
+    def setHtml(self, *args, **kwds):
+        """
+        Sets thext as HTML
+        :param args:
+        :param kwds:
+        """
+        self.mTextEdit.setHtml(*args, **kwds)
+
+    def save(self, saveAs=False):
+        """
+        Saves the Text
+        :param saveAs: bool
+        """
+        if self.mFile is None or saveAs:
+            path = QFileDialog.getSaveFileName(self, 'Save file...', \
+                                        directory=self.mFile,
+                                        filter=TextDockWidget.FILTERS)
+            s = ""
+            if len(path) > 0:
+                self.mFile = path
+
+        if self.mFile is not None and len(self.mFile) > 0:
+            ext = os.path.splitext(self.mFile)[-1].lower()
+            import codecs
+            if ext in ['.txt','.csv', '.hdr']:
+
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.mTextEdit.toPlainText())
+            elif ext in ['.html']:
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.mTextEdit.toHtml())
+
+
+
 class TextDock(Dock):
     """
-    A dock to visualize textural data
+    A dock to visualize text data
     """
     def __init__(self, *args, **kwds):
         html = kwds.pop('html', None)
@@ -768,14 +826,19 @@ class TextDock(Dock):
 
         super(TextDock, self).__init__(*args, **kwds)
 
-        self.textDockWidget = TextDockWidget(self)
-
+        self.mTextDockWidget = TextDockWidget(self)
         if html:
-            self.textDockWidget.textEdit.insertHtml(html)
+            self.mTextDockWidget.mTextEdit.insertHtml(html)
         elif plainTxt:
-            self.textDockWidget.textEdit.insertPlainText(plainTxt)
-        self.layout.addWidget(self.textDockWidget)
+            self.mTextDockWidget.mTextEdit.insertPlainText(plainTxt)
+        self.layout.addWidget(self.mTextDockWidget)
 
+    def textDockWidget(self)->TextDockWidget:
+        """
+        Returns the widget that displays the text
+        :return: TextDockWidget
+        """
+        return self.mTextDockWidget
 
 class WebViewDock(Dock):
     def __init__(self, *args, **kwargs):
@@ -819,17 +882,26 @@ class MimeDataDock(Dock):
 
 
 class SpectralLibraryDock(Dock):
+    """
+    A Dock to show SpectraLProfiles
+    """
     sigLoadFromMapRequest = pyqtSignal()
-    def __init__(self,speclib=None, *args, **kwds):
+    def __init__(self, speclib=None, *args, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
-        from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget
-        self.speclibWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
-        self.speclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
-        self.layout.addWidget(self.speclibWidget)
-        self.mShowMapInteraction = True
-        self.speclibWidget.plotItem
+        self.mSpeclibWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
+        self.mSpeclibWidget.setMapInteraction(False)
+        self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
+        self.layout.addWidget(self.mSpeclibWidget)
+
+
+    def speclibWidget(self)->SpectralLibraryWidget:
+        """
+        Returns the SpectralLibraryWidget
+        :return: SpectralLibraryWidget
+        """
+        return self.mSpeclibWidget
 
     def speclib(self)->SpectralLibrary:
         """Returns the underlying spectral library"""
-        return self.speclibWidget.speclib()
+        return self.mSpeclibWidget.speclib()

@@ -166,7 +166,7 @@ class VIT:
 
     def Image(self, IO):
         if IO == "in":
-            inFile = str(QFileDialog.getOpenFileName(caption='Select Input Image File'))
+            inFile = str(QFileDialog.getOpenFileName(caption='Select Input Image File')[0])
             if not inFile: return # cancel button is hit
 
             dataset = gdal.Open(inFile)
@@ -355,6 +355,7 @@ class MainUiFunc:
 
     def show(self):
         self.vit.gui.show()
+
 
 if __name__ == '__main__':
     from enmapbox.gui.sandbox import initQgisEnvironment

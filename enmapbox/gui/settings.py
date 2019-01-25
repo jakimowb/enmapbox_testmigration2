@@ -343,7 +343,7 @@ def showSettingsDialog(parent=None):
 
 if __name__ == '__main__':
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     qapp = initQgisApplication()
     initGlobalSettings()
     showSettingsDialog()

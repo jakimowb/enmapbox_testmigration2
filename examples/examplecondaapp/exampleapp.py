@@ -286,7 +286,7 @@ class AnacondaCallingGeoAlgorithm(QgsProcessingAlgorithm):
 if __name__ == '__main__':
 
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
 
     #this will initialize the QApplication/QgsApplication which runs in the background
     #see https://qgis.org/api/classQgsApplication.html for details

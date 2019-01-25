@@ -53,7 +53,7 @@ class MetaDataEditorApp(EnMAPBoxApplication):
         This function returns the QIcon of your Application
         :return: QIcon()
         """
-        return QIcon(':/enmapbox/icons/enmapbox.svg')
+        return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
 
     def menu(self, appMenu):
         """
@@ -105,7 +105,7 @@ def enmapboxApplicationFactory(enmapBox):
 if __name__ == '__main__':
 
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
 
     #this will initialize the QApplication/QgsApplication which runs in the background
     #see https://qgis.org/api/classQgsApplication.html for details

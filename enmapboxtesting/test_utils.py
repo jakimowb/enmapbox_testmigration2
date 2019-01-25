@@ -19,7 +19,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from osgeo import gdal, ogr, osr
-from enmapboxtesting import initQgisApplication
+from enmapbox.testing import initQgisApplication
 QGIS_APP = initQgisApplication()
 
 from enmapbox.gui.utils import *
@@ -43,28 +43,6 @@ class testClassUtils(unittest.TestCase):
     def tearDown(self):
         self.w.close()
 
-
-    def test_loadformClass(self):
-        #from enmapbox import EnMAPBox
-        #EB = EnMAPBox()
-        #import qgisresources.images
-        #qgisresources.images.qInitResources()
-        pathUi = r'C:\Users\geo_beja\Repositories\QGIS_Plugins\enmap-box\enmapbox\coreapps\enmapboxapplications\imagemathapp\ui\main.ui'
-
-        pathChangedUI = os.path.join(os.path.dirname(__file__), 'modified.ui')
-        self.assertTrue(os.path.isfile(pathUi))
-        t = loadUIFormClass(pathUi, _modifiedui=pathChangedUI)
-        self.assertTrue(os.path.isfile(pathChangedUI))
-        s = ""
-
-    def test_QgisMockup(self):
-
-        from enmapbox.gui.utils import QgisMockup
-
-        m = QgisMockup.create()
-        self.assertIsInstance(m, QgisInterface)
-        self.assertIsInstance(m.mapCanvas(), QgsMapCanvas)
-        self.assertIsInstance(m.messageBar(), QgsMessageBar)
 
     def test_spatialObjects(self):
         from enmapbox.gui.utils import SpatialPoint, SpatialExtent
@@ -143,44 +121,6 @@ class testClassUtils(unittest.TestCase):
 
         self.assertTrue(action in self.menuA.children())
 
-    def test_MimeDataHelper(self):
-        class TestClassA(object):
-
-            s = "TEST A"
-
-        class TestClassB(QObject):
-
-            def __init__(self):
-                super(TestClassB, self).__init__()
-                self.s = 'TEST B A QOBJECT'
-
-        from enmapbox.gui.utils import MimeDataHelper
-
-        oA = TestClassA()
-        oB = TestClassB()
-
-        url = 'https://bitbucket.org/hu-geomatics/enmap-box'
-        text = 'Lore Ipsum'
-        md = QMimeData()
-        #md.setUrls([url])
-        md.setText(text)
-
-        MimeDataHelper.setObjectReferences(md, [oA, oB])
-        mdh = MimeDataHelper(md)
-        self.assertTrue(mdh.hasPythonObjects())
-
-        objectList = mdh.pythonObjects()
-        self.assertTrue(len(objectList) == 2)
-        self.assertIs(objectList[0], oA)
-        self.assertIs(objectList[1], oB)
-
-
-        self.assertTrue(mdh.hasUrls())
-        urls = mdh.urls()
-        self.assertTrue(len(urls) == 1)
-        self.assertTrue(urls[0] == url)
-
-        #todo: check tree mode nodes etc.
 
 if __name__ == "__main__":
 

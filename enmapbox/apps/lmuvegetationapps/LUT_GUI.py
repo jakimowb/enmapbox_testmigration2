@@ -16,13 +16,14 @@ from lmuvegetationapps.Spec2Sensor_cl import Spec2Sensor
 from scipy.stats import norm, uniform
 import time
 
+from enmapbox.gui.utils import loadUIFormClass
+
 pathUI = os.path.join(os.path.dirname(__file__),'GUI_LUT.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_ProgressBar.ui')
 
-from enmapbox.gui.utils import loadUIFormClass
 
 class LUT_GUI(QDialog, loadUIFormClass(pathUI)):
-    
+
     def __init__(self, parent=None):
         super(LUT_GUI, self).__init__(parent)
         self.setupUi(self)
@@ -60,10 +61,10 @@ class Filter(QtCore.QObject):
                 try:
                     vals = [float(self.lut.dict_objects[para][4].text())] # needs to be of type "list" (even single values)
                     ns = self.gui.spinNS.value()
-                    self.lut.dict_objects[para][12].clear()
+                    #self.lut.dict_objects[para][12].clear()
                     bar = pg.BarGraphItem(x=vals, height=ns, width=0.01)
                     self.lut.dict_objects[para][12].addItem(bar)
-                    self.lut.dict_objects[para][12].plot()
+                    self.lut.dict_objects[para][12].plot(clear=True)
                     # if vals < 1.0:
                     #     self.lut.dict_objects[para][12].setrange(vals - width * 2, xVals[-1] + width * 2)
                 except ValueError as e:
@@ -74,8 +75,9 @@ class Filter(QtCore.QObject):
                     vals = [float(self.lut.dict_objects[para][i].text()) for i in [5,6,7,8]]
                     xIncr = (vals[1] - vals[0]) / 100.0
                     xVals = np.arange(vals[0], vals[1], xIncr)
-                    self.lut.dict_objects[para][12].clear()
-                    self.lut.dict_objects[para][12].plot(xVals, norm.pdf(xVals, loc=vals[2], scale=vals[3]))
+                    #self.lut.dict_objects[para][12].clear()
+                    self.lut.dict_objects[para][12].plot(xVals, norm.pdf(xVals, loc=vals[2], scale=vals[3]),
+                                                         clear=True)
                 except:
                     pass
             elif self.lut.dict_objects[para][2].isChecked():  # uniform
@@ -83,8 +85,9 @@ class Filter(QtCore.QObject):
                     vals = [float(self.lut.dict_objects[para][i].text()) for i in [5, 6]]
                     xIncr = (vals[1] - vals[0]) / 100.0
                     xVals = np.arange(vals[0], vals[1], xIncr)
-                    self.lut.dict_objects[para][12].clear()
-                    self.lut.dict_objects[para][12].plot(xVals, uniform.pdf(xVals, loc=vals[0], scale=vals[1]))
+                    #self.lut.dict_objects[para][12].clear()
+                    self.lut.dict_objects[para][12].plot(xVals, uniform.pdf(xVals, loc=vals[0], scale=vals[1]),
+                                                         clear=True)
                 except:
                     pass
             elif self.lut.dict_objects[para][3].isChecked(): # logical
@@ -94,10 +97,10 @@ class Filter(QtCore.QObject):
                     ns = self.gui.spinNS.value()
                     width = (xVals[1]-xVals[0])/8
                     # self.lut.dict_objects[para][12].enableAutoRange(enable=False)
-                    self.lut.dict_objects[para][12].clear()
+                    #self.lut.dict_objects[para][12].clear()
                     bar = pg.BarGraphItem(x=xVals, height=ns, width=width)
                     self.lut.dict_objects[para][12].addItem(bar)
-                    self.lut.dict_objects[para][12].plot()
+                    self.lut.dict_objects[para][12].plot(clear=True)
                     if vals[1] < 1.0:
                         self.lut.dict_objects[para][12].setrange(xVals[0]-width*2, xVals[-1]+width*2)
                     # existingViewRect = self.lut.dict_objects[para][12].getViewBox().viewRange()
@@ -149,11 +152,11 @@ class LUT:
         self.set_boundaries()
 
     def special_chars(self):
-        self.gui.lblCab.setText(u'Chlorophyll A + B (Cab) [µg/cm²]')
-        self.gui.lblCm.setText(u'Dry Matter Content (Cm) [g/cm²]')
-        self.gui.lblCar.setText(u'Carotenoids (Car) [µg/cm²]')
-        self.gui.lblCanth.setText(u'Anthocyanins (Canth) [µg/cm²]')
-        self.gui.lblLAI.setText(u'Leaf Area Index (LAI) [m²/m²]')
+        self.gui.lblCab.setText('Chlorophyll A + B (Cab) [µg/cm²]')
+        self.gui.lblCm.setText('Dry Matter Content (Cm) [g/cm²]')
+        self.gui.lblCar.setText('Carotenoids (Car) [µg/cm²]')
+        self.gui.lblCanth.setText('Anthocyanins (Canth) [µg/cm²]')
+        self.gui.lblLAI.setText('Leaf Area Index (LAI) [m²/m²]')
 
 
     def initial_values(self):
@@ -646,7 +649,7 @@ class LUT:
         # bla = truncnorm((min - mean) / sigma, (max - mean) / sigma, loc=mean, scale=sigma).rvs(ns)
 
         xVals = np.arange(1.0, 3.0, 0.001)
-        self.gui.viewN.plot(xVals, norm.pdf(xVals, loc=1.7, scale=0.3))
+        self.gui.viewN.plot(xVals, norm.pdf(xVals, loc=1.7, scale=0.3), clear=True)
         # self.gui.viewN.setRange(rect=None, range=(0,15), yRange=(0,50), padding=None, update=True, disableAutoRange=True)
 
         # self.gui.graphicsView.plot(self.wl, self.myResult, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),

@@ -14,7 +14,7 @@ import unittest
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapboxtesting import initQgisApplication, TestObjects
+from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 from enmapboxtestdata import enmap, hires, library
 from enmapbox.gui.mapcanvas import *
@@ -51,8 +51,6 @@ class LayerRendererTests(unittest.TestCase):
         r = defaultRasterRenderer(lyr)
         self.assertIsInstance(r, QgsMultiBandColorRenderer)
 
-
-        s = ""
 if __name__ == "__main__":
     unittest.main()
 

@@ -6,7 +6,7 @@ import unittest
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.gui.utils import initQgisApplication
+from enmapbox.testing import initQgisApplication
 QGIS_APP = initQgisApplication()
 
 ANACONDA_ROOT = r'C:\Users\geo_beja\AppData\Local\Continuum\miniconda3'

@@ -39,6 +39,7 @@ class ClassificationWorkflowApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi,
         self.uiAdvanced_.hide() # advanced button not wanted :-(, use F1 key instead :-)
         self.uiSampleSizePercent_.valueChanged.connect(self.updateSpinboxes)
         self.uiSampleSizePixel_.valueChanged.connect(self.updateSpinboxes)
+        self.uiApply_.clicked.connect(self.updateSpinboxes)
         self.uiStacked_.setEnabled(False)
         self.spinboxes = None
         self._advancedWidgets = [self.uiOversampling_, self.uiPurity_]

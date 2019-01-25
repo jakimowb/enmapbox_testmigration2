@@ -39,7 +39,6 @@ class EnMAPBoxApplication(QObject):
     Base class to describe components of an EnMAPBoxApplication
     and to provide interfaces the main EnMAP-Box
     """
-
     @staticmethod
     def checkRequirements(enmapBoxApp)->(bool,str):
         """
@@ -137,7 +136,6 @@ class ApplicationRegistry(QObject):
         assert isinstance(enmapBox, EnMAPBox)
 
         self.mEnMAPBox = enmapBox
-        self.mProcessingAlgManager = self.mEnMAPBox.processingAlgManager
         self.mAppWrapper = collections.OrderedDict()
 
         self.mAppInitializationMessages = collections.OrderedDict()
@@ -244,7 +242,6 @@ class ApplicationRegistry(QObject):
                                directory without any __init__.py which contains EnMAPBoxApplication folders
         :return: bool, True if any EnMAPBoxApplication was added
         """
-
         if isRootFolder:
             assert (isinstance(appPackagePath, str) and os.path.isdir(appPackagePath))
             subDirs = []
@@ -352,9 +349,8 @@ class ApplicationRegistry(QObject):
         self.loadMenuItems(appWrapper)
 
         #load QGIS Processing Framework Integration
-        if self.mProcessingAlgManager.isInitialized():
-            if DEBUG:
-                print('Load Processing Algorithm...')
+        import enmapbox.algorithmprovider
+        if isinstance(enmapbox.algorithmprovider.instance(), enmapbox.algorithmprovider.EnMAPBoxAlgorithmProvider):
             self.loadProcessingAlgorithms(appWrapper)
 
         if DEBUG:
@@ -362,7 +358,8 @@ class ApplicationRegistry(QObject):
 
         return True
 
-    def loadProcessingAlgorithms(self, appWrapper):
+    def loadProcessingAlgorithms(self, appWrapper:ApplicationWrapper):
+
         assert isinstance(appWrapper, ApplicationWrapper)
         processingAlgorithms = appWrapper.app.processingAlgorithms()
         if DEBUG:
@@ -378,7 +375,9 @@ class ApplicationRegistry(QObject):
             if DEBUG:
                 print('QgsProcessingAlgorithms found: {}'.format(processingAlgorithms))
             appWrapper.processingAlgorithms.extend(processingAlgorithms)
-            provider = self.mProcessingAlgManager.enmapBoxProvider()
+            import enmapbox.algorithmprovider
+            provider = enmapbox.algorithmprovider.instance()
+
             if isinstance(provider, EnMAPBoxAlgorithmProvider):
                 provider.addAlgorithms(processingAlgorithms)
             else:
@@ -435,14 +434,9 @@ class ApplicationRegistry(QObject):
                 else:
                     s = ""
 
-        #todo: remove geo-algorithms
-        PAM = self.mProcessingAlgManager
-        from enmapbox.gui.processingmanager import ProcessingAlgorithmsManager
-        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-        assert isinstance(PAM, ProcessingAlgorithmsManager)
-
-        provider = PAM.enmapBoxProvider()
+        import enmapbox.algorithmprovider
+        provider = enmapbox.algorithmprovider.instance()
         assert isinstance(provider, EnMAPBoxAlgorithmProvider)
         provider.removeAlgorithms(appWrapper.processingAlgorithms)
-        s = ""
+
 

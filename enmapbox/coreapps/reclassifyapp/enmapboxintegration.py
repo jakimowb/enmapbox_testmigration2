@@ -62,7 +62,7 @@ class ReclassifyTool(EnMAPBoxApplication):
         #return {'pathSrc': pathSrc, 'pathDst': pathDst, 'LUT': LUT,
         #        'classNames': dstScheme.classNames(), 'classColors': dstScheme.classColors()}
         if len(settings) > 0 :
-            import reclassify
+            from reclassifyapp import reclassify
             reclassify.reclassify(settings['pathSrc'],
                                   settings['pathDst'],
                                   settings['dstClassScheme'],

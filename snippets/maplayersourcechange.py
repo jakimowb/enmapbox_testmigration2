@@ -5,7 +5,7 @@ from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from qgis.gui import *
 from qgis.core import *
-from enmapboxtesting import initQgisApplication, TestObjects
+from enmapbox.testing import initQgisApplication, TestObjects
 from osgeo import gdal, osr
 
 def createRandomRaster()->gdal.Dataset:

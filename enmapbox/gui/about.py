@@ -28,8 +28,7 @@ from enmapbox.gui.utils import loadUI, jp
 from enmapbox import DIR_REPO
 
 
-class AboutDialog(QDialog,
-                    loadUI('aboutdialog.ui')):
+class AboutDialog(QDialog, loadUI('aboutdialog.ui')):
     def __init__(self, parent=None):
         """Constructor."""
         super(AboutDialog, self).__init__(parent)
@@ -76,7 +75,7 @@ class AboutDialog(QDialog,
 
 if __name__ == '__main__':
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     app = initQgisApplication()
     d = AboutDialog()
     d.show()

@@ -169,7 +169,7 @@ def installTestdata(overwrite_existing=False):
 
     app = QgsApplication.instance()
     if app is None:
-        from enmapbox.gui.utils import initQgisApplication
+        from enmapbox.testing import initQgisApplication
         app = initQgisApplication()
     from enmapbox import URL_TESTDATA
     from pyplugin_installer.unzip import unzip

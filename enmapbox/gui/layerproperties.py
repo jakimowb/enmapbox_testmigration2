@@ -22,7 +22,7 @@ import collections
 import os
 import re
 
-from osgeo import gdal, ogr
+from osgeo import gdal, ogr, osr
 import numpy as np
 from qgis.gui import *
 from qgis.core import *
@@ -32,7 +32,7 @@ from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtXml import QDomDocument
 
 from enmapbox.gui.utils import loadUI, SpatialExtent, defaultBands, bandClosestToWavelength, displayBandNames, write_vsimem
-from enmapbox.gui.widgets.models import *
+from enmapbox.gui import Option, OptionListModel, ClassificationScheme, ClassInfo
 import enmapbox.gui.mimedata
 """
 class RasterLayerProperties(QgsOptionsDialogBase):
@@ -154,7 +154,6 @@ def defaultRasterRenderer(layer:QgsRasterLayer, bandIndices:list=None)->QgsRaste
     assert isinstance(dp, QgsRasterDataProvider)
 
     #classification ? -> QgsPalettedRasterRenderer
-    from enmapbox.gui.classification.classificationscheme import ClassificationScheme
     classes = ClassificationScheme.fromMapLayer(layer)
 
     if isinstance(classes, ClassificationScheme):
@@ -281,7 +280,7 @@ def rendererToXml(layerOrRenderer, geomType:QgsWkbTypes=None):
         lyr = QgsRasterLayer(path)
         assert lyr.isValid()
         lyr.setRenderer(layerOrRenderer.clone())
-        lyr.exportNamedStyle(doc, err)
+        err = lyr.exportNamedStyle(doc)
         #remove dummy raster layer
         lyr = None
         drv.Delete(path)
@@ -291,7 +290,7 @@ def rendererToXml(layerOrRenderer, geomType:QgsWkbTypes=None):
         typeName = QgsWkbTypes.geometryDisplayString(geomType)
         lyr = QgsVectorLayer('{}?crs=epsg:4326&field=id:integer'.format(typeName), 'dummy', 'memory')
         lyr.setRenderer(layerOrRenderer.clone())
-        lyr.exportNamedStyle(doc, err)
+        err = lyr.exportNamedStyle(doc)
         lyr = None
     else:
         raise NotImplementedError()
@@ -982,7 +981,7 @@ if __name__ == '__main__':
     import site, sys
     #add site-packages to sys.path as done by enmapboxplugin.py
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     qgsApp = initQgisApplication()
     from enmapboxtestdata import enmap as pathL
     from enmapboxtestdata import landcover as pathV

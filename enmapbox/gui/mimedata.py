@@ -9,6 +9,8 @@ from qgis.gui import *
 from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpatial
 from enmapbox.gui.datasources import DataSource, DataSourceSpatial
 from enmapbox.gui.layerproperties import defaultRasterRenderer
+from enmapbox.gui import SpectralLibrary
+
 MDF_DOCKTREEMODELDATA = 'application/enmapbox.docktreemodeldata'
 MDF_DOCKTREEMODELDATA_XML = 'dock_tree_model_data'
 
@@ -199,7 +201,7 @@ def extractMapLayers(mimeData:QMimeData)->list:
 
             if isinstance(mapLayer, QgsMapLayer):
                 newMapLayers.append(mapLayer)
-        s = ""
+
 
     elif MDF_RASTERBANDS in mimeData.formats():
         data = pickle.loads(mimeData.data(MDF_RASTERBANDS))
@@ -245,6 +247,15 @@ def extractMapLayers(mimeData:QMimeData)->list:
         s = ""
 
     return newMapLayers
+
+def extractSpectralLibraries(mimeData:QMimeData)->list:
+    """Reads spectral libraries that may be defined in mimeData"""
+    results = []
+    slib = SpectralLibrary.readFromMimeData(mimeData)
+    if isinstance(slib, SpectralLibrary):
+        results.append(slib)
+
+    return results
 
 
 def textToByteArray(text):

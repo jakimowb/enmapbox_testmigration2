@@ -19,7 +19,7 @@ from enmapbox.testing import initQgisApplication, TestObjects
 
 QGIS_APP = initQgisApplication()
 from enmapbox.gui.utils import *
-from enmapbox import EnMAPBox, DIR_ENMAPBOX
+from enmapbox import EnMAPBox, DIR_ENMAPBOX, DIR_REPO
 import enmapbox.gui
 from enmapbox.gui.applications import *
 
@@ -116,7 +116,7 @@ class test_applications(unittest.TestCase):
         self.assertEqual(len(emptyApp.processingAlgorithms()), 0)
         self.assertEqual(emptyApp.menu(QMenu), None)
         
-        testApp = TestObjects.enmapBoxApplication()
+        testApp = TestObjects.enmapboxApplication()
 
         isOk, errors = EnMAPBoxApplication.checkRequirements(testApp)
         self.assertTrue(isOk)
@@ -136,11 +136,11 @@ class test_applications(unittest.TestCase):
         EB = EnMAPBox()
 
         reg = ApplicationRegistry(EB)
-        testApp = TestObjects.enmapBoxApplication()
+        testApp = TestObjects.enmapboxApplication()
         self.assertIsInstance(reg.applications(), list)
         self.assertTrue(len(reg.applications()) == 0)
         
-        app = TestObjects.enmapBoxApplication()
+        app = TestObjects.enmapboxApplication()
         self.assertIsInstance(app, EnMAPBoxApplication)
         reg.addApplication(app)
         self.assertTrue(len(reg.applications()) == 1)
@@ -149,7 +149,7 @@ class test_applications(unittest.TestCase):
         reg.removeApplication(app)
         self.assertTrue(len(reg.applications()) == 0)
 
-        app2 = TestObjects.enmapBoxApplication()
+        app2 = TestObjects.enmapboxApplication()
         reg.addApplication(app2)
         self.assertTrue(len(reg.applications()) == 1, msg='Applications with same name are not allowed to be added twice')
 
@@ -191,7 +191,32 @@ class test_applications(unittest.TestCase):
         reg.addApplicationFolder(rootFolder, isRootFolder=True)
         self.assertTrue(len(reg) > 0, msg='Failed to add example EnMAPBoxApplication from {}'.format(rootFolder))
 
-    def test_apps(self):
+    def test_loadListing(self):
+
+        eb = EnMAPBox(None)
+        eb.loadExampleData()
+
+
+
+    def test_externalApp(self):
+
+        enmapbox.LOAD_PROCESSING_FRAMEWORK = True
+        enmapbox.LOAD_INTERNAL_APPS = False
+        enmapbox.LOAD_EXTERNAL_APPS = False
+        EB = EnMAPBox()
+        self.assertIsInstance(EB, EnMAPBox)
+
+        pathAppDir = r'C:\Users\geo_beja\Repositories\enmap-box-workshop2019\tutorials\progtut2\exercise3\smallexampleapp'
+        if os.path.isdir(pathAppDir):
+            reg = ApplicationRegistry(EB)
+            reg.addApplicationFolder(pathAppDir)
+            self.assertTrue(len(reg) > 0, msg='Failed to add example EnMAPBoxApplication from {}'.format(pathAppDir))
+
+            EB.addApplication(pathAppDir)
+            self.assertTrue(len(EB.applicationRegistry) == 1)
+            s = ""
+
+    def test_deployed_apps(self):
 
         pathCoreApps = os.path.join(DIR_ENMAPBOX, 'coreapps')
         pathExternalApps = os.path.join(DIR_ENMAPBOX, 'apps')

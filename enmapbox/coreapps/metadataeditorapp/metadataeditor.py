@@ -20,13 +20,12 @@
 """
 
 
-import sys
-
+import sys, os
+from enmapbox.gui import *
 from enmapbox.gui.utils import loadUIFormClass, guessDataProvider
-from enmapbox.gui.widgets.trees import TreeModel, TreeNode
 from metadataeditorapp.metadatakeys import *
-from enmapbox.gui.widgets.models import OptionListModel, Option
-from enmapbox.gui.classification.classificationscheme import *
+
+
 
 
 from metadataeditorapp import APP_DIR
@@ -53,12 +52,9 @@ class MetadataItemTreeNode(TreeNode):
         assert isinstance(key, MDKeyAbstract)
         if 'name' not in kwds.keys():
             kwds['name'] = key.name()
-        if 'tooltip' not in kwds.keys():
-            kwds['tooltip'] = key.tooltip()
+        if 'toolTip' not in kwds.keys():
+            kwds['toolTip'] = key.tooltip()
         super(MetadataItemTreeNode, self).__init__(parentNode, **kwds)
-
-        if kwds.get('tooltip') is None:
-            self.setToolTip(key.mTooltip)
 
         self.mMDKey = key
         self.setMetadataValue(key.value())
@@ -245,7 +241,7 @@ class MetadataDomainModel(OptionListModel):
             tooltip = 'Default Metadata domain'
         else:
             tooltip = 'Metadata domain "{}"'.format(domainName)
-        d = Option(domainName, domainName, tooltip=tooltip)
+        d = Option(domainName, domainName, toolTip=tooltip)
         self.addOption(d)
 
 
@@ -358,11 +354,11 @@ class MetadataTreeModel(TreeModel):
 
         nDS = RasterSourceTreeNode(root, ds,
                                    name='Dataset',
-                                   tooltip='Raster Data Source.')
+                                   toolTip='Raster Data Source.')
 
         nFiles = TreeNode(root, 'Source Files',
                           values=len(files),
-                          tooltip='Physical files related to this Raster Data Source.')
+                          toolTip='Physical files related to this Raster Data Source.')
         for i, f in enumerate(files):
             TreeNode(nFiles, name='{}'.format(i + 1), values=os.path.basename(f))
 
@@ -991,7 +987,7 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         if b2:
             ogr.UseExceptions()
 
-        options = [Option(source, os.path.basename(source), tooltip=source) for source in uriList]
+        options = [Option(source, os.path.basename(source), toolTip=source) for source in uriList]
         self.mSourceModel.addOptions(options)
 
 

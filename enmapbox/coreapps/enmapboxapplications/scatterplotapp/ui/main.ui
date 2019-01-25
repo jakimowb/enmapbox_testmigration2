@@ -194,20 +194,7 @@
           <item row="4" column="0">
            <widget class="QLabel" name="label_5">
             <property name="text">
-             <string>Bins</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="1">
-           <widget class="QSpinBox" name="uiBins_">
-            <property name="minimum">
-             <number>1</number>
-            </property>
-            <property name="maximum">
-             <number>1000</number>
-            </property>
-            <property name="value">
-             <number>100</number>
+             <string>Plot</string>
             </property>
            </widget>
           </item>
@@ -258,6 +245,56 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>0</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item row="4" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_7">
+            <item>
+             <widget class="QRadioButton" name="radioButton_3">
+              <property name="text">
+               <string>binned data</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="uiBins_">
+              <property name="suffix">
+               <string> bins</string>
+              </property>
+              <property name="minimum">
+               <number>10</number>
+              </property>
+              <property name="maximum">
+               <number>1000</number>
+              </property>
+              <property name="value">
+               <number>100</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="radioButton_4">
+              <property name="text">
+               <string>actual data</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
                 <height>20</height>
                </size>
               </property>
@@ -324,7 +361,7 @@
      <x>0</x>
      <y>0</y>
      <width>1311</width>
-     <height>21</height>
+     <height>26</height>
     </rect>
    </property>
   </widget>
@@ -393,8 +430,8 @@
      <y>58</y>
     </hint>
     <hint type="destinationlabel">
-     <x>585</x>
-     <y>51</y>
+     <x>1122</x>
+     <y>61</y>
     </hint>
    </hints>
   </connection>
@@ -409,7 +446,7 @@
      <y>50</y>
     </hint>
     <hint type="destinationlabel">
-     <x>800</x>
+     <x>1296</x>
      <y>61</y>
     </hint>
    </hints>
@@ -425,8 +462,8 @@
      <y>84</y>
     </hint>
     <hint type="destinationlabel">
-     <x>574</x>
-     <y>80</y>
+     <x>1122</x>
+     <y>92</y>
     </hint>
    </hints>
   </connection>
@@ -441,7 +478,7 @@
      <y>83</y>
     </hint>
     <hint type="destinationlabel">
-     <x>800</x>
+     <x>1296</x>
      <y>92</y>
     </hint>
    </hints>
@@ -457,8 +494,8 @@
      <y>46</y>
     </hint>
     <hint type="destinationlabel">
-     <x>644</x>
-     <y>52</y>
+     <x>1122</x>
+     <y>61</y>
     </hint>
    </hints>
   </connection>
@@ -473,8 +510,8 @@
      <y>46</y>
     </hint>
     <hint type="destinationlabel">
-     <x>748</x>
-     <y>48</y>
+     <x>1296</x>
+     <y>61</y>
     </hint>
    </hints>
   </connection>
@@ -489,8 +526,8 @@
      <y>76</y>
     </hint>
     <hint type="destinationlabel">
-     <x>640</x>
-     <y>82</y>
+     <x>1122</x>
+     <y>92</y>
     </hint>
    </hints>
   </connection>
@@ -505,8 +542,24 @@
      <y>76</y>
     </hint>
     <hint type="destinationlabel">
-     <x>716</x>
-     <y>82</y>
+     <x>1296</x>
+     <y>92</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButton_3</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>uiBins_</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>199</x>
+     <y>172</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>269</x>
+     <y>174</y>
     </hint>
    </hints>
   </connection>
