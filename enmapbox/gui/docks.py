@@ -723,6 +723,7 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         self.setupUi(self)
         self.setAcceptDrops(True)
         self.mFile = None
+        self.mTitle = self.windowTitle()
         self.mTextEdit.setAcceptDrops(True)
         self.mTextEdit.dragEnterEven = self.dragEnterEvent
         self.mTextEdit.dropEvent = self.dropEvent
@@ -737,6 +738,7 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         self.actionSaveFileAs.triggered.connect(lambda :self.save(saveAs=True))
 
         self.actionSaveFile.setEnabled(False)
+        self.updateTitle()
 
     def dragEnterEvent(self, event:QDragEnterEvent):
         """
@@ -778,8 +780,20 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         """
         if os.path.isfile(path):
             data = None
-            with codecs.open(path, 'r', 'utf-8') as file:
-                data = ''.join(file.readlines(self.nMaxBytes))
+
+            statinfo = os.stat(path)
+            if statinfo.st_size > self.nMaxBytes:
+                info = 'Files {} is > {} bytes'.format(path, self.nMaxBytes)
+                info += '\nDo you really want to load it into this text editor?'
+                result = QMessageBox.warning(self, 'Warning', info, QMessageBox.Yes, QMessageBox.Cancel)
+                if result != QMessageBox.Yes:
+                    return
+            try:
+                with open(path, 'r', 'utf-8') as file:
+                    data = ''.join(file.readlines())
+            except:
+                with open(path, 'r') as file:
+                    data = ''.join(file.readlines())
 
             ext = os.path.splitext(path)[-1].lower()
             if data is not None:
@@ -792,8 +806,21 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
 
         else:
             self.mFile = None
+        self.updateTitle()
         self.actionSaveFile.setEnabled(os.path.isfile(self.file()))
         self.sigSourceChanged.emit(str(path))
+
+    def updateTitle(self):
+        """
+        Updates the widget title
+        """
+        #title = '{}'.format(self.mTitle)
+        title = ''
+        if isinstance(self.mFile, str):
+            # title += ' | {}'.format(os.path.basename(self.mFile))
+            title = os.path.basename(self.mFile)
+        self.setWindowTitle(title)
+
 
     def setText(self, *args, **kwds):
         """
@@ -856,6 +883,7 @@ class TextDock(Dock):
         super(TextDock, self).__init__(*args, **kwds)
 
         self.mTextDockWidget = TextDockWidget(self)
+        self.mTextDockWidget.windowTitleChanged.connect(self.setTitle)
         if html:
             self.mTextDockWidget.mTextEdit.insertHtml(html)
         elif plainTxt:
