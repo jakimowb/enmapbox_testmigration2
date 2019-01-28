@@ -146,6 +146,8 @@ class TestEnMAPBox(unittest.TestCase):
         for d in ['MAP', 'TEXT', 'SPECLIB', 'MIME']:
             dock = self.EMB.createDock(d)
             self.assertIsInstance(dock, Dock)
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_mapDockInteraction(self):
         E = self.EMB
