@@ -740,10 +740,11 @@ class Raster(Map):
     '''Class for managing raster maps like :class:`~Mask`, :class:`~Classification`,
     :class:`~Regression` and :class:`~Fraction`.'''
 
-    def __init__(self, filename):
+    def __init__(self, filename, eAccess=gdal.GA_ReadOnly):
         '''Create instance from the raster located at the given ``filename``.'''
         self._filename = filename
         self._rasterDataset = None
+        self._eAccess = eAccess
 
     def __getstate__(self):
         return OrderedDict([('filename', self.filename())])
@@ -759,7 +760,7 @@ class Raster(Map):
     def dataset(self):
         '''Return the :class:`hubdc.core.RasterDataset` object.'''
         if self._rasterDataset is None:
-            self._rasterDataset = openRasterDataset(self.filename())
+            self._rasterDataset = openRasterDataset(self.filename(), eAccess=self._eAccess)
         assert isinstance(self._rasterDataset, RasterDataset)
         return self._rasterDataset
 
@@ -783,6 +784,7 @@ class Raster(Map):
         '''
 
         assert isinstance(rasterDataset, RasterDataset)
+
         raster = cls(rasterDataset.filename(), **kwargs)
         raster._rasterDataset = rasterDataset
         return raster
@@ -880,7 +882,7 @@ class Raster(Map):
         assert isinstance(array, np.ndarray)
         assert array.ndim == 3
         rasterDataset = RasterDataset.fromArray(array=array, grid=grid, filename=filename,
-                                                     driver=RasterDriver.fromFilename(filename=filename))
+                                                driver=RasterDriver.fromFilename(filename=filename))
         rasterDataset.setNoDataValues(values=noDataValues)
         if descriptions is not None:
             assert len(descriptions) == rasterDataset.zsize()
@@ -1340,6 +1342,14 @@ class Raster(Map):
         '''
         return SensorDefinition._fromFWHM(centers=self.metadataWavelength(), fwhms=self.metadataFWHM())
 
+
+    def close(self):
+        '''See RasterDataset.show.'''
+        self.dataset().close()
+
+    def show(self):
+        '''See RasterDataset.show.'''
+        self.dataset().show()
 
 class _RasterResample(ApplierOperator):
     def ufunc(self, raster, resampleAlg):
@@ -3239,16 +3249,7 @@ class ClassDefinition(FlowObject):
 
         self._classes = int(classes)
         self._names = [str(name) for name in names]
-        self._colors = list()
-        for color in colors:
-            if isinstance(color, Color):
-                self._colors.append(color)
-            elif isinstance(color, (list, tuple, np.ndarray)):
-                self._colors.append(Color(*[int(v) for v in color]))
-            elif isinstance(color, str):
-                self._colors.append(Color(color))
-            else:
-                raise errors.ObjectParserError(obj=color, type=Color)
+        self._colors = [Color(color) for color in colors]
         self.setNoDataNameAndColor()
 
     def __getstate__(self):
@@ -3454,7 +3455,7 @@ class ClassDefinition(FlowObject):
 class Classification(Raster):
     '''Class for managing classifications.'''
 
-    def __init__(self, filename, classDefinition=None, minOverallCoverage=0.5, minDominantCoverage=0.5):
+    def __init__(self, filename, classDefinition=None, minOverallCoverage=0.5, minDominantCoverage=0.5, eAccess=gdal.GA_ReadOnly):
         '''
         Create an instance.
 
@@ -3471,7 +3472,7 @@ class Classification(Raster):
 
         '''
 
-        Raster.__init__(self, filename)
+        Raster.__init__(self, filename=filename, eAccess=eAccess)
         self._classDefinition = classDefinition
         self._minOverallCoverage = minOverallCoverage
         self._minDominantCoverage = minDominantCoverage
@@ -3522,7 +3523,7 @@ class Classification(Raster):
         return Raster.asMask(self, minOverallCoverage=minOverallCoverage, invert=invert)
 
     @classmethod
-    def fromArray(cls, array, filename, classDefinition=None, grid=None):
+    def fromArray(cls, array, filename, classDefinition=None, grid=None, **kwargs):
         '''
         Create instance from given ``array``.
 
@@ -3534,6 +3535,7 @@ class Classification(Raster):
         :type classDefinition: hubflow.core.ClassDefinition
         :param grid:
         :type grid: hubdc.core.Grid
+        :param kwargs: additional kwargs are passed to Classification contructor
         :return:
         :rtype: hubflow.core.Classification
 
@@ -3545,12 +3547,16 @@ class Classification(Raster):
         Classification(filename=/vsimem/classification.bsq, classDefinition=ClassDefinition(classes=2, names=['class 1', 'class 2'], colors=[Color(255, 0, 0), Color(0, 0, 255)]), minOverallCoverage=0.5, minDominantCoverage=0.5)
         '''
 
+        if not isinstance(array, np.ndarray):
+            array = np.array(array, dtype=np.uint8)
         if classDefinition is None:
             classDefinition = ClassDefinition.fromArray(array)
         raster = Raster.fromArray(array=array, filename=filename, grid=grid, noDataValues=[0])
         MetadataEditor.setClassDefinition(rasterDataset=raster.dataset(), classDefinition=classDefinition)
-        raster.dataset().close()
-        return Classification(filename=filename)
+        #raster.dataset().close() # need to close to flush
+        # return Classification(filename=filename)
+        # Classification(minOverallCoverage=0.5, minDominantCoverage=0.5, eAccess=gdal.GA_ReadOnly)
+        return Classification.fromRasterDataset(rasterDataset=raster.dataset(), **kwargs)
 
     @classmethod
     def fromClassification(cls, filename, classification, grid=None, masks=None, **kwargs):
@@ -3859,7 +3865,7 @@ class Regression(Raster):
                             ('outputNames', self.outputNames()),
                             ('minOverallCoverage', self.minOverallCoverage())])
 
-    def noDataValues(self):
+    def noDataValues(self, default=None, required=True):
         '''
         Return no data values.
 
@@ -3870,7 +3876,7 @@ class Regression(Raster):
         [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0]
         '''
         if self._noDataValues is None:
-            self._noDataValues = self.dataset().noDataValues(required=True)
+            self._noDataValues = self.dataset().noDataValues(default=default, required=required)
         assert isinstance(self._noDataValues, list)
         return self._noDataValues
 
@@ -3963,11 +3969,13 @@ class Regression(Raster):
     #                                       descriptions=attributes)
     #     return regression
 
-    def asMask(self, minOverallCoverage=None):
+    def asMask(self, minOverallCoverage=None, noDataValues=None):
         '''Creates a mask instance from itself. Optionally, the minimal overall coverage can be changed.'''
         if minOverallCoverage is None:
             minOverallCoverage = self.minOverallCoverage()
-        return Raster.asMask(self, noDataValues=self.noDataValues(), minOverallCoverage=minOverallCoverage)
+        if noDataValues is None:
+            noDataValues = self.noDataValues(required=True)
+        return Raster.asMask(self, noDataValues=noDataValues, minOverallCoverage=minOverallCoverage)
 
     def resample(self, filename, grid, **kwargs):
         '''
@@ -5367,7 +5375,7 @@ class RegressionPerformance(FlowObject):
             gs = matplotlib.gridspec.GridSpec(2, 2, width_ratios=[3, 1], height_ratios=[1, 3])
 
             ax0 = pyplot.subplot(gs[0, 0])
-            ax0.hist(self.yT[i], bins=100, edgecolor='None', )
+            ax0.hist(self.yT[i], bins=100, edgecolor='None', color='navy')
             pyplot.xlim([np.min(self.yT[i]), np.max(self.yT[i])])
             pyplot.tick_params(which='both', direction='out', length=10, pad=10)
             # hide ticks and ticklabels
@@ -5383,7 +5391,7 @@ class RegressionPerformance(FlowObject):
             # for label in ax0.get_yticklabels()[1:-1]: label.set_visible(False)
 
             ax1 = pyplot.subplot(gs[1, 1])
-            ax1.hist(self.yP[i], orientation='horizontal', bins=100, edgecolor='None')
+            ax1.hist(self.yP[i], orientation='horizontal', bins=100, edgecolor='None', color='navy')
             pyplot.tick_params(which='both', direction='out', length=10, pad=10)
             pyplot.ylim([np.min(self.yT[i]), np.max(self.yT[i])])
             # hide ticks and ticklabels
@@ -5398,8 +5406,14 @@ class RegressionPerformance(FlowObject):
 
             ax2 = pyplot.subplot(gs[1, 0])
             ax2.scatter(self.yT[i], self.yP[i], s=10, edgecolor='', color='navy')
-            pyplot.xlim([np.min(self.yT[i]), np.max(self.yT[i])])
-            pyplot.ylim([np.min(self.yT[i]), np.max(self.yT[i])])
+            ymin = np.min(self.yT[i])
+            ymax = np.max(self.yT[i])
+            yspan = ymax - ymin
+            ymin -= yspan * 0.01 # give some more space
+            ymax += yspan * 0.01
+
+            pyplot.xlim([ymin, ymax])
+            pyplot.ylim([ymin, ymax])
             pyplot.tick_params(which='both', direction='out')
             pyplot.xlabel('Observed')
             pyplot.ylabel('Predicted')
@@ -5430,7 +5444,7 @@ class RegressionPerformance(FlowObject):
             pyplot.close()
 
             fig, ax = pyplot.subplots(facecolor='white', figsize=(7, 5))
-            ax.hist(self.residuals[i], bins=100, edgecolor='None')
+            ax.hist(self.residuals[i], bins=100, edgecolor='None', color='navy')
             ax.set_title(name)
             ax.set_xlabel('Predicted - Observed')
             ax.set_ylabel('Counts')
