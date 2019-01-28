@@ -5,6 +5,7 @@ except:
     matplotlib.use('QT5Agg')
     import matplotlib.pyplot as plt
 
+from collections import Iterable
 from collections import OrderedDict
 from os import makedirs, remove
 from os.path import dirname, exists, join, basename, splitext, abspath, isabs
@@ -1080,6 +1081,7 @@ class Grid(object):
         Returns the decomposition of self into subgrids of given ``size``.
         Subgrids at the border are trimmed to the extent of self.
         '''
+        size = RasterSize.parse(size)
         assert isinstance(size, RasterSize)
         size = RasterSize(x=min(size.x(), self.size().x()), y=min(size.y(), self.size().y()))
         result = list()
@@ -1187,6 +1189,14 @@ class RasterDataset(object):
     def grid(self):
         '''Return the :class:`~hubdc.model.Grid`.'''
         return self._grid
+
+    def setGrid(self, grid):
+        '''Set the :class:`~hubdc.model.Grid`.'''
+        assert isinstance(grid, Grid)
+        self._grid = grid
+        self.gdalDataset().SetGeoTransform(grid.geoTransform())
+        self.gdalDataset().SetProjection(grid.projection().wkt())
+        self.flushCache()
 
     def projection(self):
         '''Return the :class:`~hubdc.model.Projection`.'''
@@ -1503,7 +1513,6 @@ class RasterDataset(object):
             gdalDataset = gdal.Translate(destName=filename, srcDS=self._gdalDataset, options=translateOptions)
 
         rasterDataset = RasterDataset(gdalDataset=gdalDataset)
-#        assert grid.equal(other=rasterDataset.grid())
 
         # fix grid extent (should only appear with NearestNeighbour resampling
         if not grid.equal(other=rasterDataset.grid()):
@@ -1859,7 +1868,7 @@ class RasterBandDataset():
         assert array.ndim == 2
         return array
 
-    def array(self, grid=None, resampleAlg=gdal.GRA_NearestNeighbour, noData=None, errorThreshold=0.,
+    def array(self, grid=None, resampleAlg=gdal.GRA_NearestNeighbour, noDataValue=None, errorThreshold=0.,
               warpMemoryLimit=100 * 2 ** 20, multithread=False):
         '''
         Returns raster band data as 2d array of shape = (ysize, xsize) for the given ``grid``,
@@ -1869,8 +1878,8 @@ class RasterBandDataset():
         :type grid: hubdc.core.Grid
         :param resampleAlg: one of the GDAL resampling algorithms gdal.GRA_*
         :type resampleAlg: int
-        :param noData: if not specified, no data value of self is used
-        :type noData: float
+        :param noDataValue: if not specified, no data value of self is used
+        :type noDataValue: float
         :param errorThreshold: error threshold for approximation transformer (in pixels)
         :type errorThreshold: float
         :param warpMemoryLimit: size of working buffer in bytes
@@ -1887,7 +1896,7 @@ class RasterBandDataset():
         # make single band in-memory VRT raster and re-use RasterDataset.array
         filename = '/vsimem/hubdc.core.RasterBandDataset.array.vrt'
         vrt = self.raster().translate(filename=filename, driver=VrtDriver(), bandList=[self.index()+1])
-        array = vrt.array(grid=grid, resampleAlg=resampleAlg, noData=noData, errorThreshold=errorThreshold,
+        array = vrt.array(grid=grid, resampleAlg=resampleAlg, noDataValue=noDataValue, errorThreshold=errorThreshold,
                           warpMemoryLimit=warpMemoryLimit, multithread=multithread)
         gdal.Unlink(filename)
         return array[0]
@@ -1900,6 +1909,9 @@ class RasterBandDataset():
         :param grid: if provided, data is written to the location given by the grid extent
         :type grid: hubdc.core.Grid
         '''
+
+        if isinstance(array, list):
+            array = np.array(array)
 
         assert isinstance(array, np.ndarray)
         if array.ndim == 3:
