@@ -24,6 +24,7 @@ from enmapbox.gui.docks import *
 from qps.utils import *
 from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui import SpectralLibrary
+
 LUT_DOCKTYPES = {'MAP':MapDock,
                  'TEXT':TextDock,
                  'MIME':MimeDataDock,
@@ -1299,30 +1300,38 @@ class DockManager(QObject):
         """
         assert dockType in LUT_DOCKTYPES.keys(), 'dockType must be from [{}]'.format(','.join(['"{}"'.format(k) for k in LUT_DOCKTYPES.keys()]))
         cls = LUT_DOCKTYPES[dockType]
-        n = len(self.mDocks) + 1
+
+        #create the dock name
+        existingDocks = self.docks(dockType)
+        existingNames = [d.title() for d in existingDocks]
+        n = len(existingDocks) + 1
+        dockTypes = [MapDock, TextDock, MimeDataDock, WebViewDock, SpectralLibraryDock]
+        dockBaseNames = ['Map', 'Text', 'MimeData', 'HTML Viewer', 'SpectralLibrary']
+        baseName = 'Dock'
+        if cls in dockTypes:
+            baseName = dockBaseNames[dockTypes.index(cls)]
+        name = '{} #{}'.format(baseName, n)
+        while name in existingNames:
+            n += 1
+            name = '{} #{}'.format(baseName, n)
+        kwds['name'] = name
 
         dock = None
         if cls == MapDock:
-            kwds['name'] = kwds.get('name', 'Map #{}'.format(n))
-
             dock = MapDock(*args, **kwds)
             if isinstance(self.mDataSourceManager, DataSourceManager):
                 dock.sigLayersAdded.connect(self.mDataSourceManager.addSources)
 
         elif cls == TextDock:
-            kwds['name'] = kwds.get('name', 'Text #{}'.format(n))
             dock = TextDock(*args, **kwds)
 
         elif cls == MimeDataDock:
-            kwds['name'] = kwds.get('name', 'MimeData #{}'.format(n))
             dock = MimeDataDock(*args, **kwds)
 
         elif cls == WebViewDock:
-            kwds['name'] = kwds.get('name', 'HTML Viewer #{}'.format(n))
             dock = WebViewDock(*args, **kwds)
 
         elif cls == SpectralLibraryDock:
-            kwds['name'] = kwds.get('name', 'Spectral Library #{}'.format(n))
             dock = SpectralLibraryDock(*args, **kwds)
             dock.mSpeclibWidget.setMapInteraction(False)
 
