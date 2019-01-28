@@ -3086,24 +3086,49 @@ class VectorClassification(Vector):
 
 class Color(FlowObject):
 
-    def __init__(self, *args, **kwargs):
-        if isinstance(args[0], Color):
-            self._qColor = args[0]._qColor
-        elif isinstance(args[0], (list, tuple)) and len(args[0]) == 3:
-            self._qColor = QColor(*args[0])
+    def __init__(self, *args):
+        '''Create a new instance by interpreting ``args`` as a color.'''
+
+        if len(args) == 1:
+            obj = args[0]
         else:
-            self._qColor = QColor(*args, **kwargs)
+            obj = args
+
+        qColor = self._parseQColor(obj)
+        assert isinstance(qColor, QColor)
+        self._qColor = qColor
         self._args = args
-        self._kwargs = kwargs
 
     def __setstate__(self, state):
-        self.__init__(*state[0], **state[1])
+        self.__init__(*state)
 
     def __getstate__(self):
-        return (self._args, self._kwargs)
+        return self._args
 
     def __repr__(self):
-        return 'Color({})'.format(', '.join([repr(arg) for arg in self._args]))
+        return 'Color({})'.format(self._args)
+
+    def qColor(self):
+        '''Return QColor object.'''
+        assert isinstance(self._qColor, QColor)
+        return self._qColor
+
+    @staticmethod
+    def _parseQColor(obj):
+
+        if isinstance(obj, Color):
+            qColor = obj.qColor()
+        elif isinstance(obj, QColor):
+            qColor = QColor(obj)
+        elif isinstance(obj, str):
+            qColor = QColor(obj)
+        elif isinstance(obj, Iterable) and (len(obj) == 3 or len(obj) == 4):
+            qColor = QColor(*obj)
+        else:
+            raise errors.ObjectParserError(obj=obj, type=QColor)
+
+        assert isinstance(qColor, QColor)
+        return qColor
 
     def name(self):
         return self._qColor.name()
