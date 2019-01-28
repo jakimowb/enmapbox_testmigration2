@@ -3491,6 +3491,14 @@ class Classification(Raster):
         assert isinstance(self._classDefinition, ClassDefinition)
         return self._classDefinition
 
+    def setClassDefinition(self, classDefinition):
+        assert isinstance(classDefinition, ClassDefinition)
+        names = [classDefinition.noDataName()] + classDefinition.names()
+        colors = [classDefinition.noDataColor()] + classDefinition.colors()
+        self.dataset().band(0).setCategoryNames(names=names)
+        self.dataset().band(0).setCategoryColors(colors=[c.rgb() for c in colors])
+        self._classDefinition = classDefinition
+
     def minOverallCoverage(self):
         '''Return minimal overall coverage threshold.'''
         assert isinstance(self._minOverallCoverage, float)
