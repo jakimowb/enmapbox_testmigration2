@@ -948,10 +948,6 @@ class EnMAPBox(QgisInterface, QObject):
                 if mapLayer in canvas.layers():
                     mapCanvas = canvas
                     break
-            if mapCanvas is None:
-                mapCanvas = QgsMapCanvas(parent=self.ui)
-                mapCanvas.setVisible(False)
-
             #2.
             showLayerPropertiesDialog(mapLayer, mapCanvas, modal=True)
 
