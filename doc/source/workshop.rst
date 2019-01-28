@@ -6,10 +6,6 @@ EnMAP-Box Workshop 2019
 .. image:: img/workshop_logo.png
 
 
-.. attention::
-
-    **Application deadline extended:** There are still free slots available. If you are interested,
-    please :ref:`send us your application <application>` until **09.01.2019**.
 
 Aims and scope
 ~~~~~~~~~~~~~~

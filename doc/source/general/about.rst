@@ -8,7 +8,7 @@ About
     :width: 400px
     :align: center
 
-
+|
 
 The EnMAP-Box is a free and open source plug-in for `QGIS <https://www.qgis.org/en/site/#>`_.
 It is designed to process imaging spectroscopy data and
