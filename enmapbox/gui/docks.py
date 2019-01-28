@@ -613,10 +613,14 @@ class MimeDataTextEdit(QTextEdit):
         #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
         self.setOverwriteMode(False)
 
-    def canInsertFromMimeData(self, QMimeData):
+    def canInsertFromMimeData(self, QMimeData)->bool:
         return True
 
-    def insertFromMimeData(self, mimeData):
+    def insertFromMimeData(self, mimeData:QMimeData):
+        """
+        Shows the QMimeData information
+        :param mimeData: QMimeData
+        """
         assert isinstance(mimeData, QMimeData)
         formats = [str(f) for f in mimeData.formats()]
         self.clear()
@@ -717,9 +721,12 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         """
         super(TextDockWidget, self).__init__(parent=parent)
         self.setupUi(self)
-
+        self.setAcceptDrops(True)
         self.mFile = None
-
+        self.mTextEdit.setAcceptDrops(True)
+        self.mTextEdit.dragEnterEven = self.dragEnterEvent
+        self.mTextEdit.dropEvent = self.dropEvent
+        self.nMaxBytes = 80 * 2 * 12000
         self.btnLoadFile.setDefaultAction(self.actionLoadFile)
         self.btnSaveFile.setDefaultAction(self.actionSaveFile)
         self.btnSaveFileAs.setDefaultAction(self.actionSaveFileAs)
@@ -730,6 +737,28 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         self.actionSaveFileAs.triggered.connect(lambda :self.save(saveAs=True))
 
         self.actionSaveFile.setEnabled(False)
+
+    def dragEnterEvent(self, event:QDragEnterEvent):
+        """
+        :param event: QDragEnterEvent
+        """
+        if event.mimeData().hasUrls():
+            event.setDropAction(Qt.CopyAction)
+
+            event.accept()
+
+    def dropEvent(self, event:QDropEvent):
+        """
+        :param event: QDropEvent
+        """
+        if event.mimeData().hasUrls():
+            url = [u for u in event.mimeData().urls()][0]
+            assert isinstance(url, QUrl)
+            if url.isLocalFile():
+                self.loadFile(url.toLocalFile())
+                event.setDropAction(Qt.CopyAction)
+                event.accept()
+
 
 
     def file(self)->str:
@@ -750,7 +779,7 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         if os.path.isfile(path):
             data = None
             with codecs.open(path, 'r', 'utf-8') as file:
-                data = ''.join(file.readlines())
+                data = ''.join(file.readlines(self.nMaxBytes))
 
             ext = os.path.splitext(path)[-1].lower()
             if data is not None:
