@@ -124,14 +124,8 @@ def initEditorWidgets():
     """
     Initialises QgsEditorWidgets
     """
-    from qps.plotstyling.plotstyling import registerPlotStyleEditorWidget
-    registerPlotStyleEditorWidget()
-
-    from qps.speclib.spectrallibraries import registerSpectralProfileEditorWidget
-    registerSpectralProfileEditorWidget()
-
-    from qps.classification.classificationscheme import registerClassificationSchemeEditorWidget
-    registerClassificationSchemeEditorWidget()
+    import qps
+    qps.registerEditorWidgets()
 
 
 _enmapboxProvider = None

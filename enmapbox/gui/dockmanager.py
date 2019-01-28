@@ -22,6 +22,7 @@ from enmapbox.gui.mapcanvas import *
 from enmapbox.gui.mimedata import *
 from enmapbox.gui.docks import *
 from qps.utils import *
+from qps.layerproperties import *
 from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui import SpectralLibrary
 
@@ -1064,8 +1065,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
             lyr = node.layer()
 
-            from enmapbox.gui.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
-            from enmapbox.gui.mimedata import MDF_QGIS_LAYER_STYLE
             actionPasteStyle = menu.addAction('Paste Style')
             actionPasteStyle.triggered.connect(lambda : pasteStyleFromClipboard(lyr))
             actionPasteStyle.setEnabled(MDF_QGIS_LAYER_STYLE in QApplication.clipboard().mimeData().formats())
@@ -1118,7 +1117,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
     def setLayerStyle(self, layer, canvas):
 
-        from enmapbox.gui.layerproperties import showLayerPropertiesDialog
+
         showLayerPropertiesDialog(layer, canvas, modal=True)
 
 

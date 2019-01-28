@@ -27,6 +27,7 @@ from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
 from qps.cursorlocationvalue import CursorLocationInfoDock
+from qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
 
 SETTINGS = enmapbox.enmapboxSettings()
@@ -952,7 +953,6 @@ class EnMAPBox(QgisInterface, QObject):
                 mapCanvas.setVisible(False)
 
             #2.
-            from enmapbox.gui.layerproperties import showLayerPropertiesDialog
             showLayerPropertiesDialog(mapLayer, mapCanvas, modal=True)
 
 

@@ -8,7 +8,7 @@ import re
 from qgis.gui import *
 from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpatial
 from enmapbox.gui.datasources import DataSource, DataSourceSpatial
-from enmapbox.gui.layerproperties import defaultRasterRenderer
+from qps.layerproperties import defaultRasterRenderer
 from enmapbox.gui import SpectralLibrary
 
 MDF_DOCKTREEMODELDATA = 'application/enmapbox.docktreemodeldata'

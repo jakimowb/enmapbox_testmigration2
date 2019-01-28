@@ -126,6 +126,8 @@ class TestEnMAPBox(unittest.TestCase):
 
     def setUp(self):
 
+        import enmapbox
+        enmapbox.initEditorWidgets()
         self.EMB = EnMAPBox(None)
 
     def tearDown(self):
