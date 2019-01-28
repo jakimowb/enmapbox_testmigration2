@@ -1643,6 +1643,19 @@ class RasterDataset(object):
         plotWidget.plot(y=Y, **kwargs)
         return plotWidget
 
+    def mapViewer(self):
+        mapViewer = MapViewer()
+        mapViewer.addLayer(layer=self.mapLayer())
+        return mapViewer
+
+    def mapLayer(self):
+        from qgis.core import QgsRasterLayer
+        if self.driver().equal(MemDriver()):
+            raise NotImplementedError()
+        return MapLayer(QgsRasterLayer(self.filename()))
+
+    def show(self):
+        self.mapViewer().show()
 
     def plotSinglebandGrey(self, index=0, vmin=None, vmax=None, pmin=None, pmax=None, cmap='gray', noPlot=False,
                            showPlot=True):
@@ -2033,6 +2046,15 @@ class RasterBandDataset():
         profile = self.readAsArray(grid=grid).flatten()
         return profile
 
+    def mapLayer(self):
+        from qgis.core import QgsRasterLayer
+        filename = '/vsimem/mapLayer/{}_{}.vrt'.format(self.raster().filename(), self.index())
+        rasterDataset = self.raster().translate(bandList=[self.index()+1], filename=filename, driver=VrtDriver())
+        return rasterDataset.mapLayer()
+
+    def show(self):
+        MapViewer().addLayer(layer=self.mapLayer()).show()
+
 class VectorDataset(object):
     '''Class for managing vector layer datasets.'''
 
@@ -2289,6 +2311,20 @@ class VectorDataset(object):
         '''Returns number of layers (i.e. 1).'''
         return 1
 
+    def mapViewer(self):
+        mapViewer = MapViewer()
+        mapViewer.addLayer(layer=self.mapLayer())
+        return mapViewer
+
+    def mapLayer(self):
+        from qgis.core import QgsVectorLayer
+        return MapLayer(QgsVectorLayer(self.filename()))
+
+    def show(self):
+        self.mapViewer().show()
+
+
+
 def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
     '''
     Opens the raster given by ``filename``.
@@ -2531,3 +2567,99 @@ def buildOverviews(filename, levels=None, minsize=1024, resampling='average'):
                      '-r', 'average',
                      '--config', 'COMPRESS_OVERVIEW', 'LZW',
                      filename, ' '.join(map(str, levels))])
+
+class MapViewer():
+
+    def __init__(self):
+
+        from qgis.gui import QgsMapCanvas
+        from qgis.core import QgsApplication
+        self.app = QgsApplication([], True)
+        self.app.initQgis()
+        self.canvas = QgsMapCanvas()
+        self.layers = list()
+        self._printExtent = False
+        self._extentSet = False
+        self._projectionSet = False
+
+    def addLayer(self, layer):
+        from qgis.core import QgsProject
+        assert isinstance(layer, MapLayer)
+        self.layers.append(layer)
+        qgsLayers = [layer.qgsMapLayer() for layer in self.layers]
+        QgsProject.instance().addMapLayers(qgsLayers)
+        self.canvas.setLayers(qgsLayers)
+        return self
+
+    def setExtent(self, extent):
+        assert isinstance(extent, Extent)
+        self._extentSet = True
+        from qgis.core import QgsRectangle, QgsCoordinateReferenceSystem
+        rectangle = QgsRectangle(extent.xmin(), extent.ymin(), extent.xmax(), extent.ymax())
+        crs = QgsCoordinateReferenceSystem()
+        crs.createFromWkt(extent.projection().wkt())
+        self.canvas.setExtent(rectangle)
+        self.canvas.setDestinationCrs(crs)
+        return self
+
+    def setProjection(self, projection):
+        from qgis.core import QgsCoordinateReferenceSystem
+        assert isinstance(projection, Projection)
+        self._projectionSet = True
+        crs = QgsCoordinateReferenceSystem()
+        crs.createFromWkt(projection.wkt())
+        self.canvas.setDestinationCrs(crs)
+        return self
+
+    def _prepareShowOrSave(self):
+        from qgis.core import QgsRectangle, QgsCoordinateReferenceSystem
+        if not self._extentSet:
+            if not self._projectionSet:
+                crs = self.layers[0].qgsMapLayer().crs()
+                self.canvas.setDestinationCrs(crs)
+            self.canvas.setExtent(self.canvas.fullExtent())
+
+    def show(self):
+        self._prepareShowOrSave()
+        self.canvas.waitWhileRendering()
+        if self._printExtent:
+            self.canvas.extentsChanged.connect(lambda: print(self.canvas.extent()))
+        self.canvas.show()
+        self.app.exec_()
+        return self
+
+    def save(self, filename):
+        # implemented as described here https://gis.stackexchange.com/questions/245840/wait-for-canvas-to-finish-rendering-before-saving-image
+        self._prepareShowOrSave()
+        from PyQt5.QtGui import QImage, QPainter, QColor
+        from qgis.core import QgsMapRendererCustomPainterJob
+        size = self.canvas.size()
+        image = QImage(size, QImage.Format_RGB32)
+        image.fill(QColor('white'))
+        painter = QPainter(image)
+        settings = self.canvas.mapSettings()
+        job = QgsMapRendererCustomPainterJob(settings, painter)
+        job.renderSynchronously()
+        painter.end()
+        filename = abspath(filename)
+        if not exists(dirname(filename)):
+            makedirs(dirname(filename))
+#        self.app.exit(0)
+        image.save(filename)
+        #self.app.exec_()
+#        self.app.exit(0)
+        return self
+
+
+class MapLayer(object):
+
+    def __init__(self, qgsMapLayer):
+        from qgis.core import QgsMapLayer
+        assert isinstance(qgsMapLayer, QgsMapLayer)
+        self._qgsMapLayer = qgsMapLayer
+
+    def qgsMapLayer(self):
+        from qgis.core import QgsMapLayer
+        assert isinstance(self._qgsMapLayer, QgsMapLayer)
+        return self._qgsMapLayer
+
