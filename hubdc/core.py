@@ -1504,6 +1504,14 @@ class RasterDataset(object):
 
         rasterDataset = RasterDataset(gdalDataset=gdalDataset)
 #        assert grid.equal(other=rasterDataset.grid())
+
+        # fix grid extent (should only appear with NearestNeighbour resampling
+        if not grid.equal(other=rasterDataset.grid()):
+            if kwargs.get('resampleAlg', gdal.GRA_NearestNeighbour) == gdal.GRA_NearestNeighbour:
+                rasterDataset.setGrid(grid)
+            else:
+                assert 0, 'unknown condition'
+
         return rasterDataset
 
     def array(self, indices=None, grid=None, resampleAlg=gdal.GRA_NearestNeighbour, noDataValue=None, errorThreshold=0.,
