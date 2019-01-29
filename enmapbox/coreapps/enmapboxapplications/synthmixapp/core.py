@@ -24,8 +24,10 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
         self.initOutputFolder()
         self.initAggregations()
         self.uiLabeledLibrary().uiField().currentIndexChanged.connect(self.setTargets)
+        self.uiLabeledLibrary().setInfo(uiInfo=self.uiInfo())
         self.setTargets(0)
-        self.uiRaster_.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.uiRaster().setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.uiRaster().setCurrentIndex(0)
         self.uiExecute().clicked.connect(self.execute)
 
     def uiLabeledLibrary(self):
@@ -33,6 +35,7 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
         return self.uiLabeledLibrary_
 
     def uiInfo(self):
+        assert isinstance(self.uiInfo_, QLabel)
         return self.uiInfo_
 
     def uiRaster(self):
@@ -53,17 +56,19 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
 
     def setTargets(self, index):
         library = self.uiLabeledLibrary().currentLibrary()
-        field = self.uiLabeledLibrary().currentField()
         for i in range(self.uiTargets().count()):
             self.uiTargets().removeItem(0)
-        if field is not None:
-            definitions = library.attributeDefinitions()
-            try:
-                classDefinition = AttributeDefinitionEditor.makeClassDefinition(definitions=definitions, attribute=field)
-                self.names = classDefinition.names()
-            except:
-                self.names = []
-            self.uiTargets().addItems(self.names)
+
+        if library is not None:
+            field = self.uiLabeledLibrary().currentField()
+            if field is not None:
+                definitions = library.attributeDefinitions()
+                try:
+                    classDefinition = AttributeDefinitionEditor.makeClassDefinition(definitions=definitions, attribute=field)
+                    self.names = classDefinition.names()
+                except:
+                    self.names = []
+                self.uiTargets().addItems(self.names)
         self.uiTargets().selectAllOptions()
 
     def initRegressor(self):
@@ -85,7 +90,6 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
         self.uiAggregations_.setCheckedItems(['mean'])
 
     def execute(self, *args):
-        self.uiInfo().setText('')
         try:
             library = self.uiLabeledLibrary().currentLibrary()
             if library is None:
@@ -123,7 +127,6 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
                 return
 
             classLikelihoods = self.uiClassLikelihoods_.currentText().lower()
-
             includeEndmember = self.uiIncludeLibrarySpectra_.isChecked()
             includeWithinclassMixtures = self.uiIncludeWithinclassMixtures_.isChecked()
             useEnsemble = self.uiUseEnsemble_.isChecked()
@@ -188,6 +191,6 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
 
             self.uiExecute().setEnabled(True)
 
-
         except:
             traceback.print_exc()
+            self.uiProgressBar_.setValue(0)

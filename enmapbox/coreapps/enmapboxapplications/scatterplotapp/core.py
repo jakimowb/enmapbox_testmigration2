@@ -252,13 +252,13 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
                 self.uiImageView().setSidePlotVisible(False)
                 self.progressBar().setPercentage(99)
 
-                ds1 = raster1.dataset().translate(grid=grid, bandList=[band1 + 1])
-                ds2 = raster2.dataset().translate(grid=grid, bandList=[band2 + 1])
+                ds1 = raster1.dataset().translate(grid=grid, bandList=[band1 + 1], filename='/vsimem/scatterplotapp/band1.vrt', driver=VrtDriver())
+                ds2 = raster2.dataset().translate(grid=grid, bandList=[band2 + 1], filename='/vsimem/scatterplotapp/band2.vrt', driver=VrtDriver())
 
                 sample = RegressionSample(raster=Raster.fromRasterDataset(rasterDataset=ds2),
                                           regression=Regression.fromRasterDataset(rasterDataset=ds1),
                                           mask=mask)
-                r2, r1 = sample.extractAsRaster(filenames=['/vsimem/r2.bsq', '/vsimem/r1.bsq'], **ApplierOptions(progressBar=self.progressBar()))
+                r2, r1 = sample.extractAsRaster(filenames=['/vsimem/scatterplotapp/extracted2.bsq', '/vsimem/scatterplotapp/extracted1.bsq'], onTheFlyResampling=True, **ApplierOptions(progressBar=self.progressBar()))
                 sample = RegressionSample(raster=r1, regression=Regression(filename=r2.filename()))
 
                 if plotFittedLine:

@@ -1,3 +1,4 @@
+import qgis.utils
 from enmapbox.testing import initQgisApplication
 from enmapboxapplications.widgets.core import *
 from enmapboxapplications.synthmixapp.core import SynthmixApp
@@ -5,13 +6,15 @@ from enmapboxapplications.synthmixapp.core import SynthmixApp
 
 if __name__ == '__main__':
 
-    qgsApp = initQgisApplication()
+    qgsApp = initQgisApplication('')
+    #qgsApp = QgsApplication([], True)
+    #qgsApp.initQgis()
 
     import qgisresources.images
     qgisresources.images.qInitResources()
 
 
-    enmapBox = EnMAPBox(None)
+    enmapBox = EnMAPBox(qgis.utils.iface)
     enmapBox.run()
     enmapBox.openExampleData(mapWindows=0)
 

@@ -272,18 +272,23 @@ class TestRasterDataset(TestCase):
         assert rasterdataset.translate(grid=subgrid).readAsArray() == gold
 
     def test_translate_withSubpixelShift(self):
-        array = np.array([[[1, 2]]])
-        grid = Grid(extent=Extent(xmin=0, xmax=2, ymin=0, ymax=1, projection=Projection.wgs84()), resolution=1)
+        array = np.array([[[0, 100, 200]]])
+        grid = Grid(extent=Extent(xmin=0, xmax=3, ymin=0, ymax=1, projection=Projection.wgs84()), resolution=1)
         rasterdataset = RasterDataset.fromArray(array=array, grid=grid)
         rasterdataset.setNoDataValue(-1)
-        gridShifted = Grid(extent=Extent(xmin=0.1, xmax=2.1, ymin=0.1, ymax=1.1, projection=Projection.wgs84()), resolution=1)
-        translated = rasterdataset.translate(grid=gridShifted)
-        print('x', grid.extent().upperLeft().x(), translated.grid().extent().upperLeft().x())
-        print('y', grid.extent().upperLeft().y(), translated.grid().extent().upperLeft().y())
+        shift = 0.1
+        gridShifted = Grid(extent=Extent(xmin=0-shift, xmax=3-shift, ymin=0, ymax=1, projection=Projection.wgs84()), resolution=1)
 
+        for name in dir(gdal):
+            if not name.startswith('GRA_'): continue
+            if name in ['GRA_Med', 'GRA_Max', 'GRA_Min']: continue
+            resampleAlg = getattr(gdal, name)
 
-        #assert np.all(translated.readAsArray() == rasterdataset.readAsArray())
-        assert gridShifted.equal(other=translated.grid())
+            print(name, resampleAlg)
+            translated = rasterdataset.translate(grid=gridShifted, resampleAlg=resampleAlg)
+            assert translated.grid().equal(gridShifted), name
+            #warped = rasterdataset.warp(grid=gridShifted, resampleAlg=resampleAlg)
+            #assert warped.grid().equal(gridShifted), name
 
     def test(self):
         self.assertIsInstance(obj=raster.grid(), cls=Grid)
@@ -570,3 +575,25 @@ class TestAuxClasses(TestCase):
         print(Row(y=0, z=0))
         print(Pixel(x=0, y=0))
 
+class TestMapViewer(TestCase):
+    def test(self):
+        import enmapboxtestdata
+        ds = openRasterDataset(enmapboxtestdata.enmap)
+        print(ds.grid().extent().reproject(Projection.wgs84()))
+        viewer = ds.mapViewer()
+        viewer._printExtent = True
+        viewer.setProjection(Projection.wgs84())
+        viewer.setExtent(Extent(xmin=13.29, xmax=13.32, ymin=52.47, ymax=52.49, projection=Projection.wgs84()))
+        #viewer.show()
+
+    def test_show(self):
+        import enmapboxtestdata
+        # raster
+        openRasterDataset(enmapboxtestdata.enmap).mapViewer().save(filename=join(outdir, 'viewerRaster.png'))
+        # vector
+        openVectorDataset(enmapboxtestdata.landcover_points).mapViewer().save(filename=join(outdir, 'viewerVector.png'))
+        # both
+        mapViewer = MapViewer()
+        mapViewer.addLayer(layer=openVectorDataset(enmapboxtestdata.landcover_points).mapLayer())
+        mapViewer.addLayer(layer=openRasterDataset(enmapboxtestdata.enmap).mapLayer())
+        mapViewer.save(filename=join(outdir, 'viewerBoth.png'))
