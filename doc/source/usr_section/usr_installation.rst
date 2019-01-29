@@ -261,7 +261,7 @@ Install from Repository (recommended)
 #. Click :guilabel:`Reload all repositories` to get aware of the latest EnMAP-Box updates
 #. Now the EnMAP-Box should be listed in the plugin list: Go to the ``All`` tab and search for "enmap":
 
-   .. image:: ../img/pluginmanager_all.png
+   .. figure:: ../img/pluginmanager_all.PNG
 
    Select it and click :guilabel:`Install plugin` (or :guilabel:`Upgrade plugin` in case you update to a new version)
 #. Start the EnMAP-Box via the |icon| icon or from the menubar *Raster* > *EnMAP-Box*
