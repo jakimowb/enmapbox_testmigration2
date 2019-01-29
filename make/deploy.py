@@ -135,11 +135,15 @@ def build():
 
         # 2. Compile. Basically call pyrcc to create the resources.rc file
         # I don't know how to call this from pure python
-        try:
-            pb_tool.compile_files(cfg)
-        except Exception as ex:
-            print('Failed to compile resources')
-            print(ex)
+
+        #try:
+        #    pb_tool.compile_files(cfg)
+        #except Exception as ex:
+        #    print('Failed to compile resources')
+        #    print(ex)
+
+        import make.guimake
+        make.guimake.compileResourceFiles()
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
         pb_tool.deploy_files(pathCfg, DIR_DEPLOY, quick=True, confirm=False)
