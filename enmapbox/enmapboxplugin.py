@@ -46,9 +46,9 @@ class EnMAPBoxPlugin(object):
         enmapbox.initEnMAPBoxResources()
         enmapbox.initEditorWidgets()
 
-
         # add the EnMAP-Box Provider
         enmapbox.initEnMAPBoxProcessingProvider()
+
         #assert self.enmapBoxProvider == QgsApplication.instance().processingRegistry().providerById('enmapbox')
 
     def initialDependencyCheck(self):

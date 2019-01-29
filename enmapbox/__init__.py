@@ -116,6 +116,7 @@ def initEnMAPBoxResources():
         print('Unable to import qps.resources', file=sys.stderr)
 
 
+
 def initEditorWidgets():
     """
     Initialises QgsEditorWidgets
@@ -154,6 +155,14 @@ def initEnMAPBoxProcessingProvider():
             info.append(p)
         print('\n'.join(info), file=sys.stderr)
 
+
+def initAll():
+    """
+    Calls other init routines required to run the EnMAP-Box properly
+    """
+    initEnMAPBoxResources()
+    initEditorWidgets()
+    initEnMAPBoxProcessingProvider()
 
 
 #provide important classes in Top-Level Namespace

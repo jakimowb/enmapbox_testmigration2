@@ -39,6 +39,11 @@ def run(debug:bool=False, processing:bool=True, applications:bool=True, sources:
     enmapbox.LOAD_PROCESSING_FRAMEWORK = processing
     enmapbox.LOAD_EXTERNAL_APPS = applications
 
+    # initialize resources and background frameworks
+    # if started from QGIS, this is done by enmapbox/enmapboxplugin.py
+    # initialize Qt resources, QgsEditorWidgetWrapper, QgsProcessingProviders etc.
+    enmapbox.initAll()
+
     from enmapbox.gui.enmapboxgui import EnMAPBox
 
 

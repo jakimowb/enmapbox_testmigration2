@@ -127,7 +127,7 @@ class TestEnMAPBox(unittest.TestCase):
     def setUp(self):
 
         import enmapbox
-        enmapbox.initEditorWidgets()
+        enmapbox.initAll()
         self.EMB = EnMAPBox(None)
 
     def tearDown(self):
@@ -183,7 +183,7 @@ class TestEnMAPBox(unittest.TestCase):
         #self.assertTrue(len(E.mapCanvases()) == 1)
 
         E.createDock('MAP')
-        self.assertTrue(len(E.mapCanvases()) == 2)
+        self.assertTrue(len(E.mapCanvases()) == 1)
         for c in E.mapCanvases():
             self.assertIsInstance(c, MapCanvas)
 
