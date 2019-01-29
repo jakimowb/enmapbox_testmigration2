@@ -54,6 +54,7 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmspr
                   key='enmapboxapplications',
                   prefixLocal=r'enmapbox/coreapps/enmapboxapplications',
                   prefixRemote=r'enmapboxapplications',
+                  excluded=['ressources.py'],
                   remoteBranch='develop')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
@@ -92,15 +93,15 @@ if __name__ == "__main__":
 
 
     # update remotes
-    to_update = ['hub-datacube'
-                 ,'hub-workflow'
-                 ,'enmapboxapplications'
+    to_update = [#'hub-datacube'
+                 #,'hub-workflow'
+                 #'enmapboxapplications'
                  #,'enmapboxgeoalgorithms'
                  #,'enmap-box-lmu-vegetation-apps'
                  #'virtual-raster-builder',
                  #'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
-                ,'qps'
+                'qps'
                 ]
     import qps.make.updateexternals
     qps.make.updateexternals.updateRemoteLocations(to_update)
