@@ -95,7 +95,7 @@ if __name__ == "__main__":
     # update remotes
     to_update = [#'hub-datacube'
                  #,'hub-workflow'
-                 #'enmapboxapplications'
+                 #,'enmapboxapplications'
                  #,'enmapboxgeoalgorithms'
                  #,'enmap-box-lmu-vegetation-apps'
                  #'virtual-raster-builder',
