@@ -712,14 +712,12 @@ class EnMAPBox(QgisInterface, QObject):
         Opens the example data
         :param mapWindows: number of new MapDocks to be opened
         """
-        from enmapbox.dependencycheck import missingTestdata, outdatedTestdata, installTestData
-        if missingTestdata() or outdatedTestdata():
+        from enmapbox.dependencycheck import missingTestData, outdatedTestData, installTestData
+        if missingTestData() or outdatedTestData():
             installTestData()
 
-        if not missingTestdata():
-
+        if not missingTestData():
             import enmapboxtestdata
-            from enmapbox.gui.utils import file_search
             dir = os.path.dirname(enmapboxtestdata.__file__)
             files = file_search(dir, re.compile('.*(bsq|bil|bip|tif|gpkg|sli|img|shp|pkl)$', re.I), recursive=True)
 

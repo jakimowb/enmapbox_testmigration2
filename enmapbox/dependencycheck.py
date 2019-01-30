@@ -120,7 +120,7 @@ def showDialog(info):
 
 
 
-def missingTestdata()->bool:
+def missingTestData()->bool:
     """
     Returns (True, message:str) if testdata can not be loaded,
      (False, None) else
@@ -135,7 +135,7 @@ def missingTestdata()->bool:
         return True
 
 
-def outdatedTestdata()->bool:
+def outdatedTestData()->bool:
     """Returns whether testdata is outdated."""
 
     try:
@@ -163,7 +163,7 @@ def installTestData(overwrite_existing=False, ask=True):
     """
     Downloads and installs the EnMAP-Box Example Data
     """
-    if not missingTestdata() and not outdatedTestdata() and not overwrite_existing:
+    if not missingTestData() and not outdatedTestData() and not overwrite_existing:
         print('Testdata already installed and up to date.')
         return
 
