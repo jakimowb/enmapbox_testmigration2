@@ -148,6 +148,7 @@ class TestEnMAPBox(unittest.TestCase):
         for d in ['MAP', 'TEXT', 'SPECLIB', 'MIME']:
             dock = self.EMB.createDock(d)
             self.assertIsInstance(dock, Dock)
+
         if SHOW_GUI:
             QGIS_APP.exec_()
 
@@ -155,6 +156,23 @@ class TestEnMAPBox(unittest.TestCase):
         E = self.EMB
         E.loadExampleData()
         self.assertTrue(len(E.dataSources()) > 0)
+
+    def test_SpeclibDock(self):
+        E = self.EMB
+        dock = self.EMB.createDock('SPECLIB')
+        self.assertIsInstance(dock, SpectralLibraryDock)
+        w = dock.speclibWidget()
+        self.assertIsInstance(w, SpectralLibraryWidget)
+        uri = r'T:\4bj\practical_data\library\library_berlin.sli'
+        w.speclib().startEditing()
+        w.speclib().addSpeclib(SpectralLibrary.readFrom(uri))
+        w.speclib().commitChanges()
+        if SHOW_GUI:
+            w.show()
+            w.actionProperties.trigger()
+            QGIS_APP.exec_()
+
+
 
 
     def test_addSources(self):
