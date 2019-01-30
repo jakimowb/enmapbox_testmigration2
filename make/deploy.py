@@ -238,7 +238,7 @@ def updateRepositoryXML(path:str=None):
         <about><![CDATA[EnMAP-Box Preview.]]></about>
         <version>3.2.20180904T1723.DEVELOP</version>
         <trusted>True</trusted>
-        <qgis_minimum_version>3.2.0</qgis_minimum_version>
+        <qgis_minimum_version>3.4.4</qgis_minimum_version>
         <qgis_maximum_version>3.99.0</qgis_maximum_version>
         <homepage><![CDATA[https://bitbucket.org/hu-geomatics/enmap-box/]]></homepage>
         <file_name>enmapboxplugin.3.3.20180904T1723.develop.snapshot.zip</file_name>
