@@ -51,7 +51,7 @@ The **EnMAP-Box** is a plugin for **QGIS** and requires additional **python pack
 ---------------
 
 
-Install QGIS version 3.4 or higher to run the EnMAP-Box. You can `get QGIS here <https://www.qgis.org/en/site/forusers/download.html>`_.
+Install QGIS version 3.4.4 or higher to run the EnMAP-Box. You can `get QGIS here <https://www.qgis.org/en/site/forusers/download.html>`_.
 Additional information on the installation process is provided in the `QGIS Documentation <https://www.qgis.org/en/site/forusers/alldownloads.html>`_.
 
 In case you already have QGIS installed, you can skip this step.
