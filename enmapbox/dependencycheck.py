@@ -159,7 +159,7 @@ def outdatedTestdata()->bool:
         return True
 
 
-def installTestdata(overwrite_existing=False):
+def installTestData(overwrite_existing=False, ask=True):
     """
     Downloads and installs the EnMAP-Box Example Data
     """
@@ -174,10 +174,11 @@ def installTestdata(overwrite_existing=False):
     from enmapbox import URL_TESTDATA
     from pyplugin_installer.unzip import unzip
     from enmapbox import DIR_TESTDATA
-    btn = QMessageBox.question(None, 'Testdata is missing or outdated', 'Download testdata from \n{}\n?'.format(URL_TESTDATA))
-    if btn != QMessageBox.Yes:
-        print('Canceled')
-        return
+    if ask == True:
+        btn = QMessageBox.question(None, 'Testdata is missing or outdated', 'Download testdata from \n{}\n?'.format(URL_TESTDATA))
+        if btn != QMessageBox.Yes:
+            print('Canceled')
+            return
 
     pathLocalZip = os.path.join(os.path.dirname(DIR_TESTDATA), 'enmapboxtestdata.zip')
     url = QUrl(URL_TESTDATA)

@@ -29,8 +29,9 @@ else:
     print('DIR_QGIS_REPO undefined. Some widgets might appear without icons', file=sys.stderr)
 
 # 3. install the EnMAP-Box test data
+
 import enmapbox.dependencycheck
-enmapbox.dependencycheck.installTestdata(overwrite_existing=False)
+enmapbox.dependencycheck.installTestData(overwrite_existing=False, ask=False)
 
 print('EnMAP-Box repository setup finished')
 

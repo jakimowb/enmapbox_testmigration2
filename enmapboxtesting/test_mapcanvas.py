@@ -23,7 +23,7 @@ QGIS_APP = initQgisApplication()
 SHOW_GUI = False
 
 import enmapbox.dependencycheck
-enmapbox.dependencycheck.installTestdata()
+enmapbox.dependencycheck.installTestData()
 
 from enmapboxtestdata import enmap, hires, landcover_polygons, library
 from enmapbox.gui.mapcanvas import *
