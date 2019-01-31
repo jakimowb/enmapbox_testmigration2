@@ -11,7 +11,7 @@ qgisresources/
 
 # we do not like to have compiled qt resource files in our repository!
 site-packages/qps/qpsresources.py
-site-packages/vrtbuilder/ui/resources.qrc
+site-packages/vrtbuilder/ui/resources.py
 enmapbox/coreapps/enmapboxapplications/ressources.py
 enmapbox/gui/ui/resources.py
 enmapbox/resources.py

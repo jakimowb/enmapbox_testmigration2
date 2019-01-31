@@ -124,7 +124,11 @@
     </widget>
    </item>
    <item>
-    <widget class="QTextEdit" name="mTextEdit"/>
+    <widget class="QTextEdit" name="mTextEdit">
+     <property name="lineWrapMode">
+      <enum>QTextEdit::NoWrap</enum>
+     </property>
+    </widget>
    </item>
   </layout>
   <action name="actionLoadFile">

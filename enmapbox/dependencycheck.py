@@ -120,7 +120,7 @@ def showDialog(info):
 
 
 
-def missingTestdata()->bool:
+def missingTestData()->bool:
     """
     Returns (True, message:str) if testdata can not be loaded,
      (False, None) else
@@ -135,7 +135,7 @@ def missingTestdata()->bool:
         return True
 
 
-def outdatedTestdata()->bool:
+def outdatedTestData()->bool:
     """Returns whether testdata is outdated."""
 
     try:
@@ -159,11 +159,11 @@ def outdatedTestdata()->bool:
         return True
 
 
-def installTestdata(overwrite_existing=False):
+def installTestData(overwrite_existing=False, ask=True):
     """
     Downloads and installs the EnMAP-Box Example Data
     """
-    if not missingTestdata() and not outdatedTestdata() and not overwrite_existing:
+    if not missingTestData() and not outdatedTestData() and not overwrite_existing:
         print('Testdata already installed and up to date.')
         return
 
@@ -174,10 +174,11 @@ def installTestdata(overwrite_existing=False):
     from enmapbox import URL_TESTDATA
     from pyplugin_installer.unzip import unzip
     from enmapbox import DIR_TESTDATA
-    btn = QMessageBox.question(None, 'Testdata is missing or outdated', 'Download testdata from \n{}\n?'.format(URL_TESTDATA))
-    if btn != QMessageBox.Yes:
-        print('Canceled')
-        return
+    if ask == True:
+        btn = QMessageBox.question(None, 'Testdata is missing or outdated', 'Download testdata from \n{}\n?'.format(URL_TESTDATA))
+        if btn != QMessageBox.Yes:
+            print('Canceled')
+            return
 
     pathLocalZip = os.path.join(os.path.dirname(DIR_TESTDATA), 'enmapboxtestdata.zip')
     url = QUrl(URL_TESTDATA)

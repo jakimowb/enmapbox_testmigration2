@@ -18,7 +18,7 @@
 """
 
 
-import codecs
+import codecs, enum
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 
@@ -29,6 +29,15 @@ from pyqtgraph.widgets.VerticalLabel import VerticalLabel
 from enmapbox.gui.utils import KeepRefs
 
 
+class DockTypes(enum.Enum):
+    """
+    Enumeration that defines the standard dock types.
+    """
+    MapDock = 'MAP'
+    TextDock = 'TEXT'
+    MimeDataDock = 'MIME'
+    WebViewDock = 'WEBVIEW'
+    SpectralLibraryDock = 'SPECLIB'
 
 class DockWindow(QMainWindow):
     def __init__(self, area, **kwargs):
@@ -613,10 +622,14 @@ class MimeDataTextEdit(QTextEdit):
         #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
         self.setOverwriteMode(False)
 
-    def canInsertFromMimeData(self, QMimeData):
+    def canInsertFromMimeData(self, QMimeData)->bool:
         return True
 
-    def insertFromMimeData(self, mimeData):
+    def insertFromMimeData(self, mimeData:QMimeData):
+        """
+        Shows the QMimeData information
+        :param mimeData: QMimeData
+        """
         assert isinstance(mimeData, QMimeData)
         formats = [str(f) for f in mimeData.formats()]
         self.clear()
@@ -717,9 +730,13 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         """
         super(TextDockWidget, self).__init__(parent=parent)
         self.setupUi(self)
-
+        self.setAcceptDrops(True)
         self.mFile = None
-
+        self.mTitle = self.windowTitle()
+        self.mTextEdit.setAcceptDrops(True)
+        self.mTextEdit.dragEnterEven = self.dragEnterEvent
+        self.mTextEdit.dropEvent = self.dropEvent
+        self.nMaxBytes = 80 * 2 * 12000
         self.btnLoadFile.setDefaultAction(self.actionLoadFile)
         self.btnSaveFile.setDefaultAction(self.actionSaveFile)
         self.btnSaveFileAs.setDefaultAction(self.actionSaveFileAs)
@@ -730,6 +747,29 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         self.actionSaveFileAs.triggered.connect(lambda :self.save(saveAs=True))
 
         self.actionSaveFile.setEnabled(False)
+        self.updateTitle()
+
+    def dragEnterEvent(self, event:QDragEnterEvent):
+        """
+        :param event: QDragEnterEvent
+        """
+        if event.mimeData().hasUrls():
+            event.setDropAction(Qt.CopyAction)
+
+            event.accept()
+
+    def dropEvent(self, event:QDropEvent):
+        """
+        :param event: QDropEvent
+        """
+        if event.mimeData().hasUrls():
+            url = [u for u in event.mimeData().urls()][0]
+            assert isinstance(url, QUrl)
+            if url.isLocalFile():
+                self.loadFile(url.toLocalFile())
+                event.setDropAction(Qt.CopyAction)
+                event.accept()
+
 
 
     def file(self)->str:
@@ -749,8 +789,20 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         """
         if os.path.isfile(path):
             data = None
-            with codecs.open(path, 'r', 'utf-8') as file:
-                data = ''.join(file.readlines())
+
+            statinfo = os.stat(path)
+            if statinfo.st_size > self.nMaxBytes:
+                info = 'Files {} is > {} bytes'.format(path, self.nMaxBytes)
+                info += '\nDo you really want to load it into this text editor?'
+                result = QMessageBox.warning(self, 'Warning', info, QMessageBox.Yes, QMessageBox.Cancel)
+                if result != QMessageBox.Yes:
+                    return
+            try:
+                with open(path, 'r', 'utf-8') as file:
+                    data = ''.join(file.readlines())
+            except:
+                with open(path, 'r') as file:
+                    data = ''.join(file.readlines())
 
             ext = os.path.splitext(path)[-1].lower()
             if data is not None:
@@ -763,8 +815,21 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
 
         else:
             self.mFile = None
+        self.updateTitle()
         self.actionSaveFile.setEnabled(os.path.isfile(self.file()))
         self.sigSourceChanged.emit(str(path))
+
+    def updateTitle(self):
+        """
+        Updates the widget title
+        """
+        #title = '{}'.format(self.mTitle)
+        title = ''
+        if isinstance(self.mFile, str):
+            # title += ' | {}'.format(os.path.basename(self.mFile))
+            title = os.path.basename(self.mFile)
+        self.setWindowTitle(title)
+
 
     def setText(self, *args, **kwds):
         """
@@ -827,6 +892,7 @@ class TextDock(Dock):
         super(TextDock, self).__init__(*args, **kwds)
 
         self.mTextDockWidget = TextDockWidget(self)
+        self.mTextDockWidget.windowTitleChanged.connect(self.setTitle)
         if html:
             self.mTextDockWidget.mTextEdit.insertHtml(html)
         elif plainTxt:

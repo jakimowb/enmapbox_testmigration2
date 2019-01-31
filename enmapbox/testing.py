@@ -53,7 +53,7 @@ def initQgisApplication(*args, **kwds)->QgsApplication:
         import enmapbox
         enmapbox.initEnMAPBoxResources()
         enmapbox.initEnMAPBoxProcessingProvider()
-
+        enmapbox.initEditorWidgets()
         return app
 
 class TestObjects(qps.testing.TestObjects):

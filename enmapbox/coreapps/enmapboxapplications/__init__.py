@@ -1,6 +1,6 @@
 from os.path import join, dirname, basename
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QMenu, QAction
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 from enmapboxapplications.imagemathapp.core import ImageMathApp
 from enmapboxapplications.imagestatistics.core import ImageStatisticsApp

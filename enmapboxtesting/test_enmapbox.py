@@ -126,6 +126,8 @@ class TestEnMAPBox(unittest.TestCase):
 
     def setUp(self):
 
+        import enmapbox
+        enmapbox.initAll()
         self.EMB = EnMAPBox(None)
 
     def tearDown(self):
@@ -147,6 +149,31 @@ class TestEnMAPBox(unittest.TestCase):
             dock = self.EMB.createDock(d)
             self.assertIsInstance(dock, Dock)
 
+        if SHOW_GUI:
+            QGIS_APP.exec_()
+
+    def test_mapDockInteraction(self):
+        E = self.EMB
+        E.loadExampleData()
+        self.assertTrue(len(E.dataSources()) > 0)
+
+    def test_SpeclibDock(self):
+        E = self.EMB
+        dock = self.EMB.createDock('SPECLIB')
+        self.assertIsInstance(dock, SpectralLibraryDock)
+        w = dock.speclibWidget()
+        self.assertIsInstance(w, SpectralLibraryWidget)
+        uri = r'T:\4bj\practical_data\library\library_berlin.sli'
+        w.speclib().startEditing()
+        w.speclib().addSpeclib(SpectralLibrary.readFrom(uri))
+        w.speclib().commitChanges()
+        if SHOW_GUI:
+            w.show()
+            w.actionProperties.trigger()
+            QGIS_APP.exec_()
+
+
+
 
     def test_addSources(self):
         E = self.EMB
@@ -158,6 +185,7 @@ class TestEnMAPBox(unittest.TestCase):
         self.assertTrue(len(E.dataSources()) == 1)
         E.addSource(landcover_polygons)
         self.assertTrue(len(E.dataSources()) == 2)
+
         if SHOW_GUI:
             QGIS_APP.exec_()
 
@@ -169,14 +197,16 @@ class TestEnMAPBox(unittest.TestCase):
         self.assertIsInstance(canvases, list)
         self.assertTrue(len(canvases) == 0)
 
-        E.loadExampleData()
-        self.assertTrue(len(E.mapCanvases()) == 1)
+        #E.loadExampleData()
+        #self.assertTrue(len(E.mapCanvases()) == 1)
 
         E.createDock('MAP')
-        self.assertTrue(len(E.mapCanvases()) == 2)
+        self.assertTrue(len(E.mapCanvases()) == 1)
         for c in E.mapCanvases():
             self.assertIsInstance(c, MapCanvas)
 
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_loadExampleData(self):
         E = self.EMB

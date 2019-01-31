@@ -135,11 +135,15 @@ def build():
 
         # 2. Compile. Basically call pyrcc to create the resources.rc file
         # I don't know how to call this from pure python
-        try:
-            pb_tool.compile_files(cfg)
-        except Exception as ex:
-            print('Failed to compile resources')
-            print(ex)
+
+        #try:
+        #    pb_tool.compile_files(cfg)
+        #except Exception as ex:
+        #    print('Failed to compile resources')
+        #    print(ex)
+
+        import make.guimake
+        make.guimake.compileResourceFiles()
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
         pb_tool.deploy_files(pathCfg, DIR_DEPLOY, quick=True, confirm=False)
@@ -234,7 +238,7 @@ def updateRepositoryXML(path:str=None):
         <about><![CDATA[EnMAP-Box Preview.]]></about>
         <version>3.2.20180904T1723.DEVELOP</version>
         <trusted>True</trusted>
-        <qgis_minimum_version>3.2.0</qgis_minimum_version>
+        <qgis_minimum_version>3.4.4</qgis_minimum_version>
         <qgis_maximum_version>3.99.0</qgis_maximum_version>
         <homepage><![CDATA[https://bitbucket.org/hu-geomatics/enmap-box/]]></homepage>
         <file_name>enmapboxplugin.3.3.20180904T1723.develop.snapshot.zip</file_name>

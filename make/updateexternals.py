@@ -54,6 +54,7 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmspr
                   key='enmapboxapplications',
                   prefixLocal=r'enmapbox/coreapps/enmapboxapplications',
                   prefixRemote=r'enmapboxapplications',
+                  excluded=['ressources.py'],
                   remoteBranch='develop')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',

@@ -6,4 +6,3 @@ from qps.speclib.spectrallibraries import SpectralLibrary, SpectralProfile, Spec
 from qps.classification.classificationscheme import ClassificationScheme, ClassInfo, ClassificationSchemeComboBox, ClassificationSchemeWidget, ClassificationSchemeDialog, hasClassification
 from qps.models import Option, OptionListModel, TreeNode, TreeModel, TreeView
 from qps.maptools import *
-

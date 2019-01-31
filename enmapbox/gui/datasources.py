@@ -399,7 +399,12 @@ class DataSourceFactory(object):
         """
         src = DataSourceFactory.srcToString(src)
         if not src is None:
+
             if os.path.isfile(src):
+
+                if not isinstance(kwds.get('name'), str):
+                    kwds['name'] = os.path.basename(src)
+
                 ext = os.path.splitext(src)[1].lower()
                 if ext in ['.csv', '.txt']:
                     return [DataSourceTextFile(src, **kwds)]

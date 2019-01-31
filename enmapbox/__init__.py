@@ -80,10 +80,6 @@ try:
     if not 'images' in sys.modules.keys():
         sys.modules['images'] = resourcemockup
 
-    #initialize general enmapbox resources
-    from enmapbox.gui.ui import resources
-    resources.qInitResources()
-
 except:
     pass
 
@@ -102,21 +98,22 @@ def messageLog(msg, level=Qgis.Info):
     QgsApplication.instance().messageLog().logMessage(msg, 'EnMAP-Box', level)
 
 
+def initEnMAPBoxResources():
+    """
+    Loads (or reloads) EnMAP-Box Resources
+    """
 
-#provide important classes in Top-Level Namespace
-EnMAPBox = None
-EnMAPBoxApplication = None
+    try:
+        import enmapbox.resources
+        enmapbox.resources.qInitResources()
+    except Exception as ex:
+        print('Unable to import enmapbox.resources', file=sys.stderr)
 
-try: #exception necessary to allow sphinx documentation
-    from enmapbox.gui.enmapboxgui import EnMAPBox
-    EnMAPBox = EnMAPBox
-
-    from enmapbox.gui.applications import EnMAPBoxApplication
-    EnMAPBoxApplication = EnMAPBoxApplication
-
-except Exception as ex:
-    s = ""
-    pass
+    try:
+        import qps.qpsresources
+        qps.qpsresources.qInitResources()
+    except Exception as ex:
+        print('Unable to import qps.resources', file=sys.stderr)
 
 
 
@@ -124,18 +121,11 @@ def initEditorWidgets():
     """
     Initialises QgsEditorWidgets
     """
-    from qps.plotstyling.plotstyling import registerPlotStyleEditorWidget
-    registerPlotStyleEditorWidget()
-
-    from qps.speclib.spectrallibraries import registerSpectralProfileEditorWidget
-    registerSpectralProfileEditorWidget()
-
-    from qps.classification.classificationscheme import registerClassificationSchemeEditorWidget
-    registerClassificationSchemeEditorWidget()
+    import qps
+    qps.registerEditorWidgets()
 
 
 _enmapboxProvider = None
-
 def initEnMAPBoxProcessingProvider():
     """Initializes the EnMAPBoxProcessingProvider"""
     from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider, ID
@@ -165,17 +155,32 @@ def initEnMAPBoxProcessingProvider():
             info.append(p)
         print('\n'.join(info), file=sys.stderr)
 
-def initEnMAPBoxResources():
+
+def initAll():
     """
-    Loads (or reloads) EnMAP-Box Resources
+    Calls other init routines required to run the EnMAP-Box properly
     """
+    initEnMAPBoxResources()
+    initEditorWidgets()
+    initEnMAPBoxProcessingProvider()
 
 
-    import enmapbox.resources
-    enmapbox.resources.qInitResources()
+#provide important classes in Top-Level Namespace
+EnMAPBox = None
+EnMAPBoxApplication = None
 
-    import qps.qpsresources
-    qps.qpsresources.qInitResources()
+try: #exception necessary to allow sphinx documentation
+
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EnMAPBox = EnMAPBox
+
+    from enmapbox.gui.applications import EnMAPBoxApplication
+    EnMAPBoxApplication = EnMAPBoxApplication
+
+except Exception as ex:
+    s = ""
+    pass
+
 
 
 def run():

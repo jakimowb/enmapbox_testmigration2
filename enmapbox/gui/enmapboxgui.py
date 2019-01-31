@@ -27,6 +27,7 @@ from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
 from qps.cursorlocationvalue import CursorLocationInfoDock
+from qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
 
 SETTINGS = enmapbox.enmapboxSettings()
@@ -711,14 +712,12 @@ class EnMAPBox(QgisInterface, QObject):
         Opens the example data
         :param mapWindows: number of new MapDocks to be opened
         """
-        from enmapbox.dependencycheck import missingTestdata, outdatedTestdata, installTestdata
-        if missingTestdata() or outdatedTestdata():
-            installTestdata()
+        from enmapbox.dependencycheck import missingTestData, outdatedTestData, installTestData
+        if missingTestData() or outdatedTestData():
+            installTestData()
 
-        if not missingTestdata():
-
+        if not missingTestData():
             import enmapboxtestdata
-            from enmapbox.gui.utils import file_search
             dir = os.path.dirname(enmapboxtestdata.__file__)
             files = file_search(dir, re.compile('.*(bsq|bil|bip|tif|gpkg|sli|img|shp|pkl)$', re.I), recursive=True)
 
@@ -947,12 +946,7 @@ class EnMAPBox(QgisInterface, QObject):
                 if mapLayer in canvas.layers():
                     mapCanvas = canvas
                     break
-            if mapCanvas is None:
-                mapCanvas = QgsMapCanvas(parent=self.ui)
-                mapCanvas.setVisible(False)
-
             #2.
-            from enmapbox.gui.layerproperties import showLayerPropertiesDialog
             showLayerPropertiesDialog(mapLayer, mapCanvas, modal=True)
 
 

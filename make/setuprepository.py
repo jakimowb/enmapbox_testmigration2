@@ -4,10 +4,10 @@ Run this script after having cloned the EnMAP-Box repostitory
 """
 
 # specify the local path to the cloned QGIS repository
-
-DIR_QGIS_REPO = None
-
 import os, sys
+DIR_QGIS_REPO = os.environ.get('DIR_QGIS_REPO', None)
+
+
 from os.path import dirname as dn
 from os.path import join as jn
 DIR_ENMAPBOX_REPO = dn(dn(__file__))
@@ -29,8 +29,9 @@ else:
     print('DIR_QGIS_REPO undefined. Some widgets might appear without icons', file=sys.stderr)
 
 # 3. install the EnMAP-Box test data
+
 import enmapbox.dependencycheck
-enmapbox.dependencycheck.installTestdata(overwrite_existing=False)
+enmapbox.dependencycheck.installTestData(overwrite_existing=False, ask=False)
 
 print('EnMAP-Box repository setup finished')
 

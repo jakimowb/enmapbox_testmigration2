@@ -27,10 +27,16 @@ class UiLibrary(QComboBox):
         self.names = list()
         self.filenames = list()
         self.setLibraries()
-#        self.setCurrentIndex(0)
+        self.setCurrentIndex(0)
 
     def setLibraries(self, *args, **kwargs):
 
+        # add not selected item
+        self.names.append('')
+        self.filenames.append(None)
+        self.addItem('')
+
+        # add all speclibs
         for source in self.enmapBox.dataSourceManager.mSources:
             if isinstance(source, DataSourceSpectralLibrary):
                 if source.mUri not in self.filenames:
@@ -39,7 +45,7 @@ class UiLibrary(QComboBox):
                     self.addItem(self.names[-1])
 
     def currentLibrary(self):
-        if self.currentIndex() >= 0 and self.currentIndex() < len(self.filenames):
+        if self.currentIndex() >= 1 and self.currentIndex() < len(self.filenames):
             return ENVISpectralLibrary(filename=self.filenames[self.currentIndex()])
         else:
             return None
@@ -50,6 +56,14 @@ class UiLabeledLibrary(QWidget, loadUIFormClass(pathUi=join(pathUi, 'labeledLiba
         self.setupUi(self)
         self.uiLibrary().currentIndexChanged.connect(self.setFields)
         self.setFields(0)
+
+    def setInfo(self, uiInfo):
+        assert isinstance(uiInfo, QLabel)
+        self.uiInfo_ = uiInfo
+
+    def uiInfo(self):
+        assert isinstance(self.uiInfo_, QLabel)
+        return self.uiInfo_
 
     def uiLibrary(self):
         assert isinstance(self.uiLibrary_, UiLibrary)
@@ -64,8 +78,12 @@ class UiLabeledLibrary(QWidget, loadUIFormClass(pathUi=join(pathUi, 'labeledLiba
             self.uiField().removeItem(0)
         library = self.uiLibrary().currentLibrary()
         if library is not None:
-            fields = library.attributeDefinitions()
-            self.uiField().addItems(fields)
+            try:
+                fields = library.attributeDefinitions()
+                self.uiField().addItems(fields)
+            except:
+                import traceback
+                self.uiInfo().setText(traceback.format_exc())
 
     def currentLibrary(self):
         return self.uiLibrary().currentLibrary()

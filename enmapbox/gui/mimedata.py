@@ -6,9 +6,9 @@ from PyQt5.QtCore import *
 from PyQt5.QtXml import *
 import re
 from qgis.gui import *
-from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpatial
+from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpatial, DataSourceSpectralLibrary
 from enmapbox.gui.datasources import DataSource, DataSourceSpatial
-from enmapbox.gui.layerproperties import defaultRasterRenderer
+from qps.layerproperties import defaultRasterRenderer
 from enmapbox.gui import SpectralLibrary
 
 MDF_DOCKTREEMODELDATA = 'application/enmapbox.docktreemodeldata'
@@ -238,7 +238,7 @@ def extractMapLayers(mimeData:QMimeData)->list:
         for url in mimeData.urls():
             dataSources = DataSourceFactory.Factory(url)
             for dataSource in dataSources:
-                if isinstance(dataSource, DataSourceSpatial):
+                if isinstance(dataSource, DataSourceSpatial) and not isinstance(dataSource, DataSourceSpectralLibrary):
                     lyr = dataSource.createUnregisteredMapLayer()
                     if isinstance(lyr, QgsRasterLayer):
                         lyr.setRenderer(defaultRasterRenderer(lyr))
