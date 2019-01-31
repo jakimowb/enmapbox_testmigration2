@@ -2,6 +2,9 @@
 <ui version="4.0">
  <class>Dialog</class>
  <widget class="QDialog" name="Dialog">
+  <property name="windowModality">
+   <enum>Qt::WindowModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -12,6 +15,9 @@
   </property>
   <property name="windowTitle">
    <string>Metadata Editor</string>
+  </property>
+  <property name="sizeGripEnabled">
+   <bool>true</bool>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -116,6 +122,10 @@
        <property name="text">
         <string>...</string>
        </property>
+       <property name="icon">
+        <iconset resource="../../resources.qrc">
+         <normaloff>:/enmapbox/gui/ui/icons/mActionAddRasterLayer.svg</normaloff>:/enmapbox/gui/ui/icons/mActionAddRasterLayer.svg</iconset>
+       </property>
       </widget>
      </item>
     </layout>
@@ -167,8 +177,8 @@ QTreeView::branch:closed:has-children {
   </layout>
   <action name="actionSetDataSource">
    <property name="icon">
-    <iconset resource="../../gui/ui/resources.qrc">
-     <normaloff>:/enmapbox/icons/add_datasource.svg</normaloff>:/enmapbox/icons/add_datasource.svg</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionAddRasterLayer.svg</normaloff>:/images/themes/default/mActionAddRasterLayer.svg</iconset>
    </property>
    <property name="text">
     <string>Set datasource</string>
@@ -179,7 +189,8 @@ QTreeView::branch:closed:has-children {
   </action>
  </widget>
  <resources>
-  <include location="../../gui/ui/resources.qrc"/>
+  <include location="../../resources.qrc"/>
+  <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections>
   <connection>

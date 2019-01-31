@@ -867,7 +867,7 @@ class MetadataSelectionModel(QItemSelectionModel):
 class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
     """Constructor."""
     def __init__(self, parent=None):
-        super(MetadataEditorDialog, self).__init__(parent)
+        super(MetadataEditorDialog, self).__init__(parent, Qt.Window)
         # Set up the user interface from Designer.
         # After setupUI you can access any designer object by doing
         # self.<objectname>, and you can use autoconnect slots - see

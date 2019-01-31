@@ -32,7 +32,7 @@ loadUi = lambda name: loadUIFormClass(os.path.join(APP_DIR, name))
 class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
     """Constructor."""
     def __init__(self, parent=None):
-        super(ReclassifyDialog, self).__init__(parent)
+        super(ReclassifyDialog, self).__init__(parent, Qt.Window)
         # Set up the user interface from Designer.
         # After setupUI you can access any designer object by doing
         # self.<objectname>, and you can use autoconnect slots - see
