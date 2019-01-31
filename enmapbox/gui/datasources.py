@@ -738,7 +738,10 @@ class DataSourceRaster(DataSourceSpatial):
         self.mBandMetadata = []
         self.mSpatialExtent = None
         self.mBandNames = []
+        self.mWaveLengths = self.mWaveLengthUnits = None
+
         self.updateMetadata()
+
 
         if name is None and providerKey == 'wms':
             self.setName('WMS:'+self.name())
@@ -774,6 +777,8 @@ class DataSourceRaster(DataSourceSpatial):
         self.mDatasetMetadata.clear()
         self.nBands = self.nSamples = self.nLines = -1
         self.mDataType = None
+        self.mWaveLengths, self.mWaveLengthUnits =  parseWavelength(lyr)
+
 
         hasClassInfo = False
 

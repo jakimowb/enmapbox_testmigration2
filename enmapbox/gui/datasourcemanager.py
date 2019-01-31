@@ -1035,21 +1035,27 @@ class DataSourceTreeView(TreeView):
                 pass
                 #a = m.addAction('Save as..')
 
-            def appendRasterActions(sub: QMenu, src: DataSourceSpatial, mapDock: MapDock):
+            def appendRasterActions(sub: QMenu, src: DataSourceRaster, mapDock: MapDock):
                 assert isinstance(src, DataSourceRaster)
                 a = sub.addAction('Default Colors')
                 a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='DEFAULT'))
+
+                b = src.mWaveLengthUnits is not None
+
                 a = sub.addAction('True Color')
                 a.setToolTip('Red-Green-Blue true colors')
                 a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='R,G,B'))
+                a.setEnabled(b)
 
                 a = sub.addAction('CIR')
                 a.setToolTip('nIR Red Green')
                 a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='NIR,R,G'))
+                a.setEnabled(b)
 
                 a = sub.addAction('SWIR')
                 a.setToolTip('nIR swIR Red')
                 a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='NIR,SWIR,R'))
+                a.setEnabled(b)
 
             if isinstance(src, DataSourceRaster):
                 sub = m.addMenu('Open in new map...')
@@ -1113,7 +1119,7 @@ class DataSourceTreeView(TreeView):
                     a.setParent(m)
         m.exec_(self.viewport().mapToGlobal(event.pos()))
 
-    def openInMap(self, dataSource: DataSourceSpatial, mapCanvas=None, rgb=None):
+    def openInMap(self, dataSource: DataSourceSpatial, mapCanvas=None, rgb=None, sampleSize=256):
         """
         Add a DataSourceSpatial as QgsMapLayer to a mapCanvas.
         :param mapCanvas: QgsMapCanvas. Creates a new MapDock if set to none.
@@ -1153,40 +1159,47 @@ class DataSourceTreeView(TreeView):
                         s = ""
                 assert isinstance(rgb, list)
 
-                stats = [ds.GetRasterBand(b + 1).ComputeRasterMinMax() for b in rgb]
-
-                def setCE_MinMax(ce, st):
+                def setCE_MinMax(ce, vMin, vMax):
                     assert isinstance(ce, QgsContrastEnhancement)
                     ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum)
-                    ce.setMinimumValue(st[0])
-                    ce.setMaximumValue(st[1])
+                    ce.setMinimumValue(vMin)
+                    ce.setMaximumValue(vMax)
 
                 if len(rgb) == 3:
+                    percentiles = []
+                    for b in rgb:
+                        vMin, vMax = lyr.dataProvider().cumulativeCut(b+1, 0.02, 0.98, sampleSize=sampleSize)
+                        percentiles.append((vMin, vMax))
+
                     if isinstance(r, QgsMultiBandColorRenderer):
                         r.setRedBand(rgb[0] + 1)
                         r.setGreenBand(rgb[1] + 1)
                         r.setBlueBand(rgb[2] + 1)
-                        setCE_MinMax(r.redContrastEnhancement(), stats[0])
-                        setCE_MinMax(r.greenContrastEnhancement(), stats[1])
-                        setCE_MinMax(r.blueContrastEnhancement(), stats[2])
+                        setCE_MinMax(r.redContrastEnhancement(), *percentiles[0])
+                        setCE_MinMax(r.greenContrastEnhancement(), *percentiles[1])
+                        setCE_MinMax(r.blueContrastEnhancement(), *percentiles[2])
 
                     if isinstance(r, QgsSingleBandGrayRenderer):
                         r.setGrayBand(rgb[0])
-                        setCE_MinMax(r.contrastEnhancement(), stats[0])
+                        setCE_MinMax(r.contrastEnhancement(), *percentiles[0])
 
                 elif len(rgb) == 1:
+                    percentiles = []
+                    for b in rgb:
+                        vMin, vMax = lyr.dataProvider().cumulativeCut(b+1, 0.02, 0.98, sampleSize=sampleSize)
+                        percentiles.append((vMin, vMax))
 
                     if isinstance(r, QgsMultiBandColorRenderer):
                         r.setRedBand(rgb[0] + 1)
                         r.setGreenBand(rgb[0] + 1)
                         r.setBlueBand(rgb[0] + 1)
-                        setCE_MinMax(r.redContrastEnhancement(), stats[0])
-                        setCE_MinMax(r.greenContrastEnhancement(), stats[0])
-                        setCE_MinMax(r.blueContrastEnhancement(), stats[0])
+                        setCE_MinMax(r.redContrastEnhancement(), *percentiles[0])
+                        setCE_MinMax(r.greenContrastEnhancement(), *percentiles[0])
+                        setCE_MinMax(r.blueContrastEnhancement(), *percentiles[0])
 
                     if isinstance(r, QgsSingleBandGrayRenderer):
                         r.setGrayBand(rgb[0] + 1)
-                        setCE_MinMax(r.contrastEnhancement(), stats[0])
+                        setCE_MinMax(r.contrastEnhancement(), *percentiles[0])
                         s = ""
 
                 # get
