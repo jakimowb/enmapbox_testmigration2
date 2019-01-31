@@ -1032,7 +1032,8 @@ class DataSourceTreeView(TreeView):
                 # a.triggered.connect(node.dataSource.rename)
 
             if isinstance(src, DataSourceSpatial):
-                a = m.addAction('Save as..')
+                pass
+                #a = m.addAction('Save as..')
 
             def appendRasterActions(sub: QMenu, src: DataSourceSpatial, mapDock: MapDock):
                 assert isinstance(src, DataSourceRaster)
