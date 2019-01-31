@@ -971,6 +971,9 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
 
 
 class DataSourceTreeView(TreeView):
+    """
+    A TreeView to show EnMAP-Box Data Sources
+    """
 
     def __init__(self, *args, **kwds):
         super(DataSourceTreeView, self).__init__(*args, **kwds)
@@ -978,11 +981,15 @@ class DataSourceTreeView(TreeView):
 
 
     def contextMenuEvent(self, event:QContextMenuEvent):
+        """
+        Creates and shows the context menu created on right-mouse-click.
+        :param event: QContextMenuEvent
+        """
         idx = self.currentIndex()
         assert isinstance(event, QContextMenuEvent)
 
         if not idx.isValid():
-            return QMenu()
+            return
         col = idx.column()
         model = self.model()
         assert isinstance(model, DataSourceManagerTreeModel)
@@ -1202,6 +1209,11 @@ class DataSourceTreeView(TreeView):
         pass
 
     def onOpenSpeclib(self, speclib: SpectralLibrary):
+        """
+        Opens a SpectralLibrary in a new SpectralLibraryDock
+        :param speclib: SpectralLibrary
+
+        """
         from enmapbox.gui.enmapboxgui import EnMAPBox
         EnMAPBox.instance().dockManager.createDock('SPECLIB', speclib=speclib)
 
