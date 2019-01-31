@@ -769,7 +769,7 @@ class EnMAPBox(QgisInterface, QObject):
         proj = QgsProject.instance()
         path = proj.fileName()
         if saveAs or not os.path.exists(path):
-            path = QFileDialog.getSaveFileName(self.ui, \
+            path, filter = QFileDialog.getSaveFileName(self.ui, \
                                                'Choose a filename to save the QGIS project file',
                                                # directory=os.path.dirname(path)
                                                filter='QGIS files (*.qgs *.QGIS)')
