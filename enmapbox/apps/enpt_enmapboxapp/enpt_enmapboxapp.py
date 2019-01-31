@@ -159,16 +159,16 @@ class EnPTAlgorithm(QgsProcessingAlgorithm):
     P_deadpix_P_interp = 'deadpix_P_interp'
     P_ortho_resampAlg = 'ortho_resampAlg'
 
-    @staticmethod
-    def group():
-        return APP_NAME
+    def group(self):
+        return 'Pre-Processing'
 
-    @staticmethod
-    def name():
+    def groupId(self):
+        return 'PreProcessing'
+
+    def name(self):
         return 'EnPTAlgorithm'
 
-    @staticmethod
-    def displayName():
+    def displayName(self):
         return 'EnMAP processing tools algorithm'
 
     def createInstance(self, *args, **kwargs):
