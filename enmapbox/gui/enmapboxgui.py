@@ -493,7 +493,10 @@ class EnMAPBox(QgisInterface, QObject):
 
         if isinstance(dock, SpectralLibraryDock):
             dock.sigLoadFromMapRequest.connect(lambda: self.setMapTool(MapTools.SpectralProfile))
-            dock.speclibWidget().plotWidget().backgroundBrush().setColor(QColor('black'))
+            slw = dock.speclibWidget()
+            assert isinstance(slw, SpectralLibraryWidget)
+            slw.plotWidget().backgroundBrush().setColor(QColor('black'))
+            slw.sigFilesCreated.connect(self.addSources)
             self.sigCurrentSpectraChanged.connect(dock.mSpeclibWidget.setCurrentSpectra)
 
         if isinstance(dock, MapDock):
