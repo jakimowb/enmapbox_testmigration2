@@ -19,7 +19,7 @@ step-by-step tutorials which exemplify the software's capabilities.
 
 - Environmental Mapping and Analysis Program (EnMAP): http://www.enmap.org
 - Bitbucket source code repository: https://bitbucket.org/hu-geomatics/enmap-box
-- Humboldt-Universität zu Berlin, Geomatics lab: https://www.geographie.hu-berlin.de/en/professorships/geomatics
+- Humboldt-University zu Berlin, Geomatics lab: https://www.geographie.hu-berlin.de/en/professorships/geomatics
 
 .. image:: img/screenshot_main.png
 
