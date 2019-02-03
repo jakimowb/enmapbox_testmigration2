@@ -15,11 +15,13 @@ hyperspectral remote sensing data. This documentation will provide you with gene
 the software and the corresponding satellite mission, a user guide for ordinary users as well as developers and
 step-by-step tutorials which exemplify the software's capabilities.
 
+**Related websites**
+
+- Environmental Mapping and Analysis Program (EnMAP): www.enmap.org
+- Bitbucket source code repository: https://bitbucket.org/hu-geomatics/enmap-box
+- Humboldt-Universität zu Berlin, Geomatics lab: www.hu-geomatics.de
+
 .. image:: img/screenshot_main.png
-
-|
-
-**Find our Bitbucket repository here:** https://bitbucket.org/hu-geomatics/enmap-box/wiki/Home
 
 |
 |
