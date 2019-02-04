@@ -292,12 +292,17 @@ class TestMDMetadataKeys(unittest.TestCase):
         d = MetadataEditorDialog()
         d.show()
         sources = self.createSupportedSources()
+
+        import time
         for uri in sources:
+            print('Read {}'.format(uri))
             d.mSourceModel.clear()
+
             self.assertTrue(len(d.mSourceModel) == 0)
+            t0 = time.time()
             d.addSources([uri])
             self.assertTrue(len(d.mSourceModel) == 1)
-
+            print(time.time()-t0)
 
 
     def test_MetadataTreeViewWidgetDelegates(self):
