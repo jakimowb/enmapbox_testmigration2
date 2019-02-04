@@ -1,36 +1,18 @@
-###############
-Developer Guide
-###############
-
-.. todo:: Potentially some adjustment necessary to fit "new" structure:
-
-          Developer Guide
-
-            * Create new EnMAP-Box Application
-                * Setup
-                * QtApp
-                * GeoAlgo
-            * Managing EnMAP-Box (aktuell API - Quick Start)
+Create EnMAP-Box Applications
+#############################
 
 
-EnMAP-Box Applications are normal python programs that can be called
-
-* directly from EnMAP-Box GUI, e.g. via special tool buttons or context menues, or
-* the QGIS Processing Framework as a QgsProcessingAlgorithm of the EnMAPBoxAlgorithmProvider
-
-EnMAP-Box applications can interact with a running EnMAP-Box instance via the EnMAP-Box API, and, for example,
-open new raster images in an EnMAP-Box map canvas or read the list of data sources.
-
-The following tutorial refers to the example Application in ``examples/exampleapp``.
-You might copy, rename and modify this to fit to your own needs and create your own EnMAP-Box Application.
+Applications for the EnMAP-Box define an ``EnMAPBoxApplication`` instance that describes basic
+information like the Application name and how a user can start it. The following examples are taken from the
+``examples/minimumexample`` module, which you might copy and modify to implement an EnMAPBox Application.
 
 
+1. Initialize a new EnMAP-Box Application
+=========================================
 
-Initialize a new EnMAP-Box Application
-######################################
-
-An EnMAP-Box Application derives from the `EnMAPBoxApplication` class and sets the class variables
-`name` and `version`. The variable `license` defaults to `GNU GPL-3`` but might be change to the needs of your application::
+An EnMAP-Box application inherits from ``EnMAPBoxApplication`` and defines basic information like a
+``name`` and ``version``. The variable ``license`` defaults to ``GNU GPL-3``, which is recommended by might be
+change to your needs::
 
     from qgis.PyQt.QtGui import QIcon
     from qgis.PyQt.QtWidgets import QMenu, QAction, QWidget, QHBoxLayout, QLabel, QPushButton
@@ -62,11 +44,11 @@ An EnMAP-Box Application derives from the `EnMAPBoxApplication` class and sets t
             self.licence = LICENSE
 
 
-Define an Application Menu
-==========================
+2. Define an Menu
+=================
 
-To become accessible via a menu of the EnMAP-Box, the application needs to implement the `menu()` function that
-returns a QAction or QMenu with multiple QActions. By default, the returned `QAction` or `QMenu` is added to the EnMAP-Box
+To become accessible via a menu of the EnMAP-Box, the application needs to implement the ``menu(...)`` function that
+returns a QAction or QMenu with multiple QActions. By default, the returned ``QAction`` or ``QMenu`` is added to the EnMAP-Box
 "Application" menu where a user can click on to start the Application or to run different parts of your application
 
 
@@ -95,7 +77,7 @@ this minimum example that you can run in a single python script::
         menu.show()
         app.exec_()
 
-The `ExampleEnMAPBoxApp` uses this mechanism to define an application menu::
+The ``ExampleEnMAPBoxApp`` uses this mechanism to define an application menu::
 
     def menu(self, appMenu):
         """
@@ -125,12 +107,12 @@ The `ExampleEnMAPBoxApp` uses this mechanism to define an application menu::
         return menu
 
 
-Define QgsProcessingAlgorithms for the EnMAPBoxAlgorithm Provider
-=================================================================
+3. Define QgsProcessingAlgorithms for the EnMAPBoxAlgorithm Provider
+====================================================================
 
 Your Application might provide ojne or more ``QgsProcessingAlgorithms`` for the QGIS Processing Framework. This, for example, allow to use your algorithms
 within the QGIS Processing Toolbox. To add these QgsProcessingAlgorithms to the EnMAP-Box Algorithm Provider, your ``EnMAPBoxApplication``
-might implement the `geoAlgorithms()`.
+might implement the ``geoAlgorithms()``.
 
 For the sake of simplicity, let's have an function that just prints a dictionary of input arguments::
 
@@ -183,7 +165,7 @@ A ``QgsProcessingAlgorithm`` to call it might look like this::
             outputs = {}
             return outputs
 
-To add `ExampleGeoAlgorithm` to the EnMAPBoxGeoAlgorithmProvider, just define the `geoAlgorithms()` like this::
+To add ``ExampleGeoAlgorithm`` to the EnMAPBoxGeoAlgorithmProvider, just define the ``geoAlgorithms()`` like this::
 
     def geoAlgorithms(self):
         """
@@ -203,10 +185,10 @@ Calling the ExampleGeoAlgorithm from the QGIS Processing Toolbox should create a
 
 
 
-Create a Graphical User Interface
-=================================
+4. Create a Graphical User Interface
+====================================
 
-The `startGUI()` function is used to open the graphical user interface. A very simple GUI could look like this::
+The ``startGUI()`` function is used to open the graphical user interface. A very simple GUI could look like this::
 
     def onButtonClicked():
         print('Button was pressed')
@@ -225,160 +207,6 @@ The `startGUI()` function is used to open the graphical user interface. A very s
 A GUI quickly becomes too complex to be programmed line-by-line. In this case it is preferred to use the QDesigner and to *draw* the GUI.
 The GUI definition is saved in an ``*.ui`` XML file, which that can be translated into PyQt code automatically.
 
-
-
-
-
-
-Managing EnMAP-Box (API Quick Start)
-####################################
-
-
-
-Access the EnMAP-Box
-====================
-
-Start the EnMAP-Box from scratch::
-
-    from enmapbox.gui.enmapboxgui import EnMAPBox
-    from enmapbox.gui.utils import initQgisApplication
-
-    qgsApp = initQgisApplication()
-    enmapBox = EnMAPBox(None)
-    enmapBox.openExampleData(mapWindows=1)
-
-    qgsApp.exec_()
-    qgsApp.quit()
-
-
-The EnMAPBox object is designed as singleton, i.e. only one EnMAPBox instance
-can exist per thread. If there is already an existing EnMAP-Box instance, you can connect to like this::
-
-    from enmapbox.gui.enmapboxgui import EnMAPBox
-    enmapBox = EnMAPBox.instance()
-
-
-Finally, shut down the EnMAP-Box instance::
-
-    enmapBox = EnMAPBox.instance()
-    enmapBox.close()
-
-
-
-Manage Data Sources
-===================
-
-Add a new data sources
-----------------------
-
-To add a new data source to the EnMAP-Box just support its file-path or,
-more generally spoken, its unified resource identifier (uri)::
-
-    enmapBox = EnMAPBox.instance()
-    enmapBox.addSource('filepath')
-
-
-List existing data sources
---------------------------
-
-The EnMAP-Box differentiates between Raster, Vector, SpectraLibraries and HUB-DataCube
-and other files-based data sources. The data sources known to the EnMAP-Box can be listed like this::
-
-    enmapBox = EnMAPBox.instance()
-
-    # print all sources
-    for source in enmapBox.dataSources():
-        print(source)
-
-    # print raster sources only
-    for source in enmapBox.dataSources('RASTER'):
-        print(source)
-
-
-
-Remove data sources
--------------------
-
-Use the data source path to remove it from the EnMAP-Box::
-
-    enmapBox = EnMAPBox.instance()
-    enmapBox.removeSource('path_to_source')
-
-    #or remove multiple sources
-    enmapBox.removeSources(['list-of-sources'])
-
-
-Manage Windows
-==============
-
-The EnMAP-Box provides different windows to visualize different data sources.
-You can create a new windows with::
-
-    enmapBox = EnMAP-Box.instance()
-    enmapBox.createDock('MAP')  # a spatial map
-    enmapBox.createDock('SPECLIB') # a spectral library
-    enmapBox.createDock('TEXT') # a text editor
-    enmapBox.createDock('WEBVIEW') # a browser
-    enmapBox.createDock('MIME') # a window to drop mime data
-
-
-
-Interact with the EnMAP-Box
-===========================
-
-This example shows how the `Qt Signal-Slot system <http://doc.qt.io/archives/qt-4.8/signalsandslots.html>`_ can be used to react on EnMAP-Box events::
-
-
-    class ExampleDialog(QDialog):
-        def __init__(self, parent=None):
-            super(ExampleDialog, self).__init__(parent=parent)
-
-            # self.setParent(enmapBox.ui)
-            self.btn = QPushButton('Clear')
-            self.label = QLabel('This Box will shows data sources newly added to the EnMAP-Box.')
-            self.tb = QPlainTextEdit()
-            self.tb.setLineWrapMode(QPlainTextEdit.NoWrap)
-            self.tb.setPlainText('Click "Project" > "Add example data"\n or add any other data source to the EnMAP-Box')
-            l = QVBoxLayout()
-            self.setLayout(l)
-            l.addWidget(self.label)
-            l.addWidget(self.tb)
-            l.addWidget(self.btn)
-
-            self.btn.clicked.connect(self.tb.clear)
-
-        def onSignal(self, src):
-            import datetime
-            t = datetime.datetime.now()
-            text = self.tb.toPlainText()
-            text = '{}\n{} : {}'.format(text, t.time(), src)
-            self.tb.setPlainText(text)
-
-    enmapBox = EnMAPBox.instance()
-    d = ExampleDialog(parent=enmapBox.ui)
-    d.setFixedSize(QSize(600, 300))
-
-    #connect different signals to a slot
-    enmapBox.sigDataSourceAdded.connect(d.onSignal)
-    enmapBox.sigCurrentLocationChanged.connect(d.onSignal)
-
-    d.show()
-
-
-
-
-Create EnMAP-Box Applications
-=============================
-
-Applications for the EnMAP-Box are python programs that can be called from
-
-* the EnMAP-Box GUI directly and might provide its own GUI
-* the QGIS Processing Framework. In this case they implement the GeoAlgorithm interface and are added to the EnMAPBoxAlgorithmProvider
-
-
-
-The ``examples/exampleapp`` shows how this can be done. Copy, rename and modify it to your needs to get
-your code interacting with the EnMAP-Box.
 
 
 

@@ -48,6 +48,9 @@ MD_DOMAIN_INFO['IMAGERY'] = 'Specific information for satellite or aerial imager
 
 
 class MetadataItemTreeNode(TreeNode):
+    """
+    TreeNode that described a single metadata item.
+    """
     def __init__(self, parentNode, key, **kwds):
         assert isinstance(key, MDKeyAbstract)
         if 'name' not in kwds.keys():
@@ -55,9 +58,24 @@ class MetadataItemTreeNode(TreeNode):
         if 'toolTip' not in kwds.keys():
             kwds['toolTip'] = key.tooltip()
         super(MetadataItemTreeNode, self).__init__(parentNode, **kwds)
-
+        self.mToDelete = False
         self.mMDKey = key
         self.setMetadataValue(key.value())
+
+    def setToDelete(self, b:bool):
+        """
+        :param b:
+        :return:
+        """
+        assert isinstance(b, bool)
+        self.mToDelete = b
+
+    def isToDelete(self)->bool:
+        """
+        Returns whether this metadata item is to be deleted.
+        :return: bool
+        """
+        return self.mToDelete
 
     def updateNode(self):
         """
@@ -261,29 +279,30 @@ class MetadataTreeModel(TreeModel):
         self.mDomains = MetadataDomainModel()
         self.mRootNode0 = None
 
-        self.mColumnNames = [self.cnKey, self.cnValue]
+        #self.mColumnNames = [self.cnKey, self.cnValue]
 
     def domainModel(self):
         return self.mDomains
 
-    def differences(self, rootNode)->list:
+    def differences(self, node)->list:
         """
-        Returns the TreeNodes with changed values
-        :param rootNode: TreeNode, by default the models rootNode
-        :return: [list-of-changed-MDKeys]
+        Returns MetadataItemTreeNode with changed values, new MetadataItemTreeNode or 
+        MetadataItemTreeNode to be delated.
+        :param node: TreeNode, by default the models rootNode
+        :return: [list-of-changed-MetadataItemTreeNodes]
         """
-        if rootNode is None:
-            rootNode = self.mRootNode
+        if node is None:
+            node = self.mRootNode
 
-        assert isinstance(rootNode, TreeNode)
+        assert isinstance(node, TreeNode)
 
         nodes = []
-        if isinstance(rootNode, MetadataItemTreeNode):
-            key = rootNode.mMDKey
+        if isinstance(node, MetadataItemTreeNode):
+            key = node.mMDKey
             assert isinstance(key, MDKeyAbstract)
-            if key.valueHasChanged():
-                nodes.append(rootNode)
-        for childNode in rootNode.childNodes():
+            if key.valueHasChanged() or node.isToDelete():
+                nodes.append(node)
+        for childNode in node.childNodes():
             nodes += self.differences(childNode)
         return nodes
 
@@ -303,6 +322,13 @@ class MetadataTreeModel(TreeModel):
 
 
     def openSource(self, path:str):
+        """
+        Adds a data source
+        :param path: uri of data source
+        """
+
+        assert isinstance(path, str)
+
         order = ['gdal', 'ogr']
         if re.search(r'(shp|gpkg|kml|kmz)$', path):
             order = ['ogr', 'gdal']
@@ -399,23 +425,21 @@ class MetadataTreeModel(TreeModel):
 
         return root
 
-    def setSource(self, path):
+    def setSource(self, path:str):
+        """
+        Sets the source path
+        :param path: str
+        """
+        assert isinstance(path, str)
         root = self.parseSource(path)
         self.mSource = path
         l = self.mRootNode.childCount()
         self.mRootNode.removeChildNodes(0, l)
+
         if isinstance(root, TreeNode):
+            #self.mRootNode.appendChildNodes([TreeNode(self.mRootNode, 'FAKE')])
             self.mRootNode.appendChildNodes(root.childNodes())
-
-        """
-        if isinstance(self.mRootNode0, TreeNode):
-            assert isinstance(self.mRootNode, TreeNode)
-            l = len(self.mRootNode.childNodes())
-            self.mRootNode.removeChildNodes(0, l)
-            clonedNodes = [c.clone() for c in self.mRootNode0.childNodes()]
-            self.mRootNode.appendChildNodes(clonedNodes)
-
-        """
+        s = ""
 
     def setData(self, index, value, role=Qt.EditRole):
         if not index.isValid():
@@ -437,7 +461,11 @@ class MetadataTreeModel(TreeModel):
 
         return False
 
-    def source(self):
+    def source(self)->str:
+        """
+        Returns the source uri
+        :return: str
+        """
         return self.mSource
 
     def flags(self, index):
@@ -458,18 +486,27 @@ class MetadataTreeModel(TreeModel):
 
     def data(self, index, role):
 
+        return super(MetadataTreeModel, self).data(index, role)
+
+
         node = self.idx2node(index)
         cName = self.columnNames()[index.column()]
-        if not (cName == self.cnValue and isinstance(node, MetadataItemTreeNode)):
-            return super(MetadataTreeModel, self).data(index, role)
-        else:
+
+        data = super(MetadataTreeModel, self).data(index, role)
+        flags = self.flags(index)
+        isEditable = bool(flags & Qt.ItemIsEditable) or type(node) in [MetadataClassificationSchemeTreeNode]
+
+        if cName == self.cnKey and isinstance(node, MetadataItemTreeNode):
+            if role == Qt.BackgroundColorRole:
+                if node.isToDelete():
+                    data = QBrush(QColor('red'))
+                else:
+                    data = super(MetadataTreeModel, self).data(index, role)
+            else:
+                data = super(MetadataTreeModel, self).data(index, role)
+        elif cName == self.cnKey and isinstance(node, MetadataItemTreeNode):
             value = node.metadataValue()
             key = node.mMDKey
-
-            flags = self.flags(index)
-            isEditable = bool(flags & Qt.ItemIsEditable) \
-                         or type(node) in [MetadataClassificationSchemeTreeNode]
-            data = None
             if cName == self.cnValue:
                 if role == Qt.DisplayRole:
                     if isinstance(key, MDKeyCoordinateReferenceSystem):
@@ -499,10 +536,13 @@ class MetadataTreeModel(TreeModel):
                 elif role == Qt.EditRole:
                     data = value
 
-            return data
+        return data
 
     def writeMetadata(self):
-
+        """
+        Write changes in Metadata
+        :return:
+        """
         differences = self.differences(self.mRootNode)
         if len(differences) > 0:
             ds = self.openSource(self.mSource)
@@ -626,6 +666,11 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
                 a = m.addAction('Reset')
                 a.triggered.connect(node.resetMetadataValue)
 
+                a = m.addAction('Delete')
+                a.setIcon(QIcon(r':/images/themes/default/mActionDeleteSelected.svg'))
+                a.setCheckable(True)
+                a.setChecked(node.isToDelete())
+                a.toggled.connect(node.setToDelete)
                 #edit ClassificationSchema in a separate dialog
                 if isinstance(node, MetadataClassificationSchemeTreeNode) or \
                     isinstance(node.parentNode(), MetadataClassificationSchemeTreeNode):
@@ -657,7 +702,7 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
 
     def inm(self, index):
         """
-        Returns the Index, Node, and TreeModel referece by index. Accounts for QAbstractProxyModels
+        Returns the Index, Node, and TreeModel reference by index. Accounts for QAbstractProxyModels
         :param index: QModelIndex
         :return: QModelIndex, TreeNode, TreeModel
         """
@@ -879,11 +924,14 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
 
         # Connect widgets, add logic that can not be expressed in the QDesigner and needs to be "hard-coded"
 
-        assert isinstance(self.treeView, QTreeView)
-
+        assert isinstance(self.treeView, TreeView)
+        self.mSourceModel = OptionListModel()
         self.mMetadataModel = MetadataTreeModel(parent=self.treeView)
         self.mMetadataFilterModel = MetadataFilterModel()
         self.mMetadataFilterModel.setSourceModel(self.mMetadataModel)
+        self.treeView.setModel(self.mMetadataFilterModel)
+
+
 
         def onFilterChanged():
             txt = self.tbKeyFilter.text()
@@ -896,38 +944,41 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         self.cbFilterRegex.toggled.connect(onFilterChanged)
 
         self.mMetadataModel.dataChanged.connect(self.onDataChanged)
-        self.mSourceModel = OptionListModel()
+
         self.cbSource.setModel(self.mSourceModel)
+
 
 
         def onSourceChanged(idx:int):
             if idx >= 0:
                 path = self.mSourceModel.optionValues()[idx]
                 self.treeView.setEnabled(False)
+
                 self.mMetadataModel.setSource(path)
+
                 self.treeView.setEnabled(True)
 
             self.onDataChanged()
             s = ""
 
+
         self.cbSource.currentIndexChanged[int].connect(onSourceChanged)
         #    lambda i : self.mMetadataModel.setSource(self.mSourceModel.optionValues()[i]))
+
 
         self.mDomains = OptionListModel()
         self.mDomains.insertOptions(Option(None, '<All>'))
         #self.cbDomainFilter.setModel(self.mDomains)
         d = self.mMetadataModel.domainModel()
 
+
         d.sigOptionsInserted.connect(self.mDomains.insertOptions)
         d.sigOptionsRemoved.connect(self.mDomains.removeOptions)
 
 
-        #self.treeView.setModel(self.mMetadataModel)
-        self.treeView.setModel(self.mMetadataFilterModel)
-        #self.treeView.header().setResizeMode(QHeaderView.ResizeToContents)
+        self.treeView.header().setResizeMode(QHeaderView.ResizeToContents)
 
         self.delegate = MetadataTreeViewWidgetDelegates(self.treeView)
-        self.treeView.setItemDelegate(self.delegate)
 
         self.buttonBox.button(QDialogButtonBox.Close).clicked.connect(lambda: self.close())
         #self.buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)

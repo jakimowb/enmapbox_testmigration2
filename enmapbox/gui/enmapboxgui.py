@@ -870,14 +870,19 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.mCurrentSpectra[:]
 
-    def dataSources(self, sourceType='ALL')->list:
+    def dataSources(self, sourceType='ALL', onlyUri:bool=True)->list:
         """
         Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
         :param sourceType: ['ALL', 'RASTER', 'VECTOR', 'MODEL'],
                             see enmapbox.gui.datasourcemanager.DataSourceManager.SOURCE_TYPES
+        :param onlyUri: bool, set on False to return the DataSource object instead of the uri only.
         :return: [list-of-datasource-URIs (str)]
         """
-        return self.dataSourceManager.uriList(sourceType)
+
+        sources = self.dataSourceManager.sources(sourceTypes=sourceType)
+        if onlyUri:
+            sources = [ds.uri() for ds in sources]
+        return sources
 
     def createDock(self, *args, **kwds)->Dock:
         """

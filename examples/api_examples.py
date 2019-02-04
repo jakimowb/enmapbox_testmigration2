@@ -64,13 +64,14 @@ class Examples(unittest.TestCase):
         from enmapbox import EnMAPBox
         EMB = EnMAPBox(None)
 
-
         enmapBox = EnMAPBox.instance()
 
         # add some data sources
         from enmapboxtestdata import enmap as pathRasterSource
         from enmapboxtestdata import landcover_polygons as pathVectorSource
         from enmapboxtestdata import library as pathSpectralLibrary
+
+
 
         # add a single source
         enmapBox.addSource(pathRasterSource)
@@ -84,6 +85,19 @@ class Examples(unittest.TestCase):
         enmapBox.addSource(wmsUri, name="Open Street Map")
         enmapBox.addSource(wfsUri, name='Berlin PLZ')
 
+
+        # be informed over new data sources
+        def onDataSourceAdded(dataSource:str):
+            print('DataSource added: {}'.format(dataSource))
+
+        enmapBox.sigDataSourceAdded.connect(onDataSourceAdded)
+
+        def onDataSourceRemoved(dataSource:str):
+            print('DataSource removed: {}'.format(dataSource))
+        enmapBox.sigDataSourceRemoved.connect(onDataSourceRemoved)
+
+
+
         # print all sources
         for source in enmapBox.dataSources():
             print(source)
@@ -92,100 +106,180 @@ class Examples(unittest.TestCase):
         for source in enmapBox.dataSources('RASTER'):
             print(source)
 
+
         # remove all data sources
         allSources = enmapBox.dataSources()
         enmapBox.removeSources(allSources)
 
+        # pro tip: access the DataSource objects directly
+
+
         qgsApp.exec_()
 
-    def example4_createWindows(self):
-        """
-        Add new windows to view data
-        """
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        enmapBox = EnMAPBox(None)
-
-        enmapBox.createDock('MAP')  # a spatial map
-        enmapBox.createDock('SPECLIB') # a spectral library
-        enmapBox.createDock('TEXT') # a text editor
-        enmapBox.createDock('WEBVIEW') # a browser
-        enmapBox.createDock('MIME') # a window to drop mime data
-
-
-        #1. create your own GUI that waits for user input.
-        class Example5Dialog(QDialog):
-            def __init__(self, parent=None):
-                super(Example5Dialog, self).__init__(parent=parent)
-
-                #self.setParent(enmapBox.ui)
-                self.btn = QPushButton('Clear')
-                self.label = QLabel('This Box will shows data sources newly added to the EnMAP-Box.')
-                self.tb = QPlainTextEdit()
-                self.tb.setLineWrapMode(QPlainTextEdit.NoWrap)
-                self.tb.setPlainText('Click "Project" > "Add example data"\n or add any other data source to the EnMAP-Box')
-                l = QVBoxLayout()
-                self.setLayout(l)
-                l.addWidget(self.label)
-                l.addWidget(self.tb)
-                l.addWidget(self.btn)
-
-
-                self.btn.clicked.connect(self.tb.clear)
-
-
-            def onSignal(self, src):
-                sender = self.sender()
-
-                import datetime
-                t = datetime.datetime.now()
-                text = self.tb.toPlainText()
-
-                text = '{}\n{} : {}'.format(text, t.time(), src)
-                self.tb.setPlainText(text)
-
-
-    def example5_connectWithEnMAPBoxSignals(self):
-        """
-        This example demonstrates how the Qt Signal-Slot mechanism can be used to react on EnMAP-Box events.
-        Read http://doc.qt.io/archives/qt-4.8/signalsandslots.html for details of signals & slots.
-        """
-
-        class ExampleDialog(QDialog):
-            def __init__(self, parent=None):
-                super(ExampleDialog, self).__init__(parent=parent)
-
-                # self.setParent(enmapBox.ui)
-                self.btn = QPushButton('Clear')
-                self.label = QLabel('This Box will shows data sources newly added to the EnMAP-Box.')
-                self.tb = QPlainTextEdit()
-                self.tb.setLineWrapMode(QPlainTextEdit.NoWrap)
-                self.tb.setPlainText('Click "Project" > "Add example data"\n or add any other data source to the EnMAP-Box')
-                l = QVBoxLayout()
-                self.setLayout(l)
-                l.addWidget(self.label)
-                l.addWidget(self.tb)
-                l.addWidget(self.btn)
-
-                self.btn.clicked.connect(self.tb.clear)
-
-            def onSignal(self, src):
-                import datetime
-                t = datetime.datetime.now()
-                text = self.tb.toPlainText()
-                text = '{}\n{} : {}'.format(text, t.time(), src)
-                self.tb.setPlainText(text)
+    def test_Ex2_UniqueDataSources(self):
 
         from enmapbox import EnMAPBox
-        enmapBox = EnMAPBox.instance()
+        from enmapboxtestdata import enmap
 
-        d = ExampleDialog(parent=enmapBox.ui)
-        d.setFixedSize(QSize(600, 300))
+        enmapBox = EnMAPBox(None)
+        enmapBox.addSource(enmap)
+        print('# data sources: {}'.format(len(enmapBox.dataSources())))
 
-        #connect different signals to a slot
-        enmapBox.sigDataSourceAdded.connect(d.onSignal)
-        enmapBox.sigCurrentLocationChanged.connect(d.onSignal)
+        # add the same source again
+        enmapBox.addSource(enmap)
+        print('# data sources: {}'.format(len(enmapBox.dataSources())))
 
-        d.show()
+    def test_Ex2_DataSource_Versions(self):
+
+
+        from enmapbox import EnMAPBox
+
+        enmapBox = EnMAPBox(None)
+        enmapBox.sigDataSourceAdded.connect(lambda uri:print('DataSource added: {}'.format(uri)))
+        enmapBox.sigDataSourceRemoved.connect(lambda uri: print('DataSource removed: {}'.format(uri)))
+
+        import tempfile, os, time
+        tempDir = tempfile.mkdtemp()
+        pathFile = os.path.join(tempDir, 'testfile.txt')
+
+        with open(pathFile, 'w', encoding='utf-8') as f:
+            f.write('First version')
+
+        assert os.path.isfile(pathFile)
+        enmapBox.addSource(pathFile)
+        assert len(enmapBox.dataSources()) == 1
+
+        time.sleep(2)
+
+        with open(pathFile, 'w', encoding='utf-8') as f:
+            f.write('Second version')
+
+        assert os.path.exists(pathFile)
+        enmapBox.addSource(pathFile)
+        assert len(enmapBox.dataSources()) == 1
+
+
+
+
+    def test_Ex3_Docks(self):
+        """
+        Add new dock windows to view data
+        """
+        from enmapbox.gui.enmapboxgui import EnMAPBox, Dock, MapDock, SpectralLibraryDock
+        enmapBox = EnMAPBox(None)
+
+        #enmapBox.createDock('MAP')  # a spatial map
+        #enmapBox.createDock('SPECLIB') # a spectral library
+        #enmapBox.createDock('TEXT') # a text editor
+        #enmapBox.createDock('MIME') # a window to drop mime data
+
+
+
+        # modify dock properties
+        mapDock1 = enmapBox.createDock('MAP')  # two spatial maps
+        mapDock2 = enmapBox.createDock('MAP')  # a spatial map
+        mapDock3 = enmapBox.createDock('MAP')  # a spatial map
+
+        # set dock title
+        mapDock1.setTitle('Map 1 (fixed)')
+        mapDock2.setTitle('Map 2 (floated)')
+        mapDock3.setTitle('Map 3 (hidden)')
+
+        mapDock2.float()
+        mapDock3.setVisible(False)
+
+
+        # list all docks
+        from enmapbox.gui.docks import Dock, SpectralLibraryDock
+        for dock in enmapBox.dockManager.docks():
+            assert isinstance(dock, Dock)
+            print(dock)
+
+        # list map docks only
+        for dock in enmapBox.dockManager.docks(dockType='MAP'):
+            assert isinstance(dock, Dock)
+            print(dock)
+
+        # list all spectral library docks
+        for dock in enmapBox.dockManager.docks(dockType='SPECLIB'):
+            assert isinstance(dock, Dock)
+            print(dock)
+
+        qgsApp.exec_()
+
+
+    def test_Ex4_MapTools(self):
+
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox(None)
+        enmapBox.loadExampleData() # this opens a map dock as well
+
+        from enmapbox.gui import MapTools, SpatialPoint, SpectralProfile
+
+        def printLocation(spatialPoint:SpatialPoint):
+            print('Mouse clicked on {}'.format(spatialPoint))
+
+        enmapBox.sigCurrentLocationChanged.connect(printLocation)
+        enmapBox.setMapTool(MapTools.CursorLocation)
+
+        def printLocationAndCanvas(spatialPoint: SpatialPoint, canvas:QgsMapCanvas):
+            print('Mouse clicked on {} in {}'.format(spatialPoint, canvas))
+
+        enmapBox.sigCurrentLocationChanged[SpatialPoint, QgsMapCanvas].connect(printLocationAndCanvas)
+
+
+        def printSpectralProfiles(currentSpectra:list):
+
+            print('{} SpectralProfiles collected'.format(len(currentSpectra)))
+            for i, p in enumerate(currentSpectra):
+                assert isinstance(p, QgsFeature)
+                p = SpectralProfile.fromSpecLibFeature(p)
+                assert isinstance(p, SpectralProfile)
+                print('{}: {}'.format(i+1, p.values()['y']))
+
+        enmapBox.sigCurrentSpectraChanged.connect(printSpectralProfiles)
+
+        print('Last location: {}'.format(enmapBox.currentLocation()))
+        print('Last SpectralProfile: {}'.format(enmapBox.currentSpectra()))
+
+
+
+        lastPosition = enmapBox.currentLocation()
+
+
+
+        qgsApp.exec_()
+
+    def test_Ex5_PointsAndExtents(self):
+
+        from enmapboxtestdata import enmap
+        from enmapbox.gui import SpatialPoint
+
+        layer = QgsRasterLayer(enmap)
+        point = SpatialPoint.fromMapLayerCenter(layer)
+
+        targetCrs = QgsCoordinateReferenceSystem('EPSG:4326')
+
+        print('Original CRS: "{}"'.format(layer.crs().description()))
+        print('QgsPointXY  : {}'.format(QgsPointXY(point)))
+        print('SpatialPoint: {}\n'.format(point))
+
+        pointTargetCRS = point.toCrs(targetCrs)
+        print('Target CRS  : "{}"'.format(targetCrs.description()))
+        print('QgsPointXY  : {}'.format(QgsPointXY(pointTargetCRS)))
+        print('SpatialPoint: {}\n'.format(pointTargetCRS))
+
+        from enmapbox.gui import SpatialExtent
+        extent = SpatialExtent.fromLayer(layer)
+        print('Original CRS : "{}"'.format(layer.crs().description()))
+        print('QgsRectangle : {}'.format(QgsRectangle(extent)))
+        print('SpatialExtent: {}\n'.format(extent))
+
+        extentTargetCRS = extent.toCrs(targetCrs)
+        print('Target CRS   : "{}"'.format(targetCrs.description()))
+        print('QgsRectangle : {}'.format(QgsPointXY(pointTargetCRS)))
+        print('SpatialExtent: {}\n'.format(extentTargetCRS))
+
 
 
 if __name__ == "__main__":
