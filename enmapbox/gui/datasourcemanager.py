@@ -1265,7 +1265,12 @@ class DataSourcePanelUI(QgsDockWidget, loadUI('datasourcepanel.ui')):
             assert isinstance(idx, QModelIndex)
             n = model.idx2node(idx)
             if isinstance(n, DataSourceTreeNode):
-                sources.append(n.dataSource())
+                if n.dataSource() not in sources:
+                    sources.append(n.dataSource())
+            elif isinstance(n, DataSourceGroupTreeNode):
+                for s in n.dataSources():
+                    if s not in sources:
+                        sources.append(s)
         return sources
 
 LUT_DATASOURCTYPES = collections.OrderedDict()
