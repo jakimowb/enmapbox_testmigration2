@@ -89,7 +89,7 @@ like Web Map Services (WMS) and Web Feature Services (WFS)::
      Different Datasources added to the EnMAP-Box.
 
 
-List existing data sources
+List Existing Data Sources
 --------------------------
 
 You can iterate over all data sources::
@@ -102,7 +102,7 @@ You can iterate over all data sources::
     for source in enmapBox.dataSources('RASTER'):
         print(source)
 
-Remove data sources
+Remove Data Sources
 -------------------
 
 Use the data source path to remove it from the EnMAP-Box::
@@ -185,8 +185,8 @@ which might be required to ensure data integrity.
 
 
 
-3. Manage Windows
-=================
+3. Manage Dock Windows
+======================
 
 The EnMAP-Box provides specialized windows called ``Docks`` to visualize spatial data and spectral libraries.
 They are containers to other, more specialited widgets, e.g. the ``QgsMapCanvas`` or the ``SpectralLibraryWidget``.

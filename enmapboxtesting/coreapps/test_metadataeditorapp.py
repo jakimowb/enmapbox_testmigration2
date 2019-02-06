@@ -19,11 +19,11 @@
 ***************************************************************************
 """
 
-import unittest
+import unittest, time
 
 from enmapbox.testing import initQgisApplication, TestObjects
 SHOW_GUI = True
-QGSAPP = initQgisApplication()
+QGS_APP = initQgisApplication()
 
 from enmapboxtestdata import landcover_polygons, enmap
 from metadataeditorapp.metadataeditor import *
@@ -240,11 +240,13 @@ class TestMDMetadataKeys(unittest.TestCase):
         srcRaster = TestObjects.createRasterLayer(nc=5)
         srcVector = TestObjects.createVectorLayer()
         m = MetadataTreeModel()
+        sources = [srcRaster, srcVector]
+        sources = self.createSupportedSources()
 
-
-        for src in [srcRaster, srcVector]:
-
+        for src in sources:
+            t0 = time.time()
             m.setSource(src.source())
+            print('Loading MetadataTreeModel {}: {}'.format(src.source(), time.time()-t0))
             self.assertEqual(src.source(), m.source())
 
             for r in range(m.rowCount(QModelIndex())):
@@ -257,24 +259,20 @@ class TestMDMetadataKeys(unittest.TestCase):
 
                 self.checkNodeAttributes(m, idx)
 
-
-
-
-
-
-
-
-
         fm = MetadataFilterModel()
 
         self.assertIsInstance(m, MetadataTreeModel)
         self.assertIsInstance(fm, MetadataFilterModel)
+        t0 = time.time()
         fm.setSourceModel(m)
+        print('fm.setSourceModel(m) {}: {}'.format(src.source(), time.time() - t0))
         self.assertEqual(fm.sourceModel(), m)
 
-        for src in [srcRaster, srcVector]:
+        for src in sources:
 
+            t0 = time.time()
             m.setSource(src.source())
+            print('Loading MetadataFilterModel {}: {}'.format(src.source(), time.time() - t0))
             self.assertEqual(src.source(), m.source())
 
             for r in range(fm.rowCount(QModelIndex())):
@@ -293,8 +291,10 @@ class TestMDMetadataKeys(unittest.TestCase):
         d.show()
         sources = self.createSupportedSources()
 
-        import time
+
         for uri in sources:
+
+
             print('Read {}'.format(uri))
             d.mSourceModel.clear()
 
@@ -304,11 +304,67 @@ class TestMDMetadataKeys(unittest.TestCase):
             self.assertTrue(len(d.mSourceModel) == 1)
             print(time.time()-t0)
 
+    def test_referenceModelTree(self):
 
-    def test_MetadataTreeViewWidgetDelegates(self):
+        TV = QTreeView()
+        TM = TreeModel()
+        TV.setModel(TM)
+        TV.show()
+        rn = TM.rootNode()
+        self.assertIsInstance(rn, TreeNode)
+        n1 = 5
+        n2 = 50
+        n3 = 100
 
-        tv = QTreeView()
-        d = MetadataTreeViewWidgetDelegates(tv)
+
+
+        for i in range(n1):
+            t0 = time.time()
+            print('fill {}'.format(i))
+            node1 = TreeNode(None, name='Node {}'.format(i))
+
+            for j in range(n2):
+                node2 = TreeNode(node1, name='N {}:{}'.format(i,j))
+                for k in range(n3):
+                    node3 = TreeNode(node2, name='Sub {}'.format(k))
+            rn.appendChildNodes([node1])
+            print('fill {} ... {}'.format(i, time.time()-t0))
+
+        if SHOW_GUI:
+            QGS_APP.exec_()
+
+    def test_MetadataTreeView(self):
+
+
+
+        sources = self.createSupportedSources()
+        #TV = QTreeView()
+        TV = TreeView()
+        TV.show()
+
+        model = MetadataTreeModel()
+        fm = MetadataFilterModel()
+        fm.setSourceModel(model)
+        TV.setModel(model)
+        delegate = MetadataTreeViewWidgetDelegates(TV)
+
+        for source in sources[0:1]:
+            t0 = time.time()
+            model.setSource(source.source())
+            print('{}: {}'.format(source.source(), time.time()-t0))
+            pass
+
+        if SHOW_GUI:
+            qApp.exec_()
+
+    def test_inputdialog(self):
+
+        w = QgsListWidget(QVariant.Double)
+        w.setList([None, None, None, None])
+        w.show()
+        if SHOW_GUI:
+            QGS_APP.exec_()
+
 
     def test_MDDialog(self):
 
@@ -318,14 +374,18 @@ class TestMDMetadataKeys(unittest.TestCase):
 
 
 
-        sources = self.createSupportedSources()
-        for source in sources:
-            d.addSources(source)
+        layers = self.createSupportedSources()
+        for layer in layers:
+            t0 = time.time()
+            print('Add {}...'.format(layer.source()))
+            d.addSources(layer)
+            print('{}:{}'.format(layer.source(), time.time()-t0))
+
         #d.addSources(self.createNotSupportedSources())
         #self.assertTrue(len(d.mSourceModel) == len(sources))
 
         if SHOW_GUI:
-            QGSAPP.exec_()
+            QGS_APP.exec_()
 
 if __name__ == "__main__":
 

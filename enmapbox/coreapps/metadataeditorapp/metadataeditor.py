@@ -60,7 +60,7 @@ class MetadataItemTreeNode(TreeNode):
         super(MetadataItemTreeNode, self).__init__(parentNode, **kwds)
         self.mToDelete = False
         self.mMDKey = key
-        self.setMetadataValue(key.value())
+        self.setValue(key.value())
 
     def setToDelete(self, b:bool):
         """
@@ -68,7 +68,10 @@ class MetadataItemTreeNode(TreeNode):
         :return:
         """
         assert isinstance(b, bool)
-        self.mToDelete = b
+        if self.mToDelete != b:
+            self.mToDelete = b
+            self.sigUpdated.emit(self)
+
 
     def isToDelete(self)->bool:
         """
@@ -102,8 +105,9 @@ class MetadataItemTreeNode(TreeNode):
         """
         old = self.metadataValue()
         if value != old:
+            self.setValue(value)
             self.mMDKey.setValue(value)
-            #self.sigUpdated.emit(self)
+            self.sigUpdated.emit(self)
             self.updateNode()
 
     def resetMetadataValue(self):
@@ -232,17 +236,17 @@ class MetadataDomainTreeNode(TreeNode):
         if self.mToolTip is None and self.mDomain in MD_DOMAIN_INFO.keys():
             self.setToolTip(MD_DOMAIN_INFO[self.mDomain])
 
-        self.sigAddedChildren.connect(self.update)
-        self.sigRemovedChildren.connect(self.update)
-        self.update()
+        #self.sigAddedChildren.connect(self.update)
+        #self.sigRemovedChildren.connect(self.update)
+        #self.update()
 
-    def update(self):
-
-        n = self.childCount()
-        if n == 0:
-            self.setValues('not metadata items')
-        else:
-            self.setValues('{} metadata items'.format(n))
+    #def update(self):
+#
+    #    n = self.childCount()
+    #    if n == 0:
+    #        self.setValues('not metadata items')
+    #    else:
+    #        self.setValues('{} metadata items'.format(n))
 
 
 
@@ -267,6 +271,8 @@ class MetadataDomainModel(OptionListModel):
         return [o.value for o in self.options()]
 
 
+
+
 class MetadataTreeModel(TreeModel):
 
     def __init__(self, parent=None):
@@ -287,24 +293,25 @@ class MetadataTreeModel(TreeModel):
     def differences(self, node)->list:
         """
         Returns MetadataItemTreeNode with changed values, new MetadataItemTreeNode or 
-        MetadataItemTreeNode to be delated.
+        MetadataItemTreeNode to be deleted.
         :param node: TreeNode, by default the models rootNode
         :return: [list-of-changed-MetadataItemTreeNodes]
         """
+        print('DIFFERENCES')
         if node is None:
             node = self.mRootNode
 
         assert isinstance(node, TreeNode)
 
-        nodes = []
+        changedNodes = []
         if isinstance(node, MetadataItemTreeNode):
             key = node.mMDKey
             assert isinstance(key, MDKeyAbstract)
             if key.valueHasChanged() or node.isToDelete():
-                nodes.append(node)
+                changedNodes.append(node)
         for childNode in node.childNodes():
-            nodes += self.differences(childNode)
-        return nodes
+            changedNodes += self.differences(childNode)
+        return changedNodes
 
     def parseSource(self, path: str):
         #print('PARSE {}'.format(path))
@@ -431,17 +438,26 @@ class MetadataTreeModel(TreeModel):
         :param path: str
         """
         assert isinstance(path, str)
+        print('...parse')
         root = self.parseSource(path)
         self.mSource = path
         l = self.mRootNode.childCount()
+        print('...remove')
         self.mRootNode.removeChildNodes(0, l)
 
         if isinstance(root, TreeNode):
             #self.mRootNode.appendChildNodes([TreeNode(self.mRootNode, 'FAKE')])
+            print('append...')
+            self.beginResetModel()
+            self.mRootNode.blockSignals(True)
             self.mRootNode.appendChildNodes(root.childNodes())
+            self.mRootNode.blockSignals(False)
+            self.endResetModel()
+            print('...finished')
+        print('done')
         s = ""
 
-    def setData(self, index, value, role=Qt.EditRole):
+    def setData(self, index:QModelIndex, value, role=Qt.EditRole):
         if not index.isValid():
             return None
         if not role == Qt.EditRole:
@@ -468,75 +484,67 @@ class MetadataTreeModel(TreeModel):
         """
         return self.mSource
 
-    def flags(self, index):
-        flags = super(MetadataTreeModel, self).flags(index)
+    def flags(self, index:QModelIndex):
+
         cName = self.idx2columnName(index)
-        node = self.idx2node(index)
-        if isinstance(node, MetadataItemTreeNode) and cName == self.cnValue:
-            if node.isImmutable() == False \
-                    and type(node) not in [MetadataClassificationSchemeTreeNode]:
-                flags = flags | Qt.ItemIsEditable
-            else:
-                s = ""
 
-        if isinstance(node.parentNode(), MetadataClassificationSchemeTreeNode):
-            s = ""
+        node = index.internalPointer()
+        flags = Qt.ItemIsSelectable | Qt.ItemIsEnabled
+        if isinstance(node, MetadataItemTreeNode):
+            if cName == self.cnValue:
+                if node.isImmutable() == False \
+                        and type(node) not in [MetadataClassificationSchemeTreeNode, CoordinateReferencesSystemTreeNode]:
+                    flags = flags | Qt.ItemIsEditable
 
+        else:
+            flags = super(MetadataTreeModel, self).flags(index)
         return flags
 
     def data(self, index, role):
+        #return super(MetadataTreeModel, self).data(index, role)
 
-        return super(MetadataTreeModel, self).data(index, role)
 
-
-        node = self.idx2node(index)
+        node = index.internalPointer()
         cName = self.columnNames()[index.column()]
-
-        data = super(MetadataTreeModel, self).data(index, role)
-        flags = self.flags(index)
-        isEditable = bool(flags & Qt.ItemIsEditable) or type(node) in [MetadataClassificationSchemeTreeNode]
-
-        if cName == self.cnKey and isinstance(node, MetadataItemTreeNode):
-            if role == Qt.BackgroundColorRole:
-                if node.isToDelete():
-                    data = QBrush(QColor('red'))
+        if isinstance(node, MetadataItemTreeNode):
+            key  = node.mMDKey
+            isEditable = not node.isImmutable()
+            if cName == self.cnKey:
+                if role == Qt.BackgroundColorRole:
+                    if node.isToDelete():
+                        return QBrush(QColor('red'))
+                    else:
+                        return super(MetadataTreeModel, self).data(index, role)
                 else:
-                    data = super(MetadataTreeModel, self).data(index, role)
-            else:
-                data = super(MetadataTreeModel, self).data(index, role)
-        elif cName == self.cnKey and isinstance(node, MetadataItemTreeNode):
-            value = node.metadataValue()
-            key = node.mMDKey
+                    return super(MetadataTreeModel, self).data(index, role)
+
             if cName == self.cnValue:
                 if role == Qt.DisplayRole:
-                    if isinstance(key, MDKeyCoordinateReferenceSystem):
-                        if value is None:
-                            data == 'Undefined'
+                    value = key.value()
+                    value = node.metadataValue()
+
+                    if isinstance(value, QgsCoordinateReferenceSystem):
+                        return value.description()
+                    elif isinstance(value, ClassificationScheme):
+                        nc = len(value)
+                        if nc > 0:
+                            return '{} classes'.format(nc)
                         else:
-                            try:
-                                data = value.description()
-                            except Exception as e:
-                                pass
-
-                    elif isinstance(key, MDKeyClassification):
-                        data = str(node.values()[0])
-
+                            return 'None'
                     else:
-                        data = str(value)
+                        return value
 
                 if role == Qt.EditRole:
-                    data = value
+                    return key.value()
                 if role == Qt.FontRole:
                     font = QFont()
                     font.setItalic(isEditable)
-                    data = font
-
+                    return font
                 elif role == Qt.BackgroundRole and isEditable:
-                    data = QBrush(QColor('yellow'))
-                elif role == Qt.EditRole:
-                    data = value
+                    return QBrush(QColor('yellow'))
 
-        return data
+        #default
+        return super(MetadataTreeModel, self).data(index, role)
 
     def writeMetadata(self):
         """
@@ -622,29 +630,23 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
         self.mTreeView.doubleClicked.connect(self.onDoubleClick)
         self.mTreeView.customContextMenuRequested.connect(self.onCustomContextMenu)
 
-    def treeModel(self)->MetadataTreeModel:
-        model = self.mTreeView.model()
-
-        #assert isinstance(model, MetadataTreeModel)
-        return model
-
+    def model(self)->QAbstractItemModel:
+        return self.mTreeView.model()
 
     def onDoubleClick(self, idx):
-        indexM, node, modelM = self.inm(idx)
+        node = self.model().data(idx, role=Qt.UserRole)
         if isinstance(node, MetadataClassificationSchemeTreeNode):
-            self.onEditClassificationScheme(node)
-        return
+            self.onEditClassificationScheme(idx)
 
-
-
-        classInfo = modelM.getClassInfoFromIndex(indexM)
-        if idx.column() == modelM.columnNames.index(model.cCOLOR):
-
-            w1 = QColorDialog(classInfo.mColor, self.treeView)
-            w1.exec_()
-            if w1.result() == QDialog.Accepted:
-                c = w1.getColor()
-                modelM.setData(indexM, c, role=Qt.EditRole)
+        if isinstance(node, CoordinateReferencesSystemTreeNode):
+            crs = node.mMDKey.value()
+            d = QgsProjectionSelectionDialog()
+            if isinstance(crs, QgsCoordinateReferenceSystem):
+                d.setCrs(crs)
+            d.setMessage('Select the Coordinate Reference System')
+            d.setShowNoProjection(True)
+            if d.exec_() == QDialog.Accepted:
+                self.model().setData(idx, d.crs())
 
 
     def onCustomContextMenu(self, point):
@@ -653,10 +655,10 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
 
         index = self.mTreeView.indexAt(point)
         assert isinstance(index, QModelIndex)
-        cname = self.getColumnName(index)
-        index, node, model = self.inm(index)
+        cname = self.columnName(index)
+        node = self.model().data(index, role=Qt.UserRole)
 
-        if index.isValid():
+        if index.isValid() and isinstance(node, MetadataItemTreeNode):
             m = QMenu()
             a = m.addAction('Copy')
 
@@ -683,60 +685,30 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
             m.exec_(self.mTreeView.mapToGlobal(point))
             #m.popup(event.pos())
 
-    def onEditClassificationScheme(self, node):
 
+
+    def onEditClassificationScheme(self, index:QModelIndex):
+
+        node = self.model().data(index, role=Qt.UserRole)
         assert isinstance(node, MetadataClassificationSchemeTreeNode)
         assert isinstance(node.mMDKey, MDKeyClassification)
 
         value = node.metadataValue()
 
-        model = self.treeModel().sourceModel()
-        #assert isinstance(model, MetadataTreeModel)
-
-
         scheme = ClassificationSchemeDialog.getClassificationScheme(classificationScheme=value)
         if isinstance(scheme, ClassificationScheme):
-            index = model.node2idx(node)
-            model.setData(index, scheme)
+            self.model().setData(index, scheme)
 
 
-    def inm(self, index):
-        """
-        Returns the Index, Node, and TreeModel reference by index. Accounts for QAbstractProxyModels
-        :param index: QModelIndex
-        :return: QModelIndex, TreeNode, TreeModel
-        """
-        model = self.treeModel()
-        if isinstance(model, QAbstractProxyModel):
-            indexM = model.mapToSource(index)
-            modelM = model.sourceModel()
-            return indexM, modelM.idx2node(indexM), modelM
+    def columnName(self, index:QModelIndex):
+        return self.model().headerData(index.column(), Qt.Horizontal, role=Qt.DisplayRole)
 
-        else:
-            return index, model.idx2node(index), model
-
-    def getColumnName(self, index):
-        assert index.isValid()
-        index, node, model = self.inm(index)
-        return model.idx2columnName(index)
-    """
-    def sizeHint(self, options, index):
-        s = super(ExpressionDelegate, self).sizeHint(options, index)
-        exprString = self.tableView.model().data(index)
-        l = QLabel()
-        l.setText(exprString)
-        x = l.sizeHint().width() + 100
-        s = QSize(x, s.height())
-        return self._preferedSize
-    """
     def createEditor(self, parent, option, index):
 
-        cname = self.getColumnName(index)
-        indexM, node, modelM = self.inm(index)
-
-        w = QItemDelegate().createEditor(parent, option, index)
-
-        if isinstance(node, MetadataItemTreeNode) and cname == modelM.cnValue:
+        w = None
+        cname = self.columnName(index)
+        node = self.model().data(index, role=Qt.UserRole)
+        if isinstance(node, MetadataItemTreeNode):
             key = node.metadataKey()
             value = node.metadataValue()
             assert isinstance(key, MDKeyAbstract)
@@ -780,18 +752,14 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
                         w = QDateTimeEdit(parent)
                         w.setCalendarPopup(True)
 
-
-
+        if not isinstance(w, QWidget):
+            w = QItemDelegate().createEditor(parent, option, index)
         return w
 
     def editorEvent(self, event, model, option, index):
         assert isinstance(index, QModelIndex)
         assert isinstance(option, QStyleOptionViewItem)
         assert isinstance(event, QEvent)
-#        assert isinstance(model, MetadataTreeModel)
-        indexM, node, modelM = self.inm(index)
-        cname = self.getColumnName(index)
-
 
         if isinstance(event, QMouseEvent):
             if event.button() == Qt.RightButton:
@@ -799,11 +767,12 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
                 pass
         return False
 
-    def setEditorData(self, editor, index):
-        cname = self.getColumnName(index)
-        indexM, node, modelM = self.inm(index)
+    def setEditorData(self, editor, index:QModelIndex):
+        cname = self.columnName(index)
 
-        if cname == modelM.cnValue and isinstance(node, MetadataItemTreeNode):
+        node = self.model().data(index, role=Qt.UserRole)
+
+        if isinstance(node, MetadataItemTreeNode):
             value = node.metadataValue()
             key = node.mMDKey
             assert isinstance(key, MDKeyAbstract)
@@ -841,38 +810,37 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
 
 
     def setModelData(self, w, model, index):
-        cname = self.getColumnName(index)
-        indexM, node, modelM = self.inm(index)
-
+        model = self.model()
+        node = model.data(index, role=Qt.UserRole)
         try:
-            if index.isValid() and isinstance(node, MetadataItemTreeNode):
+            if isinstance(node, MetadataItemTreeNode):
                 key = node.mMDKey
                 assert isinstance(key, MDKeyAbstract)
 
                 if isinstance(w, QLineEdit):
                     #node.setMetadataValue(w.text())
-                    modelM.setData(indexM, w.text())
+                    model.setData(index, w.text())
                 elif isinstance(w, QgsProjectionSelectionWidget):
-                    modelM.setData(indexM, w.crs())
+                    model.setData(index, w.crs())
                     #node.setMetadataValue(w.crs())
                 elif isinstance(w, QComboBox):
                     if w.isEditable() and isinstance(key, MDKeyDomainString) and key.mListLength > 0:
                         values = [w.itemData(i, role=Qt.DisplayRole)
                                      for i in range(w.count())
                                      ]
-                        modelM.setData(indexM, values)
+                        model.setData(index, values)
                     else:
-                        modelM.setData(indexM, w.currentText())
+                        model.setData(index, w.currentText())
                     #node.setMetadataValue(w.currentText())
                 elif type(w) in [QSpinBox, QDoubleSpinBox]:
-                    modelM.setData(indexM, w.value())
+                    model.setData(index, w.value())
                     #node.setMetadataValue(w.value())
                 elif isinstance(w, QDateEdit):
-                    modelM.setData(indexM, np.datetime64(w.date().toString(Qt.ISODate)))
+                    model.setData(index, np.datetime64(w.date().toString(Qt.ISODate)))
                 elif isinstance(w, QTimeEdit):
-                    modelM.setData(indexM, np.datetime64(w.time().toString(Qt.ISODate)))
+                    model.setData(index, np.datetime64(w.time().toString(Qt.ISODate)))
                 elif isinstance(w, QDateTimeEdit):
-                    modelM.setData(indexM, np.datetime64(w.dateTime().toString(Qt.ISODate)))
+                    model.setData(index, np.datetime64(w.dateTime().toString(Qt.ISODate)))
                 else:
                     s = ""
             else:
@@ -913,17 +881,7 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
     """Constructor."""
     def __init__(self, parent=None):
         super(MetadataEditorDialog, self).__init__(parent, Qt.Window)
-        # Set up the user interface from Designer.
-        # After setupUI you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
-
-        # Important!!!!!!!!! this will initiate all the QWidgets etc. specified in the *.ui file
         self.setupUi(self)
-
-        # Connect widgets, add logic that can not be expressed in the QDesigner and needs to be "hard-coded"
-
         assert isinstance(self.treeView, TreeView)
         self.mSourceModel = OptionListModel()
         self.mMetadataModel = MetadataTreeModel(parent=self.treeView)
@@ -935,13 +893,12 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
 
         def onFilterChanged():
             txt = self.tbKeyFilter.text()
-            if self.cbFilterRegex.isChecked():
+            if self.optionUseRegex.isChecked():
                 self.mMetadataFilterModel.setFilterRegExp(QRegExp(txt))
             else:
                 self.mMetadataFilterModel.setFilterWildcard(txt)
 
         self.tbKeyFilter.textChanged.connect(onFilterChanged)
-        self.cbFilterRegex.toggled.connect(onFilterChanged)
 
         self.mMetadataModel.dataChanged.connect(self.onDataChanged)
 
@@ -953,9 +910,9 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
             if idx >= 0:
                 path = self.mSourceModel.optionValues()[idx]
                 self.treeView.setEnabled(False)
-
+                print('Set mMetadataModel.setSource {}'.format(path))
                 self.mMetadataModel.setSource(path)
-
+                print('Set mMetadataModel.setSource ... done')
                 self.treeView.setEnabled(True)
 
             self.onDataChanged()
@@ -985,8 +942,22 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.saveChanges)
         self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.resetChanges)
 
-        self.btnSelectSource.setDefaultAction(self.actionSetDataSource)
         self.actionSetDataSource.triggered.connect(self.onSetDataSource)
+        self.actionCollapse.triggered.connect(lambda : print('collapse triggered'))
+        self.actionExpand.triggered.connect(lambda : print('expand triggered'))
+        self.actionAddMetadataItem.triggered.connect(lambda : print('add metadata triggered'))
+        self.actionRemoveMetadataItem.triggered.connect(lambda : print('remove metadata triggered'))
+        self.optionUseRegex.toggled.connect(onFilterChanged)
+
+        self.btnSelectSource.setDefaultAction(self.actionSetDataSource)
+        self.btnCollapse.setDefaultAction(self.actionCollapse)
+        self.btnExpand.setDefaultAction(self.actionExpand)
+        self.btnAddMetadataItem.setDefaultAction(self.actionAddMetadataItem)
+        self.btnRemoveMetadataItem.setDefaultAction(self.actionRemoveMetadataItem)
+        self.btnUseRegex.setDefaultAction(self.optionUseRegex)
+
+
+
 
     def onSetDataSource(self, *args):
         result, filter = QFileDialog.getOpenFileName(self, 'Open data source')
@@ -994,7 +965,9 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
             self.addSources([result])
 
     def onDataChanged(self, *args):
-        #print('check diffs')
+
+        print('check diffs')
+        return
         differences = self.mMetadataModel.differences(None)
         if len(differences) > 0:
             self.buttonBox.button(QDialogButtonBox.Reset).setEnabled(True)
