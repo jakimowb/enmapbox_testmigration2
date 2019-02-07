@@ -211,7 +211,7 @@ class RasterSourceTreeNode(MetadataItemTreeNode):
 
     def __init__(self, parentNode, dataSet, **kwds):
         assert isinstance(dataSet, gdal.Dataset)
-        key = MDKeyDescription(dataSet)
+        key = MDKeyDescription(dataSet, isImmutable=True)
         super(RasterSourceTreeNode, self).__init__(parentNode, key, **kwds)
         self.mSource = dataSet.GetFileList()[0]
 
@@ -285,7 +285,8 @@ class MetadataTreeModel(TreeModel):
         self.mDomains = MetadataDomainModel()
         self.mRootNode0 = None
 
-        #self.mColumnNames = [self.cnKey, self.cnValue]
+        self.mColumnNames.clear()
+        self.mColumnNames.extend([self.cnKey, self.cnValue])
 
     def domainModel(self):
         return self.mDomains
@@ -413,6 +414,11 @@ class MetadataTreeModel(TreeModel):
         return root
 
     def parseVectorMD(self, ds: ogr.DataSource) -> TreeNode:
+        """
+        Reads metadata from an ogr vector data set
+        :param ds:
+        :return:
+        """
         assert isinstance(ds, ogr.DataSource)
         root = TreeNode(None)
 
@@ -438,26 +444,26 @@ class MetadataTreeModel(TreeModel):
         :param path: str
         """
         assert isinstance(path, str)
-        print('...parse')
         root = self.parseSource(path)
         self.mSource = path
         l = self.mRootNode.childCount()
-        print('...remove')
         self.mRootNode.removeChildNodes(0, l)
 
         if isinstance(root, TreeNode):
-            #self.mRootNode.appendChildNodes([TreeNode(self.mRootNode, 'FAKE')])
-            print('append...')
             self.beginResetModel()
             self.mRootNode.blockSignals(True)
             self.mRootNode.appendChildNodes(root.childNodes())
             self.mRootNode.blockSignals(False)
             self.endResetModel()
-            print('...finished')
-        print('done')
-        s = ""
 
     def setData(self, index:QModelIndex, value, role=Qt.EditRole):
+        """
+
+        :param index: QModelIndex
+        :param value: any
+        :param role:  Qt.ItemDataRole, default=Qt.EditRole
+        :return:
+        """
         if not index.isValid():
             return None
         if not role == Qt.EditRole:
@@ -556,7 +562,14 @@ class MetadataTreeModel(TreeModel):
             ds = self.openSource(self.mSource)
             for t in differences:
 
-                assert isinstance(t, TreeNode)
+                assert isinstance(t, MetadataItemTreeNode)
+                if t.isImmutable():
+                    continue
+
+                if t.isToDelete():
+                    t.metadataKey().setValue(None)
+                    t.writeValueToSource(ds)
+
 
                 if isinstance(t, MetadataClassificationSchemeTreeNode):
                     t.metadataKey().writeValueToSource(ds)
@@ -591,31 +604,24 @@ class MetadataFilterModel(QSortFilterProxyModel):
         return self.sourceModel().supportedDropActions()
 
     def filterAcceptsRow(self, sourceRow, sourceParent):
-        node = self.sourceModel().idx2node(sourceParent).childNodes()[sourceRow]
-
-        #if type(node) not in [SourceRasterFileNode, SourceRasterBandNode]:
-        #    return True
-
-        s0 = self.sourceModel().index(sourceRow, 0, sourceParent).data()
-        s1 = self.sourceModel().index(sourceRow, 1, sourceParent).data()
 
         reg = self.filterRegExp()
         if reg.isEmpty():
             return True
         else:
-            if isinstance(node, MetadataItemTreeNode):
-                pattern = reg.pattern().replace(':', '')
-                reg.setPattern(pattern)
 
-            return reg.indexIn(s0) >= 0 or reg.indexIn(s1) >= 0
+
+            node = self.sourceModel().index(sourceRow, 0, parent=sourceParent).internalPointer()
+
+            if isinstance(node, TreeNode):
+                for value in [node.name()] + node.values():
+                    if reg.indexIn(str(value)) >= 0:
+                        return True
+                return False
+        return False
 
     def filterAcceptsColumn(self, sourceColumn, sourceParent):
-        node = self.sourceModel().idx2node(sourceParent)
-        #if not isinstance(node, SourceRasterBandNode):
-        if not isinstance(node, TreeNode):
-            return True
-        else:
-            return sourceColumn in [0, 1]
+        return sourceColumn in [0, 1]
 
 
 
@@ -628,7 +634,7 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
         super(MetadataTreeViewWidgetDelegates, self).__init__(parent=parent)
         self.mTreeView = treeView
         self.mTreeView.doubleClicked.connect(self.onDoubleClick)
-        self.mTreeView.customContextMenuRequested.connect(self.onCustomContextMenu)
+
 
     def model(self)->QAbstractItemModel:
         return self.mTreeView.model()
@@ -649,41 +655,6 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
                 self.model().setData(idx, d.crs())
 
 
-    def onCustomContextMenu(self, point):
-        assert isinstance(point, QPoint)
-
-
-        index = self.mTreeView.indexAt(point)
-        assert isinstance(index, QModelIndex)
-        cname = self.columnName(index)
-        node = self.model().data(index, role=Qt.UserRole)
-
-        if index.isValid() and isinstance(node, MetadataItemTreeNode):
-            m = QMenu()
-            a = m.addAction('Copy')
-
-            if isinstance(node, MetadataItemTreeNode) and node.isImmutable() == False:
-                key = node.mMDKey
-
-                a = m.addAction('Reset')
-                a.triggered.connect(node.resetMetadataValue)
-
-                a = m.addAction('Delete')
-                a.setIcon(QIcon(r':/images/themes/default/mActionDeleteSelected.svg'))
-                a.setCheckable(True)
-                a.setChecked(node.isToDelete())
-                a.toggled.connect(node.setToDelete)
-                #edit ClassificationSchema in a separate dialog
-                if isinstance(node, MetadataClassificationSchemeTreeNode) or \
-                    isinstance(node.parentNode(), MetadataClassificationSchemeTreeNode):
-                    schemaNode = node if isinstance(node, MetadataClassificationSchemeTreeNode) \
-                                        else node.parentNode()
-
-                    a = m.addAction('Edit Classification Scheme')
-                    a.triggered.connect(lambda : self.onEditClassificationScheme(schemaNode))
-
-            m.exec_(self.mTreeView.mapToGlobal(point))
-            #m.popup(event.pos())
 
 
 
@@ -851,28 +822,14 @@ class MetadataTreeViewWidgetDelegates(QStyledItemDelegate):
             QMessageBox.critical(w, 'Error', ex.message)
 
 
+class MetadataItemDialog(QDialog):
 
-class MetadataSelectionModel(QItemSelectionModel):
-    def __init__(self, model, parent=None):
-        assert isinstance(model, MetadataTreeModel)
-        super(MetadataSelectionModel, self).__init__(model, parent)
+    def __init__(self, parent=None):
+        super(MetadataItemDialog, self).__init__(parent)
 
-        self.mModel = model
-        self.selectionChanged.connect(self.onTreeSelectionChanged)
+        l = QVBoxLayout()
+        self.setLayout(l)
 
-
-    def onTreeSelectionChanged(self, selected, deselected):
-        sourceFiles = self.selectedSourceFiles()
-        features = set([self.mLyr.path2feature(path) for path in sourceFiles])
-        self.setMapHighlights(features)
-
-    def selectedSourceFileNodes(self):
-        indexes = self.selectedIndexes()
-        selectedFileNodes = self.mModel.idx2node(indexes)
-        return [n for n in selectedFileNodes if isinstance(n, VRTRasterInputSourceBandNode)]
-
-    def selectedSourceFiles(self):
-        return set(n.sourceBand().mPath for n in self.selectedSourceFileNodes())
 
 
 
@@ -888,8 +845,8 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         self.mMetadataFilterModel = MetadataFilterModel()
         self.mMetadataFilterModel.setSourceModel(self.mMetadataModel)
         self.treeView.setModel(self.mMetadataFilterModel)
-
-
+        self.treeView.selectionModel().selectionChanged.connect(self.onSelectionChanged)
+        self.treeView.customContextMenuRequested.connect(self.onCustomContextMenu)
 
         def onFilterChanged():
             txt = self.tbKeyFilter.text()
@@ -943,10 +900,10 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.resetChanges)
 
         self.actionSetDataSource.triggered.connect(self.onSetDataSource)
-        self.actionCollapse.triggered.connect(lambda : print('collapse triggered'))
-        self.actionExpand.triggered.connect(lambda : print('expand triggered'))
+        self.actionCollapse.triggered.connect(lambda : self.treeView.collapseAll())
+        self.actionExpand.triggered.connect(lambda : self.treeView.expandToDepth(3))
         self.actionAddMetadataItem.triggered.connect(lambda : print('add metadata triggered'))
-        self.actionRemoveMetadataItem.triggered.connect(lambda : print('remove metadata triggered'))
+        self.actionRemoveMetadataItem.triggered.connect(lambda : self.setDeleteFlag(self.selectedNodes(), True))
         self.optionUseRegex.toggled.connect(onFilterChanged)
 
         self.btnSelectSource.setDefaultAction(self.actionSetDataSource)
@@ -957,12 +914,81 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         self.btnUseRegex.setDefaultAction(self.optionUseRegex)
 
 
+    def onSelectionChanged(self, selected:QItemSelection, deselected:QItemSelection):
+
+        self.actionRemoveMetadataItem.setEnabled(len(selected) > 0)
+        s = ""
+
 
 
     def onSetDataSource(self, *args):
         result, filter = QFileDialog.getOpenFileName(self, 'Open data source')
         if len(result) > 0:
             self.addSources([result])
+
+    def setDeleteFlag(self, nodes:list, b: bool):
+        for n in nodes:
+            assert isinstance(n, MetadataItemTreeNode)
+            n.setToDelete(b)
+
+    def selectedNodes(self):
+        """
+        Returns the list of currently selected TreeNodes
+        :return: [list-of-TreeNodes]
+        """
+        nodes = []
+
+        for idx in self.treeView.selectionModel().selectedRows():
+            node = self.treeView.model().data(idx, role=Qt.UserRole)
+            if isinstance(node, MetadataItemTreeNode):
+                nodes.append(node)
+        return nodes
+
+    def onCustomContextMenu(self, point):
+        assert isinstance(point, QPoint)
+
+
+        index = self.treeView.indexAt(point)
+        assert isinstance(index, QModelIndex)
+        if not index.isValid():
+            return False
+
+        node = self.treeView.model().data(index, role=Qt.UserRole)
+
+        selectedNodes = self.selectedNodes()
+
+        if node not in selectedNodes:
+            selectedNodes = [node]
+
+        if isinstance(node, MetadataItemTreeNode):
+            m = QMenu()
+            a = m.addAction('Copy')
+
+            if isinstance(node, MetadataItemTreeNode) and node.isImmutable() == False:
+                key = node.mMDKey
+
+                a = m.addAction('Reset')
+                a.triggered.connect(node.resetMetadataValue)
+
+                a = m.addAction('Delete')
+                a.setIcon(QIcon(r':/images/themes/default/mActionDeleteSelected.svg'))
+                a.triggered.connect(lambda : self.setDeleteFlag(selectedNodes, True))
+
+                a = m.addAction('Undelete')
+                a.triggered.connect(lambda: self.setDeleteFlag(selectedNodes, False))
+
+                #edit ClassificationSchema in a separate dialog
+                if isinstance(node, MetadataClassificationSchemeTreeNode) or \
+                    isinstance(node.parentNode(), MetadataClassificationSchemeTreeNode):
+                    schemaNode = node if isinstance(node, MetadataClassificationSchemeTreeNode) \
+                                        else node.parentNode()
+
+                    a = m.addAction('Edit Classification Scheme')
+                    a.triggered.connect(lambda : self.onEditClassificationScheme(schemaNode))
+
+            m.exec_(self.treeView.mapToGlobal(point))
+            #m.popup(event.pos())
+
 
     def onDataChanged(self, *args):
 
@@ -1032,8 +1058,8 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
     def saveChanges(self):
 
         self.mMetadataModel.writeMetadata()
-        self.onDataChanged()
-        pass
+        self.mMetadataModel.setSource(self.mMetadataModel.source())
+        s = ""
 
     def resetChanges(self):
         """
@@ -1041,7 +1067,7 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         :return:
         """
         self.mMetadataModel.setSource(self.mMetadataModel.source())
-        self.onDataChanged()
+
 
     def rejectChanged(self):
         pass

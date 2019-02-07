@@ -21,7 +21,7 @@ from qgis.core import *
 from qgis.PyQt.QtCore import QDate
 from enmapbox.gui import ClassificationScheme
 import numpy as np
-IMMUTABLE_DOMAINS = ['IMAGE_STRUCTURE','SUBDATASETS']
+IMMUTABLE_DOMAINS = ['IMAGE_STRUCTURE', 'SUBDATASETS', 'DERIVED_SUBDATASETS']
 
 
 def getKwds(valueType=None, valueMin=None, valueMax=None,
@@ -187,9 +187,11 @@ class MDKeyAbstract(object):
                 self.mValue0 = value
             else:
                 self.mValue0 = copy.copy(value)
+
+            self.mValue = self.mValue0
             self.mValue0Initialized = True
 
-        if not self.mIsImmutable:
+        elif not self.mIsImmutable:
             self.mValue = value
 
     def valueHasChanged(self):
@@ -230,21 +232,21 @@ class MDKeyAbstract(object):
 class MDKeyDomainString(MDKeyAbstract):
     """
     A MDKey provides a link between a gdal.MajorObject or ogr.MajorObject and a TreeNode.
-    It does not story any state variables.
+    It does not store any state variables.
     """
 
     @staticmethod
-    def fromDomain(obj, domain:str, name:str):
+    def fromDomain(obj, domain:str, name:str, **kwds):
         assert isinstance(domain, str)
         assert isinstance(name, str)
 
         if type(obj) in [gdal.Dataset, gdal.Band]:
 
-            return MDKeyDomainString.fromRasterDomain(obj, domain, name)
+            return MDKeyDomainString.fromRasterDomain(obj, domain, name, **kwds)
 
         elif type(obj) in [ogr.DataSource, ogr.Layer]:
 
-            return MDKeyDomainString.fromVectorDomain(obj, domain, name)
+            return MDKeyDomainString.fromVectorDomain(obj, domain, name, **kwds)
 
         else:
             raise NotImplementedError()
@@ -266,19 +268,27 @@ class MDKeyDomainString(MDKeyAbstract):
 
 
     @staticmethod
-    def fromRasterDomain(obj, domain:str, name:str):
+    def fromRasterDomain(obj, domain:str, name:str, **kwds):
 
         # GDAL Default Domain
         if domain == '':
 
             if name == 'AREA_OR_POINT':
-                return MDKeyDomainString(obj, domain, name,
+                return MDKeyDomainString(obj, domain, name, isImmutable=True,
                                          options=['Area', 'Point'],
-                                         tooltip='Indicates whether a pixel value should be assumed to represent a sampling over the region of the pixel or a point sample at the center of the pixel. This is not intended to influence interpretation of georeferencing which remains area oriented.')
-            if name == 'METADATATYPE':
-                return MDKeyDomainString(obj, domain, name,
-                                         tooltip='Describes the reader which processes the metadata if IMAGERY Domain is present.')
+                                         tooltip='Indicates whether a pixel value should be assumed to represent a '
+                                                 'sampling over the region of the pixel or a point sample at the center '
+                                                 'of the pixel. This is not intended to influence interpretation of '
+                                                 'georeferencing which remains area oriented.',
+                                         **kwds)
 
+            if name == 'METADATATYPE':
+                return MDKeyDomainString(obj, domain, name, isImmutable=True,
+                                         tooltip='Describes the reader which processes the metadata if IMAGERY Domain is present.',
+                                         **kwds)
+
+        if domain in IMMUTABLE_DOMAINS or domain.startswith('xml:'):
+            return MDKeyDomainString(obj, domain, name, isImmutable=True, **kwds)
 
         # ENVI Domain
         # see http://www.harrisgeospatial.com/docs/enviheaderfiles.html for details
@@ -286,61 +296,57 @@ class MDKeyDomainString(MDKeyAbstract):
 
             if name == 'bands':
                 return MDKeyDomainString(obj, domain, name,
-                        valueType=int, valueMin=1, isImmutable=True)
+                        valueType=int, valueMin=1, isImmutable=True, **kwds)
 
             if name == 'sample':
                 return MDKeyDomainString(obj, domain, name,
-                        valueType=int, valueMin=1, isImmutable=True)
+                        valueType=int, valueMin=1, isImmutable=True, **kwds)
 
             if name == 'lines':
                 return MDKeyDomainString(obj, domain, name,
-                        valueType=int, valueMin=1, isImmutable=True)
+                        valueType=int, valueMin=1, isImmutable=True, **kwds)
 
             if name == 'header_offset':
                 return MDKeyDomainString(obj, domain, name,
-                        valueType=int, valueMin=0)
+                        valueType=int, valueMin=0, **kwds)
 
             if name == 'data_type':
                 return MDKeyDomainString(obj, domain, name,
-                        valueType=int, valueMin=1, valueMax=16, isImmutable=True)
+                        valueType=int, valueMin=1, valueMax=16, isImmutable=True, **kwds)
 
             if name == 'data_type':
                 return MDKeyDomainString(obj, domain, name,
-                        valueType=int, valueMin=1, valueMax=16, isImmutable=True)
+                        valueType=int, valueMin=1, valueMax=16, isImmutable=True, **kwds)
 
             if name == 'interleave':
                 return MDKeyDomainString(obj, domain, name,
-                        options=['bsq', 'bil', 'bip'], isImmutable=True)
+                        options=['bsq', 'bil', 'bip'], isImmutable=True, **kwds)
 
             if name == 'band_names':
-                return MDKeyDomainString(obj, domain, name,
-                                         listLength='nb')
+                return MDKeyDomainString(obj, domain, name, listLength='nb', **kwds)
             if name == 'bbl':
-                return MDKeyDomainString(obj, domain, name,
-                                         listLength='nb', valueType=int)
+                return MDKeyDomainString(obj, domain, name, listLength='nb', valueType=int, **kwds)
 
             if name == 'fwhm':
-                return MDKeyDomainString(obj, domain, name,
-                                         listLength='nb', valueType=float)
+                return MDKeyDomainString(obj, domain, name, listLength='nb', valueType=float, **kwds)
 
             if name == 'wavelength':
-                return MDKeyDomainString(obj, domain, name,
-                                         listLength='nb', valueType=float)
+                return MDKeyDomainString(obj, domain, name, listLength='nb', valueType=float, **kwds)
 
             if name == 'wavelength_units':
                 return MDKeyDomainString(obj, domain, name,
                                          options=[
                 'Micrometers', 'um', 'Nanometers', 'nm', 'Millimeters', 'mm', 'Centimeters', 'cm',
-                'Meters', 'm', 'Wavenumber', 'Angstroms', 'GHz', 'MHz', 'Index', 'Unknown'])
+                'Meters', 'm', 'Wavenumber', 'Angstroms', 'GHz', 'MHz', 'Index', 'Unknown'],
+                                         **kwds)
 
             if name == 'cloud_cover':
-                return MDKeyDomainString(obj, domain, name, valueType=float)
+                return MDKeyDomainString(obj, domain, name, valueType=float, **kwds)
 
             if name == 'acquisition_time':
-                return MDKeyDomainString(obj, domain, name,
-                                         valueType=np.datetime64
-                                         )
-        #try to parse the string as int or float
+                return MDKeyDomainString(obj, domain, name, valueType=np.datetime64, **kwds)
+
+        # try to parse the string as int or float
         if isinstance(obj, gdal.MajorObject) or isinstance(obj, ogr.MajorObject):
             value = obj.GetMetadataItem(name, domain)
             if domain == 'ENVI' and name == 'byte_order':
@@ -352,17 +358,17 @@ class MDKeyDomainString(MDKeyAbstract):
                         break
                     except:
                         pass
-                key = MDKeyDomainString(obj, domain,name, valueType=t)
+                key = MDKeyDomainString(obj, domain,name, valueType=t, **kwds)
                 key.setValue(v)
                 return key
 
-        return MDKeyDomainString(obj, domain,name)
+        return MDKeyDomainString(obj, domain, name, **kwds)
 
 
 
 
     def __init__(self,  obj, domain, name, valueMin=None, valueMax=None,
-                 isImmutable=False, listLength=None, **kwargs):
+                 listLength=None, **kwargs):
         """
 
         :param obj: gdal.MajorObject or ogr.MajorObject
@@ -537,8 +543,8 @@ class MDKeyCoordinateReferenceSystem(MDKeyAbstract):
 
 
 class MDKeyDescription(MDKeyAbstract):
-    def __init__(self, obj, name='Description'):
-        super(MDKeyDescription, self).__init__(obj, name)
+    def __init__(self, obj, name='Description', **kwds):
+        super(MDKeyDescription, self).__init__(obj, name, **kwds)
 
     def readValueFromSource(self, obj):
         assert isinstance(obj, gdal.MajorObject) or isinstance(obj, ogr.MajorObject)

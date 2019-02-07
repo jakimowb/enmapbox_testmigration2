@@ -372,9 +372,11 @@ class TestMDMetadataKeys(unittest.TestCase):
         d.show()
 
 
+        if True:
+            layers = [TestObjects.createRasterLayer()]
+        else:
+            layers = self.createSupportedSources()
 
-
-        layers = self.createSupportedSources()
         for layer in layers:
             t0 = time.time()
             print('Add {}...'.format(layer.source()))
