@@ -372,8 +372,8 @@ class TestMDMetadataKeys(unittest.TestCase):
         d.show()
 
 
-        if True:
-            layers = [TestObjects.createRasterLayer()]
+        if False:
+            layers = [TestObjects.createRasterLayer(), TestObjects.createVectorLayer()]
         else:
             layers = self.createSupportedSources()
 

@@ -231,6 +231,18 @@ QTreeView::branch:closed:has-children {
      <property name="sortingEnabled">
       <bool>true</bool>
      </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="expandsOnDoubleClick">
+      <bool>false</bool>
+     </property>
+     <attribute name="headerCascadingSectionResizes">
+      <bool>true</bool>
+     </attribute>
+     <attribute name="headerHighlightSections">
+      <bool>true</bool>
+     </attribute>
      <attribute name="headerShowSortIndicator" stdset="0">
       <bool>true</bool>
      </attribute>

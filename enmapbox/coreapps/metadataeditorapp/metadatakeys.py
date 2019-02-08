@@ -256,9 +256,9 @@ class MDKeyDomainString(MDKeyAbstract):
 
         # OGR Default Domain
         if domain == '':
-            #see http://www.gdal.org/drv_shapefile.html
+            # see http://www.gdal.org/drv_shapefile.html
             if name == 'DBF_DATE_LAST_UPDATE':
-                return MDKeyDomainString(obj, domain, name, valueType=np.datetime64)
+                return MDKeyDomainString(obj, domain, name, valueType=str)
             else:
                 return MDKeyDomainString(obj, domain, name)
         else:
