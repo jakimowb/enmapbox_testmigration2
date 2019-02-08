@@ -568,8 +568,8 @@ class MetadataTreeModel(TreeModel):
 
                 if t.isToDelete():
                     t.metadataKey().setValue(None)
-                    t.writeValueToSource(ds)
-
+                    t.metadataKey().writeValueToSource(ds)
+                    continue
 
                 if isinstance(t, MetadataClassificationSchemeTreeNode):
                     t.metadataKey().writeValueToSource(ds)
@@ -611,13 +611,19 @@ class MetadataFilterModel(QSortFilterProxyModel):
         else:
 
 
-            node = self.sourceModel().index(sourceRow, 0, parent=sourceParent).internalPointer()
+            idx = self.sourceModel().index(sourceRow, 0, parent=sourceParent)
+            node = idx.internalPointer()
 
             if isinstance(node, TreeNode):
-                for value in [node.name()] + node.values():
-                    if reg.indexIn(str(value)) >= 0:
-                        return True
-                return False
+                if node.childCount() == 0:
+                    values = [node.name()] + node.values()
+                    for value in values:
+                        if reg.indexIn(str(value)) >= 0:
+                            return True
+                else:
+                    for row in range(node.childCount()):
+                        if self.filterAcceptsRow(row, idx):
+                            return True
         return False
 
     def filterAcceptsColumn(self, sourceColumn, sourceParent):
