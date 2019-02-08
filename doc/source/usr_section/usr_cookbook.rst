@@ -21,6 +21,9 @@ feel free to suggest new entries here!
 Working with the GUI
 ====================
 
+Opening WMS data in a Map Window
+================================
+
 
 Using Processing Algorithms
 ===========================
