@@ -903,6 +903,9 @@ class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
         self.actionCollapse.triggered.connect(lambda : self.treeView.collapseAll())
         self.actionExpand.triggered.connect(lambda : self.treeView.expandToDepth(3))
         self.actionAddMetadataItem.triggered.connect(lambda : print('add metadata triggered'))
+
+        self.actionAddMetadataItem.setEnabled(False)
+
         self.actionRemoveMetadataItem.triggered.connect(lambda : self.setDeleteFlag(self.selectedNodes(), True))
         self.optionUseRegex.toggled.connect(onFilterChanged)
 
