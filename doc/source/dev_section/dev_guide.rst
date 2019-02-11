@@ -215,16 +215,16 @@ List of environmental variables
 
 The following environmental variables can be set to change the starting behaviour of the EnMAP-Box.
 
-====================  ====================  ================================================================================
+====================  ====================  ==============================================================================================
 Name                  Values, * = Default   Description
-====================  ====================  ================================================================================
+====================  ====================  ==============================================================================================
 EMB_LOAD_PF           TRUE*/FALSE           Load QGIS processing framework.
 EMB_LOAD_EA           TRUE*/FALSE           Loads external applications.
 EMB_DEBUG             TRUE/FALSE*           Enable additional debug printouts.
 EMB_SPLASHSCREEN      TRUE*/FALSE           Splashscreen on EnMAP-Box start.
 EMB_MESSAGE_TIMEOUT   integer               Timeout in seconds for popup messages in the message bar.
-EMB_APPLICATION_PATH  string                list of directories (separated by ';' or ':') to load EnMAPBoxApplications from.
-====================  ====================  ================================================================================
+EMB_APPLICATION_PATH  string                list of directories (separated by ';' or '\n' (newline)) to load EnMAPBoxApplications from.
+====================  ====================  ==============================================================================================
 
 Further links and sources
 =========================

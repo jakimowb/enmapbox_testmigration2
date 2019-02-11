@@ -662,7 +662,7 @@ class EnMAPBox(QgisInterface, QObject):
         #find other app-folders or listing files folders
         from enmapbox.gui.settings import enmapboxSettings
         settings = enmapboxSettings()
-        for appPath in re.split('[:;]', settings.value('EMB_APPLICATION_PATH', '')):
+        for appPath in re.split('[;\n]', settings.value('EMB_APPLICATION_PATH', '')):
             if os.path.isdir(appPath):
                 self.applicationRegistry.addApplicationFolder(appPath, isRootFolder=True)
             elif os.path.isfile(p):
