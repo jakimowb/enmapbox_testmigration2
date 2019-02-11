@@ -159,7 +159,7 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
             sklEstimator = namespace['estimator']
 
             classificationSample = ClassificationSample(raster=library.raster(),
-                                                        classification=Classification.fromENVISpectralLibrary(
+                                                        classification=Classification.fromEnviSpectralLibrary(
                                                             filename='/vsimem/synthmixapp/classification.bsq',
                                                             library=library,
                                                             attribute=field))

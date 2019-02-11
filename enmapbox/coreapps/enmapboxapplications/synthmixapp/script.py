@@ -72,26 +72,16 @@ def synthmixRegressionEnsemble(filename, classificationSample, targets, regresso
         for target in predictions:
             vrtFilename = '/vsimem/synthmixapp/{}.vrt'.format(target)
             print(vrtFilename)
-            vrtDataset = createVRTDataset(rasterDatasetsOrFilenames=[raster.filename() for raster in predictions[target]],
-                                          filename=vrtFilename,
-                                          separate=True)
+            createVRTDataset(rasterDatasetsOrFilenames=[raster.filename() for raster in predictions[target]],
+                             filename=vrtFilename,
+                             separate=True)
             applier.setFlowRaster(name=str(target), raster=Raster(vrtFilename))
 
         for key in keys:
             filename = join(directory, '{}_{}{}'.format(prefix, key, ext))
             applier.setOutputRaster(name=key, filename=filename)
             results.append(filename)
-        applier.apply(operatorType=Aggregate, predictions=predictions, keys=keys, clip=clip)
-
-        for key in keys:
-            if key in ['mean', 'median']:
-                rasterDataset = openRasterDataset(applier.outputRaster.raster(key=key).filename())
-                MetadataEditor.setFractionDefinition(rasterDataset=rasterDataset, classDefinition=classDefinition)
-
-            for key in ['iqr', 'std']:
-                if key in keys:
-                    rasterDataset = openRasterDataset(applier.outputRaster.raster(key=key).filename())
-                    MetadataEditor.setBandNames(rasterDataset=rasterDataset, bandNames=classDefinition.names())
+        applier.apply(operatorType=Aggregate, predictions=predictions, keys=keys, clip=clip, classDefinition=classDefinition)
 
     # RGB
 
@@ -145,7 +135,7 @@ def synthmixRegressionEnsemble(filename, classificationSample, targets, regresso
 
 
 class Aggregate(ApplierOperator):
-    def ufunc(self, predictions, keys, clip):
+    def ufunc(self, predictions, keys, clip, classDefinition):
         results = {key: list() for key in keys}
 
         # reduce over runs and stack targets
@@ -169,14 +159,21 @@ class Aggregate(ApplierOperator):
                 results['iqr'].append(p75 - p25)
 
         for key in keys:
-            self.outputRaster.raster(key=key).setArray(results[key])
+            raster = self.outputRaster.raster(key=key)
+            raster.setArray(results[key])
 
+            if key in ['mean', 'median']:
+                MetadataEditor.setFractionDefinition(rasterDataset=raster, classDefinition=classDefinition)
+
+            for key in ['iqr', 'std']:
+                if key in keys:
+                    MetadataEditor.setBandNames(rasterDataset=raster, bandNames=classDefinition.names())
 
 
 def test():
     import enmapboxtestdata
-    library = ENVISpectralLibrary(filename=enmapboxtestdata.library)
-    labels = Classification.fromENVISpectralLibrary(filename='/vsimem/synthmixRegressionEnsemble/labels.bsq',
+    library = EnviSpectralLibrary(filename=enmapboxtestdata.library)
+    labels = Classification.fromEnviSpectralLibrary(filename='/vsimem/synthmixRegressionEnsemble/labels.bsq',
                                                     library=library, attribute='level_2')
 
     synthmixRegressionEnsemble(filename=r'c:\output\synthmixRegressionEnsemble\ar.bsq',

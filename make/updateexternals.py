@@ -26,7 +26,6 @@ import git # install with: pip install gitpython
 
 updateexternals.setProjectRepository(DIR_REPO)
 
-
 #not required any more
 #RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
 #                  prefixLocal=r'enmapboxtestdata',
@@ -62,13 +61,6 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmspr
                   prefixLocal='site-packages/enmapboxgeoalgorithms',
                   prefixRemote=r'enmapboxgeoalgorithms',
                   remoteBranch='develop')
-
-
-#RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
-#                  prefixLocal=r'doc/source/geoalgorithms',
-#                  prefixRemote=r'doc/source',
-#                  excluded=['conf.py','index.rst'],
-#                  remoteBranch='master')
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
                   prefixLocal=r'site-packages/hubdc',

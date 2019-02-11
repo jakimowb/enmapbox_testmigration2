@@ -46,7 +46,7 @@ class UiLibrary(QComboBox):
 
     def currentLibrary(self):
         if self.currentIndex() >= 1 and self.currentIndex() < len(self.filenames):
-            return ENVISpectralLibrary(filename=self.filenames[self.currentIndex()])
+            return EnviSpectralLibrary(filename=self.filenames[self.currentIndex()])
         else:
             return None
 
