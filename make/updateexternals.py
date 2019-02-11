@@ -89,6 +89,18 @@ RemoteInfo.create(r'https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt
                   remoteBranch='master'
                   )
 
+def updateRemotes(remoteLocations):
+    """
+    Shortcut to
+    :param remoteLocations:
+    :return:
+    """
+    import qps.make.updateexternals
+    if isinstance(remoteLocations, str):
+        remoteLocations = [remoteLocations]
+    qps.make.updateexternals.updateRemoteLocations(remoteLocations)
+
+
 if __name__ == "__main__":
 
 
@@ -103,6 +115,5 @@ if __name__ == "__main__":
                  #'enpt_enmapboxapp'
                 'qps'
                 ]
-    import qps.make.updateexternals
-    qps.make.updateexternals.updateRemoteLocations(to_update)
+    updateRemotes(to_update)
     exit()
