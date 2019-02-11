@@ -462,7 +462,7 @@ class Extent(object):
         '''Returns the :class:`~hubdc.model.Projection`.'''
         return self._projection
 
-    def equal(self, other, tol=0.):
+    def equal(self, other, tol=1e-5):
         '''Returns wether self is equal to other.'''
         assert isinstance(other, Extent)
         equal = abs(self.xmin() - other.xmin()) <= tol
@@ -980,7 +980,7 @@ class Grid(object):
                         -self.resolution().y())
         return geotransform
 
-    def equal(self, other, tol=0.):
+    def equal(self, other, tol=1e-5):
         '''Returns whether self is equal to other.'''
         assert isinstance(other, Grid)
         equal = self.projection().equal(other=other.projection())
@@ -1001,7 +1001,7 @@ class Grid(object):
         grid = grid.anchor(point=other.extent().upperLeft())
         return grid
 
-    def clip_OLD(self, extent):
+    def clip(self, extent):
         '''Return self clipped by given extent.'''
         assert isinstance(extent, Extent)
         extent = self.extent().intersection(other=extent)
@@ -1273,6 +1273,12 @@ class RasterDataset(object):
         '''Close the gdal.Dataset.'''
         self._gdalDataset = None
 
+    def reopen(self, eAccess=gdal.GA_ReadOnly):
+        '''Returns re-opened version of itself. Useful in cases where flushCache is not sufficient.'''
+        filename = self.filename()
+        self.close()
+        return openRasterDataset(filename, eAccess=eAccess)
+
     def setNoDataValues(self, values):
         '''Set band no data values.'''
         if values is not None:
@@ -1361,14 +1367,14 @@ class RasterDataset(object):
             return
         gdalString = MetadataFormatter.valueToString(value)
         self._gdalDataset.SetMetadataItem(key, gdalString, domain)
-        self.flushCache()
+        #self.flushCache()
 
     def setMetadataDomain(self, metadataDomain, domain):
         '''Set the metadata domain'''
         assert isinstance(metadataDomain, dict)
         for key, value in metadataDomain.items():
             self.setMetadataItem(key=key, value=value, domain=domain)
-        self.flushCache()
+            self.flushCache()
 
     def setMetadataDict(self, metadataDict):
         '''Set the metadata dictionary'''
@@ -1383,11 +1389,29 @@ class RasterDataset(object):
         assert isinstance(other, RasterDataset)
 
         for domain in other.metadataDomainList():
-            self.gdalDataset().SetMetadata(other.gdalDataset().GetMetadata(domain), domain)
+            if domain.upper() in ['IMAGE_STRUCTURE', 'DERIVED_SUBDATASETS']:
+                continue
+            self.setMetadataDomain(other.metadataDomain(domain), domain)
 
         for band, otherBand in zip(self.bands(), other.bands()):
+            assert isinstance(band, RasterBandDataset)
+            assert isinstance(otherBand, RasterBandDataset)
+
             for domain in otherBand.metadataDomainList():
-                band.gdalBand().SetMetadata(otherBand.gdalBand().GetMetadata(domain), domain)
+                for key, value in otherBand.metadataDomain(domain=domain).items():
+                    if domain == 'ENVI' and key.lower() == 'file compression':
+                        continue
+                    band.setMetadataItem(key=key, value=value, domain=domain)
+        self.flushCache()
+
+    def copyCategories(self, other):
+        '''Copy raster band category names and lookup tables.'''
+
+        assert isinstance(other, RasterDataset)
+
+        for band, otherBand in zip(self.bands(), other.bands()):
+            band.setCategoryNames(names=otherBand.categoryNames())
+            band.setCategoryColors(colors=otherBand.categoryColors())
         self.flushCache()
 
     def setAcquisitionTime(self, acquisitionTime):
@@ -1660,19 +1684,11 @@ class RasterDataset(object):
         plotWidget.plot(y=Y, **kwargs)
         return plotWidget
 
-    def mapViewer(self):
-        mapViewer = MapViewer()
-        mapViewer.addLayer(layer=self.mapLayer())
-        return mapViewer
-
     def mapLayer(self):
         from qgis.core import QgsRasterLayer
         if self.driver().equal(MemDriver()):
             raise NotImplementedError()
-        return MapLayer(QgsRasterLayer(self.filename()))
-
-    def show(self):
-        self.mapViewer().show()
+        return RasterLayer(QgsRasterLayer(self.filename()))
 
     def plotSinglebandGrey(self, index=0, vmin=None, vmax=None, pmin=None, pmax=None, cmap='gray', noPlot=False,
                            showPlot=True):
@@ -2067,13 +2083,11 @@ class RasterBandDataset():
         return profile
 
     def mapLayer(self):
-        from qgis.core import QgsRasterLayer
-        filename = '/vsimem/mapLayer/{}_{}.vrt'.format(self.raster().filename(), self.index())
-        rasterDataset = self.raster().translate(bandList=[self.index()+1], filename=filename, driver=VrtDriver())
-        return rasterDataset.mapLayer()
+        return self.raster().mapLayer().initSingleBandGrayRenderer(grayIndex=self.index())
 
-    def show(self):
-        MapViewer().addLayer(layer=self.mapLayer()).show()
+    def mapViewer(self):
+        return MapViewer().addLayer(self.mapLayer())
+
 
 class VectorDataset(object):
     '''Class for managing vector layer datasets.'''
@@ -2243,7 +2257,37 @@ class VectorDataset(object):
         gdal.RasterizeLayer(raster.gdalDataset(), [1], vector.ogrLayer(), burn_values=[burnValue],
                             options=rasterizeLayerOptions)
         vector.ogrLayer().SetAttributeFilter(None)
+        raster.flushCache()
         return raster
+
+    def rasterizeFid(self, grid, filename='', driver=None):
+
+        assert isinstance(grid, Grid)
+        sr = osr.SpatialReference(grid.projection().wkt())
+
+        # Create a memory layer to rasterize from.
+        ds = ogr.GetDriverByName('Memory').CreateDataSource('wrk')
+        layer = ds.CreateLayer('layer', srs=sr)
+        field = ogr.FieldDefn('fid', ogr.OFTInteger)
+        layer.CreateField(field)
+
+        for fid, oldOgrFeature in enumerate(self.ogrLayer()):
+            #ogrFeature = ogr.Feature(layer.GetLayerDefn())
+            #ogrGeometry = oldOgrFeature.GetGeometryRef()
+            #ogrFeature.SetGeometryDirectly(ogrGeometry)
+            oldOgrFeature.SetField('fid', fid)
+            layer.CreateFeature(oldOgrFeature)
+
+        noDataValue = -1
+        vectorDataset = VectorDataset(ogrDataSource=ds)
+        rasterDataset = vectorDataset.rasterize(grid=grid, gdalType=gdal.GDT_Int32,
+                                                initValue=noDataValue, burnAttribute='fid',
+                                                filename=filename, driver=driver)
+        rasterDataset.setNoDataValue(value=noDataValue)
+        return rasterDataset
+        #fidArray = rasterDataset.readAsArray()[0]
+        #rasterDataset.close()
+        #return fidArray
 
     def metadataDomainList(self):
         '''Returns the list of metadata domain names.'''
@@ -2337,12 +2381,9 @@ class VectorDataset(object):
         return mapViewer
 
     def mapLayer(self):
+       # MapViewer() # init QGIS if needed
         from qgis.core import QgsVectorLayer
-        return MapLayer(QgsVectorLayer(self.filename()))
-
-    def show(self):
-        self.mapViewer().show()
-
+        return VectorLayer(QgsVectorLayer(self.filename()))
 
 
 def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
@@ -2548,6 +2589,22 @@ class ENVI():
                     key = key.replace('_', ' ')
                 writeItem(key=key, value=metadata.pop(key, None))
 
+    @classmethod
+    def writeAttributeTable(cls, filename, table):
+        '''Write attribute table values to csv file next to the given binary file.'''
+
+        assert isinstance(table, list)
+        filenameCsv = cls.findHeader(filename).replace('.hdr', '.csv')
+
+        with open(filenameCsv, 'w') as f:
+            attributeNames = [name for (name, values) in table]
+            spectraNames = table[0][1]
+            f.write('{}\n'.format(','.join(attributeNames)))
+            for i in range(len(spectraNames)):
+                feature = [str(values[i]) for (name, values) in table]
+                f.write('{}\n'.format(','.join(feature)))
+
+
 def buildOverviews(filename, levels=None, minsize=1024, resampling='average'):
     '''
     Build image overviews (a.k.a. image pyramid) for raster given by ``filename``.
@@ -2598,15 +2655,15 @@ class MapViewer():
         self.app.initQgis()
         self.canvas = QgsMapCanvas()
         self.layers = list()
-        self._printExtent = False
+        self._printExtent = not False
         self._extentSet = False
         self._projectionSet = False
 
     def addLayer(self, layer):
         from qgis.core import QgsProject
-        assert isinstance(layer, MapLayer)
+        assert isinstance(layer, (RasterLayer, VectorLayer))
         self.layers.append(layer)
-        qgsLayers = [layer.qgsMapLayer() for layer in self.layers]
+        qgsLayers = [layer.qgsLayer() for layer in self.layers]
         QgsProject.instance().addMapLayers(qgsLayers)
         self.canvas.setLayers(qgsLayers)
         return self
@@ -2632,25 +2689,36 @@ class MapViewer():
         return self
 
     def _prepareShowOrSave(self):
-        from qgis.core import QgsRectangle, QgsCoordinateReferenceSystem
         if not self._extentSet:
             if not self._projectionSet:
-                crs = self.layers[0].qgsMapLayer().crs()
+                crs = self.layers[0].qgsLayer().crs()
                 self.canvas.setDestinationCrs(crs)
             self.canvas.setExtent(self.canvas.fullExtent())
 
-    def show(self):
+    def resize(self, xsize=None, ysize=None):
+        size = self.canvas.size()
+        if xsize is None:
+            xsize = size.width()
+        if ysize is None:
+            ysize = size.height()
+        self.canvas.resize(xsize, ysize)
+        return self
+
+    def show(self, size=None):
         self._prepareShowOrSave()
         self.canvas.waitWhileRendering()
         if self._printExtent:
             self.canvas.extentsChanged.connect(lambda: print(self.canvas.extent()))
+        if size is not None:
+            self.canvas.resize(*size)
         self.canvas.show()
         self.app.exec_()
-        return self
 
     def save(self, filename):
         # implemented as described here https://gis.stackexchange.com/questions/245840/wait-for-canvas-to-finish-rendering-before-saving-image
+
         self._prepareShowOrSave()
+
         from PyQt5.QtGui import QImage, QPainter, QColor
         from qgis.core import QgsMapRendererCustomPainterJob
         size = self.canvas.size()
@@ -2664,22 +2732,100 @@ class MapViewer():
         filename = abspath(filename)
         if not exists(dirname(filename)):
             makedirs(dirname(filename))
-#        self.app.exit(0)
         image.save(filename)
-        #self.app.exec_()
-#        self.app.exit(0)
+
+
+class RasterLayer(object):
+
+    def __init__(self, qgsRasterLayer):
+        from qgis.core import QgsRasterLayer
+        assert isinstance(qgsRasterLayer, QgsRasterLayer)
+        self._qgsLayer = qgsRasterLayer
+
+    def qgsLayer(self):
+        return self._qgsLayer
+
+    def mapViewer(self):
+        return MapViewer().addLayer(self)
+
+    def show(self):
+        return self.mapViewer().show()
+
+    def initSingleBandGrayRenderer(self, grayIndex=0, grayMin=None, grayMax=None, percent=2):
+        '''Initialize a SingleBandGrayRenderer.'''
+        from qgis.core import QgsSingleBandGrayRenderer, QgsContrastEnhancement
+
+        qgsRenderer = QgsSingleBandGrayRenderer(input=self.qgsLayer().dataProvider(), grayBand=grayIndex+1)
+        self.qgsLayer().setRenderer(qgsRenderer)
+        qgsRenderer = self.qgsLayer().renderer()
+
+        contrastEnhancement = QgsContrastEnhancement(datatype=qgsRenderer.dataType(grayIndex+1))
+        contrastEnhancement.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
+
+        if grayMin is None or grayMax is None:
+            rs = openRasterDataset(self.qgsLayer().source())
+            array = np.float32(rs.band(grayIndex).readAsArray())
+            array[array == rs.band(grayIndex).noDataValue()] = np.nan
+            range = np.nanpercentile(array, q=[percent, 100-percent])
+            if grayMin is None:
+                grayMin = range[0]
+            if grayMax is None:
+                grayMax = range[1]
+
+        contrastEnhancement.setMinimumValue(grayMin)
+        contrastEnhancement.setMaximumValue(grayMax)
+        qgsRenderer.setContrastEnhancement(contrastEnhancement)
+        return self
+
+    def initMultiBandColorRenderer(
+            self, redIndex=0, greenIndex=1, blueIndex=2, redMin=None, redMax=None, greenMin=None, greenMax=None,
+            blueMin=None, blueMax=None, percent=2):
+
+        '''Initialize a MultiBandColorRenderer for given band ``index``.'''
+        from qgis.core import QgsMultiBandColorRenderer, QgsContrastEnhancement
+
+        qgsRenderer = QgsMultiBandColorRenderer(
+            input=self.qgsLayer().dataProvider(), redBand=redIndex+1, greenBand=greenIndex+1, blueBand=blueIndex+1)
+
+        self.qgsLayer().setRenderer(qgsRenderer)
+        qgsRenderer = self.qgsLayer().renderer()
+
+        def createContrastEnhancement(index, min, max):
+            if min is None or max is None:
+                rs = openRasterDataset(self.qgsLayer().source())
+                array = np.float32(rs.band(index).readAsArray())
+                array[array == rs.band(index).noDataValue()] = np.nan
+                range = np.nanpercentile(array, q=[percent, 100 - percent])
+                if min is None:
+                    min = range[0]
+                if max is None:
+                    max = range[1]
+
+            contrastEnhancement = QgsContrastEnhancement(datatype=qgsRenderer.dataType(index))
+            contrastEnhancement.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
+            contrastEnhancement.setMinimumValue(min)
+            contrastEnhancement.setMaximumValue(max)
+            return contrastEnhancement
+
+
+        qgsRenderer.setRedContrastEnhancement(createContrastEnhancement(index=redIndex, min=redMin, max=redMax))
+        qgsRenderer.setGreenContrastEnhancement(createContrastEnhancement(index=greenIndex, min=greenMin, max=greenMax))
+        qgsRenderer.setBlueContrastEnhancement(createContrastEnhancement(index=blueIndex, min=blueMin, max=blueMax))
         return self
 
 
-class MapLayer(object):
+class VectorLayer(object):
 
-    def __init__(self, qgsMapLayer):
-        from qgis.core import QgsMapLayer
-        assert isinstance(qgsMapLayer, QgsMapLayer)
-        self._qgsMapLayer = qgsMapLayer
+    def __init__(self, qgsVectorLayer):
+        from qgis.core import QgsVectorLayer
+        assert isinstance(qgsVectorLayer, QgsVectorLayer)
+        self._qgsLayer = qgsVectorLayer
 
-    def qgsMapLayer(self):
-        from qgis.core import QgsMapLayer
-        assert isinstance(self._qgsMapLayer, QgsMapLayer)
-        return self._qgsMapLayer
+    def qgsLayer(self):
+        return self._qgsLayer
 
+    def mapViewer(self):
+        return MapViewer().addLayer(self)
+
+    def show(self):
+        return self.mapViewer().show()

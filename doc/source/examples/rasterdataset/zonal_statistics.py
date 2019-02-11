@@ -1,3 +1,8 @@
+from hubdc.docutils import createDocPrint
+
+print = createDocPrint(__file__)
+
+# START
 import enmapboxtestdata
 from hubdc.core import *
 import numpy as np
@@ -16,3 +21,4 @@ zones = zonesRasterDataset.band(index=0).readAsArray()
 for i in np.unique(zones):
     mean = np.mean(values[zones == i]) # subset pixels for current zone and calculate mean
     print('Zone {} mean: {}'.format(i+1, mean))
+# END

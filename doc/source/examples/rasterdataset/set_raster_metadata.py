@@ -1,8 +1,11 @@
+from hubdc.docutils import createDocPrint
+print = createDocPrint(__file__)
+
+# START
 import enmapboxtestdata
 from hubdc.core import *
 
 rasterDataset = openRasterDataset(filename=enmapboxtestdata.enmap)
-copy = rasterDataset.translate()
 
 # set multiple domains
 copy = rasterDataset.translate()
@@ -19,3 +22,4 @@ print(copy.metadataDict()['domain'])
 copy = rasterDataset.translate()
 copy.setMetadataItem(key='a', value=1, domain='domain')
 print(copy.metadataDict()['domain'])
+# END

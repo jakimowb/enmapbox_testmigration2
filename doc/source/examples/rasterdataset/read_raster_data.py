@@ -1,3 +1,7 @@
+from hubdc.docutils import createDocPrint
+print = createDocPrint(__file__)
+
+# START
 import enmapboxtestdata
 from hubdc.core import *
 
@@ -23,3 +27,4 @@ grid = Grid(extent=Extent(xmin=13, xmax=13.5, ymin=52, ymax=52.5, projection=Pro
 print(rasterDataset.array(grid=grid, resampleAlg=gdal.GRA_Cubic).shape)
 # - single band as 2d array
 print(rasterDataset.band(index=0).array(grid=grid, resampleAlg=gdal.GRA_Cubic).shape)
+# END

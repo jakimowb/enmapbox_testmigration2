@@ -1,3 +1,8 @@
+from hubdc.docutils import createDocPrint
+
+print = createDocPrint(__file__)
+
+# START
 import enmapboxtestdata
 from hubdc.core import *
 
@@ -10,3 +15,8 @@ for band in rasterDataset.bands():
     max = values.max()
     mean = values.std()
     print('Band {} Stats: Minimum={}, Maximum={}, Mean={}'.format(band.index()+1, min, max, mean))
+# END
+    if band.index() == 2:
+        print('...')
+        break
+

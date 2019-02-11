@@ -19,15 +19,21 @@ In this guide we use the EnMAP-Box testdata (https://bitbucket.org/hu-geomatics/
 
 .. literalinclude:: ../examples/general/import_testdata.py
 
+Is QGIS installed (optional)
+----------------------------
+
+We use QGIS 3 map canvas for quick looks (https://qgis.org).
+
+.. literalinclude:: ../examples/general/import_qgis.py
+
 Check versions installed
 ------------------------
 
 .. literalinclude:: ../examples/general/version.py
+   :start-after: START
+   :end-before: END
 
-Prints something like::
-
-    0.16.0
-    0.7
+.. literalinclude:: ../examples/general/version.txt
 
 Raster dataset
 ==============
@@ -36,20 +42,23 @@ Open a raster dataset from file
 -------------------------------
 
 .. literalinclude:: ../examples/rasterdataset/open_from_file.py
+   :start-after: START
+   :end-before: END
 
-Prints something like::
+Prints something like:
 
-    RasterDataset(gdalDataset=<osgeo.gdal.Dataset; proxy of <Swig Object of type 'GDALDatasetShadow *' at 0x0000028FD164FE40> >)
+.. literalinclude:: ../examples/rasterdataset/open_from_file.txt
 
 Open a raster dataset from GDAL dataset
 ---------------------------------------
 
 .. literalinclude:: ../examples/rasterdataset/open_from_gdal.py
+   :start-after: START
+   :end-before: END
 
-Prints something like::
+Prints something like:
 
-    RasterDataset(gdalDataset=<osgeo.gdal.Dataset; proxy of <Swig Object of type 'GDALDatasetShadow *' at 0x00000112560EFE40> >)
-    <osgeo.gdal.Dataset; proxy of <Swig Object of type 'GDALDatasetShadow *' at 0x00000112560EFE40> >
+.. literalinclude:: ../examples/rasterdataset/open_from_gdal.txt
 
 Close a raster dataset
 ----------------------
@@ -59,10 +68,12 @@ remove file locks, etc. It is not necessary at the end of the script,
 as the Python garbage collector will do the same thing automatically when the script exits.
 
 .. literalinclude:: ../examples/rasterdataset/close_raster.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    RasterDataset(gdalDataset=None)
+.. literalinclude:: ../examples/rasterdataset/close_raster.txt
 
 Get raster metadata
 -------------------
@@ -114,36 +125,36 @@ Set raster metadata
 -------------------
 
 .. literalinclude:: ../examples/rasterdataset/set_raster_metadata.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    {'domain1': {'a': '1', 'b': '2'}, 'domain2': {'c': '3', 'd': '4'}}
-    {'a': '1', 'b': '2'}
-    {'a': '1'}
+.. literalinclude:: ../examples/rasterdataset/set_raster_metadata.txt
 
 Get raster band
 ---------------
 
 .. literalinclude:: ../examples/rasterdataset/get_raster_band.py
+   :start-after: START
+   :end-before: END
 
-Prints::
 
-    RasterBandDataset(raster=RasterDataset(gdalDataset=<osgeo.gdal.Dataset...>), index=0)
+Prints:
+
+.. literalinclude:: ../examples/rasterdataset/get_raster_band.txt
+
 
 Read raster data
 ----------------
 
 .. literalinclude:: ../examples/rasterdataset/read_raster_data.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    (177, 400, 220)
-    (400, 220)
-    (177,)
-    (220,)
-    (400,)
-    (177, 500, 500)
-    (500, 500)
+.. literalinclude:: ../examples/rasterdataset/read_raster_data.txt
 
 Write raster data
 -----------------
@@ -156,31 +167,30 @@ Loop through all raster bands
 -----------------------------
 
 .. literalinclude:: ../examples/rasterdataset/loop_raster_bands.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    Band 1 Stats: Minimum=110, Maximum=3759, Mean=212.88073662811726
-    Band 2 Stats: Minimum=105, Maximum=3757, Mean=214.96880571233484
-    ...
-    Band 177 Stats: Minimum=0, Maximum=4739, Mean=345.5522339848683
+.. literalinclude:: ../examples/rasterdataset/loop_raster_bands.txt
 
 Get raster band information
 ---------------------------
 
 .. literalinclude:: ../examples/rasterdataset/raster_band_information.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    no data value: -99.0
-    description: band 8 (0.460000 Micrometers)
-    category names: None
-    category colors: None
+.. literalinclude:: ../examples/rasterdataset/raster_band_information.txt
 
 Convert a vector to a raster
 ----------------------------
 
 .. literalinclude:: ../examples/rasterdataset/vector_to_raster.py
-   :end-before: # NOT INCLUDED
+   :start-after: START
+   :end-before: END
 
 .. image:: ../examples/rasterdataset/vector_to_raster.png
 
@@ -190,7 +200,8 @@ Clip a raster with a vector
 Clip a raster with the extent from a vector.
 
 .. literalinclude:: ../examples/rasterdataset/clip_raster_with_vector.py
-   :end-before: # NOT INCLUDED
+   :start-after: START
+   :end-before: END
 
 Note that the result raster grid is snapped to the original raster grid to prevent subpixel shifts.
 Because of this, some vector geometries may slightly lap over the grid borders.
@@ -205,38 +216,21 @@ Calculates statistics on values (i.e. mean value) of a raster band within the zo
 In this example we use the **level_3_id** attribute as zones.
 
 .. literalinclude:: ../examples/rasterdataset/zonal_statistics.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    Zone 1.0 mean: 331.07156981342763
-    Zone 2.0 mean: 546.2222222222222
-    Zone 3.0 mean: 546.7610921501706
-    Zone 4.0 mean: 387.565625
-    Zone 5.0 mean: 365.40816326530614
-    Zone 6.0 mean: 838.8627450980392
-    Zone 7.0 mean: 191.05405405405406
+.. literalinclude:: ../examples/rasterdataset/zonal_statistics.txt
 
 Create raster from array
 ------------------------
 
 .. literalinclude:: ../examples/rasterdataset/raster_from_array.py
-   :end-before: # NOT INCLUDED
+   :start-after: START
+   :end-before: END
 
 .. image:: ../examples/rasterdataset/raster_from_array.png
-
-Create compressed GeoTiff
--------------------------
-
-.. literalinclude:: ../examples/rasterdataset/create_compressed_gtiff.py
-   :end-before: # NOT INCLUDED
-
-Prints GeoTiff creation options::
-
-    ['COMPRESS=LZW', 'INTERLEAVE=BAND']
-
-.. figure:: ../examples/rasterdataset/create_compressed_gtiff.png
-
-   Fig. result raster with world map overlayed.
 
 Create memory raster
 --------------------
@@ -250,18 +244,121 @@ Replace no data value of raster with new value
 
 .. literalinclude:: ../examples/rasterdataset/replace_raster_ndv.py
 
+Raster band dataset
+===================
+
 Set raster band category names and colors
 -----------------------------------------
 
-.. literalinclude:: ../examples/rasterdataset/set_raster_band_categories.py
-   :end-before: # NOT INCLUDED
+.. literalinclude:: ../examples/rasterband/set_raster_band_categories.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    ['unclassified', 'class 1', 'class 2', 'class 3']
-    [(0, 0, 0, 255), (255, 0, 0, 255), (0, 255, 0, 255), (0, 0, 255, 255)]
+.. literalinclude:: ../examples/rasterband/set_raster_band_categories.txt
 
-.. image:: ../examples/rasterdataset/set_raster_band_categories.png
+.. raw:: html
+   :file: ../examples/rasterband/set_raster_band_categories.html
+
+.. image:: ../examples/rasterband/set_raster_band_categories.png
+
+Grid
+====
+
+Create grid
+-----------
+
+.. literalinclude:: ../examples/grid/create_grid.py
+   :start-after: START
+   :end-before: END
+
+Prints:
+
+.. literalinclude:: ../examples/grid/create_grid.txt
+
+Get grid information
+--------------------
+
+.. literalinclude:: ../examples/grid/get_grid_information.py
+   :start-after: START
+   :end-before: END
+
+Prints:
+
+.. literalinclude:: ../examples/grid/get_grid_information.txt
+
+Subset grid by pixel offset and size
+------------------------------------
+
+.. literalinclude:: ../examples/grid/subset_grid.py
+   :start-after: START
+   :end-before: END
+
+Prints:
+
+.. literalinclude:: ../examples/grid/subset_grid.txt
+
+Create systematic subgrids (tiling scheme)
+------------------------------------------
+
+.. literalinclude:: ../examples/grid/tiling_scheme.py
+   :start-after: START
+   :end-before: END
+
+Prints:
+
+.. literalinclude:: ../examples/grid/tiling_scheme.txt
+
+Anchor a grid to a point
+------------------------
+
+.. literalinclude:: ../examples/grid/anchor_grid.py
+   :start-after: START
+   :end-before: END
+
+Prints:
+
+.. literalinclude:: ../examples/grid/anchor_grid.txt
+
+Get grid coordinates
+--------------------
+
+.. literalinclude:: ../examples/grid/get_grid_coord.py
+   :start-after: START
+   :end-before: END
+
+Prints:
+
+.. literalinclude:: ../examples/grid/get_grid_coord.txt
+
+Extent
+======
+
+Create extent
+-------------
+
+.. literalinclude:: ../examples/extent/create_extent.py
+   :start-after: START
+   :end-before: END
+
+Prints:
+
+.. literalinclude:: ../examples/extent/create_extent.txt
+
+Get extent information
+----------------------
+
+.. warning::
+
+    todo
+
+Geometric calculation
+---------------------
+
+.. warning::
+
+    todo
 
 RasterDriver
 ============
@@ -270,26 +367,23 @@ Create raster driver
 --------------------
 
 .. literalinclude:: ../examples/rasterdriver/create_rasterdriver.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    RasterDriver(name='GTiff')
-    GTiffDriver()
-    EnviDriver()
-    ErdasDriver()
-    VrtDriver()
+.. literalinclude:: ../examples/rasterdriver/create_rasterdriver.txt
 
 Specify GeoTiff creation options
 --------------------------------
 
 .. literalinclude:: ../examples/rasterdriver/specify_gtiff_options.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    ['INTERLEAVE=BAND']
-    ['INTERLEAVE=BAND', 'COMPRESS=LZW']
-    ['INTERLEAVE=BAND', 'COMPRESS=JPEG', 'JPEG_QUALITY=75']
-    ['INTERLEAVE=BAND', 'TILED=YES', 'BLOCKXSIZE=256', 'BLOCKYSIZE=256']
+.. literalinclude:: ../examples/rasterdriver/specify_gtiff_options.txt
 
 Projection
 ==========
@@ -298,26 +392,23 @@ Create projection
 -----------------
 
 .. literalinclude:: ../examples/projection/create_projection.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    Projection(wkt=GEOGCS["WGS84", DATUM["WGS_1984", SPHEROID["WGS84",6378137,298.257223563, AUTHORITY["EPSG","7030"]], AUTHORITY["EPSG","6326"]], PRIMEM["Greenwich",0, AUTHORITY["EPSG","8901"]], UNIT["degree",0.0174532925199433, AUTHORITY["EPSG","9122"]], AUTHORITY["EPSG","4326"]])
-    Projection(wkt=GEOGCS["WGS84", DATUM["WGS_1984", SPHEROID["WGS84",6378137,298.257223563, AUTHORITY["EPSG","7030"]], AUTHORITY["EPSG","6326"]], PRIMEM["Greenwich",0, AUTHORITY["EPSG","8901"]], UNIT["degree",0.0174532925199433, AUTHORITY["EPSG","9122"]], AUTHORITY["EPSG","4326"]])
-    Projection(wkt=GEOGCS["WGS84", DATUM["WGS_1984", SPHEROID["WGS84",6378137,298.257223563, AUTHORITY["EPSG","7030"]], AUTHORITY["EPSG","6326"]], PRIMEM["Greenwich",0, AUTHORITY["EPSG","8901"]], UNIT["degree",0.0174532925199433, AUTHORITY["EPSG","9122"]], AUTHORITY["EPSG","4326"]])
-    Projection(wkt=PROJCS["WGS84/Pseudo-Mercator", GEOGCS["WGS84", DATUM["WGS_1984", SPHEROID["WGS84",6378137,298.257223563, AUTHORITY["EPSG","7030"]], AUTHORITY["EPSG","6326"]], PRIMEM["Greenwich",0, AUTHORITY["EPSG","8901"]], UNIT["degree",0.0174532925199433, AUTHORITY["EPSG","9122"]], AUTHORITY["EPSG","4326"]], PROJECTION["Mercator_1SP"], PARAMETER["central_meridian",0], PARAMETER["scale_factor",1], PARAMETER["false_easting",0], PARAMETER["false_northing",0], UNIT["metre",1, AUTHORITY["EPSG","9001"]], AXIS["X",EAST], AXIS["Y",NORTH], EXTENSION["PROJ4","+proj=merc+a=6378137+b=6378137+lat_ts=0.0+lon_0=0.0+x_0=0.0+y_0=0+k=1.0+units=m+nadgrids=@null+wktext+no_defs"], AUTHORITY["EPSG","3857"]])
-    Projection(wkt=PROJCS["WGS84/UTMzone33N", GEOGCS["WGS84", DATUM["WGS_1984", SPHEROID["WGS84",6378137,298.257223563, AUTHORITY["EPSG","7030"]], AUTHORITY["EPSG","6326"]], PRIMEM["Greenwich",0, AUTHORITY["EPSG","8901"]], UNIT["degree",0.0174532925199433, AUTHORITY["EPSG","9122"]], AUTHORITY["EPSG","4326"]], PROJECTION["Transverse_Mercator"], PARAMETER["latitude_of_origin",0], PARAMETER["central_meridian",15], PARAMETER["scale_factor",0.9996], PARAMETER["false_easting",500000], PARAMETER["false_northing",0], UNIT["metre",1, AUTHORITY["EPSG","9001"]], AXIS["Easting",EAST], AXIS["Northing",NORTH], AUTHORITY["EPSG","32633"]])
-    Projection(wkt=PROJCS["WGS84/UTMzone33S", GEOGCS["WGS84", DATUM["WGS_1984", SPHEROID["WGS84",6378137,298.257223563, AUTHORITY["EPSG","7030"]], AUTHORITY["EPSG","6326"]], PRIMEM["Greenwich",0, AUTHORITY["EPSG","8901"]], UNIT["degree",0.0174532925199433, AUTHORITY["EPSG","9122"]], AUTHORITY["EPSG","4326"]], PROJECTION["Transverse_Mercator"], PARAMETER["latitude_of_origin",0], PARAMETER["central_meridian",15], PARAMETER["scale_factor",0.9996], PARAMETER["false_easting",500000], PARAMETER["false_northing",10000000], UNIT["metre",1, AUTHORITY["EPSG","9001"]], AXIS["Easting",EAST], AXIS["Northing",NORTH], AUTHORITY["EPSG","32733"]])
+.. literalinclude:: ../examples/projection/create_projection.txt
 
 Reproject point, geometry or extent
 -----------------------------------
 
 .. literalinclude:: ../examples/projection/reproject_geometry.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    Point(wkt='POINT(13.2386841323363 52.3371646058284)', projection=...)
-    Extent(xmin=13.2278856406175, xmax=13.3853943478683, ymin=52.3371646058284, ymax=52.6088601693197, projection=...)
-    Geometry(wkt='POLYGON ((13.2278856406175 52.6067433457319,13.3754943200545 52.6088601693197,13.3853943478683 52.3392610398176,13.2386841323363 52.3371646058284,13.2278856406175 52.6067433457319))', projection=...)
+.. literalinclude:: ../examples/projection/reproject_geometry.py
 
 Get projection
 --------------
@@ -338,17 +429,137 @@ Export projection
 -----------------
 
 .. literalinclude:: ../examples/projection/export_projection.py
+   :start-after: START
+   :end-before: END
 
-Prints::
+Prints:
 
-    GEOGCS["WGS 84",
-        DATUM["WGS_1984",
-            SPHEROID["WGS 84",6378137,298.257223563,
-                AUTHORITY["EPSG","7030"]],
-            AUTHORITY["EPSG","6326"]],
-        PRIMEM["Greenwich",0,
-            AUTHORITY["EPSG","8901"]],
-        UNIT["degree",0.0174532925199433,
-            AUTHORITY["EPSG","9122"]],
-        AUTHORITY["EPSG","4326"]]
-    <class 'osgeo.osr.SpatialReference'>
+.. literalinclude:: ../examples/projection/export_projection.txt
+
+MapViewer
+=========
+
+The map viewer is an interactive application for exploring maps.
+
+View single map layer
+---------------------
+
+Shortcuts for initialising a map viewer directly from a raster or vector dataset.
+
+Multi band raster
+~~~~~~~~~~~~~~~~~
+
+.. literalinclude:: ../examples/mapviewer/view_single_map.py
+   :start-after: START1
+   :end-before: END1
+
+.. figure:: ../examples/mapviewer/view_single_map1.png
+
+    Layer with MultiBandColorRenderer
+
+Single band raster
+~~~~~~~~~~~~~~~~~~
+
+.. literalinclude:: ../examples/mapviewer/view_single_map.py
+   :start-after: START2
+   :end-before: END2
+
+.. figure:: ../examples/mapviewer/view_single_map2.png
+
+    Layer with SingleBandGrayRenderer
+
+Vector
+~~~~~~
+
+.. literalinclude:: ../examples/mapviewer/view_single_map.py
+   :start-after: START3
+   :end-before: END3
+
+.. figure:: ../examples/mapviewer/view_single_map3.png
+
+    Layer with ...
+
+Paletted raster
+~~~~~~~~~~~~~~~
+
+.. literalinclude:: ../examples/mapviewer/view_single_map.py
+   :start-after: START4
+   :end-before: END4
+
+.. figure:: ../examples/mapviewer/view_single_map4.png
+
+    Layer with PalettedRasterRenderer
+
+Add multiple map layer
+----------------------
+
+.. literalinclude:: ../examples/mapviewer/view_multi_map.py
+   :start-after: START
+   :end-before: END
+
+.. figure:: ../examples/mapviewer/view_multi_map.png
+
+    MapViewer with multiple map layer
+
+Set viewer extent and projection
+--------------------------------
+
+.. literalinclude:: ../examples/mapviewer/set_extent.py
+   :start-after: START1
+   :end-before: END1
+
+.. figure:: ../examples/mapviewer/set_extent1.png
+
+.. literalinclude:: ../examples/mapviewer/set_extent.py
+   :start-after: START2
+   :end-before: END2
+
+.. figure:: ../examples/mapviewer/set_extent2.png
+
+Rendering configuration
+-----------------------
+
+MultiBandColorRenderer
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. literalinclude:: ../examples/mapviewer/rendering_MultiBandColorRenderer.py
+   :start-after: START
+   :end-before: END
+
+.. figure:: ../examples/mapviewer/rendering_MultiBandColorRenderer.png
+
+SingleBandGrayRenderer
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. literalinclude:: ../examples/mapviewer/rendering_QgsSingleBandGrayRenderer.py
+   :start-after: START
+   :end-before: END
+
+.. figure:: ../examples/mapviewer/rendering_QgsSingleBandGrayRenderer.png
+
+PalettedRasterRenderer
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   todo
+
+SingleSymbolRenderer
+~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   todo
+
+CategorizedSymbolRenderer
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   todo
+
+Save map viewer content to PNG file
+-----------------------------------
+
+.. literalinclude:: ../examples/mapviewer/save_view.py
+

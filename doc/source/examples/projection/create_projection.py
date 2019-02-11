@@ -1,3 +1,8 @@
+from hubdc.docutils import createDocPrint
+
+print = createDocPrint(__file__)
+
+# START
 from hubdc.core import *
 
 # from well known text
@@ -11,3 +16,4 @@ print(Projection.wgs84())
 print(Projection.wgs84WebMercator())
 print(Projection.utm(zone=33, north=True))
 print(Projection.utm(zone=33, north=False))
+# END

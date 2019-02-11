@@ -1010,7 +1010,7 @@ class Image(Element):
 
             assert isinstance(grid, Grid)
             sr = osr.SpatialReference(grid.projection().wkt())
-            from hubdc.core import VectorDataset, RasterDriver, EnviBsqDriver
+            from hubdc.core import VectorDataset, RasterDriver, EnviDriver
 
             # Create a memory layer to rasterize from.
             ds = ogr.GetDriverByName('Memory').CreateDataSource('wrk')
@@ -1062,8 +1062,7 @@ class Image(Element):
             for value, maskValue, feature in zip(values[name], maskValues[name], features):
                 feature.properties()[name] = value
 
-        featureCollection = FeatureCollection(features=features)\
-            .set('band_order', image.bandNames())
+        featureCollection = FeatureCollection(features=features).set('band_order', image.bandNames())
         return featureCollection
 
 

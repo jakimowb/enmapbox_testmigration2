@@ -1,3 +1,8 @@
+from hubdc.docutils import createDocPrint
+
+print = createDocPrint(__file__)
+
+# START
 from hubdc.core import *
 
 # driver by name
@@ -10,3 +15,4 @@ print(ErdasDriver())
 
 # by file extension
 print(RasterDriver.fromFilename('raster.vrt'))
+# END

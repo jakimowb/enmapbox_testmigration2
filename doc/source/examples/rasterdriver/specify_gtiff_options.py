@@ -1,3 +1,8 @@
+from hubdc.docutils import createDocPrint
+
+print = createDocPrint(__file__)
+
+# START
 from hubdc.core import *
 
 driver = GTiffDriver()
@@ -13,3 +18,4 @@ print(driver.options() + [driver.Option.COMPRESS.JPEG, driver.Option.JPEG_QUALIT
 
 # options for tiled GTiff
 print(driver.options() + [driver.Option.TILED.YES, driver.Option.BLOCKXSIZE(256), driver.Option.BLOCKYSIZE(256)])
+# END

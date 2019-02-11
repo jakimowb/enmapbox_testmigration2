@@ -1,3 +1,8 @@
+from hubdc.docutils import createDocPrint
+
+print = createDocPrint(__file__)
+
+# START
 from hubdc.core import *
 
 utm = Projection.utm(zone=33)
@@ -10,4 +15,4 @@ geometry = Geometry(wkt='POLYGON((380000 5830000,390000 5830000,390000 5800000,3
 print(point.reproject(projection=wgs84))
 print(extent.reproject(projection=wgs84))
 print(geometry.reproject(projection=wgs84))
-
+# END
