@@ -1,34 +1,39 @@
-==========================================
-Welcome to the HUB-Workflow documentation!
-==========================================
+HUB-Workflow documentation
+==========================
 
-The HUB-Workflow package (*hubflow*) offers a high level interface for implementing image processing workflows.
+**This documentation is structured as follows:**
 
-Please provide feedback to `Andreas Rabe`_ (andreas.rabe\@geo.hu-berlin.de),
-or open an issue on `Bitbucket`_.
+.. toctree::
+    :maxdepth: 2
+    :caption: General
 
-.. _Andreas Rabe: https://www.geographie.hu-berlin.de/de/Members/rabe_andreas
-.. _Bitbucket: https://bitbucket.org/hu-geomatics/hub-workflow/issues/new
+    general/about.rst
+    general/contact.rst
+    general/installation.rst
 
-Setting up
-----------
+.. toctree::
+   :maxdepth: 4
+   :caption: Usage Guide:
+   :glob:
 
-Install the latest release with pip::
-
-    python -m pip install https://bitbucket.org/hu-geomatics/hub-datacube/get/master.tar.gz
-
-Or manually `download a release <https://bitbucket.org/hu-geomatics/hub-workflow/downloads/?tab=tags>`_
-from Bitbucket.
+   usage/core.rst
 
 
 .. toctree::
    :maxdepth: 2
-   :caption: API Reference
+   :caption: API Reference:
    :glob:
 
-   hubflow_core.rst
-   indices.rst
+   api/hubflow_core.rst
 
-.. codeauthor:: Andreas Rabe
+Indices and tables
+------------------
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
+
+.. codeauthor:: Andreas Rabe <andreas.rabe@geo.hu-berlin.de>
 
 .. sectionauthor:: Andreas Rabe <andreas.rabe@geo.hu-berlin.de>

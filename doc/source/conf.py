@@ -17,18 +17,6 @@ import os
 import sys
 import mock
 
-# MOCK_MODULES = ['numpy',
-#                 'scipy', 'scipy.sparse',
-#                 'osgeo', 'osgeo.gdal_array', 'osgeo.gdal',
-#                 'hubdc', 'hubdc.applier', 'hubdc.core', 'hubdc.progressbar'
-#                 'sklearn', 'sklearn.metrics', 'sklearn.multioutput',
-#                 'PyQt5', 'PyQt5.QtGui',
-#                 'progressbar']
-#
-# #MOCK_MODULES = []
-# for mod_name in MOCK_MODULES:
-#     sys.modules[mod_name] = mock.Mock()
-
 autodoc_mock_imports = ['numpy',
                 'scipy', 'scipy.sparse',
                 'osgeo', 'osgeo.gdal_array', 'osgeo.gdal',

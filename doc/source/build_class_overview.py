@@ -32,14 +32,14 @@ def addClasses(classes, title):
 '''.format(cls.__module__, cls.__name__))
 
 
-addClasses(classes=[Raster, Mask, Classification, Fraction, Regression, RasterStack], title='Raster Maps')
+addClasses(classes=[Raster, Mask, Classification, Fraction, Regression], title='Raster Maps')
 addClasses(classes=[Vector, VectorMask, VectorClassification], title='Vector Maps')
-addClasses(classes=[ClassificationSample, FractionSample, RegressionSample, MapCollection], title='Samples')
+addClasses(classes=[Sample, ClassificationSample, FractionSample, RegressionSample, MapCollection], title='Samples')
 addClasses(classes=[Classifier, Regressor, Clusterer, Transformer], title='Estimators')
 addClasses(classes=[ClassificationPerformance, RegressionPerformance, FractionPerformance, ClusteringPerformance], title='Accuracy Assessment')
 addClasses(classes=[ClassDefinition, SensorDefinition, WavebandDefinition, MetadataEditor], title='Miscellaneous')
 addClasses(classes=[Applier, ApplierOperator], title='Applier')
 
-with open('hubflow_core.rst', 'w') as f:
+with open('api/hubflow_core.rst', 'w') as f:
     f.writelines(text)
 
