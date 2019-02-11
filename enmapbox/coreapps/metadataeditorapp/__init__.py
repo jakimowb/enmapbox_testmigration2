@@ -97,34 +97,3 @@ def enmapboxApplicationFactory(enmapBox):
     # but you might provide as many as you like.
     return [MetaDataEditorApp(enmapBox)]
 
-
-
-
-
-
-if __name__ == '__main__':
-
-
-    from enmapbox.testing import initQgisApplication
-
-    #this will initialize the QApplication/QgsApplication which runs in the background
-    #see https://qgis.org/api/classQgsApplication.html for details
-    qgsApp = initQgisApplication()
-
-
-    if False: #test GUI without EnMAP-Box
-        from metadataeditorapp.metadataeditor import MetadataEditorDialog
-        d = MetadataEditorDialog()
-        d.show()
-    else:
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-
-        EB = EnMAPBox(None)
-        EB.run()
-        EB.openExampleData(mapWindows=2)
-        app = MetaDataEditorApp(EB)
-
-        EB.addApplication(app)
-
-    #start the GUI thread
-    qgsApp.exec_()

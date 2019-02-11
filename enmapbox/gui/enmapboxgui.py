@@ -187,15 +187,20 @@ class EnMAPBox(QgisInterface, QObject):
 
 
 
-    sigDataSourceAdded = pyqtSignal(str)
-    sigSpectralLibraryAdded = pyqtSignal(str)
-    sigRasterSourceAdded = pyqtSignal(str)
-    sigVectorSourceAdded = pyqtSignal(str)
+    sigDataSourceAdded = pyqtSignal([str],[DataSource])
+    sigSpectralLibraryAdded = pyqtSignal([str],[DataSourceSpectralLibrary])
+    sigRasterSourceAdded = pyqtSignal([str],[DataSourceRaster])
+    sigVectorSourceAdded = pyqtSignal([str],[DataSourceVector])
 
-    sigDataSourceRemoved = pyqtSignal(str)
-    sigSpectralLibraryRemoved = pyqtSignal(str)
-    sigRasterSourceRemoved = pyqtSignal(str)
-    sigVectorSourceRemoved = pyqtSignal(str)
+    sigDataSourceRemoved = pyqtSignal([str],[DataSource])
+    sigSpectralLibraryRemoved = pyqtSignal([str],[DataSourceSpectralLibrary])
+    sigRasterSourceRemoved = pyqtSignal([str],[DataSourceRaster])
+    sigVectorSourceRemoved = pyqtSignal([str],[DataSourceVector])
+
+    sigCurrentLocationChanged = pyqtSignal([SpatialPoint],
+                                           [SpatialPoint, QgsMapCanvas])
+
+    sigCurrentSpectraChanged = pyqtSignal(list)
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface:QgisInterface=None):
@@ -657,7 +662,7 @@ class EnMAPBox(QgisInterface, QObject):
         #find other app-folders or listing files folders
         from enmapbox.gui.settings import enmapboxSettings
         settings = enmapboxSettings()
-        for appPath in re.split('[:;]', settings.value('EMB_APPLICATION_PATH', '')):
+        for appPath in re.split('[;\n]', settings.value('EMB_APPLICATION_PATH', '')):
             if os.path.isdir(appPath):
                 self.applicationRegistry.addApplicationFolder(appPath, isRootFolder=True)
             elif os.path.isfile(p):
@@ -744,26 +749,40 @@ class EnMAPBox(QgisInterface, QObject):
         :param dataSource: DataSource
         """
 
+        self.sigDataSourceRemoved[str].emit(dataSource.uri())
+        self.sigDataSourceRemoved[DataSource].emit(dataSource)
 
-        self.sigDataSourceRemoved.emit(dataSource.uri())
         if isinstance(dataSource, DataSourceRaster):
-            self.sigRasterSourceRemoved.emit(dataSource.uri())
+            self.sigRasterSourceRemoved[str].emit(dataSource.uri())
+            self.sigRasterSourceRemoved[DataSourceRaster].emit(dataSource)
+
         if isinstance(dataSource, DataSourceVector):
-            self.sigVectorSourceRemoved.emit(dataSource.uri())
+            self.sigVectorSourceRemoved[str].emit(dataSource.uri())
+            self.sigVectorSourceRemoved[DataSourceVector].emit(dataSource)
+
         if isinstance(dataSource, DataSourceSpectralLibrary):
-            self.sigSpectralLibraryRemoved.emit(dataSource.uri())
+            self.sigSpectralLibraryRemoved[str].emit(dataSource.uri())
+            self.sigSpectralLibraryRemoved[DataSourceSpectralLibrary].emit(dataSource)
 
         self.dockManager.removeDataSource(dataSource)
 
     def onDataSourceAdded(self, dataSource:DataSource):
 
-        self.sigDataSourceAdded.emit(dataSource.uri())
+
+        self.sigDataSourceAdded[DataSource].emit(dataSource)
+        self.sigDataSourceAdded[str].emit(dataSource.uri())
+
         if isinstance(dataSource, DataSourceRaster):
-            self.sigRasterSourceAdded.emit(dataSource.uri())
+            self.sigRasterSourceAdded[str].emit(dataSource.uri())
+            self.sigRasterSourceAdded[DataSourceRaster].emit(dataSource)
+
         if isinstance(dataSource, DataSourceVector):
-            self.sigVectorSourceAdded.emit(dataSource.uri())
+            self.sigVectorSourceAdded[str].emit(dataSource.uri())
+            self.sigVectorSourceAdded[DataSourceVector].emit(dataSource)
+
         if isinstance(dataSource, DataSourceSpectralLibrary):
-            self.sigSpectralLibraryAdded.emit(dataSource.uri())
+            self.sigSpectralLibraryAdded[str].emit(dataSource.uri())
+            self.sigSpectralLibraryAdded[DataSourceSpectralLibrary].emit(dataSource)
 
 
     sigMapCanvasAdded = pyqtSignal(MapCanvas)
@@ -783,9 +802,6 @@ class EnMAPBox(QgisInterface, QObject):
 
     def restoreProject(self):
         raise NotImplementedError()
-
-    sigCurrentLocationChanged = pyqtSignal([SpatialPoint],
-                                           [SpatialPoint, QgsMapCanvas])
 
 
     def setCurrentLocation(self, spatialPoint:SpatialPoint, mapCanvas:QgsMapCanvas=None):
@@ -828,7 +844,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.mCurrentMapLocation
 
-    sigCurrentSpectraChanged = pyqtSignal(list)
+
 
     def setCurrentSpectra(self, spectra:list):
         """
@@ -838,7 +854,7 @@ class EnMAPBox(QgisInterface, QObject):
         b = len(self.mCurrentSpectra) == 0
         self.mCurrentSpectra = spectra[:]
 
-        #check if any SPECLIB window was opened
+        # check if any SPECLIB window was opened
         if len(self.dockManager.docks('SPECLIB')) == 0:
             #and getattr(self, '_initialSpeclibDockCreated', False) == False:
             dock = self.createDock('SPECLIB')
@@ -854,14 +870,19 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.mCurrentSpectra[:]
 
-    def dataSources(self, sourceType='ALL')->list:
+    def dataSources(self, sourceType='ALL', onlyUri:bool=True)->list:
         """
         Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
         :param sourceType: ['ALL', 'RASTER', 'VECTOR', 'MODEL'],
                             see enmapbox.gui.datasourcemanager.DataSourceManager.SOURCE_TYPES
+        :param onlyUri: bool, set on False to return the DataSource object instead of the uri only.
         :return: [list-of-datasource-URIs (str)]
         """
-        return self.dataSourceManager.uriList(sourceType)
+
+        sources = self.dataSourceManager.sources(sourceTypes=sourceType)
+        if onlyUri:
+            sources = [ds.uri() for ds in sources]
+        return sources
 
     def createDock(self, *args, **kwds)->Dock:
         """
@@ -880,6 +901,14 @@ class EnMAPBox(QgisInterface, QObject):
         :param kwds:
         """
         self.dockManager.removeDock(*args, **kwds)
+
+    def docks(self, dockType=None):
+        """
+        Returns dock widgets
+        :param dockType: optional, specifies the type of dock widgets to return
+        :return: [list-of-DockWidgets]
+        """
+        return self.dockManager.docks(dockType=dockType)
 
     def addSources(self, sourceList):
         """
