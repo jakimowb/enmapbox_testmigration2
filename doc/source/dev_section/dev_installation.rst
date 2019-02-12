@@ -7,11 +7,9 @@ Background
 ==========
 
 
-If you like to develop an EnMAP-Box application (or more general: a Qt or QGIS application), you really like to
-use the comfort of an up-to-date Integrated Development Environment (IDE) (yes, you do!).
-And because the EnMAP-Box 3 is a QGIS plugin, your IDE should run in the same environment as the QGIS desktop
-application will do when your application is ready to be used by other users.
-
+If you like to develop an EnMAP-Box application (or more general: a Qt or QGIS application), you really should
+use the comfort of an up-to-date Integrated Development Environment (IDE), and because the EnMAP-Box 3 is a QGIS plugin,
+this IDE should run in the same environment as your local QGIS desktop application does.
 
 In the following we describe how to run and debug the EnMAP-Box from an IDE *without* the need to start the QGIS desktop application.
 We tested it for the `PyCharm <https://www.jetbrains.com/pycharm/>`_ IDE, but in principle the approach should work with other IDEs like `PyDev <http://www.pydev.org/>`_ as well.
@@ -208,10 +206,6 @@ Linux
 
 Setup the project
 =================
-
-
-
-
 .. _dev_start_enmapbox_from_ide:
 
 Start the EnMAP-Box
@@ -257,6 +251,60 @@ make/updateexternals.py - update parts of the EnMAP-Box code which are hosted in
 If you like to build and install the EnMAP-Box Plugin from repository code you need to
 run the `build()` function in `deploy.py`.
 
+Applications to develop with Qt & QGIS
+======================================
+
+The Qt company provides several tools to create Qt C++ applications. Although these focus primarily on
+C++ developers, they are helpful also for developer which make use of the Qt and QGIS python API.
+
+Qt Assistant
+------------
+
+The Qt Assistant allows you to browse fast and offline through Qt help files (`*.qch`). These files exists for
+all Qt classes and the QGIS API. They can be generated event with Sphinx, which allows you to provide your
+own source-code documentation as `.qch` file as well.
+
+The QGIS API help file `qgis.qch` can be downloaded from https://qgis.org/api/
+
+The Qt help files are usually installed with your local Qt installation.
+Windows users can find it in a folder similar to `C:\Program Files\QGIS 3.4\apps\Qt5\doc`.
+
+
+Qt Designer
+-----------
+
+The Qt Designer is a powerful tool to create the frontend of graphically user interfaces.
+A new GUI frontend can be drawed an saved in a XML file with file ending `*.ui`.These form files can be called from
+python code, in which the entire backend might be implemented.
+
+
+.. figure:: img/qt_designer_example.png
+
+     :width: 100%
+
+     Qt Designer showing the metadataeditor.ui for the Metadata editor.
+
+
+Qt Creator
+----------
+
+Qt Creator is the one-in-all IDE to develop Qt C++ applications. It includes the functionality covered by Qt Assistant
+(here called Help) and Qt Designer (here called form designer) and helps to browse C++ code. If you like to
+explore the QGIS source code to better understand what it does behind the QGIS python API interfaces, this is the IDE
+you should go for.
+
+
+.. figure:: img/qt_creator_example_ui.png
+
+     :width: 100%
+
+     Qt Creator with opened metadataeditor.ui.
+
+
+
+
+
+
 
 Explore the Qt and QGIS API
 ===========================
@@ -271,12 +319,13 @@ API references can be found at:
 
 However, it is recommended to use Qt help files (*.qch), which can be used offline and allow for much faster browsing and searching.
 
-1. Download / locate the help *.qch files
+1. Download or locate the help *.qch files
+
 * QGIS API https://qgis.org/api/qgis.qch
 * Qt API
 
-    * C:\Program Files\QGIS 3.4\apps\Qt5\doc (Windows)
-    * ~/Qt/Docs/Qt-5.11.2/ (macOS)
+    * `C:\Program Files\QGIS 3.4\apps\Qt5\doc` (Windows)
+    * `~/Qt/Docs/Qt-5.11.2/` (macOS)
 
 2. Open the Qt Assistant / Qt Creator settings and add the required *.qch files, in particular ``qgis.qch``, ``qtcore.qch``, ``qtwidgets.qch`` and ``qtgui.qch``.
 
