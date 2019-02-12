@@ -84,8 +84,10 @@ class PWR:
                 self.gui.lblNodatImage.setText(str(meta[0]))
                 self.nodat[0] = meta[0]
         elif mode == "output":
-            result, _filter = QFileDialog.getSaveFileName(None, 'Specify Output File', '.', "ENVI Image(*.bsq)")
-            if not result: return
+            #result, _filter = QFileDialog.getSaveFileName(None, 'Specify Output File', '.', "ENVI Image(*.bsq)")
+            result = QFileDialog.getSaveFileName(caption='Specify Output File', filter="ENVI Image (*.bsq)")[0]
+            if not result:
+                raise ImportError('Input file could not be read.  Please make sure it is a valid ENVI image')
             self.out_path = result
             self.out_path = self.out_path.replace("\\", "/")
             self.gui.txtOutputImage.setText(result)

@@ -121,7 +121,7 @@
           <item row="0" column="3">
            <widget class="QCheckBox" name="box_ndvi_hab">
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Normalized Difference Vegetation Index&lt;/p&gt;&lt;p&gt;HABOUDANE, D., MILLER, J.R., PATTEY, E., ZARCO-TEJADA, P.J. and STRACHAN, I. (2004): Hyperspectral vegetation indices and novel algorithms for predicting green LAI of crop canopies: Modeling and validation in the context of precision agriculture. In: Remote Sensing of Environment, 90(3), 337– 352.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Normalized Difference Vegetation Index&lt;/p&gt;&lt;p&gt;HABOUDANE, D., MILLER, J.R., PATTEY, E., ZARCO-TEJADA, P.J. and STRACHAN, I. (2004): Hyperspectral vegetation indices and novel algorithms for predicting green LAI of crop canopies: Modeling and validation in the context of precision agriculture. In: Remote Sensing of Environment, 90(3), 337-352.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
              <string>NDVI (Haboudane et al. 2004)</string>
@@ -207,7 +207,7 @@ p, li { white-space: pre-wrap; }
           <item row="2" column="3">
            <widget class="QCheckBox" name="box_spvi">
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Spectral Polygon Vegetation Index&lt;/p&gt;&lt;p&gt;VINCINI, M., FRAZZI, E. and D ALESSIO, P. (2006): Angular dependence of maize and sugar beet VIs from directional CHRIS/Proba data. In: Proc. 4 th ESA CHRIS PROBA Workshop 2006, 19 – 21 September, ESRIN Frascati, Italy.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Spectral Polygon Vegetation Index&lt;/p&gt;&lt;p&gt;VINCINI, M., FRAZZI, E. and D ALESSIO, P. (2006): Angular dependence of maize and sugar beet VIs from directional CHRIS/Proba data. In: Proc. 4 th ESA CHRIS PROBA Workshop 2006, 19 - 21 September, ESRIN Frascati, Italy.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
              <string>SPVI</string>
@@ -369,7 +369,7 @@ p, li { white-space: pre-wrap; }
           <item row="2" column="1">
            <widget class="QCheckBox" name="box_reip">
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Red Edge Inflection Point&lt;/p&gt;&lt;p&gt;GUYOT, G., BARET, F. and MAJOR, D.J. (1988): High spectral resolution: determination of spectral shifts between the red and the near infrared. In: &lt;span style=&quot; font-family:'Verdana,Helvetica,Arial,sans-serif'; color:#000000; background-color:#f8fff9;&quot;&gt;International Archives of Photogrammetry and Remote Sensing&lt;/span&gt;, 11 (/), 750-760.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Red Edge Inflection Point&lt;/p&gt;&lt;p&gt;GUYOT, G., BARET, F. and MAJOR, D.J. (1988): High spectral resolution: determination of spectral shifts between the red and the near infrared. In: International Archives of Photogrammetry and Remote Sensing, 11 (/), 750-760.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
              <string>Red Edge Inflection Point</string>
@@ -537,7 +537,7 @@ p, li { white-space: pre-wrap; }
           <item row="0" column="3">
            <widget class="QCheckBox" name="box_pssrc">
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pigment Specific Simple Ratio for Chl c&lt;/p&gt;&lt;p&gt;BLACKBURN, G.A. (1998): Spectral indices for estimating photosynthetic pigment concentrations: a test using senescent tree leaves. In: International Journal of Remote Sensing, 19(4), 657-675.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pigment Specific Simple Ratio for Chl c&lt;/p&gt;&lt;p&gt;BLACKBURN, G.A. (1998): Spectral indices for estimating photosynthetic pigment concentrations: a test using senescent tree leaves. In: International Journal of Remote Sensing, 19(4), 657-675.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
              <string>PSSRc</string>
@@ -840,7 +840,7 @@ p, li { white-space: pre-wrap; }
           <item row="0" column="0">
            <widget class="QCheckBox" name="box_cur">
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Curvature Index&lt;/p&gt;&lt;p&gt;ZARCO-TEJADA, P.J., MILLER, J.R., MOHAMMED, G.H. and NOLAND, T.L. (2000): Chlorophyll fluorescence effects on vegetation apparent reflectance: I. Leaflevel measurements and simulation of reflectance and transmittance spectra. In: Remote Sensing of Environment, 74(3), 582– 595.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Curvature Index&lt;/p&gt;&lt;p&gt;ZARCO-TEJADA, P.J., MILLER, J.R., MOHAMMED, G.H. and NOLAND, T.L. (2000): Chlorophyll fluorescence effects on vegetation apparent reflectance: I. Leaflevel measurements and simulation of reflectance and transmittance spectra. In: Remote Sensing of Environment, 74(3), 582- 595.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
              <string>CUR</string>

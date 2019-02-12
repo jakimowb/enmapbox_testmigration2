@@ -12,6 +12,7 @@ from osgeo import gdal
 from enmapbox.gui.applications import EnMAPBoxApplication
 import lmuvegetationapps.VIT_core
 
+
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_VIT.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
 pathUI_Prg = os.path.join(os.path.dirname(__file__),'GUI_ProgressBar.ui')
@@ -209,7 +210,8 @@ class VIT:
             self.gui.lblNodatImage.setText(str(self.nodat[0]))
 
         elif IO == "out":
-            outFile = str(QFileDialog.getSaveFileName(caption='Select Output File', filter="ENVI Image (*.bsq)"))
+            #outFile, _filter = QFileDialog.getSaveFileName(None, 'Specify Output File', '.', "ENVI Image(*.bsq)")
+            outFile = QFileDialog.getSaveFileName(caption='Select Output File', filter="ENVI Image (*.bsq)")[0]
             if not outFile: return
             self.gui.txtOutput.setText(outFile)
             try:
@@ -218,10 +220,10 @@ class VIT:
             except:
                 self.outExtension = '.bsq'
                 self.outFileName = basename(outFile)
-            self.outDir = dirname(outFile) + "/" # outDir ends with / so that a filename can be string-added
+            self.outDir = dirname(outFile) + "/"  # outDir ends with / so that a filename can be string-added
 
     def exit_gui(self):
-        self.gui.close() # I wonder what this does...
+        self.gui.close()  # I wonder what this does...
 
     def run_VIT(self):
         if self.inFile is None:
@@ -272,7 +274,7 @@ class VIT:
             QMessageBox.critical(self.gui, "No index selected", "Please select at least one index to continue!")
             return
 
-        try: # give it a shot
+        try: # give it a shot+
             IndexOut_matrix = vit.calculate_VIT(ImageIn_matrix=ImageIn_matrix, prg_widget=self.main.prg_widget,
                                                 QGis_app=self.main.QGis_app)
         except:
@@ -284,14 +286,14 @@ class VIT:
         self.main.prg_widget.gui.lblCaption_r.setText("Writing Output-File")
         self.main.QGis_app.processEvents()
 
-        try: # write Output-File
-            vit.write_out(IndexOut_matrix=IndexOut_matrix, OutDir=self.outDir, OutFilename=self.outFileName,
+        #try: # write Output-File
+        vit.write_out(IndexOut_matrix=IndexOut_matrix, OutDir=self.outDir, OutFilename=self.outFileName,
                           OutExtension=self.outExtension, OutSingle=self.outSingle)
-        except:
-            QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
-            self.main.prg_widget.gui.allow_cancel = True
-            self.main.prg_widget.gui.close()
-            return
+        # except:
+        #     QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
+        #     self.main.prg_widget.gui.allow_cancel = True
+        #     #  self.main.prg_widget.gui.close()
+        #     return
 
         self.main.prg_widget.gui.allow_cancel = True
         self.main.prg_widget.gui.close()

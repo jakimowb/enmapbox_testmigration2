@@ -7,6 +7,7 @@ from scipy.interpolate import interp1d, splrep
 import gdal
 from gdalconst import *
 import struct
+from hubflow.core import *
 
 class VIT:
     def __init__(self, IT, nodat, IDW_exp=None):
@@ -590,35 +591,51 @@ class VIT:
         self.mask = np.dstack([self.mask] * self.n_indices) # expand mask to match the shape of the output
         IndexOut_matrix[self.mask == True] = self.nodat[1] # change masked no data values of input to nodat
 
+        IndexOut_matrix = np.transpose(IndexOut_matrix, [2, 0, 1])
+        #due to hubflow.core write image handling axis sequence had to be changed to [bands, rows, cols]
+
         return IndexOut_matrix
 
     def write_out(self, IndexOut_matrix, OutDir, OutFilename, OutExtension, OutSingle):
 
-        driver = gdal.GetDriverByName('ENVI')
         Hdr_deposit = [''] * 2
 
         if not OutSingle == 1:  # Output to individual files
             for i in range(self.n_indices):
-                destination = driver.Create(OutDir + OutFilename + '_' + self.labels[i] + OutExtension,
-                                            self.ncols, self.nrows, 1,
-                                            gdal.GDT_Float32)  # Create output file: Name, Spalten, Reihen, Kanäle, Datentyp
-                b = destination.GetRasterBand(1)
-                b.SetDescription(self.labels[i])
-                b.WriteArray(IndexOut_matrix[:,:,i])
-                destination.SetMetadataItem('data ignore value', str(self.nodat[1]), 'ENVI')
+                out_array = np.zeros((1, IndexOut_matrix.shape[1], IndexOut_matrix.shape[2]))
+                out_array[0, :, :] = IndexOut_matrix[i, :, :]
+                output = Raster.fromArray(array=out_array, filename=OutDir + OutFilename + '_'
+                                                                          + self.labels[i] + OutExtension)
+
+                output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
+                #output.dataset().setDescription(self.labels[i])
+                for band in output.dataset().bands():
+                    band.setDescription(self.labels[i])
+                    band.setNoDataValue(self.nodat[1])
+
 
         else:  # Output to single file
-            try:
-                destination = driver.Create(OutDir + OutFilename + '.bsq', self.ncols,
-                                            self.nrows, self.n_indices,
-                                            gdal.GDT_Float32)  # Create output file: Name, Spalten, Reihen, Kanäle, Datentyp
-                for i in range(self.n_indices):
-                    b = destination.GetRasterBand(i + 1)
-                    b.SetDescription(self.labels[i])
-                    b.WriteArray(IndexOut_matrix[:,:,i])
+            #try:
+            print(IndexOut_matrix.shape)
+            output = Raster.fromArray(array=IndexOut_matrix, filename=OutDir + OutFilename + OutExtension)
 
-                destination.SetMetadataItem('data ignore value', str(self.nodat[1]), 'ENVI')
-            except:
-                raise ValueError
-        dataset = None
-        destination = None
+            output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
+            #output.dataset().setDescription(self.labels)
+
+            for i, band in enumerate(output.dataset().bands()):
+                band.setDescription(self.labels[i])
+                band.setNoDataValue(self.nodat[1])
+
+            # destination = driver.Create(OutDir + OutFilename + '.bsq', self.ncols,
+            #                             self.nrows, self.n_indices,
+            #                             gdal.GDT_Float32)  # Create output file: Name, Spalten, Reihen, Kanäle, Datentyp
+            # for i in range(self.n_indices):
+            #     b = destination.GetRasterBand(i + 1)
+            #     b.SetDescription(self.labels[i])
+            #     b.WriteArray(IndexOut_matrix[:,:,i])
+            #
+            # destination.SetMetadataItem('data ignore value', str(self.nodat[1]), 'ENVI')
+            # except:
+            #     raise ValueError
+        #dataset = None
+        #destination = None

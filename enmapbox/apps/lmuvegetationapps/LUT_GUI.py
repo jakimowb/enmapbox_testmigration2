@@ -18,15 +18,15 @@ import time
 
 from enmapbox.gui.utils import loadUIFormClass
 
-pathUI = os.path.join(os.path.dirname(__file__),'GUI_LUT.ui')
-pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_ProgressBar.ui')
+pathUI = os.path.join(os.path.dirname(__file__), 'GUI_LUT.ui')
+pathUI2 = os.path.join(os.path.dirname(__file__), 'GUI_ProgressBar.ui')
 
 
 class LUT_GUI(QDialog, loadUIFormClass(pathUI)):
-
     def __init__(self, parent=None):
         super(LUT_GUI, self).__init__(parent)
         self.setupUi(self)
+
 
 class PRG_GUI(QDialog, loadUIFormClass(pathUI2)):
     def __init__(self, parent=None):
@@ -152,12 +152,12 @@ class LUT:
         self.set_boundaries()
 
     def special_chars(self):
-        self.gui.lblCab.setText('Chlorophyll A + B (Cab) [µg/cm²]')
-        self.gui.lblCm.setText('Dry Matter Content (Cm) [g/cm²]')
-        self.gui.lblCar.setText('Carotenoids (Car) [µg/cm²]')
-        self.gui.lblCanth.setText('Anthocyanins (Canth) [µg/cm²]')
-        self.gui.lblLAI.setText('Leaf Area Index (LAI) [m²/m²]')
-
+        self.gui.lblCab.setText('Chlorophyll A + B (Cab) [µg/cm²] \n[0.0 - 100.0]')
+        self.gui.lblCm.setText('Dry Matter Content (Cm) [g/cm²] \n[0.0001 - 0.02]')
+        self.gui.lblCar.setText('Carotenoids (Car) [µg/cm²] \n[0.0 - 30.0]')
+        self.gui.lblCanth.setText('Anthocyanins (Canth) [µg/cm²] \n[0.0 - 10.0]')
+        self.gui.lblLAI.setText('Leaf Area Index (LAI) [m²/m²] \n[0.01 - 10.0]')
+        self.gui.lblLAIu.setText('Undergrowth Leaf Area Index \n(LAI) [m²/m²] \n[0.01 - 10.0]')
 
     def initial_values(self):
         self.typeLIDF = 2
@@ -394,7 +394,7 @@ class LUT:
         self.gui.cmdClose.clicked.connect(lambda: self.gui.close())
         self.gui.cmdOpenFolder.clicked.connect(lambda: self.get_folder())
         self.gui.cmdLUTcalc.clicked.connect(lambda: self.get_lutsize())
-        self.gui.cmdPlot.clicked.connect(lambda: self.plot_para())
+        #self.gui.cmdPlot.clicked.connect(lambda: self.plot_para())
         # self.gui.cmdTest.clicked.connect(lambda: self.test_LUT()) #debug
 
         # Focus Out (Line Edits)
@@ -449,10 +449,10 @@ class LUT:
                              "sza": [0.0, 89.0],
                              "raa": [0.0, 180.0],
                              "psoil": [0.0, 1.0],
-                             "laiu": [0.0, 100.0], # forest parameters temporary!
-                             "sd": [0.0, 100.0],
-                             "h": [0.0, 100.0],
-                             "cd": [0.0, 100.0]}
+                             "laiu": [0.01, 10.0], # forest parameters temporary!
+                             "sd": [0.0, 5000.0],
+                             "h": [0.0, 50.0],
+                             "cd": [0.0, 30.0]}
 
     def select_s2s(self, sensor):
         self.sensor = sensor
@@ -470,9 +470,28 @@ class LUT:
         if canopy_arch is None:
             self.canopy_arch = None
             self.gui.grp_canopy.setDisabled(True)
-        else:
+            self.gui.grp_forest.setDisabled(True)
+        elif canopy_arch == "sail":
             self.canopy_arch = canopy_arch
+            self.gui.lblLAI.setText("Leaf Area Index (LAI) [m2/m2]\n[0.01-10.0]")
             self.gui.grp_canopy.setDisabled(False)
+            self.gui.grp_forest.setDisabled(True)
+            self.gui.B_Prospect5.setDisabled(False)
+            self.gui.B_Prospect4.setDisabled(False)
+            self.gui.B_Prospect5b.setDisabled(False)
+        elif canopy_arch == "inform":
+            self.canopy_arch = canopy_arch
+            self.gui.lblLAI.setText("Single Tree \nLeaf Area Index (LAI) [m2/m2]\n[0.01-10.0]")
+            self.gui.grp_canopy.setDisabled(False)
+            self.gui.grp_forest.setDisabled(False)
+            self.gui.lblLAIu.setDisabled(False)
+            self.gui.B_Prospect5.setDisabled(True)
+            self.gui.B_Prospect4.setDisabled(True)
+            self.gui.B_Prospect5b.setDisabled(True)
+            self.gui.B_ProspectD.setChecked(True)
+        else:
+            raise ValueError("Inform has been implemented for Prospect D only.")
+            pass
 
         if lop=="prospectD":
             for para in self.para_list[0]:
@@ -546,6 +565,7 @@ class LUT:
                 elif self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
                                 self.dict_vals[self.para_list[0][i]][1] > self.dict_boundaries[key][1]:
                     self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[0][i])
+                    print(self.para_list[0][0])
                     return False
             elif len(self.dict_vals[self.para_list[0][i]]) > 1:  # min and max specified
                 if self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
@@ -697,7 +717,7 @@ class LUT:
                                     cab=[1.0, 80.0, 5], cw=[0.02, 0.04, 3], cm=[0.018],
                                     LAI=[5.0], LIDF=[45.0], typeLIDF=[2],
                                     hspot=[0.1], psoil=[0.5], car=[],
-                                    cbrown=[], anth=[], cp=[], ccl=[],
+                                    cbrown=[], anth=[], cp=[], ccl=[], LAIu=[], cd=[], sd=[], h=[],
                                     prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
 
         # model_I = mod.Init_Model(lop="prospectD", canopy_arch="sail", nodat=-999,
@@ -738,13 +758,15 @@ class LUT:
             return
 
         try:
-            model_I.initialize_multiple(LUT_dir=self.path, LUT_name=self.LUT_name, ns=self.ns, tts=self.dict_vals['sza'],
-                                        tto=self.dict_vals['oza'], psi=self.dict_vals['raa'], N=self.dict_vals['N'],
-                                        cab=self.dict_vals['chl'], cw=self.dict_vals['cw'], cm=self.dict_vals['cm'],
-                                        LAI=self.dict_vals['lai'], LIDF=self.dict_vals['alia'], typeLIDF=[2],
-                                        hspot=self.dict_vals['hspot'], psoil=self.dict_vals['psoil'], car=self.dict_vals['car'],
-                                        cbrown=self.dict_vals['cbr'], anth=self.dict_vals['canth'],
-                                        cp=[], ccl=[], prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+            model_I.initialize_multiple(LUT_dir=self.path, LUT_name=self.LUT_name, ns=self.ns, 
+                                        tts=self.dict_vals['sza'], tto=self.dict_vals['oza'], psi=self.dict_vals['raa'], 
+                                        N=self.dict_vals['N'], cab=self.dict_vals['chl'], cw=self.dict_vals['cw'], 
+                                        cm=self.dict_vals['cm'], LAI=self.dict_vals['lai'], LIDF=self.dict_vals['alia'], 
+                                        typeLIDF=[2], hspot=self.dict_vals['hspot'], psoil=self.dict_vals['psoil'], 
+                                        car=self.dict_vals['car'], cbrown=self.dict_vals['cbr'], 
+                                        anth=self.dict_vals['canth'], cp=[], ccl=[], LAIu=self.dict_vals['laiu'],
+                                        cd=self.dict_vals['cd'], sd=self.dict_vals['sd'], h=self.dict_vals['h'],
+                                        prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
 
         except ValueError as e:
             self.abort(message="An error occured while creating the LUT: %s" % str(e))
@@ -786,6 +808,9 @@ class MainUiFunc:
         self.LUT.gui.show()
 
 if __name__ == '__main__':
+    import warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+
     from enmapbox.gui.sandbox import initQgisEnvironment
     app = initQgisEnvironment()
     main = MainUiFunc()

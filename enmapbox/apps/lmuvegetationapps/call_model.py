@@ -3,7 +3,7 @@
 import os
 import time
 from math import radians
-
+from matplotlib import pyplot as plt
 import lmuvegetationapps.SAIL as SAIL
 import numpy as np
 from scipy.stats import truncnorm
@@ -105,7 +105,7 @@ class Setup_multiple:
         self.nruns_logic_geo, self.nruns_logic_no_geo, self.nruns_logic_total = (1, 1, 1)
         self.para_nums = {"N": 0, "cab": 1, "car": 2, "anth": 3, "cbrown": 4, "cw": 5, "cm": 6, "cp": 7, "ccl": 8,
                           "LAI": 9, "typeLIDF": 10, "LIDF": 11, "hspot": 12, "psoil": 13, "tts": 14, "tto": 15,
-                          "psi": 16}
+                          "psi": 16, "LAIu": 17, "cd": 18, "sd": 19, "h": 20}
         self.npara = len(self.para_nums)
         self.paras = paras
         self.ns = int(ns)
@@ -209,7 +209,7 @@ class Init_Model:
         self.soil = None
         self.para_names = ["N", "cab", "car", "anth", "cbrown", "cw", "cm", "cp", "ccl",
                           "LAI", "typeLIDF", "LIDF", "hspot", "psoil", "tts", "tto",
-                          "psi"]
+                          "psi", "LAIu", "cd", "sd", "h"]
 
     def initialize_multiple(self, LUT_dir, LUT_name, ns, max_per_file=50000, testmode=0,
                             prgbar_widget=None, QGis_app=None, soil=None, **paras):
@@ -376,9 +376,9 @@ class Init_Model:
             print("Unknown Prospect version. Try 'prospect4', 'prospect5', 'prospect5B' or 'prospectD'")
             return
 
-        if self.canopy_arch=="sail":
+        if self.canopy_arch == "sail":
             result = iModel.call_4sail()*self.int_boost
-        elif self.canopy_arch=="inform":
+        elif self.canopy_arch == "inform":
             result = iModel.call_inform()*self.int_boost
         else:
             result = iModel.prospect[:, 1]*self.int_boost
@@ -409,8 +409,12 @@ def example_single():
     LIDF = 60.0
     typeLIDF = 2
 
+    sd = 2000
+    h = 10
+    cd = 6
+
     lop = "prospectCp"
-    canopy_arch = "sail"
+    canopy_arch = "inform"
     s2s = "default"
     int_boost = 1
     nodat = -999
@@ -419,7 +423,9 @@ def example_single():
     model_I = Init_Model(lop=lop, canopy_arch=canopy_arch, nodat=nodat, int_boost=int_boost, s2s=s2s)
     return model_I.initialize_single(tts=tts, tto=tto, psi=psi, N=N, cab=cab, cw=cw, cm=cm,
                                     LAI=LAI, LAIu=LAIu, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot, psoil=psoil, cp=cp, ccl=ccl,
-                                    car=car, cbrown=cbrown, anth=anth, soil=soil)
+                                    car=car, cbrown=cbrown, anth=anth, soil=soil, sd=sd, h=h, cd=cd)
+
+
 
 def example_multi():
 
@@ -440,38 +446,52 @@ def example_multi():
     cm = [0.0, 0.01]
 
     LAI = [0.0, 8.0, 4.5, 1.0]
+
     LIDF = [10.0, 85.0, 47.0, 25.0]  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
     # typeLIDF=2: LIDF = ALIA
     hspot = [0.0, 0.1]
     psoil = [0.0, 1.0]
 
+    LAIu = [0.0, 8.0, 4.5, 1.0]
+    sd = [1000, 3000]
+    h = [2, 10]
+    cd = [1, 20]
+
     # Fixed parameters
     typeLIDF = [2]  # 1: Beta, 2: Ellipsoidal
 
-    LUT_dir = "E:/ECST_III/Processor/LUT/Gamma/"
-    LUT_name = "Martin_LUT_test"
+    LUT_dir = "Z:/Matthias/LUT_test/"
+    LUT_name = "LUT_test"
     ns = 20
-    int_boost = 1000
+    int_boost = 1
     nodat = -999
 
     lop = "prospectD"
-    canopy_arch = "sail"
+    canopy_arch = "inform"
     s2s = "default"
 
     soil = None
 
     model_I = Init_Model(lop=lop, canopy_arch=canopy_arch, nodat=nodat, int_boost=int_boost, s2s=s2s)
     model_I.initialize_multiple(LUT_dir=LUT_dir, LUT_name=LUT_name, ns=ns, tts=tts, tto=tto, psi=psi, N=N, cab=cab, cw=cw, cm=cm,
-                                LAI=LAI, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot, psoil=psoil, car=car, cbrown=cbrown, soil=soil,
-                                anth=anth, testmode=0)
+                                LAI=LAI, LAIu=LAIu, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot, psoil=psoil, car=car, cbrown=cbrown, soil=soil,
+                                anth=anth, cd=cd, h=h, sd=sd, testmode=0)
 
 if __name__ == '__main__':
     # print(example_single() / 1000.0)
     # plt.plot(range(len(example_single())), example_single() / 1000.0)
     # plt.show()
     x = example_single()
-    print(x.shape)
 
+
+    fig = plt.figure(figsize=(10, 5))
+    plt.plot(range(400, 2501), x)
+    plt.xlabel('Wavelength [nm]')
+    plt.ylabel('Reflectance [-]')
+    plt.xlim(400, 2500)
+    plt.xticks(np.arange(400, 2500, 200))
+    plt.ylim(0, 0.7)
+    plt.show()
 
 
 

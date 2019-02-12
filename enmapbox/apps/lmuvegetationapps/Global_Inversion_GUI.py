@@ -83,7 +83,7 @@ class Global_Inversion:
 
 
         self.LUT_path = None
-        self.sensor = 2 # 1 = ASD, 2 = EnMAP, 3 = Sentinel2, 4 = Landsat8
+        self.sensor = 2  # 1 = ASD, 2 = EnMAP, 3 = Sentinel2, 4 = Landsat8
         self.wl = None
 
     def connections(self):
@@ -170,7 +170,7 @@ class Global_Inversion:
 
 
         elif mode=="output":
-            result = str(QFileDialog.getSaveFileName(caption='Specify Output-file(s)', filter="ENVI Image (*.bsq)"))
+            result = QFileDialog.getSaveFileName(caption='Specify Output-file(s)', filter="ENVI Image (*.bsq)")[0]
             if not result: return
             self.out_path = result
             self.out_path = self.out_path.replace("\\", "/")

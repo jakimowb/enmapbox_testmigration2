@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from hubflow.core import *
 import gdal
 from gdalconst import *
 import numpy as np
@@ -30,7 +30,7 @@ class PWR_core:
         self.nrows, self.ncols, self.nbands, self.in_raster = (None, None, None, None)
 
     def initialize_PWR(self, input, output, lims, NDVI_th=0.37):
-        self.wl, self.nrows, self.ncols, self.nbands, self.in_raster = self.read_image(image=input)
+        self.wl, self.nbands, self.nrows, self.ncols, self.in_raster = self.read_image(image=input)
         self.n_wl = len(self.wl)
         self.pixel_total = self.nrows * self.ncols
         self.output = output
@@ -85,7 +85,8 @@ class PWR_core:
         nbands = dataset.RasterCount
         nrows = dataset.RasterYSize
         ncols = dataset.RasterXSize
-
+        #print(dataset.GetMetadata)
+        #print(dataset.GetMetadataItem('wavelength', 'ENVI'))
         try:
             wavelengths = "".join(dataset.GetMetadataItem('wavelength', 'ENVI').split())
             wavelengths = wavelengths.replace("{", "")
@@ -103,12 +104,12 @@ class PWR_core:
         else:
             raise ValueError("Wavelength units must be nanometers or micrometers. Got '%s' instead" % dataset.GetMetadataItem('wavelength_units', 'ENVI'))
 
-        in_matrix = np.zeros((nrows, ncols, nbands))
+        in_matrix = np.zeros((nbands, nrows, ncols))
 
         for band_no in range(nbands):
             band = dataset.GetRasterBand(band_no + 1)
             scancol = band.ReadRaster1(0, 0, ncols, nrows, ncols, nrows, GDT_Float32)
-            in_matrix[:, :, band_no] = np.reshape(np.asarray(struct.unpack('f' * nrows * ncols, scancol),
+            in_matrix[band_no, :, :] = np.reshape(np.asarray(struct.unpack('f' * nrows * ncols, scancol),
                                                              dtype=np.float32), (nrows, ncols))
 
         if self.division_factor != 1.0:
@@ -117,16 +118,16 @@ class PWR_core:
         wl = [float(item) * wave_convert for item in wavelengths]
         wl = [int(round(item, 0)) for item in wl]
 
-        return wl, nrows, ncols, nbands, in_matrix
+        return wl, nbands, nrows, ncols, in_matrix
 
     def find_closest(self, lambd):
         distances = [abs(lambd - self.wl[i]) for i in range(self.n_wl)]  # Get distances of input WL to all sensor WLs
-        print(self.wl[distances.index(min(distances))])
+        #print(self.wl[distances.index(min(distances))])
         return self.wl[distances.index(min(distances))]
 
     def NDVI(self, row, col):
-        R827 = self.in_raster[row, col, self.NDVI_bands[1]]
-        R668 = self.in_raster[row, col, self.NDVI_bands[0]]
+        R827 = self.in_raster[self.NDVI_bands[1], row, col]
+        R668 = self.in_raster[self.NDVI_bands[0], row, col]
 
         try:
             ndvi = float(R827-R668)/float(R827+R668)
@@ -138,21 +139,22 @@ class PWR_core:
     def execute_PWR(self, prg_widget=None, QGis_app=None):
         self.prg = prg_widget
         self.QGis_app = QGis_app
-        res_raster = np.zeros([self.nrows, self.ncols])  # result raster of minimized d-values
+        res_raster = np.zeros([1, self.nrows, self.ncols])  # result raster of minimized d-values
         d = 0.0
         for row in range(self.nrows):
             for col in range(self.ncols):
                 if self.NDVI(row=row, col=col) < self.NDVI_th:
-                    res_raster[row, col] = self.nodat_val[1]
+                    res_raster[:, row, col] = self.nodat_val[1]
                     continue
                   # initial d-value for minimization algorithm
                 res = minimize_scalar(self.lambert_beer_ob_fun, d, args=[row, col], method='bounded', bounds=(0.0, 1.0))
                 res = res.x  # result in [cm] optically active water
-                res_raster[row, col] = res
+                res_raster[:, row, col] = res
                 self.prgbar_process(pixel_no=row*self.ncols+col)
 
         res_raster[np.isnan(res_raster)] = self.nodat_val[1]
-
+        #print(res_raster.shape)
+        #print(res_raster)
         return res_raster
 
     def lambert_beer_ob_fun(self, d, *args):
@@ -166,7 +168,7 @@ class PWR_core:
 
         const_a = 3.523431  # empirical constant (calibrated using 50.000 PROSPECT spectra)
 
-        r = self.in_raster[row, col, self.valid_bands] / (np.exp(-1 * self.abs_coef * d * const_a))
+        r = self.in_raster[self.valid_bands, row, col] / (np.exp(-1 * self.abs_coef * d * const_a))
         slope = (r[-1] - r[0]) / (len(r) - 0)
         intercept = r[0]
         residuals = (slope * np.arange(0, len(r)) + intercept) - r[0:]
@@ -174,16 +176,26 @@ class PWR_core:
         return ssr
 
     def write_image(self, result):
-        driver = gdal.GetDriverByName('ENVI')
 
-        destination = driver.Create(self.output, self.ncols, self.nrows, 1, gdal.GDT_Float32)
-        band = destination.GetRasterBand(1)
-        band.SetDescription("Plant Active Water")
-        band.WriteArray(result)
-        destination.SetMetadataItem('data ignore value', str(self.nodat_val[1]), 'ENVI')
+        output = Raster.fromArray(array=result, filename=self.output)
 
-        destination = None
-        driver = None
+        output.dataset().setMetadataItem('data ignore value', self.nodat_val[1], 'ENVI')
+
+        for band in output.dataset().bands():
+            band.setDescription('Plant Active Water [cm]')
+            band.setNoDataValue(self.nodat_val[1])
+
+
+        # driver = gdal.GetDriverByName('ENVI')
+        #
+        # destination = driver.Create(self.output, self.ncols, self.nrows, 1, gdal.GDT_Float32)
+        # band = destination.GetRasterBand(1)
+        # band.SetDescription("Plant Active Water")
+        # band.WriteArray(result)
+        # destination.SetMetadataItem('data ignore value', str(self.nodat_val[1]), 'ENVI')
+        #
+        # destination = None
+        # driver = None
 
     def prgbar_process(self, pixel_no):
         if self.prg:
@@ -191,7 +203,7 @@ class PWR_core:
                 self.prg.gui.lblCancel.setText("")
                 self.prg.gui.cmdCancel.setDisabled(False)
                 raise ValueError("Calculation of Plant Water canceled")
-            self.prg.gui.prgBar.setValue(pixel_no*100 // (self.pixel_total)) # progress value is index-orientated
+            self.prg.gui.prgBar.setValue(pixel_no*100 // self.pixel_total)  # progress value is index-orientated
             self.prg.gui.lblCaption_l.setText("Calculating Water Content")
             self.prg.gui.lblCaption_r.setText("pixel %i of %i" % (pixel_no, self.pixel_total))
             self.QGis_app.processEvents()  # mach ma neu

@@ -8,6 +8,8 @@ from osgeo import gdal
 import struct
 import os
 from lmuvegetationapps.Sensor_Info import get_wl
+from hubflow.core import *
+from matplotlib import pyplot as plt
 
 class RTM_Inversion:
 
@@ -45,9 +47,10 @@ class RTM_Inversion:
         #                   8: 'psoil', 9: 'car', 10: 'anth', 11: 'cbrown', 12: 'tts', 13: 'tto', 14: 'psi', }
         self.para_dict = {'N': 0, 'cab': 1, 'car': 2, 'anth': 3, 'cw': 4, 'cbrown': 5, 'cm': 6, 'cp': 7, 'ccl': 8,
                           'LAI': 9, 'typeLIDF': 10, 'LIDF': 11, 'hspot': 12, 'psoil': 13, 'tts': 14, 'tto': 15,
-                          'psi': 16}
+                          'psi': 16, 'LAIu': 17, 'cd': 18, 'sd': 19, 'h': 20}
         self.para_names = self.para_dict.keys()
         self.max_npara = len(self.para_dict)
+        #print(self.max_npara)
 
     def read_image(self, image, nodat, dtype=np.float16, exclude_bands=[]):
 
@@ -96,13 +99,13 @@ class RTM_Inversion:
             for row in range(self.nrows):
                 for col in range(self.ncols):
                     angles = []
-                    angles.append(np.argmin(abs(self.geometry_matrix[row,col,0] - self.tts_LUT))) # tts
-                    angles.append(np.argmin(abs(self.geometry_matrix[row,col,1] - self.tto_LUT))) # tto
-                    angles.append(np.argmin(abs(self.geometry_matrix[row,col,2] - self.psi_LUT))) # psi
-                    self.whichLUT[row,col] = angles[2]*self.nangles_LUT[1]*self.nangles_LUT[0] + angles[1]*self.nangles_LUT[0] + angles[0]
+                    angles.append(np.argmin(abs(self.geometry_matrix[row, col, 0] - self.tts_LUT)))  # tts
+                    angles.append(np.argmin(abs(self.geometry_matrix[row, col, 1] - self.tto_LUT)))  # tto
+                    angles.append(np.argmin(abs(self.geometry_matrix[row, col, 2] - self.psi_LUT)))  # psi
+                    self.whichLUT[row, col] = angles[2]*self.nangles_LUT[1]*self.nangles_LUT[0] + angles[1]*self.nangles_LUT[0] + angles[0]
         else:
-            self.whichLUT[:,:] = 0 # take first available (there should be no more than 1 anyway)
-            self.geometry_matrix[:,:,:] = 911 # a value that is unlikely to be chosen for no data. In case of geo_mode != 'sort', the matrix is unused
+            self.whichLUT[:, :] = 0 # take first available (there should be no more than 1 anyway)
+            self.geometry_matrix[:, :, :] = 911 # a value that is unlikely to be chosen for no data. In case of geo_mode != 'sort', the matrix is unused
 
     def add_noise(self, Ref_list, type, sigma):
         n_entries = len(Ref_list)
@@ -128,11 +131,6 @@ class RTM_Inversion:
 
         Ref_noisy[Ref_noisy<0] = 0
         return Ref_noisy
-
-    def visualize(self):
-        #1: get wl and array with reflectances
-        #2: 1dim array: plot single; 2dim: plot multiple
-        pass
 
     def cost_fun(self, image_Ref, model_Ref, type):
 
@@ -193,6 +191,8 @@ class RTM_Inversion:
 
         if sensor == 1: # ASD
             self.offset = 400 - self.wl_sensor[0]  # 400nm as first wavelength in the PROSAIL model family
+            self.exclude_bands = list(range(0, 51)) + list(range(1009, 1129)) + \
+                            list(range(1371, 1650)) + list(range(2050, 2151))
             # self.exclude_bands = range(0, self.offset) + range(1009, 1129) + range(1371, 1650) # 350-400nm, 1359-1479nm, 1721-200nm
             self.exclude_bands_model = list(range(self.max_npara)) + [((i - self.offset)) + self.max_npara for i in self.exclude_bands[self.offset:]]
         elif sensor == 2: # EnMAP
@@ -255,8 +255,32 @@ class RTM_Inversion:
             self.whichpara.append(["N", "cab", "cw", "cm", "car", "cbrown", "anth", "cp", "ccl"])
         if self.canopy_arch == "sail":
             self.whichpara.append(["LAI", "typeLIDF", "LIDF", "hspot", "psoil", "tts", "tto", "psi"])
+        if self.canopy_arch == "inform":
+            self.whichpara.append(['LAI', 'typeLIDF', 'LIDF', 'hspot', 'psoil', 'tts', 'tto', 'psi', 
+                                   'LAIu', 'cd', 'sd', 'h'])
         self.whichpara = [item for sublist in self.whichpara for item in sublist] # flatten list back
         self.whichpara_num = [self.para_dict[para_key] for para_key in self.whichpara]
+        #print(self.whichpara_num)
+        #print(self.whichpara)
+
+    def visualize(self, image_Ref, model_Ref):
+
+        # cmap = plt.get_cmap('gnuplot')
+        # colors = [cmap(i) for i in np.linspace(0.0, 0.9, len(in_raster))
+        # fig = plt.figure(figsize=(10, 5))
+        plt.plot(image_Ref, color='b')
+        plt.show
+        plt.plot(model_Ref, color='r')
+        # plt.plot(all_x + 450 + r_diff, all_y, 'k+')
+        # plt.xlabel('Wavelength [nm]')
+        # plt.ylabel('Reflectance [-]')
+        # plt.xlim(350, 2500)
+        # plt.xticks(np.arange(400, 2500, 200))
+        #plt.ylim(0, 0.7)
+        plt.show()
+        # 1: get wl and array with reflectances
+        # 2: 1dim array: plot single; 2dim: plot multiple
+        pass
 
     def run_inversion(self, prg_widget=None, QGis_app=None):
 
@@ -281,70 +305,95 @@ class RTM_Inversion:
                     continue
 
                 # Check if Pixel is NoData or Geometry is not available
-                if all(self.image[r,c,j] == self.nodat[0] for j in range(nbands_valid)) or \
-                        any(self.geometry_matrix[r,c,i] == self.nodat[0] for i in range(3)):
+                if all(self.image[r, c, j] == self.nodat[0] for j in range(nbands_valid)) or \
+                        any(self.geometry_matrix[r, c, i] == self.nodat[0] for i in range(3)):
                     self.out_matrix[r,c,:] = self.nodat[2]
                     # print "skipping: ", r, c
                     continue
 
                 estimates = np.zeros(self.ns)
-                lut = np.hstack(np.load(self.LUT_base + "_" + str(self.whichLUT[r,c])+ "_" + str(split) + ".npy")
-                                for split in range(self.splits)) # load all splits of the current geo_ensembles
-                LUT_params = lut[self.whichpara_num,:] # extract parameters
-                lut = np.delete(lut, self.exclude_bands_model, axis=0) # delete exclude_bands_model - members
+                lut = np.hstack(np.load(self.LUT_base + "_" + str(self.whichLUT[r, c]) + "_" + str(split) + ".npy")
+                                for split in range(self.splits))  # load all splits of the current geo_ensembles
 
+                LUT_params = lut[self.whichpara_num, :]  # extract parameters
+
+                lut = np.delete(lut, self.exclude_bands_model, axis=0)  # delete exclude_bands_model - members
 
                 for run in range(self.ns):
-                    if np.sum(lut[:,run]) < 1: continue
-                    estimates[run] = self.cost_fun(self.image[r,c,:],
+
+                    #print(self.ns)
+                    if np.sum(lut[:, run]) < 1: continue
+                    estimates[run] = self.cost_fun(self.image[r, c, :],
                                                    self.add_noise(Ref_list=lut[:,run], type=self.noisetype, sigma=self.noiselevel),
                                                    type=self.ctype)
-
-                L1_subset = np.argpartition(estimates, self.nbfits)[0:self.nbfits] # get n best performing LUT-entries
+                L1_subset = np.argpartition(estimates, self.nbfits)[0:self.nbfits]  # get n best performing LUT-entries
+                #if r==0 and c==0:
+                    #for s in L1_subset:
+                        #self.visualize(self.image[r, c, :],
+                         #       self.add_noise(Ref_list=lut[:, s], type=self.noisetype, sigma=self.noiselevel))
                 L1_subset = L1_subset[np.argsort(estimates[L1_subset])]
-                result = np.median([LUT_params[:,i] for i in L1_subset], axis=0)
+                result = np.median([LUT_params[:, i] for i in L1_subset], axis=0)
 
-                self.out_matrix[r,c,:] = result
+                self.out_matrix[r, c, :] = result
+                #print(self.out_matrix.shape)
                 if prg_widget:
                     prg_widget.gui.lblCaption_r.setText('Inverting pixel #%i of %i' % (pix_current, pix_total))
                     prg_widget.gui.prgBar.setValue(pix_current*100 // pix_total)
                     QGis_app.processEvents()
 
 
+
     def write_image(self):
         driver = gdal.GetDriverByName('ENVI')
 
         if self.out_mode == "single":
-            destination = driver.Create(self.image_out, self.ncols, self.nrows, self.npara, gdal.GDT_Float32)
-            for i, para_key in enumerate(self.whichpara):
-                band = destination.GetRasterBand(i+1)
-                band.SetDescription(para_key)
-                band.WriteArray(self.out_matrix[:,:,i])
-            destination.SetMetadataItem('data ignore value', str(self.nodat[2]), 'ENVI')
+
+            #try:
+            out_matrix = np.transpose(self.out_matrix, [2, 0, 1])
+            #print(out_matrix.shape)
+            output = Raster.fromArray(array=out_matrix, filename=self.image_out)
+
+            output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
+
+            for i, band in enumerate(output.dataset().bands()):
+                band.setDescription(self.whichpara[i])
+                band.setNoDataValue(self.nodat[1])
+
+            # destination = driver.Create(self.image_out, self.ncols, self.nrows, self.npara, gdal.GDT_Float32)
+            # for i, para_key in enumerate(self.whichpara):
+            #     band = destination.GetRasterBand(i+1)
+            #     band.SetDescription(para_key)
+            #     band.WriteArray(self.out_matrix[:, :, i])
+            # destination.SetMetadataItem('data ignore value', str(self.nodat[2]), 'ENVI')
 
         elif self.out_mode == "individual":
             for i, para_key in enumerate(self.whichpara):
-                out = os.path.splitext(self.image_out)[0] + "_" + para_key + '.' + os.path.splitext(self.image_out)[1]
-                destination = driver.Create(out, self.ncols, self.nrows, 1, gdal.GDT_Float32)
-                band = destination.GetRasterBand(1)
-                band.SetDescription(para_key)
-                band.WriteArray(self.out_matrix[:,:,i])
-                destination.SetMetadataItem('data ignore value',str(self.nodat[2]),'ENVI')
+                out_matrix = np.transpose(self.out_matrix, [2, 0, 1])
+                out_array = np.zeros((1, self.nrows, self.ncols))
+                out_array[0, :, :] = out_matrix[i, :, :]
+                output = Raster.fromArray(array=out_array, filename=os.path.splitext(
+                    self.image_out)[0] + "_" + para_key + os.path.splitext(self.image_out)[1])
+                output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
+                for band in output.dataset().bands():
+                    #print(i)
+                    band.setDescription(para_key)
+                    band.setNoDataValue(self.nodat[1])
+
         
 def example():
-    ImageIn = "D:/ECST_II/Cope_BroNaVI/WW_nadir_short.bsq"
-    ResultsOut = "D:/ECST_III/Processor/VegProc/results.bsq"
-    GeometryIn = "D:/ECST_II/Cope_BroNaVI/Felddaten/Parameter/Geometry_DJ_w.bsq"
-    LUT_dir = "E:/ECST_III/Processor/LUT/Gamma/"
-    LUT_name = "Martin_LUT_test"
+    ImageIn = "U:/ECST_III/EnMAP_Workshop/Berlin 2019/Data/spectra/WW_0_2015_2017_2018_new_AVG.bsq"
+    ResultsOut = "Z:\Matthias\LUT_test/results.bsq"
+    #GeometryIn = "D:/ECST_II/Cope_BroNaVI/Felddaten/Parameter/Geometry_DJ_w.bsq"
+    LUT_dir = "Z:\Matthias\LUT_test/"
+    LUT_name = "mini2"
     
     # global Inversion input:
     costfun_type = 1
-    nbest_fits = 5.0
-    nbfits_type = "rel" # "rel" or "abs"
-    out_mode = "single" # "single" or "individual"
+    nbest_fits = 2
+    nbfits_type = "rel"  # "rel" or "abs"
+    out_mode = "single"  # "single" or "individual"
     noisetype = 2
-    noiselevel = 5.0 # percent
+    noiselevel = 1.0 # percent
     sensor = 1 # ASD
     nodat_Geo = -999
     nodat_Image = -999
@@ -352,8 +401,9 @@ def example():
     inversion_range = None
 
     if sensor == 1:  # ASD
-        exclude_bands = list(range(0, 51)) + list(range(1009, 1129)) + list(
-        range(1371, 1650))  # 350-400nm, 1359-1479nm, 1721-200nm
+        exclude_bands = list(range(0, 51)) + list(range(1009, 1129)) + \
+                        list(range(1371, 1650)) + list(range(2050, 2151))
+        # 350-400nm, 1359-1479nm, 1721-200nm, #2450-2500
     elif sensor == 2:  # EnMAP
         exclude_bands = list(range(78, 88)) + list(range(128, 138)) + list(
         range(161, 189))  # Überlappung VNIR, Water1, Water2
@@ -374,7 +424,7 @@ def example():
     rtm = RTM_Inversion()
     rtm.inversion_setup(image=ImageIn, image_out=ResultsOut, LUT_path=LUT_path, ctype=costfun_type,
                      nbfits=nbest_fits, nbfits_type=nbfits_type, noisetype=noisetype, noiselevel=noiselevel,
-                     geo_image=GeometryIn, geo_fixed=geometry_fixed, sensor=sensor,
+                     geo_image=None, geo_fixed=geometry_fixed, sensor=sensor,
                      nodat=[nodat_Geo, nodat_Image, nodat_Out], out_mode=out_mode, exclude_bands=exclude_bands)
     
     rtm.run_inversion()
@@ -386,3 +436,4 @@ if __name__ == '__main__':
     # plt.plot(range(len(example_single())), example_single() / 1000.0)
     # plt.show()
     example()
+
