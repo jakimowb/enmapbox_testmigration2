@@ -16,11 +16,12 @@ enmap = hubflow.testdata.enmap()
 enmapClassification = hubflow.testdata.enmapClassification(overwrite=overwrite)
 vectorClassification = hubflow.testdata.vectorClassification()
 vectorMask = hubflow.testdata.vectorMask()
+vectorPoints = hubflow.testdata.vectorPoints()
 enmapFraction = hubflow.testdata.enmapFraction(overwrite=overwrite)
 enmapRegression = hubflow.testdata.enmapRegression(overwrite=overwrite)
 enmapMask = enmapClassification.asMask()
-speclib = ENVISpectralLibrary(filename=enmapboxtestdata.library)
-#speclib2 = ENVISpectralLibrary(filename=enmapboxtestdata.speclib2)
+speclib = EnviSpectralLibrary(filename=enmapboxtestdata.library)
+#speclib2 = EnviSpectralLibrary(filename=enmapboxtestdata.speclib2)
 
 
 rasterMaps = [enmap, enmapClassification, enmapRegression, enmapFraction, enmapMask]
@@ -62,32 +63,6 @@ class Test(TestCase):
     def test_ENVI(self):
         ENVI.readHeader(filenameHeader=ENVI.findHeader(filenameBinary=enmapboxtestdata.library))
 
-    def test_ENVISpectralLibrary(self):
-
-        # init
-        speclib = ENVISpectralLibrary(filename=enmapboxtestdata.library)
-        print(speclib)
-        print(speclib.profiles())
-        print(speclib.raster().dataset().metadataDict())
-
-        print(speclib.attributeNames())
-        print(speclib.attributeDefinitions())
-        print(speclib.attributeTable())
-
-        # speclib from raster
-        speclib = ENVISpectralLibrary.fromRaster(filename=join(outdir, 'ENVISpectralLibraryFromRaster.sli'),
-                                                 raster=enmap)
-        print(speclib)
-        print(speclib.raster().dataset().shape())
-
-        raster = speclib.raster(transpose=False)
-        print(raster.dataset().shape())
-        raster.dataset().plotXProfile(row=Row(y=0, z=0))
-
-        raster = speclib.raster(transpose=True)
-        print(raster.dataset().shape())
-        raster.dataset().plotZProfile(pixel=Pixel(x=0, y=0), spectral=True)
-
     def test_WavebandDefinition(self):
 
         wavebandDefinition = WavebandDefinition.fromFWHM(center=600, fwhm=10)
@@ -102,14 +77,14 @@ class Test(TestCase):
 
         # a) response function from ENVI Speclib
 
-        sentinel2ResponseFunction = ENVISpectralLibrary(filename=r'C:\source\hub-workflow\hubflow\sensors\sentinel2.sli')
-        sentinel2Sensor = SensorDefinition.fromENVISpectralLibrary(library=sentinel2ResponseFunction,
+        sentinel2ResponseFunction = EnviSpectralLibrary(filename=r'C:\source\hub-workflow\hubflow\sensors\sentinel2.sli')
+        sentinel2Sensor = SensorDefinition.fromEnviSpectralLibrary(library=sentinel2ResponseFunction,
                                                                    isResponseFunction=True)
         print(sentinel2Sensor)
         sentinel2Sensor.plot()
 
         # b) wl+fwhm from ENVI Speclib
-        enmapSensor = SensorDefinition.fromENVISpectralLibrary(library=ENVISpectralLibrary(filename=speclib.filename()),
+        enmapSensor = SensorDefinition.fromEnviSpectralLibrary(library=EnviSpectralLibrary(filename=speclib.filename()),
                                                                isResponseFunction=False)
         print(enmapSensor)
         enmapSensor.plot()
@@ -136,8 +111,8 @@ class Test(TestCase):
 
     def test_SensorDefinitionResampleArray(self):
 
-        sentinel2ResponseFunction = ENVISpectralLibrary(filename=r'C:\source\hub-workflow\hubflow\sensors\sentinel2.sli')
-        sentinel2Sensor = SensorDefinition.fromENVISpectralLibrary(library=sentinel2ResponseFunction,
+        sentinel2ResponseFunction = EnviSpectralLibrary(filename=r'C:\source\hub-workflow\hubflow\sensors\sentinel2.sli')
+        sentinel2Sensor = SensorDefinition.fromEnviSpectralLibrary(library=sentinel2ResponseFunction,
                                                                    isResponseFunction=True)
 
         profiles = [enmap.dataset().zprofile(pixel=Pixel(10,10)),
@@ -242,9 +217,9 @@ class Test(TestCase):
     def test_ClassificationSample(self):
 
         # read from labeled library
-        library = ENVISpectralLibrary(filename=enmapboxtestdata.library)
+        library = EnviSpectralLibrary(filename=enmapboxtestdata.library)
         classificationSample = ClassificationSample(raster=library.raster(),
-                                                    classification=Classification.fromENVISpectralLibrary(
+                                                    classification=Classification.fromEnviSpectralLibrary(
                                                         filename='/vsimem/labels.bsq',
                                                         library=library,
                                                         attribute='level_2'))
@@ -394,7 +369,7 @@ class Test(TestCase):
 
 
         # from speclib
-        print(Raster.fromENVISpectralLibrary(filename=join(outdir, 'RasterFromENVISpectralLibrary.bsq'),
+        print(Raster.fromEnviSpectralLibrary(filename=join(outdir, 'RasterFromEnviSpectralLibrary.bsq'),
                                              library=speclib))
 
         print(enmapClassification.uniqueValues(index=0))
@@ -504,7 +479,7 @@ class Test(TestCase):
 
         enmapRegressionSample.raster()
         enmapRegressionSample.regression()
-        #print(Regression.fromENVISpectralLibrary(filename=join(outdir, 'RegressionFromENVISpectralLibrary.bsq'),
+        #print(Regression.fromEnviSpectralLibrary(filename=join(outdir, 'RegressionFromEnviSpectralLibrary.bsq'),
         #                                         library=speclib2, attributes=['Roof', 'Low vegetation']))
 
         print(enmapRegression.asMask())
@@ -554,7 +529,7 @@ class Test(TestCase):
         sample = Sample(raster=enmap, mask=vector)
         print(sample)
         sample.extractAsArray(onTheFlyResampling=True)
-        sample.extractAsRaster(filename='/vsimem/raster.bsq', onTheFlyResampling=True)
+        sample.extractAsRaster(filenames=['/vsimem/raster.bsq'], onTheFlyResampling=True)
 
     def test_Transformer(self):
         pca = Transformer(sklEstimator=PCA())
@@ -641,6 +616,87 @@ class Test(TestCase):
 
     def test_ApplierOptions(self):
         print(ApplierOptions())
+
+    def test_debug(self):
+        import hubflow.core
+
+        newNames = ['No Class', 'Class B']
+        newColors = [QColor('black'), QColor('yellow')]
+
+        # but this fails
+        newDef = hubflow.core.ClassDefinition(names=newNames[1:], colors=newColors[1:])
+        newDef.setNoDataNameAndColor(newNames[0], QColor('yellow'))
+        print(newDef)
+
+    def test_uniqueValueCounts(self):
+        import numpy as np
+        x = np.array([np.inf, np.nan, 1, 1, 1, 2, 2, 5.5])
+        values = np.unique(x)
+        for v in values:
+            if np.isnan(v):
+                print(v, np.sum(np.isnan(x)))
+            else:
+                print(v, np.sum(x==v))
+
+class TestEnviSpectralLibrary(TestCase):
+
+    def test(self):
+
+        # init
+        speclib = EnviSpectralLibrary(filename=enmapboxtestdata.library)
+        print(speclib)
+        print(speclib.profiles())
+        print(speclib.raster().dataset().metadataDict())
+
+        print(speclib.attributeNames())
+        print(speclib.attributeDefinitions())
+        print(speclib.attributeTable())
+
+        # speclib from raster
+        speclib = EnviSpectralLibrary.fromRaster(filename=join(outdir, 'EnviSpectralLibraryFromRaster.sli'),
+                                                 raster=enmap)
+        print(speclib)
+        print(speclib.raster().dataset().shape())
+
+        raster = speclib.raster(transpose=False)
+        print(raster.dataset().shape())
+        raster.dataset().plotXProfile(row=Row(y=0, z=0))
+
+        raster = speclib.raster(transpose=True)
+        print(raster.dataset().shape())
+        raster.dataset().plotZProfile(pixel=Pixel(x=0, y=0), spectral=True)
+
+    def test_fromClassificationSample(self):
+        classification = Classification.fromClassification(classification=vectorPoints, grid=enmap.grid(),
+                                                           filename='/vsimem/classification.bsq')
+        sample = ClassificationSample(raster=enmap, classification=classification)
+        outdir = r'c:\test'
+        speclib = EnviSpectralLibrary.fromSample(sample=sample, filename=join(outdir, 'speclib.sli'))
+        print(speclib)
+        classification2 = Classification.fromEnviSpectralLibrary(filename='/vsimem/classification.bsq', library=speclib,
+                                                                 attribute='id')
+        assert classification.classDefinition().equal(classification2.classDefinition())
+
+    def test_plot(self):
+        speclib = EnviSpectralLibrary(filename=enmapboxtestdata.library)
+
+        import pyqtgraph as pg
+        import pyqtgraph.exporters
+        plot = pg.plot()
+        for y in range(speclib.raster().dataset().ysize()):
+            speclib.raster().dataset().plotZProfile(pixel=Pixel(x=0, y=y), spectral=True, plotWidget=plot)
+        exporter = pyqtgraph.exporters.ImageExporter(plot.plotItem)
+        # workaround a bug with float conversion to int
+        exporter.params.param('width').setValue(600, blockSignal=exporter.widthChanged)
+        exporter.params.param('height').setValue(400, blockSignal=exporter.heightChanged)
+        exporter.export(join(outdir, 'plot.png'))
+
+class TestRaster(TestCase):
+
+    def test_saveAs(self):
+        raster = Raster(enmapboxtestdata.enmap)
+        copy = raster.saveAs(filename='c:/vsimem/raster.tif', driver=None)
+
 
 if __name__ == '__main__':
     print('output directory: ' + outdir)

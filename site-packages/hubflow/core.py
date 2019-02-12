@@ -2,6 +2,8 @@ import json
 import warnings
 import random, pickle
 from collections import OrderedDict, namedtuple
+from os import error
+
 from osgeo import gdal
 import numpy as np
 from PyQt5.QtGui import QColor
@@ -824,26 +826,26 @@ class Raster(Map):
         return Raster(filename=filename)
 
     @staticmethod
-    def fromENVISpectralLibrary(filename, library):
+    def fromEnviSpectralLibrary(filename, library):
         '''
         Create instance from given ``library``.
 
         :param filename: output path
         :type filename: str
         :param library:
-        :type library: ENVISpectralLibrary`
+        :type library: EnviSpectralLibrary`
         :rtype: Raster
 
         :example:
 
         >>> import enmapboxtestdata
-        >>> speclib = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
-        >>> raster = Raster.fromENVISpectralLibrary(filename='/vsimem/raster.bsq', library=speclib)
+        >>> speclib = EnviSpectralLibrary(filename=enmapboxtestdata.speclib)
+        >>> raster = Raster.fromEnviSpectralLibrary(filename='/vsimem/raster.bsq', library=speclib)
         >>> raster.shape()
         (177, 75, 1)
 
         '''
-        assert isinstance(library, ENVISpectralLibrary)
+        assert isinstance(library, EnviSpectralLibrary)
         rasterDataset = library.raster().dataset().translate(filename=filename,
                                                              driver=RasterDriver.fromFilename(filename=filename))
         rasterDataset.copyMetadata(other=library.raster().dataset())
@@ -1070,7 +1072,6 @@ class Raster(Map):
             if index < 0 or index >= zsize:
                 raise errors.IndexError(index=index, min=0, max=zsize-1)
             bandList.append(index + 1)
-
         if invert:
             bandList = [i + 1 for i in range(zsize) if i + 1 not in bandList]
 
@@ -1350,6 +1351,25 @@ class Raster(Map):
     def show(self):
         '''See RasterDataset.show.'''
         self.dataset().show()
+
+    def saveAs(self, filename, driver=None, copyMetadata=True, copyCategories=True):
+        '''Save copy of self at given ``filename``. Format will be derived from filename extension if not explicitely specified by ``driver`` keyword.'''
+
+        if driver is None:
+            driver = RasterDriver.fromFilename(filename=filename)
+        rasterDataset = self.dataset().translate(filename=filename, driver=driver)
+
+        if copyCategories:
+            rasterDataset.copyCategories(other=self.dataset())
+
+        # have to re-open the dataset after setting categories (prevent a GDAL bug)
+        rasterDataset = rasterDataset.reopen(eAccess=gdal.GA_Update)
+
+        if copyMetadata:
+            rasterDataset.copyMetadata(other=self.dataset())
+
+        raster = Raster.fromRasterDataset(rasterDataset)
+        return raster
 
 class _RasterResample(ApplierOperator):
     def ufunc(self, raster, resampleAlg):
@@ -1729,8 +1749,8 @@ class SensorDefinition(FlowObject):
         assert isinstance(name, str)
         filename = join(hubflow.sensors.__path__[0], name + '.sli')
         assert exists(filename)
-        library = ENVISpectralLibrary(filename=filename)
-        return SensorDefinition.fromENVISpectralLibrary(library=library, isResponseFunction=True)
+        library = EnviSpectralLibrary(filename=filename)
+        return SensorDefinition.fromEnviSpectralLibrary(library=library, isResponseFunction=True)
 
     @staticmethod
     def predefinedSensorNames():
@@ -1747,12 +1767,12 @@ class SensorDefinition(FlowObject):
         return names
 
     @classmethod
-    def fromENVISpectralLibrary(cls, library, isResponseFunction):
+    def fromEnviSpectralLibrary(cls, library, isResponseFunction):
         '''
-        Create instance from :class:`ENVISpectralLibrary`.
+        Create instance from :class:`EnviSpectralLibrary`.
 
         :param library:
-        :type library: ENVISpectralLibrary
+        :type library: EnviSpectralLibrary
         :param isResponseFunction: If True, ``library`` is interpreted as sensor response function.
                                    If False, center wavelength and FWHM information is used.
         :type isResponseFunction: bool
@@ -1763,8 +1783,8 @@ class SensorDefinition(FlowObject):
         Case 1 - Library contains spectra with wavelength and FWHM information (i.e. set ``isResponseFunction=False``)
 
         >>> import enmapboxtestdata
-        >>> library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
-        >>> SensorDefinition.fromENVISpectralLibrary(library=library, isResponseFunction=False) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+        >>> library = EnviSpectralLibrary(filename=enmapboxtestdata.speclib)
+        >>> SensorDefinition.fromEnviSpectralLibrary(library=library, isResponseFunction=False) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
         SensorDefinition(wavebandDefinitions=[WavebandDefinition(center=460.0, fwhm=5.8, responses=[...], name=None),
                                               ...,
                                               WavebandDefinition(center=2409.0, fwhm=9.1, responses=[...], name=None)])
@@ -1772,13 +1792,13 @@ class SensorDefinition(FlowObject):
         Case 2 - Library contains response function (i.e. set ``isResponseFunction=True``)
 
         >>> import hubflow.sensors, os.path
-        >>> library = ENVISpectralLibrary(filename = os.path.join(hubflow.sensors.__path__[0], 'sentinel2.sli'))
-        >>> SensorDefinition.fromENVISpectralLibrary(library=library, isResponseFunction=True) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
+        >>> library = EnviSpectralLibrary(filename = os.path.join(hubflow.sensors.__path__[0], 'sentinel2.sli'))
+        >>> SensorDefinition.fromEnviSpectralLibrary(library=library, isResponseFunction=True) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
         SensorDefinition(wavebandDefinitions=[WavebandDefinition(center=443.0, fwhm=None, responses=[...], name=Sentinel-2 - Band B1),
                                               ...,
                                               WavebandDefinition(center=2196.5, fwhm=None, responses=[...], name=Sentinel-2 - Band B12)])
         '''
-        assert isinstance(library, ENVISpectralLibrary)
+        assert isinstance(library, EnviSpectralLibrary)
 
         names = library.raster().dataset().metadataItem(key='spectra names', domain='ENVI')
         wavelengths = np.float32(library.raster().metadataWavelength())
@@ -2068,7 +2088,7 @@ class _SensorDefinitionResampleRaster(ApplierOperator):
         return outarray
 
 
-class ENVISpectralLibrary(FlowObject):
+class EnviSpectralLibrary(FlowObject):
     '''Class for managing ENVI Spectral Library files.'''
 
     def __init__(self, filename):
@@ -2099,10 +2119,10 @@ class ENVISpectralLibrary(FlowObject):
 
         >>> import enmapboxtestdata
         >>> # as single column multiband raster
-        >>> ENVISpectralLibrary(filename=enmapboxtestdata.speclib).raster().shape()
+        >>> EnviSpectralLibrary(filename=enmapboxtestdata.speclib).raster().shape()
         (177, 75, 1)
         >>> # as single band raster (original ENVI format)
-        >>> ENVISpectralLibrary(filename=enmapboxtestdata.speclib).raster(transpose=False).shape()
+        >>> EnviSpectralLibrary(filename=enmapboxtestdata.speclib).raster(transpose=False).shape()
         (1, 75, 177)
         '''
 
@@ -2168,24 +2188,26 @@ class ENVISpectralLibrary(FlowObject):
         :param raster: input raster
         :type raster: hubflow.core.Raster
         :return:
-        :rtype: ENVISpectralLibrary
+        :rtype: EnviSpectralLibrary
 
         :example:
 
         >>> import enmapboxtestdata, tempfile, os
-        >>> raster = ENVISpectralLibrary(filename=enmapboxtestdata.speclib).raster()
-        >>> library = ENVISpectralLibrary.fromRaster(filename='/vsimem/speclib.sli', raster=raster)
+        >>> raster = EnviSpectralLibrary(filename=enmapboxtestdata.speclib).raster()
+        >>> library = EnviSpectralLibrary.fromRaster(filename='/vsimem/speclib.sli', raster=raster)
         >>> library
-        ENVISpectralLibrary(filename=/vsimem/speclib.sli)
+        EnviSpectralLibrary(filename=/vsimem/speclib.sli)
         '''
         assert isinstance(raster, Raster)
         bands = raster.dataset().zsize()
         array = raster.dataset().readAsArray().reshape(bands, -1).T[None]
+        profiles = array.shape[1]
         rasterDataset = RasterDataset.fromArray(array=array, grid=PseudoGrid.fromArray(array=array),
                                                 filename=filename, driver=EnviDriver())
         metadata = raster.dataset().metadataDomain(domain='ENVI')
         for key in ['file compression']:
             metadata.pop(key, None)
+        metadata['spectra names'] = ['profile {}'.format(i+1) for i in range(profiles)]
         rasterDataset.setMetadataDomain(metadataDomain=metadata, domain='ENVI')
         rasterDataset.band(0).setDescription('Spectral Library')
         rasterDataset.flushCache()
@@ -2210,7 +2232,38 @@ class ENVISpectralLibrary(FlowObject):
             ENVI.writeHeader(filenameHeader=filenameHeader, metadata=metadata)
         except:
             pass
-        return ENVISpectralLibrary(filename=filename)
+        return EnviSpectralLibrary(filename=filename)
+
+    @classmethod
+    def fromSample(cls, sample, filename):
+
+        assert isinstance(sample, Sample)
+
+        if isinstance(sample, ClassificationSample):
+            filenames = ['/vsimem/{}/raster.bsq', '/vsimem/{}/classification.bsq',]
+            raster, classification = sample.extractAsRaster(filenames=filenames)
+            cls.fromRaster(filename=filename, raster=raster)
+            labels = classification.array().flatten()
+            #names = np.full_like(labels, fill_value=classification.classDefinition().noDataName(), dtype=np.str)
+            classNames = [classification.classDefinition().name(label) for label in labels]
+            spectraNames = ['profile {}'.format(i+1) for i in range(len(labels))]
+
+            table = list()
+            table.append(('names', spectraNames))
+            table.append(('id', classNames))
+            definitions = dict()
+            definitions['id'] = AttributeDefinitionEditor.makeClassDefinitionDict(classDefinition=sample.classification().classDefinition())
+            ENVI.writeAttributeTable(filename=filename, table=table)
+            AttributeDefinitionEditor.writeToJson(filename=ENVI.findHeader(filename).replace('.hdr', '.json'),
+                                                  definitions=definitions)
+
+        else:
+            raise errors.TypeError(sample)
+
+        for f in filenames:
+            gdal.Unlink(f)
+
+        return EnviSpectralLibrary(filename=filename)
 
     def attributeTable(self, delimiter=','):
         '''Return attribute table as dictionary.'''
@@ -2249,7 +2302,7 @@ class ENVISpectralLibrary(FlowObject):
         :example:
 
         >>> import enmapboxtestdata
-        >>> ENVISpectralLibrary(filename=enmapboxtestdata.library).attributeNames()
+        >>> EnviSpectralLibrary(filename=enmapboxtestdata.library).attributeNames()
         ['level 1', 'level 2', 'spectra names']
         '''
         return list(self.attributeTable().keys())
@@ -2261,7 +2314,7 @@ class ENVISpectralLibrary(FlowObject):
         :example:
 
         >>> import enmapboxtestdata
-        >>> ENVISpectralLibrary(filename=enmapboxtestdata.speclib).profiles()
+        >>> EnviSpectralLibrary(filename=enmapboxtestdata.speclib).profiles()
         75
         '''
         return self.raster().dataset().ysize()
@@ -2551,12 +2604,12 @@ class _MaskFromRaster(ApplierOperator):
                 assert value.step == 1
                 marray[(array >= value.start) * (array <= value.stop)] = False
 
-        if invert:
-            marray = np.logical_not(marray)
-
         if aggregateFunction is not None:
             marray = aggregateFunction(marray)
             assert (marray.ndim == 3 and len(marray) == 1) or marray.ndim == 2
+
+        if invert:
+            marray = np.logical_not(marray)
 
         self.outputRaster.raster(key='mask').setArray(array=marray)
 
@@ -3116,7 +3169,7 @@ class Color(FlowObject):
         return self._args
 
     def __repr__(self):
-        return 'Color({})'.format(self._args)
+        return 'Color({})'.format(', '.join([repr(arg) for arg in self._args]))
 
     def qColor(self):
         '''Return QColor object.'''
@@ -3173,6 +3226,20 @@ class AttributeDefinitionEditor(object):
                     raise errors.HubDcError('Unknown key "{}" in json file: {}'.format(key, filename))
         return definitions
 
+    @staticmethod
+    def writeToJson(filename, definitions):
+        '''Write to json file.'''
+
+        assert isinstance(definitions, dict)
+
+        for attribute, valueDict in definitions.items():
+            for key in valueDict:
+                if key not in ["categories", "no data value", "description"]:
+                    raise errors.HubDcError('Unknown key "{}" in attribute definition'.format(key, filename))
+
+        with open(filename, 'w') as f:
+            json.dump(definitions, f)
+
     @classmethod
     def makeClassDefinition(cls, definitions, attribute):
 
@@ -3201,11 +3268,19 @@ class AttributeDefinitionEditor(object):
     def makeRegressionDefinition(cls, definitions, attribute):
         raise NotImplementedError()
 
-
     @staticmethod
-    def writeToJson(filename):
-        '''Write to json file.'''
-        raise NotImplementedError()
+    def makeClassDefinitionDict(classDefinition):
+
+        assert isinstance(classDefinition, ClassDefinition)
+
+        definition = dict()
+        definition["categories"] = list()
+        definition["categories"].append([0, classDefinition.noDataName(), classDefinition.noDataColor().name()])
+        for i in range(classDefinition.classes()):
+            definition["categories"].append([i+1, classDefinition.name(i+1), classDefinition.color(i+1).name()])
+        definition["no data value"] = 0
+        definition["description"] = "Classification"
+        return definition
 
 
 class ClassDefinition(FlowObject):
@@ -3627,14 +3702,14 @@ class Classification(Raster):
         return Classification(filename=filename)
 
     @staticmethod
-    def fromENVISpectralLibrary(filename, library, attribute, classDefinition=None):
+    def fromEnviSpectralLibrary(filename, library, attribute, classDefinition=None):
         '''
         Create instance from library attribute. If the ClassDefinition is not defined, it is taken from an accompanied JSON file.
 
         :param filename: output path
         :type filename:
         :param library:
-        :type library: ENVISpectralLibrary
+        :type library: EnviSpectralLibrary
         :param attribute: attribute defined in the corresponding csv file
         :type attribute: str
         :param classDefinition:
@@ -3645,11 +3720,11 @@ class Classification(Raster):
         :example:
 
         >>> import enmapboxtestdata
-        >>> library = ENVISpectralLibrary(filename=enmapboxtestdata.library)
-        >>> Classification.fromENVISpectralLibrary(filename='/vsimem/classification.bsq', library=library, attribute='level_1')
+        >>> library = EnviSpectralLibrary(filename=enmapboxtestdata.library)
+        >>> Classification.fromEnviSpectralLibrary(filename='/vsimem/classification.bsq', library=library, attribute='level_1')
 
         '''
-        assert isinstance(library, ENVISpectralLibrary)
+        assert isinstance(library, EnviSpectralLibrary)
 
         table = library.attributeTable()
 
@@ -3671,6 +3746,9 @@ class Classification(Raster):
 
         ordered = OrderedDict()
         spectraNames = next(iter(table.values()))
+        if not len(spectraNames) == library.raster().dataset().ysize():
+            raise errors.HubDcError('number of spectra in .hdr file and .csv file not matching: {}'.format(library.filename()))
+
         for name in library.raster().dataset().metadataItem(key='spectra names', domain='ENVI', required=True):
             if name in ordered: # check for duplicated
                 raise HubFlowError('detected spectra name duplicates, check for name: {}'.format(name))
@@ -3913,14 +3991,14 @@ class Regression(Raster):
         return self._minOverallCoverage
 
     # @staticmethod
-    # def fromENVISpectralLibrary(filename, library, attributes):
+    # def fromEnviSpectralLibrary(filename, library, attributes):
     #     '''
     #     Create instance from library attribute.
     #
     #     :param filename: output path
     #     :type filename:
     #     :param library:
-    #     :type library: ENVISpectralLibrary
+    #     :type library: EnviSpectralLibrary
     #     :param attributes: target attributes defined in the corresponding csv file
     #     :type attribute: List[str]
     #     :return:
@@ -3929,14 +4007,14 @@ class Regression(Raster):
     #     :example:
     #
     #     >>> import enmapboxtestdata
-    #     >>> library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib2)
-    #     >>> Regression.fromENVISpectralLibrary(filename='/vsimem/regression.bsq', library=library, attributes=['Roof'])
+    #     >>> library = EnviSpectralLibrary(filename=enmapboxtestdata.speclib2)
+    #     >>> Regression.fromEnviSpectralLibrary(filename='/vsimem/regression.bsq', library=library, attributes=['Roof'])
     #     Regression(filename=/vsimem/regression.bsq, noDataValues=[-1.0], outputNames=['Roof'], minOverallCoverage=0.5)
     #     '''
     #
     #     assert 0  # todo
     #
-    #     assert isinstance(library, ENVISpectralLibrary)
+    #     assert isinstance(library, EnviSpectralLibrary)
     #     assert isinstance(attributes, (list, tuple))
     #     arrays = list()
     #     noDataValues = list()
@@ -4103,14 +4181,14 @@ class Fraction(Regression):
         applier.apply(operatorType=_FractionFromClassification, classification=classification)
         return Fraction(filename=filename)
 
-    # def fromENVISpectralLibrary(filename, library, attributes):
+    # def fromEnviSpectralLibrary(filename, library, attributes):
     #     '''
     #     Create instance from library attributes.
     #
     #     :param filename: output path
     #     :type filename:
     #     :param library:
-    #     :type library: ENVISpectralLibrary
+    #     :type library: EnviSpectralLibrary
     #     :param attributes: target attributes defined in the corresponding csv file
     #     :type attribute: List[str]
     #     :return:
@@ -4119,8 +4197,8 @@ class Fraction(Regression):
     #     :example:
     #
     #     >>> import enmapboxtestdata
-    #     >>> library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib2)
-    #     >>> Fraction.fromENVISpectralLibrary(filename='/vsimem/regression.bsq', library=library,
+    #     >>> library = EnviSpectralLibrary(filename=enmapboxtestdata.speclib2)
+    #     >>> Fraction.fromEnviSpectralLibrary(filename='/vsimem/regression.bsq', library=library,
     #     ...                                  attributes=['Roof', 'Pavement', 'Low vegetation', 'Tree', 'Soil', 'Other']) # doctest: +ELLIPSIS, +NORMALIZE_WHITESPACE
     #     Fraction(filename=/vsimem/regression.bsq,
     #              classDefinition=ClassDefinition(classes=6,
@@ -4128,8 +4206,8 @@ class Fraction(Regression):
     #                                              colors=[Color(230, 0, 0), Color(156, 156, 156), Color(152, 230, 0), Color(38, 115, 0), Color(168, 112, 0), Color(245, 245, 122)]))
     #     '''
     #
-    #     assert isinstance(library, ENVISpectralLibrary)
-    #     regression = Regression.fromENVISpectralLibrary(filename=filename, library=library, attributes=attributes)
+    #     assert isinstance(library, EnviSpectralLibrary)
+    #     regression = Regression.fromEnviSpectralLibrary(filename=filename, library=library, attributes=attributes)
     #     colors = list()
     #     for attribute in attributes:
     #         colors.append(Color(*[int(v) for v in
@@ -5678,7 +5756,8 @@ class MetadataEditor(object):
     @classmethod
     def setBandNames(cls, rasterDataset, bandNames):
         assert isinstance(rasterDataset, (RasterDataset, ApplierOutputRaster))
-        assert len(bandNames) == rasterDataset.zsize()
+        if len(bandNames) != rasterDataset.zsize():
+            raise errors.HubDcError('number of bands not matching number of band names')
         rasterDataset.setMetadataItem(key='band names', value=bandNames, domain='ENVI')
         for band, bandName in zip(rasterDataset.bands(), bandNames):
             band.setDescription(value=bandName)

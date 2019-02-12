@@ -83,9 +83,8 @@ RemoteInfo.create(r'https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt
 
 def updateRemotes(remoteLocations):
     """
-    Shortcut to
-    :param remoteLocations:
-    :return:
+    Shortcut to update from terminal
+    :param remoteLocations: str or list of str with remote location keys to update.
     """
     import qps.make.updateexternals
     if isinstance(remoteLocations, str):
@@ -97,15 +96,15 @@ if __name__ == "__main__":
 
 
     # update remotes
-    to_update = [#'hub-datacube'
-                 #,'hub-workflow'
-                 #,'enmapboxapplications'
+    to_update = ['hub-datacube'
+                 ,'hub-workflow'
+                 ,'enmapboxapplications'
                  #,'enmapboxgeoalgorithms'
-                 'enmap-box-lmu-vegetation-apps'
+                 ,'enmap-box-lmu-vegetation-apps'
                  #'virtual-raster-builder',
                  #'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
-                #'qps'
+                ,'qps'
                 ]
     updateRemotes(to_update)
     exit()
