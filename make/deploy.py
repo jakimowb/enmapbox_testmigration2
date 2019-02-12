@@ -319,12 +319,17 @@ def uploadDeveloperPlugin():
         pathNew = os.path.join(DIR_REPO, bnXML)
         print('Copy {}\n\tto {}'.format(PLUGIN_REPO_XML_REMOTE, pathNew))
         shutil.copy(PLUGIN_REPO_XML_REMOTE, pathNew)
-        import git
-        REPO = git.Repo(DIR_REPO)
-        for diff in REPO.index.diff(None):
-            if diff.a_path == bnXML:
-                REPO.git.execute(['git', 'commit', '-m', "'updated {}'".format(bnXML), bnXML])
-        REPO.git.push()
+
+        try:
+            import git
+            REPO = git.Repo(DIR_REPO)
+            for diff in REPO.index.diff(None):
+                if diff.a_path == bnXML:
+                    REPO.git.execute(['git', 'commit', '-m', "'updated {}'".format(bnXML), bnXML])
+
+            REPO.git.push()
+        except Exception as ex:
+            print(ex,file=sys.stderr)
 
     UPLOADS = {urlDownloads:[]}    #urlRepoXML:[PLUGIN_REPO_XML],
                 #urlDownloads:[PLUGIN_REPO_XML]}
