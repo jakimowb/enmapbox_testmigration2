@@ -260,13 +260,11 @@ Activate the `plugins` subfolder as sources, so that it is marked in blue.
      Qt Designer showing the metadataeditor.ui for the Metadata editor.
 
 
-
 .. note::
 
     Adding source locations or subfolders as source locations will add them
     to the python path. This is comparable to call `sys.path.append(r'<source code directory>'` during runtime, but
     additionally helps PyCharm to find python code.
-
 
 
 EnMAP-Box Python code
@@ -297,8 +295,6 @@ Ubuntu                    tbd
 
     In case you have checked out the local EnMAP-Box repository, you might add the repository root folder instead of the
     ``python\plugins\enmapboxplugin`` version.
-
-
 
 
 Start the EnMAP-Box
@@ -404,8 +400,6 @@ explore the QGIS C++ source code, for example if you like to better understand w
      :width: 100%
 
      Qt Creator with opened metadataeditor.ui.
-
-
 
 
 Explore Qt and QGIS API
