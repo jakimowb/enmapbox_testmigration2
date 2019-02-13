@@ -26,7 +26,6 @@ import git # install with: pip install gitpython
 
 updateexternals.setProjectRepository(DIR_REPO)
 
-
 #not required any more
 #RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-testdata.git',
 #                  prefixLocal=r'enmapboxtestdata',
@@ -63,13 +62,6 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmspr
                   prefixRemote=r'enmapboxgeoalgorithms',
                   remoteBranch='develop')
 
-
-#RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
-#                  prefixLocal=r'doc/source/geoalgorithms',
-#                  prefixRemote=r'doc/source',
-#                  excluded=['conf.py','index.rst'],
-#                  remoteBranch='master')
-
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
                   prefixLocal=r'site-packages/hubdc',
                   prefixRemote=r'hubdc',
@@ -89,20 +81,30 @@ RemoteInfo.create(r'https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt
                   remoteBranch='master'
                   )
 
+def updateRemotes(remoteLocations):
+    """
+    Shortcut to update from terminal
+    :param remoteLocations: str or list of str with remote location keys to update.
+    """
+    import qps.make.updateexternals
+    if isinstance(remoteLocations, str):
+        remoteLocations = [remoteLocations]
+    qps.make.updateexternals.updateRemoteLocations(remoteLocations)
+
+
 if __name__ == "__main__":
 
 
     # update remotes
-    to_update = [#'hub-datacube'
-                 #,'hub-workflow'
-                 #,'enmapboxapplications'
+    to_update = ['hub-datacube'
+                 ,'hub-workflow'
+                 ,'enmapboxapplications'
                  #,'enmapboxgeoalgorithms'
-                 #,'enmap-box-lmu-vegetation-apps'
+                 ,'enmap-box-lmu-vegetation-apps'
                  #'virtual-raster-builder',
                  #'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
-                'qps'
+                ,'qps'
                 ]
-    import qps.make.updateexternals
-    qps.make.updateexternals.updateRemoteLocations(to_update)
+    updateRemotes(to_update)
     exit()

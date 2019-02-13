@@ -263,6 +263,12 @@ class TestRasterDataset(TestCase):
         c1 = ds1.translate(grid=grid)
         assert c1.grid().equal(grid)
 
+    def test_filename(self):
+        assert openRasterDataset(LT51940232010189KIS01.green).filename() == LT51940232010189KIS01.green
+        vrtFilename = '/vsimem/green.vrt'
+        rasterDataset = createVRTDataset([LT51940232010189KIS01.green, LT51940242010189KIS01.green], filename=vrtFilename)
+        assert rasterDataset.filename() == vrtFilename
+
     def test_translate(self):
         grid = Grid(extent=Extent(xmin=0, xmax=2, ymin=0, ymax=1, projection=Projection.wgs84()), resolution=1)
         subgrid = Grid(extent=Extent(xmin=0, xmax=1, ymin=0, ymax=1, projection=Projection.wgs84()), resolution=1)
@@ -425,6 +431,10 @@ class TestVectorDataset(TestCase):
         except errors.ObjectParserError as error:
             print(error)
 
+    def test_rasterizeFid(self):
+        import enmapboxtestdata
+        points = openVectorDataset(filename=enmapboxtestdata.landcover_points)
+        fids = points.rasterizeFid(grid=openRasterDataset(enmapboxtestdata.enmap).grid(), filename='/vsimem/fid.bsq', driver=EnviDriver())
 
 class TestExtent(TestCase):
     def test(self):
@@ -580,20 +590,9 @@ class TestMapViewer(TestCase):
         import enmapboxtestdata
         ds = openRasterDataset(enmapboxtestdata.enmap)
         print(ds.grid().extent().reproject(Projection.wgs84()))
-        viewer = ds.mapViewer()
-        viewer._printExtent = True
+        viewer = MapViewer()
+        viewer.addLayer(ds.mapLayer())
+        #viewer._printExtent = True
         viewer.setProjection(Projection.wgs84())
         viewer.setExtent(Extent(xmin=13.29, xmax=13.32, ymin=52.47, ymax=52.49, projection=Projection.wgs84()))
-        #viewer.show()
-
-    def test_show(self):
-        import enmapboxtestdata
-        # raster
-        openRasterDataset(enmapboxtestdata.enmap).mapViewer().save(filename=join(outdir, 'viewerRaster.png'))
-        # vector
-        openVectorDataset(enmapboxtestdata.landcover_points).mapViewer().save(filename=join(outdir, 'viewerVector.png'))
-        # both
-        mapViewer = MapViewer()
-        mapViewer.addLayer(layer=openVectorDataset(enmapboxtestdata.landcover_points).mapLayer())
-        mapViewer.addLayer(layer=openRasterDataset(enmapboxtestdata.enmap).mapLayer())
-        mapViewer.save(filename=join(outdir, 'viewerBoth.png'))
+        viewer.save(filename=join(outdir, 'viewer.png'))

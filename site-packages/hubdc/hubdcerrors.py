@@ -70,7 +70,7 @@ class MissingNoDataValueError(HubDcError):
 
 class MissingMetadataItemError(HubDcError):
     def __init__(self, key, domain):
-        HubDcError.__init__(self, "MissingNoDataValueError: required metadata item '{}' in domain '' not found".format(key, domain))
+        HubDcError.__init__(self, "MissingNoDataValueError: required metadata item '{}' in domain '{}' not found".format(key, domain))
 
 class MissingApplierProjectionError(HubDcError):
     '''Applier projection was not explicitely set and could not be derived from raster inputs.'''

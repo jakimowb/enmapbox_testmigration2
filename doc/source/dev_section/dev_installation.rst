@@ -7,18 +7,16 @@ Background
 ==========
 
 
-If you like to develop an EnMAP-Box application (or more general: a Qt or QGIS application), you really like to
-use the comfort of an up-to-date Integrated Development Environment (IDE) (yes, you do!).
-And because the EnMAP-Box 3 is a QGIS plugin, your IDE should run in the same environment as the QGIS desktop
-application will do when your application is ready to be used by other users.
-
+If you like to develop an EnMAP-Box application (or more general: a Qt or QGIS application), you really should
+use the comfort of an up-to-date Integrated Development Environment (IDE), and because the EnMAP-Box 3 is a QGIS plugin,
+this IDE should run in the same environment as your local QGIS desktop application does.
 
 In the following we describe how to run and debug the EnMAP-Box from an IDE *without* the need to start the QGIS desktop application.
 We tested it for the `PyCharm <https://www.jetbrains.com/pycharm/>`_ IDE, but in principle the approach should work with other IDEs like `PyDev <http://www.pydev.org/>`_ as well.
 
 To setup your IDE for developing EnMAP-Box Applications, you need to:
 
-    1. Start your IDE using the same environmental settings as QGIS and create a new project ("your EnMAP-Box application")
+    1. Start your IDE using the same environmental settings as QGIS and create a new project ("MyProject")
 
     2. Set the QGIS python as python interpreter of your project
 
@@ -188,31 +186,120 @@ macOS
     QGIS_PREFIX_PATH="/Applications/QGIS3.app/Contents/MacOS"
     export QGIS_PREFIX_PATH
 
-2. Start your IDE and ensure that following paths are available to your python project:
+2. Start your IDE and ensure the following QGIS paths are part of your python project:
 
     /Applications/QGIS3.app/Contents/Resources/python
     /Applications/QGIS3.app/Contents/Resources/python/plugins
-
-3.
-
-
-.. todo:: macOS descriptions
 
 
 Linux
 =====
 
+
+
 .. todo:: Linux descriptions
 
 
 
-Setup the project
-=================
 
-
-
-
+Setup your project in PyCharm
+=============================
 .. _dev_start_enmapbox_from_ide:
+
+Project Python Interpreter
+--------------------------
+
+PyCharm needs to know which python interpreter it has to use. There might exist a couple of other python interpreters
+be on your system, but we need that which is used by QGIS instance. It might be helpful to start the QGIS desktop,
+open the python shell and call::
+
+    import sys
+    print(sys.base_exec_prefix)
+
+
+The output should show you the location where to find the python interpreter executable, e.g.:
+
+=====================     ============================================================================
+Operating System          Typical QGIS Python interpreter location(s)
+=====================     ============================================================================
+Windows                   ``C:\PROGRA~1\QGIS3~1.4\apps\Python37``
+                          ``C:\PROGRA~1\OSGeo4W\apps\Python37``
+macOS                     ``/Library/Frameworks/Python.framework/Versions/3.6``
+Ubuntu                    tbd
+=====================     ============================================================================
+
+Use the python executable as project interpreter:
+
+.. figure:: img/pycharm_interpreter.png
+     :width: 100%
+
+     Qt Designer showing the metadataeditor.ui for the Metadata editor.
+
+
+QGIS Python code
+----------------
+
+Now we tell PyCharm where to find the QGIS python API. Open the Project settings, Project > Projects Structure.
+Click `+ Add Content Root`. Navigate into your QGIS installation and select the `python` folder that contains
+the `qgis` package and the `plugins` subfolder:
+
+=====================     ============================================================================
+Operating System          Typical QGIS Python location(s)
+=====================     ============================================================================
+Windows                   ``C:\Program Files\QGIS 3.4\apps\qgis\python``
+                          ``C:\Program Files\OSGeo4W\apps\qgis\python``
+macOS                     ``/Applications/QGIS3.app/Contents/Resources/python``
+Ubuntu                    tbd
+=====================     ============================================================================
+
+Activate the `plugins` subfolder as sources, so that it is marked in blue.
+
+.. figure:: img/pycharm_add_qgis_sources.png
+     :width: 100%
+
+     Qt Designer showing the metadataeditor.ui for the Metadata editor.
+
+
+
+.. note::
+
+    Adding source locations or subfolders as source locations will add them
+    to the python path. This is comparable to call `sys.path.append(r'<source code directory>'` during runtime, but
+    additionally helps PyCharm to find python code.
+
+
+
+EnMAP-Box Python code
+---------------------
+
+Now add the EnMAP-Box source code to your project sources. As in the previous step, open the project structure
+settings and click `+ Add Content Root`. Navigate to the location where QGIS has installed the EnMAP-Box
+Plugin to. You find it in the active profile folder, which can be opened from the QGIS GUI via Settings > User Profiles
+
+.. figure:: img/qgis_userfolder.png
+     :width: 50%
+
+     How to find the QGIS user folder
+
+This folder contains a subdirectory `python/plugins'/enmapboxplugin` to be added as project source.
+
+=====================     ========================================================================================================================================================
+Operating System          Typical QGIS Python location(s)
+=====================     ========================================================================================================================================================
+Windows                   ``C:\Users\geo_beja\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin``
+                          ``C:\Users\geo_beja\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin``
+macOS                     ``<computername>/Users/<username>/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/enmapboxplugin``
+Ubuntu                    tbd
+=====================     ========================================================================================================================================================
+
+
+.. note::
+
+    In case you have checked out the local EnMAP-Box repository, you might add the repository root folder instead of the
+    ``python\plugins\enmapboxplugin`` version.
+
+
+
 
 Start the EnMAP-Box
 ===================
@@ -223,10 +310,10 @@ If everything is set up correctly, you should be able to start the EnMAP-Box usi
 
     if __name__ == '__main__':
 
-        from enmapbox.gui.utils import initQgisApplication
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-
+        from enmapbox.testing import initQgisApplication
         qgsApp = initQgisApplication()
+
+        from enmapbox import EnMAPBox
         enmapBox = EnMAPBox(None)
         enmapBox.openExampleData(mapWindows=1)
 
@@ -257,9 +344,72 @@ make/updateexternals.py - update parts of the EnMAP-Box code which are hosted in
 If you like to build and install the EnMAP-Box Plugin from repository code you need to
 run the `build()` function in `deploy.py`.
 
+Applications to develop with Qt & QGIS
+======================================
 
-Explore the Qt and QGIS API
-===========================
+The Qt company provides several tools to create Qt C++ applications. Although these focus primarily on
+C++ developers, they are helpful also for developer which make use of the Qt and QGIS python API.
+
+Qt Assistant
+------------
+
+The Qt Assistant allows you to browse fast and offline through Qt help files (`*.qch`). These files exists for
+all Qt classes and the QGIS API. They can be generated event with Sphinx, which allows you to provide your
+own source-code documentation as `.qch` file as well.
+
+
+.. figure:: img/qt_assistant_example.png
+     :width: 100%
+
+     Qt Assistant, showing the documentation of the QgsMapCanvas class.
+
+
+The recent QGIS API help file `qgis.qch` can be downloaded from https://qgis.org/api/ . Open the Qt Assistant
+preferences > Documentatino to add it or other qch files.
+
+.. figure:: img/qt_assistant_add_qch.png
+     :width: 75%
+
+     Documentations registered to the Qt Assistant
+
+
+Qt API help files, e.g. those that document `QtCore` (qtcore.qch), `QtGui` (qtgui.qch) and `Qt.Widgets` (qtwidgets.qch),
+are usually installed with your local Qt installation. Windows users can find it in a folder similar to
+`C:\Program Files\QGIS 3.4\apps\Qt5\doc`.
+
+
+Qt Designer
+-----------
+
+The Qt Designer is a powerful tool to create GUI frontends by drawing, drag and drop.
+Created GUI form files are saved in a XML file with file ending `*.ui`. They can be called from
+python code that implement the entire backend of a GUI application.
+
+
+.. figure:: img/qt_designer_example.png
+     :width: 100%
+
+     Qt Designer showing the metadataeditor.ui for the Metadata editor.
+
+
+Qt Creator
+----------
+
+Qt Creator is the one-in-all IDE to develop Qt C++ applications. It includes the functionality covered by Qt Assistant
+(here called Help) and Qt Designer (here called form designer) and helps to browse C++ code. It is the prefered tool to
+explore the QGIS C++ source code, for example if you like to better understand what it does behind the QGIS python API.
+
+
+.. figure:: img/qt_creator_example_ui.png
+     :width: 100%
+
+     Qt Creator with opened metadataeditor.ui.
+
+
+
+
+Explore Qt and QGIS API
+=======================
 
 API references can be found at:
 
@@ -269,16 +419,18 @@ API references can be found at:
 
 * http://doc.qt.io/qt-5/ (Qt5 API)
 
-However, it is recommended to use Qt help files (*.qch), which can be used offline and allow for much faster browsing and searching.
+It is recommended to use Qt help files (`*.qch`), as they can be used offline and allow for faster browsing and searching
+compared to the web pages.
 
-1. Download / locate the help *.qch files
+1. Download or locate the help `*.qch` files
+
 * QGIS API https://qgis.org/api/qgis.qch
 * Qt API
 
-    * C:\Program Files\QGIS 3.4\apps\Qt5\doc (Windows)
-    * ~/Qt/Docs/Qt-5.11.2/ (macOS)
+    * `C:\Program Files\QGIS 3.4\apps\Qt5\doc` (Windows)
+    * `~/Qt/Docs/Qt-5.11.2/` (macOS)
 
-2. Open the Qt Assistant / Qt Creator settings and add the required *.qch files, in particular ``qgis.qch``, ``qtcore.qch``, ``qtwidgets.qch`` and ``qtgui.qch``.
+2. Open the Qt Assistant / Qt Creator settings and add the required `*.qch` files, in particular ``qgis.qch``, ``qtcore.qch``, ``qtwidgets.qch`` and ``qtgui.qch``.
 
 
 

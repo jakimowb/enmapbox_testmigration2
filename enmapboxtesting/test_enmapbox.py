@@ -208,6 +208,9 @@ class TestEnMAPBox(unittest.TestCase):
         if SHOW_GUI:
             QGIS_APP.exec_()
 
+
+
+
     def test_loadExampleData(self):
         E = self.EMB
         E.loadExampleData()

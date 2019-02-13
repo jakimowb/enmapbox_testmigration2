@@ -273,7 +273,7 @@ class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')
                     p = RegressionPerformance.fromRaster(prediction=olsr.predict(filename='/vsimem/p.bsq', raster=sample.raster()),
                                                          reference=sample.regression(), **ApplierOptions(progressBar=self.progressBar(), emitFileCreated=False))
 
-                    self.uiFit_.setText('f(x) = {} * x + {}, n = {}, r^2 = {}'.format(round(m, 5), round(n, 5), p.n, p.r2_score[0]))
+                    self.uiFit_.setText('f(x) = {} * x {} {}, n = {}, r^2 = {}'.format(round(m, 5), '+' if n >= 0 else '-', abs(round(n, 5)), p.n, p.r2_score[0]))
                     self.uiFit_.show()
 
                 if plotActualData:

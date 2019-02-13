@@ -23,6 +23,8 @@ vectorClassification = lambda: VectorClassification(filename=enmapboxtestdata.la
                                                     minOverallCoverage=0., minDominantCoverage=0.,
                                                     oversampling=5)
 vectorMask = lambda: VectorMask(filename=enmapboxtestdata.landcover_polygons, invert=False)
+vectorPoints = lambda: VectorClassification(filename=enmapboxtestdata.landcover_points, classAttribute='level_2_id')
+
 
 enmapClassification = lambda overwrite=overwrite: Classification.fromClassification(filename=join(outdir, 'enmapLandCover.bsq'),
                                                                                     classification=vectorClassification(),

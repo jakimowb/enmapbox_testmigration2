@@ -343,7 +343,7 @@ class DataSourceFactory(object):
 
             results = []
             for uri, name in zip(rasterUris, names):
-                ds = DataSourceRaster(uri, name=name, providerKey=pkey)
+                ds = DataSourceRaster(uri, name=kwds.get('name',name), providerKey=pkey)
                 results.append(ds)
             return results
         return []
