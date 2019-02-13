@@ -222,16 +222,15 @@ The output should show you the location where to find the python interpreter exe
 =====================     ============================================================================
 Operating System          Typical QGIS Python interpreter location(s)
 =====================     ============================================================================
-Windows                   `C:\PROGRA~1\QGIS3~1.4\apps\Python37`
-                          `C:\PROGRA~1\OSGeo4W\apps\Python37`
-macOS                     `/Library/Frameworks/Python.framework/Versions/3.6`
+Windows                   ``C:\PROGRA~1\QGIS3~1.4\apps\Python37``
+                          ``C:\PROGRA~1\OSGeo4W\apps\Python37``
+macOS                     ``/Library/Frameworks/Python.framework/Versions/3.6``
 Ubuntu                    tbd
 =====================     ============================================================================
 
 Use the python executable as project interpreter:
 
 .. figure:: img/pycharm_interpreter.png
-
      :width: 100%
 
      Qt Designer showing the metadataeditor.ui for the Metadata editor.
@@ -247,16 +246,15 @@ the `qgis` package and the `plugins` subfolder:
 =====================     ============================================================================
 Operating System          Typical QGIS Python location(s)
 =====================     ============================================================================
-Windows                   `C:\Program Files\QGIS 3.4\apps\qgis\python`
-                          `C:\Program Files\OSGeo4W\apps\qgis\python`
-macOS                     `/Applications/QGIS3.app/Contents/Resources/python`
+Windows                   ``C:\Program Files\QGIS 3.4\apps\qgis\python``
+                          ``C:\Program Files\OSGeo4W\apps\qgis\python``
+macOS                     ``/Applications/QGIS3.app/Contents/Resources/python``
 Ubuntu                    tbd
 =====================     ============================================================================
 
 Activate the `plugins` subfolder as sources, so that it is marked in blue.
 
 .. figure:: img/pycharm_add_qgis_sources.png
-
      :width: 100%
 
      Qt Designer showing the metadataeditor.ui for the Metadata editor.
@@ -265,8 +263,10 @@ Activate the `plugins` subfolder as sources, so that it is marked in blue.
 
 .. note::
 
-    adding source locations or labeling its subfolders as source locations will add them
-    to the python path, comparable to running `sys.path.append(r'<source code directory>'`.
+    Adding source locations or subfolders as source locations will add them
+    to the python path. This is comparable to call `sys.path.append(r'<source code directory>'` during runtime, but
+    additionally helps PyCharm to find python code.
+
 
 
 EnMAP-Box Python code
@@ -277,8 +277,7 @@ settings and click `+ Add Content Root`. Navigate to the location where QGIS has
 Plugin to. You find it in the active profile folder, which can be opened from the QGIS GUI via Settings > User Profiles
 
 .. figure:: img/qgis_userfolder.png
-
-     :width: 100%
+     :width: 50%
 
      How to find the QGIS user folder
 
@@ -287,9 +286,9 @@ This folder contains a subdirectory `python/plugins'/enmapboxplugin` to be added
 =====================     ========================================================================================================================================================
 Operating System          Typical QGIS Python location(s)
 =====================     ========================================================================================================================================================
-Windows                   `C:\Users\geo_beja\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin`
-                          `C:\Users\geo_beja\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin`
-macOS                     `<computername>/Users/<username>/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/enmapboxplugin`
+Windows                   ``C:\Users\geo_beja\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin``
+                          ``C:\Users\geo_beja\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin``
+macOS                     ``<computername>/Users/<username>/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/enmapboxplugin``
 Ubuntu                    tbd
 =====================     ========================================================================================================================================================
 
@@ -297,7 +296,7 @@ Ubuntu                    tbd
 .. note::
 
     In case you have checked out the local EnMAP-Box repository, you might add the repository root folder instead of the
-    `python\plugins\enmapboxplugin` version.
+    ``python\plugins\enmapboxplugin`` version.
 
 
 
@@ -360,7 +359,6 @@ own source-code documentation as `.qch` file as well.
 
 
 .. figure:: img/qt_assistant_example.png
-
      :width: 100%
 
      Qt Assistant, showing the documentation of the QgsMapCanvas class.
@@ -370,8 +368,7 @@ The recent QGIS API help file `qgis.qch` can be downloaded from https://qgis.org
 preferences > Documentatino to add it or other qch files.
 
 .. figure:: img/qt_assistant_add_qch.png
-
-     :width: 100%
+     :width: 75%
 
      Documentations registered to the Qt Assistant
 
@@ -390,7 +387,6 @@ python code that implement the entire backend of a GUI application.
 
 
 .. figure:: img/qt_designer_example.png
-
      :width: 100%
 
      Qt Designer showing the metadataeditor.ui for the Metadata editor.
@@ -405,7 +401,6 @@ explore the QGIS C++ source code, for example if you like to better understand w
 
 
 .. figure:: img/qt_creator_example_ui.png
-
      :width: 100%
 
      Qt Creator with opened metadataeditor.ui.
@@ -424,10 +419,10 @@ API references can be found at:
 
 * http://doc.qt.io/qt-5/ (Qt5 API)
 
-It is recommended to use Qt help files (*.qch), as they can be used offline and allow for faster browsing and searching
+It is recommended to use Qt help files (`*.qch`), as they can be used offline and allow for faster browsing and searching
 compared to the web pages.
 
-1. Download or locate the help *.qch files
+1. Download or locate the help `*.qch` files
 
 * QGIS API https://qgis.org/api/qgis.qch
 * Qt API
@@ -435,7 +430,7 @@ compared to the web pages.
     * `C:\Program Files\QGIS 3.4\apps\Qt5\doc` (Windows)
     * `~/Qt/Docs/Qt-5.11.2/` (macOS)
 
-2. Open the Qt Assistant / Qt Creator settings and add the required *.qch files, in particular ``qgis.qch``, ``qtcore.qch``, ``qtwidgets.qch`` and ``qtgui.qch``.
+2. Open the Qt Assistant / Qt Creator settings and add the required `*.qch` files, in particular ``qgis.qch``, ``qtcore.qch``, ``qtwidgets.qch`` and ``qtgui.qch``.
 
 
 
