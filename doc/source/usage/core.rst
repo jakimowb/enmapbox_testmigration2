@@ -210,6 +210,17 @@ Create classification sample
 EnviSpectralLibrary
 ===================
 
+Read profiles and metadata from library
+---------------------------------------
+
+.. literalinclude:: ../examples/envispectrallibrary/read_library.py
+   :start-after: START
+   :end-before: END
+
+Prints:
+
+.. literalinclude:: ../examples/envispectrallibrary/read_library.txt
+
 Create labeled library from raster and vector points
 ----------------------------------------------------
 

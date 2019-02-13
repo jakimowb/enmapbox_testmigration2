@@ -5348,6 +5348,8 @@ class RegressionPerformance(FlowObject):
         assert yT.ndim == 2
         assert yP.ndim == 2
         assert yT.shape == yP.shape
+        assert len(yT) == len(outputNamesT)
+        assert len(yP) == len(outputNamesP)
 
         self.yP = yP
         self.yT = yT
