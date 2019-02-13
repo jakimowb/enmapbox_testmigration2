@@ -1,6 +1,6 @@
-==============================================================
-Regression-based unmixing of urban land cover in the EnMAP-Box
-==============================================================
+=============================================
+Regression-based unmixing of urban land cover
+=============================================
 
 
 **Authors:** Akpona Okujeni & Sebastian van der Linden
@@ -32,8 +32,8 @@ training for working with the EnMAP-Box.
 2. Requirements
 ---------------
 
-This practical requires at least version *3.3.20190131T1928.develop* of the EnMAP-Box 3. If you are running on a higher version
-there should not be any problems, but mind that there might be some smaller changes by now (changed menu labels, added parameter options etc.).
+This practical requires at least version 3.3.20190131T1928.develop of the EnMAP-Box 3.
+There might be some minor changes for higher versions (e.g., changed menu labels, added parameter options, etc.).
 
 
 3. Further Reading
@@ -51,11 +51,11 @@ mixed training data from spectral libraries.
 4. Data
 -------
 
+:download:`You can download the data here (tutorial_unmixing_materials.zip):` https://box.hu-berlin.de/d/845493a4aa01455ebaef/
+
 The practical dataset contains two hyperspectral images covering an area along the urban gradient of Berlin, Germany, a spectral library,
 and detailed land cover reference information. The practical dataset is a subset extracted from the Berlin-Urban-Gradient dataset available here:
 http://doi.org/10.5880/enmap.2016.008
-
-:download:`You can download the data here (tutorial_unmixing_materials.zip):` https://box.hu-berlin.de/d/845493a4aa01455ebaef/
 
 
 .. image:: tut_img/data_table.png
@@ -114,7 +114,7 @@ Exercise A: Urban land cover
 
   * To change the order of stacked layers, drag one layer on top or below another one. Arrange the layer stack so that *‘landcover_berlin.shp’* is displayed on top of *‘hymap_berlin.bsq’*.
   * To assign an RGB combination to a raster image, right click on the dataset, select **Layer Properties** and navigate to **Style** in the **RasterLayerProperties** window. You can now select predefined composites (RGB, nIR, swIR), or manually select your bands and render type. Contrast enhancement is further possible. Display *‘hymap_berlin.bsq’* as true color composite.
-  * The symbology of *‘landcover_berlin.shp’* is predefined by a QGIS layer style file (*.qml). To change this symbology, right click on the vector layer, select **Layer Properties** and navigate to **Symbology** in the **LayerProperties** window. You can now change the symbology in accordance to the QGIS functionality. Use the **Column** and **Classify** options to explore the information content of the attribute table *‘landcover_berlin.shp’*.
+  * The symbology of *‘landcover_berlin.shp’* is predefined by a QGIS layer style file (.qml). To change this symbology, right click on the vector layer, select **Layer Properties** and navigate to **Symbology** in the **LayerProperties** window. You can now change the symbology in accordance to the QGIS functionality. Use the **Column** and **Classify** options to explore the information content of the attribute table *‘landcover_berlin.shp’*.
 
 .. image:: tut_img/03_visualizerasterandvector.png
    :width: 100%
@@ -136,11 +136,20 @@ Exercise A: Urban land cover
      .. raw:: html
 
         <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
-        <p style="color:red;"> ... </p>
+        <p style="color:#2980B9;">Major land cover types: buildings/roofs, paved areas (e.g., streets, backyards),
+        trees (e.g., park trees, street trees), grass (e.g., lawns, soccer field), crops (on agricultural sites),
+        bare soil (e.g., agricultural sites, construction sites), and water (e.g., lakes, swimming pools).</p>
         </details></div>
         </br>
 
    * **A2**: Explore the land cover reference data (landcover_berlin.shp) and draw a flowchart of the hierarchical classification scheme stored in the attribute table.
+
+     .. raw:: html
+
+        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <img src="../_static/img/tut_a2.png" alt="---Image can not be displayed---">
+        </details></div>
+        </br>
 
 |
 
@@ -187,8 +196,35 @@ Exercise B: Spectral mixing
 .. admonition:: Learning activities
 
    * **B1**: Visually compare the airborne and spaceborne hyperspectral images (*hymap_berlin.bsq*, *enmap_berlin.bsq*). How much of the spatial detail is lost when stepping from airborne to spaceborne scale?
+
+     .. raw:: html
+
+        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <p style="color:#2980B9;">The spatial detail of most urban features (e.g., buildings, streets, trees along streets or in private gardens)
+        disappears due to spatial aggregation at spaceborne scale. However, large homogenous urban features (e.g., waterbodies, sport grounds, tree stand in parks) remain apparent.</p>
+        </details></div>
+        </br>
+
    * **B2**: Provide an average estimate on the percentage of pixels covered by 1, 2, 3, and 4 or more land cover classes for both images. Use level 3 of the classification scheme for your estimate. You may use the reference land cover information (*landcover_berlin.shp*) for orientation.
+
+     .. raw:: html
+
+        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <img src="../_static/img/tut_b2.png" alt="---Image can not be displayed---">
+        </details></div>
+        </br>
+
    * **B3**: Compare pairs of spectra from the airborne and spaceborne hyperspectral images (*hymap_berlin.bsq*, *enmap_berlin.bsq*). For which urban surface materials is it still possible to collect pure spectra at spaceborne scale, and for which not?
+
+     .. raw:: html
+
+        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <p style="color:#2980B9;">Pure spectra can be collected for homogenous urban surfaces with a patch size of ~100 x 100 m
+        and larger (e.g., roofing material spectra for large industrial buildings, ground paving material spectra for yards
+        of industrial complexes, grass spectra on lawns or soccer fields, tree spectra in dense stands, water spectra from water bodies).
+        Pure spectra cannot be collected for urban surfaces with a patch size below ~100 x 100 m (i.e., for most roofing materials, street asphalt, street trees).</p>
+        </details></div>
+        </br>
 
 |
 
@@ -235,7 +271,28 @@ Exercise C: Urban spectral libraries
 .. admonition:: Learning activities
 
    * **C1**: Load the urban spectral library (library_berlin.sli) and display each level 3 class in a separate Spectral Library Window. How diverse is each class with regard to within-class variability?
+
+     .. raw:: html
+
+        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <img src="../_static/img/tut_c1.png" alt="---Image can not be displayed---">
+        <p style="color:#2980B9;">The roof class shows a very high within-class variability. The classes pavement, low vegetation,
+        and tree show a high within-class variability. The classes soil and water show a rather low within-class variability.</p>
+        </details></div>
+        </br>
+
    * **C2**: List classes which show a high between-class similarity and provide an explanation.
+
+     .. raw:: html
+
+        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <p style="color:#2980B9;">The classes roof and pavement are highly similar with regard to the following surface materials:
+        bitumen vs. asphalt, red clay tiles vs. red sand, grey roofing materials (most likely concrete) vs concrete. The classes
+        roof and soil are highly similar with regard to the following surface materials: concrete vs. bare soil, red clay tiles vs.
+        bare soil. The classes low vegetation and tree are highly similar regarding the following vegetation types: darker grass types
+        (clover, agricultural grassland) vs. brighter trees.</p>
+        </details></div>
+        </br>
 
 |
 
@@ -342,8 +399,8 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
 -----------------------
 
 * The selection of the regression algorithm and the setting up of the ensemble are the next steps in the unmixing process. The EnMAP-Box makes
-  use of the scikit-learn library to implement several state-of-the-art algorithms offered in the **Regressor**
-  drop menu (see https://scikit-learn.org/stable/index.html. Note that the different algorithms lead to varying accuracies and processing times,
+  use of the scikit-learn library (see https://scikit-learn.org/stable/index.html) to implement several state-of-the-art algorithms offered in the **Regressor**
+  drop menu. Note that the different algorithms lead to varying accuracies and processing times,
   particularly when embedding the unmixing process into an ensemble. To do so, activate **Use Ensemble** and set the **Ensemble Size**.
 
 .. image:: tut_img/14_regressionalgo.png
@@ -394,8 +451,28 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
 
 .. admonition:: Learning activities
 
-   * **D1**: Visually explore the fraction map (‘fraction_level1_estimation.bsq’). How are level 2 land cover distributed across the urban gradient. Are the fraction values plausible??
+   * **D1**: Visually explore the fraction map (*fraction_level1_estimation.bsq*). How are level 1 land cover distributed across the urban gradient. Are the fraction values physically plausible?
+
+     .. raw:: html
+
+        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <p style="color:#2980B9;">High impervious fractions can be observed in the city center. A general increase in vegetation
+        cover and decrease in impervious cover is observed when moving towards suburban areas. Soil is only abundant on single patches,
+        e.g., along rail tracks or on construction sites. Fractions for each class are in the physically meaningful range between 0 and 1.
+        The sum of fractions per pixel over all classes is, however, often larger than 1.</p>
+        </details></div>
+        </br>
+
    * **D2**: Do you observe an over- or underestimation of fractions for specific land cover types indicating errors in map?
+
+     .. raw:: html
+
+        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <p style="color:#2980B9;">Soil fractions are overestimated by around 20%, particularly for areas where red clay tiles /
+        bitumen / asphalt mixtures are apparent but no soil surfaces. Water fractions are overestimated by around 20%
+        throughout the city on all impervious surfaces.</p>
+        </details></div>
+        </br>
 
 |
 
@@ -423,7 +500,7 @@ Exercise E: Validation of fraction maps
   * **Class id attribute**: level_1_id
   * **Minimal overall coverage**: 0.95
   * **Oversampling factor**: 5
-  * **Output fraction**: *'...path to your working folder.../fraction_level1_reference.bsq'*
+  * **Output fraction**: *...path to your working folder.../fraction_level1_reference.bsq*
 
 * Run the process.
 
@@ -445,7 +522,7 @@ Exercise E: Validation of fraction maps
 
 .. admonition:: Learning activities
 
-   * **E1**: Visually compare your estimated fraction map (fraction_level1_estimation.bsq) with the reference fraction map (berlin_level1_reference.shp). Do both maps show a good agreement in terms of spatial patterns or are there areas with large differences?
+   * **E1**: Visually compare your estimated fraction map (*fraction_level1_estimation.bsq*) with the reference fraction map (*berlin_level1_reference.shp*). Do both maps show a good agreement in terms of spatial patterns or are there areas with large differences?
    * **E2**: Discuss the accuracy of your fraction map. What are the accuracies for the different classes and which classes show striking errors like underestimation or overestimations of fractions?
 
 |
@@ -478,14 +555,14 @@ Additional Exercises
     :width: 28px
 
 .. |navtools| image:: tut_img/navtools.png
-   :height: 31px
+   :height: 27px
 
 .. |closemapview| image:: tut_img/cl_mv.png
 
 .. icon links section B
 
 .. |identifytools| image:: tut_img/identify_tools.png
-   :height: 31px
+   :height: 27px
 
 .. |addspectrum| image:: ../../../site-packages/qps/ui/icons/plus_green.svg
    :width: 28px
@@ -528,4 +605,4 @@ Additional Exercises
    :width: 28px
 
 .. |identifytools2| image:: tut_img/identify_tools2.png
-   :height: 31px
+   :height: 27px
