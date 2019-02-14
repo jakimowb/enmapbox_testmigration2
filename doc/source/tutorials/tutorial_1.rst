@@ -58,7 +58,7 @@ and detailed land cover reference information. The practical dataset is a subset
 http://doi.org/10.5880/enmap.2016.008
 
 
-.. image:: tut_img/data_table.png
+.. image:: tut_img/data_table.PNG
 
 
 |
