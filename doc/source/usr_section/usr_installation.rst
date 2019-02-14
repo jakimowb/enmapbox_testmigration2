@@ -243,10 +243,12 @@ Mac
 
 ....
 
-|
+
+.. _usr_installation_enmapbox:
 
 3. Install or update the EnMAP-Box
 ----------------------------------
+
 
 Install from Repository (recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -79,12 +79,6 @@ def cleanDir(d):
 
 
 
-def updateTestPluginRepoXML(id):
-
-
-    import xml.etree
-
-
 def mkDir(d, delete=False):
     """
     Make directory.
@@ -190,12 +184,12 @@ def build():
     pathZip = jp(DIR_DEPLOY, '{}.{}.zip'.format(pluginname, buildID))
     dirPlugin = jp(DIR_DEPLOY, pluginname)
     zipdir(dirPlugin, pathZip)
-    # os.chdir(dirPlugin)
-    # shutil.make_archive(pathZip, 'zip', '..', dirPlugin)
 
-    updateTestPluginRepoXML(pathZip)
+    # 6. Update XML repositories
+    updateRepositoryXML()
 
-    # 6. install the zip file into the local QGIS instance. You will need to restart QGIS!
+
+    # 7. install the zip file into the local QGIS instance. You will need to restart QGIS!
     if True:
         print('\n### To update/install the EnMAP-Box, run this command on your QGIS Python shell:\n')
         print('from pyplugin_installer.installer import pluginInstaller')
@@ -430,12 +424,7 @@ if __name__ == "__main__":
     #    create deploy/enmapboxplugin.<version>.<branch>.zip
     build()
 
-    # 2. run updateRepositoryXML() to create QGIS Plugin Repository XMLs
-    # deploy/qgis_plugin_develop.xml (remote, points on https://bitbucket.org/hu-geomatics/enmap-box/src/<branch>/qgis_plugin_develop.xml)
-    # deploy/qgis_plugin_develop.xml (local, points on deploy/enmapboxplugin.<version>.<branch>.zip
-    updateRepositoryXML()
-
-    # 3. Upload to Repository
+    # 2. Upload to Repository
     # upload deploy/enmapboxplugin.<version>.<branch>.zip to https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/downloads
     # this step requires to provide upload credentials
     uploadDeveloperPlugin()

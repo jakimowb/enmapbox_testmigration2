@@ -290,9 +290,11 @@ will emit the ``sigCurrentLocationChanged`` signal. Try it by running the follow
 
     enmapBox.sigCurrentLocationChanged.connect(printLocation)
 
-.. note:: ``SpatialPoint`` inherits ``QgsPointXY``, enhancing it by keeping a reference to the
-          coordinate reference system (CRS) a point coordinate was selected from. Similar, a ``SpatialExtent`` enhances
-         ``QgsRectangle``.
+.. note::
+
+    ``SpatialPoint`` inherits ``QgsPointXY``, enhancing it by keeping a reference to the
+    coordinate reference system (CRS) a point coordinate was selected from. Similar, a ``SpatialExtent`` enhances
+    ``QgsRectangle``.
 
 
 
@@ -368,8 +370,10 @@ Same can be done with the total extent of a ``QgsMapLayer``::
         print('QgsRectangle : {}'.format(QgsPointXY(pointTargetCRS)))
         print('SpatialExtent: {}'.format(extentTargetCRS))
 
-.. note:: Be aware that some CRS transformations are not possible and might cause errors, e.g. transforming lat/lon coordinates a projected
-CRS like UTM from a regions where the target CRS is not defined for.
+.. note::
+
+    Be aware that some CRS transformations are not possible and might cause errors, e.g. transforming lat/lon coordinates a projected
+    CRS like UTM from a regions where the target CRS is not defined for.
 
 
 
