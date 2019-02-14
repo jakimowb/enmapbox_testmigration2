@@ -60,6 +60,7 @@ sphinx_argparse
 sphinx-markdown
 sphinx-red-theme
 sphinx-autobuild
+recommonmark
 =================== =============================================================================
 
 
