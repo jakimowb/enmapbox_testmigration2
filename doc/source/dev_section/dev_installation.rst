@@ -13,19 +13,19 @@ steps should be similar for other IDEs like `PyDev <http://www.pydev.org/>`_.
 
 To developing EnMAP-Box Applications, you need to:
 
-    1. Install all python packages to your QGIS python your application and the EnMAP-Box depends on.
-       :ref:`dev_install_dependencies`
+    1. :ref:`Install required python packages<dev_install_dependencies>` to your QGIS python that your application and the EnMAP-Box depends on.
 
-    2. Setup your IDE to start with same environmental settings as your QGIS desktop application.
-       :ref:`dev_setup_pycharm`
 
-    3. Create a new project ("MyProject") and ensure that it uses the same python as QGIS, as well as it required
+    2. :ref:`Setup your IDE<dev_setup_pycharm>` to start with same environmental settings as your QGIS desktop application.
+
+
+    3. :ref:`Create a new project ("MyProject")<dev_create_ide_project>` and ensure that it uses the same python as QGIS, as well as it required
        QGIS and EnMAP-Box code locations are linked into.
-       :ref:`dev_create_ide_project`
+
 
 
 The more you get into the details of EnMAP-Box, QGIS, or more general Qt application development, you might want to
-some specialized tools and explore the respective APIs. For this we recommended to read :ref:`dev_qt_development_support`.
+some specialized tools and explore the respective APIs. For this we recommended to read section ":ref:`dev_qt_development_support`".
 
 
 .. _dev_install_dependencies:
@@ -35,7 +35,7 @@ some specialized tools and explore the respective APIs. For this we recommended 
 
 If not already done, install git
 
-Follow :ref:`install-python-packages` to install the EnMAP-Box and all required python packages to your QGIS python.
+Follow :ref:`this installation guide <install-python-packages>` to install the EnMAP-Box and all required python packages to your QGIS python.
 
 After that use pip to install additional packages required for developers. Call:
 

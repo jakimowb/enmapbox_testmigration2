@@ -8,6 +8,9 @@ The EnMAP-Box source code is hosted in a Git repository at https://bitbucket.org
 Structure
 =========
 
+Overview
+--------
+
 The repository contains the following files and folders:
 
 =============================== ========================================================================================
@@ -35,22 +38,44 @@ setup.py
 .gitattributes
 .readthedocs.yml
 .gitignore
-------------------------------- ----------------------------------------------------------------------------------------
-enmapboxtestdata/               Official EnMAP-Box testdata. Not part of repository code, installed afterwards
-qgisresources/                  QGIS resources compiled as python modules. See :ref:`dev_repo_installation`
-deploy/                         Builds of the EnMAP-Box plugin
-deploy/enmapboxplugin           Folder with last EnMAP-Box Plugin build
-deploy/enmapboxplugin.3.X...zip Zipped version of a EnMAP-box Plugin build
 =============================== ========================================================================================
+
+Scripts for Developers
+----------------------
+
+The ``make`` directory contains scrips to support developers. Ensure that this folder is part of your python path, e.g add
+it as source in your PyCharm project (left-mouse, mark directory as source):
+
+============================== =========================================================================================================
+Script                         Purpose
+============================== =========================================================================================================
+``make/deploy.py``             Create the EnMAP-Box Plugin ZIP file.
+``make/guimake.py``            Routines to handle PyQt5 issues, e.g. to create Qt resource files.
+``make/iconselect.py``         A widget to show Qt internal resource icons and to copy its path to the clipboard.
+``make/updateexternals.py``    update parts of the EnMAP-Box code which are hosted in external repositories.
+============================== =========================================================================================================
+
+Generated Folders
+-----------------
+
+Some directories and files are not part of the repository and explicitly ignore in the `.gitignore` file, but required or
+created during the development process. These are:
+
+================================ =========================================================================================================
+enmapboxtestdata/                Official EnMAP-Box testdata. Not part of repository code, installed afterwards.
+qgisresources/                   QGIS resources compiled as python modules. Read :ref:`here<dev_repo_installation>` for details.
+deploy/                          Builds of the EnMAP-Box plugin.
+deploy/enmapboxplugin            Folder with last EnMAP-Box Plugin build.
+deploy/enmapboxplugin.3.X...zip  Zipped version of a EnMAP-box Plugin build.
+================================ =========================================================================================================
 
 
 .. _dev_repo_installation:
 
-Installation
-============
+Install the EnMAP-Box repository
+================================
 
-
-1. Open your shell and clone the EnMAP-Box repository:
+#. Open your shell and clone the EnMAP-Box repository:
 
     .. code-block:: batch
 
@@ -58,12 +83,11 @@ Installation
         git clone https://bitbucket.org/hu-geomatics/enmap-box.git
         cd enmap-box
 
-
-2. Add ``<my_repositories>/enmapbox/`` as source location to your PyCharm project
+#. Add ``<my_repositories>/enmapbox/`` as source location to your PyCharm project
     (instead of that in your QGIS active profile!)
 
 
-3. (Optional) install the QGIS source code repository.
+#. (Optional) install the QGIS source code repository.
 
     For the next step, but also if you like to discover the QGIS ++ code, it is recommended to install the
     QGIS repository as well
@@ -86,7 +110,7 @@ Installation
     ============= ====================================================================
 
 
-4. Run ``make/setuprepository.py`` to create Qt resource modules and perform a dependency check.
+#. Run ``make/setuprepository.py`` to create Qt resource modules and perform a dependency check.
 
    The EnMAP-Box uses the Qt resource system (see https://doc.qt.io/qt-5/resources.html for details) to access icons.
    This step creates for each Qt resource file (``filename.qrc``) a corresponding python module
@@ -99,10 +123,10 @@ Installation
 
     .. code-block:: batch
 
-    icon = QIcon(r':/images/themes/default/mIconRaster.svg')
-    label = QLabel()
-    label.setPixmap(icon.pixmap(QSize(150,150)))
-    label.show()
+        icon = QIcon(r':/images/themes/default/mIconRaster.svg')
+        label = QLabel()
+        label.setPixmap(icon.pixmap(QSize(150,150)))
+        label.show()
 
     .. figure:: img/resources_qgis_icon_example.png
          :width: 200px
@@ -110,34 +134,13 @@ Installation
          The QGIS icon for raster (mIconRaster.svg)
 
    If we start and develop application from inside PyCharm, we usually don't have access to QGIS desktop application
-   resources. However, if you have downloaded the QGIS repository as in Step 3., ``make/setuprepository.py``
-   will look for the QGIS repository, compile the reosurce files from and write them into the folder
-
-
-   This step will also search for Qt resource files in the QGIS ``images.qrc``
+   resources. However, if you have downloaded the QGIS repository as described above, ``make/setuprepository.py``
+   will look for it, compile the resource files and write them into folder ``enmap-box/qgisresources``.
 
 
 
-Scripts for Developers
-======================
-
-The EnMAP-Box repositories ``make`` folder contains several scrips to support developers and is required to build (parts)
-of the EnMAP-Box plugin. Ensure that is is part of your python path, e.g add it as source in your PyCharm project
-(left-mouse, mark directory as source):
-
-============================== =========================================================================================================
-Script                         Purpose
-============================== =========================================================================================================
-``make/deploy.py``             Create the EnMAP-Box Plugin ZIP file.
-``make/guimake.py``            Routines to handle PyQt5 issues, e.g. to create Qt resource files.
-``make/iconselect.py``         A widget to show Qt internal resource icons and to copy its path to the clipboard.
-``make/updateexternals.py``    update parts of the EnMAP-Box code which are hosted in external repositories.
-============================== =========================================================================================================
-
-
-
-Install or Update EnMAP-Box Testdata
-------------------------------------
+Install / Update EnMAP-Box Testdata
+===================================
 
 #. Testdata version: if necessary, increase minimal requirement in ``enmapbox/__init__.py``, e.g.::
 
