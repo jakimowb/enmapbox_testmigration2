@@ -124,20 +124,20 @@ can be added to the list of QGIS Plugin repositories (see :ref:`usr_installation
 .. figure:: img/qgis_pluginmanager_add_repository.png
     :width: 100%
 
-This way QGIS will inform about new version and users can install them with one mouse-click.
+This way QGIS will inform users about new versions, which can be install with one mouse-click.
 
 Uploading ``enmapbox3.*.zip`` to the download page and pushing ``deploy/qgis_plugin_develop.xml`` to the Bitbucket server
-is done calling:
+can be done by:
 
 .. code-block:: python
 
     import deploy
     deploy.uploadDeveloperPlugin()
 
-Be aware that his requires to provide user credentials with writing access to the bitbucket server.
+Of course this requires user credentials with writing access to the bitbucket server:
 
 .. figure:: img/upload_enmapbox_plugin_credentials.png
     :width: 50%
 
-    Dialog to ask for Bitbucked server access.
+    Dialog to ask for Bitbucket server access.
 
