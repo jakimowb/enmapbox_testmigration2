@@ -197,6 +197,21 @@ Mask water bodies from classification
 .. image:: ../examples/mask/mask_values2.png
     :width: 49 %
 
+Apply mask to raster
+--------------------
+
+.. literalinclude:: ../examples/mask/apply_mask_to_raster.py
+   :start-after: START
+   :end-before: END
+
+.. figure:: ../examples/mask/apply_mask_to_raster1.png
+
+    Raster masked by vector.
+
+.. figure:: ../examples/mask/apply_mask_to_raster2.png
+
+    Raster masked by inverted vector.
+
 ClassificationSample
 ====================
 

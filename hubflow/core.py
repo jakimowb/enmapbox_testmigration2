@@ -1256,14 +1256,18 @@ class Raster(Map):
 
         return ScatterMatrix(H, xedges, yedges)
 
-    def applyMask(self, filename, mask, **kwargs):
+    def applyMask(self, filename, mask, noDataValue=None, **kwargs):
         '''
-        Applies a ``mask`` to itself.
+        Applies a ``mask`` to itself and returns the result.
+        All pixels where the mask evaluates to False, are set to the no data value.
+        If the no data value is nut defined, 0 is used.
 
         :param filename: output path
         :type filename: str
         :param mask: a map that is evaluated as a mask
         :type mask: Map
+        :param noDataValue: set no data value if undefined (default is to use 0)
+        :type noDataValue: float
         :param kwargs: passed to :class:`hubflow.core.Applier`
         :rtype: Raster
 
@@ -1276,11 +1280,13 @@ class Raster(Map):
         array([[[-1, -1,  3]]])
 
         '''
+        if noDataValue is None:
+            noDataValue = 0
         applier = Applier(defaultGrid=self, **kwargs)
         applier.setFlowRaster('raster', raster=self)
         applier.setFlowMask('mask', mask=mask)
         applier.setOutputRaster('maskedRaster', filename=filename)
-        applier.apply(operatorType=_RasterApplyMask, raster=self, mask=mask)
+        applier.apply(operatorType=_RasterApplyMask, raster=self, mask=mask, noDataValue=noDataValue)
         return type(self)(filename=filename)
 
     def metadataWavelength(self):
@@ -1533,8 +1539,8 @@ class _RasterScatterMatrix(ApplierOperator):
 
 
 class _RasterApplyMask(ApplierOperator):
-    def ufunc(self, raster, mask):
-        noDataValue = self.inputRaster.raster(key='raster').noDataValue(default=0)
+    def ufunc(self, raster, mask, noDataValue):
+        noDataValue = self.inputRaster.raster(key='raster').noDataValue(default=noDataValue)
         array = self.flowRasterArray('raster', raster=raster)
         marray = self.flowMaskArray('mask', mask=mask)
         tobefilled = np.logical_not(marray[0])

@@ -20,3 +20,9 @@ doc/source/examples/transformation/inverseTransformation.bsq
 doc/source/examples/transformation/transformation.hdr
 doc/source/examples/transformation/transformation.bsq.aux.xml
 doc/source/examples/transformation/transformation.bsq
+doc/source/examples/mask/maskedRaster.hdr
+doc/source/examples/mask/maskedRaster.bsq
+doc/source/examples/mask/maskedRaster.bsq.aux.xml
+doc/source/examples/mask/maskedRaster2.bsq.aux.xml
+doc/source/examples/mask/maskedRaster2.hdr
+doc/source/examples/mask/maskedRaster2.bsq
