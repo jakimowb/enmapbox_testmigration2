@@ -270,7 +270,7 @@ Use the python executable as PyCharm project interpreter:
 .. figure:: img/pycharm_interpreter.png
      :width: 100%
 
-     Qt Designer showing the metadataeditor.ui for the Metadata editor.
+     PyCharm's python interpreter needs to be the same which is used by the QGIS desktop application.
 
 
 Add QGIS Python Code
@@ -294,7 +294,8 @@ Activate the `plugins` subfolder as sources, so that it is marked in blue.
 .. figure:: img/pycharm_add_qgis_sources.png
      :width: 100%
 
-     Qt Designer showing the metadataeditor.ui for the Metadata editor.
+     The QGIS python folder is set as content root of the PyCharm project. Subfolder ``plugins`` is marked as additional
+     source folder.
 
 
 .. note::
