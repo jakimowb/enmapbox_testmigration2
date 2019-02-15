@@ -142,9 +142,17 @@ Install the EnMAP-Box repository
 Install / Update EnMAP-Box Testdata
 ===================================
 
-#. Testdata version: if necessary, increase minimal requirement in ``enmapbox/__init__.py``, e.g.::
+The most-recent EnMAP-Box testdata is hosted on https://bitbucket.org/hu-geomatics/enmap-box-testdata/get/master.zip
+If missing or outdatet, it will be downloaded and installed after a user
+clicks on `Project > Load Example Data`. The downloaded data will be extracted into
+``<root>/enmapboxtestdata``, with ``<root>`` either being the EnMAP-Box repository folder or the QGIS plugin installation
+folder.
 
-    MIN_VERSION_TESTDATA = '0.6'
+The testdata can be download explicitly:
 
-#. Start & test the EnMAP-Box from inside your IDE by running `enmapbox/__main__.py`
+.. code-block:: python
+
+    import enmapbox.dependencycheck
+    enmapbox.dependencycheck.installTestData(ask=False, overwrite_existing=True)
+
 
