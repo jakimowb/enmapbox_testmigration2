@@ -26,3 +26,14 @@ doc/source/examples/mask/maskedRaster.bsq.aux.xml
 doc/source/examples/mask/maskedRaster2.bsq.aux.xml
 doc/source/examples/mask/maskedRaster2.hdr
 doc/source/examples/mask/maskedRaster2.bsq
+doc/source/examples/raster/filteredHighpass.bsq.aux.xml
+doc/source/examples/raster/filteredGaussian.hdr
+doc/source/examples/raster/filteredGaussian.bsq.aux.xml
+doc/source/examples/raster/filteredHighpass.bsq
+doc/source/examples/raster/filteredGaussian.bsq
+doc/source/examples/raster/filteredHighpass.hdr
+doc/source/examples/raster/raster.dat.aux.xml
+doc/source/examples/raster/raster.tif.aux.xml
+doc/source/examples/raster/raster.tif
+doc/source/examples/raster/raster.dat
+doc/source/examples/raster/raster.hdr

@@ -31,9 +31,32 @@ Raster
 Save raster to new location and specific format
 -----------------------------------------------
 
-.. warning::
+.. literalinclude:: ../examples/raster/save_raster.py
+   :start-after: START
+   :end-before: END
 
-    todo
+Prints:
+
+.. literalinclude:: ../examples/raster/save_raster.txt
+
+Apply a spatial convolution filter
+----------------------------------
+
+.. literalinclude:: ../examples/raster/spatial_convolution_filter.py
+   :start-after: START
+   :end-before: END
+
+Prints:
+
+.. literalinclude:: ../examples/raster/spatial_convolution_filter.txt
+
+.. figure:: ../examples/raster/spatial_convolution_filter1.png
+
+    Result of Gaussian filter
+
+.. figure:: ../examples/raster/spatial_convolution_filter2.png
+
+    Result of Highpass filter
 
 Classification
 ==============

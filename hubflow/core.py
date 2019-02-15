@@ -1415,7 +1415,7 @@ class _RasterConvolve(ApplierOperator):
                             fill_value=np.nan, nan_treatment='fill',
                             normalize_kernel=False)
         outraster.setArray(array=outarray, overlap=overlap)
-        # outraster.setMetadataDict(metadataDict=inraster.metadataDict())
+        outraster.setMetadataDict(metadataDict=inraster.metadataDict())
         outraster.setNoDataValue(value=np.nan)
 
 
