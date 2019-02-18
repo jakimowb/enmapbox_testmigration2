@@ -1210,6 +1210,19 @@ class RasterDataset(object):
         '''Return the :class:`~hubdc.model.RasterBandDataset` given by ``index``.'''
         return RasterBandDataset(raster=self, index=index)
 
+    def waveband(self, center):
+        '''Return the :class:`~hubdc.model.RasterBandDataset` given by ``center`` wavelenth in nanometers.'''
+        wavelength = self.metadataItem(key='wavelength', domain='ENVI', dtype=float, required=True)
+        unit =  self.metadataItem(key='wavelength units', domain='ENVI', required=True).lower()
+        assert unit in ['nanometers', 'micrometers']
+
+        if unit == 'micrometers':
+            wavelength = [v * 1000 for v in wavelength]
+
+        distance = [abs(v - center) for v in wavelength]
+        index = int(np.argmin(distance))
+        return RasterBandDataset(raster=self, index=index)
+
     def bands(self):
         '''Returns an iterator over each :class:`~hubdc.model.RasterBandDataset`.'''
         for i in range(self.zsize()):
@@ -1474,7 +1487,7 @@ class RasterDataset(object):
 
         return RasterDataset(gdalDataset=gdalDataset)
 
-    def translate(self, grid=None, filename='', driver=MemDriver(), options=None, **kwargs):
+    def translate(self, grid=None, filename='', driver=MemDriver(), options=None, resampleAlg=gdal.GRA_NearestNeighbour, **kwargs):
         '''Returns a new instance of self translated into the given ``grid`` (default is self.grid()).
 
         :param grid:
@@ -1485,6 +1498,8 @@ class RasterDataset(object):
         :type driver: hubdc.core.RasterDriver
         :param options: raster creation options
         :type options: list
+        :param resampleAlg: GDAL resampling algorithm
+        :type resampleAlg: int
         :param kwargs: passed to gdal.TranslateOptions
         :type kwargs:
         :return:
@@ -1519,6 +1534,7 @@ class RasterDataset(object):
 
             # read one extra source column and line
             translateOptions = gdal.TranslateOptions(format=driver.name(), creationOptions=options,
+                                                     resampleAlg=resampleAlg,
                                                      projWin=[ul.x(), ul.y(), lr.x() + self.grid().resolution().x(),
                                                               lr.y() - self.grid().resolution().y()],
                                                      xRes=xRes, yRes=yRes, **kwargs)
@@ -1526,12 +1542,14 @@ class RasterDataset(object):
 
             # subset to the exact target grid
             translateOptions = gdal.TranslateOptions(format=driver.name(), creationOptions=options,
+                                                     resampleAlg=resampleAlg,
                                                      srcWin=[0, 0, grid.size().x(), grid.size().y()])
             gdalDataset = gdal.Translate(destName='', srcDS=tmpGdalDataset, options=translateOptions)
 
         else:
 
             translateOptions = gdal.TranslateOptions(format=driver.name(), creationOptions=options,
+                                                     resampleAlg=resampleAlg,
                                                      projWin=[ul.x(), ul.y(), lr.x(), lr.y()],
                                                      xRes=xRes, yRes=yRes, **kwargs)
             gdalDataset = gdal.Translate(destName=filename, srcDS=self._gdalDataset, options=translateOptions)
@@ -1687,8 +1705,13 @@ class RasterDataset(object):
     def mapLayer(self):
         from qgis.core import QgsRasterLayer
         if self.driver().equal(MemDriver()):
-            raise NotImplementedError()
-        return RasterLayer(QgsRasterLayer(self.filename()))
+            # Because MemDriver datasets do not have a filename, they can not be opened as QgsRasterLayer.
+            # So we have to create a vsimem copy.'
+            copy = self.translate(filename='/vsimem/{}'.format(repr(self)), driver=EnviDriver())
+            qgsLayer = QgsRasterLayer(copy.filename())
+        else:
+            qgsLayer = QgsRasterLayer(self.filename())
+        return RasterLayer(qgsRasterLayer=qgsLayer)
 
     def plotSinglebandGrey(self, index=0, vmin=None, vmax=None, pmin=None, pmax=None, cmap='gray', noPlot=False,
                            showPlot=True):
@@ -2655,7 +2678,7 @@ class MapViewer():
         self.app.initQgis()
         self.canvas = QgsMapCanvas()
         self.layers = list()
-        self._printExtent = not False
+        self._printExtent = False
         self._extentSet = False
         self._projectionSet = False
 
@@ -2813,6 +2836,12 @@ class RasterLayer(object):
         qgsRenderer.setBlueContrastEnhancement(createContrastEnhancement(index=blueIndex, min=blueMin, max=blueMax))
         return self
 
+    def initTrueColorRenderer(self, **kwargs):
+        rasterDataset = openRasterDataset(filename=self.qgsLayer().source())
+        return self.initMultiBandColorRenderer(redIndex=rasterDataset.waveband(center=682.5).index(),
+                                               greenIndex=rasterDataset.waveband(center=532.5).index(),
+                                               blueIndex=rasterDataset.waveband(center=467.5).index(),
+                                               **kwargs)
 
 class VectorLayer(object):
 

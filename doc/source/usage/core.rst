@@ -38,6 +38,8 @@ Check versions installed
 Raster dataset
 ==============
 
+Find API reference here: :class:`hubdc.core.RasterDataset`
+
 Open a raster dataset from file
 -------------------------------
 
@@ -174,17 +176,6 @@ Prints:
 
 .. literalinclude:: ../examples/rasterdataset/loop_raster_bands.txt
 
-Get raster band information
----------------------------
-
-.. literalinclude:: ../examples/rasterdataset/raster_band_information.py
-   :start-after: START
-   :end-before: END
-
-Prints:
-
-.. literalinclude:: ../examples/rasterdataset/raster_band_information.txt
-
 Convert a vector to a raster
 ----------------------------
 
@@ -247,6 +238,17 @@ Replace no data value of raster with new value
 Raster band dataset
 ===================
 
+Get raster band information
+---------------------------
+
+.. literalinclude:: ../examples/rasterdataset/raster_band_information.py
+   :start-after: START
+   :end-before: END
+
+Prints:
+
+.. literalinclude:: ../examples/rasterdataset/raster_band_information.txt
+
 Set raster band category names and colors
 -----------------------------------------
 
@@ -262,6 +264,15 @@ Prints:
    :file: ../examples/rasterband/set_raster_band_categories.html
 
 .. image:: ../examples/rasterband/set_raster_band_categories.png
+
+VectorData
+==========
+
+Find API reference here: :class:`hubdc.core.VectorDataset`
+
+.. warning::
+
+    todo
 
 Grid
 ====
