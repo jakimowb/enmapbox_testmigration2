@@ -51,7 +51,7 @@ mixed training data from spectral libraries.
 4. Data
 -------
 
-:download:`You can download the data here (tutorial_unmixing_materials.zip):` https://box.hu-berlin.de/d/845493a4aa01455ebaef/
+:download:`You can download the data here (tutorial_unmixing_materials.zip):` https://box.hu-berlin.de/f/01d6196ab1e34956bd5d/?dl=1
 
 The practical dataset contains two hyperspectral images covering an area along the urban gradient of Berlin, Germany, a spectral library,
 and detailed land cover reference information. The practical dataset is a subset extracted from the Berlin-Urban-Gradient dataset available here:
@@ -113,7 +113,33 @@ Exercise A: Urban land cover
 * Map #1 now appears in the Data Views panel, where the visibility, order and properties of datasets can be modified. Unfold Map #1:
 
   * To change the order of stacked layers, drag one layer on top or below another one. Arrange the layer stack so that *‘landcover_berlin.shp’* is displayed on top of *‘hymap_berlin.bsq’*.
-  * To assign an RGB combination to a raster image, right click on the dataset, select **Layer Properties** and navigate to **Style** in the **RasterLayerProperties** window. You can now select predefined composites (RGB, nIR, swIR), or manually select your bands and render type. Contrast enhancement is further possible. Display *‘hymap_berlin.bsq’* as true color composite.
+  * To assign a multibandcolor RGB combination to a raster image, right click on the dataset, select **Layer Properties** and navigate to **Style** in the **RasterLayerProperties** window. You can now select predefined composites (RGB, nIR, swIR), or manually select your bands and render type. Contrast enhancement is further possible. Display *‘hymap_berlin.bsq’* as true color composite.
+
+   .. attention::
+
+      Note that the predefined options (RGB, nIR, swIR) are currently not available. Bands have to be selected manually at the moment.
+
+      .. list-table::
+
+         * - **Combination**
+           - **R**
+           - **G**
+           - **B**
+         * - TrueColor
+           - 660 nm
+           - 570 nm
+           - 480 nm
+         * - nIR
+           - 850 nm
+           - 660 nm
+           - 570 nm
+         * - swIR
+           - 850 nm
+           - 1650 nm
+           - 660 nm
+
+
+
   * The symbology of *‘landcover_berlin.shp’* is predefined by a QGIS layer style file (.qml). To change this symbology, right click on the vector layer, select **Layer Properties** and navigate to **Symbology** in the **LayerProperties** window. You can now change the symbology in accordance to the QGIS functionality. Use the **Column** and **Classify** options to explore the information content of the attribute table *‘landcover_berlin.shp’*.
 
 .. image:: tut_img/03_visualizerasterandvector.png
@@ -155,6 +181,16 @@ Exercise A: Urban land cover
 
 Exercise B: Spectral mixing
 ===========================
+
+.. admonition:: Description
+
+   Forthcoming spaceborne imaging spectroscopy missions create new opportunities for global urban mapping. However, the step to satellite observations brings with it coarser spatial resolution, resulting in a loss in spatial detail and an increase in the number of mixed pixels. This exercise…
+
+   * provides an insight into how urban areas will be depicted by spaceborne hyperspectral images and illustrates challenges related to spectral mixing when using such data for urban mapping
+   * introduces additional basic functionalities of the EnMAP-Box. You will learn how to work with multiple map views, and how to visualize image spectra using Spectral Library Windows
+
+   Duration: 15 min
+
 
 1. Multiple map views
 ---------------------
@@ -500,7 +536,7 @@ Exercise E: Validation of fraction maps
   * **Class id attribute**: level_1_id
   * **Minimal overall coverage**: 0.95
   * **Oversampling factor**: 5
-  * **Output fraction**: *...path to your working folder.../fraction_level1_reference.bsq*
+  * **Output fraction**: *...path to your working folder...\fraction_level1_reference.bsq*
 
 * Run the process.
 
@@ -522,7 +558,7 @@ Exercise E: Validation of fraction maps
 
 .. admonition:: Learning activities
 
-   * **E1**: Visually compare your estimated fraction map (*fraction_level1_estimation.bsq*) with the reference fraction map (*berlin_level1_reference.shp*). Do both maps show a good agreement in terms of spatial patterns or are there areas with large differences?
+   * **E1**: Visually compare your estimated fraction map (*fraction_level1_estimation.bsq*) with the reference fraction map (*berlin_level1_reference.bsq*). Do both maps show a good agreement in terms of spatial patterns or are there areas with large differences?
    * **E2**: Discuss the accuracy of your fraction map. What are the accuracies for the different classes and which classes show striking errors like underestimation or overestimations of fractions?
 
 |
