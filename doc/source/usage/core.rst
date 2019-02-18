@@ -56,7 +56,7 @@ Prints:
 
 .. figure:: ../examples/raster/spatial_convolution_filter2.png
 
-    Result of Highpass filter
+    Result of High-Pass filter
 
 Classification
 ==============
