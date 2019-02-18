@@ -4,14 +4,14 @@ Installation (Dev)
 
 Last Update: 2019-02-14
 
-If you like to develop an EnMAP-Box application, or more general, a Qt or QGIS application, we highly recommend using
-a state-of-the-art Integrated Development Environment (IDE), which offers run-time debugging, code completion,
+If would you like to develop an EnMAP-Box application, or more generally a Qt or QGIS application, we highly recommend using
+a state-of-the-art Integrated Development Environment (IDE) which offers run-time debugging, code completion,
 spell-checking, syntax highlighting, unit-testing and more. In the following we therefore describe how to run and debug
 the EnMAP-Box from the `PyCharm <https://www.jetbrains.com/pycharm/>`_ IDE. This allows us to develop and start
 the EnMAP-Box and other applications *without* starting the QGIS desktop. Although we haven't tested it, these
 steps should be similar for other IDEs like `PyDev <http://www.pydev.org/>`_.
 
-To developing EnMAP-Box Applications, you need to:
+For developing EnMAP-Box Applications, you need to:
 
     1. :ref:`Install required python packages<dev_install_dependencies>` to your QGIS python that your application and the EnMAP-Box depends on.
 
@@ -19,13 +19,13 @@ To developing EnMAP-Box Applications, you need to:
     2. :ref:`Setup your IDE<dev_setup_pycharm>` to start with same environmental settings as your QGIS desktop application.
 
 
-    3. :ref:`Create a new project ("MyProject")<dev_create_ide_project>` and ensure that it uses the same python as QGIS, as well as it required
-       QGIS and EnMAP-Box code locations are linked into.
+    3. :ref:`Create a new project ("MyProject")<dev_create_ide_project>` and ensure that it uses the same python interpreter as QGIS, and create links to the required
+       QGIS and EnMAP-Box code locations.
 
 
 
-The more you get into the details of EnMAP-Box, QGIS, or more general Qt application development, you might want to
-some specialized tools and explore the respective APIs. For this we recommended to read section ":ref:`dev_qt_development_support`".
+The more you get into the details of EnMAP-Box, QGIS, or more general Qt application development, you might want to utilize
+some specialized tools and explore their respective APIs. For this we recommended to read the section ":ref:`dev_qt_development_support`".
 
 
 .. _dev_install_dependencies:
@@ -71,8 +71,8 @@ recommonmark
 =================
 
 
-PyCharm needs to run under the similar environmental settings as the QGIS Desktop Application. In particular it needs
-to use the same Python as QGIS does.
+PyCharm needs to run under the same environmental settings as the QGIS Desktop Application. In particular it needs
+to use the same Python interpreter as QGIS does.
 
 
 Windows
@@ -82,7 +82,7 @@ Windows
 The following description is based on http://spatialgalaxy.net/2018/02/13/quick-guide-to-getting-started-with-pyqgis3-on-windows/
 
 QGIS for Windows (OSGeo4W) uses a set of cascading batch (``*.bat``) files to setup up the QGIS environment.
-We recommend to use similar approaches to start the IDE and other application that require to operate in the same environment as the desktop QGIS does.
+We recommend to use similar approaches to start the IDE and other applications that require the same environment to operate in as the desktop QGIS does.
 
 First, we need to know the root folder of our QGIS3/OSGeo4W installation, hereafter referred as ``OSGEO4W_ROOT``, e.g. ````OSGEO4W_ROOT=C:\Program Files\QGIS 3.0\`` or ````OSGEO4W_ROOT=C:\Program Files\OSGeo4W\``.
 
@@ -121,7 +121,7 @@ Command                   Description
 =====================     ============================================================================
 
 
-Depending on previous setup steps some of these commands might not be installed by default.
+Depending on previous setup steps, some of these commands might not be installed by default.
 The Qt Designer and Qt Assistant, for example, require to have the ``qt5-doc`` and ``qt5-devel`` packages installed.
 
 
@@ -195,12 +195,12 @@ If installed, you can start other Qt development tools with:
 
 3. Call ``start_IDE_with_QGIS.bat`` to start your IDE and create a new project.
 
-   Open the project settings and select the ``C:\Program Files\QGIS 3.0\bin\python3.exe`` as project interpreter.
+   Open the project settings and select the ``C:\Program Files\QGIS 3.0\bin\python3.exe`` as the project interpreter.
 
 
 
 
-4. Finally add the following locations to your project:
+4. Finally, add the following locations to your project:
 
 =================================================== ======================
 Path                                                Notes
@@ -247,15 +247,15 @@ Chose the Python Interpreter
 ----------------------------
 
 
-PyCharm needs to know which python interpreter it has to use. There might exist couple of python interpreters on your
-system, but we need exactly that used by your QGIS desktop application. You can identify the right python interpreter by
-from your QGIS desktop python shell, calling::
+PyCharm needs to know which python interpreter it has to use. There might exist multiple python interpreters on your
+system, but we need exactly the one used by your QGIS desktop application. You can identify the right python interpreter by
+calling from your QGIS desktop python shell::
 
     import sys
     print(sys.base_exec_prefix)
 
 
-The output shows you the python interpreters executable, e.g.:
+The output shows you the executable python interpreters, e.g.:
 
 =====================     ============================================================================
 Operating System          Typical QGIS Python interpreter location(s)
@@ -266,7 +266,7 @@ macOS                     ``/Library/Frameworks/Python.framework/Versions/3.6``
 Ubuntu                    tbd
 =====================     ============================================================================
 
-Use the python executable as PyCharm project interpreter:
+Use the python executable as the PyCharm project interpreter:
 
 .. figure:: img/pycharm_interpreter.png
      :width: 100%
