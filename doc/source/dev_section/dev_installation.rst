@@ -1,31 +1,29 @@
+.. include:: links.rst
 
 Installation (Dev)
 ##################
 
-Last Update: 2019-02-14
+Last Update: 2019-02-18
 
-If would you like to develop an EnMAP-Box application, or more generally a Qt or QGIS application, we highly recommend using
-a state-of-the-art Integrated Development Environment (IDE) which offers run-time debugging, code completion,
+If you like to develop an EnMAP-Box application, or more general, a Qt or QGIS application, we highly recommend using
+a state-of-the-art Integrated Development Environment (IDE), which offers run-time debugging, code completion,
 spell-checking, syntax highlighting, unit-testing and more. In the following we therefore describe how to run and debug
-the EnMAP-Box from the `PyCharm <https://www.jetbrains.com/pycharm/>`_ IDE. This allows us to develop and start
+the EnMAP-Box from the PyCharm_ IDE. This allows us to develop and start
 the EnMAP-Box and other applications *without* starting the QGIS desktop. Although we haven't tested it, these
-steps should be similar for other IDEs like `PyDev <http://www.pydev.org/>`_.
+steps should be similar for other IDEs like PyDev_.
 
-For developing EnMAP-Box Applications, you need to:
+For developing EnMAP-Box Applications in PyCharm_, the following steps should be done and will be explained in detail:
 
-    1. :ref:`Install required python packages<dev_install_dependencies>` to your QGIS python that your application and the EnMAP-Box depends on.
+#. Install required python packages to your QGIS python that your application and the EnMAP-Box depends on.
 
+#. Setup your Pycharm IDE to start with same environmental settings as your QGIS desktop application.
 
-    2. :ref:`Setup your IDE<dev_setup_pycharm>` to start with same environmental settings as your QGIS desktop application.
-
-
-    3. :ref:`Create a new project ("MyProject")<dev_create_ide_project>` and ensure that it uses the same python interpreter as QGIS, and create links to the required
-       QGIS and EnMAP-Box code locations.
+#. Create a new project ("MyProject") and ensure that it uses the same python as QGIS, as well as it required
+   QGIS and EnMAP-Box code locations are linked into.
 
 
-
-The more you get into the details of EnMAP-Box, QGIS, or more general Qt application development, you might want to utilize
-some specialized tools and explore their respective APIs. For this we recommended to read the section ":ref:`dev_qt_development_support`".
+The more you get into the details of EnMAP-Box, QGIS, or more general Qt application development, you might want to
+explore the respective APIs and use some more specialized tools for. For this we recommended to read section ":ref:`dev_qt_development_support`".
 
 
 .. _dev_install_dependencies:
@@ -33,15 +31,17 @@ some specialized tools and explore their respective APIs. For this we recommende
 1. Install required packages
 ============================
 
-If not already done, install git
 
-Follow :ref:`this installation guide <install-python-packages>` to install the EnMAP-Box and all required python packages to your QGIS python.
+First of all, follow the :ref:`user installation guide <install-python-packages>` to install the EnMAP-Box and all required python packages to your QGIS python.
 
-After that use pip to install additional packages required for developers. Call:
+If not already done, install `git <https://git-scm.com>`_ and `git-lfs <https://git-lfs.github.com>`_. It needs to be
+available to your operating systems shell.
+
+Now use `pip <https://pip.pypa.io/en/stable>`_ and install additional packages required for developers. Call:
 
 .. code-block:: batch
 
-    python3 -m install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements_developer.txt
+    python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements_developer.txt
 
 or install each package separately.
 
@@ -274,10 +274,10 @@ Use the python executable as the PyCharm project interpreter:
      PyCharm's python interpreter needs to be the same which is used by the QGIS desktop application.
 
 
-Add QGIS Python Code
+Add QGIS Code
 --------------------
 
-Now we tell PyCharm where to find the QGIS python API. Open the Project settings, Project > Projects Structure.
+Now we tell PyCharm where to find QGIS python code. Open Project settings, Project > Projects Structure.
 Click `+ Add Content Root`. Navigate into your QGIS installation and select the `python` folder that contains
 the `qgis` package and the `plugins` subfolder:
 
@@ -290,6 +290,7 @@ macOS                     ``/Applications/QGIS3.app/Contents/Resources/python``
 Ubuntu                    tbd
 =====================     ============================================================================
 
+
 Activate the `plugins` subfolder as sources, so that it is marked in blue.
 
 .. figure:: img/pycharm_add_qgis_sources.png
@@ -301,27 +302,31 @@ Activate the `plugins` subfolder as sources, so that it is marked in blue.
 
 .. note::
 
+    Folders in the PyCharm project tree can be defined as source root by right-mouse click > `Mark Directory as` > `Source Root`.
+
     Adding source locations or subfolders as source locations will add them
     to the python path. This is like calling ``sys.path.append(r'<source code directory>'`` during runtime, but
     allows PyCharm to this python code even before starting a python session.
 
 
+
 .. _dev_install_add_enmapbox_code:
 
-Add EnMAP-Box Python Code
+Add EnMAP-Box Code
 -------------------------
 
+As in the previous step, open the project structure settings and click `+ Add Content Root`.
 
-Now add the EnMAP-Box source code to your project sources. As in the previous step, open the project structure
-settings and click `+ Add Content Root`. Navigate to the active profile folder, where QGIS has installed the EnMAP-Box
-Plugin. You find it in the active profile folder, which can be opened from the QGIS GUI via Settings > User Profiles
+If you like the EnMAP-Box code as it is distributed as official QGIS Plugin, navigate to the active profile folder,
+where QGIS has installed the EnMAP-Box Plugin.
+You find it in the active profile folder, which can be opened from the QGIS GUI via Settings > User Profiles
 
 .. figure:: img/qgis_userfolder.png
      :width: 50%
 
      How to find the QGIS active profile folder
 
-This folder contains a subdirectory `python/plugins'/enmapboxplugin` to be added as project source.
+This folder contains a subdirectory `python/plugins'/enmapboxplugin`. Add it to your project sources.
 
 =====================     ========================================================================================================================================================
 Operating System          Typical QGIS Python location(s)
@@ -333,7 +338,8 @@ Ubuntu                    tbd
 =====================     ========================================================================================================================================================
 
 
-If you prefer to use the EnMAP-Box repository code directly, just:
+
+If you prefer to use source code from the EnMAP-Box repository, just:
 
     1. Use git to clone the repository::
 
@@ -344,6 +350,24 @@ If you prefer to use the EnMAP-Box repository code directly, just:
 
     2. Add ``<my_repositories>/enmapbox/`` as source location to your PyCharm project
     (instead of that in your QGIS active profile)
+
+
+Finally mark the following subfolders as source root:
+
+* ``enmapboxplugin/site-packages``
+
+* ``enmapboxplugin/make``
+
+
+Your PyCharm project structure should now look similar to like.
+Note the subfolders highlighted in blue, they are added to the Python path and its modules can be imported directly:
+
+
+.. figure:: img/pycharm_project_structure.png
+    :width: 75%
+
+    PyCharm project structure after added the QGIS and EnMAP-Box source code as project sources
+
 
 
 .. _dev_start_enmapbox_from_ide:

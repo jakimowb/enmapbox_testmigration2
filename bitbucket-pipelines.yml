@@ -12,4 +12,4 @@ pipelines:
           - python -m pip install -r requirements.txt
           - python -m pip install -r requirements_developer.txt
           - python -m pip install pytest-cov
-          - py.test --cov enmapbox --cov-report term-missing enmapboxtesting
+          #- py.test --cov enmapbox --cov-report term-missing enmapboxtesting
