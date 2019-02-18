@@ -20,6 +20,7 @@
 """
 import numpy
 import gdal
+import os
 import gdalnumeric
 import copy
 from scipy import ndimage
@@ -185,6 +186,8 @@ def check_load_data(bild):
         print("No data load possible please check the File Type in the HEADER!")
         print("All following Errors can be ignored because the program will not run anyway!")
     data = data.astype(float)
+    if '.' in bild:
+        bild=bild.split('.')[0]
     hdd = read_hdr_flt(bild+'.hdr')
     try:
         wavelength = hdd.wavelength
@@ -1079,3 +1082,34 @@ def own_mix_corelation2(corelate1,mix_minerals):
 ##########
 ############
 ############
+
+def listing(path):#listing all files in this directory, which ends with .hdr
+    return[os.path.join(path,f) for f in os.listdir(path) if f.endswith(".hdr")]
+
+def rewrite_headers(inputbildhdr):#read orginal header and read map info and crs, create a new list, append map info and crs into empty list (L[]), write L into all hdr files 
+    pf=inputbildhdr.rfind('/')
+    pfad=inputbildhdr[:pf]
+    liste=listing(pfad)
+    inputs=read_hdr_flt(inputbildhdr)
+    L=[]
+    try:
+        mapinfo=inputs.map_info
+        mapinfo='map info={'+mapinfo+'}\n'
+        L.append(mapinfo)
+    except(AttributeError):
+        print('Keine Koordinateninfo vorhanden!!!!')
+        return -1
+    try:
+        crs=inputs.coordinate_system_string
+        crs='coordinate system string={'+crs+'}\n'
+        L.append(crs)
+    except(AttributeError):
+        print('Keine CRS Info vorhanden, halb so wild!')
+    for j in enumerate(liste):
+        if j[1]==inputbildhdr:
+            continue
+        open(j[1],'a').writelines(L)
+    return None
+######
+#######
+#####

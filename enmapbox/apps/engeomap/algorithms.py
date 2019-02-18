@@ -126,5 +126,6 @@ def mapper_fullrange(params):
     auxfun.reshreib2d(swirposmat,basename+'_swirpos_of_max_abs',[bsh[1],bsh[2]])
     auxfun.reshreib2d(vnirdepthmat,basename+'_vnirdepth_of_max_abs',[bsh[1],bsh[2]])
     auxfun.reshreib2d(swirdepthmat,basename+'_swirdepth_of_max_abs',[bsh[1],bsh[2]])
+    auxfun.rewrite_headers(basename+'.hdr')
     return None
     
