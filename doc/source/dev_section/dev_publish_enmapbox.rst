@@ -3,8 +3,8 @@
 Build and publish the EnMAP-Box
 ###############################
 
-To be done before...
-====================
+Prerequisites
+=============
 
 
 Compile Resource Files

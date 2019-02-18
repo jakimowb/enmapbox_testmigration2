@@ -30,44 +30,6 @@ from enmapbox.gui.docks import *
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui import *
 
-class MyOutputRaster(QgsProcessingParameterDefinition):
-
-    def __init__(self, name='', description='', ext='bsq'):
-        QgsProcessingParameterDefinition.__init__(self, name, description)
-        self.ext = ext
-
-    def getFileFilter(self, alg):
-        if self.ext is None:
-            return self.tr('ENVI (*.bsq *.bil);;TIFF (*.tif);;All files(*.*)', 'OutputFile')
-        else:
-            return self.tr('%s files(*.%s)', 'OutputFile') % (self.ext, self.ext)
-
-    def getDefaultFileExtension(self, alg):
-
-        return 'bsq'
-
-class MyGeoAlgorithmus(QgsProcessingAlgorithm):
-
-    def defineCharacteristics(self):
-        self.name = 'TestAlgorithm'
-        self.group = 'TestGroup'
-        #self.addParameter(ParameterRaster('infile', 'Test Input Image'))
-        self.addOutput(QgsProcessingParameterRasterLayer('outfile1', 'Test Output Image'))
-        self.addOutput(MyOutputRaster('outfile2', 'Test MyOutput Image'))
-
-    def processAlgorithm(self, progress):
-        # map processing framework parameters to that of you algorithm
-        infile = self.getParameterValue('infile')
-        outfile = self.getOutputValue('outfile')
-        outfile2 = self.getOutputValue('outfile2')
-        s  =""
-        # define
-        # todo:
-
-
-    def help(self):
-        return True, '<todo: describe test>'
-
 # mini test
 from enmapbox.gui.applications import EnMAPBoxApplication
 class TestEnMAPBoxApp(EnMAPBoxApplication):
@@ -274,6 +236,45 @@ class TestEnMAPBoxWorkflows(unittest.TestCase):
         EMB.loadCurrentMapSpectra(center, mapDock.mapCanvas())
         self.assertEqual(profiles[0:1], EMB.currentSpectra())
 
+
+
+class MyOutputRaster(QgsProcessingParameterDefinition):
+
+    def __init__(self, name='', description='', ext='bsq'):
+        QgsProcessingParameterDefinition.__init__(self, name, description)
+        self.ext = ext
+
+    def getFileFilter(self, alg):
+        if self.ext is None:
+            return self.tr('ENVI (*.bsq *.bil);;TIFF (*.tif);;All files(*.*)', 'OutputFile')
+        else:
+            return self.tr('%s files(*.%s)', 'OutputFile') % (self.ext, self.ext)
+
+    def getDefaultFileExtension(self, alg):
+
+        return 'bsq'
+
+class MyGeoAlgorithmus(QgsProcessingAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'TestAlgorithm'
+        self.group = 'TestGroup'
+        #self.addParameter(ParameterRaster('infile', 'Test Input Image'))
+        self.addOutput(QgsProcessingParameterRasterLayer('outfile1', 'Test Output Image'))
+        self.addOutput(MyOutputRaster('outfile2', 'Test MyOutput Image'))
+
+    def processAlgorithm(self, progress):
+        # map processing framework parameters to that of you algorithm
+        infile = self.getParameterValue('infile')
+        outfile = self.getOutputValue('outfile')
+        outfile2 = self.getOutputValue('outfile2')
+        s  =""
+        # define
+        # todo:
+
+
+    def help(self):
+        return True, '<todo: describe test>'
 
 
 if __name__ == '__main__':
