@@ -64,8 +64,7 @@ First Steps in the GUI
     * In the next step we link both map views, so that zoom and center are synchronized between both. Go to :menuselection:`View --> Set Map Linking` and
       select |linkscalecenter| :superscript:`Link map scale and center`.
 
-    * Move the map (using |pan| or holding mouse wheel) and see how both map views are synchronized. Also mind how the link
-      you just created is listed also in the respective map properties under ``Data Views``.
+    * Move the map (using |pan| or holding mouse wheel) and see how both map views are synchronized.
 
 
 Image Classification
