@@ -79,9 +79,9 @@ Image Classification
 * Here you can alter the class colors and the class names or change the size of your sample. But for this tutorial use
   the default settings (sample size at 100%).
 
-  .. tip::
+..  .. tip::
 
-     Find more information on the Classification Workflow application in the :ref:`User Manual <classification_workflow>`
+..     Find more information on the Classification Workflow application in the :ref:`User Manual <classification_workflow>`
 
 * As ``Classifier`` choose RandomForestClassifier (which is the default setting)
 * In the ``Model Parameters`` text field add the parameter ``n_estimators = 300``. This will increase the number of trees
@@ -110,7 +110,7 @@ Image Classification
 
      Screenshot of the Classification Performance HTML report
 * Now visualize the classification result side-by-side with the initial image. Therefore, right-click into Map #2 and
-  select *Clear map*. Drag the classification image from the ``Data Sources`` panel into Map #2
+  select *Clear*. Drag the classification image from the ``Data Sources`` panel into Map #2
 
   .. figure:: ../img/screenshot_class_result.png
 
