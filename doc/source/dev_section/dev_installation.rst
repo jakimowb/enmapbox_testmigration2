@@ -1,9 +1,13 @@
 .. include:: links.rst
 
+*Last Update: 2019-02-18*
+
 Installation (Dev)
 ##################
 
-Last Update: 2019-02-18
+
+Overview
+========
 
 If you like to develop an EnMAP-Box application, or more general, a Qt or QGIS application, we highly recommend using
 a state-of-the-art Integrated Development Environment (IDE), which offers run-time debugging, code completion,
@@ -23,8 +27,8 @@ For developing EnMAP-Box Applications in PyCharm_, the following steps should be
 
 
 The more you get into the details of EnMAP-Box, QGIS, or more general Qt application development, you might want to
-explore the respective APIs and use some more specialized tools for. For this we recommended to read section ":ref:`dev_qt_development_support`".
-
+explore the respective APIs and use some more specialized tools for. For this we recommended to read the final section
+of this page.
 
 .. _dev_install_dependencies:
 
@@ -43,25 +47,27 @@ Now use `pip <https://pip.pypa.io/en/stable>`_ and install additional packages r
 
     python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements_developer.txt
 
-or install each package separately.
+.. tip::
 
-=================== =============================================================================
-Package             Description
-=================== =============================================================================
-gitpython           Git command from python
-                    https://gitpython.readthedocs.io/en/stable/index.html
-git-lfs             Git Large File Storage (git-lfs) support
-                    https://github.com/liberapay/git-lfs-fetch.py
-pb_tool             Plugin Builder Tool to create a QGIS Plugin
-                    http://g-sherman.github.io/plugin_build_tool/
-sphinx              Python documentation generator
-                    http://www.sphinx-doc.org/en/master/
-sphinx_argparse
-sphinx-markdown
-sphinx-red-theme
-sphinx-autobuild
-recommonmark
-=================== =============================================================================
+    The ``requirements_developer.txt`` is used to install the following python packages:
+
+    =================== =============================================================================
+    Package             Description
+    =================== =============================================================================
+    gitpython           Git command from python
+                        https://gitpython.readthedocs.io/en/stable/index.html
+    git-lfs             Git Large File Storage (git-lfs) support
+                        https://github.com/liberapay/git-lfs-fetch.py
+    pb_tool             Plugin Builder Tool to create a QGIS Plugin
+                        http://g-sherman.github.io/plugin_build_tool/
+    sphinx              Python documentation generator
+                        http://www.sphinx-doc.org/en/master/
+    sphinx_argparse
+    sphinx-markdown
+    sphinx-red-theme
+    sphinx-autobuild
+    recommonmark
+    =================== =============================================================================
 
 
 
@@ -82,9 +88,11 @@ Windows
 The following description is based on http://spatialgalaxy.net/2018/02/13/quick-guide-to-getting-started-with-pyqgis3-on-windows/
 
 QGIS for Windows (OSGeo4W) uses a set of cascading batch (``*.bat``) files to setup up the QGIS environment.
-We recommend to use similar approaches to start the IDE and other applications that require the same environment to operate in as the desktop QGIS does.
+We recommend to use similar approaches to start Pycharm and other applications that require the same environment to
+operate in as the desktop QGIS does.
 
-First, we need to know the root folder of our QGIS3/OSGeo4W installation, hereafter referred as ``OSGEO4W_ROOT``, e.g. ````OSGEO4W_ROOT=C:\Program Files\QGIS 3.0\`` or ````OSGEO4W_ROOT=C:\Program Files\OSGeo4W\``.
+First, we need to know the root folder of our QGIS3/OSGeo4W installation, hereafter referred as
+``OSGEO4W_ROOT``, e.g. ````OSGEO4W_ROOT=C:\Program Files\QGIS 3.0\`` or ````OSGEO4W_ROOT=C:\Program Files\OSGeo4W\``.
 
 OSGeo4W Shell
 ~~~~~~~~~~~~~
@@ -106,7 +114,7 @@ The following script shows how to setup and start the QGIS shell with a Python 3
 Now you can type ``python`` to start a python 3 shell. Please note that without calling ```py3_env.bat`` before, the QGIS shell would start a python 2 shell instead.
 
 Commands available in the QGIS shell can be listed with ``o-help``. E.g. calling ``qgis`` will start the QGIS desktop and ``setup`` the graphical OSGeo Installer.
-Some important applications to develop applications are:
+Important applications to develop applications are:
 
 =====================     ============================================================================
 Command                   Description
@@ -124,6 +132,7 @@ Command                   Description
 Depending on previous setup steps, some of these commands might not be installed by default.
 The Qt Designer and Qt Assistant, for example, require to have the ``qt5-doc`` and ``qt5-devel`` packages installed.
 
+More information on OSGeo4W packages and its installation are available `here <https://trac.osgeo.org/osgeo4w/wiki/WikiStart#OSGeo4WUserInformation>`_.
 
 IDE Start script
 ~~~~~~~~~~~~~~~~
@@ -193,40 +202,18 @@ If installed, you can start other Qt development tools with:
     start "Start QGIS" /B "%OSGEO4W_ROOT%\bin\qgis-bin.exe" %*
 
 
-3. Call ``start_IDE_with_QGIS.bat`` to start your IDE and create a new project.
-
-   Open the project settings and select the ``C:\Program Files\QGIS 3.0\bin\python3.exe`` as the project interpreter.
-
-
-
-
-4. Finally, add the following locations to your project:
-
-=================================================== ======================
-Path                                                Notes
-=================================================== ======================
-``C:\YourRepositories\enmapbox``                    EnMAP-Box Source Code
-``C:\Program Files\QGIS 3.0\apps\qgis\python``      QGIS and Qt Python API
-``C:\Program Files\QGIS 3.0\apps\Python36\Scripts`` other helpful scripts
-=================================================== ======================
-
-
+3. Call ``start_IDE_with_QGIS.bat`` to start PyCharm
 
 
 macOS
 -----
 
-1. Ensure that the `QGIS_PREFIX_PATH` is available to the macOS shell. If not, edit the users `.bash_profile`:
+Ensure that the ``QGIS_PREFIX_PATH`` is available to the macOS shell. If not, edit the users `.bash_profile`:
 
-    PATH="/Library/Frameworks/Python.framework/Versions/3.6/bin:${PATH}"
-    export PATH
-    QGIS_PREFIX_PATH="/Applications/QGIS3.app/Contents/MacOS"
-    export QGIS_PREFIX_PATH
-
-2. Start your IDE and ensure the following QGIS paths are part of your python project:
-
-    /Applications/QGIS3.app/Contents/Resources/python
-    /Applications/QGIS3.app/Contents/Resources/python/plugins
+PATH="/Library/Frameworks/Python.framework/Versions/3.6/bin:${PATH}"
+export PATH
+QGIS_PREFIX_PATH="/Applications/QGIS3.app/Contents/MacOS"
+export QGIS_PREFIX_PATH
 
 
 Linux
@@ -263,7 +250,7 @@ Operating System          Typical QGIS Python interpreter location(s)
 Windows                   ``C:\PROGRA~1\QGIS3~1.4\apps\Python37``
                           ``C:\PROGRA~1\OSGeo4W\apps\Python37``
 macOS                     ``/Library/Frameworks/Python.framework/Versions/3.6``
-Ubuntu                    tbd
+Ubuntu                    tbd.
 =====================     ============================================================================
 
 Use the python executable as the PyCharm project interpreter:
@@ -271,7 +258,7 @@ Use the python executable as the PyCharm project interpreter:
 .. figure:: img/pycharm_interpreter.png
      :width: 100%
 
-     PyCharm's python interpreter needs to be the same which is used by the QGIS desktop application.
+     PyCharm's python interpreter needs to the python used by your QGIS desktop application.
 
 
 Add QGIS Code
@@ -300,9 +287,11 @@ Activate the `plugins` subfolder as sources, so that it is marked in blue.
      source folder.
 
 
-.. note::
+.. tip::
 
     Folders in the PyCharm project tree can be defined as source root by right-mouse click > `Mark Directory as` > `Source Root`.
+
+    .. image:: img/pycharm_mark_directory_as_source.png
 
     Adding source locations or subfolders as source locations will add them
     to the python path. This is like calling ``sys.path.append(r'<source code directory>'`` during runtime, but
@@ -315,7 +304,7 @@ Activate the `plugins` subfolder as sources, so that it is marked in blue.
 Add EnMAP-Box Code
 -------------------------
 
-As in the previous step, open the project structure settings and click `+ Add Content Root`.
+Open the project structure settings and click `+ Add Content Root`.
 
 If you like the EnMAP-Box code as it is distributed as official QGIS Plugin, navigate to the active profile folder,
 where QGIS has installed the EnMAP-Box Plugin.
@@ -331,28 +320,13 @@ This folder contains a subdirectory `python/plugins'/enmapboxplugin`. Add it to 
 =====================     ========================================================================================================================================================
 Operating System          Typical QGIS Python location(s)
 =====================     ========================================================================================================================================================
-Windows                   ``C:\Users\geo_beja\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin``
-                          ``C:\Users\geo_beja\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin``
+Windows                   ``C:\Users\<user name>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin``
+                          ``C:\Users\<user name>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin``
 macOS                     ``<computername>/Users/<username>/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins/enmapboxplugin``
-Ubuntu                    tbd
+Ubuntu                    tbd.
 =====================     ========================================================================================================================================================
 
-
-
-If you prefer to use source code from the EnMAP-Box repository, just:
-
-    1. Use git to clone the repository::
-
-        cd <my_repositories>
-        git clone https://bitbucket.org/hu-geomatics/enmap-box.git
-        cd enmap-box
-        git checkout development
-
-    2. Add ``<my_repositories>/enmapbox/`` as source location to your PyCharm project
-    (instead of that in your QGIS active profile)
-
-
-Finally mark the following subfolders as source root:
+Mark the following subfolders as source root:
 
 * ``enmapboxplugin/site-packages``
 
@@ -368,6 +342,26 @@ Note the subfolders highlighted in blue, they are added to the Python path and i
 
     PyCharm project structure after added the QGIS and EnMAP-Box source code as project sources
 
+
+.. tip::
+
+    If you are an advanced developers who prefers to use the most-recent source-code directly from the repository
+
+        1. Use git to clone the repository::
+
+            cd <my_repositories>
+            git clone https://bitbucket.org/hu-geomatics/enmap-box.git
+            cd enmap-box
+            git checkout development
+
+        2. Add ``<my_repositories>/enmapbox/`` as source location to your PyCharm project
+        (instead of that in your QGIS active profile)
+
+    Note, that when using the git repository code instead of the QGIS plugin:
+
+    * the root folder for the EnMAP-Box is called `enmapbox` instead of `enmapboxplugin` (this might change in future).
+
+    * the repository version needs to be :ref:`build and installed <dev_build_enmapbox_plugin>` as QGIS plugin until it appears as updated or modified QGIS plugin
 
 
 .. _dev_start_enmapbox_from_ide:
@@ -397,6 +391,9 @@ If everything is set up correctly, you should be able to start the EnMAP-Box usi
 
 Other Sources and Tools
 =======================
+
+API References
+--------------
 
 Online API references can be found at:
 
@@ -462,6 +459,8 @@ Qt Creator is the one-in-all IDE to develop Qt C++ applications. It includes the
 (here called Help) and Qt Designer (here called form designer) and helps to browse C++ code. It is the preferred tool to
 explore the QGIS C++ source code, for example if you like to better understand what it does behind the QGIS python API.
 
+Qt and the Qt Creator are available at https://www.qt.io/download. Ensure to install the code documentation for the same
+Qt version used by QGIS.
 
 .. figure:: img/qt_creator_example_ui.png
      :width: 100%
