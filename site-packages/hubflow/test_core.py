@@ -695,7 +695,14 @@ class TestRaster(TestCase):
 
     def test_saveAs(self):
         raster = Raster(enmapboxtestdata.enmap)
-        copy = raster.saveAs(filename='c:/vsimem/raster.tif', driver=None)
+        copy = raster.saveAs(filename='/vsimem/raster.tif', driver=None)
+
+    def test_convolve(self):
+        raster = Raster(enmapboxtestdata.hires).subsetBands()
+        from astropy.convolution import Gaussian2DKernel
+        kernel = Gaussian2DKernel(x_stddev=3, y_stddev=3)
+        convolved = raster.convolve(filename='/vsimem/raster.bsq', kernel=kernel)
+        MapViewer().addLayer(convolved.dataset().mapLayer()).show()
 
 
 if __name__ == '__main__':

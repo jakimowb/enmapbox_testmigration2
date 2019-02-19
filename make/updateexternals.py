@@ -91,20 +91,18 @@ def updateRemotes(remoteLocations):
         remoteLocations = [remoteLocations]
     qps.make.updateexternals.updateRemoteLocations(remoteLocations)
 
-
 if __name__ == "__main__":
-
 
     # update remotes
     to_update = ['hub-datacube'
                  ,'hub-workflow'
                  ,'enmapboxapplications'
-                 #,'enmapboxgeoalgorithms'
+                 ,'enmapboxgeoalgorithms'
                  ,'enmap-box-lmu-vegetation-apps'
                  #'virtual-raster-builder',
                  #'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
-                ,'qps'
+                 #,'qps'
                 ]
     updateRemotes(to_update)
-    exit()
+    exit(0)
