@@ -466,20 +466,3 @@ Qt version used by QGIS.
 
      Qt Creator with opened metadataeditor.ui.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
