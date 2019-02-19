@@ -333,8 +333,7 @@ Mark the following subfolders as source root:
 * ``enmapboxplugin/make``
 
 
-Your PyCharm project structure should now look similar to like.
-Note the subfolders highlighted in blue, they are added to the Python path and its modules can be imported directly:
+Your PyCharm project structure should now look similar to like:
 
 
 .. figure:: img/pycharm_project_structure.png
