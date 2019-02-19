@@ -278,7 +278,7 @@ Ubuntu                    tbd
 =====================     ============================================================================
 
 
-Activate the `plugins` subfolder as sources, so that it is marked in blue.
+Mark the subfolder `plugins` as additional source, so that it is marked in blue.
 
 .. figure:: img/pycharm_add_qgis_sources.png
      :width: 100%
