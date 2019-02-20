@@ -340,7 +340,7 @@ Mark the following subfolders as source root:
 * ``enmapboxplugin/make``
 
 
-Your PyCharm project structure should now look similar to like:
+Your PyCharm project structure should now look like:
 
 
 .. figure:: img/pycharm_project_structure.png
