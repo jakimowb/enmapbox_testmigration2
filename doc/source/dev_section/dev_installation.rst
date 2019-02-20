@@ -101,7 +101,7 @@ The following script shows how to setup and start the QGIS shell with a Python 3
 
 .. code-block:: bat
 
-    ::STARTUP Script to start a IDE like PyCharm under the same environment as QGIS
+    ::STARTUP Script to start PyCharm or other application under the same environment as QGIS
     ::OSGeo4W/QGIS installation folder
     set OSGEO4W_ROOT="C:\Program Files\QGIS 3.4"
 
@@ -111,37 +111,42 @@ The following script shows how to setup and start the QGIS shell with a Python 3
     call py3_env.bat
 
 
-Now you can type ``python`` to start a python 3 shell. Please note that without calling ```py3_env.bat`` before, the QGIS shell would start a python 2 shell instead.
+.. tip::
 
-Commands available in the QGIS shell can be listed with ``o-help``. E.g. calling ``qgis`` will start the QGIS desktop and ``setup`` the graphical OSGeo Installer.
-Important applications to develop applications are:
+    Now you can type ``python`` to start a python 3 shell. Please note that without calling ```py3_env.bat`` before, the QGIS shell would start a python 2 shell instead.
 
-=====================     ============================================================================
-Command                   Description
-=====================     ============================================================================
-``qgis``                  QGIS desktop application
-``setup``                 OSGeo4W graphical installer
-``designer``              Qt Designer to draw graphical user interfaces
-``qgis-designer``         Qt Designer + additional QGIS widgets
-``assistant``             Qt Assistant to browse Qt + QGIS API reference
-``python``                python shell. call ``py3_env.bat`` before to activate python 3
-``pip``                   python package installer (similar to ``python -m pip``)
-=====================     ============================================================================
+    Commands available in the QGIS shell can be listed with ``o-help``. E.g. calling ``qgis`` will start the QGIS desktop and ``setup`` the graphical OSGeo Installer.
+    Important applications to develop applications are:
+
+    =====================     ============================================================================
+    Command                   Description
+    =====================     ============================================================================
+    ``qgis``                  QGIS desktop application
+    ``setup``                 OSGeo4W graphical installer
+    ``designer``              Qt Designer to draw graphical user interfaces
+    ``qgis-designer``         Qt Designer + additional QGIS widgets
+    ``assistant``             Qt Assistant to browse Qt + QGIS API reference
+    ``python``                python shell. call ``py3_env.bat`` before to activate python 3
+    ``pip``                   python package installer (similar to ``python -m pip``)
+    =====================     ============================================================================
 
 
-Depending on previous setup steps, some of these commands might not be installed by default.
-The Qt Designer and Qt Assistant, for example, require to have the ``qt5-doc`` and ``qt5-devel`` packages installed.
+    Depending on previous setup steps, some of these commands might not be installed by default.
 
-More information on OSGeo4W packages and its installation are available `here <https://trac.osgeo.org/osgeo4w/wiki/WikiStart#OSGeo4WUserInformation>`_.
+    The Qt Designer and Qt Assistant, for example, require to have the ``qt5-doc`` and ``qt5-devel`` packages installed.
+    Call ``setup`` to open the graphical installer and install them in advanced mode.
 
-IDE Start script
-~~~~~~~~~~~~~~~~
+    More information on OSGeo4W packages and its installation are available `here <https://trac.osgeo.org/osgeo4w/wiki/WikiStart#OSGeo4WUserInformation>`_.
 
-1. Create a ``start_IDE_with_QGIS.bat`` to start your IDE in the same environment as the QGIS desktop application:
+PyCharm Start script
+~~~~~~~~~~~~~~~~~~~~
+
+1. Create a ``start_PyCharm_with_QGIS.bat`` to start PyCharm_ (and if you like also other applications) in the same
+environment as your QGIS desktop application:
 
 .. code-block:: bat
 
-    ::STARTUP Script to start a IDE like PyCharm under the same environment as QGIS
+    ::STARTUP Script to start applications under the same environment as QGIS
     ::OSGeo4W or QQGIS installation folder
     set OSGEO4W_ROOT="C:\Program Files\QGIS 3.4"
 
@@ -210,10 +215,12 @@ macOS
 
 Ensure that the ``QGIS_PREFIX_PATH`` is available to the macOS shell. If not, edit the users `.bash_profile`:
 
-PATH="/Library/Frameworks/Python.framework/Versions/3.6/bin:${PATH}"
-export PATH
-QGIS_PREFIX_PATH="/Applications/QGIS3.app/Contents/MacOS"
-export QGIS_PREFIX_PATH
+.. code-block:: bash
+
+    PATH="/Library/Frameworks/Python.framework/Versions/3.6/bin:${PATH}"
+    export PATH
+    QGIS_PREFIX_PATH="/Applications/QGIS3.app/Contents/MacOS"
+    export QGIS_PREFIX_PATH
 
 
 Linux
@@ -236,7 +243,7 @@ Chose the Python Interpreter
 
 PyCharm needs to know which python interpreter it has to use. There might exist multiple python interpreters on your
 system, but we need exactly the one used by your QGIS desktop application. You can identify the right python interpreter by
-calling from your QGIS desktop python shell::
+open QGIS, start the python console ( CTRL + Alt + P) and calling::
 
     import sys
     print(sys.base_exec_prefix)
@@ -253,7 +260,7 @@ macOS                     ``/Library/Frameworks/Python.framework/Versions/3.6``
 Ubuntu                    tbd.
 =====================     ============================================================================
 
-Use the python executable as the PyCharm project interpreter:
+Open the project settings (`File` > `Settings...`) and set the python executable as the PyCharm project interpreter:
 
 .. figure:: img/pycharm_interpreter.png
      :width: 100%
@@ -306,7 +313,7 @@ Add EnMAP-Box Code
 
 Open the project structure settings and click `+ Add Content Root`.
 
-If you like the EnMAP-Box code as it is distributed as official QGIS Plugin, navigate to the active profile folder,
+If you like using the EnMAP-Box code as it is distributed as official QGIS Plugin, navigate to the active profile folder,
 where QGIS has installed the EnMAP-Box Plugin.
 You find it in the active profile folder, which can be opened from the QGIS GUI via Settings > User Profiles
 
