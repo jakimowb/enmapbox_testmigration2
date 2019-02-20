@@ -377,11 +377,11 @@ Your PyCharm project structure should now look like:
 
 .. _dev_start_enmapbox_from_ide:
 
-5. Start the EnMAP-Box
-======================
+5. Start the EnMAP-Box from PyCharm
+===================================
 
 
-If everything is set up correctly, you now can start the EnMAP-Box from Python:
+If everything is set up correctly, you now can start the EnMAP-Box from PyCharm Python Console:
 
 .. code-block:: python
 
