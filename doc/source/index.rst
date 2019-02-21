@@ -55,8 +55,8 @@ step-by-step tutorials which exemplify the software's capabilities.
     :maxdepth: 2
     :caption: Developer Section
 
-    dev_section/dev_installation.rst
     dev_section/dev_installation_slim.rst
+    dev_section/dev_installation.rst
     dev_section/dev_enmapboxrepository
     dev_section/dev_publish_enmapbox.rst
     dev_section/dev_gettingstarted.rst

@@ -2,7 +2,7 @@
 
 *Last Update: 2019-02-18*
 
-Installation (Developers)
+Installation (Detailed)
 #########################
 
 
