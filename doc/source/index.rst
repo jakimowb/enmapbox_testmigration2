@@ -26,7 +26,6 @@ HUB-Datacube documentation
    :glob:
 
    api/hubdc_core.rst
-   api/hubdc_applier.rst
 
 Indices and tables
 ------------------

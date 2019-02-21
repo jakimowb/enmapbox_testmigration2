@@ -868,6 +868,8 @@ class RasterSize(object):
 
         if isinstance(obj, RasterSize):
             size = obj
+        elif isinstance(obj, int):
+            size = RasterSize(x=obj, y=obj)
         elif isinstance(obj, (tuple, list)) and len(obj) == 2:
             size = RasterSize(*obj)
         else:
@@ -1080,6 +1082,7 @@ class Grid(object):
         '''
         Returns the decomposition of self into subgrids of given ``size``.
         Subgrids at the border are trimmed to the extent of self.
+
         '''
         size = RasterSize.parse(size)
         assert isinstance(size, RasterSize)
@@ -1640,6 +1643,11 @@ class RasterDataset(object):
         '''Returns the raster data type.'''
         return self._gdalDataset.GetRasterBand(1).ReadAsArray(win_xsize=1, win_ysize=1).dtype.type
 
+    def gdalType(self):
+        '''Returns the raster data type.'''
+        from osgeo import gdal_array
+        return gdal_array.NumericTypeCodeToGDALTypeCode(self.dtype())
+
     def xprofile(self, row):
         '''
         Returns raster data as 1d array for the given ``row``.
@@ -2190,6 +2198,11 @@ class VectorDataset(object):
         assert isinstance(self._ogrLayer, ogr.Layer)
         return self._ogrLayer
 
+    def features(self):
+        for ogrFeature in self.ogrLayer():
+            assert isinstance(ogrFeature, ogr.Feature)
+            yield VectorFeature(ogrFeature=ogrFeature)
+
     def close(self):
         '''Closes the ogr.DataSourse and ogr.Layer'''
         self._ogrLayer = None
@@ -2408,6 +2421,17 @@ class VectorDataset(object):
         from qgis.core import QgsVectorLayer
         return VectorLayer(QgsVectorLayer(self.filename()))
 
+class VectorFeature(object):
+
+    def __init__(self, ogrFeature):
+        assert isinstance(ogrFeature, ogr.Feature)
+        self._ogrFeature = ogrFeature
+
+    def ogrFeature(self):
+        return self._ogrFeature
+
+    def value(self, attribute):
+        return self.ogrFeature().GetField(attribute)
 
 def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
     '''
