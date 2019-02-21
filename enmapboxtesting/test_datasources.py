@@ -12,7 +12,7 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 SHOW_GUI = False
-import unittest, tempfile
+import unittest, tempfile, pathlib
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 from enmapbox.gui.utils import *
@@ -261,8 +261,19 @@ class standardDataSources(unittest.TestCase):
 
         # test doubles input
         l = len(dsm)
-        dsm.addSources(enmap)
-        self.assertTrue(len(dsm) == l, msg='DataSourceManager should not contain the same source multiple times')
+        try:
+
+            p1 = str(pathlib.WindowsPath(pathlib.Path(enmap)))
+            p2 = str(pathlib.Path(enmap).as_posix())
+
+            dsm.addSources(p1)
+            dsm.addSources(p2)
+
+            self.assertTrue(len(dsm) == l, msg='DataSourceManager should not contain the same source multiple times')
+        except:
+            pass
+
+        s = ""
 
 
     def test_datasourcmanagertreemodel(self):

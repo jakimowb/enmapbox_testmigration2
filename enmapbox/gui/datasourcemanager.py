@@ -1353,11 +1353,9 @@ class DataSourceManagerTreeModel(TreeModel):
                 elem = rootElem.firstChildElement()
                 added = []
                 while not elem.isNull():
-                    node = QgsLayerTreeNode.readXml(elem)
-                    #QGIS3:  node = QgsLayerTreeNode.readXml(elem, QgsProject.instance())
+                    node = QgsLayerTreeNode.readXml(elem, QgsProject.instance())
                     added.extend(self.dataSourceManager.addSource(node))
                     elem = elem.nextSiblingElement()
-                #print('Added ds'.format(added))
                 return any([isinstance(ds, DataSource) for ds in added])
 
                 #result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)

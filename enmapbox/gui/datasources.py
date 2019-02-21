@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-import collections, uuid
+import collections, uuid, pathlib
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from enmapbox.gui import *
@@ -466,7 +466,19 @@ class DataSource(object):
         self.__refs__.append(weakref.ref(self))
 
     def isSameSource(self, dataSource)->bool:
+        """
+        Returns True if the dataSource points to the same source
+        :param dataSource: DataSource
+        :return: bool
+        """
         assert isinstance(dataSource, DataSource)
+
+        try:
+            p1 = pathlib.Path(self.mUri).as_posix()
+            p2 = pathlib.Path(dataSource.mUri).as_posix()
+            return p1 == p2
+        except:
+            pass
         return self.mUri == dataSource.mUri
 
     def setUri(self, uri:str):
