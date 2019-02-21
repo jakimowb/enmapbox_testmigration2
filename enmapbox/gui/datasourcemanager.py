@@ -76,11 +76,27 @@ class DataSourceManager(QObject):
         DataSourceManager._testInstance = self
         self.mSources = list()
 
+
         try:
             from hubflow import signals
             signals.sigFileCreated.connect(self.addSource)
         except Exception as ex:
             messageLog(ex)
+
+        self.registerQgsProject(QgsProject.instance())
+        # receive any file added to QGIS
+
+    def registerQgsProject(self, qgsProject:QgsProject):
+        """
+        Registers a QgsProject instance and listens to changes of its QgsMapLayerStore
+        :param qgsProject: QgsProject
+        """
+        assert isinstance(qgsProject, QgsProject)
+
+        qgsProject.layersAdded.connect(self.addSources)
+
+        # todo: what happens when layers are removed from the QgsProject?
+
 
         #self.updateFromQgsProject()
 
