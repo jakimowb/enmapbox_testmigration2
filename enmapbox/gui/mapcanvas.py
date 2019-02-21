@@ -1176,16 +1176,17 @@ class MapCanvas(QgsMapCanvas):
         :param event: QDropEvent
         """
 
-        mimeData = event.mimeData()
-        assert isinstance(mimeData, QMimeData)
+        if event.dropAction() == Qt.CopyAction:
+            mimeData = event.mimeData()
+            assert isinstance(mimeData, QMimeData)
 
-        #add map layers
-        mapLayers = extractMapLayers(mimeData)
+            #add map layers
+            mapLayers = extractMapLayers(mimeData)
 
-        if len(mapLayers) > 0:
-            self.setLayers(mapLayers + self.layers())
-            event.accept()
-            event.acceptProposedAction()
+            if len(mapLayers) > 0:
+                self.setLayers(mapLayers + self.layers())
+                event.accept()
+            #event.acceptProposedAction()
 
     def contextMenuEvent(self, event):
 

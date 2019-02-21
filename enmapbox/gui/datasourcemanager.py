@@ -262,15 +262,20 @@ class DataSourceManager(QObject):
                 #we have similar sources.
                 older = []
                 newer = []
+
                 for d in sameSources:
                     if dsNew.isNewVersionOf(d):
                         older.append(d)
                     if d.isNewVersionOf(dsNew):
                         newer.append(d)
-                # do not add this source in case there is a newer one
+
+                sameOrNewer = [d for d in sameSources if d not in older]
+
+                # remove older versions
                 if len(older) > 0:
                     self.removeSources(older)
-                if len(newer) == 0:
+
+                if len(sameOrNewer) == 0:
                     toAdd.append(dsNew)
 
 

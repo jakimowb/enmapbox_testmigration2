@@ -207,6 +207,20 @@ class standardDataSources(unittest.TestCase):
         self.assertTrue(len(DSM) == 1)
         self.assertEqual(DSM.sources()[0], src2)
 
+
+    def test_datasourcemanager_equalsources(self):
+
+        p1 = r'C:\Users\geo_beja\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin\enmapboxtestdata\hires_berlin.bsq'
+        p2 = r'C:/Users/geo_beja/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins/enmapboxplugin/enmapboxtestdata/hires_berlin.bsq'
+
+        dsm = DataSourceManager()
+        dsm.addSources([p1,p2])
+        self.assertTrue(len(dsm) == 1)
+
+        dsm = DataSourceManager()
+        dsm.addSources([p2, p1])
+        self.assertTrue(len(dsm) == 1)
+
     def test_datasourcemanager(self):
         reg = QgsProject.instance()
         reg.removeAllMapLayers()
