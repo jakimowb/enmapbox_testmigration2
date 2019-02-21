@@ -72,6 +72,9 @@ class DataSourceManager(QObject):
 
 
     def __init__(self):
+        """
+        Constructor
+        """
         super(DataSourceManager, self).__init__()
         DataSourceManager._testInstance = self
         self.mSources = list()
@@ -83,8 +86,6 @@ class DataSourceManager(QObject):
         except Exception as ex:
             messageLog(ex)
 
-        self.registerQgsProject(QgsProject.instance())
-        # receive any file added to QGIS
 
     def registerQgsProject(self, qgsProject:QgsProject):
         """
@@ -97,8 +98,6 @@ class DataSourceManager(QObject):
 
         # todo: what happens when layers are removed from the QgsProject?
 
-
-        #self.updateFromQgsProject()
 
     def __iter__(self):
         return iter(self.mSources)
@@ -323,11 +322,11 @@ class DataSourceManager(QObject):
         """
 
 
-        allLayers = list(QgsProject.instance().mapLayers().values())
-        visbileLayers = qgisLayerTreeLayers()
+        allQgsLayers = list(QgsProject.instance().mapLayers().values())
+        allQgsSources = [l.source() for l in allQgsLayers]
+        visibleQgsLayers = qgisLayerTreeLayers()
+        visibleQgsSources = [l.source() for l in visibleQgsLayers]
 
-        allSources = [l.source() for l in allLayers]
-        visibleSources = [l.source() for l in visbileLayers]
         iface = qgisAppQgisInterface()
 
         for dataSource in self.sources():
@@ -336,14 +335,15 @@ class DataSourceManager(QObject):
                 if not l.isValid():
                     print('INVALID LAYER FROM DATASOURCE: {} {}'.format(l, l.source()), file=sys.stderr)
                     continue
-                if l.source() not in allSources:
+                if l.source() not in allQgsSources:
                     QgsProject.instance().addMapLayer(l, showLayers)
                 else:
-                    if iface and showLayers and l.source() not in visibleSources:
-                        i = allSources.index(l.source())
-                        knownLayer = allLayers[i]
+                    if iface and showLayers and l.source() not in visibleQgsSources:
+                        i = allQgsSources.index(l.source())
+                        knownLayer = allQgsLayers[i]
                         assert isinstance(knownLayer, QgsMapLayer)
                         iface.layerTreeView().model().rootGroup().addLayer(knownLayer)
+
 
 
     def clear(self):

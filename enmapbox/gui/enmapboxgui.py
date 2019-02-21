@@ -254,7 +254,7 @@ class EnMAPBox(QgisInterface, QObject):
         splash.showMessage('Init DataSourceManager')
         self.dataSourceManager = DataSourceManager()
         self.dataSourceManager.sigDataSourceAdded.connect(lambda: self.dataSourceManager.exportSourcesToQGISRegistry(False))
-
+        self.dataSourceManager.registerQgsProject(QgsProject.instance())
 
         self.dockManager = DockManager()
         self.dockManager.connectDataSourceManager(self.dataSourceManager)
