@@ -25,16 +25,18 @@ class NDVIOperator(ApplierOperator):
         nir = operator.inputRaster.raster(key='nir').array()
         brandenburg = operator.inputVector.vector(key='brandenburg').array(initValue=0, burnValue=1)
 
-        # calculate ndvi and mask Brandenburg
+        # calculate ndvi, clip to 0-1 and mask Brandenburg
         ndvi = numpy.float32(nir-red)/(nir+red)
-        ndvi[brandenburg==0] = -1
+        np.clip(ndvi, 0, 1, out=ndvi)
+        ndvi[brandenburg==0] = 0
 
         # write ndvi data
         operator.outputRaster.raster(key='ndvi').setArray(array=ndvi)
+        operator.outputRaster.raster(key='ndvi').setNoDataValue(0)
 
 # Apply the operator to the inputs, creating the outputs.
 applier.apply(operatorType=NDVIOperator)
-print(applier.outputRaster.raster(key='ndvi').filename)
+print(applier.outputRaster.raster(key='ndvi').filename())
 
 # Python prints something like:
 # >>> c:\users\USER\appdata\local\temp\ndvi.img

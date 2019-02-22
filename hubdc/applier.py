@@ -2,8 +2,6 @@
 Basic tools for setting up a function to be applied over a raster processing chain.
 The :class:`~hubdc.applier.Applier` class is the main point of entry in this module.
 
-See :doc:`ApplierExamples` for more information.
-
 """
 
 from __future__ import print_function
@@ -36,13 +34,13 @@ class ApplierOptions(object):
 
 
 class ApplierDefaults(object):
-    '''Defauls values for various settings used inside an applier processing chain.'''
+    '''Default values for various settings used inside an applier processing chain.'''
 
     autoExtent = ApplierOptions.AutoExtent.intersection
     autoResolution = ApplierOptions.AutoResolution.minimum
     nworker = None
     nwriter = None
-    blockSize = Size(x=256, y=256)
+    blockSize = RasterSize(x=256, y=256)
     writeENVIHeader = True
 
     class GDALEnv(object):
@@ -64,7 +62,8 @@ class ApplierIO(object):
 
     def __init__(self, filename):
         self._operator = None
-        assert isinstance(filename, str)
+        if not isinstance(filename, str):
+            raise TypeError('Expected filename of type str, got: {} instead'.format(type(filename)))
         self._filename = filename
 
     def setOperator(self, operator):
@@ -113,7 +112,7 @@ class ApplierInputRaster(ApplierIO):
     def _freeUnpickableResources(self):
         self._dataset = None
 
-    def array(self, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noDataValue=None,
+    def array(self, indices=None, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noDataValue=None,
               errorThreshold=ApplierDefaults.GDALWarp.errorThreshold,
               warpMemoryLimit=ApplierDefaults.GDALWarp.memoryLimit,
               multithread=ApplierDefaults.GDALWarp.multithread,
@@ -122,6 +121,7 @@ class ApplierInputRaster(ApplierIO):
         Returns image data as 3-d numpy array of shape = (zsize, ysize, xsize),
         where zsize is the number of bands.
 
+        :param indices: list of band indices to read (default is all bands)
         :param overlap: the number of pixels to additionally read along each spatial dimension
         :param resampleAlg: GDAL resampling algorithm, e.g. gdal.GRA_NearestNeighbour
         :param noDataValue: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
@@ -134,61 +134,9 @@ class ApplierInputRaster(ApplierIO):
         if grid is None:
             grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
 
-        if self.operator().subgrid().projection().equal(other=self.dataset().grid().projection()):
-            datasetResampled = self.dataset().translate(grid=grid, resampleAlg=resampleAlg, noData=noDataValue)
-        else:
-            datasetResampled = self.dataset().warp(grid=grid, resampleAlg=resampleAlg,
-                                                   errorThreshold=errorThreshold,
-                                                   warpMemoryLimit=warpMemoryLimit,
-                                                   multithread=multithread,
-                                                   srcNodata=noDataValue)
-        array = datasetResampled.readAsArray()
-        datasetResampled.close()
-        return array
-
-    def bandArray(self, indices, overlap=0, resampleAlg=gdal.GRA_NearestNeighbour, noDataValue=None,
-                  errorThreshold=ApplierDefaults.GDALWarp.errorThreshold,
-                  warpMemoryLimit=ApplierDefaults.GDALWarp.memoryLimit,
-                  multithread=ApplierDefaults.GDALWarp.multithread):
-        '''
-        Returns a band subset of the image data as 3-d numpy array of shape = (zsize, ysize, xsize),
-        where zsize is the number of indices.
-
-        :param indices: list of band indices
-        :param overlap: the number of pixels to additionally read along each spatial dimension
-        :param resampleAlg: GDAL resampling algorithm, e.g. gdal.GRA_NearestNeighbour
-        :param noDataValue: explicitely set the noDataValue used for reading; this overwrites the noDataValue defined by the raster itself
-        :param errorThreshold: error threshold for approximation transformer (in pixels)
-        :param warpMemoryLimit: size of working buffer in bytes
-        :param multithread: whether to multithread computation and I/O operations
-        '''
-
-        bandList = [i + 1 for i in indices]
-
-        grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
-        if self.operator().subgrid().projection().equal(self.dataset().grid().projection()):
-            datasetResampled = self.dataset().translate(grid=grid,
-                                                        bandList=bandList,
-                                                        resampleAlg=resampleAlg,
-                                                        noData=noDataValue)
-        else:
-            selfGridReprojected = self.operator().subgrid().reproject(self.dataset().grid())
-            selfGridReprojectedWithBuffer = selfGridReprojected.pixelBuffer(buffer=1 + overlap)
-
-            datasetClipped = self.dataset().translate(grid=selfGridReprojectedWithBuffer,
-                                                      bandList=bandList,
-                                                      noData=noDataValue)
-
-            datasetResampled = datasetClipped.warp(grid=grid,
-                                                   resampleAlg=resampleAlg,
-                                                   errorThreshold=errorThreshold,
-                                                   warpMemoryLimit=warpMemoryLimit,
-                                                   multithread=multithread,
-                                                   srcNodata=noDataValue)
-            datasetClipped.close()
-
-        array = datasetResampled.readAsArray()
-        datasetResampled.close()
+        array = self.dataset().array(indices=indices, grid=grid, resampleAlg=resampleAlg, noDataValue=noDataValue,
+                                     errorThreshold=errorThreshold, warpMemoryLimit=warpMemoryLimit,
+                                     multithread=multithread,)
         return array
 
     def fractionArray(self, categories, overlap=0, index=None):
@@ -207,18 +155,23 @@ class ApplierInputRaster(ApplierIO):
         grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
 
         # create tmp dataset with binarized categories in original resolution
-        gridInSourceProjection = grid.reproject(other=self.dataset().grid()).pixelBuffer(buffer=1)
-        tmpDataset = self.dataset().translate(grid=gridInSourceProjection,
-                                              bandList=[index + 1])
+
+        extentInSourceProjection = grid.extent().reproject(projection=self.dataset().projection())
+        gridInSourceProjection = Grid(extent=extentInSourceProjection, resolution=self.dataset().grid().resolution())
+        gridInSourceProjection = gridInSourceProjection.anchor(point=self.dataset().grid().extent().upperLeft())
+        gridInSourceProjection = gridInSourceProjection.pixelBuffer(buffer=1)
+        tmpDataset = self.dataset().translate(grid=gridInSourceProjection, bandList=[index + 1])
         tmpArray = tmpDataset.readAsArray()
 
         binarizedArray = list()
         for category in categories:
             if category is None:
                 binarizedArray.append(np.full_like(tmpArray[0], fill_value=0.))
+                assert 0 # do we need this?
             else:
                 binarizedArray.append(numpy.float32(tmpArray[0] == category))
-        binarizedDataset = createRasterDatasetFromArray(grid=gridInSourceProjection, array=binarizedArray)
+        binarizedDataset = RasterDataset.fromArray(grid=gridInSourceProjection, array=binarizedArray)
+
 
         binarizedInputRaster = ApplierInputRaster.fromDataset(dataset=binarizedDataset)
         binarizedInputRaster.setOperator(operator=self.operator())
@@ -251,7 +204,7 @@ class ApplierInputRaster(ApplierIO):
         ys, xs = numpy.indices(mask.shape[1:])[:, mask[0]]
         profiles = list()
         for y, x in zip(ys, xs):
-            grid = self.operator().subgrid().subset(offset=Pixel(x=x, y=y), size=Size(x=1, y=1))
+            grid = self.operator().subgrid().subset(offset=Pixel(x=x, y=y), size=RasterSize(x=1, y=1))
             profiles.append(self.array(resampleAlg=resampleAlg, noDataValue=noDataValue, errorThreshold=errorThreshold,
                                        warpMemoryLimit=warpMemoryLimit, multithread=multithread, grid=grid))
         if len(profiles) != 0:
@@ -315,7 +268,7 @@ class ApplierInputVector(ApplierIO):
     def _rasterize(self, initValue, burnValue, burnAttribute, allTouched, filterSQL, overlap, dtype, resolution):
 
         grid = self.operator().subgrid().pixelBuffer(buffer=overlap)
-        gridOversampled = Grid(extent=grid.extent(), resolution=resolution, projection=grid.projection())
+        gridOversampled = Grid(extent=grid.extent(), resolution=resolution)
 
         dataset = self.dataset().rasterize(grid=gridOversampled, gdalType=NumericTypeCodeToGDALTypeCode(dtype),
                                            initValue=initValue, burnValue=burnValue, burnAttribute=burnAttribute,
@@ -374,8 +327,8 @@ class ApplierOutputRaster(ApplierIO):
         :param filename: destination filename for output raster
         :param driver:
         :type driver: hubdc.core.RasterDriver
-        :param creationOptions: e.g. for ENVI and GTiff files see http://www.gdal.org/frmt_various.html#ENVI and http://www.gdal.org/frmt_gtiff.html.
-        :type creationOptions: RasterCreationOptions
+        :param creationOptions: raster creation options
+        :type creationOptions: list
         '''
 
         ApplierIO.__init__(self, filename=filename)
@@ -384,9 +337,9 @@ class ApplierOutputRaster(ApplierIO):
         self.driver = driver
         assert isinstance(driver, RasterDriver)
         if creationOptions is None:
-            creationOptions = driver.defaultOptions()
+            creationOptions = driver.options()
         self.creationOptions = creationOptions
-        assert isinstance(creationOptions, RasterCreationOptions)
+        assert isinstance(self.creationOptions, list)
         self._writerQueue = None
         self._zsize = None
 
@@ -697,15 +650,15 @@ class ApplierInputRasterGroup(ApplierIOGroup):
                                        value=ApplierInputRaster(filename=os.path.join(root, file)))
         return group
 
-    @staticmethod
-    def fromIndex(index):
-        '''Returns an input raster group containing all input rasters contained in the :class:`~hubdc.applier.ApplierInputRasterIndex` given by ``index``.'''
-
-        assert isinstance(index, ApplierInputRasterIndex)
-        group = ApplierInputRasterGroup()
-        for key, filename, extent in zip(index._keys, index._filenames, index._extents):
-            group.setRaster(key=key, value=ApplierInputRaster(filename=filename))
-        return group
+    #@staticmethod
+    #def fromIndex(index):
+    #    '''Returns an input raster group containing all input rasters contained in the :class:`~hubdc.applier.ApplierInputRasterIndex` given by ``index``.'''
+    #
+    #    assert isinstance(index, ApplierInputRasterIndex)
+    #    group = ApplierInputRasterGroup()
+    #    for key, filename, extent in zip(index._keys, index._filenames, index._extents):
+    #        group.setRaster(key=key, value=ApplierInputRaster(filename=filename))
+    #    return group
 
     def setRaster(self, key, value):
         '''Add an :class:`~hubdc.applier.ApplierInputRaster` given by ``value`` and named ``key``.'''
@@ -780,9 +733,9 @@ class ApplierInputRasterGroup(ApplierIOGroup):
                 return key
         return None
 
-
+'''
 class ApplierInputRasterIndex(object):
-    WGS84 = Projection.WGS84()
+    WGS84 = Projection.wgs84()
 
     def __init__(self):
         self._keys = list()
@@ -819,7 +772,7 @@ class ApplierInputRasterIndex(object):
 
     def insertRaster(self, key, raster):
         assert isinstance(raster, ApplierInputRaster)
-        extent = raster.dataset().grid().spatialExtent().reproject(targetProjection=self.WGS84)
+        extent = raster.dataset().grid().spatialExtent().reproject(projection=self.WGS84)
         self.insertFilename(key=key, filename=raster.filename(), extent=extent)
 
     def insertFilename(self, key, filename, extent):
@@ -830,7 +783,7 @@ class ApplierInputRasterIndex(object):
     def intersection(self, grid):
         assert isinstance(grid, Grid)
 
-        gridExtent = grid.spatialExtent().reproject(targetProjection=self.WGS84)
+        gridExtent = grid.spatialExtent().reproject(projection=self.WGS84)
 
         index = ApplierInputRasterIndex()
 
@@ -839,7 +792,7 @@ class ApplierInputRasterIndex(object):
                 index.insertFilename(key=key, filename=filename, extent=extent)
 
         return index
-
+'''
 
 class ApplierInputVectorGroup(ApplierIOGroup):
     '''Container for :class:`~hubdc.applier.ApplierInputVector` and :class:`~hubdc.applier.ApplierInputVectorGroup` objects.'''
@@ -962,8 +915,6 @@ class Applier(object):
             applier.apply(operator=MyOperator)
 
 
-        For detailed usage examples see :doc:`ApplierExamples`.
-
         :param description: short description that is displayed on the progress bar
         :param ufuncArgs: additional arguments that will be passed to the operators ufunc() method.
         :param ufuncKwargs: additional keyword arguments that will be passed to the operators ufunc() method.
@@ -1003,6 +954,8 @@ class Applier(object):
         results = self._runProcessSubgrids()
         self._runClose()
         self.controls.progressBar.setPercentage(percentage=100)
+        if self.controls.progressCallback is not None:
+            self.controls.progressCallback(100)
 
         s = (now() - runT0);
         m = s / 60;
@@ -1018,7 +971,8 @@ class Applier(object):
         self.queues = list()
         self.queueMock = QueueMock()
         if self.controls._multiwriting:
-            for w in range(max(1, self.controls.nwriter)):
+
+            for w in range(self.controls.nwriter if self.controls.nwriter is not None else 1):
                 w = WriterProcess()
                 w.start()
                 self.writers.append(w)
@@ -1032,7 +986,6 @@ class Applier(object):
             writers, self.writers = self.writers, None
             # - free cached gdal datasets
             self.inputRaster._freeUnpickableResources()
-
             self.pool = Pool(processes=self.controls.nworker, initializer=_pickableWorkerInitialize, initargs=(self,))
             self.writers = writers  # put writers back
         else:
@@ -1139,7 +1092,11 @@ class _Worker(object):
 
     @classmethod
     def processSubgrid(cls, i, n, iy, ix, ny, nx, workingGrid):
-        cls.operator.progressBar.setPercentage(float(i) / n * 100)
+        percent = float(i) / n * 100
+        cls.operator.progressBar.setPercentage(percent)
+        if cls.operator._controls.progressCallback is not None:
+            cls.operator._controls.progressCallback(percent)
+
         return cls.operator._apply(workingGrid=workingGrid, iblock=i, nblock=n, yblock=iy, xblock=ix, nyblock=ny,
                                    nxblock=nx)
 
@@ -1264,7 +1221,8 @@ class ApplierOperator(object):
         return self.xblock() * self.xblockSize()
 
     def full(self, value, bands=1, dtype=None, overlap=0):
-        '''Returns a 3-d numpy array of shape = (zsize, ysize+2*overlap, xsize+2*overlap) filled with constant ``value``.'''
+        '''Returns a 3-d numpy array of shape = (zsize, ysize+2*overlap, xsize+2*overlap) filled with constant ``value``
+        or list of values, one for each band.'''
         if isinstance(value, list):
             array = [numpy.full(shape=(self.subgrid().size().y() + 2 * overlap,
                                        self.subgrid().size().x() + 2 * overlap),
@@ -1290,20 +1248,16 @@ class ApplierOperator(object):
         return blockResult
 
     def ufunc(self, *args, **kwargs):
-        '''Overwrite this method to specify the image processing. See :doc:`ApplierExamples` for more information.'''
+        '''Overwrite this method to specify the image processing.'''
 
-        if self._ufuncFunction is None:
-            raise NotImplementedError()
-        else:
-            blockResults = self._ufuncFunction(self, *args, **kwargs)
-            result = self.aggregate(blockResults=blockResults, grid=self.grid())
-            return result
+        blockResults = self._ufuncFunction(self, *args, **kwargs)
+        result = self.aggregate(blockResults=blockResults, grid=self.grid())
+        return result
 
     @staticmethod
     def aggregate(blockResults, grid, *args, **kwargs):
         '''
         Overwrite this method to specify how to aggregate the list of block-wise return values.
-        See :doc:`ApplierExamples` for more information.
         '''
         return blockResults
 
@@ -1328,6 +1282,7 @@ class ApplierControls(object):
         self.setGDALDisableReadDirOnOpen()
         self.setGDALMaxDatasetPoolSize()
         self.setProgressBar()
+        self.setProgressCallback()
 
     def setProgressBar(self, progressBar=None):
         """
@@ -1340,6 +1295,13 @@ class ApplierControls(object):
         self.progressBar = progressBar
         return self
 
+    def setProgressCallback(self, progressCallback=None):
+        """
+        Set the progress callback function, a function with one argument named ``percent``, that is called each time the applier finishes a block.
+        """
+        self.progressCallback = None
+        return self
+
     def setBlockSize(self, blockSize=ApplierDefaults.blockSize):
         '''
         Set the processing block x and y size. Pass an int defining x and y size to be the same,
@@ -1348,10 +1310,10 @@ class ApplierControls(object):
         '''
 
         if isinstance(blockSize, int):
-            blockSize = Size(*[blockSize] * 2)
+            blockSize = RasterSize(*[blockSize] * 2)
         elif isinstance(blockSize, (tuple, list)) and len(blockSize) == 2:
-            blockSize = Size(*blockSize)
-        elif isinstance(blockSize, Size):
+            blockSize = RasterSize(*blockSize)
+        elif isinstance(blockSize, RasterSize):
             pass
         else:
             raise ValueError('not a valid block size')
@@ -1450,46 +1412,22 @@ class ApplierControls(object):
         or an :class:`~hubdc.model.Extent` object,
         or None (default) to derive the extent from the input rasters.
         """
-        if extent is None:
-            pass
-        elif isinstance(extent, Extent):
-            pass
-        elif isinstance(extent, (tuple, list)) and len(extent) == 4 and all(
-                [isinstance(v, (int, float)) for v in extent]):
-            extent = Extent(*extent)
-        else:
-            raise ValueError('not a valid extent')
+
+        if not isinstance(extent, (Extent, type(None))):
+            raise errors.TypeError(extent)
         self.extent = extent
         return self
 
     def setProjection(self, projection=None):
-        '''
-        Set the applier projection.
-        Pass a Well-Known Text (WKT) projection string,
-        or an Authority EPSG ID as int,
-        or a :class:`~hubdc.model.Projection` object,
-        or None (default) to use the projection that is shared by all input rasters.
-        '''
+        '''Set the applier projection (default is projection shared by all input rasters.'''
 
-        if projection is None:
-            pass
-        elif isinstance(projection, Projection):
-            pass
-        elif isinstance(projection, str):
-            projection = Projection(wkt=projection)
-        elif isinstance(projection, int):
-            projection = Projection.fromEPSG(epsg=projection)
-        else:
-            raise ValueError('not a valid projection')
+        if not isinstance(projection, (Projection, type(None))):
+            raise errors.TypeError(projection)
         self.projection = projection
         return self
 
     def setGrid(self, grid=None):
-        """
-        Set the applier grid defining the extent, resolution and projection.
-        Pass a :class:`~hubdc.model.Grid` object,
-        or None (default) to derive the grid from the input rasters.
-        """
+        '''Set the applier grid (default is grid derived from the input rasters.'''
 
         if grid is None:
             self.setExtent()
@@ -1500,7 +1438,7 @@ class ApplierControls(object):
             self.setResolution(resolution=grid.resolution())
             self.setProjection(projection=grid.projection())
         else:
-            raise ValueError('not a valid grid')
+            raise errors.TypeError(grid)
         return self
 
     def setGDALCacheMax(self, bytes=ApplierDefaults.GDALEnv.cacheMax):
@@ -1544,12 +1482,11 @@ class ApplierControls(object):
         assert isinstance(inputRasterGroup, ApplierInputRasterGroup)
         grids = [inputRaster.dataset().grid() for inputRaster in inputRasterGroup.flatRasters()]
         projection = self.deriveProjection(grids)
-        return Grid(projection=projection,
-                    extent=self.deriveExtent(grids, projection),
+        return Grid(extent=self.deriveExtent(grids, projection),
                     resolution=self.deriveResolution(grids))
 
     def deriveProjection(self, grids):
-        '''Derives the projection from the given :class:`~hubdc.model.Grid`'s.'''
+        '''Derives the projection from the given grids.'''
 
         if self.projection is None:
             if len(grids) == 0:
@@ -1563,17 +1500,17 @@ class ApplierControls(object):
         return projection
 
     def deriveExtent(self, grids, projection):
-        '''Derives the extent from the given :class:`~hubdc.model.Grid`'s in the given :class:`~hubdc.model.Projection`.'''
+        '''Derives the extent from the given grids in the given projection.'''
 
         if self.extent is None:
 
             if len(grids) == 0:
                 raise errors.MissingApplierExtentError()
 
-            extent = grids[0].spatialExtent().reproject(targetProjection=projection)
+            extent = grids[0].extent().reproject(projection=projection)
 
             for grid in grids:
-                extent_ = grid.spatialExtent().reproject(targetProjection=projection)
+                extent_ = grid.extent().reproject(projection=projection)
                 if self.autoExtent == ApplierOptions.AutoExtent.union:
                     extent = extent.union(other=extent_)
                 elif self.autoExtent == ApplierOptions.AutoExtent.intersection:

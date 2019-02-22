@@ -4,3 +4,13 @@ doc/build
 hubdc/testdata/LT51940232010189KIS01/LT51940232010189KIS01_sr_band1.img.aux.xml
 hubdc/testdata/LT51940232010189KIS01/LT51940232010189KIS01_cfmask.img.aux.xml
 doc/source/.ipynb_checkpoints/DataModelExamples-checkpoint.ipynb
+doc/source/examples/_utils/qgis_greyband.png
+doc/source/examples/_utils/qgis_multiband.png
+doc/source/examples/projection/raster.hdr
+doc/source/examples/projection/raster.bsq.aux.xml
+doc/source/examples/projection/raster.bsq
+doc/source/examples/projection/vector.gpkg
+doc/source/examples/rasterdataset/raster.tif.aux.xml
+doc/source/examples/rasterdataset/raster.tif
+doc/source/examples/rasterdataset/raster.hdr
+doc/source/examples/rasterdataset/raster.bsq
