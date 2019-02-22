@@ -1,13 +1,10 @@
 Getting Started
 ###############
 
-The following examples show how interacte with the EnMAP-Box GUI application.
-All examples can be found as unittest TestCases in examples/api_examples.py
+The following examples show how to interact with the EnMAP-Box GUI.
+They are available unittest TestCases in `examples/api_examples.py`
 
-1. Start the EnMAP-Box
-======================
-
-For simplicity, we like to import some QGIS and Qt libraries which we use for the following examples globally::
+For simplicity, we import some important Qt and QGIS classes globally::
 
     from qgis.core import *
     from qgis.gui import *
@@ -16,15 +13,18 @@ For simplicity, we like to import some QGIS and Qt libraries which we use for th
     from qgis.PyQt.QtCore import *
 
 
-The Qt and QGIS widgets and objects need a ``QApplication`` or ``QgsApplication``, respectively instance. This application
-provides the main GUI Thread and keeps a GUI application alive. As we like to use the following examples from inside a
-IDE like PyCharm, we need to emulate the QGIS Desktop Application, which else provides the QgsApplication instance::
+1. Start the EnMAP-Box
+======================
+
+Befor we can use Qt and QGIS widgets, we need a ``QApplication`` or ``QgsApplication`` instance that
+provides the main GUI loop and allows to receive user interactions like mouse clicks. As we like to run our examples from an
+IDE like PyCharm, we will first start a ``QgsApplication``::
 
     from enmapbox.testing import initQgisApplication
     qgsApp = initQgisApplication()
 
 
-Now we can start the EnMAP-Box and open the example data::
+Now we can start and open the EnMAP-Box and load some example data. Finally it is required to start the GUI loop::
 
     from enmapbox import EnMAPBox
     enmapBox = EnMAPBox(None)

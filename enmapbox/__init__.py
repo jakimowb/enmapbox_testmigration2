@@ -165,7 +165,8 @@ def initAll():
     initEnMAPBoxProcessingProvider()
 
 
-#provide important classes in Top-Level Namespace
+
+
 EnMAPBox = None
 EnMAPBoxApplication = None
 
@@ -177,9 +178,12 @@ try: #exception necessary to allow sphinx documentation
     from enmapbox.gui.applications import EnMAPBoxApplication
     EnMAPBoxApplication = EnMAPBoxApplication
 
-except Exception as ex:
-    s = ""
+except NameError as ex:
     pass
+
+except Exception as ex:
+    raise ex
+
 
 
 
