@@ -2754,8 +2754,19 @@ class MapViewer():
     def show(self, size=None):
         self._prepareShowOrSave()
         self.canvas.waitWhileRendering()
+
         if self._printExtent:
-            self.canvas.extentsChanged.connect(lambda: print(self.canvas.extent()))
+            from qgis.core import QgsRectangle
+
+            def onExtentChanged():
+                crs = self.layers[0].qgsLayer().crs()
+                r = self.canvas.extent()
+                extent = Extent(xmin=r.xMinimum(), xmax=r.xMaximum(), ymin=r.yMinimum(), ymax=r.yMaximum(),
+                                projection=Projection.fromEpsg(crs.authid().split(':')[1]))
+                print(extent)
+
+
+            self.canvas.extentsChanged.connect(onExtentChanged)
         if size is not None:
             self.canvas.resize(*size)
         self.canvas.show()
