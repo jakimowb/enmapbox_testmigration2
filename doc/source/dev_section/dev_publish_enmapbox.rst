@@ -49,6 +49,7 @@ To update code developed in an external location, e.g. call:
 .. code-block:: python
 
     import updateexternals
+    updateexternals.updateRemotes('qps')
     updateexternals.updateRemotes('hub-datacube')
     updateexternals.updateRemotes('hub-workflow')
     updateexternals.updateRemotes('enmapboxapplications')
