@@ -44,13 +44,15 @@ Update external developments
 The EnMAP-Box repository source code includes source code that is maintained in other `external` repositories.
 These locations and how its code is copied into the EnMAP-Box repository is described in ``make/updateexternals.py``.
 
-To update code developed in an external location, e.g. the HUB Data Cube, call:
+To update code developed in an external location, e.g. call:
 
 .. code-block:: python
 
     import updateexternals
     updateexternals.updateRemotes('hub-datacube')
-
+    updateexternals.updateRemotes('hub-workflow')
+    updateexternals.updateRemotes('enmapboxapplications')
+    updateexternals.updateRemotes('enmapboxgeoalgorithms')
 
 .. note:: add/modify remote sources with ``RemoteInfo.create`` to specify other external git repository sources
           to be part of EnMAP-Box Source code
