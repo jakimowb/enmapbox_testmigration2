@@ -17,6 +17,7 @@ import pyqtgraph as pg
 from lmuvegetationapps import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from lmuvegetationapps.Spec2Sensor_cl import Spec2Sensor
+import enmapboxtestdata
 import warnings
 import csv
 
@@ -369,7 +370,7 @@ class IVVRM:
             self.gui.Ccl_lineEdit.setDisabled(True)
             self.gui.Ccl_Text.setDisabled(True)
 
-        self.mod_exec()
+        #self.mod_exec()
 
     def para_init(self):
         self.select_s2s(sensor="default", trigger=False)
@@ -441,7 +442,7 @@ class IVVRM:
         self.gui.Push_SaveSpec.clicked.connect(self.save_spectrum)
         self.gui.Push_SaveParams.clicked.connect(self.save_paralist)
 
-        self.gui.lblFake.setVisible(False) # placeholder for typeLIDF object in coloring
+        self.gui.lblFake.setVisible(False)  # placeholder for typeLIDF object in coloring
 
     def txtColorBars(self):
         if self.gui.CheckPlotAcc.isChecked():
