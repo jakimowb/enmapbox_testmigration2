@@ -77,8 +77,28 @@ def vector_fromRandomPointsFromClassification():
     labels.plotCategoryBand(showPlot=False)
     exportMatplotlibPNG(filename='classification_applyMask.png')
 
-vector_fromRandomPointsFromClassification()
+def classification_plot():
+    classification = Classification.fromArray(array=[[[0, 1], [1, 2]]],
+                                              filename='/vsimem/classification.bsq',
+                                              classDefinition=ClassDefinition(colors=['red','blue']))
+    classification.plot(showPlot=False)
+    exportMatplotlibPNG(filename='classification_fromArray.png')
+
+def fracion_asClassColorRGBRaster():
+    import enmapboxtestdata
+    fraction = Fraction(filename=enmapboxtestdata.landcoverfractions)
+    rgb = fraction.asClassColorRGBRaster(filename='/vsimem/rgb.bsq')
+    rgb.plotMultibandColor(showPlot=False)
+    exportMatplotlibPNG(filename='fracion_asClassColorRGBRaster.png')
+
+performance = FractionPerformance.fromRaster(prediction=Fraction(filename=enmapboxtestdata.landcoverfractions),
+                            reference = Classification(filename=enmapboxtestdata.landcoverclassification))
+performance.report().saveHTML(filename=join(tempfile.gettempdir(), 'report.html'), open=True)
+
+#fracion_asClassColorRGBRaster()
 exit(0)
+classification_plot()
+vector_fromRandomPointsFromClassification()
 vector_fromRandomPointsFromMask()
 wavebandDefinition_plot()
 sensorDefinition_plot()

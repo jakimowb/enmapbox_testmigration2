@@ -1,33 +1,28 @@
-import matplotlib
-matplotlib.use('QT5Agg')
-from matplotlib import pyplot
-
 from unittest import TestCase
 from tempfile import gettempdir
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
-import hubflow.testdata
 import enmapboxtestdata
 from hubflow.core import *
+import hubflow.testdata
 import hubdc.testdata
 
 CUIProgressBar.SILENT = False
 overwrite = not True
 vector = hubflow.testdata.vector()
-hymap = hubflow.testdata.hymap()
 enmap = hubflow.testdata.enmap()
 
-hymapClassification = hubflow.testdata.hymapClassification(overwrite=overwrite)
 enmapClassification = hubflow.testdata.enmapClassification(overwrite=overwrite)
 vectorClassification = hubflow.testdata.vectorClassification()
 vectorMask = hubflow.testdata.vectorMask()
-hymapFraction = hubflow.testdata.hymapFraction(overwrite=overwrite)
+vectorPoints = hubflow.testdata.vectorPoints()
 enmapFraction = hubflow.testdata.enmapFraction(overwrite=overwrite)
-hymapRegression = hubflow.testdata.hymapRegression(overwrite=overwrite)
 enmapRegression = hubflow.testdata.enmapRegression(overwrite=overwrite)
 enmapMask = enmapClassification.asMask()
-speclib = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
+speclib = EnviSpectralLibrary(filename=enmapboxtestdata.library)
+#speclib2 = EnviSpectralLibrary(filename=enmapboxtestdata.speclib2)
+
 
 rasterMaps = [enmap, enmapClassification, enmapRegression, enmapFraction, enmapMask]
 vectorsMaps = [vector, vectorClassification, vectorMask]
@@ -44,50 +39,36 @@ objects = maps + samples + [MapCollection([enmap, enmapMask]),
                             enmap.sensorDefinition().wavebandDefinition(index=0),
                             enmap.sensorDefinition(),
                             speclib,
-                            RasterStack([enmap, enmapMask]),
+                            #RasterStack([enmap, enmapMask]),
                             enmapClassification.classDefinition(),
                             Classifier(sklEstimator=RandomForestClassifier()),
                             ClassificationPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification),
                             FractionPerformance.fromRaster(prediction=enmapFraction, reference=enmapClassification),
                             RegressionPerformance.fromRaster(prediction=enmapRegression, reference=enmapRegression),
-                            ClusteringPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification)
-                            ]
+                            ClusteringPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification),
+                            Color('red')]
 
 outdir = join(gettempdir(), 'hubflow_test')
-openHTML = False
+openHTML = not True
 
 class Test(TestCase):
 
+    def test_AttributeDefinitionEditor(self):
+        filename = splitext(enmapboxtestdata.landcover_polygons)[0] + '.json'
+        print(filename)
+        definitions = AttributeDefinitionEditor.readFromJson(filename=filename)
+        print(definitions)
+        print(AttributeDefinitionEditor.makeClassDefinition(definitions=definitions, attribute='level_2_id'))
+
     def test_ENVI(self):
-        ENVI.readHeader(filenameHeader=ENVI.findHeader(filenameBinary=enmapboxtestdata.speclib))
-
-    def test_ENVISpectralLibrary(self):
-
-        # init
-        speclib = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
-        print(speclib)
-        print(speclib.raster().dataset().metadataDict())
-
-        # speclib from raster
-        speclib = ENVISpectralLibrary.fromRaster(filename=join(outdir, 'ENVISpectralLibraryFromRaster.sli'),
-                                                 raster=enmap)
-        print(speclib)
-        print(speclib.raster().dataset().shape())
-
-        raster = speclib.raster(transpose=False)
-        print(raster.dataset().shape())
-        raster.dataset().plotXProfile(row=Row(y=0, z=0))
-
-        raster = speclib.raster(transpose=True)
-        print(raster.dataset().shape())
-        raster.dataset().plotZProfile(pixel=Pixel(x=0, y=0), spectral=True)
-
+        ENVI.readHeader(filenameHeader=ENVI.findHeader(filenameBinary=enmapboxtestdata.library))
 
     def test_WavebandDefinition(self):
 
         wavebandDefinition = WavebandDefinition.fromFWHM(center=600, fwhm=10)
         print(wavebandDefinition)
         wavebandDefinition.plot()
+        wavebandDefinition.resamplingWeights(sensor=SensorDefinition.fromPredefined(name='sentinel2'))
 
     def test_SensorDefinition(self):
 
@@ -96,15 +77,14 @@ class Test(TestCase):
 
         # a) response function from ENVI Speclib
 
-        sentinel2ResponseFunction = ENVISpectralLibrary(filename=r'C:\Program Files\Exelis\ENVI53\classic\filt_func\sentinel2.sli')
-        sentinel2Sensor = SensorDefinition.fromENVISpectralLibrary(library=sentinel2ResponseFunction,
+        sentinel2ResponseFunction = EnviSpectralLibrary(filename=r'C:\source\hub-workflow\hubflow\sensors\sentinel2.sli')
+        sentinel2Sensor = SensorDefinition.fromEnviSpectralLibrary(library=sentinel2ResponseFunction,
                                                                    isResponseFunction=True)
         print(sentinel2Sensor)
         sentinel2Sensor.plot()
 
         # b) wl+fwhm from ENVI Speclib
-        from enmapboxtestdata import speclib
-        enmapSensor = SensorDefinition.fromENVISpectralLibrary(library=ENVISpectralLibrary(filename=speclib),
+        enmapSensor = SensorDefinition.fromEnviSpectralLibrary(library=EnviSpectralLibrary(filename=speclib.filename()),
                                                                isResponseFunction=False)
         print(enmapSensor)
         enmapSensor.plot()
@@ -114,12 +94,12 @@ class Test(TestCase):
         print(enmapSensor)
         enmapSensor.plot()
 
-
-        hymapSensor = SensorDefinition.fromRaster(Raster(r'C:\Work\EnMAP-Box\enmapProject\lib\hubAPI\resource\testData\image\Hymap_Berlin-A_Image'))
-
         # resample EnMAP into Sentinel 2
         outraster = sentinel2Sensor.resampleRaster(filename=join(outdir, 'sentinel2.bsq'), raster=enmap,
-                                                   mode=True)
+                                                   resampleAlg=SensorDefinition.RESAMPLE_LINEAR)
+        outraster = sentinel2Sensor.resampleRaster(filename=join(outdir, 'sentinel2.bsq'), raster=enmap,
+                                                   resampleAlg=SensorDefinition.RESAMPLE_RESPONSE)
+
         print(outraster)
 
 
@@ -129,12 +109,10 @@ class Test(TestCase):
             enmap.dataset().plotZProfile(pixel, plotWidget=plotWidget, spectral=True, xscale=1000)
             outraster.dataset().plotZProfile(pixel, plotWidget=plotWidget, spectral=True, symbol='o', symbolPen='r')
 
-        return
-
     def test_SensorDefinitionResampleArray(self):
 
-        sentinel2ResponseFunction = ENVISpectralLibrary(filename=r'C:\Program Files\Exelis\ENVI53\classic\filt_func\sentinel2.sli')
-        sentinel2Sensor = SensorDefinition.fromENVISpectralLibrary(library=sentinel2ResponseFunction,
+        sentinel2ResponseFunction = EnviSpectralLibrary(filename=r'C:\source\hub-workflow\hubflow\sensors\sentinel2.sli')
+        sentinel2Sensor = SensorDefinition.fromEnviSpectralLibrary(library=sentinel2ResponseFunction,
                                                                    isResponseFunction=True)
 
         profiles = [enmap.dataset().zprofile(pixel=Pixel(10,10)),
@@ -167,35 +145,47 @@ class Test(TestCase):
         self.assertListEqual(p.list('1-3 7-10', extendRanges=False), [(1, 3), (7, 10)])
         self.assertListEqual(p.list('1 5-10', extendRanges=False), [1, (5, 10)])
 
+    def test_Color(self):
+        color = Color('red')
+        print(color)
+        print(color.name())
+        print(color.red())
+        print(color.green())
+        print(color.blue())
+        print(color.colorNames())
+
     def test_Classification(self):
 
+        c = Classification.fromClassification(filename='/vsimem/c.bsq',
+                                              classification=vectorClassification, grid=enmap.grid())
+        print(c.noDataValues())
 
-        print(enmapClassification.statistics())
-        return
+
 
         raster = Raster.fromArray(array=[[[0, 1, 2]]], filename='/vsimem/raster.bsq')
         print(Classification(filename=raster.filename()))
 
         raster = enmapClassificationSample.raster()
         classification = enmapClassificationSample.classification()
-        classification.toRasterMetadata(raster=raster, classificationSchemeName='level 42')
+#        classification.toRasterMetadata(raster=raster, classificationSchemeName='level 42')
 
-        print(Classification.fromRasterMetadata(filename=join(outdir, 'ClassificationFromRasterMetadata.bsq'),
-                                                raster=raster, classificationSchemeName='level 42'))
-
-        print(hymapClassification.noDataValues())
-        print(hymapClassification.dtype())
+#        print(Classification.fromRasterMetadata(filename=join(outdir, 'ClassificationFromRasterMetadata.bsq'),
+#                                                raster=raster, classificationSchemeName='level 42'))
 
         # resampling
-        print(hymapClassification)
         print(enmapClassification)
         classification = Classification(filename=enmapClassification.filename(), minOverallCoverage=0., minDominantCoverage=0.)
         print(classification.resample(filename=join(outdir, 'ClassificationResample.bsq'),
-                                           grid=hymapClassification, controls=ApplierControls()))#.setBlockFullSize()))
+                                           grid=enmap.grid().atResolution(5), controls=ApplierControls()))#.setBlockFullSize()))
 
         # from fraction
         print(Classification.fromClassification(filename=join(outdir, 'ClassificationFromFraction.bsq'),
                                                 classification=enmapFraction, masks=[enmapMask]))
+
+        print(Classification.fromFraction(filename=join(outdir, 'ClassificationFromFraction.bsq'),
+                                          fraction=enmapFraction, masks=[enmapMask]))
+
+
 
         def ufunc(array, meta):
             carray = np.copy(array)
@@ -211,38 +201,35 @@ class Test(TestCase):
                                                    ufunc=ufunc, classDefinition=classDefinition))
 
         print(Classification.fromClassification(filename=join(outdir, 'hymapLandCover.bsq'),
-                                                classification=vectorClassification, grid=hymap.grid()))
+                                                classification=vectorClassification, grid=enmap.grid()))
 
-        print(hymapClassification.reclassify(filename=join(outdir, 'classificationReclassify.bsq'),
-                                             classDefinition=hubflow.testdata.classDefinitionL1,
-                                             mapping=enmapboxtestdata.landcoverClassDefinition.level2.mappingToLevel1ByName))
-
+        print(enmapClassification.reclassify(filename=join(outdir, 'classificationReclassify.bsq'),
+                                             classDefinition=ClassDefinition(names=['urban', 'rest']),
+                                             mapping={1: 1, 2: 1, 3: 2, 4: 2, 5: 2, 6: 2}))
 
     def test_ClassificationPerformance(self):
 
         print(enmapClassification)
-        print(hymapClassification)
         obj = ClassificationPerformance.fromRaster(prediction=enmapClassification, reference=enmapClassification)
         print(obj)
         obj.report().saveHTML(filename=join(outdir, 'report.html'), open=openHTML)
 
-
     def test_ClassificationSample(self):
 
         # read from labeled library
-        library = ENVISpectralLibrary(filename=enmapboxtestdata.speclib)
+        library = EnviSpectralLibrary(filename=enmapboxtestdata.library)
         classificationSample = ClassificationSample(raster=library.raster(),
-                                                    classification=Classification.fromENVISpectralLibrary(
+                                                    classification=Classification.fromEnviSpectralLibrary(
                                                         filename='/vsimem/labels.bsq',
                                                         library=library,
-                                                        attribute='level 2'))
+                                                        attribute='level_2'))
 
         # syntmix
 
         for includeWithinclassMixtures in [True, False]:
             for includeEndmember in [True, False]:
                 print(includeWithinclassMixtures, includeEndmember)
-                fractionSample = enmapClassificationSample.synthMix2(
+                fractionSample = enmapClassificationSample.synthMix(
                                      filenameFeatures=join(outdir, 'ClassificationSampleSynthMix.features.bsq'),
                                      filenameFractions=join(outdir, 'ClassificationSampleSynthMix.fractions.bsq'),
                                      mixingComplexities={2: 0.7, 3: 0.3}, classLikelihoods='equalized',
@@ -255,8 +242,26 @@ class Test(TestCase):
         features, labels = enmapClassificationSample.extractAsArray()
         print(features.shape, labels.shape)
 
-
     def test_ClassDefinition(self):
+
+        classification = Classification.fromArray(array=[[[0, 1, 2]]], filename='/vsimem/c.bsq')
+        newNames = ['Class X']
+        mapping = {0: 0, 1: 1, 2: 1}
+        newDef = ClassDefinition(names=newNames)
+        newDef.setNoDataNameAndColor(name='Not specified', color=Color(128, 128, 128))
+        print(classification.classDefinition())
+        print(newDef)
+        reclassified = classification.reclassify(
+            filename='/vsimem/c2.bsq', classDefinition=newDef, mapping=mapping)
+
+        print(reclassified.dataset().band(0).categoryNames())
+        print(reclassified.dataset().band(0).categoryColors())
+
+        # qml read / write
+        print(ClassDefinition.fromQml(filename=enmapboxtestdata.landcover_polygons.replace('.shp', '.qml')))
+        print(ClassDefinition.fromQml(filename=enmapboxtestdata.landcover_points.replace('.shp', '.qml')))
+
+
         print(ClassDefinition.fromENVIClassification(raster=enmapClassification))
         print(ClassDefinition.fromGDALMeta(raster=enmapClassification))
         print(ClassDefinition(colors=['orange', 'blue', 'grey', 'snow', 'white']))
@@ -268,8 +273,19 @@ class Test(TestCase):
         classDefinition1.color(label=1)
         print(ClassDefinition(colors=['blue'], names=['Class 1']).colorByName(name='Class 1'))
         print(ClassDefinition(colors=['blue'], names=['Class 1']).labelByName(name='Class 1'))
+        ClassDefinition(classes=3).labels()
 
     def test_Classifier(self):
+
+        enmap = Raster(filename=enmapboxtestdata.enmap)
+        classification = Classification.fromClassification(classification=vectorClassification,
+                                                           grid=enmap.grid(),
+                                                           filename='/vsimem/classification.bsq')
+        sample = ClassificationSample(raster=enmap, classification=classification)
+        rfc = Classifier(sklEstimator=RandomForestClassifier())
+        rfc.fit(sample=sample)
+        rfc.predict(raster=enmap, filename='/vsimem/rfcClassification.bsq')
+        rfc.crossValidation().report().saveHTML(filename=join(outdir, 'report.html'), open=False)
 
         rfc = Classifier(sklEstimator=RandomForestClassifier())
         print(rfc)
@@ -286,6 +302,7 @@ class Test(TestCase):
         print(kmeans)
         kmeans.fit(sample=enmapClassificationSample)
         print(kmeans.predict(filename=join(outdir, 'kmeansClustering.bsq'), raster=enmap, mask=vector))
+        kmeans.classDefinition()
 
     def test_ClusteringPerformance(self):
         clusteringPerformance = ClusteringPerformance.fromRaster(prediction=enmapClassification,
@@ -299,21 +316,24 @@ class Test(TestCase):
         vector.dataset().ogrLayer()
         enmapMask.dataset().gdalDataset()
         sample = ClassificationSample(raster=enmap, classification=enmapClassification, mask=vector)
-        rfc = Classifier(RandomForestClassifier()).fit(enmapClassificationSample)
-        for obj in [FlowObject(), vector, rfc, enmapMask, enmap, sample]:
-            print(obj)
-            obj.pickle(filename=join(outdir, 'FlowObject.pkl'))
-            obj2 = FlowObject.unpickle(join(outdir, 'FlowObject.pkl'))
+        rfc = Classifier(RandomForestClassifier(oob_score=True)).fit(sample)
+        #rfc.browse()
 
     def test_Raster(self):
 
+        # subset bands
+        raster = enmap.subsetBands(indices=[1, -1], invert=False, filename=join(outdir, 'sub1.bsq'))
+        raster = enmap.subsetBands(indices=[1, -1], invert=True, filename=join(outdir, 'sub2.bsq'))
+
+        print(raster)
+
         # from array
-        raster = Raster.fromArray(array=[[[-1, 1, 2, np.inf, np.nan]]], filename='/vsimem/raster.bsq')
+        raster = Raster.fromArray(array=[[[-1, 1, 2, np.inf, np.nan]]], filename='/vsimem/raster.bsq',
+                                  noDataValues=[-9], descriptions=['band 1'])
         print(raster.asMask(noDataValues=[-1]).array())
-        return
 
         raster.dataset().setNoDataValue(-1)
-        statistics = raster.statistics(calcMean=1, calcStd=1, calcPercentiles=True, percentiles=[0,50,100],
+        statistics = raster.statistics(calcMean=True, calcStd=True, calcPercentiles=True, percentiles=[0,50,100],
                                        calcHistogram=True, histogramRanges=[(1,3)], histogramBins=[2])
         print(statistics)
         assert statistics[0].min == 1
@@ -349,18 +369,17 @@ class Test(TestCase):
 
 
         # from speclib
-        print(Raster.fromENVISpectralLibrary(filename=join(outdir, 'RasterFromENVISpectralLibrary.bsq'),
+        print(Raster.fromEnviSpectralLibrary(filename=join(outdir, 'RasterFromEnviSpectralLibrary.bsq'),
                                              library=speclib))
 
         print(enmapClassification.uniqueValues(index=0))
 
         # resampling
-        print(hymap)
         print(enmap)
-        print(enmap.resample(filename=join(outdir, 'RasterResample.bsq'), grid=hymap, resampleAlg=gdal.GRA_Average))
+        print(enmap.resample(filename=join(outdir, 'RasterResample.bsq'), grid=enmap.grid().atResolution(10), resampleAlg=gdal.GRA_Average))
 
 
-        print(Raster.fromVector(filename=join(outdir, 'RasterFromVector.bsq'), vector=vectorClassification, grid=hymap.grid(),
+        print(Raster.fromVector(filename=join(outdir, 'RasterFromVector.bsq'), vector=vectorClassification, grid=enmap.grid(),
                                 overwrite=overwrite))
         print(enmap.statistics(bandIndicies=None, mask=vector, grid=enmap))
 
@@ -383,34 +402,28 @@ class Test(TestCase):
                                                 bins=10, mask=vector)
         print(H)
 
-
-    def test_RasterStack(self):
-        rasterStack = RasterStack(rasters=[enmap, hymap])
-        for raster in rasterStack.rasters():
-            print(raster)
-        print(rasterStack)
-
-        import enmapboxtestdata
-
-        raster = RasterStack(rasters=[Raster.fromArray(array=[[[1, 1], [1, 1]]], filename='/vsimem/raster1.bsq'),
-                                           Raster.fromArray(array=[[[2, 2], [2, 2]]], filename='/vsimem/raster2.bsq')])
-
-        applier = Applier(progressBar=SilentProgressBar())
-        applier.setFlowRaster(name='stack', raster=raster)
-
-        class MyOperator(ApplierOperator):
-            def ufunc(self, raster):
-                array = self.flowRasterArray(name='stack', raster=raster)
-                print(array)
-
-        applier.apply(operatorType=MyOperator, raster=raster)
+    # def test_RasterStack(self):
+    #     rasterStack = RasterStack(rasters=[enmap, enmap])
+    #     for raster in rasterStack.rasters():
+    #         print(raster)
+    #     print(rasterStack)
+    #
+    #     import enmapboxtestdata
+    #
+    #     raster = RasterStack(rasters=[Raster.fromArray(array=[[[1, 1], [1, 1]]], filename='/vsimem/raster1.bsq'),
+    #                                        Raster.fromArray(array=[[[2, 2], [2, 2]]], filename='/vsimem/raster2.bsq')])
+    #
+    #     applier = Applier(progressBar=SilentProgressBar())
+    #     applier.setFlowRaster(name='stack', raster=raster)
+    #
+    #     class MyOperator(ApplierOperator):
+    #         def ufunc(self, raster):
+    #             array = self.flowRasterArray(name='stack', raster=raster)
+    #             print(array)
+    #
+    #     applier.apply(operatorType=MyOperator, raster=raster)
 
     def test_MapCollection(self):
-
-        #mapCollection = MapCollection(maps=[enmap, enmapClassification, enmapRegression, enmapFraction, vector, vectorClassification])
-        #rasters = mapCollection.extractAsArray(grid=enmap.grid(),
-        #                                       masks=[enmap, enmapClassification, enmapRegression, enmapFraction, vector, vectorClassification])
-        #return
 
         mapCollection = MapCollection(maps=[enmap, enmapClassification, enmapRegression, enmapFraction, vector, vectorClassification])
         filenames = [join(outdir, 'MapCollectionExtractAsRaster_{}.bsq'.format(type(map).__name__)) for map in mapCollection.maps()]
@@ -419,8 +432,7 @@ class Test(TestCase):
             print(raster)
 
     def test_Mask(self):
-        print(hymapClassification.asMask().resample(filename=join(outdir, 'MaskResample.bsq'), grid=enmap))
-        print(hymapClassification)
+        print(enmapClassification.asMask().resample(filename=join(outdir, 'MaskResample.bsq'), grid=enmap))
 
         print(Mask.fromVector(filename=join(outdir, 'maskFromVector.bsq'), vector=vector, grid=enmap))
         print(Mask.fromRaster(filename=join(outdir, 'maskFromRaster.bsq'), raster=enmapClassification,
@@ -431,19 +443,10 @@ class Test(TestCase):
 
     def test_Fraction(self):
 
-        raster = enmapFractionSample.raster()
-        fraction = enmapFractionSample.fraction()
-        fraction.toRasterMetadata(raster=raster)
-        print(Fraction.fromRasterMetadata(filename=join(outdir, 'RegressionFromRasterMetadata.bsq'),
-                                          raster=raster, outputNames=enmapFraction.outputNames()))
-
-        #return
-        # resampling
-        print(hymapFraction)
         print(enmapFraction)
-        fraction = Fraction(filename=hymapFraction.filename(), minOverallCoverage=0, minDominantCoverage=0)
+        fraction = Fraction(filename=enmapFraction.filename(), minOverallCoverage=0, minDominantCoverage=0)
         print(fraction.resample(filename=join(outdir, 'FractionResample.bsq'),
-                                grid=hymapClassification, controls=ApplierControls()))#.setBlockFullSize()))
+                                grid=enmapClassification.grid(), controls=ApplierControls()))#.setBlockFullSize()))
 
 
         print(Fraction.fromClassification(filename=join(outdir, 'enmapFraction.bsq'),
@@ -452,7 +455,6 @@ class Test(TestCase):
 
         print(enmapFraction.subsetClassesByName(filename=join(outdir, 'fractionSubsetClassesByName.bsq'),
                                                    names=enmapFraction.classDefinition().names()))
-
 
     def test_FractionPerformance(self):
         fractionPerformance = FractionPerformance.fromRaster(prediction=enmapFraction, reference=enmapClassification)
@@ -475,46 +477,47 @@ class Test(TestCase):
 
     def test_Regression(self):
 
-        raster = enmapRegressionSample.raster()
-        regression = enmapRegressionSample.regression()
-        regression.toRasterMetadata(raster=raster)
-        print(Regression.fromRasterMetadata(filename=join(outdir, 'RegressionFromRasterMetadata.bsq'),
-                                            raster=raster, outputNames=enmapFraction.outputNames()))
+        enmapRegressionSample.raster()
+        enmapRegressionSample.regression()
+        #print(Regression.fromEnviSpectralLibrary(filename=join(outdir, 'RegressionFromEnviSpectralLibrary.bsq'),
+        #                                         library=speclib2, attributes=['Roof', 'Low vegetation']))
 
         print(enmapRegression.asMask())
-        print(enmapRegression.resample(filename=join(outdir, 'RegressionResample.bsq'), grid=hymap))
+        print(enmapRegression.resample(filename=join(outdir, 'RegressionResample.bsq'), grid=enmap.grid().atResolution(10)))
 
 
     def test_RegressionPerformance(self):
         print(enmapRegression.filename())
         print(enmapRegression)
-        print(hymapRegression)
 
-        mask = Vector.fromRandomPointsFromMask(filename=join(outdir, 'random.shp'), mask=enmapMask, n=10)
-        maskInverted = Vector(filename=mask.filename(), initValue=mask.burnValue(), burnValue=mask.initValue())
+        #mask = Vector.fromRandomPointsFromMask(filename=join(outdir, 'random.shp'), mask=enmapMask, n=10)
+        #maskInverted = Vector(filename=mask.filename(), initValue=mask.burnValue(), burnValue=mask.initValue())
 
-        obj = RegressionPerformance.fromRaster(prediction=enmapRegression, reference=enmapRegression, mask=mask)
+        if True:
+            rfr = Regressor(sklEstimator=RandomForestRegressor())
+            rfr.fit(sample=enmapRegressionSample)
+            reference = rfr.predict(filename='/vsimem/rfrRegression.bsq', raster=enmap)
+        else:
+            reference = enmapRegression
+
+        obj = RegressionPerformance.fromRaster(prediction=enmapRegression, reference=reference)
         print(obj)
-        obj.report().saveHTML(filename=join(outdir, 'RegressionPerformance.html'), open=not openHTML)
+        obj.report().saveHTML(filename=join(outdir, 'RegressionPerformance.html'), open=openHTML)
 
     def test_RegressionSample(self):
+
+        sample = RegressionSample(raster=enmap, regression=enmapFraction)
 
         print(enmapRegressionSample)
         features, labels = enmapRegressionSample.extractAsArray()
         print(features.shape, labels.shape)
 
         # init
-        regressionSample = RegressionSample(raster=enmap, regression=hymapFraction, mask=vector)
+        regressionSample = RegressionSample(raster=enmap, regression=enmapFraction, mask=vector)
         print(regressionSample)
 
-        # export to and import from library
-        #library = ENVISpectralLibrary.fromRegressionSample(filename=join(outdir, 'tmp.sli'), sample=enmapFractionSample)
-        #regressionSample = RegressionSample.fromENVISpectralLibrary(library=library, outputNames=['Roof'])#, noDataValues=[-1])
-        #print(regressionSample)
-        #features, labels = regressionSample.extractFeaturesAndLabels()
-        #print(features.shape, labels.shape)
-
     def test_Regressor(self):
+
         rfr = Regressor(sklEstimator=RandomForestRegressor())
         print(rfr)
         rfr.fit(sample=enmapRegressionSample)
@@ -525,9 +528,8 @@ class Test(TestCase):
         # init
         sample = Sample(raster=enmap, mask=vector)
         print(sample)
-        print(sample.extractAsArray(onTheFlyResampling=True)[0].shape)
-
-
+        sample.extractAsArray(onTheFlyResampling=True)
+        sample.extractAsRaster(filenames=['/vsimem/raster.bsq'], onTheFlyResampling=True)
 
     def test_Transformer(self):
         pca = Transformer(sklEstimator=PCA())
@@ -540,8 +542,12 @@ class Test(TestCase):
         print(pcaInverseTransform)
 
     def test_Vector(self):
-        print(vector.uniqueValues(attribute=hubflow.testdata.landcoverAttributes.Level_2_ID))
-        print(vector.uniqueValues(attribute=hubflow.testdata.landcoverAttributes.Level_2))
+
+        #vector = Vector(filename=r'C:\output\LandCov_BerlinUrbanGradient_WGS84.gpkg|layername=polygons')
+        #Raster.fromVector(filename=r'c:\output\test.bsq', vector=vector, grid=enmap.grid())
+
+        print(vector.uniqueValues(attribute='level_2_id'))
+        print(vector.uniqueValues(attribute='level_2'))
         print(vector)
         print(Vector.fromRandomPointsFromMask(filename=join(outdir, 'vectorFromRandomPointsFromMask.gpkg.shp'), mask=enmapMask,
                                               n=10))
@@ -549,20 +555,22 @@ class Test(TestCase):
         print(
         Vector.fromRandomPointsFromClassification(filename=join(outdir, 'vectorFromRandomPointsFromClassification.gpkg'),
                                                   classification=enmapClassification, n=n))
-
+        Vector.fromVectorDataset(vectorDataset=vector.dataset())
+        Vector.fromPoints(filename='/vsimem/vector.shp', points=[Point(0, 0, Projection.wgs84())])
+        vector.metadataDict()
+        vector.metadataItem(key='a', domain='')
+        vector.extent()
+        vector.projection()
+        vector.grid(resolution=1)
     def test_VectorMask(self):
         print(VectorMask(filename=vector.filename(), invert=False))
 
     def test_VectorClassification(self):
-        classDefinition = ClassDefinition(names=enmapboxtestdata.landcoverClassDefinition.level2.names,
-                                          colors=enmapboxtestdata.landcoverClassDefinition.level2.lookup)
-        print(VectorClassification(filename=enmapboxtestdata.landcover,
-                                   classDefinition=classDefinition,
-                                   classAttribute=enmapboxtestdata.landcoverAttributes.Level_2_ID))
+        print(VectorClassification(filename=enmapboxtestdata.landcover_polygons, classAttribute='level_2_id'))
+        print(VectorClassification(filename=enmapboxtestdata.landcover_points, classAttribute='level_2_id'))
 
     def test_extractPixels(self):
         c = ApplierControls()
-        c.setBlockSize(25)
         extractPixels(inputs=[enmap, enmapFraction, enmapClassification, enmapRegression, vector, vectorClassification],
                       masks=[enmapMask], grid=enmap.grid(), controls=c)
 
@@ -576,13 +584,6 @@ class Test(TestCase):
         print(rfc)
         rfc.fit(sample=enmapClassificationSample)
         print(rfc.predict(filename=join(outdir, 'rfcClassification.bsq'), raster=enmap, mask=vector, controls=c))
-
-    def test_applierDefaults(self):
-
-        filename = r'c:\output\applierDefaults.pkl'
-        ApplierDefaults.pickle(filename=filename)
-        ApplierDefaults.blockSize = Size(16)
-        print(ApplierDefaults.unpickle(filename=filename).blockSize)
 
 
     def test_pickle(self):
@@ -613,11 +614,95 @@ class Test(TestCase):
             print(type(map))
             print(map.array()[0,30:40,30:40])
 
+    def test_ApplierOptions(self):
+        print(ApplierOptions())
 
     def test_debug(self):
-        import enmapboxtestdata
-        vectorClassification = VectorClassification(filename=enmapboxtestdata.landcover, classAttribute='level 2')
-        print(vectorClassification)
+        import hubflow.core
+
+        newNames = ['No Class', 'Class B']
+        newColors = [QColor('black'), QColor('yellow')]
+
+        # but this fails
+        newDef = hubflow.core.ClassDefinition(names=newNames[1:], colors=newColors[1:])
+        newDef.setNoDataNameAndColor(newNames[0], QColor('yellow'))
+        print(newDef)
+
+    def test_uniqueValueCounts(self):
+        import numpy as np
+        x = np.array([np.inf, np.nan, 1, 1, 1, 2, 2, 5.5])
+        values = np.unique(x)
+        for v in values:
+            if np.isnan(v):
+                print(v, np.sum(np.isnan(x)))
+            else:
+                print(v, np.sum(x==v))
+
+class TestEnviSpectralLibrary(TestCase):
+
+    def test(self):
+
+        # init
+        speclib = EnviSpectralLibrary(filename=enmapboxtestdata.library)
+        print(speclib)
+        print(speclib.profiles())
+        print(speclib.raster().dataset().metadataDict())
+
+        print(speclib.attributeNames())
+        print(speclib.attributeDefinitions())
+        print(speclib.attributeTable())
+
+        # speclib from raster
+        speclib = EnviSpectralLibrary.fromRaster(filename=join(outdir, 'EnviSpectralLibraryFromRaster.sli'),
+                                                 raster=enmap)
+        print(speclib)
+        print(speclib.raster().dataset().shape())
+
+        raster = speclib.raster(transpose=False)
+        print(raster.dataset().shape())
+        raster.dataset().plotXProfile(row=Row(y=0, z=0))
+
+        raster = speclib.raster(transpose=True)
+        print(raster.dataset().shape())
+        raster.dataset().plotZProfile(pixel=Pixel(x=0, y=0), spectral=True)
+
+    def test_fromClassificationSample(self):
+        classification = Classification.fromClassification(classification=vectorPoints, grid=enmap.grid(),
+                                                           filename='/vsimem/classification.bsq')
+        sample = ClassificationSample(raster=enmap, classification=classification)
+        outdir = r'c:\test'
+        speclib = EnviSpectralLibrary.fromSample(sample=sample, filename=join(outdir, 'speclib.sli'))
+        print(speclib)
+        classification2 = Classification.fromEnviSpectralLibrary(filename='/vsimem/classification.bsq', library=speclib,
+                                                                 attribute='id')
+        assert classification.classDefinition().equal(classification2.classDefinition())
+
+    def test_plot(self):
+        speclib = EnviSpectralLibrary(filename=enmapboxtestdata.library)
+
+        import pyqtgraph as pg
+        import pyqtgraph.exporters
+        plot = pg.plot()
+        for y in range(speclib.raster().dataset().ysize()):
+            speclib.raster().dataset().plotZProfile(pixel=Pixel(x=0, y=y), spectral=True, plotWidget=plot)
+        exporter = pyqtgraph.exporters.ImageExporter(plot.plotItem)
+        # workaround a bug with float conversion to int
+        exporter.params.param('width').setValue(600, blockSignal=exporter.widthChanged)
+        exporter.params.param('height').setValue(400, blockSignal=exporter.heightChanged)
+        exporter.export(join(outdir, 'plot.png'))
+
+class TestRaster(TestCase):
+
+    def test_saveAs(self):
+        raster = Raster(enmapboxtestdata.enmap)
+        copy = raster.saveAs(filename='/vsimem/raster.tif', driver=None)
+
+    def test_convolve(self):
+        raster = Raster(enmapboxtestdata.hires).subsetBands()
+        from astropy.convolution import Gaussian2DKernel
+        kernel = Gaussian2DKernel(x_stddev=3, y_stddev=3)
+        convolved = raster.convolve(filename='/vsimem/raster.bsq', kernel=kernel)
+        MapViewer().addLayer(convolved.dataset().mapLayer()).show()
 
 
 if __name__ == '__main__':
