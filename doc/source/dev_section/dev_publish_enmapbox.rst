@@ -102,9 +102,9 @@ To test if and how the compiled EnMAP-Box plugin runs within the QGIS Desktop ap
 3. Install from ZIP with the created ZIP file
 4. Restart QGIS to account for activate changes in python code
 
-Alternatively, open the QGIS Python shell and run the code printed during while running ``deploy.build()``, e.g.:
-
-.. code-block:: python
+Alternatively, open the QGIS Python shell and run the code that was printed during the build process. It installs the
+EnMAP-Box Plugin and restarts QGIS. The restart is required to account for code changes in modules that have already been loaded
+to the QGIS python::
 
     ### To update/install the EnMAP-Box, run this command on your QGIS Python shell:
     from pyplugin_installer.installer import pluginInstaller

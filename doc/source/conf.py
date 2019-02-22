@@ -116,6 +116,9 @@ author = u'Fabian Thiel,\nAndreas Rabe,\nBenjamin Jakimow,\nSebastian van der Li
 # built documents.
 #
 
+if not 'READTHEDOCS' in os.environ.keys():
+    os.environ['READTHEDOCS'] = 'True'
+
 import enmapbox
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')
 buildID = '{}.{}'.format(re.search(r'(\.?[^.]*){2}', enmapbox.__version__).group(), timestamp)
