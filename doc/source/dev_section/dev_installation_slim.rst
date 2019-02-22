@@ -51,16 +51,13 @@ Under Windows, we need to execute PyCharm via a user-specific startup script to 
     The **QGIS installation folder** is located somewhere like here::
 
          C:\Program Files\QGIS 3.4
-         #or
+         # or
          C:\OSGeo4W64
 
     .. image:: img2/get_qgis_folder.png
 
 2. Download the `PyCharm Startup Script <../_static/PyCharm_with_QGIS.bat>`_ to your desktop
-   (e.g. ``C:\Users\username\Desktop\PyCharm_with_QGIS.bat``):
-
-    .. literalinclude:: ../_static/PyCharm_with_QGIS.bat
-        :linenos:
+    (e.g. ``C:\Users\username\Desktop\PyCharm_with_QGIS.bat``):
 
 3. Open the script in a text editor:
 
@@ -100,35 +97,19 @@ Linux
 5. Create a new PyCharm Project
 ===============================
 
-1. Find the **QGIS Python Interpreter**, **QGIS Python API** and the **EnMAP-Box Plugin** locations on your system:
+1. In QGIS open the Python Console (press [Ctrl+Alt+P]) and execute:
 
-    In QGIS open the Python Console (press [Ctrl+Alt+P]) and execute::
+    ::
 
-        import sys; from os.path import join; print(join(sys.base_exec_prefix, 'python.exe'))
+        import sys; from os.path import join; print('QGIS Python Interpreter: {}'.format(join(sys.base_exec_prefix, 'python.exe')));import sys; from os.path import abspath, join; print('QGIS Python API:         {}'.format(abspath(join(sys.base_exec_prefix, '..', 'qgis', 'python'))));from enmapbox import __file__; from os.path import abspath; print('EnMAP-Box Plugin:        {}'.format(abspath(join(__file__, '..', '..'))))
 
-    The **QGIS Python Interpreter** is located somewhere like here::
+    Prints something like::
 
-        C:\Program Files\QGIS 3.4\apps\Python37\python.exe
-        # or
-        C:\OSGeo4W64\apps\Python37\python.exe
+        QGIS Python Interpreter: C:\OSGEO4~1\apps\Python37\python.exe
+        QGIS Python API:         C:\OSGEO4~1\apps\qgis\python
+        EnMAP-Box Plugin:        C:\Users\username\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin
 
-    Execute::
-
-        import sys; from os.path import abspath, join; print(abspath(join(sys.base_exec_prefix, '..', 'qgis', 'python')))
-
-    The **QGIS Python API** is located somewhere like here::
-
-        C:\Program Files\QGIS 3.4\apps\qgis\python
-        # or
-        C:\OSGeo4W64\apps\qgis\python
-
-    Execute::
-
-        from enmapbox import __file__; from os.path import abspath; print(abspath(join(__file__, '..', '..')))
-
-    The **EnMAP-Box Plugin** is located somewhere like here::
-
-        C:\Users\username\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin
+    Remember those locations, we will need them later.
 
 2. Open PyCharm and create a new project: *File > New Project...*
 
@@ -170,7 +151,7 @@ Linux
 
     - close the **Settings** dialog with click on **OK**
 
-4. Make sure that the checkmark under *View > Tool Buttons* is set. Select the **Project** tab or press [Alt+1].
+4. Make sure that the checkmark under *View > Tool Buttons* is set. Show the **Project** view (press [Alt+1]).
 
     Your **Project** should look like this:
 
