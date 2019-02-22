@@ -170,6 +170,8 @@ def initAll():
 EnMAPBox = None
 EnMAPBoxApplication = None
 
+# skip imports when on RTD, as we can not install the full QGIS environment as required
+# https://docs.readthedocs.io/en/stable/builds.html
 if not os.environ.get('READTHEDOCS') in ['True', 'TRUE', True]:
 
     from enmapbox.gui.enmapboxgui import EnMAPBox
