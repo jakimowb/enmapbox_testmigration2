@@ -87,8 +87,8 @@ class ExampleApplication(EnMAPBoxApplication):
 
     def processingAlgorithms(self)->list:
         """
-        This function returns the QGIS Processing Framework GeoAlgorithms specified by your application
-        :return: [list-of-GeoAlgorithms]
+        This function returns the QGIS Processing Framework algorithms specified by your application
+        :return: [list-of-QgsProcessingAlgorithms]
         """
 
         return [ExampleProcessingAlgorithm(), ExampleProcessingAlgorithmWithManyWidgets()]
@@ -140,6 +140,25 @@ class ExampleApplicationGUI(QWidget):
         :return: int
         """
         return self.mNumberOfClicks
+
+def exampleAlgorithm(*args, **kwds)->list:
+    """
+    An dummy algorithm that prints the provided arguments and keywords and returns its inputs.
+    """
+    print('Start exampleAlgorithm...')
+
+    text = ['Arguments: {}'.format(len(args))]
+    for i, a in enumerate(args):
+        text.append('Argument {} = {}'.format(i+1, str(a)))
+
+    text.append('Keywords: {}'.format(len(kwds)))
+    for key, parameter in kwds.items():
+        text.append('{} = {}'.format(key, parameter))
+    print('\n'.join(text))
+    print('exampleAlgorithm finished')
+
+    return args, kwds
+
 
 class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
     """
@@ -202,23 +221,6 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
         outputs = {'args' : args, 'kwds': kwds}
         return outputs
 
-def exampleAlgorithm(*args, **kwds)->list:
-    """
-    An dummy algorithm that prints the provided arguments and keywords and returns its inputs.
-    """
-    print('Start exampleAlgorithm...')
-
-    text = ['Arguments: {}'.format(len(args))]
-    for i, a in enumerate(args):
-        text.append('Argument {} = {}'.format(i+1, str(a)))
-
-    text.append('Keywords: {}'.format(len(kwds)))
-    for key, parameter in kwds.items():
-        text.append('{} = {}'.format(key, parameter))
-    print('\n'.join(text))
-    print('exampleAlgorithm finished')
-
-    return args, kwds
 
 
 class ExampleProcessingAlgorithmWithManyWidgets(QgsProcessingAlgorithm):

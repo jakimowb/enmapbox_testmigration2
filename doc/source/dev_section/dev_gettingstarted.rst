@@ -1,3 +1,7 @@
+.. include:: external_links.rst
+
+.. _GUI_GettingStarted:
+
 Getting Started
 ###############
 
@@ -16,33 +20,28 @@ For simplicity, we import some important Qt and QGIS classes globally::
 1. Start the EnMAP-Box
 ======================
 
-Befor we can use Qt and QGIS widgets, we need a ``QApplication`` or ``QgsApplication`` instance that
-provides the main GUI loop and allows to receive user interactions like mouse clicks. As we like to run our examples from an
-IDE like PyCharm, we will first start a ``QgsApplication``::
+As we like to start our examples from an IDE like PyCharm_, we first need to start a QgsApplication_.
+It provides the main GUI loop that receives user interactions, like mouse clicks and keyboard entries::
 
     from enmapbox.testing import initQgisApplication
     qgsApp = initQgisApplication()
 
 
-Now we can start and open the EnMAP-Box and load some example data. Finally it is required to start the GUI loop::
+Now we can start and open the EnMAP-Box and load some example data::
 
     from enmapbox import EnMAPBox
     enmapBox = EnMAPBox(None)
-
-
+    enmapBox.openExampleData()
     qgsApp.exec_()
 
+If we would'nt call the GUI loop with ``qgsApp.exec_()``, our program will terminate immediately.
 
-The EnMAPBox object is a singleton, which means that there exist only one EnMAPBox instance.
-If there is already an existing EnMAP-Box instance, you can connect to like this::
+The EnMAPBox object is a singleton, which means that there exist only one EnMAPBox instance. You can connect
+to a running EnMAP-Box instance like this::
 
     from enmapbox import EnMAPBox
     enmapBox = EnMAPBox.instance()
     print(enmapBox)
-
-Load the EnMAP-Box test data::
-
-    enmapBox.openExampleData()
 
 Finally, shut down the EnMAP-Box instance::
 
@@ -51,13 +50,13 @@ Finally, shut down the EnMAP-Box instance::
 
 
 
-2. Manage Data Sources
+2. Data Sources
 ======================
 
 Add Data Sources
 ----------------
 
-The EnMAP-Box differentiates between Raster, Vector, Spectral Libraries and other data sources. To add new data sources
+The EnMAP-Box differentiates between Raster, Vector, Spectral Libraries and other data sources. To add new data sources,
 you just need to provide a file-path or other unique resource identifier via ``enmapBox.addSource(r'uri')`` ::
 
     enmapBox = EnMAPBox.instance()
@@ -74,30 +73,25 @@ you just need to provide a file-path or other unique resource identifier via ``e
     enmapBox.addSources([pathVectorSource, pathSpectralLibrary])
 
 
-The EnMAP-Box uses the QGIS API to visualize spatial data and allows to show OpenGIS Web Services (OWS)
-like Web Map Services (WMS) and Web Feature Services (WFS)::
+A the EnMAP-Box uses the QGIS API to visualize spatial data, we can add OpenGIS Web Services (OWS)
+like Web Map Services (WMS) and Web Feature Services (WFS) as well::
 
     wmsUri = 'referer=OpenStreetMap%20contributors,%20under%20ODbL&type=xyz&url=http://tiles.wmflabs.org/hikebike/%7Bz%7D/%7Bx%7D/%7By%7D.png&zmax=17&zmin=1'
     wfsUri = r'restrictToRequestBBOX=''1'' srsname=''EPSG:25833'' typename=''fis:re_postleit'' url=''http://fbinter.stadt-berlin.de/fb/wfs/geometry/senstadt/re_postleit'' version=''auto'''
     enmapBox.addSource(wmsUri, name="Open Street Map")
     enmapBox.addSource(wfsUri, name='Berlin PLZ')
 
-
-  .. figure:: img/gstart_datasources.png
+  .. image:: img/gstart_datasources.png
      :width: 100%
-
-     Different Datasources added to the EnMAP-Box.
 
 
 List Existing Data Sources
 --------------------------
 
-You can iterate over all data sources::
+You can iterate over all or specific type of data sources::
 
     for source in enmapBox.dataSources():
         print(source)
-
-... or specific ones only, using the ::
 
     for source in enmapBox.dataSources('RASTER'):
         print(source)
@@ -105,21 +99,20 @@ You can iterate over all data sources::
 Remove Data Sources
 -------------------
 
-Use the data source path to remove it from the EnMAP-Box::
+Data sources can be removed by its source path::
 
     enmapBox = EnMAPBox.instance()
     enmapBox.removeSource('source_path')
 
-    #or remove multiple sources
+    # or remove multiple sources
     enmapBox.removeSources(['list-of-source_path'])
 
 
 Data Sources are unique
 -----------------------
 
-Data sources known to the EnMAP-Box are unique, which means that only one data source refers one source path.
+EnMAP-Box Data sources are unique; which means that only one data source refers to the same source path.
 Adding the same source multiple times does not change the total number of data sources::
-
 
     from enmapbox import EnMAPBox
     from enmapboxtestdata import enmap
@@ -133,12 +126,18 @@ Adding the same source multiple times does not change the total number of data s
     print('# data sources: {}'.format(len(enmapBox.dataSources())))
 
 
-Data sources are internally described by the `enmapbox.gui.datasources.DataSource` class which
-creates a text file
-store a reference to the source uri, source name, type and creation date. The following example will print out added
-or removed data sources::
+.. note::
+
+    * Data sources are internally described by the `enmapbox.gui.datasources.DataSource` class.
+
+    * A `DataSource` object stores information on the data source uri, name, type and its creation date.
 
 
+
+Receive data source changes:
+----------------------------
+
+The Qt Signals `sigDataSourceAdded` and `sigDataSourceAdded` can be used to be informed on changes of the EnMAP-Box data sources::
 
         from enmapbox import EnMAPBox
 
@@ -146,7 +145,10 @@ or removed data sources::
         enmapBox.sigDataSourceAdded.connect(lambda uri:print('DataSource added: {}'.format(uri)))
         enmapBox.sigDataSourceRemoved.connect(lambda uri: print('DataSource removed: {}'.format(uri)))
 
-Now we create a text file and add it to the EnMAP-Box::
+Overwriting a file source and adding it again to the EnMAP-Box will remove the data source first and add it's again.
+This allows to react on changes and to ensure data integrity, e.g. to account for changes in file size and metadata.
+
+Create a text file and add it to the EnMAP-Box::
 
         import tempfile, os, time
         tempDir = tempfile.mkdtemp()
@@ -159,11 +161,13 @@ Now we create a text file and add it to the EnMAP-Box::
         enmapBox.addSource(pathFile)
         assert len(enmapBox.dataSources()) == 1
 
-which should create a shell printout similar to::
+This creates a printout like::
 
-    >DataSource added: C:\Users\user\AppData\Local\Temp\tmp4gjczg1u\testfile.txt
+.. code-block:: batch
 
-Now we wait overwrite the text file and add it again::
+    DataSource added: C:\Users\user\AppData\Local\Temp\tmp4gjczg1u\testfile.txt
+
+Wait a while, then overwrite the text file and add it again::
 
         time.sleep(2)
 
@@ -174,23 +178,21 @@ Now we wait overwrite the text file and add it again::
         enmapBox.addSource(pathFile)
         assert len(enmapBox.dataSources()) == 1
 
-The shell printouts should be similar to::
+The shell printouts should be like:
 
-    >DataSource removed: C:\Users\user\AppData\Local\Temp\tmp4gjczg1u\testfile.txt
-    >DataSource added: C:\Users\user\AppData\Local\Temp\tmp4gjczg1u\testfile.txt
+.. code-block:: batch
 
-Overwriting a file source and adding it again to the EnMAP-Box will remove the data source first before it is
-added again. Listening to the EnMAP-Box signal ``.sigDataSourcesRemoved(...)`` allows to react on overwriting operation,
-which might be required to ensure data integrity.
+    DataSource removed: C:\Users\user\AppData\Local\Temp\tmp4gjczg1u\testfile.txt
+    DataSource added: C:\Users\user\AppData\Local\Temp\tmp4gjczg1u\testfile.txt
 
 
-
-3. Manage Dock Windows
+3. Dock Windows
 ======================
 
-The EnMAP-Box provides specialized windows called ``Docks`` to visualize spatial data and spectral libraries.
-They are containers to other, more specialited widgets, e.g. the ``QgsMapCanvas`` or the ``SpectralLibraryWidget``.
-``Docks`` can be arranged much more flexible than the standard Qt DockWidgets.
+The EnMAP-Box `Docks` to visualize spatial data and spectral libraries. `Docks` are based on the
+`pyqtgraphDock <http://www.pyqtgraph.org/documentation/index.html>` which inherits QDockWidget_, but can be
+arranged much more flexible, e.g. in nested layouts. We use these `Docks` as containers for specialized widgets,
+in particular the `enmapbox.gui.mapcanvas.MapCanvas` (as `MapDock`) and the `SpectralLibraryWidget` (`SpectralLibraryDock`).
 
 You can create new docks with ``EnMAPBox.createDock('<dockType>')``::
 
@@ -203,14 +205,12 @@ You can create new docks with ``EnMAPBox.createDock('<dockType>')``::
     enmapBox.createDock('WEBVIEW') # a browser
     enmapBox.createDock('MIME') # a window to drop mime data (for developers)
 
-
-
 Dock titles, visibility and behaviour can be modified::
 
     # modify dock properties
-    mapDock1 = enmapBox.createDock('MAP')  # two spatial maps
-    mapDock2 = enmapBox.createDock('MAP')  # a spatial map
-    mapDock3 = enmapBox.createDock('MAP')  # a spatial map
+    mapDock1 = enmapBox.createDock('MAP')
+    mapDock2 = enmapBox.createDock('MAP')
+    mapDock3 = enmapBox.createDock('MAP')
 
     # set dock title
     mapDock1.setTitle('Map 1 (fixed)')
@@ -221,22 +221,20 @@ Dock titles, visibility and behaviour can be modified::
     mapDock3.setVisible(False)
 
 
-  .. figure:: img/gstart_docks.png
-     :width: 100%
+.. figure:: img/gstart_docks.png
+ :width: 100%
 
-     Three map docks. Map 3 is hidden and therefore visible in the dock manager panel only.
+ Three map docks. Map 3 is hidden and therefore visible in the dock manager panel only.
 
 
-Docks can be accessed similar like we have already seen for ``DataSources``::
+Docks can be accessed similar to `DataSources`::
 
         from enmapbox.gui.docks import Dock, SpectralLibraryDock
         for dock in enmapBox.dockManager.docks():
             assert isinstance(dock, Dock)
             print(dock)
 
-
-
-The ``dockType`` keyword allows to filter the dock type::
+The `dockType` keyword serves as filter::
 
         # list map docks only
         for dock in enmapBox.dockManager.docks(dockType='MAP'):
@@ -250,18 +248,16 @@ The ``dockType`` keyword allows to filter the dock type::
 
 
 
-4. Map Tools and cursor locations
+5. Map Tools
 =================================
 
-
-A ``QgsMapTool`` controls what happens when a user clicks into a map, e.g. to zoom, zoom out, etc.
-The type of map tool which is activated for all maps known to the EnMAP-Box can be specified with
-The ``EnMAPBox.setMapTool(...)`` can be used to activate a specific map tool type on all ``QgsMapCanvas`` instances
-that are known to the EnMAP-Box, like those shown in `MapDocks`.
+QgsMapTools_ control what happens when a user clicks into a QgsMapCanvas_, e.g. to zoom in or zoom out.
+You can set the current map tool as followed::
 
         from enmapbox.gui import MapTools
         enmapBox.setMapTool(MapTools.ZoomIn)
 
+The map tool will be set to all MapCanvases known to the EnMAP-Box, in particular those in `MapDocks`.
 Possible map tools are:
 
 ===== ====================== =========================== =================================================
@@ -280,63 +276,15 @@ Icon  Key (str)              Key (Enum)                  Description
 
      Map tool icons to pan, zoom in, out, full extent and pixel scale, and to get cursor location information.
 
-If the ``CursorLocation`` map tool was activated and user performs left-mouse-clicks on a map canvas, the EnMAP-Box
-will emit the ``sigCurrentLocationChanged`` signal. Try it by running the following example::
+6. Spatial Points and Extents
+=====================================
 
-    from enmapbox.gui import MapTools, SpatialPoint
+Working with spatial data often requires to convert coordinates between different coordinate reference systems (CRS).
+The EnMAP-Box classes `SpatialPoint` and `SpatialExtent` inherit QgsPointXY_ and QgsRectangle_,
+respectively and enhance their parent classes by keeping a reference on the QgsCoordinateReferenceSystem_ used to specify the
+coordinates.
 
-    def printLocation(spatialPoint:SpatialPoint):
-        print('Mouse clicked on {}'.format(spatialPoint))
-
-    enmapBox.sigCurrentLocationChanged.connect(printLocation)
-
-.. note::
-
-    ``SpatialPoint`` inherits ``QgsPointXY``, enhancing it by keeping a reference to the
-    coordinate reference system (CRS) a point coordinate was selected from. Similar, a ``SpatialExtent`` enhances
-    ``QgsRectangle``.
-
-
-
-If you need the map canvas instance on which a location was selected, you can use the overloaded
-``sigCurrentLocationChanged``::
-
-    def printLocationAndCanvas(spatialPoint: SpatialPoint, canvas:QgsMapCanvas):
-        print('Mouse clicked on {} in {}'.format(spatialPoint, canvas))
-
-    enmapBox.sigCurrentLocationChanged[SpatialPoint, QgsMapCanvas].connect(printLocationAndCanvas)
-
-
-If the "Identify raster profile" options is activated, the EnMAP-Box extracts ``SpectralProfiles`` from
-the raster layer below the location clicked. Using the ``sigCurrentSpectraChanged`` a signal::
-
-    def printSpectralProfiles(currentSpectra:list):
-
-        print('{} SpectralProfiles collected'.format(len(currentSpectra)))
-        for i, p in enumerate(currentSpectra):
-            assert isinstance(p, QgsFeature)
-            p = SpectralProfile.fromSpecLibFeature(p)
-            assert isinstance(p, SpectralProfile)
-            print('{}: {}'.format(i+1, p.values()['y']))
-
-    enmapBox.sigCurrentSpectraChanged.connect(printSpectralProfiles)
-
-The last selected cursor location or spectral profiles are stored in the EnMAP-Box and can be returned as followed::
-
-    print('Last location: {}'.format(enmapBox.currentLocation()))
-    print('Last SpectralProfile: {}'.format(enmapBox.currentSpectra()))
-
-
-Points and Extents
-==================
-
-Working with spatial data often requires to convert coordinates between different coordinate reference systems (CRS), e.g.
-UTM coordinates into geographic latitude longitude value or vice versa.
-The EnMAP-Box classes ``SpatialPoint`` and ``SpatialExtent`` inherit from ``QgsPointXY`` and ``QgsRectangle``,
-respectively, and enhance them by keeping a reference on the used CRS, and provide the ``.toCrs(...)`` function
-which returns them converted into another CRS.
-
-Here is an example than retrieves the center coordinate of a ``QgsRasterLayer`` and converts into geographic
+Retrieve a QgsRasterLayer_ center coordinate and convert it into geographic
 lat/lon coordinates::
 
         from enmapboxtestdata import enmap
@@ -357,7 +305,7 @@ lat/lon coordinates::
         print('SpatialPoint: {}\n'.format(pointTargetCRS))
 
 
-Same can be done with the total extent of a ``QgsMapLayer``::
+Same can be done with map layer extents::
 
         from enmapbox.gui import SpatialExtent
         extent = SpatialExtent.fromLayer(layer)
@@ -372,8 +320,52 @@ Same can be done with the total extent of a ``QgsMapLayer``::
 
 .. note::
 
-    Be aware that some CRS transformations are not possible and might cause errors, e.g. transforming lat/lon coordinates a projected
-    CRS like UTM from a regions where the target CRS is not defined for.
+    Be aware that some CRS transformations are not possible and might cause errors. This might happen in particular when
+    transforming coordinates from regional projected CRS, like an UTM Zone, into a CRS that is defined for another region
+    of the world.
+
+
+
+7. Map Locations and Spectral Profiles
+=========================================
+
+The EnMAP-Box emits the `sigCurrentLocationChanged` signal if the `CursorLocation` map tool is activated and user
+left-clicks on a map canvas::
+
+    from enmapbox.gui import MapTools, SpatialPoint
+
+    def printLocation(spatialPoint:SpatialPoint):
+        print('Mouse clicked on {}'.format(spatialPoint))
+
+    enmapBox.sigCurrentLocationChanged.connect(printLocation)
+
+If you also need the map canvas instance where the location was selected from, you can use the overloaded
+signature of `sigCurrentLocationChanged`::
+
+    def printLocationAndCanvas(spatialPoint: SpatialPoint, canvas:QgsMapCanvas):
+        print('Mouse clicked on {} in {}'.format(spatialPoint, canvas))
+
+    enmapBox.sigCurrentLocationChanged[SpatialPoint, QgsMapCanvas].connect(printLocationAndCanvas)
+
+
+The EnMAP-Box extracts `SpectralProfiles` from raster layer below the mouse-click location
+if "Identify raster profile" is activated. Use `sigCurrentSpectraChanged` to receive these current `SpectralProfiles`::
+
+    def printSpectralProfiles(currentSpectra:list):
+
+        print('{} SpectralProfiles collected'.format(len(currentSpectra)))
+        for i, p in enumerate(currentSpectra):
+            assert isinstance(p, QgsFeature)
+            p = SpectralProfile.fromSpecLibFeature(p)
+            assert isinstance(p, SpectralProfile)
+            print('{}: {}'.format(i+1, p.values()['y']))
+
+    enmapBox.sigCurrentSpectraChanged.connect(printSpectralProfiles)
+
+The cursor locations or spectral profiles that got selected last can be returned afterwards::
+
+    print('Last location: {}'.format(enmapBox.currentLocation()))
+    print('Last SpectralProfile: {}'.format(enmapBox.currentSpectra()))
 
 
 

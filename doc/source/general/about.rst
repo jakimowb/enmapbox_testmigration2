@@ -8,7 +8,7 @@ About
     :width: 400px
     :align: center
 
-|
+
 
 The EnMAP-Box is a free and open source plug-in for `QGIS <https://www.qgis.org/en/site/#>`_.
 It is designed to process imaging spectroscopy data and
@@ -23,7 +23,7 @@ The EnMAP-Box plug-in bridges and combines efficiently all advantages of QGIS (e
 packages like GDAL (for data IO or working with virtual raster files) and abundant
 libraries for Python (e.g. scikit-learn for EO data classification and PyQtGraph for fast and interactive chart drawing).
 The plug-in consists of a **(i)** graphical user interface for hyperspectral data visualization and e.g. spectral library management,
-**(ii)** a set of algorithms, and **(iii)** a high-level application programming interface (:ref:`EnMAP API <API - Quick Start>`).
+**(ii)** a set of algorithms, and **(iii)** a high-level application programming interface (:ref:`EnMAP API <GUI_GettingStarted>`).
 
 
 
