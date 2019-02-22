@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?xml-stylesheet type="text/xsl" href="https://plugins.qgis.org/static/style/plugins.xsl"?>
 <plugins>
-	<pyqgis_plugin name="EnMAP-Box (develop version)" version="3.3.20190219T0740.develop">
+	<pyqgis_plugin name="EnMAP-Box (develop version)" version="3.3.20190222T1351.develop">
 		<description>EnMAP-Box development version</description>
 		<about>Preview</about>
-		<version>3.3.20190219T0740.develop</version>
+		<version>3.3.20190222T1351.develop</version>
 		<qgis_minimum_version>3.2</qgis_minimum_version>
 		<qgis_maximum_version>3.99</qgis_maximum_version>
 		<homepage>https://bitbucket.org/hu-geomatics/enmap-box</homepage>
-		<file_name>enmapboxplugin.3.3.20190219T0740.develop.zip</file_name>
+		<file_name>enmapboxplugin.3.3.20190222T1351.develop.zip</file_name>
 		<icon>enmapbox.png</icon>
 		<author_name>Andreas Rabe, Benjamin Jakimow, Fabian Thiel, Sebastian van der Linden</author_name>
-		<download_url>https://bitbucket.org/hu-geomatics/enmap-box/downloads/enmapboxplugin.3.3.20190219T0740.develop.zip</download_url>
+		<download_url>https://bitbucket.org/hu-geomatics/enmap-box/downloads/enmapboxplugin.3.3.20190222T1351.develop.zip</download_url>
 		<deprecated>False</deprecated>
 		<tracker>https://bitbucket.org/hu-geomatics/enmap-box/issues</tracker>
 		<repository>https://bitbucket.org/hu-geomatics/enmap-box.git</repository>
