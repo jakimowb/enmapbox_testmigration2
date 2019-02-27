@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-import os, sys, site
+import os, sys, site, importlib
 from qgis.core import QgsApplication, QgsProcessingProvider, QgsProcessingAlgorithm, Qgis
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QTimer
@@ -60,11 +60,10 @@ class EnMAPBoxPlugin(object):
         missing = []
         from enmapbox import DEPENDENCIES, messageLog, DIR_REPO
         for package in DEPENDENCIES:
-            try:
-                __import__(package)
+            spec = importlib.util.find_spec(package)
+            if spec is None:
+                missing.append(spec)
 
-            except Exception as ex:
-                missing.append(package)
         if len(missing) > 0:
 
             longText = ['Unable to import the following python package(s):']
