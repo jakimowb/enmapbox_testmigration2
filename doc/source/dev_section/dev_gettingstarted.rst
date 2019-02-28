@@ -8,13 +8,17 @@ Getting Started
 The following examples show how to interact with the EnMAP-Box GUI.
 They are available unittest TestCases in `examples/api_examples.py`
 
-For simplicity, we import some important Qt and QGIS classes globally::
 
-    from qgis.core import *
-    from qgis.gui import *
-    from qgis.PyQt.QtWidgets import *
-    from qgis.PyQt.QtGui import *
-    from qgis.PyQt.QtCore import *
+.. important::
+    For simplicity, we always import the following Qt and QGIS libraries globally::
+
+        from qgis.core import *
+        from qgis.gui import *
+        from qgis.PyQt.QtWidgets import *
+        from qgis.PyQt.QtGui import *
+        from qgis.PyQt.QtCore import *
+
+    So we can use several classes like QgsMapCanvas_ or QWidget_ and do not need to import them explicitly.
 
 
 1. Start the EnMAP-Box
@@ -263,12 +267,12 @@ Possible map tools are:
 ===== ====================== =========================== =================================================
 Icon  Key (str)              Key (Enum)                  Description
 ===== ====================== =========================== =================================================
-      ``PAN``                ``MapTools.Pan``            Activate pan tool to move the map
-      ``ZOOM_IN``            ``MapTools.ZoomIn``         Zoom in
-      ``ZOOM_OUT``           ``MapTools.ZoomOut``        Zoom Out
-      ``ZOOM_FULL``          ``MapTools.Zoom Full``      Zoom to the full extend
-      ``ZOOM_PIXEL_SCALE``   ``MapTools.ZoomPixelScale`` Raster pixel have same size like screen pixel
-      ``CURSOR_LOCATION``    ``MapTools.CursorLocation`` Select cursor location information
+|     ``PAN``                ``MapTools.Pan``            Activate pan tool to move the map
+|     ``ZOOM_IN``            ``MapTools.ZoomIn``         Zoom in
+|     ``ZOOM_OUT``           ``MapTools.ZoomOut``        Zoom Out
+|     ``ZOOM_FULL``          ``MapTools.Zoom Full``      Zoom to the full extend
+|     ``ZOOM_PIXEL_SCALE``   ``MapTools.ZoomPixelScale`` Raster pixel have same size like screen pixel
+|     ``CURSOR_LOCATION``    ``MapTools.CursorLocation`` Select cursor location information
 ===== ====================== =========================== =================================================
 
 .. figure:: img/gstart_maptools.png
@@ -329,8 +333,14 @@ Same can be done with map layer extents::
 7. Map Locations and Spectral Profiles
 =========================================
 
-The EnMAP-Box emits the `sigCurrentLocationChanged` signal if the `CursorLocation` map tool is activated and user
-left-clicks on a map canvas::
+
+
+The EnMAP-Box emits a `sigCurrentLocationChanged` signal if the `Identify` map tool is activated and user
+left-clicks on a map canvas.
+
+.. image:: img/enmapbox_toolbar_identify_location.png
+
+.. code-block:: python
 
     from enmapbox.gui import MapTools, SpatialPoint
 
@@ -339,8 +349,7 @@ left-clicks on a map canvas::
 
     enmapBox.sigCurrentLocationChanged.connect(printLocation)
 
-If you also need the map canvas instance where the location was selected from, you can use the overloaded
-signature of `sigCurrentLocationChanged`::
+The overloaded `sigCurrentLocationChanged` signature can be used to get the map canvas instance where the location was selected from::
 
     def printLocationAndCanvas(spatialPoint: SpatialPoint, canvas:QgsMapCanvas):
         print('Mouse clicked on {} in {}'.format(spatialPoint, canvas))
@@ -348,9 +357,12 @@ signature of `sigCurrentLocationChanged`::
     enmapBox.sigCurrentLocationChanged[SpatialPoint, QgsMapCanvas].connect(printLocationAndCanvas)
 
 
-The EnMAP-Box extracts `SpectralProfiles` from raster layer below the mouse-click location
-if "Identify raster profile" is activated. Use `sigCurrentSpectraChanged` to receive these current `SpectralProfiles`::
+If "Identify raster profile" is activated, the EnMAP-Box extracts `SpectralProfiles` from the raster layer(s) below the mouse-click location.
+These spectra can be received from the  `sigCurrentSpectraChanged` signal::
 
+.. image:: img/enmapbox_toolbar_identify_spectral_profiles.png
+
+.. code-block:: python
     def printSpectralProfiles(currentSpectra:list):
 
         print('{} SpectralProfiles collected'.format(len(currentSpectra)))
@@ -362,13 +374,9 @@ if "Identify raster profile" is activated. Use `sigCurrentSpectraChanged` to rec
 
     enmapBox.sigCurrentSpectraChanged.connect(printSpectralProfiles)
 
-The cursor locations or spectral profiles that got selected last can be returned afterwards::
+The last cursor location and/or spectral profiles are saved and can be accessed::
 
     print('Last location: {}'.format(enmapBox.currentLocation()))
     print('Last SpectralProfile: {}'.format(enmapBox.currentSpectra()))
-
-
-
-
 
 
