@@ -222,9 +222,11 @@ Ensure that the ``QGIS_PREFIX_PATH`` variable is available on your macOS shell. 
 
     PATH="/Library/Frameworks/Python.framework/Versions/3.6/bin:${PATH}"
     export PATH
-    QGIS_PREFIX_PATH="/Applications/QGIS3.app/Contents/MacOS"
+    QGIS_PREFIX_PATH="/Applications/QGIS3.6.app/Contents/MacOS"
     export QGIS_PREFIX_PATH
 
+.. note::
+        Former macOS versions of QGIS where named `QGIS3.app`. Since QGIS 3.6. the subversion is part of the App name `QGIS3.6.app`.
 
 Linux
 -----
