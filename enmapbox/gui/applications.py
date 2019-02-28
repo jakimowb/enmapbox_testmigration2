@@ -59,7 +59,7 @@ class EnMAPBoxApplication(QObject):
         return len(infos) == 0, infos
 
     """
-        This signale will tell the EnMAPBox that the EnMAPBoxApplication has created a file, e.g. a new raster image.
+        This signal will tell the EnMAPBox that the EnMAPBoxApplication has created a file, e.g. a new raster image.
         E.g. call self.sigFileCreated.emit("filepath.txt") to inform the EnMAPBox 
     """
     sigFileCreated = pyqtSignal(str)
@@ -272,8 +272,9 @@ class ApplicationRegistry(QObject):
                 if not appPkgRoot in sys.path:
                     site.addsitedir(appPkgRoot)
 
-                appModule = __import__(appPkgName)
-
+                # do not use __import__
+                # appModule = __import__(appPkgName)
+                appModule = importlib.import_module(appPkgName)
 
                 factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
                             if o[0] == 'enmapboxApplicationFactory']

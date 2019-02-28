@@ -379,44 +379,6 @@ class EnMAPBox(QgisInterface, QObject):
             # self.tabifyDockWidget(self.processingPanel, self.dataSourcePanel)
 
 
-    def initEnMAPBoxAsIFACE(self):
-        """
-        Sets the EnMAP-Box as global iface, so that the EnMAPBox instance serves as QGIS instance
-        """
-        assert qgis.utils.iface is None
-        self.iface = self
-
-        setattr(qgis.utils, 'iface', self)
-
-
-        hasProcessing = False
-        try:
-            import processing
-            hasProcessing = True
-        except Exception as ex:
-            hasProcessing = False
-
-
-        if hasProcessing:
-            import processing
-            setattr(processing,'iface', self)
-            setattr(qgis.utils, 'iface', self)
-            #qgis.utils.iface = self.iface
-
-            import pkgutil
-            prefix = str(processing.__name__ + '.')
-            for importer, modname, ispkg in pkgutil.walk_packages(processing.__path__, prefix=prefix):
-                try:
-                    module = __import__(modname, fromlist="dummy")
-                    if hasattr(module, 'iface'):
-                        #print(modname)
-                        setattr(module, 'iface', self.iface)
-                        #module.iface = self.iface
-                except:
-                    pass
-            s = ""
-
-
     def addApplication(self, app):
         """
         Adds an EnMAPBoxApplication
