@@ -114,6 +114,7 @@ class Setup_multiple:
     def create_grid(self):
         #1 find logically distributed parameters
         for para_key in self.paras:
+            #print(self.paras[para_key])
             if len(self.paras[para_key]) == 3:  # logical distr. = min, max, nsteps
                 self.whichlogicals.append(para_key)
 
@@ -413,7 +414,7 @@ def example_single():
     h = 10
     cd = 6
 
-    lop = "prospectCp"
+    lop = "prospectD"
     canopy_arch = "inform"
     s2s = "default"
     int_boost = 1
@@ -467,10 +468,10 @@ def example_multi():
     nodat = -999
 
     lop = "prospectD"
-    canopy_arch = "inform"
+    canopy_arch = "sail"
     s2s = "default"
 
-    soil = None
+    soil = [0.1]*2101
 
     model_I = Init_Model(lop=lop, canopy_arch=canopy_arch, nodat=nodat, int_boost=int_boost, s2s=s2s)
     model_I.initialize_multiple(LUT_dir=LUT_dir, LUT_name=LUT_name, ns=ns, tts=tts, tto=tto, psi=psi, N=N, cab=cab, cw=cw, cm=cm,
@@ -481,7 +482,7 @@ if __name__ == '__main__':
     # print(example_single() / 1000.0)
     # plt.plot(range(len(example_single())), example_single() / 1000.0)
     # plt.show()
-    x = example_single()
+    x = example_multi()
 
 
     fig = plt.figure(figsize=(10, 5))

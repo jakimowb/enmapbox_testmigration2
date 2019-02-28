@@ -183,6 +183,9 @@
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
      <widget class="QPushButton" name="cmdAll">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="whatsThis">
        <string>Exclude All</string>
       </property>
@@ -193,6 +196,9 @@
     </item>
     <item>
      <widget class="QPushButton" name="cmdNone">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="whatsThis">
        <string>Exclude None</string>
       </property>

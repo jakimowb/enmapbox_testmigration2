@@ -8,8 +8,8 @@ from scipy.interpolate import interp1d
 from qgis.gui import *
 
 #ensure to call QGIS before PyQtGraph
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
+#from qgis.PyQt.QtCore import *
+#from qgis.PyQt.QtGui import *
 
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt import uic
@@ -17,7 +17,7 @@ import pyqtgraph as pg
 from lmuvegetationapps import call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from lmuvegetationapps.Spec2Sensor_cl import Spec2Sensor
-import enmapboxtestdata
+#import enmapboxtestdata
 import warnings
 import csv
 
@@ -860,13 +860,12 @@ class MainUiFunc:
 
 if __name__ == '__main__':
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     #from enmapbox.gui.sandbox import initQgisEnvironment
     app = initQgisApplication()
     m = MainUiFunc()
     m.show()
-    #sys.exit(app.exec_())
-    app.exec_()
-    app.exitQgis()
+    sys.exit(app.exec_())
+
 
 

@@ -2,11 +2,12 @@
 
 import sys, os
 import numpy as np
+from scipy.interpolate import interp1d
 
 from qgis.gui import *
 #ensure to call QGIS before PyQtGraph
 import pyqtgraph as pg
-from qgis.PyQt.QtCore import *
+#from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt import uic
@@ -14,17 +15,31 @@ import lmuvegetationapps.call_model as mod
 from enmapbox.gui.applications import EnMAPBoxApplication
 from lmuvegetationapps.Spec2Sensor_cl import Spec2Sensor
 from scipy.stats import norm, uniform
+import csv
 import time
 
 from enmapbox.gui.utils import loadUIFormClass
 
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_LUT.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__), 'GUI_ProgressBar.ui')
+pathUI3 = os.path.join(os.path.dirname(__file__), 'GUI_LoadTxtFile.ui')
+pathUI4 = os.path.join(os.path.dirname(__file__), 'GUI_Select_Wavelengths.ui')
 
 
 class LUT_GUI(QDialog, loadUIFormClass(pathUI)):
     def __init__(self, parent=None):
         super(LUT_GUI, self).__init__(parent)
+        self.setupUi(self)
+
+
+class Load_Txt_File_GUI(QDialog, loadUIFormClass(pathUI3)):
+    def __init__(self, parent=None):
+        super(Load_Txt_File_GUI, self).__init__(parent)
+        self.setupUi(self)
+
+class Select_Wavelengths_GUI(QDialog, loadUIFormClass(pathUI4)):
+    def __init__(self, parent=None):
+        super(Select_Wavelengths_GUI, self).__init__(parent)
         self.setupUi(self)
 
 
@@ -185,6 +200,8 @@ class LUT:
         self.nodat = None
         self.intboost = None
         self.speed = None
+        self.bg_spec = None
+        self.bg_type = "default"
 
     def dictchecks(self):
 
@@ -297,6 +314,12 @@ class LUT:
         self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch=None))
         self.gui.B_4Sail.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch="sail"))
         self.gui.B_Inform.clicked.connect(lambda: self.select_model(canopy_arch="inform"))
+
+        #Select Background
+        self.gui.B_DefSoilSpec.clicked.connect(lambda: self.select_background(bg_type="default"))
+        self.gui.B_LoadBackSpec.clicked.connect(lambda: self.select_background(bg_type="load"))
+        self.gui.B_LoadBackSpec.pressed.connect(lambda: self.select_background(bg_type="load"))
+        self.gui.push_SelectFile.clicked.connect(lambda: self.open_file(type="background"))  # load own spectrum
 
         # Radio Buttons
         self.gui.radio_fix_N.clicked.connect(lambda: self.txt_enables(para="N", mode="fix"))
@@ -469,6 +492,9 @@ class LUT:
         self.lop = lop
         if canopy_arch is None:
             self.canopy_arch = None
+            self.gui.BackSpec_label.setEnabled(False)
+            self.gui.B_DefSoilSpec.setEnabled(False)
+            self.gui.B_LoadBackSpec.setEnabled(False)
             self.gui.grp_canopy.setDisabled(True)
             self.gui.grp_forest.setDisabled(True)
         elif canopy_arch == "sail":
@@ -479,6 +505,7 @@ class LUT:
             self.gui.B_Prospect5.setDisabled(False)
             self.gui.B_Prospect4.setDisabled(False)
             self.gui.B_Prospect5b.setDisabled(False)
+            self.select_background(bg_type=self.bg_type)
         elif canopy_arch == "inform":
             self.canopy_arch = canopy_arch
             self.gui.lblLAI.setText("Single Tree \nLeaf Area Index (LAI) [m2/m2]\n[0.01-10.0]")
@@ -489,6 +516,7 @@ class LUT:
             self.gui.B_Prospect4.setDisabled(True)
             self.gui.B_Prospect5b.setDisabled(True)
             self.gui.B_ProspectD.setChecked(True)
+            self.select_background(bg_type=self.bg_type)
         else:
             raise ValueError("Inform has been implemented for Prospect D only.")
             pass
@@ -528,6 +556,36 @@ class LUT:
                     self.dict_objects["cbr"][object].setDisabled(True)
                     self.dict_objects["car"][object].setDisabled(True)
 
+    def select_background(self, bg_type):
+        self.bg_type = bg_type
+        if bg_type == "default":
+            self.gui.B_DefSoilSpec.setEnabled(True)
+            self.gui.B_LoadBackSpec.setEnabled(True)
+            self.gui.push_SelectFile.setEnabled(False)
+            self.gui.BackSpec_label.setEnabled(False)
+            self.gui.BackSpec_label.setText("")
+            self.bg_spec = None
+
+            for para in self.para_list[1]:
+                for object in range(4):
+                    self.dict_objects[para][object].setDisabled(False)
+                for object in range(12):
+                    self.dict_objects["psoil"][object].setDisabled(False)
+
+        elif bg_type == "load":
+            self.gui.B_DefSoilSpec.setEnabled(True)
+            self.gui.B_LoadBackSpec.setEnabled(True)
+            self.gui.push_SelectFile.setEnabled(True)
+            self.gui.push_SelectFile.setText('Select File...')
+            self.gui.BackSpec_label.setEnabled(True)
+
+            for para in self.para_list[1]:
+                for object in range(4):
+                    self.dict_objects[para][object].setDisabled(False)
+                for object in range(12):
+                    self.dict_objects["psoil"][object].setDisabled(True)
+
+
     def get_folder(self):
         path = str(QFileDialog.getExistingDirectory(caption='Select Directory for LUT'))
 
@@ -565,7 +623,7 @@ class LUT:
                 elif self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
                                 self.dict_vals[self.para_list[0][i]][1] > self.dict_boundaries[key][1]:
                     self.abort(message='Parameter %s: min / max out of allowed range!' % self.para_list[0][i])
-                    print(self.para_list[0][0])
+                    #print(self.para_list[0][0])
                     return False
             elif len(self.dict_vals[self.para_list[0][i]]) > 1:  # min and max specified
                 if self.dict_vals[self.para_list[0][i]][0] < self.dict_boundaries[key][0] or \
@@ -617,9 +675,19 @@ class LUT:
                 self.abort(message='Leaf Optical Properties parameter(s) missing')
                 return False
 
-        if self.canopy_arch == "sail":
+        if self.canopy_arch == "sail" and self.bg_type == "default":
             if any(len(self.dict_vals[self.para_list[1][i]]) < 1 for i in range(len(self.para_list[1]))):
                 self.abort(message='Canopy Architecture parameter(s) missing')
+                return False
+
+        if self.canopy_arch == "sail" and self.bg_type == "load":
+            if any(len(self.dict_vals[self.para_list[1][i]]) < 1 for i in range(len(self.para_list[1])-1)):
+                self.abort(message='Canopy Architecture parameter(s) missing')
+                return False
+
+        if self.canopy_arch == "inform":
+            if any(len(self.dict_vals[self.para_list[2][i]]) < 1 for i in range(len(self.para_list[2]))):
+                self.abort(message='Forest Canopy Architecture parameter(s) missing')
                 return False
 
         if not os.path.isdir(self.gui.lblOutPath.text()):
@@ -687,7 +755,7 @@ class LUT:
                                     psi=[0.0, 180.0], N=[1.1, 2.5], cab=[0.0, 80.0], cw=[0.0002, 0.02],
                                     cm=[0.0001, 0.005], LAI=[0.5, 8.0], LIDF=[10.0, 80.0], typeLIDF=[2],
                                     hspot=[0.1], psoil=[0.5], cp=[0.001], ccl=[0.001], car=[0.0, 12.0],
-                                    cbrown=[0.0, 1.0], anth=[0.0, 10.0], soil=None, testmode=1)
+                                    cbrown=[0.0, 1.0], anth=[0.0, 10.0], soil=[0.1]*2101, testmode=1)
 
         return time50x/2
 
@@ -763,7 +831,7 @@ class LUT:
                                         N=self.dict_vals['N'], cab=self.dict_vals['chl'], cw=self.dict_vals['cw'], 
                                         cm=self.dict_vals['cm'], LAI=self.dict_vals['lai'], LIDF=self.dict_vals['alia'], 
                                         typeLIDF=[2], hspot=self.dict_vals['hspot'], psoil=self.dict_vals['psoil'], 
-                                        car=self.dict_vals['car'], cbrown=self.dict_vals['cbr'], 
+                                        car=self.dict_vals['car'], cbrown=self.dict_vals['cbr'], soil=self.bg_spec,
                                         anth=self.dict_vals['canth'], cp=[], ccl=[], LAIu=self.dict_vals['laiu'],
                                         cd=self.dict_vals['cd'], sd=self.dict_vals['sd'], h=self.dict_vals['h'],
                                         prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
@@ -782,6 +850,286 @@ class LUT:
 
     def abort(self, message):
         QMessageBox.critical(self.gui, "Error", message)
+
+    def open_file(self, type):
+        self.main.loadtxtfile.open(type=type)
+
+class LoadTxtFile:
+    def __init__(self, main):
+        self.main = main
+        self.gui = Load_Txt_File_GUI()
+        self.connections()
+        self.initial_values()
+
+    def connections(self):
+        self.gui.cmdOK.clicked.connect(lambda: self.OK())
+        self.gui.cmdCancel.clicked.connect(self.gui.close)
+        self.gui.cmdInputFile.clicked.connect(lambda: self.open_file())
+        self.gui.radioHeader.toggled.connect(lambda: self.change_radioHeader())
+        self.gui.cmbDelimiter.activated.connect(lambda: self.change_cmbDelimiter()) # "activated" signal is user interaction only
+        self.gui.spinDivisionFactor.valueChanged.connect(lambda: self.change_division())
+
+    def initial_values(self):
+        self.header_bool = None
+        self.filenameIn = None
+        self.delimiter_str = ["Tab", "Space", ",", ";"]
+        self.gui.cmbDelimiter.clear()
+        self.gui.cmbDelimiter.addItems(self.delimiter_str)
+        self.gui.tablePreview.setRowCount(0)
+        self.gui.tablePreview.setColumnCount(0)
+        self.gui.radioHeader.setDisabled(True)
+        self.gui.radioHeader.setChecked(False)
+        self.gui.cmbDelimiter.setDisabled(True)
+        self.gui.spinDivisionFactor.setDisabled(True)
+        self.gui.spinDivisionFactor.setValue(1.0)
+        self.gui.cmdOK.setDisabled(True)
+        self.gui.label.setStyleSheet("color: rgb(170, 0, 0);")
+        self.gui.label.setText("No File selected")
+        self.gui.lblInputFile.setText("")
+        self.divide_by = 1.0
+        self.open_type = None
+        self.wl_open, self.data_mean, self.nbands = (None, None, None)
+
+    def open(self, type):
+        self.initial_values()
+        self.open_type = type
+        self.gui.setWindowTitle("Open %s Spectrum" % type)
+        self.gui.show()
+
+    def open_file(self):
+        # file_choice = str(QFileDialog.getOpenFileName(caption='Select Spectrum File', filter="Text-File (*.txt *.csv)"))
+        file_choice, _filter = QFileDialog.getOpenFileName(None, 'Select Spectrum File', '.', "(*.txt *.csv)")
+        if not file_choice: # Cancel clicked
+            if not self.filenameIn: self.houston(message="No File selected") # no file in memory
+            return
+        self.filenameIn = file_choice
+        self.gui.lblInputFile.setText(self.filenameIn)
+        self.gui.radioHeader.setEnabled(True)
+        self.gui.cmbDelimiter.setEnabled(True)
+        self.gui.spinDivisionFactor.setEnabled(True)
+        self.header_bool = False
+        self.inspect_file()
+
+    def inspect_file(self):
+        sniffer = csv.Sniffer()
+        with open(self.filenameIn, 'r') as raw_file:
+            self.dialect = sniffer.sniff(raw_file.readline())
+            if self.dialect.delimiter == "\t":
+                self.gui.cmbDelimiter.setCurrentIndex(0)
+            elif self.dialect.delimiter == " ":
+                self.gui.cmbDelimiter.setCurrentIndex(1)
+            elif self.dialect.delimiter == ",":
+                self.gui.cmbDelimiter.setCurrentIndex(2)
+            elif self.dialect.delimiter == ";":
+                self.gui.cmbDelimiter.setCurrentIndex(3)
+            raw_file.seek(0)
+            raw = csv.reader(raw_file, self.dialect)
+            try:
+                _ = int(next(raw)[0])
+                self.header_bool = False
+            except:
+                self.header_bool = True
+            self.gui.radioHeader.setChecked(self.header_bool)
+            self.read_file()
+
+    def change_radioHeader(self):
+        self.header_bool = self.gui.radioHeader.isChecked()
+        self.read_file()
+
+    def change_cmbDelimiter(self):
+        index = self.gui.cmbDelimiter.currentIndex()
+        if index == 0: self.dialect.delimiter = "\t"
+        elif index == 1: self.dialect.delimiter = " "
+        elif index == 2: self.dialect.delimiter = ","
+        elif index == 3: self.dialect.delimiter = ";"
+        self.read_file()
+
+    def change_division(self):
+        self.divide_by = self.gui.spinDivisionFactor.value()
+        self.read_file()
+
+    def read_file(self):
+        if not self.filenameIn: return
+        header_offset = 0
+        with open(self.filenameIn, 'r') as raw_file:
+            raw_file.seek(0)
+            raw = csv.reader(raw_file, self.dialect)
+
+            data = list()
+            for content in raw:
+                data.append(content)
+
+        n_entries = len(data)
+        if self.header_bool:
+            header = data[0]
+            if not len(header) == len(data[1]):
+                self.houston(message="Error: Data has %i columns, but header has %i columns" % (len(data[1]), len(header)))
+                return
+            header_offset += 1
+            n_entries -= 1
+        n_cols = len(data[0+header_offset])
+        try:
+            self.wl_open = [int(float(data[i+header_offset][0])) for i in range(n_entries)]
+        except ValueError:
+            self.houston(message="Error: Cannot read file. Please check delimiter and header!")
+            return
+
+        row_labels = [str(self.wl_open[i]) for i in range(n_entries)]
+
+        wl_offset = 400 - self.wl_open[0]
+
+        data_array = np.zeros(shape=(n_entries,n_cols-1))
+        for data_list in range(n_entries):
+            data_array[data_list,:] = np.asarray(data[data_list+header_offset][1:]).astype(dtype=np.float16)
+
+        self.data_mean = np.mean(data_array, axis=1)/self.divide_by
+
+        # populate QTableWidget:
+        self.gui.tablePreview.setRowCount(n_entries)
+        self.gui.tablePreview.setColumnCount(1)
+        if self.header_bool:
+            self.gui.tablePreview.setHorizontalHeaderLabels(('Reflectances', 'bla'))
+        self.gui.tablePreview.setVerticalHeaderLabels(row_labels)
+
+        for row in range(n_entries):
+            item = QTableWidgetItem(str(self.data_mean[row]))
+            self.gui.tablePreview.setItem(row, 0, item)
+
+        # Prepare for Statistics
+        if wl_offset > 0:
+            self.data_mean = self.data_mean[wl_offset:]  # cut off first 50 Bands to start at Band 400
+            self.wl_open = self.wl_open[wl_offset:]
+
+        self.gui.label.setStyleSheet("color: rgb(0, 170, 0);")
+        self.gui.label.setText("Ok. No Errors")
+        self.gui.cmdOK.setEnabled(True)
+
+    def houston(self, message):  # we have a problem
+        self.gui.label.setStyleSheet("color: rgb(170, 0, 0);")
+        self.gui.label.setText(message)
+        self.gui.tablePreview.setRowCount(0)
+        self.gui.tablePreview.setColumnCount(0)
+        self.gui.cmdOK.setDisabled(True)
+
+    def OK(self):
+        self.nbands = len(self.wl_open)
+        self.main.LUT.wl_open = self.wl_open
+        self.main.select_wavelengths.populate()
+        self.main.select_wavelengths.gui.setModal(True)
+        self.main.select_wavelengths.gui.show()
+        self.gui.close()
+
+
+class Select_Wavelengths:
+    def __init__(self, main):
+        self.main = main
+        self.gui = Select_Wavelengths_GUI()
+        self.connections()
+
+    def connections(self):
+        self.gui.cmdSendExclude.clicked.connect(lambda: self.send(direction="in_to_ex"))
+        self.gui.cmdSendInclude.clicked.connect(lambda: self.send(direction="ex_to_in"))
+        self.gui.cmdAll.clicked.connect(lambda: self.select(select="all"))
+        self.gui.cmdNone.clicked.connect(lambda: self.select(select="none"))
+        self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
+        self.gui.cmdOK.clicked.connect(lambda: self.OK())
+
+    def populate(self):
+        if self.main.loadtxtfile.nbands < 10: width = 1
+        elif self.main.loadtxtfile.nbands < 100: width = 2
+        elif self.main.loadtxtfile.nbands < 1000: width = 3
+        else: width = 4
+
+        if self.main.loadtxtfile.open_type == "in situ":
+            self.default_exclude = [i for j in (range(960, 1021), range(1390, 1551), range(2000, 2101)) for i in j]
+        elif self.main.loadtxtfile.open_type == "background":
+            self.default_exclude = [i for j in (range(960, 1021), range(1390, 1551), range(2000, 2101)) for i in j]
+
+        for i in range(self.main.loadtxtfile.nbands):
+            if i in self.default_exclude:
+                str_band_no = '{num:0{width}}'.format(num=i + 1, width=width)
+                label = "band %s: %6.2f %s" % (str_band_no, self.main.loadtxtfile.wl_open[i], u'nm') # Ersetze durch variable Unit!
+                self.gui.lstExcluded.addItem(label)
+            else:
+                str_band_no = '{num:0{width}}'.format(num=i+1, width=width)
+                label = "band %s: %6.2f %s" %(str_band_no, self.main.loadtxtfile.wl_open[i], u'nm')
+                self.gui.lstIncluded.addItem(label)
+
+    def send(self, direction):
+        if direction == "in_to_ex":
+            origin = self.gui.lstIncluded
+            destination = self.gui.lstExcluded
+        elif direction == "ex_to_in":
+            origin = self.gui.lstExcluded
+            destination = self.gui.lstIncluded
+
+        for item in origin.selectedItems():
+            index = origin.indexFromItem(item).row()
+            destination.addItem(origin.takeItem(index))
+
+        origin.sortItems()
+        destination.sortItems()
+        self.gui.setDisabled(False)
+
+    def select(self, select):
+        self.gui.setDisabled(True)
+        if select == "all":
+            list_object = self.gui.lstIncluded
+            direction = "in_to_ex"
+        elif select == "none":
+            list_object = self.gui.lstExcluded
+            direction = "ex_to_in"
+
+        for i in range(list_object.count()):
+            item = list_object.item(i)
+            list_object.setItemSelected(item, True)
+
+        self.send(direction=direction)
+
+    def OK(self):
+        list_object = self.gui.lstExcluded
+        raw_list = []
+        for i in range(list_object.count()):
+            item = list_object.item(i).text()
+            raw_list.append(item)
+
+        exclude_bands = [int(raw_list[i].split(" ")[1][:-1]) - 1 for i in range(len(raw_list))]
+
+        if self.main.loadtxtfile.open_type == "in situ":
+            self.main.ivvrm.data_mean = np.asarray([self.main.loadtxtfile.data_mean[i] if i not in exclude_bands
+                                                   else np.nan for i in range(len(self.main.loadtxtfile.data_mean))])
+
+        elif self.main.loadtxtfile.open_type == "background":
+            water_absorption_ranges = self.generate_ranges(range_list=exclude_bands)
+
+            for interp_bands in water_absorption_ranges:
+                y = [self.main.loadtxtfile.data_mean[interp_bands[0]], self.main.loadtxtfile.data_mean[interp_bands[-1]]]
+                f = interp1d([interp_bands[0], interp_bands[-1]], [y[0], y[1]])
+                self.main.loadtxtfile.data_mean[interp_bands[1:-1]] = f(interp_bands[1:-1])
+
+            self.main.LUT.bg_spec = self.main.loadtxtfile.data_mean
+            self.main.LUT.gui.BackSpec_label.setText(os.path.basename(self.main.loadtxtfile.filenameIn))
+            self.main.LUT.gui.push_SelectFile.setEnabled(False)
+            self.main.LUT.gui.push_SelectFile.setText('File:')
+
+        for list_object in [self.gui.lstIncluded, self.gui.lstExcluded]:
+            list_object.clear()
+
+        self.gui.close()
+
+    def generate_ranges(self, range_list):
+        water_absorption_ranges = list()
+        last = -2
+        start = -1
+
+        for item in range_list:
+            if item != last + 1:
+                if start != -1:
+                    water_absorption_ranges.append(range(start, last + 1))
+                start = item
+            last = item
+        water_absorption_ranges.append(range(start, last + 1))
+        return water_absorption_ranges
 
 class PRG:
     def __init__(self, main):
@@ -802,6 +1150,11 @@ class MainUiFunc:
     def __init__(self):
         self.QGis_app = QApplication.instance()
         self.LUT = LUT(self)
+
+        self.loadtxtfile = LoadTxtFile(self)
+
+        self.select_wavelengths = Select_Wavelengths(self)
+
         self.prg_widget = PRG(self)
 
     def show(self):
@@ -811,10 +1164,10 @@ if __name__ == '__main__':
     import warnings
     warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-    from enmapbox.gui.sandbox import initQgisEnvironment
-    app = initQgisEnvironment()
-    main = MainUiFunc()
-    main.show()
+    from enmapbox.testing import initQgisApplication
+    app = initQgisApplication()
+    m = MainUiFunc()
+    m.show()
     sys.exit(app.exec_())
 
 

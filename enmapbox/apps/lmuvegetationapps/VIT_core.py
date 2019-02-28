@@ -209,6 +209,8 @@ class VIT:
         index_no = 0 # intialize index_counter
         IndexOut_matrix = np.full(shape=(self.nrows, self.ncols, self.n_indices), fill_value=self.nodat[1], dtype=float)
 
+
+
         #         if self.IT == 4:
         #             self.spline = interp1d(self.wl, ImageIn_matrix[row, col, :], kind='cubic')  # Generate spline
         #
@@ -216,7 +218,7 @@ class VIT:
         #             IndexOut_matrix[row, col, :] = self.nodat[1]
         #             continue
 
-        if sum(self.StructIndices) > 0:
+        if 1 in self.StructIndices:
             if self.StructIndices[0] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[827], self.dict_senswl[668])
                 index_no += 1
@@ -315,7 +317,7 @@ class VIT:
                 index_no += 1
                 self.prgbar_process(index_no)
 
-        if sum(self.ChlIndices) > 0:
+        if 1 in self.ChlIndices:
             if self.ChlIndices[0] == 1:
                 IndexOut_matrix[:,:,index_no] = self.division(self.dict_senswl[695], self.dict_senswl[420])
                 index_no += 1
@@ -451,7 +453,7 @@ class VIT:
                 index_no += 1
                 self.prgbar_process(index_no)
 
-        if sum(self.CarIndices) > 0:
+        if 1 in self.CarIndices:
             if self.CarIndices[0] == 1:
                 IndexOut_matrix[:,:,index_no] = (1 / self.ImageIn_matrix[:,:,self.dict_senswl[550]]) \
                                                 - (1 / self.ImageIn_matrix[:,:,self.dict_senswl[700]])
@@ -477,7 +479,7 @@ class VIT:
                                                 (self.ImageIn_matrix[:,:,self.dict_senswl[680]] - temp_val[:,:,0])
                 index_no += 1
                 self.prgbar_process(index_no)
-        if sum(self.WatIndices) > 0:
+        if 1 in self.WatIndices:
             if self.WatIndices[0] == 1:
                 IndexOut_matrix[:,:,index_no] = (self.ImageIn_matrix[:,:,self.dict_senswl[802]] -
                                                  self.ImageIn_matrix[:,:,self.dict_senswl[547]]) / \
@@ -517,7 +519,7 @@ class VIT:
                 index_no += 1
                 self.prgbar_process(index_no)
 
-        if sum(self.DmIndices) > 0:
+        if 1 in self.DmIndices:
             if self.DmIndices[0] == 1:
                 temp_val[:,:,0] = self.ImageIn_matrix[:,:,self.dict_senswl[2090]]
                 IndexOut_matrix[:,:,index_no] = 37.27 * (self.ImageIn_matrix[:,:,self.dict_senswl[2210]] + temp_val[:,:,0]) + 26.27 * \
@@ -565,7 +567,7 @@ class VIT:
                 index_no += 1
                 self.prgbar_process(index_no)
 
-        if sum(self.FlIndices) > 0:
+        if 1 in self.FlIndices:
             if self.FlIndices[0] == 1:
                 IndexOut_matrix[:,:,index_no] = (self.ImageIn_matrix[:,:,self.dict_senswl[675]] *
                                                  self.ImageIn_matrix[:,:,self.dict_senswl[550]]) / \
@@ -616,7 +618,7 @@ class VIT:
 
         else:  # Output to single file
             #try:
-            print(IndexOut_matrix.shape)
+            #print(IndexOut_matrix.shape)
             output = Raster.fromArray(array=IndexOut_matrix, filename=OutDir + OutFilename + OutExtension)
 
             output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')

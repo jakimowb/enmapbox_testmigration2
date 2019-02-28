@@ -249,7 +249,7 @@
          <number>6</number>
         </property>
         <item row="4" column="3">
-         <widget class="QLineEdit" name="BackSpec_lineEdit">
+         <widget class="QLineEdit" name="BackSpec_label">
           <property name="enabled">
            <bool>false</bool>
           </property>
@@ -350,7 +350,7 @@
         <item row="4" column="0">
          <widget class="QRadioButton" name="B_LoadBackSpec">
           <property name="enabled">
-           <bool>false</bool>
+           <bool>true</bool>
           </property>
           <property name="maximumSize">
            <size>
@@ -1198,6 +1198,9 @@
                           <pointsize>7</pointsize>
                          </font>
                         </property>
+                        <property name="text">
+                         <string>0</string>
+                        </property>
                         <property name="placeholderText">
                          <string>value</string>
                         </property>
@@ -1607,6 +1610,9 @@
                          <font>
                           <pointsize>7</pointsize>
                          </font>
+                        </property>
+                        <property name="text">
+                         <string>15</string>
                         </property>
                         <property name="placeholderText">
                          <string>value</string>
@@ -2034,6 +2040,9 @@
                           <pointsize>7</pointsize>
                          </font>
                         </property>
+                        <property name="text">
+                         <string>0.005</string>
+                        </property>
                         <property name="placeholderText">
                          <string>value</string>
                         </property>
@@ -2395,6 +2404,9 @@
                        <height>12</height>
                       </size>
                      </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_2</string>
                      </attribute>
@@ -2443,6 +2455,9 @@
                          <font>
                           <pointsize>7</pointsize>
                          </font>
+                        </property>
+                        <property name="text">
+                         <string>0.02</string>
                         </property>
                         <property name="placeholderText">
                          <string>value</string>
@@ -2805,6 +2820,9 @@
                        <height>12</height>
                       </size>
                      </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_10</string>
                      </attribute>
@@ -2853,6 +2871,9 @@
                          <font>
                           <pointsize>7</pointsize>
                          </font>
+                        </property>
+                        <property name="text">
+                         <string>50</string>
                         </property>
                         <property name="placeholderText">
                          <string>value</string>
@@ -3264,6 +3285,9 @@
                           <pointsize>7</pointsize>
                          </font>
                         </property>
+                        <property name="text">
+                         <string>1.5</string>
+                        </property>
                         <property name="placeholderText">
                          <string>value</string>
                         </property>
@@ -3673,6 +3697,9 @@
                          <font>
                           <pointsize>7</pointsize>
                          </font>
+                        </property>
+                        <property name="text">
+                         <string>2</string>
                         </property>
                         <property name="placeholderText">
                          <string>value</string>
@@ -4115,6 +4142,9 @@
                           <pointsize>7</pointsize>
                          </font>
                         </property>
+                        <property name="text">
+                         <string>0</string>
+                        </property>
                         <property name="placeholderText">
                          <string>value</string>
                         </property>
@@ -4488,6 +4518,9 @@
                         <property name="text">
                          <string>Statistical: Gauss</string>
                         </property>
+                        <property name="checked">
+                         <bool>true</bool>
+                        </property>
                         <attribute name="buttonGroup">
                          <string notr="true">buttonGroup_7</string>
                         </attribute>
@@ -4558,6 +4591,9 @@
                           <pointsize>7</pointsize>
                          </font>
                         </property>
+                        <property name="text">
+                         <string/>
+                        </property>
                         <property name="placeholderText">
                          <string>min</string>
                         </property>
@@ -4575,6 +4611,9 @@
                          <font>
                           <pointsize>7</pointsize>
                          </font>
+                        </property>
+                        <property name="text">
+                         <string/>
                         </property>
                         <property name="placeholderText">
                          <string>max</string>
@@ -4594,6 +4633,9 @@
                           <pointsize>7</pointsize>
                          </font>
                         </property>
+                        <property name="text">
+                         <string/>
+                        </property>
                         <property name="placeholderText">
                          <string>std</string>
                         </property>
@@ -4611,6 +4653,9 @@
                          <font>
                           <pointsize>7</pointsize>
                          </font>
+                        </property>
+                        <property name="text">
+                         <string/>
                         </property>
                         <property name="placeholderText">
                          <string>mean</string>
@@ -4715,6 +4760,9 @@
                          <font>
                           <pointsize>7</pointsize>
                          </font>
+                        </property>
+                        <property name="text">
+                         <string>1</string>
                         </property>
                         <property name="placeholderText">
                          <string>value</string>
@@ -4952,6 +5000,9 @@
                          <font>
                           <pointsize>7</pointsize>
                          </font>
+                        </property>
+                        <property name="text">
+                         <string>45</string>
                         </property>
                         <property name="placeholderText">
                          <string>value</string>
@@ -5507,6 +5558,9 @@
                           <pointsize>7</pointsize>
                          </font>
                         </property>
+                        <property name="text">
+                         <string>0.01</string>
+                        </property>
                         <property name="placeholderText">
                          <string>value</string>
                         </property>
@@ -5917,6 +5971,9 @@
                           <pointsize>7</pointsize>
                          </font>
                         </property>
+                        <property name="text">
+                         <string>1</string>
+                        </property>
                         <property name="placeholderText">
                          <string>value</string>
                         </property>
@@ -6326,6 +6383,9 @@
                          <font>
                           <pointsize>7</pointsize>
                          </font>
+                        </property>
+                        <property name="text">
+                         <string>0</string>
                         </property>
                         <property name="placeholderText">
                          <string>value</string>
@@ -6754,6 +6814,9 @@
                          <font>
                           <pointsize>7</pointsize>
                          </font>
+                        </property>
+                        <property name="text">
+                         <string>45</string>
                         </property>
                         <property name="placeholderText">
                          <string>value</string>
@@ -8938,7 +9001,7 @@
   <tabstop>B_LoadBackSpec</tabstop>
   <tabstop>B_FindBackSpec</tabstop>
   <tabstop>push_SelectFile</tabstop>
-  <tabstop>BackSpec_lineEdit</tabstop>
+  <tabstop>BackSpec_label</tabstop>
   <tabstop>push_Image</tabstop>
   <tabstop>push_ShowSoilSpec</tabstop>
   <tabstop>spinNS</tabstop>
@@ -9191,23 +9254,23 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup_16"/>
-  <buttongroup name="buttonGroup_2"/>
+  <buttongroup name="buttonGroup_6"/>
+  <buttongroup name="buttonGroup_3"/>
+  <buttongroup name="buttonGroup_5"/>
+  <buttongroup name="buttonGroup_11"/>
   <buttongroup name="buttonGroup_10"/>
   <buttongroup name="buttonGroup_14"/>
-  <buttongroup name="buttonGroup_9"/>
-  <buttongroup name="buttonGroup_8"/>
-  <buttongroup name="buttonGroup_4"/>
-  <buttongroup name="buttonGroup_5"/>
-  <buttongroup name="buttonGroup_18"/>
-  <buttongroup name="buttonGroup_17"/>
-  <buttongroup name="buttonGroup_12"/>
-  <buttongroup name="buttonGroup_15"/>
-  <buttongroup name="buttonGroup_7"/>
   <buttongroup name="buttonGroup_13"/>
-  <buttongroup name="buttonGroup_11"/>
+  <buttongroup name="buttonGroup_12"/>
+  <buttongroup name="buttonGroup_17"/>
+  <buttongroup name="buttonGroup_7"/>
+  <buttongroup name="buttonGroup_15"/>
+  <buttongroup name="buttonGroup_9"/>
+  <buttongroup name="buttonGroup_16"/>
+  <buttongroup name="buttonGroup_4"/>
+  <buttongroup name="buttonGroup_8"/>
+  <buttongroup name="buttonGroup_18"/>
   <buttongroup name="buttonGroup_19"/>
-  <buttongroup name="buttonGroup_3"/>
-  <buttongroup name="buttonGroup_6"/>
+  <buttongroup name="buttonGroup_2"/>
  </buttongroups>
 </ui>

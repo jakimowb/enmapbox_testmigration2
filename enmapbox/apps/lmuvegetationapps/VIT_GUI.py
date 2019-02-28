@@ -56,7 +56,7 @@ class VIT:
         self.IT = 1 # Interpolation type: 1: NN, 2: linear, 3: IDW, 4: Spline (def: 1);
         self.IDW_exp = 2 # exponent of IDW interpolation
         self.outSingle = 1 # 1: output to single file; else: output to individual files
-        self.structIndices = [-1]*13 # preset all indices in groups and set their flags to -1 (off)
+        self.structIndices = [-1]* 13 # preset all indices in groups and set their flags to -1 (off)
         self.chlIndices = [-1] * 26
         self.carIndices = [-1] * 5
         self.watIndices = [-1] * 8
@@ -360,8 +360,8 @@ class MainUiFunc:
 
 
 if __name__ == '__main__':
-    from enmapbox.gui.sandbox import initQgisEnvironment
-    app = initQgisEnvironment()
+    from enmapbox.testing import initQgisApplication
+    app = initQgisApplication()
     m = MainUiFunc()
     m.show()
     sys.exit(app.exec_())

@@ -243,8 +243,8 @@ class MainUiFunc:
         self.pwr.gui.show()
 
 if __name__ == '__main__':
-    from enmapbox.gui.sandbox import initQgisEnvironment
-    app = initQgisEnvironment()
+    from enmapbox.testing import initQgisApplication
+    app = initQgisApplication()
     m = MainUiFunc()
     m.show()
-    app.exec_()
+    sys.exit(app.exec_())
