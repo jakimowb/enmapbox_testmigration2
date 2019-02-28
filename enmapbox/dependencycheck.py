@@ -50,8 +50,7 @@ def missingPackages(packageNames):
 
     missing = collections.OrderedDict()
     for p in packageNames:
-        spec = importlib.util.find_spec(p)
-        if spec is None:
+        if importlib.util.find_spec(p) is None:
             missing[p] = 'Can not import python package ""'.format(p)
     LAST_MISSED_PACKAGES = list(missing.keys())
     return missing

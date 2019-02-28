@@ -9,8 +9,7 @@ moduleNames = ['qgis', 'qgis.core', 'qgis.gui',
            'qgis.PyQt.QtCore','qgis.PyQt.QtGui','qgis.PyQt.QtWidgets','qgis.PyQt.QtXml','qgis.PyQt.Qt']
 
 for moduleName in moduleNames:
-    __import__(moduleName)
-    module = sys.modules[moduleName]
+    module = importlib.import_module(moduleName)
     for member in dir(module):
         if member in moduleNames:
             continue

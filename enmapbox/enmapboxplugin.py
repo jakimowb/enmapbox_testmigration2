@@ -17,9 +17,10 @@
 ***************************************************************************
 """
 import os, sys, site, importlib
+
 from qgis.core import QgsApplication, QgsProcessingProvider, QgsProcessingAlgorithm, Qgis
 from qgis.gui import QgisInterface
-from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtCore import QTimer, QOperatingSystemVersion
 from qgis.PyQt.QtWidgets import QAction
 
 import numpy as np
@@ -32,6 +33,12 @@ class EnMAPBoxPlugin(object):
         # make site-packages available to python
         assert isinstance(iface, QgisInterface)
         self.iface = iface
+
+
+        if QOperatingSystemVersion.current().name() == 'macOS':
+            # os.environ['SKLEARN_SITE_JOBLIB']='True'True
+            # fix for issue #221
+            os.environ['JOBLIB_MULTIPROCESSING'] = '0'
 
         dirPlugin = os.path.dirname(__file__)
         site.addsitedir(dirPlugin)
@@ -62,7 +69,7 @@ class EnMAPBoxPlugin(object):
         for package in DEPENDENCIES:
             spec = importlib.util.find_spec(package)
             if spec is None:
-                missing.append(spec)
+                missing.append(package)
 
         if len(missing) > 0:
 
