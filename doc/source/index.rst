@@ -21,7 +21,9 @@ step-by-step tutorials which exemplify the software's capabilities.
 - Bitbucket source code repository: `www.bitbucket.org/hu-geomatics/enmap-box <https://bitbucket.org/hu-geomatics/enmap-box>`_
 - Humboldt-University zu Berlin, Geomatics lab: `www.hu-geomatics.de <https://www.geographie.hu-berlin.de/en/professorships/geomatics>`_
 
-.. image:: img/screenshot_main.png
+.. figure:: img/screenshot_main2.png
+   :width: 100%
+
 
 |
 |

@@ -7,7 +7,7 @@
    :width: 27px
 .. |viewlist_textview| image:: ../../../enmapbox/gui/ui/icons/viewlist_textview.svg
    :width: 27px
-.. |mActionZoomPoint| image:: ../../../enmapbox/gui/ui/icons/mActionZoomPoint.svg
+.. |pan_center| image:: ../../../site-packages/qps/ui/icons/pan_center.svg
    :width: 27px
 .. |mActionZoomIn| image:: ../../../enmapbox/gui/ui/icons/mActionZoomIn.svg
    :width: 27px
@@ -19,11 +19,12 @@
    :width: 27px
 .. |mActionPan| image:: ../../../enmapbox/gui/ui/icons/mActionPan.svg
    :width: 27px
-.. |pickrasterspectrum| image:: ../../../enmapbox/gui/speclib/icons/pickrasterspectrum.svg
+.. |pickrasterspectrum| image:: ../../../site-packages/qps/ui/icons/profile.svg
    :width: 27px
 .. |mActionIdentify| image:: ../../../enmapbox/gui/ui/icons/mActionIdentify.svg
    :width: 27px
-
+.. |select_location| image:: ../../../site-packages/qps/ui/icons/select_location.svg
+   :width: 27px
 
 .. || image:: ../../../enmapbox/gui/ui/icons/
    :width: 27px
@@ -39,11 +40,13 @@
    :width: 27px
 .. |mActionRefresh| image:: ../../../enmapbox/gui/ui/icons/mActionRefresh.svg
    :width: 27px
+.. |qgisicon| image:: ../../../enmapbox/gui/ui/icons/qgis_icon.svg
+   :width: 27px
 .. |mIconRasterLayer| image:: ../../../enmapbox/gui/ui/icons/mIconRasterLayer.svg
    :width: 27px
 .. |mIconLineLayer| image:: ../img/mIconLineLayer.svg
    :width: 27px
-.. |speclib| image:: ../../../enmapbox/gui/speclib/icons/speclib.svg
+.. |speclib| image:: ../../../site-packages/qps/ui/icons/speclib.svg
    :width: 27px
 .. |mIconRasterImage| image:: ../../../enmapbox/gui/ui/icons/mIconRasterImage.svg
    :width: 27px
@@ -51,7 +54,8 @@
    :width: 27px
 .. |mIconRasterClassification| image:: ../../../enmapbox/gui/ui/icons/mIconRasterClassification.svg
    :width: 27px
-
+.. |procalg| image:: ../../../enmapbox/gui/ui/icons/processingAlgorithm.svg
+   :width: 27px
 .. scatterplot tool
 .. |action| image:: ../img/action.svg
    :width: 40px
@@ -73,6 +77,7 @@ The GUI
 #######
 
 .. figure:: ../img/manual_gui.png
+   :width: 100%
 
 
 
@@ -104,10 +109,10 @@ In the toolbar you can find the most common tasks. See table below for informati
      - Open a text window
      - | Opens a new text window, you can for example
        | use it to store metadata, take notes etc.
-   * - |mActionZoomPoint|
-     - Move to point
-     - | This tool will move the center of the map
-       | view to the pixel you click on
+   * - |mActionPan|
+     - Pan Map
+     - | Moves the map. Can also be
+       | achieved by holding the mouse wheel
    * - |mActionZoomIn|
      - Zoom In
      - | Increases the zoom level. You can also scroll
@@ -124,18 +129,25 @@ In the toolbar you can find the most common tasks. See table below for informati
      - Zoom to full extent
      - | Changes the zoom level so that the image
        | is displayed in full extent
-   * - |mActionPan|
-     - Pan Map
-     - Moves the map. Can also be achieved by holding the mouse wheel
+   * - |select_location|
+     - Identify
+     - | Identify loactions on the map where you click.
+       | Use the three options on the right to specify
+       | what to identify
+   * - |mActionIdentify|
+     - Identify cursor location value
+     - | Cursor Location Values. Shows pixel values of
+       | all layers at the selected position.
    * - |pickrasterspectrum|
      - | Select pixel profiles
        | from map
      - | Opens spectral library window (if not opened yet) and
        | plots the spectral profile of the selected pixel
-   * - |mActionIdentify|
-     - Identify
-     - | Cursor Location Values. Shows pixel values of
-       | all layers at the selected position.
+   * - |pan_center|
+     - Center map on clicked location
+     - | This tool will move the center of the map
+       | view to the pixel you click on
+
 
 
 2. Data Sources
@@ -167,16 +179,17 @@ corresponding metadata are available:
   * **CRS**: Shows Coordinate Reference System (CRS) information
   * **Features**: Information on number of features and geometry types
   * **Fields**: Attribute information, number of fields as well as field names and corresponding datatype
-  |
+
 
 * |speclib| Spectral Libraries
 
   * **File size**: Size of the file on hard disk
   * **Profiles**: Shows the number of spectra in the library
-  |
 
-* Models
 
+* |procalg| Models
+
+|
 
 **Buttons of the Data Sources panel:**
 
@@ -199,14 +212,14 @@ corresponding metadata are available:
        | layer type groups are shown.
    * - |mActionExpandTree|
      - | Expands menu tree to show all branches.
-   * - |mActionRefresh|
+   * - |qgisicon|
      - Synchronizes Data Sources with QGIS.
 
 .. tip::
 
    * If you want to remove all layers of a type at once (e.g. Raster Data), :menuselection:`right-click on Raster Data --> Clear`
    * The EnMAP-Box also **supports Tile-/Web Map Services** (e.g. Google Satellite or OpenStreetMap) as a raster layer. Just add them to
-     your QGIS project as you normally would, and then click the |mActionRefresh| :superscript:`Synchronize Data Sources with QGIS`
+     your QGIS project as you normally would, and then click the |qgisicon| :superscript:`Synchronize Data Sources with QGIS`
      button. Now they should appear in the data source panel and can be added to a Map View.
 
 3. Data Views
@@ -298,8 +311,8 @@ created links by clicking |unlink|.
 Crosshair
 ^^^^^^^^^
 
-* Activate the crosshair by right-clicking into a Map Window and select ``Show Crosshair``
-* You can alter the style of the crosshair by right-clicking into a Map Window and select ``Set Crosshair Style``
+* Activate the crosshair by right-clicking into a Map Window and select ``Crosshair`` -> ``Show``
+* You can alter the style of the crosshair by right-clicking into a Map Window and select ``Crosshair`` -> ``Style``
 
   .. image:: ../img/crosshair_style.png
 
