@@ -15,7 +15,7 @@ def compileResourceFiles():
 
     qrcFiles = []
     for pathDir in [dir1, dir2]:
-        qrcFiles += file_search(pathDir, '*.qrc', recursive=True)
+        qrcFiles += list(file_search(pathDir, '*.qrc', recursive=True))
 
     for file in qrcFiles:
         print('Compile {}...'.format(file))

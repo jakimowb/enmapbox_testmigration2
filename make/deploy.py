@@ -212,7 +212,7 @@ def updateRepositoryXML(path:str=None):
     :return:
     """
     if not isinstance(path, str):
-        zipFiles = file_search(DIR_DEPLOY, 'enmapbox*.zip')
+        zipFiles = list(file_search(DIR_DEPLOY, 'enmapbox*.zip'))
         zipFiles.sort(key=lambda f:os.path.getctime(f))
         path = zipFiles[-1]
 

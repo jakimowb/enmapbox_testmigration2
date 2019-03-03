@@ -689,7 +689,7 @@ class EnMAPBox(QgisInterface, QObject):
         if not missingTestData():
             import enmapboxtestdata
             dir = os.path.dirname(enmapboxtestdata.__file__)
-            files = file_search(dir, re.compile('.*(bsq|bil|bip|tif|gpkg|sli|img|shp|pkl)$', re.I), recursive=True)
+            files = list(file_search(dir, re.compile('.*(bsq|bil|bip|tif|gpkg|sli|img|shp|pkl)$', re.I), recursive=True))
 
             added = self.addSources(files)
 

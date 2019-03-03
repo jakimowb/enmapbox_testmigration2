@@ -227,8 +227,7 @@ class ApplicationRegistry(QObject):
         """
         results = []
         if os.path.isdir(rootDir):
-            pkgDefinitions = file_search(rootDir, '__init__.py', recursive=True)
-            for file in pkgDefinitions:
+            for file in file_search(rootDir, '__init__.py', recursive=True):
                 p = os.path.dirname(file)
                 if self.isApplicationFolder(p):
                     results.append(p)
