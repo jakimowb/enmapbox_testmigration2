@@ -30,11 +30,6 @@ step-by-step tutorials which exemplify the software's capabilities.
 
 **This documentation is structured as follows:**
 
-.. toctree::
-    :maxdepth: 2
-    :caption: EnMAP-Box Workshop
-
-    workshop.rst
 
 .. toctree::
     :maxdepth: 2
@@ -52,6 +47,7 @@ step-by-step tutorials which exemplify the software's capabilities.
     usr_section/usr_gettingstarted.rst
     usr_section/usr_cookbook.rst
     usr_section/usr_manual.rst
+    usr_section/application_tutorials/index.rst
 
 ..  toctree::
     :maxdepth: 2
@@ -64,12 +60,9 @@ step-by-step tutorials which exemplify the software's capabilities.
     dev_section/dev_gettingstarted.rst
     dev_section/dev_guide.rst
     dev_section/api_reference.rst
+    dev_section/programming_tutorials/index.rst
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Tutorials
 
-   tutorials/tutorial_1.rst
 
 
 
