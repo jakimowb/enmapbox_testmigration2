@@ -39,7 +39,7 @@ from unittest import TestCase
 
 SHOW_GUI = True
 
-def initQgisApplication(*args, **kwds)->QgsApplication:
+def initQgisApplication(*args, loadProcessingFramework=True, **kwds)->QgsApplication:
     """
     Initializes a QGIS Environment
     :return: QgsApplication instance of local QGIS installation
@@ -48,11 +48,12 @@ def initQgisApplication(*args, **kwds)->QgsApplication:
         return QgsApplication.instance()
     else:
 
-        app = qps.testing.initQgisApplication(*args, **kwds)
+        app = qps.testing.initQgisApplication(*args, loadProcessingFramework=loadProcessingFramework, **kwds)
 
         import enmapbox
         enmapbox.initEnMAPBoxResources()
-        enmapbox.initEnMAPBoxProcessingProvider()
+        if loadProcessingFramework:
+            enmapbox.initEnMAPBoxProcessingProvider()
         enmapbox.initEditorWidgets()
         return app
 

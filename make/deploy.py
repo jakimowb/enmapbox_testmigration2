@@ -26,7 +26,7 @@ from http.client import responses
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from enmapbox.testing import initQgisApplication
-qgisApp = initQgisApplication()
+qgisApp = initQgisApplication(loadProcessingFramework=False)
 
 
 from enmapbox.gui.utils import jp, file_search
