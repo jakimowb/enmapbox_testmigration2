@@ -223,7 +223,7 @@ Derive for each class a binary occurrence ``maskArray`` and create a ``maskRaste
        <details>
        <summary>Visualize the <b>maskRaster</b> in a map viewer!</summary>
        <code>MapViewer().addLayer(maskRaster.mapLayer()).show()</code><br>
-       <img src="../../../source/day2/pt1/class_mask.png">
+       <img src="../../../_static/img/pt1/class_mask.png">
        </details>
 
 Aggregate the ``maskRaster`` into the ``fractionRaster`` by resampling it into the target ``gridOversampled``.
@@ -241,7 +241,7 @@ Read the data from the ``fractionRaster`` into the prepared ``fractionArray``.
        <details>
        <summary>Visualize the <b>fractionRaster</b> in a map viewer!</summary>
        <code>MapViewer().addLayer(fractionRaster.mapLayer()).show()</code><br>
-       <img src="../../../source/day2/pt1/class_fraction.png">
+       <img src="../../../_static/img/pt1/class_fraction.png">
        </details>
 
 Sum up all class-wise fractions into an overall pixel ``coverageArray``.
@@ -304,7 +304,7 @@ Use the extracted profiles and labels to fit a multi-target Random Forest Regres
        <details>
        <summary>Plot the Random Forest feature importances! Use the <b>plt.plot</b> function.</summary>
        <code>plt.plot(rfr.feature_importances_)</code><br>
-       <img src="../../../source/programming_tutorial1/pt1/rfr_fi.png">
+       <img src="../../../_static/img/pt1/rfr_fi.png">
        </details>
 
 ----
