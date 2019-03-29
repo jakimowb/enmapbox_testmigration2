@@ -102,7 +102,7 @@ if __name__ == "__main__":
                  #'virtual-raster-builder',
                  #'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
-                 #,'qps'
+                 ,'qps'
                 ]
     updateRemotes(to_update)
     exit(0)

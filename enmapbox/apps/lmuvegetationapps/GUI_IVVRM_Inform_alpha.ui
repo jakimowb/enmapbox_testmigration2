@@ -10,6 +10,15 @@
     <height>941</height>
    </rect>
   </property>
+  <property name="mouseTracking">
+   <bool>true</bool>
+  </property>
+  <property name="tabletTracking">
+   <bool>true</bool>
+  </property>
+  <property name="focusPolicy">
+   <enum>Qt::StrongFocus</enum>
+  </property>
   <property name="windowTitle">
    <string>Interactive Visualization of Vegetation Reflectance Models</string>
   </property>
@@ -815,7 +824,7 @@
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>-75</y>
+        <y>0</y>
         <width>354</width>
         <height>980</height>
        </rect>

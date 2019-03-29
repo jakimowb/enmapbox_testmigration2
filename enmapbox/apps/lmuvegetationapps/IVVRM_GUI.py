@@ -8,14 +8,14 @@ from scipy.interpolate import interp1d
 from qgis.gui import *
 
 #ensure to call QGIS before PyQtGraph
-#from qgis.PyQt.QtCore import *
-#from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
 
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt import uic
 import pyqtgraph as pg
 from lmuvegetationapps import call_model as mod
-from enmapbox.gui.applications import EnMAPBoxApplication
+#from enmapbox.gui.applications import EnMAPBoxApplication
 from lmuvegetationapps.Spec2Sensor_cl import Spec2Sensor
 #import enmapboxtestdata
 import warnings
@@ -25,15 +25,22 @@ from enmapbox.gui.utils import loadUIFormClass
 
 #import time
 
+pathUI_Load = os.path.join(os.path.dirname(__file__), 'GUI_IVVRM_Start.ui')
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_IVVRM_Inform_alpha.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__), 'GUI_LoadTxtFile.ui')
 pathUI3 = os.path.join(os.path.dirname(__file__), 'GUI_Select_Wavelengths.ui')
 
 
+class IVVRM_Start_GUI(QWidget, loadUIFormClass(pathUI_Load)):
+    def __init__(self, parent=None):
+        super(IVVRM_Start_GUI, self).__init__(parent)
+        self.setupUi(self)
+
 class IVVRM_GUI(QDialog, loadUIFormClass(pathUI)):
     def __init__(self, parent=None):
         super(IVVRM_GUI, self).__init__(parent)
         self.setupUi(self)
+        pg.GraphicsScene.sendHoverEvents = lambda *args, **kwargs: None
 
 class Load_Txt_File_GUI(QDialog, loadUIFormClass(pathUI2)):
     def __init__(self, parent=None):
@@ -44,6 +51,29 @@ class Select_Wavelengths_GUI(QDialog, loadUIFormClass(pathUI3)):
     def __init__(self, parent=None):
         super(Select_Wavelengths_GUI, self).__init__(parent)
         self.setupUi(self)
+
+
+class Start_IVVRM:
+    def __init__(self, main):
+        self.main = main
+        self.gui = IVVRM_Start_GUI()
+        self.initial_values()
+        self.connections()
+
+    def initial_values(self):
+        self.gui.setWindowTitle('IVVRM')
+
+    def connections(self):
+        self.gui.startButton.clicked.connect(lambda: self.run_IVVRM())
+
+    def run_IVVRM(self):
+        self.main.ivvrm.gui.show()
+        self.main.ivvrm.plotting()
+        self.main.ivvrm.first_startup = 1
+        #self.main.ivvrm.gui.graphicsView.sendHoverEvents = lambda *args, **kwargs: None
+        self.gui.close()
+        #pg.GraphicsScene.sendHoverEvents()
+
 
 class IVVRM:
 
@@ -58,8 +88,7 @@ class IVVRM:
         self.para_init()
         self.select_model()
         self.mod_interactive()
-        self.mod_exec()
-
+        #self.mod_exec()
 
     def special_chars(self):
         self.gui.lblCab.setText(u'[µg/cm²]')
@@ -71,6 +100,7 @@ class IVVRM:
         self.gui.lblLAI.setText(u'[m²/m²]')
 
     def initial_values(self):
+        self.first_startup = 1
         self.lop = "prospectD"
         self.canopy_arch = "sail"
         self.colors = [tuple([219,183,255]), tuple([51,204,51]), tuple([69,30,234]), tuple([0,255,255]),
@@ -370,7 +400,7 @@ class IVVRM:
             self.gui.Ccl_lineEdit.setDisabled(True)
             self.gui.Ccl_Text.setDisabled(True)
 
-        #self.mod_exec()
+        self.mod_exec()
 
     def para_init(self):
         self.select_s2s(sensor="default", trigger=False)
@@ -474,12 +504,17 @@ class IVVRM:
         if item is not None:
             self.item = item
 
-        self.plotting()
+        if self.first_startup == 0:
+            self.plotting()
+
+        if self.first_startup == 1:
+            self.first_startup = 0
+
+
 
     def plotting(self):
 
         if not self.gui.CheckPlotAcc.isChecked():
-            #self.clear_plot()
             self.gui.graphicsView.plot(self.wl, self.myResult, clear=True, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
                                         name='modelled')
 
@@ -848,24 +883,22 @@ class Select_Wavelengths:
 class MainUiFunc:
     def __init__(self):
         self.QGis_app = QApplication.instance()  # the QGIS-Application made accessible within the code
-
         self.ivvrm = IVVRM(self)
-
+        self.ivvrm_exec = Start_IVVRM(self)
         self.loadtxtfile = LoadTxtFile(self)
         self.select_wavelengths = Select_Wavelengths(self)
 
     def show(self):
-        self.ivvrm.gui.show()
+        #self.ivvrm.gui.show()
+        self.ivvrm_exec.gui.show()
 
 
 if __name__ == '__main__':
 
     from enmapbox.testing import initQgisApplication
-    #from enmapbox.gui.sandbox import initQgisEnvironment
     app = initQgisApplication()
     m = MainUiFunc()
     m.show()
     sys.exit(app.exec_())
-
 
 
