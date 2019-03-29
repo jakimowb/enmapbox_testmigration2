@@ -286,7 +286,7 @@ created links by clicking |unlink|.
 
 .. raw:: html
 
-   <div><video width="450px" controls><source src="../../_static/maplinking.webm" type="video/webm">Your browser does not support HTML5 video.</video>
+   <div><video width="550px" controls><source src="../../_static/maplinking.webm" type="video/webm">Your browser does not support HTML5 video.</video>
    <p><i>Demonstration of linking two Map Windows</i></p></div>
 
 .. |linkscalecenter| image:: ../../../../enmapbox/gui/ui/icons/link_mapscale_center.svg

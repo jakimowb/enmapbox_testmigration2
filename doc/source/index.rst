@@ -45,7 +45,7 @@ step-by-step tutorials which exemplify the software's capabilities.
 
     usr_section/usr_installation.rst
     usr_section/usr_gettingstarted.rst
-    usr_section/usr_cookbook.rst
+    usr_section/usr_cookbook/usr_cookbook.rst
     usr_section/usr_manual/usr_manual.rst
     usr_section/application_tutorials/index.rst
 
