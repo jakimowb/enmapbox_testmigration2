@@ -30,13 +30,13 @@ def enmapboxApplicationFactory(enmapBox):
     :param enmapBox: the EnMAP-Box instance.
     :return: [list-of-EnMAPBoxApplications]
     """
-    import hubtimeseriesviewerapp.enmapboxintegration
+    import eotimeseriesviewerapp.enmapboxintegration
 
-    if hubtimeseriesviewerapp.enmapboxintegration.PLUGIN_INSTALLED:
+    if eotimeseriesviewerapp.enmapboxintegration.PLUGIN_INSTALLED:
 
-        from hubtimeseriesviewerapp.enmapboxintegration import HUBTimeSeriesViewerApp
+        from eotimeseriesviewerapp.enmapboxintegration import EOTimeSeriesViewerApp
         #returns a list of EnMAPBoxApplications
-        return [HUBTimeSeriesViewerApp(enmapBox)]
+        return [EOTimeSeriesViewerApp(enmapBox)]
 
     else:
         from qgis.core import QgsMessageLog

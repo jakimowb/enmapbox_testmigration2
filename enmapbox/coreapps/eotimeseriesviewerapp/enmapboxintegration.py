@@ -27,21 +27,22 @@ from enmapbox.gui.applications import EnMAPBoxApplication
 
 import qgis.utils
 qgis.utils.updateAvailablePlugins()
-PLUGIN_INSTALLED = importlib.find_spec('timeseriesviewer') is not None
+PLUGIN_INSTALLED = importlib.util.find_spec('timeseriesviewer') is not None
 #PLUGIN_INSTALLED = qgis.utils.loadPlugin('timeseriesviewer')
 s = ""
 
-class HUBTimeSeriesViewerApp(EnMAPBoxApplication):
+class EOTimeSeriesViewerApp(EnMAPBoxApplication):
 
 
     def __init__(self, enmapBox, parent=None):
 
-        super(HUBTimeSeriesViewerApp, self).__init__(enmapBox,parent=parent)
+        super(EOTimeSeriesViewerApp, self).__init__(enmapBox, parent=parent)
         if PLUGIN_INSTALLED:
             import timeseriesviewer
             self.name = timeseriesviewer.TITLE
-            self.version = timeseriesviewer.VERSION
+            self.version = timeseriesviewer.__version__
             self.licence = 'GNU GPL-3'
+
 
     def icon(self):
         if PLUGIN_INSTALLED:

@@ -348,7 +348,7 @@ class ApplicationRegistry(QObject):
 
         self.loadMenuItems(appWrapper)
 
-        #load QGIS Processing Framework Integration
+        # load QGIS Processing Framework Integration
         import enmapbox.algorithmprovider
         if isinstance(enmapbox.algorithmprovider.instance(), enmapbox.algorithmprovider.EnMAPBoxAlgorithmProvider):
             self.loadProcessingAlgorithms(appWrapper)
