@@ -5,11 +5,6 @@
 # Required:
 version: 2
 
-name: enmapbox
-type: sphinx
-
-build:
-  image: latest
 
 sphinx:
   configuration: doc/source/conf.py
@@ -19,6 +14,6 @@ formats: all
 python:
   version: 3.7
   install:
-    - requirements:  ./doc/source/requirements.txt
-    - method: pip
+    - requirements:  doc/source/requirements.txt
+
 
