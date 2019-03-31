@@ -43,6 +43,11 @@ CHECK_COMMITS = False
 
 ########## End of config section
 REPO = git.Repo(DIR_REPO)
+pathCfg = jp(DIR_REPO, 'pb_tool.cfg')
+CFG = pb_tool.get_config(pathCfg)
+PLUGIN_NAME = CFG.get('plugin', 'name')
+
+
 currentBranch = REPO.active_branch.name
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')
 buildID = '{}.{}.{}'.format(re.search(r'(\.?[^.]*){2}', __version__).group()
@@ -50,6 +55,7 @@ buildID = '{}.{}.{}'.format(re.search(r'(\.?[^.]*){2}', __version__).group()
                             re.sub(r'[\\/]','_', currentBranch))
 
 DIR_DEPLOY = jp(DIR_REPO, 'deploy')
+
 PLUGIN_REPO_XML_REMOTE = os.path.join(DIR_DEPLOY, 'qgis_plugin_develop.xml')
 PLUGIN_REPO_XML_LOCAL  = os.path.join(DIR_DEPLOY, 'qgis_plugin_develop_local.xml')
 URL_DOWNLOADS = r'https://bitbucket.org/hu-geomatics/enmap-box/downloads'
@@ -212,7 +218,7 @@ def updateRepositoryXML(path:str=None):
     :return:
     """
     if not isinstance(path, str):
-        zipFiles = list(file_search(DIR_DEPLOY, 'enmapbox*.zip'))
+        zipFiles = list(file_search(DIR_DEPLOY, PLUGIN_NAME+'*.zip'))
         zipFiles.sort(key=lambda f:os.path.getctime(f))
         path = zipFiles[-1]
 
@@ -222,7 +228,7 @@ def updateRepositoryXML(path:str=None):
 
     os.makedirs(DIR_DEPLOY, exist_ok=True)
     bn = os.path.basename(path)
-    version = re.search(r'^enmapboxplugin\.(.*)\.zip$', bn).group(1)
+    version = re.search(r'^' + PLUGIN_NAME + '\.(.*)\.zip$', bn).group(1)
     s = ""
     """
  <?xml-stylesheet type="text/xsl" href="plugins.xsl" ?>
@@ -235,7 +241,7 @@ def updateRepositoryXML(path:str=None):
         <qgis_minimum_version>3.4.4</qgis_minimum_version>
         <qgis_maximum_version>3.99.0</qgis_maximum_version>
         <homepage><![CDATA[https://bitbucket.org/hu-geomatics/enmap-box/]]></homepage>
-        <file_name>enmapboxplugin.3.3.20180904T1723.develop.snapshot.zip</file_name>
+        <file_name>EnMAP-Box.3.3.20180904T1723.develop.snapshot.zip</file_name>
         <icon></icon>
         <author_name><![CDATA[HU Geomatics]]></author_name>
         <download_url>https://bitbucket.org/hu-geomatics/enmap-box/downloads/enmapboxplugin.3.2.20180904T1723.develop.snapshot.zip</download_url>
@@ -262,7 +268,7 @@ def updateRepositoryXML(path:str=None):
     ET.SubElement(plugin, 'description').text = r'EnMAP-Box development version'
     ET.SubElement(plugin, 'about').text = 'Preview'
     ET.SubElement(plugin, 'version').text = version
-    ET.SubElement(plugin, 'qgis_minimum_version').text = '3.2'
+    ET.SubElement(plugin, 'qgis_minimum_version').text = '3.4'
     ET.SubElement(plugin, 'qgis_maximum_version').text = '3.99'
     ET.SubElement(plugin, 'homepage').text = enmapbox.HOMEPAGE
     ET.SubElement(plugin, 'file_name').text = bn
@@ -420,12 +426,12 @@ def uploadDeveloperPlugin():
 
 if __name__ == "__main__":
 
-    # 1. update deploy/enmapboxplugin and
-    #    create deploy/enmapboxplugin.<version>.<branch>.zip
+    # 1. update deploy/EnMAP-Box and
+    #    create deploy/EnMAP-Box.<version>.<branch>.zip
     build()
 
     # 2. Upload to Repository
-    # upload deploy/enmapboxplugin.<version>.<branch>.zip to https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/downloads
+    # upload deploy/EnMAP-Box.<version>.<branch>.zip to https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/downloads
     # this step requires to provide upload credentials
     uploadDeveloperPlugin()
 
