@@ -33,11 +33,11 @@ def classFactory(iface):
     :return: enmapboxplugin.EnMAPBoxPlugin(iface)
     """
     import os, sys
-    d = os.path.dirname(__file__)
+    pluginDirectory = os.path.dirname(__file__)
     added = []
-    if not d in sys.path:
-        sys.path.append(d)
-        added.append(d)
+    if not pluginDirectory in sys.path:
+        sys.path.append(pluginDirectory)
+        added.append(pluginDirectory)
     try:
         from enmapbox.enmapboxplugin import EnMAPBoxPlugin
         plugin = EnMAPBoxPlugin(iface)
