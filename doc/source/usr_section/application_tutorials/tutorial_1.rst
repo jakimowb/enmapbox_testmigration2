@@ -173,7 +173,7 @@ Exercise A: Urban land cover
      .. raw:: html
 
         <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
-        <img src="../_static/img/tut_a2.png" alt="---Image can not be displayed---">
+        <img src="../../_static/img/tut_a2.png" alt="---Image can not be displayed---">
         </details></div>
         </br>
 
@@ -246,7 +246,7 @@ Exercise B: Spectral mixing
      .. raw:: html
 
         <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
-        <img src="../_static/img/tut_b2.png" alt="---Image can not be displayed---">
+        <img src="../../_static/img/tut_b2.png" alt="---Image can not be displayed---">
         </details></div>
         </br>
 
@@ -311,7 +311,7 @@ Exercise C: Urban spectral libraries
      .. raw:: html
 
         <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
-        <img src="../_static/img/tut_c1.png" alt="---Image can not be displayed---">
+        <img src="../../_static/img/tut_c1.png" alt="---Image can not be displayed---">
         <p style="color:#2980B9;">The roof class shows a very high within-class variability. The classes pavement, low vegetation,
         and tree show a high within-class variability. The classes soil and water show a rather low within-class variability.</p>
         </details></div>
@@ -584,10 +584,10 @@ Additional Exercises
 
 .. icon links section A
 
-.. |enmapicon| image:: ../../../enmapbox/gui/ui/icons/enmapbox.svg
+.. |enmapicon| image:: ../../../../enmapbox/gui/ui/icons/enmapbox.svg
     :width: 30px
 
-.. |openmapview| image:: ../../../enmapbox/gui/ui/icons/viewlist_mapdock.svg
+.. |openmapview| image:: ../../../../enmapbox/gui/ui/icons/viewlist_mapdock.svg
     :width: 28px
 
 .. |navtools| image:: tut_img/navtools.png
@@ -600,44 +600,44 @@ Additional Exercises
 .. |identifytools| image:: tut_img/identify_tools.png
    :height: 27px
 
-.. |addspectrum| image:: ../../../site-packages/qps/ui/icons/plus_green.svg
+.. |addspectrum| image:: ../../../../site-packages/qps/ui/icons/plus_green.svg
    :width: 28px
 
-.. |autoadd| image:: ../../../site-packages/qps/ui/icons/profile_add_auto.svg
+.. |autoadd| image:: ../../../../site-packages/qps/ui/icons/profile_add_auto.svg
    :width: 28px
 
-.. |delete| image:: ../img/mActionDeleteSelected.svg
+.. |delete| image:: ../../img/mActionDeleteSelected.svg
    :width: 28px
 
-.. |changestyle| image:: ../img/plot_style.svg
+.. |changestyle| image:: ../../img/plot_style.svg
    :width: 28px
 
-.. |edit| image:: ../img/mActionToggleEditing.svg
+.. |edit| image:: ../../img/mActionToggleEditing.svg
    :width: 28px
 
-.. |addatt| image:: ../img/mActionNewAttribute.svg
+.. |addatt| image:: ../../img/mActionNewAttribute.svg
    :width: 28px
 
-.. |deleteatt| image:: ../img/mActionDeleteAttribute.svg
+.. |deleteatt| image:: ../../img/mActionDeleteAttribute.svg
    :width: 28px
 
-.. |savelib| image:: ../../../site-packages/qps/ui/icons/speclib_save.svg
+.. |savelib| image:: ../../../../site-packages/qps/ui/icons/speclib_save.svg
    :width: 28px
 
 .. icon links section C
 
-.. |openspeclib| image:: ../../../enmapbox/gui/ui/icons/viewlist_spectrumdock.svg
+.. |openspeclib| image:: ../../../../enmapbox/gui/ui/icons/viewlist_spectrumdock.svg
    :width: 28px
 
-.. |copy| image:: ../../../enmapbox/gui/ui/icons/mActionEditCopy.svg
+.. |copy| image:: ../../../../enmapbox/gui/ui/icons/mActionEditCopy.svg
    :width: 28px
 
-.. |paste| image:: ../../../enmapbox/gui/ui/icons/mActionEditPaste.svg
+.. |paste| image:: ../../../../enmapbox/gui/ui/icons/mActionEditPaste.svg
    :width: 28px
 
 .. icon links section D
 
-.. |run| image:: ../img/action.svg
+.. |run| image:: ../../img/action.svg
    :width: 28px
 
 .. |identifytools2| image:: tut_img/identify_tools2.png

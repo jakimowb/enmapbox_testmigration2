@@ -1,5 +1,7 @@
 .. include:: links.rst
 
+.. _dev_installation_short:
+
 *Last Update: 2019-02-18*
 
 Installation (Short)
