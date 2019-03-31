@@ -1309,6 +1309,14 @@ class EnMAPBox(QgisInterface, QObject):
         #return self.ui.actionAddDataSource.icon().availableSizes()[0]
         return QSize(16,16)
 
+    def spectralLibraries(self)->list:
+        """
+        Returns a list of SpectraLibraries that are registered to the internal MapLayerStore (i.e. opened in the
+        DataSource panel or shown in a SpectralLibrary Widget).
+        :return: [list-of-SpectralLibraries]
+        """
+        return [lyr for lyr in self.mapLayerStore().mapLayers().values() if isinstance(lyr, SpectralLibrary)]
+
     def mapCanvases(self):
         """
         Returns all MapCanvas(QgsMapCanvas) objects known to the EnMAP-Box
@@ -1319,10 +1327,10 @@ class EnMAPBox(QgisInterface, QObject):
 
     def mapCanvas(self, virtual=False)->MapCanvas:
         """
-        Returns a virtual QgsMapCanvas that contains all QgsMapLayers visible in the EnMAP-Box DataSource Manager
-        :return: QgsMapCanvas
+        Returns a single MapCanvas.
+        :param virtual: bool, set True to return an invisible QgsMapCanvas that contains all data source layers
+        :return: MapCanvas
         """
-
 
         if virtual:
             assert isinstance(self.mQgisInterfaceMapCanvas, QgsMapCanvas)

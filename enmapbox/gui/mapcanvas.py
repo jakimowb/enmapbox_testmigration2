@@ -989,8 +989,6 @@ class MapCanvas(QgsMapCanvas):
                 action.setChecked(ischecked)
                 action.triggered.connect(lambda b, layer=l: onShowRasterGrid(layer))
 
-
-
         menu.addSeparator()
 
         action = menu.addAction('Zoom Full')
@@ -1030,6 +1028,22 @@ class MapCanvas(QgsMapCanvas):
         menu.addSeparator()
         action = menu.addAction('Set CRS...')
         action.triggered.connect(self.setCRSfromDialog)
+
+
+        from enmapbox import EnMAPBox
+        from enmapbox.gui import SpectralLibrary
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox):
+            speclibs = emb.spectralLibraries()
+            if len(speclibs) > 0:
+                m = menu.addMenu('Add Spectral Library')
+                for speclib in speclibs:
+                    assert isinstance(speclib, SpectralLibrary)
+                    a = m.addAction(speclib.name())
+                    a.setToolTip(speclib.source())
+                    a.triggered.connect(lambda *args, slib = speclib: self.setLayers(self.layers() + [slib]))
+        menu.addSeparator()
+
 
         return menu
 
