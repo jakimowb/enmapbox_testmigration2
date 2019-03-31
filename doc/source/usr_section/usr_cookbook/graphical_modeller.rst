@@ -1,67 +1,3 @@
-.. |openmapwindow| image:: ../../../enmapbox/gui/ui/icons/viewlist_mapdock.svg
-    :width: 30px
-.. |linkbasic| image:: ../../../enmapbox/gui/ui/icons/link_basic.svg
-    :width: 30px
-.. |linkscalecenter| image:: ../../../enmapbox/gui/ui/icons/link_mapscale_center.svg
-    :width: 30px
-.. |action| image:: ../img/action.svg
-   :width: 40px
-
-
-.. _usr_cookbook:
-
-========
-Cookbook
-========
-
-This section is a collection of 'recipes' for common tasks you can perform in the EnMAP-Box. If you miss topics,
-feel free to suggest new entries here!
-
-
-Working with the GUI
-====================
-
-Opening WMS data in a Map Window
-================================
-
-
-Using Processing Algorithms
-===========================
-
-
-Clip a raster with a vector
-===========================
-
-Clipping a raster to the bounds of a vector layer is fairly simple in the EnMAP-Box, since vector layers can be
-interpreted as :ref:`masks <mask>`.
-
-* Go to the Processing Algorithms and select *Masking -> Apply Mask to Raster*
-* Under ``Raster`` select the raster layer you want to clip, and under ``Mask`` select the vector layer.
-* Optional: If you want to 'invert the clip', which means that only pixels are included which are NOT within a polygon,
-  simply activate the ``Invert Mask`` option.
-
-
-  .. figure:: ../img/cb_cliprasterwvector.png
-     :width: 100%
-
-     Output example: Input raster (left), vector geometry for clipping (middle) and resulting output (right)
-
-
-.. attention::
-
-   This method will just mask the raster according to the vector geometries, the extent will not be altered,
-   which means the raster will not be cropped to the extent of the vector layer. You may use the raster builder tool
-   for this.
-
-
-Create a spatial subset (crop)
-==============================
-
-Create a spectral subset
-========================
-
-
-
 .. _graphical_modeler:
 
 Graphical Modeler
@@ -119,13 +55,14 @@ Graphical Modeler
     * ``reference_vector``: landcover_berlin_point.shp
     * ``reference_field``: level_2_id
 
-   .. figure:: ../img/screenshot_graphical_model.png
+   .. figure:: ../../img/screenshot_graphical_model.png
+      :width: 100%
 
       Screenshot of the final model and the resulting processing algorithm dialog (lower left)
 
 #. After saving, your model will also appear in the Processing toolbox:
 
-   .. image:: ../img/screenshot_toolbox_models.PNG
+   .. image:: ../../img/screenshot_toolbox_models.PNG
 
 .. admonition:: Final remarks
 
@@ -136,63 +73,3 @@ Graphical Modeler
      in your model dialog.
    * Consider including a separate reference dataset as an additional selectable input parameter
 
-Spectral Library
-================
-
-
-Map Algebra with ImageMath
-==========================
-
-You can open the ImageMath raster calculator under *Applications -> ImageMath*
-
-Calculate NDVI
-~~~~~~~~~~~~~~
-
-* Make sure to open the testdatasets for this example
-* Specify the input and output parameters according to the screenshot below (you can of course alter the names, but make
-  sure to also adapt them in the script)
-
-  .. image:: ../img/im_input_ndvi.png
-
-* Enter this code in the editor on the right side. You do not need to alter ``Output Grid`` and ``Processing`` for now.
-
-  .. code-block:: python
-
-     # retrieve nodata value
-     nodata = noDataValue(enmap)
-     # select the red band
-     red = enmap[38]
-     # select the nir band
-     nir = enmap[64]
-     # calculate ndvi
-     ndvi = (nir-red)/(nir+red)
-     # set all cells to nodata that where nodata before
-     ndvi[red == nodata] = nodata
-     # set nodata value in the metadata
-     setNoDataValue(ndvi, nodata)
-
-
-* Click the run button |action|. The result should be listed in the ``Data Sources`` panel.
-
-Mask raster with vector
-~~~~~~~~~~~~~~~~~~~~~~~
-
-* Make sure to open the testdatasets for this example
-* Select *enmap_berlin.bsq* under ``Inputs`` and name it **enmap**. Further select *landcover_berlin_polygon.shp* and name
-  it **mask**.
-* Under ``Outputs`` specify output path and file and name it **result**
-
-
-* Enter this code in the editor
-
-  .. code-block:: python
-
-     result = enmap
-     # set all cells not covered by mask to nodata
-     result[:, mask[0] == 0] = noDataValue(enmap)
-     # specify nodata value
-     setNoDataValue(result, noDataValue(enmap))
-     # copy metadata to result raster
-     setMetadata(result, metadata(enmap))
-
-* Click the run button |action|. The result should be listed in the ``Data Sources`` panel.
