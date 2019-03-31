@@ -1,19 +1,24 @@
 # .readthedocs.yml
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+# Required:
+version: 2
+
 name: enmapbox
 type: sphinx
 
 build:
   image: latest
 
+sphinx:
+  configuration: doc/source/conf.py
+
+formats: all
+
 python:
-  version: 3.6
-  pip_install: true
-  setup_py_install: false
+  version: 3.7
+  install:
+    - requirements:  ./doc/source/requirements.txt
+    - method: pip
 
-
-formats:
-  - htmlzip
-  - epub
-  - pdf
-
-requirements_file:  ./doc/source/requirements.txt
