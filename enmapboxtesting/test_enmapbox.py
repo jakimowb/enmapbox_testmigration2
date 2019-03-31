@@ -24,6 +24,8 @@ QGIS_APP = initQgisApplication()
 
 SHOW_GUI = True
 
+from enmapbox import initAll
+initAll()
 
 from enmapbox.gui.enmapboxgui import EnMAPBox, EnMAPBoxSplashScreen
 from enmapbox.gui.docks import *

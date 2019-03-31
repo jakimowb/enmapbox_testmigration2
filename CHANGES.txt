@@ -1,10 +1,14 @@
 
 Version 3.3
-
-    workaround for macOS bug that let start new QGIS instances again and again
+    SpectralLibraries can be renamed and added to map canvases to show profile locations
+    Styling of SpectraProfiles with QgsVectorLayer dialog: point color = line color in profile plot
+    Workaround for macOS bug that started new QGIS instances again and again
     Classification Workflow App
     Re-designed Metadata Editor
-    several bug fixes
+    Several bug fixes
+
+Version 3.2
+    ...
 
 Version 3.1
     EnMAP-Box is now based on QGIS 3, Qt 5.9,Python 3 and GDAL 2.2

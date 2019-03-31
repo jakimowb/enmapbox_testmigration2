@@ -959,6 +959,9 @@ class SpectralLibraryDock(Dock):
         self.mSpeclibWidget.setMapInteraction(False)
         self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.mSpeclibWidget)
+        self.setTitle(self.speclib().name())
+        self.speclib().nameChanged.connect(lambda slib=self.speclib(): self.setTitle(slib.name()))
+        self.sigTitleChanged.connect(self.speclib().setName)
 
 
     def speclibWidget(self)->SpectralLibraryWidget:
