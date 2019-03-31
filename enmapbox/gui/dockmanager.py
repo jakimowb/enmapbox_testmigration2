@@ -391,7 +391,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
 class SpeclibDockTreeNode(DockTreeNode):
     def __init__(self, parent, dock):
         super(SpeclibDockTreeNode, self).__init__(parent, dock)
-        self.setIcon(QIcon(':/speclib/icons/speclib.svg'))
+        self.setIcon(QIcon(':/qps/ui/icons/speclib.svg'))
 
     def connectDock(self, dock):
         assert isinstance(dock, SpectralLibraryDock)
