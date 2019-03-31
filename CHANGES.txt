@@ -1,5 +1,6 @@
 
 Version 3.3
+    - added user +  developer example to RTF documentation
     - renamed plugin folder to "EnMAP-Box"
     - SpectralLibraries can be renamed and added to
       map canvases to show profile locations
