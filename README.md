@@ -1,25 +1,26 @@
 # EnMAP-Box 3
 
-The EnMAP-Box is QGIS Plugin designed to process hyperspectral remote sensing data,
-and particularly developed to handle data from the EnMAP sensor.
+The EnMAP-Box is QGIS Plugin to visualize and process remote sensing raster data.
+It is particularly developed to handle imaging spectroscopy data, as from the
+upcoming EnMAP sensor.
 
-Features:
+Highlights:
 
 * visualization of vector and raster data in parallel maps
 
-* collection and visualization of Spectral Libraries and Spectral Profiles
+* collection and visualization of Spectral Libraries
 
-* various algorithms specific to questions and workflows from the fields of
-  remote sensing and imaging spectroscopy
+* enhances the QGIS Processing Framework with many algorithms commonly used in
+  remote sensing and imaging spectroscopy, e.g. raster classification based on
+  Support Vector Machines or Random Forests
 
-* machine-learning algorithm from the scikit-learn library for raster and vector data processing,
-  e.g. support vector classifiction / regression based on raster images and shape files.
-
-
-
-## [Documentation: http://enmap-box.readthedocs.io](http://enmap-box.readthedocs.io)
+* easy GUI and API to make use algorithms brought by scikit-learn with raster data,
+  e.g. machine learning approaches, clusterer, pipelines...
 
 
+Documentation: http://enmap-box.readthedocs.io
+
+## License
 
 The EnMAP-Box is released under the GNU Public License (GPL) Version 3 or above.
 Developing the EnMAP-Box under this license means that you can (if you want to) inspect

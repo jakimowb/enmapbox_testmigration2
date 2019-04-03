@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>EnMAP-Box</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    </head>
+    <body>
+
+
+    <div class="container">
+      <h1>EnMAP-Box</h1>
+      The EnMAP-Box is QGIS Plugin to visualize and process remote sensing raster data.
+It is particularly developed to handle imaging spectroscopy data, as from the
+upcoming EnMAP sensor.
+
+<h2>Highlights</h2>
+        <ul>
+            <li>visualization of vector and raster data in parallel maps</li>
+            <li>collection and visualization of Spectral Libraries</li>
+            <li>enhances the QGIS Processing Framework with many algorithms commonly used in
+  remote sensing and imaging spectroscopy, e.g. raster classification based on
+  Support Vector Machines or Random Forests</li>
+
+            <li>easy GUI and API to make use algorithms brought by scikit-learn with raster data,
+                e.g. machine learning approaches, clusterer, pipelines...</li>
+
+        </ul>
+
+
+        <div id="imgCarousel" class="carousel slide" data-ride="carousel">
+          <!-- Indicators -->
+            <ol class="carousel-indicators">
+                <li data-target="#imgCarousel" data-slide-to="0" class="active"></li>
+                <li data-target="#imgCarousel" data-slide-to="1"></li>
+                <li data-target="#imgCarousel" data-slide-to="2"></li>
+            </ol>
+
+          <!-- Wrapper for slides -->
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                  <img src="img/EnMAP-Box_logo_black_text.svg" alt="EnMAP-Box Logo">
+                </div>
+
+                <div class="carousel-item">
+                  <img src="img/screenshot_main.png" alt="GUI">
+                </div>
+
+                <div class="carousel-item">
+                  <img src="img/testdata_speclib.PNG" alt="Spectral Libraries">
+                </div>
+            </div>
+
+     <!-- Left and right controls -->
+            <a class="carousel-control-prev" href="#imgCarousel" data-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </a>
+            <a class="carousel-control-next" href="#imgCarousel" data-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </a>
+        </div>
+
+
+<footer class="footer">
+
+  <div class="container">
+    <ul class="list-inline">
+      <li><a href="https://bitbucket.org/hu-geomatics/enmap-box">Source Code</a></li>
+      <li><a href="http://plugins.qgis.org/plugins/enmapboxplugin/">QGIS Plugin Repository</a></li>
+      <li><a href="">Examples</a></li>
+      <li><a href="https://bitbucket.org/hu-geomatics/enmap-box/issues">Issues</a></li>
+      <li><a href="https://bitbucket.org/hu-geomatics/enmap-box/src/develop/CHANGES.txt">Changelog</a></li>
+      <li><a href="">Releases</a></li>
+      <li class="pull-right"><a href="#">Back to top</a></li>
+    </ul>
+    <ul class="list-unstyled small">
+      <li>Copyright (c) </li>
+      <li>Code licensed under
+        <a href="https://www.gnu.org/licenses/gpl-3.0.en.html">GNU General Public License, V3 (GPL-3)</a>
+      </li>
+    </ul>
+  </div>
+</footer>
+
+    </body>
+</html>
