@@ -1,5 +1,7 @@
 # EnMAP-Box 3
 
+![build status](https://img.shields.io/bitbucket/pipelines/hu-geomatics/enmap-box.svg)
+
 The EnMAP-Box is QGIS Plugin to visualize and process remote sensing raster data.
 It is particularly developed to handle imaging spectroscopy data, as from the
 upcoming EnMAP sensor.
