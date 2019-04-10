@@ -4,7 +4,7 @@
 
 ![Logo](enmapbox/gui/ui/icons/enmapbox.svg)
 
-The EnMAP-Box is free and open source QGIS Plugin to visualize and process remote sensing raster data. It is particularly developed to handle imaging spectroscopy data, as from the upcoming EnMAP sensor.
+The EnMAP-Box is free and open source [QGIS Plugin ](https://www.qgis.org) to visualize and process remote sensing raster data. It is particularly developed to handle imaging spectroscopy data, as from the upcoming EnMAP sensor.
 
 ![Screenshot](doc/source/img/screenshot_main.png)
 
@@ -15,9 +15,9 @@ The EnMAP-Box is free and open source QGIS Plugin to visualize and process remot
 * collection and visualisation of spectral profiles spectral libraries. Spectral profiles can come from different sources, e.g. raster images, field spectrometer or table-sheets.
 
 * enhances the QGIS Processing Framework with many algorithms commonly used in
-  remote sensing and imaging spectroscopy, e.g. support vector machines or random forest based raster classification, regession, cluster approaches, and more.
+  remote sensing and imaging spectroscopy, e.g. support vector machines or random forest based raster classification, regession, cluster approaches from the [scikit-learn](https://scikit-learn.org/stable/index.html) library.
 
-* applications specfic to imaging spectroscopy and the EnMAP programm, e.g. a simlation of spectral profiles (IIVM), atmospheric correction of EnMAP data, mapping of geological classes from EnMAP data and more...
+* applications specific to imaging spectroscopy and the EnMAP program, e.g. a simulation of spectral profiles (IIVM), atmospheric correction of EnMAP data, mapping of geological classes from EnMAP data and more...
 
 
 Documentation: http://enmap-box.readthedocs.io
