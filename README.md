@@ -2,7 +2,11 @@
 
 ![build status](https://img.shields.io/bitbucket/pipelines/hu-geomatics/enmap-box.svg)
 
+![Logo](enmapbox/gui/ui/icons/enmapbox.svg)
+
 The EnMAP-Box is free and open source QGIS Plugin to visualize and process remote sensing raster data. It is particularly developed to handle imaging spectroscopy data, as from the upcoming EnMAP sensor.
+
+![Screenshot](doc/source/img/screenshot_main.png)
 
 # Highlights:
 
@@ -18,7 +22,7 @@ The EnMAP-Box is free and open source QGIS Plugin to visualize and process remot
 
 Documentation: http://enmap-box.readthedocs.io
 
-Source Code: https://bitbucket.org/hu-geomatics/enmap-box
+Git Repository: https://bitbucket.org/hu-geomatics/enmap-box
 
 
 ## License
