@@ -18,6 +18,9 @@ The EnMAP-Box is free and open source QGIS Plugin to visualize and process remot
 
 Documentation: http://enmap-box.readthedocs.io
 
+Source Code: https://bitbucket.org/hu-geomatics/enmap-box
+
+
 ## License
 
 The EnMAP-Box is released under the GNU Public License (GPL) Version 3 or above. A copy of this licence can be found in the LICENSE.txt file that is part of the EnMAP-Box plugin folder and the EnMAP-Box repository, and also at
@@ -39,7 +42,6 @@ You can get support in the following ways:
 
 ## Contribute own source code
 
-The EnMAP-Box is hosted on Bitbucket at https://github.com/qgis/QGIS.
 
 If you like to contribute algorithms and applications to the EnMAP-Box,
 please describe your ideas in an [enhancement issue](), or contact us via [mail:enmap-box@enmap.org](mail:enmap-box@enmap.org).
