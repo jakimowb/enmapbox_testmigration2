@@ -30,30 +30,35 @@ modified.
 ## Support
 You can get support in the following ways:
 
- -  Read the EnMAP-Box documentation at: [http://enmap-box.readthedocs.io](http://enmap-box.readthedocs.io
+ -  Read the EnMAP-Box documentation [http://enmap-box.readthedocs.io](http://enmap-box.readthedocs.io)
 
- -  Write an email to us: [andreas.rabe@geo.hu-berlin.de](mail://andreas.rabe@geo.hu-berlin.de) or [andreas.rabe@geo.hu-berlin.de](mail://benjamin.jakimow@geo.hu-berlin.de)
+ -  Open an issue with your question, bug report, feature request or other enhancement https://bitbucket.org/hu-geomatics/enmap-box/issues/new
+ 
+ -  Write us an email: [andreas.rabe@geo.hu-berlin.de](mail://andreas.rabe@geo.hu-berlin.de) or [andreas.rabe@geo.hu-berlin.de](mail://benjamin.jakimow@geo.hu-berlin.de)
 
- -  Open an issue with your question on
 
-
-## Contribute
+## Contribute own source code
 
 The EnMAP-Box is hosted on Bitbucket at https://github.com/qgis/QGIS.
 
 If you like to contribute algorithms and applications to the EnMAP-Box,
 please describe your ideas in an [enhancement issue](), or contact us via [mail:enmap-box@enmap.org](mail:enmap-box@enmap.org).
 
-Bug and general feature queuests can be reported to the [issue tracker]()
+If you you wish to contribute source code directly, you preferably:
 
-If you you wish to contribute source code directly, you peferably:
-
-# [fork the project](https://help.github.com/forking/),
-# make your changes
-# commit to your repository. Please
-    - add [FEATURE] to your commit message AND give a clear description of the new feature.
-    - sign your contribution (git commit -s -S)
-# and finally create a [pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/) to the EnMAP-Box repository
+1. Create a fork of the EnMAP-Box development branch (
+[Bitbucket](https://confluence.atlassian.com/bitbucket/forking-a-repository-221449527.html),
+[GitHub](https://help.github.com/en/articles/fork-a-repo), 
+[GitLab](https://docs.gitlab.com/ee/gitlab-basics/fork-project.html))
+2. Make your changes
+3. Commit your canges to the forked repository. Please
+    - add ``[FEATURE]`` to your commit message AND give a clear description of the new feature.
+    - sign your contribution (``git commit -s -S``)
+4. Create a pull request to add your changes to the EnMAP-Box repository 
+([Bitbucket](https://confluence.atlassian.com/bitbucket/work-with-pull-requests-223220593.html), 
+[GitHub](https://help.github.com/articles/creating-a-pull-request-from-a-fork/), 
+[GitLab](https://docs.gitlab.com/ee/gitlab-basics/add-merge-request.html))
 
 The EnMAP-Box core developers will review your contribution and commit it upstream as appropriate.
+
 
