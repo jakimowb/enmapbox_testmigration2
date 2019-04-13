@@ -27,7 +27,7 @@ Vector
 .. Layer besteht aus liste von features, jedes feature geometry + attributes
 .. screenshot_ layer+ attributtabelle
 
-.. figure:: ../img/example_vectordata.png
+.. figure:: ../../img/example_vectordata.png
 
    Example of the vector dataset :ref:`landcover_berlin_polygon.shp <shp_berlingradient>` from the test dataset with
    geometries (i.e. polygon) and corresponding attribute table.
@@ -84,15 +84,15 @@ Any GDAL/OGR readable raster or vector file can be interpreted as a boolean mask
          - |mask_line|
 
 
-.. |mask_image| image:: ../img/mask_examples/mask_image.png
-.. |poly| image:: ../img/mask_examples/poly.png
-.. |mask_poly| image:: ../img/mask_examples/mask_poly.png
-.. |points| image:: ../img/mask_examples/points.png
-.. |mask_point| image:: ../img/mask_examples/mask_point.png
-.. |line| image:: ../img/mask_examples/line.png
-.. |mask_line| image:: ../img/mask_examples/mask_line.png
-.. |hires| image:: ../img/mask_examples/hires.png
-.. |mask_raster| image:: ../img/mask_examples/mask_raster.png
+.. |mask_image| image:: ../../img/mask_examples/mask_image.png
+.. |poly| image:: ../../img/mask_examples/poly.png
+.. |mask_poly| image:: ../../img/mask_examples/mask_poly.png
+.. |points| image:: ../../img/mask_examples/points.png
+.. |mask_point| image:: ../../img/mask_examples/mask_point.png
+.. |line| image:: ../../img/mask_examples/line.png
+.. |mask_line| image:: ../../img/mask_examples/mask_line.png
+.. |hires| image:: ../../img/mask_examples/hires.png
+.. |mask_raster| image:: ../../img/mask_examples/mask_raster.png
 
 
 Classification
@@ -104,14 +104,14 @@ Classification
   parameters are not defined, classes will be numbered consecutively and random colors will be used.
 * The class *unclassified* is always expected to be 0 and will be treated as nodata.
 
-  .. figure:: ../img/classification_metadata.png
+  .. figure:: ../../img/classification_metadata.png
 
      Example of the metadata of a classification image viewed in the :ref:`Metadata Editor <metadata_editor>`
 
 
 
 
-.. figure:: ../img/example_classification.png
+.. figure:: ../../img/example_classification.png
    :height: 440px
 
    Example of a classification image with corresponding classes, derived from the EnMAP test dataset
@@ -151,7 +151,7 @@ Fraction
   In this case there is no *unclassified* class (compared to Classification)
 
 
-  .. figure:: ../img/fraction_metadata.png
+  .. figure:: ../../img/fraction_metadata.png
      :alt: Screenshot of fraction image metadata
 
      Example of the metadata of a fraction image viewed in the :ref:`Metadata Editor <metadata_editor>`
@@ -161,7 +161,7 @@ Fraction
 .. optional: metadaten für klassennamen und farben (in der ENVI Metadatendomäne [key: class names, class lookup]
 .. beachten: hier keine unclassified klasse! (vgl. classification)
 
-.. figure:: ../img/example_fraction.png
+.. figure:: ../../img/example_fraction.png
    :height: 440px
 
    Example of a fraction image holding class fraction information visualized in RGB,
@@ -201,7 +201,7 @@ This information is stored by adding a .csv and .json file to the default spectr
 
   * Example from the EnMAP-Box test dataset:
 
-    .. figure:: ../img/speclib_csv_example.png
+    .. figure:: ../../img/speclib_csv_example.png
        :width: 100%
 
 * .json file (stores class name and class color information)
@@ -228,7 +228,7 @@ This information is stored by adding a .csv and .json file to the default spectr
   * ``no data value`` should be supplied
   * Example from the EnMAP-Box test dataset:
 
-    .. figure:: ../img/speclib_json_example.png
+    .. figure:: ../../img/speclib_json_example.png
        :width: 100%
 
 

@@ -18,7 +18,7 @@ The Scatter Plot tool allows you to plot the values of two bands against each ot
 
 After you entered all settings, click the |action| button to create the plot.
 
-.. figure:: ../img/scatterplot_tool.png
+.. figure:: ../../img/scatterplot_tool.png
 
    Screenshot of the Scatter Plot Tool
 
@@ -31,7 +31,7 @@ After you entered all settings, click the |action| button to create the plot.
 
 **ROI**
 
-.. |roi| image:: ../img/pyqtgraph_roi.png
+.. |roi| image:: ../../img/pyqtgraph_roi.png
    :height: 27px
 
 The ROI option allows you to select a rectangular region in the scatterplot, for which the density distribution will be
