@@ -10,12 +10,12 @@ The EnMAP-Box is free and open source [QGIS Plugin ](https://www.qgis.org) to vi
 
 # Highlights:
 
-* an easy-to-use graphical user interface for the visualization of vector and raster data sources in parallel and in spatially linked maps
+* an easy-to-use graphical user interface for the visualization of vector and raster data sources in parallel and in spatially linked maps.
 
 * collection and visualisation of spectral profiles spectral libraries. Spectral profiles can come from different sources, e.g. raster images, field spectrometer or table-sheets.
 
 * enhances the QGIS Processing Framework with many algorithms commonly used in
-  remote sensing and imaging spectroscopy, e.g. support vector machines or random forest based raster classification, regession, cluster approaches from the [scikit-learn](https://scikit-learn.org/stable/index.html) library.
+  remote sensing and imaging spectroscopy, e.g. support vector machines or random forest based raster classification, regression, cluster approaches from the [scikit-learn](https://scikit-learn.org/stable/index.html) library.
 
 * applications specific to imaging spectroscopy and the EnMAP program, e.g. a simulation of spectral profiles (IIVM), atmospheric correction of EnMAP data, mapping of geological classes from EnMAP data and more...
 
