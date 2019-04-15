@@ -1,0 +1,25 @@
+.container {
+    font-family: "Work Sans";
+}
+
+.carousel-control-prev span {
+    background-color: black;
+}
+
+.carousel-control-next span {
+    background-color: black;
+}
+
+.carousel-caption {
+    color:black;
+    position: relative;
+    left: auto;
+    right: auto;
+
+}
+.carousel-item img {
+    height:300px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
