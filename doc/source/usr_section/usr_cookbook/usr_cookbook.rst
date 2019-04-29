@@ -4,7 +4,8 @@
 Cookbook
 ########
 
-This section is a collection of 'recipes' for common tasks you can perform in the EnMAP-Box.
+This section is a collection of 'recipes' for common tasks you can perform in the EnMAP-Box. Although sometimes the
+:ref:`testdataset <test_dataset>` is used for demonstration purposes, you can use your own datasets as well!
 
 .. todo::
 

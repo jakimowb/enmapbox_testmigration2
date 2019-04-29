@@ -205,6 +205,9 @@ html_sidebars = {
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'EnMAPBoxDoc'
 
+# Include a custom stylesheet for HTML page
+def setup(app):
+    app.add_stylesheet('css/custom.css')
 
 # -- Options for LaTeX output ---------------------------------------------
 

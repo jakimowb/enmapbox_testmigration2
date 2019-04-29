@@ -76,7 +76,6 @@ The GUI
 
 
 
-
 1. Toolbar
 ==========
 
@@ -213,7 +212,7 @@ corresponding metadata are available:
 .. tip::
 
    * If you want to remove all layers of a type at once (e.g. Raster Data), :menuselection:`right-click on Raster Data --> Clear`
-   * The EnMAP-Box also **supports Tile-/Web Map Services** (e.g. Google Satellite or OpenStreetMap) as a raster layer. Just add them to
+   * The EnMAP-Box also supports Tile-/Web Map Services (e.g. Google Satellite or OpenStreetMap) as a raster layer. Just add them to
      your QGIS project as you normally would, and then click the |qgisicon| :superscript:`Synchronize Data Sources with QGIS`
      button. Now they should appear in the data source panel and can be added to a Map View.
 
@@ -241,8 +240,8 @@ zoom in/out.
 * In order to add a new Map Window click the |viewlist_mapdock| :superscript:`Open a Map Window` button. Once you added a
   Map Window, it will be listed in the ``Data Views`` panel.
 * Add layers by either drag-and-dropping them into the Map Window (from the Data Sources list) or right-click onto
-  the layer -> *Open in existing map...*
-* You can also directly create a new Map Window and open a layer by right-clicking the layer -> *Open in new map*
+  the layer :menuselection:`--> Open in existing map...`
+* You can also directly create a new Map Window and open a layer by right-clicking the layer :menuselection:`--> Open in new map`
 
 
 .. can display raster and vector data (+ layer styling as is QGIS)
@@ -306,8 +305,8 @@ created links by clicking |unlink|.
 Crosshair
 ^^^^^^^^^
 
-* Activate the crosshair by right-clicking into a Map Window and select ``Crosshair`` -> ``Show``
-* You can alter the style of the crosshair by right-clicking into a Map Window and select ``Crosshair`` -> ``Style``
+* Activate the crosshair by right-clicking into a Map Window and select :menuselection:`Crosshair --> Show`
+* You can alter the style of the crosshair by right-clicking into a Map Window and select :menuselection:`Crosshair --> Style`
 
   .. image:: ../../img/crosshair_style.png
 
