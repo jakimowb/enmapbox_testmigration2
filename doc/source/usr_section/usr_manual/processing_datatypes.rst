@@ -172,7 +172,7 @@ Spectral Library
 ================
 
 The EnMAP-Box supports the ENVI standard spectral library format (.sli + .hdr file). Spectral libraries can be imported
-as single line raster using the processing algorithm *Auxillary -> Import Library*.
+as single line raster using the processing algorithm :menuselection:`Auxillary --> Import Library`.
 
 .. todo:: Support for further formats will be implemented soon (e.g. import spectral library from ASD field spectrometer)
 
@@ -256,7 +256,7 @@ Models
 .. note::
 
    You can generate example model files which are based on the EnMAP-Box test dataset. In the processing algorithms under
-   *EnMAP-Box -> Auxilliary* you can find one algorithm for each kind of model file:
+   :menuselecion:`EnMAP-Box --> Auxilliary` you can find one algorithm for each kind of model file:
      * Create Test Classifier (RandomForest)
      * Create Clusterer (KMeans)
      * Create Regressor (RandomForest)

@@ -211,7 +211,7 @@ corresponding metadata are available:
 
 .. tip::
 
-   * If you want to remove all layers of a type at once (e.g. Raster Data), :menuselection:`right-click on Raster Data --> Clear`
+   * If you want to remove all layers of a type at once, right-click on the layer group (e.g. Raster Data) and select :guilabel:`Clear`
    * The EnMAP-Box also supports Tile-/Web Map Services (e.g. Google Satellite or OpenStreetMap) as a raster layer. Just add them to
      your QGIS project as you normally would, and then click the |qgisicon| :superscript:`Synchronize Data Sources with QGIS`
      button. Now they should appear in the data source panel and can be added to a Map View.
@@ -222,6 +222,20 @@ corresponding metadata are available:
 The Data Views panel organizes the different windows and their content.
 You may change the name of a Window by double-clicking onto the name in the list.
 
+**Buttons of the Data Views panel:**
+
+.. list-table::
+   :widths: auto
+   :align: left
+   :header-rows: 1
+
+   * - Button
+     - Description
+   * - |mActionCollapseTree|
+     - | Collapses the whole menu tree, so that only
+       | layer type groups are shown.
+   * - |mActionExpandTree|
+     - | Expands menu tree to show all branches.
 
 .. figure:: ../../img/example_data_views.png
    :width: 100%
@@ -258,15 +272,15 @@ available:
 * |linkscale| Link map scale
 * |linkcenter| Link map center
 
-In order to link Map Windows, go to :menuselection:`View --> Set Map Linking`, which will open the following dialog:
+In order to link Map Windows, go to :menuselection:`View --> Set Map Linking` in the menu bar, which will open the following dialog:
 
 .. image:: ../../img/map_linking.png
 
 Here you can specify the above mentioned link options between the Map Windows. You may either specify linkages between pairs
-or link all canvases at once (the ``All Canvases`` option is only specifiable when the number of Map Windows is > 2). Remove
+or link all canvases at once (the :guilabel:`All Canvases` option is only specifiable when the number of Map Windows is > 2). Remove
 created links by clicking |unlink|.
 
-**Alternative:** You can also create linkages between Map Windows directly from the Window itself:
+**Alternative:** You can also create linkages between Map Windows directly from within the windows:
 
 .. warning:: Mind that this method might not work on Linux or Mac systems (due to display problems).
              In that case just use :menuselection:`View --> Set Map Linking`.
@@ -278,9 +292,6 @@ created links by clicking |unlink|.
       :width: 100%
 
 #. Select the desired linking type by clicking on the respective button.
-
-
-|
 
 
 .. raw:: html
@@ -335,7 +346,7 @@ See `QGIS Documentation - The toolbox <https://docs.qgis.org/testing/en/docs/use
 =========================
 
 This tools lets you inspect the values of a layer or multiple layers at the location where you click in the map view. To select a location (e.g. pixel or feature)
-select the :guilabel:`Select Cursor Location` or the |mActionIdentify| :superscript:`Identify` button and click somewhere in the map view.
+use the |select_location| :superscript:`Select Cursor Location` button and click somewhere in the map view.
 
 * The Cursor Location Value panel should open automatically and list the information for a selected location. The layers will be listed in the order they appear in the Map View.
   In case you do not see the panel, you can open it via :menuselection:`View --> Panels --> Cursor Location Values`.

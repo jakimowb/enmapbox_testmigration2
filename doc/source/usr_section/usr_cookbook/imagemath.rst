@@ -1,7 +1,7 @@
 Map Algebra with ImageMath
 ==========================
 
-You can open the ImageMath raster calculator under *Applications -> ImageMath*
+You can open the ImageMath raster calculator under :menuselection:`Applications --> ImageMath`
 
 Calculate NDVI
 ~~~~~~~~~~~~~~

@@ -20,13 +20,9 @@ Classification Workflow
 EO Time Series Viewer
 =====================
 
-Please visit `Read the Docs - EO Time Series Viewer <https://eo-time-series-viewer.readthedocs.io/en/latest/>`_ for more information.
+Please visit `EO Time Series Viewer Documentation <https://eo-time-series-viewer.readthedocs.io/en/latest/>`_ for more information.
 
 Agricultural Applications
 =========================
 
-IVVRM
-~~~~~
-
-**Interactive Visualization of Vegetation Reflectance Models:**
-
+Please visit `LMU Vegetation Apps Documentation <https://enmap-box-lmu-vegetation-apps.readthedocs.io/en/latest/>`_ for more information.
