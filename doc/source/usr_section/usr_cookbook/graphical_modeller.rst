@@ -9,7 +9,7 @@ Graphical Modeler
           processing algorithms, we will build a model which combines all the steps and can potentially be reused and
           generalized for further applications of image classification.
 
-          You can find general information on the Graphical Modeler in the `QGIS documentation <https://docs.qgis.org/2.8/en/docs/user_manual/processing/modeler.html>`_.
+          You can find general information on the Graphical Modeler in the `QGIS documentation <https://docs.qgis.org/3.4/en/docs/user_manual/processing/modeler.html>`_.
 
 #. Start the EnMAP-Box and load the test dataset under :menuselection:`Project --> Load example data`.
 #. In the menubar go to :menuselection:`Processing --> Graphical Modeler`. In the Modeler you have two major

@@ -2,8 +2,8 @@ Filtering
 =========
 
 The EnMAP Box comes with a variety of filtering algorithms. You can find them in the processing
-toolbox under *Convolution, Morphology and Filtering*. In this section we will demonstrate how to apply them,
-showing a spatial filter and a spectral filter.
+toolbox under :menuselection:`EnMAP-Box --> Convolution, Morphology and Filtering`. In this section we will demonstrate how to apply them,
+by showing a spatial filter and a spectral filter.
 
 Spatial Filter
 --------------
@@ -13,9 +13,9 @@ Spatial filters apply a 2D kernel spatially (i.e. y/x dimensions) for each band.
 Open the :ref:`testdataset`. In the processing toolbox go to :menuselection:`EnMAP-Box --> Convolution, Morphology and Filtering --> Spatial Median Filter`.
 
 
-* Select *enmap_berlin.bsq* as Raster
+* Select *enmap_berlin.bsq* as :guilabel:`Raster`
 * Use the default settings in the code window
-* Specify Output Raster, and click :guilabel:`Run`
+* Specify :guilabel:`Output Raster`, and click :guilabel:`Run`
 
 .. figure:: ../../img/spatial_median_filter.png
 
@@ -30,9 +30,9 @@ reduce the overall number of band values as values in the beginning and at the e
 
 Open the :ref:`testdataset`. In the processing toolbox go to :menuselection:`EnMAP-Box --> Convolution, Morphology and Filtering --> Spectral Convolution Gaussian1DKernel`.
 
-* Select *enmap_berlin.bsq* as Raster
+* Select *enmap_berlin.bsq* as :guilabel:`Raster`
 * In the code window, change ``stddev=1`` to ``stddev=2``
-* Specify Output Raster, and click :guilabel:`Run`
+* Specify :guilabel:`Output Raster`, and click :guilabel:`Run`
 
 
 .. figure:: ../../img/gaus1dfilter.png

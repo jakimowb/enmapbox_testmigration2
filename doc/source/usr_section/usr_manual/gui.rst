@@ -243,7 +243,7 @@ You may change the name of a Window by double-clicking onto the name in the list
    Example of how different window types and their contents are organized in the Data Views panel. In this case there
    are two Map Windows and one Spectral Library Window in the project.
 
-
+|
 
 Map Window |viewlist_mapdock|
 ~~~~~~~~~~
@@ -321,10 +321,144 @@ Crosshair
 
   .. image:: ../../img/crosshair_style.png
 
-
+|
 
 Spectral Library Window |viewlist_spectrumdock|
 ~~~~~~~~~~~~~~~~~~~~~~~
+
+The Spectral Library Window can be used to visualize, collect and label spectra. It directly interacts with the Map Window(s), which
+means spectra can be directly collected from an image. Furthermore, external libraries (ENVI Spectral Library) can be imported.
+
+* Add a new Spectral Library Window using the |viewlist_spectrumdock| :sup:`Add Spectral Library Window` button in the toolbar or from the menu bar
+  :menuselection:`View --> Add Spectral Library Window`
+
+* You can import and open existing libraries using the |speclib_add| :sup:`Import Spectral Library` button
+
+.. figure:: ../../img/spectral_lib_window.png
+   :width: 100%
+
+   Spectral Library Window with several collected and labeled spectra
+
+
+**Buttons of the Spectral Library Window:**
+
+.. list-table::
+   :widths: auto
+   :align: left
+   :header-rows: 1
+
+   * - Button
+     - Description
+   * - |plus_green|
+     - | Adds currently overlaid profiles
+       | to the spectral library
+   * - |profile_add_auto|
+     - | Activate to add profiles automatically
+       | into the spectral library
+   * - |speclib_add|
+     - | Import Spectral Library
+   * - |speclib_save|
+     - | Save Spectral Library
+   * - |mActionSelectAll|
+     - | Selects all elements in
+       | the spectral library
+   * - |mActionInvertSelection|
+     - | Inverts the current selection
+   * - |mActionDeselectAll|
+     - | Remove selection (deselect everything)
+   * - |mActionReload|
+     - | Reload the table
+   * - |mActionToggleEditing|
+     - | Toggle editing mode
+   * - |mActionEditCut|
+     - | Cut selected rows to clipboard
+   * - |mActionEditCopy|
+     - | Copy selected rows to clipboard
+   * - |mActionEditPaste|
+     - | Paste features from clipboard
+   * - |mActionDeleteSelected|
+     - | Delete selected features
+   * - |mActionSaveAllEdits|
+     - | Save edits
+   * - |mActionNewAttribute|
+     - | Add New field
+   * - |mActionDeleteAttribute|
+     - | Delete field
+   * - |system|
+     - | Enter the Spectral Library Layer Properties
+   * - |mActionFormView|
+     - | Switch to form view
+   * - |mActionOpenTable|
+     - | Switch to table view
+
+.. |plus_green| image:: ../../../../site-packages/qps/ui/icons/plus_green.svg
+   :width: 27px
+.. |profile_add_auto| image:: ../../../../site-packages/qps/ui/icons/profile_add_auto.svg
+   :width: 27px
+.. |speclib_add| image:: ../../../../site-packages/qps/ui/icons/speclib_add.svg
+   :width: 27px
+.. |speclib_save| image:: ../../../../site-packages/qps/ui/icons/speclib_save.svg
+   :width: 27px
+.. |mActionSelectAll| image:: ../../img/mActionSelectAll.svg
+   :width: 27px
+.. |mActionInvertSelection| image:: ../../img/mActionInvertSelection.svg
+   :width: 27px
+.. |mActionDeselectAll| image:: ../../img/mActionDeselectAll.svg
+   :width: 27px
+.. |mActionReload| image:: ../../img/mActionReload.svg
+   :width: 27px
+.. |mActionToggleEditing| image:: ../../img/mActionToggleEditing.svg
+   :width: 27px
+.. |mActionEditCut| image:: ../../img/mActionEditCut.svg
+   :width: 27px
+.. |mActionEditCopy| image:: ../../img/mActionEditCopy.svg
+   :width: 27px
+.. |mActionEditPaste| image:: ../../img/mActionEditPaste.svg
+   :width: 27px
+.. |mActionDeleteSelected| image:: ../../img/mActionDeleteSelected.svg
+   :width: 27px
+.. |mActionSaveAllEdits| image:: ../../img/mActionSaveAllEdits.svg
+   :width: 27px
+.. |mActionNewAttribute| image:: ../../img/mActionNewAttribute.svg
+   :width: 27px
+.. |mActionDeleteAttribute| image:: ../../img/mActionDeleteAttribute.svg
+   :width: 27px
+.. |system| image:: ../../img/system.svg
+   :width: 27px
+.. |mActionFormView| image:: ../../img/mActionFormView.svg
+   :width: 27px
+.. |mActionOpenTable| image:: ../../img/mActionOpenTable.svg
+   :width: 27px
+
+
+**Collecting spectra:**
+
+* Make sure to enable the |pickrasterspectrum| button in the menu bar and open a raster you want to collect spectra
+  from in a Map Window.
+* Click in a desired location in the Map Window. The pixels spectral profile at this location will now be shown in
+  the plot in the Library Window. Mind that this will only visualize the spectrum, but nothing is saved at this point.
+* To add/save a selected spectrum to the library, click the |plus_green| button. Mind the new table entry on the right of the window.
+  If spectra should be directly added to the library while a pixel is selected/clicked, enable the |profile_add_auto| button.
+
+**Managing spectra:**
+
+* You can add additional fields to the table, for example in order to add information to every spectrum
+  (id, name, classification label, ...). To do so, enable the editing mode by clicking the |mActionToggleEditing|
+  :sup:`Toggle Editing Mode` button. Now you can use the |mActionNewAttribute| :sup:`New field` button to add a new field (mind the type!).
+  After the new field is added, click inside a cell to alter/add its content. To delete a field use the |mActionDeleteAttribute| :sup:`Delete Field` button.
+
+  .. figure:: ../../img/speclib_add_field.png
+
+     Example: Add a new text field (maximum 100 characters)
+
+* Spectra can be selected in the table and in the plot window itself. Selected spectra will be highlighted (blue background
+  in the table; thicker line in the plot window). Hold the :kbd:`Shift` key to select multiple spectra. A Selection can be removed
+  by clicking the |mActionDeselectAll| :sup:`Deselect All` button.
+* Remove spectra using the |mActionDeleteSelected| :sup:`Remove Spectrum` button.
+* You can save the collected spectra using the  |speclib_save| :sup:`Save Profiles in spectral library` button.
+
+
+
 
 Text Window |viewlist_textview|
 ~~~~~~~~~~~
@@ -340,7 +474,7 @@ it via :menuselection:`View --> Panels --> QGIS Processing Toolbox`.
 
 .. image:: ../../img/processing_toolbox.png
 
-See `QGIS Documentation - The toolbox <https://docs.qgis.org/testing/en/docs/user_manual/processing/toolbox.html>`_ for further information.
+See `QGIS Documentation - The toolbox <https://docs.qgis.org/3.4/en/docs/user_manual/processing/toolbox.html>`_ for further information.
 
 5. Cursor Location Values
 =========================
@@ -353,11 +487,11 @@ use the |select_location| :superscript:`Select Cursor Location` button and click
 
 .. figure:: ../../img/cursorlocationvalues.png
 
-* By default, raster layer information will only be shown for the bands which are mapped to RGB. If you want to view all bands, change the ``RGB`` setting
-  to ``All`` (right dropdown menu). Also, the first information is always the pixel coordinate (column, row).
-* You can select whether location information should be gathered for ``All layers`` or only the ``Top layer``. You can further
-  define whether you want to consider ``Raster and Vector`` layers, or ``Vector only`` and ``Raster only``, respectively.
-* Coordinates of the selected location are shown in the ``x`` and ``y`` fields. You may change the coordinate system of the displayed
+* By default, raster layer information will only be shown for the bands which are mapped to RGB. If you want to view all bands, change the :guilabel:`Visible` setting
+  to :guilabel:`All` (right dropdown menu). Also, the first information is always the pixel coordinate (column, row).
+* You can select whether location information should be gathered for :guilabel:`All layers` or only the :guilabel:`Top layer`. You can further
+  define whether you want to consider :guilabel:`Raster and Vector` layers, or :guilabel:`Vector only` and :guilabel:`Raster only`, respectively.
+* Coordinates of the selected location are shown in the :guilabel:`x` and :guilabel:`y` fields. You may change the coordinate system of the displayed
   coordinates via the |select_crs| :superscript:`Select CRS` button (e.g. for switching to lat/long coordinates).
 
 
