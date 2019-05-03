@@ -20,7 +20,7 @@
 .. |mActionPan| image:: ../../../../enmapbox/gui/ui/icons/mActionPan.svg
    :width: 27px
 .. |pickrasterspectrum| image:: ../../../../site-packages/qps/ui/icons/profile.svg
-   :width: 27px
+   :width: 30px
 .. |mActionIdentify| image:: ../../../../enmapbox/gui/ui/icons/mActionIdentify.svg
    :width: 27px
 .. |select_location| image:: ../../../../site-packages/qps/ui/icons/select_location.svg
@@ -394,7 +394,7 @@ means spectra can be directly collected from an image. Furthermore, external lib
 .. |plus_green| image:: ../../../../site-packages/qps/ui/icons/plus_green.svg
    :width: 27px
 .. |profile_add_auto| image:: ../../../../site-packages/qps/ui/icons/profile_add_auto.svg
-   :width: 27px
+   :width: 30px
 .. |speclib_add| image:: ../../../../site-packages/qps/ui/icons/speclib_add.svg
    :width: 27px
 .. |speclib_save| image:: ../../../../site-packages/qps/ui/icons/speclib_save.svg
@@ -452,7 +452,7 @@ means spectra can be directly collected from an image. Furthermore, external lib
      Example: Add a new text field (maximum 100 characters)
 
 * Spectra can be selected in the table and in the plot window itself. Selected spectra will be highlighted (blue background
-  in the table; thicker line in the plot window). Hold the :kbd:`Shift` key to select multiple spectra. A Selection can be removed
+  in the table; thicker line in the plot window). Hold the :kbd:`Shift` key to select multiple spectra. A selection can be removed
   by clicking the |mActionDeselectAll| :sup:`Deselect All` button.
 * Remove spectra using the |mActionDeleteSelected| :sup:`Remove Spectrum` button.
 * You can save the collected spectra using the  |speclib_save| :sup:`Save Profiles in spectral library` button.

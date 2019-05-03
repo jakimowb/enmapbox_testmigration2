@@ -2,7 +2,7 @@ Clip a raster with a vector
 ===========================
 
 Clipping a raster to the bounds of a vector layer is fairly simple in the EnMAP-Box, since vector layers can be
-interpreted as :ref:`masks <mask>`.
+interpreted as :ref:`masks <datatype_mask>`.
 
 * Go to the Processing Algorithms and select :menuselection:`Masking --> Apply Mask to Raster`
 * Under ``Raster`` select the raster layer you want to clip, and under ``Mask`` select the vector layer.

@@ -33,7 +33,7 @@ Vector
    geometries (i.e. polygon) and corresponding attribute table.
 
 
-.. _mask:
+.. _datatype_mask:
 
 Mask
 ====
@@ -94,6 +94,8 @@ Any GDAL/OGR readable raster or vector file can be interpreted as a boolean mask
 .. |hires| image:: ../../img/mask_examples/hires.png
 .. |mask_raster| image:: ../../img/mask_examples/mask_raster.png
 
+
+.. _datatype_classification:
 
 Classification
 ==============
