@@ -13,7 +13,7 @@ Spatial filters apply a 2D kernel spatially (i.e. y/x dimensions) for each band.
 Open the :ref:`testdataset`. In the processing toolbox go to :menuselection:`EnMAP-Box --> Convolution, Morphology and Filtering --> Spatial Median Filter`.
 
 
-* Select *enmap_berlin.bsq* as :guilabel:`Raster`
+* Select :file:`enmap_berlin.bsq` as :guilabel:`Raster`
 * Use the default settings in the code window
 * Specify :guilabel:`Output Raster`, and click :guilabel:`Run`
 
@@ -30,7 +30,7 @@ reduce the overall number of band values as values in the beginning and at the e
 
 Open the :ref:`testdataset`. In the processing toolbox go to :menuselection:`EnMAP-Box --> Convolution, Morphology and Filtering --> Spectral Convolution Gaussian1DKernel`.
 
-* Select *enmap_berlin.bsq* as :guilabel:`Raster`
+* Select :file:`enmap_berlin.bsq` as :guilabel:`Raster`
 * In the code window, change ``stddev=1`` to ``stddev=2``
 * Specify :guilabel:`Output Raster`, and click :guilabel:`Run`
 
@@ -38,7 +38,5 @@ Open the :ref:`testdataset`. In the processing toolbox go to :menuselection:`EnM
 .. figure:: ../../img/gaus1dfilter.png
 
    Spectral signature of a pixel, original vs filtered with a Gaussian1DKernel
-
-
 
 

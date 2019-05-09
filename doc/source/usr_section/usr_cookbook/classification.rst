@@ -55,6 +55,8 @@ algorithm (in the processing toolbox under :menuselection:`EnMAP-Box --> Create 
 
 The generated classification raster can now be used to fit a classifier.
 
+.. _hint_class_json:
+
 .. hint::
 
    In order for the :guilabel:`Classification from Vector` algorithm to know the class labels (names) and colors for rasterization
@@ -92,10 +94,10 @@ The generated classification raster can now be used to fit a classifier.
       }
 
 
-**Fit Classifier**
+**Fit Classifier:**
 
 * Go to :menuselection:`EnMAP-Box --> Classification` and select one of the Fit [...] algorithms, for example :menuselection:`Fit SVC`
-* Now select :file:`enmap_berlin.bsq` as :guilabel:`Raster` and the output of the *Classification from Vector* algorithm as :guilabel:`Labels`,
+* Now select :file:`enmap_berlin.bsq` as :guilabel:`Raster` and the output of the :guilabel:`Classification from Vector` algorithm as :guilabel:`Labels`,
   leave the remaining parameters at default and specify an output path (:guilabel:`Output Classifier`) for the classifier file (:file:`.pkl`).
 * Click :guilabel:`Run`.
 
@@ -125,3 +127,8 @@ Accuracy Assessment
 .. todo::
 
    Under construction...
+
+
+.. tip:: If you want to automatize workflows we suggest using the graphical modeler available in QGIS! See the
+         :ref:`Graphical Modeler <graphical_modeler>` recipe in the cookbook on how to create a graphical model
+         for image classification.

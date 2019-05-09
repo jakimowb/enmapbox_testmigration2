@@ -32,16 +32,16 @@ Loading Testdata
   to download the dataset, confirm with :guilabel:`OK`). The following datasets
   will be added (now they are listed in the :guilabel:`Data Sources` window):
 
-  * enmap_berlin.bsq
-  * hires_berlin.bsq
-  * landcover_berlin_point.shp
-  * landcover_berlin_polygon.shp
-  * library_berlin.sli
+  * :file:`enmap_berlin.bsq`
+  * :file:`hires_berlin.bsq`
+  * :file:`landcover_berlin_point.shp`
+  * :file:`landcover_berlin_polygon.shp`
+  * :file:`library_berlin.sli`
 
 .. tip::
 
    Have a look at the section :ref:`Test dataset <test_dataset>` for further information on the dataset. In this section we will
-   mainly work with *enmap_berlin.bsq* and *landcover_berlin_point.shp*
+   mainly work with :file:`enmap_berlin.bsq` and :file:`landcover_berlin_point.shp`
 
 
 First Steps in the GUI
@@ -60,8 +60,8 @@ to get to know the GUI functionalities:
 
 * Now, in the :guilabel:`Data Views` window, expand the :guilabel:`Map #1` list, so that you can see the individual layers. Select
   *hires_berlin.bsq* and drag the layer into :guilabel:`Map #2` (you can drag them directly into the map views or the respective menu item under :guilabel:`Data Views`).
-  You can remove *library_berlin.sli* and *landcover_berlin_polygon.shp*, since they are not needed here. Right-click on the layer
-  in the Data Views panel and select *Remove Layer*.
+  You can remove :file:`library_berlin.sli` and :file:`landcover_berlin_polygon.shp`, since they are not needed here. Right-click on the layer
+  in the Data Views panel and select :guilabel:`Remove Layer`.
 * In the next step we link both map views, so that zoom and center are synchronized between both. Go to :menuselection:`View --> Set Map Linking` and
   select |linkscalecenter| :superscript:`Link map scale and center`.
 * Move the map (using |pan| or holding mouse wheel) and see how both map views are synchronized.
@@ -71,8 +71,8 @@ Image Classification
 ####################
 
 * Go to :menuselection:`Applications --> Classification Workflow` to open the Classification Workflow application.
-* At the top, choose *enmap_berlin.bsq* as :guilabel:`Raster` and *landcover_berlin_point* as :guilabel:`Reference`. Select *level_2_id* as :guilabel:`Attribute`.
-  After selection of the attribute the class names and colors become visible in the :guilabel:`Sampling` submenu.
+* At the top, choose :file:`enmap_berlin.bsq` as :guilabel:`Raster` and :file:`landcover_berlin_point.shp` as :guilabel:`Reference`.
+  Select ``level_2_id`` as :guilabel:`Attribute`. After selection of the attribute the class names and colors become visible in the :guilabel:`Sampling` submenu.
 
   .. image:: ../img/classwf1.png
 
@@ -94,7 +94,7 @@ Image Classification
       estimator = RandomForestClassifier(n_estimators = 300)
 
 * Under :guilabel:`Mapping` you have to specify the raster which will be classified. We will choose the same raster we took the samples from,
-  so select *enmap_berlin.bsq* as :guilabel:`Raster`.
+  so select :file:`enmap_berlin.bsq` as :guilabel:`Raster`.
 * Make sure to check |cb1| the :guilabel:`Classification` output. Specify an output path and filename by pressing :guilabel:`...` or
   use the default, which will save the output to a temporary location.
 * Also select |cb1| to perform a :guilabel:`Cross-validation with n-folds`. You can leave the number of folds at 3. Specify

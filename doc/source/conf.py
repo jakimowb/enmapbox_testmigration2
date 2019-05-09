@@ -147,6 +147,13 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
+# A string of reStructuredText that will be included at the beginning of every source file that is read.
+#rst_epilog = """
+#.. role:: placeholder
+#   :class: placeholder
+#"""
+
+
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -206,8 +213,7 @@ html_sidebars = {
 htmlhelp_basename = 'EnMAPBoxDoc'
 
 # Include a custom stylesheet for HTML page
-def setup(app):
-    app.add_stylesheet('css/custom.css')
+html_css_files = ['css/custom.css']
 
 # -- Options for LaTeX output ---------------------------------------------
 

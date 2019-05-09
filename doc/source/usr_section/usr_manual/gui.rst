@@ -429,7 +429,8 @@ means spectra can be directly collected from an image. Furthermore, external lib
    :width: 27px
 .. |mActionOpenTable| image:: ../../img/mActionOpenTable.svg
    :width: 27px
-
+.. |symbology| image:: ../../img/symbology.svg
+   :width: 27px
 
 **Collecting spectra:**
 
@@ -451,12 +452,22 @@ means spectra can be directly collected from an image. Furthermore, external lib
 
      Example: Add a new text field (maximum 100 characters)
 
+* Location of spectra (if available) can be visualized as a point layer by right-clicking into a map window, and selecting :guilabel:`Add Spectral Library`
 * Spectra can be selected in the table and in the plot window itself. Selected spectra will be highlighted (blue background
   in the table; thicker line in the plot window). Hold the :kbd:`Shift` key to select multiple spectra. A selection can be removed
   by clicking the |mActionDeselectAll| :sup:`Deselect All` button.
 * Remove spectra using the |mActionDeleteSelected| :sup:`Remove Spectrum` button.
 * You can save the collected spectra using the  |speclib_save| :sup:`Save Profiles in spectral library` button.
 
+**Colorize spectra by attribute:**
+
+* Open the Spectral Library Properties using the |system| button on the lower right.
+* Switch to the |symbology| :guilabel:`Symbology` tab and select the :guilabel:´Categorized´ renderer at the top
+* In the :guilabel:`Column` droplist select the desired column and click :guilabel:`Classify`
+
+  .. image:: ../../img/speclib_properties.png
+
+* Confirm with :guilabel:`Apply` and close the window.
 
 
 
