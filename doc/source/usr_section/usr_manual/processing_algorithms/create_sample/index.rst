@@ -1,5 +1,5 @@
-Classification
-==============
+Create Sample
+=============
 
 .. toctree::
    :maxdepth: 0

@@ -1,5 +1,5 @@
-Classification
-==============
+Create Raster
+=============
 
 .. toctree::
    :maxdepth: 0

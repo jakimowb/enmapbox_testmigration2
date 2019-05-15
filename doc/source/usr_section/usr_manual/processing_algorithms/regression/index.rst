@@ -1,5 +1,5 @@
-Classification
-==============
+Regression
+==========
 
 .. toctree::
    :maxdepth: 0

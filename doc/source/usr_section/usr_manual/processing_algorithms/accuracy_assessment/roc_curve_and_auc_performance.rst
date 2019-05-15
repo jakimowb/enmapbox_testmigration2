@@ -1,16 +1,16 @@
-.. _Classification Performance:
+.. _ROC Curve and AUC Performance:
 
-**************************
-Classification Performance
-**************************
+*****************************
+ROC Curve and AUC Performance
+*****************************
 
-Assesses the performance of a classification.
+Assesses the performance of class fractions in terms of AUC and ROC curves.
 
 **Parameters**
 
 
 :guilabel:`Prediction` [raster]
-    Specify classification raster be evaluated
+    Specify class fraction raster to be evaluated.
 
 
 :guilabel:`Reference` [raster]

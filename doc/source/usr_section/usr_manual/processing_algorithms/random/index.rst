@@ -1,5 +1,5 @@
-Classification
-==============
+Random
+======
 
 .. toctree::
    :maxdepth: 0

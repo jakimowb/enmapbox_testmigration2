@@ -1,5 +1,5 @@
-Classification
-==============
+Masking
+=======
 
 .. toctree::
    :maxdepth: 0

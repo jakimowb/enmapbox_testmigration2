@@ -1,12 +1,20 @@
 Processing Algorithms
 *********************
-
-.. todo:: Under Construction! Most Algorithms are not mentioned here at the moment!
-
+    
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 1
+       
 
-   accuracy_assessment/index.rst
-   classification/index.rst
-
-
+    accuracy_assessment/index.rst
+    auxilliary/index.rst
+    classification/index.rst
+    clustering/index.rst
+    convolution,_morphology_and_filtering/index.rst
+    create_raster/index.rst
+    create_sample/index.rst
+    masking/index.rst
+    post-processing/index.rst
+    random/index.rst
+    regression/index.rst
+    resampling_and_subsetting/index.rst
+    transformation/index.rst

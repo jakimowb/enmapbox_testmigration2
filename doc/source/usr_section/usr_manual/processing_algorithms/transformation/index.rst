@@ -1,4 +1,4 @@
-Classification
+Transformation
 ==============
 
 .. toctree::

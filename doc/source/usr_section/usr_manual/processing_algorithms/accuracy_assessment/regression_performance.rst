@@ -1,19 +1,20 @@
-.. _Predict Classification:
+.. _Regression Performance:
 
 **********************
-Predict Classification
+Regression Performance
 **********************
 
-Applies a classifier to a raster.
-
-Used in the Cookbook Recipes
-    - `Classification <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/classification.html#predict-classification>`_ (section: predict-classification)
+Assesses the performance of a regression.
 
 **Parameters**
 
 
-:guilabel:`Raster` [raster]
-    Select raster file which should be classified.
+:guilabel:`Prediction` [raster]
+    Specify regression raster to be evaluated.
+
+
+:guilabel:`Reference` [raster]
+    Specify reference regression raster (i.e. ground truth).
 
 
 :guilabel:`Mask` [layer]
@@ -24,12 +25,14 @@ Used in the Cookbook Recipes
     In case of a raster, all pixels that are equal to the no data value (default is 0) are interpreted as False, all other pixels as True.Multiband rasters are first evaluated band wise. The final mask for a given pixel is True, if all band wise masks for that pixel are True.
 
 
-:guilabel:`Classifier` [file]
-    Select path to a classifier file (.pkl).
+:guilabel:`Invert Mask` [boolean]
+    Whether or not to invert the selected mask.
+
+    Default: *0*
 
 **Outputs**
 
 
-:guilabel:`Output Classification` [rasterDestination]
-    Specify output path for classification raster.
+:guilabel:`HTML Report` [fileDestination]
+    Specify output path for HTML report file (.html).
 

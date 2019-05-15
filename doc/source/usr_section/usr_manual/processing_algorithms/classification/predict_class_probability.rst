@@ -1,19 +1,16 @@
-.. _Predict Classification:
+.. _Predict Class Probability:
 
-**********************
-Predict Classification
-**********************
+*************************
+Predict Class Probability
+*************************
 
 Applies a classifier to a raster.
-
-Used in the Cookbook Recipes
-    - `Classification <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/classification.html#predict-classification>`_ (section: predict-classification)
 
 **Parameters**
 
 
 :guilabel:`Raster` [raster]
-    Select raster file which should be classified.
+    Specify input raster.
 
 
 :guilabel:`Mask` [layer]
@@ -30,6 +27,6 @@ Used in the Cookbook Recipes
 **Outputs**
 
 
-:guilabel:`Output Classification` [rasterDestination]
-    Specify output path for classification raster.
+:guilabel:`Probability` [rasterDestination]
+    Specify output path for fraction raster.
 

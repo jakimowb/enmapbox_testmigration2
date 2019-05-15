@@ -1,5 +1,5 @@
-Classification
-==============
+Auxilliary
+==========
 
 .. toctree::
    :maxdepth: 0

@@ -1,5 +1,5 @@
-Classification
-==============
+Clustering
+==========
 
 .. toctree::
    :maxdepth: 0

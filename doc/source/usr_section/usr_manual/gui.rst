@@ -462,7 +462,7 @@ means spectra can be directly collected from an image. Furthermore, external lib
 **Colorize spectra by attribute:**
 
 * Open the Spectral Library Properties using the |system| button on the lower right.
-* Switch to the |symbology| :guilabel:`Symbology` tab and select the :guilabel:´Categorized´ renderer at the top
+* Switch to the |symbology| :guilabel:`Symbology` tab and select the :guilabel:`Categorized` renderer at the top
 * In the :guilabel:`Column` droplist select the desired column and click :guilabel:`Classify`
 
   .. image:: ../../img/speclib_properties.png
