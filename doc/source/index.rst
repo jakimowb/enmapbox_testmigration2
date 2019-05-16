@@ -58,7 +58,7 @@ step-by-step tutorials which exemplify the software's capabilities.
     dev_section/dev_publish_enmapbox.rst
     dev_section/dev_gettingstarted.rst
     dev_section/dev_guide.rst
-    dev_section/api_reference.rst
+    dev_section/api/modules.rst
     dev_section/programming_tutorials/index.rst
 
 
