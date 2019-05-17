@@ -1,9 +1,13 @@
-.. include:: external_links.rst
+.. include:: ../external_links.rst
 
 .. _GUI_GettingStarted:
 
-Getting Started
-###############
+.. Getting Started
+.. ===============
+
+=========
+EnMAP API
+=========
 
 The following examples show how to interact with the EnMAP-Box GUI.
 They are available unittest TestCases in `examples/api_examples.py`
@@ -167,8 +171,6 @@ Create a text file and add it to the EnMAP-Box::
 
 This creates a printout like::
 
-.. code-block:: batch
-
     DataSource added: C:\Users\user\AppData\Local\Temp\tmp4gjczg1u\testfile.txt
 
 Wait a while, then overwrite the text file and add it again::
@@ -194,7 +196,7 @@ The shell printouts should be like:
 ======================
 
 The EnMAP-Box `Docks` to visualize spatial data and spectral libraries. `Docks` are based on the
-`pyqtgraphDock <http://www.pyqtgraph.org/documentation/index.html>` which inherits QDockWidget_, but can be
+`pyqtgraphDock <http://www.pyqtgraph.org/documentation/index.html>`_ which inherits QDockWidget_, but can be
 arranged much more flexible, e.g. in nested layouts. We use these `Docks` as containers for specialized widgets,
 in particular the `enmapbox.gui.mapcanvas.MapCanvas` (as `MapDock`) and the `SpectralLibraryWidget` (`SpectralLibraryDock`).
 
@@ -226,9 +228,9 @@ Dock titles, visibility and behaviour can be modified::
 
 
 .. figure:: img/gstart_docks.png
- :width: 100%
+   :width: 100%
 
- Three map docks. Map 3 is hidden and therefore visible in the dock manager panel only.
+   Three map docks. Map 3 is hidden and therefore visible in the dock manager panel only.
 
 
 Docks can be accessed similar to `DataSources`::
@@ -358,7 +360,7 @@ The overloaded `sigCurrentLocationChanged` signature can be used to get the map 
 
 
 If "Identify raster profile" is activated, the EnMAP-Box extracts `SpectralProfiles` from the raster layer(s) below the mouse-click location.
-These spectra can be received from the  `sigCurrentSpectraChanged` signal::
+These spectra can be received from the  `sigCurrentSpectraChanged` signal:
 
 .. image:: img/enmapbox_toolbar_identify_spectral_profiles.png
 

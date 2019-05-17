@@ -1,3 +1,5 @@
+.. include:: /icon_links.rst
+
 =============================================
 Regression-based unmixing of urban land cover
 =============================================
@@ -82,7 +84,7 @@ Exercise A: Urban land cover
 1. Start the EnMAP-Box
 ----------------------
 
-* Start QGIS and click the |enmapicon| icon in the toolbar to open the EnMAP-Box. The GUI of the EnMAP-Box consists of a **Menu**
+* Start QGIS and click the |enmapbox| icon in the toolbar to open the EnMAP-Box. The GUI of the EnMAP-Box consists of a **Menu**
   and a **Toolbar**, panels for **Data Sources** and **Data Views**, and the **QGIS Processing Toolbox** including the **EnMAP-Box geoalgorithms**.
 
 .. image:: tut_img/01_gui.png
@@ -94,9 +96,9 @@ Exercise A: Urban land cover
 
 * The EnMAP-Box offers simple drag & drop capabilities to load data from an external explorer. Drag the following datasets from your explorer into the Data Sources panel:
 
-  * Raster: *hymap_berlin.bsq*, *enmap_berlin.bsq*
-  * Vector: *landcover_berlin.shp*
-  * Spectral library: *library_berlin.sli*
+  * Raster: :file:`hymap_berlin.bsq`, :file:`enmap_berlin.bsq`
+  * Vector: :file:`landcover_berlin.shp`
+  * Spectral library: :file:`library_berlin.sli`
 
 .. image:: tut_img/02_loaddata.png
    :width: 100%
@@ -105,15 +107,15 @@ Exercise A: Urban land cover
 3. Visualize raster and vector data
 -----------------------------------
 
-* The EnMAP-Box offers **Map Windows (Map #)** for visualizing raster and vector data. Click the |openmapview| icon and drag the following datasets from the Data Sources panel into Map #1:
+* The EnMAP-Box offers **Map Windows (Map #)** for visualizing raster and vector data. Click the |viewlist_mapdock| icon and drag the following datasets from the Data Sources panel into Map #1:
 
-   * *hymap_berlin.bsq*
-   * *landcover_berlin.shp*
+   * :file:`hymap_berlin.bsq`
+   * :file:`landcover_berlin.shp`
 
 * Map #1 now appears in the Data Views panel, where the visibility, order and properties of datasets can be modified. Unfold Map #1:
 
-  * To change the order of stacked layers, drag one layer on top or below another one. Arrange the layer stack so that *‘landcover_berlin.shp’* is displayed on top of *‘hymap_berlin.bsq’*.
-  * To assign a multibandcolor RGB combination to a raster image, right click on the dataset, select **Layer Properties** and navigate to **Style** in the **RasterLayerProperties** window. You can now select predefined composites (RGB, nIR, swIR), or manually select your bands and render type. Contrast enhancement is further possible. Display *‘hymap_berlin.bsq’* as true color composite.
+  * To change the order of stacked layers, drag one layer on top or below another one. Arrange the layer stack so that :file:`landcover_berlin.shp` is displayed on top of :file:`hymap_berlin.bsq`.
+  * To assign a multibandcolor RGB combination to a raster image, right click on the dataset, select **Layer Properties** and navigate to **Style** in the **RasterLayerProperties** window. You can now select predefined composites (RGB, nIR, swIR), or manually select your bands and render type. Contrast enhancement is further possible. Display :file:`hymap_berlin.bsq` as true color composite.
 
    .. attention::
 
@@ -140,7 +142,7 @@ Exercise A: Urban land cover
 
 
 
-  * The symbology of *‘landcover_berlin.shp’* is predefined by a QGIS layer style file (.qml). To change this symbology, right click on the vector layer, select **Layer Properties** and navigate to **Symbology** in the **LayerProperties** window. You can now change the symbology in accordance to the QGIS functionality. Use the **Column** and **Classify** options to explore the information content of the attribute table *‘landcover_berlin.shp’*.
+  * The symbology of :file:`landcover_berlin.shp` is predefined by a QGIS layer style file (.qml). To change this symbology, right click on the vector layer, select **Layer Properties** and navigate to **Symbology** in the **LayerProperties** window. You can now change the symbology in accordance to the QGIS functionality. Use the **Column** and **Classify** options to explore the information content of the attribute table :file:`landcover_berlin.shp`.
 
 .. image:: tut_img/03_visualizerasterandvector.png
    :width: 100%
@@ -157,7 +159,7 @@ Exercise A: Urban land cover
 
 .. admonition:: Learning activities:
 
-   * **A1**: Visually explore the airborne hyperspectral image (hymap_berlin.bsq). What major land cover types do you observe along Berlin’s urban-gradient?
+   * **A1**: Visually explore the airborne hyperspectral image (:file:`hymap_berlin.bsq`). What major land cover types do you observe along Berlin’s urban-gradient?
 
      .. raw:: html
 
@@ -168,7 +170,7 @@ Exercise A: Urban land cover
         </details></div>
         </br>
 
-   * **A2**: Explore the land cover reference data (landcover_berlin.shp) and draw a flowchart of the hierarchical classification scheme stored in the attribute table.
+   * **A2**: Explore the land cover reference data (:file:`landcover_berlin.shp`) and draw a flowchart of the hierarchical classification scheme stored in the attribute table.
 
      .. raw:: html
 
@@ -202,8 +204,8 @@ Exercise B: Spectral mixing
 .. image:: tut_img/04_multiplemapviews1.png
    :width: 100%
 
-* Display *'hymap_berlin.bsq’* and *‘enmap_berlin.bsq’* as RGB composite of your choice in Map #1 and Map #2, respectively.
-* For geospatial linking, click on **View** in the Menu and select **Set Map Linking**. In the **Map Linking** window, select the **Link Map Scale and Center** option and close the dialog.
+* Display :file:`hymap_berlin.bsq` and :file:`enmap_berlin.bsq` as RGB composite of your choice in Map #1 and Map #2, respectively.
+* For geospatial linking, click on **View** in the Menu and select **Set Map Linking**. In the **Map Linking** window, select the |link_all_mapscale_center| :sup:`Link Map Scale and Center` option and close the dialog.
 
 .. image:: tut_img/05_multiplemapviews2.png
    :width: 100%
@@ -219,19 +221,19 @@ Exercise B: Spectral mixing
 
 * Make yourself familiar with the following tools in the Spectral Library #1 toolbar:
 
-  * The |addspectrum| icon adds a plotted spectrum to a collection. Each collected spectrum (white line) gets an entry in the attribute table with a predefined name (filename and coordinates).
-  * The |autoadd| icon automatically adds spectra to the collection when clicking on image pixels.
-  * The |delete| icon in the Actions column deletes a spectrum from the collection. Multiple spectra can be deleted based on previous selections (use Ctrl or Shift to select multiple rows).
-  * The |changestyle| icon in the Actions column allow the user to change the pot style of a collected spectrum. The style of multiple spectra can be changed based on previous selections.
-  *	The |edit| icon switches on the editing mode. You can now edit the attribute table (e.g. edit the name of a spectrum), add or delete colums using the |addatt| |deleteatt| icons, etc.
-  *	The |savelib| icon saves a spectrum or a collection of spectra as a spectral library. Further information on spectral libraries and library formats will follow in Exercise C.
+  * The |plus_green| icon adds a plotted spectrum to a collection. Each collected spectrum (white line) gets an entry in the attribute table with a predefined name (filename and coordinates).
+  * The |profile_add_auto| icon automatically adds spectra to the collection when clicking on image pixels.
+  * The |mActionDeleteSelected| icon in the Actions column deletes a spectrum from the collection. Multiple spectra can be deleted based on previous selections (use :kbd:`Ctrl` or :kbd:`Shift` to select multiple rows).
+  * The |plot_style| icon in the Actions column allow the user to change the pot style of a collected spectrum. The style of multiple spectra can be changed based on previous selections.
+  *	The |mActionToggleEditing| icon switches on the editing mode. You can now edit the attribute table (e.g. edit the name of a spectrum), add or delete colums using the |mActionNewAttribute| |mActionDeleteAttribute| icons, etc.
+  *	The |speclib_save| icon saves a spectrum or a collection of spectra as a spectral library. Further information on spectral libraries and library formats will follow in Exercise C.
 
 .. image:: tut_img/06_spectrallibrary.png
    :width: 100%
 
 .. admonition:: Learning activities
 
-   * **B1**: Visually compare the airborne and spaceborne hyperspectral images (*hymap_berlin.bsq*, *enmap_berlin.bsq*). How much of the spatial detail is lost when stepping from airborne to spaceborne scale?
+   * **B1**: Visually compare the airborne and spaceborne hyperspectral images (:file:`hymap_berlin.bsq`, :file:`enmap_berlin.bsq`). How much of the spatial detail is lost when stepping from airborne to spaceborne scale?
 
      .. raw:: html
 
@@ -241,7 +243,7 @@ Exercise B: Spectral mixing
         </details></div>
         </br>
 
-   * **B2**: Provide an average estimate on the percentage of pixels covered by 1, 2, 3, and 4 or more land cover classes for both images. Use level 3 of the classification scheme for your estimate. You may use the reference land cover information (*landcover_berlin.shp*) for orientation.
+   * **B2**: Provide an average estimate on the percentage of pixels covered by 1, 2, 3, and 4 or more land cover classes for both images. Use level 3 of the classification scheme for your estimate. You may use the reference land cover information (:file:`landcover_berlin.shp`) for orientation.
 
      .. raw:: html
 
@@ -250,7 +252,7 @@ Exercise B: Spectral mixing
         </details></div>
         </br>
 
-   * **B3**: Compare pairs of spectra from the airborne and spaceborne hyperspectral images (*hymap_berlin.bsq*, *enmap_berlin.bsq*). For which urban surface materials is it still possible to collect pure spectra at spaceborne scale, and for which not?
+   * **B3**: Compare pairs of spectra from the airborne and spaceborne hyperspectral images (:file:`hymap_berlin.bsq`, :file:`enmap_berlin.bsq`). For which urban surface materials is it still possible to collect pure spectra at spaceborne scale, and for which not?
 
      .. raw:: html
 
@@ -285,20 +287,20 @@ Exercise C: Urban spectral libraries
 -----------------------------
 
 * The EnMAP-Box makes use of labeled spectral libraries, which extend the standard ENVI Spectral Library (SLI) and associated header (HDR) by additional attribute information, e.g., class labels, class colors, description, etc. This information is stored in an ASCII Comma Separated Value (CSV) file and in a JavaScript Object Notation (JSON) file. The CSV file includes an attribute table for each library spectrum (the column ‘spectra names’ links the CSV with the HDR). The JSON file contains the unique attributes of given attribute columns.
-* Open the *‘library_berlin.hdr’*, *‘library_berlin.csv’*, and *‘library_berlin.json’* files with a text editor and get familiar with the spectral library format used in the EnMAP-Box and the hierarchical classification scheme stored in the attribute information.
+* Open the :file:`library_berlin.hdr`, :file:`library_berlin.csv`, and :file:`library_berlin.json` files with a text editor and get familiar with the spectral library format used in the EnMAP-Box and the hierarchical classification scheme stored in the attribute information.
 
 
 2. Spectral library handling
 ----------------------------
 
 * Close all Map and Spectral Library Windows from the previous exercise.
-* To load the urban spectral library, click on the |openspeclib| icon to open a new Spectral Library Window and drag ‘library_berlin.sli’ from the Data Sources panel into SpectralLibrary #1. Get familiar with the representation of the spectral library and the attribute table.
+* To load the urban spectral library, click on the |viewlist_spectrumdock| icon to open a new Spectral Library Window and drag :file:`library_berlin.sli` from the Data Sources panel into SpectralLibrary #1. Get familiar with the representation of the spectral library and the attribute table.
 * To display a subset of spectra in a separate Library Window…
 
-  * Select the spectra of interest by clicking on their corresponding row numbers (use Ctrl or Shift to select multiple rows). To select spectra with the same attributes, prior sorting of the attribute table by clicking on the corresponding column header is recommended.
-  * Click on the |copy| icon in the toolbar (or CTRL+C) to copy the selected spectra to clipboard.
+  * Select the spectra of interest by clicking on their corresponding row numbers (use :kbd:`Ctrl` or :kbd:`Shift` to select multiple rows). To select spectra with the same attributes, prior sorting of the attribute table by clicking on the corresponding column header is recommended.
+  * Click on the |mActionEditCopy| icon in the toolbar (or :kbd:`Ctrl+C`) to copy the selected spectra to clipboard.
   * Open a second Spectra Library Window. Similar to the work with multiple Map Windows, Spectral Library Windows can be arranged according to the user needs.
-  * Switch on the editing mode in the SpectralLibrary #2 toolbar and use the |paste| icon (or CTRL+V) to paste the copied spectra into SpectralLibrary #2. Switch off the editing mode.
+  * Switch on the editing mode in the SpectralLibrary #2 toolbar and use the |mActionEditPaste| icon (or :kbd:`Ctrl+V`) to paste the copied spectra into SpectralLibrary #2. Switch off the editing mode.
 
 .. image:: tut_img/07_spectrallibraryhandling.png
    :width: 100%
@@ -306,7 +308,7 @@ Exercise C: Urban spectral libraries
 
 .. admonition:: Learning activities
 
-   * **C1**: Load the urban spectral library (library_berlin.sli) and display each level 3 class in a separate Spectral Library Window. How diverse is each class with regard to within-class variability?
+   * **C1**: Load the urban spectral library (:file:`library_berlin.sli`) and display each level 3 class in a separate Spectral Library Window. How diverse is each class with regard to within-class variability?
 
      .. raw:: html
 
@@ -380,9 +382,9 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
   (see Exercise 3), where the **Class Attribute** drop menu specifies the attribute column associated with the class labels, and the **Spectral Image** to unmix.
 * Select / specify the following inputs:
 
-  * **Endmember Library**: *library_berlin.sli*
+  * **Endmember Library**: :file:`library_berlin.sli`
   * **Class Attribute**: *level_1*
-  * **Spectral Image**: *enmap_berlin.bsq*
+  * **Spectral Image**: :file:`enmap_berlin.bsq`
 
 * The selection of the classes of interest, i.e., **Target Classes**, is the next step of the unmixing process. Synthetically
   mixed data, regression models, and fraction maps are only created for target classes. Spectra of excluded classes are still
@@ -465,29 +467,29 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
 * Specify the following outputs (and skip the advanced options):
 
   * **Folder**: *path to your working folder*
-  * **Name**: *fraction_level1_estimation.bsq*
+  * **Name**: :file:`fraction_level1_estimation.bsq`
 
 7. Run the application
 ----------------------
 
-* Click on the |run| button to run the application. The outputs appear in the Data Sources panel.
+* Click on the |action| button to run the application. The outputs appear in the Data Sources panel.
 
 8. Visualize the urban land cover fraction map
 ----------------------------------------------
 
-* Display the newly created *‘fraction_level1_estimation.bsq’*. The file consists of 4 bands, where each band represents a fraction map of the defined target classes. Display the fraction map in a useful render style and appropriate contrast stretch:
+* Display the newly created :file:`fraction_level1_estimation.bsq`. The file consists of 4 bands, where each band represents a fraction map of the defined target classes. Display the fraction map in a useful render style and appropriate contrast stretch:
 
   * e.g., as **multibandcolor** RGB composite of three target classes in a single Map Window. For stretching fraction maps to the full range of possible fraction, set Min = 0 and Max = 1.
   * e.g., as **singlegray** image per target class in multiple Map Windows. For stretching fraction maps to the full range of possible fraction, set **Min** = 0 and **Max** = 1.
 
-* Visually explore your fraction map. You may open ‘enmap_berlin.bsq’ in a separate Map Window for comparison. You may use the **Identify** tool together with the **Identify cursor location values option to display fraction values** |identifytools2| of pixels.
+* Visually explore your fraction map. You may open :file:`enmap_berlin.bsq` in a separate Map Window for comparison. You may use the **Identify** tool together with the **Identify cursor location values option to display fraction values** |identifytools2| of pixels.
 
 .. image:: tut_img/15_vismaps.png
    :width: 100%
 
 .. admonition:: Learning activities
 
-   * **D1**: Visually explore the fraction map (*fraction_level1_estimation.bsq*). How are level 1 land cover distributed across the urban gradient. Are the fraction values physically plausible?
+   * **D1**: Visually explore the fraction map (:file:`fraction_level1_estimation.bsq`). How are level 1 land cover distributed across the urban gradient. Are the fraction values physically plausible?
 
      .. raw:: html
 
@@ -531,12 +533,12 @@ Exercise E: Validation of fraction maps
 * A reference fraction map is created by rasterizing available reference land cover information to the pixel grid of the estimated fraction map. To obtain reasonable fractions, the reference land cover information needs to be at a significantly higher spatial resolution than the pixel grid. To create reference fractions, open the **Fraction from Vector** tool in the EnMAP-Box geoalgorithms.
 * Enter the following data / parameters (use the tool tips for their description):
 
-  * **Pixel Grid**: *fraction_level1_estimation.bsq*
-  * **Vector**: *berlin_landcover.shp*
+  * **Pixel Grid**: :file:`fraction_level1_estimation.bsq`
+  * **Vector**: :file:`berlin_landcover.shp`
   * **Class id attribute**: level_1_id
   * **Minimal overall coverage**: 0.95
   * **Oversampling factor**: 5
-  * **Output fraction**: *...path to your working folder...\fraction_level1_reference.bsq*
+  * **Output fraction**: :file:`{...path to your working folder...}/fraction_level1_reference.bsq`
 
 * Run the process.
 
@@ -548,8 +550,8 @@ Exercise E: Validation of fraction maps
 
 * The **Regression Performance** algorithm in the **Accuracy Assessment** tools of the EnMAP-Box geoalgorithms implements the accuracy assessment for quantitative data. Scatterplots and statistical measures are reported in an HTML report. Run the **Regression Performance** algorithm with the following inputs:
 
-  * **Prediction**: *fraction_level1_estimation.bsq*
-  * **Reference**: *berlin_level1_reference.shp*
+  * **Prediction**: :file:`fraction_level1_estimation.bsq`
+  * **Reference**: :file:`berlin_level1_reference.shp`
 
 * Make yourself familiar with HTML report.
 
@@ -558,7 +560,7 @@ Exercise E: Validation of fraction maps
 
 .. admonition:: Learning activities
 
-   * **E1**: Visually compare your estimated fraction map (*fraction_level1_estimation.bsq*) with the reference fraction map (*berlin_level1_reference.bsq*). Do both maps show a good agreement in terms of spatial patterns or are there areas with large differences?
+   * **E1**: Visually compare your estimated fraction map (:file:`fraction_level1_estimation.bsq`) with the reference fraction map (:file:`berlin_level1_reference.bsq`). Do both maps show a good agreement in terms of spatial patterns or are there areas with large differences?
    * **E2**: Discuss the accuracy of your fraction map. What are the accuracies for the different classes and which classes show striking errors like underestimation or overestimations of fractions?
 
 |
@@ -582,63 +584,13 @@ Additional Exercises
 
 
 
-.. icon links section A
-
-.. |enmapicon| image:: ../../../../enmapbox/gui/ui/icons/enmapbox.svg
-    :width: 30px
-
-.. |openmapview| image:: ../../../../enmapbox/gui/ui/icons/viewlist_mapdock.svg
-    :width: 28px
-
 .. |navtools| image:: tut_img/navtools.png
    :height: 27px
 
 .. |closemapview| image:: tut_img/cl_mv.png
 
-.. icon links section B
-
 .. |identifytools| image:: tut_img/identify_tools.png
    :height: 27px
-
-.. |addspectrum| image:: ../../../../site-packages/qps/ui/icons/plus_green.svg
-   :width: 28px
-
-.. |autoadd| image:: ../../../../site-packages/qps/ui/icons/profile_add_auto.svg
-   :width: 28px
-
-.. |delete| image:: ../../img/mActionDeleteSelected.svg
-   :width: 28px
-
-.. |changestyle| image:: ../../img/plot_style.svg
-   :width: 28px
-
-.. |edit| image:: ../../img/mActionToggleEditing.svg
-   :width: 28px
-
-.. |addatt| image:: ../../img/mActionNewAttribute.svg
-   :width: 28px
-
-.. |deleteatt| image:: ../../img/mActionDeleteAttribute.svg
-   :width: 28px
-
-.. |savelib| image:: ../../../../site-packages/qps/ui/icons/speclib_save.svg
-   :width: 28px
-
-.. icon links section C
-
-.. |openspeclib| image:: ../../../../enmapbox/gui/ui/icons/viewlist_spectrumdock.svg
-   :width: 28px
-
-.. |copy| image:: ../../../../enmapbox/gui/ui/icons/mActionEditCopy.svg
-   :width: 28px
-
-.. |paste| image:: ../../../../enmapbox/gui/ui/icons/mActionEditPaste.svg
-   :width: 28px
-
-.. icon links section D
-
-.. |run| image:: ../../img/action.svg
-   :width: 28px
 
 .. |identifytools2| image:: tut_img/identify_tools2.png
    :height: 27px

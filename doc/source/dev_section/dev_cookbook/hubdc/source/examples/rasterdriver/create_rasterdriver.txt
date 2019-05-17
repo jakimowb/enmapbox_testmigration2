@@ -1,0 +1,5 @@
+RasterDriver(name='GTiff')
+GTiffDriver()
+EnviDriver()
+ErdasDriver()
+VrtDriver()

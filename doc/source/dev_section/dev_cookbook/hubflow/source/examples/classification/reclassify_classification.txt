@@ -1,0 +1,2 @@
+ClassDefinition(classes=6, names=['roof', 'pavement', 'low vegetation', 'tree', 'soil', 'water'], colors=[Color(([230, 0, 0],)), Color(([156, 156, 156],)), Color(([152, 230, 0],)), Color(([38, 115, 0],)), Color(([168, 112, 0],)), Color(([0, 100, 255],))])
+ClassDefinition(classes=2, names=['urban', 'non-urban'], colors=[Color(([255, 0, 0],)), Color(([0, 128, 0],))])

@@ -1,72 +1,4 @@
-.. toolbar buttons
-.. |add_datasource| image:: ../../../../enmapbox/gui/ui/icons/add_datasource.svg
-   :width: 27px
-.. |viewlist_mapdock| image:: ../../../../enmapbox/gui/ui/icons/viewlist_mapdock.svg
-   :width: 27px
-.. |viewlist_spectrumdock| image:: ../../../../enmapbox/gui/ui/icons/viewlist_spectrumdock.svg
-   :width: 27px
-.. |viewlist_textview| image:: ../../../../enmapbox/gui/ui/icons/viewlist_textview.svg
-   :width: 27px
-.. |pan_center| image:: ../../../../site-packages/qps/ui/icons/pan_center.svg
-   :width: 27px
-.. |mActionZoomIn| image:: ../../../../enmapbox/gui/ui/icons/mActionZoomIn.svg
-   :width: 27px
-.. |mActionZoomOut| image:: ../../../../enmapbox/gui/ui/icons/mActionZoomOut.svg
-   :width: 27px
-.. |mActionZoomActual| image:: ../../../../enmapbox/gui/ui/icons/mActionZoomActual.svg
-   :width: 27px
-.. |mActionZoomFullExtent| image:: ../../../../enmapbox/gui/ui/icons/mActionZoomFullExtent.svg
-   :width: 27px
-.. |mActionPan| image:: ../../../../enmapbox/gui/ui/icons/mActionPan.svg
-   :width: 27px
-.. |pickrasterspectrum| image:: ../../../../site-packages/qps/ui/icons/profile.svg
-   :width: 30px
-.. |mActionIdentify| image:: ../../../../enmapbox/gui/ui/icons/mActionIdentify.svg
-   :width: 27px
-.. |select_location| image:: ../../../../site-packages/qps/ui/icons/select_location.svg
-   :width: 27px
-
-.. || image:: ../../../enmapbox/gui/ui/icons/
-   :width: 27px
-
-.. Data Sources Panel
-.. |mActionAdd| image:: ../../../../enmapbox/gui/ui/icons/mActionAdd.svg
-   :width: 27px
-.. |mActionRemove| image:: ../../../../enmapbox/gui/ui/icons/mActionRemove.svg
-   :width: 27px
-.. |mActionCollapseTree| image:: ../../../../enmapbox/gui/ui/icons/mActionCollapseTree.svg
-   :width: 27px
-.. |mActionExpandTree| image:: ../../../../enmapbox/gui/ui/icons/mActionExpandTree.svg
-   :width: 27px
-.. |mActionRefresh| image:: ../../../../enmapbox/gui/ui/icons/mActionRefresh.svg
-   :width: 27px
-.. |qgisicon| image:: ../../../../enmapbox/gui/ui/icons/qgis_icon.svg
-   :width: 27px
-.. |mIconRasterLayer| image:: ../../../../enmapbox/gui/ui/icons/mIconRasterLayer.svg
-   :width: 27px
-.. |mIconLineLayer| image:: ../../img/mIconLineLayer.svg
-   :width: 27px
-.. |speclib| image:: ../../../../site-packages/qps/ui/icons/speclib.svg
-   :width: 27px
-.. |mIconRasterImage| image:: ../../../../enmapbox/gui/ui/icons/mIconRasterImage.svg
-   :width: 27px
-.. |mIconRasterMask| image:: ../../../../enmapbox/gui/ui/icons/mIconRasterMask.svg
-   :width: 27px
-.. |mIconRasterClassification| image:: ../../../../enmapbox/gui/ui/icons/mIconRasterClassification.svg
-   :width: 27px
-.. |procalg| image:: ../../../../enmapbox/gui/ui/icons/processingAlgorithm.svg
-   :width: 27px
-.. scatterplot tool
-.. |action| image:: ../../img/action.svg
-   :width: 40px
-.. |reset_plot| image:: ../../img/pyqtgraph_reset.png
-   :width: 15px
-
-.. cursorlocationvalues
-.. |select_crs| image:: ../../img/mActionSetProjection.svg
-   :width: 27px
-
-
+ .. include:: /icon_links.rst
 
 The GUI
 *******
@@ -132,7 +64,7 @@ In the toolbar you can find the most common tasks. See table below for informati
      - Identify cursor location value
      - | Cursor Location Values. Shows pixel values of
        | all layers at the selected position.
-   * - |pickrasterspectrum|
+   * - |profile|
      - | Select pixel profiles
        | from map
      - | Opens spectral library window (if not opened yet) and
@@ -181,7 +113,7 @@ corresponding metadata are available:
   * **Profiles**: Shows the number of spectra in the library
 
 
-* |procalg| Models
+* |processingAlgorithm| Models
 
 |
 
@@ -206,14 +138,14 @@ corresponding metadata are available:
        | layer type groups are shown.
    * - |mActionExpandTree|
      - | Expands menu tree to show all branches.
-   * - |qgisicon|
+   * - |qgis_icon|
      - Synchronizes Data Sources with QGIS.
 
 .. tip::
 
    * If you want to remove all layers of a type at once, right-click on the layer group (e.g. Raster Data) and select :guilabel:`Clear`
    * The EnMAP-Box also supports Tile-/Web Map Services (e.g. Google Satellite or OpenStreetMap) as a raster layer. Just add them to
-     your QGIS project as you normally would, and then click the |qgisicon| :superscript:`Synchronize Data Sources with QGIS`
+     your QGIS project as you normally would, and then click the |qgis_icon| :superscript:`Synchronize Data Sources with QGIS`
      button. Now they should appear in the data source panel and can be added to a Map View.
 
 3. Data Views
@@ -268,9 +200,9 @@ Linking
 You can link multiple Map Windows with each other, so that the contents are synchronized. The following options are
 available:
 
-* |linkscalecenter| Link map scale and center
-* |linkscale| Link map scale
-* |linkcenter| Link map center
+* |link_mapscale_center| Link map scale and center
+* |link_mapscale| Link map scale
+* |link_center| Link map center
 
 In order to link Map Windows, go to :menuselection:`View --> Set Map Linking` in the menu bar, which will open the following dialog:
 
@@ -278,14 +210,14 @@ In order to link Map Windows, go to :menuselection:`View --> Set Map Linking` in
 
 Here you can specify the above mentioned link options between the Map Windows. You may either specify linkages between pairs
 or link all canvases at once (the :guilabel:`All Canvases` option is only specifiable when the number of Map Windows is > 2). Remove
-created links by clicking |unlink|.
+created links by clicking |link_open|.
 
 **Alternative:** You can also create linkages between Map Windows directly from within the windows:
 
 .. warning:: Mind that this method might not work on Linux or Mac systems (due to display problems).
              In that case just use :menuselection:`View --> Set Map Linking`.
 
-#. Click the |link| button in the Map Window bar (|mapwindowbar|).
+#. Click the |link_basic| button in the Map Window bar (|mapwindowbar|).
 #. Now the linking options/buttons appear the remaining Map Windows:
 
    .. figure:: ../../img/map_linking2.png
@@ -299,16 +231,7 @@ created links by clicking |unlink|.
    <div><video width="550px" controls><source src="../../_static/maplinking.webm" type="video/webm">Your browser does not support HTML5 video.</video>
    <p><i>Demonstration of linking two Map Windows</i></p></div>
 
-.. |linkscalecenter| image:: ../../../../enmapbox/gui/ui/icons/link_mapscale_center.svg
-   :width: 33px
-.. |linkscale| image:: ../../../../enmapbox/gui/ui/icons/link_mapscale.svg
-   :width: 33px
-.. |linkcenter| image:: ../../../../enmapbox/gui/ui/icons/link_center.svg
-   :width: 33px
-.. |unlink| image:: ../../../../enmapbox/gui/ui/icons/link_open.svg
-   :width: 25px
-.. |link| image:: ../../../../enmapbox/gui/ui/icons/link_basic.svg
-   :width: 25px
+
 .. |mapwindowbar| image:: ../../img/mapwindowbar.png
 
 
@@ -391,50 +314,10 @@ means spectra can be directly collected from an image. Furthermore, external lib
    * - |mActionOpenTable|
      - | Switch to table view
 
-.. |plus_green| image:: ../../../../site-packages/qps/ui/icons/plus_green.svg
-   :width: 27px
-.. |profile_add_auto| image:: ../../../../site-packages/qps/ui/icons/profile_add_auto.svg
-   :width: 30px
-.. |speclib_add| image:: ../../../../site-packages/qps/ui/icons/speclib_add.svg
-   :width: 27px
-.. |speclib_save| image:: ../../../../site-packages/qps/ui/icons/speclib_save.svg
-   :width: 27px
-.. |mActionSelectAll| image:: ../../img/mActionSelectAll.svg
-   :width: 27px
-.. |mActionInvertSelection| image:: ../../img/mActionInvertSelection.svg
-   :width: 27px
-.. |mActionDeselectAll| image:: ../../img/mActionDeselectAll.svg
-   :width: 27px
-.. |mActionReload| image:: ../../img/mActionReload.svg
-   :width: 27px
-.. |mActionToggleEditing| image:: ../../img/mActionToggleEditing.svg
-   :width: 27px
-.. |mActionEditCut| image:: ../../img/mActionEditCut.svg
-   :width: 27px
-.. |mActionEditCopy| image:: ../../img/mActionEditCopy.svg
-   :width: 27px
-.. |mActionEditPaste| image:: ../../img/mActionEditPaste.svg
-   :width: 27px
-.. |mActionDeleteSelected| image:: ../../img/mActionDeleteSelected.svg
-   :width: 27px
-.. |mActionSaveAllEdits| image:: ../../img/mActionSaveAllEdits.svg
-   :width: 27px
-.. |mActionNewAttribute| image:: ../../img/mActionNewAttribute.svg
-   :width: 27px
-.. |mActionDeleteAttribute| image:: ../../img/mActionDeleteAttribute.svg
-   :width: 27px
-.. |system| image:: ../../img/system.svg
-   :width: 27px
-.. |mActionFormView| image:: ../../img/mActionFormView.svg
-   :width: 27px
-.. |mActionOpenTable| image:: ../../img/mActionOpenTable.svg
-   :width: 27px
-.. |symbology| image:: ../../img/symbology.svg
-   :width: 27px
 
 **Collecting spectra:**
 
-* Make sure to enable the |pickrasterspectrum| button in the menu bar and open a raster you want to collect spectra
+* Make sure to enable the |profile| button in the menu bar and open a raster you want to collect spectra
   from in a Map Window.
 * Click in a desired location in the Map Window. The pixels spectral profile at this location will now be shown in
   the plot in the Library Window. Mind that this will only visualize the spectrum, but nothing is saved at this point.
@@ -503,6 +386,6 @@ use the |select_location| :superscript:`Select Cursor Location` button and click
 * You can select whether location information should be gathered for :guilabel:`All layers` or only the :guilabel:`Top layer`. You can further
   define whether you want to consider :guilabel:`Raster and Vector` layers, or :guilabel:`Vector only` and :guilabel:`Raster only`, respectively.
 * Coordinates of the selected location are shown in the :guilabel:`x` and :guilabel:`y` fields. You may change the coordinate system of the displayed
-  coordinates via the |select_crs| :superscript:`Select CRS` button (e.g. for switching to lat/long coordinates).
+  coordinates via the |mActionSetProjection| :superscript:`Select CRS` button (e.g. for switching to lat/long coordinates).
 
 

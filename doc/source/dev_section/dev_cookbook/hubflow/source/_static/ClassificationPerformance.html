@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="ASCII" />
+    <title>Classification Performance</title>
+    <link rel="stylesheet" type="text/css" href="ClassificationPerformance_files\stylesheet.css" media="all" />
+    <script type="text/javascript" src="ClassificationPerformance_files\javascript.js"> </script>
+    <noscript> </noscript>
+  </head>
+  <body>
+  <section class="report" id="report0" style="display:block">
+    <header>
+      <h1> Classification Performance </h1>
+    </header>
+    <h2> Class Overview </h2>
+    <p>
+<TABLE border="1" style="border: 1px solid #000000; border-collapse: collapse;" cellpadding="4">
+ <TR>
+  <TH rowspan="1" align="left">&nbsp;</TH>
+  <TH rowspan="1" align="left">Class ID</TH>
+  <TD align="right">1</TD>
+  <TD align="right">2</TD>
+  <TD align="right">3</TD>
+  <TD align="right">4</TD>
+  <TD align="right">5</TD>
+ </TR>
+ <TR>
+  <TH rowspan="2" align="left">Class Names</TH>
+  <TH rowspan="1" align="left">Reference</TH>
+  <TD align="right">impervious</TD>
+  <TD align="right">low vegetation</TD>
+  <TD align="right">tree</TD>
+  <TD align="right">soil</TD>
+  <TD align="right">water</TD>
+ </TR>
+ <TR>
+  <TH rowspan="1" align="left">Prediction</TH>
+  <TD align="right">impervious</TD>
+  <TD align="right">low vegetation</TD>
+  <TD align="right">tree</TD>
+  <TD align="right">soil</TD>
+  <TD align="right">water</TD>
+ </TR>
+</TABLE>
+    </p>
+    <h2> Confusion Matrix </h2>
+    <p>
+<TABLE border="1" style="border: 1px solid #000000; border-collapse: collapse;" cellpadding="4">
+ <TR>
+  <TH colspan="1" rowspan="2">&nbsp;</TH>
+  <TH colspan="5" align="center">Reference Class</TH>
+ </TR>
+ <TR>
+  <TH colspan="1" align="center">(1)</TH>
+  <TH colspan="1" align="center">(2)</TH>
+  <TH colspan="1" align="center">(3)</TH>
+  <TH colspan="1" align="center">(4)</TH>
+  <TH colspan="1" align="center">(5)</TH>
+  <TH colspan="1" align="center">Sum</TH>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">(1) impervious</TH>
+  <TD align="right">1257</TD>
+  <TD align="right">6</TD>
+  <TD align="right">15</TD>
+  <TD align="right">1</TD>
+  <TD align="right">1</TD>
+  <TD align="right">1280</TD>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">(2) low vegetation</TH>
+  <TD align="right">0</TD>
+  <TD align="right">235</TD>
+  <TD align="right">3</TD>
+  <TD align="right">0</TD>
+  <TD align="right">0</TD>
+  <TD align="right">238</TD>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">(3) tree</TH>
+  <TD align="right">0</TD>
+  <TD align="right">4</TD>
+  <TD align="right">421</TD>
+  <TD align="right">0</TD>
+  <TD align="right">1</TD>
+  <TD align="right">426</TD>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">(4) soil</TH>
+  <TD align="right">0</TD>
+  <TD align="right">0</TD>
+  <TD align="right">0</TD>
+  <TD align="right">42</TD>
+  <TD align="right">0</TD>
+  <TD align="right">42</TD>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">(5) water</TH>
+  <TD align="right">0</TD>
+  <TD align="right">0</TD>
+  <TD align="right">0</TD>
+  <TD align="right">0</TD>
+  <TD align="right">37</TD>
+  <TD align="right">37</TD>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">Sum</TH>
+  <TD align="right">1257</TD>
+  <TD align="right">245</TD>
+  <TD align="right">439</TD>
+  <TD align="right">43</TD>
+  <TD align="right">39</TD>
+  <TD align="right">2023</TD>
+ </TR>
+</TABLE>
+    </p>
+    <h2> Accuracies </h2>
+    <p>
+<TABLE border="1" style="border: 1px solid #000000; border-collapse: collapse;" cellpadding="4">
+ <TR>
+  <TH colspan="1" align="center">Measure</TH>
+  <TH colspan="1" align="center">Estimate [%]</TH>
+  <TH colspan="2" align="center">95 % Confidence Interval [%]</TH>
+ </TR>
+ <TR>
+  <TD align="right">Overall Accuracy</TD>
+  <TD align="right">98.47</TD>
+  <TD align="right">98.0</TD>
+  <TD align="right">99.05</TD>
+ </TR>
+ <TR>
+  <TD align="right">Kappa Accuracy</TD>
+  <TD align="right">97.19</TD>
+  <TD align="right">96.22</TD>
+  <TD align="right">98.17</TD>
+ </TR>
+ <TR>
+  <TD align="right">Mean F1 Accuracy</TD>
+  <TD align="right">97.99</TD>
+  <TD align="right">-</TD>
+  <TD align="right">-</TD>
+ </TR>
+</TABLE>
+    </p>
+    <h2> Class-wise Accuracies </h2>
+    <p>
+<TABLE border="1" style="border: 1px solid #000000; border-collapse: collapse;" cellpadding="4">
+ <TR>
+  <TH colspan="1" align="center">&nbsp;</TH>
+  <TH colspan="3" align="center">User's Accuracy [%]</TH>
+  <TH colspan="3" align="center">Producer's Accuracy [%]</TH>
+  <TH colspan="3" align="center">F1 Accuracy</TH>
+ </TR>
+ <TR>
+  <TH colspan="1" align="center">Map class</TH>
+  <TH colspan="1" align="center">Estimate</TH>
+  <TH colspan="2" align="center">95 % Interval</TH>
+  <TH colspan="1" align="center">Estimate</TH>
+  <TH colspan="2" align="center">95% Interval</TH>
+  <TH colspan="1" align="center">Estimate</TH>
+  <TH colspan="2" align="center">95% Interval</TH>
+ </TR>
+ <TR>
+  <TD align="right">(1) impervious</TD>
+  <TD align="right">98.2</TD>
+  <TD align="right">98.2</TD>
+  <TD align="right">98.2</TD>
+  <TD align="right">100.0</TD>
+  <TD align="right">99.24</TD>
+  <TD align="right">100.76</TD>
+  <TD align="right">99.09</TD>
+  <TD align="right">99.09</TD>
+  <TD align="right">99.09</TD>
+ </TR>
+ <TR>
+  <TD align="right">(2) low vegetation</TD>
+  <TD align="right">98.74</TD>
+  <TD align="right">97.88</TD>
+  <TD align="right">99.6</TD>
+  <TD align="right">95.92</TD>
+  <TD align="right">94.66</TD>
+  <TD align="right">97.17</TD>
+  <TD align="right">97.31</TD>
+  <TD align="right">96.3</TD>
+  <TD align="right">98.31</TD>
+ </TR>
+ <TR>
+  <TD align="right">(3) tree</TD>
+  <TD align="right">98.83</TD>
+  <TD align="right">97.96</TD>
+  <TD align="right">99.69</TD>
+  <TD align="right">95.9</TD>
+  <TD align="right">95.02</TD>
+  <TD align="right">96.77</TD>
+  <TD align="right">97.34</TD>
+  <TD align="right">96.47</TD>
+  <TD align="right">98.21</TD>
+ </TR>
+ <TR>
+  <TD align="right">(4) soil</TD>
+  <TD align="right">100.0</TD>
+  <TD align="right">99.34</TD>
+  <TD align="right">100.66</TD>
+  <TD align="right">97.67</TD>
+  <TD align="right">97.67</TD>
+  <TD align="right">97.67</TD>
+  <TD align="right">98.82</TD>
+  <TD align="right">98.82</TD>
+  <TD align="right">98.82</TD>
+ </TR>
+ <TR>
+  <TD align="right">(5) water</TD>
+  <TD align="right">100.0</TD>
+  <TD align="right">99.04</TD>
+  <TD align="right">100.96</TD>
+  <TD align="right">94.87</TD>
+  <TD align="right">94.87</TD>
+  <TD align="right">94.87</TD>
+  <TD align="right">97.37</TD>
+  <TD align="right">97.37</TD>
+  <TD align="right">97.37</TD>
+ </TR>
+</TABLE>
+    </p>
+    <h2> Proportion Matrix </h2>
+    <p>
+<TABLE border="1" style="border: 1px solid #000000; border-collapse: collapse;" cellpadding="4">
+ <TR>
+  <TH colspan="1" rowspan="2">&nbsp;</TH>
+  <TH colspan="5" align="center">Reference Class</TH>
+ </TR>
+ <TR>
+  <TH colspan="1" align="center">(1)</TH>
+  <TH colspan="1" align="center">(2)</TH>
+  <TH colspan="1" align="center">(3)</TH>
+  <TH colspan="1" align="center">(4)</TH>
+  <TH colspan="1" align="center">(5)</TH>
+  <TH colspan="1" align="center">Sum</TH>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">(1) impervious</TH>
+  <TD align="right">0.542</TD>
+  <TD align="right">0.0026</TD>
+  <TD align="right">0.0065</TD>
+  <TD align="right">0.0004</TD>
+  <TD align="right">0.0004</TD>
+  <TD align="right">0.5519</TD>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">(2) low vegetation</TH>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.1457</TD>
+  <TD align="right">0.0019</TD>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.1476</TD>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">(3) tree</TH>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.0026</TD>
+  <TD align="right">0.2738</TD>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.0007</TD>
+  <TD align="right">0.2771</TD>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">(4) soil</TH>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.0099</TD>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.0099</TD>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">(5) water</TH>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.0</TD>
+  <TD align="right">0.0098</TD>
+  <TD align="right">0.0098</TD>
+ </TR>
+ <TR>
+  <TH rowspan="None" align="left">Sum</TH>
+  <TD align="right">0.542</TD>
+  <TD align="right">0.1509</TD>
+  <TD align="right">0.2822</TD>
+  <TD align="right">0.0103</TD>
+  <TD align="right">0.0109</TD>
+  <TD align="right">1.0</TD>
+ </TR>
+</TABLE>
+    </p>
+    <h2> Class-wise Proportion and Area Estimates </h2>
+    <p>
+<TABLE border="1" style="border: 1px solid #000000; border-collapse: collapse;" cellpadding="4">
+ <TR>
+  <TH colspan="1" align="center">&nbsp;</TH>
+  <TH colspan="3" align="center">Proportion</TH>
+  <TH colspan="3" align="center">Area [px]</TH>
+ </TR>
+ <TR>
+  <TH colspan="1" align="center">Map class</TH>
+  <TH colspan="1" align="center">Estimate</TH>
+  <TH colspan="2" align="center">95 % Interval</TH>
+  <TH colspan="1" align="center">Estimate</TH>
+  <TH colspan="2" align="center">95 % Interval</TH>
+ </TR>
+ <TR>
+  <TD align="right">(1) impervious</TD>
+  <TD align="right">0.6327</TD>
+  <TD align="right">0.6327</TD>
+  <TD align="right">0.6327</TD>
+  <TD align="right">45023.4</TD>
+  <TD align="right">45023.4</TD>
+  <TD align="right">45023.4</TD>
+ </TR>
+ <TR>
+  <TD align="right">(2) low vegetation</TD>
+  <TD align="right">0.1176</TD>
+  <TD align="right">0.1127</TD>
+  <TD align="right">0.1226</TD>
+  <TD align="right">8371.5</TD>
+  <TD align="right">8016.1</TD>
+  <TD align="right">8727.0</TD>
+ </TR>
+ <TR>
+  <TD align="right">(3) tree</TD>
+  <TD align="right">0.2106</TD>
+  <TD align="right">0.204</TD>
+  <TD align="right">0.2171</TD>
+  <TD align="right">14984.3</TD>
+  <TD align="right">14517.1</TD>
+  <TD align="right">15451.5</TD>
+ </TR>
+ <TR>
+  <TD align="right">(4) soil</TD>
+  <TD align="right">0.0208</TD>
+  <TD align="right">0.0198</TD>
+  <TD align="right">0.0217</TD>
+  <TD align="right">1477.3</TD>
+  <TD align="right">1408.8</TD>
+  <TD align="right">1545.8</TD>
+ </TR>
+ <TR>
+  <TD align="right">(5) water</TD>
+  <TD align="right">0.0183</TD>
+  <TD align="right">0.0166</TD>
+  <TD align="right">0.02</TD>
+  <TD align="right">1301.5</TD>
+  <TD align="right">1180.9</TD>
+  <TD align="right">1422.0</TD>
+ </TR>
+</TABLE>
+    </p>
+  </section>
+    <footer id="footer">
+      <p> generated by <b>janzandr</b> on Wed Jan 30 16:27:30 2019</p>
+    </footer>
+  </body>
+</html>

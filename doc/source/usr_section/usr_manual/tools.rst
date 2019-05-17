@@ -1,3 +1,8 @@
+.. |action| image:: ../../img/action.svg
+   :width: 40px
+.. |reset_plot| image:: ../../img/pyqtgraph_reset.png
+   :width: 15px
+
 Tools
 *****
 
@@ -6,15 +11,15 @@ Scatter Plot
 
 The Scatter Plot tool allows you to plot the values of two bands against each other. You can specify the following settings:
 
- * **Band X:** Choose the raster (first dropdown menu) and the band (second dropdown menu) to be plotted on the X-axis.
+ * :guilabel:`Band X`: Choose the raster (first dropdown menu) and the band (second dropdown menu) to be plotted on the X-axis.
    ``Min`` and ``Max`` depict the limits of the axis. By default, Min and Max will be automatically derived. You can also
    manually specify the limits of the axis by entering another value.
- * **Band Y:** Same as above, just for the Y-axis.
- * **Mask (optional):** You can specify a mask here, so that pixels which are covered by the mask will not be included in the
+ * :guilabel:`Band Y`: Same as above, just for the Y-axis.
+ * :guilabel:`Mask (optional)`: You can specify a mask here, so that pixels which are covered by the mask will not be included in the
    scatterplot.
- * **Accuracy:** Can either be set to *Estimated (faster)* or *Actual (slower)*. Defines whether to use a subset of pixels for calculation
+ * :guilabel:`Accuracy`: Can either be set to *Estimated (faster)* or *Actual (slower)*. Defines whether to use a subset of pixels for calculation
    or all of them.
- * **Number of Bins:** Defines the number of bins in x and y direction.
+ * :guilabel:`Number of Bins`: Defines the number of bins in x and y direction.
 
 After you entered all settings, click the |action| button to create the plot.
 
