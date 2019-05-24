@@ -107,15 +107,19 @@ Exercise A: Urban land cover
 3. Visualize raster and vector data
 -----------------------------------
 
-* The EnMAP-Box offers **Map Windows (Map #)** for visualizing raster and vector data. Click the |viewlist_mapdock| icon and drag the following datasets from the Data Sources panel into Map #1:
+* The EnMAP-Box offers **Map Windows (Map #)** for visualizing raster and vector data. Click the |viewlist_mapdock| icon
+  and drag the following datasets from the :guilabel:`Data Sources` panel into Map #1:
 
    * :file:`hymap_berlin.bsq`
    * :file:`landcover_berlin.shp`
 
-* Map #1 now appears in the Data Views panel, where the visibility, order and properties of datasets can be modified. Unfold Map #1:
+* Map #1 now appears in the :guilabel:`Data Views` panel, where the visibility, order and properties of datasets can be modified. Unfold Map #1:
 
-  * To change the order of stacked layers, drag one layer on top or below another one. Arrange the layer stack so that :file:`landcover_berlin.shp` is displayed on top of :file:`hymap_berlin.bsq`.
-  * To assign a multibandcolor RGB combination to a raster image, right click on the dataset, select **Layer Properties** and navigate to **Style** in the **RasterLayerProperties** window. You can now select predefined composites (RGB, nIR, swIR), or manually select your bands and render type. Contrast enhancement is further possible. Display :file:`hymap_berlin.bsq` as true color composite.
+  * To change the order of stacked layers, drag one layer on top or below another one. Arrange the layer stack so that
+    :file:`landcover_berlin.shp` is displayed on top of :file:`hymap_berlin.bsq`.
+  * To assign a multibandcolor RGB combination to a raster image, right click on the dataset, select :guilabel:`Layer Properties` and
+    navigate to :guilabel:`Style` in the :guilabel:`RasterLayerProperties` window. You can now select predefined composites (RGB, nIR, swIR), or
+    manually select your bands and render type. Contrast enhancement is further possible. Display :file:`hymap_berlin.bsq` as true color composite.
 
    .. attention::
 
@@ -142,7 +146,10 @@ Exercise A: Urban land cover
 
 
 
-  * The symbology of :file:`landcover_berlin.shp` is predefined by a QGIS layer style file (.qml). To change this symbology, right click on the vector layer, select **Layer Properties** and navigate to **Symbology** in the **LayerProperties** window. You can now change the symbology in accordance to the QGIS functionality. Use the **Column** and **Classify** options to explore the information content of the attribute table :file:`landcover_berlin.shp`.
+  * The symbology of :file:`landcover_berlin.shp` is predefined by a QGIS layer style file (:file:`.qml`). To change this symbology,
+    right click on the vector layer, select :guilabel:`Layer Properties` and navigate to :guilabel:`Symbology` in the :guilabel:`LayerProperties` window.
+    You can now change the symbology in accordance to the QGIS functionality. Use the :guilabel:`Column` and :guilabel:`Classify` options to explore the
+    information content of the attribute table :file:`landcover_berlin.shp`.
 
 .. image:: tut_img/03_visualizerasterandvector.png
    :width: 100%
@@ -155,7 +162,7 @@ Exercise A: Urban land cover
 * The Toolbar offers common navigation tools for exploring visualized datasets. Make yourself familiar with the following navigation tools: |navtools|
   Note that the mouse wheel can be used alternatively for zooming (roll mouse wheel forward/backward) and panning (press and hold mouse wheel).
 * Make yourself familiar with the crosshair functionality. To show/hide the crosshair, to change the style, or to display the pixel cell
-  of a selected layer, right click within MAP #1 and select **Crosshair**.
+  of a selected layer, right click within MAP #1 and select :guilabel:`Crosshair`.
 
 .. admonition:: Learning activities:
 
@@ -163,7 +170,7 @@ Exercise A: Urban land cover
 
      .. raw:: html
 
-        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <div><details> <summary>click to expand...</summary>
         <p style="color:#2980B9;">Major land cover types: buildings/roofs, paved areas (e.g., streets, backyards),
         trees (e.g., park trees, street trees), grass (e.g., lawns, soccer field), crops (on agricultural sites),
         bare soil (e.g., agricultural sites, construction sites), and water (e.g., lakes, swimming pools).</p>
@@ -174,7 +181,7 @@ Exercise A: Urban land cover
 
      .. raw:: html
 
-        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <div><details> <summary>click to expand...</summary>
         <img src="../../_static/img/tut_a2.png" alt="---Image can not be displayed---">
         </details></div>
         </br>
@@ -186,10 +193,14 @@ Exercise B: Spectral mixing
 
 .. admonition:: Description
 
-   Forthcoming spaceborne imaging spectroscopy missions create new opportunities for global urban mapping. However, the step to satellite observations brings with it coarser spatial resolution, resulting in a loss in spatial detail and an increase in the number of mixed pixels. This exercise…
+   Forthcoming spaceborne imaging spectroscopy missions create new opportunities for global urban mapping. However,
+   the step to satellite observations brings with it coarser spatial resolution, resulting in a loss in spatial detail and
+   an increase in the number of mixed pixels. This exercise…
 
-   * provides an insight into how urban areas will be depicted by spaceborne hyperspectral images and illustrates challenges related to spectral mixing when using such data for urban mapping
-   * introduces additional basic functionalities of the EnMAP-Box. You will learn how to work with multiple map views, and how to visualize image spectra using Spectral Library Windows
+   * provides an insight into how urban areas will be depicted by spaceborne hyperspectral images and illustrates
+     challenges related to spectral mixing when using such data for urban mapping
+   * introduces additional basic functionalities of the EnMAP-Box. You will learn how to work with multiple map views,
+     and how to visualize image spectra using Spectral Library Windows
 
    Duration: 15 min
 
@@ -198,14 +209,17 @@ Exercise B: Spectral mixing
 ---------------------
 
 * Close Map #1 from the previous exercise by using the |closemapview| icon on the blue Map #1 title bar.
-* The EnMAP-Box enables users to work with multiple Map Windows, which can be flexibly organized and geospatially linked. Open two new Map Windows. For horizontal arrangement, click and hold on the blue Map #2 title bar and drag it to the right edge of Map #1. A transparent blue rectangle appears indicating the docking position once you stop holding the mouse button.
+* The EnMAP-Box enables users to work with multiple Map Windows, which can be flexibly organized and geospatially linked.
+  Open two new Map Windows. For horizontal arrangement, click and hold on the blue Map #2 title bar and drag it to the
+  right edge of Map #1. A transparent blue rectangle appears indicating the docking position once you stop holding the mouse button.
 
 
 .. image:: tut_img/04_multiplemapviews1.png
    :width: 100%
 
 * Display :file:`hymap_berlin.bsq` and :file:`enmap_berlin.bsq` as RGB composite of your choice in Map #1 and Map #2, respectively.
-* For geospatial linking, click on **View** in the Menu and select **Set Map Linking**. In the **Map Linking** window, select the |link_all_mapscale_center| :sup:`Link Map Scale and Center` option and close the dialog.
+* For geospatial linking, click on :guilabel:`View` in the Menu and select :guilabel:`Set Map Linking`. In the :guilabel:`Map Linking`
+  window, select the |link_all_mapscale_center| :sup:`Link Map Scale and Center` option and close the dialog.
 
 .. image:: tut_img/05_multiplemapviews2.png
    :width: 100%
@@ -237,7 +251,7 @@ Exercise B: Spectral mixing
 
      .. raw:: html
 
-        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <div><details> <summary> click to expand... </summary>
         <p style="color:#2980B9;">The spatial detail of most urban features (e.g., buildings, streets, trees along streets or in private gardens)
         disappears due to spatial aggregation at spaceborne scale. However, large homogenous urban features (e.g., waterbodies, sport grounds, tree stand in parks) remain apparent.</p>
         </details></div>
@@ -247,7 +261,7 @@ Exercise B: Spectral mixing
 
      .. raw:: html
 
-        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <div><details> <summary> click to expand... </summary>
         <img src="../../_static/img/tut_b2.png" alt="---Image can not be displayed---">
         </details></div>
         </br>
@@ -256,7 +270,7 @@ Exercise B: Spectral mixing
 
      .. raw:: html
 
-        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <div><details> <summary> click to expand... </summary>
         <p style="color:#2980B9;">Pure spectra can be collected for homogenous urban surfaces with a patch size of ~100 x 100 m
         and larger (e.g., roofing material spectra for large industrial buildings, ground paving material spectra for yards
         of industrial complexes, grass spectra on lawns or soccer fields, tree spectra in dense stands, water spectra from water bodies).
@@ -294,7 +308,7 @@ Exercise C: Urban spectral libraries
 ----------------------------
 
 * Close all Map and Spectral Library Windows from the previous exercise.
-* To load the urban spectral library, click on the |viewlist_spectrumdock| icon to open a new Spectral Library Window and drag :file:`library_berlin.sli` from the Data Sources panel into SpectralLibrary #1. Get familiar with the representation of the spectral library and the attribute table.
+* To load the urban spectral library, click on the |viewlist_spectrumdock| icon to open a new Spectral Library Window and drag :file:`library_berlin.sli` from the :guilabel:`Data Sources` panel into SpectralLibrary #1. Get familiar with the representation of the spectral library and the attribute table.
 * To display a subset of spectra in a separate Library Window…
 
   * Select the spectra of interest by clicking on their corresponding row numbers (use :kbd:`Ctrl` or :kbd:`Shift` to select multiple rows). To select spectra with the same attributes, prior sorting of the attribute table by clicking on the corresponding column header is recommended.
@@ -312,7 +326,7 @@ Exercise C: Urban spectral libraries
 
      .. raw:: html
 
-        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <div><details> <summary> click to expand... </summary>
         <img src="../../_static/img/tut_c1.png" alt="---Image can not be displayed---">
         <p style="color:#2980B9;">The roof class shows a very high within-class variability. The classes pavement, low vegetation,
         and tree show a high within-class variability. The classes soil and water show a rather low within-class variability.</p>
@@ -323,7 +337,7 @@ Exercise C: Urban spectral libraries
 
      .. raw:: html
 
-        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <div><details> <summary> click to expand... </summary>
         <p style="color:#2980B9;">The classes roof and pavement are highly similar with regard to the following surface materials:
         bitumen vs. asphalt, red clay tiles vs. red sand, grey roofing materials (most likely concrete) vs concrete. The classes
         roof and soil are highly similar with regard to the following surface materials: concrete vs. bare soil, red clay tiles vs.
@@ -368,9 +382,9 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
 2. Start the application
 ------------------------
 
-* Click on **Applications** in the **Menu** and select **Regression-based unmixing (synthMix)**. The graphical widget of the **Regression-based unmixing (synthMix)**
-  consists of sections for specifying Inputs, for target **Class Selection**, for setting **Mixing Parameters**, for selecting the **Regression Algorithm**, and for
-  specifying the **Outputs**.
+* Click on :guilabel:`Applications` in the Menu and select :guilabel:`Regression-based unmixing (synthMix)`. The graphical widget of the **Regression-based unmixing (synthMix)**
+  consists of sections for specifying :guilabel:`Inputs`, for target :guilabel:`Class Selection`, for setting :guilabel:`Mixing Parameters`,
+  for selecting the :guilabel:`Regression Algorithm`, and for specifying the :guilabel:`Outputs`.
 
 .. image:: tut_img/09_synthmixapp.png
    :width: 100%
@@ -378,18 +392,18 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
 3. Inputs and class selection
 -----------------------------
 
-* The specification of input data is the start of the unmixing process. This includes an **Endmember Library** with associated class labels
-  (see Exercise 3), where the **Class Attribute** drop menu specifies the attribute column associated with the class labels, and the **Spectral Image** to unmix.
+* The specification of input data is the start of the unmixing process. This includes an :guilabel:`Endmember Library` with associated class labels
+  (see Exercise 3), where the :guilabel:`Class Attribute` drop menu specifies the attribute column associated with the class labels, and the :guilabel:`Spectral Image` to unmix.
 * Select / specify the following inputs:
 
-  * **Endmember Library**: :file:`library_berlin.sli`
-  * **Class Attribute**: *level_1*
-  * **Spectral Image**: :file:`enmap_berlin.bsq`
+  * :guilabel:`Endmember Library`: :file:`library_berlin.sli`
+  * :guilabel:`Class Attribute`: level_1
+  * :guilabel:`Spectral Image`: :file:`enmap_berlin.bsq`
 
-* The selection of the classes of interest, i.e., **Target Classes**, is the next step of the unmixing process. Synthetically
+* The selection of the classes of interest, i.e., :guilabel:`Target Classes`, is the next step of the unmixing process. Synthetically
   mixed data, regression models, and fraction maps are only created for target classes. Spectra of excluded classes are still
   used as background signatures in the synthetic mixing process.
-* Select the following **Target Classes**: impervious, vegetation, soil, water (all level 1 classes)
+* Select the following :guilabel:`Target Classes`: impervious, vegetation, soil, water (all level 1 classes)
 
 .. image:: tut_img/10_synthmixing1.png
    :width: 100%
@@ -397,8 +411,8 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
 4. Mixing parameters
 --------------------
 
-* The mixing parameters steer the process of generating the synthetically mixed data from the endmember library. The **Number of
-  Synthetic Mixtures per Class** specifies the total number of mixtures per class to be created. The check option to **Include Original Library Endmembers**
+* The mixing parameters steer the process of generating the synthetically mixed data from the endmember library. The :guilabel:`Number of Synthetic Mixtures per Class`
+  specifies the total number of mixtures per class to be created. The check option to |cb1| :guilabel:`Include Original Library Endmembers`
   allows to append the endmember library to the synthetically mixed data, with fractions of either 0% or 100% of a respective target class.
 
 .. image:: tut_img/11_synthmixing2.png
@@ -407,13 +421,13 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
 * The synthetic mixing process itself is randomized. That is, to generate a synthetic mixture…
 
   * … a mixing complexity is randomly assigned. The mixing complexity defines the number of endmembers contributing to a mixture (e.g., 2EM, 3EM).
-    The random selection is steered by user-defined **Mixing Complexity Likelihoods** (e.g., 2EM=0.6, 3EM=0.4 means that there is a 60%
+    The random selection is steered by user-defined :guilabel:`Mixing Complexity Likelihoods` (e.g., 2EM=0.6, 3EM=0.4 means that there is a 60%
     likelihood that the mixture is made up of two endmembers and a 40% likelihood that the mixture is made up of three endmembers).
     The implementation allows the definition of likelihoods for 2EM, 3EM and 4EM. Note that likelihoods must sum up to 1.
   * … endmembers are randomly drawn from the library. The number of endmembers is based on the previously assigned mixing complexity.
-    The first endmember is always drawn from the target class. The following endmembers are drawn based on **Class Likelihoods**,
+    The first endmember is always drawn from the target class. The following endmembers are drawn based on :guilabel:`Class Likelihoods`,
     which are either proportional (class proportions within the library) or equalized (all classes with the same likelihood).
-    The **Allow Within-Class Mixtures** check option allows the user to decide whether multiple endmembers of the same class can be drawn to create a mixture.
+    The |cb1| :guilabel:`Allow Within-Class Mixtures` check option allows the user to decide whether multiple endmembers of the same class can be drawn to create a mixture.
   * … random mixing fractions between 0 and 1 (0-100%) are randomly assigned to the previously drawn endmembers. The total sum of fractions is always 1 (100%).
   * … endmembers are linearly mixed based on the mixing fractions to create the mixture.
 
@@ -426,48 +440,48 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
 
 * Select the following mixing parameters:
 
-  * **Number of Synthetic Mixtures per Class:** 1000 (default)
-  * **Include Original Library Endmembers:** Yes (default)
-  * **Mixing Complexity Likelihoods:** 2EM=0.4, 3EM=0.4, 4EM=0.2
-  * **Allow Within-Class Mixtures:** Yes (default)
-  * **Class Likelihoods: Proportional** (default)
+  * :guilabel:`Number of Synthetic Mixtures per Class`: ``1000`` (default)
+  * :guilabel:`Include Original Library Endmembers`: Yes (default)
+  * :guilabel:`Mixing Complexity Likelihoods`: 2EM= ``0.4``, 3EM= ``0.4``, 4EM= ``0.2``
+  * :guilabel:`Allow Within-Class Mixtures`: Yes (default)
+  * :guilabel:`Class Likelihoods`: Proportional (default)
 
 
 5. Regression Algorithm
 -----------------------
 
 * The selection of the regression algorithm and the setting up of the ensemble are the next steps in the unmixing process. The EnMAP-Box makes
-  use of the scikit-learn library (see https://scikit-learn.org/stable/index.html) to implement several state-of-the-art algorithms offered in the **Regressor**
+  use of the scikit-learn library (see https://scikit-learn.org/stable/index.html) to implement several state-of-the-art algorithms offered in the :guilabel:`Regressor`
   drop menu. Note that the different algorithms lead to varying accuracies and processing times,
-  particularly when embedding the unmixing process into an ensemble. To do so, activate **Use Ensemble** and set the **Ensemble Size**.
+  particularly when embedding the unmixing process into an ensemble. To do so, activate |cb1| :guilabel:`Use Ensemble` and set the :guilabel:`Ensemble Size`.
 
 .. image:: tut_img/14_regressionalgo.png
    :width: 100%
 
 * Select the following regression settings:
 
-  * **Regressor**: RandomForestRegression (default, due to the low processing time)
-  * **Use Ensemble**: Yes (default), **Ensemble Size**: 3 (default)
+  * :guilabel:`Regressor`: RandomForestRegression (default, due to the low processing time)
+  * :guilabel:`Use Ensemble`: Yes (default), :guilabel:`Ensemble Size`: ``3`` (default)
 
 6. Outputs
 ----------
 
 * The specification of the outputs is the final step in the unmixing process. By default, the final fraction map is the only output:
 
-  * **Folder**: Specifies the output folder where results are saved.
-  * **Name**: Specifies the base name of the final fraction map. We add the suffix ‘_mean’ to this file as the default ensemble decision fusion is based on averaging.
+  * :guilabel:`Folder`: Specifies the output folder where results are saved.
+  * :guilabel:`Name`: Specifies the base name of the final fraction map. We add the suffix ‘_mean’ to this file as the default ensemble decision fusion is based on averaging.
 
 * The advanced options allow user to save additional files created during the unmixing process, and to derive additional maps from the final fraction map.
 
-  * **Decision Fusion (Ensemble)**: Selection of different statistics to evaluate the ensemble output. The following statistics are implemented: mean (default, suffix ‘_mean’), median (suffix ‘_median’), inter quartile range (suffix ‘_iqr’), and standard deviation (suffix ‘_std’).
-  * **Save**: Check to save Training Samples, Predictions, and Models. These outputs will be stored for each class and with a suffix ‘_run’ for each ensemble iteration in separate subfolders.
-  * **Create Class Fraction RGB**: Check to create a RGB class representation of the final fraction map. The RGB color of a specific pixel is the weighted mean value of the original class colors, where the weights are given by the corresponding class fractions.
-  * **Derive Classification from Fraction Map**: Check to derive a discrete classification map from the final fraction map. The winner class per pixel corresponds to the maximum class fraction.
+  * :guilabel:`Decision Fusion (Ensemble)`: Selection of different statistics to evaluate the ensemble output. The following statistics are implemented: mean (default, suffix ‘_mean’), median (suffix ‘_median’), inter quartile range (suffix ‘_iqr’), and standard deviation (suffix ‘_std’).
+  * :guilabel:`Save`: Check to save Training Samples, Predictions, and Models. These outputs will be stored for each class and with a suffix ‘_run’ for each ensemble iteration in separate subfolders.
+  * :guilabel:`Create Class Fraction RGB`: Check to create a RGB class representation of the final fraction map. The RGB color of a specific pixel is the weighted mean value of the original class colors, where the weights are given by the corresponding class fractions.
+  * :guilabel:`Derive Classification from Fraction Map`: Check to derive a discrete classification map from the final fraction map. The winner class per pixel corresponds to the maximum class fraction.
 
 * Specify the following outputs (and skip the advanced options):
 
-  * **Folder**: *path to your working folder*
-  * **Name**: :file:`fraction_level1_estimation.bsq`
+  * :guilabel:`Folder`: *path to your working folder*
+  * :guilabel:`Name`: :file:`fraction_level1_estimation.bsq`
 
 7. Run the application
 ----------------------
@@ -479,8 +493,8 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
 
 * Display the newly created :file:`fraction_level1_estimation.bsq`. The file consists of 4 bands, where each band represents a fraction map of the defined target classes. Display the fraction map in a useful render style and appropriate contrast stretch:
 
-  * e.g., as **multibandcolor** RGB composite of three target classes in a single Map Window. For stretching fraction maps to the full range of possible fraction, set Min = 0 and Max = 1.
-  * e.g., as **singlegray** image per target class in multiple Map Windows. For stretching fraction maps to the full range of possible fraction, set **Min** = 0 and **Max** = 1.
+  * e.g., as **multibandcolor** RGB composite of three target classes in a single Map Window. For stretching fraction maps to the full range of possible fraction, set :guilabel:`Min` = 0 and :guilabel:`Max` = 1.
+  * e.g., as **singlegray** image per target class in multiple Map Windows. For stretching fraction maps to the full range of possible fraction, set :guilabel:`Min` = 0 and :guilabel:`Max` = 1.
 
 * Visually explore your fraction map. You may open :file:`enmap_berlin.bsq` in a separate Map Window for comparison. You may use the **Identify** tool together with the **Identify cursor location values option to display fraction values** |identifytools2| of pixels.
 
@@ -493,7 +507,7 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
 
      .. raw:: html
 
-        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <div><details> <summary> click to expand... </summary>
         <p style="color:#2980B9;">High impervious fractions can be observed in the city center. A general increase in vegetation
         cover and decrease in impervious cover is observed when moving towards suburban areas. Soil is only abundant on single patches,
         e.g., along rail tracks or on construction sites. Fractions for each class are in the physically meaningful range between 0 and 1.
@@ -505,7 +519,7 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
 
      .. raw:: html
 
-        <div><details> <summary> <button type="button">Show/hide answer...</button> </summary>
+        <div><details> <summary> click to expand... </summary>
         <p style="color:#2980B9;">Soil fractions are overestimated by around 20%, particularly for areas where red clay tiles /
         bitumen / asphalt mixtures are apparent but no soil surfaces. Water fractions are overestimated by around 20%
         throughout the city on all impervious surfaces.</p>
@@ -533,12 +547,12 @@ Exercise E: Validation of fraction maps
 * A reference fraction map is created by rasterizing available reference land cover information to the pixel grid of the estimated fraction map. To obtain reasonable fractions, the reference land cover information needs to be at a significantly higher spatial resolution than the pixel grid. To create reference fractions, open the **Fraction from Vector** tool in the EnMAP-Box geoalgorithms.
 * Enter the following data / parameters (use the tool tips for their description):
 
-  * **Pixel Grid**: :file:`fraction_level1_estimation.bsq`
-  * **Vector**: :file:`berlin_landcover.shp`
-  * **Class id attribute**: level_1_id
-  * **Minimal overall coverage**: 0.95
-  * **Oversampling factor**: 5
-  * **Output fraction**: :file:`{...path to your working folder...}/fraction_level1_reference.bsq`
+  * :guilabel:`Pixel Grid`: :file:`fraction_level1_estimation.bsq`
+  * :guilabel:`Vector`: :file:`berlin_landcover.shp`
+  * :guilabel:`Class id attribute`: level_1_id
+  * :guilabel:`Minimal overall coverage`: 0.95
+  * :guilabel:`Oversampling factor`: 5
+  * :guilabel:`Output fraction`: :file:`{...path to your working folder...}/fraction_level1_reference.bsq`
 
 * Run the process.
 
@@ -550,8 +564,8 @@ Exercise E: Validation of fraction maps
 
 * The **Regression Performance** algorithm in the **Accuracy Assessment** tools of the EnMAP-Box geoalgorithms implements the accuracy assessment for quantitative data. Scatterplots and statistical measures are reported in an HTML report. Run the **Regression Performance** algorithm with the following inputs:
 
-  * **Prediction**: :file:`fraction_level1_estimation.bsq`
-  * **Reference**: :file:`berlin_level1_reference.shp`
+  * :guilabel:`Prediction`: :file:`fraction_level1_estimation.bsq`
+  * :guilabel:`Reference`: :file:`berlin_level1_reference.shp`
 
 * Make yourself familiar with HTML report.
 
