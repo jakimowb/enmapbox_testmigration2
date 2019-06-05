@@ -9,19 +9,39 @@ Getting Started
 .. admonition:: Info
 
     This section is aimed at users with no previous EnMAP-Box experience. You will get a brief introduction into the
-    main functionalities by performing an image classification based on point reference data using the Classification Workflow
-    application.
+    main functionalities:
+
+    * Getting to know the Graphical User Interface
+    * Use a EnMAP-Box Application (Classification Workflow)
+    * Use a Processing Algorithm
+
+
+Primer
+######
+
+The EnMAP-Box can be divided into several major components. The :ref:`Graphical User Interface (GUI) <gui>`
+provides main access to all features and lets you manage and visualize raster and vector data as well as spectral libraries.
+From here you can access further :ref:`Tools <tools>` and :ref:`Applications <applications>`, which can be regarded as additional plugins
+that add specific functionalities such as plotting, metadata editing or raster algebra. Furthermore, the EnMAP-Box extents the QGIS
+Processing Toolbox with a comprehensive collection of various :ref:`Processing Algorithms` for (raster) data manipulation. 'Underneath'
+all this is the :ref:`EnMAP-Box API, HUB-Workflow API and HUB-Datacube API <dev_cookbook>`, which are high-level application programming interfaces that
+allow more advanced users to operate EnMAP-Box functionalities directly from code or to build their own applications on top.
+
+.. figure:: ../img/enmapbox_components.png
+
 
 
 Launching the EnMAP-Box
 #######################
 
-Once you successfully :ref:`installed <usr_installation>` the EnMAP-Box, you can access the plugin via the |enmapbox| icon
-in the QGIS Toolbar. Furthermore, the EnMAP-Box :ref:`Processing Algorithms` should also appear in the QGIS Processing Toolbox.
+Once you successfully :ref:`installed the EnMAP-Box <usr_installation>`, you can access the plugin via the |enmapbox| icon
+in the QGIS toolbar. Furthermore, the EnMAP-Box :ref:`Processing Algorithms` should also appear in the QGIS Processing Toolbox.
 
 .. figure:: ../img/ebx_firstopen.png
 
     The Graphical User Interface (GUI) of the EnMAP-Box on first open
+
+.. tip:: Have a look at the :ref:`User Manual <gui>` for a detailed description of the GUI.
 
 
 Loading Testdata
@@ -66,8 +86,11 @@ to get to know the GUI functionalities:
 * Move the map (using |mActionPan| or holding mouse wheel) and see how both map views are synchronized.
 
 
-Image Classification
-####################
+Use an Application
+##################
+
+In this section we will use the EnMAP-Box application **Classification Workflow** to classify the :file:`enmap_berlin.bsq`
+image using a point vector dataset with the classes *impervious, low vegetation, tree, soil, water* and a random forest classifier.
 
 * Go to :menuselection:`Applications --> Classification Workflow` to open the Classification Workflow application.
 * At the top, choose :file:`enmap_berlin.bsq` as :guilabel:`Raster` and :file:`landcover_berlin_point.shp` as :guilabel:`Reference`.
@@ -115,3 +138,29 @@ Image Classification
   .. figure:: ../img/screenshot_class_result.png
 
      Screenshot of the Map Views: EnMAP image on the left and classification result on the right
+
+
+Use a Processing Algorithm
+##########################
+
+In this section we will use a processing algorithm from the EnMAP-Box algorithm provider. More precise, we are converting a
+polygon dataset holding information on different landcover types into a classification raster, i.e., we are going to
+rasterize the vector dataset.
+
+* First of all, make sure the **Processing Toolbox** window is opened. If not, activate it via :menuselection:`View --> Panels --> Processing Toolbox`
+* Open the :menuselection:`Classification from Vector` algorithm under :menuselection:`EnMAP-Box --> Create Raster`.
+* Use the following settings:
+
+  * :guilabel:`Pixel Grid`: :file:`enmap_berlin.bsq`
+  * :guilabel:`Vector`: :file:`landcover_berlin_polygon.shp`
+  * :guilabel:`Class id attribute`: level_3_id
+  * :guilabel:`Minimal overall coverage`: ``0``
+  * :guilabel:`Minimal dominant coverage`: ``0``
+  * :guilabel:`Oversampling factor`: ``1``
+
+* Specify an output filepath under :guilabel:`Output Classification` and click :guilabel:`Run`
+
+.. figure:: /img/example_rasterize_classification.png
+   :width: 100%
+
+   Result of the :menuselection:`Classification from Vector` algorithm (right) and the input grid (left) and polygon dataset (middle)

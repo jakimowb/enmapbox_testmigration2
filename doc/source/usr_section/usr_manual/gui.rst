@@ -1,5 +1,7 @@
  .. include:: /icon_links.rst
 
+.. _gui:
+
 The GUI
 *******
 
