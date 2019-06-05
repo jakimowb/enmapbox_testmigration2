@@ -8,7 +8,8 @@ Contact
 * benjamin.jakimow@geo.hu-berlin.de
 * fabian.thiel@geo.hu-berlin.de (for issues specifically regarding this documentation)
 
-Further information:
-    * EnMAP mission, `www.enmap.org <http://www.enmap.org/>`_
-    * HUB Geomatics lab, `www.hu-geomatics.de <https://www.geographie.hu-berlin.de/en/professorships/geomatics>`_
+**Further information:**
+
+* EnMAP mission, `www.enmap.org <http://www.enmap.org/>`_
+* HUB Geomatics lab, `www.hu-geomatics.de <https://www.geographie.hu-berlin.de/en/professorships/geomatics>`_
 

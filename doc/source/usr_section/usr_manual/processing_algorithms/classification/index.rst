@@ -2,8 +2,7 @@ Classification
 ==============
 
 .. toctree::
-   :name: Classification
-   :maxdepth: 1
+   :maxdepth: 0
    :glob:
 
    *

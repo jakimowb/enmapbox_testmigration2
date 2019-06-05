@@ -2,8 +2,7 @@ Accuracy Assessment
 ===================
 
 .. toctree::
-   :name: Accuracy Assessment
-   :maxdepth: 1
+   :maxdepth: 0
    :glob:
 
    *

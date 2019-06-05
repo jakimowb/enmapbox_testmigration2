@@ -6,11 +6,7 @@ Installation
 
 .. |download_link| raw:: html
 
-   <a href="https://bitbucket.org/hu-geomatics/enmap-box/downloads/" target="_blank">HERE</a>
-
-.. |download_link2| raw:: html
-
-   <a href="https://bitbucket.org/hu-geomatics/enmap-box/downloads/" target="_blank">https://bitbucket.org/hu-geomatics/enmap-box/downloads/</a>
+   <a href="https://plugins.qgis.org/plugins/enmapboxplugin/" target="_blank">https://plugins.qgis.org/plugins/enmapboxplugin/</a>
 
 .. |developer_qgis_plugin_repo| raw:: html
 
@@ -51,7 +47,7 @@ The **EnMAP-Box** is a plugin for **QGIS** and requires additional **python pack
 ---------------
 
 
-Install QGIS version 3.4.4 or higher to run the EnMAP-Box. You can `get QGIS here <https://www.qgis.org/en/site/forusers/download.html>`_.
+Install QGIS version 3.4.0 or higher to run the EnMAP-Box. You can `get QGIS here <https://www.qgis.org/en/site/forusers/download.html>`_.
 Additional information on the installation process is provided in the `QGIS Documentation <https://www.qgis.org/en/site/forusers/alldownloads.html>`_.
 
 In case you already have QGIS installed, you can skip this step.
@@ -89,7 +85,7 @@ Windows
 
 2. Start the OSGeo4W Shell |osgeoicon| with admin rights.
 
-   * :menuselection:`Start Menu --> QGIS 3.xx --> OSGeo4W Shell --> Right-Click --> Run as administrator`
+   * Open the start menu :menuselection:`QGIS 3.xx --> OSGeo4W Shell --> Right-Click --> Run as administrator`
 
      .. image:: ../img/open_osgeoshell.png
         :width: 500px
@@ -250,37 +246,35 @@ Mac
 ----------------------------------
 
 
-Install from Repository (recommended)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Install from QGIS plugin repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#. Open QGIS and open *Plugins > Manage and Install Plugins > Settings*
-#. Add  https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/qgis_plugin_develop.xml as additional plugin repository
-   (scroll down and click on :guilabel:`Add...`)
-
-   .. image:: ../img/add_repo.png
-      :width: 75%
-
-#. Click :guilabel:`Reload all repositories` to get aware of the latest EnMAP-Box updates
-#. Now the EnMAP-Box should be listed in the plugin list: Go to the ``All`` tab and search for "enmap":
+#. Open QGIS and go to :menuselection:`Plugins --> Manage and Install Plugins --> All`
+#. In the search bar enter ``enmap`` or ``EnMAP-Box 3``
+#. Now the EnMAP-Box should be listed in the plugin list:
 
    .. figure:: ../img/pluginmanager_all.PNG
 
-   Select it and click :guilabel:`Install plugin` (or :guilabel:`Upgrade plugin` in case you update to a new version)
-#. Start the EnMAP-Box via the |icon| icon or from the menubar *Raster* > *EnMAP-Box*
+   Select it and click :guilabel:`Install plugin` (or :guilabel:`Upgrade` in case you update to a new version)
+#. Start the EnMAP-Box via the |icon| icon or from the menubar :menuselection:`Raster --> EnMAP-Box`
 
 
 
 
-Install from ZIP (alternative)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Install older version
+~~~~~~~~~~~~~~~~~~~~~
 
-#. Download the latest EnMAP-Box from |download_link2|.
-#. It is recommended to uninstall previous EnMAP-Box versions (delete folder manually, or in QGIS via *Plugins* > *Manage and Install Plugins*
-   > *Installed* > *EnMAP-Box 3* > *Uninstall plugin*)
-#. Open *Plugins* > *Manage and Install Plugins* > *Install from ZIP*.
-#. Under ``ZIP file`` click :guilabel:`...` and select the downloaded
-   *enmapboxplugin.3.x.YYYYMMDDTHHMM.QGIS3.zip* and click :guilabel:`Install plugin`.
-#. Start the EnMAP-Box via the |icon| icon or from the menubar *Raster* > *EnMAP-Box*.
+#. Go to the QGIS Python Plugins Repository |download_link|
+#. Click on the **Versions** tab to see all available version.
+#. Click on the desired version and on the next page click |download|
+#. It is recommended to uninstall previous EnMAP-Box versions (delete folder manually, or in QGIS via
+   :menuselection:`Plugins --> Manage and Install Plugins --> Installed --> EnMAP-Box 3 --> Uninstall plugin`)
+#. Open :menuselection:`Plugins --> Manage and Install Plugins --> Install from ZIP`.
+#. Press :guilabel:`...` and select the downloaded zip file
+   (:file:`enmapboxplugin.3.x.YYYYMMDDTHHMM.QGIS3.zip`) and click :guilabel:`Install plugin`.
+#. Start the EnMAP-Box via the |icon| icon or from the menubar :menuselection:`Raster --> EnMAP-Box`.
+
+.. |download| image:: ../img/qgis_download_button.png
 
 
 |

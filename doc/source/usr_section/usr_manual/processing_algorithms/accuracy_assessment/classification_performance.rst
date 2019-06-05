@@ -1,15 +1,24 @@
 .. _Classification Performance:
 
+**************************
 Classification Performance
---------------------------
+**************************
 
 Assesses the performance of a classification.
 
-Prediction
+**Parameters**
+
+
+:guilabel:`Prediction` [raster]
     Specify classification raster be evaluated
 
-Reference
+
+:guilabel:`Reference` [raster]
     Specify reference classification raster (i.e. ground truth).
 
-HTML Report
+**Outputs**
+
+
+:guilabel:`HTML Report` [fileDestination]
     Specify output path for HTML report file (.html).
+

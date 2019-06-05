@@ -147,6 +147,12 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
+# A string of reStructuredText that will be included at the beginning of every source file that is read.
+#rst_epilog = """
+#.. include:: /icon_links.rst
+#"""
+
+
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -184,6 +190,10 @@ html_favicon = 'img/icon.png'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# A list of paths that contain extra files not directly related to the documentation.
+# They are copied to the output directory. They will overwrite any existing file of the same name.
+# html_extra_path = ['']
+
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
 #
@@ -205,6 +215,8 @@ html_sidebars = {
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'EnMAPBoxDoc'
 
+# Include a custom stylesheet for HTML page
+html_css_files = ['css/custom.css']
 
 # -- Options for LaTeX output ---------------------------------------------
 

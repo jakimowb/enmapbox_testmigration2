@@ -1,16 +1,24 @@
 .. _Clustering Performance:
 
+**********************
 Clustering Performance
-----------------------
+**********************
 
 Assesses the performance of a clusterer.
 
-Prediction
+**Parameters**
+
+
+:guilabel:`Prediction` [raster]
     Specify clustering raster to be evaluated.
 
-Reference
+
+:guilabel:`Reference` [raster]
     Specify reference clustering raster (i.e. ground truth).
 
-HTML Report
+**Outputs**
+
+
+:guilabel:`HTML Report` [fileDestination]
     Specify output path for HTML report file (.html).
 
