@@ -110,8 +110,8 @@ def initEnMAPBoxResources():
         print('Unable to import enmapbox.resources', file=sys.stderr)
 
     try:
-        import qps.qpsresources
-        qps.qpsresources.qInitResources()
+        from .externals.qps.qpsresources import qInitResources as initQPSResources
+        initQPSResources()
     except Exception as ex:
         print('Unable to import qps.resources', file=sys.stderr)
 
@@ -121,8 +121,8 @@ def initEditorWidgets():
     """
     Initialises QgsEditorWidgets
     """
-    import qps
-    qps.registerEditorWidgets()
+    from .externals.qps import registerEditorWidgets
+    registerEditorWidgets()
 
 
 _enmapboxProvider = None

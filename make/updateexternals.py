@@ -19,8 +19,8 @@
 
 import os, sys, re, shutil, zipfile, datetime
 from enmapbox import DIR_REPO
-from qps.make import updateexternals
-from qps.make.updateexternals import RemoteInfo
+from enmapbox.qps.make import updateexternals
+from ..externals.qpsmake.updateexternals import RemoteInfo
 
 import git # install with: pip install gitpython
 
@@ -34,7 +34,7 @@ updateexternals.setProjectRepository(DIR_REPO)
 
 RemoteInfo.create(r'https://bitbucket.org/jakimowb/qgispluginsupport.git',
                   key='qps',
-                  prefixLocal='site-packages/qps',
+                  prefixLocal='enmapbox/externals/qps',
                   prefixRemote=r'qps',
                   remoteBranch='master')
 
@@ -94,15 +94,15 @@ def updateRemotes(remoteLocations):
 if __name__ == "__main__":
 
     # update remotes
-    to_update = ['hub-datacube'
-                 ,'hub-workflow'
-                 ,'enmapboxapplications'
-                 ,'enmapboxgeoalgorithms'
-                 ,'enmap-box-lmu-vegetation-apps'
+    to_update = [#'hub-datacube'
+                 #,'hub-workflow'
+                 #,'enmapboxapplications'
+                 #,'enmapboxgeoalgorithms'
+                 #,'enmap-box-lmu-vegetation-apps'
                  #'virtual-raster-builder',
                  #'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
-                 ,'qps'
+                 'qps', 'vrtbuilder'
                 ]
     updateRemotes(to_update)
     exit(0)

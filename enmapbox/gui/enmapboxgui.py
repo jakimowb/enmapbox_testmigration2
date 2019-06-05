@@ -26,8 +26,8 @@ from enmapbox.gui.docks import *
 from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
-from qps.cursorlocationvalue import CursorLocationInfoDock
-from qps.layerproperties import showLayerPropertiesDialog
+from ..externals.qps.cursorlocationvalue import CursorLocationInfoDock
+from ..externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
 
 SETTINGS = enmapbox.enmapboxSettings()
