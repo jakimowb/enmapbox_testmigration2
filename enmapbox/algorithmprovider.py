@@ -17,12 +17,22 @@
 ***************************************************************************
 """
 
-
+import os, pathlib
 
 from enmapbox import __version__
 from qgis.core import *
 from qgis.PyQt.QtGui import QIcon
-from processing.core.ProcessingConfig import ProcessingConfig, Setting
+
+try:
+    from processing.core.ProcessingConfig import ProcessingConfig, Setting
+except ModuleNotFoundError as merr:
+
+    import qgis, sys, site
+    path = pathlib.Path(qgis.__file__)
+    pathPlugins = os.path.abspath(path / '../../plugins')
+    site.addsitedir(pathPlugins)
+    from processing.core.ProcessingConfig import ProcessingConfig, Setting
+
 
 
 
