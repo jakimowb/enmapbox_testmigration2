@@ -20,3 +20,7 @@ def compileResourceFiles():
     for file in qrcFiles:
         print('Compile {}...'.format(file))
         compileResourceFile(file)
+
+
+if __name__ == "__main__":
+    compileResourceFiles()

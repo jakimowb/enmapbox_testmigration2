@@ -283,16 +283,6 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
-        splash.showMessage('Load ProcessingToolbox...')
-        try:
-            import processing.gui.ProcessingToolbox
-            panel = processing.gui.ProcessingToolbox.ProcessingToolbox()
-            self.ui.processingPanel = self.addPanel(Qt.RightDockWidgetArea, panel)
-        except Exception as ex:
-            splash.showMessage('Failed to import processing.gui.ProcessingToolbox')
-            print('Failed to import processing.gui.ProcessingToolbox')
-            print('Ensure to have folder `<QGIS_ROOT>/qgis/python/plugins` added to sys.path!')
-
         # load EnMAP-Box applications
         splash.showMessage('Load EnMAPBoxApplications...')
         self.initEnMAPBoxApplications()
@@ -367,7 +357,15 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.dockPanel = self.addPanel(area, enmapbox.gui.dockmanager.DockPanelUI(self.ui))
         self.ui.cursorLocationValuePanel = self.addPanel(area, CursorLocationInfoDock(self.ui), show=False)
 
-        area = Qt.BottomDockWidgetArea
+        area = Qt.RightDockWidgetArea
+
+        try:
+            import processing.gui.ProcessingToolbox
+            panel = processing.gui.ProcessingToolbox.ProcessingToolbox()
+            self.ui.processingPanel = self.addPanel(area, panel)
+
+        except Exception as ex:
+            print(ex)
 
         # add entries to menu panels
         for dock in self.ui.findChildren(QDockWidget):
