@@ -1414,7 +1414,7 @@ class DataSourceManagerTreeModel(TreeModel):
                 uuidList.append(dataSource.uuid())
 
                 if isinstance(dataSource, DataSourceSpectralLibrary):
-                    from ..externals.qpsspeclib.spectrallibraries import MIMEDATA_TEXT, MIMEDATA_SPECLIB, MIMEDATA_URL, MIMEDATA_SPECLIB_LINK
+                    from ..externals.qps.speclib.spectrallibraries import MIMEDATA_TEXT, MIMEDATA_SPECLIB, MIMEDATA_URL, MIMEDATA_SPECLIB_LINK
                     mimeDataSpeclib = dataSource.speclib().mimeData(formats=[MIMEDATA_SPECLIB_LINK])
                     for f in mimeDataSpeclib.formats():
                         if f not in mimeData.formats():

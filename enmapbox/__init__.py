@@ -75,13 +75,13 @@ site.addsitedir(DIR_SITEPACKAGES)
 
 # make the EnMAP-Box resources available
 
-try:
-    from qps import resourcemockup
-    if not 'images' in sys.modules.keys():
-        sys.modules['images'] = resourcemockup
-
-except:
-    pass
+#try:
+#    from .externals.qps import resourcemockup
+#    if not 'images' in sys.modules.keys():
+#        sys.modules['images'] = resourcemockup
+#
+#except:
+#    pass
 
 
 
@@ -106,14 +106,23 @@ def initEnMAPBoxResources():
     try:
         import enmapbox.resources
         enmapbox.resources.qInitResources()
-    except Exception as ex:
+    except ModuleNotFoundError as ex:
         print('Unable to import enmapbox.resources', file=sys.stderr)
 
     try:
         from .externals.qps.qpsresources import qInitResources as initQPSResources
         initQPSResources()
-    except Exception as ex:
+    except ModuleNotFoundError as ex:
         print('Unable to import qps.resources', file=sys.stderr)
+
+    try:
+        import pyqtgraph
+    except ModuleNotFoundError as ex:
+
+        from .externals.qps.externals import pyqtgraph
+        print('Could not import pyqtgraph. Use internal package from {}'.format(pyqtgraph.__file__))
+        sys.modules['pyqtgraph'] = pyqtgraph
+        s = ""
 
 
 

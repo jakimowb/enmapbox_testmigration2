@@ -19,8 +19,8 @@
 
 import os, sys, re, shutil, zipfile, datetime
 from enmapbox import DIR_REPO
-from enmapbox.qps.make import updateexternals
-from ..externals.qpsmake.updateexternals import RemoteInfo
+from enmapbox.externals.qps.make import updateexternals
+from enmapbox.externals.qps.make.updateexternals import RemoteInfo
 
 import git # install with: pip install gitpython
 
@@ -86,10 +86,10 @@ def updateRemotes(remoteLocations):
     Shortcut to update from terminal
     :param remoteLocations: str or list of str with remote location keys to update.
     """
-    import qps.make.updateexternals
+    import enmapbox.externals.qps.make.updateexternals as updateexternals
     if isinstance(remoteLocations, str):
         remoteLocations = [remoteLocations]
-    qps.make.updateexternals.updateRemoteLocations(remoteLocations)
+    updateexternals.updateRemoteLocations(remoteLocations)
 
 if __name__ == "__main__":
 
@@ -98,11 +98,11 @@ if __name__ == "__main__":
                  #,'hub-workflow'
                  #,'enmapboxapplications'
                  #,'enmapboxgeoalgorithms'
-                 #,'enmap-box-lmu-vegetation-apps'
+                 'enmap-box-lmu-vegetation-apps'
                  #'virtual-raster-builder',
                  #'enmapboxgeoalgorithmsdoc'
                  #'enpt_enmapboxapp'
-                 'qps', 'vrtbuilder'
+                 #'qps'
                 ]
     updateRemotes(to_update)
     exit(0)

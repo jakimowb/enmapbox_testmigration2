@@ -300,10 +300,10 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.setVisible(True)
         splash.finish(self.ui)
 
-        import pyqtgraph
+        from ..externals.pyqtgraph import setConfigOption
         splash.showMessage('Load EnMAPBoxApplications...')
-        pyqtgraph.setConfigOption('background', 'k')
-        pyqtgraph.setConfigOption('foreground', 'w')
+        setConfigOption('background', 'k')
+        setConfigOption('foreground', 'w')
 
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
