@@ -89,7 +89,7 @@ like Web Map Services (WMS) and Web Feature Services (WFS) as well::
     enmapBox.addSource(wmsUri, name="Open Street Map")
     enmapBox.addSource(wfsUri, name='Berlin PLZ')
 
-  .. image:: img/gstart_datasources.png
+  .. image:: ../img/gstart_datasources.png
      :width: 100%
 
 
@@ -227,7 +227,7 @@ Dock titles, visibility and behaviour can be modified::
     mapDock3.setVisible(False)
 
 
-.. figure:: img/gstart_docks.png
+.. figure:: ../img/gstart_docks.png
    :width: 100%
 
    Three map docks. Map 3 is hidden and therefore visible in the dock manager panel only.
@@ -277,7 +277,7 @@ Icon  Key (str)              Key (Enum)                  Description
 |     ``CURSOR_LOCATION``    ``MapTools.CursorLocation`` Select cursor location information
 ===== ====================== =========================== =================================================
 
-.. figure:: img/gstart_maptools.png
+.. figure:: ../img/gstart_maptools.png
      :width: 50%
 
      Map tool icons to pan, zoom in, out, full extent and pixel scale, and to get cursor location information.
@@ -340,7 +340,7 @@ Same can be done with map layer extents::
 The EnMAP-Box emits a `sigCurrentLocationChanged` signal if the `Identify` map tool is activated and user
 left-clicks on a map canvas.
 
-.. image:: img/enmapbox_toolbar_identify_location.png
+.. image:: ../img/enmapbox_toolbar_identify_location.png
 
 .. code-block:: python
 
@@ -362,7 +362,7 @@ The overloaded `sigCurrentLocationChanged` signature can be used to get the map 
 If "Identify raster profile" is activated, the EnMAP-Box extracts `SpectralProfiles` from the raster layer(s) below the mouse-click location.
 These spectra can be received from the  `sigCurrentSpectraChanged` signal:
 
-.. image:: img/enmapbox_toolbar_identify_spectral_profiles.png
+.. image:: ../img/enmapbox_toolbar_identify_spectral_profiles.png
 
 .. code-block:: python
     def printSpectralProfiles(currentSpectra:list):

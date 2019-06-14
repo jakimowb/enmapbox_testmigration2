@@ -17,21 +17,21 @@ Test dataset
 
 **EnMAP (30m; 177 bands):**
 
-File name: *enmap_berlin.bsq*
+File name: :file:`enmap_berlin.bsq`
 
 Simulated EnMAP data (based on 3.6m HyMap imagery) acquired in August 2009 over south eastern part of Berlin. It has a spectral resolution of 177 bands and a spatial resolution of 30m.
 
 
 **HyMap (3.6m; Blue, Green, Red bands)**
 
-File name: *hires_berlin.bsq*
+File name: :file:`hires_berlin.bsq`
 
 HyMap image acquired in August 2009 over south eastern part of Berlin. This dataset was reduced to 3 bands for true color display. The spatial resolution is 3.6m.
 
 
 **LandCover Vector Layer (Polygon):**
 
-File name: *landcover_berlin_polygon.shp*
+File name: :file:`landcover_berlin_polygon.shp`
 
 Polygon shapefile containing land cover information on three classification levels. Derived from very high resolution aerial imagery and cadastral datasets.
 
@@ -41,7 +41,7 @@ Polygon shapefile containing land cover information on three classification leve
 
 **LandCover Vector Layer (Point):**
 
-File name: *landcover_berlin_point.shp*
+File name: :file:`landcover_berlin_point.shp`
 
 Point shapefile containing land cover information on two classification levels.
 
@@ -51,7 +51,7 @@ Point shapefile containing land cover information on two classification levels.
 
 **Spectral Library:**
 
-File name: *library_berlin.sli*
+File name: :file:`library_berlin.sli`
 
 Spectral library with 75 spectra (material level, level 2 and level 3 class information)
 

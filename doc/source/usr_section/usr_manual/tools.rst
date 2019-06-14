@@ -3,6 +3,8 @@
 .. |reset_plot| image:: ../../img/pyqtgraph_reset.png
    :width: 15px
 
+.. _tools:
+
 Tools
 *****
 
