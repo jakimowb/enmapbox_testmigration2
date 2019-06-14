@@ -21,8 +21,8 @@ from enmapbox.gui import *
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui.mimedata import *
 from enmapbox.gui.docks import *
-from qps.utils import *
-from qps.layerproperties import *
+from enmapbox.externals.qps.utils import *
+from enmapbox.externals.qps.layerproperties import *
 from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui import SpectralLibrary
 

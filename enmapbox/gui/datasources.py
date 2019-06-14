@@ -21,7 +21,7 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from enmapbox.gui import *
 from enmapbox.gui.utils import *
-from qps.speclib.spectrallibraries import AbstractSpectralLibraryIO
+from ..externals.qps.speclib.spectrallibraries import AbstractSpectralLibraryIO
 from osgeo import gdal, ogr
 
 

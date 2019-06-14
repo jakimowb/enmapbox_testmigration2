@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from hubflow.core import *
+from hubdc.core import *
 import gdal
 from gdalconst import *
 import numpy as np
@@ -72,6 +73,45 @@ class PWR_core:
         NDVI_closest = [self.find_closest(lambd=827), self.find_closest(lambd=668)]
         self.NDVI_bands = [i for i, x in enumerate(self.wl) if x in NDVI_closest]
 
+    def read_image2(self, image):
+        '''
+
+        :param image:
+        :return:
+        '''
+        dataset = openRasterDataset(image)
+
+        metadict = dataset.metadataDict()
+
+        nrows = metadict['ENVI']['lines']
+        ncols = metadict['ENVI']['samples']
+        nbands = metadict['ENVI']['bands']
+
+        try:
+            wave_dict = metadict['ENVI']['wavelength']
+        except:
+            raise ValueError('No wavelength units provided in ENVI header file')
+
+        if metadict['ENVI']['wavelength'] is None:
+            raise ValueError('No wavelength units provided in ENVI header file')
+        elif metadict['ENVI']['wavelength units'].lower() in \
+                ['nanometers', 'nm', 'nanometer']:
+            wave_convert = 1
+        elif metadict['ENVI']['wavelength units'].lower() in \
+                ['micrometers', 'µm', 'micrometer']:
+            wave_convert = 1000
+        else:
+            raise ValueError("Wavelength units must be nanometers or micrometers. Got '%s' instead" % metadict['ENVI']['wavelength units'])
+
+        in_matrix = dataset.readAsArray()
+        
+        if self.division_factor != 1.0:
+            in_matrix = in_matrix / self.division_factor
+            
+        wl = [float(item) * wave_convert for item in wave_dict]
+        wl = [int(i) for i in wl]
+
+        return wl, nbands, nrows, ncols, in_matrix
 
     def read_image(self, image, dtype=np.float32):
         '''
@@ -210,3 +250,6 @@ class PWR_core:
 
 if __name__ == '__main__':
     pass
+    PWR = PWR_core(division_factor=1, nodat_val=-9999)
+    image = PWR.read_image2("H:\EnMap\Flight_Campaigns_California\subsets/vacaville_agri_sp_2.bsq")
+

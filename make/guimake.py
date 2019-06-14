@@ -3,8 +3,8 @@ import os, sys, fnmatch, six, subprocess, re
 ROOT = os.path.dirname(os.path.dirname(__file__))
 
 from enmapbox import DIR_REPO
-from qps.make.make import compileResourceFile, compileQGISResourceFiles
-from qps.utils import file_search
+from enmapbox.externals.qps.make.make import compileResourceFile, compileQGISResourceFiles
+from enmapbox.externals.qps.utils import file_search
 
 
 
