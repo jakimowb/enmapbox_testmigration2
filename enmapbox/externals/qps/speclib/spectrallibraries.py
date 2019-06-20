@@ -55,6 +55,8 @@ MIMEDATA_XQT_WINDOWS_CSV = 'application/x-qt-windows-mime;value="Csv"'
 MIMEDATA_TEXT = 'text/plain'
 MIMEDATA_URL = 'text/url'
 
+SPECLIB_EPSG_CODE = 4326
+SPECLIB_CRS = QgsCoordinateReferenceSystem('EPSG:{}'.format(SPECLIB_EPSG_CODE))
 
 SPECLIB_CLIPBOARD = weakref.WeakValueDictionary()
 
@@ -399,7 +401,7 @@ def value2str(value, sep:str=' ')->str:
 
 class SpectralProfile(QgsFeature):
 
-    crs = QgsCoordinateReferenceSystem('EPSG:4326')
+    crs = SPECLIB_CRS
 
     @staticmethod
     def fromMapCanvas(mapCanvas, position)->list:
@@ -457,12 +459,14 @@ class SpectralProfile(QgsFeature):
     def fromRasterSource(source, position, crs:QgsCoordinateReferenceSystem=None, gt:list=None):
         """
         Returns the Spectral Profiles from source at position `position`
-        :param source: str | gdal.Dataset | QgsRasterLayer
+        :param source: str | gdal.Dataset | QgsRasterLayer - the raster source
         :param position: list of positions
                         QPoint -> pixel index position
                         QgsPointXY -> pixel geolocation position in layer/dataset CRS
                         SpatialPoint -> pixel geolocation position, will be transformed into layer/dataset CRS
-        :return: SpectralProfile
+        :param crs: QgsCoordinateReferenceSystem - coordinate reference system of raster source, defaults to the raster source CRS
+        :param gt: geo-transformation 6-tuple, defaults to the GT of the raster source
+        :return: SpectralProfile with QgsPoint-Geometry in EPSG:43
         """
 
         if isinstance(source, str):
@@ -474,9 +478,9 @@ class SpectralProfile(QgsFeature):
 
         assert isinstance(ds, gdal.Dataset)
 
-        files = ds.GetFileList()
-        if len(files) > 0:
-            baseName = os.path.basename(files[0])
+        file = ds.GetDescription()
+        if os.path.isfile(file):
+            baseName = os.path.basename(file)
         else:
             baseName = 'Spectrum'
 
@@ -486,14 +490,19 @@ class SpectralProfile(QgsFeature):
         if not isinstance(gt, list):
             gt = ds.GetGeoTransform()
 
+        geoCoordinate = None
         if isinstance(position, QPoint):
             px = position
+            geoCoordinate = SpatialPoint(crs, px2geo(px, gt, pxCenter=True)).toCrs(SPECLIB_CRS)
         elif isinstance(position, SpatialPoint):
             px = geo2px(position.toCrs(crs), gt)
+            geoCoordinate = position.toCrs(SPECLIB_CRS)
         elif isinstance(position, QgsPointXY):
             px = geo2px(position, ds.GetGeoTransform())
+            geoCoordinate = SpatialPoint(crs, position).toCrs(SPECLIB_CRS)
         else:
             raise Exception('Unsupported type of argument "position" {}'.format('{}'.format(position)))
+
         # check out-of-raster
         if px.x() < 0 or px.y() < 0: return None
         if px.x() > ds.RasterXSize - 1 or px.y() > ds.RasterYSize - 1: return None
@@ -519,10 +528,9 @@ class SpectralProfile(QgsFeature):
             wlu = None
 
         profile = SpectralProfile()
-        profile.setName('{} x{} y{}'.format(baseName, px.x(), px.y()))
-
+        profile.setName('{} {},{}'.format(baseName, px.x(), px.y()))
         profile.setValues(x=wl, y=y, xUnit=wlu)
-        profile.setCoordinates(SpatialPoint(crs, px2geo(px, gt, pxCenter=True)))
+        profile.setCoordinates(geoCoordinate)
         profile.setSource('{}'.format(ds.GetDescription()))
         return profile
 
@@ -1015,6 +1023,7 @@ class SpectralLibrary(QgsVectorLayer):
             progressDialog.setMaximum(nSelected)
             progressDialog.setLabelText('Get pixel positions...')
 
+        nMissingGeometry = []
         for i, feature in enumerate(vectorSource.selectedFeatures()):
             if isinstance(progressDialog, QProgressDialog) and progressDialog.wasCanceled():
                 return None
@@ -1023,13 +1032,27 @@ class SpectralLibrary(QgsVectorLayer):
 
             if feature.hasGeometry():
                 g = feature.geometry().constGet()
+
                 if isinstance(g, QgsPoint):
                     point = trans.transform(QgsPointXY(g))
                     px = geo2px(point, gt)
                     pixelpositions.append(px)
 
+                if isinstance(g, QgsMultiPoint):
+                    for point in g.parts():
+                        if isinstance(point, QgsPoint):
+                            point = trans.transform(QgsPointXY(point))
+                            px = geo2px(point, gt)
+                            pixelpositions.append(px)
+                    s = ""
+            else:
+                nMissingGeometry += 1
+
             if isinstance(progressDialog, QProgressDialog):
                 progressDialog.setValue(progressDialog.value()+1)
+
+        if len(nMissingGeometry) > 0:
+            print('{} features without geometry in {}'.format(nMissingGeometry))
 
         return SpectralLibrary.readFromRasterPositions(rasterSource, pixelpositions, progressDialog=progressDialog)
 
@@ -1105,11 +1128,13 @@ class SpectralLibrary(QgsVectorLayer):
             progressDialog.setLabelText('Extract pixel profiles...')
 
         for p, position in enumerate(positions):
+
             if isinstance(progressDialog, QProgressDialog) and progressDialog.wasCanceled():
                 return None
+
             profile = SpectralProfile.fromRasterSource(source, position)
             if isinstance(profile, SpectralProfile):
-                profile.setName('Spectrum {}'.format(i))
+                # profile.setName('Spectrum {}'.format(i))
                 profiles.append(profile)
                 i += 1
 
@@ -1321,7 +1346,7 @@ class SpectralLibrary(QgsVectorLayer):
             dsSrc = drv.CreateDataSource(uri, options=co)
             assert isinstance(dsSrc, ogr.DataSource)
             srs = osr.SpatialReference()
-            srs.ImportFromEPSG(4326)
+            srs.ImportFromEPSG(SPECLIB_EPSG_CODE)
             co = ['GEOMETRY_NAME=geom',
                   'GEOMETRY_NULLABLE=YES',
                   'FID=fid'
@@ -2674,7 +2699,11 @@ class SpectralProfileImportPointsDialog(SelectMapLayersDialog):
         slib = SpectralLibrary.readFromVectorPositions(self.rasterSource(), self.vectorSource(), progressDialog=progressDialog)
 
         if isinstance(slib, SpectralLibrary) and not progressDialog.wasCanceled():
+            self.mSpeclib = slib
             self.accept()
+        else:
+            self.mSpeclib = None
+            self.reject()
 
 
     def rasterSource(self)->QgsVectorLayer:
@@ -2786,12 +2815,20 @@ class SpectralLibraryWidget(QMainWindow, loadSpeclibUI('spectrallibrarywidget.ui
     def onImportFromVectorSource(self):
 
         d = SpectralProfileImportPointsDialog()
-        if d.exec_() == QDialog.Accepted:
+        d.exec_()
+        if d.result() == QDialog.Accepted:
             sl = d.speclib()
-            assert isinstance(sl, SpectralLibrary)
-            b = sl.isEditable()
-            sl.startEditing()
-            sl.addSpeclib(sl, True)
+            n = len(sl)
+            if isinstance(sl, SpectralLibrary) and n > 0:
+
+                b = self.speclib().isEditable()
+                self.speclib().beginEditCommand('Add {} profiles from "{}" selected by "{}"'.format(n, d.rasterSource().name(), d.vectorSource().name()))
+                self.speclib().startEditing()
+                self.speclib().addSpeclib(sl, True)
+                self.speclib().endEditCommand()
+                if not b:
+                    self.speclib().commitChanges()
+
 
 
     def canvas(self)->QgsMapCanvas:
