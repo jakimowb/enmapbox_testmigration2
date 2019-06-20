@@ -142,8 +142,8 @@ def build():
         #    print('Failed to compile resources')
         #    print(ex)
 
-        import make.guimake
-        make.guimake.compileResourceFiles()
+        from make.compileresourcefiles import compileResourceFiles
+        compileResourceFiles()
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
         pb_tool.deploy_files(pathCfg, DIR_DEPLOY, quick=True, confirm=False)
@@ -197,14 +197,24 @@ def build():
 
     # 7. install the zip file into the local QGIS instance. You will need to restart QGIS!
     if True:
-        print('\n### To update/install the EnMAP-Box, run this command on your QGIS Python shell:\n')
-        print('from pyplugin_installer.installer import pluginInstaller')
-        print('pluginInstaller.installFromZipFile(r"{}")'.format(pathZip))
-        print('#### Close (and restart manually)\n')
+        info = []
+        info.append('\n### To update/install the EnMAP-Box, run this command on your QGIS Python shell:\n')
+        info.append('from pyplugin_installer.installer import pluginInstaller')
+        info.append('pluginInstaller.installFromZipFile(r"{}")'.format(pathZip))
+        info.append('#### Close (and restart manually)\n')
         #print('iface.mainWindow().close()\n')
-        print('QProcess.startDetached(QgsApplication.arguments()[0], [])')
-        print('QgsApplication.quit()\n')
-        print('## press ENTER\n')
+        info.append('QProcess.startDetached(QgsApplication.arguments()[0], [])')
+        info.append('QgsApplication.quit()\n')
+        info.append('## press ENTER\n')
+
+        print('\n'.join(info))
+
+        from qgis.PyQt.QtGui import QClipboard, QGuiApplication
+
+        #cb = QGuiApplication.clipboard()
+        #if isinstance(cb, QClipboard):
+        #    cb.setText('\n'.join(info))
+
 
     print('Finished')
 
