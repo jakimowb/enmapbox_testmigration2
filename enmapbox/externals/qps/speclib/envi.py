@@ -80,18 +80,43 @@ def flushCacheWithoutException(dataset:gdal.Dataset):
 
 
 
-def findENVIHeader(pathESL:str)->str:
+def findENVIHeader(path:str)->(str, str):
     """
-    Get a path and returns the ENVI header (*.hdr) for
-    :param pathESL: str
-    :return: str pathESL.hdr
+    Get a path and returns the ENVI header (*.hdr) and the ENVI binary file (e.g. *.sli) for
+    :param path: str
+    :return: (str, str), e.g. ('pathESL.hdr', 'pathESL.sli')
     """
-    paths = [os.path.splitext(pathESL)[0] + '.hdr', pathESL + '.hdr']
+    # 1. find header file
+    paths = [os.path.splitext(path)[0] + '.hdr', path + '.hdr']
     pathHdr = None
     for p in paths:
         if os.path.exists(p):
             pathHdr = p
-    return pathHdr
+            break
+
+    if pathHdr is None:
+        return None, None
+
+    # 2. find binary file
+    if not path.endswith('.hdr') and os.path.isfile(path):
+        # this should be the default
+        pathSLI = path
+    else:
+        # find a binary part ending
+        paths = [os.path.splitext(pathHdr)[0] + '.sli',
+                 pathHdr + '.sli',
+                 os.path.splitext(pathHdr)[0] + '.esl',
+                 pathHdr + '.esl',
+                 ]
+        for p in paths:
+            if os.path.isfile(p):
+                pathSLI = p
+                break
+
+    if pathSLI is None:
+        return None, None
+
+    return pathHdr, pathSLI
 
 
 def value2hdrString(values):
@@ -159,7 +184,7 @@ def readCSVMetadata(pathESL):
     if match:
         sep = match.group(1)
     else:
-        print('Unable to find column name "spectra names" in {}.'.format(pathCSV), file=sys.stderr)
+        # print('Unable to find column name "spectra names" in {}.'.format(pathCSV), file=sys.stderr)
         match = re.search(r'name[ ]*([;\t,])', lines[0], re.I)
         if match:
             sep = match.group(1)
@@ -281,13 +306,14 @@ class EnviSpectralLibraryIO(AbstractSpectralLibraryIO):
         return 0
 
     @staticmethod
-    def readFrom(pathESL):
+    def readFrom(path):
         """
         Reads an ENVI Spectral Library (ESL).
-        :param pathESL: path ENVI Spectral Library
+        :param path: path to ENVI Spectral Library
         :return: SpectralLibrary
         """
-        assert isinstance(pathESL, str)
+        assert isinstance(path, str)
+        pathHdr, pathESL = findENVIHeader(path)
         md = EnviSpectralLibraryIO.readENVIHeader(pathESL, typeConversion=True)
 
         data = None
@@ -309,8 +335,17 @@ class EnviSpectralLibraryIO(AbstractSpectralLibraryIO):
         if isinstance(zPlotTitles, str) and len(zPlotTitles.split(','))>=2:
             xUnit, yUnit = zPlotTitles.split(',')[0:2]
 
-        #get official ENVI Spectral Library standard values
+        # get official ENVI Spectral Library standard values
         spectraNames = md.get('spectra names', ['Spectrum {}'.format(i+1) for i in range(nSpectra)])
+
+        # thanks to Ann for https://bitbucket.org/jakimowb/qgispluginsupport/issues/3/speclib-envypy
+        try:
+            gbl = np.where(np.asarray(md.get('bbl'), dtype=int))[0]
+            if xValues is not None:
+                xValues = np.asarray(xValues, dtype=float)[gbl]
+        except TypeError:
+            gbl = range(nbands)
+
 
         speclibFields = createStandardFields()
 
@@ -330,7 +365,7 @@ class EnviSpectralLibraryIO(AbstractSpectralLibraryIO):
                     speclibFields.append(csvField)
 
             CSVLine2ESLProfile = {}
-            #look if we can match a CSV column with names to profile names
+            # look if we can match a CSV column with names to profile names
             for profileNameColumnName in CSV_PROFILE_NAME_COLUMN_NAMES:
                 if profileNameColumnName in CSV_FIELDS.names():
                     c = CSV_FIELDS.lookupField(profileNameColumnName)
@@ -347,7 +382,8 @@ class EnviSpectralLibraryIO(AbstractSpectralLibraryIO):
         profiles = []
         for i in range(nSpectra):
             p = SpectralProfile(fields=speclibFields)
-            p.setValues(x=xValues, y=data[i, :].tolist(), xUnit=xUnit, yUnit=yUnit)
+
+            p.setValues(x=xValues, y=data[i, gbl].tolist(), xUnit=xUnit, yUnit=yUnit)
             name = spectraNames[i]
             p.setName(name)
             profiles.append(p)
@@ -564,7 +600,7 @@ class EnviSpectralLibraryIO(AbstractSpectralLibraryIO):
         if not os.path.isfile(pathESL):
             return None
 
-        pathHdr = findENVIHeader(pathESL)
+        pathHdr, pathBin = findENVIHeader(pathESL)
         if pathHdr is None:
             return None
 
@@ -606,8 +642,8 @@ class EnviSpectralLibraryIO(AbstractSpectralLibraryIO):
                 return None
 
         if typeConversion:
-            to_int = ['bands','lines','samples','data type','header offset','byte order']
-            to_float = ['fwhm','wavelength', 'reflectance scale factor']
+            to_int = ['bands', 'lines', 'samples', 'data type', 'header offset', 'byte order']
+            to_float = ['fwhm', 'wavelength', 'reflectance scale factor']
             for k in to_int:
                 if k in md.keys():
                     value = toType(int, md[k])
@@ -650,7 +686,7 @@ def describeRawFile(pathRaw, pathVrt, xsize, ysize,
     assert eType in LUT_GDT_SIZE.keys(), 'dataType "{}" is not a valid gdal datatype'.format(eType)
     interleave = interleave.lower()
 
-    assert interleave in ['bsq','bil','bip']
+    assert interleave in ['bsq', 'bil', 'bip']
     assert byteOrder in ['LSB', 'MSB']
 
     drvVRT = gdal.GetDriverByName('VRT')

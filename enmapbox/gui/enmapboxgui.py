@@ -410,8 +410,8 @@ class EnMAPBox(QgisInterface, QObject):
         # activate map tools
         def initMapToolAction(action, key):
             assert isinstance(action, QAction)
-            assert isinstance(key, str)
-            assert key in MapTools.mapToolKeys()
+            assert isinstance(key, MapTools)
+
             action.triggered.connect(lambda : self.setMapTool(key))
             action.setProperty('enmapbox/maptoolkey', key)
         initMapToolAction(self.ui.actionPan, MapTools.Pan)
@@ -558,7 +558,7 @@ class EnMAPBox(QgisInterface, QObject):
                 self.setSingleMapTool(canvas, mapToolKey, *args, **kwds)
         return self.mMapTools
 
-    def setSingleMapTool(self, canvas:QgsMapCanvas, mapToolKey, *args, **kwds):
+    def setSingleMapTool(self, canvas:QgsMapCanvas, mapToolKey:MapTools, *args, **kwds):
         """
         Sets the QgsMapTool for a single canvas
         :param canvas: QgsMapCanvas
@@ -567,12 +567,10 @@ class EnMAPBox(QgisInterface, QObject):
         :param kwds:
         :return:
         """
-        mt = None
-        if mapToolKey in MapTools.mapToolKeys():
-            mt = MapTools.create(mapToolKey, canvas, *args, **kwds)
 
-        if isinstance(mapToolKey, QgsMapTool):
-            mt = MapTools.copy(mapToolKey, canvas, *args, **kwds)
+        assert isinstance(mapToolKey, MapTools)
+
+        mt = MapTools.create(mapToolKey, canvas, *args, **kwds)
 
         if isinstance(mt, QgsMapTool):
             canvas.setMapTool(mt)
