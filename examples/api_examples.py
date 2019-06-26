@@ -246,9 +246,62 @@ class Examples(unittest.TestCase):
 
         lastPosition = enmapBox.currentLocation()
 
+        qgsApp.exec_()
 
+    def test_ActivateMapToolsFromExternalApplication(self):
+
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox(None)
+        enmapBox.loadExampleData()  # this opens a map dock as well
+
+        from enmapbox.gui import MapTools, SpatialPoint, SpectralProfile
+
+
+        class MyApp(QMainWindow):
+
+            def __init__(self, enmapbox:EnMAPBox, *args, **kwds):
+                super(MyApp, self).__init__(*args, **kwds)
+                self.setWindowTitle('My Application Window')
+
+                self.mEnMAPBox = enmapbox
+                self.mEnMAPBox.sigCurrentSpectraChanged.connect(self.onSpectralProfilesCollected)
+
+                self.mToolBar = QToolBar()
+                self.addToolBar(self.mToolBar)
+                self.mTextBox = QTextEdit()
+                self.mTextBox.setLineWrapMode(QTextEdit.NoWrap)
+                self.setCentralWidget(self.mTextBox)
+
+                self.mActionGetProfiles = QAction('Collect Profiles')
+                self.mActionGetProfiles.setCheckable(True)
+                self.mActionGetProfiles.setChecked(False)
+                self.mActionGetProfiles.setIcon(QIcon(':/qps/ui/icons/profile_identify.svg'))
+                self.mActionGetProfiles.setText('Click to collect spectral profile from the EnMAP-Box')
+                self.mActionGetProfiles.triggered.connect(self.onActivateProfileCollection)
+                self.mToolBar.addAction(self.mActionGetProfiles)
+
+
+            def onActivateProfileCollection(self):
+
+                if isinstance(self.mEnMAPBox, EnMAPBox) and self.mActionGetProfiles.isChecked():
+                    self.mEnMAPBox.ui.actionIdentify.trigger()
+                    self.mEnMAPBox.ui.optionIdentifyProfile.setChecked(True)
+
+                    # soon: self.mEnMAPBox.setMapTool(MapTools.SpectralProfile)
+
+            def onSpectralProfilesCollected(self, spectalProfiles):
+
+                if self.mActionGetProfiles.isChecked():
+                    for p in spectalProfiles:
+                        assert isinstance(p, QgsFeature)
+                        p = SpectralProfile.fromSpecLibFeature(p)
+                        self.mTextBox.append(str(p.yValues()))
+
+        myApp = MyApp(enmapBox)
+        myApp.show()
 
         qgsApp.exec_()
+
 
     def test_Ex5_PointsAndExtents(self):
 
