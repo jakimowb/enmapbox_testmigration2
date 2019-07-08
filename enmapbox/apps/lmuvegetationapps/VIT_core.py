@@ -119,7 +119,7 @@ class VIT:
 
         return ImageIn_matrix
 
-    def loc_b(self, wl_list): # creates a dict that zips each index-wavelength to a sensor band
+    def loc_b(self, wl_list):  # creates a dict that zips each index-wavelength to a sensor band
 
         band_out = []
 

@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import sys, os
-#import numpy as np
-#from qgis.gui import *
-#ensure to call QGIS before PyQtGraph
-#from qgis.PyQt.QtCore import *
-#from qgis.PyQt.QtGui import *
+import sys
+import os
 from qgis.PyQt.QtWidgets import *
-#from qgis.PyQt import uic
 from osgeo import gdal
 from lmuvegetationapps.PWR_core import PWR_core
-#from enmapbox.gui.applications import EnMAPBoxApplication
 
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_PWR.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
@@ -146,7 +140,7 @@ class PWR:
 
         try:
             iPWR = PWR_core(nodat_val=self.nodat, division_factor=self.division_factor)
-            iPWR.initialize_PWR(input=self.image, output=self.out_path, lims=[930, 1060], NDVI_th=self.NDVI_th)
+            iPWR.initialize_PWR(input=self.image, output=self.out_path, lims=[930, 1060], NDWI_th=self.NDWI_th)
         except MemoryError:
             QMessageBox.critical(self.gui, 'error', "File too large to read. More RAM needed")
             self.main.prg_widget.gui.allow_cancel = True
@@ -168,13 +162,14 @@ class PWR:
         self.main.prg_widget.gui.lblCaption_r.setText("Writing Output-File")
         self.main.QGis_app.processEvents()
 
-        try:
-            iPWR.write_image(result=result)
-        except:
-            QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
-            self.main.prg_widget.gui.allow_cancel = True
-            self.main.prg_widget.gui.close()
-            return
+        iPWR.write_image(result=result)
+        # try:
+        #
+        # except:
+        #     #QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
+        #     self.main.prg_widget.gui.allow_cancel = True
+        #     self.main.prg_widget.gui.close()
+        #     return
 
         self.main.prg_widget.gui.allow_cancel = True
         self.main.prg_widget.gui.close()

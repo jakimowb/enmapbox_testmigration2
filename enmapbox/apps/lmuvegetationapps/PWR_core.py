@@ -28,15 +28,20 @@ class PWR_core:
         self.low_lim = None
         self.upp_lim = None
         self.pixel_total = None
-        self.nrows, self.ncols, self.nbands, self.in_raster = (None, None, None, None)
+        self.grid, self.nrows, self.ncols, self.nbands, self.in_raster = \
+            (None, None, None, None, None)
 
-    def initialize_PWR(self, input, output, lims, NDVI_th=0.37):
-        self.wl, self.nbands, self.nrows, self.ncols, self.in_raster = self.read_image(image=input)
+    def initialize_PWR(self, input, output, lims, NDWI_th=0.0):
+        self.grid, self.wl, self.nbands, self.nrows, self.ncols, self.in_raster = \
+            self.read_image2(image=input)
+
+        #print(self.grid)
+
         self.n_wl = len(self.wl)
         self.pixel_total = self.nrows * self.ncols
         self.output = output
         self.low_lim, self.upp_lim = (self.find_closest(lambd=lims[0]), self.find_closest(lambd=lims[1]))
-        self.NDVI_th = NDVI_th
+        self.NDWI_th = NDWI_th
 
         absorption_file = os.path.join(os.path.dirname(__file__), 'water_abs_coeff.txt')
         content = np.genfromtxt(absorption_file, skip_header=True)
@@ -67,25 +72,24 @@ class PWR_core:
         #else:
         self.valid_bands = [i for i, x in enumerate(self.wl) if x in list(self.valid_wl)]  # indices of input image bands used
 
-
         self.abs_coef = np.asarray([self.get_abscoef[self.valid_wl[i]] for i in range(len(self.valid_wl))]) # abs coefficients of water for bands used
 
-        NDVI_closest = [self.find_closest(lambd=827), self.find_closest(lambd=668)]
-        self.NDVI_bands = [i for i, x in enumerate(self.wl) if x in NDVI_closest]
+        NDWI_closest = [self.find_closest(lambd=860), self.find_closest(lambd=1240)]
+        self.NDWI_bands = [i for i, x in enumerate(self.wl) if x in NDWI_closest]
 
     def read_image2(self, image):
         '''
-
         :param image:
         :return:
         '''
         dataset = openRasterDataset(image)
 
+        grid = dataset.grid()
         metadict = dataset.metadataDict()
 
-        nrows = metadict['ENVI']['lines']
-        ncols = metadict['ENVI']['samples']
-        nbands = metadict['ENVI']['bands']
+        nrows = int(metadict['ENVI']['lines'])
+        ncols = int(metadict['ENVI']['samples'])
+        nbands = int(metadict['ENVI']['bands'])
 
         try:
             wave_dict = metadict['ENVI']['wavelength']
@@ -111,7 +115,7 @@ class PWR_core:
         wl = [float(item) * wave_convert for item in wave_dict]
         wl = [int(i) for i in wl]
 
-        return wl, nbands, nrows, ncols, in_matrix
+        return grid, wl, nbands, nrows, ncols, in_matrix
 
     def read_image(self, image, dtype=np.float32):
         '''
@@ -165,16 +169,16 @@ class PWR_core:
         #print(self.wl[distances.index(min(distances))])
         return self.wl[distances.index(min(distances))]
 
-    def NDVI(self, row, col):
-        R827 = self.in_raster[self.NDVI_bands[1], row, col]
-        R668 = self.in_raster[self.NDVI_bands[0], row, col]
+    def NDWI(self, row, col):
+        R860 = self.in_raster[self.NDWI_bands[1], row, col]
+        R1240 = self.in_raster[self.NDWI_bands[0], row, col]
 
         try:
-            ndvi = float(R827-R668)/float(R827+R668)
+            NDWI = float(R860-R1240)/float(R860+R1240)
         except ZeroDivisionError:
-            ndvi = 0.0
+            NDWI = 0.0
 
-        return ndvi
+        return NDWI
 
     def execute_PWR(self, prg_widget=None, QGis_app=None):
         self.prg = prg_widget
@@ -183,7 +187,7 @@ class PWR_core:
         d = 0.0
         for row in range(self.nrows):
             for col in range(self.ncols):
-                if self.NDVI(row=row, col=col) < self.NDVI_th:
+                if self.NDWI(row=row, col=col) < self.NDWI_th:
                     res_raster[:, row, col] = self.nodat_val[1]
                     continue
                   # initial d-value for minimization algorithm
@@ -217,7 +221,7 @@ class PWR_core:
 
     def write_image(self, result):
 
-        output = Raster.fromArray(array=result, filename=self.output)
+        output = Raster.fromArray(array=result, filename=self.output, grid=self.grid)
 
         output.dataset().setMetadataItem('data ignore value', self.nodat_val[1], 'ENVI')
 
@@ -249,7 +253,9 @@ class PWR_core:
             self.QGis_app.processEvents()  # mach ma neu
 
 if __name__ == '__main__':
-    pass
+    #pass
     PWR = PWR_core(division_factor=1, nodat_val=-9999)
-    image = PWR.read_image2("H:\EnMap\Flight_Campaigns_California\subsets/vacaville_agri_sp_2.bsq")
+    image = PWR.read_image2("Z:/2018_MNI_campaign\EnMAP\EnMAP_Tetris_Pixel\multi_year_sets\MA_0_2017_2018.bsq")
+    test = PWR.initialize_PWR(image, output="Z:/2018_MNI_campaign\EnMAP/", lims=[930, 1060])
+    #out = PWR.write_image("Z:\Matthias/test.bsq")
 

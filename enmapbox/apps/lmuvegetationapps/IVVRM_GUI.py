@@ -40,7 +40,7 @@ class IVVRM_GUI(QDialog, loadUIFormClass(pathUI)):
     def __init__(self, parent=None):
         super(IVVRM_GUI, self).__init__(parent)
         self.setupUi(self)
-        pg.GraphicsScene.sendHoverEvents = lambda *args, **kwargs: None
+        pg.GraphicsScene.sendHoverEvents = lambda *args, **kwargs: None  # Temporal crash fix caused by sendHoverEvents
 
 class Load_Txt_File_GUI(QDialog, loadUIFormClass(pathUI2)):
     def __init__(self, parent=None):
@@ -69,7 +69,6 @@ class Start_IVVRM:
     def run_IVVRM(self):
         self.main.ivvrm.gui.show()
         self.main.ivvrm.plotting()
-        self.main.ivvrm.first_startup = 1
         #self.main.ivvrm.gui.graphicsView.sendHoverEvents = lambda *args, **kwargs: None
         self.gui.close()
         #pg.GraphicsScene.sendHoverEvents()
@@ -88,7 +87,7 @@ class IVVRM:
         self.para_init()
         self.select_model()
         self.mod_interactive()
-        #self.mod_exec()
+        self.mod_exec()
 
     def special_chars(self):
         self.gui.lblCab.setText(u'[µg/cm²]')
@@ -100,7 +99,6 @@ class IVVRM:
         self.gui.lblLAI.setText(u'[m²/m²]')
 
     def initial_values(self):
-        self.first_startup = 1
         self.lop = "prospectD"
         self.canopy_arch = "sail"
         self.colors = [tuple([219,183,255]), tuple([51,204,51]), tuple([69,30,234]), tuple([0,255,255]),
@@ -261,6 +259,7 @@ class IVVRM:
         self.gui.B_ProspectCp.clicked.connect(lambda: self.select_model(lop="prospectCp", canopy_arch=self.canopy_arch))
 
         self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch=None))
+        self.gui.B_Sail_2M.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch="sail2m"))
         self.gui.B_4Sail.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch="sail"))
         self.gui.B_Inform.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch="inform"))
 
@@ -504,13 +503,7 @@ class IVVRM:
         if item is not None:
             self.item = item
 
-        if self.first_startup == 0:
-            self.plotting()
-
-        if self.first_startup == 1:
-            self.first_startup = 0
-
-
+        self.plotting()
 
     def plotting(self):
 
@@ -590,7 +583,7 @@ class IVVRM:
         save_matrix[:, 0] = self.wl
         save_matrix[:, 1] = self.myResult
 
-        np.savetxt(specnameout[0],save_matrix, delimiter="\t", header="Wavelength_nm\tReflectance")
+        np.savetxt(specnameout[0], save_matrix, delimiter="\t", header="Wavelength_nm\tReflectance")
 
     def save_paralist(self):
         paralistout = QFileDialog.getSaveFileName(caption='Save Modelled Spectrum Parameters',

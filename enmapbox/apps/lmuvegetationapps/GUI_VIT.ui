@@ -593,7 +593,7 @@ p, li { white-space: pre-wrap; }
           <string>Leaf Water</string>
          </property>
          <property name="collapsed">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
           <item row="1" column="2">
@@ -1093,7 +1093,7 @@ p, li { white-space: pre-wrap; }
          <item row="0" column="0">
           <widget class="QGroupBox" name="groupBox">
            <property name="title">
-            <string>Intepolation type</string>
+            <string>Interpolation type</string>
            </property>
            <layout class="QGridLayout" name="gridLayout_10">
             <item row="0" column="0">
