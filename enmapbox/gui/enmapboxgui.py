@@ -113,15 +113,15 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         import enmapbox
         self.setWindowTitle('EnMAP-Box 3 ({})'.format(enmapbox.__version__))
 
-        self.actionIdentify.setChecked(True)
+        self.mActionIdentify.setChecked(True)
 
-        self.mMapToolActions = [self.actionZoomPixelScale,
-                                self.actionZoomFullExtent,
-                                self.actionZoomIn,
-                                self.actionZoomOut,
-                                self.actionPan,
-                                self.actionIdentify,
-                                self.actionSelectFeatures]
+        self.mMapToolActions = [self.mActionZoomPixelScale,
+                                self.mActionZoomFullExtent,
+                                self.mActionZoomIn,
+                                self.mActionZoomOut,
+                                self.mActionPan,
+                                self.mActionIdentify,
+                                self.mActionSelectFeatures]
         self.initActions()
 
     def initActions(self):
@@ -146,7 +146,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
                     action.setChecked(True)
 
 
-            b = self.actionIdentify.isChecked()
+            b = self.mActionIdentify.isChecked()
             self.optionIdentifyCursorLocation.setEnabled(b)
             self.optionIdentifyProfile.setEnabled(b)
             self.optionMoveCenter.setEnabled(b)
@@ -160,7 +160,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         m.addAction(self.optionSelectFeaturesPolygon)
         m.addAction(self.optionSelectFeaturesFreehand)
         m.addAction(self.optionSelectFeaturesRadius)
-        self.actionSelectFeatures.setMenu(m)
+        self.mActionSelectFeatures.setMenu(m)
 
         # finally, fix the popup mode of menus
         for toolBar in self.findChildren(QToolBar):
@@ -285,6 +285,9 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
         self.ui.dockPanel.connectDockManager(self.dockManager)
 
+
+        self.ui.dockPanel.dockTreeView.currentLayerChanged.connect(self.onCurrentLayerChanged)
+        self.onCurrentLayerChanged(None)
         self.ui.centralFrame.sigDragEnterEvent.connect(
             lambda event: self.dockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
         self.ui.centralFrame.sigDragMoveEvent.connect(
@@ -314,6 +317,18 @@ class EnMAPBox(QgisInterface, QObject):
         EnMAPBox._instance = self
         QApplication.processEvents()
         splash.hide()
+
+    def onCurrentLayerChanged(self, layer):
+
+        b = isinstance(layer, QgsVectorLayer)
+
+        self.ui.mActionSelectFeatures.setEnabled(b)
+        self.ui.mActionToggleEditing.setEnabled(b)
+        self.ui.mActionAddFeature.setEnabled(b)
+        self.ui.mActionSaveEdits.setEnabled(b)
+
+        if isinstance(layer, (QgsRasterLayer, QgsVectorLayer)):
+            self.currentLayerChanged.emit(layer)
 
     def processingProvider(self)->EnMAPBoxAlgorithmProvider:
         """
@@ -413,13 +428,13 @@ class EnMAPBox(QgisInterface, QObject):
 
     def initActions(self):
         # link action to managers
-        self.ui.actionAddDataSource.triggered.connect(lambda : self.dataSourceManager.addDataSourceByDialog())
-        self.ui.actionAddMapView.triggered.connect(lambda: self.dockManager.createDock('MAP'))
-        self.ui.actionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
-        self.ui.actionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
-        self.ui.actionAddMimeView.triggered.connect(lambda: self.dockManager.createDock('MIME'))
-        self.ui.actionAddSpeclibView.triggered.connect(lambda: self.dockManager.createDock('SPECLIB'))
-        self.ui.actionLoadExampleData.triggered.connect(lambda: self.openExampleData(
+        self.ui.mActionAddDataSource.triggered.connect(lambda : self.dataSourceManager.addDataSourceByDialog())
+        self.ui.mActionAddMapView.triggered.connect(lambda: self.dockManager.createDock('MAP'))
+        self.ui.mActionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
+        self.ui.mActionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
+        self.ui.mActionAddMimeView.triggered.connect(lambda: self.dockManager.createDock('MIME'))
+        self.ui.mActionAddSpeclibView.triggered.connect(lambda: self.dockManager.createDock('SPECLIB'))
+        self.ui.mActionLoadExampleData.triggered.connect(lambda: self.openExampleData(
             mapWindows=1 if len(self.dockManager.docks(MapDock)) == 0 else 0))
 
         # activate map tools
@@ -429,46 +444,47 @@ class EnMAPBox(QgisInterface, QObject):
 
             action.triggered.connect(lambda : self.setMapTool(key))
             action.setProperty('enmapbox/maptoolkey', key)
-        initMapToolAction(self.ui.actionPan, MapTools.Pan)
-        initMapToolAction(self.ui.actionZoomIn, MapTools.ZoomIn)
-        initMapToolAction(self.ui.actionZoomOut, MapTools.ZoomOut)
-        initMapToolAction(self.ui.actionZoomPixelScale, MapTools.ZoomPixelScale)
-        initMapToolAction(self.ui.actionZoomFullExtent, MapTools.ZoomFull)
-        initMapToolAction(self.ui.actionIdentify, MapTools.CursorLocation)
-        initMapToolAction(self.ui.actionSelectFeatures, MapTools.SelectFeature)
+        initMapToolAction(self.ui.mActionPan, MapTools.Pan)
+        initMapToolAction(self.ui.mActionZoomIn, MapTools.ZoomIn)
+        initMapToolAction(self.ui.mActionZoomOut, MapTools.ZoomOut)
+        initMapToolAction(self.ui.mActionZoomPixelScale, MapTools.ZoomPixelScale)
+        initMapToolAction(self.ui.mActionZoomFullExtent, MapTools.ZoomFull)
+        initMapToolAction(self.ui.mActionIdentify, MapTools.CursorLocation)
+        initMapToolAction(self.ui.mActionSelectFeatures, MapTools.SelectFeature)
+
 
         self.ui.optionSelectFeaturesRectangle.triggered.connect(self.onSelectFeatureOptionTriggered)
         self.ui.optionSelectFeaturesPolygon.triggered.connect(self.onSelectFeatureOptionTriggered)
         self.ui.optionSelectFeaturesFreehand.triggered.connect(self.onSelectFeatureOptionTriggered)
         self.ui.optionSelectFeaturesRadius.triggered.connect(self.onSelectFeatureOptionTriggered)
-        self.ui.actionDeselectFeatures.triggered.connect(self.deselectFeatures)
+        self.ui.mActionDeselectFeatures.triggered.connect(self.deselectFeatures)
 
-        self.ui.actionSaveProject.triggered.connect(lambda: self.saveProject(saveAs=False))
-        self.ui.actionSaveProjectAs.triggered.connect(lambda: self.saveProject(saveAs=True))
+        self.ui.mActionSaveProject.triggered.connect(lambda: self.saveProject(saveAs=False))
+        self.ui.mActionSaveProjectAs.triggered.connect(lambda: self.saveProject(saveAs=True))
         from enmapbox.gui.mapcanvas import CanvasLinkDialog
-        self.ui.actionMapLinking.triggered.connect(lambda : CanvasLinkDialog.showDialog(parent=self.ui, canvases=self.mapCanvases()))
+        self.ui.mActionMapLinking.triggered.connect(lambda : CanvasLinkDialog.showDialog(parent=self.ui, canvases=self.mapCanvases()))
         from enmapbox.gui.about import AboutDialog
-        self.ui.actionAbout.triggered.connect(lambda: AboutDialog(parent=self.ui).show())
+        self.ui.mActionAbout.triggered.connect(lambda: AboutDialog(parent=self.ui).show())
         from enmapbox.gui.settings import showSettingsDialog
-        self.ui.actionProjectSettings.triggered.connect(lambda: showSettingsDialog(self.ui))
-        self.ui.actionExit.triggered.connect(self.exit)
+        self.ui.mActionProjectSettings.triggered.connect(lambda: showSettingsDialog(self.ui))
+        self.ui.mActionExit.triggered.connect(self.exit)
 
 
         import webbrowser
-        self.ui.actionOpenIssueReportPage.triggered.connect(lambda : webbrowser.open(enmapbox.CREATE_ISSUE))
-        self.ui.actionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.REPOSITORY))
-        self.ui.actionOpenOnlineDocumentation.triggered.connect(lambda : webbrowser.open(enmapbox.DOCUMENTATION))
+        self.ui.mActionOpenIssueReportPage.triggered.connect(lambda : webbrowser.open(enmapbox.CREATE_ISSUE))
+        self.ui.mActionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.REPOSITORY))
+        self.ui.mActionOpenOnlineDocumentation.triggered.connect(lambda : webbrowser.open(enmapbox.DOCUMENTATION))
 
     def onSelectFeatureOptionTriggered(self):
 
         a = self.sender()
-        m = self.ui.actionSelectFeatures.menu()
+        m = self.ui.mActionSelectFeatures.menu()
         if isinstance(a, QAction) and isinstance(m, QMenu) and a in m.actions():
             for ca in m.actions():
                 assert isinstance(ca, QAction)
                 if ca == a:
-                    self.ui.actionSelectFeatures.setIcon(a.icon())
-                    self.ui.actionSelectFeatures.setToolTip(a.toolTip())
+                    self.ui.mActionSelectFeatures.setIcon(a.icon())
+                    self.ui.mActionSelectFeatures.setToolTip(a.toolTip())
                 ca.setChecked(ca == a)
         self.setMapTool(MapTools.SelectFeature)
 
@@ -591,7 +607,7 @@ class EnMAPBox(QgisInterface, QObject):
         if mapToolKey == MapTools.SpectralProfile:
             #SpectralProfile is a shortcut for Identify + return with profile option
             self.ui.optionIdentifyProfile.setChecked(True)
-            self.ui.actionIdentify.setChecked(True)
+            self.ui.mActionIdentify.setChecked(True)
             return
 
         self.mMapToolKey = mapToolKey
@@ -1060,34 +1076,34 @@ class EnMAPBox(QgisInterface, QObject):
 
     ### ACTIONS ###
     def actionAbout(self):
-        return self.ui.actionAbout
+        return self.ui.mActionAbout
 
     def actionAddAfsLayer(self):
-        return self.ui.actionAddDataSource
+        return self.ui.mActionAddDataSource
 
     def actionAddAllToOverview(self):
-        return self.ui.actionAddDataSource
+        return self.ui.mActionAddDataSource
 
     def actionAddAmsLayer(self):
-        return self.ui.actionAddDataSource
+        return self.ui.mActionAddDataSource
 
     def actionAddFeature(self):
-        return self.ui.actionAddDataSource
+        return self.ui.mActionAddDataSource
 
     def actionAddOgrLayer(self):
-        return self.ui.actionAddDataSource
+        return self.ui.mActionAddDataSource
 
     # def actionAddPart(self): pass
     def actionAddPgLayer(self):
-        return self.ui.actionAddDataSource
+        return self.ui.mActionAddDataSource
 
     def actionAddRasterLayer(self):
-        return self.ui.actionAddDataSource
+        return self.ui.mActionAddDataSource
 
     # def actionAddRing(self):
     # def actionAddToOverview(self):
     def actionAddWmsLayer(self):
-        return self.ui.actionAddDataSource
+        return self.ui.mActionAddDataSource
 
     def actionAllEdits(self):
         pass
@@ -1129,7 +1145,7 @@ class EnMAPBox(QgisInterface, QObject):
         pass
 
     def actionExit(self):
-        return self.ui.actionExit()
+        return self.ui.mActionExit()
 
     def actionFeatureAction(self):
         pass
@@ -1144,7 +1160,7 @@ class EnMAPBox(QgisInterface, QObject):
         pass
 
     def actionIdentify(self):
-        return self.ui.actionIdentify
+        return self.ui.mActionIdentify
 
     def actionAddToOverview(self):
         pass
@@ -1204,7 +1220,7 @@ class EnMAPBox(QgisInterface, QObject):
         pass
 
     def actionPan(self):
-        return self.ui.actionPan
+        return self.ui.mActionPan
 
     def actionPanToSelected(self):
         pass
@@ -1306,13 +1322,13 @@ class EnMAPBox(QgisInterface, QObject):
         pass
 
     def actionZoomActualSize(self):
-        return self.ui.actionZoomPixelScale
+        return self.ui.mActionZoomPixelScale
 
     def actionZoomFullExtent(self):
-        return self.ui.actionZoomFullExtent
+        return self.ui.mActionZoomFullExtent
 
     def actionZoomIn(self):
-        return self.ui.actionZoomIn
+        return self.ui.mActionZoomIn
 
     def actionZoomLast(self):
         pass
@@ -1321,7 +1337,7 @@ class EnMAPBox(QgisInterface, QObject):
         pass
 
     def actionZoomOut(self):
-        return self.ui.actionZoomOut
+        return self.ui.mActionZoomOut
 
     def actionZoomToLayer(self):
         pass
@@ -1358,7 +1374,7 @@ class EnMAPBox(QgisInterface, QObject):
         return self.ui.messageBar
 
     def iconSize(self, dockedToolbar=False):
-        #return self.ui.actionAddDataSource.icon().availableSizes()[0]
+        #return self.ui.mActionAddDataSource.icon().availableSizes()[0]
         return QSize(16,16)
 
     def spectralLibraries(self)->list:
@@ -1421,7 +1437,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         Loads the EnMAP-Box example data
         """
-        self.ui.actionLoadExampleData.trigger()
+        self.ui.mActionLoadExampleData.trigger()
 
     def legendInterface(self):
         """DockManager implements legend interface"""
