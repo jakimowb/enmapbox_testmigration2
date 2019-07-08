@@ -807,6 +807,61 @@ class CanvasLink(QObject):
         cs = list(self.canvases)
         return 'CanvasLink "{}" {} <-> {}'.format(self.linkType, cs[0], cs[1])
 
+
+
+class MapCanvasMapTools(QObject):
+
+
+    def __init__(self, canvas:QgsMapCanvas, cadDock:QgsAdvancedDigitizingDockWidget):
+
+        super(MapCanvasMapTools, self).__init__(canvas)
+        self.mCanvas = canvas
+        self.mCadDock = cadDock
+
+        self.mtZoomIn = QgsMapToolZoom(canvas, False)
+        self.mtZoomOut = QgsMapToolZoom(canvas, True)
+        self.mtMoveToCenter = MapToolCenter(canvas)
+        self.mtPan = QgsMapToolPan(canvas)
+        self.mtPixelScaleExtent = PixelScaleExtentMapTool(canvas)
+        self.mtFullExtentMapTool = FullExtentMapTool(canvas)
+        self.mtCursorLocation = CursorLocationMapTool(canvas, True)
+
+        self.mtAddFeature = QgsMapToolAddFeature(canvas, QgsMapToolCapture.CaptureNone, cadDock)
+        self.mtSelectFeature = QgsMapToolSelect(canvas)
+
+    def activate(self, mapToolKey, **kwds):
+
+        if mapToolKey == MapTools.ZoomIn:
+            self.mCanvas.setMapTool(self.mtZoomIn)
+        elif mapToolKey == MapTools.ZoomOut:
+            self.mCanvas.setMapTool(self.mtZoomOut)
+        elif mapToolKey == MapTools.Pan:
+            self.mCanvas.setMapTool(self.mtPan)
+        elif mapToolKey == MapTools.ZoomFull:
+            self.mCanvas.setMapTool(self.mtFullExtentMapTool)
+        elif mapToolKey == MapTools.ZoomPixelScale:
+            self.mCanvas.setMapTool(self.mtPixelScaleExtent)
+        elif mapToolKey == MapTools.CursorLocation:
+            self.mCanvas.setMapTool(self.mtCursorLocation)
+        elif mapToolKey == MapTools.SpectralProfile:
+            pass
+        elif mapToolKey == MapTools.TemporalProfile:
+            pass
+        elif mapToolKey == MapTools.MoveToCenter:
+            self.mCanvas.setMapTool(self.mtMoveToCenter)
+        elif mapToolKey == MapTools.AddFeature:
+            self.mCanvas.setMapTool(self.mtAddFeature)
+        elif mapToolKey == MapTools.SelectFeature:
+            self.mCanvas.setMapTool(self.mtSelectFeature)
+
+            s = ""
+
+        else:
+
+            print('Unknown MapTool key: {}'.format(mapToolKey))
+
+
+
 class MapCanvas(QgsMapCanvas):
 
     from weakref import WeakSet
@@ -849,7 +904,13 @@ class MapCanvas(QgsMapCanvas):
 
         self.mCrosshairItem = CrosshairMapCanvasItem(self)
 
+
         self.setCrosshairVisibility(False)
+
+        # init the map tool set
+        self.mCadDock = QgsAdvancedDigitizingDockWidget(self)
+        self.mCadDock.setVisible(False)
+        self.mMapTools = MapCanvasMapTools(self, self.mCadDock)
 
         self.canvasLinks = []
         # register signals to react on changes
@@ -901,6 +962,13 @@ class MapCanvas(QgsMapCanvas):
         if self.renderFlag() or force:
             super(MapCanvas, self).refresh()
             #super(MapCanvas, self).refreshAllLayers()
+
+    def mapTools(self)->MapCanvasMapTools:
+        """
+        Retursn the map tools
+        :return: MapCanvasMapTools
+        """
+        return self.mMapTools
 
     def contextMenu(self, spatialPoint:SpatialPoint=None):
         """
@@ -1427,6 +1495,13 @@ class MapDock(Dock):
     def linkWithCanvas(self, canvas, linkType):
         assert isinstance(canvas, QgsMapCanvas)
         canvas.createCanvasLink(canvas, linkType)
+
+    def mapCanvas(self)->MapCanvas:
+        """
+        Returns the MapCanvas
+        :return: MapCanvas
+        """
+        return self.mCanvas
 
     def layers(self)->list:
         """

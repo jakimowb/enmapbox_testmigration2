@@ -107,6 +107,16 @@ class TestEnMAPBox(unittest.TestCase):
         if SHOW_GUI:
             QGIS_APP.exec_()
 
+    def test_instanceWithData(self):
+
+        self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
+        self.assertEqual(self.EMB, EnMAPBox.instance())
+        self.EMB.loadExampleData()
+
+        if SHOW_GUI:
+            QGIS_APP.exec_()
+
+
     def test_createDock(self):
 
         for d in ['MAP', 'TEXT', 'SPECLIB', 'MIME']:

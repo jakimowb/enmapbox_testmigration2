@@ -120,7 +120,8 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
                                 self.actionZoomIn,
                                 self.actionZoomOut,
                                 self.actionPan,
-                                self.actionIdentify]
+                                self.actionIdentify,
+                                self.actionSelectFeatures]
         self.initActions()
 
     def initActions(self):
@@ -154,6 +155,19 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
             assert isinstance(a, QAction)
             a.toggled.connect(onActionToggled)
 
+        m = QMenu()
+        m.addAction(self.optionSelectFeaturesRectangle)
+        m.addAction(self.optionSelectFeaturesPolygon)
+        m.addAction(self.optionSelectFeaturesFreehand)
+        m.addAction(self.optionSelectFeaturesRadius)
+        self.actionSelectFeatures.setMenu(m)
+
+        # finally, fix the popup mode of menus
+        for toolBar in self.findChildren(QToolBar):
+            for toolButton in toolBar.findChildren(QToolButton):
+                assert isinstance(toolButton, QToolButton)
+                if isinstance(toolButton.defaultAction(), QAction) and isinstance(toolButton.defaultAction().menu(), QMenu):
+                    toolButton.setPopupMode(QToolButton.MenuButtonPopup)
 
 
     def menusWithTitle(self, title:str):
@@ -230,7 +244,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.iface = iface
         assert isinstance(iface, QgisInterface)
 
-
+        self.mMapToolKey = MapTools.Pan
+        self.mMapToolMode = None
 
         self.initPanels()
 
@@ -420,6 +435,13 @@ class EnMAPBox(QgisInterface, QObject):
         initMapToolAction(self.ui.actionZoomPixelScale, MapTools.ZoomPixelScale)
         initMapToolAction(self.ui.actionZoomFullExtent, MapTools.ZoomFull)
         initMapToolAction(self.ui.actionIdentify, MapTools.CursorLocation)
+        initMapToolAction(self.ui.actionSelectFeatures, MapTools.SelectFeature)
+
+        self.ui.optionSelectFeaturesRectangle.triggered.connect(self.onSelectFeatureOptionTriggered)
+        self.ui.optionSelectFeaturesPolygon.triggered.connect(self.onSelectFeatureOptionTriggered)
+        self.ui.optionSelectFeaturesFreehand.triggered.connect(self.onSelectFeatureOptionTriggered)
+        self.ui.optionSelectFeaturesRadius.triggered.connect(self.onSelectFeatureOptionTriggered)
+        self.ui.actionDeselectFeatures.triggered.connect(self.deselectFeatures)
 
         self.ui.actionSaveProject.triggered.connect(lambda: self.saveProject(saveAs=False))
         self.ui.actionSaveProjectAs.triggered.connect(lambda: self.saveProject(saveAs=True))
@@ -437,7 +459,29 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.actionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.REPOSITORY))
         self.ui.actionOpenOnlineDocumentation.triggered.connect(lambda : webbrowser.open(enmapbox.DOCUMENTATION))
 
+    def onSelectFeatureOptionTriggered(self):
 
+        a = self.sender()
+        m = self.ui.actionSelectFeatures.menu()
+        if isinstance(a, QAction) and isinstance(m, QMenu) and a in m.actions():
+            for ca in m.actions():
+                assert isinstance(ca, QAction)
+                if ca == a:
+                    self.ui.actionSelectFeatures.setIcon(a.icon())
+                    self.ui.actionSelectFeatures.setToolTip(a.toolTip())
+                ca.setChecked(ca == a)
+        self.setMapTool(MapTools.SelectFeature)
+
+    def deselectFeatures(self):
+        """
+        Removes all feature selections (across all map canvases)
+        """
+
+        for canvas in self.mapCanvases():
+            assert isinstance(canvas, QgsMapCanvas)
+            for vl in [l for l in canvas.layers() if isinstance(l, QgsVectorLayer)]:
+                assert isinstance(vl, QgsVectorLayer)
+                vl.removeSelection()
 
     def onCrosshairPositionChanged(self, spatialPoint:SpatialPoint):
         """
@@ -470,8 +514,8 @@ class EnMAPBox(QgisInterface, QObject):
             canvas.sigCrosshairPositionChanged.connect(self.onCrosshairPositionChanged)
             canvas.setCrosshairVisibility(True)
             # set the current map tools
-            currentMapToolKey = self.currentMapToolKey()
-            self.setSingleMapTool(canvas, currentMapToolKey)
+
+            self.setMapTool(self.mMapToolKey, canvases=[canvas])
             self.sigMapCanvasAdded.emit(canvas)
 
         self.sigDockAdded.emit(dock)
@@ -520,31 +564,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.setCurrentSpectra(currentSpectra)
 
 
-    def currentMapToolKey(self)->str:
-        """
-        Returns the MapToolKey that identifies a MapTool
-        :return: str
-        """
-        selectedMapToolActions = [a for a in self.findChildren(QAction) if isinstance(a.property('enmapbox/maptoolkey'), str) ]
-
-        if self.ui.actionPan.isChecked():
-            return MapTools.Pan
-        if self.ui.actionZoomIn.isChecked():
-            return MapTools.ZoomIn
-        if self.ui.actionZoomOut.isChecked():
-            return MapTools.ZoomOut
-        if self.ui.actionZoomPixelScale.isChecked():
-            return MapTools.ZoomPixelScale
-        if self.ui.actionZoomFullExtent.isChecked():
-            return MapTools.ZoomFull
-        if self.ui.actionIdentify.isChecked():
-            return MapTools.CursorLocation
-        else:
-            #default key
-            return MapTools.CursorLocation
-
-
-    def setMapTool(self, mapToolKey, *args, **kwds):
+    def setMapTool(self, mapToolKey, *args, canvases=None, **kwds):
         """
         Sets the active QgsMapTool for all canvases know to the EnMAP-Box.
         :param mapToolKey: str, see MapTools documentation
@@ -553,12 +573,48 @@ class EnMAPBox(QgisInterface, QObject):
         :return:
         """
         # disconnect previous map-tools?
-        del self.mMapTools[:]
-        for canvas in self.mapCanvases():
-                self.setSingleMapTool(canvas, mapToolKey, *args, **kwds)
+
+        mode = None
+
+        if mapToolKey == MapTools.SelectFeature:
+            if self.ui.optionSelectFeaturesRectangle.isChecked():
+                mode = QgsMapToolSelectionHandler.SelectionMode.SelectSimple
+            elif self.ui.optionSelectFeaturesPolygon.isChecked():
+                mode = QgsMapToolSelectionHandler.SelectionMode.SelectPolygon
+            elif self.ui.optionSelectFeaturesFreehand.isChecked():
+                mode = QgsMapToolSelectionHandler.SelectionMode.SelectFreehand
+            elif self.ui.optionSelectFeaturesRadius.isChecked():
+                mode = QgsMapToolSelectionHandler.SelectionMode.SelectRadius
+            else:
+                mode = QgsMapToolSelectionHandler.SelectionMode.SelectSimple
+
+        if mapToolKey == MapTools.SpectralProfile:
+            #SpectralProfile is a shortcut for Identify + return with profile option
+            self.ui.optionIdentifyProfile.setChecked(True)
+            self.ui.actionIdentify.setChecked(True)
+            return
+
+        self.mMapToolKey = mapToolKey
+        self.mMapToolMode = mode
+
+        if canvases is None:
+            canvases = self.mapCanvases()
+        elif isinstance(canvases, MapCanvas):
+            canvases = [canvases]
+
+        assert isinstance(canvases, list)
+        for canvas in canvases:
+            assert isinstance(canvas, MapCanvas)
+            mapTools = canvas.mapTools()
+            mapTools.activate(mapToolKey)
+
+            mapTool = canvas.mapTool()
+            if isinstance(mapTool, QgsMapToolSelect):
+                mapTool.setSelectionMode(self.mMapToolMode)
+
         return self.mMapTools
 
-    def setSingleMapTool(self, canvas:QgsMapCanvas, mapToolKey:MapTools, *args, **kwds):
+    def setSingleMapTool(self, canvas:MapCanvas, mapToolKey:MapTools, *args, **kwds):
         """
         Sets the QgsMapTool for a single canvas
         :param canvas: QgsMapCanvas
@@ -567,14 +623,14 @@ class EnMAPBox(QgisInterface, QObject):
         :param kwds:
         :return:
         """
-
+        assert isinstance(canvas, MapCanvas)
         assert isinstance(mapToolKey, MapTools)
 
         mt = MapTools.create(mapToolKey, canvas, *args, **kwds)
 
         if isinstance(mt, QgsMapTool):
             canvas.setMapTool(mt)
-            self.mMapTools.append(mt)
+
 
             # if required, link map-tool with specific EnMAP-Box slots
             if isinstance(mt, CursorLocationMapTool):
