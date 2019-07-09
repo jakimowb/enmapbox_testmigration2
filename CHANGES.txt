@@ -1,6 +1,9 @@
 Version 3.4
-    - updated spectral library viewer
-    - added map tools to select vector features
+    - Spectral Library Viewer: import spectral profiles from raster file based on vector positions
+    - Classification Widgets: copy / paste single class informations
+    - Map tools to select / add vector features
+    - fixed critical bug IVVRM
+
 
 Version 3.3
     - added user +  developer example to RTF documentation
