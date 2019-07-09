@@ -234,7 +234,7 @@
    <addaction name="optionIdentifyProfile"/>
    <addaction name="optionMoveCenter"/>
   </widget>
-  <widget class="QToolBar" name="toolBarVectorData">
+  <widget class="QToolBar" name="toolBarVectorTools">
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
