@@ -6,12 +6,16 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>545</width>
-    <height>387</height>
+    <width>897</width>
+    <height>509</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>EnMAP-Box</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="../../resources.qrc">
+    <normaloff>:/enmapbox/gui/ui/icons/enmapbox.svg</normaloff>:/enmapbox/gui/ui/icons/enmapbox.svg</iconset>
   </property>
   <property name="dockOptions">
    <set>QMainWindow::AllowNestedDocks|QMainWindow::AllowTabbedDocks|QMainWindow::AnimatedDocks|QMainWindow::VerticalTabs</set>
@@ -30,7 +34,16 @@
     <property name="spacing">
      <number>2</number>
     </property>
-    <property name="margin">
+    <property name="leftMargin">
+     <number>2</number>
+    </property>
+    <property name="topMargin">
+     <number>2</number>
+    </property>
+    <property name="rightMargin">
+     <number>2</number>
+    </property>
+    <property name="bottomMargin">
      <number>2</number>
     </property>
     <item>
@@ -48,7 +61,16 @@
        <property name="spacing">
         <number>2</number>
        </property>
-       <property name="margin">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
         <number>0</number>
        </property>
        <item>
@@ -81,7 +103,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>545</width>
+     <width>897</width>
      <height>21</height>
     </rect>
    </property>
@@ -89,22 +111,23 @@
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actionAbout"/>
-    <addaction name="actionOpenIssueReportPage"/>
-    <addaction name="actionOpenProjectPage"/>
+    <addaction name="mActionAbout"/>
+    <addaction name="mActionOpenOnlineDocumentation"/>
+    <addaction name="mActionOpenIssueReportPage"/>
+    <addaction name="mActionOpenProjectPage"/>
    </widget>
    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>Project</string>
     </property>
-    <addaction name="actionAddDataSource"/>
-    <addaction name="actionLoadExampleData"/>
+    <addaction name="mActionAddDataSource"/>
+    <addaction name="mActionLoadExampleData"/>
     <addaction name="separator"/>
-    <addaction name="actionProjectSettings"/>
-    <addaction name="actionSaveProject"/>
-    <addaction name="actionSaveProjectAs"/>
+    <addaction name="mActionProjectSettings"/>
+    <addaction name="mActionSaveProject"/>
+    <addaction name="mActionSaveProjectAs"/>
     <addaction name="separator"/>
-    <addaction name="actionExit"/>
+    <addaction name="mActionExit"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -115,19 +138,20 @@
       <string>Panels</string>
      </property>
     </widget>
-    <addaction name="actionPan"/>
-    <addaction name="actionZoomIn"/>
-    <addaction name="actionZoomOut"/>
+    <addaction name="mActionPan"/>
+    <addaction name="mActionZoomIn"/>
+    <addaction name="mActionZoomOut"/>
     <addaction name="separator"/>
-    <addaction name="actionZoomFullExtent"/>
-    <addaction name="actionZoomPixelScale"/>
+    <addaction name="mActionZoomFullExtent"/>
+    <addaction name="mActionZoomPixelScale"/>
     <addaction name="separator"/>
-    <addaction name="actionIdentify"/>
+    <addaction name="mActionIdentify"/>
+    <addaction name="mActionMapLinking"/>
     <addaction name="separator"/>
-    <addaction name="actionAddMapView"/>
-    <addaction name="actionAddSpeclibView"/>
-    <addaction name="actionAddTextView"/>
-    <addaction name="actionAddMimeView"/>
+    <addaction name="mActionAddMapView"/>
+    <addaction name="mActionAddSpeclibView"/>
+    <addaction name="mActionAddTextView"/>
+    <addaction name="mActionAddMimeView"/>
     <addaction name="separator"/>
     <addaction name="menuPanels"/>
    </widget>
@@ -141,20 +165,14 @@
      <string>Applications</string>
     </property>
    </widget>
-   <widget class="QMenu" name="menuProcessing">
-    <property name="title">
-     <string>Processing</string>
-    </property>
-   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
    <addaction name="menuTools"/>
    <addaction name="menuApplications"/>
-   <addaction name="menuProcessing"/>
    <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <widget class="QToolBar" name="toolBar">
+  <widget class="QToolBar" name="toolBarDataSources">
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
@@ -173,26 +191,63 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionAddDataSource"/>
-   <addaction name="actionAddMapView"/>
-   <addaction name="actionAddSpeclibView"/>
-   <addaction name="actionAddTextView"/>
-   <addaction name="separator"/>
-   <addaction name="actionMoveCenter"/>
-   <addaction name="actionZoomIn"/>
-   <addaction name="actionZoomOut"/>
-   <addaction name="actionZoomPixelScale"/>
-   <addaction name="actionZoomFullExtent"/>
-   <addaction name="actionPan"/>
-   <addaction name="separator"/>
-   <addaction name="actionSelectProfiles"/>
-   <addaction name="actionIdentify"/>
-   <addaction name="separator"/>
+   <addaction name="mActionAddDataSource"/>
   </widget>
-  <action name="actionAddMapView">
+  <widget class="QToolBar" name="toolBarDocks">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="mActionAddMapView"/>
+   <addaction name="mActionAddSpeclibView"/>
+   <addaction name="mActionAddTextView"/>
+  </widget>
+  <widget class="QToolBar" name="toolBarMapTools">
+   <property name="windowTitle">
+    <string>toolBar_2</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="mActionPan"/>
+   <addaction name="mActionZoomIn"/>
+   <addaction name="mActionZoomOut"/>
+   <addaction name="mActionZoomPixelScale"/>
+   <addaction name="mActionZoomFullExtent"/>
+   <addaction name="mActionIdentify"/>
+   <addaction name="separator"/>
+   <addaction name="optionIdentifyCursorLocation"/>
+   <addaction name="optionIdentifyProfile"/>
+   <addaction name="optionMoveCenter"/>
+  </widget>
+  <widget class="QToolBar" name="toolBarVectorTools">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="mActionSelectFeatures"/>
+   <addaction name="mActionDeselectFeatures"/>
+   <addaction name="mActionToggleEditing"/>
+   <addaction name="mActionSaveEdits"/>
+   <addaction name="mActionAddFeature"/>
+  </widget>
+  <action name="mActionAddMapView">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_mapdock.png</normaloff>:/enmapbox/icons/viewlist_mapdock.png</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/viewlist_mapdock.svg</normaloff>:/enmapbox/gui/ui/icons/viewlist_mapdock.svg</iconset>
    </property>
    <property name="text">
     <string>Add Map Window</string>
@@ -201,22 +256,22 @@
     <string>Open a map window</string>
    </property>
   </action>
-  <action name="actionAddTextView">
+  <action name="mActionAddTextView">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_textview.png</normaloff>:/enmapbox/icons/viewlist_textview.png</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/viewlist_textview.svg</normaloff>:/enmapbox/gui/ui/icons/viewlist_textview.svg</iconset>
    </property>
    <property name="text">
     <string>Add Text Window</string>
    </property>
    <property name="toolTip">
-    <string>Open an text window</string>
+    <string>Open a text window</string>
    </property>
   </action>
-  <action name="actionAddSpeclibView">
+  <action name="mActionAddSpeclibView">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</normaloff>:/enmapbox/icons/viewlist_spectrumdock.png</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/viewlist_spectrumdock.svg</normaloff>:/enmapbox/gui/ui/icons/viewlist_spectrumdock.svg</iconset>
    </property>
    <property name="text">
     <string>Add Spectral Library Window</string>
@@ -225,62 +280,83 @@
     <string>Open a spectral library window</string>
    </property>
   </action>
-  <action name="actionZoomIn">
+  <action name="mActionZoomIn">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomIn.png</normaloff>:/enmapbox/icons/mActionZoomIn.png</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionZoomIn.svg</normaloff>:/images/themes/default/mActionZoomIn.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom In</string>
    </property>
+   <property name="toolTip">
+    <string>Zoom in</string>
+   </property>
   </action>
-  <action name="actionZoomOut">
+  <action name="mActionZoomOut">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomOut.png</normaloff>:/enmapbox/icons/mActionZoomOut.png</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/mActionZoomOut.svg</normaloff>:/enmapbox/gui/ui/icons/mActionZoomOut.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom Out</string>
    </property>
+   <property name="toolTip">
+    <string>Zoom out</string>
+   </property>
   </action>
-  <action name="actionPan">
+  <action name="mActionPan">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionPan.png</normaloff>:/enmapbox/icons/mActionPan.png</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/mActionPan.svg</normaloff>:/enmapbox/gui/ui/icons/mActionPan.svg</iconset>
    </property>
    <property name="text">
     <string>Pan Map</string>
    </property>
   </action>
-  <action name="actionIdentify">
+  <action name="mActionIdentify">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionIdentify.png</normaloff>
-     <normalon>:/enmapbox/png/icons/mActionIdentify.png</normalon>:/enmapbox/icons/mActionIdentify.png</iconset>
+    <iconset resource="../../externals/qps/qpsresources.qrc">
+     <normaloff>:/qps/ui/icons/select_location.svg</normaloff>
+     <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/qps/ui/icons/select_location.svg</iconset>
    </property>
    <property name="text">
     <string>Identify Pixels and Features</string>
    </property>
    <property name="toolTip">
-    <string>identify</string>
+    <string>Identify cursor location infos.</string>
    </property>
   </action>
-  <action name="actionAddDataSource">
+  <action name="mActionAddDataSource">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/add_datasource.png</normaloff>:/enmapbox/icons/add_datasource.png</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionDataSourceManager.svg</normaloff>:/images/themes/default/mActionDataSourceManager.svg</iconset>
    </property>
    <property name="text">
     <string>Add Data Source</string>
    </property>
    <property name="toolTip">
-    <string>Adds a data sourc, e.g. raster or vector file</string>
+    <string>Adds data sources, e.g. raster or vector files</string>
    </property>
   </action>
-  <action name="actionZoomFullExtent">
+  <action name="mActionZoomFullExtent">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomFullExtent.png</normaloff>:/enmapbox/icons/mActionZoomFullExtent.png</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionZoomFullExtent.svg</normaloff>:/images/themes/default/mActionZoomFullExtent.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom Full</string>
@@ -289,19 +365,22 @@
     <string>Zoom to full extent</string>
    </property>
   </action>
-  <action name="actionAddMimeView">
+  <action name="mActionAddMimeView">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_dock.png</normaloff>:/enmapbox/icons/viewlist_dock.png</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/viewlist_dock.svg</normaloff>:/enmapbox/gui/ui/icons/viewlist_dock.svg</iconset>
    </property>
    <property name="text">
     <string>Add MimeData Viewer (experimental)</string>
    </property>
   </action>
-  <action name="actionZoomPixelScale">
+  <action name="mActionZoomPixelScale">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomActual.png</normaloff>:/enmapbox/icons/mActionZoomActual.png</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionZoomActual.svg</normaloff>:/images/themes/default/mActionZoomActual.svg</iconset>
    </property>
    <property name="text">
     <string>Zoom 1:1</string>
@@ -310,31 +389,37 @@
     <string>Zoom to native resolution</string>
    </property>
   </action>
-  <action name="actionAbout">
+  <action name="mActionAbout">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/metadata.png</normaloff>:/enmapbox/icons/metadata.png</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/metadata.svg</normaloff>:/enmapbox/gui/ui/icons/metadata.svg</iconset>
    </property>
    <property name="text">
     <string>About</string>
    </property>
   </action>
-  <action name="actionIdentifyMapLayers">
+  <action name="optionIdentifyCursorLocation">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
    <property name="icon">
-    <iconset>
-     <normaloff>:/timeseriesviewer/icons/mActionIdentify.png</normaloff>:/timeseriesviewer/icons/mActionIdentify.png</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionPropertiesWidget.svg</normaloff>:/images/themes/default/mActionPropertiesWidget.svg</iconset>
    </property>
    <property name="text">
-    <string>Identify</string>
+    <string>CLV</string>
    </property>
    <property name="toolTip">
-    <string>Identify map layers</string>
+    <string>Identify cursor location values</string>
    </property>
   </action>
-  <action name="actionProjectSettings">
+  <action name="mActionProjectSettings">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/system.png</normaloff>:/enmapbox/icons/system.png</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/propertyicons/settings.svg</normaloff>:/images/themes/default/propertyicons/settings.svg</iconset>
    </property>
    <property name="text">
     <string>Project Settings</string>
@@ -343,26 +428,38 @@
     <string>Show project settings</string>
    </property>
   </action>
-  <action name="actionExit">
+  <action name="mActionExit">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionFileExit.png</normaloff>:/enmapbox/icons/mActionFileExit.png</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mIconClose.svg</normaloff>:/images/themes/default/mIconClose.svg</iconset>
    </property>
    <property name="text">
     <string>Exit EnMAP-Box</string>
    </property>
   </action>
-  <action name="actionPanToSelected">
+  <action name="mActionPanToSelected">
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionPan.svg</normaloff>:/images/themes/default/mActionPan.svg</iconset>
+   </property>
    <property name="text">
     <string>PanToSelected</string>
    </property>
   </action>
-  <action name="actionPasteLayerStyle">
+  <action name="mActionPasteLayerStyle">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/mActionEditPaste.svg</normaloff>:/enmapbox/gui/ui/icons/mActionEditPaste.svg</iconset>
+   </property>
    <property name="text">
     <string>Paste Laye rStyle</string>
    </property>
   </action>
-  <action name="actionProjectProperties">
+  <action name="mActionProjectProperties">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/settings.svg</normaloff>:/enmapbox/gui/ui/icons/settings.svg</iconset>
+   </property>
    <property name="text">
     <string>Project Properties</string>
    </property>
@@ -370,29 +467,37 @@
     <string>Project Properties</string>
    </property>
   </action>
-  <action name="actionQgisHomePage">
+  <action name="mActionQgisHomePage">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/qgis_icon.svg</normaloff>:/enmapbox/gui/ui/icons/qgis_icon.svg</iconset>
+   </property>
    <property name="text">
     <string>QgisHomePage</string>
    </property>
   </action>
-  <action name="actionEnMAPBoxHomePage">
+  <action name="mActionEnMAPBoxHomePage">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/enmapbox.svg</normaloff>:/enmapbox/gui/ui/icons/enmapbox.svg</iconset>
+   </property>
    <property name="text">
     <string>EnMAP-Box Home Page</string>
    </property>
   </action>
-  <action name="actionSaveProject">
+  <action name="mActionSaveProject">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionFileSave.png</normaloff>:/enmapbox/icons/mActionFileSave.png</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/mActionFileSave.svg</normaloff>:/enmapbox/gui/ui/icons/mActionFileSave.svg</iconset>
    </property>
    <property name="text">
     <string>Save Project</string>
    </property>
   </action>
-  <action name="actionAddWebView">
+  <action name="mActionAddWebView">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/viewlist_dock.png</normaloff>:/enmapbox/icons/viewlist_dock.png</iconset>
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/viewlist_dock.svg</normaloff>:/enmapbox/gui/ui/icons/viewlist_dock.svg</iconset>
    </property>
    <property name="text">
     <string>Add Web View</string>
@@ -401,37 +506,30 @@
     <string>Opens WebViewDock to show HTML pages</string>
    </property>
   </action>
-  <action name="actionMoveCenter">
+  <action name="optionMoveCenter">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionZoomPoint.png</normaloff>:/enmapbox/icons/mActionZoomPoint.png</iconset>
+    <iconset resource="../../externals/qps/qpsresources.qrc">
+     <normaloff>:/qps/ui/icons/pan_center.svg</normaloff>:/qps/ui/icons/pan_center.svg</iconset>
    </property>
    <property name="text">
     <string>Move to Point</string>
    </property>
+   <property name="toolTip">
+    <string>Center map on clicked locations</string>
+   </property>
   </action>
-  <action name="actionLoadExampleData">
+  <action name="mActionLoadExampleData">
    <property name="text">
     <string>Load Example Data</string>
    </property>
   </action>
-  <action name="actionSelectProfiles">
+  <action name="mActionSaveProjectAs">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/pickrasterspectrum.png</normaloff>
-     <normalon>:/enmapbox/png/icons/mActionIdentify.png</normalon>:/enmapbox/icons/pickrasterspectrum.png</iconset>
-   </property>
-   <property name="text">
-    <string>Select pixel profiles</string>
-   </property>
-   <property name="toolTip">
-    <string>Select pixel profiles from map</string>
-   </property>
-  </action>
-  <action name="actionSaveProjectAs">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/enmapbox/icons/mActionFileSaveAs.png</normaloff>:/enmapbox/icons/mActionFileSaveAs.png</iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionFileSaveAs.svg</normaloff>:/images/themes/default/mActionFileSaveAs.svg</iconset>
    </property>
    <property name="text">
     <string>Save Projects as</string>
@@ -440,31 +538,186 @@
     <string>Save the project to a new file</string>
    </property>
   </action>
-  <action name="actionOpenIssueReportPage">
+  <action name="mActionOpenIssueReportPage">
    <property name="text">
-    <string>Report Issue</string>
+    <string>Report Issues</string>
    </property>
    <property name="toolTip">
     <string>Report an issue to the EnMAP-Box project (feature requests, bugs, ...)</string>
    </property>
   </action>
-  <action name="actionOpenProjectPage">
+  <action name="mActionOpenProjectPage">
    <property name="text">
-    <string>Project Webpage</string>
+    <string>Project Repository</string>
+   </property>
+  </action>
+  <action name="mActionMapLinking">
+   <property name="icon">
+    <iconset resource="../../resources.qrc">
+     <normaloff>:/enmapbox/gui/ui/icons/link_basic.svg</normaloff>:/enmapbox/gui/ui/icons/link_basic.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Set map linking</string>
+   </property>
+   <property name="toolTip">
+    <string>Opens a dialog to specify the linking between different maps</string>
+   </property>
+  </action>
+  <action name="mActionOpenOnlineDocumentation">
+   <property name="text">
+    <string>Online Documentation</string>
+   </property>
+  </action>
+  <action name="optionIdentifyProfile">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../externals/qps/qpsresources.qrc">
+     <normaloff>:/qps/ui/icons/profile.svg</normaloff>:/qps/ui/icons/profile.svg</iconset>
+   </property>
+   <property name="text">
+    <string>RP</string>
+   </property>
+   <property name="toolTip">
+    <string>Identify raster profiles to be shown in a Spectral Library.</string>
+   </property>
+  </action>
+  <action name="optionSelectFeaturesRectangle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionSelectRectangle.svg</normaloff>:/images/themes/default/mActionSelectRectangle.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Select Feature(s)</string>
+   </property>
+   <property name="toolTip">
+    <string>Select Feature(s) by drawing a Rectangle</string>
+   </property>
+  </action>
+  <action name="optionSelectFeaturesPolygon">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionSelectPolygon.svg</normaloff>:/images/themes/default/mActionSelectPolygon.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Select Features by Polygon</string>
+   </property>
+   <property name="toolTip">
+    <string>Select Features by drawing a Polygon</string>
+   </property>
+  </action>
+  <action name="optionSelectFeaturesFreehand">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionSelectFreehand.svg</normaloff>:/images/themes/default/mActionSelectFreehand.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Select Features by Freehand</string>
+   </property>
+  </action>
+  <action name="optionSelectFeaturesRadius">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionSelectRadius.svg</normaloff>:/images/themes/default/mActionSelectRadius.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Select Features by Radius</string>
+   </property>
+  </action>
+  <action name="mActionSelectFeatures">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionSelectRectangle.svg</normaloff>:/images/themes/default/mActionSelectRectangle.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Select Features</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::TextHeuristicRole</enum>
+   </property>
+   <property name="iconVisibleInMenu">
+    <bool>false</bool>
+   </property>
+   <property name="shortcutVisibleInContextMenu">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="mActionDeselectFeatures">
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionDeselectAll.svg</normaloff>:/images/themes/default/mActionDeselectAll.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Deselect</string>
+   </property>
+   <property name="toolTip">
+    <string>Deselect selected features.</string>
+   </property>
+  </action>
+  <action name="mActionToggleEditing">
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionToggleEditing.svg</normaloff>:/images/themes/default/mActionToggleEditing.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Toggle Editing</string>
+   </property>
+  </action>
+  <action name="mActionAddFeature">
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionCapturePolygon.svg</normaloff>:/images/themes/default/mActionCapturePolygon.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Draw</string>
+   </property>
+   <property name="toolTip">
+    <string>Draw a new feature</string>
+   </property>
+  </action>
+  <action name="mActionSaveEdits">
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionSaveEdits.svg</normaloff>:/images/themes/default/mActionSaveEdits.svg</iconset>
+   </property>
+   <property name="text">
+    <string>SaveEdits</string>
+   </property>
+   <property name="toolTip">
+    <string>Save Edits</string>
    </property>
   </action>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>DockArea</class>
-   <extends>QWidget</extends>
-   <header>enmapbox.gui.docks</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>QgsMessageBar</class>
    <extends>QFrame</extends>
    <header>qgis.gui</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>DockArea</class>
+   <extends>QWidget</extends>
+   <header>enmapbox.gui.docks</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -475,7 +728,9 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="resources.qrc"/>
+  <include location="../../../../../QGIS/images/images.qrc"/>
+  <include location="../../resources.qrc"/>
+  <include location="../../externals/qps/qpsresources.qrc"/>
  </resources>
  <connections/>
 </ui>

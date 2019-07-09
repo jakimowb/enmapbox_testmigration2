@@ -16,16 +16,18 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
-import sys, os, site
+
+import os
+
+from enmapbox import enmapboxSettings
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtWidgets import QStyledItemDelegate
 
-ENMAP_BOX_KEY = 'EnMAP-Box'
-def qtSettingsObj():
-    return QSettings('HU-Berlin', ENMAP_BOX_KEY)
+
 
 GLOBAL_DEFAULT_SETTINGS = dict()
 class SettingsInfo(object):
@@ -59,8 +61,7 @@ class SettingsInfo(object):
 
     def __init__(self, key, value, description, defaultValue=None, range = None):
 
-        if isinstance(key, str):
-            key = key.decode('utf-8')
+        assert isinstance(key, str)
         if range:
             assert len(range) == 2
         assert value is not None
@@ -78,11 +79,12 @@ class SettingsInfo(object):
 
     def saveToQSettings(self, settings=None):
         if not isinstance(settings, QSettings):
-            settings = qtSettingsObj()
+            settings = enmapboxSettings()
 
         settings.setValue(self.mKey, self.mValue)
-    def saveToProject(self, project=QgsProject.instance()):
-
+    def saveToProject(self, project=None):
+        if project is None:
+            project = QgsProject.instance()
         assert isinstance(project, QgsProject)
 
 
@@ -103,7 +105,7 @@ def initGlobalSettings():
     by a default values from GLOBAL_DEFAULT_SETTINGS.
     :return:
     """
-    settings = qtSettingsObj()
+    settings = enmapboxSettings()
     for settingsInfo in GLOBAL_DEFAULT_SETTINGS.values():
         assert isinstance(settingsInfo, SettingsInfo)
         if settings.value(settingsInfo.mKey, None) is None:
@@ -112,7 +114,7 @@ def initGlobalSettings():
 initGlobalSettings()
 
 def resetGlobalSettings():
-    settings = qtSettingsObj()
+    settings = enmapboxSettings()
     settings.clear()
     settings.sync()
     for settingsInfo in GLOBAL_DEFAULT_SETTINGS.values():
@@ -278,16 +280,16 @@ class SettingsDialog(QDialog, loadUI('settingsdialog.ui')):
         self.setupUi(self)
 
 
-        self.modelGlobals = SettingsTableModel(qtSettingsObj(), parent=self)
+        self.modelGlobals = SettingsTableModel(enmapboxSettings(), parent=self)
         self.tableViewGlobalSettings.setModel(self.modelGlobals)
-        self.tableViewGlobalSettings.verticalHeader().setMovable(True)
+        #self.tableViewGlobalSettings.verticalHeader().setMovable(True)
         self.tableViewGlobalSettings.verticalHeader().setDragEnabled(True)
         self.tableViewGlobalSettings.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
         self.tableViewGlobalSettings.horizontalHeader().setResizeMode(QHeaderView.Interactive)
         self.tableViewGlobalSettings.resizeColumnsToContents()
 
 
-        self.tableViewProjectSettings.verticalHeader().setMovable(True)
+        #self.tableViewProjectSettings.verticalHeader().setMovable(True)
         self.tableViewProjectSettings.verticalHeader().setDragEnabled(True)
         self.tableViewProjectSettings.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
         self.tableViewProjectSettings.horizontalHeader().setResizeMode(QHeaderView.Interactive)
@@ -311,7 +313,7 @@ class SettingsDialog(QDialog, loadUI('settingsdialog.ui')):
 
     def resetSettings(self):
         resetGlobalSettings()
-        self.modelGlobals = SettingsTableModel(qtSettingsObj(), parent=self)
+        self.modelGlobals = SettingsTableModel(enmapboxSettings(), parent=self)
         self.tableViewGlobalSettings.setModel(self.modelGlobals)
         self.tableViewGlobalSettings.resizeColumnsToContents()
         self.tableViewProjectSettings.resizeColumnsToContents()
@@ -341,7 +343,7 @@ def showSettingsDialog(parent=None):
 
 if __name__ == '__main__':
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     qapp = initQgisApplication()
     initGlobalSettings()
     showSettingsDialog()

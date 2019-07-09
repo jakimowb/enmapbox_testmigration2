@@ -1,0 +1,4 @@
+no data value: 0.0
+description: Classification
+category names: ['unclassified', 'impervious', 'low vegetation', 'tree', 'soil', 'water']
+category colors: [(0, 0, 0, 255), (230, 0, 0, 255), (152, 230, 0, 255), (38, 115, 0, 255), (168, 112, 0, 255), (0, 100, 255, 255)]

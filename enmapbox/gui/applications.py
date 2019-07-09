@@ -16,312 +16,53 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
-import os, sys, site, collections, inspect, logging, re
-logger = logging.getLogger(__name__)
+
+import os, sys, site, collections, re, inspect, traceback, typing, warnings
+
 from qgis.core import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from enmapbox.gui.utils import DIR_ENMAPBOX
+from qgis.core import Qgis
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+
+from enmapbox.gui.utils import *
 from enmapbox.gui.enmapboxgui import EnMAPBox
+from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+from enmapbox import messageLog, DIR_REPO as ROOT
 
 DEBUG = False #set this on True to not hide external-app errors
-
-class ApplicationWrapper(QObject):
-    """
-    Stores information on an initialized EnMAPBoxApplication
-    """
-    def __init__(self, app, parent=None):
-        super(ApplicationWrapper, self).__init__(parent)
-        assert isinstance(app, EnMAPBoxApplication)
-        self.app = app
-        self.appId = '{}'.format(app.__class__)
-        self.menuItems = []
-        self.geoAlgorithms = []
-
-
-class ApplicationRegistry(QObject):
-    """
-    Registry to handel EnMAPBox Applications
-    """
-    def __init__(self, enmapBox, parent=None):
-        super(ApplicationRegistry, self).__init__(parent)
-        self.appPackageRootFolders = []
-        assert isinstance(enmapBox, EnMAPBox)
-
-        self.enmapBox = enmapBox
-        self.processingAlgManager = self.enmapBox.processingAlgManager
-        self.appList = collections.OrderedDict()
-
-    def addApplicationPackageFile(self, appPkgFile):
-        assert os.path.isfile(appPkgFile)
-
-        lines = open(appPkgFile).readlines()
-        lines = [l.strip() for l in lines]
-        lines = [l for l in lines if len(l) > 0 and not l.startswith('#')]
-        from enmapbox.gui.utils import DIR_REPO as ROOT
-        lines = [(l if os.path.isabs(l) else os.path.join(ROOT, l)) for l in lines]
-        lines = [l for l in lines if os.path.isdir(l)]
-        for appPath in lines:
-            appDir = os.path.normpath(os.path.dirname(appPath))
-            if not appDir in sys.path:
-                sys.path.append(appDir)
-
-            self.addApplicationPackageSavely(appPath)
-
-
-
-    def addApplicationPackageRootFolder(self, appPkgRootFolder):
-        """
-        Searches and loads the EnMAP-Box application packages located in appDir
-        :param appPkgRootFolder: Directory with EnMAP-Box application packages
-        :return: self
-        """
-        if not os.path.isdir(appPkgRootFolder):
-            return False
-
-        if not appPkgRootFolder in sys.path:
-            sys.path.append(appPkgRootFolder)
-
-        for d, appPackages, _ in os.walk(appPkgRootFolder):
-            appPackages = [os.path.abspath(os.path.join(d,p)) for p in appPackages]
-            break
-
-        for appPackage in appPackages:
-           self.addApplicationPackageSavely(appPackage)
-        return self
-
-    def isApplicationPackage(self, appPackagePath):
-        """
-        Checks if the directory "appPackage" contains an '__init__.py' which defines the funtion
-        enmapboxApplicationFactory
-        :param appPackage: path to directory
-        :return: True, if enmapboxApplicationFactory exists in package definition.
-        """
-
-        if not os.path.isdir(appPackagePath):
-            return False
-        appPkgName = os.path.basename(appPackagePath)
-        pkgFile = os.path.join(appPackagePath, '__init__.py')
-        appFolder = os.path.dirname(appPackagePath)
-        if not os.path.isfile(pkgFile):
-            return False
-
-        added = False
-        if not appFolder in sys.path:
-
-            sys.path.append(appFolder)
-            added = True
-        #import imp
-        #appModule = imp.load_source('.{}.__init__'.format(appPkgName), pkgFile)
-        try:
-            appModule = __import__(appPkgName)
-        except Exception as ex:
-            if added:
-                sys.path.remove(appFolder)
-                return False
-
-        factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
-                   if o[0] == 'enmapboxApplicationFactory']
-        if len(factory) != 1:
-            if added:
-                sys.path.remove(appFolder)
-            return False
-
-        return True
-
-    def addApplicationPackageSavely(self, appPackagePath):
-        """
-        Adds an application package with addApplicationPackage but will catch errors.
-        :param appPackagePath:
-        """
-        if DEBUG:
-            self.addApplicationPackage(appPackagePath)
-        else:
-            try:
-                if not self.isApplicationPackage(appPackagePath):
-                    raise Exception('Invalid EnMAP-Box Application Package: {}'.format(appPackagePath))
-                self.addApplicationPackage(appPackagePath)
-
-            except Exception as ex:
-                import traceback
-                msg = 'Failed to load {}\n Error:"{}"'.format(appPackagePath, '{}'.format(ex))
-                msg +='\n Traceback\n ' + repr(traceback.format_stack())
-                QgsMessageLog.instance().logMessage(msg, level=QgsMessageLog.CRITICAL)
-
-
-    def addApplicationPackage(self, appPackagePath):
-        """
-        Loads an EnMAP-Box application package and adds all its applications
-        :param appPackagePath: a path pointing to a directory <application package folder>
-        :return:
-        """
-        assert self.isApplicationPackage(appPackagePath)
-
-        appPkgName = os.path.basename(appPackagePath)
-        appFolder = os.path.dirname(appPackagePath)
-        pkgFile = os.path.join(appPackagePath, '__init__.py')
-
-
-        if not os.path.exists(pkgFile):
-            raise Exception('Missing __init__.py in {}'.format(appPackagePath))
-
-        if not appFolder in sys.path:
-            site.addsitedir(appFolder)
-
-
-        import imp
-        #appModule = imp.load_source('.{}.__init__'.format(appPkgName), pkgFile)
-        appModule = __import__(appPkgName)
-
-
-        factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
-                   if o[0] == 'enmapboxApplicationFactory']
-
-        if len(factory) == 0:
-            raise Exception('Missing enmapboxApplicationFactory() in {}'.format(appPackagePath))
-        else:
-            factory = factory[0]
-
-        #create the app
-        apps = factory(self.enmapBox)
-        if apps is None:
-            raise Exception(
-                'No EnMAPBoxApplications returned from call to {}.enmapboxApplicationFactory(...)'.format(appPkgName))
-
-        if not isinstance(apps, list):
-            apps = [apps]
-
-        for app in apps:
-            if not isinstance(app, EnMAPBoxApplication):
-                QgsMessageLog.logMessage('Not an EnMAPBoxApplication instance: {}\n{}'.format(
-                    app.__module__, '{}'.format(ex))
-                    , level=QgsMessageLog.CRITICAL)
-                continue
-            try:
-                self.addApplication(app)
-            except Exception as ex:
-                import traceback
-                msg = 'Failed to load app "{} {}"'.format(appPackagePath, '{}'.format(ex))
-                msg += '\n Traceback:\n ' + repr(traceback.format_stack())
-                #QgsMessageLog.instance().logMessage(msg, level=QgsMessageLog.CRITICAL)
-
-                QgsMessageLog.logMessage('Failed to load {}\n{}'.format(
-                    app.__module__, '{}'.format(ex))
-                        , level=QgsMessageLog.CRITICAL)
-
-    def addApplication(self, app):
-        """
-        Adds a single EnMAP-Box application, i.a. a class that implemented the EnMAPBoxApplication Interface
-        :param app:
-        """
-        if DEBUG:
-            print('addApplication({})'.format(str(app)))
-        assert isinstance(app, EnMAPBoxApplication)
-
-        appWrapper = ApplicationWrapper(app)
-        if DEBUG:
-            print('Check requirements...')
-        EnMAPBoxApplication.checkRequirements(app)
-
-        if appWrapper.appId in self.appList.keys():
-            QgsMessageLog.logMessage('EnMAPBoxApplication {} already loaded.'.format(appWrapper.appId))
-            return False
-
-        self.appList[appWrapper.appId] = appWrapper
-
-        #load GUI integration
-        if DEBUG:
-            print('Load menu items...')
-
-        self.loadMenuItems(appWrapper)
-
-        #load QGIS Processing Framework Integration
-        if self.processingAlgManager.isInitialized():
-            if DEBUG:
-                print('Load GeoAlgorithms...')
-            self.loadGeoAlgorithms(appWrapper)
-
-        if DEBUG:
-            print('Loading done.')
-
-        return True
-
-    def loadGeoAlgorithms(self, appWrapper):
-        assert isinstance(appWrapper, ApplicationWrapper)
-        geoAlgorithms = appWrapper.app.geoAlgorithms()
-        if DEBUG:
-            print('appWrapper.app.geoAlgorithms() returned: {}'.format(geoAlgorithms))
-
-        if not isinstance(geoAlgorithms, list):
-            geoAlgorithms = [geoAlgorithms]
-
-        from processing.core.GeoAlgorithm import GeoAlgorithm
-        geoAlgorithms = [g for g in geoAlgorithms if isinstance(g, GeoAlgorithm)]
-
-        if len(geoAlgorithms) > 0:
-            if DEBUG:
-                print('GeoAlgorithms found: {}'.format(geoAlgorithms))
-            appWrapper.geoAlgorithms.extend(geoAlgorithms)
-            provider = self.processingAlgManager.enmapBoxProvider()
-            from enmapbox.algorithmprovider import AlgorithmProvider
-            if isinstance(provider, AlgorithmProvider):
-                self.processingAlgManager.addAlgorithms(provider, geoAlgorithms)
-            else:
-                if DEBUG:
-                    print('Can not find EnMAPBoxAlgorithmProvider')
-
-
-    def loadMenuItems(self, appWrapper, parentMenuName = 'Applications'):
-        assert isinstance(appWrapper, ApplicationWrapper)
-        app = appWrapper.app
-        assert isinstance(app, EnMAPBoxApplication)
-        parentMenu = self.enmapBox.menu(parentMenuName)
-        items = app.menu(parentMenu)
-
-        if items is not None:
-            if not isinstance(items, list):
-                items = [items]
-            appWrapper.menuItems.extend(items)
-
-
-
-    def reloadApplication(self, appId):
-        assert appId in self.appList.keys()
-        self.removeApplication(appId)
-        self.addApplication(appId)
-
-    def removeApplication(self, appId):
-        appWrapper = self.appList[appId]
-        assert isinstance(appWrapper, ApplicationWrapper)
-
-        #remove menu item
-        for item in appWrapper.menuItems:
-            item.parent().removeChildren(item)
-
-        #todo: remove geo-algorithms
-        self.processingAlgManager.removeAlgorithms(appWrapper.geoAlgorithms)
 
 
 
 class EnMAPBoxApplication(QObject):
     """
-        s = ""
     Base class to describe components of an EnMAPBoxApplication
     and to provide interfaces the main EnMAP-Box
     """
-
     @staticmethod
-    def checkRequirements(enmapBoxApp):
-        assert enmapBoxApp.name
-        assert enmapBoxApp.version
-        assert enmapBoxApp.licence
+    def checkRequirements(enmapBoxApp)->(bool,str):
+        """
+        Tests if the EnMAPBoxApplication defines all required information.
+        :param enmapBoxApp: EnMAPBoxApplication
+        :return: (True|False, [list-of-errors])
+        """
+        infos = []
+        if not isinstance(enmapBoxApp, EnMAPBoxApplication):
+            infos.append('Not an EnMAPBoxApplication "{}"'.format(str(enmapBoxApp)))
+        else:
+            if not isinstance(enmapBoxApp.name, str) or len(enmapBoxApp.name.strip()) == 0:
+                infos.append('Application name is undefined')
+            if not isinstance(enmapBoxApp.version, str) or len(enmapBoxApp.version.strip()) == 0:
+                infos.append('Application version is undefined')
+            if not isinstance(enmapBoxApp.licence, str) or len(enmapBoxApp.licence.strip()) == 0:
+                infos.append('Application licence is undefined')
+        return len(infos) == 0, infos
 
     """
-        call self.sigFileCreated.emit("filepath.txt") to let the EnMAP-Box know that you created "filepath.txt".
+        This signal will tell the EnMAPBox that the EnMAPBoxApplication has created a file, e.g. a new raster image.
+        E.g. call self.sigFileCreated.emit("filepath.txt") to inform the EnMAPBox 
     """
     sigFileCreated = pyqtSignal(str)
-
 
 
     def __init__(self, enmapBox, parent=None):
@@ -341,12 +82,10 @@ class EnMAPBoxApplication(QObject):
     def removeApplication(self):
         """
         Overwrite to remove components of your application when this app is disabled.
-
-        :return:
         """
         return None
 
-    def icon(self):
+    def icon(self)->QIcon:
         """
         Overwrite to return a QIcon
         http://doc.qt.io/qt-5/qicon.html
@@ -357,18 +96,347 @@ class EnMAPBoxApplication(QObject):
     def menu(self, appMenu):
         """
         :param appMenu: the EnMAP-Box' Application QMenu
-        :return: None (default), the QMenu or QAction that is added to the QMenu "appMenu".
+        :return: None (default), the QMenu or QAction that is to be added to the QMenu "appMenu".
         """
         return None
 
-    def geoAlgorithms(self):
+    def geoAlgorithms(self)->list:
         """
-        Returns a list of GeoAlgorithms()
+        Deprecated. Use processingAlgorithms() to return a list of QgsProcessingAlgorithms
+        """
+        raise Exception('Use "processingAlgorithms" instead.')
 
+
+    def processingAlgorithms(self)->list:
+
+        return []
+
+
+class ApplicationWrapper(QObject):
+    """
+    Stores information about an initialized EnMAPBoxApplication
+    """
+    def __init__(self, app:EnMAPBoxApplication, parent=None):
+        super(ApplicationWrapper, self).__init__(parent)
+        assert isinstance(app, EnMAPBoxApplication)
+        self.app = app
+        self.appId = '{}.{}'.format(app.__class__,app.name)
+        self.menuItems = []
+        self.processingAlgorithms = []
+
+
+
+class ApplicationRegistry(QObject):
+    """
+    Registry to load and remove EnMAPBox Applications
+    """
+    def __init__(self, enmapBox, parent=None):
+        super(ApplicationRegistry, self).__init__(parent)
+        self.appPackageRootFolders = []
+        assert isinstance(enmapBox, EnMAPBox)
+
+        self.mEnMAPBox = enmapBox
+        self.mAppWrapper = collections.OrderedDict()
+
+        self.mAppInitializationMessages = collections.OrderedDict()
+
+
+    def __len__(self):
+        return len(self.mAppWrapper)
+
+    def __iter__(self):
+        return iter(self.mAppWrapper.values())
+
+    def applications(self)->list:
+        """
+        Returns the EnMAPBoxApplications
+        :return: [list-of-EnMAPBoxApplications]
+        """
+        return [w.app for w in self.applicationWrapper()]
+
+    def applicationWrapper(self, nameOrApp=None)->list:
+        """
+        Returns the EnMAPBoxApplicationWrappers.
+        :param nameOrApp: str | EnMAPBoxApplication to return the ApplicationWrapper for
+        :return: [list-of-EnMAPBoxApplicationWrappers]
+        """
+        wrappers = [w for w in self.mAppWrapper.values()]
+        if nameOrApp is not None:
+            wrappers = [w for w in wrappers if isinstance(w, ApplicationWrapper) and nameOrApp in [w.appId, w.app.name, w.app]]
+        return wrappers
+
+    def addApplicationListing(self, appPkgFile:str):
+        """
+        Loads EnMAPBoxApplications from locations defined in a text file
+        :param appPkgFile: str, filepath to file with locations of EnMAPBoxApplications
+        """
+        assert isinstance(appPkgFile, str)
+        assert os.path.isfile(appPkgFile)
+        pkgFileDir = os.path.dirname(appPkgFile)
+        f = open(appPkgFile)
+        lines = f.readlines()
+        f.close()
+
+        lines = [l.strip() for l in lines]
+        lines = [l for l in lines if len(l) > 0 and not l.startswith('#')]
+
+        appFolders = []
+        for line in lines:
+            assert isinstance(line, str)
+            if os.path.isabs(line):
+                appFolders.append(line)
+            else:
+                path = os.path.join(pkgFileDir, line)
+                path = os.path.normpath(path)
+                appFolders.append(path)
+        appFolders = [p for p in appFolders if os.path.isdir(p)]
+        for appPath in appFolders:
+            self.addApplicationFolder(appPath)
+
+
+    def isApplicationFolder(self, appPackagePath:str)->bool:
+        """
+        Checks if the directory "appPackage" contains an '__init__.py' with an enmapboxApplicationFactory
+        :param appPackage: path to directory
+        :return: True | False
+        """
+
+        if not os.path.isdir(appPackagePath):
+            return False
+
+        pkgFile = os.path.join(appPackagePath, '__init__.py')
+        if not os.path.isfile(pkgFile):
+            return False
+
+        fileStats = os.stat(pkgFile)
+        if fileStats.st_size > 1 *1024**2: #assumes that files larger 1 MByte are not source code any more
+            return False
+
+        f = open(pkgFile)
+        text = f.read()
+        f.close()
+
+        return re.search(r'def\s+enmapboxApplicationFactory\(.+\)\s*:', text) is not None
+
+
+    def findApplicationFolders(self, rootDir):
+        """
+        Searches for folders that contain an EnMAPBoxApplications
+        :param rootDir: str, root path directory
+        :return: [list-of-str]
+        """
+        results = []
+        if os.path.isdir(rootDir):
+            for file in file_search(rootDir, '__init__.py', recursive=True):
+                p = os.path.dirname(file)
+                if self.isApplicationFolder(p):
+                    results.append(p)
+        return results
+
+
+    def addApplicationFolder(self, appPackagePath:str, isRootFolder=False)->bool:
+        """
+        Loads an EnMAP-Box application from its root folder.
+        :param appPackagePath: directory with an __init__.py which defines a .enmapboxApplicationFactory() or
+                               directory without any __init__.py which contains EnMAPBoxApplication folders
+        :return: bool, True if any EnMAPBoxApplication was added
+        """
+        if isRootFolder:
+            assert (isinstance(appPackagePath, str) and os.path.isdir(appPackagePath))
+            subDirs = []
+            for n in os.listdir(appPackagePath):
+                p = os.path.join(appPackagePath, n)
+                if self.isApplicationFolder(p):
+                    subDirs.append(p)
+            results = [self.addApplicationFolder(p, isRootFolder=False) for p in subDirs]
+            return any(results)
+        else:
+            basename = os.path.basename(appPackagePath)
+            try:
+                if not (isinstance(appPackagePath, str) and os.path.isdir(appPackagePath)):
+                    raise Exception('Not a directory: "{}"'.format(appPackagePath))
+
+
+
+                appPkgName = os.path.basename(appPackagePath)
+                appPkgRoot = os.path.dirname(appPackagePath)
+                pkgFile = os.path.join(appPackagePath, '__init__.py')
+
+
+                print('Load EnMAPBoxApplication(s) from "{}"'.format(appPkgName))
+
+                if not os.path.isfile(pkgFile):
+                    raise Exception('File does not exist: "{}"'.format(pkgFile))
+
+                if not appPkgRoot in sys.path:
+                    site.addsitedir(appPkgRoot)
+
+                # do not use __import__
+                # appModule = __import__(appPkgName)
+                appModule = importlib.import_module(appPkgName)
+
+                factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
+                            if o[0] == 'enmapboxApplicationFactory']
+
+                if len(factory) == 0:
+                    raise Exception('Missing definition of enmapboxApplicationFactory() in {}'.format(pkgFile))
+
+                factory = factory[0]
+
+                #create the app
+                apps = factory(self.mEnMAPBox)
+                if not isinstance(apps, list):
+                    apps = [apps]
+
+                foundValidApps = False
+
+                for app in apps:
+                    if not isinstance(app, EnMAPBoxApplication):
+                        raise Exception('Not an EnMAPBoxApplication instance: {}'.format(app.__module__))
+                    else:
+                        result = self.addApplication(app)
+                        foundValidApps = True
+
+                if foundValidApps:
+                    self.mAppInitializationMessages[basename] = 'initialized'
+                else:
+                    self.mAppInitializationMessages[basename] = 'no EnMAPBoxApplication returned'
+                return foundValidApps
+
+            except Exception as ex:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                tbLines = traceback.format_tb(exc_traceback)
+                tbLines = ''.join(tbLines)
+                info = '{}\nTraceback:\n{}'.format(ex, tbLines)
+                self.mAppInitializationMessages[basename] = info
+                print(info, file=sys.stderr)
+                return False
+
+    def addApplications(self, apps)->list:
+        """
+        Adds a list of EnMAP-Box applications with addApplication
+        :param apps: [list-of-EnMAPBoxApplications]
         :return:
         """
-        return None
+        return [self.addApplication(app) for app in apps]
 
-if __name__ == '__main__':
-    #mini test
-    pass
+    def addApplication(self, app:EnMAPBoxApplication)->bool:
+        """
+        Adds a single EnMAP-Box application, i.a. a class that implemented the EnMAPBoxApplication Interface
+        :param app: EnMAPBoxApplication
+        """
+        if DEBUG:
+            print('addApplication({})'.format(str(app)))
+        assert isinstance(app, EnMAPBoxApplication)
+
+        appWrapper = ApplicationWrapper(app)
+        if DEBUG:
+            print('Check requirements...')
+        isOk, errorMessages = EnMAPBoxApplication.checkRequirements(app)
+        if not isOk:
+            raise Exception('Unable to load EnMAPBoxApplication "{}"\n{}.'.format(appWrapper.appId, '\n\t'.join(errorMessages)))
+
+        if appWrapper.appId in self.mAppWrapper.keys():
+            messageLog('EnMAPBoxApplication {} already loaded. Reload'.format(appWrapper.appId))
+            self.removeApplication(appWrapper.appId)
+
+        self.mAppWrapper[appWrapper.appId] = appWrapper
+
+        #load GUI integration
+        if DEBUG:
+            print('Load menu items...')
+
+        self.loadMenuItems(appWrapper)
+
+        # load QGIS Processing Framework Integration
+        import enmapbox.algorithmprovider
+        if isinstance(enmapbox.algorithmprovider.instance(), enmapbox.algorithmprovider.EnMAPBoxAlgorithmProvider):
+            self.loadProcessingAlgorithms(appWrapper)
+
+        if DEBUG:
+            print('Loading done.')
+
+        return True
+
+    def loadProcessingAlgorithms(self, appWrapper:ApplicationWrapper):
+
+        assert isinstance(appWrapper, ApplicationWrapper)
+        processingAlgorithms = appWrapper.app.processingAlgorithms()
+        if DEBUG:
+            print('appWrapper.app.geoAlgorithms() returned: {}'.format(processingAlgorithms))
+
+        if not isinstance(processingAlgorithms, list):
+            processingAlgorithms = [processingAlgorithms]
+
+        processingAlgorithms = [g for g in processingAlgorithms if isinstance(g, QgsProcessingAlgorithm)]
+
+        if len(processingAlgorithms) > 0:
+            processingAlgorithms = [alg.createInstance() for alg in processingAlgorithms]
+            if DEBUG:
+                print('QgsProcessingAlgorithms found: {}'.format(processingAlgorithms))
+            appWrapper.processingAlgorithms.extend(processingAlgorithms)
+            import enmapbox.algorithmprovider
+            provider = enmapbox.algorithmprovider.instance()
+
+            if isinstance(provider, EnMAPBoxAlgorithmProvider):
+                provider.addAlgorithms(processingAlgorithms)
+            else:
+                print('Can not find EnMAPBoxAlgorithmProvider')
+
+
+    def loadMenuItems(self, appWrapper:ApplicationWrapper, parentMenuName = 'Applications'):
+        """
+        Adds an EnMAPBoxApplication QMenu to its parent QMenu
+        :param appWrapper:
+        :param parentMenuName:
+        :return:
+        """
+        assert isinstance(appWrapper, ApplicationWrapper)
+        app = appWrapper.app
+        assert isinstance(app, EnMAPBoxApplication)
+        parentMenu = self.mEnMAPBox.menu(parentMenuName)
+        items = app.menu(parentMenu)
+
+        if items is not None:
+            if not isinstance(items, list):
+                items = [items]
+            appWrapper.menuItems.extend(items)
+
+
+
+    def reloadApplication(self, appId:str):
+        """
+        Reloads an EnMAP-Box Application
+        :param appId: str
+        """
+        assert appId in self.mAppWrapper.keys()
+        self.removeApplication(appId)
+        self.addApplication(appId)
+
+    def removeApplication(self, appId):
+        """
+        Removes the EnMAPBoxApplication
+        :param appId: str
+        """
+        if isinstance(appId, EnMAPBoxApplication):
+            appId = ApplicationWrapper(appId).appId
+
+        appWrapper = self.mAppWrapper.pop(appId)
+        assert isinstance(appWrapper, ApplicationWrapper)
+
+        #remove menu item
+        for item in appWrapper.menuItems:
+
+            parent = item.parent()
+            if isinstance(parent, QMenu):
+                if isinstance(item, QMenu):
+                    parent.removeAction(item.menuAction())
+                else:
+                    s = ""
+
+        import enmapbox.algorithmprovider
+        provider = enmapbox.algorithmprovider.instance()
+        assert isinstance(provider, EnMAPBoxAlgorithmProvider)
+        provider.removeAlgorithms(appWrapper.processingAlgorithms)
+
+

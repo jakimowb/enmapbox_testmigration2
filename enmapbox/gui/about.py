@@ -17,15 +17,18 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
+
 import os, collections
 from qgis.core import *
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
-from enmapbox.gui.utils import loadUI, jp, DIR_REPO
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
 
-class AboutDialog(QDialog,
-                    loadUI('aboutdialog.ui')):
+from enmapbox.gui.utils import loadUI, jp
+from enmapbox import DIR_REPO
+
+
+class AboutDialog(QDialog, loadUI('aboutdialog.ui')):
     def __init__(self, parent=None):
         """Constructor."""
         super(AboutDialog, self).__init__(parent)
@@ -44,10 +47,19 @@ class AboutDialog(QDialog,
 
         import codecs
         #loadTextFile = lambda p: (open(p, 'r','UTF-8').read())
-        loadTextFile = lambda p: (codecs.open(p, 'r', 'utf-8').read())
+
+        def loadTextFile(p):
+            if not os.path.isfile(p):
+                return 'File not found "{}"'.format(p)
+
+            f = open(p, 'r', encoding='utf-8')
+            lines = f.read()
+            f.close()
+            return lines
 
         self.tbLicense.setText(loadTextFile(jp(DIR_REPO, 'LICENSE.txt')))
         self.tbContributors.setText(loadTextFile(jp(DIR_REPO, 'contributors.txt')))
+        self.tbChanges.setText(loadTextFile(jp(DIR_REPO, 'CHANGES.txt')))
     def setAboutTitle(self, suffix=None):
         item = self.listWidget.currentItem()
 
@@ -63,7 +75,7 @@ class AboutDialog(QDialog,
 
 if __name__ == '__main__':
 
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     app = initQgisApplication()
     d = AboutDialog()
     d.show()

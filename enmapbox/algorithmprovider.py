@@ -16,20 +16,34 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
-import sys, os
+
+import os, pathlib
 
 from enmapbox import __version__
-from processing.core.AlgorithmProvider import AlgorithmProvider
-from processing.core.GeoAlgorithm import GeoAlgorithm
-from processing.core.ProcessingConfig import ProcessingConfig, Setting
-from processing.core.Processing import Processing
+from qgis.core import *
+from qgis.PyQt.QtGui import QIcon
+
+try:
+    from processing.core.ProcessingConfig import ProcessingConfig, Setting
+except ModuleNotFoundError as merr:
+
+    import qgis, sys, site
+    path = pathlib.Path(qgis.__file__)
+    pathPlugins = os.path.abspath(path / '../../plugins')
+    site.addsitedir(pathPlugins)
+    from processing.core.ProcessingConfig import ProcessingConfig, Setting
 
 
-NAME = 'enmapbox'
-DESCRIPTION = "EnMAP-Box 3"
 
-class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
+
+ID = 'enmapbox'
+NAME = 'EnMAP-Box'
+LONG_NAME = 'EnMAP-Box (build {})'.format(__version__)
+
+
+
+
+class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
 
 
     """
@@ -39,11 +53,8 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
     def __init__(self):
         super(EnMAPBoxAlgorithmProvider, self).__init__()
         #internal list of GeoAlgorithms. Is used on re-loads and can be manipulated
-        self._algs = []
-
-        #the list of GeoAlgorithms that will be used by the Processing Framework
-        self.algs = []
-        self.settingsName = 'ACTIVATE_' + self.getName().upper().replace(' ', '_')
+        self.mAlgorithms = []
+        self.mSettingsPrefix = self.id().upper().replace(' ', '_')
 
     def initializeSettings(self):
         """This is the place where you should add config parameters
@@ -53,78 +64,180 @@ class EnMAPBoxAlgorithmProvider(AlgorithmProvider):
         Processing framework. By default it just adds a setting to
         activate or deactivate algorithms from the provider.
         """
-        ProcessingConfig.settingIcons[self.getDescription()] = self.getIcon()
 
-        ProcessingConfig.addSetting(Setting(self.getDescription(), self.settingsName,
-                                            self.tr('Activate'), self.activate))
+        ProcessingConfig.setGroupIcon(self.name(), self.getIcon())
+        ProcessingConfig.addSetting(Setting(self.name(), self.mSettingsPrefix+'_ACTIVATE',
+                                            self.tr('Activates the EnMAP-Box'), True))
+        ProcessingConfig.addSetting(Setting(self.name(), self.mSettingsPrefix+'_HELPPATH', 'Location of EnMAP-Box docs', 'default'))
+        ProcessingConfig.readSettings()
 
 
-    def unload(self):
-        """Do here anything that you want to be done when the provider
-        is removed from the list of available ones.
-
-        This method is called when you remove the provider from
-        Processing. Removal of config setting should be done here.
+    def emitUpdated(self):
         """
-
-        ProcessingConfig.removeSetting(self.settingsName)
+        Will inform the ProcessingConfig that Provider settings have been changed.
+        """
+        #import processing.core.ProcessingConfig
+        #processing.core.ProcessingConfig.settingsWatcher.settingsChanged.emit()
+        self.algorithmsLoaded.emit()
 
     def getName(self):
-        """Returns the name to use to create the command-line name.
-           Should be a short descriptive name of the provider.
+        raise DeprecationWarning('Use id() instead')
+
+    def getDescription(self):
+        raise DeprecationWarning('Use name()')
+
+    def getIcon(self):
+        raise DeprecationWarning('Use icon()')
+
+    def id(self)->str:
+        """
+        :return:
+        """
+        return ID
+
+    def helpid(self)->str:
+        return 'https://bitbucket.org/hu-geomatics/enmap-box/wiki/Home'
+
+    def icon(self)->QIcon:
+        """
+        Returns the EnMAPBox icon
+        :return: QIcon
+        """
+        return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
+
+    def name(self)->str:
+        """
+        :return: str
         """
         return NAME
 
+    def longName(self)->str:
+        """
+        :return: str
+        """
+        return LONG_NAME
 
-    def getDescription(self):
-        """Returns the full name of the provider, as it is shown in the Processing Tool Box"""
-        return DESCRIPTION
+    def defaultRasterFileExtension(self)->str:
+        """
+        :return: 'bsq'
+        """
+        return 'bsq'
 
-    def getIcon(self):
-        from enmapbox.gui.enmapboxgui import getIcon
-        return getIcon()
+    def defaultVectorFileExtension(self)->str:
+        """
+        :return: 'shp'
+        """
+        return 'shp'
+
+    def supportedOutputRasterLayerExtensions(self)->list:
+        return ['bsq','bil','bip','tif']
+
+    def supportsNonFileBasedOutput(self)->bool:
+        return False
+
+    def load(self):
+        """
+        Loads the provider.
+        :return: bool
+        """
+        self.refreshAlgorithms()
+        return True
+
+    def containsAlgorithm(self, algorithm:QgsProcessingAlgorithm)->bool:
+        """
+        Returns True if an algorithm with same name is already added.
+        :param algorithm:
+        :return:
+        """
+        for a in self.algorithms():
+            if a.name() == algorithm.name():
+                return True
+        return False
+
+    def unload(self):
+        """
+        This method is called when you remove the provider from
+        Processing. Removal of config setting should be done here.
+        """
+        for key in list(ProcessingConfig.settings.keys()):
+            if key.startswith(self.mSettingsPrefix):
+                ProcessingConfig.removeSetting(key)
+        #del ProcessingConfig.settingIcons[self.name()]
+        #ProcessingConfig.removeSetting(GdalUtils.GDAL_HELP_PATH)
+
+
+    def isActive(self)->bool:
+        """Return True if the provider is activated and ready to run algorithms"""
+        return True
+
+    def setActive(self, active):
+        ProcessingConfig.setSettingValue(self.mSettingsPrefix, active)
+
+
+    def addAlgorithm(self, algorithm:QgsProcessingAlgorithm, _emitUpdated=True):
+        """
+        Adds a QgsProcessingAlgorithm to the EnMAPBoxAlgorithmProvider
+        :param algorithm: QgsProcessingAlgorithm
+        :param _emitUpdated: bool, True by default. set on False to not call .emitUpdated() automatically
+        :return:
+        """
+
+        super(EnMAPBoxAlgorithmProvider,self).addAlgorithm(algorithm)
+        self.mAlgorithms.append(algorithm)
+        if _emitUpdated:
+            self.emitUpdated()
+
+    def addAlgorithms(self, algorithmns:list):
+        """
+        Adds a list of QgsProcessingAlgorithms. The self.emitUpdated() signal is called 1x afterwards.
+        """
+        assert isinstance(algorithmns, list)
+        for a in algorithmns:
+            self.addAlgorithm(a.create(), _emitUpdated = False)
+        if len(algorithmns) > 0:
+            self.emitUpdated()
+        #self.refreshAlgorithms()
+
+    def removeAlgorithm(self, algorithm:QgsProcessingAlgorithm):
+        """
+        Removes a single QgsProcessingAlgorithms
+        :param algorithm: QgsProcessingAlgorithm
+        """
+        self.removeAlgorithms([algorithm])
+
+    def removeAlgorithms(self, algorithms:list):
+        """
+        Removes a list of QgsProcessingAlgorithms
+        :param algorithms: [list-of-QgsProcessingAlgorithms]
+        """
+        if isinstance(algorithms, QgsProcessingAlgorithm):
+            algorithms = [algorithms]
+
+        for a in algorithms:
+            if a in self.mAlgorithms:
+                self.mAlgorithms.remove(a)
+        #self.refreshAlgorithms()
+
+    def refreshAlgorithms(self, *args, **kwargs):
+
+        copies = [a.create() for a in self.algorithms()]
+        self.removeAlgorithms(self.algorithms())
+        super(EnMAPBoxAlgorithmProvider,self).refreshAlgorithms()
+        self.addAlgorithms(copies)
 
     def loadAlgorithms(self):
-        self.algs = []
-        self._loadAlgorithms()
-        #ensure that all loaded GeoAlgorithms have this class instance as provider
-        for alg in self.algs:
+        """
+        Loads all algorithms belonging to this provider.
+        """
+        for alg in self.mAlgorithms:
             alg.provider = self
+        self.addAlgorithms(self.mAlgorithms)
 
-    def _loadAlgorithms(self):
-        #load other algorithms
-        self.algs.extend(self._algs[:])
 
-    def appendAlgorithms(self, geoAlgorithms):
-        """
-        Allows to add GeoAlgorithms during runtime
-        :param geoAlgorithms: list-of-GeoAlgorithms
-        """
-
-        for ga in [ga for ga in geoAlgorithms if isinstance(ga, GeoAlgorithm)]:
-            assert isinstance(ga, GeoAlgorithm)
-            # update self._algs. This will be used if QGIS PF calls _loadAlgorithms
-            if ga not in self._algs:
-                ga.provider = self
-                self._algs.append(ga)
-
-            # update self.algs. This might be used by QGIS PF during runtime
-            if ga not in self.algs:
-                self.algs.append(ga)
-
-        #append the GeoAlgorithms to the QGIS PF algorithm list
-        from processing.core.alglist import algList
-
-        #in case the processing framework was de-activated and activated again, we need to ensure that this provider instance is
-        #part of it
-        if self.getName() not in algList.algs.keys():
-            Processing.addProvider(self)
-
-        pAlgs = algList.algs[self.getName()]
-        if len(self.algs) > 0:
-            for ga in [ga for ga in self._algs \
-                       if isinstance(ga, GeoAlgorithm) and ga not in pAlgs]:
-                pAlgs[ga.commandLineName()] = ga
-
-            algList.providerUpdated.emit(self.getName())
+def instance()->EnMAPBoxAlgorithmProvider:
+    """
+    Returns the EnMAPBoxAlgorithmProvider instance registered to QgsProcessingRegistry
+    :return:
+    """
+    return QgsApplication.instance().processingRegistry().providerById(ID)
 

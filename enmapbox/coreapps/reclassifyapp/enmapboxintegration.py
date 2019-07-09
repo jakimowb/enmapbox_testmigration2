@@ -20,7 +20,8 @@
 """
 
 import os
-from PyQt4.QtGui import QIcon, QMenu, QAction
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 from reclassifyapp import APP_DIR
 class ReclassifyTool(EnMAPBoxApplication):
@@ -61,7 +62,7 @@ class ReclassifyTool(EnMAPBoxApplication):
         #return {'pathSrc': pathSrc, 'pathDst': pathDst, 'LUT': LUT,
         #        'classNames': dstScheme.classNames(), 'classColors': dstScheme.classColors()}
         if len(settings) > 0 :
-            import reclassify
+            from reclassifyapp import reclassify
             reclassify.reclassify(settings['pathSrc'],
                                   settings['pathDst'],
                                   settings['dstClassScheme'],

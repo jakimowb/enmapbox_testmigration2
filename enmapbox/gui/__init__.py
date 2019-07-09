@@ -1,25 +1,8 @@
-import os, sys, logging, site, re
-#package providing gui stuff
 
-from enmapbox.gui.settings import qtSettingsObj
-settings = qtSettingsObj()
-DEBUG = settings.value('EMB_DEBUG', False)
-LOAD_PROCESSING_FRAMEWORK = settings.value('EMB_LOAD_PF', True)
-LOAD_EXTERNAL_APPS = settings.value('EMB_LOAD_EA', True)
-
-if False:
-    #initiate loggers for all pyfiles
-    import pkgutil
-    DIR = os.path.dirname(__file__)
-    for m, name, ispkg in pkgutil.walk_packages(path=DIR, prefix='enmapbox.gui.'):
-        logger = logging.getLogger(name)
-        logger.setLevel(logging.ERROR)
-        fh = logging.StreamHandler()
-        fh_formatter = logging.Formatter('%(levelname)s %(lineno)d:%(filename)s%(module)s %(funcName)s \n\t%(message)s')
-        fh.setFormatter(fh_formatter)
-        fh.addFilter(logging.Filter(name))
-        logger.addHandler(fh)
-
-
-from enmapbox.gui.utils import DIR_SITEPACKAGES
-site.addsitedir(DIR_SITEPACKAGES)
+#import QPS modules
+from ..externals.qps.crosshair.crosshair import CrosshairStyle, CrosshairWidget, CrosshairMapCanvasItem, CrosshairDialog, getCrosshairStyle
+from ..externals.qps.plotstyling.plotstyling import PlotStyle, PlotStyleDialog, PlotStyleButton, PlotStyleWidget
+from ..externals.qps.speclib.spectrallibraries import SpectralLibrary, SpectralProfile, SpectralLibraryWidget
+from ..externals.qps.classification.classificationscheme import ClassificationScheme, ClassInfo, ClassificationSchemeComboBox, ClassificationSchemeWidget, ClassificationSchemeDialog, hasClassification
+from ..externals.qps.models import Option, OptionListModel, TreeNode, TreeModel, TreeView
+from ..externals.qps.maptools import *

@@ -9,7 +9,7 @@ def script():
     applier.controls.setReferenceGridByImage(filename=raster)
     applier.setVector('vector', filename=vector)
     applier.setOutputRaster('out', filename=r'c:\output\out.img', format='ENVI')
-    applier.apply(operator=SimpleIO)
+    applier.apply(operatorType=SimpleIO)
 
 class SimpleIO(ApplierOperator):
 

@@ -58,8 +58,8 @@ class TestExampleEnMAPBoxApp(TestCase):
     def test_dialog(self):
 
         from exampleapp.userinterfaces import ExampleGUI
-        from PyQt4.QtCore import QCoreApplication
-        from PyQt4.Qt import Qt
+        from PyQt5.QtCore import QCoreApplication
+
         g = ExampleGUI()
         g.show()
         QCoreApplication.processEvents()

@@ -23,7 +23,8 @@
 Sandbox examples that show how to run own EnMAP-box applications without starting a QGIS GUI Instance
 
 """
-import qgis
+
+
 def sandboxWithEnMapBox(loadPF=False):
     """
     A minimum example that shows how to load the EnMAP-Box
@@ -31,7 +32,7 @@ def sandboxWithEnMapBox(loadPF=False):
     :return:
     """
     """Minimum example to the this application"""
-    from enmapbox.gui.sandbox import initQgisEnvironment, sandboxPureGui
+    from enmapbox.gui.utils import sandboxPureGui
     qgsApp = initQgisEnvironment()
     sandboxPureGui(loadProcessingFramework=loadPF, loadExampleData=False)
     from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -46,9 +47,9 @@ def sandboxGuiOnly():
     Show & Test the GUI, without any EnMAP-Box / QGIS
     :return:
     """
-    from enmapbox.gui.sandbox import initQgisEnvironment
-    qgsApp = initQgisEnvironment()
-    from reclassifydialog import ReclassifyDialog
+    from enmapbox.testing import initQgisApplication
+    qgsApp = initQgisApplication()
+    from reclassifyapp.reclassifydialog import ReclassifyDialog
     ui1 = ReclassifyDialog()
 
     def onSignal(*args):
@@ -60,13 +61,14 @@ def sandboxGuiOnly():
 
     ui1.show()
 
-    from enmapbox.gui.utils import DIR_REPO, jp
+    from enmapbox.gui.utils import jp
+    from enmapbox import DIR_REPO
 
     pathSrc = jp(DIR_REPO, 'tmp/testclassification.tif')
     pathDst = jp(DIR_REPO, 'tmp/reclassified.tif')
-    ui1.addSrcRaster(pathSrc)
-    from enmapbox.gui.classificationscheme import ClassificationScheme
-    ui1.setDstClassification(ClassificationScheme.create(3))
+    ui1.setSrcRaster(pathSrc)
+    from enmapbox.gui.classification.classificationscheme import ClassificationScheme
+    ui1.setDstClassificationScheme(ClassificationScheme.create(3))
     ui1.setDstRaster(pathDst)
     def runReclassification(**settings):
         # return {'pathSrc': pathSrc, 'pathDst': pathDst, 'LUT': LUT,

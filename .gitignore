@@ -4,6 +4,22 @@ deploy/
 build/
 tmp/
 doc/build/
+enmapboxtestdata/
+
+qgisresources
+qgisresources/
+
+# we do not like to have compiled qt resource files in our repository!
+site-packages/qps/qpsresources.py
+enmapbox/externals/qps/qpsresources.py
+
+site-packages/vrtbuilder/ui/resources.py
+enmapbox/coreapps/enmapboxapplications/ressources.py
+enmapbox/gui/ui/resources.py
+enmapbox/resources.py
+enmapboxtestdata.zip
+
+
 # Untrack compiled files
 *.pyc 
 *.pyd
@@ -16,3 +32,5 @@ doc/build/
 /documentation/build/doctrees/
 /enmapbox/gui/ui/tmp.ui
 doc/build
+/.gitignore
+/test/

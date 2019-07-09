@@ -16,65 +16,419 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
-import sys, os, logging
-logger = logging.getLogger(__name__)
-from qgis.core import *
-from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from enmapbox.gui.utils import PanelWidgetBase, loadUI
-from osgeo import gdal, ogr
-from enmapbox.gui.treeviews import *
-from enmapbox.gui.datasources import *
+
+import inspect, pickle, json
+
+from enmapbox import DIR_TESTDATA, messageLog
+from enmapbox.gui import ClassificationScheme, TreeNode, TreeView
 from enmapbox.gui.utils import *
+from enmapbox.gui.mimedata import *
+from enmapbox.gui.mapcanvas import MapDock
+from enmapbox.gui.datasources import *
+HUBFLOW = True
+HUBFLOW_MAX_VALUES = 1024
+SOURCE_TYPES = ['ALL', 'ANY', 'RASTER', 'VECTOR', 'SPATIAL', 'MODEL', 'SPECLIB']
+
+HIDDEN_DATASOURCE = '__HIDDEN__DATASOURCE'
+try:
+    import hubflow.core
+    s = ""
+
+except Exception as ex:
+    messageLog('Unable to import hubflow API. Error "{}"'.format(ex), level=Qgis.Warning)
+    HUBFLOW = False
+
+
+def reprNL(obj, replacement=' '):
+    """
+    Repturn repl withouth newline
+    :param obj:
+    :param replacement:
+    :return:
+    """
+    return repr(obj).replace('\n',replacement)
+
+class DataSourceManager(QObject):
+    """
+       Keeps control on different data sources handled by EnMAP-Box.
+       Similar like QGIS data registry, but manages non-spatial data sources (text files, spectral libraries etc.) as well.
+    """
+
+    _testInstance = None
+
+    @staticmethod
+    def instance():
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        if isinstance(EnMAPBox.instance(), EnMAPBox):
+            return EnMAPBox.instance().dataSourceManager
+        else:
+            return DataSourceManager._testInstance
+
+
+
+    sigDataSourceAdded = pyqtSignal(DataSource)
+    sigDataSourceRemoved = pyqtSignal(DataSource)
+
+
+
+    def __init__(self):
+        """
+        Constructor
+        """
+        super(DataSourceManager, self).__init__()
+        DataSourceManager._testInstance = self
+        self.mSources = list()
+
+
+        try:
+            from hubflow import signals
+            signals.sigFileCreated.connect(self.addSource)
+        except Exception as ex:
+            messageLog(ex)
+
+
+    def registerQgsProject(self, qgsProject:QgsProject):
+        """
+        Registers a QgsProject instance and listens to changes of its QgsMapLayerStore
+        :param qgsProject: QgsProject
+        """
+        assert isinstance(qgsProject, QgsProject)
+
+        qgsProject.layersAdded.connect(self.addSources)
+
+        # todo: what happens when layers are removed from the QgsProject?
+
+
+    def __iter__(self):
+        return iter(self.mSources)
+
+    def __len__(self) -> int:
+        return len(self.mSources)
+
+    def findSourceFromUUID(self, uuID) -> DataSource:
+        if isinstance(uuID, str):
+            uuID = uuid.uuid4(uuID)
+
+        assert isinstance(uuID, uuid.UUID)
+        """
+        Finds the DataSource with uuid
+        :param uuid: UUID4
+        :return: None or DataSource
+        """
+        for source in self.mSources:
+            assert isinstance(source, DataSource)
+            if source.uuid() == uuID:
+                return source
+        return None
+
+    def sources(self, sourceTypes=None) -> list:
+        """
+        Returns the managed DataSources
+        :param sourceTypes: filter to return specific DataSource types only
+            a) str like 'VECTOR' (see SOURCE_TYPES)
+            b) class type derived from DataSource
+            c) a list of a or b to filter multiple source types, e.g. ['VECTOR', 'RASTER']
+        :return: [list-of-DataSources]
+        """
+
+        if sourceTypes is None:
+            return self.mSources[:]
+        else:
+            if not isinstance(sourceTypes, list):
+                sourceTypes = [sourceTypes]
+
+            filterTypes = set()
+            for sourceType in sourceTypes:
+                if isinstance(sourceType, type(DataSource)):
+                    filterTypes.add(sourceType)
+                elif sourceType in SOURCE_TYPES:
+                    if sourceType == 'ALL':
+                        return self.mSources[:]
+                    elif sourceType == 'VECTOR':
+                        filterTypes.add(DataSourceVector)
+                        filterTypes.add(DataSourceSpectralLibrary)
+                    elif sourceType == 'SPATIAL':
+                        filterTypes.add(DataSourceVector)
+                        filterTypes.add(DataSourceRaster)
+                        filterTypes.add(DataSourceSpectralLibrary)
+                    elif sourceType == 'RASTER':
+                        filterTypes.add(DataSourceRaster)
+                    elif sourceType == 'MODEL':
+                        filterTypes.add(HubFlowDataSource)
+                    elif sourceType == 'SPECLIB':
+                        filterTypes.add(DataSourceSpectralLibrary)
+
+            results = [r for r in self.mSources if type(r) in filterTypes]
+
+        return results
+
+    def classificationSchemata(self)->list:
+        """
+        Reads all DataSource and returns a list of found classification schemata
+        :return: [list-if-ClassificationSchemes]
+        """
+        results = []
+
+        for src in self:
+            scheme = None
+            assert isinstance(src, DataSource)
+            if isinstance(src, DataSourceRaster):
+                scheme = ClassificationScheme.fromRasterImage(src.uri())
+
+            elif isinstance(src, DataSourceVector):
+                lyr = src.createUnregisteredMapLayer()
+                scheme = ClassificationScheme.fromFeatureRenderer(lyr)
+
+            if isinstance(scheme, ClassificationScheme):
+                scheme.setName(src.uri())
+                results.append(scheme)
+
+        return results
+
+    def updateFromQgsProject(self, mapLayers=None):
+        """
+        Add data sources registered in the QgsProject to the data source manager
+        :return: List of added new DataSources
+        """
+        if mapLayers is None:
+            mapLayers = QgsProject.instance().mapLayers().values()
+
+        added = [self.addSource(lyr, name=lyr.name()) for lyr in mapLayers]
+        return [a for a in added if isinstance(a, DataSource)]
+
+    def uriList(self, sourceTypes='ALL') -> list:
+        """
+        Returns URIs of registered data sources
+        :param sourcetype: uri filter as used in sources(sourceTypes=<types>).
+        :return: uri as string (str), e.g. a file path
+        """
+        return [ds.uri() for ds in self.sources(sourceTypes=sourceTypes)]
+
+
+    def onMapLayerRegistryLayersAdded(self, lyrs:list):
+        """
+        Response to added layers in the QGIS layer registry
+        :param lyrs: [list-of-added-QgsMapLayer]
+        """
+        lyrsToAdd = []
+        for l in lyrs:
+            assert isinstance(l, QgsMapLayer)
+
+        #todo: do we need to filter something here?
+
+        """
+        for lyr in lyrs:
+            if isinstance(lyr, QgsVectorLayer):
+                if lyr.dataProvider().dataSourceUri().startswith('memory?'):
+                    continue
+            lyrsToAdd.append(lyr)
+        """
+        lyrsToAdd = lyrs
+        self.addSources(lyrsToAdd)
+
+    def addSources(self, sources) -> list:
+        """
+        Adds a list of new data sources
+        :param sources: list of potential data sources, i.e. QgsDataSources
+        :return: [list-of-added-DataSources]
+        """
+        added = []
+        for s in sources:
+            added.extend(self.addSource(s))
+        added = [a for a in added if isinstance(a, DataSource)]
+
+        return added
+
+    @pyqtSlot(str)
+    @pyqtSlot('QString')
+    def addSource(self, newDataSource, name=None, icon=None):
+        """
+        Adds a new data source.
+        :param newDataSource: any object
+        :param name:
+        :param icon:
+        :return: a list of successfully added DataSource instances.
+                 Usually this will be a list with a single DataSource instance only, but in case of container datasets multiple instances might get returned.
+        """
+        newDataSources = DataSourceFactory.Factory(newDataSource, name=name, icon=icon)
+
+        toAdd = []
+        for dsNew in newDataSources:
+            assert isinstance(dsNew, DataSource)
+            sameSources = [d for d in self.mSources if dsNew.isSameSource(d)]
+            if len(sameSources) == 0:
+                toAdd.append(dsNew)
+            else:
+                #we have similar sources.
+                older = []
+                newer = []
+
+                for d in sameSources:
+                    if dsNew.isNewVersionOf(d):
+                        older.append(d)
+                    if d.isNewVersionOf(dsNew):
+                        newer.append(d)
+
+                sameOrNewer = [d for d in sameSources if d not in older]
+
+                # remove older versions
+                if len(older) > 0:
+                    self.removeSources(older)
+
+                if len(sameOrNewer) == 0:
+                    toAdd.append(dsNew)
+
+
+        for ds in toAdd:
+            if ds not in self.mSources:
+                self.mSources.append(ds)
+                self.sigDataSourceAdded.emit(ds)
+
+        return toAdd
+
+    def addDataSourceByDialog(self):
+        """
+        Shows a fileOpen dialog to select new data sources
+        :return:
+        """
+
+        from enmapbox import enmapboxSettings
+        SETTINGS = enmapboxSettings()
+        lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
+
+        if lastDataSourceDir is None:
+            lastDataSourceDir = DIR_TESTDATA
+
+        if not os.path.exists(lastDataSourceDir):
+            lastDataSourceDir = None
+
+        uris = QFileDialog.getOpenFileNames(None, "Open a data source(s)", lastDataSourceDir)
+        self.addSources(uris)
+
+        if len(uris) > 0:
+            SETTINGS.setValue('lastsourcedir', os.path.dirname(uris[-1]))
+
+    def importSourcesFromQGISRegistry(self):
+        """
+        Adds datasources known to QGIS which do not exist here
+        """
+        p = QgsProject.instance()
+        assert isinstance(p, QgsProject)
+        layers = list(p.mapLayers().values())
+
+        self.addSources(layers)
+
+
+
+    def exportSourcesToQGISRegistry(self, showLayers:bool=False):
+        """
+        Adds spatial datasources to QGIS
+        :param showLayers: False, set on True to show added layers in QGIS Layer Tree
+        """
+
+
+        allQgsLayers = list(QgsProject.instance().mapLayers().values())
+        allQgsSources = [l.source() for l in allQgsLayers]
+        visibleQgsLayers = qgisLayerTreeLayers()
+        visibleQgsSources = [l.source() for l in visibleQgsLayers]
+
+        iface = qgisAppQgisInterface()
+
+        for dataSource in self.sources():
+            if isinstance(dataSource, DataSourceSpatial):
+                l = dataSource.createUnregisteredMapLayer()
+                if not l.isValid():
+                    print('INVALID LAYER FROM DATASOURCE: {} {}'.format(l, l.source()), file=sys.stderr)
+                    continue
+                if l.source() not in allQgsSources:
+                    QgsProject.instance().addMapLayer(l, showLayers)
+                else:
+                    if iface and showLayers and l.source() not in visibleQgsSources:
+                        i = allQgsSources.index(l.source())
+                        knownLayer = allQgsLayers[i]
+                        assert isinstance(knownLayer, QgsMapLayer)
+                        iface.layerTreeView().model().rootGroup().addLayer(knownLayer)
+
+
+
+    def clear(self):
+        """
+        Removes all data source from DataSourceManager
+        :return: [list-of-removed-DataSources]
+        """
+        return self.removeSources(list(self.mSources))
+
+    def removeSources(self, dataSourceList: list = None) -> list:
+        """
+        Removes a list of data sources.
+        :param dataSourceList: [list-of-datasources]
+        :return: self
+        """
+        if dataSourceList is None:
+            dataSourceList = self.sources()
+        removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
+        return [r for r in removed if isinstance(r, DataSource)]
+
+    def removeSource(self, dataSource:DataSource):
+        """
+        Removes the DataSource from the DataSourceManager
+        :param dataSource: the DataSource or datataource uri (str) to be removed
+        :return: the removed DataSource. None if dataSource was not in the DataSourceManager
+        """
+        if isinstance(dataSource, str):
+            self.removeSources([ds for ds in self.mSources if ds.uri() == dataSource])
+        else:
+            assert isinstance(dataSource, DataSource)
+            if dataSource in self.mSources:
+                self.mSources.remove(dataSource)
+                self.sigDataSourceRemoved.emit(dataSource)
+                return dataSource
+            else:
+                messageLog('can not remove {}'.format(dataSource))
+
+    def sourceTypes(self):
+        """
+        Returns the list of source-types handled by this DataSourceManager
+        :return: [list-of-source-types]
+        """
+        return sorted(list(set([type(ds) for ds in self.mSources])), key=lambda t: t.__name__)
 
 
 class DataSourceGroupTreeNode(TreeNode):
 
-    def __init__(self, parent, groupName, classDef, icon=None):
+    def __init__(self, parentNode, groupName:str, classDef, icon=None):
         assert inspect.isclass(classDef)
-
+        assert isinstance(groupName, str)
         if icon is None:
             icon = QApplication.style().standardIcon(QStyle.SP_DirOpenIcon)
 
-        super(DataSourceGroupTreeNode, self).__init__(parent, groupName, icon=icon)
-        self.childClass = classDef
+        super(DataSourceGroupTreeNode, self).__init__(parentNode, name=groupName, icon=icon)
+        self.mFlag1stSource = False
+        self.mGroupName = groupName
+        self.mChildClass = classDef
+        self.sigAddedChildren.connect(self.onChildsChanged)
+        self.sigRemovedChildren.connect(self.onChildsChanged)
 
-    def dataSources(self):
-        return [d.dataSource for d in self.children()
+    def groupName(self)->str:
+        return self.mGroupName
+
+    def onChildsChanged(self, *args):
+
+        n = len(self.childNodes())
+        name = '{} ({})'.format(self.mGroupName, n)
+        self.setName(name)
+
+        if n > 0 and self.mFlag1stSource == False:
+            pass
+
+    def dataSources(self)->list:
+        """
+        Returns the DataSource instances part of this group.
+        :return: [list-of-DataSources]
+        """
+        return [d.mDataSource for d in self.childNodes()
                 if isinstance(d, DataSourceTreeNode)]
 
-    def addChildNode(self, node):
-        """Ensure child types"""
-        assert isinstance(node, DataSourceTreeNode)
-        assert isinstance(node.dataSource, self.childClass)
-        super(DataSourceGroupTreeNode, self).addChildNode(node)
-
-    def writeXML(self, parentElement):
-        elem = super(DataSourceGroupTreeNode, self).writeXML(parentElement)
-        elem.setTagName('data_source_group_tree_node')
-        elem.setAttribute('datasourcetype', str(self.childClass))
-        return elem
-
-    def dataSources(self):
-        return [child.dataSource for child in self.children()]
-
-
-    @staticmethod
-    def readXml(element):
-
-        if element.tagName() != 'data_source_group_tree_node':
-            return None
-
-
-        name = None
-        classDef = None
-        node = DataSourceGroupTreeNode(None, name, classDef)
-
-        TreeNode.attachCommonPropertiesFromXML(node, element)
-
-        return node
 
 
 class DataSourceSizesTreeNode(TreeNode):
@@ -92,89 +446,79 @@ class DataSourceSizesTreeNode(TreeNode):
         fileSize = os.path.getsize(dataSource.uri())
         fileSize = fileSizeString(fileSize)
 
-        n = TreeNode(self, 'File', value=fileSize, icon=dataSource.icon())
+        n = TreeNode(self, 'File', values=fileSize, icon=dataSource.icon())
         if isinstance(dataSource, DataSourceSpatial):
-            ext = dataSource.spatialExtent
+            ext = dataSource.mSpatialExtent
             mu = QgsUnitTypes.encodeUnit(ext.crs().mapUnits())
 
             n = TreeNode(self, 'Spatial Extent')
-            TreeNode(n, 'Width', value='{} {}'.format(ext.width(), mu))
-            TreeNode(n, 'Heigth', value='{} {}'.format(ext.height(), mu))
+            TreeNode(n, 'Width', values='{} {}'.format(ext.width(), mu))
+            TreeNode(n, 'Heigth', values='{} {}'.format(ext.height(), mu))
 
         if isinstance(dataSource, DataSourceRaster):
             n = TreeNode(self, 'Pixels')
-            TreeNode(n, 'Samples (x)', value='{}'.format(dataSource.nSamples))
-            TreeNode(n, 'Lines (y)', value='{}'.format(dataSource.nLines))
-            TreeNode(n, 'Bands (z)', value='{}'.format(dataSource.nBands))
+            TreeNode(n, 'Samples (x)', values='{}'.format(dataSource.nSamples))
+            TreeNode(n, 'Lines (y)', values='{}'.format(dataSource.nLines))
+            TreeNode(n, 'Bands (z)', values='{}'.format(dataSource.nBands))
 
 
 
 class DataSourceTreeNode(TreeNode, KeepRefs):
 
-    def __init__(self, parent, dataSource):
+    def __init__(self, parent:TreeNode, dataSource:DataSource):
 
-        self.dataSource = None
-        self.nodeSize = None
+        self.mDataSource = None
+        self.mNodeSize = None
 
         super(DataSourceTreeNode, self).__init__(parent, '<empty>')
         KeepRefs.__init__(self)
+
         self.disconnectDataSource()
         if dataSource:
             self.connectDataSource(dataSource)
 
-    def connectDataSource(self, dataSource):
-        from enmapbox.gui.datasources import DataSource
+    def connectDataSource(self, dataSource:DataSource):
+        """
+        Connects a DataSource with this DataSourceTreeNode
+        :param dataSource: DataSource
+        """
         assert isinstance(dataSource, DataSource)
-        self.dataSource = dataSource
+        self.mDataSource = dataSource
         self.setName(dataSource.name())
 
-        self.setTooltip(dataSource.uri())
+        self.setToolTip(dataSource.uri())
         self.setIcon(dataSource.icon())
-        self.setCustomProperty('uuid', str(self.dataSource.mUuid))
-        self.setCustomProperty('uri', self.dataSource.uri())
-        uri = self.dataSource.uri()
+
+        uri = self.mDataSource.uri()
         if os.path.isfile(uri):
-            self.mSrcSize = os.path.getsize(self.dataSource.uri())
+            self.mSrcSize = os.path.getsize(self.mDataSource.uri())
+            self.mNodeSize = TreeNode(self, 'File size', values=fileSizeString(self.mSrcSize))
         else:
+            self.mNodeSize = TreeNode(self, 'Size', values='unknown')
             self.mSrcSize = -1
-        self.nodeSize = TreeNode(self, 'Size', value=fileSizeString(self.mSrcSize))
+
+    def dataSource(self)->DataSource:
+        """
+        Returns the DataSource this DataSourceTreeNode represents.
+        :return: DataSource
+        """
+        return self.mDataSource
 
     def disconnectDataSource(self):
-        self.dataSource = None
-        if self.nodeSize:
-            self.removeChildNode(self.nodeSize)
-            self.nodeSize = None
+        self.mDataSource = None
+        if self.mNodeSize:
+            self.removeChildNode(self.mNodeSize)
+            self.mNodeSize = None
 
         self.setName(None)
         self.setIcon(None)
-        self.setTooltip(None)
-        for k in self.customProperties():
-            self.removeCustomProperty(k)
-
-    @staticmethod
-    def readXml(element):
-        if element.tagName() != 'datasource-tree-node':
-            return None
-
-        cp = QgsObjectCustomProperties()
-        cp.readXml(element)
-
-        from enmapbox.gui.datasources import DataSourceFactory
-        dataSources = DataSourceFactory.Factory(cp.value('uri'), name=element.attribute('name'))
-        if len(dataSources) == 1:
-            node = DataSourceTreeNode(None, dataSources[0])
-            TreeNode.attachCommonPropertiesFromXML(node, element)
-        else:
-            #todo: check if this case can get true
-            pass
-
-        return node
+        self.setToolTip(None)
 
     def writeXML(self, parentElement):
         super(DataSourceTreeNode, self).writeXML(parentElement)
         elem = parentElement.lastChild().toElement()
         elem.setTagName('datasource-tree-node')
-        elem.setAttribute('uuid', '{}'.format(self.dataSource.uuid()))
+        elem.setAttribute('uuid', '{}'.format(self.mDataSource.uuid()))
 
 
 class SpatialDataSourceTreeNode(DataSourceTreeNode):
@@ -190,13 +534,13 @@ class SpatialDataSourceTreeNode(DataSourceTreeNode):
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpatial)
         super(SpatialDataSourceTreeNode, self).connectDataSource(dataSource)
-        ext = dataSource.spatialExtent
+        ext = dataSource.mSpatialExtent
         mu = QgsUnitTypes.toString(ext.crs().mapUnits())
         assert isinstance(ext, SpatialExtent)
         assert self.nodeCRS is None
-        self.nodeCRS = CRSTreeNode(self, ext.crs())
-        self.nodeExtXmu = TreeNode(self.nodeSize, 'Width', value='{} {}'.format(ext.width(), mu))
-        self.nodeExtYmu = TreeNode(self.nodeSize, 'Height', value='{} {}'.format(ext.height(), mu))
+        self.nodeCRS = CRSLayerTreeNode(self, ext.crs())
+        self.nodeExtXmu = TreeNode(self.mNodeSize, 'Width', values='{} {}'.format(ext.width(), mu))
+        self.nodeExtYmu = TreeNode(self.mNodeSize, 'Height', values='{} {}'.format(ext.height(), mu))
 
     def disconnectDataSource(self):
         super(SpatialDataSourceTreeNode, self).disconnectDataSource()
@@ -215,32 +559,111 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
         self.nodeFeatures = None
         self.nodeFields = None
 
-    def connectDataSource(self, dataSource):
-        assert isinstance(dataSource, DataSourceVector)
+    def connectDataSource(self, dataSource:DataSourceVector):
         super(VectorDataSourceTreeNode, self).connectDataSource(dataSource)
 
-        lyr = self.dataSource.createUnregisteredMapLayer()
+        lyr = self.mDataSource.createUnregisteredMapLayer()
+        assert lyr.isValid()
         nFeat = lyr.featureCount()
         nFields = lyr.fields().count()
 
         geomType = ['Point','Line','Polygon','Unknown','Null'][lyr.geometryType()]
-        wkbType = QgsWKBTypes.displayString(int(lyr.wkbType()))
-        self.nodeSize.setValue('{} x {}'.format(nFeat, fileSizeString(self.mSrcSize)))
-        self.nodeFeatures = TreeNode(self, 'Features',
-                                   value='{}'.format(nFeat))
-        TreeNode(self.nodeFeatures, 'Geometry Type', value=geomType)
+        wkbType = QgsWkbTypes.displayString(int(lyr.wkbType()))
 
-        TreeNode(self.nodeFeatures, 'WKB Type', value=wkbType)
+        if re.search('polygon', wkbType, re.I):
+            self.setIcon(QIcon(r':/images/themes/default/mIconPolygonLayer.svg'))
+        elif re.search('line', wkbType, re.I):
+            self.setIcon(QIcon(r':/images/themes/default/mIconLineLayer.svg'))
+        elif re.search('point', wkbType, re.I):
+            self.setIcon(QIcon(r':/images/themes/default/mIconPointLayer.svg'))
+
+        #self.nodeSize.setValue('{} x {}'.format(nFeat, fileSizeString(self.mSrcSize)))
+        self.nodeFeatures = TreeNode(self, 'Features',
+                                          values='{}'.format(nFeat))
+        TreeNode(self.nodeFeatures, 'Geometry Type', values=geomType)
+
+        TreeNode(self.nodeFeatures, 'WKB Type', values=wkbType)
 
         self.nodeFields = TreeNode(self, 'Fields',
-                                   tooltip='Attribute fields related to each feature',
-                                   value='{}'.format(nFields))
+                                        toolTip='Attribute fields related to each feature',
+                                        values='{}'.format(nFields))
         for i in range(nFields):
             field = lyr.fields().at(i)
             node = TreeNode(self.nodeFields, field.name(),
-                            value='{} {}'.format(field.typeName(), field.length()))
+                                 values='{} {}'.format(field.typeName(), field.length()))
 
         s = ""
+
+
+class ClassificationNodeLayer(TreeNode):
+
+    def __init__(self, parent, classificationScheme, name='Classification Scheme'):
+        super(ClassificationNodeLayer, self).__init__(parent, name)
+        self.setName(name)
+        for i, ci in enumerate(classificationScheme):
+            TreeNode(parent, '{}'.format(i), values=ci.name(), icon=ci.icon())
+
+class CRSLayerTreeNode(TreeNode):
+    def __init__(self, parent, crs):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        super(CRSLayerTreeNode, self).__init__(parent, crs.description())
+        self.setName('CRS')
+        self.setIcon(QIcon(':/images/themes/default/propertyicons/CRS.svg'))
+        self.setToolTip('Coordinate Reference System')
+        self.mCrs = None
+        self.nodeDescription = TreeNode(self, 'Name', toolTip='Description')
+        self.nodeAuthID = TreeNode(self, 'AuthID', toolTip='Authority ID')
+        self.nodeAcronym = TreeNode(self, 'Acronym', toolTip='Projection Acronym')
+        self.nodeMapUnits = TreeNode(self, 'Map Units')
+        self.setCrs(crs)
+
+
+    def setCrs(self, crs):
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        self.mCrs = crs
+        if self.mCrs.isValid():
+            self.setValues(crs.description())
+            self.nodeDescription.setValues(crs.description())
+            self.nodeAuthID.setValues(crs.authid())
+            self.nodeAcronym.setValues(crs.projectionAcronym())
+            #self.nodeDescription.setItemVisibilityChecked(Qt.Checked)
+            self.nodeMapUnits.setValues(QgsUnitTypes.toString(self.mCrs.mapUnits()))
+        else:
+            self.setValues(None)
+            self.nodeDescription.setValue('N/A')
+            self.nodeAuthID.setValue('N/A')
+            self.nodeAcronym.setValue('N/A')
+            self.nodeMapUnits.setValue('N/A')
+
+    def contextMenu(self):
+        menu = QMenu()
+        a = menu.addAction('Copy EPSG Code')
+        a.setToolTip('Copy the authority id ("{}") of this CRS.'.format(self.mCrs.authid()))
+        a.triggered.connect(lambda: QApplication.clipboard().setText(self.mCrs.authid()))
+
+        a = menu.addAction('Copy WKT')
+        a.setToolTip('Copy the well-known-type representation of this CRS.')
+        a.triggered.connect(lambda: QApplication.clipboard().setText(self.mCrs.toWkt()))
+
+        a = menu.addAction('Copy Proj4')
+        a.setToolTip('Copy the Proj4 representation of this CRS.')
+        a.triggered.connect(lambda: QApplication.clipboard().setText(self.mCrs.toProj4()))
+        return menu
+
+
+
+class ColorTreeNode(TreeNode):
+
+    def __init__(self, parentNode, color:QColor):
+        assert isinstance(color, QColor)
+
+
+        pm = QPixmap(QSize(20, 20))
+        pm.fill(color)
+        icon = QIcon(pm)
+        name = color.name()
+        value = color.getRgbF()
+        super(ColorTreeNode, self).__init__(parentNode, name=name, value=value, icon=icon)
 
 
 class RasterBandTreeNode(TreeNode):
@@ -254,12 +677,11 @@ class RasterBandTreeNode(TreeNode):
         self.mBandIndex = bandIndex
 
         md = self.mDataSource.mBandMetadata[bandIndex]
-        from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
         classScheme = md.get('__ClassificationScheme__')
         if isinstance(classScheme, ClassificationScheme):
             for ci in classScheme:
                 assert isinstance(ci, ClassInfo)
-                TreeNode(self, str(ci.label()),ci.name(), icon=ci.icon())
+                TreeNode(self, str(ci.label()), ci.name(), icon=ci.icon())
 
 
 
@@ -267,69 +689,54 @@ class RasterBandTreeNode(TreeNode):
 class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         #extents in pixel
-        self.nodeExtXpx = None
-        self.nodeExtYpx = None
-        self.nodeBands = None
-        self.nodePxSize = None
+        self.mNodeExtXpx = None
+        self.mNodeExtYpx = None
+        self.mNodeBands = None
+        self.mNodePxSize = None
         super(RasterDataSourceTreeNode,self).__init__( *args, **kwds)
-
-        s = ""
-
-
 
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceRaster)
         super(RasterDataSourceTreeNode, self).connectDataSource(dataSource)
 
         self.setIcon(dataSource.icon())
-        mu = QgsUnitTypes.toString(dataSource.spatialExtent.crs().mapUnits())
+        mu = QgsUnitTypes.toString(dataSource.spatialExtent().crs().mapUnits())
 
 
-        self.nodeExtXpx = TreeNode(self.nodeSize, 'Samples',
-                                   tooltip='Data Source Width in Pixel',
-                                   value='{} px'.format(dataSource.nSamples))
-        self.nodeExtYpx = TreeNode(self.nodeSize, 'Lines',
-                                   tooltip='Data Source Height in Pixel',
-                                   value='{} px'.format(dataSource.nLines))
+        self.mNodeExtXpx = TreeNode(self.mNodeSize, 'Samples',
+                                    toolTip='Data Source Width in Pixel',
+                                    values='{} px'.format(dataSource.nSamples))
+        self.mNodeExtYpx = TreeNode(self.mNodeSize, 'Lines',
+                                    toolTip='Data Source Height in Pixel',
+                                    values='{} px'.format(dataSource.nLines))
 
-        self.nodePxSize = TreeNode(self.nodeSize, 'Pixel',
-                                   tooltip='Spatial size of single pixel',
-                                   value='{} {} x {} {}'.format(dataSource.pxSizeX, mu, dataSource.pxSizeY, mu))
+        pxSize = dataSource.mPxSize
+        self.mNodePxSize = TreeNode(self.mNodeSize, 'Pixel',
+                                    toolTip='Spatial size of single pixel',
+                                    values='{}x{}{}'.format(pxSize.width(), mu, pxSize.height()))
 
-        self.nodeSize.setValue('{}x{}x{}'.format(dataSource.nSamples,
-                                                 dataSource.nLines,
-                                                 dataSource.nBands))
+        self.mNodeSize.setValue('{}x{}x{}'.format(dataSource.nSamples,
+                                                  dataSource.nLines,
+                                                  dataSource.nBands))
 
-        self.nodeBands = TreeNode(self, 'Bands',
-                                  tooltip='Number of Raster Bands',
-                                  value='{}'.format(dataSource.nBands))
-
-
-        ds = gdal.Open(dataSource.uri())
+        self.mNodeBands = TreeNode(self, 'Bands',
+                                   toolTip='Number of Raster Bands',
+                                   values='{}'.format(dataSource.nBands))
 
 
-
-        for b in range(ds.RasterCount):
-            band = ds.GetRasterBand(b+1)
-            assert isinstance(band, gdal.Band)
-
-            name = band.GetDescription()
-
-            if len(name) == 0:
-                name = ''
-            bandNode = RasterBandTreeNode(dataSource, b, self.nodeBands, 'Band {}'.format(b+1), value=name)
+        for b, bandName in enumerate(dataSource.mBandNames):
+            bandNode = RasterBandTreeNode(dataSource, b, self.mNodeBands, str(b+1), bandName)
 
 
-        ds = None
 
 
 
     def disconnectDataSource(self):
-        if self.nodeExtXpx is not None:
-            self.nodeExtXpx = self._removeSubNode(self.nodeExtXpx)
-            self.nodeExtYpx = self._removeSubNode(self.nodeExtYpx)
-            self.nodeBands = self._removeSubNode(self.nodeBands)
-            self.nodePxSize = self._removeSubNode(self.nodePxSize)
+        if self.mNodeExtXpx is not None:
+            self.mNodeExtXpx = self._removeSubNode(self.mNodeExtXpx)
+            self.mNodeExtYpx = self._removeSubNode(self.mNodeExtYpx)
+            self.mNodeBands = self._removeSubNode(self.mNodeBands)
+            self.mNodePxSize = self._removeSubNode(self.mNodePxSize)
         pass
 
 class FileDataSourceTreeNode(DataSourceTreeNode):
@@ -337,15 +744,16 @@ class FileDataSourceTreeNode(DataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super(FileDataSourceTreeNode,self).__init__( *args, **kwds)
 
+
 class SpeclibProfilesTreeNode(TreeNode):
 
     def __init__(self, parent, speclib, **kwds):
         super(SpeclibProfilesTreeNode, self).__init__(parent, 'Profiles', **kwds)
-        from enmapbox.gui.spectrallibraries import SpectralLibrary
+        self.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
         assert isinstance(speclib, SpectralLibrary)
         self.mSpeclib = speclib
-        speclib.sigProfilesAdded.connect(self.update)
-        speclib.sigProfilesRemoved.connect(self.update)
+        speclib.committedFeaturesAdded.connect(self.update)
+        speclib.committedFeaturesRemoved.connect(self.update)
         self.update()
         assert isinstance(self.mSpeclib, SpectralLibrary)
 
@@ -354,34 +762,34 @@ class SpeclibProfilesTreeNode(TreeNode):
         self.setValue(len(self.mSpeclib))
 
     def fetchCount(self):
-        from enmapbox.gui.spectrallibraries import SpectralLibrary
         if isinstance(self.mSpeclib, SpectralLibrary):
             return len(self.mSpeclib)
         else:
             return 0
 
     def fetchNext(self):
-        from enmapbox.gui.spectrallibraries import SpectralLibrary
         if isinstance(self.mSpeclib, SpectralLibrary):
             for p in self.mSpeclib:
                 TreeNode(self, p.name())
 
-
-
 class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super(SpeclibDataSourceTreeNode, self).__init__(*args, **kwds)
-
+        self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
         self.profileNode = None
         self.mSpeclib = None
+
+    def speclib(self)->SpectralLibrary:
+        """
+        Returns the SpectralLibrary
+        :return: SpectralLibrary
+        """
+        return self.mSpeclib
 
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpectralLibrary)
         super(SpeclibDataSourceTreeNode, self).connectDataSource(dataSource)
-
-        from enmapbox.gui.spectrallibraries import SpectralLibrary, SpectralProfile
-
-        assert isinstance(self.dataSource.mSpeclib, SpectralLibrary)
+        assert isinstance(self.mDataSource.mSpeclib, SpectralLibrary)
 
         self.profileNode = SpeclibProfilesTreeNode(self, dataSource.mSpeclib)
         #self.profileNode.mSpeclib = dataSource.mSpeclib
@@ -391,7 +799,6 @@ class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
         #for name in dataSource.profileNames:
         #    TreeNode(self.profiles, name)
 
-
 class HubFlowObjectTreeNode(DataSourceTreeNode):
 
     def __init__(self, *args, **kwds):
@@ -400,71 +807,148 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
 
     def connectDataSource(self, processingTypeDataSource):
         super(HubFlowObjectTreeNode, self).connectDataSource(processingTypeDataSource)
-        assert isinstance(self.dataSource, HubFlowDataSource)
+        assert isinstance(self.mDataSource, HubFlowDataSource)
 
-        self.flowObject = self.dataSource.flowObject()
 
-        objects = set()
+        if isinstance(self.mDataSource.flowObject(), hubflow.core.FlowObject):
 
-        def fetchInternals(parent, obj, objects):
-            assert isinstance(parent, TreeNode)
-            if id(obj) in objects:
-                return
-            else:
-                objects.add(id(obj))
+            moduleName = self.mDataSource.flowObject().__class__.__module__
+            className = self.mDataSource.flowObject().__class__.__name__
+            #self.setValue('{}.{}'.format(moduleName, className))
+            self.setName(className)
+            self.setToolTip('{}.{}'.format(moduleName, className))
+            self.fetchInternals(self.mDataSource.flowObject(), parentTreeNode=self)
 
-            if isinstance(obj, hubflow.types.ClassDefinition):
-                from enmapbox.gui.classificationscheme import ClassificationScheme, ClassInfo
+    @staticmethod
+    def fetchInternals(obj:object, parentTreeNode:TreeNode=None, fetchedObjectIds:set=None)->TreeNode:
+        """
+        Represents a python object as TreeNode structure.
+        :param obj: any type of python object
+                    lists, sets and dictionaries will be shown as subtree
+                    basic builtin objects (float, int, str, numpy.arrays) are show as str(obj) value
+        :param parentTreeNode: the parent Node. Need to have a name
+        :param fetchedObjectIds: reminder of already used objects. necessary to avoid circular references
+        :return: TreeNode
+        """
+        if parentTreeNode is None:
+            parentTreeNode = TreeNode(None, '\t')
+        assert isinstance(parentTreeNode, TreeNode)
+
+        pName = parentTreeNode.name()
+
+        if fetchedObjectIds is None:
+            fetchedObjectIds = set()
+
+        assert isinstance(fetchedObjectIds, set)
+        if id(obj) in fetchedObjectIds:
+            # do not return any node for objects already described.
+            # this is necessary to avoid circular references
+
+            parentTreeNode.setValue(str(obj))
+            return parentTreeNode
+
+
+        fetchedObjectIds.add(id(obj))
+
+        if 'feature_importances_' in pName:
+            s = ""
+        fetch = HubFlowObjectTreeNode.fetchInternals
+
+        import hubflow.core
+        if isinstance(obj, hubflow.core.FlowObject):
+            # for all FlowObjects
+            moduleName = obj.__class__.__module__
+            className = obj.__class__.__name__
+
+            parentTreeNode.setValue('{}.{}'.format(moduleName, className))
+            #ClassDefinitions
+            if isinstance(obj, hubflow.core.ClassDefinition):
                 csi = ClassificationScheme()
-                colors = np.asarray(obj.lookup).reshape((obj.classes,3))
-                for label in range(obj.classes):
-                    ci = ClassInfo(label=label, name=obj.names[label], color=QColor(*colors[label,:]))
-                    csi.addClass(ci)
-                ClassificationNode(parent, csi, name='ClassDefinition')
+                classes = []
+                classes.append(ClassInfo(name = obj.noDataName(), color=obj.noDataColor()._qColor))
+                import hubflow.core
+                for name, color in zip(obj.names(), obj.colors()):
+                    classes.append(ClassInfo(name=name, color=color._qColor))
+                csi.insertClasses(classes)
+                ClassificationNodeLayer(parentTreeNode, csi, name='Classes')
 
-            elif isinstance(obj, dict):
-                for k, i in obj.items():
-                    name = str(k)
-                    if name.startswith('_'):
-                        continue
-                    node = TreeNode(parent, name)
-                    if isinstance(i, list) or \
-                        isinstance(i, set):
-                        node.setValue(str(len(i)))
-                        fetchInternals(node, i, objects)
-                    elif isinstance(i, np.ndarray):
-                        text = '{} {} {}...'.format(i.shape, i.dtype, re.split('[\n]', str(i))[0])
-                        node.setValue(text)
-                    else:
-                        fetchInternals(node, i, objects)
+            fetch(obj.__dict__, parentTreeNode=parentTreeNode, fetchedObjectIds=fetchedObjectIds)
 
-            elif isinstance(obj, list) or isinstance(obj, set):
-                for i, item in enumerate(obj):
-                    node = TreeNode(parent, str(i))
-                    if isinstance(item, hubflow.types.FlowObject) or \
-                       isinstance(item, dict) or \
-                       isinstance(item, list):
-                        fetchInternals(node, item, objects)
-                    else:
-                        text = str(item)
-                        node.setValue(text.replace('\n',' '))
-                    if i > 100:
-                        break
-            elif isinstance(obj, hubflow.types.FlowObject):
-                parent.setName(obj.__class__.__name__)
-                fetchInternals(parent, obj.__dict__, objects)
+
+        elif isinstance(obj, dict):
+            """
+            Show dictionary
+            """
+            s = ""
+            for key in sorted(obj.keys()):
+                value = obj[key]
+                name = str(key)
+                if name.startswith('__'):
+                    continue
+
+
+                if re.search('_(vector|raster).*', name):
+                    s = ""
+                node = TreeNode(parentTreeNode, name, values=reprNL(value))
+                fetch(value, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
+
+        elif isinstance(obj, np.ndarray):
+
+            if obj.ndim == 1:
+                fetch(list(obj), parentTreeNode=parentTreeNode, fetchedObjectIds=fetchedObjectIds)
             else:
-                parent.setValue(str(obj))
+                parentTreeNode.setValue(str(obj))
 
 
-        if isinstance(self.flowObject, hubflow.types.FlowObject):
+        elif isinstance(obj, (list, set, tuple)):
+            """Show enumerations"""
 
-            self.setValue(self.flowObject.__class__.__name__)
-            #todo: type specific icon
+            for i, item in enumerate(obj):
+                node = TreeNode(parentTreeNode, str(i + 1), values=reprNL(item))
+                fetch(item, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
+                if i > HUBFLOW_MAX_VALUES:
+                    node = TreeNode(parentTreeNode, '...')
+                    break
+        elif isinstance(obj, QColor):
+            ColorTreeNode(parentTreeNode, obj)
 
-            fetchInternals(self, self.flowObject.__dict__, objects)
+        elif not hasattr(obj, '__dict__'):
+            parentTreeNode.setValue(str(obj))
+
+        elif isinstance(obj, object):
+            #a __class__
+            moduleName = obj.__class__.__module__
+            className = obj.__class__.__name__
+
+            attributes = []
+            for a in obj.__dict__.keys():
+                if a.startswith('__'):
+                    continue
+                if moduleName.startswith('hubflow') or not a.startswith('_'):
+                    attributes.append(a)
+
+            for t in inspect.getmembers(obj, lambda o: isinstance(o, np.ndarray)):
+                if t[0] not in attributes:
+                    attributes.append(t[0])
+
+            for name in sorted(attributes):
+                attr = getattr(obj, name, None)
+                if attr is None:
+                    try:
+                        attr = obj.__dict__[name]
+                    except:
+                        pass
+
+                node = TreeNode(parentTreeNode, name, values=reprNL(attr))
+                fetch(attr, parentTreeNode=node, fetchedObjectIds=fetchedObjectIds)
+                s =""
 
 
+        else:
+            #show the object's 'natural' printout as node value
+            parentTreeNode.setValue(reprNL(obj))
+
+        return parentTreeNode
 
 
     def __addInfo(self, obj):
@@ -486,7 +970,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
                 pixmap.fill(QColor(*color))
                 icon = QIcon(pixmap)
 
-                TreeNode(grp, '{}'.format(i), value='{}'.format(name), icon=icon)
+                TreeNode(grp, '{}'.format(i), values='{}'.format(name), icon=icon)
 
             handled.extend(['class lookup', 'class names'])
 
@@ -507,60 +991,325 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
         return m
 
 
-
-
 class DataSourceTreeView(TreeView):
+    """
+    A TreeView to show EnMAP-Box Data Sources
+    """
 
     def __init__(self, *args, **kwds):
         super(DataSourceTreeView, self).__init__(*args, **kwds)
         self.setAcceptDrops(True)
 
 
+    def contextMenuEvent(self, event:QContextMenuEvent):
+        """
+        Creates and shows the context menu created on right-mouse-click.
+        :param event: QContextMenuEvent
+        """
+        idx = self.currentIndex()
+        assert isinstance(event, QContextMenuEvent)
 
-class DataSourcePanelUI(PanelWidgetBase, loadUI('datasourcepanel.ui')):
+        if not idx.isValid():
+            return
+        col = idx.column()
+        model = self.model()
+        assert isinstance(model, DataSourceManagerTreeModel)
+
+
+
+        selectedNodes = self.selectedNodes()
+        node = self.selectedNode()
+        dataSources = list(set([n.mDataSource for n in selectedNodes if isinstance(n, DataSourceTreeNode)]))
+        srcURIs = list(set([s.uri() for s in dataSources]))
+
+        qgisIFACE = qgisAppQgisInterface()
+
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        enmapbox = EnMAPBox.instance()
+
+        mapDocks = []
+        if isinstance(enmapbox, EnMAPBox):
+            mapDocks = enmapbox.dockManager.docks('MAP')
+
+        m = QMenu()
+
+        if isinstance(node, DataSourceGroupTreeNode):
+            a = m.addAction('Clear')
+            assert isinstance(a, QAction)
+            a.setToolTip('Removes all datasources from this node')
+            a.triggered.connect(lambda: model.dataSourceManager.removeSources(node.dataSources()))
+
+        if isinstance(node, DataSourceTreeNode):
+            src = node.mDataSource
+
+            if isinstance(src, DataSource):
+                a = m.addAction('Remove')
+                a.triggered.connect(lambda: model.dataSourceManager.removeSources(dataSources))
+                a = m.addAction('Copy URI / path')
+                a.triggered.connect(lambda: QApplication.clipboard().setText('\n'.join(srcURIs)))
+                # a = m.addAction('Rename')
+                # a.setEnabled(False)
+                # todo: implement rename function
+                # a.triggered.connect(node.dataSource.rename)
+
+            if isinstance(src, DataSourceSpatial):
+                pass
+                #a = m.addAction('Save as..')
+
+            def appendRasterActions(sub: QMenu, src: DataSourceRaster, mapDock: MapDock):
+                assert isinstance(src, DataSourceRaster)
+                a = sub.addAction('Default Colors')
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='DEFAULT'))
+
+                b = src.mWaveLengthUnits is not None
+
+                a = sub.addAction('True Color')
+                a.setToolTip('Red-Green-Blue true colors')
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='R,G,B'))
+                a.setEnabled(b)
+
+                a = sub.addAction('CIR')
+                a.setToolTip('nIR Red Green')
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='NIR,R,G'))
+                a.setEnabled(b)
+
+                a = sub.addAction('SWIR')
+                a.setToolTip('nIR swIR Red')
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='NIR,SWIR,R'))
+                a.setEnabled(b)
+
+            if isinstance(src, DataSourceRaster):
+                sub = m.addMenu('Open in new map...')
+                appendRasterActions(sub, src, None)
+
+                sub = m.addMenu('Open in existing map...')
+                if len(mapDocks) > 0:
+                    for mapDock in mapDocks:
+                        assert isinstance(mapDock, MapDock)
+                        subsub = sub.addMenu(mapDock.title())
+                        appendRasterActions(subsub, src, mapDock)
+                else:
+                    sub.setEnabled(False)
+                sub = m.addMenu('Open in QGIS')
+                if isinstance(qgisIFACE, QgisInterface):
+                    appendRasterActions(sub, src, qgisIFACE.mapCanvas())
+                else:
+                    sub.setEnabled(False)
+
+            if isinstance(src, DataSourceVector):
+                a = m.addAction('Open in new map')
+                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=None))
+
+                sub = m.addMenu('Open in existing map...')
+                if len(mapDocks) > 0:
+                    for mapDock in mapDocks:
+                        assert isinstance(mapDock, MapDock)
+                        a = sub.addAction(mapDock.title())
+                        a.triggered.connect(
+                            lambda checked, src=src, mapDock=mapDock: self.openInMap(src, mapCanvas=mapDock))
+                else:
+                    sub.setEnabled(False)
+
+                a = m.addAction('Open in QGIS')
+                if isinstance(qgisIFACE, QgisInterface):
+                    a.triggered.connect(lambda: self.openInMap(src, mapCanvas=qgisIFACE.mapCanvas()))
+                else:
+                    a.setEnabled(False)
+
+            if isinstance(src, DataSourceSpectralLibrary):
+                a = m.addAction('Open Editor')
+                a.triggered.connect(lambda: self.onOpenSpeclib(src.speclib()))
+
+        if isinstance(node, RasterBandTreeNode):
+            a = m.addAction('Band statistics')
+            a.setEnabled(False)
+
+            a = m.addAction('Open in new map')
+            a.triggered.connect(lambda: self.openInMap(node.mDataSource, rgb=[node.mBandIndex]))
+
+        if col == 1 and node.value() != None:
+            a = m.addAction('Copy')
+            a.triggered.connect(lambda: QApplication.clipboard().setText(str(node.value())))
+
+        if isinstance(node, TreeNode):
+            m2 = node.contextMenu()
+            if isinstance(m2, QMenu):
+                for a in m2.actions():
+                    a.setParent(None)
+                    m.addAction(a)
+                    a.setParent(m)
+        m.exec_(self.viewport().mapToGlobal(event.pos()))
+
+    def openInMap(self, dataSource: DataSourceSpatial, mapCanvas=None, rgb=None, sampleSize=256):
+        """
+        Add a DataSourceSpatial as QgsMapLayer to a mapCanvas.
+        :param mapCanvas: QgsMapCanvas. Creates a new MapDock if set to none.
+        :param dataSource: DataSourceSpatial
+        :param rgb:
+        """
+
+        if not isinstance(dataSource, DataSourceSpatial):
+            return
+
+        if mapCanvas is None:
+            from enmapbox.gui.enmapboxgui import EnMAPBox
+            emb = EnMAPBox.instance()
+            if not isinstance(emb, EnMAPBox):
+                return None
+            dock = emb.createDock('MAP')
+            assert isinstance(dock, MapDock)
+            mapCanvas = dock.mCanvas
+
+        if isinstance(mapCanvas, MapDock):
+            mapCanvas = mapCanvas.mapCanvas()
+
+        assert isinstance(mapCanvas, QgsMapCanvas)
+
+        lyr = dataSource.createUnregisteredMapLayer()
+
+        from enmapbox.gui.utils import bandClosestToWavelength, defaultBands
+        if isinstance(lyr, QgsRasterLayer):
+            r = lyr.renderer()
+            if isinstance(r, QgsRasterRenderer):
+                ds = gdal.Open(lyr.source())
+                if isinstance(rgb, str):
+                    if re.search('DEFAULT', rgb):
+                        rgb = defaultBands(ds)
+                    else:
+                        rgb = [bandClosestToWavelength(ds, s) for s in rgb.split(',')]
+
+                assert isinstance(rgb, list)
+                r = defaultRasterRenderer(lyr, bandIndices=rgb, sampleSize=sampleSize)
+                lyr.setRenderer(r)
+
+
+        elif isinstance(lyr, QgsVectorLayer):
+
+            pass
+
+        qgisIFACE = qgisAppQgisInterface()
+        if isinstance(qgisIFACE, QgisInterface) and mapCanvas in qgisIFACE.mapCanvases():
+            QgsProject.instance().addMapLayer(lyr)
+
+        allLayers = mapCanvas.layers()
+        allLayers.append(lyr)
+
+        mapCanvas.setLayers(allLayers)
+
+    def onSaveAs(self, dataSource):
+
+        pass
+
+    def onOpenSpeclib(self, speclib: SpectralLibrary):
+        """
+        Opens a SpectralLibrary in a new SpectralLibraryDock
+        :param speclib: SpectralLibrary
+
+        """
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        EnMAPBox.instance().dockManager.createDock('SPECLIB', speclib=speclib)
+
+
+class DataSourcePanelUI(QgsDockWidget, loadUI('datasourcepanel.ui')):
     def __init__(self, parent=None):
         super(DataSourcePanelUI, self).__init__(parent)
-        self.dataSourceManager = None
+        self.setupUi(self)
+        self.mDataSourceManager = None
         assert isinstance(self.dataSourceTreeView, DataSourceTreeView)
 
         self.dataSourceTreeView.setDragDropMode(QAbstractItemView.DragDrop)
 
-    def connectDataSourceManager(self, dataSourceManager):
-        assert isinstance(dataSourceManager, DataSourceManager)
-        self.dataSourceManager = dataSourceManager
-        self.model = DataSourceManagerTreeModel(self, self.dataSourceManager)
-        self.dataSourceTreeView.setModel(self.model)
-        self.dataSourceTreeView.setMenuProvider(DataSourceManagerTreeModelMenuProvider(self.dataSourceTreeView))
-        self.dataSourceTreeView.setDragEnabled(True)
-        self.dataSourceTreeView.setAcceptDrops(True)
+        #init actions
 
+
+        self.actionAddDataSource.triggered.connect(lambda : self.mDataSourceManager.addDataSourceByDialog())
+        self.actionRemoveDataSource.triggered.connect(lambda: self.mDataSourceManager.removeSources(self.selectedDataSources()))
+        self.actionRemoveDataSource.setEnabled(False) #will be enabled with selection of node
+        def onSync():
+            self.mDataSourceManager.importSourcesFromQGISRegistry()
+            self.mDataSourceManager.exportSourcesToQGISRegistry(showLayers=True)
+        self.actionSyncWithQGIS.triggered.connect(onSync)
+
+        hasQGIS = qgisAppQgisInterface() is not None
+        self.actionSyncWithQGIS.setEnabled(hasQGIS)
+
+        self.initActions()
+
+    def initActions(self):
+
+        self.btnAddSource.setDefaultAction(self.actionAddDataSource)
+        self.btnSync.setDefaultAction(self.actionSyncWithQGIS)
+        self.btnRemoveSource.setDefaultAction(self.actionRemoveDataSource)
+        self.btnCollapse.clicked.connect(lambda :self.expandSelectedNodes(self.dataSourceTreeView, False))
+        self.btnExpand.clicked.connect(lambda :self.expandSelectedNodes(self.dataSourceTreeView, True))
+
+
+    def expandSelectedNodes(self, treeView, expand):
+        assert isinstance(treeView, QTreeView)
+
+        treeView.selectAll()
+        indices = treeView.selectedIndexes()
+        if len(indices) == 0:
+            treeView.selectAll()
+            indices += treeView.selectedIndexes()
+            treeView.clearSelection()
+        for idx in indices:
+            treeView.setExpanded(idx, expand)
+
+    def connectDataSourceManager(self, dataSourceManager:DataSourceManager):
+        """
+        Initializes the panel with a DataSourceManager
+        :param dataSourceManager: DataSourceManager
+        """
+        assert isinstance(dataSourceManager, DataSourceManager)
+        self.mDataSourceManager = dataSourceManager
+        self.mDataSourceTreeModel = DataSourceManagerTreeModel(self, self.mDataSourceManager)
+        self.dataSourceTreeView.setModel(self.mDataSourceTreeModel)
+        self.dataSourceTreeView.selectionModel().selectionChanged.connect(self.onSelectionChanged)
+
+    def onSelectionChanged(self, selected, deselected):
+
+        s = self.selectedDataSources()
+        self.actionRemoveDataSource.setEnabled(len(s) > 0)
+
+
+
+
+    def selectedDataSources(self)->list:
+        """
+        :return: [list-of-selected-DataSources]
+        """
+        sources = []
+        model = self.mDataSourceTreeModel
+        assert isinstance(model, DataSourceManagerTreeModel)
+        for idx in self.dataSourceTreeView.selectionModel().selectedIndexes():
+            assert isinstance(idx, QModelIndex)
+            n = model.idx2node(idx)
+            if isinstance(n, DataSourceTreeNode):
+                if n.dataSource() not in sources:
+                    sources.append(n.dataSource())
+            elif isinstance(n, DataSourceGroupTreeNode):
+                for s in n.dataSources():
+                    if s not in sources:
+                        sources.append(s)
+        return sources
 
 LUT_DATASOURCTYPES = collections.OrderedDict()
-LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/enmapbox/icons/mIconRasterLayer.png'))
-LUT_DATASOURCTYPES[DataSourceVector] = ('Vector Data', QIcon(':/enmapbox/icons/mIconLineLayer.png'))
-LUT_DATASOURCTYPES[HubFlowDataSource] = ('Models', QIcon(':/enmapbox/icons/alg.png'))
-LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries',QIcon(':/enmapbox/icons/speclib.png'))
-LUT_DATASOURCTYPES[DataSourceFile] = ('Other Files',QIcon(':/trolltech/styles/commonstyle/images/file-128.png'))
-LUT_DATASOURCTYPES[DataSource] = ('Other sources',QIcon(':/trolltech/styles/commonstyle/images/standardbutton-open-32.png'))
+LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/enmapbox/gui/ui/icons/mIconRasterLayer.svg'))
+LUT_DATASOURCTYPES[DataSourceVector] = ('Vector Data', QIcon(':/images/themes/default/mIconVector.svg'))
+LUT_DATASOURCTYPES[HubFlowDataSource] = ('Models', QIcon(':/images/themes/default/processingAlgorithm.svg'))
+LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries', QIcon(':/qps/ui/icons/speclib.svg'))
+LUT_DATASOURCTYPES[DataSourceFile] = ('Other Files', QIcon(':/trolltech/styles/commonstyle/images/file-128.png'))
+LUT_DATASOURCTYPES[DataSource] = ('Other sources', QIcon(':/trolltech/styles/commonstyle/images/standardbutton-open-32.png'))
 
 
 class DataSourceManagerTreeModel(TreeModel):
 
-    def __init__(self, parent, dataSourceManager):
+    def __init__(self, parent, dataSourceManager:DataSourceManager):
 
         super(DataSourceManagerTreeModel, self).__init__(parent)
         assert isinstance(dataSourceManager, DataSourceManager)
-
-        if True:
-            self.setFlag(QgsLayerTreeModel.ShowLegend, True) #no effect
-            self.setFlag(QgsLayerTreeModel.ShowSymbology, True) #no effect
-            # self.setFlag(QgsLayerTreeModel.ShowRasterPreviewIcon, True)
-            self.setFlag(QgsLayerTreeModel.ShowLegendAsTree, True)
-            self.setFlag(QgsLayerTreeModel.AllowNodeReorder, True)
-            self.setFlag(QgsLayerTreeModel.AllowNodeRename, True)
-            self.setFlag(QgsLayerTreeModel.AllowNodeChangeVisibility, True)
-            self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
-
+        self.mColumnNames[0] = 'Source'
         self.dataSourceManager = dataSourceManager
         self.dataSourceManager.sigDataSourceAdded.connect(self.addDataSource)
         self.dataSourceManager.sigDataSourceRemoved.connect(self.removeDataSource)
@@ -576,25 +1325,27 @@ class DataSourceManagerTreeModel(TreeModel):
     def mimeTypes(self):
         # specifies the mime types handled by this model
         types = []
-        types.append(MimeDataHelper.MDF_DATASOURCETREEMODELDATA)
-        types.append(MimeDataHelper.MDF_LAYERTREEMODELDATA)
-        types.append(MimeDataHelper.MDF_URILIST)
+
+        types.append(MDF_DATASOURCETREEMODELDATA)
+        types.append(MDF_LAYERTREEMODELDATA)
+        types.append(MDF_URILIST)
         return types
 
     def dropMimeData(self, data, action, row, column, parent):
-        parentNode = self.index2node(parent)
+        parentNode = self.idx2node(parent)
         assert isinstance(data, QMimeData)
 
         result = False
+
         if action in [Qt.MoveAction, Qt.CopyAction]:
             # collect nodes
             nodes = []
 
-            if data.hasFormat("application/enmapbox.datasourcetreemodeldata"):
+            if data.hasFormat(MDF_DATASOURCETREEMODELDATA):
                 return False  # do not allow moving within DataSourceTree
 
             # add new data from external sources
-            elif data.hasFormat('text/uri-list'):
+            elif data.hasFormat(MDF_URILIST):
                 for url in data.urls():
                     self.dataSourceManager.addSource(url)
 
@@ -607,78 +1358,87 @@ class DataSourceManagerTreeModel(TreeModel):
                 elem = rootElem.firstChildElement()
                 added = []
                 while not elem.isNull():
-                    node = QgsLayerTreeNode.readXml(elem)
-                    #QGIS3:  node = QgsLayerTreeNode.readXml(elem, QgsProject.instance())
+                    node = QgsLayerTreeNode.readXml(elem, QgsProject.instance())
                     added.extend(self.dataSourceManager.addSource(node))
                     elem = elem.nextSiblingElement()
-                #print('Added ds'.format(added))
                 return any([isinstance(ds, DataSource) for ds in added])
 
                 #result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)
 
         return result
 
-    def mimeData(self, indexes):
+    def mimeData(self, indexes:list)->QMimeData:
         indexes = sorted(indexes)
         if len(indexes) == 0:
             return None
 
-        nodesFinal = self.indexes2nodes(indexes, True)
+        nodesFinal = self.indexes2nodes(indexes)
         mimeData = QMimeData()
         # define application/enmapbox.datasourcetreemodeldata
         exportedNodes = []
-        pythonObjects = []
-        #collect nodes to be exported as mimeData
+
+        # collect nodes to be exported as mimeData
         for node in nodesFinal:
             #avoid doubling
             if node in exportedNodes:
                 continue
-            if isinstance(node, DataSourceTreeNode):
+            if isinstance(node, DataSourceTreeNode) and node not in exportedNodes:
                 exportedNodes.append(node)
 
             elif isinstance(node, DataSourceGroupTreeNode):
-                for n in node.children():
-                    exportedNodes.append(n)
+                for n in node.childNodes():
+                    if n not in exportedNodes:
+                        exportedNodes.append(n)
 
-        doc = QDomDocument()
+            elif isinstance(node, RasterBandTreeNode):
+                if node not in exportedNodes:
+                    exportedNodes.append(node)
+
         uriList = list()
-        rootElem = doc.createElement("datasource_tree_model_data");
+        uuidList =list()
+
+        bandInfo = list()
+
         for node in exportedNodes:
-            node.writeXML(rootElem)
-            uri = node.dataSource.uri()
-            if os.path.isfile(uri):
-                uriList.append(QUrl.fromLocalFile(uri))
-            else:
-                uriList.append(QUrl(uri))
+            if isinstance(node, RasterBandTreeNode):
+                uri = node.mDataSource.uri()
+                provider = node.mDataSource.provider()
+                band = node.mBandIndex
+                baseName = '{}:{}'.format(node.mDataSource.name(), node.name())
+                bandInfo.append((uri, baseName, provider, band))
 
-        #set application/enmapbox.datasourcetreemodeldata
-        doc.appendChild(rootElem)
-        txt = doc.toString()
-        mimeData.setData("application/enmapbox.datasourcetreemodeldata", QByteArray(txt.encode('utf-8')))
+            elif isinstance(node, DataSourceTreeNode):
+                dataSource = node.mDataSource
+                assert isinstance(dataSource, DataSource)
+                uriList.append(dataSource.uri())
+                uuidList.append(dataSource.uuid())
 
-        specLibNodes = [n for n in exportedNodes if isinstance(n, SpeclibDataSourceTreeNode)]
-        if len(specLibNodes) > 0:
-            from enmapbox.gui.spectrallibraries import SpectralLibrary
-            sl = SpectralLibrary()
-            for node in specLibNodes:
-                slib = SpectralLibrary.readFrom(node.dataSource.uri())
-                sl.addSpeclib(slib)
+                if isinstance(dataSource, DataSourceSpectralLibrary):
+                    from ..externals.qps.speclib.spectrallibraries import MIMEDATA_TEXT, MIMEDATA_SPECLIB, MIMEDATA_URL, MIMEDATA_SPECLIB_LINK
+                    mimeDataSpeclib = dataSource.speclib().mimeData(formats=[MIMEDATA_SPECLIB_LINK])
+                    for f in mimeDataSpeclib.formats():
+                        if f not in mimeData.formats():
+                            mimeData.setData(f, mimeDataSpeclib.data(f))
 
-            if len(sl) > 0:
-                mimeData.setData(MimeDataHelper.MDF_SPECTRALLIBRARY, sl.asPickleDump())
-                pythonObjects.append(sl)
+        if len(uuidList) > 0:
+            mimeData.setData(MDF_DATASOURCETREEMODELDATA, pickle.dumps(uuidList))
 
-        if len(pythonObjects) > 0:
-            MimeDataHelper.setObjectReferences(mimeData, pythonObjects)
+        if len(bandInfo) > 0:
+            mimeData.setData(MDF_RASTERBANDS, pickle.dumps(bandInfo))
 
-        # set text/uri-list
-        if len(uriList) > 0:
-            mimeData.setUrls(uriList)
+        mimeData.setUrls([QUrl.fromLocalFile(uri) if os.path.isfile(uri) else QUrl(uri) for uri in uriList])
         return mimeData
 
+    def sourceGroups(self)->list:
+        return [n for n in self.rootNode().childNodes() if isinstance(n, DataSourceGroupTreeNode)]
 
-    def getSourceGroup(self, dataSource):
-        """Returns the source group relate to a data source"""
+    def sourceGroup(self, dataSource:DataSource)->DataSourceGroupTreeNode:
+        """
+        Returns the DataSourceGroupTreeNode related to a given data source.
+        :param dataSource: DataSource
+        :return: DataSourceGroupTreeNode
+        """
+        """"""
         assert isinstance(dataSource, DataSource)
 
 
@@ -689,11 +1449,13 @@ class DataSourceManagerTreeModel(TreeModel):
         if groupName is None:
             groupName, groupIcon = LUT_DATASOURCTYPES[DataSource]
             groupDataType = DataSource
-        srcGrp = [c for c in self.rootNode.children() if c.name() == groupName]
+
+        srcGroups = self.sourceGroups()
+        srcGrp = [c for c in srcGroups if c.groupName() == groupName]
         if len(srcGrp) == 0:
                 # group node does not exist.
                 # create new group node and add it to the model
-                srcGrp = DataSourceGroupTreeNode(self.rootNode, groupName, groupDataType)
+                srcGrp = DataSourceGroupTreeNode(self.rootNode(), groupName, groupDataType)
                 srcGrp.setIcon(groupIcon)
                 srcGrp.setExpanded(True)
 
@@ -703,21 +1465,32 @@ class DataSourceManagerTreeModel(TreeModel):
 
 
 
-    def addDataSource(self, dataSource):
+    def addDataSource(self, dataSource:DataSource):
+        """
+        Adds a DataSource and creates an TreeNode for
+        :param dataSource: DataSource
+        """
         assert isinstance(dataSource, DataSource)
-        dataSourceNode = TreeNodeProvider.CreateNodeFromDataSource(dataSource, None)
-        sourceGroup = self.getSourceGroup(dataSource)
-        sourceGroup.addChildNode(dataSourceNode)
-        dataSourceNode.setExpanded(True)
+        sourceGroupNode = self.sourceGroup(dataSource)
+        assert isinstance(sourceGroupNode, DataSourceGroupTreeNode)
+        assert sourceGroupNode.parentNode() == self.rootNode()
+
+        dataSourceNode = CreateNodeFromDataSource(dataSource, sourceGroupNode)
+
+
+        #sourceGroupNode.appendChildNodes([sourceGroupNode])
+        dataSourceNode.setExpanded(False)
         s = ""
 
     def removeDataSource(self, dataSource):
         assert isinstance(dataSource, DataSource)
-        sourceGroup = self.getSourceGroup(dataSource)
+        sourceGroup = self.sourceGroup(dataSource)
         to_remove = []
 
-        for node in sourceGroup.children():
-            if node.dataSource == dataSource:
+        for node in sourceGroup.childNodes():
+            assert isinstance(node, DataSourceTreeNode)
+
+            if node.dataSource() == dataSource:
                 to_remove.append(node)
 
         for node in to_remove:
@@ -734,18 +1507,21 @@ class DataSourceManagerTreeModel(TreeModel):
             return Qt.ItemIsDropEnabled
 
         # specify TreeNode specific actions
-        node = self.index2node(index)
-        column = index.column()
+        node = self.idx2node(index)
+
         flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDropEnabled
 
-        if isinstance(node, DataSourceTreeNode):
+        if isinstance(node, (DataSourceTreeNode, RasterBandTreeNode, DataSourceGroupTreeNode)):
             flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
             flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
-        if isinstance(node, CheckableTreeNode):
+        if isinstance(node, TreeNode) and node.isCheckable():
             flags |= Qt.ItemIsUserCheckable
+
+
+
 
         return flags
 
@@ -763,6 +1539,9 @@ class DataSourceManagerTreeModel(TreeModel):
             a = menu.addAction('Show report')
             a.triggered.connect(lambda : self.onShowModelReport(node.dataSource))
 
+        if isinstance(node, SpeclibDataSourceTreeNode):
+            a = menu.addAction('Open')
+            a.triggered.connect(lambda : self.onOpenSpeclib(node.speclib()))
         #append node-defined context menu
         menu2 = node.contextMenu()
 
@@ -778,6 +1557,10 @@ class DataSourceManagerTreeModel(TreeModel):
         menu.setVisible(True)
         return menu
 
+    def onOpenSpeclib(self, speclib:SpectralLibrary):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        EnMAPBox.instance().dockManager.createDock('SPECLIB', speclib=speclib)
+
     def onShowModelReport(self, model):
         assert isinstance(model, HubFlowDataSource)
         pfType = model.pfType
@@ -788,399 +1571,28 @@ class DataSourceManagerTreeModel(TreeModel):
         EnMAPBox.instance().dockManager.createDock('WEBVIEW', url=pathHTML)
 
 
-class DataSourceManagerTreeModelMenuProvider(TreeViewMenuProvider):
+def CreateNodeFromDataSource(dataSource:DataSource, parent=None)->DataSourceTreeNode:
     """
-    This class defines which context menues will be shown for for which TreeNodes
+    Generates a DataSourceTreeNode
+    :param dataSource:
+    :param parent:
+    :return:
     """
-
-    def __init__(self, treeView):
-        super(DataSourceManagerTreeModelMenuProvider, self).__init__(treeView)
-        assert isinstance(self.treeView.model(), DataSourceManagerTreeModel)
-
-    def createContextMenu(self):
-        col = self.currentIndex().column()
-        node = self.currentNode()
-        model = self.treeView.model()
-        assert isinstance(model, DataSourceManagerTreeModel)
-
-        selectionModel = self.treeView.selectionModel()
-        assert isinstance(selectionModel, QItemSelectionModel)
-
-        selectedNodes = [self.model.index2node(i) for i in selectionModel.selectedIndexes()]
-        dataSources = list(set([n.dataSource for n in selectedNodes if isinstance(n, DataSourceTreeNode)]))
-        srcURIs = list(set([s.uri() for s in dataSources]))
-        m = QMenu()
-
-        if isinstance(node, DataSourceGroupTreeNode):
-            a = m.addAction('Clear')
-            assert isinstance(a, QAction)
-            a.setToolTip('Removes all datasources from this node')
-            a.triggered.connect(lambda: model.dataSourceManager.removeSources(node.dataSources()))
-
-        if isinstance(node, DataSourceTreeNode):
-            src = node.dataSource
-
-            if isinstance(src, DataSource):
-                a = m.addAction('Remove')
-                a.triggered.connect(lambda : model.dataSourceManager.removeSources(dataSources))
-                a = m.addAction('Copy URI / path')
-                a.triggered.connect(lambda: QApplication.clipboard().setText('\n'.join(srcURIs)))
-                #a = m.addAction('Rename')
-                #a.setEnabled(False)
-                #todo: implement rename function
-                #a.triggered.connect(node.dataSource.rename)
-
-            if isinstance(src, DataSourceSpatial):
-                a = m.addAction('Save as..')
-
-            if isinstance(src, DataSourceRaster):
-                a = m.addAction('Raster statistics')
-                sub = m.addMenu('Open in new map...')
-                a = sub.addAction('Default Colors')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='DEFAULT'))
-                a = sub.addAction('True Color')
-                a.setToolTip('Red-Green-Blue true colors')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='R,G,B'))
-
-                a = sub.addAction('CIR')
-                a.setToolTip('nIR Red Green')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='NIR,R,G'))
-
-                a = sub.addAction('SWIR')
-                a.setToolTip('nIR swIR Red')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src, rgb='NIR,SWIR,R'))
-
-            if isinstance(src, DataSourceVector):
-                a = m.addAction('Open in new map')
-                a.triggered.connect(lambda: self.onOpenInNewMap(src))
-
-            if isinstance(src, DataSourceSpectralLibrary):
-                a = m.addAction('Save as...')
-                a.setEnabled(False)
-
-                a = m.addAction('Open')
-                a.setEnabled(False)
-
-        if isinstance(node, RasterBandTreeNode):
-            a = m.addAction('Band statistics')
-            a.setEnabled(False)
-
-            a = m.addAction('Open in new map')
-            a.triggered.connect(lambda : self.onOpenInNewMap(node.mDataSource, rgb=[node.mBandIndex]))
-
-
-        if col == 1 and node.value() != None:
-            a = m.addAction('Copy')
-            a.triggered.connect(lambda : QApplication.clipboard().setText(str(node.value())))
-
-
-        if isinstance(node, TreeNode):
-            m2 = node.contextMenu()
-            for a in m2.actions():
-                a.setParent(None)
-                m.addAction(a)
-                a.setParent(m)
-        return m
-
-    def onOpenInNewMap(self, dataSource, rgb=None):
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        emb = EnMAPBox.instance()
-
-        if not isinstance(emb, EnMAPBox):
-            return None
-
-        if isinstance(dataSource, DataSourceSpatial):
-            lyr = dataSource.createUnregisteredMapLayer()
-            dock = emb.createDock('MAP')
-            assert isinstance(dock, MapDock)
-            from enmapbox.gui.utils import bandClosestToWavelength, defaultBands
-            if isinstance(lyr, QgsRasterLayer):
-                r = lyr.renderer()
-                if isinstance(r, QgsRasterRenderer):
-                    ds = gdal.Open(lyr.source())
-                    if isinstance(rgb, unicode):
-                        if re.search('DEFAULT', rgb):
-                            rgb = defaultBands(ds)
-                        else:
-                            rgb = [bandClosestToWavelength(ds,s) for s in rgb.split(',')]
-                            s = ""
-                    assert isinstance(rgb, list)
-
-                    stats = [ds.GetRasterBand(b+1).ComputeRasterMinMax() for b in rgb]
-
-                    def setCE_MinMax(ce, st):
-                        assert isinstance(ce, QgsContrastEnhancement)
-                        ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum)
-                        ce.setMinimumValue(st[0])
-                        ce.setMaximumValue(st[1])
-
-                    if len(rgb) == 3:
-                        if isinstance(r, QgsMultiBandColorRenderer):
-                            r.setRedBand(rgb[0]+1)
-                            r.setGreenBand(rgb[1]+1)
-                            r.setBlueBand(rgb[2]+1)
-                            setCE_MinMax(r.redContrastEnhancement(), stats[0])
-                            setCE_MinMax(r.greenContrastEnhancement(), stats[1])
-                            setCE_MinMax(r.blueContrastEnhancement(), stats[2])
-
-                        if isinstance(r, QgsSingleBandGrayRenderer):
-                            r.setGrayBand(rgb[0])
-                            setCE_MinMax(r.contrastEnhancement(), stats[0])
-
-                    elif len(rgb) == 1:
-
-                        if isinstance(r, QgsMultiBandColorRenderer):
-                            r.setRedBand(rgb[0]+1)
-                            r.setGreenBand(rgb[0]+1)
-                            r.setBlueBand(rgb[0]+1)
-                            setCE_MinMax(r.redContrastEnhancement(), stats[0])
-                            setCE_MinMax(r.greenContrastEnhancement(), stats[0])
-                            setCE_MinMax(r.blueContrastEnhancement(), stats[0])
-
-                        if isinstance(r, QgsSingleBandGrayRenderer):
-                            r.setGrayBand(rgb[0]+1)
-                            setCE_MinMax(r.contrastEnhancement(), stats[0])
-                            s = ""
-
-                    #get
-                    s = ""
-
-            elif isinstance(lyr, QgsVectorLayer):
-
-                pass
-
-            dock.setLayers([lyr])
-
-
-    def onSaveAs(self, dataSource):
-
-        pass
-
-class DataSourceManager(QObject):
-
-    """
-    Keeps overview on different data sources handled by EnMAP-Box.
-    Similar like QGIS data registry, but manages non-spatial data sources (text files etc.) as well.
-    """
-
-    sigDataSourceAdded = pyqtSignal(DataSource)
-    sigDataSourceRemoved = pyqtSignal(DataSource)
-
-    SOURCE_TYPES = ['ALL','ANY', 'RASTER', 'VECTOR', 'MODEL']
-
-    def __init__(self):
-        super(DataSourceManager, self).__init__()
-
-        self.mSources = list()
-        self.mSubsetSelection = {}
-        self.mQgsLayerTreeGroup = None
-        #self.qgsLayerTreeGroup()
-
-        #todo: react on QgsMapLayerRegistry changes, e.g. when project is closed
-        #QgsMapLayerRegistry.instance().layersAdded.connect(self.updateFromQgsMapLayerRegistry)
-        # noinspection PyArgumentList
-        from qgis.core import QgsMapLayerRegistry
-        QgsMapLayerRegistry.instance().layersAdded.connect(self.onMapLayerRegistryLayersAdded)
-        QgsMapLayerRegistry.instance().removeAll.connect(lambda : self.removeSources(self.sources()))
-        try:
-            from hubflow import signals
-            signals.sigFileCreated.connect(self.addSource)
-        except Exception as ex:
-            logger.exception(ex)
-
-        self.updateFromQgsMapLayerRegistry()
-
-
-    def qgsLayerTreeGroup(self):
+    if not isinstance(dataSource, DataSource):
         return None
-        if not isinstance(self.mQgsLayerTreeGroup,QgsLayerTreeGroup):
-            self.mQgsLayerTreeGroup = QgsLayerTreeGroup('EnMAPBox Sources', False)
-            QgsProject.instance().layerTreeRoot().addChildNode(self.mQgsLayerTreeGroup)
-        return self.mQgsLayerTreeGroup
 
-    def __len__(self):
-        return len(self.mSources)
+    #hint: take care of class inheritance order
+    if isinstance(dataSource, HubFlowDataSource):
+        node = HubFlowObjectTreeNode(parent, dataSource)
+    elif isinstance(dataSource, DataSourceRaster):
+        node = RasterDataSourceTreeNode(parent, dataSource)
+    elif isinstance(dataSource, DataSourceVector):
+        node = VectorDataSourceTreeNode(parent, dataSource)
+    elif isinstance(dataSource, DataSourceSpectralLibrary):
+        node = SpeclibDataSourceTreeNode(parent, dataSource)
+    elif isinstance(dataSource, DataSourceFile):
+        node = FileDataSourceTreeNode(parent, dataSource)
+    else:
+        node = DataSourceTreeNode(parent, dataSource)
 
-    def sources(self, sourceTypes=None):
-        """
-        Returns the managed DataSources
-        :param sourceTypes: the sourceType(s) to return
-            a) str like 'VECTOR' (see DataSourceManage.SOURCE_TYPES)
-            b) class type derived from DataSource
-            c) a list of a or b to filter multpiple source types
-        :return:
-        """
-        results = self.mSources[:]
-
-        if sourceTypes:
-            if not isinstance(sourceTypes, list):
-                sourceTypes = [sourceTypes]
-            filterTypes = []
-            for sourceType in sourceTypes:
-                if sourceType in self.SOURCE_TYPES:
-                    if sourceType == 'VECTOR':
-                        sourceType = DataSourceVector
-                    elif sourceType == 'RASTER':
-                        sourceType = DataSourceRaster
-                    elif sourceType == 'MODEL':
-                        sourceType = HubFlowDataSource
-                    else:
-                        sourceType = None
-                if isinstance(sourceType, type(DataSource)):
-                    filterTypes.append(sourceType)
-            results = [r for r in results if type(r) in filterTypes]
-        return results
-
-    def updateFromProcessingFramework(self):
-        if self.processing:
-            #import logging
-            #logging.debug('Todo: Fix processing implementation')
-            return
-            for p,n in zip(self.processing.MODEL_URIS,
-                           self.processing.MODEL_NAMES):
-                self.addSource(p, name=n)
-
-    def updateFromQgsMapLayerRegistry(self, mapLayers=None):
-        """
-        Add data sources registered in the QgsMapLayerRegistry to the data source manager
-        :return: List of added new DataSources
-        """
-        if mapLayers is None:
-            mapLayers = QgsMapLayerRegistry.instance().mapLayers().values()
-
-        added = [self.addSource(lyr) for lyr in mapLayers]
-        return [a for a in added if isinstance(a, DataSource)]
-
-
-    def getUriList(self, sourcetype='All'):
-        """
-        Returns URIs of registered data sources
-        :param sourcetype: uri filter: 'ALL' (default),'RASTER''VECTOR' or 'MODEL' to return only uri's related to these sources
-        :return: uri as string (str), e.g. a file path
-        """
-        sourcetype = sourcetype.upper()
-        if isinstance(sourcetype, type):
-            return [ds.uri() for ds in self.mSources if type(ds) is sourcetype]
-
-        assert sourcetype in DataSourceManager.SOURCE_TYPES
-        if sourcetype == ['ALL','ANY']:
-            return [ds.uri() for ds in self.mSources]
-        elif sourcetype == 'VECTOR':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceVector)]
-        elif sourcetype == 'RASTER':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, DataSourceRaster)]
-        elif sourcetype == 'MODEL':
-            return [ds.uri() for ds in self.mSources if isinstance(ds, HubFlowDataSource)]
-        else:
-            return []
-
-    def onMapLayerRegistryLayersAdded(self, lyrs):
-        #remove layers that should not be added automatically
-        lyrsToAdd = []
-        for lyr in lyrs:
-            if isinstance(lyr, QgsVectorLayer):
-                if lyr.dataProvider().dataSourceUri().startswith('memory?'):
-                    continue
-            lyrsToAdd.append(lyr)
-
-        self.addSources(lyrsToAdd)
-
-
-
-    def addSources(self, sources):
-        added = []
-        for s in sources:
-            added.extend(self.addSource(s))
-        added = [a for a in added if isinstance(a, DataSource)]
-        self.mSubsetSelection.clear()
-        return added
-
-    @pyqtSlot(unicode)
-    @pyqtSlot(str)
-    @pyqtSlot('QString')
-    def addSource(self, dsOld, name=None, icon=None):
-        """
-        Adds a new data source.
-        :param dsOld: any object
-        :param name:
-        :param icon:
-        :return: a list of successfully added DataSource instances. this is required in case a container datasets
-        """
-        dataSources = DataSourceFactory.Factory(dsOld, name=name, icon=icon)
-
-        toAdd = []
-        for dsNew in dataSources:
-            assert isinstance(dsNew, DataSource)
-            if not isinstance(dsNew, DataSourceFile):
-                toAdd.append(dsNew)
-
-            else:
-
-                sameSources = [d for d in self.mSources if dsNew.isSameSource(d) ]
-                if len(sameSources) == 0:
-                    toAdd.append(dsNew)
-                else:
-                    older = []
-                    newer = []
-                    for d in sameSources:
-                        if dsNew.isNewVersionOf(d):
-                            older.append(dsNew)
-                        else:
-                            newer.append(d)
-                    #do not add this source in case there alread exists a newer one
-                    if len(newer) == 0:
-                        self.removeSources(older)
-                        toAdd.append(dsNew)
-                    else:
-                        toAdd.extend(newer) #us ethe reference of the existing one
-
-
-        for ds in toAdd:
-            if ds not in self.mSources:
-                self.mSources.append(ds)
-                self.sigDataSourceAdded.emit(ds)
-
-        return toAdd
-
-    def clear(self):
-        """
-        Removes all data source from DataSourceManager
-        :return: [list-of-removed-DataSources]
-        """
-        return self.removeSources(list(self.mSources))
-
-
-    def removeSources(self, dataSourceList):
-        """
-        Removes a list of data sources.
-        :param dataSourceList: [list-of-datasources]
-        :return: self
-        """
-        removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
-        return [r for r in removed if isinstance(r, DataSource)]
-
-
-
-    def removeSource(self, dataSource):
-        """
-        Removes the datasource from the DataSourceManager
-        :param dataSource: the DataSource to be removed
-        :return: the removed DataSource. None if dataSource was not in the DataSourceManager
-        """
-        assert isinstance(dataSource, DataSource)
-        if dataSource in self.mSources:
-            self.mSources.remove(dataSource)
-            self.sigDataSourceRemoved.emit(dataSource)
-            return dataSource
-        else:
-            logger.debug('can not remove {}'.format(dataSource))
-
-
-    def sourceTypes(self):
-        """
-        Returns the list of source-types handled by this DataSourceManage
-        :return: [list-of-source-types]
-        """
-        return sorted(list(set([type(ds) for ds in self.mSources])))
-
-
+    return node

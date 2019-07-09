@@ -1,7 +1,0 @@
-diff a/enmapbox/apps/metadataeditorapp/metadataeditor.py b/enmapbox/apps/metadataeditorapp/metadataeditor.py	(rejected hunks)
-@@ -1,5 +1,4 @@
- # -*- coding: utf-8 -*-
--as well as some customized parameter types
- 
- """
- ***************************************************************************

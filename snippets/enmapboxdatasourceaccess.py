@@ -21,9 +21,11 @@
 """
 from __future__ import absolute_import
 import os, collections
+
+import enmapbox
 from qgis import *
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from enmapbox.gui.utils import loadUI
 from enmapbox.gui.enmapboxgui import EnMAPBox
 
@@ -78,12 +80,12 @@ def comboboxExample(isEditable):
     w.show()
 
 if __name__ == '__main__':
-    from enmapbox.gui.utils import initQgisApplication
+    from enmapbox.testing import initQgisApplication
     app = initQgisApplication()
 
     #start the EnMAP-Box
     import enmapbox.gui.enmapboxgui
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = False
+    enmapbox.LOAD_PROCESSING_FRAMEWORK = False
 
     emb = EnMAPBox(None)
     emb.run()

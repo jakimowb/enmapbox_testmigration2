@@ -1,0 +1,28 @@
+# this file lists packages that are required to run the EnMAP-Box
+# depending on your system it might be necessary to install required package with package installers others than pip
+# see https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
+# see https://www.python.org/dev/peps/pep-0440/#version-specifiers
+###### Requirements ######
+
+#standard requirements
+-r requirements.txt
+
+# requirements for developers
+# Required packages to run tests
+#pytest
+#py
+#pytest-cov
+
+gitpython
+git-lfs
+pb_tool
+recommonmark
+sphinx
+sphinx-argparse
+sphinx-markdown
+sphinx-rtd-theme
+sphinx-autobuild
+
+###### Refers to other requirements files (e.g. for hub-datacube?) ######
+#-r otherfolder/other-requirements.txt
+#

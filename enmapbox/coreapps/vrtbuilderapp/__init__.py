@@ -29,7 +29,10 @@ def enmapboxApplicationFactory(enmapBox):
     :param enmapBox: the EnMAP-Box instance.
     :return: EnMAPBoxApplication | [list-of-EnMAPBoxApplications]
     """
+    try:
+        from vrtbuilderapp.enmapboxintegration import VRTBuilderApp
+        return [VRTBuilderApp(enmapBox)]
+    except Exception as ex:
+        print(ex)
+        return []
 
-    from vrtbuilderapp.enmapboxintegration import VRTBuilderApp
-
-    return [VRTBuilderApp(enmapBox)]

@@ -19,14 +19,12 @@
 ***************************************************************************
 """
 
-import os, collections
-from qgis.gui import QgsFileWidget, QgsRasterFormatSaveOptionsWidget
 
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
-from enmapbox.gui.utils import loadUIFormClass
-from enmapbox.gui.classificationscheme import *
-from __init__ import APP_DIR
+from qgis.core import *
+from qgis.gui import *
+from enmapbox.gui import *
+from reclassifyapp import APP_DIR
+
 loadUi = lambda name: loadUIFormClass(os.path.join(APP_DIR, name))
 
 
@@ -34,7 +32,7 @@ loadUi = lambda name: loadUIFormClass(os.path.join(APP_DIR, name))
 class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
     """Constructor."""
     def __init__(self, parent=None):
-        super(ReclassifyDialog, self).__init__(parent)
+        super(ReclassifyDialog, self).__init__(parent, Qt.Window)
         # Set up the user interface from Designer.
         # After setupUI you can access any designer object by doing
         # self.<objectname>, and you can use autoconnect slots - see
@@ -44,66 +42,166 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
         # Important!
         self.setupUi(self)
 
-        assert isinstance(self.mapLayerComboBox, QComboBox)
+        assert isinstance(self.mapLayerComboBox, QgsMapLayerComboBox)
         assert isinstance(self.tableWidget, QTableWidget)
         assert isinstance(self.dstClassificationSchemeWidget, ClassificationSchemeWidget)
 
-        self.mSrcClassScheme = None
-        #now define all the logic behind the UI which can not be defined in the QDesigner
-        self.initUiElements()
-
-    def initUiElements(self):
-
-        self.tbDstFile.textChanged.connect(self.validate)
+        self.mapLayerComboBox.setAllowEmptyLayer(True)
+        self.mapLayerComboBox.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        excluded = [p for p in QgsProviderRegistry.instance().providerList() if p not in ['gdal']]
+        self.mapLayerComboBox.setExcludedProviders(excluded)
+        self.mapLayerComboBox.setShowCrs(False)
         self.mapLayerComboBox.currentIndexChanged.connect(self.validate)
 
-        self.btnSelectSrcfile.clicked.connect(lambda:self.addSrcRaster(QFileDialog.getOpenFileName()))
-        self.btnSelectDstFile.clicked.connect(lambda:self.tbDstFile.setText(QFileDialog.getSaveFileName()))
-        self.widgetDstFile.setType(QgsRasterFormatSaveOptionsWidget.Full)
-        self.widgetDstFile.setProvider('gdal')
-        self.widgetDstFile.setFormat('GTIFF')
-        self.widgetDstFile.setRasterFileName('reclassifified.tif')
+
+        #now define all the logic behind the UI which can not be defined in the QDesigner
+        assert isinstance(self.dstFileWidget, QgsFileWidget)
+        self.dstFileWidget.setStorageMode(QgsFileWidget.SaveFile)
+        self.dstFileWidget.setConfirmOverwrite(True)
+
+        assert isinstance(self.widgetOutputOptions, QgsRasterFormatSaveOptionsWidget)
+        self.widgetOutputOptions.setType(QgsRasterFormatSaveOptionsWidget.Full)
+        self.widgetOutputOptions.setProvider('gdal')
+        self.widgetOutputOptions.setFormat('GTIFF')
+        self.widgetOutputOptions.setRasterFileName('reclassifified.tif')
+        self.dstFileWidget.fileChanged.connect(self.widgetOutputOptions.setRasterFileName)
 
         self.dstClassificationSchemeWidget.classificationScheme().sigClassesAdded.connect(self.refreshTransformationTable)
         self.dstClassificationSchemeWidget.classificationScheme().sigClassesRemoved.connect(self.refreshTransformationTable)
-        self.tableWidget.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
+
         self.mapLayerComboBox.currentIndexChanged.connect(self.refreshTransformationTable)
+        self.mapLayerComboBox.currentIndexChanged.connect(self.validate)
+
+        self.btnSelectSrcfile.setDefaultAction(self.actionAddRasterSource)
+        self.dstFileWidget.fileChanged.connect(self.validate)
 
 
-        #start validation if content changes in...
-        self.tbDstFile.textChanged.connect(self.validate)
+        def onAddRaster(*args):
+            filter = QgsProviderRegistry.instance().fileRasterFilters()
+            file, filter = QFileDialog.getOpenFileName(filter=filter)
+
+            if len(file) > 0:
+                self.setSrcRaster(file)
+
+        self.actionAddRasterSource.triggered.connect(onAddRaster)
 
 
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        enmapBox = EnMAPBox.instance()
+    def loadEnMAPBoxSources(self):
 
-        if isinstance(enmapBox, EnMAPBox):
-            for src in sorted(enmapBox.dataSources('RASTER')):
-                self.addSrcRaster(src)
+        try:
+            from enmapbox.gui.enmapboxgui import EnMAPBox
+            enmapBox = EnMAPBox.instance()
 
-        self.validate()
+            if isinstance(enmapBox, EnMAPBox):
+                for src in sorted(enmapBox.dataSources('RASTER')):
+                    self.setSrcRaster(src)
 
-    def setDstClassification(self, classScheme):
+            self.validate()
+        except Exception as ex:
+            print(ex, file=sys.stderr)
+
+
+    def setDstClassificationPath(self, path:str):
+        """
+        Sets the output path.
+        :param path:
+        :return:
+        """
+        assert isinstance(self.dstFileWidget, QgsFileWidget)
+        self.dstFileWidget.setFilePath(path)
+
+    def setDstClassificationScheme(self, classScheme:ClassificationScheme):
         """
         Sets the destination ClassificationScheme
         :param classScheme: path of classification file or ClassificationScheme
         """
-        if (isinstance(classScheme, str) or isinstance(classScheme, unicode)) and os.path.isfile(classScheme):
+        if isinstance(classScheme, str) and os.path.isfile(classScheme):
             classScheme = ClassificationScheme.fromRasterImage(classScheme)
         self.dstClassificationSchemeWidget.setClassificationScheme(classScheme)
 
+    def dstClassificationScheme(self)->ClassificationScheme:
+        """
+        Returns the targeted classification scheme.
+        :return: ClassificationScheme
+        """
+        return self.dstClassificationSchemeWidget.classificationScheme()
 
-    def setDstRaster(self,path):
-        self.tbDstFile.setText(path)
-        self.widgetDstFile.setRasterFileName(path)
+    def setDstRaster(self, path: str):
+        """
+        Sets the output path
+        :param path: str
+        """
+        self.dstFileWidget.setFilePath(path)
+
+    def dstRaster(self)->str:
+        """
+        Returns the destination raster path
+        :return: str
+        """
+        return self.dstFileWidget.filePath()
+
+    def knownRasterSources(self)->list:
+        """
+        Returns a list of known raster sources
+        :return: [list-of-str]
+        """
+
+        assert isinstance(self.mapLayerComboBox, QgsMapLayerComboBox)
+
+        sources = []
+        for i in range(self.mapLayerComboBox.count()):
+            data = self.mapLayerComboBox.itemData(i, role=Qt.UserRole)
+            if isinstance(data, str) and len(data) > 0:
+                sources.append(data)
+
+        sources += self.mapLayerComboBox.additionalItems()
+        return sources
+
+    def srcRaster(self)->str:
+        """
+        Returns the currently selected source raster
+        :return: str
+        """
+        lyr = self.mapLayerComboBox.currentLayer()
+        if isinstance(lyr, QgsRasterLayer):
+            return lyr.source()
+
+        text = self.mapLayerComboBox.currentText()
+        if len(text) > 0:
+            return text
+        return None
 
 
-    def addSrcRaster(self, src):
-        addedItems = [self.mapLayerComboBox.itemData(i, role=Qt.UserRole) for
-                      i in range(self.mapLayerComboBox.count())]
-        if hasClassification(src) and src not in addedItems:
+    def selectSource(self, src:str):
+        """
+        Selects the raster
+        :param src:
+        :return:
+        """
+        assert isinstance(self.mapLayerComboBox, QgsMapLayerComboBox)
+        for i in [self.mapLayerComboBox.findText(src), self.mapLayerComboBox.findData(src)]:
+            if i > -1:
+                self.mapLayerComboBox.setCurrentIndex(i)
+
+    def setSrcRaster(self, src)->bool:
+        """
+        Adds a new source raster
+        :param src: object
+        :return:
+        """
+        knownSources = self.knownRasterSources()
+        assert isinstance(self.mapLayerComboBox, QgsMapLayerComboBox)
+
+
+        if src in knownSources:
+            self.selectSource(src)
+            return
+
+        if hasClassification(src):
+            additionals = self.mapLayerComboBox.additionalItems()
             bn = os.path.basename(src)
-            self.mapLayerComboBox.addItem(bn, src)
+            additionals.append(src)
+            self.mapLayerComboBox.setAdditionalItems(additionals)
 
             assert isinstance(self.dstClassificationSchemeWidget, ClassificationSchemeWidget)
             if len(self.dstClassificationSchemeWidget.classificationScheme())== 0:
@@ -115,103 +213,111 @@ class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
                     pass
 
 
-            self.validate()
+            self.selectSource(src)
+            return True
+        return False
 
 
-
-    def srcClassificationScheme(self):
-        return self.mSrcClassScheme
-
-    def srcClassificationPath(self):
-        assert isinstance(self.mapLayerComboBox, QComboBox)
-        i = self.mapLayerComboBox.currentIndex()
-        path = self.mapLayerComboBox.itemData(i, Qt.UserRole)
-        return path
+    def srcClassificationScheme(self)->ClassificationScheme:
+        """
+        Reuturns the ClassificationScheme of the selected source raster
+        :return: ClassificationScheme
+        """
+        path = self.srcRaster()
+        if isinstance(path, str):
+            return ClassificationScheme.fromRasterImage(path)
+        else:
+            return None
 
     def createClassInfoComboBox(self, classScheme):
         assert isinstance(classScheme, ClassificationScheme)
-        box = QComboBox()
+        box = ClassificationSchemeComboBox(classification=classScheme)
         box.setAutoFillBackground(True)
-        box.setModel(ClassificationSchemeComboBoxItemModel(classScheme))
 
         return box
 
 
 
     def refreshTransformationTable(self, *args):
+
         while self.tableWidget.rowCount() > 0:
             self.tableWidget.removeRow(0)
         from difflib import SequenceMatcher
 
-        path = self.srcClassificationPath()
-        if not hasClassification(path):
-            self.mSrcClassScheme = None
-        else:
-            self.mSrcClassScheme = ClassificationScheme.fromRasterImage(path)
-            dstClassScheme = self.dstClassificationSchemeWidget.classificationScheme()
-            dstClassNames = [c.mName for c in dstClassScheme]
-            assert isinstance(self.tableWidget, QTableWidget)
-            #self.tableWidget.setColumnCount(2)
-            self.tableWidget.setRowCount(len(self.mSrcClassScheme))
-            itemFlags = Qt.ItemIsSelectable | Qt.ItemIsEnabled
-            for iRow, c in enumerate(self.mSrcClassScheme):
-                assert isinstance(c, ClassInfo)
-                text = '{} {}'.format(c.mLabel, c.mName)
-                pm = QPixmap(20, 20)
-                pm.fill(c.mColor)
-                icon = QIcon(pm)
 
-                item1 = QTableWidgetItem()
-                #item1.setText(text)
-                item1.setFlags(itemFlags)
-                item1.setData(Qt.DisplayRole, text)
-                item1.setData(Qt.DecorationRole, icon)
-                item1.setData(Qt.UserRole, iRow)
+        # clear the table widget
+        assert isinstance(self.tableWidget, QTableWidget)
+        while self.tableWidget.rowCount() > 0:
+            self.tableWidget.removeRow(0)
 
-                #item1.setIcon(icon)
-                #item1.setBackground(QBrush(c.mColor))
-                #item1.setForeground(getTextColorWithContrast(c.mColor))
-                cbox = self.createClassInfoComboBox(dstClassScheme)
+        self.mSrcClassScheme = self.srcClassificationScheme()
+        if not isinstance(self.mSrcClassScheme, ClassificationScheme):
+            return
 
-                #select the combobox item to the most similar class name
-                if len(dstClassScheme) > 0:
-                    similarity = [SequenceMatcher(None, c.mName, dName).ratio() for dName in dstClassNames]
-                    sMax = max(similarity)
-                    if sMax > 0.75:
-                        cbox.setCurrentIndex(similarity.index(sMax))
+        dstClassScheme = self.dstClassificationSchemeWidget.classificationScheme()
+        dstClassNames = [c.mName for c in dstClassScheme]
 
-                self.tableWidget.setItem(iRow, 0, item1)
-                self.tableWidget.setCellWidget(iRow, 1, cbox)
+        self.tableWidget.setRowCount(len(self.mSrcClassScheme))
+        itemFlags = Qt.ItemIsSelectable | Qt.ItemIsEnabled
+        for iRow, c in enumerate(self.mSrcClassScheme):
+            assert isinstance(c, ClassInfo)
+            text = '{} {}'.format(c.mLabel, c.mName)
+            item1 = QTableWidgetItem()
+            item1.setFlags(itemFlags)
+            item1.setData(Qt.DisplayRole, text)
+            item1.setData(Qt.DecorationRole, c.icon())
+            item1.setData(Qt.UserRole, iRow)
+
+            cbox = self.createClassInfoComboBox(dstClassScheme)
+
+            # select the combobox item with most similar class name
+            if len(dstClassScheme) > 0:
+                similarity = [SequenceMatcher(None, c.mName, dName).ratio() for dName in dstClassNames]
+                sMax = max(similarity)
+                if sMax > 0.75:
+                    cbox.setCurrentIndex(similarity.index(sMax))
+
+            self.tableWidget.setItem(iRow, 0, item1)
+            self.tableWidget.setCellWidget(iRow, 1, cbox)
         self.validate()
 
 
     def validate(self):
-
+        """
+        Validates GUI inputs and enabled/disabled buttons accordingly.
+        """
         isOk = True
-        isOk &= self.mapLayerComboBox.currentIndex() > -1
+        isOk &= len(self.mapLayerComboBox.currentText()) > 0
         isOk &= len(self.dstClassificationSchemeWidget.classificationScheme()) > 0
-        isOk &= len(self.tbDstFile.text()) > 0
+        isOk &= len(self.dstFileWidget.filePath()) > 0
         isOk &= self.tableWidget.rowCount() > 0
 
         btnAccept = self.buttonBox.button(QDialogButtonBox.Ok)
         btnAccept.setEnabled(isOk)
 
 
-    def reclassificationSettings(self):
-        pathSrc = self.mapLayerComboBox.itemData(self.mapLayerComboBox.currentIndex())
-        pathDst = self.tbDstFile.text()
+    def reclassificationSettings(self)->dict:
+        """
+        Returns the re-classification settings
+        :return: dict with {pathSrc:str, pathDst:str, labelLookup:dict, dstClassScheme:ClassificationScheme
+        """
+        pathSrc = self.srcRaster()
+        pathDst = self.dstRaster()
+
+
+
         LUT = dict()
-        dstScheme = None
+        srcScheme = self.srcClassificationScheme()
+        dstScheme = self.dstClassificationScheme()
         for i in range(self.tableWidget.rowCount()):
             cbox = self.tableWidget.cellWidget(i, 1)
-            cDst = cbox.model().mScheme[cbox.currentIndex()]
+            assert isinstance(cbox, ClassificationSchemeComboBox)
+            cDst = cbox.currentClassInfo()
             iSrc = self.tableWidget.item(i,0).data(Qt.UserRole)
-            if not dstScheme:
-                dstScheme = cbox.model().mScheme.clone()
-            cSrc = self.mSrcClassScheme[iSrc]
+            cSrc = srcScheme[iSrc]
 
             LUT[cSrc.label()] = cDst.label()
-            #print((cSrc.label(),'->',cDst.label()))
+
         if isinstance(dstScheme, ClassificationScheme):
             return {'pathSrc': pathSrc, 'pathDst': pathDst, 'labelLookup': LUT,
                     'dstClassScheme':dstScheme}

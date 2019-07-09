@@ -21,8 +21,8 @@
 
 import os, collections
 from qgis.gui import QgsFileWidget
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
 """"
 Use the QtDesigner to open the example.ui file.  

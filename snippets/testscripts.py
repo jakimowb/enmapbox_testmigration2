@@ -1,7 +1,7 @@
 
 #required packages that are not delivered with the EnMAP-Box
 import qgis
-import PyQt4.QtCore
+import PyQt5.QtCore
 from osgeo import gdal, ogr, osr
 import pip
 import setuptools

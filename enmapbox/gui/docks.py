@@ -16,22 +16,28 @@
 *                                                                         *
 ***************************************************************************
 """
-from __future__ import absolute_import, unicode_literals
 
-import itertools, codecs
-import os
-import uuid
-from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+
+import codecs, enum
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 
-import pyqtgraph.dockarea.Dock
-from pyqtgraph.widgets.VerticalLabel import VerticalLabel
+from ..externals.qps.externals.pyqtgraph.dockarea import DockArea as pgDockArea
+from ..externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
+from ..externals.qps.externals.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
+from ..externals.qps.externals.pyqtgraph.widgets.VerticalLabel import VerticalLabel
+from enmapbox.gui.utils import KeepRefs
 
 
-
+class DockTypes(enum.Enum):
+    """
+    Enumeration that defines the standard dock types.
+    """
+    MapDock = 'MAP'
+    TextDock = 'TEXT'
+    MimeDataDock = 'MIME'
+    WebViewDock = 'WEBVIEW'
+    SpectralLibraryDock = 'SPECLIB'
 
 class DockWindow(QMainWindow):
     def __init__(self, area, **kwargs):
@@ -44,7 +50,176 @@ class DockWindow(QMainWindow):
     def closeEvent(self, *args, **kwargs):
         self.centralWidget().clear()
 
-class DockArea(pyqtgraph.dockarea.DockArea):
+
+class Dock(pgDock, KeepRefs):
+    @staticmethod
+    def readXml(elem):
+
+
+        return None
+
+    '''
+    Handle style sheets etc., basic stuff that differs from pyqtgraph dockarea
+    '''
+    sigTitleChanged = pyqtSignal(str)
+
+
+    def __init__(self, name='Data View', closable=True, *args, **kwds):
+        super(Dock, self).__init__(name=name, closable=closable, *args, **kwds)
+        KeepRefs.__init__(self)
+        #ssert enmapboxInstance is not None
+        #self.enmapbox = enmapboxInstance
+        #self.setStyleSheet('background:#FFF')
+
+        #replace PyQtGraph Label by EnmapBox labels (could be done by inheritances as well)
+        title = self.title()
+        if True:
+            #self.topLayout.addWidget(self.label, 0, 1)
+            newLabel = self._createLabel(title=title)
+            oldLabel = self.label
+            widgetItem = self.topLayout.replaceWidget(oldLabel, newLabel)
+            oldLabel.setParent(None)
+            assert isinstance(widgetItem, QWidgetItem)
+            self.label = newLabel
+            if closable:
+                self.label.sigCloseClicked.connect(self.close)
+
+        else:
+            pass
+
+        self.uuid = uuid.uuid4()
+
+        self.raiseOverlay()
+
+        if False:
+            self.hStyle = """
+            Dock > QWidget {
+                border: 1px solid #000;
+                border-radius: 1px;
+                border-top-left-radius: 0px;
+                border-top-right-radius: 0px;
+                border-top-width: 0px;
+            }
+            """
+            self.vStyle = """
+            Dock > QWidget {
+                border: 1px solid #000;
+                border-radius: 1px;
+                border-top-left-radius: 0px;
+                border-bottom-left-radius: 0px;
+                border-left-width: 0px;
+            }
+            """
+            self.nStyle = """
+            Dock > QWidget {
+                border: 1px solid #000;
+                border-radius: 1px;
+            }"""
+            self.dragStyle = """
+            Dock > QWidget {
+                border: 4px solid #00F;
+                border-radius: 1px;
+            }"""
+
+            self.widgetArea.setStyleSheet(self.hStyle)
+        self.topLayout.update()
+
+    def contextMenu(self):
+        """
+        implement this to return a QMenu with context menu properties for this dock.
+        :return: None or QMenu
+        """
+
+        menu = QMenu()
+
+        if self.isVisible():
+            a = menu.addAction('Hide Dock')
+            a.triggered.connect(lambda : self.setVisible(False))
+        else:
+            a = menu.addAction('Show Dock')
+            a.triggered.connect(lambda : self.setVisible(True))
+
+        a = menu.addAction('Close Dock')
+        a.triggered.connect(lambda : self.close())
+        return menu
+
+    sigVisibilityChanged = pyqtSignal(bool)
+    def setVisible(self, b:bool):
+
+        i = self.isVisible()
+        super(Dock, self).setVisible(b)
+        if i != self.isVisible():
+            self.sigVisibilityChanged.emit(self.isVisible())
+
+
+    def setTitle(self, title):
+        """
+        Override setTitle to emit a signal after title was changed
+        :param title:
+        :return:
+        """
+
+        old = self.title()
+        super(Dock, self).setTitle(title)
+        if old != title:
+            self.sigTitleChanged.emit(title)
+
+    def _createLabel(self, *args, **kwds):
+        """
+        Overide this function to provide a dock-specific label
+        :return:
+        """
+        return DockLabel(self,  *args, **kwds)
+
+    def append_hv_style(self, stylestr):
+        obj_name = type(self).__name__
+        style = ' \n{} {{\n{}\n}} '.format(obj_name, stylestr)
+        self.hStyle += style
+        self.vStyle += style
+
+    def addTempArea(self):
+        if self.home is None:
+            area = DockArea(temporary=True, home=self)
+            self.tempAreas.append(area)
+            win = DockWindow(area)
+            area.win = win
+            win.show()
+        else:
+            area = self.home.addTempArea()
+        #print "added temp area", area, area.window()
+        return area
+
+    def setOrientation(self, o='auto', force=False):
+        """
+        Sets the orientation of the title bar for this Dock.
+        Must be one of 'auto', 'horizontal', or 'vertical'.
+        By default ('auto'), the orientation is determined
+        based on the aspect ratio of the Dock.
+        """
+        #print self.name(), "setOrientation", o, force
+        if o == 'auto' and self.autoOrient:
+            #if self.container().type() == 'tab':
+            if self.container() is None or self.container().type() == 'tab':
+                o = 'horizontal'
+            elif self.width() > self.height()*1.5:
+                o = 'vertical'
+            else:
+                o = 'horizontal'
+        if force or self.orientation != o:
+            self.orientation = o
+            self.label.setOrientation(o)
+            self.updateStyle()
+
+    def unfloat(self):
+
+        from enmapbox import EnMAPBox
+        enmapbox = EnMAPBox.instance()
+        if isinstance(enmapbox, EnMAPBox):
+            area = enmapbox.ui.dockArea
+            assert isinstance(area, DockArea)
+            area.moveDock(self, 'left', None)
+
+class DockArea(pgDockArea):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
     sigDragMoveEvent = pyqtSignal(QDragMoveEvent)
     sigDragLeaveEvent = pyqtSignal(QDragLeaveEvent)
@@ -67,6 +242,7 @@ class DockArea(pyqtgraph.dockarea.DockArea):
         #c.apoptose(True)
         return c
 
+    """
     #todo: somehow manipulate this to solve issue #21
     #ask user to really close DockArea if more than one dock is opened
     #"Do you really want to close this window and all contents?"
@@ -86,29 +262,48 @@ class DockArea(pyqtgraph.dockarea.DockArea):
         if propagate and cont is not None:
             cont.apoptose()
 
-    def apoptose(self):
-        #print "apoptose area:", self.temporary, self.topContainer, self.topContainer.count()
-        if self.topContainer.count() == 0:
-            self.topContainer = None
-            from enmapbox.gui.enmapboxgui import EnMAPBoxUI
-            if not isinstance(self.topLevelWidget(), EnMAPBoxUI) and \
-                len(self.docks) > 0:
-                pass
-                #info = 'Do you really want to close these {} windows?'.format(len(self.docks))
-                #result = QMessageBox.question(self, "Question",info,
-                 #                             buttons = QMessageBox.Yes | QMessageBox.No,
-                #                              defaultButton=QMessageBox.No)
-                #if result == QMessageBox.No:
-                #    return
-            if self.temporary and self.home is not None:
-                self.home.removeTempArea(self)
-        else:
-            s = ""
+    def fixDock(self, dock):
 
-    def addDock(self, enmapboxdock, position='bottom', relativeTo=None, **kwds):
+        s = ""
+    """
+
+    def floatDock(self, dock):
+        """Removes *dock* from this DockArea and places it in a new window."""
+
+        lastArea = dock.area
+
+
+        area = self.addTempArea()
+        area.win.resize(dock.size())
+        area.moveDock(dock, 'top', None)
+
+        if isinstance(lastArea, DockArea):
+            lastArea.sigDockRemoved.emit(dock)
+
+    def apoptose(self):
+        try:
+            if self.topContainer is not None and self.topContainer.count() == 0:
+                self.topContainer = None
+
+            if self.topContainer is None:
+                if self.temporary and self.home is not None:
+                    self.home.removeTempArea(self)
+            else:
+                pass
+        except:
+            pass
+    sigDockAdded = pyqtSignal(Dock)
+    sigDockRemoved = pyqtSignal(Dock)
+    def addDock(self, enmapboxdock, position='bottom', relativeTo=None, **kwds)->Dock:
         assert enmapboxdock is not None
-        assert isinstance(enmapboxdock, Dock)
-        return super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
+        #assert isinstance(enmapboxdock, Dock)
+        v = None
+        try:
+            v = super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
+            self.sigDockAdded.emit(enmapboxdock)
+        except:
+            pass
+        return v
 
 
     def addTempArea(self):
@@ -143,138 +338,11 @@ class DockArea(pyqtgraph.dockarea.DockArea):
         self.sigDropEvent.emit(event)
 
 
-from enmapbox.gui.utils import KeepRefs
-class Dock(pyqtgraph.dockarea.Dock, KeepRefs):
-    @staticmethod
-    def readXml(elem):
-
-
-        return None
-
-    '''
-    Handle style sheets etc., basic stuff that differs from pyqtgraph dockarea
-    '''
-    sigTitleChanged = pyqtSignal(str)
-
-
-    def __init__(self, name='Data View', closable=True, *args, **kwds):
-        super(Dock, self).__init__(name=name, closable=False, *args, **kwds)
-        KeepRefs.__init__(self)
-        #ssert enmapboxInstance is not None
-        #self.enmapbox = enmapboxInstance
-        self.setStyleSheet('background:#FFF')
-
-        #replace PyQtGraph Label by EnmapBox labels (could be done by inheritances as well)
-        title = self.title()
-        self.topLayout.removeWidget(self.label)
-        del self.label
-        self.label = self._createLabel(title=title)
-        self.label.setMinimumHeight(50)
-        self.topLayout.addWidget(self.label, 0, 1)
-        self.uuid = uuid.uuid4()
-        if closable:
-            self.label.sigCloseClicked.connect(self.close)
-
-        self.raiseOverlay()
-
-
-        self.hStyle = """
-        Dock > QWidget {
-            border: 1px solid #000;
-            border-radius: 5px;
-            border-top-left-radius: 0px;
-            border-top-right-radius: 0px;
-            border-top-width: 0px;
-        }
-        """
-        self.vStyle = """
-        Dock > QWidget {
-            border: 1px solid #000;
-            border-radius: 5px;
-            border-top-left-radius: 0px;
-            border-bottom-left-radius: 0px;
-            border-left-width: 0px;
-        }
-        """
-        self.nStyle = """
-        Dock > QWidget {
-            border: 1px solid #000;
-            border-radius: 5px;
-        }"""
-        self.dragStyle = """
-        Dock > QWidget {
-            border: 4px solid #00F;
-            border-radius: 5px;
-        }"""
-
-        self.widgetArea.setStyleSheet(self.hStyle)
-        self.topLayout.update()
-
-    def contextMenu(self):
-        """
-        implement this to return a QMenu with context menue properties for this dock.
-        :return: None or QMenu
-        """
-
-        menu = QMenu()
-
-        if self.isVisible():
-            a = menu.addAction('Hide Dock')
-            a.triggered.connect(lambda : self.setVisible(True))
-        else:
-            a = menu.addAction('Show Dock')
-            a.triggered.connect(lambda : self.setVisible(False))
-
-        return menu
-
-    sigVisibilityChanged = pyqtSignal(bool)
-    def setVisible(self, b):
-
-        i = self.isVisible()
-        super(Dock, self).setVisible(b)
-        if i != self.isVisible():
-            self.sigVisibilityChanged.emit(self.isVisible())
-
-
-    def setTitle(self, title):
-        """
-        Override setTitle to emit a signal after title was changed
-        :param title:
-        :return:
-        """
-        super(Dock, self).setTitle(title)
-        self.sigTitleChanged.emit(title)
-
-    def _createLabel(self, *args, **kwds):
-        """
-        Overide this function to provide a dock-specific label
-        :return:
-        """
-        return DockLabel(self,  *args, **kwds)
-
-    def append_hv_style(self, stylestr):
-        obj_name = type(self).__name__
-        style = ' \n{} {{\n{}\n}} '.format(obj_name, stylestr)
-        self.hStyle += style
-        self.vStyle += style
-
-    def addTempArea(self):
-        if self.home is None:
-            area = DockArea(temporary=True, home=self)
-            self.tempAreas.append(area)
-            win = DockWindow(area)
-            area.win = win
-            win.show()
-        else:
-            area = self.home.addTempArea()
-        #print "added temp area", area, area.window()
-        return area
 
 
 
 
-
-class DockLabel(VerticalLabel):
+class DockLabel_DEPR(VerticalLabel):
     sigClicked = pyqtSignal(object, object)
     sigCloseClicked = pyqtSignal()
     sigNormalClicked = pyqtSignal()
@@ -305,6 +373,7 @@ class DockLabel(VerticalLabel):
         closeButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarCloseButton))
         self.buttons.append(closeButton)
 
+
         if allow_floating:
             floatButton = QToolButton(self)
             #testButton.clicked.connect(self.sigNormalClicked)
@@ -312,6 +381,27 @@ class DockLabel(VerticalLabel):
             floatButton.clicked.connect(lambda : self.dock.float())
             floatButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarNormalButton))
             self.buttons.append(floatButton)
+
+            self.btnUnFloat = QToolButton(self)
+            self.btnUnFloat.setText('U')
+            self.btnUnFloat.setToolTip('Unfloat window')
+            self.btnUnFloat.clicked.connect(lambda : self.dock.unfloat())
+            self.buttons.append(self.btnUnFloat)
+
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox.instance()
+        if isinstance(enmapBox, EnMAPBox):
+            dockArea = enmapBox.ui.dockArea
+            if isinstance(dockArea, DockArea):
+
+                dockArea.sigDockAdded.connect(lambda dock: self._setUnfloatButton(dock, False))
+                dockArea.sigDockRemoved.connect(lambda dock: self._setUnfloatButton(dock, True))
+                pass
+
+    def _setUnfloatButton(self, dock, b:bool):
+        self.btnUnFloat.setVisible(b)
+        self.update()
+
 
     def sizeHint(self):
         s_min = 50
@@ -433,87 +523,96 @@ class DockLabel(VerticalLabel):
 
 
 
-class CursorLocationValueDock(Dock):
+class DockLabel(pgDockLabel):
+    sigClicked = pyqtSignal(object, object)
+    sigCloseClicked = pyqtSignal()
+    sigNormalClicked = pyqtSignal()
+    sigContextMenuRequest = pyqtSignal(QContextMenuEvent)
+    def __init__(self, dock, title=None, allow_floating=True, showClosebutton=True):
+        if title is None:
+            title = self.dock.title()
+        super(DockLabel, self).__init__(title, dock, showClosebutton)
+        assert isinstance(dock, pgDock)
+        self.mButtons = list()  # think from right to left
 
-    _instance = None
+        self.setMinimumSize(26, 26)
 
-    """
-    A dock to visualize cursor location values
-    """
+        closeButton = QToolButton(self)
+        closeButton.clicked.connect(self.sigCloseClicked)
+        closeButton.setToolTip('Close window')
+        closeButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarCloseButton))
+        self.mButtons.append(closeButton)
 
-    def __init__(self, *args, **kwds):
-        super(CursorLocationValueDock, self).__init__(*args, **kwds)
-        from enmapbox.gui.cursorlocationvalue import CursorLocationValueWidget
-        self.dataSourceManager = None
-        self.w = CursorLocationValueWidget(self)
-        self.layout.addWidget(self.w)
-        self.setTitle('Cursor Location Values')
+        if allow_floating:
+            floatButton = QToolButton(self)
+            #testButton.clicked.connect(self.sigNormalClicked)
+            floatButton.setToolTip('Float window')
+            floatButton.clicked.connect(lambda : self.dock.float())
+            floatButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarNormalButton))
+            self.mButtons.append(floatButton)
 
-    def connectDataSourceManager(self, dataSourceManager):
-        self.w.connectDataSourceManager(dataSourceManager)
+            self.btnUnFloat = QToolButton(self)
+            self.btnUnFloat.setText('U')
+            self.btnUnFloat.setToolTip('Unfloat window')
+            self.btnUnFloat.clicked.connect(lambda : self.dock.unfloat())
+            self.mButtons.append(self.btnUnFloat)
+
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox.instance()
+        if isinstance(enmapBox, EnMAPBox):
+            dockArea = enmapBox.ui.dockArea
+            if isinstance(dockArea, DockArea):
+
+                dockArea.sigDockAdded.connect(lambda dock: self.setUnfloatButtonVisibility(dock, False))
+                dockArea.sigDockRemoved.connect(lambda dock: self.setUnfloatButtonVisibility(dock, True))
+
+    def setUnfloatButtonVisibility(self, dock, b:bool):
+        self.btnUnFloat.setVisible(b)
+        self.update()
 
 
-    def showLocationValues(self, *args):
-        self.w.showLocationValues(*args)
+    def contextMenuEvent(self, event):
+        assert isinstance(event, QContextMenuEvent)
+        self.sigContextMenuRequest.emit(event)
 
-class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
 
-    FILTERS = ';;'.join(["Textfiles (*.txt *.csv *.hdr)", \
-                        "HTML (*.html)" \
-                        "Any file (*.*)"
-                         ])
-
-    sigSourceChanged = pyqtSignal(str)
-    def __init__(self, parent=None):
-        super(TextDockWidget, self).__init__(parent=parent)
-        self.setupUi(self)
-        self.mFile = None
-
-        self.btnLoadFile.setIcon(QApplication.style().standardIcon(QStyle.SP_DialogOpenButton))
-        self.btnLoadFile.clicked.connect(lambda: self.loadFile(
-            QFileDialog.getOpenFileName(self, 'Open File', directory=self.mFile, filter=TextDockWidget.FILTERS)))
-        self.btnSaveFile.clicked.connect(lambda: self.save(saveAs=False))
-        self.btnSaveAs.clicked.connect(lambda :self.save(saveAs=True))
-
-    def loadFile(self, path):
-        if os.path.isfile(path):
-            data = None
-            with codecs.open(path, 'r', 'utf-8') as file:
-                data = ''.join(file.readlines())
-
-            ext = os.path.splitext(path)[-1].lower()
-            if data is not None:
-                if ext in ['.html']:
-                    self.textEdit.setHtml(data)
-                else:
-                    self.textEdit.setText(data)
-
-                self.mFile = path
-
+    def mouseMoveEvent(self, ev):
+        if not self.startedDrag and hasattr(self, 'pressPos'):
+            super(DockLabel, self).mouseMoveEvent(ev)
         else:
-            self.mFile = None
-        self.sigSourceChanged.emit(str(path))
+            ev.accept()
+
+    """
+    def resizeEvent_BAK(self, ev):
+        if self.closeButton:
+            if self.orientation == 'vertical':
+                size = ev.size().width()
+                pos = QtCore.QPoint(0, 0)
+            else:
+                size = ev.size().height()
+                pos = QtCore.QPoint(ev.size().width() - size, 0)
+            self.closeButton.setFixedSize(QtCore.QSize(size, size))
+            self.closeButton.move(pos)
+        super(DockLabel, self).resizeEvent(ev)
+    """
 
 
-    def save(self, saveAs=False):
-        if self.mFile is None or saveAs:
-            path = QFileDialog.getSaveFileName(self, 'Save file...', \
-                                        directory=self.mFile,
-                                        filter=TextDockWidget.FILTERS)
-            s = ""
-            if len(path) > 0:
-                self.mFile = path
+    def resizeEvent(self, ev):
+        if self.orientation == 'vertical':
+            size = ev.size().width()
+        else:
+            size = ev.size().height()
 
-        if self.mFile is not None and len(self.mFile) > 0:
-            ext = os.path.splitext(self.mFile)[-1].lower()
-            import codecs
-            if ext in ['.txt','.csv', '.hdr']:
+        for i, btn in enumerate([b for b in self.mButtons if not b.isHidden()]):
+            if self.orientation == 'vertical':
+                pos = QtCore.QPoint(0, i * size)
+            else:
+                pos = QtCore.QPoint(ev.size().width() - (i+1)*size, 0)
+            btn.setFixedSize(QtCore.QSize(size, size))
+            btn.move(pos)
 
-                with codecs.open(self.mFile, 'w', 'utf-8') as file:
-                    file.write(self.textEdit.toPlainText())
-            elif ext in ['.html']:
-                with codecs.open(self.mFile, 'w', 'utf-8') as file:
-                    file.write(self.textEdit.toHtml())
+        super(DockLabel, self).resizeEvent(ev)
+
 
 
 class MimeDataTextEdit(QTextEdit):
@@ -523,10 +622,14 @@ class MimeDataTextEdit(QTextEdit):
         #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
         self.setOverwriteMode(False)
 
-    def canInsertFromMimeData(self, QMimeData):
+    def canInsertFromMimeData(self, QMimeData)->bool:
         return True
 
-    def insertFromMimeData(self, mimeData):
+    def insertFromMimeData(self, mimeData:QMimeData):
+        """
+        Shows the QMimeData information
+        :param mimeData: QMimeData
+        """
         assert isinstance(mimeData, QMimeData)
         formats = [str(f) for f in mimeData.formats()]
         self.clear()
@@ -545,7 +648,9 @@ class MimeDataTextEdit(QTextEdit):
                 self.insertPlainText(mimeData.text())
             else:
                 append('### (raw data as string) ###')
-                self.insertPlainText(str(mimeData.data(format)))
+                data = mimeData.data(format)
+                if isinstance(data, QByteArray):
+                    self.insertPlainText(str(mimeData.data(format)))
             append('\n')
 
     def dragEnterEvent(self, event):
@@ -606,9 +711,179 @@ class MimeDataDockWidget(QWidget, loadUI('mimedatadockwidget.ui')):
                     file.write(self.textEdit.toHtml())
 
 
+
+class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
+    """
+    A widget to display text files
+    """
+    FILTERS = ';;'.join(["Textfiles (*.txt *.csv *.hdr)", \
+                        "HTML (*.html)" \
+                        "Any file (*.*)"
+                         ])
+
+    sigSourceChanged = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        """
+        Constructor
+        :param parent:
+        """
+        super(TextDockWidget, self).__init__(parent=parent)
+        self.setupUi(self)
+        self.setAcceptDrops(True)
+        self.mFile = None
+        self.mTitle = self.windowTitle()
+        self.mTextEdit.setAcceptDrops(True)
+        self.mTextEdit.dragEnterEven = self.dragEnterEvent
+        self.mTextEdit.dropEvent = self.dropEvent
+        self.nMaxBytes = 80 * 2 * 12000
+        self.btnLoadFile.setDefaultAction(self.actionLoadFile)
+        self.btnSaveFile.setDefaultAction(self.actionSaveFile)
+        self.btnSaveFileAs.setDefaultAction(self.actionSaveFileAs)
+        self.actionLoadFile.triggered.connect(lambda: self.loadFile(
+            QFileDialog.getOpenFileName(self, 'Open File', directory=self.mFile, filter=TextDockWidget.FILTERS)))
+
+        self.actionSaveFile.triggered.connect(lambda: self.save(saveAs=False))
+        self.actionSaveFileAs.triggered.connect(lambda :self.save(saveAs=True))
+
+        self.actionSaveFile.setEnabled(False)
+        self.updateTitle()
+
+    def dragEnterEvent(self, event:QDragEnterEvent):
+        """
+        :param event: QDragEnterEvent
+        """
+        if event.mimeData().hasUrls():
+            event.setDropAction(Qt.CopyAction)
+
+            event.accept()
+
+    def dropEvent(self, event:QDropEvent):
+        """
+        :param event: QDropEvent
+        """
+        if event.mimeData().hasUrls():
+            url = [u for u in event.mimeData().urls()][0]
+            assert isinstance(url, QUrl)
+            if url.isLocalFile():
+                self.loadFile(url.toLocalFile())
+                event.setDropAction(Qt.CopyAction)
+                event.accept()
+
+
+
+    def file(self)->str:
+        """
+        Returns the path of a file added with `loadFile`
+        :return: str
+        """
+        if self.mFile is None:
+            return ''
+        else:
+            return self.mFile
+
+    def loadFile(self, path):
+        """
+        Loads a text file from `path`
+        :param path: str
+        """
+        if os.path.isfile(path):
+            data = None
+
+            statinfo = os.stat(path)
+            if statinfo.st_size > self.nMaxBytes:
+                info = 'Files {} is > {} bytes'.format(path, self.nMaxBytes)
+                info += '\nDo you really want to load it into this text editor?'
+                result = QMessageBox.warning(self, 'Warning', info, QMessageBox.Yes, QMessageBox.Cancel)
+                if result != QMessageBox.Yes:
+                    return
+            try:
+                with open(path, 'r', 'utf-8') as file:
+                    data = ''.join(file.readlines())
+            except:
+                with open(path, 'r') as file:
+                    data = ''.join(file.readlines())
+
+            ext = os.path.splitext(path)[-1].lower()
+            if data is not None:
+                if ext in ['.html']:
+                    self.mTextEdit.setHtml(data)
+                else:
+                    self.mTextEdit.setText(data)
+
+                self.mFile = path
+
+        else:
+            self.mFile = None
+        self.updateTitle()
+        self.actionSaveFile.setEnabled(os.path.isfile(self.file()))
+        self.sigSourceChanged.emit(str(path))
+
+    def updateTitle(self):
+        """
+        Updates the widget title
+        """
+        #title = '{}'.format(self.mTitle)
+        title = ''
+        if isinstance(self.mFile, str):
+            # title += ' | {}'.format(os.path.basename(self.mFile))
+            title = os.path.basename(self.mFile)
+        self.setWindowTitle(title)
+
+
+    def setText(self, *args, **kwds):
+        """
+        Sets text. See
+        :param args:
+        :param kwds:
+        :return:
+        """
+        self.mTextEdit.setPlainText(*args, **kwds)
+
+    def text(self)->str:
+        """
+        Returns the plain text
+        :return: str
+        """
+        return self.mTextEdit.toPlainText()
+
+    def setHtml(self, *args, **kwds):
+        """
+        Sets thext as HTML
+        :param args:
+        :param kwds:
+        """
+        self.mTextEdit.setHtml(*args, **kwds)
+
+    def save(self, saveAs=False):
+        """
+        Saves the Text
+        :param saveAs: bool
+        """
+        if self.mFile is None or saveAs:
+            path = QFileDialog.getSaveFileName(self, 'Save file...', \
+                                        directory=self.mFile,
+                                        filter=TextDockWidget.FILTERS)
+            s = ""
+            if len(path) > 0:
+                self.mFile = path
+
+        if self.mFile is not None and len(self.mFile) > 0:
+            ext = os.path.splitext(self.mFile)[-1].lower()
+            import codecs
+            if ext in ['.txt','.csv', '.hdr']:
+
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.mTextEdit.toPlainText())
+            elif ext in ['.html']:
+                with codecs.open(self.mFile, 'w', 'utf-8') as file:
+                    file.write(self.mTextEdit.toHtml())
+
+
+
 class TextDock(Dock):
     """
-    A dock to visualize textural data
+    A dock to visualize text data
     """
     def __init__(self, *args, **kwds):
         html = kwds.pop('html', None)
@@ -616,14 +891,20 @@ class TextDock(Dock):
 
         super(TextDock, self).__init__(*args, **kwds)
 
-        self.textDockWidget = TextDockWidget(self)
-
+        self.mTextDockWidget = TextDockWidget(self)
+        self.mTextDockWidget.windowTitleChanged.connect(self.setTitle)
         if html:
-            self.textDockWidget.textEdit.insertHtml(html)
+            self.mTextDockWidget.mTextEdit.insertHtml(html)
         elif plainTxt:
-            self.textDockWidget.textEdit.insertPlainText(plainTxt)
-        self.layout.addWidget(self.textDockWidget)
+            self.mTextDockWidget.mTextEdit.insertPlainText(plainTxt)
+        self.layout.addWidget(self.mTextDockWidget)
 
+    def textDockWidget(self)->TextDockWidget:
+        """
+        Returns the widget that displays the text
+        :return: TextDockWidget
+        """
+        return self.mTextDockWidget
 
 class WebViewDock(Dock):
     def __init__(self, *args, **kwargs):
@@ -632,7 +913,7 @@ class WebViewDock(Dock):
         super(WebViewDock,self).__init__(*args, **kwargs)
         #self.setLineWrapMode(QTextEdit.FixedColumnWidth)
 
-        from PyQt4.QtWebKit import QWebView
+        from PyQt5.QtWebKit import QWebView
         self.webView = QWebView(self)
         self.layout.addWidget(self.webView)
 
@@ -648,7 +929,7 @@ class WebViewDock(Dock):
             url = QUrl(uri)
         self.webView.load(url)
         settings = self.webView.page().settings()
-        from PyQt4.QtWebKit import QWebSettings
+        from PyQt5.QtWebKit import QWebSettings
         settings.setAttribute(QWebSettings.LocalContentCanAccessRemoteUrls, True)
         settings.setAttribute(QWebSettings.LocalContentCanAccessFileUrls, True)
         settings.setAttribute(QWebSettings.LocalStorageEnabled, True)
@@ -663,29 +944,33 @@ class MimeDataDock(Dock):
         super(MimeDataDock, self).__init__(*args, **kwds)
 
         self.mimeDataWidget = MimeDataDockWidget(self)
-        self.layout.addWidget(self.mimeDataWidget)
+        self.addWidget(self.mimeDataWidget, 0, 0)
 
 
 class SpectralLibraryDock(Dock):
+    """
+    A Dock to show SpectraLProfiles
+    """
     sigLoadFromMapRequest = pyqtSignal()
-    def __init__(self,*args, **kwds):
+    def __init__(self, speclib=None, *args, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
-        from enmapbox.gui.spectrallibraries import SpectralLibraryWidget
-        self.speclibWidget = SpectralLibraryWidget(self)
-        self.speclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
-        self.layout.addWidget(self.speclibWidget)
-        self.mShowMapInteraction = True
+        self.mSpeclibWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
+        self.mSpeclibWidget.setMapInteraction(False)
+        self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
+        self.layout.addWidget(self.mSpeclibWidget)
+        self.setTitle(self.speclib().name())
+        self.speclib().nameChanged.connect(lambda slib=self.speclib(): self.setTitle(slib.name()))
+        self.sigTitleChanged.connect(self.speclib().setName)
 
 
-if __name__ == '__main__':
-    import site, sys
-    #add site-packages to sys.path as done by enmapboxplugin.py
+    def speclibWidget(self)->SpectralLibraryWidget:
+        """
+        Returns the SpectralLibraryWidget
+        :return: SpectralLibraryWidget
+        """
+        return self.mSpeclibWidget
 
-    from enmapbox.gui.utils import initQgisApplication
-    qgsApp = initQgisApplication()
-    da = DockArea()
-    dock = MimeDataDock()
-    da.addDock(dock)
-    da.show()
-    qgsApp.exec_()
+    def speclib(self)->SpectralLibrary:
+        """Returns the underlying spectral library"""
+        return self.mSpeclibWidget.speclib()

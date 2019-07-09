@@ -1,0 +1,11 @@
+# this file lists packages that are required to run the EnMAP-Box AND can be installed with pip
+# see https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
+
+###### Requirements to build the documentation with sphinx ######
+sphinx>=1.7.7
+sphinx_rtd_theme>=0.3.0
+PyQt5
+mock>=2.0.0
+numpy>=1.14.5
+scikit-learn>=0.19.2
+https://bitbucket.org/hu-geomatics/enmap-box/downloads/pyqtgraph-0.11.0.dev0.zip

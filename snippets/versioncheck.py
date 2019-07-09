@@ -24,5 +24,5 @@ import sip
 if False:
     from qgis.core import QgsApplication
 else:
-    from PyQt4.QtGui import QApplication
+    from PyQt5.QtGui import QApplication
 print('API Version QString: {}'.format(sip.getapi('QString')))

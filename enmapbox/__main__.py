@@ -16,37 +16,50 @@
 *                                                                         *
 **************************************************************************
 """
-from __future__ import absolute_import
+
 import sys, os, site
+import qgis.testing
+import qgis.utils
 
-
-def run():
-    """
+def run(debug:bool=False, processing:bool=True, applications:bool=True, sources:list=None):
+    '''
     Starts the EnMAP-Box GUI.
-    :return:
-    """
 
-    from enmapbox.gui.utils import initQgisApplication
+    :param debug: whether to run in debug mode
+    :param processing: whether to load the processing framework
+    :param applications: whether to load none core application
+    :param sources: list of sources to be added
+    :return:
+    '''
+
+    from enmapbox.testing import initQgisApplication
     qgisApp = initQgisApplication()
+    import enmapbox
+    enmapbox.DEBUG = debug
+    enmapbox.LOAD_PROCESSING_FRAMEWORK = processing
+    enmapbox.LOAD_EXTERNAL_APPS = applications
+
+    # initialize resources and background frameworks
+    # if started from QGIS, this is done by enmapbox/enmapboxplugin.py
+    # initialize Qt resources, QgsEditorWidgetWrapper, QgsProcessingProviders etc.
+    enmapbox.initAll()
 
     from enmapbox.gui.enmapboxgui import EnMAPBox
-    import enmapbox.gui
-    enmapbox.gui.DEBUG = False
-    enmapbox.gui.LOAD_PROCESSING_FRAMEWORK = True
-    enmapbox.gui.LOAD_EXTERNAL_APPS = True
 
-    from qgis.utils import iface
-    enmapbox = EnMAPBox(iface)
-    enmapbox.run()
+
+    enmapBox = EnMAPBox(qgis.utils.iface)
+    enmapBox.run()
+    if sources is not None:
+        for source in enmapBox.addSources(sourceList=sources):
+            try: # add as map
+                lyr = source.createUnregisteredMapLayer()
+                dock = enmapBox.createDock('MAP')
+                dock.addLayers([lyr])
+            except: pass
+
     qgisApp.exec_()
 
 
 if __name__ == '__main__':
-    thisDir = os.path.dirname(__file__)
-    if thisDir in sys.path:
-        sys.path.remove(thisDir)
-
-    args = sys.argv[1:]
-
 
     run()
