@@ -595,14 +595,13 @@ class EnMAPBox(QgisInterface, QObject):
         for canvas in canvases:
             assert isinstance(canvas, MapCanvas)
             mapTools = canvas.mapTools()
+
+            if mapToolKey == MapTools.SelectFeature:
+                mapTools.mtSelectFeature.setSelectionMode(self.mMapToolMode)
+
             mapTools.activate(mapToolKey)
 
-            mapTool = canvas.mapTool()
-            if isinstance(mapTool, QgsMapToolSelect):
-                mapTool.setSelectionMode(self.mMapToolMode)
-
-            results.append(mapTool)
-
+            results.append(canvas.mapTool())
 
         for action in self._mapToolActions():
             key = action.property(EnMAPBox.MAPTOOLACTION)
