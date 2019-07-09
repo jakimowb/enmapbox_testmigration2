@@ -430,13 +430,20 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.mActionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.REPOSITORY))
         self.ui.mActionOpenOnlineDocumentation.triggered.connect(lambda : webbrowser.open(enmapbox.DOCUMENTATION))
 
-
         # finally, fix the popup mode of menus
         for toolBar in self.ui.findChildren(QToolBar):
             for toolButton in toolBar.findChildren(QToolButton):
                 assert isinstance(toolButton, QToolButton)
                 if isinstance(toolButton.defaultAction(), QAction) and isinstance(toolButton.defaultAction().menu(), QMenu):
                     toolButton.setPopupMode(QToolButton.MenuButtonPopup)
+
+
+    def _mapToolButton(self, action)->QToolButton:
+        for toolBar in self.ui.findChildren(QToolBar):
+            for toolButton in toolBar.findChildren(QToolButton):
+                if toolButton.defaultAction() == action:
+                    return toolButton
+        return None
 
     def _mapToolActions(self)->list:
         """
@@ -564,6 +571,12 @@ class EnMAPBox(QgisInterface, QObject):
 
         mode = None
 
+        for btnSelectFeature in self.ui.toolBarVectorTools.findChildren(QToolButton):
+            if btnSelectFeature.defaultAction() == self.ui.mActionSelectFeatures:
+                break
+
+
+
         if mapToolKey == MapTools.SelectFeature:
             if self.ui.optionSelectFeaturesRectangle.isChecked():
                 mode = QgsMapToolSelectionHandler.SelectionMode.SelectSimple
@@ -575,6 +588,10 @@ class EnMAPBox(QgisInterface, QObject):
                 mode = QgsMapToolSelectionHandler.SelectionMode.SelectRadius
             else:
                 mode = QgsMapToolSelectionHandler.SelectionMode.SelectSimple
+            btnSelectFeature.setChecked(True)
+        else:
+            btnSelectFeature.setChecked(False)
+
 
         if mapToolKey == MapTools.SpectralProfile:
             #SpectralProfile is a shortcut for Identify + return with profile option
