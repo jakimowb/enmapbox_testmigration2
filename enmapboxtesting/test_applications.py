@@ -7,7 +7,7 @@
      (at your option) any later version.
 
 """
-import enmapbox
+import enmapbox, os
 
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
@@ -18,12 +18,13 @@ from collections import namedtuple
 from enmapbox.testing import initQgisApplication, TestObjects
 
 QGIS_APP = initQgisApplication()
+SHOW_GUI = True and os.environ.get('CI') is None
 from enmapbox.gui.utils import *
 from enmapbox import EnMAPBox, DIR_ENMAPBOX, DIR_REPO
 import enmapbox.gui
 from enmapbox.gui.applications import *
 
-
+enmapbox.initAll()
 
 DIR_TMP = os.path.join(DIR_REPO, *['test', 'tmp_enmapboxApplicationTests'])
 
@@ -195,6 +196,18 @@ class test_applications(unittest.TestCase):
 
         eb = EnMAPBox(None)
         eb.loadExampleData()
+
+    def test_IVVM(self):
+
+        eb = EnMAPBox(None)
+
+
+        from lmuvegetationapps.IVVRM_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
+
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
 
 

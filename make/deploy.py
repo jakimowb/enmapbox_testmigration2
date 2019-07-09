@@ -443,7 +443,7 @@ if __name__ == "__main__":
     # 2. Upload to Repository
     # upload deploy/EnMAP-Box.<version>.<branch>.zip to https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/downloads
     # this step requires to provide upload credentials
-    uploadDeveloperPlugin()
+    #uploadDeveloperPlugin()
 
     exit()
 
