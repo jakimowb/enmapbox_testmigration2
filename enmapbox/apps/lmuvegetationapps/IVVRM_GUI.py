@@ -40,7 +40,16 @@ class IVVRM_GUI(QDialog, loadUIFormClass(pathUI)):
     def __init__(self, parent=None):
         super(IVVRM_GUI, self).__init__(parent)
         self.setupUi(self)
-        pg.GraphicsScene.sendHoverEvents = lambda *args, **kwargs: None  # Temporal crash fix caused by sendHoverEvents
+
+        # fix the sendHoverEvent crash by replacing the slot function
+        self.graphicsView.scene().sendHoverEvents = self.onHoverEvent
+
+    def onHoverEvent(self, *args, **kwds):
+        """
+        Does nothing. Just to avoid calling the PyQtGraph routine which can fail
+        """
+        pass
+
 
 class Load_Txt_File_GUI(QDialog, loadUIFormClass(pathUI2)):
     def __init__(self, parent=None):
@@ -69,14 +78,16 @@ class Start_IVVRM:
     def run_IVVRM(self):
         self.main.ivvrm.gui.show()
         self.main.ivvrm.plotting()
-        #self.main.ivvrm.gui.graphicsView.sendHoverEvents = lambda *args, **kwargs: None
+
         self.gui.close()
-        #pg.GraphicsScene.sendHoverEvents()
+
 
 
 class IVVRM:
 
     def __init__(self, main):
+        self.mPlotItems = [] # a list that stores the current plot items, i.e. single profiles.
+
         self.main = main
         self.gui = IVVRM_GUI()
         self.special_chars()
@@ -88,6 +99,7 @@ class IVVRM:
         self.select_model()
         self.mod_interactive()
         self.mod_exec()
+
 
     def special_chars(self):
         self.gui.lblCab.setText(u'[µg/cm²]')
@@ -508,15 +520,23 @@ class IVVRM:
     def plotting(self):
 
         if not self.gui.CheckPlotAcc.isChecked():
-            self.gui.graphicsView.plot(self.wl, self.myResult, clear=True, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
-                                        name='modelled')
 
+            #toRemove = self.gui.graphicsView.plotItem.items[:]
+            #for item in toRemove:
+            #    self.gui.graphicsView.plotItem.removeItem(item)
+            self.mPlotItems.clear()
+
+
+            r = self.gui.graphicsView.plot(self.wl, self.myResult, clear=True, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
+                                        name='modelled')
+            self.mPlotItems.append(r)
             self.gui.graphicsView.setYRange(0, 0.8, padding=0)
             self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
             self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
         else:
             myPen = pg.mkPen(color=self.colors_dict[self.item], style=self.penStyle)
-            self.plot = self.gui.graphicsView.plot(self.wl, self.myResult, pen=myPen)
+            r = self.gui.graphicsView.plot(self.wl, self.myResult, pen=myPen)
+            self.mPlotItems.append(r)
             self.plot_own_spec()
             self.gui.graphicsView.setYRange(0, 0.8, padding=0)
             self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
@@ -551,9 +571,10 @@ class IVVRM:
                                      '\n' + u'R²: sensors mismatch ', (100, 200, 255),
                                      border="w", anchor=(1, 0))
             errors.setPos(2500, 0.55)
+            self.mPlotItems.append(errors)
             self.gui.graphicsView.addItem(errors)
 
-            warnings.filterwarnings('once')
+            #warnings.filterwarnings('once')
 
     def open_file(self, type):
         self.main.loadtxtfile.open(type=type)
@@ -564,7 +585,9 @@ class IVVRM:
 
     def plot_own_spec(self):
         if self.data_mean is not None:
-            self.gui.graphicsView.plot(self.wl_open, self.data_mean, name='observed')
+
+            r = self.gui.graphicsView.plot(self.wl_open, self.data_mean, name='observed')
+            self.mPlotItems.append(r)
 
     def clear_plot(self, rescale=False, clearPlots=False):
         if rescale:

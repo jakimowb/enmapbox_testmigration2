@@ -20,7 +20,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
-SHOW_GUI = False
+SHOW_GUI = True and os.environ.get('CI') is None
 
 import enmapbox.dependencycheck
 enmapbox.dependencycheck.installTestData()
