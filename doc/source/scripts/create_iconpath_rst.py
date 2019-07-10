@@ -6,7 +6,7 @@ from os.path import basename, abspath, dirname, join as jp
 basedir = jp(dirname(abspath(__file__)), '..')
 # list of icon dirs relative to basedir
 icondirs = ['../../enmapbox/gui/ui/icons/',
-            '../../site-packages/qps/ui/icons/',
+            '../../enmapbox/externals/qps/ui/icons/',
             'img/icons/']
 
 text = ''

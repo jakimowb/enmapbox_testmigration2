@@ -67,9 +67,7 @@ The EnMAP-Box requires the following python packages:
 * `numpy <http://www.numpy.org/>`_
 * `scipy <https://www.scipy.org>`_
 * `scikit-learn <http://scikit-learn.org/stable/index.html>`_
-* `pyqtgraph <http://pyqtgraph.org/>`_
 * `matplotlib <https://matplotlib.org/>`_
-
 * `astropy <http://docs.astropy.org>`_ (**optional**, relevant e.g. for certain filtering algorithms)
 
 Follow the platform specific installation instructions below in order to install these packages.
@@ -202,7 +200,6 @@ Linux
         python3 -m pip install numpy
         python3 -m pip install scipy
         python3 -m pip install scikit-learn
-        python3 -m pip install https://bitbucket.org/hu-geomatics/enmap-box/downloads/pyqtgraph-0.11.0.dev0.zip
         python3 -m pip install matplotlib
 
    *and optionally*:
@@ -226,7 +223,6 @@ Mac
         python3 -m pip install numpy
         python3 -m pip install scipy
         python3 -m pip install scikit-learn
-        python3 -m pip install https://bitbucket.org/hu-geomatics/enmap-box/downloads/pyqtgraph-0.11.0.dev0.zip
         python3 -m pip install matplotlib
 
     *and optionally*:

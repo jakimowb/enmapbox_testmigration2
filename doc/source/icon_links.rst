@@ -38,8 +38,6 @@
    :width: 28px
 .. |general| image:: /../../enmapbox/gui/ui/icons/general.svg
    :width: 28px
-.. |icon| image:: /../../enmapbox/gui/ui/icons/icon.svg
-   :width: 28px
 .. |IconTimeSeries| image:: /../../enmapbox/gui/ui/icons/IconTimeSeries.svg
    :width: 28px
 .. |link_all| image:: /../../enmapbox/gui/ui/icons/link_all.svg
@@ -242,73 +240,77 @@
    :width: 28px
 .. |zoomToFullExtent| image:: /../../enmapbox/gui/ui/icons/zoomToFullExtent.svg
    :width: 28px
-.. |center_map| image:: /../../site-packages/qps/ui/icons/center_map.svg
+.. |center_map| image:: /../../enmapbox/externals/qps/ui/icons/center_map.svg
    :width: 28px
-.. |classinfo| image:: /../../site-packages/qps/ui/icons/classinfo.svg
+.. |classinfo| image:: /../../enmapbox/externals/qps/ui/icons/classinfo.svg
    :width: 28px
-.. |classinfo_add| image:: /../../site-packages/qps/ui/icons/classinfo_add.svg
+.. |classinfo_add| image:: /../../enmapbox/externals/qps/ui/icons/classinfo_add.svg
    :width: 28px
-.. |classinfo_remove| image:: /../../site-packages/qps/ui/icons/classinfo_remove.svg
+.. |classinfo_remove| image:: /../../enmapbox/externals/qps/ui/icons/classinfo_remove.svg
    :width: 28px
-.. |crosshair| image:: /../../site-packages/qps/ui/icons/crosshair.svg
+.. |crosshair| image:: /../../enmapbox/externals/qps/ui/icons/crosshair.svg
    :width: 28px
-.. |cross_red| image:: /../../site-packages/qps/ui/icons/cross_red.svg
+.. |cross_red| image:: /../../enmapbox/externals/qps/ui/icons/cross_red.svg
    :width: 28px
-.. |cursorlocationinfo| image:: /../../site-packages/qps/ui/icons/cursorlocationinfo.svg
+.. |cursorlocationinfo| image:: /../../enmapbox/externals/qps/ui/icons/cursorlocationinfo.svg
    :width: 28px
-.. |cursor_zoom_fullextent| image:: /../../site-packages/qps/ui/icons/cursor_zoom_fullextent.svg
+.. |cursor_zoom_fullextent| image:: /../../enmapbox/externals/qps/ui/icons/cursor_zoom_fullextent.svg
    :width: 28px
-.. |cursor_zoom_pixelscale| image:: /../../site-packages/qps/ui/icons/cursor_zoom_pixelscale.svg
+.. |cursor_zoom_pixelscale| image:: /../../enmapbox/externals/qps/ui/icons/cursor_zoom_pixelscale.svg
    :width: 28px
-.. |pan_center| image:: /../../site-packages/qps/ui/icons/pan_center.svg
+.. |pan_center| image:: /../../enmapbox/externals/qps/ui/icons/pan_center.svg
    :width: 28px
-.. |plus_green| image:: /../../site-packages/qps/ui/icons/plus_green.svg
+.. |plus_green| image:: /../../enmapbox/externals/qps/ui/icons/plus_green.svg
    :width: 28px
-.. |poly2speclib| image:: /../../site-packages/qps/ui/icons/poly2speclib.svg
+.. |plus_green_icon| image:: /../../enmapbox/externals/qps/ui/icons/plus_green_icon.svg
    :width: 28px
-.. |profile| image:: /../../site-packages/qps/ui/icons/profile.svg
+.. |poly2speclib| image:: /../../enmapbox/externals/qps/ui/icons/poly2speclib.svg
    :width: 28px
-.. |profile_add_auto| image:: /../../site-packages/qps/ui/icons/profile_add_auto.svg
+.. |profile| image:: /../../enmapbox/externals/qps/ui/icons/profile.svg
    :width: 28px
-.. |profile_dontreceive| image:: /../../site-packages/qps/ui/icons/profile_dontreceive.svg
+.. |profile_add_auto| image:: /../../enmapbox/externals/qps/ui/icons/profile_add_auto.svg
    :width: 28px
-.. |profile_identify| image:: /../../site-packages/qps/ui/icons/profile_identify.svg
+.. |profile_dontreceive| image:: /../../enmapbox/externals/qps/ui/icons/profile_dontreceive.svg
    :width: 28px
-.. |profile_save| image:: /../../site-packages/qps/ui/icons/profile_save.svg
+.. |profile_identify| image:: /../../enmapbox/externals/qps/ui/icons/profile_identify.svg
    :width: 28px
-.. |raster| image:: /../../site-packages/qps/ui/icons/raster.svg
+.. |profile_reload| image:: /../../enmapbox/externals/qps/ui/icons/profile_reload.svg
    :width: 28px
-.. |raster_classification| image:: /../../site-packages/qps/ui/icons/raster_classification.svg
+.. |profile_save| image:: /../../enmapbox/externals/qps/ui/icons/profile_save.svg
    :width: 28px
-.. |raster_mask| image:: /../../site-packages/qps/ui/icons/raster_mask.svg
+.. |raster| image:: /../../enmapbox/externals/qps/ui/icons/raster.svg
    :width: 28px
-.. |raster_multispectral| image:: /../../site-packages/qps/ui/icons/raster_multispectral.svg
+.. |raster_classification| image:: /../../enmapbox/externals/qps/ui/icons/raster_classification.svg
    :width: 28px
-.. |raster_timeseries| image:: /../../site-packages/qps/ui/icons/raster_timeseries.svg
+.. |raster_mask| image:: /../../enmapbox/externals/qps/ui/icons/raster_mask.svg
    :width: 28px
-.. |refresh_green| image:: /../../site-packages/qps/ui/icons/refresh_green.svg
+.. |raster_multispectral| image:: /../../enmapbox/externals/qps/ui/icons/raster_multispectral.svg
    :width: 28px
-.. |refresh_orange| image:: /../../site-packages/qps/ui/icons/refresh_orange.svg
+.. |raster_timeseries| image:: /../../enmapbox/externals/qps/ui/icons/raster_timeseries.svg
    :width: 28px
-.. |selectcursor| image:: /../../site-packages/qps/ui/icons/selectcursor.svg
+.. |refresh_green| image:: /../../enmapbox/externals/qps/ui/icons/refresh_green.svg
    :width: 28px
-.. |select_location| image:: /../../site-packages/qps/ui/icons/select_location.svg
+.. |refresh_orange| image:: /../../enmapbox/externals/qps/ui/icons/refresh_orange.svg
    :width: 28px
-.. |speclib| image:: /../../site-packages/qps/ui/icons/speclib.svg
+.. |selectcursor| image:: /../../enmapbox/externals/qps/ui/icons/selectcursor.svg
    :width: 28px
-.. |speclib_add| image:: /../../site-packages/qps/ui/icons/speclib_add.svg
+.. |select_location| image:: /../../enmapbox/externals/qps/ui/icons/select_location.svg
    :width: 28px
-.. |speclib_clear| image:: /../../site-packages/qps/ui/icons/speclib_clear.svg
+.. |speclib| image:: /../../enmapbox/externals/qps/ui/icons/speclib.svg
    :width: 28px
-.. |speclib_reload| image:: /../../site-packages/qps/ui/icons/speclib_reload.svg
+.. |speclib_add| image:: /../../enmapbox/externals/qps/ui/icons/speclib_add.svg
    :width: 28px
-.. |speclib_save| image:: /../../site-packages/qps/ui/icons/speclib_save.svg
+.. |speclib_clear| image:: /../../enmapbox/externals/qps/ui/icons/speclib_clear.svg
    :width: 28px
-.. |temporalProfile| image:: /../../site-packages/qps/ui/icons/temporalProfile.svg
+.. |speclib_reload| image:: /../../enmapbox/externals/qps/ui/icons/speclib_reload.svg
    :width: 28px
-.. |undo_green| image:: /../../site-packages/qps/ui/icons/undo_green.svg
+.. |speclib_save| image:: /../../enmapbox/externals/qps/ui/icons/speclib_save.svg
    :width: 28px
-.. |undo_orange| image:: /../../site-packages/qps/ui/icons/undo_orange.svg
+.. |temporalProfile| image:: /../../enmapbox/externals/qps/ui/icons/temporalProfile.svg
+   :width: 28px
+.. |undo_green| image:: /../../enmapbox/externals/qps/ui/icons/undo_green.svg
+   :width: 28px
+.. |undo_orange| image:: /../../enmapbox/externals/qps/ui/icons/undo_orange.svg
    :width: 28px
 .. |action| image:: /img/icons/action.svg
    :width: 28px
