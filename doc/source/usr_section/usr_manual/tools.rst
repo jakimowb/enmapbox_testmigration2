@@ -1,5 +1,5 @@
-.. |action| image:: ../../img/action.svg
-   :width: 40px
+.. include:: /icon_links.rst
+
 .. |reset_plot| image:: ../../img/pyqtgraph_reset.png
    :width: 15px
 

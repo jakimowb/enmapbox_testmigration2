@@ -3,7 +3,7 @@ Classification
 
 This section will demonstrate the process of image classification using the :ref:`test dataset <test_dataset>`.
 In this example we will use the processing algorithms only. For classification purposes you might also want to have a look
-at the Classification Workflow application, which provides a convenient graphical user interface and manages all intermediate
+at the :ref:`Classification Workflow` application, which provides a convenient graphical user interface and manages all intermediate
 steps 'under the hood' (see also :ref:`Getting Started <getting_started>`).
 
 Fit a Classifier

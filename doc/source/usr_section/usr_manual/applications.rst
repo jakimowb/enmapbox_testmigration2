@@ -13,7 +13,7 @@ Synthmix Regression Mapper
 ==========================
 
 
-.. _classification_workflow:
+.. _Classification Workflow:
 
 Classification Workflow
 =======================

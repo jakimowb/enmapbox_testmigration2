@@ -1,3 +1,5 @@
+.. include:: /icon_links.rst
+
 Map Algebra with ImageMath
 ==========================
 
@@ -12,7 +14,7 @@ Calculate NDVI
 
   .. image:: ../../img/im_input_ndvi.png
 
-* Enter this code in the editor on the right side. You do not need to alter ``Output Grid`` and ``Processing`` for now.
+* Enter this code in the editor on the right side. You do not need to alter :guilabel:`Output Grid` and :guilabel:`Processing` for now.
 
   .. code-block:: python
 
@@ -30,7 +32,7 @@ Calculate NDVI
      setNoDataValue(ndvi, nodata)
 
 
-* Click the run button |action|. The result should be listed in the ``Data Sources`` panel.
+* Click the run button |action|. The result should be listed in the :guilabel:`Data Sources` panel.
 
 ....
 
@@ -38,9 +40,9 @@ Mask raster with vector
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 * Make sure to open the testdatasets for this example
-* Select *enmap_berlin.bsq* under ``Inputs`` and name it **enmap**. Further select *landcover_berlin_polygon.shp* and name
-  it **mask**.
-* Under ``Outputs`` specify output path and file and name it **result**
+* Select :file:`enmap_berlin.bsq` under :guilabel:`Inputs` and name it ``enmap``. Further select :file:`landcover_berlin_polygon.shp` and name
+  it ``mask``.
+* Under :guilabel:`Outputs` specify output path and file and name it ``result``
 
 
 * Enter this code in the editor
@@ -55,10 +57,8 @@ Mask raster with vector
      # copy metadata to result raster
      setMetadata(result, metadata(enmap))
 
-* Click the run button |action|. The result should be listed in the ``Data Sources`` panel.
+* Click the run button |action|. The result should be listed in the :guilabel:`Data Sources` panel.
 
 
 
 
-.. |action| image:: ../../img/action.svg
-   :width: 40px
