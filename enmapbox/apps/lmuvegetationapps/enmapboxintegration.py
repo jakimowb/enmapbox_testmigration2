@@ -65,6 +65,9 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         e = menu.addAction('Plant Water Retrieval (PWR)')
         e.triggered.connect(self.start_GUI_PWR)
 
+        e = menu.addAction('Analyze Spectral Integral (ASI)')
+        e.triggered.connect(self.start_GUI_ASI)
+
         appMenu.addMenu(menu)
         return menu
 
@@ -92,6 +95,11 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
 
     def start_GUI_PWR(self, *args):
         from lmuvegetationapps.PWR_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
+
+    def start_GUI_ASI(self, *args):
+        from lmuvegetationapps.ASI import MainUiFunc
         m = MainUiFunc()
         m.show()
 

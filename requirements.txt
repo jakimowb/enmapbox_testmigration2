@@ -9,9 +9,10 @@ numpy>=1.15
 scipy>=1.1
 scikit-learn>=0.19.2
 
-#will be replaces with releace of stable 0.11
-#pyqtgraph>=0.11
-https://bitbucket.org/hu-geomatics/enmap-box/downloads/pyqtgraph-0.11.0.dev0.zip
+
+# pyqtgrapgh is now part of the EnMAP-Box code in enmapbox/externals/qps/externals/pyqtgraph
+# pyqtgraph>=0.11
+# https://bitbucket.org/hu-geomatics/enmap-box/downloads/pyqtgraph-0.11.0.dev0.zip
 
 matplotlib>=3.0
 

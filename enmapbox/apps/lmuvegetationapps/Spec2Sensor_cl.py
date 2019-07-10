@@ -33,7 +33,7 @@ class Spec2Sensor:
             self.SRFnpy = path + "/S2_srf.npz"
             self.wl_sensor = [442.25, 492.22, 560.31, 663.09, 703.96, 742.38, 781.72, 833.33, 865.82, 942.25,
             1373.67, 1609.43, 2193.89] # Zentrumswellenlängen von Sentinel-2
-    
+
             self.fwhm = [18.00, 63.00, 34.00, 28.00, 14.00, 14.00, 18.00, 103.00, 22.00, 19.00,
             28.00, 87.00, 172.00] # Full Width Half Maxima von Sentinel-2
           
@@ -178,9 +178,13 @@ class Spec2Sensor:
 
 if __name__ == '__main__':
 
-    s2s = Spec2Sensor(sensor="EnMAP", nodat=-999)
+    from hubflow.core import *
+
+    s2s = Spec2Sensor(sensor="Sentinel2", nodat=-999)
     s2s.init_sensor()
     # s2s.SRF2npy()
 
     # spectrum = np.load("test_spec.npy")
+
+
     # s2s.run_SRF(reflectance=spectrum)

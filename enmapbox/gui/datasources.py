@@ -21,7 +21,7 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from enmapbox.gui import *
 from enmapbox.gui.utils import *
-from qps.speclib.spectrallibraries import AbstractSpectralLibraryIO
+from ..externals.qps.speclib.spectrallibraries import AbstractSpectralLibraryIO
 from osgeo import gdal, ogr
 
 
@@ -709,6 +709,8 @@ class DataSourceSpectralLibrary(DataSourceSpatial):
         super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='ogr')
 
         self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
+        if not isinstance(self.mSpeclib, SpectralLibrary):
+            raise Exception('Unable to read SpectraLibrary from {}'.format(self.mUri))
         self.nProfiles = 0
         self.profileNames = []
         self.updateMetadata()

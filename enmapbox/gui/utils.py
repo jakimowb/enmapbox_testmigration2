@@ -18,7 +18,7 @@
 ***************************************************************************
 """
 
-from qps.utils import *
+from ..externals.qps.utils import *
 from enmapbox import DIR_UIFILES
 UI_DIRECTORIES.append(DIR_UIFILES)
 

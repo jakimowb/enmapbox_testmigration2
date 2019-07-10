@@ -27,7 +27,7 @@ from qgis.gui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
-import qps.testing
+from .externals.qps.testing import TestObjects
 import qgis.utils
 import numpy as np
 from osgeo import gdal, ogr, osr
@@ -47,8 +47,8 @@ def initQgisApplication(*args, loadProcessingFramework=True, **kwds)->QgsApplica
     if isinstance(QgsApplication.instance(), QgsApplication):
         return QgsApplication.instance()
     else:
-
-        app = qps.testing.initQgisApplication(*args, loadProcessingFramework=loadProcessingFramework, **kwds)
+        from .externals.qps.testing import initQgisApplication
+        app = initQgisApplication(*args, loadProcessingFramework=loadProcessingFramework, **kwds)
 
         import enmapbox
         enmapbox.initEnMAPBoxResources()
@@ -57,7 +57,7 @@ def initQgisApplication(*args, loadProcessingFramework=True, **kwds)->QgsApplica
         enmapbox.initEditorWidgets()
         return app
 
-class TestObjects(qps.testing.TestObjects):
+class TestObjects(TestObjects):
     """
     Creates objects to be used for testing. It is preferred to generate objects in-memory.
     """

@@ -232,6 +232,16 @@
            </widget>
           </item>
           <item>
+           <widget class="QRadioButton" name="B_Sail_2M">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Sail 2M</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QRadioButton" name="B_Inform">
             <property name="enabled">
              <bool>true</bool>
@@ -2392,16 +2402,19 @@
              <number>10000</number>
             </property>
             <property name="singleStep">
-             <number>100</number>
+             <number>1000</number>
             </property>
             <property name="pageStep">
-             <number>100</number>
+             <number>1000</number>
             </property>
             <property name="value">
              <number>1000</number>
             </property>
             <property name="sliderPosition">
              <number>1000</number>
+            </property>
+            <property name="tracking">
+             <bool>true</bool>
             </property>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>

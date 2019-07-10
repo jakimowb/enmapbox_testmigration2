@@ -15,8 +15,8 @@ DIR_SITEPACKAGES = jn(DIR_ENMAPBOX_REPO, 'site-packages')
 DIR_QGISRESOURCES = jn(DIR_ENMAPBOX_REPO, 'qgisresources')
 
 # 1. compile all EnMAP-Box resource files (*.qrc) into corresponding python modules (*.py)
-import make.guimake
-make.guimake.compileResourceFiles()
+from make.compileresourcefiles import compileResourceFiles, compileQGISResourceFiles
+compileResourceFiles()
 
 # 2. create the qgisresource folder
 if isinstance(DIR_QGIS_REPO, str):
@@ -24,7 +24,7 @@ if isinstance(DIR_QGIS_REPO, str):
     if not os.path.isfile(pathImages):
         print('Wrong DIR_QGIS_REPO. Unable to find QGIS images.qrc in {}'.format(DIR_QGIS_REPO), file=sys.stderr)
     else:
-        make.guimake.compileQGISResourceFiles(DIR_QGIS_REPO)
+        compileQGISResourceFiles(DIR_QGIS_REPO)
 else:
     print('DIR_QGIS_REPO undefined. Some widgets might appear without icons', file=sys.stderr)
 

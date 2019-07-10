@@ -35,13 +35,13 @@ from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessing
 from qgis.PyQt.QtCore import QSettings
 
 
-__version__ = '3.3' #subsub-version information is added during build process
+__version__ = '3.4' #subsub-version information is added during build process
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
 ISSUE_TRACKER = 'https://bitbucket.org/hu-geomatics/enmap-box/issues'
 CREATE_ISSUE = 'https://bitbucket.org/hu-geomatics/enmap-box/issues/new'
-DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt5', 'sklearn','pyqtgraph','matplotlib']
+DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt5', 'sklearn','matplotlib']
 DOCUMENTATION = 'https://enmap-box.readthedocs.io/'
 URL_TESTDATA = r'https://bitbucket.org/hu-geomatics/enmap-box-testdata/get/master.zip'
 MIN_VERSION_TESTDATA = '0.10'
@@ -75,13 +75,13 @@ site.addsitedir(DIR_SITEPACKAGES)
 
 # make the EnMAP-Box resources available
 
-try:
-    from qps import resourcemockup
-    if not 'images' in sys.modules.keys():
-        sys.modules['images'] = resourcemockup
-
-except:
-    pass
+#try:
+#    from .externals.qps import resourcemockup
+#    if not 'images' in sys.modules.keys():
+#        sys.modules['images'] = resourcemockup
+#
+#except:
+#    pass
 
 
 
@@ -106,14 +106,23 @@ def initEnMAPBoxResources():
     try:
         import enmapbox.resources
         enmapbox.resources.qInitResources()
-    except Exception as ex:
+    except ModuleNotFoundError as ex:
         print('Unable to import enmapbox.resources', file=sys.stderr)
 
     try:
-        import qps.qpsresources
-        qps.qpsresources.qInitResources()
-    except Exception as ex:
+        from .externals.qps.qpsresources import qInitResources as initQPSResources
+        initQPSResources()
+    except ModuleNotFoundError as ex:
         print('Unable to import qps.resources', file=sys.stderr)
+
+    try:
+        import pyqtgraph
+    except ModuleNotFoundError as ex:
+
+        from .externals.qps.externals import pyqtgraph
+        print('Could not import pyqtgraph. Use internal package from {}'.format(pyqtgraph.__file__))
+        sys.modules['pyqtgraph'] = pyqtgraph
+        s = ""
 
 
 
@@ -121,8 +130,8 @@ def initEditorWidgets():
     """
     Initialises QgsEditorWidgets
     """
-    import qps
-    qps.registerEditorWidgets()
+    from .externals.qps import registerEditorWidgets
+    registerEditorWidgets()
 
 
 _enmapboxProvider = None

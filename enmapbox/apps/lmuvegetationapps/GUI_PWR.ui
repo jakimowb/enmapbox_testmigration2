@@ -7,7 +7,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>453</width>
+    <width>457</width>
     <height>243</height>
    </rect>
   </property>
@@ -33,7 +33,7 @@
    <string>Plant Water Retrieval Tool</string>
   </property>
   <property name="toolTip">
-   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+   <string/>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
@@ -111,8 +111,11 @@
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_4">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Preliminary pixel exclusion below set value: Normalized Difference Water Index&lt;/p&gt;&lt;p&gt;GAO, B.-C. (1996): NDWI—a normalized difference water index for remote sensing of vegetation liquid water from space. In: Remote Sensing of Environment, 58(3), 257-266.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
-         <string>NDVI threshold:</string>
+         <string>NDWI threshold:</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -208,7 +211,7 @@
       <item row="0" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
-         <string>Select Input Image</string>
+         <string>Select Input Image:</string>
         </property>
        </widget>
       </item>
@@ -285,6 +288,9 @@
           <height>25</height>
          </size>
         </property>
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Preliminary pixel exclusion below set value: Normalized Difference Water Index&lt;/p&gt;&lt;p&gt;GAO, B.-C. (1996): NDWI—a normalized difference water index for remote sensing of vegetation liquid water from space. In: Remote Sensing of Environment, 58(3), 257-266.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="minimum">
          <double>-0.990000000000000</double>
         </property>
@@ -295,7 +301,7 @@
          <double>0.010000000000000</double>
         </property>
         <property name="value">
-         <double>0.370000000000000</double>
+         <double>0.000000000000000</double>
         </property>
        </widget>
       </item>

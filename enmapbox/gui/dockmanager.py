@@ -21,8 +21,8 @@ from enmapbox.gui import *
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui.mimedata import *
 from enmapbox.gui.docks import *
-from qps.utils import *
-from qps.layerproperties import *
+from enmapbox.externals.qps.utils import *
+from enmapbox.externals.qps.layerproperties import *
 from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui import SpectralLibrary
 
@@ -477,6 +477,13 @@ class MapDockTreeNode(DockTreeNode):
 
         return self
 
+    def mapCanvas(self)->MapCanvas:
+        """
+        Returns the MapCanvas
+        :return: MapCanvas
+        """
+        return self.dock.mapCanvas()
+
     def updateCanvas(self):
         # reads the nodes and sets the map canvas accordingly
         if self.dock:
@@ -665,6 +672,21 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         to_remove = [n for n in rootNode.children() if n.dock == dock]
         for node in to_remove:
             self.removeDockNode(node)
+
+    def mapDockTreeNodes(self)->list:
+        """
+        Returns all MapDockTreeNodes
+        :return: [list-of-MapDockTreeNodes]
+        """
+        return [n for n in self.rootNode.children() if isinstance(n, MapDockTreeNode)]
+
+    def mapCanvases(self)->list:
+        """
+        Returns all MapCanvases
+        :return: [list-of-MapCanvases]
+        """
+        return [n.mapCanvas() for n in self.mapDockTreeNodes()]
+
 
     def removeLayers(self, layers: list):
         assert isinstance(layers, list)
@@ -997,10 +1019,19 @@ class DockTreeView(QgsLayerTreeView):
         self.header().setStretchLastSection(True)
         self.header().setResizeMode(QHeaderView.ResizeToContents)
         #self.header().setResizeMode(1, QHeaderView.ResizeToContents)
+        self.currentLayerChanged.connect(self.onCurrentLayerChanged)
 
-    def layerTreeModel(self):
-        model = self.model()
-        return model
+
+    def onCurrentLayerChanged(self, layer:QgsMapCanvas):
+        for canvas in self.layerTreeModel().mapCanvases():
+            assert isinstance(canvas, MapCanvas)
+            if layer in canvas.layers():
+                canvas.setCurrentLayer(layer)
+
+        s = ""
+
+    def layerTreeModel(self)->DockManagerTreeModel:
+        return self.model()
 
     def setModel(self, model):
         assert isinstance(model, DockManagerTreeModel)
@@ -1386,6 +1417,7 @@ class DockPanelUI(QgsDockWidget, loadUI('dockpanel.ui')):
         self.actionExpandTreeNodes.triggered.connect(self.dockTreeView.expandAllNodes)
 
 
+
     def connectDockManager(self, dockManager:DockManager):
         """
         Connects the DockPanelUI with a DockManager
@@ -1399,6 +1431,8 @@ class DockPanelUI(QgsDockWidget, loadUI('dockpanel.ui')):
         assert self.model == self.dockTreeView.model()
         self.menuProvider = DockManagerLayerTreeModelMenuProvider(self.dockTreeView)
         self.dockTreeView.setMenuProvider(self.menuProvider)
+
+
         s = ""
 
 

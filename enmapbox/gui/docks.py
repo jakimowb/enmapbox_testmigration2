@@ -22,10 +22,10 @@ import codecs, enum
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 
-from pyqtgraph.dockarea.DockArea import DockArea as pgDockArea
-from pyqtgraph.dockarea.Dock import Dock as pgDock
-from pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
-from pyqtgraph.widgets.VerticalLabel import VerticalLabel
+from ..externals.qps.externals.pyqtgraph.dockarea import DockArea as pgDockArea
+from ..externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
+from ..externals.qps.externals.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
+from ..externals.qps.externals.pyqtgraph.widgets.VerticalLabel import VerticalLabel
 from enmapbox.gui.utils import KeepRefs
 
 

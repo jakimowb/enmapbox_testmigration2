@@ -7,7 +7,7 @@
 #standard requirements
 -r requirements.txt
 
-#requirements for developers
+# requirements for developers
 # Required packages to run tests
 #pytest
 #py
