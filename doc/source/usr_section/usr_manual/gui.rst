@@ -22,7 +22,7 @@ In the toolbar you can find the most common tasks. See table below for informati
    * - Button
      - Button Name
      - Description
-   * - |add_datasource|
+   * - |mActionDataSourceManager|
      - Adds a data source
      - | Here you can add data from different sources,
        | e.g. raster and vector

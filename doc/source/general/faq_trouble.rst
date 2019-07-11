@@ -1,3 +1,12 @@
+.. include:: /icon_links.rst
+
+.. |osgeoicon| image:: ../img/OSGeo4W.ico
+   :width: 30px
+   :height: 30px
+
+.. |osgeoinstaller| image:: ../img/osgeoinstaller.png
+
+
 =====================
 FAQ & Troubleshooting
 =====================
@@ -13,11 +22,8 @@ Bug report & feedback
 .. note:: Your feedback is more than welcome! In case you encounter any problems with the EnMAP-Box or have
           suggestions of any kind for improving it (or this documentation), please let us know!
 
-.. attention:: **It's best to report issues (bugs, suggestions etc.)
-               via our** |link_bitbucket|.
+          **Please report issues (bugs, suggestions etc.) via our** |link_bitbucket|.
 
-
-|
 |
 |
 
@@ -27,19 +33,62 @@ EnMAP-Box FAQ
 This is a list of Frequently Asked Questions about the EnMAP-Box. Feel free to
 suggest new entries!
 
-How do I...
------------
+.. How do I...
+.. -----------
 
 .. ... **install QGIS on Windows without having administrative rights**?
 
 ..     yes, it is possible to install and run QGIS withouht any admin rights on windows.
 ..      Read :ref:`install_qgis_windows` for more details on this.
 
-.. todo:: to be continued
 
 
 How can I solve the following error...
 --------------------------------------
+
+.. _faq_no_pip:
+
+... **Installation: no module named pip**
+
+In case you run into problems during installation because pip is not available in your python environment
+(error message ``C:/.../python3.exe: No module named pip`` or similar), follow these steps:
+
+Start the OSGeo4W installer from the OSGeo4W Shell by calling
+
+.. code-block:: batch
+
+   setup
+
+.. image:: ../img/shell_setup.png
+
+which will open the OSGeo4W Setup dialog.
+
+Now navigate through the first pages of the dialog, by selecting the following settings:
+
+* Advanced Installation :guilabel:`Next`
+* Installation from Internet :guilabel:`Next`
+* default OSGeo4W root directory :guilabel:`Next`
+* local temp directory :guilabel:`Next`
+* direct connection :guilabel:`Next`
+* Select downloadsite ``http://download.osgeo.ogr`` :guilabel:`Next`
+
+Then use the textbox to filter, select and install the following packages (see video below for help):
+
+* python3-pip
+* python3-setuptools
+
+
+Click on the |osgeoinstaller| symbol once, which should usually change the *Skip* setting to installing the most recent
+version. Only **AFTER** having selected both packages, click :guilabel:`Next`.
+
+.. raw:: html
+
+   <div><video width="90%" controls muted><source src="../_static/osgeo_install_short.webm" type="video/webm">Your browser does not support HTML5 video.</video>
+   <p><i>Demonstration of package selection in the Setup</i></p></div>
+
+Click :guilabel:`Finish` when the installation is done. **Now repeat the steps 2.- 4. again**.
+
+....
 
 ... **Error loading the plugin**
 
@@ -50,6 +99,8 @@ How can I solve the following error...
     In that case please make sure you :ref:`installed all missing packages <install-python-packages>`,
     in this example ``pyqtgraph`` and ``sklearn`` are missing.
 
+....
+
 ... **Installation of Astropy fails**
 
     In some cases using an older version does the trick, using pip you can install older versions using the ``==versionnumber`` synthax. ``--force-reinstall``
@@ -59,11 +110,14 @@ How can I solve the following error...
 
        python3 -m pip install astropy==3.0.3 --force-reinstall
 
+....
 
 ... **Wrong value for parameter MSYS**
 
     This error sometimes occurs when activating the EnMAP-Box AlgorithmProvider in Windows. Please install
     the *msys (command line utilities)* package with the OSGeo4W package installer.
+
+....
 
 ... **This plugin is broken: 'module' object has not attribute 'GRIORA_NearestNeighbor'**
 

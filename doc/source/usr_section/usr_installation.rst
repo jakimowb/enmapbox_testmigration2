@@ -26,9 +26,6 @@ Installation
 
 
 
-
-
-
 The **EnMAP-Box** is a plugin for **QGIS** and requires additional **python packages** that need to be installed independent from QGIS.
 
 
@@ -118,53 +115,11 @@ Windows
    .. error::
 
       In case you run into problems because pip is not available in your python environment
-      (error message ``C:/.../python3.exe: No module named pip`` or similar), follow these steps:
-
-      Start the OSGeo4W installer from the OSGeo4W Shell by calling
-
-          .. code-block:: batch
-
-              setup
-
-          .. image:: ../img/shell_setup.png
-
-      which will open the OSGeo4W Setup dialog.
-
-      Now navigate through the first pages of the dialog, by selecting the following settings:
-
-      * Advanced Installation :guilabel:`Next`
-
-      * Installation from Internet :guilabel:`Next`
-
-      * default OSGeo4W root directory :guilabel:`Next`
-
-      * local temp directory :guilabel:`Next`
-
-      * direct connection :guilabel:`Next`
-
-      * Select downloadsite ``http://download.osgeo.ogr`` :guilabel:`Next`
-
-      |
-      Then use the textbox to filter, select and install the following packages (see video below for help):
-
-      * python3-pip
-      * python3-setuptools
-
-      |
-      Click on the |osgeoinstaller| symbol once, which should usually change the *Skip* setting to installing the most recent
-      version. Only **AFTER** having selected both packages, click :guilabel:`Next`.
-
-       .. raw:: html
-
-          <div><video width="90%" controls muted><source src="../_static/osgeo_install_short.webm" type="video/webm">Your browser does not support HTML5 video.</video>
-          <p><i>Demonstration of package selection in the Setup</i></p></div>
-
-      Click :guilabel:`Finish` when the installation is done. **Now repeat the steps 2.- 4. again**.
+      (error message ``C:/.../python3.exe: No module named pip`` or similar), :ref:`follow these steps... <faq_no_pip>`
 
 
 
-
-5. Optionally, also install astropy using pip in the OSGeo4W Shell:
+5. **Optionally**, also install astropy using pip in the OSGeo4W Shell:
 
 
    .. code-block:: batch
