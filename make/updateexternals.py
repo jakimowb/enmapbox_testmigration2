@@ -62,6 +62,7 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmspr
                   prefixRemote=r'enmapboxgeoalgorithms',
                   remoteBranch='develop')
 
+
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
                   prefixLocal=r'site-packages/hubdc',
                   prefixRemote=r'hubdc',

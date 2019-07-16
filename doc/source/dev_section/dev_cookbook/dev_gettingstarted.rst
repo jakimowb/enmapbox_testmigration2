@@ -365,6 +365,7 @@ These spectra can be received from the  `sigCurrentSpectraChanged` signal:
 .. image:: ../img/enmapbox_toolbar_identify_spectral_profiles.png
 
 .. code-block:: python
+
     def printSpectralProfiles(currentSpectra:list):
 
         print('{} SpectralProfiles collected'.format(len(currentSpectra)))

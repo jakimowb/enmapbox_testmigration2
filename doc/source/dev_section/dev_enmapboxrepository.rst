@@ -46,14 +46,14 @@ Scripts for Developers
 The ``make`` directory contains scrips to support developers. Ensure that this folder is part of your python path, e.g add
 it as source in your PyCharm project (left-mouse, mark directory as source):
 
-============================== =========================================================================================================
+============================== ==========================================================================================================================================
 Script                         Purpose
-============================== =========================================================================================================
+============================== ==========================================================================================================================================
 ``make/deploy.py``             Create the EnMAP-Box Plugin ZIP file.
 ``make/guimake.py``            Routines to handle PyQt5 issues, e.g. to create Qt resource files.
 ``make/iconselect.py``         A widget to show Qt internal resource icons and to copy its path to the clipboard.
-``make/updateexternals.py``    update parts of the EnMAP-Box code which are hosted in external repositories.
-============================== =========================================================================================================
+``make/updateexternals.py``    Update parts of the EnMAP-Box code which are hosted in external repositories. Read :ref:`here<dev_repo_update_remote_sources>` for details.
+============================== ==========================================================================================================================================
 
 Generated Folders
 -----------------
@@ -156,3 +156,32 @@ The testdata can be download explicitly:
     enmapbox.dependencycheck.installTestData(ask=False, overwrite_existing=True)
 
 
+.. _dev_repo_update_remote_sources:
+
+Get Updates from other Repositories
+===================================
+
+The EnMAP-Box includes source-code from external projects. How these source contribute to the EnMAP-Box repository
+is described in ``make/updateexternals.py``. In general, such remote locations are desribed by a ``RemoteInfo`` entry:
+
+.. code-block:: python
+
+    RemoteInfo.create(r'https://foobar.org/remoterepo.git',
+                      prefixLocal=r'site-packages/remotepackage',
+                      prefixRemote=r'remotepackage',
+                      remoteBranch='master')
+
+
+The combination of remote and local location, as well as the respective branch, is not accessible via the key ``remoterepo``.
+Updating code from a remote location, i.e. copy changes
+from ``https://foobar.org/remoterepo.git/remotepackage``
+to ``<enmapboxrepository>/site-packages/remotepackage``, can be done with:
+
+.. code-block:: python
+
+    import make.updateexternals
+    make.updateexternals.updateRemotes('remoterepo')
+
+
+It is possible to register multiple combinations of local and remote prefixes to the same key, what allows to copy different
+folders of a remote repository into different folders of the EnMAP-Box repository.
