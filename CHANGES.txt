@@ -3,7 +3,7 @@ Version 3.4
     - Classification Widgets: copy / paste single class informations
     - Map tools to select / add vector features
     - fixed critical bug IVVRM
-
+    - several bug fixed and minor improvements
 
 Version 3.3
     - added user +  developer example to RTF documentation
