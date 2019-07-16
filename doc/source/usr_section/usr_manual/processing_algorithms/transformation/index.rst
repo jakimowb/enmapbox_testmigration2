@@ -1,5 +1,3 @@
-.. _Transformation:
-
 Transformation
 ==============
 

@@ -46,6 +46,8 @@ if False:
 
         sys.modules[l] = mock.NonCallableMagicMock()
 
+if not 'READTHEDOCS' in os.environ.keys():
+    os.environ['READTHEDOCS'] = 'True'
 
 autodoc_mock_imports = ['vrtbuilder',
                 'gdal','sklearn','numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate',
@@ -118,6 +120,8 @@ author = u'Fabian Thiel,\nAndreas Rabe,\nBenjamin Jakimow,\nSebastian van der Li
 
 if not 'READTHEDOCS' in os.environ.keys():
     os.environ['READTHEDOCS'] = 'True'
+    from enmapbox.testing import initQgisApplication
+    app = initQgisApplication()
 
 import enmapbox
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')

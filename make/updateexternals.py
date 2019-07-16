@@ -38,7 +38,6 @@ RemoteInfo.create(r'https://bitbucket.org/jakimowb/qgispluginsupport.git',
                   prefixRemote=r'qps',
                   remoteBranch='master')
 
-
 RemoteInfo.create(r'https://bitbucket.org/ecstagriculture/enmap-box-lmu-vegetation-apps.git',
                   prefixLocal=r'enmapbox/apps/lmuvegetationapps',
                   prefixRemote=r'lmuvegetationapps',
@@ -49,8 +48,17 @@ RemoteInfo.create(r'https://bitbucket.org/jakimowb/virtual-raster-builder.git',
                   prefixRemote=r'vrtbuilder',
                   remoteBranch='master')
 
+## enmap-box-geoalgorithmsprovider.git
+
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
-                  key='enmapboxapplications',
+                  key='enmapboxgeoalgorithms',
+                  prefixLocal=r'doc/source/usr_section/usr_manual/processing_algorithms',
+                  prefixRemote=r'doc/source/processing_algorithms',
+                  remoteBranch='develop')
+
+
+RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
+                  key='enmapboxgeoalgorithms',
                   prefixLocal=r'enmapbox/coreapps/enmapboxapplications',
                   prefixRemote=r'enmapboxapplications',
                   excluded=['ressources.py'],
@@ -58,16 +66,20 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmspr
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
                   key='enmapboxgeoalgorithms',
-                  prefixLocal='site-packages/enmapboxgeoalgorithms',
+                  prefixLocal=r'site-packages/enmapboxgeoalgorithms',
                   prefixRemote=r'enmapboxgeoalgorithms',
                   remoteBranch='develop')
 
+## hub-datacube.git
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
                   prefixLocal=r'site-packages/hubdc',
                   prefixRemote=r'hubdc',
                   excluded=['gis','testdata'],
                   remoteBranch='develop')
+
+
+## hub-workflow.git
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
                   prefixLocal=r'site-packages/hubflow',
@@ -98,11 +110,11 @@ if __name__ == "__main__":
     to_update = [#'hub-datacube'
                  #,'hub-workflow'
                  #'enmapboxapplications'
-                 #'enmapboxgeoalgorithms'
+                 'enmapboxgeoalgorithms'
                  #,'enmap-box-lmu-vegetation-apps'
                  #'virtual-raster-builder',
                  #'enpt_enmapboxapp'
-                 #'qps'
+                 ,'qps'
                 ]
     updateRemotes(to_update)
     exit(0)
