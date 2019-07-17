@@ -4,8 +4,9 @@
     contain the root `toctree` directive.
 
 
+#########################
 EnMAP-Box 3 Documentation
-=========================
+#########################
 
 **Welcome to the EnMAP-Box 3 Documentation!**
 

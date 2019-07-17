@@ -6,7 +6,7 @@ Several clustering methods are available in the EnMAP-Box. You can find them in 
 algorithm first and then apply it to an image with :guilabel:`Predict Clustering`.
 
 This recipe demonstrates the basic workflow of applying clusterers
-using K-Means clustering (:ref:`Fit KMeans`) and the test dataset.
+using K-Means clustering (:ref:`Fit KMeans`) and the :ref:`test dataset <test_dataset>`.
 
 .. seealso:: You can find all the available transformation algorithms :ref:`here <Clustering>`.
 
@@ -19,7 +19,7 @@ using K-Means clustering (:ref:`Fit KMeans`) and the test dataset.
 #. Now open :menuselection:`EnMAP-Box --> Clustering --> Predict Clustering`
 
    * Select :file:`enmap_berlin.bsq` as input :guilabel:`Raster`
-   * Under :guilabel:`Clusterer` click :guilabel:`...` and select the output :file:`.pkl` from the Fit KMeans algorithm
+   * Under :guilabel:`Clusterer` click :guilabel:`...` and select the output :file:`.pkl` file from the Fit KMeans algorithm
    * Specify an output filepath for the transformed raster under :guilabel:`Clustering` and click :guilabel:`Run`
 
    .. figure:: /img/example_kmeans.png

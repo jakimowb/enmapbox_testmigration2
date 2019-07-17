@@ -1,7 +1,8 @@
 Programming Tutorials
 #####################
 
-This section provides you with two programming tutorials. The first introduces you to ...
+This section provides you with two programming tutorials.
+.. The first introduces you to ...
 
 Please make sure to setup your environment by following the steps in the *Setup* box below before you start with a tutorial.
 

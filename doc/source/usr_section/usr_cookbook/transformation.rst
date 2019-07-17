@@ -6,7 +6,7 @@ Several transformation methods are available in the EnMAP-Box. You can find them
 algorithm first and then apply it to an image with :guilabel:`Transform Raster`.
 
 This recipe demonstrates the basic workflow of applying transformations
-using a principle component analysis (:ref:`Fit PCA`) and the test dataset.
+using a principle component analysis (:ref:`Fit PCA`) and the :ref:`test dataset <test_dataset>`.
 
 .. seealso:: You can find all the available transformation algorithms :ref:`here <Transformation>`.
 

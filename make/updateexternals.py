@@ -81,6 +81,7 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
                   prefixLocal=r'doc/source/dev_section/dev_cookbook/hubdc',
                   prefixRemote=r'doc/source',
+                  excluded=['conf.py', 'index.rst'],
                   remoteBranch='develop')
 
 
@@ -94,6 +95,7 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
                   prefixLocal=r'doc/source/dev_section/dev_cookbook/hubflow',
                   prefixRemote=r'doc/source',
+                  excluded=['conf.py', 'index.rst'],
                   remoteBranch='develop')
 
 ## GFZ
