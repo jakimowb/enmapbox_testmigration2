@@ -8,8 +8,5 @@ Dev Cookbook
    :maxdepth: 4
 
    dev_gettingstarted.rst
-   hubdc/source/usage/core.rst
-   hubflow/source/usage/core.rst
-
-
-
+   hubdc/usage/core.rst
+   hubflow/usage/core.rst

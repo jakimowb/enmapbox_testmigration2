@@ -78,6 +78,11 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
                   excluded=['gis','testdata'],
                   remoteBranch='develop')
 
+RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
+                  prefixLocal=r'doc/source/dev_section/dev_cookbook/hubdc',
+                  prefixRemote=r'doc/source',
+                  remoteBranch='develop')
+
 
 ## hub-workflow.git
 
@@ -86,6 +91,12 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
                   prefixRemote=r'hubflow',
                   remoteBranch='develop')
 
+RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
+                  prefixLocal=r'doc/source/dev_section/dev_cookbook/hubflow',
+                  prefixRemote=r'doc/source',
+                  remoteBranch='develop')
+
+## GFZ
 
 RemoteInfo.create(r'https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git',
                   prefixLocal=r'enmapbox/apps/enpt_enmapboxapp',
@@ -107,14 +118,14 @@ def updateRemotes(remoteLocations):
 if __name__ == "__main__":
 
     # update remotes
-    to_update = [#'hub-datacube'
-                 #,'hub-workflow'
+    to_update = ['hub-datacube'
+                 ,'hub-workflow'
                  #'enmapboxapplications'
-                 'enmapboxgeoalgorithms'
+                 #'enmapboxgeoalgorithms'
                  #,'enmap-box-lmu-vegetation-apps'
                  #'virtual-raster-builder',
                  #'enpt_enmapboxapp'
-                 ,'qps'
+                 #,'qps'
                 ]
     updateRemotes(to_update)
     exit(0)

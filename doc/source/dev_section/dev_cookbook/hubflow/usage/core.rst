@@ -106,8 +106,7 @@ HTML report:
 
 .. raw:: html
 
-   <iframe src="/_static/ClassificationPerformance.html" width=100% height=500px></iframe>
-
+   <iframe src="../_static/ClassificationPerformance.html" width=100% height=500px></iframe>
 
 Set class definition
 --------------------
