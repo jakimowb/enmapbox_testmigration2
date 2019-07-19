@@ -121,8 +121,8 @@ QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.byte,
 
 nb = lyr1.bandCount()
 
-width = 200
-height = 200
+width = 50
+height = 100
 
 
 ext = lyr1.extent()
