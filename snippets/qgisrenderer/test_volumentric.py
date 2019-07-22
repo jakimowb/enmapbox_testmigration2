@@ -14,23 +14,31 @@ class VTest(unittest.TestCase):
         W = VolumetricWidget()
         W.show()
 
+
         from enmapboxtestdata import enmap as pathEnMAP
-        lyr = QgsRasterLayer(pathEnMAP, 'EnMAP Example')
+        lyr1 = QgsRasterLayer(pathEnMAP, 'EnMAP Example')
 
-        W.setRasterLayer(lyr)
+        from enmapboxtestdata import hires as pathHyMap
+        lyr2 = QgsRasterLayer(pathHyMap, 'HyMAP')
 
-        W.setX(50)
-        W.setY(25)
-        W.setZ(75)
+        pathTS = r'R:\temp\temp_bj\Cerrado\cerrado_evi.vrt'
+        lyr3 = QgsRasterLayer(pathTS, 'TimeSeries')
+        QgsProject.instance().addMapLayers([lyr1, lyr2, lyr3])
 
-        self.assertEqual(W.x(), 50)
-        self.assertEqual(W.y(), 25)
-        self.assertEqual(W.z(), 75)
 
-        self.assertTrue(isSliceRenderer(W.sliceRenderer()))
-        self.assertIsInstance(W.topPlaneRenderer(), QgsRasterRenderer)
+        if False:
+            W.setX(50)
+            W.setY(25)
+            W.setZ(75)
 
-        W.onLoadData()
+            self.assertEqual(W.x(), 50)
+            self.assertEqual(W.y(), 25)
+            self.assertEqual(W.z(), 75)
+
+            self.assertTrue(isSliceRenderer(W.sliceRenderer()))
+            self.assertIsInstance(W.topPlaneRenderer(), QgsRasterRenderer)
+
+            W.onLoadData()
 
         if SHOW_GUI:
             QGIS_APP.exec_()

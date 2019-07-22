@@ -3,7 +3,7 @@
 Demonstrates GLVolumeItem for displaying volumetric data.
 
 """
-import os, sys, re, pickle, enum
+import os, sys, re, pickle, enum, time
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
@@ -31,14 +31,50 @@ QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.byte,
                          Qgis.ARGB32_Premultiplied: np.uint32}
 
 
-def getColorRGBArrays(colorArray, shape:tuple):
-    r = np.asarray([qRed(c) for c in colorArray]).reshape(shape)
-    g = np.asarray([qGreen(c) for c in colorArray]).reshape(shape)
-    b = np.asarray([qBlue(c) for c in colorArray]).reshape(shape)
-    a = np.asarray([qAlpha(c) for c in colorArray]).reshape(shape)
 
-    return r, g, b, a
+def qaRed(array:np.ndarray)->np.ndarray:
+    return (array >> 16) & 0xff
 
+def qaGreen(array:np.ndarray)->np.ndarray:
+    return (array >> 8) & 0xff
+
+def qaBlue(array:np.ndarray)->np.ndarray:
+    return array & 0xff
+
+def qaAlpha(array:np.ndarray)->np.ndarray:
+    return array >> 24
+
+
+class CubeViewWidget(GLViewWidget):
+
+    def __init__(self, *args, **kwds):
+        super(CubeViewWidget, self).__init__(*args, *kwds)
+
+        self.mTextLabels = []
+
+    def addTextLabel(self, pos:QVector3D, text:str, color=QColor('white')):
+        assert isinstance(text, str)
+        self.mTextLabels.append((pos, text, color))
+    def paintGL(self, *args, **kwds):
+        GLViewWidget.paintGL(self, *args, **kwds)
+
+        #from OpenGL.GL import glEnable, glDisable, GL_DEPTH_TEST
+        #glEnable(GL_DEPTH_TEST)
+        for (pos, text, color) in self.mTextLabels:
+            self.qglColor(color)
+            assert isinstance(pos, QVector3D)
+            self.renderText(pos.x(), pos.y(), pos.z(), text)
+        #glDisable(GL_DEPTH_TEST)
+
+        dist = self.opts['distance']
+        elev = self.opts['elevation']
+        azim = self.opts['azimuth']
+
+        info = 'dist: {} elev: {} azim: {}'.format(dist, elev, azim)
+        self.renderText(0,10, info)
+        c = self.opts['center']
+        info = 'Center: {} {} {}'.format(c.x(), c.y(), c.z())
+        self.renderText(0, 20, info)
 
 if False:
 
@@ -205,6 +241,7 @@ def loadData(taskWrapper:QgsTask, dump):
     n = len(jobs)
 
     for i, job in enumerate(jobs):
+        t0 = time.time()
         if hasTask and taskWrapper.isCanceled():
             return pickle.dumps(results)
 
@@ -219,15 +256,53 @@ def loadData(taskWrapper:QgsTask, dump):
         ns = lyr.width()
         nl = lyr.height()
 
-        if not job.hasSlicing():
+        if job.id() == 'CUBE':
+            ext = lyr.extent()
+            w = lyr.width()
+            h = lyr.height()
+            lyr.setRenderer(renderer)
+            if True:
+                w = min(w, 500)
+                h = min(h, 500)
+            if isinstance(renderer, QgsSingleBandGrayRenderer):
+                setBand = renderer.setGrayBand
+            elif isinstance(renderer, QgsSingleBandPseudoColorRenderer):
+                setBand = renderer.setBand
+            elif isinstance(renderer, QgsSingleBandColorDataRenderer):
+                setBand = lambda *args : None
+            elif isinstance(renderer, QgsMultiBandColorRenderer):
+                setBand = lambda *args : None
+            # x, y, z, RGBA
+            rgba = np.empty((h,w, nb, 4), dtype=np.uint8)
+
+            for b in range(nb):
+                setBand(b + 1)
+
+                block = renderer.block(0, ext, w, h)
+
+                assert isinstance(block, QgsRasterBlock)
+                assert block.isValid()
+                assert block.dataType() != Qgis.UnknownDataType
+
+                colorArray = np.frombuffer(block.data(), dtype=QGIS2NUMPY_DATA_TYPES[block.dataType()])
+
+                rgba[:,:, b, 0] = qaRed(colorArray).reshape((h, w))  # np.asarray([qRed(c) for c in colorArray])
+                rgba[:,:, b, 1] = qaGreen(colorArray).reshape((h, w))  # np.asarray([qGreen(c) for c in colorArray])
+                rgba[:,:, b, 2] = qaBlue(colorArray).reshape((h, w)) # np.asarray([qBlue(c) for c in colorArray])
+                rgba[:,:, b, 3] = qaAlpha(colorArray).reshape((h, w))  # np.asarray([qAlpha(c) for c in colorArray])
+
+            rgba = np.rot90(rgba, axes=(0,1))
+            job.setRGBA3D(rgba)
+
+        elif job.id() == 'TOPPLANE':
             lyr.setRenderer(renderer)
             ext = lyr.extent()
             w = lyr.width()
             h = lyr.height()
 
             if True:
-                w = int(w * 0.5)
-                h = int(h * 0.5)
+                w = min(w, 1024)
+                h = min(h, 1024)
 
             block = renderer.block(1, ext, w, h)
             assert isinstance(block, QgsRasterBlock)
@@ -235,26 +310,24 @@ def loadData(taskWrapper:QgsTask, dump):
 
             rgba = np.empty((h, w, 4), dtype=np.ubyte)
 
-            red   = (colorArray >> 16) & 0xff
-            green = (colorArray >> 8) & 0xff
-            blue  = colorArray & 0xff
-            alpha = colorArray >> 24
+            rgba[..., 0] = qaRed(colorArray).reshape((h,w)) #np.asarray([qRed(c) for c in colorArray])
+            rgba[..., 1] = qaGreen(colorArray).reshape((h,w)) #np.asarray([qGreen(c) for c in colorArray])
+            rgba[..., 2] = qaBlue(colorArray).reshape((h,w)) #np.asarray([qBlue(c) for c in colorArray])
+            rgba[..., 3] = qaAlpha(colorArray).reshape((h,w)) #np.asarray([qAlpha(c) for c in colorArray])
 
-            rgba[..., 0] = red.reshape((h,w)) #np.asarray([qRed(c) for c in colorArray])
-            rgba[..., 1] = green.reshape((h,w)) #np.asarray([qGreen(c) for c in colorArray])
-            rgba[..., 2] = blue.reshape((h,w)) #np.asarray([qBlue(c) for c in colorArray])
-            rgba[..., 3] = alpha.reshape((h,w)) #np.asarray([qAlpha(c) for c in colorArray])
-
-            #rgba = rgba.reshape((h, w, 4))
-            job.setRGBA(rgba)
+            rgba = np.rot90(rgba, axes=(0,1))
+            job.setRGBA2D(rgba)
 
 
-        else:
+
+        elif job.hasSlicing():
             if isinstance(renderer, QgsSingleBandGrayRenderer):
                 setBand = renderer.setGrayBand
             elif isinstance(renderer, QgsSingleBandPseudoColorRenderer):
                 setBand = renderer.setBand
             elif isinstance(renderer, QgsSingleBandColorDataRenderer):
+                setBand = lambda *args : None
+            elif isinstance(renderer, QgsMultiBandColorRenderer):
                 setBand = lambda *args : None
 
             lyr.setRenderer(renderer)
@@ -271,17 +344,12 @@ def loadData(taskWrapper:QgsTask, dump):
 
                 colorArray = np.frombuffer(block.data(), dtype=QGIS2NUMPY_DATA_TYPES[block.dataType()])
 
-                red = (colorArray >> 16) & 0xff
-                green = (colorArray >> 8) & 0xff
-                blue = colorArray & 0xff
-                alpha = colorArray >> 24
+                rgba[..., 0] = qaRed(colorArray).reshape((h, w))  # np.asarray([qRed(c) for c in colorArray])
+                rgba[..., 1] = qaGreen(colorArray).reshape((h, w))  # np.asarray([qGreen(c) for c in colorArray])
+                rgba[..., 2] = qaBlue(colorArray).reshape((h, w))  # np.asarray([qBlue(c) for c in colorArray])
+                rgba[..., 3] = qaAlpha(colorArray).reshape((h, w))  # np.asarray([qAlpha(c) for c in colorArray])
 
-                rgba[..., 0] = red.reshape((h, w))  # np.asarray([qRed(c) for c in colorArray])
-                rgba[..., 1] = green.reshape((h, w))  # np.asarray([qGreen(c) for c in colorArray])
-                rgba[..., 2] = blue.reshape((h, w))  # np.asarray([qBlue(c) for c in colorArray])
-                rgba[..., 3] = alpha.reshape((h, w))  # np.asarray([qAlpha(c) for c in colorArray])
-
-                job.setRGBA(rgba)
+                job.setRGBA2D(rgba)
 
             else:
                 # get slice extent with 1px width/height
@@ -307,9 +375,7 @@ def loadData(taskWrapper:QgsTask, dump):
                     ext.setYMaximum(cy + lyr.rasterUnitsPerPixelY())
                     ext.setYMinimum(cy)
 
-
                 rgba = np.empty((npx, nb, 4), dtype=np.uint8)
-
 
                 for b in range(nb):
                     setBand(b+1)
@@ -322,20 +388,16 @@ def loadData(taskWrapper:QgsTask, dump):
 
                     colorArray = np.frombuffer(block.data(), dtype=QGIS2NUMPY_DATA_TYPES[block.dataType()])
 
-                    red = (colorArray >> 16) & 0xff
-                    green = (colorArray >> 8) & 0xff
-                    blue = colorArray & 0xff
-                    alpha = colorArray >> 24
+                    rgba[:, b, 0] = qaRed(colorArray)
+                    rgba[:, b, 1] = qaGreen(colorArray)
+                    rgba[:, b, 2] = qaBlue(colorArray)
+                    rgba[:, b, 3] = qaAlpha(colorArray)
 
-                    rgba[:, b, 0] = red  # np.asarray([qRed(c) for c in colorArray])
-                    rgba[:, b, 1] = green # np.asarray([qGreen(c) for c in colorArray])
-                    rgba[:, b, 2] = blue  # np.asarray([qBlue(c) for c in colorArray])
-                    rgba[:, b, 3] = alpha  # np.asarray([qAlpha(c) for c in colorArray])
+                job.setRGBA2D(rgba)
 
-                job.setRGBA(rgba)
-
-        if job.rgba() is not None:
+        if job.rgba2D() is not None or job.rgba3D() is not None:
             results.append(job)
+            print('TIME JOB {} {}'.format(job.id(), time.time()-t0))
 
         if hasTask:
             taskWrapper.setProgress(i+1)
@@ -368,7 +430,8 @@ class RenderJob(object):
         self.mRendererXML = rendererToXml(renderer).toString()
         self.mSliceDim = self.mSliceIndex = None
         self.mResults = None
-        self.mRGBA = None
+        self.mRGBA2D = None
+        self.mRGBA3D = None
 
     def __eq__(self, other)->bool:
         if not isinstance(other, RenderJob):
@@ -404,21 +467,23 @@ class RenderJob(object):
     def sliceIndex(self)->int:
         return self.mSliceIndex
 
-    def setResult(self, *args):
-
-        self.mResults = args
-
-    def results(self):
-        return self.mResults
-
-    def setRGBA(self, array):
+    def setRGBA2D(self, array:np.ndarray):
         assert isinstance(array, np.ndarray)
         assert array.ndim == 3
         assert array.shape[2] == 4
-        self.mRGBA = array
+        self.mRGBA2D = array
 
-    def rgba(self)->np.ndarray:
-        return self.mRGBA
+    def rgba2D(self)->np.ndarray:
+        return self.mRGBA2D
+
+    def setRGBA3D(self, array:np.ndarray):
+        assert isinstance(array, np.ndarray)
+        assert array.ndim == 4
+        assert array.shape[3] == 4
+        self.mRGBA3D = array
+
+    def rgba3D(self)->np.ndarray:
+        return self.mRGBA3D
 
 pathUi = os.path.join(os.path.dirname(__file__), 'volumetric_gui.ui')
 class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
@@ -434,6 +499,8 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
 
         self.mSliceRenderer = None
         self.mTopPlaneRenderer = None
+
+        self.mBandScaleFactor = 1
 
         self.mMapLayerComboBox.setAllowEmptyLayer(True)
         self.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.RasterLayer)
@@ -460,6 +527,7 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
         self.cbShowSliceY.clicked.connect(lambda b: self.setGLItemVisbility('SLICE_Y', b))
         self.cbShowSliceZ.clicked.connect(lambda b: self.setGLItemVisbility('SLICE_Z', b))
         self.cbShowBox.clicked.connect(lambda b: self.setGLItemVisbility('BOX', b))
+        self.cbShowCube.clicked.connect(lambda b: self.setGLItemVisbility('CUBE', b))
         self.mJobs = dict()
         self.mLastJobs = []
         self.mGLItems = dict()
@@ -475,21 +543,47 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
         for k in ['distance', 'elevation', 'azimuth']:
             self.mDefaultCAM[k] = w.opts[k]
 
-    def addGLItem(self, key, item):
+    def addGLItems(self, key, items):
 
+        if not isinstance(items, list):
+            items = [items]
+        itemsOld = self.mGLItems.get(key, [])
 
-        itemOld = self.mGLItems.get(key)
-        if itemOld in self.glViewWidget().items:
-            isVisible = itemOld.visible()
-            item.setVisible(isVisible)
-            self.glViewWidget().removeItem(itemOld)
+        wasVisible = None
 
-        self.mGLItems[key] = item
-        self.glViewWidget().addItem(item)
+        for item in itemsOld:
+            if item in self.glViewWidget().items:
+                if wasVisible is None:
+                    wasVisible = item.visible()
+                    for itemNew in items:
+                        itemNew.setVisible(wasVisible)
+
+                self.glViewWidget().removeItem(item)
+
+        self.mGLItems[key] = items
+        for item in items:
+            self.glViewWidget().addItem(item)
 
     def resetGLView(self):
 
-        self.glViewWidget().setCameraPosition(**self.mDefaultCAM)
+
+
+        distance = self.mDefaultCAM['distance']
+        elevation = self.mDefaultCAM['elevation']
+        azimuth = self.mDefaultCAM['azimuth']
+        if True:
+            nb, nl, ns = self.layerDims()
+
+            if ns is None:
+                ns = nl = nb = 1
+            center = QVector3D(0.5*ns, 0.5*nl, 0)
+            elevation = 22 #°
+            azimuth = -66
+            self.glViewWidget().opts['center'] = center
+            self.glViewWidget().update()
+            distance = center.length()*5
+
+        self.glViewWidget().setCameraPosition(distance=distance, elevation=elevation, azimuth=azimuth)
 
     def layerDims(self)->tuple:
         lyr = self.rasterLayer()
@@ -519,7 +613,7 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
             if isSliceRenderer(r):
                 lyr2.setRenderer(r)
 
-            showLayerPropertiesDialog(lyr2, self.mCanvas)
+            showLayerPropertiesDialog(lyr2, None)
             s = ""
 
             self.setSliceRenderer(lyr2.renderer())
@@ -565,7 +659,10 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
         jobZ = RenderJob('SLICE_Z', lyr, self.sliceRenderer())
         jobZ.setSlicing('z', self.z())
 
+        jobCube = RenderJob('CUBE', lyr, self.sliceRenderer())
+
         jobList = [jobTop, jobX, jobY, jobZ]
+        jobList = [jobCube, jobTop]
 
         #job = [j for j in jobList if j not in self.mLastJobs]
         # jobList = [jobTop]
@@ -585,21 +682,21 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
 
     def setGLItemVisbility(self, key, b:bool):
 
-        item = self.mGLItems.get(key)
-        if isinstance(item, GLGraphicsItem):
-            item.setVisible(b)
-        else:
-            print('Unknown item "{}"'.format(key))
+        for item in self.mGLItems.get(key, []):
+            if isinstance(item, GLGraphicsItem):
+                item.setVisible(b)
+            else:
+                raise Exception('No a GLGraphicsItem')
         s = ""
 
     def glItemVisibility(self, key)->bool:
-        item = self.mGLItems.get(key)
-        if isinstance(item, GLGraphicsItem):
-            return item.visible()
+        for item in self.mGLItems.get(key, []):
+            if isinstance(item, GLGraphicsItem):
+                return item.visible()
         else:
             return None
 
-    def glViewWidget(self)->GLViewWidget:
+    def glViewWidget(self)->CubeViewWidget:
         return self.openglWidget
 
     def onDataLoaded(self, dump):
@@ -610,44 +707,87 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
 
             assert isinstance(job, RenderJob)
             print('Add {}'.format(job.id()))
-            rgba = job.rgba()
             nb, nl, ns = self.layerDims()
-            nnl, nns = rgba.shape[0:2]
 
+            if job.id() == 'CUBE':
 
-            v1 = gl.GLImageItem(rgba)
+                rgba = job.rgba3D()
+                nns, nnl, nnb = rgba.shape[0:3]
+                sx, sy, sb = ns / nns, nl / nnl, nb / nnb
+                t0 = time.time()
+                if False:
+                    vl = gl.GLVolumeItem(rgba, sliceDensity=1, smooth=True)
+                    #vl.rotate(-90, 0, 0, 1)
+                    #vl.translate(0, 0, 0)
+                    #vl.scale(1, 1, 0.5)
+                    self.addGLItems(job.id(), vl)
 
-            if job.mID == 'TOPPLANE':
-                v1.scale(ns / nns, nl / nnl, 1)
-                v1.translate(ns/2, nl/2, nb)
-                v1.rotate(-90, 0, 0, 1)
+                else:
+                    items = []
+                    stepX = stepY = stepZ = 500
+                    for x in range(0, nns, stepX):
+                        x2 = min(x+stepX, nns)
+                        for y in range(0, nnl, stepY):
+                            y2 = min(y+stepY, nnl)
+                            for z in range(0, nnb, stepZ):
+                                z2 = min(z+stepZ, nnb)
+                                block = rgba[x:x2, y:y2, z:z2,:]
+                                vl = gl.GLVolumeItem(block, sliceDensity=1, smooth=False)
+                                vl.scale(sx, sy, sb)
+                                vl.translate(x, y, -z)
+                                items.append(vl)
+                    self.addGLItems(job.id(), items)
+                print('TIME CUBE {}  {}'.format(time.time() - t0, rgba.shape))
+
+            elif job.id() == 'TOPPLANE':
+                rgba = job.rgba2D()
+                nns, nnl = rgba.shape[0:2]
+                sx, sy = ns / nns, nl / nnl
+                v1 = gl.GLImageItem(rgba)
+                v1.scale(sx, sy, 1)
+                #v1.rotate(-90, 0, 0, 1)
+
+                v1.translate(0, 0, nb+1)
+
+                self.addGLItems(job.id(), v1)
+
             #box = gl.GLBoxItem(size=QVector3D(ns, nl, nb))
             #box.translate(-ns/2, -nl/2, 0)
             #v1.scale(1./ns, 1./nl, 1./nb)
             #v1.translate(-shape[1] / 2, -shape[2] / 2, 0)
             #default: xy plane
-            if job.sliceDim() == 'z':
-                v1.scale(ns / nns, nl / nnl, 1)
-                v1.translate(-ns / 2, -nl / 2, job.sliceIndex())
-                v1.rotate(-90, 0, 0, 1)
-                #v1.translate(-ns / 2, -nl / 2, )
+            elif job.id().startswith('SLICE'):
+                rgba = job.rgba2D()
+                nnl, nns = rgba.shape[0:2]
+                v1 = gl.GLImageItem(rgba)
 
-            elif job.sliceDim() == 'x':
-                #
-                v1.scale(ns / nns, 1, 1)
-                v1.rotate(90, 0, 0, 1)
-                v1.rotate(-90, 0, 1, 0)
-                v1.translate((-ns + job.sliceIndex()) / 2, -nl / 2, nb)
+                if job.sliceDim() == 'z':
+                    v1.scale(ns / nns, nl / nnl, 1)
+                    v1.translate(-ns / 2, -nl / 2, job.sliceIndex())
+                    v1.rotate(-90, 0, 0, 1)
+                    #v1.translate(-ns / 2, -nl / 2, )
+
+                elif job.sliceDim() == 'x':
+                    rgba = job.rgba2D()
+                    nnl, nns = rgba.shape[0:2]
+                    v1 = gl.GLImageItem(rgba)
+                    v1.scale(ns / nns, 1, 1)
+                    v1.rotate(90, 0, 0, 1)
+                    v1.rotate(-90, 0, 1, 0)
+                    v1.translate((-ns + job.sliceIndex()) / 2, -nl / 2, nb)
 
 
-            elif job.sliceDim() == 'y':
-                v1.scale(1, nl / nnl, 1)
-                v1.translate(-ns / 2, -nl / 2, nb)
-                v1.rotate(-90, 1, 0, 0)
+                elif job.sliceDim() == 'y':
+                    rgba = job.rgba2D()
+                    nnl, nns = rgba.shape[0:2]
+                    v1 = gl.GLImageItem(rgba)
+                    v1.scale(1, nl / nnl, 1)
+                    v1.translate(-ns / 2, -nl / 2, nb)
+                    v1.rotate(-90, 1, 0, 0)
+
+                self.addGLItems(job.id(), v1)
 
 
-
-            self.addGLItem(job.mID, v1)
             #w = self.glViewWidget()
            # b = gl.GLBoxItem()
            # w.addItem(b)
@@ -716,6 +856,14 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
             ns = lyr.width()
             nl = lyr.height()
 
+            minEdge = 0.1 * min(ns, nl)
+
+            if nb < minEdge:
+                self.mBandScaleFactor = minEdge / nb
+            else:
+                self.mBandScaleFactor = 1
+
+
             self.sliderX.setRange(1, ns)
             self.sliderY.setRange(1, nl)
             self.sliderZ.setRange(1, nb)
@@ -739,11 +887,22 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
 
             w = self.glViewWidget()
 
-            box = gl.GLBoxItem(size=QVector3D(ns, nl, nb))
-            box.translate(-ns/2, -nl/2, 0)
-            self.addGLItem('BOX', box)
+            box = gl.GLBoxItem(size=QVector3D(ns, nl, -nb))
+            box.translate(0, 0, nb)
+            self.addGLItems('BOX', box)
 
-            self.glViewWidget().setCameraPosition(distance=nb+10, elevation=nb)
+            ax = gl.GLAxisItem(size=QVector3D(ns, nl, -nb))
+            #ax.rotate(180, 0, 1, 0)
+            ax.translate(0, 0, nb)
+            self.addGLItems('AXIS', ax)
+
+            w = self.glViewWidget()
+            w.mTextLabels.clear()
+            w.addTextLabel(QVector3D(0, 0, 0), 'Bands')
+            w.addTextLabel(QVector3D(0, nl+1, nb), 'Lines')
+            w.addTextLabel(QVector3D(ns+1, 0, nb), 'Columns')
+
+            self.resetGLView()
 
             #for i in w.items:
             #    w.removeItem(i)
@@ -763,7 +922,7 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
             self.spinBoxZ.setRange(0, 0)
 
             b = False
-
+            self.mBandScaleFactor = 1
 
         for w in [self.gbRendering, self.gbSlicing, self.gbPlot]:
             w.setEnabled(b)

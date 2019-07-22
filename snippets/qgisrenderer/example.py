@@ -69,7 +69,7 @@ for p in examples:
 
     elif isinstance(r, QgsPalettedRasterRenderer):
         print('nColors:{}'.format(r.nColors()))
-        v = r.colors().rgba()
+        v = r.colors().rgba2D()
         for i in range(r.nColors()):
             print('Class name {}:"{}"'.format(i+1, r.label(i)))
 
