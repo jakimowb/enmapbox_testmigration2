@@ -433,6 +433,10 @@ class RenderJob(object):
         self.mRGBA2D = None
         self.mRGBA3D = None
 
+        self.mOffset = QVector3D(0,0,0)
+        self.mScale = (1, 1, 1)
+
+
     def __eq__(self, other)->bool:
         if not isinstance(other, RenderJob):
             return False
