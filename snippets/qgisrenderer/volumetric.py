@@ -18,6 +18,7 @@ import enmapbox.externals.qps.externals.pyqtgraph.opengl as gl
 from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLViewWidget import GLViewWidget
 from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLGraphicsItem import GLGraphicsItem
 
+KEY_DEFAULT_TRANSFORM = 'CUBEVIEW/DEFAULT_TRANSFORM'
 QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.byte,
                          Qgis.UInt16: np.uint16,
                          Qgis.Int16: np.int16,
@@ -292,6 +293,8 @@ def loadData(taskWrapper:QgsTask, dump):
                 rgba[:,:, b, 3] = qaAlpha(colorArray).reshape((h, w))  # np.asarray([qAlpha(c) for c in colorArray])
 
             rgba = np.rot90(rgba, axes=(0,1))
+            #rgba = np.flip(rgba, axis=2)
+            #rgba = np.flip(rgba, axis=1)
             job.setRGBA3D(rgba)
 
         elif job.id() == 'TOPPLANE':
@@ -428,8 +431,6 @@ class RenderJob(object):
         self.mUri = layer.source()
         self.mDataProvider = layer.dataProvider().name()
         self.mRendererXML = rendererToXml(renderer).toString()
-        self.mSliceDim = self.mSliceIndex = None
-        self.mResults = None
         self.mRGBA2D = None
         self.mRGBA3D = None
 
@@ -443,33 +444,17 @@ class RenderJob(object):
         else:
             return self.mID == other.mID and \
                    self.mUri == other.mUri and \
-                   self.mRendererXML == other.mRendererXML and \
-                   self.mSliceDim == other.mSliceDim
-
+                   self.mRendererXML == other.mRendererXML
+    def __hash__(self):
+        return hash((self.mID, self.mUri, self.mRendererXML))
 
     def id(self)->str:
         return self.mID
-
-    def hasSlicing(self)->bool:
-        return self.mSliceDim in ['x', 'y', 'z'] and isinstance(self.mSliceIndex, int)
-
-    def setSlicing(self, sliceDim:str, sliceIndex:int):
-        assert sliceDim in ['x','y','z']
-        assert sliceIndex >= 0
-        self.mSliceDim = sliceDim
-        self.mSliceIndex = sliceIndex
-
     def rasterLayer(self)->QgsRasterLayer:
         return QgsRasterLayer(self.mUri, self.mID, self.mDataProvider)
 
     def renderer(self)->QgsRasterRenderer:
         return rendererFromXml(self.mRendererXML)
-
-    def sliceDim(self)->str:
-        return self.mSliceDim
-
-    def sliceIndex(self)->int:
-        return self.mSliceIndex
 
     def setRGBA2D(self, array:np.ndarray):
         assert isinstance(array, np.ndarray)
@@ -506,6 +491,9 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
 
         self.mBandScaleFactor = 1
 
+        self.mRGBATopPlane = None
+        self.mRGBACube = None
+
         self.mMapLayerComboBox.setAllowEmptyLayer(True)
         self.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mMapLayerComboBox.layerChanged.connect(self.onLayerChanged)
@@ -522,9 +510,10 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
         self.actionSetRendererSlices.triggered.connect(self.onSetSliceRenderer)
         self.actionResetGLView.triggered.connect(self.resetGLView)
 
-        self.sliderX.valueChanged.connect(self.onValidate)
-        self.sliderY.valueChanged.connect(self.onValidate)
-        self.sliderZ.valueChanged.connect(self.onValidate)
+        self.sliderX.valueChanged.connect(lambda : self.setSlice('x'))
+        self.sliderY.valueChanged.connect(lambda : self.setSlice('y'))
+        self.sliderZ.valueChanged.connect(lambda : self.setSlice('z'))
+        self.sliderZScale.valueChanged.connect(self.onZScaleChanged)
 
         self.cbShowTopPlane.clicked.connect(lambda b: self.setGLItemVisbility('TOPPLANE', b))
         self.cbShowSliceX.clicked.connect(lambda b: self.setGLItemVisbility('SLICE_X', b))
@@ -569,9 +558,6 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
             self.glViewWidget().addItem(item)
 
     def resetGLView(self):
-
-
-
         distance = self.mDefaultCAM['distance']
         elevation = self.mDefaultCAM['elevation']
         azimuth = self.mDefaultCAM['azimuth']
@@ -580,7 +566,7 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
 
             if ns is None:
                 ns = nl = nb = 1
-            center = QVector3D(0.5*ns, 0.5*nl, 0)
+            center = QVector3D(0.5 * ns, -0.5 * nl, -0.5 * nb)
             elevation = 22 #°
             azimuth = -66
             self.glViewWidget().opts['center'] = center
@@ -599,6 +585,28 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
         else:
             return (None, None, None)
 
+    def cubeDims(self)->tuple:
+        """
+        Returns the cube dimensions in (nb, nl, ns) order
+        :return:
+        """
+        if isinstance(self.mRGBACube, np.ndarray):
+            nns, nnl, nnb = self.mRGBACube.shape[0:3]
+            return nnb, nnl, nns
+        else:
+            return (None, None, None)
+
+    def topPlaneDims(self)->tuple:
+        """
+        Returns the TOPPLANE dimensions as (nl, ns)
+        :return: tuple
+        """
+        if isinstance(self.mRGBATopPlane, np.ndarray):
+            return self.mRGBATopPlane.shape[0:3]
+        else:
+            return (None, None, None)
+
+
     def rasterLayer(self)->QgsRasterLayer:
         return self.mMapLayerComboBox.currentLayer()
 
@@ -614,9 +622,8 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
         if isinstance(lyr, QgsRasterLayer):
             lyr2 = QgsRasterLayer(lyr.source(), lyr.name(), lyr.dataProvider().name())
             r = self.sliceRenderer()
-            if isSliceRenderer(r):
+            if isinstance(r, QgsRasterRenderer):
                 lyr2.setRenderer(r)
-
             showLayerPropertiesDialog(lyr2, None)
             s = ""
 
@@ -639,7 +646,7 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
         self.onValidate()
 
     def setSliceRenderer(self, renderer:QgsRasterRenderer):
-        assert isinstance(renderer, (QgsSingleBandGrayRenderer, QgsSingleBandPseudoColorRenderer, QgsSingleBandColorDataRenderer))
+        assert isinstance(renderer, QgsRasterRenderer)
         self.mSliceRenderer = renderer.clone()
 
     def setTopPlaneRenderer(self, renderer:QgsRasterRenderer):
@@ -653,19 +660,20 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
         lyr = self.rasterLayer()
 
         jobTop = RenderJob('TOPPLANE', lyr, self.topPlaneRenderer())
-
-        jobX = RenderJob('SLICE_X', lyr, self.sliceRenderer())
-        jobX.setSlicing('x', self.x())
-
-        jobY = RenderJob('SLICE_Y', lyr, self.sliceRenderer())
-        jobY.setSlicing('y', self.y())
-
-        jobZ = RenderJob('SLICE_Z', lyr, self.sliceRenderer())
-        jobZ.setSlicing('z', self.z())
-
         jobCube = RenderJob('CUBE', lyr, self.sliceRenderer())
 
-        jobList = [jobTop, jobX, jobY, jobZ]
+        #jobX = RenderJob('SLICE_X', lyr, self.sliceRenderer())
+        #jobX.setSlicing('x', self.x())
+
+        #jobY = RenderJob('SLICE_Y', lyr, self.sliceRenderer())
+        #jobY.setSlicing('y', self.y())
+
+        #jobZ = RenderJob('SLICE_Z', lyr, self.sliceRenderer())
+        #jobZ.setSlicing('z', self.z())
+
+
+
+        #jobList = [jobTop, jobX, jobY, jobZ]
         jobList = [jobCube, jobTop]
 
         #job = [j for j in jobList if j not in self.mLastJobs]
@@ -678,7 +686,6 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
         else:
             qgsTask = QgsTask.fromFunction(taskDescription, loadData, dump,
                                            on_finished=self.onAddSourcesAsyncFinished)
-
             tid = id(qgsTask)
             qgsTask.taskCompleted.connect(lambda *args, tid=tid: self.onRemoveTask(tid))
             qgsTask.taskTerminated.connect(lambda *args, tid=tid: self.onRemoveTask(tid))
@@ -693,12 +700,20 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
                 raise Exception('No a GLGraphicsItem')
         s = ""
 
-    def glItemVisibility(self, key)->bool:
-        for item in self.mGLItems.get(key, []):
-            if isinstance(item, GLGraphicsItem):
-                return item.visible()
-        else:
-            return None
+    def glItemVisibility(self, key:str)->bool:
+        if key == 'CUBE':
+            return self.cbShowCube.isChecked()
+        elif key == 'SLICE_X':
+            return self.cbShowSliceX.isChecked()
+        elif key == 'SLICE_Y':
+            return self.cbShowSliceY.isChecked()
+        elif key == 'SLICE_Z':
+            return self.cbShowSliceZ.isChecked()
+        elif key == 'TOPPLANE':
+            return self.cbShowTopPlane.isChecked()
+        elif key == 'BOX':
+            return self.cbShowBox.isChecked()
+        return False
 
     def glViewWidget(self)->CubeViewWidget:
         return self.openglWidget
@@ -714,53 +729,17 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
             nb, nl, ns = self.layerDims()
 
             if job.id() == 'CUBE':
-
-                rgba = job.rgba3D()
-                nns, nnl, nnb = rgba.shape[0:3]
-                sx, sy, sb = ns / nns, nl / nnl, nb / nnb
-                t0 = time.time()
-                if False:
-                    vl = gl.GLVolumeItem(rgba, sliceDensity=1, smooth=True)
-                    #vl.rotate(-90, 0, 0, 1)
-                    #vl.translate(0, 0, 0)
-                    #vl.scale(1, 1, 0.5)
-                    self.addGLItems(job.id(), vl)
-
-                else:
-                    items = []
-                    stepX = stepY = stepZ = 500
-                    for x in range(0, nns, stepX):
-                        x2 = min(x+stepX, nns)
-                        for y in range(0, nnl, stepY):
-                            y2 = min(y+stepY, nnl)
-                            for z in range(0, nnb, stepZ):
-                                z2 = min(z+stepZ, nnb)
-                                block = rgba[x:x2, y:y2, z:z2,:]
-                                vl = gl.GLVolumeItem(block, sliceDensity=1, smooth=False)
-                                vl.scale(sx, sy, sb)
-                                vl.translate(x, y, -z)
-                                items.append(vl)
-                    self.addGLItems(job.id(), items)
-                print('TIME CUBE {}  {}'.format(time.time() - t0, rgba.shape))
-
+                self.setRGBACube(job.rgba3D())
             elif job.id() == 'TOPPLANE':
-                rgba = job.rgba2D()
-                nns, nnl = rgba.shape[0:2]
-                sx, sy = ns / nns, nl / nnl
-                v1 = gl.GLImageItem(rgba)
-                v1.scale(sx, sy, 1)
-                #v1.rotate(-90, 0, 0, 1)
-
-                v1.translate(0, 0, nb+1)
-
-                self.addGLItems(job.id(), v1)
-
+                self.setRGBATopPlane(job.rgba2D())
+            continue
             #box = gl.GLBoxItem(size=QVector3D(ns, nl, nb))
             #box.translate(-ns/2, -nl/2, 0)
             #v1.scale(1./ns, 1./nl, 1./nb)
             #v1.translate(-shape[1] / 2, -shape[2] / 2, 0)
             #default: xy plane
-            elif job.id().startswith('SLICE'):
+            #elif job.id().startswith('SLICE'):
+            """
                 rgba = job.rgba2D()
                 nnl, nns = rgba.shape[0:2]
                 v1 = gl.GLImageItem(rgba)
@@ -802,12 +781,12 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
             #b.translate(1, 1, 1)
 
             #,ä nw.addItem(v1)
-
+            """
     def onValidate(self)->bool:
 
         b = True
         b &= isinstance(self.topPlaneRenderer(), QgsRasterRenderer)
-        b &= isSliceRenderer(self.sliceRenderer())
+        b &= isinstance(self.sliceRenderer(), QgsRasterRenderer)
         b &= isinstance(self.rasterLayer(), QgsRasterLayer) and self.rasterLayer().isValid()
 
         self.btnLoadData.setEnabled(b)
@@ -829,14 +808,12 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
     def x(self) -> int:
         return self.sliderX.value()
 
-
     def setY(self, y: int):
         assert y > 0 and y < self.sliderY.maximum()
         self.sliderY.setValue(y)
 
     def y(self)->int:
         return self.sliderY.value()
-
 
     def z(self) -> int:
         return self.sliderZ.value()
@@ -845,6 +822,144 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
         assert z > 0 and z < self.sliderZ.maximum()
         self.sliderZ.setValue(z)
 
+
+    def setRGBATopPlane(self, rgba:np.ndarray):
+        pass
+
+    def setRGBACube(self, rgba:np.ndarray):
+
+        assert isinstance(rgba, np.ndarray)
+        assert rgba.ndim == 4
+        assert rgba.shape[3] == 4
+        assert rgba.dtype == np.uint8
+
+        t0 = time.time()
+
+        self.mRGBACube = rgba
+
+        # layer and cube dimensions
+        nb, nl, ns = self.layerDims()
+        nnb, nnl, nns = self.cubeDims()
+
+        # scaling factors (in case we sampled less/more pixels than in the layer)
+        sx, sy, sb = ns / nns, nl / nnl, nb / nnb
+
+        #x = x2*sx
+        if False:
+            items = []
+            isVisible = self.glItemVisibility('CUBE')
+            stepX = stepY = stepZ = 100
+            for x in range(0, nns, stepX):
+                x2 = min(x + stepX, nns)
+                for y in range(0, nnl, stepY):
+                    y2 = min(y + stepY, nnl)
+                    for z in range(0, nnb, stepZ):
+                        z2 = min(z + stepZ, nnb)
+                        block = rgba[x:x2, y:y2, z:z2, :]
+                        # do not plot empty blocks
+                        if np.all(block == 0):
+                            continue
+                        item = gl.GLVolumeItem(block, sliceDensity=1, smooth=False)
+                        item.scale(sx, sy, sb)
+                        item.rotate(180, 1, 0, 0)
+                        item.setVisible(isVisible)
+                        item.translate(x*sx, y*sy, z*sb)
+                        item.setProperty(KEY_DEFAULT_TRANSFORM, item.transform())
+                        items.append(item)
+
+            # apply zScale
+            z = self.zScale()
+            for item in items:
+                assert isinstance(item, GLGraphicsItem)
+                item.scale(1,1,z)
+
+            self.addGLItems('CUBE', items)
+
+            print('TIME CUBE {}  {}'.format(time.time() - t0, rgba.shape))
+
+        self.setSlice('x')
+        self.setSlice('y')
+        self.setSlice('z')
+
+    def setSlice(self, dim:str):
+        assert dim in ['x','y','z']
+
+        t0 = time.time()
+        nb, nl, ns = self.layerDims()
+        nnb, nnl, nns = self.cubeDims()
+
+        if nb is None or nnb is None:
+            return
+        # scaling factors (in case we sampled less/more pixels than in the layer)
+        sx, sy, sb = ns / nns, nl / nnl, nb / nnb
+
+        # slice subset
+        z1, y1, x1 = nnb, nnl, nns
+        x0 = y0 = z0 = 0
+
+        if dim == 'x':
+            x0 = self.x()-1
+            x1 = x0 + 1
+        elif dim == 'y':
+            y0 = self.y()-1
+            y1 = y0 + 1
+        elif dim == 'z':
+            z0 = self.z()-1
+            z1 = z0 + 1
+
+        sliceData = self.mRGBACube[x0:x1, y0:y1, z0:z1, :]
+        items = []
+        isVisible = self.glItemVisibility('CUBE')
+
+        if True: #volumentric
+            stepX = stepY = stepZ = 500
+            shp = sliceData.shape
+            for x in range(0, shp[0], stepX):
+                x2 = min(x + stepX, shp[0])
+
+                for y in range(0, shp[1], stepY):
+                    y2 = min(y + stepY, shp[1])
+
+                    for z in range(0, shp[2], stepZ):
+                        z2 = min(z + stepZ, shp[2])
+                        block = sliceData[x:x2, y:y2, z:z2, :]
+
+                        # do not plot empty blocks
+                        if np.all(block == 0):
+                            continue
+
+                        item = gl.GLVolumeItem(block, sliceDensity=1, smooth=False)
+                        item.scale(sx, sy, sb)
+                        item.setVisible(isVisible)
+                        item.translate((x+x0)*sx, -(y+y0)*sy, -(z+z0)*sb)
+                        item.setProperty(KEY_DEFAULT_TRANSFORM, item.transform())
+                        items.append(item)
+
+            # apply zScale
+            z = self.zScale()
+            for item in items:
+                assert isinstance(item, GLGraphicsItem)
+                item.scale(1, 1, z)
+
+            self.addGLItems('SLICE_{}'.format(dim.upper()), items)
+
+        print('SLICE {}  {}'.format(dim, time.time() - t0))
+
+    def zScale(self)->int:
+        return int(self.sliderZScale.value())
+
+    def setZSCale(self, z:int):
+        self.sliderZScale.setValue(z)
+
+    def onZScaleChanged(self):
+        z = self.zScale()
+        for key, items in self.mGLItems.items():
+            for item in items:
+                assert isinstance(item, GLGraphicsItem)
+                tranformDefault = item.property(KEY_DEFAULT_TRANSFORM)
+                if isinstance(tranformDefault, QMatrix4x4):
+                    item.setTransform(tranformDefault)
+                    item.scale(1,1,z) #scale will update the item
 
     def onLayerChanged(self, lyr):
 
@@ -883,28 +998,65 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
             if not isinstance(self.topPlaneRenderer(), QgsRasterRenderer):
                 self.setTopPlaneRenderer(lyr.renderer())
 
-            if not isSliceRenderer(self.sliceRenderer()):
+            if not isinstance(self.sliceRenderer(), QgsRasterRenderer):
                 band = self.z()
-                renderer = QgsSingleBandGrayRenderer(lyr.dataProvider(), band)
-                self.setSliceRenderer(renderer)
+                band = 1
+
+                if False:
+                    stats = lyr.dataProvider().bandStatistics(band, QgsRasterBandStats.Min | QgsRasterBandStats.Max)
+                    minValue = stats.minimumValue
+                    maxValue = stats.maximumValue
+
+
+                    # create shader for the renderer
+                    shader = QgsRasterShader(minValue, maxValue)
+                    colorRampShaderFcn = QgsColorRampShader(minValue, maxValue)
+                    colorRampShaderFcn.setColorRampType(QgsColorRampShader.Interpolated)
+                    colorRampShaderFcn.setClassificationMode(QgsColorRampShader.Continuous)
+                    colorRampShaderFcn.setClip(True)
+
+                    items = []
+                    for index in range(10):
+                        items.append(QgsColorRampShader.ColorRampItem(index, QColor('#{0:02d}{0:02d}{0:02d}'.format(index)),
+                                                                      "{}".format(index)))
+                    colorRampShaderFcn.setColorRampItemList(items)
+                    shader.setRasterShaderFunction(colorRampShaderFcn)
+                    # create instance to test
+                    rasterRenderer = QgsSingleBandPseudoColorRenderer(lyr.dataProvider(), band, shader)
+                    #lyr.setRenderer(rasterRenderer)
+
+                else:
+                    l2 = QgsRasterLayer(lyr.source())
+                    renderer = QgsSingleBandGrayRenderer(l2.dataProvider(), band)
+                    l2.setRenderer(renderer)
+                    l2.setContrastEnhancement(
+                        QgsContrastEnhancement.StretchToMinimumMaximum,
+                        QgsRasterMinMaxOrigin.MinMax)
+
+                    self.setSliceRenderer(l2.renderer().clone())
 
 
             w = self.glViewWidget()
 
-            box = gl.GLBoxItem(size=QVector3D(ns, nl, -nb))
-            box.translate(0, 0, nb)
+            box = gl.GLBoxItem(size=QVector3D(ns, -nl, -nb))
+            #box.translate(0, 0, nb)
+            box.setProperty(KEY_DEFAULT_TRANSFORM, box.transform())
+            box.scale(1,1,self.zScale())
             self.addGLItems('BOX', box)
 
-            ax = gl.GLAxisItem(size=QVector3D(ns, nl, -nb))
+            ax = gl.GLAxisItem(size=QVector3D(ns, -nl, -nb))
+
+            #ax.translate(0, nl, nb)
             #ax.rotate(180, 0, 1, 0)
-            ax.translate(0, 0, nb)
+            ax.setProperty(KEY_DEFAULT_TRANSFORM, ax.transform())
+            ax.scale(1,1,self.zScale())
             self.addGLItems('AXIS', ax)
 
-            w = self.glViewWidget()
-            w.mTextLabels.clear()
-            w.addTextLabel(QVector3D(0, 0, 0), 'Bands')
-            w.addTextLabel(QVector3D(0, nl+1, nb), 'Lines')
-            w.addTextLabel(QVector3D(ns+1, 0, nb), 'Columns')
+            #w = self.glViewWidget()
+            #w.mTextLabels.clear()
+            #w.addTextLabel(QVector3D(0, 0, 0), 'Bands')
+            #w.addTextLabel(QVector3D(0, nl+1, nb), 'Lines')
+            #w.addTextLabel(QVector3D(ns+1, 0, nb), 'Columns')
 
             self.resetGLView()
 
@@ -928,7 +1080,7 @@ class VolumetricWidget(QWidget, loadUIFormClass(pathUi)):
             b = False
             self.mBandScaleFactor = 1
 
-        for w in [self.gbRendering, self.gbSlicing, self.gbPlot]:
+        for w in [self.gbRendering, self.gbPlotting]:
             w.setEnabled(b)
 
         self.onValidate()

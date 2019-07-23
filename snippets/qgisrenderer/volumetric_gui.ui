@@ -89,17 +89,10 @@
           <string>Rendering</string>
          </property>
          <layout class="QFormLayout" name="formLayout_3">
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_6">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_7">
             <property name="text">
-             <string>X/Y Planes</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QPushButton" name="btnSetRendererSlices">
-            <property name="text">
-             <string>Set</string>
+             <string>Top Plane</string>
             </property>
            </widget>
           </item>
@@ -110,102 +103,17 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_7">
-            <property name="text">
-             <string>Top Plane</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label_8">
-            <property name="text">
-             <string>Grid Y</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_9">
-            <property name="text">
-             <string>Grid X</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QGroupBox" name="gbSlicing">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>50</height>
-          </size>
-         </property>
-         <property name="title">
-          <string>Slicing</string>
-         </property>
-         <layout class="QGridLayout" name="gridLayout_2">
-          <property name="verticalSpacing">
-           <number>2</number>
-          </property>
           <item row="1" column="0">
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_6">
             <property name="text">
-             <string>Row</string>
+             <string>Slices</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="2">
-           <widget class="QSlider" name="sliderY">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="tickPosition">
-             <enum>QSlider::TicksAbove</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="3">
-           <widget class="QSpinBox" name="spinBoxX"/>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_2">
+          <item row="1" column="1">
+           <widget class="QPushButton" name="btnSetRendererSlices">
             <property name="text">
-             <string>Column</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="2">
-           <widget class="QSlider" name="sliderX">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="tickPosition">
-             <enum>QSlider::TicksAbove</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="3">
-           <widget class="QSpinBox" name="spinBoxY"/>
-          </item>
-          <item row="2" column="3">
-           <widget class="QSpinBox" name="spinBoxZ"/>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_4">
-            <property name="text">
-             <string>Band</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="2">
-           <widget class="QSlider" name="sliderZ">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="tickPosition">
-             <enum>QSlider::TicksAbove</enum>
+             <string>Set</string>
             </property>
            </widget>
           </item>
@@ -213,7 +121,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="gbPlot">
+        <widget class="QGroupBox" name="gbPlotting">
          <property name="minimumSize">
           <size>
            <width>0</width>
@@ -227,7 +135,17 @@
           <property name="spacing">
            <number>6</number>
           </property>
-          <item row="5" column="0">
+          <item row="5" column="1">
+           <widget class="QSlider" name="sliderY">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="tickPosition">
+             <enum>QSlider::TicksAbove</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0">
            <widget class="QCheckBox" name="cbShowSliceZ">
             <property name="text">
              <string>Z Slice</string>
@@ -237,37 +155,37 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="0">
-           <widget class="QCheckBox" name="cbShowSliceY">
+          <item row="5" column="2">
+           <widget class="QSpinBox" name="spinBoxY"/>
+          </item>
+          <item row="8" column="0" colspan="2">
+           <widget class="QPushButton" name="btnResetGLView">
             <property name="text">
-             <string>Y Slice</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
+             <string>Reset Camera</string>
             </property>
            </widget>
           </item>
           <item row="2" column="0">
-           <widget class="QCheckBox" name="cbShowSliceX">
+           <widget class="QCheckBox" name="cbShowCube">
             <property name="text">
-             <string>X Slice</string>
+             <string>Cube</string>
             </property>
             <property name="checked">
              <bool>true</bool>
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
-           <widget class="QCheckBox" name="cbShowTopPlane">
+          <item row="7" column="0">
+           <widget class="QLabel" name="label_2">
             <property name="text">
-             <string>Top plane</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
+             <string>Z Scaling</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="1">
+          <item row="4" column="2">
+           <widget class="QSpinBox" name="spinBoxX"/>
+          </item>
+          <item row="0" column="0">
            <widget class="QCheckBox" name="cbShowBox">
             <property name="text">
              <string>Box</string>
@@ -277,20 +195,79 @@
             </property>
            </widget>
           </item>
-          <item row="8" column="0" colspan="2">
-           <widget class="QPushButton" name="btnResetGLView">
-            <property name="text">
-             <string>Reset</string>
+          <item row="4" column="1">
+           <widget class="QSlider" name="sliderX">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="tickPosition">
+             <enum>QSlider::TicksAbove</enum>
             </property>
            </widget>
           </item>
-          <item row="5" column="1">
-           <widget class="QCheckBox" name="cbShowCube">
+          <item row="1" column="0">
+           <widget class="QCheckBox" name="cbShowTopPlane">
             <property name="text">
-             <string>Cube</string>
+             <string>Top plane</string>
             </property>
             <property name="checked">
              <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="1">
+           <widget class="QSlider" name="sliderZScale">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="2">
+           <widget class="QSpinBox" name="spinBoxZScale">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QCheckBox" name="cbShowSliceY">
+            <property name="text">
+             <string>Y Slice</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="2">
+           <widget class="QSpinBox" name="spinBoxZ"/>
+          </item>
+          <item row="4" column="0">
+           <widget class="QCheckBox" name="cbShowSliceX">
+            <property name="text">
+             <string>X Slice</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QSlider" name="sliderZ">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="tickPosition">
+             <enum>QSlider::TicksAbove</enum>
             </property>
            </widget>
           </item>
@@ -380,12 +357,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>553</x>
-     <y>249</y>
+     <x>598</x>
+     <y>277</y>
     </hint>
     <hint type="destinationlabel">
-     <x>616</x>
-     <y>248</y>
+     <x>646</x>
+     <y>272</y>
     </hint>
    </hints>
   </connection>
@@ -396,12 +373,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>568</x>
-     <y>269</y>
+     <x>598</x>
+     <y>307</y>
     </hint>
     <hint type="destinationlabel">
-     <x>624</x>
-     <y>269</y>
+     <x>646</x>
+     <y>302</y>
     </hint>
    </hints>
   </connection>
@@ -412,12 +389,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>560</x>
-     <y>291</y>
+     <x>598</x>
+     <y>337</y>
     </hint>
     <hint type="destinationlabel">
-     <x>637</x>
-     <y>294</y>
+     <x>646</x>
+     <y>332</y>
     </hint>
    </hints>
   </connection>
@@ -428,12 +405,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>613</x>
-     <y>243</y>
+     <x>646</x>
+     <y>272</y>
     </hint>
     <hint type="destinationlabel">
-     <x>557</x>
-     <y>246</y>
+     <x>598</x>
+     <y>277</y>
     </hint>
    </hints>
   </connection>
@@ -444,12 +421,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>618</x>
-     <y>265</y>
+     <x>646</x>
+     <y>302</y>
     </hint>
     <hint type="destinationlabel">
-     <x>555</x>
-     <y>272</y>
+     <x>598</x>
+     <y>307</y>
     </hint>
    </hints>
   </connection>
@@ -460,12 +437,140 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>616</x>
-     <y>294</y>
+     <x>646</x>
+     <y>332</y>
     </hint>
     <hint type="destinationlabel">
-     <x>573</x>
-     <y>294</y>
+     <x>598</x>
+     <y>337</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cbShowSliceX</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>sliderX</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>483</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>584</x>
+     <y>260</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cbShowSliceX</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>spinBoxX</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>490</x>
+     <y>255</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>626</x>
+     <y>269</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cbShowSliceY</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>sliderY</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>479</x>
+     <y>292</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>563</x>
+     <y>292</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cbShowSliceY</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>spinBoxY</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>458</x>
+     <y>287</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>619</x>
+     <y>297</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cbShowSliceZ</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>sliderZ</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>476</x>
+     <y>317</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>564</x>
+     <y>320</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cbShowSliceZ</sender>
+   <signal>clicked(bool)</signal>
+   <receiver>spinBoxZ</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>464</x>
+     <y>326</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>620</x>
+     <y>328</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderZScale</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>spinBoxZScale</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>555</x>
+     <y>350</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>630</x>
+     <y>351</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spinBoxZScale</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>sliderZScale</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>622</x>
+     <y>358</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>581</x>
+     <y>358</y>
     </hint>
    </hints>
   </connection>

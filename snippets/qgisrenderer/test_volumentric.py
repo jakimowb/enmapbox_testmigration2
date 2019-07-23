@@ -16,26 +16,41 @@ class VTest(unittest.TestCase):
 
 
         from enmapboxtestdata import enmap as pathEnMAP
-        lyr1 = QgsRasterLayer(pathEnMAP, 'EnMAP Example')
-
         from enmapboxtestdata import hires as pathHyMap
-        lyr2 = QgsRasterLayer(pathHyMap, 'HyMAP')
-
+        from enmapbox.testing import TestObjects
         pathTS = r'R:\temp\temp_bj\Cerrado\cerrado_evi.vrt'
-        lyr3 = QgsRasterLayer(pathTS, 'TimeSeries')
-        QgsProject.instance().addMapLayers([lyr1, lyr2, lyr3])
 
+        data = np.fromfunction()
 
-        if False:
-            W.setX(50)
-            W.setY(25)
-            W.setZ(75)
+        layers = []
+        for p in [pathEnMAP, pathHyMap, pathTS]:
+            if os.path.isfile(p):
+                layers.append(QgsRasterLayer(p, os.path.basename(p)))
 
-            self.assertEqual(W.x(), 50)
-            self.assertEqual(W.y(), 25)
-            self.assertEqual(W.z(), 75)
+        QgsProject.instance().addMapLayers(layers)
 
-            self.assertTrue(isSliceRenderer(W.sliceRenderer()))
+        if True:
+            lyr = layers[0]
+            self.assertIsInstance(lyr, QgsRasterLayer)
+            W.setRasterLayer(lyr)
+            self.assertEqual(lyr, W.rasterLayer())
+
+            x = int(lyr.width() * 0.5)
+            y = int(lyr.height() * 0.5)
+            z = int(lyr.bandCount() * 0.5)
+            W.setX(x)
+            W.setY(y)
+            W.setZ(z)
+
+            self.assertEqual(W.zScale(), 1)
+            #W.setZSCale(2)
+            #self.assertEqual(W.zScale(), 2)
+            #W.setZSCale(2)
+            self.assertEqual(W.x(), x)
+            self.assertEqual(W.y(), y)
+            self.assertEqual(W.z(), z)
+
+            self.assertIsInstance(W.sliceRenderer(), QgsRasterRenderer)
             self.assertIsInstance(W.topPlaneRenderer(), QgsRasterRenderer)
 
             W.onLoadData()
