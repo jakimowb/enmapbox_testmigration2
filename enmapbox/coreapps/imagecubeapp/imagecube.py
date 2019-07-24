@@ -11,9 +11,8 @@ from qgis.core import *
 from qgis.gui import *
 import numpy as np
 
-from enmapbox.gui.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUIFormClass, SpatialExtent
 from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
-import enmapbox.externals.pyqtgraph as pg
 import enmapbox.externals.qps.externals.pyqtgraph.opengl as gl
 from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLViewWidget import GLViewWidget
 from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLGraphicsItem import GLGraphicsItem
@@ -32,6 +31,10 @@ QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.byte,
                          Qgis.ARGB32: np.uint32,
                          Qgis.ARGB32_Premultiplied: np.uint32}
 
+
+class TaskMock(QgsTask):
+    def __init__(self):
+        super(TaskMock, self).__init__()
 
 
 def qaRed(array:np.ndarray)->np.ndarray:
@@ -86,7 +89,7 @@ class ImageCubeGLWidget(GLViewWidget):
 
 
 MAX_SIZE = 1024**2
-def samplingGrid(layer:QgsRasterLayer, extent:QgsRectangle, ncb: int = 1, max_size:int=MAX_SIZE):
+def samplingGrid(layer:QgsRasterLayer, extent:QgsRectangle, ncb: int = 1, max_size:int=MAX_SIZE)->tuple:
     """
     :param extent: QgsRectangles extent to show from image
     :param nl: original image number of lines
@@ -134,18 +137,31 @@ def samplingGrid(layer:QgsRasterLayer, extent:QgsRectangle, ncb: int = 1, max_si
         return nnl, nns
 
 
-def renderImageData(taskWrapper:QgsTask, dump):
-
+def renderImageData(task:QgsTask, dump):
+    """
+    Renders image data into RGBA Arrays
+    :param task: QgsTask
+    :param dump: serialized list of ImageCubeRenderJobs
+    :return:
+    """
     jobs = pickle.loads(dump)
 
-    hasTask = isinstance(taskWrapper, QgsTask)
+
     results = []
     n = len(jobs)
 
+    renderCallsTotal = 0
+    renderCallsDone = 0
+    for job in jobs:
+        assert isinstance(job, ImageCubeRenderJob)
+        if job.id() == 'CUBE':
+            renderCallsTotal += job.mLayerShape[0]
+        elif job.id() == 'TOPPLANE':
+            renderCallsTotal += 1
+
     for i, job in enumerate(jobs):
-        print('RENDERJOB {} STARTED'.format(job.id()))
         t0 = time.time()
-        if hasTask and taskWrapper.isCanceled():
+        if task.isCanceled():
             return pickle.dumps(results)
 
         assert isinstance(job, ImageCubeRenderJob)
@@ -159,14 +175,16 @@ def renderImageData(taskWrapper:QgsTask, dump):
         ns = lyr.width()
         nl = lyr.height()
 
+
         if job.id() == 'CUBE':
-            ext = lyr.extent()
-            w = lyr.width()
-            h = lyr.height()
+            feedback = QgsRasterBlockFeedback()
+            feedback.setPreviewOnly(True)
+            feedback.setRenderPartialOutput(True)
+
             lyr.setRenderer(renderer)
-            if True:
-                w = min(w, 500)
-                h = min(h, 500)
+            ext = job.extent()
+            h, w = samplingGrid(lyr, ext, max_size=job.mMaxBytes, ncb=nb)
+
             if isinstance(renderer, QgsSingleBandGrayRenderer):
                 setBand = renderer.setGrayBand
             elif isinstance(renderer, QgsSingleBandPseudoColorRenderer):
@@ -175,13 +193,14 @@ def renderImageData(taskWrapper:QgsTask, dump):
                 setBand = lambda *args : None
             elif isinstance(renderer, QgsMultiBandColorRenderer):
                 setBand = lambda *args : None
+
             # x, y, z, RGBA
             rgba = np.empty((h,w, nb, 4), dtype=np.uint8)
 
             for b in range(nb):
                 setBand(b + 1)
 
-                block = renderer.block(0, ext, w, h)
+                block = renderer.block(0, ext, w, h, feedback=feedback)
 
                 assert isinstance(block, QgsRasterBlock)
                 assert block.isValid()
@@ -194,119 +213,44 @@ def renderImageData(taskWrapper:QgsTask, dump):
                 rgba[:,:, b, 2] = qaBlue(colorArray).reshape((h, w)) # np.asarray([qBlue(c) for c in colorArray])
                 rgba[:,:, b, 3] = qaAlpha(colorArray).reshape((h, w))  # np.asarray([qAlpha(c) for c in colorArray])
 
+                renderCallsDone += 1
+                if True:
+                    QApplication.processEvents()
+
+                task.setProgress(100 * renderCallsDone / renderCallsTotal)
+
             rgba = np.rot90(rgba, axes=(0,1))
-            #rgba = np.flip(rgba, axis=2)
-            #rgba = np.flip(rgba, axis=1)
+
             job.setRGBA3D(rgba)
 
         elif job.id() == 'TOPPLANE':
             lyr.setRenderer(renderer)
-            ext = lyr.extent()
-            w = lyr.width()
-            h = lyr.height()
-
-            if True:
-                w = min(w, 1024)
-                h = min(h, 1024)
-
+            ext = job.extent()
+            h, w = samplingGrid(lyr, ext, max_size=job.mMaxBytes, ncb=1)
             block = renderer.block(1, ext, w, h)
             assert isinstance(block, QgsRasterBlock)
             colorArray = np.frombuffer(block.data(), dtype=QGIS2NUMPY_DATA_TYPES[block.dataType()])
 
             rgba = np.empty((h, w, 4), dtype=np.ubyte)
 
-            rgba[..., 0] = qaRed(colorArray).reshape((h,w)) #np.asarray([qRed(c) for c in colorArray])
-            rgba[..., 1] = qaGreen(colorArray).reshape((h,w)) #np.asarray([qGreen(c) for c in colorArray])
-            rgba[..., 2] = qaBlue(colorArray).reshape((h,w)) #np.asarray([qBlue(c) for c in colorArray])
-            rgba[..., 3] = qaAlpha(colorArray).reshape((h,w)) #np.asarray([qAlpha(c) for c in colorArray])
+            rgba[..., 0] = qaRed(colorArray).reshape((h,w))
+            rgba[..., 1] = qaGreen(colorArray).reshape((h,w))
+            rgba[..., 2] = qaBlue(colorArray).reshape((h,w))
+            rgba[..., 3] = qaAlpha(colorArray).reshape((h,w))
 
             rgba = np.rot90(rgba, axes=(0,1))
+
+            renderCallsDone += 1
+            task.setProgress(100 * renderCallsDone / renderCallsTotal)
+
             job.setRGBA2D(rgba)
 
+        job.mDuration = time.time() - t0
 
-
-        elif job.hasSlicing():
-            if isinstance(renderer, QgsSingleBandGrayRenderer):
-                setBand = renderer.setGrayBand
-            elif isinstance(renderer, QgsSingleBandPseudoColorRenderer):
-                setBand = renderer.setBand
-            elif isinstance(renderer, QgsSingleBandColorDataRenderer):
-                setBand = lambda *args : None
-            elif isinstance(renderer, QgsMultiBandColorRenderer):
-                setBand = lambda *args : None
-
-            lyr.setRenderer(renderer)
-
-            if job.sliceDim() == 'z':
-                w = lyr.width()
-                h = lyr.height()
-                setBand(job.sliceIndex())
-
-                block = renderer.block(job.sliceIndex(), lyr.extent(), w, h)
-                assert isinstance(block, QgsRasterBlock)
-
-                rgba = np.empty((h, w, 4), dtype=np.ubyte)
-
-                colorArray = np.frombuffer(block.data(), dtype=QGIS2NUMPY_DATA_TYPES[block.dataType()])
-
-                rgba[..., 0] = qaRed(colorArray).reshape((h, w))  # np.asarray([qRed(c) for c in colorArray])
-                rgba[..., 1] = qaGreen(colorArray).reshape((h, w))  # np.asarray([qGreen(c) for c in colorArray])
-                rgba[..., 2] = qaBlue(colorArray).reshape((h, w))  # np.asarray([qBlue(c) for c in colorArray])
-                rgba[..., 3] = qaAlpha(colorArray).reshape((h, w))  # np.asarray([qAlpha(c) for c in colorArray])
-
-                job.setRGBA2D(rgba)
-
-            else:
-                # get slice extent with 1px width/height
-                extent = lyr.extent()
-                ext = QgsRectangle()
-
-                if job.sliceDim() == 'x':
-                    w = 1
-                    npx = h = nl
-                    ext.setYMaximum(extent.yMaximum())
-                    ext.setYMinimum(extent.yMinimum())
-                    cx = extent.xMinimum() + job.sliceIndex() * lyr.rasterUnitsPerPixelX()
-                    ext.setXMinimum(cx)
-                    ext.setXMaximum(cx + lyr.rasterUnitsPerPixelX())
-
-                elif job.sliceDim() == 'y':
-                    npx = w = ns
-                    h = 1
-                    ext.setXMinimum(extent.xMinimum())
-                    ext.setXMaximum(extent.xMaximum())
-                    cy = extent.yMinimum() + job.sliceIndex() * lyr.rasterUnitsPerPixelY()
-
-                    ext.setYMaximum(cy + lyr.rasterUnitsPerPixelY())
-                    ext.setYMinimum(cy)
-
-                rgba = np.empty((npx, nb, 4), dtype=np.uint8)
-
-                for b in range(nb):
-                    setBand(b+1)
-
-                    block = renderer.block(b, ext, w, h)
-
-                    assert isinstance(block, QgsRasterBlock)
-                    assert block.isValid()
-                    assert block.dataType() != Qgis.UnknownDataType
-
-                    colorArray = np.frombuffer(block.data(), dtype=QGIS2NUMPY_DATA_TYPES[block.dataType()])
-
-                    rgba[:, b, 0] = qaRed(colorArray)
-                    rgba[:, b, 1] = qaGreen(colorArray)
-                    rgba[:, b, 2] = qaBlue(colorArray)
-                    rgba[:, b, 3] = qaAlpha(colorArray)
-
-                job.setRGBA2D(rgba)
-
-        print('RENDERJOB {} FINISHED'.format(job.id()))
         if job.rgba2D() is not None or job.rgba3D() is not None:
             results.append(job)
-            print('TIME JOB {} {}'.format(job.id(), time.time()-t0))
 
-        if hasTask:
-            taskWrapper.setProgress(i+1)
+    task.setProgress(100)
     return pickle.dumps(results)
 
 
@@ -314,7 +258,9 @@ def renderImageData(taskWrapper:QgsTask, dump):
     pass
 
 class ImageCubeRenderJob(object):
-
+    """
+    Serilizable object that describes a render job to get image-cube color values
+    """
     class JobType(enum.Enum):
         Normal=1
         SliceX=2
@@ -327,18 +273,22 @@ class ImageCubeRenderJob(object):
         self.mUri = layer.source()
         self.mDataProvider = layer.dataProvider().name()
         self.mRendererXML = rendererToXml(renderer).toString()
-        self.mExtent = layer.extent()
+        self.mExtent = layer.extent().toRectF()
         self.mMaxBytes = 1024**2
-
+        self.mLayerShape = [layer.bandCount(), layer.height(), layer.width()]
+        self.mDuration = None
         self.mRGBA2D = None
         self.mRGBA3D = None
 
+    def setMaxBytes(self, n:int):
+        assert n > 1024
+        self.mMaxBytes = n
 
     def setExtent(self, extent:QgsRectangle):
-        self.mExtent = extent
+        self.mExtent = extent.toRectF()
 
     def extent(self)->QgsRectangle:
-        return self.mExtent
+        return QgsRectangle(self.mExtent)
 
     def __eq__(self, other)->bool:
         if not isinstance(other, ImageCubeRenderJob):
@@ -403,12 +353,16 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.setWindowTitle('Image Cube')
         self.mCanvas = QgsMapCanvas()
         self.mCanvas.setVisible(False)
+        self.mVerbose = True
 
         self.mSliceRenderer = None
         self.mTopPlaneRenderer = None
 
         self.mBandScaleFactor = 1
 
+
+        self.mMaxSizeTopPlane = 10 * 2**20 # MByte
+        self.mMaxSizeCube     = 20 * 2**20 # MByte
         self.mRGBATopPlane = None
         self.mRGBACube = None
 
@@ -416,14 +370,14 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mMapLayerComboBox.layerChanged.connect(self.onLayerChanged)
 
-        self.mLastConfig = dict()
+        self.mLastJobs = dict()
         self.btnLoadData.clicked.connect(self.actionLoadData.trigger)
         self.btnSetRendererTopPlane.clicked.connect(self.actionSetRendererTopPlane.trigger)
         self.btnSetRendererSlices.clicked.connect(self.actionSetRendererSlices.trigger)
         self.btnResetGLView.clicked.connect(self.actionResetGLView.trigger)
 
         self.actionValidate.triggered.connect(self.onValidate)
-        self.actionLoadData.triggered.connect(self.onLoadData)
+        self.actionLoadData.triggered.connect(self.startDataLoading)
         self.actionSetRendererTopPlane.triggered.connect(self.onSetTopPlaneRenderer)
         self.actionSetRendererSlices.triggered.connect(self.onSetSliceRenderer)
         self.actionResetGLView.triggered.connect(self.resetGLView)
@@ -447,7 +401,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.cbShowCube.clicked.connect(lambda b: self.setGLItemVisbility('CUBE', b))
         self.cbShowAxis.clicked.connect(lambda b: self.setGLItemVisbility('AXIS', b))
         self.mJobs = dict()
-        self.mLastJobs = []
+
 
         w = self.glViewWidget()
 
@@ -588,35 +542,67 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.mTopPlaneRenderer = renderer.clone()
 
     def reloadData(self):
-        self.mLastConfig.clear()
-        self.onLoadData()
+        self.mLastJobs.clear()
+        self.startDataLoading()
 
-    def onLoadData(self):
+    def crs(self)->QgsCoordinateReferenceSystem:
+        return self.gbExtent.outputCrs()
 
+    def extent(self)->QgsRectangle:
+        return self.gbExtent.outputExtent()
+
+    def setExtent(self, extent:QgsRectangle):
+        assert isinstance(extent, QgsRectangle)
+        assert extent.isFinite()
+        self.gbExtent.setOutputExtentFromUser(extent, self.gbExtent.outputCrs())
+
+    def spatialExtent(self)->SpatialExtent:
+        return SpatialExtent(self.crs(), self.extent())
+
+    def setSpatialExtent(self, spatialExtent:SpatialExtent):
+        self.gbExtent.setOutputExtentFromUser(spatialExtent, spatialExtent.crs())
+
+
+    def print(self, msg:str, file=sys.stdout):
+        if self.mVerbose:
+            print(msg, file=file)
+
+    def startDataLoading(self):
 
         lyr = self.rasterLayer()
+        if not isinstance(lyr, QgsRasterLayer):
+            return
+        ext = self.spatialExtent().toCrs(lyr.crs())
 
         jobTop = ImageCubeRenderJob('TOPPLANE', lyr, self.topPlaneRenderer())
+        jobTop.setExtent(ext)
+        jobTop.setMaxBytes(self.mMaxSizeTopPlane)
+
+
+
         jobCube = ImageCubeRenderJob('CUBE', lyr, self.sliceRenderer())
+        jobCube.setMaxBytes(self.mMaxSizeCube)
+        jobCube.setExtent(ext)
+
         jobList = [jobCube, jobTop]
 
-        #job = [j for j in jobList if j not in self.mLastJobs]
-        # jobList = [jobTop]
         toDo = []
         for job in jobList:
-            lastJob = self.mLastConfig.get(job.id())
+            lastJob = self.mJobs.get(job.id())
             if lastJob != job:
-                self.mLastConfig[job.id()] = job
                 toDo.append(job)
 
         dump = pickle.dumps(toDo)
-        taskDescription = 'Load Top Plane'
+
         if True:
-            self.onDataLoaded(renderImageData(None, dump))
+            self._qgsTask = TaskMock()
+            self._qgsTask.progressChanged.connect(lambda p: self.progressBar.setValue(int(p)))
+            self.onDataLoaded(renderImageData(self._qgsTask, dump))
         else:
             qgsTask = QgsTask.fromFunction(taskDescription, renderImageData, dump,
                                            on_finished=self.onAddSourcesAsyncFinished)
             tid = id(qgsTask)
+            qgsTask.progressChanged.connect(int(self.progressBar.setValue))
             qgsTask.taskCompleted.connect(lambda *args, tid=tid: self.onRemoveTask(tid))
             qgsTask.taskTerminated.connect(lambda *args, tid=tid: self.onRemoveTask(tid))
             self.mTasks[tid] = qgsTask
@@ -652,11 +638,15 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         for i, job in enumerate(joblist):
 
             assert isinstance(job, ImageCubeRenderJob)
-            print('Add {}'.format(job.id()))
+            self.print('Add {}'.format(job.id()))
             if job.id() == 'CUBE':
                 self.setRGBACube(job.rgba3D())
             elif job.id() == 'TOPPLANE':
                 self.setRGBATopPlane(job.rgba2D())
+
+
+            self.mJobs[job.id()] = job
+
             continue
 
     def onValidate(self)->bool:
@@ -763,7 +753,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                         if np.all(block == 0):
                             continue
                         block = np.flip(block, axis=2)
-                        item = gl.GLVolumeItem(block, sliceDensity=1, smooth=True)
+                        item = gl.GLVolumeItem(block, sliceDensity=2, smooth=False)
                         item.scale(sx, sy, sb)
                         item.rotate(180, 0, 0, 1)
                         item.translate(ns - x * sx, -y * sy, 0)
@@ -788,8 +778,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                 item.scale(1,1,z)
 
             self.setGLItemGroupItems('CUBE', items)
-
-            #print('TIME CUBE {}  {}'.format(time.time() - t0, rgba.shape))
+            self.print('TIME CUBE {}  {}'.format(time.time() - t0, rgba.shape))
         if True:
             self.setSlice('x')
             self.setSlice('y')
@@ -828,7 +817,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             z0 = min(int((self.z() - 1) / sb), nnb - 1)
             z1 = z0 + 1
 
-        print('x: {} {}\ny: {} {}\nz:{} {}'.format(x0,x1,y0,y1,z0,z1))
+        self.print('x: {} {}\ny: {} {}\nz:{} {}'.format(x0,x1,y0,y1,z0,z1))
         items = []
         isVisible = self.glItemVisibility('SLICE_{}'.format(dim.upper()))
 
@@ -872,7 +861,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
             self.setGLItemGroupItems(key, items)
 
-        #print('SLICE {}  {}'.format(dim, time.time() - t0))
+        self.print('SLICE {}  {}'.format(dim, time.time() - t0))
 
     def zScale(self)->float:
         return self.doubleSpinBoxZScale.value()
@@ -903,17 +892,17 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
     def onLayerChanged(self, lyr):
 
-        print('LAYER CHANGED')
+        self.print('LAYER CHANGED')
         b = isinstance(lyr, QgsRasterLayer)
 
         toRemove = self.glViewWidget().items[:]
         for item in toRemove:
             #item._setView(None)
             self.glViewWidget().removeItem(item)
-
+        self.progressBar.setValue(0)
         self.mRGBACube = None
         self.mRGBATopPlane = None
-        print('LAYER CHANGED CLEANUP')
+        self.print('LAYER CHANGED CLEANUP')
         if b:
 
             nb = lyr.bandCount()
@@ -946,8 +935,10 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             self.setZ(min(z, nb))
 
             self.mCanvas.setLayers([lyr])
-            self.mCanvas.setDestinationCrs(lyr.crs())
-            self.mCanvas.setExtent(lyr.extent())
+
+            self.gbExtent.setOriginalExtent(lyr.extent(), lyr.crs())
+            self.gbExtent.setCurrentExtent(lyr.extent(), lyr.crs())
+            self.gbExtent.setOutputCrs(lyr.crs())
 
             self.setTopPlaneRenderer(lyr.renderer().clone())
 
@@ -975,9 +966,9 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
             w = self.glViewWidget()
 
-            w.addTextLabel(QVector3D(ns, 0, 0), 'x')
-            w.addTextLabel(QVector3D(0, nl, 0), 'y')
-            w.addTextLabel(QVector3D(0, 0, -nb), 'bands')
+            #w.addTextLabel(QVector3D(ns, 0, 0), 'x')
+            #w.addTextLabel(QVector3D(0, -nl, 0), 'y')
+            #w.addTextLabel(QVector3D(0, 0, -nb), 'bands')
 
             box = gl.GLBoxItem(size=QVector3D(ns, -nl, -nb))
             #box.translate(0, 0, nb)
@@ -1023,7 +1014,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             b = False
             self.mBandScaleFactor = 1
 
-        for w in [self.gbRendering, self.gbPlotting]:
+        for w in [self.gbRendering, self.gbPlotting, self.gbExtent]:
             w.setEnabled(b)
 
         self.onValidate()

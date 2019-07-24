@@ -65,6 +65,17 @@ class VTest(unittest.TestCase):
         self.assertAlmostEqual(f1, f2, 1)
         s = ""
 
+    def test_renderJob(self):
+        lyr = self.createImageCube()
+        job = ImageCubeRenderJob('JOB', lyr, lyr.renderer())
+
+        self.assertEqual(job.id(), 'JOB')
+        from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
+        xml1 = rendererToXml(lyr.renderer()).toString()
+        xml2 = rendererToXml(job.renderer()).toString()
+        self.assertEqual(xml1, xml2)
+        self.assertEqual(job.extent(), lyr.extent())
+
     def test_widget(self):
 
         W = ImageCubeWidget()
@@ -78,9 +89,7 @@ class VTest(unittest.TestCase):
 
 
         layers = [self.createImageCube()]
-        pathes = [pathEnMAP, pathHyMap]
-        if False:
-            pathes.append(pathTS)
+        pathes = [pathEnMAP, pathHyMap, pathTS]
         for p in pathes:
             if os.path.isfile(p):
                 layers.append(QgsRasterLayer(p, os.path.basename(p)))
@@ -117,7 +126,18 @@ class VTest(unittest.TestCase):
             self.assertIsInstance(W.sliceRenderer(), QgsRasterRenderer)
             self.assertIsInstance(W.topPlaneRenderer(), QgsRasterRenderer)
 
-            W.onLoadData()
+
+            ext1 = lyr.extent()
+            self.assertEqual(ext1, W.extent())
+            self.assertEqual(lyr.crs(), W.crs())
+            ext2 = QgsRectangle(ext1)
+            ext2.setXMinimum(ext2.xMinimum()-5)
+
+            W.setExtent(ext2)
+            self.assertEqual(W.extent(), ext2)
+
+
+            W.startDataLoading()
 
         if SHOW_GUI:
             QGIS_APP.exec_()

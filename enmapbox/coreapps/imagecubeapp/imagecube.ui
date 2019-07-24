@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>693</width>
-    <height>458</height>
+    <height>524</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -78,6 +78,16 @@
         </layout>
        </item>
        <item>
+        <widget class="QgsExtentGroupBox" name="gbExtent">
+         <property name="title">
+          <string>Extent</string>
+         </property>
+         <property name="flat">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QgsCollapsibleGroupBox" name="gbRendering">
          <property name="minimumSize">
           <size>
@@ -113,7 +123,7 @@
                </sizepolicy>
               </property>
               <property name="value">
-               <number>24</number>
+               <number>0</number>
               </property>
              </widget>
             </item>
@@ -363,6 +373,12 @@
    <class>QgsCollapsibleGroupBox</class>
    <extends>QGroupBox</extends>
    <header>qgscollapsiblegroupbox.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>QgsExtentGroupBox</class>
+   <extends>QgsCollapsibleGroupBox</extends>
+   <header>qgsextentgroupbox.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
