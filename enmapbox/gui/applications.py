@@ -216,7 +216,7 @@ class ApplicationRegistry(QObject):
         text = f.read()
         f.close()
 
-        return re.search(r'def\s+enmapboxApplicationFactory\(.+\)\s*:', text) is not None
+        return re.search(r'def\s+enmapboxApplicationFactory\(.+\)\s*(->[^:]+)?:', text) is not None
 
 
     def findApplicationFolders(self, rootDir):
