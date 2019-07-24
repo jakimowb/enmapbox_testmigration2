@@ -18,6 +18,7 @@ import enmapbox.externals.qps.externals.pyqtgraph.opengl as gl
 from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLViewWidget import GLViewWidget
 from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLGraphicsItem import GLGraphicsItem
 
+KEY_GL_ITEM_GROUP = 'CUBEVIEW/GL_ITEM_GROUP'
 KEY_DEFAULT_TRANSFORM = 'CUBEVIEW/DEFAULT_TRANSFORM'
 QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.byte,
                          Qgis.UInt16: np.uint16,
@@ -372,7 +373,6 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.cbShowAxis.clicked.connect(lambda b: self.setGLItemVisbility('AXIS', b))
         self.mJobs = dict()
         self.mLastJobs = []
-        self.mGLItems = dict()
 
         w = self.glViewWidget()
 
@@ -393,26 +393,26 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             cb.setChecked(b)
         s = ""
 
-    def addGLItems(self, key, items):
+    def glItemGroupItems(self, key:str)->list:
 
+        return [i for i in self.glViewWidget().items if i.property(KEY_GL_ITEM_GROUP) == key]
+
+    def setGLItemGroupItems(self, key, items):
+        """
+        Adds a group of items identified by a key
+        :param key:
+        :param items:
+        :return:
+        """
         if not isinstance(items, list):
             items = [items]
-        itemsOld = self.mGLItems.get(key, [])
-
-        wasVisible = None
+        itemsOld = self.glItemGroupItems(key)
 
         for item in itemsOld:
-            if item in self.glViewWidget().items:
-                if wasVisible is None:
-                    wasVisible = item.visible()
-                    for itemNew in items:
-                        itemNew.setVisible(wasVisible)
+            self.glViewWidget().removeItem(item)
 
-                self.glViewWidget().removeItem(item)
-                s =""
-
-        self.mGLItems[key] = items
         for item in items:
+            item.setProperty(KEY_GL_ITEM_GROUP, key)
             self.glViewWidget().addItem(item)
 
     def resetGLView(self):
@@ -509,6 +509,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.mSliceRenderer = renderer.clone()
 
     def setTopPlaneRenderer(self, renderer:QgsRasterRenderer):
+        assert isinstance(renderer, QgsRasterRenderer)
         self.mTopPlaneRenderer = renderer.clone()
 
     def onLoadData(self):
@@ -551,13 +552,10 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             self.mTasks[tid] = qgsTask
 
     def setGLItemVisbility(self, key, b:bool):
+        for item in self.glItemGroupItems(key):
+            assert isinstance(item, GLGraphicsItem)
+            item.setVisible(b)
 
-        for item in self.mGLItems.get(key, []):
-            if isinstance(item, GLGraphicsItem):
-                item.setVisible(b)
-            else:
-                raise Exception('No a GLGraphicsItem')
-        s = ""
 
     def glItemVisibility(self, key:str)->bool:
         if key == 'CUBE':
@@ -658,7 +656,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
         #item.translate(-ns / 2, -nl / 2, job.sliceIndex())
         #item.rotate(-90, 0, 0, 1)
-        self.addGLItems('TOPPLANE', item)
+        self.setGLItemGroupItems('TOPPLANE', item)
 
     def setRGBACube(self, rgba:np.ndarray):
 
@@ -710,7 +708,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                         items.append(item)
 
             if True:
-                self.addGLItems('CUBE', items)
+                self.setGLItemGroupItems('CUBE', items)
                 return
 
             # apply zScale
@@ -719,7 +717,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                 assert isinstance(item, GLGraphicsItem)
                 item.scale(1,1,z)
 
-            self.addGLItems('CUBE', items)
+            self.setGLItemGroupItems('CUBE', items)
 
             print('TIME CUBE {}  {}'.format(time.time() - t0, rgba.shape))
         if True:
@@ -734,7 +732,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         nb, nl, ns = self.layerDims()
         nnb, nnl, nns = self.cubeDims()
         key = 'SLICE_{}'.format(dim.upper())
-        items = self.mGLItems.get(key)
+        items = self.glItemGroupItems(key)
         if items:
             for item in items:
                 self.glViewWidget().removeItem(item)
@@ -751,7 +749,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         z0, z1 = 0, nnb
 
         if dim == 'x':
-            x0 = min(int((self.x()-1)/sx), nns-1)
+            x0 = min(nns - int(self.x()/sx), nns-1)
             x1 = x0+1
         elif dim == 'y':
             y0 = min(int((self.y()-1)/sy), nnl-1)
@@ -759,6 +757,8 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         elif dim == 'z':
             z0 = min(int((self.z() - 1) / sb), nnb - 1)
             z1 = z0 + 1
+
+        print('x: {} {}\ny: {} {}\nz:{} {}'.format(x0,x1,y0,y1,z0,z1))
         items = []
         isVisible = self.glItemVisibility('SLICE_{}'.format(dim.upper()))
 
@@ -766,32 +766,41 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             stepX = stepY = stepZ = 500
 
             for x in range(x0, x1, stepX):
-                x2 = min(x + stepX, nns-1)
+                x2 = min(x + stepX, x1)
                 for y in range(y0, y1, stepY):
-                    y2 = min(y + stepY, nnl-1)
+                    y2 = min(y + stepY, y1)
 
                     for z in range(z0, z1, stepZ):
-                        z2 = min(z + stepZ, nnb-1)
+                        z2 = min(z + stepZ, z1)
                         block = self.mRGBACube[x:x2, y:y2, z:z2, :]
 
                         # do not plot empty blocks
                         if np.all(block == 0):
                             continue
 
-                        item = gl.GLVolumeItem(block, sliceDensity=1, smooth=False)
+                        item = gl.GLVolumeItem(block, sliceDensity=2, smooth=False)
                         item.scale(sx, sy, sb)
                         item.setVisible(isVisible)
                         if dim == 'x':
                             item.translate(self.x()-1, 0, 0)
+                            item.rotate(180, 1, 0 , 0)
+                            item.setProperty(KEY_DEFAULT_TRANSFORM, item.transform())
+                            item.scale(1, 1, self.zScale())
                         elif dim == 'y':
-                            item.translate(0, self.y()-1, 0)
+                            item.rotate(180, 0, 1, 0)
+                            item.translate(ns, -self.y(), 0)
+                            item.setProperty(KEY_DEFAULT_TRANSFORM, item.transform())
+                            item.scale(1, 1, self.zScale())
                         elif dim == 'z':
-                            item.translate(0, 0, self.z()-1)
-                        item.setProperty(KEY_DEFAULT_TRANSFORM, item.transform())
-                        item.scale(1,1, self.zScale())
+                            item.rotate(180, 1, 0, 0)
+                            item.rotate(180, 0, 1, 0)
+                            item.setProperty(KEY_DEFAULT_TRANSFORM, item.transform())
+                            item.scale(1, 1, self.zScale())
+                            item.translate(ns, 0, -self.z()*self.zScale())
+
                         items.append(item)
 
-            self.addGLItems(key, items)
+            self.setGLItemGroupItems(key, items)
 
         print('SLICE {}  {}'.format(dim, time.time() - t0))
 
@@ -803,30 +812,34 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
     def onZScaleChanged(self):
         z = self.zScale()
-        for key, items in self.mGLItems.items():
-            for item in items:
-                assert isinstance(item, GLGraphicsItem)
-                tranformDefault = item.property(KEY_DEFAULT_TRANSFORM)
-                if isinstance(tranformDefault, QMatrix4x4):
-                    item.setTransform(tranformDefault)
-                    item.scale(1,1,z) #scale will update the item
+        nb, nl, ns = self.layerDims()
+        for item in self.glViewWidget().items:
+            assert isinstance(item, GLGraphicsItem)
 
-                    if key == 'CUBE':
-                        item.translate(0, 0, -item.data.shape[2]*z)
-                    if key == 'TOPPLANE':
-                        item.translate(0, 0, z)
+            tranformDefault = item.property(KEY_DEFAULT_TRANSFORM)
+            key = item.property(KEY_GL_ITEM_GROUP)
+            if isinstance(tranformDefault, QMatrix4x4):
+                item.setTransform(tranformDefault)
+                item.scale(1,1,z) #scale will update the item
+
+                if key == 'CUBE':
+                    item.translate(0, 0, -item.data.shape[2]*z)
+                if key == 'TOPPLANE':
+                    item.translate(0, 0, 1)
+                if key == 'SLICE_Z':
+                    #item.scale(1, 1,  -self.z() * self.zScale())
+                    item.translate(ns, 0, -self.z() * self.zScale())
+
 
     def onLayerChanged(self, lyr):
 
         print('LAYER CHANGED')
         b = isinstance(lyr, QgsRasterLayer)
-        self.mGLItems.clear()
+
         toRemove = self.glViewWidget().items[:]
         for item in toRemove:
             #item._setView(None)
             self.glViewWidget().removeItem(item)
-
-        #self.glViewWidget().update()
 
         self.mRGBACube = None
         self.mRGBATopPlane = None
@@ -894,7 +907,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             box.setProperty(KEY_DEFAULT_TRANSFORM, box.transform())
             box.scale(1,1,self.zScale())
             box.setVisible(self.glItemVisibility('BOX'))
-            self.addGLItems('BOX', box)
+            self.setGLItemGroupItems('BOX', box)
 
             ax = gl.GLAxisItem(size=QVector3D(ns, -nl, -nb))
 
@@ -903,7 +916,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             ax.setProperty(KEY_DEFAULT_TRANSFORM, ax.transform())
             ax.scale(1,1,self.zScale())
             ax.setVisible(self.glItemVisibility('AXIS'))
-            self.addGLItems('AXIS', ax)
+            self.setGLItemGroupItems('AXIS', ax)
 
             #w = self.glViewWidget()
             #w.mTextLabels.clear()

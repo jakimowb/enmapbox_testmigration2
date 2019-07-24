@@ -10,13 +10,13 @@ SHOW_GUI = True
 from .imagecube import *
 class VTest(unittest.TestCase):
 
-    def createImageCube(self, nb=150, ns=400, nl=1000, crs='EPSG.32633')->QgsRasterLayer:
+    def createImageCube(self, nb=10, ns=20, nl=30, crs='EPSG.32633')->QgsRasterLayer:
 
 
         path = '/vsimem/imagecube.tiff'
 
         array = np.fromfunction(lambda i,j,k: i+j+k, (nb, nl, ns), dtype=np.uint32)
-
+        #array = array * 10
         drv = gdal.GetDriverByName('GTiff')
         assert isinstance(drv, gdal.Driver)
         eType = gdal_array.NumericTypeCodeToGDALTypeCode(array.dtype)
