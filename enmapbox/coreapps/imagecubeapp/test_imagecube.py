@@ -85,11 +85,11 @@ class VTest(unittest.TestCase):
         from enmapboxtestdata import enmap as pathEnMAP
         from enmapboxtestdata import hires as pathHyMap
 
-        pathTS = r'R:\temp\temp_bj\Cerrado\cerrado_evi.vrt'
-
+        pathLargeImage = r'R:\temp\temp_bj\Cerrado\cerrado_evi.vrt'
+        pathLargeImage = r'Q:\Processing_BJ\01_Data\level2\X0016_Y0046\20140803_LEVEL2_LND07_BOA.tif'
 
         layers = [self.createImageCube()]
-        pathes = [pathEnMAP, pathHyMap, pathTS]
+        pathes = [pathEnMAP, pathHyMap, pathLargeImage]
         for p in pathes:
             if os.path.isfile(p):
                 layers.append(QgsRasterLayer(p, os.path.basename(p)))
@@ -137,6 +137,8 @@ class VTest(unittest.TestCase):
             self.assertEqual(W.extent(), ext2)
 
 
+        if True:
+            W.setRasterLayer(layers[1])
             W.startDataLoading()
 
         if SHOW_GUI:

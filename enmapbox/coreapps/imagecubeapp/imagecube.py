@@ -15,7 +15,7 @@ from enmapbox.gui.utils import loadUIFormClass, SpatialExtent
 from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
 import enmapbox.externals.qps.externals.pyqtgraph.opengl as gl
 from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLViewWidget import GLViewWidget
-from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLGraphicsItem import GLGraphicsItem
+from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLGraphicsItem import GLGraphicsItem, GLOptions
 
 KEY_GL_ITEM_GROUP = 'CUBEVIEW/GL_ITEM_GROUP'
 KEY_DEFAULT_TRANSFORM = 'CUBEVIEW/DEFAULT_TRANSFORM'
@@ -360,11 +360,16 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
         self.mBandScaleFactor = 1
 
+        self.mSpatialExtent = None
 
         self.mMaxSizeTopPlane = 10 * 2**20 # MByte
         self.mMaxSizeCube     = 20 * 2**20 # MByte
         self.mRGBATopPlane = None
         self.mRGBACube = None
+
+        self.mCubeSliceDensity = 2
+        self.mSliceSliceDensity = 2
+
 
         self.mMapLayerComboBox.setAllowEmptyLayer(True)
         self.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.RasterLayer)
@@ -380,7 +385,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.actionLoadData.triggered.connect(self.startDataLoading)
         self.actionSetRendererTopPlane.triggered.connect(self.onSetTopPlaneRenderer)
         self.actionSetRendererSlices.triggered.connect(self.onSetSliceRenderer)
-        self.actionResetGLView.triggered.connect(self.resetGLView)
+        self.actionResetGLView.triggered.connect(self.resetCameraPosition)
 
         self.sliderX.valueChanged.connect(lambda : self.setSlice('x'))
         self.sliderY.valueChanged.connect(lambda : self.setSlice('y'))
@@ -444,7 +449,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             item.setProperty(KEY_GL_ITEM_GROUP, key)
             self.glViewWidget().addItem(item)
 
-    def resetGLView(self):
+    def resetCameraPosition(self):
         distance = self.mDefaultCAM['distance']
         elevation = self.mDefaultCAM['elevation']
         azimuth = self.mDefaultCAM['azimuth']
@@ -541,26 +546,28 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         assert isinstance(renderer, QgsRasterRenderer)
         self.mTopPlaneRenderer = renderer.clone()
 
+
     def reloadData(self):
         self.mLastJobs.clear()
         self.startDataLoading()
 
-    def crs(self)->QgsCoordinateReferenceSystem:
-        return self.gbExtent.outputCrs()
+    def setExtent(self, extent:QgsRectangle):
+        self.setSpatialExtent(SpatialExtent(self.crs(), extent))
+
+    def setCrs(self, crs:QgsCoordinateReferenceSystem):
+        self.setSpatialExtent(self.spatialExtent().toCrs(crs))
 
     def extent(self)->QgsRectangle:
-        return self.gbExtent.outputExtent()
+        return QgsRectangle(self.spatialExtent())
 
-    def setExtent(self, extent:QgsRectangle):
-        assert isinstance(extent, QgsRectangle)
-        assert extent.isFinite()
-        self.gbExtent.setOutputExtentFromUser(extent, self.gbExtent.outputCrs())
+    def crs(self)->QgsCoordinateReferenceSystem:
+        return self.spatialExtent().crs()
 
     def spatialExtent(self)->SpatialExtent:
-        return SpatialExtent(self.crs(), self.extent())
+        return self.mSpatialExtent
 
     def setSpatialExtent(self, spatialExtent:SpatialExtent):
-        self.gbExtent.setOutputExtentFromUser(spatialExtent, spatialExtent.crs())
+        self.mSpatialExtent = spatialExtent
 
 
     def print(self, msg:str, file=sys.stdout):
@@ -591,6 +598,14 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             lastJob = self.mJobs.get(job.id())
             if lastJob != job:
                 toDo.append(job)
+
+        if len(toDo) == 0:
+            # recall plotting of already loaded color data
+            if isinstance(self.mRGBACube, np.ndarray):
+                self.setRGBACube(self.mRGBACube)
+            if isinstance(self.mRGBATopPlane, np.ndarray):
+                self.setRGBATopPlane(self.mRGBATopPlane)
+            return
 
         dump = pickle.dumps(toDo)
 
@@ -630,6 +645,12 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
     def glViewWidget(self)->ImageCubeGLWidget:
         return self.openglWidget
+
+    def smooth(self)->bool:
+        return self.cbSmooth.isChecked()
+
+    def sliceDensity(self)->int:
+        return self.sbSliceDensity.value()
 
     def onDataLoaded(self, dump):
 
@@ -736,24 +757,34 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         # scaling factors (in case we sampled less/more pixels than in the layer)
         sx, sy, sb = ns / nns, nl / nnl, nb / nnb
 
+
         #x = x2*sx
         if True:
             items = []
             isVisible = self.glItemVisibility('CUBE')
             stepX = stepY = 100
             stepZ = nnb
-            for x in range(0, nns, stepX):
+
+            x = 0
+            while x < nns:
                 x2 = min(x + stepX, nns)
-                for y in range(0, nnl, stepY):
+                y = 0
+                while y < nnl:
                     y2 = min(y + stepY, nnl)
-                    for z in range(0, nnb, stepZ):
+                    z = 0
+                    while z < nnb:
                         z2 = min(z + stepZ, nnb)
                         block = rgba[x:x2, y:y2, z:z2, :]
+                        self.print('x:[{} {}], y:[{} {}], z:[{} {}]'.format(x,x2,y,y2,z,z2))
                         # do not plot empty blocks
                         if np.all(block == 0):
                             continue
                         block = np.flip(block, axis=2)
-                        item = gl.GLVolumeItem(block, sliceDensity=2, smooth=False)
+                        from OpenGL.GL import GL_ALPHA_TEST
+
+                        glOptions = GLOptions['translucent']
+                        glOptions[GL_ALPHA_TEST] = True
+                        item = gl.GLVolumeItem(block, sliceDensity=self.sliceDensity(), smooth=self.smooth(), glOptions=glOptions)
                         item.scale(sx, sy, sb)
                         item.rotate(180, 0, 0, 1)
                         item.translate(ns - x * sx, -y * sy, 0)
@@ -766,6 +797,10 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                         item.translate(0, 0, -z2 * sb * self.zScale())
 
                         items.append(item)
+                        z = z2
+                    y = y2
+                x = x2
+
 
             if True:
                 self.setGLItemGroupItems('CUBE', items)
@@ -779,6 +814,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
             self.setGLItemGroupItems('CUBE', items)
             self.print('TIME CUBE {}  {}'.format(time.time() - t0, rgba.shape))
+
         if True:
             self.setSlice('x')
             self.setSlice('y')
@@ -837,7 +873,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                         if np.all(block == 0):
                             continue
 
-                        item = gl.GLVolumeItem(block, sliceDensity=2, smooth=False)
+                        item = gl.GLVolumeItem(block, sliceDensity=self.sliceDensity(), smooth=self.smooth())
                         item.scale(sx, sy, sb)
                         item.setVisible(isVisible)
                         if dim == 'x':
@@ -861,7 +897,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
             self.setGLItemGroupItems(key, items)
 
-        self.print('SLICE {}  {}'.format(dim, time.time() - t0))
+        self.print('{} ADDED {}'.format(key, time.time() - t0))
 
     def zScale(self)->float:
         return self.doubleSpinBoxZScale.value()
@@ -939,12 +975,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
             self.mCanvas.setLayers([lyr])
 
-            self.gbExtent.setOriginalExtent(lyr.extent(), lyr.crs())
-            self.gbExtent.setCurrentExtent(lyr.extent(), lyr.crs())
-            self.gbExtent.setOutputCrs(lyr.crs())
-            self.gbExtent.setOutputExtentFromLayer(lyr)
-
-
+            self.setSpatialExtent(SpatialExtent.fromLayer(lyr))
             self.setTopPlaneRenderer(lyr.renderer().clone())
 
             # set slice renderer, optimize for band
@@ -997,7 +1028,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             #w.addTextLabel(QVector3D(0, nl+1, nb), 'Lines')
             #w.addTextLabel(QVector3D(ns+1, 0, nb), 'Columns')
 
-            self.resetGLView()
+            self.resetCameraPosition()
 
             #for i in w.items:
             #    w.removeItem(i)
@@ -1019,7 +1050,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             b = False
             self.mBandScaleFactor = 1
 
-        for w in [self.gbRendering, self.gbPlotting, self.gbExtent]:
+        for w in [self.gbRendering, self.gbPlotting, self.gbOpenGLOptions]:
             w.setEnabled(b)
 
         self.onValidate()

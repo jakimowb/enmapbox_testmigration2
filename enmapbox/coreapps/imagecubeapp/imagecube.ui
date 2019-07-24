@@ -78,16 +78,6 @@
         </layout>
        </item>
        <item>
-        <widget class="QgsExtentGroupBox" name="gbExtent">
-         <property name="title">
-          <string>Extent</string>
-         </property>
-         <property name="flat">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QgsCollapsibleGroupBox" name="gbRendering">
          <property name="minimumSize">
           <size>
@@ -99,14 +89,21 @@
           <string>Color Rendering</string>
          </property>
          <layout class="QGridLayout" name="gridLayout">
-          <item row="1" column="1">
+          <item row="2" column="2">
            <widget class="QPushButton" name="btnSetRendererSlices">
             <property name="text">
              <string>Slice / Cube Style</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="0" colspan="2">
+          <item row="2" column="0">
+           <widget class="QPushButton" name="btnSetRendererTopPlane">
+            <property name="text">
+             <string>Top Plane Style</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0" colspan="3">
            <layout class="QHBoxLayout" name="horizontalLayout_2">
             <property name="topMargin">
              <number>0</number>
@@ -136,10 +133,70 @@
             </item>
            </layout>
           </item>
-          <item row="1" column="0">
-           <widget class="QPushButton" name="btnSetRendererTopPlane">
+          <item row="1" column="0" colspan="3">
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>Extent</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEditExtent">
+              <property name="readOnly">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="toolButton">
+              <property name="text">
+               <string>...</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QgsCollapsibleGroupBox" name="gbOpenGLOptions">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>50</height>
+          </size>
+         </property>
+         <property name="title">
+          <string>OpenGL</string>
+         </property>
+         <layout class="QFormLayout" name="formLayout_2">
+          <item row="2" column="0">
+           <widget class="QSpinBox" name="sbSliceDensity">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>50</number>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="label_4">
             <property name="text">
-             <string>Top Plane Style</string>
+             <string>Slice density</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0" colspan="2">
+           <widget class="QCheckBox" name="cbSmooth">
+            <property name="text">
+             <string>Smooth</string>
             </property>
            </widget>
           </item>
@@ -373,12 +430,6 @@
    <class>QgsCollapsibleGroupBox</class>
    <extends>QGroupBox</extends>
    <header>qgscollapsiblegroupbox.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>QgsExtentGroupBox</class>
-   <extends>QgsCollapsibleGroupBox</extends>
-   <header>qgsextentgroupbox.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
