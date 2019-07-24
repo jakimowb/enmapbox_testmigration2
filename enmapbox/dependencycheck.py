@@ -182,7 +182,7 @@ def installTestData(overwrite_existing=False, ask=True):
 
     pathLocalZip = os.path.join(os.path.dirname(DIR_TESTDATA), 'enmapboxtestdata.zip')
     url = QUrl(URL_TESTDATA)
-    dialog = QgsFileDownloaderDialog(url, pathLocalZip, 'Download {}'.format(os.path.basename(URL_TESTDATA)))
+    dialog = QgsFileDownloaderDialog(url, pathLocalZip, 'Download enmapboxtestdata.zip')
     from enmapbox.gui.utils import qgisAppQgisInterface
     qgisMainApp = qgisAppQgisInterface()
 
