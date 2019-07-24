@@ -214,7 +214,7 @@ def renderImageData(task:QgsTask, dump):
                 rgba[:,:, b, 3] = qaAlpha(colorArray).reshape((h, w))  # np.asarray([qAlpha(c) for c in colorArray])
 
                 renderCallsDone += 1
-                if True:
+                if isinstance(task, TaskMock):
                     QApplication.processEvents()
 
                 task.setProgress(100 * renderCallsDone / renderCallsTotal)
@@ -925,6 +925,9 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             self.sliderX.setRange(1, ns)
             self.sliderY.setRange(1, nl)
             self.sliderZ.setRange(1, nb)
+            self.sliderX.setPageStep(int(ns / 100) * 10)
+            self.sliderY.setPageStep(int(nl / 100) * 10)
+            self.sliderZ.setPageStep(int(nb / 100) * 10)
 
             self.spinBoxX.setRange(1, ns)
             self.spinBoxY.setRange(1, nl)
@@ -939,6 +942,8 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             self.gbExtent.setOriginalExtent(lyr.extent(), lyr.crs())
             self.gbExtent.setCurrentExtent(lyr.extent(), lyr.crs())
             self.gbExtent.setOutputCrs(lyr.crs())
+            self.gbExtent.setOutputExtentFromLayer(lyr)
+
 
             self.setTopPlaneRenderer(lyr.renderer().clone())
 
