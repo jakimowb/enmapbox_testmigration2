@@ -57,16 +57,21 @@ class ImageCubeGLWidget(GLViewWidget):
         assert isinstance(text, str)
         self.mTextLabels.append((pos, text, color))
 
+    def clearTextLabels(self):
+        self.mTextLabels.clear()
+
     def paintGL(self, *args, **kwds):
-        GLViewWidget.paintGL(self, *args, **kwds)
 
         #from OpenGL.GL import glEnable, glDisable, GL_DEPTH_TEST
         #glEnable(GL_DEPTH_TEST)
+
+        GLViewWidget.paintGL(self, *args, **kwds)
+
+        #glDisable(GL_DEPTH_TEST)
         for (pos, text, color) in self.mTextLabels:
             self.qglColor(color)
             assert isinstance(pos, QVector3D)
             self.renderText(pos.x(), pos.y(), pos.z(), text)
-        #glDisable(GL_DEPTH_TEST)
 
         dist = self.opts['distance']
         elev = self.opts['elevation']
@@ -78,6 +83,54 @@ class ImageCubeGLWidget(GLViewWidget):
         info = 'Center: {} {} {}'.format(c.x(), c.y(), c.z())
         self.renderText(0, 20, info)
 
+
+MAX_SIZE = 1024**2
+def samplingGrid(layer:QgsRasterLayer, extent:QgsRectangle, ncb: int = 1, max_size:int=MAX_SIZE):
+    """
+    :param extent: QgsRectangles extent to show from image
+    :param nl: original image number of lines
+    :param ns: original image number of samples
+    :param ncb: number of color bands to return. Will be multiplied by 4 for RGBA
+                1 = standard RGB image, 144 = for 144 input bands (cube)
+    :param max_size: max. size in bytes
+    :return: nnl, nns = lines an sample to sample the extent
+    """
+    assert ncb >= 1
+
+    ns, nl = layer.width(), layer.height()
+    lW, lH = layer.extent().width(), layer.extent().height()
+    eW, eH = extent.width(), extent.height()
+
+    """
+    nnl / eH = nl / lH
+    nns / eW = ns / lW
+    """
+    nnl = int(nl * eH / lH)
+    nns = int(ns * eW / lW)
+
+    TOTAL_SIZE = nnl * nns * ncb * 4
+    if TOTAL_SIZE < max_size:
+        return nnl, nns
+    else:
+        """
+        Eq. 1.  nnl * nns * ncb * 4 = MAX_SIZE
+                nnl = MAX_SIZE / (nns * ncb * 4)
+        Eq. 2.  eW / eH = nns / nnl
+                nns = eW / eH * nnl
+        
+        Eq. 2 in 1
+                nnl = MAX_SIZE * eH  
+                      eW * nnl * ncb * 4
+                
+                nnl^2 = MAX_SIZE * eH / (eW * ncb * 4)
+                
+                nnl = sqrt(MAX_SIZE * eH / (eW * ncb * 4))
+        """
+
+        nnl = np.sqrt(max_size * eH / (eW * ncb * 4))
+        nns = eW / eH * nnl
+        nnl, nns = int(nnl), int(nns)
+        return nnl, nns
 
 
 def renderImageData(taskWrapper:QgsTask, dump):
@@ -273,12 +326,18 @@ class ImageCubeRenderJob(object):
         self.mUri = layer.source()
         self.mDataProvider = layer.dataProvider().name()
         self.mRendererXML = rendererToXml(renderer).toString()
+        self.mExtent = layer.extent()
+        self.mMaxBytes = 1024**2
+
         self.mRGBA2D = None
         self.mRGBA3D = None
 
-        self.mOffset = QVector3D(0,0,0)
-        self.mScale = (1, 1, 1)
 
+    def setExtent(self, extent:QgsRectangle):
+        self.mExtent = extent
+
+    def extent(self)->QgsRectangle:
+        return self.mExtent
 
     def __eq__(self, other)->bool:
         if not isinstance(other, ImageCubeRenderJob):
@@ -286,7 +345,10 @@ class ImageCubeRenderJob(object):
         else:
             return self.mID == other.mID and \
                    self.mUri == other.mUri and \
-                   self.mRendererXML == other.mRendererXML
+                   self.mRendererXML == other.mRendererXML and \
+                   self.mExtent == other.mExtent
+
+
     def __hash__(self):
         return hash((self.mID, self.mUri, self.mRendererXML))
 
@@ -316,6 +378,19 @@ class ImageCubeRenderJob(object):
     def rgba3D(self)->np.ndarray:
         return self.mRGBA3D
 
+class GLItem(enum.Enum):
+
+    Text = 'TEXT'
+    SliceX = 'SLICE_X'
+    SliceY = 'SLICE_Y'
+    SliceZ = 'SLICE_Z'
+    Cube = 'CUBE'
+    Box = 'BOX'
+    Axes ='AXES'
+    TopPlane = 'TOPPLANE'
+
+
+
 pathUi = os.path.join(os.path.dirname(__file__), 'imagecube.ui')
 class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
@@ -324,7 +399,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         super(ImageCubeWidget, self).__init__(*args, **kwds)
 
         self.setupUi(self)
-
+        self.setWindowTitle('Image Cube')
         self.mCanvas = QgsMapCanvas()
         self.mCanvas.setVisible(False)
 
@@ -340,7 +415,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mMapLayerComboBox.layerChanged.connect(self.onLayerChanged)
 
-        self.mLastConfig = None
+        self.mLastConfig = dict()
         self.btnLoadData.clicked.connect(self.actionLoadData.trigger)
         self.btnSetRendererTopPlane.clicked.connect(self.actionSetRendererTopPlane.trigger)
         self.btnSetRendererSlices.clicked.connect(self.actionSetRendererSlices.trigger)
@@ -511,34 +586,29 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
     def setTopPlaneRenderer(self, renderer:QgsRasterRenderer):
         self.mTopPlaneRenderer = renderer.clone()
 
+    def reloadData(self):
+        self.mLastConfig.clear()
+        self.onLoadData()
+
     def onLoadData(self):
 
-        config = self.config()
-        self.mLastConfig = config
 
         lyr = self.rasterLayer()
 
         jobTop = ImageCubeRenderJob('TOPPLANE', lyr, self.topPlaneRenderer())
         jobCube = ImageCubeRenderJob('CUBE', lyr, self.sliceRenderer())
-
-        #jobX = RenderJob('SLICE_X', lyr, self.sliceRenderer())
-        #jobX.setSlicing('x', self.x())
-
-        #jobY = RenderJob('SLICE_Y', lyr, self.sliceRenderer())
-        #jobY.setSlicing('y', self.y())
-
-        #jobZ = RenderJob('SLICE_Z', lyr, self.sliceRenderer())
-        #jobZ.setSlicing('z', self.z())
-
-
-
-        #jobList = [jobTop, jobX, jobY, jobZ]
         jobList = [jobCube, jobTop]
 
         #job = [j for j in jobList if j not in self.mLastJobs]
         # jobList = [jobTop]
+        toDo = []
+        for job in jobList:
+            lastJob = self.mLastConfig.get(job.id())
+            if lastJob != job:
+                self.mLastConfig[job.id()] = job
+                toDo.append(job)
 
-        dump = pickle.dumps(jobList)
+        dump = pickle.dumps(toDo)
         taskDescription = 'Load Top Plane'
         if True:
             self.onDataLoaded(renderImageData(None, dump))
@@ -721,7 +791,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
             self.addGLItems('CUBE', items)
 
-            print('TIME CUBE {}  {}'.format(time.time() - t0, rgba.shape))
+            #print('TIME CUBE {}  {}'.format(time.time() - t0, rgba.shape))
         if True:
             self.setSlice('x')
             self.setSlice('y')
@@ -793,7 +863,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
             self.addGLItems(key, items)
 
-        print('SLICE {}  {}'.format(dim, time.time() - t0))
+        #print('SLICE {}  {}'.format(dim, time.time() - t0))
 
     def zScale(self)->float:
         return self.doubleSpinBoxZScale.value()
@@ -847,6 +917,9 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             x = self.x()
             y = self.y()
             z = self.z()
+
+
+
             self.sliderX.setRange(1, ns)
             self.sliderY.setRange(1, nl)
             self.sliderZ.setRange(1, nb)
@@ -888,6 +961,10 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
 
             w = self.glViewWidget()
+
+            w.addTextLabel(QVector3D(ns, 0, 0), 'x')
+            w.addTextLabel(QVector3D(0, nl, 0), 'y')
+            w.addTextLabel(QVector3D(0, 0, -nb), 'bands')
 
             box = gl.GLBoxItem(size=QVector3D(ns, -nl, -nb))
             #box.translate(0, 0, nb)

@@ -42,6 +42,29 @@ class VTest(unittest.TestCase):
         return lyr
 
 
+    def test_samplingGrid(self):
+
+        from enmapboxtestdata import enmap as pathEnMAP
+        lyr = QgsRasterLayer(pathEnMAP)
+
+        ext1 = lyr.extent()
+        ns, nl = lyr.width(), lyr.height()
+        cache = 1024**4
+        nnl, nns = samplingGrid(lyr, ext1, ncb=3, max_size=cache)
+        self.assertIsInstance(nnl, int)
+        self.assertIsInstance(nns, int)
+        self.assertTrue(nnl >= 0 and nns >= 0)
+        self.assertTrue(nnl == nl and nns == ns)
+
+        #reduce cache
+        nnl, nns = samplingGrid(lyr, ext1, ncb=3, max_size=1024*2)
+        self.assertTrue(nnl < nl and nns < ns)
+
+        f1 = ext1.width() / ext1.height()
+        f2 = nns / nnl
+        self.assertAlmostEqual(f1, f2, 1)
+        s = ""
+
     def test_widget(self):
 
         W = ImageCubeWidget()
