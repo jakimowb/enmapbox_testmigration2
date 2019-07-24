@@ -733,7 +733,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         item.setProperty(KEY_DEFAULT_TRANSFORM, item.transform())
 
         # scale Z Dimension
-        item.translate(0,0,1*self.zScale())
+        item.translate(0,0,1)
 
         #item.translate(-ns / 2, -nl / 2, job.sliceIndex())
         #item.rotate(-90, 0, 0, 1)
@@ -772,10 +772,11 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                 while y < nnl:
                     y2 = min(y + stepY, nnl)
                     z = 0
+
                     while z < nnb:
                         z2 = min(z + stepZ, nnb)
                         block = rgba[x:x2, y:y2, z:z2, :]
-                        self.print('x:[{} {}], y:[{} {}], z:[{} {}]'.format(x,x2,y,y2,z,z2))
+                        self.print('x:[{} {}], y:[{} {}], z:[{} {}]'.format(x,x2-1,y,y2-1,z,z2-1))
                         # do not plot empty blocks
                         if np.all(block == 0):
                             continue
@@ -796,7 +797,11 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                         item.scale(1,1, self.zScale())
                         item.translate(0, 0, -z2 * sb * self.zScale())
 
-                        items.append(item)
+                        if False and y != 0:
+                            # use this switch to exclude single blocks
+                            pass
+                        else:
+                            items.append(item)
                         z = z2
                     y = y2
                 x = x2
