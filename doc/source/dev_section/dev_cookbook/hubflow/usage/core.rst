@@ -91,14 +91,19 @@ Prints:
 Fit Random Forest classifier, apply to a raster and assess the performance
 --------------------------------------------------------------------------
 
-.. literalinclude:: ../examples/classification/classification_fit_predict_accass.py
+.. literalinclude:: classification/classification_fit_predict_accass.py
    :start-after: START
    :end-before: END
 
-.. raw:: html
-   :file: ../examples/classification/classification_fit_predict_accass.html
+.. figure:: classification/classification_fit_predict_accass1.png
 
-.. figure:: ../examples/classification/classification_fit_predict_accass.png
+    Random Forest Feature Importances
+
+
+.. raw:: html
+   :file: classification/classification_fit_predict_accass.html
+
+.. figure:: classification/classification_fit_predict_accass2.png
 
     Random Forest Classification
 
