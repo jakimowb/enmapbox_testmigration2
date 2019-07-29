@@ -14,6 +14,7 @@ import numpy as np
 from enmapbox.gui.utils import loadUIFormClass, SpatialExtent
 from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
 import enmapbox.externals.qps.externals.pyqtgraph.opengl as gl
+from OpenGL.GL import *
 from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLViewWidget import GLViewWidget
 from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLGraphicsItem import GLGraphicsItem, GLOptions
 
@@ -37,6 +38,7 @@ class TaskMock(QgsTask):
         super(TaskMock, self).__init__()
 
 
+
 def qaRed(array:np.ndarray)->np.ndarray:
     return (array >> 16) & 0xff
 
@@ -50,12 +52,27 @@ def qaAlpha(array:np.ndarray)->np.ndarray:
     return array >> 24
 
 
+class GLItem(enum.Enum):
+
+    Text = 'TEXT'
+    SliceX = 'SLICE_X'
+    SliceY = 'SLICE_Y'
+    SliceZ = 'SLICE_Z'
+    Cube = 'CUBE'
+    Box = 'IMAGE_BOX_FULL'
+    BoxSubset = 'IMAGE_BOX_SUBSET'
+    Axes ='AXES'
+    TopPlane = 'TOPPLANE'
+
+
 class ImageCubeGLWidget(GLViewWidget):
 
     def __init__(self, *args, **kwds):
         super(ImageCubeGLWidget, self).__init__(*args, *kwds)
 
         self.mTextLabels = []
+
+        self.mShowCameraInfo = True
 
     def addTextLabel(self, pos:QVector3D, text:str, color=QColor('white')):
         assert isinstance(text, str)
@@ -81,11 +98,12 @@ class ImageCubeGLWidget(GLViewWidget):
         elev = self.opts['elevation']
         azim = self.opts['azimuth']
 
-        info = 'dist: {} elev: {} azim: {}'.format(dist, elev, azim)
-        self.renderText(0,10, info)
-        c = self.opts['center']
-        info = 'Center: {} {} {}'.format(c.x(), c.y(), c.z())
-        self.renderText(0, 20, info)
+        if self.mShowCameraInfo:
+            info = 'dist: {} elev: {} azim: {}'.format(dist, elev, azim)
+            self.renderText(2,10, info)
+            c = self.opts['center']
+            info = 'center: {} {} {}'.format(c.x(), c.y(), c.z())
+            self.renderText(2, 20, info)
 
 
 MAX_SIZE = 1024**2
@@ -154,9 +172,9 @@ def renderImageData(task:QgsTask, dump):
     renderCallsDone = 0
     for job in jobs:
         assert isinstance(job, ImageCubeRenderJob)
-        if job.id() == 'CUBE':
+        if job.id() == GLItem.Cube:
             renderCallsTotal += job.mLayerShape[0]
-        elif job.id() == 'TOPPLANE':
+        elif job.id() == GLItem.TopPlane:
             renderCallsTotal += 1
 
     for i, job in enumerate(jobs):
@@ -176,7 +194,7 @@ def renderImageData(task:QgsTask, dump):
         nl = lyr.height()
 
 
-        if job.id() == 'CUBE':
+        if job.id() == GLItem.Cube:
             feedback = QgsRasterBlockFeedback()
             feedback.setPreviewOnly(True)
             feedback.setRenderPartialOutput(True)
@@ -223,7 +241,7 @@ def renderImageData(task:QgsTask, dump):
 
             job.setRGBA3D(rgba)
 
-        elif job.id() == 'TOPPLANE':
+        elif job.id() == GLItem.TopPlane:
             lyr.setRenderer(renderer)
             ext = job.extent()
             h, w = samplingGrid(lyr, ext, max_size=job.mMaxBytes, ncb=1)
@@ -257,6 +275,53 @@ def renderImageData(task:QgsTask, dump):
 
     pass
 
+
+class ImageCubeAxisItem(gl.GLAxisItem):
+    """
+    **Bases:** :class:`GLGraphicsItem <pyqtgraph.opengl.GLGraphicsItem>`
+
+    Displays three lines indicating origin and orientation of local coordinate system.
+
+    """
+
+    def __init__(self, *args, **kwds):
+
+        super(ImageCubeAxisItem, self).__init__(*args, **kwds)
+        self.mLineWidth = 2.0
+
+        self.mColorZ = QColor('green')
+        self.mColorY = QColor('yellow')
+        self.mColorX = QColor('blue')
+
+    def setLineWidth(self, w:float):
+        assert w >= 0
+        self.mLineWidth = w
+
+
+    def paint(self):
+        glLineWidth(self.mLineWidth)
+        self.setupGLState()
+
+        if self.antialias:
+            glEnable(GL_LINE_SMOOTH)
+            glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
+
+        glBegin(GL_LINES)
+
+        x, y, z = self.size()
+        glColor4f(*self.mColorZ.getRgb())  # z is green
+        glVertex3f(0, 0, 0)
+        glVertex3f(0, 0, z)
+
+        glColor4f(*self.mColorY.getRgb())  # y is yellow
+        glVertex3f(0, 0, 0)
+        glVertex3f(0, y, 0)
+
+        glColor4f(*self.mColorX.getRgb())  # x is blue
+        glVertex3f(0, 0, 0)
+        glVertex3f(x, 0, 0)
+        glEnd()
+
 class ImageCubeRenderJob(object):
     """
     Serilizable object that describes a render job to get image-cube color values
@@ -267,8 +332,8 @@ class ImageCubeRenderJob(object):
         SliceY=3
         SliceZ=4
 
-    def __init__(self, id:str, layer:QgsRasterLayer, renderer:QgsRasterRenderer):
-
+    def __init__(self, id:GLItem, layer:QgsRasterLayer, renderer:QgsRasterRenderer):
+        assert isinstance(id, GLItem)
         self.mID = id
         self.mUri = layer.source()
         self.mDataProvider = layer.dataProvider().name()
@@ -303,10 +368,11 @@ class ImageCubeRenderJob(object):
     def __hash__(self):
         return hash((self.mID, self.mUri, self.mRendererXML))
 
-    def id(self)->str:
+    def id(self)->GLItem:
         return self.mID
+
     def rasterLayer(self)->QgsRasterLayer:
-        return QgsRasterLayer(self.mUri, self.mID, self.mDataProvider)
+        return QgsRasterLayer(self.mUri, str(self.id().value), self.mDataProvider)
 
     def renderer(self)->QgsRasterRenderer:
         return rendererFromXml(self.mRendererXML)
@@ -328,17 +394,6 @@ class ImageCubeRenderJob(object):
 
     def rgba3D(self)->np.ndarray:
         return self.mRGBA3D
-
-class GLItem(enum.Enum):
-
-    Text = 'TEXT'
-    SliceX = 'SLICE_X'
-    SliceY = 'SLICE_Y'
-    SliceZ = 'SLICE_Z'
-    Cube = 'CUBE'
-    Box = 'BOX'
-    Axes ='AXES'
-    TopPlane = 'TOPPLANE'
 
 
 
@@ -364,8 +419,11 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
         self.mMaxSizeTopPlane = 10 * 2**20 # MByte
         self.mMaxSizeCube     = 20 * 2**20 # MByte
+
         self.mRGBATopPlane = None
         self.mRGBACube = None
+        self.mRGBATopPlaneExtent = None
+        self.mRGBACubeExtent = None
 
         self.mCubeSliceDensity = 2
         self.mSliceSliceDensity = 2
@@ -380,16 +438,17 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.btnSetRendererTopPlane.clicked.connect(self.actionSetRendererTopPlane.trigger)
         self.btnSetRendererSlices.clicked.connect(self.actionSetRendererSlices.trigger)
         self.btnResetGLView.clicked.connect(self.actionResetGLView.trigger)
+        self.btnSetExtent.setDefaultAction(self.actionSetExtent)
 
         self.actionValidate.triggered.connect(self.onValidate)
         self.actionLoadData.triggered.connect(self.startDataLoading)
         self.actionSetRendererTopPlane.triggered.connect(self.onSetTopPlaneRenderer)
         self.actionSetRendererSlices.triggered.connect(self.onSetSliceRenderer)
         self.actionResetGLView.triggered.connect(self.resetCameraPosition)
-
-        self.sliderX.valueChanged.connect(lambda : self.setSlice('x'))
-        self.sliderY.valueChanged.connect(lambda : self.setSlice('y'))
-        self.sliderZ.valueChanged.connect(lambda : self.setSlice('z'))
+        self.actionSetExtent.triggered.connect(self.onSetExtent)
+        self.sliderX.valueChanged.connect(lambda : self.setSlice(GLItem.SliceX))
+        self.sliderY.valueChanged.connect(lambda : self.setSlice(GLItem.SliceY))
+        self.sliderZ.valueChanged.connect(lambda : self.setSlice(GLItem.SliceZ))
 
 
         self.doubleSpinBoxZScale.setMinimum(0.2)
@@ -398,13 +457,31 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.doubleSpinBoxZScale.setValue(1)
         self.doubleSpinBoxZScale.valueChanged.connect(self.onZScaleChanged)
 
-        self.cbShowTopPlane.clicked.connect(lambda b: self.setGLItemVisbility('TOPPLANE', b))
-        self.cbShowSliceX.clicked.connect(lambda b: self.setGLItemVisbility('SLICE_X', b))
-        self.cbShowSliceY.clicked.connect(lambda b: self.setGLItemVisbility('SLICE_Y', b))
-        self.cbShowSliceZ.clicked.connect(lambda b: self.setGLItemVisbility('SLICE_Z', b))
-        self.cbShowBox.clicked.connect(lambda b: self.setGLItemVisbility('BOX', b))
-        self.cbShowCube.clicked.connect(lambda b: self.setGLItemVisbility('CUBE', b))
-        self.cbShowAxis.clicked.connect(lambda b: self.setGLItemVisbility('AXIS', b))
+        # register GLITem visibility checkboxes
+
+        self.cbShowTopPlane.setProperty(KEY_GL_ITEM_GROUP, GLItem.TopPlane)
+        self.cbShowCube.setProperty(KEY_GL_ITEM_GROUP, GLItem.Cube)
+        self.cbShowSliceX.setProperty(KEY_GL_ITEM_GROUP, GLItem.SliceX)
+        self.cbShowSliceY.setProperty(KEY_GL_ITEM_GROUP, GLItem.SliceY)
+        self.cbShowSliceZ.setProperty(KEY_GL_ITEM_GROUP, GLItem.SliceZ)
+        self.cbShowBoxImage.setProperty(KEY_GL_ITEM_GROUP, GLItem.Box)
+        self.cbShowBoxSubset.setProperty(KEY_GL_ITEM_GROUP, GLItem.BoxSubset)
+        self.cbShowAxis.setProperty(KEY_GL_ITEM_GROUP, GLItem.Axes)
+
+        for cb in [self.cbShowTopPlane, self.cbShowCube,
+                   self.cbShowSliceX, self.cbShowSliceY, self.cbShowSliceZ,
+                   self.cbShowBoxImage, self.cbShowBoxSubset,
+                   self.cbShowAxis
+                   ]:
+            assert isinstance(cb, QCheckBox)
+            glItem = cb.property(KEY_GL_ITEM_GROUP)
+            cb.clicked.connect(lambda b, glItem=glItem: self.setGLItemVisbility(glItem, b))
+
+
+        self.cbSmooth.clicked.connect(self.onGLParametersChanged)
+        self.sbSliceDensity.valueChanged.connect(self.onGLParametersChanged)
+
+
         self.mJobs = dict()
 
 
@@ -427,17 +504,18 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             cb.setChecked(b)
         s = ""
 
-    def glItemGroupItems(self, key:str)->list:
-
+    def glItemGroupItems(self, key:GLItem)->list:
+        assert isinstance(key, GLItem)
         return [i for i in self.glViewWidget().items if i.property(KEY_GL_ITEM_GROUP) == key]
 
-    def setGLItemGroupItems(self, key, items):
+    def setGLItemGroupItems(self, key:GLItem, items):
         """
         Adds a group of items identified by a key
         :param key:
         :param items:
         :return:
         """
+        assert isinstance(key, GLItem)
         if not isinstance(items, list):
             items = [items]
         itemsOld = self.glItemGroupItems(key)
@@ -477,6 +555,18 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         else:
             return (None, None, None)
 
+    def layerSubsetDims(self)->tuple:
+        """
+        Returns the dimensions of the layer subset in pixel / band coordinates
+        :return: (ns0, ns1, nl0, nl1)
+        """
+
+        lyr = self.rasterLayer()
+        if isinstance(lyr, QgsRasterLayer):
+            ext = self.spatialExtent().toCrs(lyr.crs())
+            s = ""
+
+        return
     def cubeDims(self)->tuple:
         """
         Returns the cube dimensions in (nb, nl, ns) order
@@ -508,6 +598,10 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
     def topPlaneRenderer(self)->QgsRasterRenderer:
         return self.mTopPlaneRenderer
+
+    def onSetExtent(self):
+
+        pass
 
     def onSetSliceRenderer(self):
 
@@ -568,6 +662,14 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
     def setSpatialExtent(self, spatialExtent:SpatialExtent):
         self.mSpatialExtent = spatialExtent
+        assert isinstance(self.tbExtent, QLineEdit)
+        info = '{},{} : {},{} {}'.format(
+            spatialExtent.xMinimum(), spatialExtent.yMaximum(),
+            spatialExtent.xMaximum(), spatialExtent.yMaximum(),
+            spatialExtent.crs().description())
+
+        self.tbExtent.setText(info)
+        self.tbExtent.setToolTip(info)
 
 
     def print(self, msg:str, file=sys.stdout):
@@ -581,13 +683,13 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             return
         ext = self.spatialExtent().toCrs(lyr.crs())
 
-        jobTop = ImageCubeRenderJob('TOPPLANE', lyr, self.topPlaneRenderer())
+        jobTop = ImageCubeRenderJob(GLItem.TopPlane, lyr, self.topPlaneRenderer())
         jobTop.setExtent(ext)
         jobTop.setMaxBytes(self.mMaxSizeTopPlane)
 
 
 
-        jobCube = ImageCubeRenderJob('CUBE', lyr, self.sliceRenderer())
+        jobCube = ImageCubeRenderJob(GLItem.Cube, lyr, self.sliceRenderer())
         jobCube.setMaxBytes(self.mMaxSizeCube)
         jobCube.setExtent(ext)
 
@@ -628,19 +730,13 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             item.setVisible(b)
 
 
-    def glItemVisibility(self, key:str)->bool:
-        if key == 'CUBE':
-            return self.cbShowCube.isChecked()
-        elif key == 'SLICE_X':
-            return self.cbShowSliceX.isChecked()
-        elif key == 'SLICE_Y':
-            return self.cbShowSliceY.isChecked()
-        elif key == 'SLICE_Z':
-            return self.cbShowSliceZ.isChecked()
-        elif key == 'TOPPLANE':
-            return self.cbShowTopPlane.isChecked()
-        elif key == 'BOX':
-            return self.cbShowBox.isChecked()
+    def glItemVisibility(self, key:GLItem)->bool:
+        assert isinstance(key, GLItem)
+        for cb in self.findChildren(QCheckBox):
+            assert isinstance(cb, QCheckBox)
+            if cb.property(KEY_GL_ITEM_GROUP) == key:
+                return cb.isChecked()
+
         return False
 
     def glViewWidget(self)->ImageCubeGLWidget:
@@ -660,11 +756,13 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
             assert isinstance(job, ImageCubeRenderJob)
             self.print('Add {}'.format(job.id()))
-            if job.id() == 'CUBE':
-                self.setRGBACube(job.rgba3D())
-            elif job.id() == 'TOPPLANE':
-                self.setRGBATopPlane(job.rgba2D())
+            if job.id() == GLItem.Cube:
+                self.setRGBACube(job.rgba3D(), job.extent())
+                self.drawCube()
 
+            elif job.id() == GLItem.TopPlane:
+                self.setRGBATopPlane(job.rgba2D(), job.extent())
+                self.drawTopPlane()
 
             self.mJobs[job.id()] = job
 
@@ -711,13 +809,23 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.sliderZ.setValue(z)
 
 
-    def setRGBATopPlane(self, rgba:np.ndarray):
+    def setRGBATopPlane(self, rgba:np.ndarray, extent:QgsRectangle):
         assert isinstance(rgba, np.ndarray)
         assert rgba.ndim == 3
         assert rgba.shape[2] == 4
         assert rgba.dtype == np.uint8
+        assert isinstance(extent, QgsRectangle)
 
+        self.mRGBATopPlaneExtent = extent
         self.mRGBATopPlane = rgba
+
+    def drawTopPlane(self):
+
+        rgba = self.mRGBATopPlane
+        assert isinstance(rgba, np.ndarray)
+        assert rgba.ndim == 3
+        assert rgba.shape[2] == 4
+        assert rgba.dtype == np.uint8
 
         nb, nl, ns = self.layerDims()
         nnl, nns = self.topPlaneDims()
@@ -737,19 +845,32 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
         #item.translate(-ns / 2, -nl / 2, job.sliceIndex())
         #item.rotate(-90, 0, 0, 1)
-        self.setGLItemGroupItems('TOPPLANE', item)
+        self.setGLItemGroupItems(GLItem.TopPlane, item)
+        item.setVisible(self.glItemVisibility(GLItem.TopPlane))
+        #self.setGLItemVisbility(GLItem.TopPlane, )
 
-    def setRGBACube(self, rgba:np.ndarray):
+    def onGLParametersChanged(self):
+        self.drawCube()
+        self.drawTopPlane()
 
+    def setRGBACube(self, rgba:np.ndarray, extent:QgsRectangle):
+
+        assert isinstance(rgba, np.ndarray)
+        assert rgba.ndim == 4
+        assert rgba.shape[3] == 4
+        assert rgba.dtype == np.uint8
+        assert isinstance(extent, QgsRectangle)
+        self.mRGBACube = rgba
+        self.mRGBACubeExtent = extent
+
+    def drawCube(self):
+        rgba = self.mRGBACube
         assert isinstance(rgba, np.ndarray)
         assert rgba.ndim == 4
         assert rgba.shape[3] == 4
         assert rgba.dtype == np.uint8
 
         t0 = time.time()
-
-        self.mRGBACube = rgba
-
         # layer and cube dimensions
         nb, nl, ns = self.layerDims()
         nnb, nnl, nns = self.cubeDims()
@@ -761,7 +882,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         #x = x2*sx
         if True:
             items = []
-            isVisible = self.glItemVisibility('CUBE')
+            isVisible = self.glItemVisibility(GLItem.Cube)
             stepX = stepY = 100
             stepZ = nnb
 
@@ -808,7 +929,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
 
             if True:
-                self.setGLItemGroupItems('CUBE', items)
+                self.setGLItemGroupItems(GLItem.Cube, items)
                 return
 
             # apply zScale
@@ -817,7 +938,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                 assert isinstance(item, GLGraphicsItem)
                 item.scale(1,1,z)
 
-            self.setGLItemGroupItems('CUBE', items)
+            self.setGLItemGroupItems(GLItem.Cube, items)
             self.print('TIME CUBE {}  {}'.format(time.time() - t0, rgba.shape))
 
         if True:
@@ -825,13 +946,13 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             self.setSlice('y')
             self.setSlice('z')
 
-    def setSlice(self, dim:str):
-        assert dim in ['x','y','z']
+    def setSlice(self, key:GLItem):
+        assert isinstance(key, GLItem)
+        assert key in [GLItem.SliceX, GLItem.SliceY, GLItem.SliceZ]
 
         t0 = time.time()
         nb, nl, ns = self.layerDims()
         nnb, nnl, nns = self.cubeDims()
-        key = 'SLICE_{}'.format(dim.upper())
         items = self.glItemGroupItems(key)
         if items:
             for item in items:
@@ -848,19 +969,19 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         y0, y1 = 0, nnl
         z0, z1 = 0, nnb
 
-        if dim == 'x':
+        if key == GLItem.SliceX:
             x0 = min(nns - int(self.x()/sx), nns-1)
             x1 = x0+1
-        elif dim == 'y':
+        elif key == GLItem.SliceY:
             y0 = min(int((self.y()-1)/sy), nnl-1)
             y1 = y0 + 1
-        elif dim == 'z':
+        elif key == GLItem.SliceZ:
             z0 = min(int((self.z() - 1) / sb), nnb - 1)
             z1 = z0 + 1
 
         self.print('x: {} {}\ny: {} {}\nz:{} {}'.format(x0,x1,y0,y1,z0,z1))
         items = []
-        isVisible = self.glItemVisibility('SLICE_{}'.format(dim.upper()))
+        isVisible = self.glItemVisibility(key)
 
         if True: #grab volumetric slices from 3D Cube
             stepX = stepY = stepZ = 500
@@ -881,17 +1002,17 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                         item = gl.GLVolumeItem(block, sliceDensity=self.sliceDensity(), smooth=self.smooth())
                         item.scale(sx, sy, sb)
                         item.setVisible(isVisible)
-                        if dim == 'x':
+                        if key == GLItem.SliceX:
                             item.translate(self.x()-1, 0, 0)
                             item.rotate(180, 1, 0 , 0)
                             item.setProperty(KEY_DEFAULT_TRANSFORM, item.transform())
                             item.scale(1, 1, self.zScale())
-                        elif dim == 'y':
+                        elif key == GLItem.SliceY:
                             item.rotate(180, 0, 1, 0)
                             item.translate(ns, -self.y(), 0)
                             item.setProperty(KEY_DEFAULT_TRANSFORM, item.transform())
                             item.scale(1, 1, self.zScale())
-                        elif dim == 'z':
+                        elif key == GLItem.SliceZ:
                             item.rotate(180, 1, 0, 0)
                             item.rotate(180, 0, 1, 0)
                             item.setProperty(KEY_DEFAULT_TRANSFORM, item.transform())
@@ -922,11 +1043,11 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                 item.setTransform(tranformDefault)
                 item.scale(1,1,z) #scale will update the item
 
-                if key == 'CUBE':
+                if key == GLItem.Cube:
                     item.translate(0, 0, -item.data.shape[2]*z)
-                if key == 'TOPPLANE':
+                if key == GLItem.TopPlane:
                     item.translate(0, 0, 1)
-                if key == 'SLICE_Z':
+                if key == GLItem.SliceZ:
                     #item.scale(1, 1,  -self.z() * self.zScale())
                     item.translate(ns, 0, -self.z() * self.zScale())
 
@@ -1015,17 +1136,18 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             #box.translate(0, 0, nb)
             box.setProperty(KEY_DEFAULT_TRANSFORM, box.transform())
             box.scale(1,1,self.zScale())
-            box.setVisible(self.glItemVisibility('BOX'))
-            self.setGLItemGroupItems('BOX', box)
+            box.setVisible(self.glItemVisibility(GLItem.Box))
+            self.setGLItemGroupItems(GLItem.Box, box)
 
-            ax = gl.GLAxisItem(size=QVector3D(ns, -nl, -nb))
+            #ax = gl.GLAxisItem(size=QVector3D(ns, -nl, -nb))
+            ax = ImageCubeAxisItem(size=QVector3D(ns, -nl, -nb))
 
             #ax.translate(0, nl, nb)
             #ax.rotate(180, 0, 1, 0)
             ax.setProperty(KEY_DEFAULT_TRANSFORM, ax.transform())
             ax.scale(1,1,self.zScale())
-            ax.setVisible(self.glItemVisibility('AXIS'))
-            self.setGLItemGroupItems('AXIS', ax)
+            ax.setVisible(self.glItemVisibility(GLItem.Axes))
+            self.setGLItemGroupItems(GLItem.Axes, ax)
 
             #w = self.glViewWidget()
             #w.mTextLabels.clear()

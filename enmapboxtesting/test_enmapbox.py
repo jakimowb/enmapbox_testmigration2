@@ -32,6 +32,7 @@ from enmapbox.gui.docks import *
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui import *
 
+
 # mini test
 from enmapbox.gui.applications import EnMAPBoxApplication
 class TestEnMAPBoxApp(EnMAPBoxApplication):
@@ -89,9 +90,6 @@ class TestEnMAPBoxSplashScreen(unittest.TestCase):
 class TestEnMAPBox(unittest.TestCase):
 
     def setUp(self):
-
-        import enmapbox
-        enmapbox.initAll()
         self.EMB = EnMAPBox(None)
 
     def tearDown(self):
