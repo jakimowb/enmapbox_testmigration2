@@ -67,9 +67,9 @@ class VTest(unittest.TestCase):
 
     def test_renderJob(self):
         lyr = self.createImageCube()
-        job = ImageCubeRenderJob('JOB', lyr, lyr.renderer())
+        job = ImageCubeRenderJob(GLItem.TopPlane, lyr, lyr.renderer())
 
-        self.assertEqual(job.id(), 'JOB')
+        self.assertEqual(job.id(), GLItem.TopPlane)
         from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
         xml1 = rendererToXml(lyr.renderer()).toString()
         xml2 = rendererToXml(job.renderer()).toString()

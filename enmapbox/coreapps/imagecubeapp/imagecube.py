@@ -483,6 +483,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
 
         self.mJobs = dict()
+        self.mTasks = dict()
 
 
         w = self.glViewWidget()
@@ -712,17 +713,25 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         dump = pickle.dumps(toDo)
 
         if True:
-            self._qgsTask = TaskMock()
-            self._qgsTask.progressChanged.connect(lambda p: self.progressBar.setValue(int(p)))
+            qgsTask = TaskMock()
+            qgsTask.progressChanged.connect(lambda p: self.progressBar.setValue(int(p)))
+            tid = id(qgsTask)
+            self.mTasks[tid] = qgsTask
             self.onDataLoaded(renderImageData(self._qgsTask, dump))
+
         else:
             qgsTask = QgsTask.fromFunction(taskDescription, renderImageData, dump,
                                            on_finished=self.onAddSourcesAsyncFinished)
             tid = id(qgsTask)
+            self.mTasks[tid] = qgsTask
             qgsTask.progressChanged.connect(int(self.progressBar.setValue))
             qgsTask.taskCompleted.connect(lambda *args, tid=tid: self.onRemoveTask(tid))
             qgsTask.taskTerminated.connect(lambda *args, tid=tid: self.onRemoveTask(tid))
-            self.mTasks[tid] = qgsTask
+
+
+    def onRemoveTask(self, tid):
+        if tid in self.mTasks.keys():
+            del self.mTasks[tid]
 
     def setGLItemVisbility(self, key, b:bool):
         for item in self.glItemGroupItems(key):
@@ -898,6 +907,8 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                         z2 = min(z + stepZ, nnb)
                         block = rgba[x:x2, y:y2, z:z2, :]
                         self.print('x:[{} {}], y:[{} {}], z:[{} {}]'.format(x,x2-1,y,y2-1,z,z2-1))
+                        z = z2
+
                         # do not plot empty blocks
                         if np.all(block == 0):
                             continue
@@ -923,7 +934,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                             pass
                         else:
                             items.append(item)
-                        z = z2
+
                     y = y2
                 x = x2
 
@@ -986,15 +997,19 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         if True: #grab volumetric slices from 3D Cube
             stepX = stepY = stepZ = 500
 
-            for x in range(x0, x1, stepX):
-                x2 = min(x + stepX, x1)
-                for y in range(y0, y1, stepY):
-                    y2 = min(y + stepY, y1)
+            x = 0
+            while x < nns:
+                x2 = min(x + stepX, nns)
+                y = 0
+                while y < nnl:
+                    y2 = min(y + stepY, nnl)
+                    z = 0
 
-                    for z in range(z0, z1, stepZ):
-                        z2 = min(z + stepZ, z1)
+                    while z < nnb:
+                        z2 = min(z + stepZ, nnb)
                         block = self.mRGBACube[x:x2, y:y2, z:z2, :]
-
+                        self.print('x:[{} {}], y:[{} {}], z:[{} {}]'.format(x, x2 - 1, y, y2 - 1, z, z2 - 1))
+                        z = z2
                         # do not plot empty blocks
                         if np.all(block == 0):
                             continue
@@ -1020,6 +1035,8 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
                             item.translate(ns, 0, -self.z()*self.zScale())
 
                         items.append(item)
+                    y = y2
+                x = x2
 
             self.setGLItemGroupItems(key, items)
 
