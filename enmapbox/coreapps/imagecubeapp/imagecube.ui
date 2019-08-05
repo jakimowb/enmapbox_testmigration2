@@ -42,8 +42,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>268</width>
-         <height>514</height>
+         <width>280</width>
+         <height>531</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -190,45 +190,6 @@
               </widget>
              </item>
             </layout>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QgsCollapsibleGroupBox" name="gbOpenGLOptions">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="title">
-           <string>OpenGL</string>
-          </property>
-          <layout class="QFormLayout" name="formLayout_2">
-           <item row="1" column="0" colspan="2">
-            <widget class="QCheckBox" name="cbSmooth">
-             <property name="text">
-              <string>Smooth</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QSpinBox" name="sbSliceDensity">
-             <property name="minimum">
-              <number>1</number>
-             </property>
-             <property name="maximum">
-              <number>50</number>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QLabel" name="label_4">
-             <property name="text">
-              <string>Slice density</string>
-             </property>
-            </widget>
            </item>
           </layout>
          </widget>
@@ -415,6 +376,127 @@
              </property>
              <property name="checked">
               <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QgsCollapsibleGroupBox" name="gbOpenGLOptions">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="title">
+           <string>Advanced Settings</string>
+          </property>
+          <layout class="QFormLayout" name="formLayout_2">
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="cbSmooth">
+             <property name="text">
+              <string>Smooth</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QCheckBox" name="cbDebug">
+             <property name="toolTip">
+              <string>Shows additional info on the camera position</string>
+             </property>
+             <property name="text">
+              <string>Debug</string>
+             </property>
+             <property name="checked">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QSpinBox" name="sbCacheTopPlane">
+             <property name="suffix">
+              <string> MB</string>
+             </property>
+             <property name="prefix">
+              <string/>
+             </property>
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>50</number>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <layout class="QHBoxLayout" name="horizontalLayout_5">
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>Slice density</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="sbSliceDensity">
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="maximum">
+                <number>50</number>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="2" column="1">
+            <widget class="QCheckBox" name="cbUseTaskManager">
+             <property name="toolTip">
+              <string>Image data will be loaded in a background task, using the QGIS Task Manager.</string>
+             </property>
+             <property name="text">
+              <string>Task Manager</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_6">
+             <property name="text">
+              <string>Cache Top Plane</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_7">
+             <property name="text">
+              <string>Cache Cube</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QSpinBox" name="sbCacheCube">
+             <property name="suffix">
+              <string> MB</string>
+             </property>
+             <property name="prefix">
+              <string/>
+             </property>
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>50</number>
              </property>
             </widget>
            </item>
