@@ -537,6 +537,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
 
             if ns is None:
                 ns = nl = nb = 1
+
             center = QVector3D(0.5 * ns, -0.5 * nl, -0.5 * nb)
             elevation = 22 #°
             azimuth = -66
@@ -705,9 +706,9 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         if len(toDo) == 0:
             # recall plotting of already loaded color data
             if isinstance(self.mRGBACube, np.ndarray):
-                self.setRGBACube(self.mRGBACube)
+                self.setRGBACube(self.mRGBACube, self.mRGBACubeExtent)
             if isinstance(self.mRGBATopPlane, np.ndarray):
-                self.setRGBATopPlane(self.mRGBATopPlane)
+                self.setRGBATopPlane(self.mRGBATopPlane, self.mRGBATopPlaneExtent)
             return
 
         dump = pickle.dumps(toDo)
@@ -717,7 +718,7 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
             qgsTask.progressChanged.connect(lambda p: self.progressBar.setValue(int(p)))
             tid = id(qgsTask)
             self.mTasks[tid] = qgsTask
-            self.onDataLoaded(renderImageData(self._qgsTask, dump))
+            self.onDataLoaded(renderImageData(qgsTask, dump))
 
         else:
             qgsTask = QgsTask.fromFunction(taskDescription, renderImageData, dump,
@@ -862,6 +863,43 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         self.drawCube()
         self.drawTopPlane()
 
+
+    def subsetDimensions(self, lyr:QgsRasterLayer, subsetExtent:QgsRectangle, rgba:np.ndarray):
+        """
+        Returns the subset dimensions in pixel-space coordinates
+        :param lyr: QgsRasterLayer - Original Raster Layer
+        :param subsetExtent: QgsRectangle of layer subsets
+        :param rgba: np.ndarray
+        :return: ox, oy, ob, sx, sy, sb
+        """
+        if rgba.ndim == 4:
+            _, nnl, nns, _ = rgba.shape
+        elif rgba.ndim == 3:
+            nnl, nns, _ = rgba.shape
+
+        ns, nl, nb = lyr.width(), lyr.height(), lyr.bandCount()
+
+
+
+        ext = lyr.extent()
+        assert isinstance(ext, QgsRectangle)
+        xUL = ext.xMinimum()
+        yUL = ext.yMaximum()
+
+        px_size_x = ext.width() / ns
+        px_size_y = ext.height() / ns
+
+        px_size_xx = subsetExtent.width() / nns
+        px_size_yy = subsetExtent.height() / nnl
+
+        ox = (subsetExtent.xMinimum() - ext.xMinimum()) / px_size_x
+        oy = (ext.yMaximum() - subsetExtent.yMaximum()) / px_size_y
+        ob = 0
+        sb = 1
+
+
+        return ox, oy, ob, sx, sy, sb
+
     def setRGBACube(self, rgba:np.ndarray, extent:QgsRectangle):
 
         assert isinstance(rgba, np.ndarray)
@@ -880,12 +918,15 @@ class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
         assert rgba.dtype == np.uint8
 
         t0 = time.time()
+
+        oy, ox, sb, sy, sx =  self.subsetDimensions(self.rasterLayer(), self.mRGBACubeExtent, self.mRGBACube)
+
         # layer and cube dimensions
-        nb, nl, ns = self.layerDims()
         nnb, nnl, nns = self.cubeDims()
 
         # scaling factors (in case we sampled less/more pixels than in the layer)
         sx, sy, sb = ns / nns, nl / nnl, nb / nnb
+
 
 
         #x = x2*sx

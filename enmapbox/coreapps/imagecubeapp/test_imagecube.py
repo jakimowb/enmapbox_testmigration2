@@ -138,7 +138,7 @@ class VTest(unittest.TestCase):
 
 
         if True:
-            W.setRasterLayer(layers[1])
+            W.setRasterLayer(layers[0])
             W.startDataLoading()
 
         if SHOW_GUI:
