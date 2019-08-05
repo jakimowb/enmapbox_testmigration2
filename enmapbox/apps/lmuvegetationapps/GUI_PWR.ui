@@ -115,7 +115,7 @@
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Preliminary pixel exclusion below set value: Normalized Difference Water Index&lt;/p&gt;&lt;p&gt;GAO, B.-C. (1996): NDWI—a normalized difference water index for remote sensing of vegetation liquid water from space. In: Remote Sensing of Environment, 58(3), 257-266.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="text">
-         <string>NDWI threshold:</string>
+         <string>NDVI threshold:</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -269,7 +269,7 @@
        </widget>
       </item>
       <item row="2" column="2">
-       <widget class="QDoubleSpinBox" name="SpinNDVI">
+       <widget class="QDoubleSpinBox" name="SpinNDWI">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
           <horstretch>0</horstretch>
@@ -290,6 +290,9 @@
         </property>
         <property name="toolTip">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Preliminary pixel exclusion below set value: Normalized Difference Water Index&lt;/p&gt;&lt;p&gt;GAO, B.-C. (1996): NDWI—a normalized difference water index for remote sensing of vegetation liquid water from space. In: Remote Sensing of Environment, 58(3), 257-266.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="decimals">
+         <number>2</number>
         </property>
         <property name="minimum">
          <double>-0.990000000000000</double>
@@ -433,6 +436,16 @@
        <number>9</number>
       </property>
       <item>
+       <widget class="QLabel" name="label_8">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://enmap-box-lmu-vegetation-apps.readthedocs.io/en/latest/apps/PWR.html&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;How to use this tool&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="openExternalLinks">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer_2">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -510,7 +523,7 @@
   <tabstop>cmdInputImage</tabstop>
   <tabstop>cmdOutputImage</tabstop>
   <tabstop>txtOutputImage</tabstop>
-  <tabstop>SpinNDVI</tabstop>
+  <tabstop>SpinNDWI</tabstop>
   <tabstop>txtNodatOutput</tabstop>
   <tabstop>spinDivisionFactor</tabstop>
   <tabstop>pushClose</tabstop>

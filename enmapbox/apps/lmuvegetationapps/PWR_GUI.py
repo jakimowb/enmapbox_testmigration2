@@ -5,6 +5,7 @@ import os
 from qgis.PyQt.QtWidgets import *
 from osgeo import gdal
 from lmuvegetationapps.PWR_core import PWR_core
+import time
 
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_PWR.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
@@ -46,13 +47,13 @@ class PWR:
         self.image = None
         self.nodat = [-999]*2
         self.division_factor = 1.0
-        self.NDVI_th = 0.37
+        self.NDWI_th = -0.9
 
     def connections(self):
         self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="image"))
         self.gui.cmdOutputImage.clicked.connect(lambda: self.open_file(mode="output"))
 
-        self.gui.SpinNDVI.valueChanged.connect(lambda: self.NDVI_th_change())
+        self.gui.SpinNDWI.valueChanged.connect(lambda: self.NDWI_th_change())
 
         self.gui.pushRun.clicked.connect(lambda: self.run_pwr())
         self.gui.pushClose.clicked.connect(lambda: self.gui.close())
@@ -104,8 +105,8 @@ class PWR:
                 self.main.nodat_widget.gui.exec_()  # unlike .show(), .exec_() waits with execution of the code, until the app is closed
                 return self.main.nodat_widget.nodat, nbands, nrows, ncols
 
-    def NDVI_th_change(self):
-        self.NDVI_th = self.gui.SpinNDVI.value()
+    def NDWI_th_change(self):
+        self.NDWI_th = self.gui.SpinNDWI.value()
 
     def run_pwr(self):
         if self.image is None:
@@ -153,6 +154,7 @@ class PWR:
 
         try:  # give it a shot
             result = iPWR.execute_PWR(prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+
         except:
             QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
             self.main.prg_widget.gui.allow_cancel = True
@@ -175,7 +177,7 @@ class PWR:
         self.main.prg_widget.gui.close()
 
         QMessageBox.information(self.gui, "Finish", "Calculation of PWR finished successfully")
-        self.gui.close()
+        #self.gui.close()
 
     def abort(self, message):
         QMessageBox.critical(self.gui, "Error", message)

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <author>M. Wocher</author>
- <class>ASI_GUI</class>
- <widget class="QWidget" name="ASI_GUI">
+ <class>iREIP_GUI</class>
+ <widget class="QWidget" name="iREIP_GUI">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>449</width>
-    <height>756</height>
+    <height>750</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -24,7 +24,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Analyze Spectral Integral</string>
+   <string>Identifiying Red Edge Inflection Point</string>
   </property>
   <property name="toolTip">
    <string/>
@@ -67,9 +67,6 @@
           <width>310</width>
           <height>0</height>
          </size>
-        </property>
-        <property name="text">
-         <string/>
         </property>
        </widget>
       </item>
@@ -200,6 +197,12 @@
    </item>
    <item>
     <widget class="QFrame" name="frame_3">
+     <property name="maximumSize">
+      <size>
+       <width>440</width>
+       <height>16777215</height>
+      </size>
+     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -210,6 +213,160 @@
       <property name="topMargin">
        <number>0</number>
       </property>
+      <item row="3" column="1">
+       <widget class="QLineEdit" name="neighborEdit">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>90</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="layoutDirection">
+         <enum>Qt::LeftToRight</enum>
+        </property>
+        <property name="text">
+         <string>13</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_13">
+        <property name="text">
+         <string>Set Savitzky-Golay-Filter neighbors</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>190</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Set upper wavelength boundary [nm]:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="3">
+       <widget class="QLineEdit" name="spinDivisionFactor">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>40</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>50</width>
+          <height>20</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>1</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QLabel" name="label_6">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>110</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Output No Data:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="3">
+       <widget class="QLineEdit" name="txtNodatOutput">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>50</width>
+          <height>20</height>
+         </size>
+        </property>
+        <property name="whatsThis">
+         <string>Specify no data value for the output file</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLineEdit" name="upWaveEdit">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>90</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>750</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <property name="placeholderText">
+         <string/>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="1">
        <widget class="QLineEdit" name="lowWaveEdit">
         <property name="enabled">
@@ -231,7 +388,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>550</string>
+         <string>680</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -263,7 +420,7 @@
       <item row="1" column="3">
        <widget class="QLabel" name="lblNodatImage">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+         <sizepolicy hsizetype="Fixed" vsizetype="Maximum">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -332,180 +489,8 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>190</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Set upper wavelength boundary [nm]:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="3">
-       <widget class="QLineEdit" name="spinDivisionFactor">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>40</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>1</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="2">
-       <widget class="QLabel" name="label_6">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>110</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Output No Data:</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="3">
-       <widget class="QLineEdit" name="txtNodatOutput">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="whatsThis">
-         <string>Specify no data value for the output file</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>190</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="toolTip">
-         <string>distance to look ahead from a peak candidate to determine if it is the actual peak.</string>
-        </property>
-        <property name="text">
-         <string>Peak detection lookahead value:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QLineEdit" name="upWaveEdit">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>90</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>800</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-        <property name="placeholderText">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QLineEdit" name="peakLookEdit">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>90</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="toolTip">
-         <string>distance to look ahead from a peak candidate to determine if it is the actual peak.</string>
-        </property>
-        <property name="text">
-         <string>9</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-        <property name="placeholderText">
-         <string/>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="1">
-       <widget class="QLabel" name="label_13">
+       <widget class="QLabel" name="label_14">
         <property name="enabled">
          <bool>false</bool>
         </property>
@@ -540,7 +525,7 @@
      <property name="midLineWidth">
       <number>0</number>
      </property>
-     <layout class="QGridLayout" name="gridLayout_2" rowstretch="0,0,0,0,0,0">
+     <layout class="QGridLayout" name="gridLayout_2" rowstretch="0,0,0,0,0,0,0,0">
       <property name="leftMargin">
        <number>6</number>
       </property>
@@ -557,11 +542,11 @@
        <number>6</number>
       </property>
       <item row="4" column="0" colspan="5">
-       <widget class="PlotWidget" name="crsView">
+       <widget class="PlotWidget" name="firstDerivView">
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>190</height>
+          <height>115</height>
          </size>
         </property>
         <property name="maximumSize">
@@ -587,7 +572,7 @@
       <item row="2" column="0" colspan="5">
        <widget class="PlotWidget" name="rangeView">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -595,7 +580,7 @@
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>190</height>
+          <height>115</height>
          </size>
         </property>
         <property name="maximumSize">
@@ -637,18 +622,33 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="0">
-       <widget class="QPushButton" name="pushFullRange">
+      <item row="0" column="4">
+       <widget class="QPushButton" name="cmdFindNDVI">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>75</width>
+          <height>16777215</height>
+         </size>
+        </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
         <property name="text">
-         <string>Plot full range</string>
+         <string>Find and plot</string>
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
+      <item row="7" column="1">
        <widget class="QPushButton" name="pushSetRange">
+        <property name="maximumSize">
+         <size>
+          <width>90</width>
+          <height>16777215</height>
+         </size>
+        </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
@@ -657,16 +657,58 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="3" colspan="2">
-       <widget class="QCheckBox" name="checkSaveCrs">
-        <property name="enabled">
-         <bool>true</bool>
+      <item row="7" column="0">
+       <widget class="QPushButton" name="pushFullRange">
+        <property name="maximumSize">
+         <size>
+          <width>90</width>
+          <height>16777215</height>
+         </size>
         </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="text">
+         <string>Plot full range</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="3" colspan="2">
+       <widget class="QCheckBox" name="checkSecondDeriv">
         <property name="layoutDirection">
          <enum>Qt::RightToLeft</enum>
         </property>
+        <property name="autoFillBackground">
+         <bool>false</bool>
+        </property>
         <property name="text">
-         <string>Save continuum removed raster (CRS)</string>
+         <string>Save 2nd derivative raster</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0" colspan="5">
+       <widget class="PlotWidget" name="secondDerivView">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>115</height>
+         </size>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::WinPanel</enum>
+        </property>
+        <property name="renderHints">
+         <set>QPainter::HighQualityAntialiasing|QPainter::TextAntialiasing</set>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="label_7">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;2nd Derivative&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
        </widget>
       </item>
@@ -694,6 +736,12 @@
         <property name="enabled">
          <bool>false</bool>
         </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="font">
          <font>
           <weight>75</weight>
@@ -701,33 +749,34 @@
          </font>
         </property>
         <property name="text">
-         <string>Continuum removed spectrum:</string>
+         <string>1st Derivative</string>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::NoTextInteraction</set>
         </property>
        </widget>
       </item>
-      <item row="0" column="4">
-       <widget class="QPushButton" name="cmdFindNDVI">
+      <item row="3" column="3" colspan="2">
+       <widget class="QCheckBox" name="checkFirstDeriv">
         <property name="enabled">
          <bool>true</bool>
         </property>
-        <property name="maximumSize">
-         <size>
-          <width>75</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="focusPolicy">
-         <enum>Qt::NoFocus</enum>
+        <property name="layoutDirection">
+         <enum>Qt::RightToLeft</enum>
         </property>
         <property name="text">
-         <string>Find and plot</string>
+         <string>Save 1st derivative raster</string>
         </property>
        </widget>
       </item>
-      <item row="5" column="2">
+      <item row="7" column="3">
+       <widget class="QLabel" name="ipLabel">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="2">
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -740,6 +789,16 @@
         </property>
        </spacer>
       </item>
+      <item row="7" column="4">
+       <widget class="QLabel" name="ipPosLabel">
+        <property name="frameShadow">
+         <enum>QFrame::Plain</enum>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="1" colspan="4">
        <widget class="QLabel" name="lblPixelLocation">
         <property name="text">
@@ -750,38 +809,33 @@
      </layout>
      <zorder>label_9</zorder>
      <zorder>label_8</zorder>
-     <zorder>crsView</zorder>
+     <zorder>firstDerivView</zorder>
      <zorder>rangeView</zorder>
      <zorder>label_10</zorder>
      <zorder>cmdFindNDVI</zorder>
-     <zorder>checkSaveCrs</zorder>
+     <zorder>secondDerivView</zorder>
+     <zorder>label_7</zorder>
+     <zorder>checkSecondDeriv</zorder>
      <zorder>pushFullRange</zorder>
      <zorder>pushSetRange</zorder>
+     <zorder>checkFirstDeriv</zorder>
+     <zorder>ipLabel</zorder>
      <zorder>horizontalSpacer</zorder>
+     <zorder>ipPosLabel</zorder>
      <zorder>lblPixelLocation</zorder>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="checkSave3Band">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="text">
-      <string>Save 3-band carotenoid, chlorophyll a+b, and liquid water absorption image</string>
-     </property>
     </widget>
    </item>
    <item>
     <widget class="QFrame" name="frame_2">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+      <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
      <property name="maximumSize">
       <size>
-       <width>440</width>
+       <width>999999</width>
        <height>41</height>
       </size>
      </property>
@@ -795,7 +849,7 @@
       <item>
        <widget class="QLabel" name="label_12">
         <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://enmap-box-lmu-vegetation-apps.readthedocs.io/en/latest/apps/ASI.html&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;How to use this tool&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://enmap-box-lmu-vegetation-apps.readthedocs.io/en/latest/apps/REIP.html&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;How to use this tool&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="openExternalLinks">
          <bool>true</bool>
@@ -812,7 +866,7 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>40</width>
+          <width>500</width>
           <height>20</height>
          </size>
         </property>
@@ -860,6 +914,9 @@
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
+        <property name="layoutDirection">
+         <enum>Qt::LeftToRight</enum>
+        </property>
         <property name="text">
          <string>Run</string>
         </property>
@@ -882,9 +939,8 @@
   <tabstop>txtOutputImage</tabstop>
   <tabstop>cmdOutputImage</tabstop>
   <tabstop>rangeView</tabstop>
-  <tabstop>crsView</tabstop>
+  <tabstop>firstDerivView</tabstop>
   <tabstop>pushClose</tabstop>
-  <tabstop>pushRun</tabstop>
  </tabstops>
  <resources/>
  <connections/>

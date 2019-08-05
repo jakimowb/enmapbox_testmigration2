@@ -103,6 +103,11 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         m = MainUiFunc()
         m.show()
 
+    def start_GUI_iREIP(self, *args):
+        from lmuvegetationapps.iREIP import MainUiFunc
+        m = MainUiFunc()
+        m.show()
+
 
 ### Interfaces to use algorithms in algorithms.py within
 ### QGIS Processing Framework
