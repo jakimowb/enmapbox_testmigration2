@@ -25,13 +25,22 @@ from enmapbox.gui.applications import *
 
 SHOW_GUI = True
 
+from enmapbox import DIR_ENMAPBOX
+
+path = os.path.join(DIR_ENMAPBOX, 'apps')
+if path not in sys.path:
+    sys.path.append(path)
 
 class test_applications(unittest.TestCase):
 
     def test_application(self):
         EB = EnMAPBox()
+        EB.ui.hide()
 
+        from lmuvegetationapps.enmapboxintegration import LMU_EnMAPBoxApp
 
+        app = LMU_EnMAPBoxApp(EB)
+        app.start_GUI_IVVRM()
 
         if SHOW_GUI:
             QGIS_APP.exec_()

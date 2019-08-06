@@ -44,6 +44,7 @@ class IVVRM_GUI(QDialog, loadUIFormClass(pathUI)):
 
         # fix the sendHoverEvent crash by replacing the slot function
         self.graphicsView.scene().sendHoverEvents = self.onHoverEvent
+        self.graphicsView.setBackground(QColor('black'))
 
     def onHoverEvent(self, *args, **kwds):
         """
