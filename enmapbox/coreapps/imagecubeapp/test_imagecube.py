@@ -67,9 +67,9 @@ class VTest(unittest.TestCase):
 
     def test_renderJob(self):
         lyr = self.createImageCube()
-        job = ImageCubeRenderJob('JOB', lyr, lyr.renderer())
+        job = ImageCubeRenderJob(GLItem.TopPlane, lyr, lyr.renderer())
 
-        self.assertEqual(job.id(), 'JOB')
+        self.assertEqual(job.id(), GLItem.TopPlane)
         from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
         xml1 = rendererToXml(lyr.renderer()).toString()
         xml2 = rendererToXml(job.renderer()).toString()
@@ -85,11 +85,11 @@ class VTest(unittest.TestCase):
         from enmapboxtestdata import enmap as pathEnMAP
         from enmapboxtestdata import hires as pathHyMap
 
-        pathTS = r'R:\temp\temp_bj\Cerrado\cerrado_evi.vrt'
+        pathLargeImage = r'R:\temp\temp_bj\Cerrado\cerrado_evi.vrt'
+        pathLargeImage = r'Q:\Processing_BJ\01_Data\level2\X0016_Y0046\20140803_LEVEL2_LND07_BOA.tif'
 
-
-        layers = [self.createImageCube()]
-        pathes = [pathEnMAP, pathHyMap, pathTS]
+        layers = [self.createImageCube(ns=100, nl=200)]
+        pathes = [pathEnMAP, pathHyMap, pathLargeImage]
         for p in pathes:
             if os.path.isfile(p):
                 layers.append(QgsRasterLayer(p, os.path.basename(p)))
@@ -137,7 +137,68 @@ class VTest(unittest.TestCase):
             self.assertEqual(W.extent(), ext2)
 
 
+        if True:
+            W.setRasterLayer(layers[0])
             W.startDataLoading()
+
+        if SHOW_GUI:
+            QGIS_APP.exec_()
+
+    def test_extent(self):
+
+        W = ImageCubeWidget()
+        W.show()
+
+
+        from enmapboxtestdata import enmap as pathEnMAP
+        from enmapboxtestdata import hires as pathHyMap
+
+        pathLargeImage = r'R:\temp\temp_bj\Cerrado\cerrado_evi.vrt'
+        pathLargeImage = r'Q:\Processing_BJ\01_Data\level2\X0016_Y0046\20140803_LEVEL2_LND07_BOA.tif'
+
+        layers = [self.createImageCube(nb=177, ns=200, nl=400)]
+        #layers = []
+        pathes = [pathEnMAP, pathHyMap, pathLargeImage]
+        for p in pathes:
+            if os.path.isfile(p):
+                layers.append(QgsRasterLayer(p, os.path.basename(p)))
+
+        QgsProject.instance().addMapLayers(layers)
+
+        W.cbShowCube.setChecked(False)
+        W.cbShowSliceX.setChecked(False)
+        W.cbShowSliceY.setChecked(True)
+        W.cbShowSliceZ.setChecked(False)
+
+
+        lyr = layers[0]
+        self.assertIsInstance(lyr, QgsRasterLayer)
+        W.setRasterLayer(lyr)
+        self.assertEqual(lyr, W.rasterLayer())
+
+        x = int(lyr.width() * 0.5)
+        y = int(lyr.height() * 0.5)
+        z = int(lyr.bandCount() * 0.5)
+        W.setX(x)
+        W.setY(y)
+        W.setZ(z)
+        W.cbShowTopPlane.setChecked(False)
+        ext1 = lyr.extent()
+        self.assertIsInstance(ext1, QgsRectangle)
+        w = ext1.width()
+        h = ext1.height()
+
+
+        if True:
+            cut = 0.1
+            x0 = ext1.xMinimum() + w*cut
+            x1 = ext1.xMaximum() - 2*w*cut
+            y0 = ext1.yMinimum() + h*cut
+            y1 = ext1.yMaximum() - 2*h*cut
+            ext2 = QgsRectangle(x0,y0,x1,y1)
+            W.setExtent(ext2)
+        W.startDataLoading()
+
 
         if SHOW_GUI:
             QGIS_APP.exec_()

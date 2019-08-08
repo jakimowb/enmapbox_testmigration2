@@ -8935,14 +8935,14 @@
       <property name="rightMargin">
        <number>0</number>
       </property>
-      <item row="0" column="2">
+      <item row="0" column="3">
        <widget class="QPushButton" name="cmdClose">
         <property name="text">
          <string>Close App</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
+      <item row="0" column="1">
        <spacer name="horizontalSpacer_118">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -8955,13 +8955,23 @@
         </property>
        </spacer>
       </item>
-      <item row="0" column="1">
+      <item row="0" column="2">
        <widget class="QPushButton" name="cmdRun">
         <property name="text">
          <string>Run LUT</string>
         </property>
         <property name="shortcut">
          <string>Ctrl+Shift+F10</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://enmap-box-lmu-vegetation-apps.readthedocs.io/en/latest/apps/LUT.html#creation-of-look-up-tables&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;How to use this tool&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="openExternalLinks">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -9254,23 +9264,23 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup_6"/>
-  <buttongroup name="buttonGroup_3"/>
-  <buttongroup name="buttonGroup_5"/>
+  <buttongroup name="buttonGroup_18"/>
   <buttongroup name="buttonGroup_11"/>
-  <buttongroup name="buttonGroup_10"/>
+  <buttongroup name="buttonGroup_2"/>
+  <buttongroup name="buttonGroup_17"/>
+  <buttongroup name="buttonGroup_5"/>
+  <buttongroup name="buttonGroup_8"/>
   <buttongroup name="buttonGroup_14"/>
   <buttongroup name="buttonGroup_13"/>
-  <buttongroup name="buttonGroup_12"/>
-  <buttongroup name="buttonGroup_17"/>
-  <buttongroup name="buttonGroup_7"/>
-  <buttongroup name="buttonGroup_15"/>
   <buttongroup name="buttonGroup_9"/>
-  <buttongroup name="buttonGroup_16"/>
-  <buttongroup name="buttonGroup_4"/>
-  <buttongroup name="buttonGroup_8"/>
-  <buttongroup name="buttonGroup_18"/>
+  <buttongroup name="buttonGroup_7"/>
   <buttongroup name="buttonGroup_19"/>
-  <buttongroup name="buttonGroup_2"/>
+  <buttongroup name="buttonGroup_16"/>
+  <buttongroup name="buttonGroup_12"/>
+  <buttongroup name="buttonGroup_4"/>
+  <buttongroup name="buttonGroup_6"/>
+  <buttongroup name="buttonGroup_3"/>
+  <buttongroup name="buttonGroup_15"/>
+  <buttongroup name="buttonGroup_10"/>
  </buttongroups>
 </ui>

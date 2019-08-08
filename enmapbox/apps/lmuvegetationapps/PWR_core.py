@@ -9,6 +9,7 @@ import os
 
 from scipy.optimize import minimize_scalar
 from scipy.interpolate import interp1d
+from numba import jit
 
 # ======================================================================================================================
 # function definitions
@@ -31,7 +32,7 @@ class PWR_core:
         self.grid, self.nrows, self.ncols, self.nbands, self.in_raster = \
             (None, None, None, None, None)
 
-    def initialize_PWR(self, input, output, lims, NDWI_th=0.0):
+    def initialize_PWR(self, input, output, lims, NDVI_th=0.0):
         self.grid, self.wl, self.nbands, self.nrows, self.ncols, self.in_raster = \
             self.read_image2(image=input)
 
@@ -41,7 +42,7 @@ class PWR_core:
         self.pixel_total = self.nrows * self.ncols
         self.output = output
         self.low_lim, self.upp_lim = (self.find_closest(lambd=lims[0]), self.find_closest(lambd=lims[1]))
-        self.NDWI_th = NDWI_th
+        self.NDVI_th = NDVI_th
 
         absorption_file = os.path.join(os.path.dirname(__file__), 'water_abs_coeff.txt')
         content = np.genfromtxt(absorption_file, skip_header=True)
@@ -74,8 +75,8 @@ class PWR_core:
 
         self.abs_coef = np.asarray([self.get_abscoef[self.valid_wl[i]] for i in range(len(self.valid_wl))]) # abs coefficients of water for bands used
 
-        NDWI_closest = [self.find_closest(lambd=860), self.find_closest(lambd=1240)]
-        self.NDWI_bands = [i for i, x in enumerate(self.wl) if x in NDWI_closest]
+        NDVI_closest = [self.find_closest(lambd=827), self.find_closest(lambd=668)]
+        self.NDVI_bands = [i for i, x in enumerate(self.wl) if x in NDVI_closest]
 
     def read_image2(self, image):
         '''
@@ -169,17 +170,18 @@ class PWR_core:
         #print(self.wl[distances.index(min(distances))])
         return self.wl[distances.index(min(distances))]
 
-    def NDWI(self, row, col):
-        R860 = self.in_raster[self.NDWI_bands[1], row, col]
-        R1240 = self.in_raster[self.NDWI_bands[0], row, col]
+    def NDVI(self, row, col):
+        R860 = self.in_raster[self.NDVI_bands[1], row, col]
+        R1240 = self.in_raster[self.NDVI_bands[0], row, col]
 
         try:
-            NDWI = float(R860-R1240)/float(R860+R1240)
+            NDVI = float(R860-R1240)/float(R860+R1240)
         except ZeroDivisionError:
-            NDWI = 0.0
+            NDVI = 0.0
 
-        return NDWI
-
+        return NDVI
+    
+    #@jit(nopython=True)
     def execute_PWR(self, prg_widget=None, QGis_app=None):
         self.prg = prg_widget
         self.QGis_app = QGis_app
@@ -187,7 +189,7 @@ class PWR_core:
         d = 0.0
         for row in range(self.nrows):
             for col in range(self.ncols):
-                if self.NDWI(row=row, col=col) < self.NDWI_th:
+                if self.NDVI(row=row, col=col) < self.NDVI_th:
                     res_raster[:, row, col] = self.nodat_val[1]
                     continue
                   # initial d-value for minimization algorithm
@@ -200,7 +202,7 @@ class PWR_core:
         #print(res_raster.shape)
         #print(res_raster)
         return res_raster
-
+    
     def lambert_beer_ob_fun(self, d, *args):
         '''
         :param d: spectrally active waterlayer in [mm]

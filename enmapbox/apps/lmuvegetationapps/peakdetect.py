@@ -137,7 +137,6 @@ def peakdetect_parabole(*args, **kwargs):
 
     return peakdetect_parabola(*args, **kwargs)
 
-
 def peakdetect(y_axis, x_axis=None, lookahead=200, delta=0):
     """
     Converted from/based on a MATLAB script at:

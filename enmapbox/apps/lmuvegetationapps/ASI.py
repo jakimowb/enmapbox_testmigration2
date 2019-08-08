@@ -7,6 +7,7 @@ from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
 from osgeo import gdal
 import pyqtgraph as pg
+from numba import jit
 
 from scipy.spatial import ConvexHull
 import sys, os
@@ -60,11 +61,13 @@ class ASI:
         self.image = None
         self.limits = [550, 800]
         self.limits_reset = [550, 800]
-        self.lookahead = 50
+        self.lookahead = 9
         self.max_ndvi_pos = None
+        self.ndvi_spec = None
         self.nodat = [-999]*2
         self.division_factor = 1.0
         self.calc_crs_flag = False
+        self.calc_3band_flag = False
 
     def connections(self):
         self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="image"))
@@ -74,17 +77,24 @@ class ASI:
         self.gui.upWaveEdit.returnPressed.connect(lambda: self.limits_changed(self.gui.upWaveEdit))
         self.gui.peakLookEdit.returnPressed.connect(lambda: self.lookahead_changed())
 
-        self.gui.spinDivisionFactor.returnPressed.connect(lambda: self.init_asi())
-        self.gui.cmdFindNDVI.clicked.connect(lambda: self.init_asi())
+        self.gui.spinDivisionFactor.returnPressed.connect(lambda: self.division_factor_changed())
+        self.gui.cmdFindNDVI.clicked.connect(lambda: self.init_asi(mode='init'))
         self.gui.checkSaveCrs.stateChanged.connect(lambda: self.calc_crs())
+        self.gui.checkSave3Band.stateChanged.connect(lambda: self.calc_3band())
 
-        self.gui.pushRun.clicked.connect(lambda: self.init_run())
+        self.gui.pushFullRange.clicked.connect(lambda: self.plot_change(mode="full"))
+        self.gui.pushSetRange.clicked.connect(lambda: self.plot_change(mode="zoom"))
+
+        self.gui.pushRun.clicked.connect(lambda: self.init_asi(mode='run'))
         self.gui.pushClose.clicked.connect(lambda: self.gui.close())
 
     def open_file(self, mode):
         if mode == "image":
             bsq_input, _filter = QFileDialog.getOpenFileName(None, 'Select Input Image', '.', "ENVI Image (*.bsq)")
-            if not bsq_input: return
+            if not bsq_input:
+                return
+            if self.image is not None:
+                self.reset()
             self.image = bsq_input
             self.image = self.image.replace("\\", "/")
             try:
@@ -100,12 +110,11 @@ class ASI:
             else:
                 self.gui.lblInputImage.setText(bsq_input)
                 self.gui.lblNodatImage.setText(str(meta[0]))
+                self.gui.txtNodatOutput.setText(str(meta[0]))
                 self.nodat[0] = meta[0]
         elif mode == "output":
             #result, _filter = QFileDialog.getSaveFileName(None, 'Specify Output File', '.', "ENVI Image(*.bsq)")
             result = QFileDialog.getSaveFileName(caption='Specify Output File', filter="ENVI Image (*.bsq)")[0]
-            if not result:
-                raise ImportError('Input file could not be read.  Please make sure it is a valid ENVI image')
             self.out_path = result
             self.out_path = self.out_path.replace("\\", "/")
             self.gui.txtOutputImage.setText(result)
@@ -128,9 +137,16 @@ class ASI:
                 self.main.nodat_widget.gui.exec_()  # unlike .show(), .exec_() waits with execution of the code, until the app is closed
                 return self.main.nodat_widget.nodat, nbands, nrows, ncols
 
+    def reset(self):
+        self.max_ndvi_pos = None
+        self.init_plot()
+
     def limits_changed(self, textfeld):
         if self.image is None:
             QMessageBox.warning(self.gui, "No image loaded", "Please load an image, press 'Find' and adjust boundaries")
+        elif self.max_ndvi_pos is None:
+            QMessageBox.warning(self.gui, "No image loaded",
+                                "press 'Find' to initialize plot canvas")
         else:
             if textfeld == self.gui.lowWaveEdit:
                 try: self.limits[0] = int(str(textfeld.text()))
@@ -143,7 +159,7 @@ class ASI:
                 self.limits[1] = int(str(textfeld.text()))
             if not self.limits[1] > self.limits[0]:
                 ValueError(QMessageBox.critical(self.gui, "Error", "Lower boundary not smaller than upper"))
-                self.limits = self.limits_reset
+                self.limits[1] = self.limits[0] + 1
                 self.gui.lowWaveEdit.setText(str(self.limits[0]))
                 self.gui.upWaveEdit.setText(str(self.limits[1]))
 
@@ -151,37 +167,83 @@ class ASI:
 
     def lookahead_changed(self):
         if self.image is None:
-            QMessageBox.warning(self.gui, "No image loaded", "Please load an image, press 'Find' and adjust boundaries")
+            QMessageBox.warning(self.gui, "No image loaded",
+                                "Please load an image, press 'Find' and adjust boundaries")
         else:
-            self.lookahead = int(str(self.gui.peakLookEdit.text()))
-            self.init_asi()
+            try:
+                self.lookahead = int(str(self.gui.peakLookEdit.text()))
+            except ValueError:
+                QMessageBox.critical(self.gui, "Integer required",
+                                     "'%s is not a valid integer" % (self.gui.peakLookEdit.text()))
+            self.init_asi(mode='init')
             self.plot_example(self.max_ndvi_pos)
 
+    def division_factor_changed(self):
+        if self.image is None:
+            QMessageBox.warning(self.gui, "No image loaded",
+                                "Please load an image, press 'Find' and adjust boundaries")
+        else:
+            try:
+                self.division_factor = int(str(self.gui.spinDivisionFactor.text()))
+                self.gui.spinDivisionFactor.setText(str(self.division_factor))
+            except ValueError:
+                QMessageBox.critical(self.gui, "Integer required",
+                                     "'%s' is not a valid integer" % self.gui.neighborEdit.text())
+        self.init_asi(mode='init')
+        self.plot_example(self.max_ndvi_pos)
+
     def calc_crs(self):
-        if self.calc_crs_flag == False:
+        if not self.calc_crs_flag:
             self.calc_crs_flag = True
         else:
             self.calc_crs_flag = False
+
+    def calc_3band(self):
+        if not self.calc_3band_flag:
+            self.calc_3band_flag = True
+            self.gui.lowWaveEdit.setText(str(400))
+            self.limits[0] = 400
+            self.gui.upWaveEdit.setText(str(1090))
+            self.limits[1] = 1090
+            self.init_plot()
+            if self.max_ndvi_pos:
+                self.plot_example(max_ndvi_pos=self.max_ndvi_pos)
+        else:
+            self.calc_3band_flag = False
+            self.gui.lowWaveEdit.setText(str(self.limits_reset[0]))
+            self.limits[0] = self.limits_reset[0]
+            self.gui.upWaveEdit.setText(str(self.limits_reset[1]))
+            self.limits[1] = self.limits_reset[1]
+            self.init_plot()
+            if self.max_ndvi_pos:
+                self.plot_example(max_ndvi_pos=self.max_ndvi_pos)
+
 
     def init_plot(self):
         labelStyle = {'color': '#FFF', 'font-size': '12px'}
         self.gui.rangeView.setLabel('left', text="Reflectance [%]", **labelStyle)
         self.gui.rangeView.setLabel('bottom', text="Wavelength [nm]", **labelStyle)
 
-        self.gui.rangeView.plot(clear=False)
+        self.gui.rangeView.plot(clear=True)
         self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
         self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
         self.gui.rangeView.setXRange(350, 2500, padding=0)
 
+        self.gui.crsView.plot(clear=True)
         self.gui.crsView.setLabel('left', text="[-]", **labelStyle)
         self.gui.crsView.setLabel('bottom', text="Wavelength [nm]", **labelStyle)
         self.gui.crsView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
         self.gui.crsView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
         self.gui.crsView.setXRange(350, 2500, padding=0)
 
+        self.gui.lblPixelLocation.setText("")
+
+
     def plot_example(self, max_ndvi_pos):
-        plot_spec = self.core.in_raster[:, max_ndvi_pos[1], max_ndvi_pos[2]]
-        plot_spec = self.core.interp_watervapor_1d(plot_spec)
+        self.gui.lblPixelLocation.setText("Image pixel: row: %s | col: %s" % (
+            str(max_ndvi_pos[1]), str(max_ndvi_pos[2])))
+        self.gui.lblPixelLocation.setStyleSheet('color: green')
+        plot_spec = self.core.interp_watervapor_1d(self.core.ndvi_spec / self.division_factor)
 
         cr_spectrum, full_hull_x = self.core.segmented_convex_hull_1d(plot_spec)
 
@@ -198,136 +260,182 @@ class ASI:
         self.gui.crsView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
         self.gui.crsView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
 
-    def init_asi(self):
-        if self.image is None:
-            QMessageBox.critical(self.gui, "No image selected", "Please select an image to continue!")
-            return
-        try:
-            self.division_factor = float(self.gui.spinDivisionFactor.text())
-        except:
-            QMessageBox.critical(self.gui, "Error", "'%s' is not a valid division factor!" % self.gui.spinDivisionFactor.text())
-            return
+    def plot_change(self, mode):
+        if mode == 'zoom':
+            low, high = self.limits
+            self.gui.rangeView.setXRange(low, high)
+            self.gui.crsView.setXRange(low, high)
 
-        if self.max_ndvi_pos is None:
+        if mode == 'full':
+            low, high = [350, 2500]
+            self.gui.rangeView.setXRange(low, high)
+            self.gui.crsView.setXRange(low, high)
+
+    def init_asi(self, mode):
+        if mode == 'init':
+            if self.image is None:
+                QMessageBox.critical(self.gui, "No image selected", "Please select an image to continue!")
+                return
+            try:
+                self.division_factor = float(self.gui.spinDivisionFactor.text())
+            except:
+                QMessageBox.critical(self.gui, "Error", "'%s' is not a valid division factor!" % self.gui.spinDivisionFactor.text())
+                return
+
+            if not self.max_ndvi_pos:
+                # show progressbar - window
+                self.main.prg_widget.gui.lblCaption_l.setText("Searching NDVI > 0.85")
+                self.main.prg_widget.gui.lblCaption_r.setText(
+                    "Reading Input Image...this may take some time")
+                self.main.prg_widget.gui.prgBar.setValue(0)
+                self.main.prg_widget.gui.setModal(True)
+                self.main.prg_widget.gui.show()
+                self.main.QGis_app.processEvents()
+
+                # try
+                self.core = ASI_core(nodat_val=self.nodat, division_factor=self.division_factor,
+                                     max_ndvi_pos=self.max_ndvi_pos, ndvi_spec=self.ndvi_spec)
+                self.core.initialize_ASI(input=self.image, output=None,
+                                         limits=self.limits, lookahead=self.lookahead,
+                                         crs=self.calc_crs_flag,
+                                         calc3band=self.calc_3band_flag, mode='find')
+                self.core.in_raster = self.core.read_image(image=self.image)
+
+                # except MemoryError:
+                #     QMessageBox.critical(self.gui, 'error', "File too large to read. More RAM needed")
+                #     self.main.prg_widget.gui.allow_cancel = True
+                #     self.main.prg_widget.gui.close()
+                # except ValueError as e:
+                #     QMessageBox.critical(self.gui, 'error', str(e))
+                #     self.main.prg_widget.gui.allow_cancel = True  # The window may be cancelled
+                #     self.main.prg_widget.gui.close()
+                #     return
+                self.max_ndvi_pos, self.ndvi_spec = self.core.findHighestNDVIindex(
+                    prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+                #QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
+                self.main.prg_widget.gui.allow_cancel = True
+                self.main.prg_widget.gui.close()
+
+            else:
+                self.core = ASI_core(nodat_val=self.nodat, division_factor=self.division_factor,
+                                     max_ndvi_pos=self.max_ndvi_pos, ndvi_spec=self.ndvi_spec)
+                self.core.initialize_ASI(input=self.image, output=None,
+                                         limits=self.limits, lookahead=self.lookahead,
+                                         crs=self.calc_crs_flag,
+                                         calc3band=self.calc_3band_flag, mode='find')
+
+            self.plot_example(self.max_ndvi_pos)
+        if mode == 'run':
+            if self.image is None:
+                QMessageBox.critical(self.gui, "No image loaded",
+                                     "Please load an image to continue!")
+                return
+            try:
+                self.out_path = str(self.gui.txtOutputImage.text())
+            except:
+                QMessageBox.warning(self.gui, "No output file selected",
+                                    "Please select an output file for your image!")
+                return
+
             # show progressbar - window
-            self.main.prg_widget.gui.lblCaption_l.setText("Searching NDVI max")
-            self.main.prg_widget.gui.lblCaption_r.setText("Reading Input Image...this may take several minutes")
+            self.main.prg_widget.gui.lblCancel.setText("")
+            self.main.prg_widget.gui.lblCaption_l.setText("Analyzing Spectral Integral")
+            self.main.prg_widget.gui.lblCaption_r.setText(
+                "Reading Input Image...this may take several minutes")
             self.main.prg_widget.gui.prgBar.setValue(0)
             self.main.prg_widget.gui.setModal(True)
             self.main.prg_widget.gui.show()
             self.main.QGis_app.processEvents()
-
-        try:
-            self.core = ASI_core(nodat_val=self.nodat, division_factor=self.division_factor)
-            self.core.initialize_ASI(input=self.image, output=None,
-                                     limits=self.limits, lookahead=self.lookahead, crs=self.calc_crs_flag, mode='find')
-        except MemoryError:
-            QMessageBox.critical(self.gui, 'error', "File too large to read. More RAM needed")
-            self.main.prg_widget.gui.allow_cancel = True
-            self.main.prg_widget.gui.close()
-        except ValueError as e:
-            QMessageBox.critical(self.gui, 'error', str(e))
-            self.main.prg_widget.gui.allow_cancel = True  # The window may be cancelled
-            self.main.prg_widget.gui.close()
-            return
-
-        if self.max_ndvi_pos is None:
-            self.max_ndvi_pos = self.core.findHighestNDVIindex(prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
-
-
-            #QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
-            self.main.prg_widget.gui.allow_cancel = True
-            self.main.prg_widget.gui.close()
-        self.plot_example(self.max_ndvi_pos)
-        return
-
-    def init_run(self):
-        if self.image is None:
-            QMessageBox.critical(self.gui, "No image loaded", "Please load an image to continue!")
-            return
-        elif self.out_path is None:
-            QMessageBox.critical(self.gui, "No output file selected", "Please select an output file for your image!")
-            return
-        elif self.gui.txtNodatOutput.text() == "":
-            QMessageBox.warning(self.gui, "No Data Value", "Please specify No Data Value!")
-            #QMessageBox.critical(self.gui, "No Data Value", "Please specify No Data Value!")
-            return
-        else:
             try:
-                self.nodat[1] = int(self.gui.txtNodatOutput.text())
-            except:
-                QMessageBox.critical(self.gui, "Error", "'%s' is not a valid  No Data Value!" % self.gui.txtNodatOutput.text())
+                self.iASI = ASI_core(nodat_val=self.nodat, division_factor=self.division_factor,
+                                max_ndvi_pos=self.max_ndvi_pos, ndvi_spec=self.ndvi_spec)
+                self.iASI.initialize_ASI(input=self.image, output=self.out_path,
+                                        lookahead=self.lookahead,
+                                        limits=self.limits, crs=self.calc_crs_flag,
+                                        calc3band=self.calc_3band_flag, mode='run')
+            except MemoryError:
+                QMessageBox.critical(self.gui, 'error', "File too large to read")
+                self.main.prg_widget.gui.allow_cancel = True
+                self.main.prg_widget.gui.close()
+            except ValueError as e:
+                QMessageBox.critical(self.gui, 'error', str(e))
+                self.main.prg_widget.gui.allow_cancel = True  # The window may be cancelled
+                self.main.prg_widget.gui.close()
                 return
-        try:
-            self.division_factor = float(self.gui.spinDivisionFactor.text())
-        except:
-            QMessageBox.critical(self.gui, "Error", "'%s' is not a valid division factor!" % self.gui.spinDivisionFactor.text())
-            return
 
+            if self.gui.txtNodatOutput.text() == "":
+                QMessageBox.warning(self.gui, "No Data Value", "Please specify No Data Value!")
+                # QMessageBox.critical(self.gui, "No Data Value", "Please specify No Data Value!")
+                return
+            else:
+                try:
+                    self.nodat[1] = int(self.gui.txtNodatOutput.text())
+                except:
+                    QMessageBox.critical(self.gui, "Error",
+                                         "'%s' is not a valid  No Data Value!" % self.gui.txtNodatOutput.text())
+                    return
+            try:
+                self.division_factor = float(self.gui.spinDivisionFactor.text())
+            except:
+                QMessageBox.critical(self.gui, "Error",
+                                     "'%s' is not a valid division factor!" % self.gui.spinDivisionFactor.text())
+                return
+            try:
+                self.iASI.in_raster = self.core.in_raster[self.iASI.valid_bands, :, :]
+            except:
+                self.iASI.in_raster = self.iASI.read_image_window(image=self.image)
 
-        # show progressbar - window
-        self.main.prg_widget.gui.lblCaption_l.setText("Analyzing Spectral Integral")
-        self.main.prg_widget.gui.lblCaption_r.setText("Reading Input Image...this may take several minutes")
-        self.main.prg_widget.gui.prgBar.setValue(0)
-        self.main.prg_widget.gui.setModal(True)
-        self.main.prg_widget.gui.show()
-        self.main.QGis_app.processEvents()
+            if self.division_factor != 1.0:
+                self.iASI.in_raster = np.divide(self.iASI.in_raster, self.division_factor)
 
-        try:
-            iASI = ASI_core(nodat_val=self.nodat, division_factor=self.division_factor)
-            iASI.initialize_ASI(input=self.image, output=self.out_path, lookahead=self.lookahead, limits=self.limits,
-                                crs=self.calc_crs_flag, mode='run')
-        except MemoryError:
-            QMessageBox.critical(self.gui, 'error', "File too large to read")
+            # try:  # give it a shot
+            result, crs, res3band = self.iASI.execute_ASI(prg_widget=self.main.prg_widget,
+                                                          QGis_app=self.main.QGis_app)
+            # except:
+            #     QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
+            #     self.main.prg_widget.gui.allow_cancel = True
+            #     self.main.prg_widget.gui.close()
+            #     return
+            if not self.calc_3band_flag:
+                self.main.prg_widget.gui.lblCaption_r.setText("Writing Integral Output-File")
+                self.main.QGis_app.processEvents()
+                self.iASI.write_integral_image(result=result)
+
+            if self.calc_crs_flag:
+                self.main.prg_widget.gui.lblCaption_r.setText("Writing CRS Output-File")
+                self.main.QGis_app.processEvents()
+                self.iASI.write_crs_image(crs=crs)
+
+            if self.calc_3band_flag:
+                self.main.prg_widget.gui.lblCaption_r.setText("Writing 3-Band Output-File")
+                self.main.QGis_app.processEvents()
+                self.iASI.write_3band_image(res3band=res3band)
+
+            # try:
+            #
+            # except:
+            #     #QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
+            #     self.main.prg_widget.gui.allow_cancel = True
+            #     self.main.prg_widget.gui.close()
+            #     return
+
             self.main.prg_widget.gui.allow_cancel = True
             self.main.prg_widget.gui.close()
-        except ValueError as e:
-            QMessageBox.critical(self.gui, 'error', str(e))
-            self.main.prg_widget.gui.allow_cancel = True  # The window may be cancelled
-            self.main.prg_widget.gui.close()
-            return
 
-        #try:  # give it a shot
-
-        result, crs = iASI.execute_ASI(prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
-        # except:
-        #     QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
-        #     self.main.prg_widget.gui.allow_cancel = True
-        #     self.main.prg_widget.gui.close()
-        #     return
-
-        self.main.prg_widget.gui.lblCaption_r.setText("Writing Integral Output-File")
-        self.main.QGis_app.processEvents()
-
-        iASI.write_integral_image(result=result)
-
-        if crs is not None:
-            self.main.prg_widget.gui.lblCaption_r.setText("Writing CRS Output-File")
-            self.main.QGis_app.processEvents()
-
-            iASI.write_crs_image(crs=crs)
-        # try:
-        #
-        # except:
-        #     #QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
-        #     self.main.prg_widget.gui.allow_cancel = True
-        #     self.main.prg_widget.gui.close()
-        #     return
-
-        self.main.prg_widget.gui.allow_cancel = True
-        self.main.prg_widget.gui.close()
-
-        QMessageBox.information(self.gui, "Finish", "Integration finished successfully")
-        self.gui.close()
+            QMessageBox.information(self.gui, "Finish", "Integration finished successfully")
+            # self.gui.close()
 
     def abort(self, message):
         QMessageBox.critical(self.gui, "Error", message)
 
+
 class ASI_core:
 
-    def __init__(self, nodat_val, division_factor):
+    def __init__(self, nodat_val, division_factor, max_ndvi_pos, ndvi_spec):
         self.nodat = nodat_val
         self.division_factor = division_factor
+        self.max_ndvi_pos = max_ndvi_pos
+        self.ndvi_spec = ndvi_spec
         self.initial_values()
 
     def initial_values(self):
@@ -336,42 +444,66 @@ class ASI_core:
         self.limits = [550, 800]
         self.delta = 0
         self.pixel_total = None
-        self.grid, self.nrows, self.ncols, self.nbands, self.in_raster = (None, None, None, None, None)
+        self.grid, self.nrows, self.ncols, self.nbands = (None, None, None, None)
+        self.default_exclude = [i for j in
+                                (range(983, 1129), range(1430, 1650), range(2050, 2151))
+                                for i in j]
+        self.enmap_exclude = range(78, 88)
 
-    def initialize_ASI(self, input, output, limits, lookahead, crs, mode):
-
-        self.grid, self.wl, self.nbands, self.nrows, self.ncols, self.in_raster = self.read_image2(image=input)
+    def initialize_ASI(self, input, output, limits, lookahead, crs, calc3band, mode):
+        self.grid, self.wl, self.nbands, self.nrows, self.ncols = self.read_image_meta(image=input)
         self.n_wl = len(self.wl)
         self.pixel_total = self.nrows * self.ncols
         self.calc_crs_flag = crs
+        self.calc_3band_flag = calc3band
         if mode == 'find':
             self.output = None
         elif mode == 'run':
             self.output = output
-        self.limits = (self.find_closest(lambd=limits[0]), self.find_closest(lambd=limits[1]))
+
+        self.limits = (self.find_closest_wl(lambd=limits[0]), self.find_closest_wl(lambd=limits[1]))
         self.low_limit, self.upp_limit = (self.limits[0], self.limits[1])
         self.lookahead = lookahead
+        if len(self.wl) == 242:  # temporary solution for overlapping EnMap-Testdata Bands
+            self.wl = np.delete(self.wl, self.enmap_exclude)  # temporary solution!
+            self.n_wl = len(self.wl)
+            self.nbands = len(self.wl)
 
         self.valid_wl = [self.wl[i] for i in range(self.n_wl) if
                          self.wl[i] >= self.low_limit and self.wl[i] <= self.upp_limit]
+
         self.valid_wl = [int(round(i, 0)) for i in self.valid_wl]
 
         self.valid_bands = [i for i, x in enumerate(self.wl) if x in list(self.valid_wl)]
 
-    def read_image2(self, image):
-        '''
-        :param image:
-        :return:
-        '''
+    def read_image(self, image):
+        dataset = openRasterDataset(image)
+        raster = dataset.readAsArray()
+        if len(self.wl) > 2000:
+            raster[self.default_exclude, :, :] = 0
+        if len(raster) == 242:  # temporary solution for overlapping EnMap-Testdata Bands
+            raster = np.delete(raster, self.enmap_exclude, axis=0)  # temporary solution!
+        return raster
+
+    def read_image_window(self, image):
+        dataset = openRasterDataset(image)
+        raster = dataset.readAsArray()
+        if len(self.wl) > 2000:
+            raster[self.default_exclude, :, :] = 0
+        if len(raster) == 242:  # temporary solution for overlapping EnMap-Testdata Bands
+            raster = np.delete(raster, self.enmap_exclude, axis=0)  # temporary solution!
+        window = raster[self.valid_bands, :, :]
+        return window
+
+    @staticmethod
+    def read_image_meta(image):
         dataset = openRasterDataset(image)
 
         if dataset.grid() is not None:
             grid = dataset.grid()
         else:
             raise Warning('No coordinate system information provided in ENVI header file')
-
         metadict = dataset.metadataDict()
-
         nrows = int(metadict['ENVI']['lines'])
         ncols = int(metadict['ENVI']['samples'])
         nbands = int(metadict['ENVI']['bands'])
@@ -390,52 +522,70 @@ class ASI_core:
                 ['micrometers', 'µm', 'micrometer']:
             wave_convert = 1000
         else:
-            raise ValueError("Wavelength units must be nanometers or micrometers. Got '%s' instead" % metadict['ENVI'][
-                'wavelength units'])
-
-        in_matrix = dataset.readAsArray()
-
-        if self.division_factor != 1.0:
-            in_matrix = in_matrix / self.division_factor
+            raise ValueError(
+                "Wavelength units must be nanometers or micrometers. Got '%s' instead" %
+                metadict['ENVI'][
+                    'wavelength units'])
 
         wl = [float(item) * wave_convert for item in wave_dict]
         wl = [int(i) for i in wl]
 
-        return grid, wl, nbands, nrows, ncols, in_matrix
+        return grid, wl, nbands, nrows, ncols
 
     def write_integral_image(self, result):
-        output = Raster.fromArray(array=result, filename=self.output, grid=self.grid)
+        output = RasterDataset.fromArray(array=result, filename=self.output, grid=self.grid,
+                                         driver=EnviDriver())
 
-        output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
+        output.setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
 
-        for band in output.dataset().bands():
-            band.setDescription('Spectral Integral: [%i nm - %i nm]' % (self.limits[0], self.limits[1]))
+        for band in output.bands():
+            band.setDescription('Spectral Integral: [%i nm - %i nm]' %
+                                (self.limits[0], self.limits[1]))
             band.setNoDataValue(self.nodat[1])
+
+
 
     def write_crs_image(self, crs):  #
+        #band_string_nr = ['band ' + str(x) for x in self.valid_bands + 1]
         crs_output = self.output.split(".")
         crs_output = crs_output[0] + "_crs" + "." + crs_output[1]
-        output = Raster.fromArray(array=crs, filename=(crs_output), grid=self.grid)
+        output = RasterDataset.fromArray(array=crs, filename=crs_output, grid=self.grid,
+                                         driver=EnviDriver())
 
-        output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
+        output.setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
 
-        for i, band in enumerate(output.dataset().bands()):
-            #band.setDescription(self.valid_bands[i])
+        for i, band in enumerate(output.bands()):
+            #band.setDescription(band_string_nr[i])
             band.setNoDataValue(self.nodat[1])
 
-        output.dataset().setMetadataItem(key='wavelength', value=self.valid_wl, domain='ENVI')
-        output.dataset().setMetadataItem(key='wavelength units', value='Nanometers', domain='ENVI')
+        output.setMetadataItem(key='wavelength', value=self.valid_wl, domain='ENVI')
+        output.setMetadataItem(key='wavelength units', value='Nanometers', domain='ENVI')
 
-    def find_closest(self, lambd):
+    def write_3band_image(self, res3band):
+        band_str_nr = ['Car', 'Cab', 'H20']
+        bands_output = self.output.split(".")
+        bands_output = bands_output[0] + "_3band_car_cab_h2o" + "." + bands_output[1]
+        output = RasterDataset.fromArray(array=res3band, filename=bands_output, grid=self.grid,
+                                         driver=EnviDriver())
+
+        output.setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
+
+        for i, band in enumerate(output.bands()):
+            band.setDescription(band_str_nr[i])
+            band.setNoDataValue(self.nodat[1])
+
+    def find_closest_wl(self, lambd):
         distances = [abs(lambd - self.wl[i]) for i in range(self.n_wl)]
         return self.wl[distances.index(min(distances))]
+
+    def find_closest_value(self, lambd, array):
+        distances = [abs(lambd - array[i]) for i in range(len(array))]
+        return array[distances.index(min(distances))]
 
     def interp_watervapor_1d(self, in_array):
         x = np.arange(len(in_array))
         self.res = np.empty(shape=np.shape(in_array))
-        default_exclude = [i for j in (range(983, 1129), range(1430, 1650), range(2050, 2151)) for i in j]
-        in_array[default_exclude] = 0
-        
+
         if np.nan not in in_array:
             idx = np.asarray(np.nonzero(in_array))
             idx = idx.flatten()
@@ -449,13 +599,11 @@ class ASI_core:
 
     def interp_watervapor_3d(self, in_matrix):
         x = np.arange(len(in_matrix))
+        in_matrix[self.default_exclude] = 0
         self.res3d = np.empty(shape=np.shape(in_matrix))
-        default_exclude = [i for j in (range(983, 1129), range(1430, 1650), range(2050, 2151)) for i in j]
-        in_matrix[default_exclude] = 0
-        in_matrix[in_matrix == self.nodat[1]] = np.nan
         for row in range(in_matrix.shape[1]):
             for col in range(in_matrix.shape[2]):
-                if not np.isnan(in_matrix[:, row, col]).any():
+                if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
                     idx = np.asarray(np.nonzero(in_matrix[:, row, col]))
                     idx = idx.flatten()
                     interp = interp1d(x[idx], in_matrix[idx, row, col], axis=0, fill_value='extrapolate')
@@ -510,53 +658,50 @@ class ASI_core:
         :param in_array: convex hull example only
         :return:
         '''
-        valid_wl = range(350, 2501)
-        window = in_array
-
-        if not np.isnan(window).any():
-            max_, min_ = peakdetect(window, lookahead=self.lookahead, delta=self.delta)
+        if not np.isnan(in_array).any():
+            max_, min_ = peakdetect(in_array, lookahead=self.lookahead, delta=self.delta)
             full_hull_x = []
             full_hull_y = []
             if max_:  # if local maximum has been found
                 x_max, y_max = map(list, zip(*max_))
                 x = 0
-                x_seq = np.append(x_max, len(window))
-                # y_seq = np.append(y_max, window[-1])
+                x_seq = np.append(x_max, len(in_array))
+                # y_seq = np.append(y_max, in_array[-1])
                 for i in x_seq:  # segmented convex hull with detected maxima as separators
-                    wl_sample = valid_wl[x:i]
-
-                    valid_array = list(zip(wl_sample, window[x:i]))
+                    wl_sample = self.wl[x:i]
+                    valid_array = list(zip(wl_sample, in_array[x:i]))
                     hull = self.convex_hull(valid_array)
                     hull_x, hull_y = list(zip(*hull))
                     full_hull_x = np.append(full_hull_x, hull_x)
                     full_hull_y = np.append(full_hull_y, hull_y)
                     x = i
             else:  # no local maximum -> upper hull over limits
-
-                x_seq = np.append(0, len(window))
-                # y_seq = np.append(window[0], window[-1])
-                wl_sample = valid_wl[x_seq[0]:x_seq[-1]]
-
-                valid_array = list(zip(wl_sample, window))
+                x_seq = np.append(0, len(in_array))
+                # y_seq = np.append(in_array[0], in_array[-1])
+                wl_sample = self.wl[x_seq[0]:x_seq[-1]]
+                valid_array = list(zip(wl_sample, in_array))
                 hull = self.convex_hull(valid_array)
                 hull_x, hull_y = list(zip(*hull))
                 full_hull_x = hull_x
                 # full_hull_y = hull_y
 
-            interp_range = np.arange(len(valid_wl))
-            hull_x_index = np.asarray([i for i, e in enumerate(valid_wl) if e in list(full_hull_x)])
-            full_hull_x = interp1d(interp_range[hull_x_index], window[hull_x_index], axis=0, )
+            interp_range = np.arange(len(self.wl))
+            hull_x_index = np.asarray([i for i, e in enumerate(self.wl) if e in list(full_hull_x)])
+            full_hull_x = interp1d(interp_range[hull_x_index], in_array[hull_x_index])
             full_hull_x = full_hull_x(interp_range)
 
         else:
             full_hull_x = np.nan
             # full_hull_y = np.nan
 
-        cr_spectrum = window / full_hull_x
+        cr_spectrum = (full_hull_x - in_array) / full_hull_x
 
         return cr_spectrum, full_hull_x
 
     def segmented_convex_hull_3d(self, in_matrix, limits, lookahead=None, delta=None):
+
+        self.prg.gui.lblCaption_l.setText("Calculating convex hull and continuum removed spectra...")
+
         low, up = limits
         if not low >= 350 and not up <= 2500:
             raise ValueError("Wavelength range must be between 350 and 2500 nm!")
@@ -564,106 +709,227 @@ class ASI_core:
             raise ValueError("Lower boundary must be smaller than upper boundary!")
 
         # in_matrix[in_matrix < 0] = 0
-        in_matrix = self.interp_watervapor_3d(in_matrix)
+        if len(self.valid_bands) > 2000:
+            in_matrix = self.interp_watervapor_3d(in_matrix)
         if self.calc_crs_flag == True:
             cr_spectrum = np.empty(shape=(len(self.valid_wl), np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
+        else: cr_spectrum = None
         asi_result = np.empty(shape=(1, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
-
         for row in range(in_matrix.shape[1]):
             for col in range(in_matrix.shape[2]):
-                if not np.isnan(in_matrix[:, row, col]).any():
-
-
-                    window = in_matrix[self.valid_bands, row, col]
+                if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
+                    window = in_matrix[:, row, col]
                     max_, min_ = peakdetect(window, lookahead=lookahead, delta=delta)
-
                     full_hull_x = []
-                    full_hull_y = []
+                    #full_hull_y = []
                     if max_:  # if local maximum has been found
                         x_max, y_max = map(list, zip(*max_))
-                        x = 0
+
                         x_seq = np.append(x_max, len(window))
-                        # y_seq = np.append(y_max, window[-1])
+                        #y_seq = np.append(y_max, window[-1])
+                        if self.valid_wl[x_seq[0]] > 650:
+                            force_p = int(self.find_closest_value(554, self.valid_wl))
+                            c_band = self.valid_wl.index(force_p)
+                            x_seq = np.insert(x_seq, 0, c_band)
+                        x = 0
                         for i in x_seq:  # segmented convex hull with detected maxima as separators
                             wl_sample = self.valid_wl[x:i]
                             valid_array = list(zip(wl_sample, window[x:i]))
                             hull = self.convex_hull(valid_array)
                             hull_x, hull_y = list(zip(*hull))
                             full_hull_x = np.append(full_hull_x, hull_x)
-                            full_hull_y = np.append(full_hull_y, hull_y)
                             x = i
                     else:  # no local maximum -> upper hull over limits
-                        x_seq = np.append(0, len(window))
                         # y_seq = np.append(window[0], window[-1])
-                        wl_sample = self.valid_wl[x_seq[0]:x_seq[-1]]
-                        valid_array = list(zip(wl_sample, window))
-                        hull = self.convex_hull(valid_array)
-                        hull_x, hull_y = list(zip(*hull))
-                        full_hull_x = hull_x
-                        #full_hull_y = hull_y
+                        if self.calc_3band_flag:
+                            force_p = int(self.find_closest_value(554, self.valid_wl))
+                            c_band = self.valid_wl.index(force_p)
+                            x_seq = [len(window)]
+                            x_seq = np.insert(x_seq, 0, c_band)
+                            x = 0
+                            for i in x_seq:
+                                wl_sample = self.valid_wl[x:i]
+                                valid_array = list(zip(wl_sample, window[x:i]))
+                                hull = self.convex_hull(valid_array)
+                                hull_x, hull_y = list(zip(*hull))
+                                full_hull_x = np.append(full_hull_x, hull_x)
+                                x = i
+                        else:
+                            valid_array = list(zip(self.valid_wl, window))
+                            hull = self.convex_hull(valid_array)
+                            hull_x, hull_y = list(zip(*hull))
+                            full_hull_x = hull_x
 
                     interp_range = np.arange(len(self.valid_wl))
-                    hull_x_index = np.asarray([i for i, e in enumerate(self.valid_wl) if e in list(full_hull_x)])
-                    full_hull_x = interp1d(interp_range[hull_x_index], window[hull_x_index], axis=0, )
-                    full_hull_x = full_hull_x(interp_range)
+                    hull_x_index = np.asarray([i for i, e in enumerate(self.valid_wl) if
+                                               e in list(full_hull_x)])
+                    full_hull_x = interp1d(interp_range[hull_x_index], window[hull_x_index])
+                    contiguous_hull_x = full_hull_x(interp_range)
+                    #print(contiguous_hull_x)
 
                 else:
-                    full_hull_x = np.nan
+                    contiguous_hull_x = np.nan
                     #full_hull_y = np.nan
+                #print(np.count_nonzero(~np.isnan(contiguous_hull_x)))
+                if self.calc_crs_flag:
+                    if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
+                        try:
+                            cr_spectrum[:, row, col] = 1 - (in_matrix[:, row, col] / contiguous_hull_x)
+                        except ZeroDivisionError:
+                            cr_spectrum[:, row, col] = 0
+                        #print(cr_spectrum[:, row, col])
+                    else:
+                        cr_spectrum[:, row, col] = self.nodat[1]
 
-                if self.calc_crs_flag == True:
-                    cr_spectrum[:, row, col] = window / full_hull_x
-                asi_result[:, row, col] = np.nansum(full_hull_x - window) / np.nansum(full_hull_x)
+                asi_result[:, row, col] = \
+                    (np.nansum(contiguous_hull_x) - np.nansum(in_matrix[:, row, col])) / \
+                    np.nansum(contiguous_hull_x)
+
                 self.prgbar_process(pixel_no=row * self.ncols + col)
 
-        if self.calc_crs_flag == False:
-            return asi_result, None
-        else:
-            return asi_result, cr_spectrum
+        cr_spectrum[np.isnan(cr_spectrum)] = 0
+
+        return asi_result, cr_spectrum
+
+    def segmented_convex_hull_3d_3band(self, in_matrix, limits, lookahead=None, delta=None):
+
+        self.prg.gui.lblCaption_l.setText("Separating Car, Cab, and H2o integral ranges...")
+
+        low, up = limits
+        if not low >= 350 and not up <= 2500:
+            raise ValueError("Wavelength range must be between 350 and 2500 nm!")
+        if low >= up:
+            raise ValueError("Lower boundary must be smaller than upper boundary!")
+
+        res3band = np.empty(shape=(3, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
+        #in_matrix = self.interp_watervapor_3d(in_matrix)
+
+        closest = [self.find_closest_value(554, self.valid_wl),
+                        self.find_closest_value(900, self.valid_wl),
+                        self.find_closest_value(1100, self.valid_wl)]
+
+        closest_bands = [i for i, x in enumerate(self.valid_wl) if x in closest]
+        # window = in_matrix[self.valid_bands, :, :]
+
+        for row in range(in_matrix.shape[1]):
+            for col in range(in_matrix.shape[2]):
+                if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
+                    window = in_matrix[:, row, col]
+                    max_, min_ = peakdetect(window, lookahead=lookahead, delta=delta)
+                    full_hull_x = []
+                    if max_:  # if local maximum has been found
+                        x_max, y_max = map(list, zip(*max_))
+                        x = 0
+                        x_seq = np.append(x_max, len(window))
+                        if self.valid_wl[x_seq[0]] > 650:
+                            force_p = int(self.find_closest_value(554, self.valid_wl))
+                            c_band = self.valid_wl.index(force_p)
+                            x_seq = np.insert(x_seq, 0, c_band)
+                        for i in x_seq:  # segmented convex hull with detected maxima as separators
+                            wl_sample = self.valid_wl[x:i]
+                            valid_array = list(zip(wl_sample, window[x:i]))
+                            hull = self.convex_hull(valid_array)
+                            hull_x, hull_y = list(zip(*hull))
+                            full_hull_x = np.append(full_hull_x, hull_x)
+                            x = i
+                    else:  # no local maximum -> upper hull over limits
+                        force_p = int(self.find_closest_value(554, self.valid_wl))
+                        c_band = self.valid_wl.index(force_p)
+                        x_seq = [len(window)]
+                        x_seq = np.insert(x_seq, 0, c_band)
+                        x = 0
+                        for i in x_seq:
+                            wl_sample = self.valid_wl[x:i]
+                            valid_array = list(zip(wl_sample, window[x:i]))
+                            hull = self.convex_hull(valid_array)
+                            hull_x, hull_y = list(zip(*hull))
+                            full_hull_x = np.append(full_hull_x, hull_x)
+                            x = i
+
+                    interp_range = np.arange(len(self.valid_wl))
+                    #print('1: ', len(self.valid_wl))
+                    hull_x_index = np.asarray(
+                        [i for i, e in enumerate(self.valid_wl) if e in list(full_hull_x)])
+
+                    full_hull_x = interp1d(interp_range[hull_x_index], window[hull_x_index])
+                    contiguous_hull_x = full_hull_x(interp_range)
+                else:
+                    contiguous_hull_x = np.nan
+                k = 0
+                for j, i in enumerate(closest_bands):
+                    if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
+                        # print(contiguous_hull_x[k:i])
+                        # print(in_matrix[k:i, row, col])
+                        try:
+                            res3band[j, row, col] = (np.nansum(contiguous_hull_x[k:i]) - np.nansum(in_matrix[k:i, row, col])) / np.nansum(contiguous_hull_x[k:i])
+                        except ZeroDivisionError:
+                            res3band[j, row, col] = 0
+                        k = i
+                    else:
+                        res3band[j, row, col] = np.nan
+                        k = i
+                #print('2: ', len(in_matrix[:, row, col]))
+                #print('3: ', len(contiguous_hull_x))
+
+                self.prgbar_process(pixel_no=row * self.ncols + col)
+        res3band[np.isnan(res3band)] = self.nodat[1]
+        return res3band
 
     def execute_ASI(self, prg_widget=None, QGis_app=None):
         self.prg = prg_widget
         self.QGis_app = QGis_app
-        res, crs = self.segmented_convex_hull_3d(self.in_raster, self.limits, lookahead=self.lookahead, delta=self.delta)
+        res, crs, res3band = None, None, None
 
-        return res, crs
+        if self.calc_3band_flag:
+            res3band = self.segmented_convex_hull_3d_3band(in_matrix=self.in_raster,
+                                                           limits=self.limits,
+                                                           lookahead=self.lookahead,
+                                                           delta=self.delta)
+
+        if self.calc_crs_flag:
+            res, crs = self.segmented_convex_hull_3d(in_matrix=self.in_raster, limits=self.limits,
+                                                     lookahead=self.lookahead, delta=self.delta)
+
+        else:
+            res, crs = self.segmented_convex_hull_3d(in_matrix=self.in_raster, limits=self.limits,
+                                                     lookahead=self.lookahead, delta=self.delta)
+            crs = None
+
+        return res, crs, res3band
 
     def findHighestNDVIindex(self, prg_widget=None, QGis_app=None):  # acc. to hNDVI Oppelt(2002)
-        in_raster = self.in_raster
-        if np.isnan(self.in_raster).any():
-            self.in_raster[self.in_raster < 0.0] = np.nan
 
         self.prg = prg_widget
         self.QGis_app = QGis_app
 
-        NDVI_closest = [self.find_closest(lambd=827), self.find_closest(lambd=668)]
+        NDVI_closest = [self.find_closest_wl(lambd=827), self.find_closest_wl(lambd=668)]
         self.NDVI_bands = [i for i, x in enumerate(self.wl) if x in NDVI_closest]
 
-        NDVI_raster = np.empty(shape=(1, np.shape(in_raster)[1], np.shape(in_raster)[2]))
-
-        for row in range(np.shape(in_raster)[1]):
-            for col in range(np.shape(in_raster)[2]):
-                if np.nan not in self.in_raster[:, row, col]:
+        for row in range(np.shape(self.in_raster)[1]):
+            for col in range(np.shape(self.in_raster)[2]):
+                if np.mean(self.in_raster[:, row, col]) != self.nodat[0]:
                     R827 = self.in_raster[self.NDVI_bands[1], row, col]
                     R668 = self.in_raster[self.NDVI_bands[0], row, col]
-
                     try:
-                        NDVI_raster[:, row, col] = float(R827-R668)/float(R827+R668)
-
+                        NDVI = float(R827 - R668) / float(R827 + R668)
                     except ZeroDivisionError:
-                        NDVI_raster[:, row, col] = 0.0
-
+                        NDVI = 0
                     self.prgbar_process(pixel_no=row * self.ncols + col)
-
-                if NDVI_raster[:, row, col] > 0.85:
-                    break
+                    if NDVI > 0.85 and NDVI <= 1.0:
+                        self.NDVI = NDVI
+                        self.row = row
+                        self.col = col
+                        self.ndvi_spec = self.in_raster[:, row, col]
+                        break
+                else:
+                    continue
             else:
                 continue
             break
 
-        self.max_index = np.unravel_index(np.nanargmax(NDVI_raster), NDVI_raster.shape)
+        self.max_index = [self.NDVI, self.row, self.col]  # raster pos where NDVI > 0.85 was found
 
-        return self.max_index
+        return self.max_index, self.ndvi_spec
 
 
     def prgbar_process(self, pixel_no):
@@ -673,7 +939,7 @@ class ASI_core:
                 self.prg.gui.cmdCancel.setDisabled(False)
                 raise ValueError("Calculation canceled")
             self.prg.gui.prgBar.setValue(pixel_no*100 // self.pixel_total)  # progress value is index-orientated
-            self.prg.gui.lblCaption_l.setText("Processing...")
+            #self.prg.gui.lblCaption_l.setText("Processing...")
             self.prg.gui.lblCaption_r.setText("pixel %i of %i" % (pixel_no, self.pixel_total))
             self.QGis_app.processEvents()
 
@@ -729,7 +995,8 @@ class MainUiFunc:
     def __init__(self):
         self.QGis_app = QApplication.instance()
         self.asi = ASI(self)
-        self.asi_core = ASI_core(nodat_val=None, division_factor=None)
+        self.asi_core = ASI_core(nodat_val=None, division_factor=None, max_ndvi_pos=None,
+                                 ndvi_spec=None)
         self.nodat_widget = Nodat(self)
         self.prg_widget = PRG(self)
 
@@ -744,5 +1011,7 @@ if __name__ == '__main__':
         m = MainUiFunc()
         m.show()
         sys.exit(app.exec_())
+
+
 
 
