@@ -190,6 +190,25 @@ if not os.environ.get('READTHEDOCS') in ['True', 'TRUE', True]:
     EnMAPBoxApplication = EnMAPBoxApplication
 
 
+class Qgis(object):
+    '''Collection of some static methodes to programmatically interact with QGIS inside the QGIS console.'''
+
+    @classmethod
+    def activeRaster(cls):
+        from hubdc.core import openRasterDataset
+        return openRasterDataset(qgis.utils.iface.activeLayer().source())
+
+    @classmethod
+    def activeBand(cls, index):
+        return cls.activeRaster().band(index=index)
+
+    @classmethod
+    def activeData(cls, index=None):
+        if index is None:
+            return cls.activeRaster().readAsArray()
+        else:
+            return cls.activeBand(index=index).readAsArray()
+
 
 def run():
     """
