@@ -114,6 +114,36 @@ class TestEnMAPBox(unittest.TestCase):
         if SHOW_GUI:
             QGIS_APP.exec_()
 
+    def test_Qgis(self):
+
+
+        from enmapbox import Qgis
+        from enmapboxtestdata import enmap, landcover_polygons
+        from qgis.utils import iface
+        from enmapbox.testing import WMS_OSM, WMS_GMAPS, WFS_Berlin
+        layers = []
+        layers.append(QgsRasterLayer(enmap))
+        layers.append(QgsVectorLayer(landcover_polygons))
+        layers.append(QgsRasterLayer(WMS_OSM, 'osm', 'wms'))
+        layers.append(QgsRasterLayer(WFS_Berlin, 'wfs', 'WFS'))
+
+        self.assertIsInstance(iface, QgisInterface)
+        QgsProject.instance().addMapLayers(layers)
+
+        for layer in layers:
+            self.assertIsInstance(layer, QgsMapLayer)
+
+            iface.mapCanvas().setLayers([layer])
+            iface.setActiveLayer(layer)
+            self.assertEqual(iface.activeLayer(), layer)
+
+            # todo: test return types
+            result1 = Qgis.activeBand(0)
+            result2 = Qgis.activeData()
+            result3 = Qgis.activeRaster()
+            s = ""
+
+        s = ""
 
     def test_createDock(self):
 
