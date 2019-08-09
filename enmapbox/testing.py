@@ -27,7 +27,7 @@ from qgis.gui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
-from .externals.qps.testing import TestObjects
+from .externals.qps.testing import TestObjects, WFS_Berlin, WMS_GMAPS, WMS_OSM
 import qgis.utils
 import numpy as np
 from osgeo import gdal, ogr, osr
