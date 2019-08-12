@@ -199,16 +199,41 @@ class Qgis(object):
         return openRasterDataset(qgis.utils.iface.activeLayer().source())
 
     @classmethod
+    def activeVector(cls):
+        from hubdc.core import openVectorDataset
+        return openVectorDataset(qgis.utils.iface.activeLayer().source())
+
+    @classmethod
+    def activeDataset(cls):
+        try:
+            return cls.activeRaster()
+        except:
+            try:
+                return cls.activeVector()
+            except:
+                return None
+
+    @classmethod
     def activeBand(cls, index):
         return cls.activeRaster().band(index=index)
 
     @classmethod
     def activeData(cls, index=None):
-        if index is None:
-            return cls.activeRaster().readAsArray()
-        else:
-            return cls.activeBand(index=index).readAsArray()
 
+        from hubdc.core import RasterDataset, VectorDataset
+
+        dataset = cls.activeDataset()
+        if isinstance(dataset, RasterDataset):
+            if index is None:
+                return cls.activeRaster().readAsArray()
+            else:
+                return cls.activeBand(index=index).readAsArray()
+        elif isinstance(dataset, VectorDataset):
+            return dataset.attributeTable()
+        elif dataset is None:
+            return None
+        else:
+            raise TypeError()
 
 def run():
     """
