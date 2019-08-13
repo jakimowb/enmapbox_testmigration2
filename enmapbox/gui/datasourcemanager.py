@@ -86,19 +86,6 @@ class DataSourceManager(QObject):
         except Exception as ex:
             messageLog(ex)
 
-
-    def registerQgsProject(self, qgsProject:QgsProject):
-        """
-        Registers a QgsProject instance and listens to changes of its QgsMapLayerStore
-        :param qgsProject: QgsProject
-        """
-        assert isinstance(qgsProject, QgsProject)
-
-        qgsProject.layersAdded.connect(self.addSources)
-
-        # todo: what happens when layers are removed from the QgsProject?
-
-
     def __iter__(self):
         return iter(self.mSources)
 
@@ -1219,15 +1206,13 @@ class DataSourcePanelUI(QgsDockWidget, loadUI('datasourcepanel.ui')):
 
         self.dataSourceTreeView.setDragDropMode(QAbstractItemView.DragDrop)
 
-        #init actions
-
-
+        # init actions
         self.actionAddDataSource.triggered.connect(lambda : self.mDataSourceManager.addDataSourceByDialog())
         self.actionRemoveDataSource.triggered.connect(lambda: self.mDataSourceManager.removeSources(self.selectedDataSources()))
         self.actionRemoveDataSource.setEnabled(False) #will be enabled with selection of node
         def onSync():
             self.mDataSourceManager.importSourcesFromQGISRegistry()
-            self.mDataSourceManager.exportSourcesToQGISRegistry(showLayers=True)
+        #    self.mDataSourceManager.exportSourcesToQGISRegistry(showLayers=True)
         self.actionSyncWithQGIS.triggered.connect(onSync)
 
         hasQGIS = qgisAppQgisInterface() is not None

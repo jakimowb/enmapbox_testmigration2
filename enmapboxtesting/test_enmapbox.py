@@ -107,9 +107,18 @@ class TestEnMAPBox(unittest.TestCase):
 
     def test_instanceWithData(self):
 
+        if True:
+            from qgis.utils import iface
+            iface.layerTreeView().parent().parent().show()
+
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(self.EMB, EnMAPBox.instance())
         self.EMB.loadExampleData()
+
+        canvases = self.EMB.mapCanvases()
+        self.assertTrue(canvases[-1] == self.EMB.activeMapCanvas())
+
+
 
         if SHOW_GUI:
             QGIS_APP.exec_()
