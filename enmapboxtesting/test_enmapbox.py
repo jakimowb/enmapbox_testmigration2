@@ -134,7 +134,11 @@ class TestEnMAPBox(unittest.TestCase):
         layers.append(QgsRasterLayer(enmap))
         layers.append(QgsVectorLayer(landcover_polygons))
         layers.append(QgsRasterLayer(WMS_OSM, 'osm', 'wms'))
-        layers.append(QgsRasterLayer(WFS_Berlin, 'wfs', 'WFS'))
+        layers.append(QgsVectorLayer(WFS_Berlin, 'wfs', 'WFS'))
+
+        for lyr in layers:
+            self.assertIsInstance(lyr, QgsMapLayer)
+            self.assertTrue(lyr.isValid())
 
         self.assertIsInstance(iface, QgisInterface)
         QgsProject.instance().addMapLayers(layers)
