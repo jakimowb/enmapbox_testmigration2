@@ -195,27 +195,37 @@ class Qgis(object):
 
     @classmethod
     def activeRaster(cls):
-        from hubdc.core import openRasterDataset
-        return openRasterDataset(qgis.utils.iface.activeLayer().source())
+        try:
+            from hubdc.core import openRasterDataset
+            return openRasterDataset(qgis.utils.iface.activeLayer().source())
+        except:
+            return None
 
     @classmethod
     def activeVector(cls):
-        from hubdc.core import openVectorDataset
-        return openVectorDataset(qgis.utils.iface.activeLayer().source())
+        try:
+            from hubdc.core import openVectorDataset
+            return openVectorDataset(qgis.utils.iface.activeLayer().source())
+        except:
+            return None
 
     @classmethod
     def activeDataset(cls):
-        try:
-            return cls.activeRaster()
-        except:
-            try:
-                return cls.activeVector()
-            except:
-                return None
+        dataset = cls.activeRaster()
+        if dataset is None:
+            dataset = cls.activeVector()
+        return dataset
 
     @classmethod
     def activeBand(cls, index):
-        return cls.activeRaster().band(index=index)
+        dataset = cls.activeRaster()
+        if dataset is not None:
+            try:
+                return dataset.band(index=index)
+            except:
+                return None
+        else:
+            return None
 
     @classmethod
     def activeData(cls, index=None):
