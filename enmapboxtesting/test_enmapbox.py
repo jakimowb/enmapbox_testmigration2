@@ -107,9 +107,18 @@ class TestEnMAPBox(unittest.TestCase):
 
     def test_instanceWithData(self):
 
+        if True:
+            from qgis.utils import iface
+            iface.layerTreeView().parent().parent().show()
+
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(self.EMB, EnMAPBox.instance())
         self.EMB.loadExampleData()
+
+        canvases = self.EMB.mapCanvases()
+        self.assertTrue(canvases[-1] == self.EMB.activeMapCanvas())
+
+
 
         if SHOW_GUI:
             QGIS_APP.exec_()
@@ -125,7 +134,11 @@ class TestEnMAPBox(unittest.TestCase):
         layers.append(QgsRasterLayer(enmap))
         layers.append(QgsVectorLayer(landcover_polygons))
         layers.append(QgsRasterLayer(WMS_OSM, 'osm', 'wms'))
-        layers.append(QgsRasterLayer(WFS_Berlin, 'wfs', 'WFS'))
+        layers.append(QgsVectorLayer(WFS_Berlin, 'wfs', 'WFS'))
+
+        for lyr in layers:
+            self.assertIsInstance(lyr, QgsMapLayer)
+            self.assertTrue(lyr.isValid())
 
         self.assertIsInstance(iface, QgisInterface)
         QgsProject.instance().addMapLayers(layers)
