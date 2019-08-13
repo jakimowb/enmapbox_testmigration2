@@ -24,7 +24,7 @@ from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapMouseEvent
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
-
+import time
 import numpy as np
 
 from enmapbox.gui import *
@@ -40,6 +40,7 @@ N_MAX_GRP = 2
 
 DEBUG = False
 
+KEY_LAST_CLICKED = 'LAST_CLICKED'
 
 
 
@@ -893,8 +894,8 @@ class MapCanvas(QgsMapCanvas):
         #assert isinstance(parentMapDock, MapDock)
 
         self._id = 'MapCanvas.#{}'.format(MapCanvas._cnt)
-        self.mName = self._id
-
+        self.setWindowTitle(self._id)
+        self.setProperty(KEY_LAST_CLICKED, time.time())
         MapCanvas._cnt += 1
         self.mCrsExtentInitialized = False
         #self.mapdock = parentMapDock
@@ -926,6 +927,8 @@ class MapCanvas(QgsMapCanvas):
 
 
     def mousePressEvent(self, event:QMouseEvent):
+
+        self.setProperty(KEY_LAST_CLICKED, time.time())
 
         b = event.button() == Qt.LeftButton
         if b and isinstance(self.mapTool(), QgsMapTool):
@@ -1199,17 +1202,16 @@ class MapCanvas(QgsMapCanvas):
     def moveCenterToPoint(self, spatialPoint):
         assert isinstance(spatialPoint, SpatialPoint)
 
-
+    def setWindowTitle(self, name: str):
+        b = self.windowTitle() != name
+        super(MapCanvas, self).setWindowTitle(name)
+        if b:
+            self.sigNameChanged.emit(self.windowTitle())
     def setName(self, name):
-        assert isinstance(name, str)
-        old = self.mName
-        self.mName = name
-
-        if old != self.mName:
-            self.sigNameChanged.emit(self.mName)
+        self.setWindowTitle(name)
 
     def name(self):
-        return self.mName
+        return self.windowTitle()
 
     def zoomToPixelScale(self, spatialPoint:SpatialPoint=None):
         unitsPxX = []
@@ -1444,10 +1446,10 @@ class MapDock(Dock):
         self.mBaseName = self.title()
 
         self.mCanvas = MapCanvas(self)
-        self.mCanvas.setName(self.title())
+        self.mCanvas.setWindowTitle(self.title())
         self.mCanvas.sigNameChanged.connect(self.setTitle)
 
-        self.sigTitleChanged.connect(self.mCanvas.setName)
+        self.sigTitleChanged.connect(self.mCanvas.setWindowTitle)
         self.mCanvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
         self.mCanvas.sigCrsChanged.connect(self.sigCrsChanged.emit)
 

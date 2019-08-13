@@ -89,7 +89,11 @@ class MapCanvasTests(unittest.TestCase):
             center0.setX(center0.x()+ 10*i)
             c.setCenter(center0)
             canvases.append(c)
+            self.assertIsInstance(c, MapCanvas)
+            self.assertIsInstance(c.property(KEY_LAST_CLICKED), float)
         c1, c2, c3 = canvases
+
+
 
         center0 = c1.center()
         CanvasLink(c1,c2, CanvasLink.LINK_ON_CENTER_SCALE)
