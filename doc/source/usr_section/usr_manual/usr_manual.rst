@@ -8,6 +8,7 @@ User Manual
    gui.rst
    tools.rst
    applications.rst
+   python_console.rst
    processing_datatypes.rst
    processing_algorithms/processing_algorithms.rst
    testdataset.rst
