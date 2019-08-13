@@ -15,7 +15,7 @@ DIR_SITEPACKAGES = jn(DIR_ENMAPBOX_REPO, 'site-packages')
 DIR_QGISRESOURCES = jn(DIR_ENMAPBOX_REPO, 'qgisresources')
 
 # 1. compile all EnMAP-Box resource files (*.qrc) into corresponding python modules (*.py)
-from make.compileresourcefiles import compileResourceFiles, compileQGISResourceFiles
+from .compileresourcefiles import compileResourceFiles, compileQGISResourceFiles
 compileResourceFiles()
 
 # 2. create the qgisresource folder
