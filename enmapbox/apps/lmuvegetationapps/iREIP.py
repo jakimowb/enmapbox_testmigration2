@@ -24,6 +24,10 @@ class iREIP_GUI(QDialog, loadUIFormClass(pathUI)):
         self.setupUi(self)
         QApplication.instance().installEventFilter(self)
 
+        self.rangeView.setBackground(QColor('black'))
+        self.firstDerivView.setBackground(QColor('black'))
+        self.secondDerivView.setBackground(QColor('black'))
+
 
 class Nodat_GUI(QDialog, loadUIFormClass(pathUI2)):
     def __init__(self, parent=None):

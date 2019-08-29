@@ -27,6 +27,8 @@ class ASI_GUI(QDialog, loadUIFormClass(pathUI)):
         super(ASI_GUI, self).__init__(parent)
         self.setupUi(self)
         QApplication.instance().installEventFilter(self)
+        self.rangeView.setBackground(QColor('black'))
+        self.crsView.setBackground(QColor('black'))
 
 
 class Nodat_GUI(QDialog, loadUIFormClass(pathUI2)):
