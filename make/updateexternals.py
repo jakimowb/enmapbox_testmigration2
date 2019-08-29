@@ -124,10 +124,10 @@ if __name__ == "__main__":
                  ,'hub-workflow'
                  #'enmapboxapplications'
                  #'enmapboxgeoalgorithms'
-                 #,'enmap-box-lmu-vegetation-apps'
+                 ,'enmap-box-lmu-vegetation-apps'
                  #'virtual-raster-builder',
                  #'enpt_enmapboxapp'
-                 #,'qps'
+                 ,'qps'
                 ]
     updateRemotes(to_update)
     exit(0)
