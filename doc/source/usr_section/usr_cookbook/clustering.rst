@@ -8,7 +8,7 @@ algorithm first and then apply it to an image with :guilabel:`Predict Clustering
 This recipe demonstrates the basic workflow of applying clusterers
 using K-Means clustering (:ref:`Fit KMeans`) and the :ref:`test dataset <test_dataset>`.
 
-.. seealso:: You can find all the available transformation algorithms :ref:`here <Clustering>`.
+.. seealso:: You can find all the available clustering algorithms :ref:`here <Clustering>`.
 
 #. Open the test dataset
 #. In the processing toolbox go to :menuselection:`EnMAP-Box --> Clustering --> Fit KMeans`

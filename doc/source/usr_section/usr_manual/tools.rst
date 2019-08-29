@@ -58,5 +58,31 @@ Metadata editor
 Reclassify
 ==========
 
+The reclassify tool is a convenient graphical user interface for reclassifying classification rasters.
+
+Specify the file you want to reclassify under :guilabel:`Input File`. Either use the dropdown menu to select one of the
+layers which are already loaded or use the |mActionAddRasterLayer| button to open the file selection dialog.
+
+Under :guilabel:`Output Classification` you can specify the classification scheme of the output classification which
+will be created.
+
+* You can import schemes from existing rasters or text files by clicking the |plus_green| button.
+* Use the |classinfo_add| button to manually add classes.
+
+.. image:: /img/reclassifytool1.png
+
+* The table is sorted by the **Label** field in ascending order. The value in **Label** will become the pixel value
+  of this class and can not be altered.
+* Double-click into the **Name** field in order to edit the class name.
+* Double-click into the **Color** field to pick a color.
+
+Under :guilabel:`Class Mapping` you can reassign the old classes (**From**) to values of the new classification scheme (**To**)
+
+.. image:: /img/reclassifytool2.png
+
+Specify the output path for the reclassified image under :guilabel:`Output File`
+
+Click :guilabel:`OK` to run the tool.
+
 Raster Builder
 ==============

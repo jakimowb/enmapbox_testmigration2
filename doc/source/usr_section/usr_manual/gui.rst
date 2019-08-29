@@ -1,4 +1,4 @@
- .. include:: /icon_links.rst
+.. include:: /icon_links.rst
 
 .. _gui:
 

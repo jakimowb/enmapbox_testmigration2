@@ -1,3 +1,5 @@
+.. _Create Raster:
+
 Create Raster
 =============
 
