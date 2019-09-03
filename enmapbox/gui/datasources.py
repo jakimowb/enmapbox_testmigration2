@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-import collections, uuid, pathlib
+import collections, uuid, pathlib, typing
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from enmapbox.gui import *
@@ -49,6 +49,10 @@ def rasterProvider(uri:str) -> str:
         lyr = QgsRasterLayer(uri, '', p)
         if lyr.isValid():
             return lyr.providerType()
+    # try multi-resolution raster
+    ds = gdal.Open(uri)
+    if isinstance(ds, gdal.Dataset):
+        return 'gdal'
     return None
 
 
@@ -117,7 +121,7 @@ class DataSourceFactory(object):
         return src
 
     @staticmethod
-    def isVectorSource(src)->(str,str):
+    def isVectorSource(src)->typing.Tuple[str,str]:
         """
         Tests if 'src' is a vector data source. If True, returns the uri and provider key
         :param src: any type
@@ -140,7 +144,7 @@ class DataSourceFactory(object):
         return None, None
 
     @staticmethod
-    def isRasterSource(src)->(str, str, str):
+    def isRasterSource(src)->typing.Tuple[str, str, str]:
         """
         Returns the source uri, name and provider keys if it can be handled as known raster data source.
         :param src: any type
@@ -173,7 +177,7 @@ class DataSourceFactory(object):
 
 
     @staticmethod
-    def isSpeclib(src)->(str, str):
+    def isSpeclib(src)->typing.Tuple[str, str]:
         """
         :param src: path or object that might be a SpectralLibrary
         :return: (uri, None) if True
@@ -198,7 +202,7 @@ class DataSourceFactory(object):
 
 
     @staticmethod
-    def isHubFlowObj(src)->(bool, object):
+    def isHubFlowObj(src)->typing.Tuple[bool, object]:
         """
         Returns the source uri if it can be handled as known hubflow data source.
         :param src: any type
