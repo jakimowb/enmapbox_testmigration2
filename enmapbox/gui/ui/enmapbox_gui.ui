@@ -23,7 +23,7 @@
   <property name="unifiedTitleAndToolBarOnMac">
    <bool>true</bool>
   </property>
-  <widget class="QWidget" name="centralwidget">
+  <widget class="CentralFrame" name="centralFrame">
    <property name="acceptDrops">
     <bool>true</bool>
    </property>
@@ -46,56 +46,6 @@
     <property name="bottomMargin">
      <number>2</number>
     </property>
-    <item>
-     <widget class="CentralFrame" name="centralFrame">
-      <property name="acceptDrops">
-       <bool>true</bool>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::NoFrame</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <property name="spacing">
-        <number>2</number>
-       </property>
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
-        <number>0</number>
-       </property>
-       <item>
-        <widget class="QgsMessageBar" name="messageBar">
-         <property name="frameShape">
-          <enum>QFrame::StyledPanel</enum>
-         </property>
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="DockArea" name="dockArea" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -709,20 +659,8 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QgsMessageBar</class>
-   <extends>QFrame</extends>
-   <header>qgis.gui</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>DockArea</class>
-   <extends>QWidget</extends>
-   <header>enmapbox.gui.docks</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>CentralFrame</class>
-   <extends>QFrame</extends>
+   <extends>QWidget</extends>
    <header>enmapbox.gui.enmapboxgui</header>
    <container>1</container>
   </customwidget>
