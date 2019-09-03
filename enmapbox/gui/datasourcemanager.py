@@ -79,7 +79,6 @@ class DataSourceManager(QObject):
         DataSourceManager._testInstance = self
         self.mSources = list()
 
-
         try:
             from hubflow import signals
             signals.sigFileCreated.connect(self.addSource)
@@ -172,16 +171,6 @@ class DataSourceManager(QObject):
 
         return results
 
-    def updateFromQgsProject(self, mapLayers=None):
-        """
-        Add data sources registered in the QgsProject to the data source manager
-        :return: List of added new DataSources
-        """
-        if mapLayers is None:
-            mapLayers = QgsProject.instance().mapLayers().values()
-
-        added = [self.addSource(lyr, name=lyr.name()) for lyr in mapLayers]
-        return [a for a in added if isinstance(a, DataSource)]
 
     def uriList(self, sourceTypes='ALL') -> list:
         """
@@ -191,27 +180,6 @@ class DataSourceManager(QObject):
         """
         return [ds.uri() for ds in self.sources(sourceTypes=sourceTypes)]
 
-
-    def onMapLayerRegistryLayersAdded(self, lyrs:list):
-        """
-        Response to added layers in the QGIS layer registry
-        :param lyrs: [list-of-added-QgsMapLayer]
-        """
-        lyrsToAdd = []
-        for l in lyrs:
-            assert isinstance(l, QgsMapLayer)
-
-        #todo: do we need to filter something here?
-
-        """
-        for lyr in lyrs:
-            if isinstance(lyr, QgsVectorLayer):
-                if lyr.dataProvider().dataSourceUri().startswith('memory?'):
-                    continue
-            lyrsToAdd.append(lyr)
-        """
-        lyrsToAdd = lyrs
-        self.addSources(lyrsToAdd)
 
     def addSources(self, sources) -> list:
         """
@@ -1197,7 +1165,7 @@ class DataSourceTreeView(TreeView):
         EnMAPBox.instance().dockManager.createDock('SPECLIB', speclib=speclib)
 
 
-class DataSourcePanelUI(QgsDockWidget, loadUI('datasourcepanel.ui')):
+class DataSourcePanelUI(QDockWidget, loadUI('datasourcepanel.ui')):
     def __init__(self, parent=None):
         super(DataSourcePanelUI, self).__init__(parent)
         self.setupUi(self)
@@ -1256,9 +1224,6 @@ class DataSourcePanelUI(QgsDockWidget, loadUI('datasourcepanel.ui')):
 
         s = self.selectedDataSources()
         self.actionRemoveDataSource.setEnabled(len(s) > 0)
-
-
-
 
     def selectedDataSources(self)->list:
         """

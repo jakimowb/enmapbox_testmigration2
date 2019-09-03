@@ -59,6 +59,11 @@ class CentralFrame(QFrame):
         super(CentralFrame, self).__init__(*args, **kwds)
         self.setAcceptDrops(True)
 
+    def sizeHint(self):
+        print('SIZEHINT')
+        return super(CentralFrame, self).sizeHint()
+
+
     def dragEnterEvent(self, event):
         pass
         # self.sigDragEnterEvent.emit(event)
@@ -110,6 +115,7 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+        self.setCentralWidget(self.centralFrame)
         self.setWindowIcon(getIcon())
         self.setVisible(False)
 
@@ -120,6 +126,16 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         import enmapbox
         self.setWindowTitle('EnMAP-Box 3 ({})'.format(enmapbox.__version__))
 
+
+
+    def addDockWidget(self, *args, **kwds):
+
+        super(EnMAPBoxUI, self).addDockWidget(*args, **kwds)
+
+
+    def resizeDocks(self, *args):
+        print('RESIZE DOCKS')
+        super(EnMAPBoxUI, self).resizeDocks(*args)
 
     def menusWithTitle(self, title:str):
         """
@@ -215,16 +231,15 @@ class EnMAPBox(QgisInterface, QObject):
         self.mCurrentMapSpectraLoading = 'TOP'
         self.mCurrentMapLocation = None
 
-
         # define managers
-        import enmapbox.gui
+
         from enmapbox.gui.datasourcemanager import DataSourceManager
         from enmapbox.gui.dockmanager import DockManager
 
         #
         splash.showMessage('Init DataSourceManager')
         self.dataSourceManager = DataSourceManager()
-        #self.dataSourceManager.sigDataSourceAdded.connect(lambda: self.dataSourceManager.exportSourcesToQGISRegistry(False))
+
         self.dataSourceManager.sigDataSourceAdded.connect(self.updateHiddenQGISLayers)
         self.dataSourceManager.sigDataSourceRemoved.connect(self.updateHiddenQGISLayers)
 
@@ -244,8 +259,8 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.dockManager.connectDockArea(self.ui.dockArea)
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
+
         self.ui.dockPanel.connectDockManager(self.dockManager)
-        from enmapbox.gui.dockmanager import DockTreeView
         self.ui.dockPanel.dockTreeView.currentLayerChanged.connect(self.onCurrentLayerChanged)
         model = self.ui.dockPanel.dockTreeView.model()
         assert isinstance(model, DockManagerTreeModel)
@@ -568,14 +583,6 @@ class EnMAPBox(QgisInterface, QObject):
         except Exception as ex:
             print(ex)
 
-        # add entries to menu panels
-        for dock in self.ui.findChildren(QDockWidget):
-            self.ui.menuPanels.addAction(dock.toggleViewAction())
-
-            # tabbify dock widgets
-
-            # self.tabifyDockWidget(self.dockPanel, self.dataSourcePanel)
-            # self.tabifyDockWidget(self.processingPanel, self.dataSourcePanel)
 
 
     def addApplication(self, app):
@@ -927,28 +934,19 @@ class EnMAPBox(QgisInterface, QObject):
         self.deleteLater()
 
     def onLogMessage(self, message, tag, level):
-        m = message.split('\n')
+        msgLines = message.split('\n')
         if '' in message.split('\n'):
-            m = m[0:m.index('')]
-        m = '\n'.join(m)
+            msgLines = msgLines[0:msgLines.index('')]
 
-
-        if not DEBUG and not re.search('(enmapbox|plugins)', m):
+        # use only messages relevant to "EnMAP-Box"
+        if not re.search(r'enmap-?box', tag, re.I):
             return
 
-        #print('{}({}): {}'.format(tag, level, message))
-
-        if False and level in [Qgis.Critical, Qgis.Warning]:
-            widget = self.ui.messageBar.createMessage(tag, message)
-            button = QPushButton(widget)
-            button.setText("Show")
-            from enmapbox.gui.utils import showMessage
-            button.pressed.connect(lambda: showMessage(message, '{}'.format(tag), level))
-            widget.layout().addWidget(button)
-            self.ui.messageBar.pushWidget(widget,level,SETTINGS.value('EMB_MESSAGE_TIMEOUT', 0))
-
-            # print on normal console
-
+        mbar = self.ui.messageBar
+        assert isinstance(mbar, QgsMessageBar)
+        line1 = msgLines[0]
+        showMore = '' if len(msgLines) == 1 else '\n'.join(msgLines[1:])
+        mbar.pushMessage(tag, line1, showMore, level, 50)
 
     def onDataDropped(self, droppedData):
         assert isinstance(droppedData, list)
@@ -1595,7 +1593,14 @@ class EnMAPBox(QgisInterface, QObject):
 
 
     def addDockWidget(self, area, dockWidget, orientation=None):
-        'Add a dock widget to the main window'
+        """
+        Add a dock widget to the main window
+        :param area:
+        :param dockWidget:
+        :param orientation:
+        """
+
+
         self.ui.addDockWidget(area, dockWidget, orientation=orientation)
 
     def addLayerMenu(self):
@@ -1665,7 +1670,16 @@ class EnMAPBox(QgisInterface, QObject):
         return QMenu()
 
     def addDockWidget(self, area, dockwidget):
+
+
+
         self.ui.addDockWidget(area, dockwidget)
+        self.ui.setCorner(Qt.TopLeftCorner, Qt.LeftDockWidgetArea)
+        self.ui.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
+        self.ui.setCorner(Qt.TopRightCorner, Qt.RightDockWidgetArea)
+        self.ui.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
+
+        self.ui.menuPanels.addAction(dockwidget.toggleViewAction())
 
     def loadExampleData(self):
         """
