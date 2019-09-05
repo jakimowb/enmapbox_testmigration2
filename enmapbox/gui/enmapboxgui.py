@@ -356,9 +356,9 @@ class EnMAPBox(QgisInterface, QObject):
                 for lyr in layers:
                     assert isinstance(lyr, QgsMapLayer)
                     hiddenGroup.removeLayer(lyr)
-                print('REMOVE {} HIDDEN LAYERS'.format(len(layers)))
-                for l in layers:
-                    print(l)
+                #print('REMOVE {} HIDDEN LAYERS'.format(len(layers)))
+                #for l in layers:
+                #    print(l)
                 QgsProject.instance().removeMapLayers([l.id() for l in layers])
 
         def addHiddenLayers(layers):
@@ -575,7 +575,7 @@ class EnMAPBox(QgisInterface, QObject):
             self.ui.processingPanel = self.addPanel(area, panel)
 
         except Exception as ex:
-            print(ex)
+            print(ex, file=sys.stderr)
 
 
 
@@ -918,7 +918,7 @@ class EnMAPBox(QgisInterface, QObject):
             elif os.path.isfile(p):
                 self.applicationRegistry.addApplicationListing(p)
             else:
-                print('Unable to load EnMAPBoxApplication(s) from path: "{}"'.format(p))
+                print('Unable to load EnMAPBoxApplication(s) from path: "{}"'.format(p), file=sys.stderr)
 
 
     def exit(self):
