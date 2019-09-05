@@ -88,7 +88,7 @@ def toDataSourceList(mimeData):
                     if isinstance(dataSource, DataSource):
                         dataSources.append(dataSource)
                         continue
-                dataSources.extend(DataSourceFactory.Factory(attributes['source'], name=attributes['name']))
+                dataSources.extend(DataSourceFactory.create(attributes['source'], name=attributes['name']))
 
     return dataSources
 
@@ -226,7 +226,7 @@ def extractMapLayers(mimeData:QMimeData)->list:
 
     elif QGIS_URILIST_MIMETYPE in mimeData.formats():
         for uri in QgsMimeDataUtils.decodeUriList(mimeData):
-            dataSources = DataSourceFactory.Factory(uri)
+            dataSources = DataSourceFactory.create(uri)
             for dataSource in dataSources:
                 if isinstance(dataSource, DataSourceSpatial):
                     lyr = dataSource.createUnregisteredMapLayer()
@@ -236,7 +236,7 @@ def extractMapLayers(mimeData:QMimeData)->list:
 
     elif MDF_URILIST in mimeData.formats():
         for url in mimeData.urls():
-            dataSources = DataSourceFactory.Factory(url)
+            dataSources = DataSourceFactory.create(url)
             for dataSource in dataSources:
                 if isinstance(dataSource, DataSourceSpatial) and not isinstance(dataSource, DataSourceSpectralLibrary):
                     lyr = dataSource.createUnregisteredMapLayer()

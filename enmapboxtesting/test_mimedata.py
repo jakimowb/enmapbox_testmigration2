@@ -47,7 +47,7 @@ class MimeDataTests(unittest.TestCase):
         from enmapbox.gui.datasourcemanager import DataSourceManager
 
 
-        dataSources = DataSourceFactory.Factory([enmap, hires, library, landcover_polygons])
+        dataSources = DataSourceFactory.create([enmap, hires, library, landcover_polygons])
         dataSourceUUIDs = [ds.uuid() for ds in dataSources]
         dataSourceObjectIDs = [id(ds) for ds in dataSources]
 

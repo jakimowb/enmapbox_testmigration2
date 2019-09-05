@@ -238,7 +238,7 @@ class DataSourceFactory(object):
 
 
     @staticmethod
-    def Factory(src, name=None, icon=None)->list:
+    def create(src, name=None, icon=None)->list:
         """
         Returns the best suited DataSource Instance(s) to an unknown source
         :param source: anything
@@ -250,7 +250,7 @@ class DataSourceFactory(object):
         if isinstance(src, list):
             sources = []
             for s in src:
-                sources.extend(DataSourceFactory.Factory(s, name=name, icon=icon))
+                sources.extend(DataSourceFactory.create(s, name=name, icon=icon))
             return sources
         else:
 
@@ -948,7 +948,7 @@ class DataSourceListModel(QAbstractListModel):
     def addSource(self, uri):
         from enmapbox.gui.datasources import DataSourceFactory, DataSource, DataSourceRaster, DataSourceVector, HubFlowDataSource
 
-        dataSources = DataSourceFactory.Factory(uri)
+        dataSources = DataSourceFactory.create(uri)
         for ds in dataSources:
             assert isinstance(ds, DataSource)
             #is is a DataSource the EnMAP-Box can handle

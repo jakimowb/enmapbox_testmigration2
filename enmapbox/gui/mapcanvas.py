@@ -1464,7 +1464,7 @@ class MapDock(Dock):
 
         if initSrc is not None:
             from enmapbox.gui.datasources import DataSourceFactory
-            dataSources = DataSourceFactory.Factory(initSrc)
+            dataSources = DataSourceFactory.create(initSrc)
             lyrs = [ds.createUnregisteredMapLayer() for ds in dataSources]
             if len(lyrs) > 0:
                 self.mCanvas.setLayers(lyrs)
