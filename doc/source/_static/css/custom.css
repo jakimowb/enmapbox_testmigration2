@@ -1,6 +1,16 @@
 /*
 .wy-nav-content {
- max-width: 5000px;
+    padding: 1.618em 3.236em;
+    height: 100%;
+    max-width: 1000px;
+    margin: auto;
+    background-color: #ffffff;
+}
+*/
+
+/*
+.wy-nav-content-wrap {
+    background-color: white;
 }
 */
 

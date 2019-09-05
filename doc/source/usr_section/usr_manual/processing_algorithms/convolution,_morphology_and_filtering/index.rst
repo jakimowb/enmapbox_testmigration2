@@ -1,3 +1,5 @@
+.. _Convolution, Morphology and Filtering:
+
 Convolution, Morphology and Filtering
 =====================================
 

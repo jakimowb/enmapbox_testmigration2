@@ -1,3 +1,5 @@
+.. _Resampling and Subsetting:
+
 Resampling and Subsetting
 =========================
 

@@ -318,6 +318,8 @@
    :width: 28px
 .. |cb1| image:: /img/icons/cb1.png
    :width: 28px
+.. |mActionAddRasterLayer| image:: /img/icons/mActionAddRasterLayer.svg
+   :width: 28px
 .. |mActionDataSourceManager| image:: /img/icons/mActionDataSourceManager.svg
    :width: 28px
 .. |mActionDeleteAttribute| image:: /img/icons/mActionDeleteAttribute.svg

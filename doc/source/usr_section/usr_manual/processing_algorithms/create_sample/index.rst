@@ -1,3 +1,5 @@
+.. _Create Sample:
+
 Create Sample
 =============
 
