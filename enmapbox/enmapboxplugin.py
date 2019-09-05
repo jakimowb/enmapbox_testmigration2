@@ -50,8 +50,7 @@ class EnMAPBoxPlugin(object):
         self.initialDependencyCheck()
 
         # initialize resources etc.
-        enmapbox.initEnMAPBoxResources()
-        enmapbox.initEditorWidgets()
+        enmapbox.initAll()
 
         # add the EnMAP-Box Provider
         enmapbox.initEnMAPBoxProcessingProvider()
@@ -97,9 +96,9 @@ class EnMAPBoxPlugin(object):
         self.toolbarActions = []
 
         from enmapbox.gui.enmapboxgui import EnMAPBox
-
+        import enmapbox
         self.enmapBox = None
-        action = QAction(EnMAPBox.getIcon(), u'EnMAP-Box', self.iface)
+        action = QAction(enmapbox.icon(), u'EnMAP-Box', self.iface)
         self.iface.addPluginToRasterMenu('EnMAP-Box', action)
 
         action.triggered.connect(self.run)

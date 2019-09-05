@@ -18,11 +18,58 @@ from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 from enmapboxtestdata import enmap, hires, library
 from enmapbox.gui.mapcanvas import *
+SHOW_GUI = True
 
-from enmapbox.gui.layerproperties import *
-
+from enmapbox.gui.maplayers import *
+from enmapbox.testing import TestObjects
 class LayerRendererTests(unittest.TestCase):
 
+
+    def test_EnMAPBoxRasterLayerConfigWidget(self):
+
+
+
+        #lyr1 = TestObjects.createRasterLayer(nb=5)
+        #lyr2 = TestObjects.createRasterLayer(nb=1)
+        from enmapboxtestdata import enmap as pathEnMAP
+        from enmapboxtestdata import hires as pathHyMap
+
+        lyr1 = QgsRasterLayer(pathEnMAP, 'EnMAP')
+        lyr2 = QgsRasterLayer(pathHyMap, 'HyMAP')
+        lyr3 = QgsRasterLayer(pathHyMap, 'HyMAP single pseudo')
+        layers = [lyr1, lyr2, lyr3]
+        QgsProject.instance().addMapLayers(layers)
+
+
+        canvas = QgsMapCanvas()
+        canvas.setLayers(layers)
+        canvas.setDestinationCrs(layers[0].crs())
+        canvas.setExtent(canvas.fullExtent())
+
+        shader = QgsRasterShader(0, 255)
+        r = QgsSingleBandPseudoColorRenderer(lyr3.dataProvider(), 1, shader)
+        r.createShader()
+        lyr3.setRenderer(r)
+        w = EnMAPBoxRasterLayerConfigWidget(lyr3, canvas)
+        w.widgetChanged.connect(w.apply)
+        w.show()
+
+
+        w = None
+        def onChanged(layer):
+            if isinstance(layer, QgsRasterLayer):
+                w = EnMAPBoxRasterLayerConfigWidget(layer, canvas)
+                w.widgetChanged.connect(w.apply)
+                w.show()
+                s = ""
+
+        cb = QgsMapLayerComboBox()
+        cb.layerChanged.connect(onChanged)
+        cb.show()
+
+
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
 
     def test_defaultRenderer(self):

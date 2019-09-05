@@ -20,7 +20,7 @@
 
 import unittest
 from enmapbox.testing import initQgisApplication, TestObjects
-QGIS_APP = initQgisApplication()
+QGIS_APP = initQgisApplication(loadProcessingFramework=False)
 
 SHOW_GUI = True
 
@@ -91,6 +91,7 @@ class TestEnMAPBox(unittest.TestCase):
 
     def setUp(self):
         self.EMB = EnMAPBox(None)
+        s = ""
 
     def tearDown(self):
         self.EMB.close()
@@ -101,6 +102,11 @@ class TestEnMAPBox(unittest.TestCase):
 
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(self.EMB, EnMAPBox.instance())
+        log = QgsApplication.instance().messageLog()
+
+        from enmapbox import messageLog
+        messageLog('EnMAPBox TEST STARTED', Qgis.Info)
+        s = ""
 
         if SHOW_GUI:
             QGIS_APP.exec_()
