@@ -338,11 +338,11 @@ class SpectralProfileBridge(QAbstractTableModel):
 
     def addBridgeItem(self, item:SpectralProfileBridgeItem)->SpectralProfileBridgeItem:
         if item not in self.mBridgeItems:
-
+            
             self.addSpeclib(item.mSpeclib)
             self.addSource(item.mSource)
-
-
+            
+            
             i = len(self)
             self.beginInsertRows(QModelIndex(), i, i)
             self.mBridgeItems.insert(i, item)
@@ -366,14 +366,14 @@ class SpectralProfileBridge(QAbstractTableModel):
     def bridgeItems(self)->typing.List[SpectralProfileBridgeItem]:
         return self.mBridgeItems[:]
 
-
+    
     def addSource(self, source):
         self.mSourceModel.addSource(source)
         
     def removeSource(self, source):
-
+        
         self.mSourceModel.removeSource(source)
-
+    
     def addSpeclib(self, speclib:SpectralLibrary):
         sl = self.mSpeclibModel.addSpeclib(speclib)
         if isinstance(sl, SpectralLibrary):
@@ -382,6 +382,7 @@ class SpectralProfileBridge(QAbstractTableModel):
             self.addBridgeItem(item)
 
     def removeSpeclib(self, speclib:SpectralLibrary):
+
         self.mSpeclibModel.removeSpeclib(speclib)
 
 
