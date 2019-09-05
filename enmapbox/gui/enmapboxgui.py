@@ -30,7 +30,7 @@ from enmapbox.gui.mapcanvas import *
 from ..externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from ..externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-
+from enmapbox.gui.spectralprofilesources import SpectralProfileSourcePanel
 SETTINGS = enmapbox.enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
@@ -566,7 +566,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.dataSourcePanel = self.addPanel(area, enmapbox.gui.datasourcemanager.DataSourcePanelUI(self.ui))
         self.ui.dockPanel = self.addPanel(area, enmapbox.gui.dockmanager.DockPanelUI(self.ui))
         self.ui.cursorLocationValuePanel = self.addPanel(area, CursorLocationInfoDock(self.ui), show=False)
-
+        self.ui.spectralProfileSourcePanel = self.addPanel(area, SpectralProfileSourcePanel(self.ui))
         area = Qt.RightDockWidgetArea
 
         try:
