@@ -975,8 +975,7 @@ class DataSourceTreeView(TreeView):
         idx = self.currentIndex()
         assert isinstance(event, QContextMenuEvent)
 
-        if not idx.isValid():
-            return
+
         col = idx.column()
         model = self.model()
         assert isinstance(model, DataSourceManagerTreeModel)
@@ -1000,7 +999,7 @@ class DataSourceTreeView(TreeView):
         m = QMenu()
 
         if isinstance(node, DataSourceGroupTreeNode):
-            a = m.addAction('Clear')
+            a = m.addAction('Remove')
             assert isinstance(a, QAction)
             a.setToolTip('Removes all datasources from this node')
             a.triggered.connect(lambda: model.dataSourceManager.removeSources(node.dataSources()))
@@ -1104,6 +1103,11 @@ class DataSourceTreeView(TreeView):
                     a.setParent(None)
                     m.addAction(a)
                     a.setParent(m)
+
+        a = m.addAction('Remove all DataSources')
+        a.setToolTip('Removes all data source.')
+        a.triggered.connect(self.onRemoveAllDataSources)
+
         m.exec_(self.viewport().mapToGlobal(event.pos()))
 
     def openInMap(self, dataSource: DataSourceSpatial, mapCanvas=None, rgb=None, sampleSize=256):
@@ -1165,6 +1169,13 @@ class DataSourceTreeView(TreeView):
     def onSaveAs(self, dataSource):
 
         pass
+
+
+    def onRemoveAllDataSources(self):
+        model = self.model()
+        assert isinstance(model, DataSourceManagerTreeModel)
+        model.dataSourceManager.clear()
+        s = ""
 
     def onOpenSpeclib(self, speclib: SpectralLibrary):
         """
