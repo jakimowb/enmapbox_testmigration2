@@ -399,10 +399,10 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.speclibWidget = dock.mSpeclibWidget
         assert isinstance(self.speclibWidget, SpectralLibraryWidget)
 
-        self.showMapSpectra = CheckableLayerTreeNode(self, 'Show map profiles', checked=Qt.Checked)
-        self.showMapSpectra.setCheckState(Qt.Checked if self.speclibWidget.mapInteraction() else Qt.Unchecked)
-        self.showMapSpectra.sigCheckStateChanged.connect(
-            lambda s: self.speclibWidget.setMapInteraction(s == Qt.Checked))
+        #self.showMapSpectra = CheckableLayerTreeNode(self, 'Show map profiles', checked=Qt.Checked)
+        #self.showMapSpectra.setCheckState(Qt.Checked if self.speclibWidget.mapInteraction() else Qt.Unchecked)
+        #self.showMapSpectra.sigCheckStateChanged.connect(
+        #    lambda s: self.speclibWidget.setMapInteraction(s == Qt.Checked))
         self.profilesNode = LayerTreeNode(self, 'Profiles', value=0)
         self.speclibWidget.mSpeclib.committedFeaturesAdded.connect(self.updateNodes)
         self.speclibWidget.mSpeclib.committedFeaturesRemoved.connect(self.updateNodes)

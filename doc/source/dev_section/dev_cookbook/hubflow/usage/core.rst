@@ -91,27 +91,25 @@ Prints:
 Fit Random Forest classifier, apply to a raster and assess the performance
 --------------------------------------------------------------------------
 
-.. literalinclude:: classification/classification_fit_predict_accass.py
+.. literalinclude:: ../examples/classification/fit_predict_accass.py
    :start-after: START
    :end-before: END
 
-.. figure:: classification/classification_fit_predict_accass1.png
+.. figure:: ../examples/classification/fit_predict_accass1.png
 
     Random Forest Feature Importances
 
-
 .. raw:: html
-   :file: classification/classification_fit_predict_accass.html
+   :file: ../examples/classification/fit_predict_accass.html
 
-.. figure:: classification/classification_fit_predict_accass2.png
+.. figure:: ../examples/classification/fit_predict_accass2.png
 
     Random Forest Classification
 
 HTML report:
 
 .. raw:: html
-
-   <iframe src="../_static/ClassificationPerformance.html" width=100% height=500px></iframe>
+   :file: ../examples/classification/ClassificationPerformance.html
 
 Set class definition
 --------------------
@@ -133,13 +131,13 @@ Regression
 ==========
 
 Fit Random Forest regressor, apply to a raster and assess the performance
---------------------------------------------------------------------------
+-------------------------------------------------------------------------
 
-.. literalinclude:: ../examples/regression/regression_fit_predict_accass.py
+.. literalinclude:: ../examples/regression/fit_predict_accass.py
    :start-after: START
    :end-before: END
 
-.. figure:: ../examples/regression/regression_fit_predict_accass.png
+.. figure:: ../examples/regression/fit_predict_accass.png
 
     Random Forest (multi target) regression as false-color-composition
     (Red='impervious', Green='vegetation' and Blue='soil' pixel fractions)
@@ -147,8 +145,7 @@ Fit Random Forest regressor, apply to a raster and assess the performance
 HTML report:
 
 .. raw:: html
-
-   <iframe src="../_static/RegressionPerformance.html" width=100% height=500px></iframe>
+   :file: ../examples/regression/RegressionPerformance.html
 
 Clustering
 ==========

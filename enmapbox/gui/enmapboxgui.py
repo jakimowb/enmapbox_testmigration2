@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-import enum
+import enum, warnings
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
@@ -58,11 +58,6 @@ class CentralFrame(QFrame):
     def __init__(self, *args, **kwds):
         super(CentralFrame, self).__init__(*args, **kwds)
         self.setAcceptDrops(True)
-
-    def sizeHint(self):
-        print('SIZEHINT')
-        return super(CentralFrame, self).sizeHint()
-
 
     def dragEnterEvent(self, event):
         pass
@@ -116,14 +111,15 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
         self.setCentralWidget(self.centralFrame)
-        self.setWindowIcon(getIcon())
+        import enmapbox
+        self.setWindowIcon(enmapbox.icon())
         self.setVisible(False)
 
         if sys.platform == 'darwin':
             self.menuBar().setNativeMenuBar(False)
         # self.showMaximized()
         self.setAcceptDrops(True)
-        import enmapbox
+
         self.setWindowTitle('EnMAP-Box 3 ({})'.format(enmapbox.__version__))
 
 
@@ -132,10 +128,6 @@ class EnMAPBoxUI(QMainWindow, loadUI('enmapbox_gui.ui')):
 
         super(EnMAPBoxUI, self).addDockWidget(*args, **kwds)
 
-
-    def resizeDocks(self, *args):
-        print('RESIZE DOCKS')
-        super(EnMAPBoxUI, self).resizeDocks(*args)
 
     def menusWithTitle(self, title:str):
         """
@@ -155,7 +147,9 @@ def getIcon()->QIcon:
     Returns the EnMAP icon
     :return: QIcon
     """
-    return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
+    warnings.warn(DeprecationWarning('Use enmapbox.icon() instead to return the EnMAP-Box icon'))
+    return enmapbox.icon()
+
 
 
 
@@ -341,7 +335,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def updateHiddenQGISLayers(self)->int:
         """
-        Ensures that all Layers used in the EnMAP-Box are available visible in the QGIS Layer Registry as well
+        Ensures that all Layers used in the EnMAP-Box are available and visible in the QGIS Layer Registry as well
         e.g. to be visible in the QgsMapLayerComboBox
 
         Naming:
@@ -357,11 +351,15 @@ class EnMAPBox(QgisInterface, QObject):
         """
 
         def removeHiddenLayers(layers):
-            hiddenGroup = self._hiddenQGISLayerGroup()
-            for lyr in layers:
-                assert isinstance(lyr, QgsMapLayer)
-                hiddenGroup.removeLayer(lyr)
-            QgsProject.instance().removeMapLayers([l.id() for l in layers])
+            if len(layers) > 0:
+                hiddenGroup = self._hiddenQGISLayerGroup()
+                for lyr in layers:
+                    assert isinstance(lyr, QgsMapLayer)
+                    hiddenGroup.removeLayer(lyr)
+                print('REMOVE {} HIDDEN LAYERS'.format(len(layers)))
+                for l in layers:
+                    print(l)
+                QgsProject.instance().removeMapLayers([l.id() for l in layers])
 
         def addHiddenLayers(layers):
             hiddenGroup = self._hiddenQGISLayerGroup()
@@ -369,10 +367,6 @@ class EnMAPBox(QgisInterface, QObject):
             for lyr in layers:
                 assert isinstance(lyr, QgsMapLayer)
                 hiddenGroup.addLayer(lyr)
-
-
-
-
 
 
         # create Lookup for existing MapCanvas layers
@@ -1243,7 +1237,13 @@ class EnMAPBox(QgisInterface, QObject):
         Returns the EnMAP-Box icon.
         :return: QIcon
         """
-        return getIcon()
+        warnings.warn(DeprecationWarning('Use EnMAPBoxicon() instras'))
+        return EnMAPBox.icon()
+
+
+    @staticmethod
+    def icon()->QIcon:
+        return enmapbox.icon()
 
     def run(self):
         """
