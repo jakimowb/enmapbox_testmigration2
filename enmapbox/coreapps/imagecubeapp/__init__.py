@@ -22,7 +22,7 @@ class ImageCubeApplication(EnMAPBoxApplication):
         self.licence = 'GNU GPL-3'
         self.mErrorMessage = None
         self.mImageCubeWidget = None
-        self.mIcon = enmapBox.getIcon()
+        self.mIcon = enmapBox.icon()
         self.mActionStartGUI = QAction(self.name)
         self.mActionStartGUI.setIcon(self.icon())
         self.mActionStartGUI.triggered.connect(self.startGUI)

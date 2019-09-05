@@ -64,6 +64,22 @@ class standardDataSources(unittest.TestCase):
                 ]
 
 
+    def test_netCDF(self):
+
+        path = r'Q:\Processing_BJ\99_OSARIS_Testdata\Loibl-2019-OSARIS-Ala-Archa\Coherences\20151207--20151231-coherence.grd'
+
+        if os.path.isfile(path):
+            uri, name, provider = DataSourceFactory.isRasterSource(path)
+
+            dsl = DataSourceFactory.Factory(uri)
+
+            self.assertIsInstance(dsl, list)
+            for ds in dsl:
+                self.assertIsInstance(ds, DataSourceRaster)
+
+            s = ""
+
+
     def test_hubflowsources(self):
 
         from hubflow.testdata import enmapClassification, vector, enmap
@@ -263,15 +279,6 @@ class standardDataSources(unittest.TestCase):
         self.assertTrue((l == len(reg.mapLayers())))
 
         reg.removeAllMapLayers()
-        self.assertTrue(len(reg.mapLayers()) == 0)
-        self.assertTrue((len(dsm) == l))
-        dsm.exportSourcesToQGISRegistry()
-        self.assertTrue((len(dsm) == l))
-        self.assertTrue(len(reg.mapLayers()) == l)
-        dsm.exportSourcesToQGISRegistry()
-        self.assertTrue((len(dsm) == l))
-        self.assertTrue(len(reg.mapLayers()) == l, msg='Do not export source uri if they are already known to QGIS')
-
 
         # test doubles input
         l = len(dsm)

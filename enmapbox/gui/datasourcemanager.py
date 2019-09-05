@@ -78,10 +78,21 @@ class DataSourceManager(QObject):
         super(DataSourceManager, self).__init__()
         DataSourceManager._testInstance = self
         self.mSources = list()
-
+        self.mShowSpatialSourceinQGSAndEnMAPBox = True
         try:
             from hubflow import signals
-            signals.sigFileCreated.connect(self.addSource)
+
+            def addNoneImageSource(path:str):
+                if isinstance(path, str) and os.path.isfile(path):
+
+                    if self.mShowSpatialSourceinQGSAndEnMAPBox:
+                        if re.search(r'\.pkl$', path):
+                            self.addSource(path)
+                    else:
+
+                        self.addSource(path)
+
+            signals.sigFileCreated.connect(addNoneImageSource)
         except Exception as ex:
             messageLog(ex)
 

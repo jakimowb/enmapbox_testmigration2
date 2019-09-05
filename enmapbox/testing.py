@@ -147,7 +147,8 @@ class TestObjects(TestObjects):
                 self.description = 'test app'
 
             def icon(self)->QIcon:
-                return EnMAPBox.getIcon()
+
+                return EnMAPBox.icon()
 
             def menu(self, parentMenu)->QMenu:
 

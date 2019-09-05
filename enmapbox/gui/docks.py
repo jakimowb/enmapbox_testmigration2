@@ -44,7 +44,7 @@ class DockWindow(QMainWindow):
         QMainWindow.__init__(self, **kwargs)
         self.setWindowTitle('EnMAPBox')
         import enmapbox.gui.enmapboxgui
-        self.setWindowIcon(enmapbox.gui.enmapboxgui.getIcon())
+        self.setWindowIcon(enmapbox.icon())
         self.setCentralWidget(area)
 
     def closeEvent(self, *args, **kwargs):

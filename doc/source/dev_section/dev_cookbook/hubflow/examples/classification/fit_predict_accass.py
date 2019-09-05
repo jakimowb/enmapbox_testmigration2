@@ -2,7 +2,7 @@ from hubdc.docutils import createDocPrint, createReportSaveHTML, createClassLege
 from hubflow.core import *
 
 print = createDocPrint(__file__)
-Report.saveHTML = createReportSaveHTML()
+#Report.saveHTML = createReportSaveHTML()
 plt.show = createPyPlotSavefig(filename=basename(__file__).replace('.py', '1.png'))
 
 # START

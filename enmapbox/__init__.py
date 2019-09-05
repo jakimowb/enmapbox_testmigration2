@@ -31,8 +31,10 @@
 import sys, os, site, re
 
 import qgis
+from qgis.gui import QgisInterface
 from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider
 from qgis.PyQt.QtCore import QSettings
+from qgis.PyQt.QtGui import QIcon
 
 
 __version__ = '3.4' #subsub-version information is added during build process
@@ -84,6 +86,13 @@ site.addsitedir(DIR_SITEPACKAGES)
 #    pass
 
 
+def icon()->QIcon:
+    """
+    Returns the EnMAP icon.
+    (Requires that the EnMAP resources have been loaded before)
+    :return: QIcon
+    """
+    return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
 
 
 def messageLog(msg, level=Qgis.Info):
@@ -164,6 +173,16 @@ def initEnMAPBoxProcessingProvider():
             info.append(p)
         print('\n'.join(info), file=sys.stderr)
 
+_mapLayerConfigFactories = []
+def initMapLayerConfigWidgetFactories():
+
+    from enmapbox.gui.maplayers import EnMAPBoxRasterLayerConfigWidgetFactory
+
+    import qgis.utils
+    if isinstance(qgis.utils.iface, QgisInterface):
+        factory = EnMAPBoxRasterLayerConfigWidgetFactory()
+        _mapLayerConfigFactories.append(factory)
+        qgis.utils.iface.registerMapLayerConfigWidgetFactory(factory)
 
 def initAll():
     """
@@ -172,7 +191,7 @@ def initAll():
     initEnMAPBoxResources()
     initEditorWidgets()
     initEnMAPBoxProcessingProvider()
-
+    initMapLayerConfigWidgetFactories()
 
 
 
