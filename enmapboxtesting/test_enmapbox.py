@@ -18,11 +18,11 @@
 # noinspection PyPep8Naming
 
 
-import unittest
+import unittest, os
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication(loadProcessingFramework=False)
 
-SHOW_GUI = True
+SHOW_GUI = True and os.environ.get('CI') is None
 
 from enmapbox import initAll
 initAll()

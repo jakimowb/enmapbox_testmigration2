@@ -20,10 +20,9 @@ import collections, uuid, pathlib, typing
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from enmapbox.gui import *
+from enmapbox.gui import subLayerDefinitions, openRasterLayerSilent
 from enmapbox.gui.utils import *
-from ..externals.qps.speclib.spectrallibraries import AbstractSpectralLibraryIO
 from osgeo import gdal, ogr
-
 
 def rasterProvider(uri:str) -> str:
     """
@@ -958,8 +957,10 @@ class DataSourceFactory(object):
             return []
 
 
+
+
     @staticmethod
-    def checkForRaster(src, **kwds) -> list:
+    def checkForRaster(src, **kwds) -> typing.List[DataSourceRaster]:
         """
         Returns one ore more DataSourceRaster found in src
         :param src: any object
@@ -967,36 +968,51 @@ class DataSourceFactory(object):
         :return: [list-of-DataSourceRaster]
         """
         uri, name, pkey = DataSourceFactory.isRasterSource(src)
+
+        # disable CRS asking
+
         if uri:
             rasterUris = []
             names = []
-            if pkey == 'gdal':
-                # check for raster containers, like HDFs, and handle them separately
-                ds = gdal.Open(uri)
 
-                if ds.RasterCount > 0:
-                    rasterUris.append(uri)
-                    names.append(name)
+            lyr = openRasterLayerSilent(uri, name, pkey)
 
-                subs = ds.GetSubDatasets()
-                if len(subs) > 0:
-                    # grouping?
-                    subPaths = [s[0] for s in subs]
-                    rasterUris.extend(subPaths)
-                    names.extend([os.path.basename(p) for p in subPaths])
+            if not lyr.isValid():
+
+                # sublayer loading
+                subLayers = lyr.subLayers()
+
+                if len(subLayers) > 0:
+                    subLayerDefs = subLayerDefinitions(lyr)
+                    d = QgsSublayersDialog(QgsSublayersDialog.Gdal, lyr.name())
+                    d.setWindowTitle('Select Raster Sources to Add...')
+                    d.populateLayerTable(subLayerDefs)
+
+                    # open this dialog only in case we are not in a CI test
+
+                    if os.environ.get('CI') is None:
+                        if d.exec_():
+                            for ldef in d.selection():
+                                assert isinstance(ldef, QgsSublayersDialog.LayerDefinition)
+                                names.append(ldef.layerName)
+                                rasterUris.append(subLayers[ldef.layerId])
+
             else:
-                rasterUris.append(uri)
-                names.append(name)
 
+                rasterUris.append(uri)
+                names.append(lyr.name())
+
+            # create a DataSourceRaster for each source
             results = []
             for uri, name in zip(rasterUris, names):
-                ds = DataSourceRaster(uri, name=kwds.get('name',name), providerKey=pkey)
+
+                ds = DataSourceRaster(uri, name=name, providerKey=pkey)
                 results.append(ds)
             return results
         return []
 
     @staticmethod
-    def checkForVector(src, **kwds) -> list:
+    def checkForVector(src, **kwds) -> typing.List[DataSourceVector]:
         """
         Returns one or more DataSourceVector that can be found in src
         :param src: any
@@ -1009,7 +1025,7 @@ class DataSourceFactory(object):
         return []
 
     @staticmethod
-    def checkForSpeclib(src, **kwds) -> list:
+    def checkForSpeclib(src, **kwds) -> typing.List[DataSourceSpectralLibrary]:
         """
         Returns a DataSourceSpectralLibrary from src, if possible
         :param src: any type
@@ -1022,7 +1038,7 @@ class DataSourceFactory(object):
         return []
 
     @staticmethod
-    def checkForHubFlow(src, **kwds) -> list:
+    def checkForHubFlow(src, **kwds) -> typing.List[HubFlowDataSource]:
         """
         if possible, returns a HubFlowDataSource from src
         :param self:
@@ -1036,7 +1052,7 @@ class DataSourceFactory(object):
         return []
 
     @staticmethod
-    def checkOtherFiles(src, **kwds) -> list:
+    def checkOtherFiles(src, **kwds) -> typing.List[DataSourceFile]:
         """
         Returns a DataSourceFile instance from src
         :param self:

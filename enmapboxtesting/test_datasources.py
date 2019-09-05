@@ -64,9 +64,11 @@ class standardDataSources(unittest.TestCase):
                 ]
 
 
+
     def test_netCDF(self):
 
         path = r'Q:\Processing_BJ\99_OSARIS_Testdata\Loibl-2019-OSARIS-Ala-Archa\Coherences\20151207--20151231-coherence.grd'
+        path = r'C:\Users\geo_beja\Downloads\onns_for_enmap-box\janzandr-onns_for_enmap-box-06f21e484bb2\hzg_onns_testdata\S3A_OL_2_WFRC8R_20160720T093421_20160720T093621_20171002T063739_0119_006_307______MR1_R_NT_002_sylt.nc'
 
         if os.path.isfile(path):
             uri, name, provider = DataSourceFactory.isRasterSource(path)
