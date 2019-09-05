@@ -1256,7 +1256,7 @@ class DataSourcePanelUI(QDockWidget, loadUI('datasourcepanel.ui')):
         return sources
 
 LUT_DATASOURCTYPES = collections.OrderedDict()
-LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/enmapbox/gui/ui/icons/mIconRasterLayer.svg'))
+LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/images/themes/default/mIconRaster.svg'))
 LUT_DATASOURCTYPES[DataSourceVector] = ('Vector Data', QIcon(':/images/themes/default/mIconVector.svg'))
 LUT_DATASOURCTYPES[HubFlowDataSource] = ('Models', QIcon(':/images/themes/default/processingAlgorithm.svg'))
 LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries', QIcon(':/qps/ui/icons/speclib.svg'))
