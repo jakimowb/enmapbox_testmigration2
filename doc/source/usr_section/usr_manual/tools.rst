@@ -68,6 +68,11 @@ will be created.
 
 * You can import schemes from existing rasters or text files by clicking the |plus_green| button.
 * Use the |classinfo_add| button to manually add classes.
+* To remove entries select the respective rows and click the |classinfo_remove| button.
+* So save a classification scheme select the desired classes (or use :kbd:`Crtl + A` to select all) and click on the
+  |mActionFileSaveAs| button.
+* Likewise, you can copy and paste classes by selecting them and clicking the |mActionEditCopy| :sup:`Copy Classes`
+  |mActionEditPaste| :sup:`Paste Classes` buttons.
 
 .. image:: /img/reclassifytool1.png
 
