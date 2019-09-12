@@ -74,7 +74,8 @@ class TestEnMAPBoxSplashScreen(unittest.TestCase):
             nonlocal i
             splash.showMessage('Message {} {}'.format(i, str(time.time())))
             i += 1
-        self.assertEqual(splash.size(), QSize(600,287))
+        self.assertFalse(splash.size().isNull())
+
         timer = QTimer()
         timer.startTimer(500)
         timer.timeout.connect(onTimeOut)
