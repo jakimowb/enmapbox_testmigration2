@@ -27,7 +27,7 @@ class SpectralProfileSourceTests(unittest.TestCase):
 
     def test_SpeclibList(self):
 
-        model = SpectralLibraryListModel()
+        model = SpectralLibraryWidgetListModel()
 
         sl1 = SpectralLibrary()
         sl1.setName('Speclib 1')
@@ -35,11 +35,11 @@ class SpectralProfileSourceTests(unittest.TestCase):
         sl2.setName('Speclib 2')
 
         self.assertEqual(len(model), 0)
-        model.addSpeclib(sl1)
-        model.addSpeclib(sl2)
+        model.addSpectralLibraryWidget(sl1)
+        model.addSpectralLibraryWidget(sl2)
 
         self.assertEqual(len(model), 2)
-        model.addSpeclib(sl2)
+        model.addSpectralLibraryWidget(sl2)
         self.assertEqual(len(model), 2)
 
 
@@ -50,14 +50,92 @@ class SpectralProfileSourceTests(unittest.TestCase):
         if SHOW_GUI:
             QGIS_APP.exec_()
 
+
+    def test_SpectralProfileSamplingMode(self):
+
+
+        lyr = TestObjects.createRasterLayer(nb=5)
+        self.assertIsInstance(lyr, QgsRasterLayer)
+
+        pt = SpatialPoint.fromMapLayerCenter(lyr)
+
+        for mode in SpectralProfileSamplingMode:
+            self.assertIsInstance(mode, SpectralProfileSamplingMode)
+            positions = mode.profilePositions(lyr, pt)
+
+            self.assertIsInstance(positions, list)
+            for p in positions:
+                self.assertIsInstance(p, SpatialPoint)
+
+            if mode == SpectralProfileSamplingMode.SingleProfile:
+                self.assertEqual(len(positions), 1)
+                self.assertEqual(positions[0], pt)
+
+            if mode in [SpectralProfileSamplingMode.Sample3x3,
+                        SpectralProfileSamplingMode.Sample3x3Mean]:
+                self.assertEqual(len(positions), 9)
+                self.assertEqual(positions[4], pt)
+
+            if mode in [SpectralProfileSamplingMode.Sample5x5,
+                        SpectralProfileSamplingMode.Sample5x5Mean5]:
+                self.assertEqual(len(positions), 25)
+                self.assertEqual(positions[12], pt)
+
+
+    def test_loadProfiles(self):
+
+        lyr = TestObjects.createRasterLayer(nb=5)
+        self.assertIsInstance(lyr, QgsRasterLayer)
+
+        pt = SpatialPoint.fromMapLayerCenter(lyr)
+
+        samples = []
+
+        for mode in SpectralProfileSamplingMode:
+            samples.append(SpectralProfileSourceSample(lyr.source(), lyr.name(), lyr.providerType(), mode))
+
+        qgsTask = QgsTaskMock()
+        dump = pickle.dumps((pt, samples))
+        dump2 = doLoadSpectralProfiles(qgsTask, dump)
+
+        samples2 = pickle.loads(dump2)
+        self.assertIsInstance(samples2, list)
+        for s in samples2:
+            self.assertIsInstance(s, SpectralProfileSourceSample)
+
+            self.assertTrue(len(s.profiles()) > 0)
+            for p in s.profiles():
+                self.assertIsInstance(p, SpectralProfile)
+
+            if s.samplingMode() in [SpectralProfileSamplingMode.SingleProfile,
+                                    SpectralProfileSamplingMode.Sample3x3Mean,
+                                    SpectralProfileSamplingMode.Sample5x5Mean]:
+                self.assertTrue(len(s.profiles()) == 1)
+                s.profiles()[0].plot()
+
+
+            if s.samplingMode() == SpectralProfileSamplingMode.Sample3x3:
+                self.assertTrue(len(s.profiles()) == 9)
+
+            if s.samplingMode() == SpectralProfileSamplingMode.Sample5x5:
+                self.assertTrue(len(s.profiles()) == 25)
+
+        if SHOW_GUI:
+            QGIS_APP.exec_()
+
+
+
+
+
+
     def test_SpectralProfileBridge(self):
 
         bridge = SpectralProfileBridge()
 
         sl1 = SpectralLibrary(name='Speclib 1')
         sl2 = SpectralLibrary(name='Speclib 2')
-        bridge.addSpeclib(sl1)
-        bridge.addSpeclib(sl2)
+        bridge.addSpectralLibraryWidget(sl1)
+        bridge.addSpectralLibraryWidget(sl2)
 
 
         tv = QTableView()
@@ -74,6 +152,33 @@ class SpectralProfileSourceTests(unittest.TestCase):
         if SHOW_GUI:
             QGIS_APP.exec_()
 
+    def test_SpectralProfiledock(self):
+
+        p = SpectralProfileSourcePanel()
+
+        lyr1 = TestObjects.createRasterLayer(nb=5)
+        lyr1.setName('source 1')
+        lyr2 = TestObjects.createRasterLayer(nb=3)
+        lyr2.setName('source 2')
+
+        p.bridge().addRasterLayer(lyr1)
+        p.bridge().addRasterLayer(lyr2)
+        p.bridge().addRasterLayer(lyr2)
+        p.show()
+
+        if True:
+            slw1 = SpectralLibraryWidget()
+            slw1.speclib().setName('Speclib 1')
+
+            slw2 = SpectralLibraryWidget()
+            slw2.speclib().setName('Speclib 2')
+
+            p.bridge().addSpectralLibraryWidget(slw1)
+            p.bridge().addSpectralLibraryWidget(slw2)
+
+
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
 if __name__ == "__main__":
     unittest.main()
