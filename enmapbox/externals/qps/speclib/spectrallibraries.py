@@ -796,10 +796,10 @@ class SpectralProfile(QgsFeature):
         pi = SpectralProfilePlotDataItem(self)
         pi.setClickable(True)
         pw = pg.plot( title=self.name())
-        pw.plotItem().addItem(pi)
+        pw.getPlotItem().addItem(pi)
 
         pi.setColor('green')
-        pg.QAPP.exec_()
+        #pg.QAPP.exec_()
 
 
     def __reduce_ex__(self, protocol):
@@ -3170,7 +3170,7 @@ class SpectralLibraryWidget(QMainWindow, loadSpeclibUI('spectrallibrarywidget.ui
         self.mSpeclib.editingStarted.connect(self.onIsEditableChanged)
         self.mSpeclib.editingStopped.connect(self.onIsEditableChanged)
         self.mSpeclib.selectionChanged.connect(self.onSelectionChanged)
-
+        self.mSpeclib.nameChanged.connect(lambda *args, sl=self.mSpeclib: self.setWindowTitle(sl.name()))
 
         from .plotting import SpectralLibraryPlotWidget
         assert isinstance(self.mPlotWidget, SpectralLibraryPlotWidget)
