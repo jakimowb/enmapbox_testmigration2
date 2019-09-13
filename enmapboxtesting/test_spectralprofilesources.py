@@ -27,7 +27,7 @@ class SpectralProfileSourceTests(unittest.TestCase):
 
     def test_SpeclibList(self):
 
-        model = SpectralLibraryWidgetListModel()
+        model = SpectralProfileDstListModel()
 
         sl1 = SpectralLibrary()
         sl1.setName('Speclib 1')
@@ -96,7 +96,7 @@ class SpectralProfileSourceTests(unittest.TestCase):
 
         qgsTask = QgsTaskMock()
         dump = pickle.dumps((pt, samples))
-        dump2 = doLoadSpectralProfiles(qgsTask, dump)
+        dump2 = doLoadSpectralProfiles(qgsTask, pt)
 
         samples2 = pickle.loads(dump2)
         self.assertIsInstance(samples2, list)
@@ -123,19 +123,35 @@ class SpectralProfileSourceTests(unittest.TestCase):
         if SHOW_GUI:
             QGIS_APP.exec_()
 
+    def test_EnMAPBox(self):
+        from qgis.PyQt.QtWidgets import QAction
+        action = QAction('test action')
+        action.setShortcutVisibleInContextMenu(True)
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox()
+        self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
+        enmapBox.loadExampleData()
+        enmapBox.setMapTool(MapTools.SpectralProfile)
 
-
-
+        enmapBox.createDock('SPECLIB')
+        c = enmapBox.mapCanvases()[0]
+        enmapBox.loadCurrentMapSpectra(SpatialPoint.fromMapCanvasCenter(c), c)
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
 
     def test_SpectralProfileBridge(self):
 
         bridge = SpectralProfileBridge()
 
-        sl1 = SpectralLibrary(name='Speclib 1')
-        sl2 = SpectralLibrary(name='Speclib 2')
-        bridge.addSpectralLibraryWidget(sl1)
-        bridge.addSpectralLibraryWidget(sl2)
+        slw1 = SpectralLibraryWidget()
+        slw1.speclib().setName('Speclib 1')
+
+        slw2 = SpectralLibraryWidget()
+        slw2.speclib().setName('Speclib 2')
+
+        bridge.addDestination(slw1)
+        bridge.addDestination(slw2)
 
 
         tv = QTableView()
@@ -148,6 +164,17 @@ class SpectralProfileSourceTests(unittest.TestCase):
         delegate.setItemDelegates(tv)
 
         tv.show()
+        lyr = TestObjects.createRasterLayer(nb=5)
+        src = SpectralProfileSource.fromRasterLayer(lyr)
+
+        rel = SpectralProfileRelation(src, slw1)
+        bridge.addProfileRelation(rel)
+
+        pt = SpatialPoint.fromMapLayerCenter(lyr)
+        results = bridge.loadProfiles(pt, runAsync=True)
+
+        for r in results:
+            self.assertIsInstance(r, SpectralProfileRelation)
 
         if SHOW_GUI:
             QGIS_APP.exec_()
@@ -173,8 +200,8 @@ class SpectralProfileSourceTests(unittest.TestCase):
             slw2 = SpectralLibraryWidget()
             slw2.speclib().setName('Speclib 2')
 
-            p.bridge().addSpectralLibraryWidget(slw1)
-            p.bridge().addSpectralLibraryWidget(slw2)
+            p.bridge().addDestination(slw1)
+            p.bridge().addDestination(slw2)
 
 
         if SHOW_GUI:

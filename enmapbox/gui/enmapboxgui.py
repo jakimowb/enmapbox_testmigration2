@@ -30,7 +30,8 @@ from enmapbox.gui.mapcanvas import *
 from ..externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from ..externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
-from enmapbox.gui.spectralprofilesources import SpectralProfileSourcePanel
+from enmapbox.gui.spectralprofilesources import SpectralProfileSourcePanel, SpectralProfileBridge, SpectralProfileSource
+
 SETTINGS = enmapbox.enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
@@ -177,10 +178,15 @@ class EnMAPBox(QgisInterface, QObject):
 
     currentLayerChanged = pyqtSignal(QgsMapLayer)
 
+    sigClosed = pyqtSignal()
+
     sigCurrentLocationChanged = pyqtSignal([SpatialPoint],
                                            [SpatialPoint, QgsMapCanvas])
 
     sigCurrentSpectraChanged = pyqtSignal(list)
+
+    sigMapCanvasRemoved = pyqtSignal(MapCanvas)
+    sigMapCanvasAdded = pyqtSignal(MapCanvas)
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface:QgisInterface=None):
@@ -222,7 +228,6 @@ class EnMAPBox(QgisInterface, QObject):
         assert isinstance(qgsUtils.iface, QgisInterface)
 
         self.mCurrentSpectra = []  # set of currently selected spectral profiles
-        self.mCurrentMapSpectraLoading = 'TOP'
         self.mCurrentMapLocation = None
 
         # define managers
@@ -238,7 +243,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.dataSourceManager.sigDataSourceRemoved.connect(self.updateHiddenQGISLayers)
 
         #self.sigMapCanvasAdded.connect(self.updateHiddenQGISLayers)
-        self.sigCanvasRemoved.connect(self.updateHiddenQGISLayers)
+        self.sigMapCanvasRemoved.connect(self.updateHiddenQGISLayers)
         self.sigMapLayersAdded.connect(self.updateHiddenQGISLayers)
         self.sigMapLayersRemoved.connect(self.updateHiddenQGISLayers)
 
@@ -715,6 +720,11 @@ class EnMAPBox(QgisInterface, QObject):
                 mapCanvas.setCrosshairPosition(spatialPoint, emitSignal=False)
 
 
+
+
+    def spectralProfileBridge(self)->SpectralProfileBridge:
+        return self.ui.spectralProfileSourcePanel.bridge()
+
     sigDockAdded = pyqtSignal(Dock)
 
     def onDockAdded(self, dock):
@@ -727,7 +737,8 @@ class EnMAPBox(QgisInterface, QObject):
             assert isinstance(slw, SpectralLibraryWidget)
             slw.plotWidget().backgroundBrush().setColor(QColor('black'))
             slw.sigFilesCreated.connect(self.addSources)
-            self.sigCurrentSpectraChanged.connect(dock.mSpeclibWidget.setCurrentSpectra)
+            #self.sigCurrentSpectraChanged.connect(dock.mSpeclibWidget.setCurrentSpectra)
+            self.spectralProfileBridge().addDestination(slw)
 
         if isinstance(dock, MapDock):
 
@@ -752,51 +763,26 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.sigDockAdded.emit(dock)
 
-    sigCanvasRemoved = pyqtSignal(MapCanvas)
+
     def onDockRemoved(self, dock):
         if isinstance(dock, MapDock):
-            self.sigCanvasRemoved.emit(dock.mapCanvas())
+            self.sigMapCanvasRemoved.emit(dock.mapCanvas())
 
+        if isinstance(dock, SpectralLibraryDock):
+            self.spectralProfileBridge().removeDestination(dock.speclibWidget())
 
-    def setCurrentMapSpectraLoading(self, mode:str):
-        """
-        Sets the way how SpectralProfiles will be loaded from a map position
-        :param mode: str 'TOP' for first raster layer spectrum only, 'ALL' for all raster layers
-        """
-        assert mode in ['TOP','ALL']
-        self.mCurrentMapSpectraLoading = mode
 
     @pyqtSlot(SpatialPoint, QgsMapCanvas)
-    def loadCurrentMapSpectra(self, spatialPoint:SpatialPoint, mapCanvas:QgsMapCanvas):
+    def loadCurrentMapSpectra(self, spatialPoint:SpatialPoint, mapCanvas:QgsMapCanvas=None):
         """
         Loads SpectralProfiles from a location defined by `spatialPoint`
         :param spatialPoint: SpatialPoint
         :param mapCanvas: QgsMapCanvas
         """
-        assert self.mCurrentMapSpectraLoading in ['TOP', 'ALL']
-        assert isinstance(spatialPoint, SpatialPoint)
-        assert isinstance(mapCanvas, QgsMapCanvas)
-
-        currentSpectra = []
-
-        lyrs = [l for l in mapCanvas.layers() if isinstance(l, QgsRasterLayer)]
-
-        # todo: filter files of interest
-
-        for lyr in lyrs:
-            assert isinstance(lyr, QgsRasterLayer)
-            path = lyr.source()
-            #p = SpectralProfile.fromRasterSource(path, spatialPoint)
-            p = SpectralProfile.fromRasterLayer(lyr, spatialPoint)
-            if isinstance(p, SpectralProfile):
-                currentSpectra.append(p)
-                if self.mCurrentMapSpectraLoading == 'TOP':
-                    break
-
-        self.setCurrentSpectra(currentSpectra)
+        self.ui.spectralProfileSourcePanel.loadCurrentMapSpectra(spatialPoint, mapCanvas=mapCanvas)
 
 
-    def setMapTool(self, mapToolKey, *args, canvases=None, **kwds):
+    def setMapTool(self, mapToolKey:MapTools, *args, canvases=None, **kwds):
         """
         Sets the active QgsMapTool for all canvases know to the EnMAP-Box.
         :param mapToolKey: str, see MapTools documentation
@@ -1017,6 +1003,10 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigRasterSourceAdded[str].emit(dataSource.uri())
             self.sigRasterSourceAdded[DataSourceRaster].emit(dataSource)
 
+            src = SpectralProfileSource(dataSource.uri(), dataSource.name(), dataSource.provider())
+            self.spectralProfileBridge().addSource(src)
+
+
         if isinstance(dataSource, DataSourceVector):
             self.sigVectorSourceAdded[str].emit(dataSource.uri())
             self.sigVectorSourceAdded[DataSourceVector].emit(dataSource)
@@ -1026,7 +1016,7 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigSpectralLibraryAdded[DataSourceSpectralLibrary].emit(dataSource)
 
 
-    sigMapCanvasAdded = pyqtSignal(MapCanvas)
+
 
     def saveProject(self, saveAs=False):
         proj = QgsProject.instance()
@@ -1092,6 +1082,9 @@ class EnMAPBox(QgisInterface, QObject):
         Sets the list of SpectralProfiles to be considered as current spectra
         :param spectra: [list-of-SpectralProfiles]
         """
+        warnings.warn(DeprecationWarning(''))
+
+        """        
         b = len(self.mCurrentSpectra) == 0
         self.mCurrentSpectra = spectra[:]
 
@@ -1102,6 +1095,7 @@ class EnMAPBox(QgisInterface, QObject):
             assert isinstance(dock, SpectralLibraryDock)
 
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
+        """
 
     def currentSpectra(self)->list:
         """
@@ -1272,7 +1266,7 @@ class EnMAPBox(QgisInterface, QObject):
         else:
             event.ignore()
 
-    sigClosed = pyqtSignal()
+
 
     def close(self):
         self.ui.close()
@@ -1606,17 +1600,17 @@ class EnMAPBox(QgisInterface, QObject):
     def addLayerMenu(self):
         pass
 
-    def mainWindow(self):
+    def mainWindow(self)->EnMAPBoxUI:
         return self.ui
 
-    def messageBar(self):
+    def messageBar(self)->QgsMessageBar:
         return self.ui.messageBar
 
     def iconSize(self, dockedToolbar=False):
         #return self.ui.mActionAddDataSource.icon().availableSizes()[0]
         return QSize(16,16)
 
-    def spectralLibraries(self)->list:
+    def spectralLibraries(self)->typing.List[SpectralLibrary]:
         """
         Returns a list of SpectraLibraries that are registered to the internal MapLayerStore (i.e. opened in the
         DataSource panel or shown in a SpectralLibrary Widget).
@@ -1624,7 +1618,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return [lyr for lyr in self.mapLayerStore().mapLayers().values() if isinstance(lyr, SpectralLibrary)]
 
-    def mapCanvases(self):
+    def mapCanvases(self)->typing.List[MapCanvas]:
         """
         Returns all MapCanvas(QgsMapCanvas) objects known to the EnMAP-Box
         :return: [list-of-MapCanvases]
@@ -1669,7 +1663,7 @@ class EnMAPBox(QgisInterface, QObject):
     def vectorMenu(self):
         return QMenu()
 
-    def addDockWidget(self, area, dockwidget):
+    def addDockWidget(self, area, dockwidget:QDockWidget):
 
 
 

@@ -291,15 +291,7 @@ class TestEnMAPBoxWorkflows(unittest.TestCase):
         for p in profiles:
             self.assertIsInstance(p, SpectralProfile)
 
-        EMB.setCurrentMapSpectraLoading('ALL')
-        EMB.loadCurrentMapSpectra(center, mapDock.mapCanvas())
-        self.assertEqual(profiles, EMB.currentSpectra())
-        for s in EMB.currentSpectra():
-            self.assertIsInstance(s, SpectralProfile)
 
-        EMB.setCurrentMapSpectraLoading('TOP')
-        EMB.loadCurrentMapSpectra(center, mapDock.mapCanvas())
-        self.assertEqual(profiles[0:1], EMB.currentSpectra())
 
 
 
