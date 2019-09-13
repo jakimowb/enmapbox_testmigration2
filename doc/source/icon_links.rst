@@ -318,6 +318,8 @@
    :width: 28px
 .. |cb1| image:: /img/icons/cb1.png
    :width: 28px
+.. |mActionAddRasterLayer| image:: /img/icons/mActionAddRasterLayer.svg
+   :width: 28px
 .. |mActionDataSourceManager| image:: /img/icons/mActionDataSourceManager.svg
    :width: 28px
 .. |mActionDeleteAttribute| image:: /img/icons/mActionDeleteAttribute.svg
@@ -326,7 +328,13 @@
    :width: 28px
 .. |mActionDeselectAll| image:: /img/icons/mActionDeselectAll.svg
    :width: 28px
+.. |mActionEditCopy| image:: /img/icons/mActionEditCopy.svg
+   :width: 28px
 .. |mActionEditCut| image:: /img/icons/mActionEditCut.svg
+   :width: 28px
+.. |mActionEditPaste| image:: /img/icons/mActionEditPaste.svg
+   :width: 28px
+.. |mActionFileSaveAs| image:: /img/icons/mActionFileSaveAs.svg
    :width: 28px
 .. |mActionFormView| image:: /img/icons/mActionFormView.svg
    :width: 28px

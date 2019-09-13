@@ -258,7 +258,7 @@ Models
 .. note::
 
    You can generate example model files which are based on the EnMAP-Box test dataset. In the processing algorithms under
-   :menuselecion:`EnMAP-Box --> Auxilliary` you can find one algorithm for each kind of model file:
+   :menuselection:`EnMAP-Box --> Auxilliary` you can find one algorithm for each kind of model file:
      * Create Test Classifier (RandomForest)
      * Create Clusterer (KMeans)
      * Create Regressor (RandomForest)

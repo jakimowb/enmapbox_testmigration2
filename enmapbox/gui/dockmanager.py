@@ -391,7 +391,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
 class SpeclibDockTreeNode(DockTreeNode):
     def __init__(self, parent, dock):
         super(SpeclibDockTreeNode, self).__init__(parent, dock)
-        self.setIcon(QIcon(':/qps/ui/icons/speclib.svg'))
+        self.setIcon(QIcon(':/enmapbox/gui/ui/icons/viewlist_spectrumdock.svg'))
 
     def connectDock(self, dock):
         assert isinstance(dock, SpectralLibraryDock)
@@ -399,10 +399,10 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.speclibWidget = dock.mSpeclibWidget
         assert isinstance(self.speclibWidget, SpectralLibraryWidget)
 
-        self.showMapSpectra = CheckableLayerTreeNode(self, 'Show map profiles', checked=Qt.Checked)
-        self.showMapSpectra.setCheckState(Qt.Checked if self.speclibWidget.mapInteraction() else Qt.Unchecked)
-        self.showMapSpectra.sigCheckStateChanged.connect(
-            lambda s: self.speclibWidget.setMapInteraction(s == Qt.Checked))
+        #self.showMapSpectra = CheckableLayerTreeNode(self, 'Show map profiles', checked=Qt.Checked)
+        #self.showMapSpectra.setCheckState(Qt.Checked if self.speclibWidget.mapInteraction() else Qt.Unchecked)
+        #self.showMapSpectra.sigCheckStateChanged.connect(
+        #    lambda s: self.speclibWidget.setMapInteraction(s == Qt.Checked))
         self.profilesNode = LayerTreeNode(self, 'Profiles', value=0)
         self.speclibWidget.mSpeclib.committedFeaturesAdded.connect(self.updateNodes)
         self.speclibWidget.mSpeclib.committedFeaturesRemoved.connect(self.updateNodes)
@@ -418,15 +418,20 @@ class MapDockTreeNode(DockTreeNode):
     Acts like the QgsLayerTreeMapCanvasBridge
     """
 
+    sigAddedLayers = pyqtSignal(list)
+    sigRemovedLayers = pyqtSignal(list)
+
     def __init__(self, parent, dock):
 
         super(MapDockTreeNode, self).__init__(parent, dock)
         # KeepRefs.__init__(self)
         self.setIcon(QIcon(':/enmapbox/gui/ui/icons/viewlist_mapdock.svg'))
-        self.addedChildren.connect(lambda: self.updateCanvas())
-        self.removedChildren.connect(lambda: self.updateCanvas())
+        self.addedChildren.connect(self.onAddedChildren)
+        self.removedChildren.connect(self.onRemovedChildren)
+        self.willRemoveChildren.connect(self.onWillRemoveChildren)
+        self.mRemovedLayerCache = []
 
-    def connectDock(self, dock):
+    def connectDock(self, dock:MapDock):
         assert isinstance(dock, MapDock)
         super(MapDockTreeNode, self).connectDock(dock)
         # TreeNode(self, 'Layers')
@@ -440,15 +445,30 @@ class MapDockTreeNode(DockTreeNode):
         assert isinstance(dock, MapDock)
         canvas = self.dock.mapCanvas()
         assert isinstance(canvas, MapCanvas)
-        #self.mTreeCanvasBridge = MapCanvasBridge(self.layerNode, canvas)
         self.mTreeCanvasBridge = MapCanvasBridge(self, canvas)
 
 
     def onAddedChildren(self, node, idxFrom, idxTo):
         self.updateCanvas()
+        lyrs = []
+        for n in node.children()[idxFrom:idxTo+1]:
+            if type(n) == QgsLayerTreeLayer:
+                lyrs.append(n.layer())
+        if len(lyrs) > 0:
+            self.sigAddedLayers.emit(lyrs)
+
+    def onWillRemoveChildren(self, node, idxFrom, idxTo):
+        self.mRemovedLayerCache.clear()
+        for n in node.children()[idxFrom:idxTo + 1]:
+            if type(n) == QgsLayerTreeLayer:
+                self.mRemovedLayerCache.append(n.layer())
 
     def onRemovedChildren(self, node, idxFrom, idxTo):
         self.updateCanvas()
+
+        lyrs = self.mRemovedLayerCache[:]
+        self.mRemovedLayerCache.clear()
+        self.sigRemovedLayers.emit(lyrs)
 
     def updateChildNodes(self):
         """
@@ -491,13 +511,6 @@ class MapDockTreeNode(DockTreeNode):
             self.mTreeCanvasBridge.setCanvasLayers()
             return
 
-            # update canvas only in case of different layerset
-            visible = self.dock.layers()
-            layers = MapDockTreeNode.visibleLayers(self)
-            if len(visible) != len(layers) or \
-                    any(l1 != l2 for l1, l2 in zip(visible, layers)):
-                self.dock.setLayers(layers)
-        return self
 
     @staticmethod
     def visibleLayers(node):
@@ -687,6 +700,16 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         """
         return [n.mapCanvas() for n in self.mapDockTreeNodes()]
 
+    def mapLayers(self)->list:
+        """
+        Returns all map layers, also invisible layers that are  currently not added to a QgsMapCanvas
+        :return: [list-of-QgsMapLayer]
+        """
+        layers = []
+        for node in self.mapDockTreeNodes():
+            if isinstance(node, MapDockTreeNode):
+                layers.extend([l.layer() for l in node.findLayers()])
+        return layers
 
     def removeLayers(self, layers: list):
         assert isinstance(layers, list)
@@ -1313,10 +1336,10 @@ class DockManager(QObject):
         """
         if dock in self.mDocks:
             self.mDocks.remove(dock)
-            self.sigDockRemoved.emit(dock)
 
             if dock.container():
                 dock.close()
+            self.sigDockRemoved.emit(dock)
             return True
         return False
 

@@ -45,7 +45,7 @@ class standardDataSources(unittest.TestCase):
         self.assertTrue(DataSourceFactory.isRasterSource(self.wmsUri))
 
         for uri in [enmap, self.wmsUri]:
-            ds = DataSourceFactory.Factory(uri)
+            ds = DataSourceFactory.create(uri)
             self.assertIsInstance(ds, list)
             self.assertTrue(len(ds) == 1)
             for source in ds:
@@ -64,6 +64,24 @@ class standardDataSources(unittest.TestCase):
                 ]
 
 
+
+    def test_netCDF(self):
+
+        path = r'Q:\Processing_BJ\99_OSARIS_Testdata\Loibl-2019-OSARIS-Ala-Archa\Coherences\20151207--20151231-coherence.grd'
+        path = r'C:\Users\geo_beja\Downloads\onns_for_enmap-box\janzandr-onns_for_enmap-box-06f21e484bb2\hzg_onns_testdata\S3A_OL_2_WFRC8R_20160720T093421_20160720T093621_20171002T063739_0119_006_307______MR1_R_NT_002_sylt.nc'
+
+        if os.path.isfile(path):
+            uri, name, provider = DataSourceFactory.isRasterSource(path)
+
+            dsl = DataSourceFactory.create(uri)
+
+            self.assertIsInstance(dsl, list)
+            for ds in dsl:
+                self.assertIsInstance(ds, DataSourceRaster)
+
+            s = ""
+
+
     def test_hubflowsources(self):
 
         from hubflow.testdata import enmapClassification, vector, enmap
@@ -77,14 +95,14 @@ class standardDataSources(unittest.TestCase):
             self.assertTrue(isObj)
             self.assertIsInstance(o, FlowObject)
 
-            ds = DataSourceFactory.Factory(obj)
+            ds = DataSourceFactory.create(obj)
             self.assertIsInstance(ds, list)
             self.assertIsInstance(ds[0], HubFlowDataSource)
 
         for o in hubFlowObjects:
             node = HubFlowObjectTreeNode(None, None)
             self.assertIsInstance(node, DataSourceTreeNode)
-            ds = DataSourceFactory.Factory(o)[0]
+            ds = DataSourceFactory.create(o)[0]
             assert isinstance(ds, HubFlowDataSource)
 
             n = node.fetchInternals(ds.flowObject())
@@ -154,7 +172,7 @@ class standardDataSources(unittest.TestCase):
         self.assertTrue(DataSourceFactory.isVectorSource(landcover_polygons))
 
         for uri in [self.wfsUri, landcover_polygons]:
-            sources = DataSourceFactory.Factory(uri)
+            sources = DataSourceFactory.create(uri)
             self.assertIsInstance(sources, list)
             self.assertTrue(len(sources) == 1)
             for source in sources:
@@ -164,7 +182,7 @@ class standardDataSources(unittest.TestCase):
 
     def test_speclibs(self):
 
-        ds = DataSourceFactory.Factory(library)
+        ds = DataSourceFactory.create(library)
         self.assertIsInstance(ds, list)
         self.assertTrue(len(ds) == 1)
         ds = ds[0]
@@ -176,7 +194,7 @@ class standardDataSources(unittest.TestCase):
         TestObjects.inMemoryImage(nb=2, nl=500, path=path)
 
 
-        src1 = DataSourceFactory.Factory(path)[0]
+        src1 = DataSourceFactory.create(path)[0]
 
 
         self.assertIsInstance(src1, DataSourceRaster)
@@ -184,9 +202,9 @@ class standardDataSources(unittest.TestCase):
         self.assertTrue(src1.nLines == 500)
         TestObjects.inMemoryImage(nb=30, nl=1000, path=path)
 
-        src2 = DataSourceFactory.Factory(path)[0]
+        src2 = DataSourceFactory.create(path)[0]
 
-        src3 = DataSourceFactory.Factory(path)[0]
+        src3 = DataSourceFactory.create(path)[0]
         self.assertIsInstance(src2, DataSourceRaster)
         self.assertTrue(src2.nBands == 30)
         self.assertTrue(src2.nLines == 1000)
@@ -263,15 +281,6 @@ class standardDataSources(unittest.TestCase):
         self.assertTrue((l == len(reg.mapLayers())))
 
         reg.removeAllMapLayers()
-        self.assertTrue(len(reg.mapLayers()) == 0)
-        self.assertTrue((len(dsm) == l))
-        dsm.exportSourcesToQGISRegistry()
-        self.assertTrue((len(dsm) == l))
-        self.assertTrue(len(reg.mapLayers()) == l)
-        dsm.exportSourcesToQGISRegistry()
-        self.assertTrue((len(dsm) == l))
-        self.assertTrue(len(reg.mapLayers()) == l, msg='Do not export source uri if they are already known to QGIS')
-
 
         # test doubles input
         l = len(dsm)
@@ -299,7 +308,7 @@ class standardDataSources(unittest.TestCase):
         uriList = self.createTestSources()
         for uri in uriList:
             print('Test "{}"'.format(uri))
-            ds = DataSourceFactory.Factory(uri)[0]
+            ds = DataSourceFactory.create(uri)[0]
             print(ds)
             dsm.addSource(uri)
 
@@ -376,7 +385,7 @@ class standardDataSourceTreeNodes(unittest.TestCase):
 
         for uri in self.createTestSources():
             self.assertIsInstance(uri, str)
-            dsl = DataSourceFactory.Factory(uri)
+            dsl = DataSourceFactory.create(uri)
 
             for dataSource in dsl:
                 self.assertIsInstance(dataSource, DataSource)
@@ -394,7 +403,7 @@ class standardDataSourceTreeNodes(unittest.TestCase):
 
         for p in self.createTestSources():
             print(p)
-            ds = DataSourceFactory.Factory(p)
+            ds = DataSourceFactory.create(p)
             if isinstance(ds, DataSourceSpatial):
                 lyr = ds.createUnregisteredMapLayer()
                 mapCanvas.setLayers(lyr)
@@ -557,7 +566,7 @@ class hubflowTestCases(unittest.TestCase):
                 self.assertIsInstance(obj1, hubflow.core.FlowObject)
                 pathTmp = jp(dirTmp, 'test.{}.pkl'.format(name))
                 obj1.pickle(pathTmp)
-                ds = DataSourceFactory.Factory(pathTmp)
+                ds = DataSourceFactory.create(pathTmp)
                 self.assertTrue(len(ds) == 1), 'Failed to open {}'.format(obj1)
                 self.assertIsInstance(ds[0], HubFlowDataSource)
                 obj3 = hubflow.core.FlowObject.unpickle(pathTmp)

@@ -31,8 +31,7 @@ Fits a Random Forest Classifier
     Default::
 
         from sklearn.ensemble import RandomForestClassifier
-        estimator = RandomForestClassifier()
-        
+        estimator = RandomForestClassifier(n_estimators=100, oob_score=True)
         
 **Outputs**
 

@@ -18,11 +18,11 @@
 # noinspection PyPep8Naming
 
 
-import unittest
+import unittest, os
 from enmapbox.testing import initQgisApplication, TestObjects
-QGIS_APP = initQgisApplication()
+QGIS_APP = initQgisApplication(loadProcessingFramework=False)
 
-SHOW_GUI = True
+SHOW_GUI = True and os.environ.get('CI') is None
 
 from enmapbox import initAll
 initAll()
@@ -74,7 +74,8 @@ class TestEnMAPBoxSplashScreen(unittest.TestCase):
             nonlocal i
             splash.showMessage('Message {} {}'.format(i, str(time.time())))
             i += 1
-        self.assertEqual(splash.size(), QSize(600,287))
+        self.assertFalse(splash.size().isNull())
+
         timer = QTimer()
         timer.startTimer(500)
         timer.timeout.connect(onTimeOut)
@@ -91,6 +92,7 @@ class TestEnMAPBox(unittest.TestCase):
 
     def setUp(self):
         self.EMB = EnMAPBox(None)
+        s = ""
 
     def tearDown(self):
         self.EMB.close()
@@ -101,19 +103,67 @@ class TestEnMAPBox(unittest.TestCase):
 
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(self.EMB, EnMAPBox.instance())
+        log = QgsApplication.instance().messageLog()
+
+        from enmapbox import messageLog
+        messageLog('EnMAPBox TEST STARTED', Qgis.Info)
+        s = ""
 
         if SHOW_GUI:
             QGIS_APP.exec_()
 
     def test_instanceWithData(self):
 
+        if True:
+            from qgis.utils import iface
+            iface.layerTreeView().parent().parent().show()
+
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(self.EMB, EnMAPBox.instance())
         self.EMB.loadExampleData()
 
+        canvases = self.EMB.mapCanvases()
+        self.assertTrue(canvases[-1] == self.EMB.activeMapCanvas())
+
+
+
         if SHOW_GUI:
             QGIS_APP.exec_()
 
+    def test_Qgis(self):
+
+
+        from enmapbox import Qgis
+        from enmapboxtestdata import enmap, landcover_polygons
+        from qgis.utils import iface
+        from enmapbox.testing import WMS_OSM, WMS_GMAPS, WFS_Berlin
+        layers = []
+        layers.append(QgsRasterLayer(enmap))
+        layers.append(QgsVectorLayer(landcover_polygons))
+        layers.append(QgsRasterLayer(WMS_OSM, 'osm', 'wms'))
+        layers.append(QgsVectorLayer(WFS_Berlin, 'wfs', 'WFS'))
+
+        for lyr in layers:
+            self.assertIsInstance(lyr, QgsMapLayer)
+            self.assertTrue(lyr.isValid())
+
+        self.assertIsInstance(iface, QgisInterface)
+        QgsProject.instance().addMapLayers(layers)
+
+        for layer in layers:
+            self.assertIsInstance(layer, QgsMapLayer)
+
+            iface.mapCanvas().setLayers([layer])
+            iface.setActiveLayer(layer)
+            self.assertEqual(iface.activeLayer(), layer)
+
+            # todo: test return types
+            result1 = Qgis.activeBand(0)
+            result2 = Qgis.activeData()
+            result3 = Qgis.activeRaster()
+            s = ""
+
+        s = ""
 
     def test_createDock(self):
 
@@ -241,15 +291,7 @@ class TestEnMAPBoxWorkflows(unittest.TestCase):
         for p in profiles:
             self.assertIsInstance(p, SpectralProfile)
 
-        EMB.setCurrentMapSpectraLoading('ALL')
-        EMB.loadCurrentMapSpectra(center, mapDock.mapCanvas())
-        self.assertEqual(profiles, EMB.currentSpectra())
-        for s in EMB.currentSpectra():
-            self.assertIsInstance(s, SpectralProfile)
 
-        EMB.setCurrentMapSpectraLoading('TOP')
-        EMB.loadCurrentMapSpectra(center, mapDock.mapCanvas())
-        self.assertEqual(profiles[0:1], EMB.currentSpectra())
 
 
 

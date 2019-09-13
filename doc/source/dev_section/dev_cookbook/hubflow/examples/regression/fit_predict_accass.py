@@ -1,7 +1,7 @@
 from hubdc.docutils import createDocPrint, createReportSaveHTML
 from hubflow.report import Report
 print = createDocPrint(__file__)
-Report.saveHTML = createReportSaveHTML()
+#Report.saveHTML = createReportSaveHTML()
 
 # START
 import enmapboxtestdata

@@ -65,8 +65,11 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         e = menu.addAction('Plant Water Retrieval (PWR)')
         e.triggered.connect(self.start_GUI_PWR)
 
-        e = menu.addAction('Analyze Spectral Integral (ASI)')
-        e.triggered.connect(self.start_GUI_ASI)
+        f = menu.addAction('Analyze Spectral Integral (ASI)')
+        f.triggered.connect(self.start_GUI_ASI)
+
+        g = menu.addAction('interactive Red-Edge Inflection Point (iREIP)')
+        g.triggered.connect(self.start_GUI_iREIP)
 
         appMenu.addMenu(menu)
         return menu

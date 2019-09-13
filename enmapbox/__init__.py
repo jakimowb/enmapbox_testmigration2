@@ -31,8 +31,10 @@
 import sys, os, site, re
 
 import qgis
+from qgis.gui import QgisInterface
 from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider
 from qgis.PyQt.QtCore import QSettings
+from qgis.PyQt.QtGui import QIcon
 
 
 __version__ = '3.4' #subsub-version information is added during build process
@@ -44,7 +46,7 @@ CREATE_ISSUE = 'https://bitbucket.org/hu-geomatics/enmap-box/issues/new'
 DEPENDENCIES = ['numpy','scipy','osgeo', 'PyQt5', 'sklearn','matplotlib']
 DOCUMENTATION = 'https://enmap-box.readthedocs.io/'
 URL_TESTDATA = r'https://bitbucket.org/hu-geomatics/enmap-box-testdata/get/master.zip'
-MIN_VERSION_TESTDATA = '0.10'
+MIN_VERSION_TESTDATA = '0.11'
 
 DIR_ENMAPBOX = os.path.dirname(__file__)
 DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
@@ -84,6 +86,13 @@ site.addsitedir(DIR_SITEPACKAGES)
 #    pass
 
 
+def icon()->QIcon:
+    """
+    Returns the EnMAP icon.
+    (Requires that the EnMAP resources have been loaded before)
+    :return: QIcon
+    """
+    return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
 
 
 def messageLog(msg, level=Qgis.Info):
@@ -164,6 +173,16 @@ def initEnMAPBoxProcessingProvider():
             info.append(p)
         print('\n'.join(info), file=sys.stderr)
 
+_mapLayerConfigFactories = []
+def initMapLayerConfigWidgetFactories():
+
+    from enmapbox.gui.maplayers import EnMAPBoxRasterLayerConfigWidgetFactory
+
+    import qgis.utils
+    if isinstance(qgis.utils.iface, QgisInterface):
+        factory = EnMAPBoxRasterLayerConfigWidgetFactory()
+        _mapLayerConfigFactories.append(factory)
+        qgis.utils.iface.registerMapLayerConfigWidgetFactory(factory)
 
 def initAll():
     """
@@ -172,7 +191,7 @@ def initAll():
     initEnMAPBoxResources()
     initEditorWidgets()
     initEnMAPBoxProcessingProvider()
-
+    initMapLayerConfigWidgetFactories()
 
 
 
@@ -190,6 +209,60 @@ if not os.environ.get('READTHEDOCS') in ['True', 'TRUE', True]:
     EnMAPBoxApplication = EnMAPBoxApplication
 
 
+class Qgis(object):
+    '''Collection of some static methodes to programmatically interact with QGIS inside the QGIS console.'''
+
+    @classmethod
+    def activeRaster(cls):
+        try:
+            from hubdc.core import openRasterDataset
+            return openRasterDataset(qgis.utils.iface.activeLayer().source())
+        except:
+            return None
+
+    @classmethod
+    def activeVector(cls):
+        try:
+            from hubdc.core import openVectorDataset
+            return openVectorDataset(qgis.utils.iface.activeLayer().source())
+        except:
+            return None
+
+    @classmethod
+    def activeDataset(cls):
+        dataset = cls.activeRaster()
+        if dataset is None:
+            dataset = cls.activeVector()
+        return dataset
+
+    @classmethod
+    def activeBand(cls, index):
+        dataset = cls.activeRaster()
+        if dataset is not None:
+            try:
+                return dataset.band(index=index)
+            except:
+                return None
+        else:
+            return None
+
+    @classmethod
+    def activeData(cls, index=None):
+
+        from hubdc.core import RasterDataset, VectorDataset
+
+        dataset = cls.activeDataset()
+        if isinstance(dataset, RasterDataset):
+            if index is None:
+                return cls.activeRaster().readAsArray()
+            else:
+                return cls.activeBand(index=index).readAsArray()
+        elif isinstance(dataset, VectorDataset):
+            return dataset.attributeTable()
+        elif dataset is None:
+            return None
+        else:
+            raise TypeError()
 
 def run():
     """

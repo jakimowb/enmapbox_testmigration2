@@ -78,26 +78,23 @@ class DataSourceManager(QObject):
         super(DataSourceManager, self).__init__()
         DataSourceManager._testInstance = self
         self.mSources = list()
-
-
+        self.mShowSpatialSourceinQGSAndEnMAPBox = True
         try:
             from hubflow import signals
-            signals.sigFileCreated.connect(self.addSource)
+
+            def addNoneImageSource(path:str):
+                if isinstance(path, str) and os.path.isfile(path):
+
+                    if self.mShowSpatialSourceinQGSAndEnMAPBox:
+                        if re.search(r'\.pkl$', path):
+                            self.addSource(path)
+                    else:
+
+                        self.addSource(path)
+
+            signals.sigFileCreated.connect(addNoneImageSource)
         except Exception as ex:
             messageLog(ex)
-
-
-    def registerQgsProject(self, qgsProject:QgsProject):
-        """
-        Registers a QgsProject instance and listens to changes of its QgsMapLayerStore
-        :param qgsProject: QgsProject
-        """
-        assert isinstance(qgsProject, QgsProject)
-
-        qgsProject.layersAdded.connect(self.addSources)
-
-        # todo: what happens when layers are removed from the QgsProject?
-
 
     def __iter__(self):
         return iter(self.mSources)
@@ -185,16 +182,6 @@ class DataSourceManager(QObject):
 
         return results
 
-    def updateFromQgsProject(self, mapLayers=None):
-        """
-        Add data sources registered in the QgsProject to the data source manager
-        :return: List of added new DataSources
-        """
-        if mapLayers is None:
-            mapLayers = QgsProject.instance().mapLayers().values()
-
-        added = [self.addSource(lyr, name=lyr.name()) for lyr in mapLayers]
-        return [a for a in added if isinstance(a, DataSource)]
 
     def uriList(self, sourceTypes='ALL') -> list:
         """
@@ -204,27 +191,6 @@ class DataSourceManager(QObject):
         """
         return [ds.uri() for ds in self.sources(sourceTypes=sourceTypes)]
 
-
-    def onMapLayerRegistryLayersAdded(self, lyrs:list):
-        """
-        Response to added layers in the QGIS layer registry
-        :param lyrs: [list-of-added-QgsMapLayer]
-        """
-        lyrsToAdd = []
-        for l in lyrs:
-            assert isinstance(l, QgsMapLayer)
-
-        #todo: do we need to filter something here?
-
-        """
-        for lyr in lyrs:
-            if isinstance(lyr, QgsVectorLayer):
-                if lyr.dataProvider().dataSourceUri().startswith('memory?'):
-                    continue
-            lyrsToAdd.append(lyr)
-        """
-        lyrsToAdd = lyrs
-        self.addSources(lyrsToAdd)
 
     def addSources(self, sources) -> list:
         """
@@ -250,7 +216,7 @@ class DataSourceManager(QObject):
         :return: a list of successfully added DataSource instances.
                  Usually this will be a list with a single DataSource instance only, but in case of container datasets multiple instances might get returned.
         """
-        newDataSources = DataSourceFactory.Factory(newDataSource, name=name, icon=icon)
+        newDataSources = DataSourceFactory.create(newDataSource, name=name, icon=icon)
 
         toAdd = []
         for dsNew in newDataSources:
@@ -1009,8 +975,7 @@ class DataSourceTreeView(TreeView):
         idx = self.currentIndex()
         assert isinstance(event, QContextMenuEvent)
 
-        if not idx.isValid():
-            return
+
         col = idx.column()
         model = self.model()
         assert isinstance(model, DataSourceManagerTreeModel)
@@ -1034,7 +999,7 @@ class DataSourceTreeView(TreeView):
         m = QMenu()
 
         if isinstance(node, DataSourceGroupTreeNode):
-            a = m.addAction('Clear')
+            a = m.addAction('Remove')
             assert isinstance(a, QAction)
             a.setToolTip('Removes all datasources from this node')
             a.triggered.connect(lambda: model.dataSourceManager.removeSources(node.dataSources()))
@@ -1138,6 +1103,11 @@ class DataSourceTreeView(TreeView):
                     a.setParent(None)
                     m.addAction(a)
                     a.setParent(m)
+
+        a = m.addAction('Remove all DataSources')
+        a.setToolTip('Removes all data source.')
+        a.triggered.connect(self.onRemoveAllDataSources)
+
         m.exec_(self.viewport().mapToGlobal(event.pos()))
 
     def openInMap(self, dataSource: DataSourceSpatial, mapCanvas=None, rgb=None, sampleSize=256):
@@ -1200,6 +1170,13 @@ class DataSourceTreeView(TreeView):
 
         pass
 
+
+    def onRemoveAllDataSources(self):
+        model = self.model()
+        assert isinstance(model, DataSourceManagerTreeModel)
+        model.dataSourceManager.clear()
+        s = ""
+
     def onOpenSpeclib(self, speclib: SpectralLibrary):
         """
         Opens a SpectralLibrary in a new SpectralLibraryDock
@@ -1210,7 +1187,7 @@ class DataSourceTreeView(TreeView):
         EnMAPBox.instance().dockManager.createDock('SPECLIB', speclib=speclib)
 
 
-class DataSourcePanelUI(QgsDockWidget, loadUI('datasourcepanel.ui')):
+class DataSourcePanelUI(QDockWidget, loadUI('datasourcepanel.ui')):
     def __init__(self, parent=None):
         super(DataSourcePanelUI, self).__init__(parent)
         self.setupUi(self)
@@ -1219,15 +1196,13 @@ class DataSourcePanelUI(QgsDockWidget, loadUI('datasourcepanel.ui')):
 
         self.dataSourceTreeView.setDragDropMode(QAbstractItemView.DragDrop)
 
-        #init actions
-
-
+        # init actions
         self.actionAddDataSource.triggered.connect(lambda : self.mDataSourceManager.addDataSourceByDialog())
         self.actionRemoveDataSource.triggered.connect(lambda: self.mDataSourceManager.removeSources(self.selectedDataSources()))
         self.actionRemoveDataSource.setEnabled(False) #will be enabled with selection of node
         def onSync():
             self.mDataSourceManager.importSourcesFromQGISRegistry()
-            self.mDataSourceManager.exportSourcesToQGISRegistry(showLayers=True)
+        #    self.mDataSourceManager.exportSourcesToQGISRegistry(showLayers=True)
         self.actionSyncWithQGIS.triggered.connect(onSync)
 
         hasQGIS = qgisAppQgisInterface() is not None
@@ -1272,9 +1247,6 @@ class DataSourcePanelUI(QgsDockWidget, loadUI('datasourcepanel.ui')):
         s = self.selectedDataSources()
         self.actionRemoveDataSource.setEnabled(len(s) > 0)
 
-
-
-
     def selectedDataSources(self)->list:
         """
         :return: [list-of-selected-DataSources]
@@ -1295,7 +1267,7 @@ class DataSourcePanelUI(QgsDockWidget, loadUI('datasourcepanel.ui')):
         return sources
 
 LUT_DATASOURCTYPES = collections.OrderedDict()
-LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/enmapbox/gui/ui/icons/mIconRasterLayer.svg'))
+LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/images/themes/default/mIconRaster.svg'))
 LUT_DATASOURCTYPES[DataSourceVector] = ('Vector Data', QIcon(':/images/themes/default/mIconVector.svg'))
 LUT_DATASOURCTYPES[HubFlowDataSource] = ('Models', QIcon(':/images/themes/default/processingAlgorithm.svg'))
 LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries', QIcon(':/qps/ui/icons/speclib.svg'))
@@ -1447,6 +1419,7 @@ class DataSourceManagerTreeModel(TreeModel):
                 groupName, groupIcon = t
                 break
         if groupName is None:
+
             groupName, groupIcon = LUT_DATASOURCTYPES[DataSource]
             groupDataType = DataSource
 
