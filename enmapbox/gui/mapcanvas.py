@@ -152,7 +152,7 @@ class CanvasLinkDialog(QDialog):
 
         if isinstance(emb, EnMAPBox):
             emb.sigMapCanvasAdded.connect(d.addCanvas)
-            emb.sigCanvasRemoved.connect(d.removeCanvas)
+            emb.sigMapCanvasRemoved.connect(d.removeCanvas)
             emb.sigClosed.connect(d.close)
 
         d.show()

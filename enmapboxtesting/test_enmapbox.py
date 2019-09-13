@@ -74,7 +74,8 @@ class TestEnMAPBoxSplashScreen(unittest.TestCase):
             nonlocal i
             splash.showMessage('Message {} {}'.format(i, str(time.time())))
             i += 1
-        self.assertEqual(splash.size(), QSize(600,287))
+        self.assertFalse(splash.size().isNull())
+
         timer = QTimer()
         timer.startTimer(500)
         timer.timeout.connect(onTimeOut)
@@ -290,15 +291,7 @@ class TestEnMAPBoxWorkflows(unittest.TestCase):
         for p in profiles:
             self.assertIsInstance(p, SpectralProfile)
 
-        EMB.setCurrentMapSpectraLoading('ALL')
-        EMB.loadCurrentMapSpectra(center, mapDock.mapCanvas())
-        self.assertEqual(profiles, EMB.currentSpectra())
-        for s in EMB.currentSpectra():
-            self.assertIsInstance(s, SpectralProfile)
 
-        EMB.setCurrentMapSpectraLoading('TOP')
-        EMB.loadCurrentMapSpectra(center, mapDock.mapCanvas())
-        self.assertEqual(profiles[0:1], EMB.currentSpectra())
 
 
 
