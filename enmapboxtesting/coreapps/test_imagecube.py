@@ -1,13 +1,16 @@
 
 import unittest
 from osgeo import gdal, gdal_array, osr
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtWidgets import *
 from enmapbox.testing import initQgisApplication, TestObjects
 
 QGIS_APP = initQgisApplication(loadProcessingFramework=False, loadEditorWidgets=False)
 
 SHOW_GUI = True
 
-from .imagecube import *
+from imagecubeapp.imagecube import *
 class VTest(unittest.TestCase):
 
     def createImageCube(self, nb=10, ns=20, nl=30, crs='EPSG.32633')->QgsRasterLayer:
