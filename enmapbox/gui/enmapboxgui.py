@@ -81,7 +81,7 @@ class EnMAPBoxSplashScreen(QSplashScreen):
     Thr EnMAP-Box Splash Screen
     """
     def __init__(self, parent=None):
-        pm = QPixmap(':/enmapbox/gui/ui/splashscreen.png')
+        pm = QPixmap(':/enmapbox/gui/ui/logo/splashscreen.png')
         super(EnMAPBoxSplashScreen, self).__init__(parent, pixmap=pm)
 
     def showMessage(self, text:str, alignment:Qt.Alignment=None, color:QColor=None):
