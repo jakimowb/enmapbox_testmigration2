@@ -918,13 +918,20 @@ class MapCanvas(QgsMapCanvas):
         self.scaleChanged.connect(self.onScaleChanged)
         self.extentsChanged.connect(self.onExtentsChanged)
 
-
+        self.layersChanged.connect(self.onLayersChanged)
         self.destinationCrsChanged.connect(lambda : self.sigCrsChanged.emit(self.mapSettings().destinationCrs()))
         #activate default map tool
         self.setMapTool(QgsMapToolPan(self))
         self.mMapMouseEvent = None
         MapCanvas._instances.add(self)
 
+    def onLayersChanged(self):
+
+
+        crs = self.mapSettings().destinationCrs()
+        if not (isinstance(crs, QgsCoordinateReferenceSystem) and crs.isValid()) and len(self.layers()) > 0:
+            self.setDestinationCrs(self.layers()[0].crs())
+        pass
 
     def mousePressEvent(self, event:QMouseEvent):
 
