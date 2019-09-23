@@ -964,6 +964,10 @@ class EnMAPBox(QgisInterface, QObject):
                 lyrs = []
                 for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']):
                     lyr = src.createUnregisteredMapLayer()
+                    if isinstance(lyr, QgsRasterLayer):
+                        r = defaultRasterRenderer(lyr)
+                        r.setInput(lyr.dataProvider())
+                        lyr.setRenderer(r)
                     lyrs.append(lyr)
 
                 dock.addLayers(lyrs)

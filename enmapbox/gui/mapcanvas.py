@@ -1370,13 +1370,15 @@ class MapCanvas(QgsMapCanvas):
 
         super(MapCanvas,self).setLayers(newSet)
 
-        if not self.mCrsExtentInitialized and len(newSet) > 0:
+        if not self.mapSettings().destinationCrs().isValid() and len(newSet) > 0:
             # set canvas to first layer's CRS and full extent
-            newExtent = SpatialExtent.fromLayer(newSet[0])
-            self.setDestinationCrs(newExtent.crs())
-            self.setExtent(newExtent)
-
-            self.mCrsExtentInitialized = True
+            for lyr in newSet:
+                assert isinstance(lyr, QgsMapLayer)
+                if lyr.crs().isValid():
+                    newExtent = SpatialExtent.fromLayer(lyr)
+                    self.setDestinationCrs(newExtent.crs())
+                    self.setExtent(newExtent)
+                    break
         self.setRenderFlag(True)
         self.refreshAllLayers()
 

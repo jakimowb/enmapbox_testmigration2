@@ -35,6 +35,30 @@ class standardDataSources(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_rasterVersioning(self):
+
+
+        p = r'N:\thielfab\nb_ml\full_growing_season\metrics\fraction\mosaic\NEWFILE_MLP.vrt'
+
+        if os.path.isfile(p):
+
+            ds1 = DataSourceFactory.create(p)[0]
+            self.assertIsInstance(ds1, DataSourceRaster)
+
+            lyr = ds1.createUnregisteredMapLayer()
+            dp = lyr.dataProvider()
+            self.assertIsInstance(dp, QgsRasterDataProvider)
+            stats = dp.bandStatistics(1)
+
+            ds2 = DataSourceFactory.create(p)[0]
+            self.assertIsInstance(ds1, DataSourceRaster)
+
+            self.assertTrue(ds1.isSameSource(ds2))
+            self.assertFalse(ds1.isNewVersionOf(ds2))
+            self.assertFalse(ds2.isNewVersionOf(ds1))
+
+
+
     def test_rasters(self):
         for uri in [None, type(None), landcover_polygons, self.wfsUri]:
             self.assertTrue(rasterProvider(uri) == None)
@@ -188,9 +212,52 @@ class standardDataSources(unittest.TestCase):
         ds = ds[0]
         self.assertIsInstance(ds, DataSourceSpectralLibrary)
 
+    def test_layerSourceUpdate(self):
+
+        path = '/vsimem/image.bsq'
+        path = tempfile.mktemp(suffix='image.tif')
+        TestObjects.inMemoryImage(nb=5, nl=500, path=path)
+        c = QgsMapCanvas()
+        c.show()
+        lyr = QgsRasterLayer(path)
+        r = lyr.renderer()
+        self.assertIsInstance(r, QgsRasterRenderer)
+        r.setInput(lyr.dataProvider())
+        r.setGreenBand(5)
+
+        c.setDestinationCrs(lyr.crs())
+        c.setExtent(lyr.extent())
+        c.setLayers([lyr])
+        c.waitWhileRendering()
+
+        self.assertIsInstance(lyr, QgsRasterLayer)
+        self.assertTrue(lyr.isValid())
+        self.assertEqual(lyr.bandCount(), 5)
+        self.assertEqual(lyr.height(), 500)
+
+        # del lyr
+        if False:
+            TestObjects.inMemoryImage(nb=2, nl=1000, path=path)
+            lyr.reload()
+
+            r = lyr.renderer()
+            self.assertIsInstance(r, QgsRasterRenderer)
+            r.setInput(lyr.dataProvider())
+            r.setGreenBand(2)
+            lyr.reload()
+            c.waitWhileRendering()
+            self.assertEqual(lyr.bandCount(), 2)
+            self.assertEqual(lyr.height(), 1000)
+
+            if SHOW_GUI:
+                c.show()
+                QGIS_APP.exec_()
+
+
     def test_datasourceversions(self):
 
         path = tempfile.mktemp(suffix='image.bsq')
+        path = '/vsimem/image.bsq'
         TestObjects.inMemoryImage(nb=2, nl=500, path=path)
 
 
@@ -200,6 +267,7 @@ class standardDataSources(unittest.TestCase):
         self.assertIsInstance(src1, DataSourceRaster)
         self.assertTrue(src1.nBands == 2)
         self.assertTrue(src1.nLines == 500)
+        time.sleep(1)
         TestObjects.inMemoryImage(nb=30, nl=1000, path=path)
 
         src2 = DataSourceFactory.create(path)[0]

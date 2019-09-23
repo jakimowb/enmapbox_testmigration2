@@ -16,12 +16,13 @@
 *                                                                         *
 ***************************************************************************
 """
-import collections, uuid, pathlib, typing
+import collections, uuid, pathlib, typing, time
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from enmapbox.gui import *
 from enmapbox.gui import subLayerDefinitions, openRasterLayerSilent
 from enmapbox.gui.utils import *
+from ..externals.qps.layerproperties import defaultRasterRenderer
 from osgeo import gdal, ogr
 
 def rasterProvider(uri:str) -> str:
@@ -320,7 +321,10 @@ class DataSourceSpatial(DataSource):
         assert isinstance(providerKey, str) and providerKey in QgsProviderRegistry.instance().providerList()
 
         self.mProvider = providerKey
+        self.mLayer = None
 
+    def mapLayer(self)->QgsMapLayer:
+        return self.mLayer
 
     def provider(self)->str:
         """
@@ -420,34 +424,43 @@ class DataSourceRaster(DataSourceSpatial):
 
         super(DataSourceRaster, self).__init__(uri, name=name, icon=icon, providerKey=providerKey)
 
-        self.nSamples = -1
-        self.nBands = -1
-        self.nLines = -1
-        self.mDataType = -1
-        self.mPxSize = QSizeF()
-        self.mDatasetMetadata = collections.OrderedDict()
-        self.mBandMetadata = []
-        self.mSpatialExtent = None
-        self.mBandNames = []
-        self.mWaveLengths = self.mWaveLengthUnits = None
+        self.mDefaultRenderer = None
+        self.mLayer = self.createUnregisteredMapLayer()
+        assert isinstance(self.mLayer, QgsRasterLayer)
 
+        #self.mDataType = -1
+        #self.mPxSize = QSizeF()
+        #self.mDatasetMetadata = collections.OrderedDict()
+        self.mBandMetadata = []
+
+        self.mDatasetMetadata = {}
+        self.mSpatialExtent = None
+        self.mWaveLengths = []
+        self.mWaveLengthUnits = []
         self.updateMetadata()
 
+    def mapLayer(self)->QgsRasterLayer:
+        return self.mLayer
 
-        if name is None and providerKey == 'wms':
-            self.setName('WMS:'+self.name())
+    def pixelSize(self)->QSizeF:
+        return QSizeF(self.mLayer.rasterUnitsPerPixelX(), self.mLayer.rasterUnitsPerPixelY())
 
-        if self.mProvider == 'gdal':
-            dataSet = gdal.Open(self.mUri)
-            times = []
-            if isinstance(dataSet, gdal.Dataset):
-                    for path in dataSet.GetFileList():
-                        if os.path.exists(path):
-                            times.append(QFileInfo(path).lastModified())
+    def dataType(self)->Qgis.DataType:
+        """
+        Returns the data type of the first band.
+        :return: Qgis.DataType
+        """
+        return self.mLayer.dataProvider().dataType(1)
 
-            if len(times) > 0:
-                #self.mModificationTime = max(times)
-                self.mModificationTime = times[0]
+    def nSamples(self)->int:
+        return self.mLayer.width()
+
+    def nLines(self)->int:
+        return self.mLayer.height()
+
+    def nBands(self)->int:
+        return self.mLayer.bandCount()
+
 
 
     def spatialExtent(self)->SpatialExtent:
@@ -456,19 +469,27 @@ class DataSourceRaster(DataSourceSpatial):
     def updateMetadata(self, icon=None, name=None):
         super(DataSourceRaster, self).updateMetadata(icon=icon, name=None)
 
-        lyr = self.createUnregisteredMapLayer()
+        self.mLayer.reload()
 
-        assert lyr.isValid()
+        if name is None and self.mProvider == 'wms':
+            self.setName('WMS:' + self.name())
 
+        if self.mProvider == 'gdal':
+            dataSet = gdal.Open(self.mUri)
+            if isinstance(dataSet, gdal.Dataset):
+                statsInfo = gdal.VSIStatL(dataSet.GetDescription())
+                assert isinstance(statsInfo, gdal.StatBuf)
+                dt = QDateTime()
+                dt.setSecsSinceEpoch(statsInfo.mtime)
+                self.mModificationTime = dt
 
         #these attributes are to be set
-        self.mSpatialExtent = SpatialExtent.fromLayer(lyr)
+        self.mSpatialExtent = SpatialExtent.fromLayer(self.mapLayer())
         self.mBandMetadata.clear()
-        self.mBandNames.clear()
         self.mDatasetMetadata.clear()
-        self.nBands = self.nSamples = self.nLines = -1
-        self.mDataType = None
-        self.mWaveLengths, self.mWaveLengthUnits =  parseWavelength(lyr)
+        #self.nBands = self.nSamples = self.nLines = -1
+        #self.mDataType = None
+        self.mWaveLengths, self.mWaveLengthUnits =  parseWavelength(self.mapLayer())
 
 
         hasClassInfo = False
@@ -476,14 +497,14 @@ class DataSourceRaster(DataSourceSpatial):
         if self.mProvider == 'gdal':
             ds = gdal.Open(self.mUri)
             assert isinstance(ds, gdal.Dataset)
-            self.nSamples, self.nLines = ds.RasterXSize, ds.RasterYSize
-            self.nBands = ds.RasterCount
+            #self.nSamples, self.nLines = ds.RasterXSize, ds.RasterYSize
+            #self.nBands = ds.RasterCount
 
-            gt = ds.GetGeoTransform()
+            #gt = ds.GetGeoTransform()
 
 
-            v = px2geo(QPoint(0, 0), gt) - px2geo(QPoint(1, 1), gt)
-            self.mPxSize = QSizeF(abs(v.x()), abs(v.y()))
+            #v = px2geo(QPoint(0, 0), gt) - px2geo(QPoint(1, 1), gt)
+            #self.mPxSize = QSizeF(abs(v.x()), abs(v.y()))
 
 
             def fetchMetadata(obj):
@@ -504,10 +525,10 @@ class DataSourceRaster(DataSourceSpatial):
             for b in range(ds.RasterCount):
                 band = ds.GetRasterBand(b+1)
                 assert isinstance(band, gdal.Band)
-                bandName = band.GetDescription()
-                if len(bandName) == 0:
-                    bandName = 'Band {}'.format(b+1)
-                self.mBandNames.append(bandName)
+                #bandName = band.GetDescription()
+                #if len(bandName) == 0:
+                #    bandName = 'Band {}'.format(b+1)
+                #self.mBandNames.append(bandName)
 
                 cs = ClassificationScheme.fromRasterImage(ds, b)
                 md = fetchMetadata(band)
@@ -517,40 +538,63 @@ class DataSourceRaster(DataSourceSpatial):
 
                 self.mBandMetadata.append(md)
 
-                if b == 0:
-                    self.mDataType = band.DataType
+                #if b == 0:
+                #    self.mDataType = band.DataType
 
         else:
             #Fallback
-            lyr = self.createUnregisteredMapLayer()
-            self.mPxSize = QSizeF(lyr.rasterUnitsPerPixelX(), lyr.rasterUnitsPerPixelY())
-            self.nBands = lyr.bandCount()
-            self.nSamples = lyr.width()
-            self.nLines = lyr.height()
-            self.mDatasetMetadata['Description'] = lyr.dataProvider().description()
-            self.mDatasetMetadata['Source'] = lyr.dataProvider().dataSourceUri()
+            #lyr = self.createUnregisteredMapLayer()
+            #self.mPxSize = QSizeF(lyr.rasterUnitsPerPixelX(), lyr.rasterUnitsPerPixelY())
+            #self.nBands = lyr.bandCount()
+            #self.nSamples = lyr.width()
+            #self.nLines = lyr.height()
+            self.mDatasetMetadata['Description'] = self.mapLayer().dataProvider().description()
+            self.mDatasetMetadata['Source'] = self.mapLayer().source()
             #according to qgis.h the Qgis.DataType value is a "modified and extended copy of GDALDataType".
-            self.mDataType = int(lyr.dataProvider().dataType(1))
+            #self.mDataType = int(lyr.dataProvider().dataType(1))
 
-            for b in range(self.nBands):
+            for b in range(self.nBands()):
                 bandMeta = {}
                 self.mBandMetadata.append(bandMeta)
-                self.mBandNames.append(lyr.bandName(b+1))
+                #self.mBandNames.append(lyr.bandName(b+1))
 
         #update the datassource icon
         if hasClassInfo is True:
             icon = QIcon(':/enmapbox/gui/ui/icons/filelist_classification.svg')
-        elif self.mDataType in [gdal.GDT_Byte] and ds.RasterCount == 1:
+        elif self.dataType() in [Qgis.Byte] and self.nBands() == 1:
             icon = QIcon(':/enmapbox/gui/ui/icons/filelist_mask.svg')
-        elif self.nBands == 1:
+        elif self.nBands() == 1:
             icon = QIcon(':/enmapbox/gui/ui/icons/filelist_regression.svg')
         else:
             icon = QIcon(':/enmapbox/gui/ui/icons/filelist_image.svg')
         self.setIcon(icon)
 
+
+    def isNewVersionOf(self, dataSource)->bool:
+        """
+        Checks of if THIS raster data source is a newer version of 'dataSource'
+        :param dataSource: DataSource
+        :return: True | False
+        """
+
+        if type(dataSource) != type(self):
+            return False
+        if self.mUri != dataSource.mUri:
+            return False
+
+
+        if super(DataSourceRaster, self).isNewVersionOf(dataSource):
+            assert isinstance(dataSource, DataSourceRaster)
+            return self.nSamples == dataSource.nSamples \
+                and self.nLines == dataSource.nLines \
+                and self.nBands == dataSource.nBands \
+                and self.mPxSize == dataSource.mPxSize \
+                and self.mDataType == dataSource.mDataType
+
+
     def createUnregisteredMapLayer(self)->QgsRasterLayer:
         """
-        Creates a QgsRasterLayer from self.mUri and self.mProvider
+        Creates a QgsRasterLayer from self.mUri and self.mProvider. Avoids time-consuming initialization routines.
         :return: QgsRasterLayer
         """
         key = '/Projections/defaultBehavior'
@@ -561,7 +605,19 @@ class DataSourceRaster(DataSourceSpatial):
             # do not ask!
             QgsSettings().setValue(key, 'useProject')
 
-        lyr = QgsRasterLayer(self.mUri, self.mName, self.mProvider)
+        loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
+        lyr = QgsRasterLayer(self.mUri, self.mName, self.mProvider, options=loptions)
+
+        if False:
+            if isinstance(self.mapLayer(), QgsRasterLayer) and not isinstance(self.mDefaultRenderer, QgsRasterRenderer):
+
+                self.mDefaultRenderer = defaultRasterRenderer(self.mapLayer(), bandIndices=defaultBands(self.mapLayer()))
+                self.mDefaultRenderer.setInput(self.mapLayer().dataProvider())
+
+            if isinstance(self.mDefaultRenderer, QgsRasterRenderer):
+                r = self.mDefaultRenderer.clone()
+                r.setInput(lyr.dataProvider())
+                lyr.setRenderer(r)
 
         if isPrompt:
             QgsSettings().setValue(key, v)
@@ -590,7 +646,24 @@ class DataSourceVector(DataSourceSpatial):
         creates and returns a QgsVectorLayer from self.src
         :return:
         """
-        return QgsVectorLayer(self.mUri, self.mName, self.mProvider)
+
+        key = '/Projections/defaultBehavior'
+        v = QgsSettings().value(key)
+        isPrompt = v == 'prompt'
+
+        if isPrompt:
+            # do not ask!
+            QgsSettings().setValue(key, 'useProject')
+
+
+        lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider)
+
+        if isPrompt:
+            QgsSettings().setValue(key, v)
+
+        return lyr
+
+
 
 
     def updateMetadata(self, *args, **kwds):
