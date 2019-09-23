@@ -897,9 +897,7 @@ class MapCanvas(QgsMapCanvas):
         self.setWindowTitle(self._id)
         self.setProperty(KEY_LAST_CLICKED, time.time())
         MapCanvas._cnt += 1
-        self.mCrsExtentInitialized = False
-        #self.mapdock = parentMapDock
-        #self.enmapbox = self.mapdock.enmapbox
+
         self.acceptDrops()
         self.setExtent(QgsRectangle(-1,-1,1,1))
 
@@ -918,13 +916,24 @@ class MapCanvas(QgsMapCanvas):
         self.scaleChanged.connect(self.onScaleChanged)
         self.extentsChanged.connect(self.onExtentsChanged)
 
-
+        self.layersChanged.connect(self.onLayersChanged)
         self.destinationCrsChanged.connect(lambda : self.sigCrsChanged.emit(self.mapSettings().destinationCrs()))
         #activate default map tool
         self.setMapTool(QgsMapToolPan(self))
         self.mMapMouseEvent = None
         MapCanvas._instances.add(self)
 
+    def onLayersChanged(self):
+
+        crs = self.mapSettings().destinationCrs()
+        if not (isinstance(crs, QgsCoordinateReferenceSystem) and crs.isValid()) and len(self.layers()) > 0:
+            for l in self.layers():
+                if isinstance(l, QgsMapLayer) \
+                    and isinstance(l.crs(), QgsCoordinateReferenceSystem) \
+                    and l.crs().isValid():
+
+                    self.setDestinationCrs(l.crs())
+                    self.setExtent(self.fullExtent())
 
     def mousePressEvent(self, event:QMouseEvent):
 
@@ -1368,17 +1377,8 @@ class MapCanvas(QgsMapCanvas):
             store = QgsProject.instance()
         store.addMapLayers(newSet)
 
-        super(MapCanvas,self).setLayers(newSet)
+        super(MapCanvas, self).setLayers(newSet)
 
-        if not self.mapSettings().destinationCrs().isValid() and len(newSet) > 0:
-            # set canvas to first layer's CRS and full extent
-            for lyr in newSet:
-                assert isinstance(lyr, QgsMapLayer)
-                if lyr.crs().isValid():
-                    newExtent = SpatialExtent.fromLayer(lyr)
-                    self.setDestinationCrs(newExtent.crs())
-                    self.setExtent(newExtent)
-                    break
         self.setRenderFlag(True)
         self.refreshAllLayers()
 

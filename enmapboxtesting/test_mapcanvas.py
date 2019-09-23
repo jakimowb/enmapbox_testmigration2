@@ -44,6 +44,16 @@ class MapCanvasTests(unittest.TestCase):
     def tearDown(self):
         self.w.close()
 
+    def test_mapCRS(self):
+
+        mc = MapCanvas()
+
+        self.assertFalse(mc.mapSettings().destinationCrs().isValid())
+
+        lyr = TestObjects.createRasterLayer()
+        mc.setLayers([lyr])
+
+        self.assertEqual(lyr.crs(), mc.mapSettings().destinationCrs())
     def test_mapDock(self):
 
         dock = MapDock()
