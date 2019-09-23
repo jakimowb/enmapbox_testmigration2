@@ -226,23 +226,20 @@ class DataSourceManager(QObject):
                 toAdd.append(dsNew)
             else:
                 #we have similar sources.
+
                 older = []
                 newer = []
 
                 for d in sameSources:
                     if dsNew.isNewVersionOf(d):
                         older.append(d)
-                    if d.isNewVersionOf(dsNew):
-                        newer.append(d)
-
-                sameOrNewer = [d for d in sameSources if d not in older]
 
                 # remove older versions
                 if len(older) > 0:
                     self.removeSources(older)
-
-                if len(sameOrNewer) == 0:
+                    QApplication.processEvents()
                     toAdd.append(dsNew)
+
 
 
         for ds in toAdd:
@@ -638,7 +635,7 @@ class RasterBandTreeNode(TreeNode):
         super(RasterBandTreeNode, self).__init__( *args, **kwds)
         assert isinstance(dataSource, DataSourceRaster)
         assert bandIndex >= 0
-        assert bandIndex < dataSource.nBands
+        assert bandIndex < dataSource.nBands()
         self.mDataSource = dataSource
         self.mBandIndex = bandIndex
 
@@ -676,21 +673,22 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
                                     toolTip='Data Source Height in Pixel',
                                     values='{} px'.format(dataSource.nLines))
 
-        pxSize = dataSource.mPxSize
+        pxSize = dataSource.pixelSize()
         self.mNodePxSize = TreeNode(self.mNodeSize, 'Pixel',
                                     toolTip='Spatial size of single pixel',
                                     values='{}x{}{}'.format(pxSize.width(), mu, pxSize.height()))
 
-        self.mNodeSize.setValue('{}x{}x{}'.format(dataSource.nSamples,
-                                                  dataSource.nLines,
-                                                  dataSource.nBands))
+        self.mNodeSize.setValue('{}x{}x{}'.format(dataSource.nSamples(),
+                                                  dataSource.nLines(),
+                                                  dataSource.nBands()))
 
         self.mNodeBands = TreeNode(self, 'Bands',
                                    toolTip='Number of Raster Bands',
-                                   values='{}'.format(dataSource.nBands))
+                                   values='{}'.format(dataSource.nBands()))
 
 
-        for b, bandName in enumerate(dataSource.mBandNames):
+        for b in range(dataSource.mapLayer().bandCount()):
+            bandName = dataSource.mapLayer().bandName(b+1)
             bandNode = RasterBandTreeNode(dataSource, b, self.mNodeBands, str(b+1), bandName)
 
 
