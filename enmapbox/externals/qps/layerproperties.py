@@ -196,8 +196,9 @@ def defaultRasterRenderer(layer:QgsRasterLayer, bandIndices:list=None, sampleSiz
 
     if not isinstance(bandIndices, list):
         if nb >= 3:
+
             if isinstance(defaultRenderer, QgsMultiBandColorRenderer):
-                bandIndices = [defaultRenderer.redBand()-1, defaultRenderer.greenBand()-1, defaultRenderer.blueBand()-1]
+                bandIndices = defaultBands(layer)
             else:
                 bandIndices = [2, 1, 0]
         else:
