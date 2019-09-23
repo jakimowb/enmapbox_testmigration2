@@ -22,6 +22,7 @@ from qgis.PyQt.QtGui import *
 from enmapbox.gui import *
 from enmapbox.gui import subLayerDefinitions, openRasterLayerSilent
 from enmapbox.gui.utils import *
+from ..externals.qps.layerproperties import defaultRasterRenderer
 from osgeo import gdal, ogr
 
 def rasterProvider(uri:str) -> str:
@@ -423,16 +424,19 @@ class DataSourceRaster(DataSourceSpatial):
 
         super(DataSourceRaster, self).__init__(uri, name=name, icon=icon, providerKey=providerKey)
 
-
+        self.mDefaultRenderer = None
         self.mLayer = self.createUnregisteredMapLayer()
         assert isinstance(self.mLayer, QgsRasterLayer)
+
         #self.mDataType = -1
         #self.mPxSize = QSizeF()
         #self.mDatasetMetadata = collections.OrderedDict()
         self.mBandMetadata = []
+
         self.mDatasetMetadata = {}
         self.mSpatialExtent = None
-
+        self.mWaveLengths = []
+        self.mWaveLengthUnits = []
         self.updateMetadata()
 
     def mapLayer(self)->QgsRasterLayer:
@@ -485,7 +489,7 @@ class DataSourceRaster(DataSourceSpatial):
         self.mDatasetMetadata.clear()
         #self.nBands = self.nSamples = self.nLines = -1
         #self.mDataType = None
-        #self.mWaveLengths, self.mWaveLengthUnits =  parseWavelength(self.mapLayer())
+        self.mWaveLengths, self.mWaveLengthUnits =  parseWavelength(self.mapLayer())
 
 
         hasClassInfo = False
@@ -565,6 +569,7 @@ class DataSourceRaster(DataSourceSpatial):
             icon = QIcon(':/enmapbox/gui/ui/icons/filelist_image.svg')
         self.setIcon(icon)
 
+
     def isNewVersionOf(self, dataSource)->bool:
         """
         Checks of if THIS raster data source is a newer version of 'dataSource'
@@ -589,7 +594,7 @@ class DataSourceRaster(DataSourceSpatial):
 
     def createUnregisteredMapLayer(self)->QgsRasterLayer:
         """
-        Creates a QgsRasterLayer from self.mUri and self.mProvider
+        Creates a QgsRasterLayer from self.mUri and self.mProvider. Avoids time-consuming initialization routines.
         :return: QgsRasterLayer
         """
         key = '/Projections/defaultBehavior'
@@ -602,6 +607,17 @@ class DataSourceRaster(DataSourceSpatial):
 
         loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
         lyr = QgsRasterLayer(self.mUri, self.mName, self.mProvider, options=loptions)
+
+        if False:
+            if isinstance(self.mapLayer(), QgsRasterLayer) and not isinstance(self.mDefaultRenderer, QgsRasterRenderer):
+
+                self.mDefaultRenderer = defaultRasterRenderer(self.mapLayer(), bandIndices=defaultBands(self.mapLayer()))
+                self.mDefaultRenderer.setInput(self.mapLayer().dataProvider())
+
+            if isinstance(self.mDefaultRenderer, QgsRasterRenderer):
+                r = self.mDefaultRenderer.clone()
+                r.setInput(lyr.dataProvider())
+                lyr.setRenderer(r)
 
         if isPrompt:
             QgsSettings().setValue(key, v)
