@@ -40,7 +40,7 @@ from enmapbox import DIR_REPO, __version__
 import git
 
 CHECK_COMMITS = False
-INCLUDE_TESTDATA = True #includes the testdata folder for none-master versions
+INCLUDE_TESTDATA = False #includes the testdata folder for none-master versions
 
 ########## End of config section
 REPO = git.Repo(DIR_REPO)
@@ -191,7 +191,7 @@ def build():
     dirPlugin = jp(DIR_DEPLOY, pluginname)
 
     # include test data into test versions
-    if True and not re.search(currentBranch, 'master', re.I):
+    if INCLUDE_TESTDATA and not re.search(currentBranch, 'master', re.I):
         if os.path.isdir(enmapbox.DIR_TESTDATA):
 
             shutil.copytree(enmapbox.DIR_TESTDATA, os.path.join(dirPlugin, os.path.basename(enmapbox.DIR_TESTDATA)))
