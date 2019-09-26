@@ -1,2 +1,6 @@
 from .qps.externals.pyqtgraph import *
-from .qps.externals.pyqtgraph import opengl
+
+try:
+    from .qps.externals.pyqtgraph import opengl
+except Exception as ex:
+    print('PyOpenGL is not available.', file=sys.stderr)

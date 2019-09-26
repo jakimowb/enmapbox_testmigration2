@@ -190,7 +190,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface:QgisInterface=None):
-        assert EnMAPBox.instance() is None
+        assert EnMAPBox.instance() is None, 'EnMAPBox already started. Call EnMAPBox.instance() to get a handle to.'
 
         splash = EnMAPBoxSplashScreen(parent=None)
         if not HIDE_SPLASHSCREEN:
