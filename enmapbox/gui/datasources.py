@@ -585,11 +585,11 @@ class DataSourceRaster(DataSourceSpatial):
 
         if super(DataSourceRaster, self).isNewVersionOf(dataSource):
             assert isinstance(dataSource, DataSourceRaster)
-            return self.nSamples == dataSource.nSamples \
-                and self.nLines == dataSource.nLines \
-                and self.nBands == dataSource.nBands \
-                and self.mPxSize == dataSource.mPxSize \
-                and self.mDataType == dataSource.mDataType
+            return self.nSamples() == dataSource.nSamples() \
+                and self.nLines() == dataSource.nLines() \
+                and self.nBands() == dataSource.nBands() \
+                and self.pixelSize() == dataSource.pixelSize() \
+                and self.dataType() == dataSource.dataType()
 
 
     def createUnregisteredMapLayer(self)->QgsRasterLayer:
