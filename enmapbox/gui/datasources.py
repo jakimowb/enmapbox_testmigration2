@@ -434,7 +434,7 @@ class DataSourceRaster(DataSourceSpatial):
         self.mBandMetadata = []
 
         self.mDatasetMetadata = {}
-        self.mSpatialExtent = None
+
         self.mWaveLengths = []
         self.mWaveLengthUnits = []
         self.updateMetadata()
@@ -453,18 +453,17 @@ class DataSourceRaster(DataSourceSpatial):
         return self.mLayer.dataProvider().dataType(1)
 
     def nSamples(self)->int:
+        """Returns the number of samples / columns / pixels in y direction"""
         return self.mLayer.width()
 
     def nLines(self)->int:
+        """Returns the number of lines / rows / pixels in y direction"""
         return self.mLayer.height()
 
     def nBands(self)->int:
         return self.mLayer.bandCount()
 
 
-
-    def spatialExtent(self)->SpatialExtent:
-        return self.mSpatialExtent
 
     def updateMetadata(self, icon=None, name=None):
         super(DataSourceRaster, self).updateMetadata(icon=icon, name=None)
@@ -484,7 +483,7 @@ class DataSourceRaster(DataSourceSpatial):
                 self.mModificationTime = dt
 
         #these attributes are to be set
-        self.mSpatialExtent = SpatialExtent.fromLayer(self.mapLayer())
+
         self.mBandMetadata.clear()
         self.mDatasetMetadata.clear()
         #self.nBands = self.nSamples = self.nLines = -1
