@@ -33,10 +33,10 @@ class ImageCubeApplication(EnMAPBoxApplication):
     def openglAvailable(self) -> bool:
         try:
             import OpenGL
-            self.mImportError = None
+            self.mErrorMessage = None
             return True
         except Exception as ex:
-            self.mImportError = ex
+            self.mErrorMessage = ex
             return False
 
     def menu(self, appMenu):
@@ -58,6 +58,7 @@ class ImageCubeApplication(EnMAPBoxApplication):
             self.mImageCubeWidget.show()
         else:
             text = ['Unable to start '+ NAME]
+            text.append('OpenGL not available')
             if isinstance(self.mErrorMessage, Exception):
                 text.append(str(self.mErrorMessage))
             text = '\n'.join(text)
