@@ -265,7 +265,7 @@ class DataSourceManager(QObject):
         if not os.path.exists(lastDataSourceDir):
             lastDataSourceDir = None
 
-        uris = QFileDialog.getOpenFileNames(None, "Open a data source(s)", lastDataSourceDir)
+        uris, filter = QFileDialog.getOpenFileNames(None, "Open a data source(s)", lastDataSourceDir)
         self.addSources(uris)
 
         if len(uris) > 0:

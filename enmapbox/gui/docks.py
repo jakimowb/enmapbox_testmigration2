@@ -692,7 +692,7 @@ class MimeDataDockWidget(QWidget, loadUI('mimedatadockwidget.ui')):
 
     def save(self, saveAs=False):
         if self.mFile is None or saveAs:
-            path = QFileDialog.getSaveFileName(self, 'Save file...', \
+            path, filter = QFileDialog.getSaveFileName(self, 'Save file...', \
                                         directory=self.mFile,
                                         filter=TextDockWidget.FILTERS)
             s = ""
@@ -782,7 +782,7 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         else:
             return self.mFile
 
-    def loadFile(self, path):
+    def loadFile(self, path, *args):
         """
         Loads a text file from `path`
         :param path: str
@@ -861,7 +861,7 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         :param saveAs: bool
         """
         if self.mFile is None or saveAs:
-            path = QFileDialog.getSaveFileName(self, 'Save file...', \
+            path, filter = QFileDialog.getSaveFileName(self, 'Save file...', \
                                         directory=self.mFile,
                                         filter=TextDockWidget.FILTERS)
             s = ""
