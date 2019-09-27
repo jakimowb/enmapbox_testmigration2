@@ -669,7 +669,6 @@ class DataSourceVector(DataSourceSpatial):
         super(DataSourceVector, self).updateMetadata(*args, **kwds)
         lyr = self.createUnregisteredMapLayer()
 
-        self.mSpatialExtent = SpatialExtent.fromLayer(lyr)
         self.mGeomType = lyr.geometryType()
 
         if self.mGeomType in [QgsWkbTypes.PointGeometry]:

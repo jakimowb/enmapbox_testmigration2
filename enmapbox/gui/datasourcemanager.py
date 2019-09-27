@@ -411,7 +411,7 @@ class DataSourceSizesTreeNode(TreeNode):
 
         n = TreeNode(self, 'File', values=fileSize, icon=dataSource.icon())
         if isinstance(dataSource, DataSourceSpatial):
-            ext = dataSource.mSpatialExtent
+            ext = dataSource.spatialExtent()
             mu = QgsUnitTypes.encodeUnit(ext.crs().mapUnits())
 
             n = TreeNode(self, 'Spatial Extent')
@@ -497,7 +497,7 @@ class SpatialDataSourceTreeNode(DataSourceTreeNode):
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpatial)
         super(SpatialDataSourceTreeNode, self).connectDataSource(dataSource)
-        ext = dataSource.mSpatialExtent
+        ext = dataSource.spatialExtent()
         mu = QgsUnitTypes.toString(ext.crs().mapUnits())
         assert isinstance(ext, SpatialExtent)
         assert self.nodeCRS is None
