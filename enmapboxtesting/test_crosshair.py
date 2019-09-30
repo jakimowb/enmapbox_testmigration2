@@ -20,7 +20,8 @@ from enmapboxtestdata import enmap, hires, library
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui import CrosshairDialog
 
-SHOW_GUI = False
+SHOW_GUI = False and os.environ.get('CI') is None
+
 class CrosshairTests(unittest.TestCase):
 
     def test_crosshair(self):

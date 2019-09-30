@@ -21,21 +21,24 @@ from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from enmapbox.testing import initQgisApplication
+from enmapboxtestdata import enmap, landcover_polygons
 QGIS_APP = initQgisApplication()
 from enmapbox.gui import *
+from enmapbox.testing import TestObjects
+from enmapbox.externals.qps.cursorlocationvalue import CursorLocationInfoDock
 
-
-SHOW_GUI = False
+SHOW_GUI = False and os.environ.get('CI') is None
 
 class CursorLocationTest(unittest.TestCase):
 
     def setUp(self):
-        self.wmsUri1 = r'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0'
-        self.wmsUri2 = 'referer=OpenStreetMap%20contributors,%20under%20ODbL&type=xyz&url=http://tiles.wmflabs.org/hikebike/%7Bz%7D/%7Bx%7D/%7By%7D.png&zmax=17&zmin=1'
-        self.wfsUri = r'restrictToRequestBBOX=''1'' srsname=''EPSG:25833'' typename=''fis:re_postleit'' url=''http://fbinter.stadt-berlin.de/fb/wfs/geometry/senstadt/re_postleit'' version=''auto'''
+
+        pass
 
     def webLayers(self)->list:
-        layers = [QgsRasterLayer(self.wmsUri1, 'XYZ', 'wms'), QgsRasterLayer(self.wmsUri2, 'OSM', 'wms'), QgsVectorLayer(self.wfsUri, 'Berlin', 'WFS')]
+
+        layers = [QgsRasterLayer(TestObjects.uriWMS(), 'OSM', 'wms'), \
+                  QgsVectorLayer(TestObjects.uriWFS(), 'Berlin', 'WFS')]
         for l in layers:
             self.assertIsInstance(l, QgsMapLayer)
             self.assertTrue(l.isValid())
@@ -50,15 +53,16 @@ class CursorLocationTest(unittest.TestCase):
         store.addMapLayers(layers)
         canvas.setLayers(layers)
         cldock = CursorLocationInfoDock()
+        self.assertIsInstance(cldock, CursorLocationInfoDock)
         cldock.show()
         cldock.loadCursorLocation(center, canvas)
-        crs, point = cldock.cursorLocation()
-        self.assertIsInstance(point, QgsPointXY)
-        self.assertIsInstance(crs, QgsCoordinateReferenceSystem)
+        point = cldock.cursorLocation()
+        self.assertIsInstance(point, SpatialPoint)
+
 
         if SHOW_GUI:
             QGIS_APP.exec_()
-        self.assertIsInstance(cldock, CursorLocationInfoDock)
+
 
 if __name__ == "__main__":
 

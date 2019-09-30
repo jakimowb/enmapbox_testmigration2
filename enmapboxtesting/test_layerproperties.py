@@ -18,7 +18,7 @@ from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 from enmapboxtestdata import enmap, hires, library
 from enmapbox.gui.mapcanvas import *
-SHOW_GUI = True
+SHOW_GUI = False and os.environ.get('CI') is None
 
 from enmapbox.gui.maplayers import *
 from enmapbox.testing import TestObjects

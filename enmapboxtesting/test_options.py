@@ -32,7 +32,7 @@ from enmapbox.gui.widgets.models import *
 from enmapboxtestdata import *
 
 QGIS_APP = initQgisApplication()
-SHOW_GUI = False
+SHOW_GUI = False and os.environ.get('CI') is None
 
 
 class TestEnMAPBoxPlugin(unittest.TestCase):

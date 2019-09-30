@@ -63,6 +63,14 @@ class TestObjects(TestObjects):
     """
 
     @staticmethod
+    def uriWMS()->str:
+        return r'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0'
+
+    @staticmethod
+    def uriWFS()->str:
+        return r'restrictToRequestBBOX=''1'' srsname=''EPSG:25833'' typename=''fis:re_postleit'' url=''http://fbinter.stadt-berlin.de/fb/wfs/geometry/senstadt/re_postleit'' version=''auto'''
+
+    @staticmethod
     def enmapboxApplication():
         from enmapbox.gui.applications import EnMAPBoxApplication
         from enmapbox import EnMAPBox
@@ -72,6 +80,8 @@ class TestObjects(TestObjects):
             v = 'Hello World'
             print(v)
             return v
+
+
 
         class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
             """

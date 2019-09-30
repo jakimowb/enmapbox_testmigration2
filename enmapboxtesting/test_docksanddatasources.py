@@ -21,7 +21,7 @@ from qgis.PyQt.QtWidgets import *
 
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
-SHOW_GUI = True
+SHOW_GUI = False and os.environ.get('CI') is None
 
 
 from enmapboxtestdata import *
@@ -189,7 +189,7 @@ class testDocks(unittest.TestCase):
             QGIS_APP.exec_()
 
 if __name__ == "__main__":
-
+    os.environ['CI'] = True
     SHOW_GUI = False
     unittest.main()
 

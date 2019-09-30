@@ -21,7 +21,7 @@ from PyQt5.QtCore import *
 from osgeo import gdal, ogr, osr
 from enmapbox.testing import initQgisApplication
 QGIS_APP = initQgisApplication()
-
+SHOW_GUI = False and os.environ.get('CI') is None
 from enmapbox.gui.utils import *
 from enmapbox.gui import *
 from enmapboxtestdata import enmap
@@ -45,6 +45,7 @@ class testClassUtils(unittest.TestCase):
         print('Time to read {} profiles: {}sec'.format(n, dt))
 
         t0 = time.time()
+        sl.startEditing()
         sl.addSpeclib(sl)
         dt = time.time() - t0
         print('Time to add {} profiles: {}sec'.format(n, dt))
