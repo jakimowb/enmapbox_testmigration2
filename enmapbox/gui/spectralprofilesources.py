@@ -275,25 +275,29 @@ class SpectralProfileSamplingMode(enum.Enum):
         dy = lyr.rasterUnitsPerPixelY()
         cx = spatialPoint.x()
         cy = spatialPoint.y()
-        results = []
+        postitions = []
 
         if self == SpectralProfileSamplingMode.SingleProfile:
-            results.append(spatialPoint)
+            postitions.append(spatialPoint)
 
         elif self in [SpectralProfileSamplingMode.Sample3x3,
                       SpectralProfileSamplingMode.Sample3x3Mean]:
-            for x in np.linspace(cx-dx,cx+dx,3):
-                for y in np.linspace(cy+dy, cy-dy, 3):
-                    results.append(SpatialPoint(spatialPoint.crs(), x, y))
-            s = ""
+            v = np.arange(3)
+
+            for x in v*dx + cx - 1*dx:
+                for y in np.flip(v)*dy + cy - 1*dy:
+                    postitions.append(SpatialPoint(spatialPoint.crs(), x, y))
 
         elif self in [SpectralProfileSamplingMode.Sample5x5,
                       SpectralProfileSamplingMode.Sample5x5Mean]:
-            for x in np.linspace(cx-dx,cx+dx,5):
-                for y in np.linspace(cy+dy, cy-dy, 5):
-                    results.append(SpatialPoint(spatialPoint.crs(), x, y))
-            s = ""
-        return results
+
+            v = np.arange(5)
+
+            for x in v*dx + cx - 1*dx:
+                for y in np.flip(v)*dy + cy - 2*dy:
+                    postitions.append(SpatialPoint(spatialPoint.crs(), x, y))
+
+        return postitions
 
     def aggregatePositionProfiles(self, positions:typing.List[SpatialPoint], profiles:typing.List[SpectralProfile])->typing.List[SpectralProfile]:
         """
@@ -580,8 +584,10 @@ class SpectralProfileBridge(QAbstractTableModel):
         cn = self.columnNames()[c]
         changed = False
         if role == Qt.CheckStateRole and c == 0:
-                item.mIsActive = value == Qt.Checked
-                changed == True
+                b = value == Qt.Checked
+                if b != item.isActive():
+                    item.mIsActive = b
+                    changed = True
 
         if role == Qt.EditRole:
             if cn == self.cnSrc and isinstance(value, SpectralProfileSource):
@@ -684,7 +690,7 @@ class SpectralProfileBridge(QAbstractTableModel):
         self.mDstModel.removeSpeclib(slw)
 
     def activeRelations(self, source=None, destination=None)->typing.List[SpectralProfileRelation]:
-        relations = [r for r in self.mBridgeItems if isinstance(r, SpectralProfileRelation) and r.isValid()]
+        relations = [r for r in self.mBridgeItems if isinstance(r, SpectralProfileRelation) and r.isValid() and r.isActive()]
 
         if source:
             relations = [r for r in relations if r.source() == source]
