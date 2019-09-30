@@ -6,6 +6,9 @@ Predict Clustering
 
 Applies a clusterer to a raster.
 
+Used in the Cookbook Recipes: 
+`Clustering <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/clustering.html>`_
+
 **Parameters**
 
 

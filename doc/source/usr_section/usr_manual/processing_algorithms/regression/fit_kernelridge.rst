@@ -6,6 +6,9 @@ Fit KernelRidge
 
 Fits a KernelRidge Regression. Click `here <http://scikit-learn.org/stable/modules/kernel_ridge.html>`_ for additional information.
 
+See the following Cookbook Recipes on how to use regressors: 
+`Regression <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/regression.html>`_
+
 **Parameters**
 
 
@@ -48,4 +51,6 @@ Fits a KernelRidge Regression. Click `here <http://scikit-learn.org/stable/modul
 
 :guilabel:`Output Regressor` [fileDestination]
     Specifiy output path for the regressor (.pkl). This file can be used for applying the regressor to an image using 'Regression -> Predict Regression'.
+
+    Default: *outEstimator.pkl*
 

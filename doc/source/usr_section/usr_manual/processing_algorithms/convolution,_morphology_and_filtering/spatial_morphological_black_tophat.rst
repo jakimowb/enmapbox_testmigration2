@@ -6,6 +6,10 @@ Spatial Morphological Black Tophat
 
 Applies black_tophat morphology filter to image. See `Wikipedia <https://en.wikipedia.org/wiki/Top-hat_transform>`_ for more information on top-hat transformation.
 
+See the following Cookbook Recipes on how to apply filters: 
+`Filtering <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/filtering.html>`_
+, `Generic Filter <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/generic_filter.html>`_
+
 **Parameters**
 
 

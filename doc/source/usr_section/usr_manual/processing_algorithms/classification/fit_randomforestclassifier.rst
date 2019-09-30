@@ -6,6 +6,10 @@ Fit RandomForestClassifier
 
 Fits a Random Forest Classifier
 
+See the following Cookbook Recipes on how to use classifiers: 
+`Classification <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/classification.html>`_
+, `Graphical Modeler <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/graphical_modeler.html>`_
+
 **Parameters**
 
 
@@ -38,4 +42,6 @@ Fits a Random Forest Classifier
 
 :guilabel:`Output Classifier` [fileDestination]
     Specifiy output path for the classifier (.pkl). This file can be used for applying the classifier to an image using 'Classification -> Predict Classification' and 'Classification -> Predict ClassFraction'.
+
+    Default: *outEstimator.pkl*
 

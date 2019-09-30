@@ -6,8 +6,9 @@ Predict Classification
 
 Applies a classifier to a raster.
 
-Used in the Cookbook Recipes
-    - `Classification <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/classification.html#predict-classification>`_ (section: predict-classification)
+Used in the Cookbook Recipes: 
+`Classification <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/classification.html>`_
+, `Graphical Modeler <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/graphical_modeler.html>`_
 
 **Parameters**
 

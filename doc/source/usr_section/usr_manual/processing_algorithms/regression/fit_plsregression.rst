@@ -1,10 +1,10 @@
-.. _Fit GaussianProcessRegressor:
+.. _Fit PLSRegression:
 
-****************************
-Fit GaussianProcessRegressor
-****************************
+*****************
+Fit PLSRegression
+*****************
 
-Fits Gaussian Process Regression. See `Gaussian Processes <http://scikit-learn.org/stable/modules/gaussian_process.html>`_ for further information.
+Fits a Partial Least Squares Regression.
 
 See the following Cookbook Recipes on how to use regressors: 
 `Regression <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/regression.html>`_
@@ -29,19 +29,12 @@ See the following Cookbook Recipes on how to use regressors:
 
 
 :guilabel:`Code` [string]
-    Scikit-learn python code. See `GaussianProcessRegressor <http://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessRegressor.html>`_ for information on different parameters.
+    Scikit-learn python code. See `PLSRegression <https://scikit-learn.org/stable/modules/generated/sklearn.cross_decomposition.PLSRegression.html>`_ for information on different parameters.
 
     Default::
 
-        from sklearn.pipeline import make_pipeline
-        from sklearn.multioutput import MultiOutputRegressor
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.gaussian_process import GaussianProcessRegressor
-        from sklearn.gaussian_process.kernels import RBF
-        
-        gpr = GaussianProcessRegressor(RBF())
-        scaledGPR = make_pipeline(StandardScaler(), gpr)
-        estimator = scaledGPR
+        from sklearn.cross_decomposition import PLSRegression
+        estimator = PLSRegression(n_components=3, scale=True)
         
 **Outputs**
 

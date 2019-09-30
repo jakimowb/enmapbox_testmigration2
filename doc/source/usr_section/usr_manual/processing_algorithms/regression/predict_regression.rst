@@ -6,6 +6,9 @@ Predict Regression
 
 Applies a regressor to an raster.
 
+Used in the Cookbook Recipes: 
+`Regression <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/regression.html>`_
+
 **Parameters**
 
 

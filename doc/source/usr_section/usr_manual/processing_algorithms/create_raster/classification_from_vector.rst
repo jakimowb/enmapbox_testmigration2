@@ -6,6 +6,10 @@ Classification from Vector
 
 Creates a classification from a vector field with class ids.
 
+Used in the Cookbook Recipes: 
+`Classification <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/classification.html>`_
+, `Graphical Modeler <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/graphical_modeler.html>`_
+
 **Parameters**
 
 

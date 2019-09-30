@@ -6,6 +6,9 @@ Fit RobustScaler
 
 Fits a Robust Scaler (scales features using statistics that are robust to outliers). Click `here <http://scikit-learn.org/0.18/auto_examples/preprocessing/plot_robust_scaling.html>`_ for example. See also `examples for different scaling methods <http://scikit-learn.org/stable/auto_examples/preprocessing/plot_all_scaling.html>`_.
 
+See the following Cookbook Recipes on how to use transformers: 
+`Transformation <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/transformation.html>`_
+
 **Parameters**
 
 
@@ -35,4 +38,6 @@ Fits a Robust Scaler (scales features using statistics that are robust to outlie
 
 :guilabel:`Output Transformer` [fileDestination]
     Specifiy output path for the transformer (.pkl). This file can be used for applying the transformer to an image using 'Transformation -> Transform Raster' and 'Transformation -> InverseTransform Raster'.
+
+    Default: *outEstimator.pkl*
 

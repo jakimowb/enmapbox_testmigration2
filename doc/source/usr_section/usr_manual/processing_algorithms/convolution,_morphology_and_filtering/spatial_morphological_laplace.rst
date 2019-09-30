@@ -6,6 +6,10 @@ Spatial Morphological Laplace
 
 Applies morphological_laplace filter to image. See `Wikipedia <https://en.wikipedia.org/wiki/Discrete_Laplace_operator#Image_Processing>`_ for more information on laplace filtering.
 
+See the following Cookbook Recipes on how to apply filters: 
+`Filtering <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/filtering.html>`_
+, `Generic Filter <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/generic_filter.html>`_
+
 **Parameters**
 
 

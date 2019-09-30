@@ -6,6 +6,10 @@ Spatial  Generic Filter
 
 Applies generic_filter to image using a user-specifiable function. This algorithm can perform operations you might know as moving window or focal statistics from some other GIS systems. Mind that depending on the function this algorithms can take some time to process.
 
+See the following Cookbook Recipes on how to apply filters: 
+`Filtering <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/filtering.html>`_
+, `Generic Filter <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/generic_filter.html>`_
+
 **Parameters**
 
 

@@ -6,6 +6,10 @@ Spatial  Prewitt
 
 Applies prewitt filter to image. See `Wikipedia <https://en.wikipedia.org/wiki/Prewitt_operator>`_ for further information on prewitt operators.
 
+See the following Cookbook Recipes on how to apply filters: 
+`Filtering <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/filtering.html>`_
+, `Generic Filter <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/generic_filter.html>`_
+
 **Parameters**
 
 

@@ -6,6 +6,9 @@ Fit Normalizer
 
 Fits a Normalizer (normalizes samples individually to unit norm). See also `examples for different scaling methods <http://scikit-learn.org/stable/auto_examples/preprocessing/plot_all_scaling.html>`_.
 
+See the following Cookbook Recipes on how to use transformers: 
+`Transformation <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/transformation.html>`_
+
 **Parameters**
 
 
@@ -35,4 +38,6 @@ Fits a Normalizer (normalizes samples individually to unit norm). See also `exam
 
 :guilabel:`Output Transformer` [fileDestination]
     Specifiy output path for the transformer (.pkl). This file can be used for applying the transformer to an image using 'Transformation -> Transform Raster' and 'Transformation -> InverseTransform Raster'.
+
+    Default: *outEstimator.pkl*
 

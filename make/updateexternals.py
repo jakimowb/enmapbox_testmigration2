@@ -44,11 +44,6 @@ RemoteInfo.create(r'https://bitbucket.org/ecstagriculture/enmap-box-lmu-vegetati
                   prefixRemote=r'lmuvegetationapps',
                   remoteBranch='master')
 
-RemoteInfo.create(r'https://bitbucket.org/jakimowb/virtual-raster-builder.git',
-                  prefixLocal=r'site-packages/vrtbuilder',
-                  prefixRemote=r'vrtbuilder',
-                  remoteBranch='master')
-
 ## enmap-box-geoalgorithmsprovider.git
 
 RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
@@ -126,7 +121,6 @@ if __name__ == "__main__":
                  'hub-workflow',
                  'enmapboxgeoalgorithms',
                  'enmap-box-lmu-vegetation-apps',
-                 'virtual-raster-builder',
                 ]
     updateRemotes(to_update)
     exit(0)

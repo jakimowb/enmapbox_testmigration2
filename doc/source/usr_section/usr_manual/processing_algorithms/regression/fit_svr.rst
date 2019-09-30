@@ -6,6 +6,9 @@ Fit SVR
 
 Fits a Support Vector Regression.
 
+See the following Cookbook Recipes on how to use regressors: 
+`Regression <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/regression.html>`_
+
 **Parameters**
 
 
@@ -49,4 +52,6 @@ Fits a Support Vector Regression.
 
 :guilabel:`Output Regressor` [fileDestination]
     Specifiy output path for the regressor (.pkl). This file can be used for applying the regressor to an image using 'Regression -> Predict Regression'.
+
+    Default: *outEstimator.pkl*
 

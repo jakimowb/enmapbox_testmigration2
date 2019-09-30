@@ -6,6 +6,9 @@ Fit AffinityPropagation
 
 Fits a Affinity Propagation clusterer (input data will be scaled).
 
+See the following Cookbook Recipes on how to use clusterers: 
+`Clustering <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/clustering.html>`_
+
 **Parameters**
 
 
@@ -38,4 +41,6 @@ Fits a Affinity Propagation clusterer (input data will be scaled).
 
 :guilabel:`Output Clusterer` [fileDestination]
     Specifiy output path for the clusterer (.pkl). This file can be used for applying the clusterer to an image using 'Clustering -> Predict Clustering'.
+
+    Default: *outEstimator.pkl*
 

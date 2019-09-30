@@ -6,6 +6,10 @@ Fit SVC
 
 Fits a Support Vector Classification. Input data will be scaled and grid search is used for model selection.
 
+See the following Cookbook Recipes on how to use classifiers: 
+`Classification <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/classification.html>`_
+, `Graphical Modeler <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/graphical_modeler.html>`_
+
 **Parameters**
 
 
@@ -73,4 +77,6 @@ Fits a Support Vector Classification. Input data will be scaled and grid search 
 
 :guilabel:`Output Classifier` [fileDestination]
     Specifiy output path for the classifier (.pkl). This file can be used for applying the classifier to an image using 'Classification -> Predict Classification' and 'Classification -> Predict ClassFraction'.
+
+    Default: *outEstimator.pkl*
 

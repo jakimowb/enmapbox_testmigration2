@@ -6,6 +6,10 @@ Spatial  Gaussian Gradient Magnitude
 
 Applies gaussian_gradient_magnitude filter to image.
 
+See the following Cookbook Recipes on how to apply filters: 
+`Filtering <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/filtering.html>`_
+, `Generic Filter <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/generic_filter.html>`_
+
 **Parameters**
 
 

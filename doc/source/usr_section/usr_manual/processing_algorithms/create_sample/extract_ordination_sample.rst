@@ -16,10 +16,6 @@ Extract a regression samples where the regression labels are ordinated. See http
 :guilabel:`Vector` [vector]
     Specify input vector.
 
-
-:guilabel:`No Data Value` [string]
-    Specify output no data value.
-
 **Outputs**
 
 
@@ -29,4 +25,8 @@ Extract a regression samples where the regression labels are ordinated. See http
 
 :guilabel:`Output Regression` [rasterDestination]
     Specify output path for regression raster.
+
+
+:guilabel:`Vector for DataPlotly` [vectorDestination]
+    Specify output path for the vector.
 

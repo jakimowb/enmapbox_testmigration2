@@ -6,6 +6,10 @@ Spatial Morphological Grey Dilation
 
 Applies grey_dilation morphology filter to image. See `Wikipedia <https://en.wikipedia.org/wiki/Dilation_(morphology)>`_ for general information about closing morphology.
 
+See the following Cookbook Recipes on how to apply filters: 
+`Filtering <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/filtering.html>`_
+, `Generic Filter <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/generic_filter.html>`_
+
 **Parameters**
 
 
