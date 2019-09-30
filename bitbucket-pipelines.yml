@@ -31,6 +31,7 @@ pipelines:
           - git lfs pull
           - git lfs checkout
           - python make/setuprepository.py
+          - python enmapboxtesting/prepare_ci_test.py
           #- python -m nose2 discover tests "test_*.py" > test-reports/test-report.txt
 
           - python -m nose2 -s enmapboxtesting test_crosshair
