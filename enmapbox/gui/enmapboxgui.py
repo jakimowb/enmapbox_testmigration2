@@ -779,6 +779,10 @@ class EnMAPBox(QgisInterface, QObject):
         :param spatialPoint: SpatialPoint
         :param mapCanvas: QgsMapCanvas
         """
+
+        if len(self.docks(SpectralLibraryDock)) == 0:
+            self.createDock(SpectralLibraryDock)
+
         self.ui.spectralProfileSourcePanel.loadCurrentMapSpectra(spatialPoint, mapCanvas=mapCanvas)
 
 

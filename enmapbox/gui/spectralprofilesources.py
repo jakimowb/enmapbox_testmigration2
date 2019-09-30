@@ -384,7 +384,10 @@ class SpectralProfileRelation(object):
     def __eq__(self, other):
         if not isinstance(other, SpectralProfileRelation):
             return False
-        return self.mDst is other.mDst and self.mSrc == other.mSrc and self.mSamplingMode == other.mSamplingMode
+        return self.mDst is other.mDst \
+               and self.mSrc == other.mSrc \
+               and self.mSamplingMode == other.mSamplingMode \
+               and self.mScale == other.mScale
 
     def isValid(self)->bool:
         return isinstance(self.destination(), SpectralLibraryWidget) \
@@ -396,23 +399,25 @@ class SpectralProfileRelationWrapper(SpectralProfileRelation):
 
 
     def __init__(self, r: SpectralProfileRelation):
-        super(SpectralProfileRelationWrapper, self).__init__(r.source(), r.destination(),
-                                                             isActive=r.isActive(), samplingMode=r.samplingMode())
+        super(SpectralProfileRelationWrapper, self).__init__(r.source(), r.destination())
 
         self.mSrcID = id(self.mSrc)
         self.mDstID = id(self.mDst)
         self.mDst = None
+        self.mIsActive = r.isActive()
+        self.mSamplingMode = r.samplingMode()
+        self.mScale = r.scale()
         #self.mSrc = None
 
     def __hash__(self):
-        return hash((self.mSrcID, self.mDstID, self.mSamplingMode))
+        return hash((self.mSrcID, self.mDstID, self.mSamplingMode, self.mScale))
 
 
     def unwrap(self, relations:typing.List[SpectralProfileRelation])->SpectralProfileRelation:
-        key1 = (self.mSrcID, self.mSamplingMode, self.mDstID)
+        key1 = (self.mSrcID, self.mSamplingMode, self.mDstID, self.mScale)
         for r in relations:
             assert isinstance(r, SpectralProfileRelation)
-            key2 = (id(r.mSrc), r.mSamplingMode, id(r.mDst))
+            key2 = (id(r.mSrc), r.mSamplingMode, id(r.mDst), r.mScale)
             if key1 == key2:
                 return r
 
@@ -529,6 +534,10 @@ class SpectralProfileBridge(QAbstractTableModel):
             if cn == self.cnScale:
                 return item.scale()
 
+        if role == Qt.EditRole:
+            if cn == self.cnScale:
+                return float(item.scale())
+
         if role == Qt.CheckStateRole:
             if c == 0:
                 return Qt.Checked if item.mIsActive else Qt.Unchecked
@@ -585,8 +594,8 @@ class SpectralProfileBridge(QAbstractTableModel):
                 item.setSamplingMode(value)
                 changed = True
 
-            if cn == self.cnScale and isinstance(value, (int, float)):
-                item.setScale(value)
+            if cn == self.cnScale:
+                item.setScale(float(value))
                 changed = True
 
         if changed:
@@ -1055,13 +1064,14 @@ def doLoadSpectralProfiles(task, spatialPoint, relations:typing.List[SpectralPro
 
             # apply scale
             if r.scale() != 1:
+                scaledProfiles = []
                 for p in profiles:
                     assert isinstance(p, SpectralProfile)
-                    v = p.values()
-                    v['y'] = v['y'] * r.scale()
-                    p.setValues(**v)
-
-
+                    p = p.clone()
+                    y = np.asarray(p.yValues())* r.scale()
+                    p.setValues(y=y)
+                    scaledProfiles.append(p)
+                profiles = scaledProfiles
 
             r.mCurrentProfiles = profiles
 
