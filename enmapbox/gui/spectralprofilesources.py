@@ -293,7 +293,7 @@ class SpectralProfileSamplingMode(enum.Enum):
 
             v = np.arange(5)
 
-            for x in v*dx + cx - 1*dx:
+            for x in v*dx + cx - 2*dx:
                 for y in np.flip(v)*dy + cy - 2*dy:
                     postitions.append(SpatialPoint(spatialPoint.crs(), x, y))
 
