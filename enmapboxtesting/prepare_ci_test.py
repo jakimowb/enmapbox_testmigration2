@@ -1,4 +1,8 @@
-import re, os
+import re, os, pathlib, sys
+
+p = str(pathlib.Path(__file__).parents[1].absolute())
+if p not in sys.path:
+    sys.path.append(p)
 
 from enmapbox.gui.utils import file_search
 
@@ -25,7 +29,6 @@ def remove_shortcutVisibleInContextMenu(rootDir):
             with open(p, 'w', encoding='utf-8') as f:
                 f.write(xml)
 
-os.environ['CI'] = 'True'
 
 if os.environ.get('CI'):
     from enmapbox import DIR_REPO
