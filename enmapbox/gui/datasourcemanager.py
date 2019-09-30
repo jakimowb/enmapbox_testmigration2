@@ -669,10 +669,10 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
 
         self.mNodeExtXpx = TreeNode(self.mNodeSize, 'Samples',
                                     toolTip='Data Source Width in Pixel',
-                                    values='{} px'.format(dataSource.nSamples))
+                                    values='{} px'.format(dataSource.nSamples()))
         self.mNodeExtYpx = TreeNode(self.mNodeSize, 'Lines',
                                     toolTip='Data Source Height in Pixel',
-                                    values='{} px'.format(dataSource.nLines))
+                                    values='{} px'.format(dataSource.nLines()))
 
         pxSize = dataSource.pixelSize()
         self.mNodePxSize = TreeNode(self.mNodeSize, 'Pixel',
