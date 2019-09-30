@@ -388,9 +388,9 @@ class EnMAPBox(QgisInterface, QObject):
             for ltn in mapNode.findLayers():
                 assert isinstance(ltn, QgsLayerTreeLayer)
                 qLyr = ltn.layer()
-                assert isinstance(qLyr, QgsMapLayer)
-                eLayerId = qLyr.id()
-                LUT_ECANVAS_LAYERS[(eCanvasID, eLayerId)] = qLyr
+                if isinstance(qLyr, QgsMapLayer):
+                    eLayerId = qLyr.id()
+                    LUT_ECANVAS_LAYERS[(eCanvasID, eLayerId)] = qLyr
 
         enmapboxSourceUris = [src.uri() for src in self.dataSourceManager.sources('SPATIAL')]
         hiddenSourceUris = []
@@ -545,7 +545,7 @@ class EnMAPBox(QgisInterface, QObject):
         for grp in root.findGroups():
             if isinstance(grp, MapDockTreeNode):
 
-                lyrs.extend([ltn.layer() for ltn in grp.findLayers()])
+                lyrs.extend([ltn.layer() for ltn in grp.findLayers() if isinstance(ltn.layer(), QgsMapLayer)])
 
         return lyrs
 
@@ -1278,6 +1278,11 @@ class EnMAPBox(QgisInterface, QObject):
 
     def close(self):
         self.ui.close()
+
+
+        store = self.mapLayerStore()
+        store.removeMapLayers(list(store.mapLayers().values()))
+        self.dataSourceManager.clear()
         EnMAPBox._instance = None
 
 

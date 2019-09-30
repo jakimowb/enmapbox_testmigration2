@@ -547,9 +547,11 @@ class MapDockTreeNode(DockTreeNode):
 
         toRemove = []
         for lyrNode in self.findLayers():
-            uriLyr = lyrNode.layer().source()
-            if uriLyr == uri:
-                toRemove.append(lyrNode)
+            lyr = lyrNode.layer()
+            if isinstance(lyr, QgsMapLayer):
+                uriLyr = lyrNode.layer().source()
+                if uriLyr == uri:
+                    toRemove.append(lyrNode)
 
         for node in toRemove:
             node.parent().removeChildNode(node)

@@ -65,7 +65,7 @@ class TestEnMAPBoxSplashScreen(unittest.TestCase):
         import time
         import enmapbox
         w = QWidget()
-        enmapbox.initEnMAPBoxResources()
+
         splash = EnMAPBoxSplashScreen(parent=w)
         self.assertIsInstance(splash, EnMAPBoxSplashScreen)
         i = 0
@@ -77,7 +77,7 @@ class TestEnMAPBoxSplashScreen(unittest.TestCase):
         self.assertFalse(splash.size().isNull())
 
         timer = QTimer()
-        timer.startTimer(500)
+        timer.startTimer(2)
         timer.timeout.connect(onTimeOut)
 
         if SHOW_GUI:
@@ -91,11 +91,23 @@ class TestEnMAPBoxSplashScreen(unittest.TestCase):
 class TestEnMAPBox(unittest.TestCase):
 
     def setUp(self):
+
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox):
+
+
+            emb.close()
+        QApplication.processEvents()
+
         self.EMB = EnMAPBox(None)
-        s = ""
+
 
     def tearDown(self):
-        self.EMB.close()
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox):
+
+            emb.close()
+
         self.EMB = None
         QApplication.processEvents()
 
@@ -115,9 +127,6 @@ class TestEnMAPBox(unittest.TestCase):
 
     def test_instanceWithData(self):
 
-        if True:
-            from qgis.utils import iface
-            iface.layerTreeView().parent().parent().show()
 
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(self.EMB, EnMAPBox.instance())
@@ -141,8 +150,8 @@ class TestEnMAPBox(unittest.TestCase):
         layers = []
         layers.append(QgsRasterLayer(enmap))
         layers.append(QgsVectorLayer(landcover_polygons))
-        layers.append(QgsRasterLayer(WMS_OSM, 'osm', 'wms'))
-        layers.append(QgsVectorLayer(WFS_Berlin, 'wfs', 'WFS'))
+        #layers.append(QgsRasterLayer(WMS_OSM, 'osm', 'wms'))
+        #layers.append(QgsVectorLayer(WFS_Berlin, 'wfs', 'WFS'))
 
         for lyr in layers:
             self.assertIsInstance(lyr, QgsMapLayer)
@@ -180,20 +189,6 @@ class TestEnMAPBox(unittest.TestCase):
         E.loadExampleData()
         self.assertTrue(len(E.dataSources()) > 0)
 
-    def test_SpeclibDock(self):
-        E = self.EMB
-        dock = self.EMB.createDock('SPECLIB')
-        self.assertIsInstance(dock, SpectralLibraryDock)
-        w = dock.speclibWidget()
-        self.assertIsInstance(w, SpectralLibraryWidget)
-        uri = r'T:\4bj\practical_data\library\library_berlin.sli'
-        w.speclib().startEditing()
-        w.speclib().addSpeclib(SpectralLibrary.readFrom(uri))
-        w.speclib().commitChanges()
-        if SHOW_GUI:
-            w.show()
-            w.actionProperties.trigger()
-            QGIS_APP.exec_()
 
 
 
@@ -252,10 +247,6 @@ class TestEnMAPBox(unittest.TestCase):
         # unload
         E.removeSources()
         self.assertTrue(len(E.dataSources()) == 0)
-
-
-        # load again
-        E.loadExampleData()
 
         if SHOW_GUI:
             QGIS_APP.exec_()
