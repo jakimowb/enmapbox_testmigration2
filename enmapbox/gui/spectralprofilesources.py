@@ -340,12 +340,18 @@ class SpectralProfileRelation(object):
         self.mSrc = None
         self.mDst = None
 
+        self.mScale = 1
         self.setSource(src)
         self.setDestination(dst)
         self.mIsActive = isActive
         self.mSamplingMode = samplingMode
         self.mCurrentProfiles = []
 
+    def setScale(self, scale:float):
+        self.mScale = scale
+
+    def scale(self)->float:
+        return self.mScale
     def currentProfiles(self)->typing.List[SpectralProfile]:
         return [p for p in self.mCurrentProfiles if isinstance(p, SpectralProfile)]
 
@@ -458,6 +464,7 @@ class SpectralProfileBridge(QAbstractTableModel):
         self.cnSrc = 'Source'
         self.cnDst = 'Destination'
         self.cnSampling = 'Sampling'
+        self.cnScale = 'Scale'
 
         self.mTasks = dict()
 
@@ -474,7 +481,7 @@ class SpectralProfileBridge(QAbstractTableModel):
         return self.mSrcModel
 
     def columnNames(self)->typing.List[str]:
-        return [self.cnSrc, self.cnSampling, self.cnDst]
+        return [self.cnSrc, self.cnSampling, self.cnDst, self.cnScale]
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
 
@@ -518,6 +525,9 @@ class SpectralProfileBridge(QAbstractTableModel):
 
             if cn == self.cnDst and isinstance(dst, SpectralLibraryWidget):
                 return dst.windowTitle()
+
+            if cn == self.cnScale:
+                return item.scale()
 
         if role == Qt.CheckStateRole:
             if c == 0:
@@ -566,13 +576,17 @@ class SpectralProfileBridge(QAbstractTableModel):
 
         if role == Qt.EditRole:
             if cn == self.cnSrc and isinstance(value, SpectralProfileSource):
-                item.mSrc = value
+                item.setSource(value)
                 changed = True
             if cn == self.cnDst and isinstance(value, SpectralLibraryWidget):
-                item.mDst = value
+                item.setDestination(value)
                 changed = True
             if cn == self.cnSampling and isinstance(value, SpectralProfileSamplingMode):
-                item.mSamplingMode = value
+                item.setSamplingMode(value)
+                changed = True
+
+            if cn == self.cnScale and isinstance(value, (int, float)):
+                item.setScale(value)
                 changed = True
 
         if changed:
@@ -1038,6 +1052,17 @@ def doLoadSpectralProfiles(task, spatialPoint, relations:typing.List[SpectralPro
 
             # aggregate profiles according to the sample mode
             profiles = r.samplingMode().aggregatePositionProfiles(positions, profiles)
+
+            # apply scale
+            if r.scale() != 1:
+                for p in profiles:
+                    assert isinstance(p, SpectralProfile)
+                    v = p.values()
+                    v['y'] = v['y'] * r.scale()
+                    p.setValues(**v)
+
+
+
             r.mCurrentProfiles = profiles
 
         if task.isCanceled():
