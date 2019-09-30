@@ -37,8 +37,11 @@ class CursorLocationTest(unittest.TestCase):
 
     def webLayers(self)->list:
 
-        layers = [QgsRasterLayer(TestObjects.uriWMS(), 'OSM', 'wms'), \
-                  QgsVectorLayer(TestObjects.uriWFS(), 'Berlin', 'WFS')]
+        if os.environ.get('CI') is None:
+            layers = [QgsRasterLayer(TestObjects.uriWMS(), 'OSM', 'wms'), \
+                      QgsVectorLayer(TestObjects.uriWFS(), 'Berlin', 'WFS')]
+        else:
+            layers = [TestObjects.createRasterLayer(), TestObjects.createVectorLayer()]
         for l in layers:
             self.assertIsInstance(l, QgsMapLayer)
             self.assertTrue(l.isValid())
@@ -47,7 +50,9 @@ class CursorLocationTest(unittest.TestCase):
     def test_layertest(self):
 
         canvas  = QgsMapCanvas()
-        layers = self.webLayers()
+
+        #layers = self.webLayers()
+        layers = [TestObjects.createRasterLayer(), TestObjects.createVectorLayer()]
         center = SpatialPoint.fromMapLayerCenter(layers[0])
         store = QgsMapLayerStore()
         store.addMapLayers(layers)

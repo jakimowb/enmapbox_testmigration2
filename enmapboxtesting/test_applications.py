@@ -36,9 +36,10 @@ class test_applications(unittest.TestCase):
         pass
 
     def setUp(self):
-
-        pass
-
+        eb = EnMAPBox.instance()
+        if isinstance(eb, EnMAPBox):
+            eb.close()
+        QApplication.processEvents()
 
     def tearDown(self):
         eb = EnMAPBox.instance()
@@ -190,10 +191,6 @@ class test_applications(unittest.TestCase):
         reg.addApplicationFolder(rootFolder, isRootFolder=True)
         self.assertTrue(len(reg) > 0, msg='Failed to add example EnMAPBoxApplication from {}'.format(rootFolder))
 
-    def test_loadListing(self):
-
-        eb = EnMAPBox(None)
-        eb.loadExampleData()
 
     def test_IVVM(self):
 
@@ -277,9 +274,12 @@ class test_applications(unittest.TestCase):
                     triggerActions(a, prefix='"{}"->'.format(menuItem.title()))
 
         #test core apps / tools
-        for title in ['Tools', 'Applications']:
-            print('## TEST QMenu "{}"'.format(title))
-            triggerActions(EB.menu(title))
+        if SHOW_GUI:
+            for title in ['Tools', 'Applications']:
+
+                print('## TEST QMenu "{}"'.format(title))
+
+                triggerActions(EB.menu(title))
 
 
 

@@ -14,14 +14,15 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 
 
-
 import os, unittest, tempfile, pathlib
+
 from enmapbox.testing import initQgisApplication, TestObjects
 SHOW_GUI = False and os.environ.get('CI') is None
 
 QGIS_APP = initQgisApplication()
 from enmapbox.gui.utils import *
 from enmapbox.gui.datasourcemanager import *
+from enmapbox import EnMAPBox
 from enmapboxtestdata import enmap, hires, landcover_polygons, library
 
 USE_WEBSOURCES = False
@@ -32,14 +33,23 @@ class standardDataSources(unittest.TestCase):
     def setUpClass(cls):
         pass
     def setUp(self):
+        eb = EnMAPBox.instance()
+        if isinstance(eb, EnMAPBox):
+            eb.close()
+        QApplication.processEvents()
+
 
         self.wmsUri = r'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0'
         self.wmsUri = 'referer=OpenStreetMap%20contributors,%20under%20ODbL&type=xyz&url=http://tiles.wmflabs.org/hikebike/%7Bz%7D/%7Bx%7D/%7By%7D.png&zmax=17&zmin=1'
         self.wfsUri = r'restrictToRequestBBOX=''1'' srsname=''EPSG:25833'' typename=''fis:re_postleit'' url=''http://fbinter.stadt-berlin.de/fb/wfs/geometry/senstadt/re_postleit'' version=''auto'''
         pass
 
+
     def tearDown(self):
-        pass
+        eb = EnMAPBox.instance()
+        if isinstance(eb, EnMAPBox):
+            eb.close()
+        QApplication.processEvents()
 
     def test_rasterVersioning(self):
 
@@ -102,14 +112,17 @@ class standardDataSources(unittest.TestCase):
 
         return [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons), SpectralLibrary.readFrom(library)]
 
+
+
     def test_netCDF(self):
 
         path = r'Q:\Processing_BJ\99_OSARIS_Testdata\Loibl-2019-OSARIS-Ala-Archa\Coherences\20151207--20151231-coherence.grd'
         path = r'C:\Users\geo_beja\Downloads\onns_for_enmap-box\janzandr-onns_for_enmap-box-06f21e484bb2\hzg_onns_testdata\S3A_OL_2_WFRC8R_20160720T093421_20160720T093621_20171002T063739_0119_006_307______MR1_R_NT_002_sylt.nc'
 
         import gdal
-        gdal.SetConfigOption('CPL_ZIP_ENCODING','UTF-8')
-        if os.path.isfile(path):
+
+        if SHOW_GUI and os.path.isfile(path):
+            gdal.SetConfigOption('CPL_ZIP_ENCODING', 'UTF-8')
             uri, name, provider = DataSourceFactory.isRasterSource(path)
 
             dsl = DataSourceFactory.create(uri)
@@ -118,54 +131,9 @@ class standardDataSources(unittest.TestCase):
             for ds in dsl:
                 self.assertIsInstance(ds, DataSourceRaster)
 
-            s = ""
 
 
-    def test_hubflowsources(self):
 
-        from hubflow.testdata import enmapClassification, vector, enmap
-        from hubflow.core import FlowObject
-        hubFlowObjects = [vector(), enmap(), enmapClassification()]
-        #hubFlowObjects = [vector()]
-        #hubFlowObjects = [enmapClassification()]
-
-        for obj in hubFlowObjects:
-            isObj, o = DataSourceFactory.isHubFlowObj(obj)
-            self.assertTrue(isObj)
-            self.assertIsInstance(o, FlowObject)
-
-            ds = DataSourceFactory.create(obj)
-            self.assertIsInstance(ds, list)
-            self.assertIsInstance(ds[0], HubFlowDataSource)
-
-        for o in hubFlowObjects:
-            node = HubFlowObjectTreeNode(None, None)
-            self.assertIsInstance(node, DataSourceTreeNode)
-            ds = DataSourceFactory.create(o)[0]
-            assert isinstance(ds, HubFlowDataSource)
-
-            n = node.fetchInternals(ds.flowObject())
-            self.assertIsInstance(n, TreeNode)
-            self.assertTrue(len(n.childNodes()) > 0)
-            node.connectDataSource(ds)
-            self.assertIsInstance(node.childNodes(), list)
-            self.assertTrue(len(node.childNodes()) > 0)
-            s = ""
-
-        DSM = DataSourceManager()
-        TM = DataSourceManagerTreeModel(None, DSM)
-
-        TV = QTreeView()
-        TV.header().setResizeMode(QHeaderView.ResizeToContents)
-        TV.setModel(TM)
-        TV.show()
-        TV.resize(QSize(400,250))
-
-        DSM.addSources(hubFlowObjects)
-        self.assertTrue(len(DSM) == len(hubFlowObjects))
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
 
     def test_classifier(self):
 
@@ -411,7 +379,10 @@ class standardDataSources(unittest.TestCase):
     def test_enmapbox(self):
 
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        EB = EnMAPBox()
+        EB = EnMAPBox.instance()
+        if not isinstance(EB, EnMAPBox):
+            EB = EnMAPBox(None)
+
         uriList = self.createTestSources()
         for uri in uriList:
             print('Test "{}"'.format(uri))
@@ -629,6 +600,53 @@ class hubflowTestCases(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+
+    def test_hubflowsources(self):
+
+        from hubflow.testdata import enmapClassification, vector, enmap
+        from hubflow.core import FlowObject
+        hubFlowObjects = [vector(), enmap(), enmapClassification()]
+        #hubFlowObjects = [vector()]
+        #hubFlowObjects = [enmapClassification()]
+
+        for obj in hubFlowObjects:
+            isObj, o = DataSourceFactory.isHubFlowObj(obj)
+            self.assertTrue(isObj)
+            self.assertIsInstance(o, FlowObject)
+
+            ds = DataSourceFactory.create(obj)
+            self.assertIsInstance(ds, list)
+            self.assertIsInstance(ds[0], HubFlowDataSource)
+
+        for o in hubFlowObjects:
+            node = HubFlowObjectTreeNode(None, None)
+            self.assertIsInstance(node, DataSourceTreeNode)
+            ds = DataSourceFactory.create(o)[0]
+            assert isinstance(ds, HubFlowDataSource)
+
+            n = node.fetchInternals(ds.flowObject())
+            self.assertIsInstance(n, TreeNode)
+            self.assertTrue(len(n.childNodes()) > 0)
+            node.connectDataSource(ds)
+            self.assertIsInstance(node.childNodes(), list)
+            self.assertTrue(len(node.childNodes()) > 0)
+            s = ""
+
+        DSM = DataSourceManager()
+        TM = DataSourceManagerTreeModel(None, DSM)
+
+        TV = QTreeView()
+        TV.header().setResizeMode(QHeaderView.ResizeToContents)
+        TV.setModel(TM)
+        TV.show()
+        TV.resize(QSize(400,250))
+
+        DSM.addSources(hubFlowObjects)
+        self.assertTrue(len(DSM) == len(hubFlowObjects))
+
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_hubflowtypes(self):
         """

@@ -97,6 +97,7 @@ class TestEnMAPBox(unittest.TestCase):
     def tearDown(self):
         self.EMB.close()
         self.EMB = None
+        QApplication.processEvents()
 
     def test_instance(self):
 

@@ -28,6 +28,17 @@ import enmapbox.gui.mimedata as mimedata
 
 class MimeDataTests(unittest.TestCase):
 
+    def setUp(self):
+        from enmapbox import EnMAPBox
+
+        eb = EnMAPBox.instance()
+        if isinstance(eb, EnMAPBox):
+            eb.close()
+
+
+        QgsApplication.processEvents()
+
+
     def test_conversions(self):
         for t1 in ['normalstring', b'bytestring', r'rawstring']:
 
@@ -93,8 +104,7 @@ class MimeDataTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
-    #exampleMapLinking()
+    os.environ['CI'] = 'True'
     unittest.main()
 
 
