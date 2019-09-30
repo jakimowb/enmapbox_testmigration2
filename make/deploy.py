@@ -63,6 +63,28 @@ URL_DOWNLOADS = r'https://bitbucket.org/hu-geomatics/enmap-box/downloads'
 URL_WIKI = r'https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/wiki/src'
 
 
+def remove_shortcutVisibleInContextMenu(rootDir):
+
+    uiFiles = file_search(rootDir, '*.ui', recursive=True)
+
+    regex = re.compile(r'<property name="shortcutVisibleInContextMenu">[^<]*<bool>true</bool>[^<]*</property>', re.MULTILINE)
+
+
+    for p in uiFiles:
+        assert isinstance(p, str)
+        assert os.path.isfile(p)
+
+        with open(p, encoding='utf-8') as f:
+            xml = f.read()
+
+        if 'shortcutVisibleInContextMenu' in xml:
+            print('remove "shortcutVisibleInContextMenu" properties from {}'.format(p))
+            xml = regex.sub('', xml)
+
+            with open(p, 'w', encoding='utf-8') as f:
+                f.write(xml)
+
+
 def rm(p):
     """
     Remove files or directory 'p'
@@ -148,6 +170,9 @@ def build():
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
         pb_tool.deploy_files(pathCfg, DIR_DEPLOY, quick=True, confirm=False)
+
+        if True:
+            remove_shortcutVisibleInContextMenu(DIR_DEPLOY)
 
         # 4. As long as we can not specify in the pb_tool.cfg which file types are not to deploy,
         # we need to remove them afterwards.
@@ -444,6 +469,7 @@ def uploadDeveloperPlugin():
 
     if auth_success:
         settings.setValue(skeyUsr, session.auth.username)
+
 
 
 
