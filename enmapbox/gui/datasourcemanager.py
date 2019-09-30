@@ -192,12 +192,13 @@ class DataSourceManager(QObject):
         return [ds.uri() for ds in self.sources(sourceTypes=sourceTypes)]
 
 
-    def addSources(self, sources) -> list:
+    def addSources(self, sources:list) -> list:
         """
         Adds a list of new data sources
         :param sources: list of potential data sources, i.e. QgsDataSources
         :return: [list-of-added-DataSources]
         """
+        assert isinstance(sources, list)
         added = []
         for s in sources:
             added.extend(self.addSource(s))

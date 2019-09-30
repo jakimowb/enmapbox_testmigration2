@@ -46,13 +46,10 @@ def rasterProvider(uri:str) -> str:
         providers.append('wcs')
 
     for p in providers:
-        lyr = QgsRasterLayer(uri, '', p)
-        if lyr.isValid():
+        loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
+        lyr = QgsRasterLayer(uri, '', p, options=loptions)
+        if lyr.isValid() or len(lyr.subLayers()) > 0:
             return lyr.providerType()
-    # try multi-resolution raster
-    ds = gdal.Open(uri)
-    if isinstance(ds, gdal.Dataset):
-        return 'gdal'
     return None
 
 
@@ -476,11 +473,16 @@ class DataSourceRaster(DataSourceSpatial):
         if self.mProvider == 'gdal':
             dataSet = gdal.Open(self.mUri)
             if isinstance(dataSet, gdal.Dataset):
-                statsInfo = gdal.VSIStatL(dataSet.GetDescription())
-                assert isinstance(statsInfo, gdal.StatBuf)
-                dt = QDateTime()
-                dt.setSecsSinceEpoch(statsInfo.mtime)
+                statsInfo = gdal.VSIStatL(dataSet.GetFileList()[0])
+                if isinstance(statsInfo, gdal.StatBuf):
+                    dt = QDateTime()
+                    dt.setSecsSinceEpoch(statsInfo.mtime)
+                else:
+                    print('Unable to get file create time')
+                    dt = QDateTime.currentDateTime()
+
                 self.mModificationTime = dt
+
 
         #these attributes are to be set
 

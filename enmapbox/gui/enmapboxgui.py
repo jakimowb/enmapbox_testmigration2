@@ -335,7 +335,7 @@ class EnMAPBox(QgisInterface, QObject):
         return grp
 
     def _hiddenLayers(self)->list:
-        return [l.layer() for l in self._hiddenQGISLayerGroup().findLayers()]
+        return [l.layer() for l in self._hiddenQGISLayerGroup().findLayers() if isinstance(l.layer(), QgsMapLayer)]
 
 
     def updateHiddenQGISLayers(self)->int:
@@ -1667,6 +1667,12 @@ class EnMAPBox(QgisInterface, QObject):
 
     def registerMainWindowAction(self, action, defaultShortcut):
         self.ui.addAction(action)
+
+    def registerMapLayerConfigWidgetFactory(self, factory:QgsMapLayerConfigWidgetFactory):
+        self.iface.registerMapLayerConfigWidgetFactory(factory)
+
+    def unregisterMapLayerConfigWidgetFactory(self, factory):
+        self.iface.unregisterMapLayerConfigWidgetFactory(factory)
 
     def vectorMenu(self):
         return QMenu()
