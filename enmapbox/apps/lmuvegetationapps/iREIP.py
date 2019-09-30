@@ -11,6 +11,7 @@ import sys, os
 from scipy.interpolate import *
 from scipy.signal import savgol_filter
 
+
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_iREIP.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__), 'GUI_Nodat.ui')
 pathUI_prg = os.path.join(os.path.dirname(__file__), 'GUI_ProgressBar.ui')
@@ -59,9 +60,11 @@ class iREIP:
     def initial_values(self):
         self.image = None
         self.out_path = None
-        self.limits = [680, 750]
+        self.limits = [680, 770]
+        self.useSavgolay = 0
         self.neighbors = 13
         self.max_ndvi_pos = None
+        self.ndvi_spec = None
         self.nodat = [-999] * 2
         self.division_factor = 1.0
         self.calc_deriv_flag = [False, False]  # First, Second Derivative [First, Second]
@@ -76,8 +79,10 @@ class iREIP:
             lambda: self.limits_changed(self.gui.upWaveEdit))
         self.gui.neighborEdit.returnPressed.connect(lambda: self.neighbors_changed())
 
+        self.gui.savGolayCheckBox.stateChanged.connect(lambda: self.sav_golay_changed())
+
         self.gui.spinDivisionFactor.returnPressed.connect(lambda: self.division_factor_changed())
-        self.gui.cmdFindNDVI.clicked.connect(lambda: self.init_ireip())
+        self.gui.cmdFindNDVI.clicked.connect(lambda: self.init_ireip(mode='init'))
 
         self.gui.checkFirstDeriv.stateChanged.connect(lambda: self.calc_deriv())
         self.gui.checkSecondDeriv.stateChanged.connect(lambda: self.calc_deriv())
@@ -85,12 +90,12 @@ class iREIP:
         self.gui.pushFullRange.clicked.connect(lambda: self.plot_change(mode="full"))
         self.gui.pushSetRange.clicked.connect(lambda: self.plot_change(mode="zoom"))
 
-        self.gui.pushRun.clicked.connect(lambda: self.init_run())
+        self.gui.pushRun.clicked.connect(lambda: self.init_ireip(mode='run'))
         self.gui.pushClose.clicked.connect(lambda: self.gui.close())
 
     def open_file(self, mode):
         if mode == "image":
-            bsq_input = QFileDialog.getOpenFileName(caption='Specify Output File',
+            bsq_input = QFileDialog.getOpenFileName(caption='Select Input Image',
                                                     filter="ENVI Image (*.bsq)")[0]
             if not bsq_input:
                 return
@@ -199,8 +204,27 @@ class iREIP:
                 QMessageBox.warning(self.gui, "Savitzky-Golay Error", "Window length must be > 2")
                 self.neighbors = 3
                 self.gui.neighborEdit.setText(str(self.neighbors))
-            self.init_ireip()
+            self.init_ireip(mode='init')
             self.plot_example(self.max_ndvi_pos)
+
+    def sav_golay_changed(self):
+        if self.gui.savGolayCheckBox.isChecked():
+            self.gui.neighborEdit.setEnabled(True)
+            self.useSavgolay = 1
+            if self.image is None:
+                pass
+            elif self.image is not None:
+                self.init_ireip(mode='init')
+                self.plot_example(self.max_ndvi_pos)
+        else:
+            self.gui.neighborEdit.setEnabled(False)
+            self.useSavgolay = 0
+            if self.image is None:
+                pass
+            elif self.image is not None:
+                self.init_ireip(mode='init')
+                self.plot_example(self.max_ndvi_pos)
+
 
     def division_factor_changed(self):
         if self.image is None:
@@ -213,7 +237,7 @@ class iREIP:
             except ValueError:
                 QMessageBox.critical(self.gui, "Not a number",
                                      "'%s' is not a valid number" % self.gui.neighborEdit.text())
-        self.init_ireip()
+        self.init_ireip(mode='init')
         self.plot_example(self.max_ndvi_pos)
 
     def calc_deriv(self):
@@ -257,10 +281,7 @@ class iREIP:
         self.gui.lblPixelLocation.setText("Image pixel: row: %s | col: %s" % (
             str(max_ndvi_pos[1]), str(max_ndvi_pos[2])))
         self.gui.lblPixelLocation.setStyleSheet('color: green')
-        plot_spec = self.core.in_raster[:, max_ndvi_pos[1], max_ndvi_pos[2]]
-
-        if len(self.core.valid_wl) > 2000:
-            plot_spec = self.core.interp_watervapor_1d(plot_spec)
+        plot_spec = self.core.interp_watervapor_1d(self.core.ndvi_spec / self.division_factor)
 
         smooth_array, first_deriv, second_deriv, self.reip = self.core.derivate_1d(
             plot_spec)
@@ -272,14 +293,14 @@ class iREIP:
         self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
 
         self.gui.firstDerivView.plot(self.core.wl, first_deriv, clear=True, pen="g", fillLevel=0,
-                              fillBrush=(255, 255, 255, 30),
-                              name='first_deriv')
+                                     fillBrush=(255, 255, 255, 30),
+                                     name='first_deriv')
         self.gui.firstDerivView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
         self.gui.firstDerivView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
 
         self.gui.secondDerivView.plot(self.core.wl, second_deriv, clear=True, pen="g", fillLevel=0,
-                              fillBrush=(255, 255, 255, 30),
-                              name='second_deriv')
+                                      fillBrush=(255, 255, 255, 30),
+                                      name='second_deriv')
         self.gui.secondDerivView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
         self.gui.secondDerivView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
         if self.reip is not None:
@@ -309,15 +330,77 @@ class iREIP:
             self.gui.firstDerivView.setXRange(low, high)
             self.gui.secondDerivView.setXRange(low, high)
 
-    def init_ireip(self):
-        if self.image is None:
-            QMessageBox.critical(self.gui, "No image selected",
-                                 "Please select an image to continue!")
-            return
+    def init_ireip(self, mode):
+        if mode == 'init':
+            if self.image is None:
+                QMessageBox.critical(self.gui, "No image selected",
+                                     "Please select an image to continue!")
+                return
+            try:
+                self.division_factor = float(self.gui.spinDivisionFactor.text())
+            except:
+                QMessageBox.critical(self.gui, "Error", "'%s' is not a valid division factor!" % self.gui.spinDivisionFactor.text())
+                return
 
-        if self.max_ndvi_pos is None:
+            if not self.max_ndvi_pos:
+                # show progressbar - window
+                self.main.prg_widget.gui.lblCaption_l.setText("Searching NDVI > 0.85")
+                self.main.prg_widget.gui.lblCaption_r.setText(
+                    "Reading Input Image...this may take some time")
+                self.main.prg_widget.gui.prgBar.setValue(0)
+                self.main.prg_widget.gui.setModal(True)
+                self.main.prg_widget.gui.show()
+                self.main.QGis_app.processEvents()
+
+            #   try:
+                self.core = iREIP_core(nodat_val=self.nodat, division_factor=self.division_factor,
+                                       max_ndvi_pos=self.max_ndvi_pos, ndvi_spec=self.ndvi_spec)
+
+                self.core.initialize_iREIP(input=self.image, output=None,
+                                           limits=self.limits,
+                                           deriv=self.calc_deriv_flag, useSavgolay=self.useSavgolay,
+                                           neighbors=self.neighbors, mode='find')
+                self.core.in_raster = self.core.read_image(image=self.image)
+
+            #   except MemoryError:
+            #   QMessageBox.critical(self.gui, 'error', "File too large to read. More RAM needed")
+            #    self.main.prg_widget.gui.allow_cancel = True
+            #    self.main.prg_widget.gui.close()
+            #   except ValueError as e:
+            #    QMessageBox.critical(self.gui, 'error', str(e))
+
+                self.max_ndvi_pos, self.ndvi_spec = self.core.findHighestNDVIindex(
+                    in_raster=self.core.in_raster,
+                    prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+
+                self.main.prg_widget.gui.allow_cancel = True  # The window may be cancelled
+                self.main.prg_widget.gui.close()
+
+            else:
+                self.core = iREIP_core(nodat_val=self.nodat, division_factor=self.division_factor,
+                                     max_ndvi_pos=self.max_ndvi_pos, ndvi_spec=self.ndvi_spec)
+                self.core.initialize_iREIP(input=self.image, output=None,
+                                           limits=self.limits, deriv=self.calc_deriv_flag,
+                                           useSavgolay=self.useSavgolay, neighbors=self.neighbors,
+                                           mode='find')
+
+            self.plot_example(self.max_ndvi_pos)
+
+        if mode == 'run':
+            if self.image is None:
+                QMessageBox.critical(self.gui, "No image loaded",
+                                     "Please load an image to continue!")
+                return
+            try:
+                self.out_path = str(self.gui.txtOutputImage.text())
+            except:
+                QMessageBox.warning(self.gui, "No output file selected",
+                                    "Please select an output file for your image!")
+                return
+
             # show progressbar - window
-            self.main.prg_widget.gui.lblCaption_l.setText("Searching NDVI > 0.85")
+            self.main.prg_widget.gui.lblCancel.setText("")
+            self.main.prg_widget.gui.lblCaption_l.setText("Searching Inflection Point")
             self.main.prg_widget.gui.lblCaption_r.setText(
                 "Reading Input Image...this may take several minutes")
             self.main.prg_widget.gui.prgBar.setValue(0)
@@ -325,156 +408,137 @@ class iREIP:
             self.main.prg_widget.gui.show()
             self.main.QGis_app.processEvents()
 
-        try:
-            self.division_factor = int(str(self.gui.spinDivisionFactor.text()))
-            self.core = iREIP_core(nodat_val=self.nodat, division_factor=self.division_factor)
-
-            self.core.initialize_iREIP(input=self.image, output=None,
-                                       limits=self.limits,
-                                       deriv=self.calc_deriv_flag,
-                                       neighbors=self.neighbors, mode='find')
-        except MemoryError:
-            QMessageBox.critical(self.gui, 'error', "File too large to read. More RAM needed")
-            self.main.prg_widget.gui.allow_cancel = True
-            self.main.prg_widget.gui.close()
-        except ValueError as e:
-            QMessageBox.critical(self.gui, 'error', str(e))
-            self.main.prg_widget.gui.allow_cancel = True  # The window may be cancelled
-            self.main.prg_widget.gui.close()
-            return
-
-        if self.max_ndvi_pos is None:
-            self.max_ndvi_pos = self.core.findHighestNDVIindex(prg_widget=self.main.prg_widget,
-                                                               QGis_app=self.main.QGis_app)
-
-            # QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
-            self.main.prg_widget.gui.allow_cancel = True
-            self.main.prg_widget.gui.close()
-        self.plot_example(self.max_ndvi_pos)
-        return
-
-    def init_run(self):
-        if self.image is None:
-            QMessageBox.critical(self.gui, "No image loaded", "Please load an image to continue!")
-            return
-        elif self.out_path is None:
-            QMessageBox.critical(self.gui, "No output file selected",
-                                 "Please select an output location for your image!")
-            return
-        elif self.gui.txtNodatOutput.text() == "":
-            QMessageBox.warning(self.gui, "No Data Value", "Please specify No Data Value!")
-            # QMessageBox.critical(self.gui, "No Data Value", "Please specify No Data Value!")
-            return
-        else:
             try:
-                self.nodat[1] = int(self.gui.txtNodatOutput.text())
+                self.iiREIP = iREIP_core(nodat_val=self.nodat, division_factor=self.division_factor,
+                                   max_ndvi_pos=self.max_ndvi_pos, ndvi_spec=self.ndvi_spec)
+                self.iiREIP.initialize_iREIP(input=self.image, output=self.out_path,
+                                       limits=self.limits,
+                                       deriv=self.calc_deriv_flag, useSavgolay=self.useSavgolay,
+                                       neighbors=self.neighbors, mode='run')
+
+            except MemoryError:
+                QMessageBox.critical(self.gui, 'error', "File too large to read")
+                self.main.prg_widget.gui.allow_cancel = True
+                self.main.prg_widget.gui.close()
+            except ValueError as e:
+                QMessageBox.critical(self.gui, 'error', str(e))
+                self.main.prg_widget.gui.allow_cancel = True  # The window may be cancelled
+                self.main.prg_widget.gui.close()
+                return
+
+            if self.gui.txtNodatOutput.text() == "":
+                QMessageBox.warning(self.gui, "No Data Value", "Please specify No Data Value!")
+                # QMessageBox.critical(self.gui, "No Data Value", "Please specify No Data Value!")
+                return
+            else:
+                try:
+                    self.nodat[1] = int(self.gui.txtNodatOutput.text())
+                except:
+                    QMessageBox.critical(self.gui, "Error",
+                                         "'%s' is not a valid  No Data Value!" % self.gui.txtNodatOutput.text())
+                    return
+            try:
+                self.division_factor = float(self.gui.spinDivisionFactor.text())
             except:
                 QMessageBox.critical(self.gui, "Error",
-                                     "'%s' is not a valid  No Data Value!" % self.gui.txtNodatOutput.text())
+                                     "'%s' is not a valid division factor!" % self.gui.spinDivisionFactor.text())
                 return
-        try:
-            self.division_factor = float(self.gui.spinDivisionFactor.text())
-        except:
-            QMessageBox.critical(self.gui, "Error",
-                                 "'%s' is not a valid division factor!" % self.gui.spinDivisionFactor.text())
-            return
 
-        # show progressbar - window
-        self.main.prg_widget.gui.lblCaption_l.setText("Searching REIP position")
-        self.main.prg_widget.gui.lblCaption_r.setText(
-            "Reading Input Image...this may take several minutes")
-        self.main.prg_widget.gui.prgBar.setValue(0)
-        self.main.prg_widget.gui.setModal(True)
-        self.main.prg_widget.gui.show()
-        self.main.QGis_app.processEvents()
-
-        try:
-            iREIP = iREIP_core(nodat_val=self.nodat, division_factor=self.division_factor)
-            iREIP.initialize_iREIP(input=self.image, output=self.out_path,
-                                   limits=self.limits,
-                                   deriv=self.calc_deriv_flag, neighbors=self.neighbors, mode='run')
-        except MemoryError:
-            QMessageBox.critical(self.gui, 'error', "File too large to read")
-            self.main.prg_widget.gui.allow_cancel = True
-            self.main.prg_widget.gui.close()
-        except ValueError as e:
-            QMessageBox.critical(self.gui, 'error', str(e))
-            self.main.prg_widget.gui.allow_cancel = True  # The window may be cancelled
-            self.main.prg_widget.gui.close()
-            return
+            try:
+                self.iiREIP.in_raster = self.core.in_raster[self.core.valid_bands, :, :]
+                if self.division_factor != 1.0:
+                    self.iiREIP.in_raster = np.divide(self.iiREIP.in_raster, self.division_factor)
+                del self.core.in_raster
+            except:
+                self.iiREIP.in_raster = self.iiREIP.read_image_window(image=self.image)
+                if self.division_factor != 1.0:
+                    self.iiREIP.in_raster = np.divide(self.iiREIP.in_raster, self.division_factor)
 
         # try:  # give it a shot
 
-        result, first_deriv, second_deriv = iREIP.execute_iREIP(prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+            result, first_deriv, second_deriv = self.iiREIP.execute_iREIP(
+                in_raster=self.iiREIP.in_raster,
+                prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
         # except:
         #     QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
         #     self.main.prg_widget.gui.allow_cancel = True
         #     self.main.prg_widget.gui.close()
         #     return
 
-        self.main.prg_widget.gui.lblCaption_r.setText("Writing REIP Output-File")
-        self.main.QGis_app.processEvents()
-
-        iREIP.write_ireip_image(result=result)
-
-        if first_deriv is not None:
-            self.main.prg_widget.gui.lblCaption_r.setText("Writing 1st Derivative Output-File")
+            self.main.prg_widget.gui.lblCaption_r.setText("Writing REIP Output-File")
             self.main.QGis_app.processEvents()
 
-            iREIP.write_deriv_image(deriv=first_deriv, mode="first")
+            self.iiREIP.write_ireip_image(result=result)
 
-        if second_deriv is not None:
-            self.main.prg_widget.gui.lblCaption_r.setText("Writing 2nd Derivative Output-File")
-            self.main.QGis_app.processEvents()
+            if first_deriv is not None:
+                self.main.prg_widget.gui.lblCaption_r.setText("Writing 1st Derivative Output-File")
+                self.main.QGis_app.processEvents()
 
-            iREIP.write_deriv_image(deriv=second_deriv, mode="second")
+                self.iiREIP.write_deriv_image(deriv=first_deriv, mode="first")
 
-        # try:
-        #
-        # except:
-        #     #QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
-        #     self.main.prg_widget.gui.allow_cancel = True
-        #     self.main.prg_widget.gui.close()
-        #     return
+            if second_deriv is not None:
+                self.main.prg_widget.gui.lblCaption_r.setText("Writing 2nd Derivative Output-File")
+                self.main.QGis_app.processEvents()
 
-        self.main.prg_widget.gui.allow_cancel = True
-        self.main.prg_widget.gui.close()
+                self.iiREIP.write_deriv_image(deriv=second_deriv, mode="second")
 
-        QMessageBox.information(self.gui, "Finish", "Calculation finished successfully")
-        #self.gui.close()
+            # try:
+            #
+            # except:
+            #     #QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
+            #     self.main.prg_widget.gui.allow_cancel = True
+            #     self.main.prg_widget.gui.close()
+            #     return
+    
+            self.main.prg_widget.gui.allow_cancel = True
+            self.main.prg_widget.gui.close()
+    
+            QMessageBox.information(self.gui, "Finish", "Calculation finished successfully")
+            #self.gui.close()
 
     def abort(self, message):
         QMessageBox.critical(self.gui, "Error", message)
 
 class iREIP_core:
 
-    def __init__(self, nodat_val, division_factor):
+    def __init__(self, nodat_val, division_factor, max_ndvi_pos, ndvi_spec):
         self.nodat = nodat_val
         self.division_factor = division_factor
+        self.max_ndvi_pos = max_ndvi_pos
+        self.ndvi_spec = ndvi_spec
         self.initial_values()
 
     def initial_values(self):
-
         self.wavelengths = None
         self.limits = None
         self.delta = 0
         self.pixel_total = None
-        #self.grid, self.nrows, self.ncols, self.nbands, self.in_raster = (
-        #None, None, None, None, None)
+        self.grid, self.nrows, self.ncols, self.nbands = (
+        None, None, None, None)
+        self.default_exclude = [i for j in
+                                (range(983, 1129), range(1430, 1650), range(2050, 2151))
+                                for i in j]
+        self.enmap_exclude = range(78, 88)
 
-    def initialize_iREIP(self, input, output, limits, deriv, neighbors, mode):
-        self.grid, self.wl, self.nbands, self.nrows, self.ncols, \
-        self.in_raster = self.read_image2(image=input)
+    def initialize_iREIP(self, input, output, limits, deriv, useSavgolay, neighbors, mode):
+        self.grid, self.wl, self.nbands, self.nrows, self.ncols = self.read_image_meta(image=input)
         self.n_wl = len(self.wl)
         self.pixel_total = self.nrows * self.ncols
+        self.useSavgolay = useSavgolay
         self.neighbors = neighbors
         self.calc_deriv_flag = deriv
         if mode == 'find':
             self.output = None
         elif mode == 'run':
             self.output = output
+
         self.limits = (self.find_closest(lambd=limits[0]), self.find_closest(lambd=limits[1]))
         self.low_limit, self.upp_limit = (self.limits[0], self.limits[1])
+
+        if len(self.wl) == 242:  # temporary solution for overlapping EnMap-Testdata Bands
+            self.wl = np.delete(self.wl, self.enmap_exclude)  # temporary solution!
+            self.n_wl = len(self.wl)
+            self.nbands = len(self.wl)
 
         self.valid_wl = [self.wl[i] for i in range(self.n_wl) if
                          self.wl[i] >= self.low_limit and self.wl[i] <= self.upp_limit]
@@ -482,31 +546,48 @@ class iREIP_core:
 
         self.valid_bands = [i for i, x in enumerate(self.wl) if x in list(self.valid_wl)]
 
-        self.default_exclude = [i for j in (range(983, 1129), range(1430, 1650), range(2050, 2151))
-                                for i in j]
 
+    def read_image(self, image):
+        dataset = openRasterDataset(image)
+        raster = dataset.readAsArray()
+        if len(self.wl) > 2000:
+            try:
+                raster[self.default_exclude, :, :] = 0
+            except:
+                pass
+        if len(raster) == 242:  # temporary solution for overlapping EnMap-Testdata Bands
+            raster = np.delete(raster, self.enmap_exclude, axis=0)  # temporary solution!
+        return raster
 
-    def read_image2(self, image):
-        '''
-        :param image:
-        :return:
-        '''
+    def read_image_window(self, image):
+        dataset = openRasterDataset(image)
+        raster = dataset.readAsArray()
+        if len(self.wl) > 2000:
+            try:
+                raster[self.default_exclude, :, :] = 0
+            except:
+                pass
+        if len(raster) == 242:  # temporary solution for overlapping EnMap-Testdata Bands
+            raster = np.delete(raster, self.enmap_exclude, axis=0)  # temporary solution!
+        window = raster[self.valid_bands, :, :]
+        return window
+
+    @staticmethod
+    def read_image_meta(image):
         dataset = openRasterDataset(image)
 
         if dataset.grid() is not None:
             grid = dataset.grid()
         else:
-            warnings.warn('No coordinate system information provided in ENVI header file')
-            grid = None
-
+            raise Warning('No coordinate system information provided in ENVI header file')
         metadict = dataset.metadataDict()
-
         nrows = int(metadict['ENVI']['lines'])
         ncols = int(metadict['ENVI']['samples'])
         nbands = int(metadict['ENVI']['bands'])
+
         try:
             wave_dict = metadict['ENVI']['wavelength']
-        except ValueError:
+        except:
             raise ValueError('No wavelength units provided in ENVI header file')
 
         if metadict['ENVI']['wavelength'] is None:
@@ -523,15 +604,10 @@ class iREIP_core:
                 metadict['ENVI'][
                     'wavelength units'])
 
-        in_matrix = dataset.readAsArray()
-
-        if self.division_factor != 1.0:
-            in_matrix = in_matrix / self.division_factor
-
         wl = [float(item) * wave_convert for item in wave_dict]
         wl = [int(i) for i in wl]
 
-        return grid, wl, nbands, nrows, ncols, in_matrix
+        return grid, wl, nbands, nrows, ncols
 
     def write_ireip_image(self, result):
         output = Raster.fromArray(array=result, filename=self.output, grid=self.grid)
@@ -546,8 +622,15 @@ class iREIP_core:
     def write_deriv_image(self, deriv, mode):  #
 
         if mode == "first":
-            band_string_nr = ['band ' + str(x) for x in self.valid_bands]
+            band_string_nr = ['band ' + str(x+1) for x, i in enumerate(self.valid_bands[:-1])]
             deriv_output = self.output.split(".")
+
+            for row in range(deriv.shape[1]):
+                for col in range(deriv.shape[2]):
+                    if np.mean(deriv[:, row, col]) == 0:
+                        deriv[:, row, col] = self.nodat[1]
+                    else: continue
+
             deriv_output = deriv_output[0] + "_1st_deriv" + "." + deriv_output[1]
             output = Raster.fromArray(array=deriv, filename=deriv_output, grid=self.grid)
 
@@ -557,13 +640,21 @@ class iREIP_core:
                 band.setDescription(band_string_nr[i])
                 band.setNoDataValue(self.nodat[1])
 
-            output.dataset().setMetadataItem(key='wavelength', value=self.valid_wl, domain='ENVI')
+            output.dataset().setMetadataItem(key='wavelength', value=self.valid_wl[:-1],
+                                             domain='ENVI')
             output.dataset().setMetadataItem(key='wavelength units', value='Nanometers', domain='ENVI')
 
         if mode == "second":
-            band_string_nr = ['band ' + str(x) for x in self.valid_bands]
+            band_string_nr = ['band ' + str(x+1) for x, i in enumerate(self.valid_bands[:-2])]
             deriv_output = self.output.split(".")
             deriv_output = deriv_output[0] + "_2nd_deriv" + "." + deriv_output[1]
+
+            for row in range(deriv.shape[1]):
+                for col in range(deriv.shape[2]):
+                    if np.mean(deriv[:, row, col]) == 0:
+                        deriv[:, row, col] = self.nodat[1]
+                    else: continue
+                    
             output = Raster.fromArray(array=deriv, filename=deriv_output, grid=self.grid)
 
             output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
@@ -572,9 +663,8 @@ class iREIP_core:
                 band.setDescription(band_string_nr[i])
                 band.setNoDataValue(self.nodat[1])
 
-            output.dataset().setMetadataItem(key='wavelength', value=self.valid_wl, domain='ENVI')
+            output.dataset().setMetadataItem(key='wavelength', value=self.valid_wl[:-2], domain='ENVI')
             output.dataset().setMetadataItem(key='wavelength units', value='Nanometers', domain='ENVI')
-
 
     def find_closest(self, lambd):
         distances = [abs(lambd - self.wl[i]) for i in range(self.n_wl)]
@@ -582,42 +672,48 @@ class iREIP_core:
 
     def interp_watervapor_1d(self, in_array):
         x = np.arange(len(in_array))
-        in_array[self.default_exclude] = 0
-        if not np.isnan(in_array).any():
+        self.res = np.empty(shape=np.shape(in_array))
+
+        if np.nan not in in_array:
             idx = np.asarray(np.nonzero(in_array))
             idx = idx.flatten()
+
             interp = interp1d(x[idx], in_array[idx], axis=0, fill_value='extrapolate')
-            res = interp(x)
+            self.res = interp(x)
         else:
-            res = in_array
-        res[res < 0] = 0
-        return res
+            self.res = in_array
+        self.res[self.res < 0] = 0
+        return self.res
 
     def interp_watervapor_3d(self, in_matrix):
         x = np.arange(len(in_matrix))
-        in_matrix[self.default_exclude] = 0
-        res3d = np.empty(shape=np.shape(in_matrix))
+        try:
+            in_matrix[self.default_exclude] = 0
+        except: pass
+        self.res3d = np.empty(shape=np.shape(in_matrix))
         for row in range(in_matrix.shape[1]):
             for col in range(in_matrix.shape[2]):
-                if not np.isnan(in_matrix[:, row, col]).any():
+                if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
                     idx = np.asarray(np.nonzero(in_matrix[:, row, col]))
                     idx = idx.flatten()
-                    interp = interp1d(x[idx], in_matrix[idx, row, col], axis=0,
-                                      fill_value='extrapolate')
-                    res3d[:, row, col] = interp(x)
+                    interp = interp1d(x[idx], in_matrix[idx, row, col], axis=0, fill_value='extrapolate')
+                    self.res3d[:, row, col] = interp(x)
                 else:
-                    res3d[:, row, col] = in_matrix[:, row, col]
-        return res3d
+                    self.res3d[:, row, col] = in_matrix[:, row, col]
+        return self.res3d
 
     def derivate_1d(self, in_array):  # derivative for plot canvases
 
-        smooth_array = savgol_filter(in_array[:], window_length=self.neighbors, polyorder=2)
-        first_deriv = np.gradient(smooth_array)
-        second_deriv = np.gradient(first_deriv)
+        if self.useSavgolay == 1:
+            smooth_array = savgol_filter(in_array[:], window_length=self.neighbors, polyorder=2)
+        else:
+            smooth_array = in_array[:]
+        first_deriv = np.diff(np.concatenate((smooth_array, [smooth_array[-1]])))
+        second_deriv = np.diff(np.concatenate((first_deriv, [first_deriv[-1]])))
         window = second_deriv[self.valid_bands]
         try:
-            reip_index_1 = int(np.where(np.sign(window[:-1]) != np.sign(window[1:]))[0])
-            reip_index_2 = int(np.where(np.sign(window[:-1]) != np.sign(window[1:]))[0]) + 1
+            reip_index_1 = int(np.where(np.signbit(window[:-1]) != np.signbit(window[1:]))[0])
+            reip_index_2 = int(np.where(np.signbit(window[:-1]) != np.signbit(window[1:]))[0]) + 1
             val_1 = (window[reip_index_1])
             val_2 = (window[reip_index_2])
             reip_pos_1 = int(self.valid_wl[reip_index_1])
@@ -637,37 +733,47 @@ class iREIP_core:
 
     def derivate_3d(self, in_matrix):  # derivatives for output
 
+        self.prg.gui.lblCaption_l.setText(
+            "Calculating spectra derivatives...")
+
         reip_pos = np.empty(shape=(1, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
 
-        smooth_matrix = savgol_filter(in_matrix, window_length=self.neighbors, polyorder=2, axis=0)
-        smooth_window = smooth_matrix[self.valid_bands, :, :]
+        if self.useSavgolay == 1:
+            smooth_matrix = savgol_filter(in_matrix,
+                                          window_length=self.neighbors, polyorder=2, axis=0)
+        else:
+            smooth_matrix = in_matrix
 
-        d1 = np.gradient(smooth_window, axis=0)
-        d2 = np.gradient(d1, axis=0)
+        d1 = np.diff(smooth_matrix, axis=0)
+        d2 = np.diff(d1, axis=0)
+
+        d2_valid_wl = self.valid_wl[:-2]
 
         for row in range(in_matrix.shape[1]):
             for col in range(in_matrix.shape[2]):
-                #  check for sign change within set range of 2. derivative
-                reip_index_1 = np.where(np.sign(d2[:-1, row, col]) != np.sign(d2[1:, row, col]))[0]
-                reip_index_2 = \
-                    np.where(np.sign(d2[:-1, row, col]) != np.sign(d2[1:, row, col]))[0] + 1
-                if len(reip_index_1) != 1 or len(reip_index_2) != 1:
-                    reip_pos[:, row, col] = self.nodat[1]
+                if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
+                    #  check for sign change within set range of 2. derivative
+                    reip_index_1 = np.where(np.signbit(d2[:-1, row, col]) != np.signbit(d2[1:, row, col]))[0]
+                    reip_index_2 = \
+                        np.where(np.signbit(d2[:-1, row, col]) != np.signbit(d2[1:, row, col]))[0] + 1
+                    if len(reip_index_1) != 1 or len(reip_index_2) != 1:
+                        reip_pos[:, row, col] = self.nodat[1]
+                    else:
+                        #  resolve accuracy of IP-position
+                        reip_index_1 = int(reip_index_1)
+                        reip_index_2 = int(reip_index_2)
+                        val_1 = d2[reip_index_1, row, col]
+                        val_2 = d2[reip_index_2, row, col]
+                        reip_pos_1 = d2_valid_wl[reip_index_1]
+                        reip_pos_2 = d2_valid_wl[reip_index_2]
+                        steps = (reip_pos_2 - reip_pos_1) ** 2 + 100
+                        pos_wl, tracker = list(zip(*(list(zip(*(
+                            np.linspace(reip_pos_1, reip_pos_2, steps),
+                            np.linspace(val_1, val_2, steps)))))))
+                        reip_pos_index = (np.abs(list(tracker))).argmin()
+                        reip_pos[:, row, col] = pos_wl[reip_pos_index]
                 else:
-                    #  resolve accuracy of IP-position
-                    reip_index_1 = int(reip_index_1)
-                    reip_index_2 = int(reip_index_2)
-                    val_1 = d2[reip_index_1, row, col]
-                    val_2 = d2[reip_index_2, row, col]
-                    reip_pos_1 = self.valid_wl[reip_index_1]
-                    reip_pos_2 = self.valid_wl[reip_index_2]
-                    steps = (reip_pos_2 - reip_pos_1) ** 2 + 100
-                    pos_wl, tracker = list(zip(*(list(zip(*(
-                        np.linspace(reip_pos_1, reip_pos_2, steps),
-                        np.linspace(val_1, val_2, steps)))))))
-                    reip_pos_index = (np.abs(list(tracker))).argmin()
-                    reip_pos[:, row, col] = pos_wl[reip_pos_index]
-
+                    reip_pos[:, row, col] = self.nodat[1]
                 self.prgbar_process(pixel_no=row * self.ncols + col)
 
         if self.calc_deriv_flag[0] is False and self.calc_deriv_flag[1] is False:
@@ -679,35 +785,37 @@ class iREIP_core:
         else:
             return reip_pos, d1, d2
 
-    def execute_iREIP(self, prg_widget=None, QGis_app=None):
+    def execute_iREIP(self, in_raster, prg_widget=None, QGis_app=None):
         self.prg = prg_widget
         self.QGis_app = QGis_app
-        res, first_deriv, second_deriv = self.derivate_3d(self.in_raster)
+        res, first_deriv, second_deriv = self.derivate_3d(in_raster)
 
         return res, first_deriv, second_deriv
 
-    def findHighestNDVIindex(self, prg_widget=None, QGis_app=None):  # acc. to hNDVI Oppelt(2002)
+    def findHighestNDVIindex(self, in_raster, prg_widget=None, QGis_app=None):  # acc. to hNDVI Oppelt(2002)
 
         self.prg = prg_widget
         self.QGis_app = QGis_app
 
-        NDVI_closest = [self.find_closest(lambd=827), self.find_closest(lambd=668)]
+        NDVI_closest = [self.find_closest_wl(lambd=827), self.find_closest_wl(lambd=668)]
         self.NDVI_bands = [i for i, x in enumerate(self.wl) if x in NDVI_closest]
 
-        for row in range(np.shape(self.in_raster)[1]):
-            for col in range(np.shape(self.in_raster)[2]):
-                if np.mean(self.in_raster[:, row, col]) != self.nodat[0]:
-                    R827 = self.in_raster[self.NDVI_bands[1], row, col]
-                    R668 = self.in_raster[self.NDVI_bands[0], row, col]
+        for row in range(np.shape(in_raster)[1]):
+            for col in range(np.shape(in_raster)[2]):
+                if np.mean(in_raster[:, row, col]) != self.nodat[0]:
+                    R827 = in_raster[self.NDVI_bands[1], row, col]
+                    R668 = in_raster[self.NDVI_bands[0], row, col]
                     try:
                         NDVI = float(R827 - R668) / float(R827 + R668)
                     except ZeroDivisionError:
                         NDVI = 0
                     self.prgbar_process(pixel_no=row * self.ncols + col)
-                    if NDVI > 0.85:
+                    if NDVI > 0.85 and NDVI <= 1.0:
                         self.NDVI = NDVI
                         self.row = row
                         self.col = col
+                        self.ndvi_spec = in_raster[:, row, col]
+                        print(self.ndvi_spec)
                         break
                 else:
                     continue
@@ -717,7 +825,15 @@ class iREIP_core:
 
         self.max_index = [self.NDVI, self.row, self.col]  # raster pos where NDVI > 0.85 was found
 
-        return self.max_index
+        return self.max_index, self.ndvi_spec
+
+    def find_closest_wl(self, lambd):
+        distances = [abs(lambd - self.wl[i]) for i in range(self.n_wl)]
+        return self.wl[distances.index(min(distances))]
+
+    def find_closest_value(self, lambd, array):
+        distances = [abs(lambd - array[i]) for i in range(len(array))]
+        return array[distances.index(min(distances))]
 
     def prgbar_process(self, pixel_no):
         if self.prg:
@@ -727,7 +843,7 @@ class iREIP_core:
                 raise ValueError("Calculation canceled")
             self.prg.gui.prgBar.setValue(
                 pixel_no * 100 // self.pixel_total)  # progress value is index-orientated
-            self.prg.gui.lblCaption_l.setText("Processing...")
+            #self.prg.gui.lblCaption_l.setText("Processing...")
             self.prg.gui.lblCaption_r.setText("pixel %i of %i" % (pixel_no, self.pixel_total))
             self.QGis_app.processEvents()
 
@@ -788,7 +904,8 @@ class MainUiFunc:
     def __init__(self):
         self.QGis_app = QApplication.instance()
         self.ireip = iREIP(self)
-        self.ireip_core = iREIP_core(nodat_val=None, division_factor=None)
+        self.ireip_core = iREIP_core(nodat_val=None, division_factor=None, max_ndvi_pos=None,
+                                     ndvi_spec=None)
         self.nodat_widget = Nodat(self)
         self.prg_widget = PRG(self)
 

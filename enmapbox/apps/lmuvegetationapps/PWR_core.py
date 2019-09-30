@@ -118,7 +118,7 @@ class PWR_core:
 
         return grid, wl, nbands, nrows, ncols, in_matrix
 
-    def read_image(self, image, dtype=np.float32):
+    def read_image(self, image, dtype=np.float32):  # Function is deprecated!
         '''
         :param image: ENVI-grid with spectral information
         :param dtype: deprecated

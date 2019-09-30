@@ -63,6 +63,7 @@ class VIT:
         self.dmIndices = [-1] * 9
         self.flIndices = [-1] * 4
         self.nodat = [None, None] # nodat[0] = in, nodat[1] = out
+        self.division_factor = 1.0
 
     def connections(self):
         self.gui.cmdSelectAll.clicked.connect(lambda: self.check(bool=True))
@@ -241,6 +242,11 @@ class VIT:
             except:
                 QMessageBox.critical(self.gui, "Error", "'%s' is not a valid  No Data Value!" % self.gui.txtNodatOutput.text())
                 return
+        try:
+            self.division_factor = float(self.gui.txtDivisionFactor.text())
+        except:
+            QMessageBox.critical(self.gui, "Error", "'%s' is not a valid division factor!" % self.gui.txtDivisionFactor.text())
+            return
 
         # show progressbar - window
         self.main.prg_widget.gui.lblCaption_l.setText("Vegetation Indices Toolbox")
@@ -251,8 +257,9 @@ class VIT:
         self.main.QGis_app.processEvents()
 
         try:
-            vit = lmuvegetationapps.VIT_core.VIT(IT=self.IT, IDW_exp=self.IDW_exp, nodat=self.nodat) # initialize VIT
-            ImageIn_matrix = vit.read_image(ImgIn=self.inFile, Convert_Refl=1) # read the image
+            vit = lmuvegetationapps.VIT_core.VIT(IT=self.IT, IDW_exp=self.IDW_exp, nodat=self.nodat,
+                                                 division_factor=self.division_factor) # initialize VIT
+            ImageIn_matrix = vit.read_image2(self.inFile)  # read the image
         except ValueError as e:
             QMessageBox.critical(self.gui, 'error', str(e))
             self.main.prg_widget.gui.allow_cancel = True # The window may be cancelled
@@ -274,14 +281,14 @@ class VIT:
             QMessageBox.critical(self.gui, "No index selected", "Please select at least one index to continue!")
             return
 
-        try: # give it a shot+
-            IndexOut_matrix = vit.calculate_VIT(ImageIn_matrix=ImageIn_matrix, prg_widget=self.main.prg_widget,
+        #try: # give it a shot+
+        IndexOut_matrix = vit.calculate_VIT(prg_widget=self.main.prg_widget,
                                                 QGis_app=self.main.QGis_app)
-        except:
-            QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
-            self.main.prg_widget.gui.allow_cancel = True
-            self.main.prg_widget.gui.close()
-            return
+        # except:
+        #     QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
+        #     self.main.prg_widget.gui.allow_cancel = True
+        #     self.main.prg_widget.gui.close()
+        #     return
 
         self.main.prg_widget.gui.lblCaption_r.setText("Writing Output-File")
         self.main.QGis_app.processEvents()

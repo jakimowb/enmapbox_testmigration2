@@ -570,7 +570,7 @@ class IVVRM:
                                            fillBrush=(255, 255, 255, 30),
                                            name='modelled')
             self.mPlotItems.append(r)
-            self.gui.graphicsView.setYRange(0, 0.8, padding=0)
+            #self.gui.graphicsView.setYRange(0, 0.8, padding=0)
             self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
             self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
         else:
@@ -578,7 +578,7 @@ class IVVRM:
             r = self.gui.graphicsView.plot(self.wl, self.myResult, pen=myPen)
             self.mPlotItems.append(r)
             self.plot_own_spec()
-            self.gui.graphicsView.setYRange(0, 0.8, padding=0)
+            #self.gui.graphicsView.setYRange(0, 0.8, padding=0)
             self.gui.graphicsView.setLabel('left', text="Reflectance [%]")
             self.gui.graphicsView.setLabel('bottom', text="Wavelength [nm]")
 

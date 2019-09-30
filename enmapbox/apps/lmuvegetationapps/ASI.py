@@ -14,12 +14,11 @@ import sys, os
 from lmuvegetationapps.peakdetect import *
 from scipy.interpolate import *
 
+from enmapbox.gui.utils import loadUIFormClass
+
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_ASI.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__), 'GUI_Nodat.ui')
 pathUI_prg = os.path.join(os.path.dirname(__file__), 'GUI_ProgressBar.ui')
-
-
-from enmapbox.gui.utils import loadUIFormClass
 
 
 class ASI_GUI(QDialog, loadUIFormClass(pathUI)):
@@ -122,16 +121,20 @@ class ASI:
             self.gui.txtOutputImage.setText(result)
 
     def get_image_meta(self, image, image_type):
-        dataset = gdal.Open(image)
+        dataset = openRasterDataset(image)
         if dataset is None:
-            raise ValueError('%s could not be read. Please make sure it is a valid ENVI image' % image_type)
+            raise ValueError(
+                '%s could not be read. Please make sure it is a valid ENVI image' % image_type)
         else:
-            nbands = dataset.RasterCount
-            nrows = dataset.RasterYSize
-            ncols = dataset.RasterXSize
+            metadict = dataset.metadataDict()
 
+            nrows = int(metadict['ENVI']['lines'])
+            ncols = int(metadict['ENVI']['samples'])
+            nbands = int(metadict['ENVI']['bands'])
+            if nbands < 2:
+                raise ValueError("Input is not a multi-band image")
             try:
-                nodata = int("".join(dataset.GetMetadataItem('data_ignore_value', 'ENVI').split()))
+                nodata = int(metadict['ENVI']['data ignore value'])
                 return nodata, nbands, nrows, ncols
             except:
                 self.main.nodat_widget.init(image_type=image_type, image=image)
@@ -140,7 +143,7 @@ class ASI:
                 return self.main.nodat_widget.nodat, nbands, nrows, ncols
 
     def reset(self):
-        self.max_ndvi_pos = None
+        self.max_ndvi_pos = None 
         self.init_plot()
 
     def limits_changed(self, textfeld):
@@ -249,15 +252,15 @@ class ASI:
 
         cr_spectrum, full_hull_x = self.core.segmented_convex_hull_1d(plot_spec)
 
-        self.gui.rangeView.plot(self.core.wl, plot_spec, clear=True, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
-                                    name='maxNDVIspec')
+        self.gui.rangeView.plot(self.core.wl, plot_spec, clear=True, pen="g", fillLevel=0, 
+                                fillBrush=(255, 255, 255, 30), name='maxNDVIspec')
         self.gui.rangeView.plot(self.core.wl, full_hull_x, clear=False, pen="r", fillLevel=0,
                                 name='hull')
         self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
         self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
 
-        self.gui.crsView.plot(self.core.wl, cr_spectrum, clear=True, pen="g", fillLevel=0, fillBrush=(255, 255, 255, 30),
-                                    name='cr_spec')
+        self.gui.crsView.plot(self.core.wl, cr_spectrum, clear=True, pen="g", fillLevel=0, 
+                              fillBrush=(255, 255, 255, 30), name='cr_spec')
         self.gui.crsView.addItem(pg.InfiniteLine(1, angle=0, pen='r'))
         self.gui.crsView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
         self.gui.crsView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
@@ -313,6 +316,7 @@ class ASI:
                 #     self.main.prg_widget.gui.close()
                 #     return
                 self.max_ndvi_pos, self.ndvi_spec = self.core.findHighestNDVIindex(
+                    in_raster=self.core.in_raster,
                     prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
                 #QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
                 self.main.prg_widget.gui.allow_cancel = True
@@ -384,14 +388,18 @@ class ASI:
                 return
             try:
                 self.iASI.in_raster = self.core.in_raster[self.iASI.valid_bands, :, :]
+                if self.division_factor != 1.0:
+                    self.iASI.in_raster = np.divide(self.iASI.in_raster, self.division_factor)
+                del self.core.in_raster
             except:
                 self.iASI.in_raster = self.iASI.read_image_window(image=self.image)
+                if self.division_factor != 1.0:
+                    self.iASI.in_raster = np.divide(self.iASI.in_raster, self.division_factor)
 
-            if self.division_factor != 1.0:
-                self.iASI.in_raster = np.divide(self.iASI.in_raster, self.division_factor)
 
             # try:  # give it a shot
-            result, crs, res3band = self.iASI.execute_ASI(prg_widget=self.main.prg_widget,
+            result, crs, res3band = self.iASI.execute_ASI(in_raster=self.iASI.in_raster,
+                                                          prg_widget=self.main.prg_widget,
                                                           QGis_app=self.main.QGis_app)
             # except:
             #     QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
@@ -441,7 +449,6 @@ class ASI_core:
         self.initial_values()
 
     def initial_values(self):
-
         self.wavelengths = None
         self.limits = [550, 800]
         self.delta = 0
@@ -473,7 +480,6 @@ class ASI_core:
 
         self.valid_wl = [self.wl[i] for i in range(self.n_wl) if
                          self.wl[i] >= self.low_limit and self.wl[i] <= self.upp_limit]
-
         self.valid_wl = [int(round(i, 0)) for i in self.valid_wl]
 
         self.valid_bands = [i for i, x in enumerate(self.wl) if x in list(self.valid_wl)]
@@ -482,7 +488,10 @@ class ASI_core:
         dataset = openRasterDataset(image)
         raster = dataset.readAsArray()
         if len(self.wl) > 2000:
-            raster[self.default_exclude, :, :] = 0
+            try:
+                raster[self.default_exclude, :, :] = 0
+            except:
+                pass
         if len(raster) == 242:  # temporary solution for overlapping EnMap-Testdata Bands
             raster = np.delete(raster, self.enmap_exclude, axis=0)  # temporary solution!
         return raster
@@ -491,7 +500,10 @@ class ASI_core:
         dataset = openRasterDataset(image)
         raster = dataset.readAsArray()
         if len(self.wl) > 2000:
-            raster[self.default_exclude, :, :] = 0
+            try:
+                raster[self.default_exclude, :, :] = 0
+            except:
+                pass
         if len(raster) == 242:  # temporary solution for overlapping EnMap-Testdata Bands
             raster = np.delete(raster, self.enmap_exclude, axis=0)  # temporary solution!
         window = raster[self.valid_bands, :, :]
@@ -564,7 +576,7 @@ class ASI_core:
         output.setMetadataItem(key='wavelength units', value='Nanometers', domain='ENVI')
 
     def write_3band_image(self, res3band):
-        band_str_nr = ['Car', 'Cab', 'H20']
+        band_str_nr = ['Car/Cab', 'Cab', 'H2O']
         bands_output = self.output.split(".")
         bands_output = bands_output[0] + "_3band_car_cab_h2o" + "." + bands_output[1]
         output = RasterDataset.fromArray(array=res3band, filename=bands_output, grid=self.grid,
@@ -601,7 +613,9 @@ class ASI_core:
 
     def interp_watervapor_3d(self, in_matrix):
         x = np.arange(len(in_matrix))
-        in_matrix[self.default_exclude] = 0
+        try:
+            in_matrix[self.default_exclude] = 0
+        except: pass
         self.res3d = np.empty(shape=np.shape(in_matrix))
         for row in range(in_matrix.shape[1]):
             for col in range(in_matrix.shape[2]):
@@ -726,9 +740,7 @@ class ASI_core:
                     #full_hull_y = []
                     if max_:  # if local maximum has been found
                         x_max, y_max = map(list, zip(*max_))
-
                         x_seq = np.append(x_max, len(window))
-                        #y_seq = np.append(y_max, window[-1])
                         if self.valid_wl[x_seq[0]] > 650:
                             force_p = int(self.find_closest_value(554, self.valid_wl))
                             c_band = self.valid_wl.index(force_p)
@@ -767,19 +779,16 @@ class ASI_core:
                                                e in list(full_hull_x)])
                     full_hull_x = interp1d(interp_range[hull_x_index], window[hull_x_index])
                     contiguous_hull_x = full_hull_x(interp_range)
-                    #print(contiguous_hull_x)
 
                 else:
                     contiguous_hull_x = np.nan
                     #full_hull_y = np.nan
-                #print(np.count_nonzero(~np.isnan(contiguous_hull_x)))
                 if self.calc_crs_flag:
                     if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
                         try:
                             cr_spectrum[:, row, col] = 1 - (in_matrix[:, row, col] / contiguous_hull_x)
                         except ZeroDivisionError:
                             cr_spectrum[:, row, col] = 0
-                        #print(cr_spectrum[:, row, col])
                     else:
                         cr_spectrum[:, row, col] = self.nodat[1]
 
@@ -804,9 +813,12 @@ class ASI_core:
             raise ValueError("Lower boundary must be smaller than upper boundary!")
 
         res3band = np.empty(shape=(3, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
+        absorb_area = np.empty(shape=(3, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
+        hull_area = np.empty(shape=(3, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
         #in_matrix = self.interp_watervapor_3d(in_matrix)
 
         closest = [self.find_closest_value(554, self.valid_wl),
+                        self.find_closest_value(800, self.valid_wl),
                         self.find_closest_value(900, self.valid_wl),
                         self.find_closest_value(1100, self.valid_wl)]
 
@@ -822,11 +834,18 @@ class ASI_core:
                     if max_:  # if local maximum has been found
                         x_max, y_max = map(list, zip(*max_))
                         x = 0
+                        nir_peak = max([
+                            self.valid_wl[i] for i in x_max if 850 < self.valid_wl[i] < 950],
+                            default=[])
                         x_seq = np.append(x_max, len(window))
+
                         if self.valid_wl[x_seq[0]] > 650:
                             force_p = int(self.find_closest_value(554, self.valid_wl))
                             c_band = self.valid_wl.index(force_p)
                             x_seq = np.insert(x_seq, 0, c_band)
+                            closest_bands[0] = x_seq[0]
+                        if nir_peak:
+                            closest_bands[2] = self.valid_wl.index(nir_peak)
                         for i in x_seq:  # segmented convex hull with detected maxima as separators
                             wl_sample = self.valid_wl[x:i]
                             valid_array = list(zip(wl_sample, window[x:i]))
@@ -835,10 +854,13 @@ class ASI_core:
                             full_hull_x = np.append(full_hull_x, hull_x)
                             x = i
                     else:  # no local maximum -> upper hull over limits
-                        force_p = int(self.find_closest_value(554, self.valid_wl))
+                        force_p = int(closest[0])
+                        force_p2 = int(closest[2])
                         c_band = self.valid_wl.index(force_p)
+                        edge_band = self.valid_wl.index(force_p2)
                         x_seq = [len(window)]
                         x_seq = np.insert(x_seq, 0, c_band)
+                        x_seq = np.insert(x_seq, 1, edge_band)
                         x = 0
                         for i in x_seq:
                             wl_sample = self.valid_wl[x:i]
@@ -849,7 +871,6 @@ class ASI_core:
                             x = i
 
                     interp_range = np.arange(len(self.valid_wl))
-                    #print('1: ', len(self.valid_wl))
                     hull_x_index = np.asarray(
                         [i for i, e in enumerate(self.valid_wl) if e in list(full_hull_x)])
 
@@ -859,47 +880,54 @@ class ASI_core:
                     contiguous_hull_x = np.nan
                 k = 0
                 for j, i in enumerate(closest_bands):
+                    if j == 2:  # skip the red shoulder
+                        k = i
+                        continue
+                    if j == 3:
+                        j -= 1  # avoid j-overflow for size 2
                     if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
-                        # print(contiguous_hull_x[k:i])
-                        # print(in_matrix[k:i, row, col])
+                        absorb_area[j, row, col] = (np.nansum(contiguous_hull_x[k:i]) - np.nansum(in_matrix[k:i, row, col]))# / np.nansum(contiguous_hull_x[k:i])
+                        hull_area[j, row, col] = np.nansum(contiguous_hull_x[k:i])
                         try:
-                            res3band[j, row, col] = (np.nansum(contiguous_hull_x[k:i]) - np.nansum(in_matrix[k:i, row, col])) / np.nansum(contiguous_hull_x[k:i])
+                            res3band[j, row, col] = absorb_area[j, row, col] / hull_area[j, row, col]
                         except ZeroDivisionError:
+                            #print('zeroDivision')
                             res3band[j, row, col] = 0
                         k = i
                     else:
                         res3band[j, row, col] = np.nan
                         k = i
-                #print('2: ', len(in_matrix[:, row, col]))
-                #print('3: ', len(contiguous_hull_x))
 
                 self.prgbar_process(pixel_no=row * self.ncols + col)
+
+        #res3band[0, :, :] = res3band[1, :, :] / res3band[0, :, :]
+
         res3band[np.isnan(res3band)] = self.nodat[1]
         return res3band
 
-    def execute_ASI(self, prg_widget=None, QGis_app=None):
+    def execute_ASI(self, in_raster, prg_widget=None, QGis_app=None):
         self.prg = prg_widget
         self.QGis_app = QGis_app
         res, crs, res3band = None, None, None
 
         if self.calc_3band_flag:
-            res3band = self.segmented_convex_hull_3d_3band(in_matrix=self.in_raster,
+            res3band = self.segmented_convex_hull_3d_3band(in_matrix=in_raster,
                                                            limits=self.limits,
                                                            lookahead=self.lookahead,
                                                            delta=self.delta)
 
         if self.calc_crs_flag:
-            res, crs = self.segmented_convex_hull_3d(in_matrix=self.in_raster, limits=self.limits,
+            res, crs = self.segmented_convex_hull_3d(in_matrix=in_raster, limits=self.limits,
                                                      lookahead=self.lookahead, delta=self.delta)
 
-        else:
-            res, crs = self.segmented_convex_hull_3d(in_matrix=self.in_raster, limits=self.limits,
+        if not self.calc_3band_flag and not self.calc_crs_flag:
+            res, crs = self.segmented_convex_hull_3d(in_matrix=in_raster, limits=self.limits,
                                                      lookahead=self.lookahead, delta=self.delta)
             crs = None
 
         return res, crs, res3band
 
-    def findHighestNDVIindex(self, prg_widget=None, QGis_app=None):  # acc. to hNDVI Oppelt(2002)
+    def findHighestNDVIindex(self, in_raster, prg_widget=None, QGis_app=None):  # acc. to hNDVI Oppelt(2002)
 
         self.prg = prg_widget
         self.QGis_app = QGis_app
@@ -907,11 +935,11 @@ class ASI_core:
         NDVI_closest = [self.find_closest_wl(lambd=827), self.find_closest_wl(lambd=668)]
         self.NDVI_bands = [i for i, x in enumerate(self.wl) if x in NDVI_closest]
 
-        for row in range(np.shape(self.in_raster)[1]):
-            for col in range(np.shape(self.in_raster)[2]):
-                if np.mean(self.in_raster[:, row, col]) != self.nodat[0]:
-                    R827 = self.in_raster[self.NDVI_bands[1], row, col]
-                    R668 = self.in_raster[self.NDVI_bands[0], row, col]
+        for row in range(np.shape(in_raster)[1]):
+            for col in range(np.shape(in_raster)[2]):
+                if np.mean(in_raster[:, row, col]) != self.nodat[0]:
+                    R827 = in_raster[self.NDVI_bands[1], row, col]
+                    R668 = in_raster[self.NDVI_bands[0], row, col]
                     try:
                         NDVI = float(R827 - R668) / float(R827 + R668)
                     except ZeroDivisionError:
@@ -921,7 +949,7 @@ class ASI_core:
                         self.NDVI = NDVI
                         self.row = row
                         self.col = col
-                        self.ndvi_spec = self.in_raster[:, row, col]
+                        self.ndvi_spec = in_raster[:, row, col]
                         break
                 else:
                     continue
@@ -932,7 +960,6 @@ class ASI_core:
         self.max_index = [self.NDVI, self.row, self.col]  # raster pos where NDVI > 0.85 was found
 
         return self.max_index, self.ndvi_spec
-
 
     def prgbar_process(self, pixel_no):
         if self.prg:

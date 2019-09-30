@@ -192,5 +192,7 @@ class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
             self.uiExecute().setEnabled(True)
 
         except:
+            self.uiInfo().setText(traceback.format_exc())
             traceback.print_exc()
             self.uiProgressBar_.setValue(0)
+            return

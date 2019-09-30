@@ -10,11 +10,12 @@ import struct
 from hubflow.core import *
 
 class VIT:
-    def __init__(self, IT, nodat, IDW_exp=None):
+    def __init__(self, IT, nodat, division_factor, IDW_exp=None):
 
         self.nodat = nodat # set no data value (0: in, 1: out)
         self.IT = IT # Interpolation type: 1: NN, 2: linear, 3: IDW, 4: Spline
-        self.IDW_exp = IDW_exp # In case of IT = IDW, set power of IDW 
+        self.IDW_exp = IDW_exp # In case of IT = IDW, set power of IDW
+        self.division_factor = division_factor
 
     def norm_diff1(self, a, b):  # Normalized Difference Index: ARRAYS as input
         return (a - b) / (a + b)
@@ -65,6 +66,7 @@ class VIT:
 
         ### Reading the spectral image
         dataset = gdal.Open(ImgIn)
+        #self.grid = dataset.GetProjection()
         if dataset is None: raise ValueError("Input Image not found!")
         nbands = dataset.RasterCount
 
@@ -115,9 +117,74 @@ class VIT:
 
         self.dict_band = dict(zip(self.wl, band_range)) # maps wavelengths to (valid) sensor bands
         self.mask = np.all(ImageIn_matrix == int(self.nodat[0]), axis=2)
+
+        if self.division_factor != 1.0:
+            ImageIn_matrix = ImageIn_matrix / self.division_factor
+
         self.ImageIn_matrix = ImageIn_matrix
 
         return ImageIn_matrix
+
+    def read_image2(self, image):
+        '''
+        :param image:
+        :return:
+        '''
+        dataset = openRasterDataset(image)
+
+        try:
+            self.grid = dataset.grid()
+        except:
+            raise Warning("No CRS provided in Input Image")
+            pass
+        metadict = dataset.metadataDict()
+
+        self.nrows = int(metadict['ENVI']['lines'])
+        self.ncols = int(metadict['ENVI']['samples'])
+        nbands = int(metadict['ENVI']['bands'])
+
+        try:
+            wave_dict = metadict['ENVI']['wavelength']
+        except:
+            raise ValueError('No wavelength units provided in ENVI header file')
+
+        if metadict['ENVI']['wavelength'] is None:
+            raise ValueError('No wavelength units provided in ENVI header file')
+        elif metadict['ENVI']['wavelength units'].lower() in \
+                ['nanometers', 'nm', 'nanometer']:
+            wave_convert = 1
+        elif metadict['ENVI']['wavelength units'].lower() in \
+                ['micrometers', 'µm', 'micrometer']:
+            wave_convert = 1000
+        else:
+            raise ValueError(
+                "Wavelength units must be nanometers or micrometers. Got '%s' instead" %
+                metadict['ENVI']['wavelength units'])
+
+        in_matrix = dataset.readAsArray()
+
+        if self.division_factor != 1.0:
+            in_matrix = in_matrix / self.division_factor
+
+        self.wl = [float(item) * wave_convert for item in wave_dict]
+        self.wl = [int(i) for i in self.wl]
+
+        exclude = []  # initialize list for excluded bands
+        if self.wl[89] < self.wl[88]:
+            exclude = range(89, 98)
+            self.wl = [self.wl[i] for i in range(len(self.wl)) if not i in exclude]
+
+        self.n_wl = len(self.wl)
+
+        band_range = [i for i in range(nbands) if i not in exclude] # list of valid bands
+
+        self.dict_band = dict(zip(self.wl, band_range)) # maps wavelengths to (valid) sensor bands
+        in_matrix = np.swapaxes(in_matrix, 0, 1)
+        in_matrix = np.swapaxes(in_matrix, 1, 2)
+        self.mask = np.all(in_matrix == int(self.nodat[0]), axis=2)
+        self.ImageIn_matrix = in_matrix
+
+        return in_matrix
 
     def loc_b(self, wl_list):  # creates a dict that zips each index-wavelength to a sensor band
 
@@ -199,7 +266,7 @@ class VIT:
             self.prg.gui.prgBar.setValue(index_no*100 // self.n_indices) # progress value is index-orientated
             self.QGis_app.processEvents() # mach ma neu
 
-    def calculate_VIT(self, ImageIn_matrix, prg_widget=None, QGis_app=None):
+    def calculate_VIT(self, prg_widget=None, QGis_app=None):
         self.prg = prg_widget
         self.QGis_app = QGis_app
 
@@ -208,8 +275,6 @@ class VIT:
         temp_val = np.zeros(shape=(self.nrows, self.ncols, 11), dtype=np.float16)  # initialize temp values dumper
         index_no = 0 # intialize index_counter
         IndexOut_matrix = np.full(shape=(self.nrows, self.ncols, self.n_indices), fill_value=self.nodat[1], dtype=float)
-
-
 
         #         if self.IT == 4:
         #             self.spline = interp1d(self.wl, ImageIn_matrix[row, col, :], kind='cubic')  # Generate spline
@@ -607,7 +672,7 @@ class VIT:
                 out_array = np.zeros((1, IndexOut_matrix.shape[1], IndexOut_matrix.shape[2]))
                 out_array[0, :, :] = IndexOut_matrix[i, :, :]
                 output = Raster.fromArray(array=out_array, filename=OutDir + OutFilename + '_'
-                                                                          + self.labels[i] + OutExtension)
+                                                                          + self.labels[i] + OutExtension, grid=self.grid)
 
                 output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
                 #output.dataset().setDescription(self.labels[i])
@@ -615,11 +680,10 @@ class VIT:
                     band.setDescription(self.labels[i])
                     band.setNoDataValue(self.nodat[1])
 
-
         else:  # Output to single file
             #try:
             #print(IndexOut_matrix.shape)
-            output = Raster.fromArray(array=IndexOut_matrix, filename=OutDir + OutFilename + OutExtension)
+            output = Raster.fromArray(array=IndexOut_matrix, filename=OutDir + OutFilename + OutExtension, grid=self.grid)
 
             output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
             #output.dataset().setDescription(self.labels)
