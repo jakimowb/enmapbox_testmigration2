@@ -1,8 +1,4 @@
-import re
-from qgis import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtCore import *
-from enmapbox.testing import initQgisApplication
+import re, os
 
 from enmapbox.gui.utils import file_search
 
@@ -29,8 +25,9 @@ def remove_shortcutVisibleInContextMenu(rootDir):
             with open(p, 'w', encoding='utf-8') as f:
                 f.write(xml)
 
+os.environ['CI'] = 'True'
 
-if os.environ['CI']:
+if os.environ.get('CI'):
     from enmapbox import DIR_REPO
     remove_shortcutVisibleInContextMenu(DIR_REPO)
 
