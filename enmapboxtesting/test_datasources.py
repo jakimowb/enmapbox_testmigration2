@@ -276,8 +276,8 @@ class standardDataSources(unittest.TestCase):
 
     def test_datasourcemanager_equalsources(self):
 
-        p1 = r'C:\Users\geo_beja\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\enmapboxplugin\enmapboxtestdata\hires_berlin.bsq'
-        p2 = r'C:/Users/geo_beja/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins/enmapboxplugin/enmapboxtestdata/hires_berlin.bsq'
+        p1 = str(pathlib.Path(hires))
+        p2 = pathlib.Path(hires).as_posix()
 
         dsm = DataSourceManager()
         dsm.addSources([p1,p2])
