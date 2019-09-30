@@ -39,11 +39,12 @@ class CrosshairTests(unittest.TestCase):
         refCanvas.mCrosshairItem.setVisibility(True)
 
 
-        style = CrosshairDialog.getCrosshairStyle(mapCanvas=refCanvas)
-        if style is not None:
-            self.assertIsInstance(style, CrosshairStyle)
 
         if SHOW_GUI:
+            style = CrosshairDialog.getCrosshairStyle(mapCanvas=refCanvas)
+            if style is not None:
+                self.assertIsInstance(style, CrosshairStyle)
+
             QGIS_APP.exec_()
 
 if __name__ == "__main__":

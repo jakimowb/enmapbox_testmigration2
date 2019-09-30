@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
     #start the EnMAP-Box
     import enmapbox.gui.enmapboxgui
-    enmapbox.LOAD_PROCESSING_FRAMEWORK = False
+
 
     emb = EnMAPBox(None)
     emb.run()

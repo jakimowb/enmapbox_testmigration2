@@ -18,7 +18,7 @@ from collections import namedtuple
 from enmapbox.testing import initQgisApplication, TestObjects
 
 QGIS_APP = initQgisApplication()
-SHOW_GUI = True and os.environ.get('CI') is None
+SHOW_GUI = False and os.environ.get('CI') is None
 from enmapbox.gui.utils import *
 from enmapbox import EnMAPBox, DIR_ENMAPBOX, DIR_REPO
 import enmapbox.gui
@@ -37,15 +37,16 @@ class test_applications(unittest.TestCase):
 
     def setUp(self):
 
-        enmapbox.LOAD_PROCESSING_FRAMEWORK = True
-        enmapbox.LOAD_INTERNAL_APPS = False
-        enmapbox.LOAD_EXTERNAL_APPS = False
+        pass
+
 
     def tearDown(self):
         eb = EnMAPBox.instance()
         if isinstance(eb, EnMAPBox):
             eb.close()
-            EnMAPBox.instance()
+            QApplication.processEvents()
+            EnMAPBox._instance = None
+
 
 
     def createTestData(self)->(str, str, str):
@@ -131,9 +132,6 @@ class test_applications(unittest.TestCase):
     def test_applicationRegistry(self):
         TESTDATA = self.createTestData()
 
-        enmapbox.LOAD_PROCESSING_FRAMEWORK = True
-        enmapbox.LOAD_INTERNAL_APPS = False
-        enmapbox.LOAD_EXTERNAL_APPS = False
         EB = EnMAPBox()
 
         reg = ApplicationRegistry(EB)
@@ -213,9 +211,7 @@ class test_applications(unittest.TestCase):
 
     def test_externalApp(self):
 
-        enmapbox.LOAD_PROCESSING_FRAMEWORK = True
-        enmapbox.LOAD_INTERNAL_APPS = False
-        enmapbox.LOAD_EXTERNAL_APPS = False
+
         EB = EnMAPBox()
         self.assertIsInstance(EB, EnMAPBox)
 
@@ -235,33 +231,35 @@ class test_applications(unittest.TestCase):
         pathExternalApps = os.path.join(DIR_ENMAPBOX, 'apps')
         self.assertTrue(os.path.isdir(pathCoreApps))
 
-        enmapbox.LOAD_PROCESSING_FRAMEWORK = True
-        enmapbox.LOAD_INTERNAL_APPS = False
-        enmapbox.LOAD_EXTERNAL_APPS = False
         EB = EnMAPBox()
         reg = ApplicationRegistry(EB)
 
-        for root in [pathExternalApps, pathCoreApps]:
-            for r, dirs, files in os.walk(root):
-                break
-            for d in dirs:
-                p = os.path.join(r, d)
-                n1 = len(reg)
-                print('Load APP(s) from {}...'.format(p))
-                reg.addApplicationFolder(p)
-                n2 = len(reg)
+        coreAppDirs = []
+        externalAppDirs = []
 
-                self.assertTrue(n2 > n1,  msg='Unable to add APP(s) "{}" from {}'.format(d, p))
+        for d in os.scandir(pathCoreApps):
+            if d.is_dir():
+                coreAppDirs.append(d.path)
 
+        for d in os.scandir(pathExternalApps):
+            if d.is_dir():
+                externalAppDirs.append(d.path)
+
+
+
+        print('Load APP(s) from {}...'.format(pathExternalApps))
+        for d in coreAppDirs + externalAppDirs:
+            n1 = len(reg)
+            reg.addApplicationFolder(d)
+            n2 = len(reg)
+            if n1 == n2:
+                print('Unable to add EnMAPBoxApplications from {}'.format(d), file=sys.stderr)
 
 
 
 
     def test_enmapbox_start(self):
 
-        enmapbox.LOAD_PROCESSING_FRAMEWORK = True
-        enmapbox.LOAD_INTERNAL_APPS = True
-        enmapbox.LOAD_EXTERNAL_APPS = True
 
         EB = EnMAPBox()
 

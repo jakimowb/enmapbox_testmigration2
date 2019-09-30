@@ -464,7 +464,7 @@ class EnMAPBox(QgisInterface, QObject):
             enmapboxCanvasNames[id(c)] = c.windowTitle()
 
         if hiddenLayers is None:
-            hiddenLayers = [ltn.layer() for ltn in hiddenGroup.findLayers()]
+            hiddenLayers = [ltn.layer() for ltn in hiddenGroup.findLayers() if isinstance(ltn.layer(), QgsMapLayer)]
 
         for qLyr in hiddenLayers:
             assert isinstance(qLyr, QgsMapLayer)

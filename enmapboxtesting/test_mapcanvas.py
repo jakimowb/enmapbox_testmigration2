@@ -20,14 +20,14 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
-SHOW_GUI = True and os.environ.get('CI') is None
+SHOW_GUI = False and os.environ.get('CI') is None
 
 import enmapbox.dependencycheck
 enmapbox.dependencycheck.installTestData()
 
 from enmapboxtestdata import enmap, hires, landcover_polygons, library
 from enmapbox.gui.mapcanvas import *
-
+from enmapbox.testing import TestObjects
 
 
 class MapCanvasTests(unittest.TestCase):
@@ -43,6 +43,14 @@ class MapCanvasTests(unittest.TestCase):
 
     def tearDown(self):
         self.w.close()
+        self.cw.close()
+        self.mapCanvas.close()
+        del self.w
+        del self.cw
+        del self.mapCanvas
+        QApplication.processEvents()
+
+
 
     def test_mapCRS(self):
 
@@ -64,8 +72,8 @@ class MapCanvasTests(unittest.TestCase):
 
     def test_mapCanvas(self):
 
-        menu = self.mapCanvas.contextMenu()
-        lyr = QgsRasterLayer(enmap)
+
+        lyr = TestObjects.createRasterLayer()
         self.assertTrue(lyr not in QgsProject.instance().mapLayers().values())
         self.mapCanvas.setLayers([lyr])
         self.assertTrue(lyr in QgsProject.instance().mapLayers().values())
@@ -80,10 +88,13 @@ class MapCanvasTests(unittest.TestCase):
         for action in actions:
             info = action.text()
             print('Test QAction {}'.format(info))
-            try:
-                action.trigger()
-            except Exception as ex:
-                self.fail('Failed to trigger QAction "{}\n\t{}"'.find(info, ex))
+            if not SHOW_GUI and info in ['Set CRS...']:
+                print('skipped')
+            else:
+                try:
+                    action.trigger()
+                except Exception as ex:
+                    self.fail('Failed to trigger QAction "{}\n\t{}"'.find(info, ex))
 
     def test_canvaslinks(self):
 
@@ -138,6 +149,7 @@ class MapCanvasTests(unittest.TestCase):
         self.assertTrue(c1.center() == center3)
         self.assertTrue(c2.center() == center3)
         self.assertTrue(c3.center() == center3)
+
 
 
     def test_dropEvents(self):

@@ -33,6 +33,9 @@ from enmapbox.gui.docks import *
 
 class testDataSources(unittest.TestCase):
 
+    def tearDown(self):
+        QApplication.processEvents()
+
     def test_dataSourceManager(self):
 
         global signalArgs
@@ -96,15 +99,18 @@ class testDataSources(unittest.TestCase):
         self.assertIsInstance(w, DockPanelUI)
         self.assertIsInstance(DM, DockManager)
         w.connectDockManager(DM)
+        w.show()
         DM.createDock('MAP')
         DM.createDock('SPECLIB')
         if SHOW_GUI:
-            w.show()
+
             QGIS_APP.exec_()
 
 
 class testDocks(unittest.TestCase):
 
+    def tearDown(self):
+        QApplication.processEvents()
 
     def test_dockLabel(self):
         from pyqtgraph.dockarea.Dock import Dock as pgDock

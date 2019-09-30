@@ -19,6 +19,15 @@ QGIS_APP = initQgisApplication()
 
 class Tests(unittest.TestCase):
 
+    def tearDown(self):
+
+        from enmapbox import EnMAPBox
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox):
+            emb.close()
+
+        QApplication.processEvents()
+
     def test_inMemoryImage(self):
         self.assertIsInstance(TestObjects.inMemoryImage(), gdal.Dataset)
 
@@ -30,10 +39,14 @@ class Tests(unittest.TestCase):
         self.assertTrue(ds.GetLayerByIndex(0).GetFeatureCount() > 0)
 
     def test_enmapboxApplication(self):
-        from enmapbox import EnMAPBox
-        eb = EnMAPBox(None)
 
-        from enmapbox import EnMAPBoxApplication
+
+        from enmapbox import EnMAPBoxApplication, EnMAPBox
+
+        emb = EnMAPBox.instance()
+        if not isinstance(emb, EnMAPBox):
+            emb = EnMAPBox(None)
+
         ea = TestObjects.enmapboxApplication()
         self.assertIsInstance(ea, EnMAPBoxApplication)
         parentMenu = QMenu()

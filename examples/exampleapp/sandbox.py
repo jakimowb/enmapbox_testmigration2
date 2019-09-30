@@ -35,7 +35,7 @@ def sandboxShowAppInEnMapBox(loadPF=True):
 
     import enmapbox.gui
 
-    enmapbox.LOAD_PROCESSING_FRAMEWORK = loadPF
+
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EB = EnMAPBox(None)
     EB.run()

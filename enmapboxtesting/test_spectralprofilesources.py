@@ -18,28 +18,37 @@ from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 from enmapboxtestdata import enmap, hires, library
 from enmapbox.gui.mapcanvas import *
-SHOW_GUI = True and not os.environ.get('CI')
+SHOW_GUI = False and not os.environ.get('CI')
 
 from enmapbox.gui.maplayers import *
 from enmapbox.testing import TestObjects
 from enmapbox.gui.spectralprofilesources import *
+from enmapbox import EnMAPBox
 class SpectralProfileSourceTests(unittest.TestCase):
+
+    def tearDown(self):
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox):
+            emb.close()
+
+        QApplication.processEvents()
 
     def test_SpeclibList(self):
 
         model = SpectralProfileDstListModel()
 
-        sl1 = SpectralLibrary()
-        sl1.setName('Speclib 1')
-        sl2 = SpectralLibrary()
-        sl2.setName('Speclib 2')
+        slw1 = SpectralLibraryWidget()
+        slw1.speclib().setName('Speclib 1')
+
+        slw2 = SpectralLibraryWidget()
+        slw2.speclib().setName('Speclib 2')
 
         self.assertEqual(len(model), 0)
-        model.addSpectralLibraryWidget(sl1)
-        model.addSpectralLibraryWidget(sl2)
+        model.addSpectralLibraryWidget(slw1)
+        model.addSpectralLibraryWidget(slw2)
 
         self.assertEqual(len(model), 2)
-        model.addSpectralLibraryWidget(sl2)
+        model.addSpectralLibraryWidget(slw2)
         self.assertEqual(len(model), 2)
 
 
@@ -77,7 +86,7 @@ class SpectralProfileSourceTests(unittest.TestCase):
                 self.assertEqual(positions[4], pt)
 
             if mode in [SpectralProfileSamplingMode.Sample5x5,
-                        SpectralProfileSamplingMode.Sample5x5Mean5]:
+                        SpectralProfileSamplingMode.Sample5x5Mean]:
                 self.assertEqual(len(positions), 25)
                 self.assertEqual(positions[12], pt)
 
@@ -88,37 +97,41 @@ class SpectralProfileSourceTests(unittest.TestCase):
         self.assertIsInstance(lyr, QgsRasterLayer)
 
         pt = SpatialPoint.fromMapLayerCenter(lyr)
-
-        samples = []
+        src = SpectralProfileSource.fromRasterLayer(lyr)
+        relations = []
 
         for mode in SpectralProfileSamplingMode:
-            samples.append(SpectralProfileSourceSample(lyr.source(), lyr.name(), lyr.providerType(), mode))
+            r = SpectralProfileRelation(src, None)
+            r.setSamplingMode(mode)
+            rw = SpectralProfileRelationWrapper(r)
+
+            relations.append(rw)
+
 
         qgsTask = QgsTaskMock()
-        dump = pickle.dumps((pt, samples))
-        dump2 = doLoadSpectralProfiles(qgsTask, pt)
 
-        samples2 = pickle.loads(dump2)
-        self.assertIsInstance(samples2, list)
-        for s in samples2:
-            self.assertIsInstance(s, SpectralProfileSourceSample)
+        task, point, relations = doLoadSpectralProfiles(qgsTask, pt, relations)
 
-            self.assertTrue(len(s.profiles()) > 0)
-            for p in s.profiles():
+        self.assertIsInstance(relations, list)
+        for rw in relations:
+            self.assertIsInstance(rw, SpectralProfileRelationWrapper)
+
+            self.assertTrue(len(rw.currentProfiles()) > 0)
+            for p in rw.currentProfiles():
                 self.assertIsInstance(p, SpectralProfile)
 
-            if s.samplingMode() in [SpectralProfileSamplingMode.SingleProfile,
+            if rw.samplingMode() in [SpectralProfileSamplingMode.SingleProfile,
                                     SpectralProfileSamplingMode.Sample3x3Mean,
                                     SpectralProfileSamplingMode.Sample5x5Mean]:
-                self.assertTrue(len(s.profiles()) == 1)
-                s.profiles()[0].plot()
+                self.assertTrue(len(rw.currentProfiles()) == 1)
+                #rw.currentProfiles()[0].plot()
 
 
-            if s.samplingMode() == SpectralProfileSamplingMode.Sample3x3:
-                self.assertTrue(len(s.profiles()) == 9)
+            if rw.samplingMode() == SpectralProfileSamplingMode.Sample3x3:
+                self.assertTrue(len(rw.currentProfiles()) == 9)
 
-            if s.samplingMode() == SpectralProfileSamplingMode.Sample5x5:
-                self.assertTrue(len(s.profiles()) == 25)
+            if rw.samplingMode() == SpectralProfileSamplingMode.Sample5x5:
+                self.assertTrue(len(rw.currentProfiles()) == 25)
 
         if SHOW_GUI:
             QGIS_APP.exec_()
