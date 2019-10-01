@@ -94,8 +94,6 @@ class TestEnMAPBox(unittest.TestCase):
 
         emb = EnMAPBox.instance()
         if isinstance(emb, EnMAPBox):
-
-
             emb.close()
         QApplication.processEvents()
 
@@ -105,7 +103,6 @@ class TestEnMAPBox(unittest.TestCase):
     def tearDown(self):
         emb = EnMAPBox.instance()
         if isinstance(emb, EnMAPBox):
-
             emb.close()
 
         self.EMB = None

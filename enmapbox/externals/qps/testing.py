@@ -163,6 +163,7 @@ def initQgisApplication(*args, qgisResourceDir: str = None,
         loadPythonRunner = False
 
     if isinstance(QgsApplication.instance(), QgsApplication):
+        print('Found existing QgsApplication.instance()')
         return QgsApplication.instance()
     else:
 
@@ -215,6 +216,7 @@ def initQgisApplication(*args, qgisResourceDir: str = None,
             for m in modules:
                 mod = importlib.import_module('qgisresources.{}'.format(m))
                 if "qInitResources" in dir(mod):
+                    print('Loads Qt resources from {}'.format(m))
                     mod.qInitResources()
 
         # initiate a PythonRunner instance if None exists
@@ -548,11 +550,22 @@ class TestObjects():
         Create an in-memory ogr.DataSource
         :return: ogr.DataSource
         """
+        ogr.UseExceptions()
         assert wkb in [ogr.wkbPoint, ogr.wkbPolygon, ogr.wkbLineString]
 
+        # find the QGIS world_map.shp
         pkgPath = QgsApplication.instance().pkgDataPath()
-        pathSrc = os.path.join(pkgPath, *['resources', 'data', 'world_map.shp'])
-        assert os.path.isfile(pathSrc), 'Unable to find QGIS "world_map.shp"'
+        pathSrc = None
+        potentialPathes = [
+            os.path.join(os.path.dirname(__file__), 'testpolygons.geojson'),
+            os.path.join(pkgPath, *['resources', 'data', 'world_map.shp']),
+        ]
+        for p in potentialPathes:
+            if os.path.isfile(p):
+                pathSrc = p
+                break
+
+        assert os.path.isfile(pathSrc), 'Unable to find QGIS "world_map.shp". QGIS Pkg path = {}'.format(pkgPath)
 
         dsSrc = ogr.Open(pathSrc)
         assert isinstance(dsSrc, ogr.DataSource)
@@ -565,19 +578,19 @@ class TestObjects():
         srs = lyrSrc.GetSpatialRef()
         assert isinstance(srs, osr.SpatialReference)
 
-        drv = dsSrc.GetDriver()
+        drv = ogr.GetDriverByName('ESRI Shapefile')
         assert isinstance(drv, ogr.Driver)
 
         # set temp path
         if wkb == ogr.wkbPolygon:
             lname = 'polygons'
-            pathDst = '/vsimem/tmp' + str(uuid.uuid4()) + '.world_map.polygons.shp'
+            pathDst = '/vsimem/tmp' + str(uuid.uuid4()) + '.test.polygons.shp'
         elif wkb == ogr.wkbPoint:
             lname = 'points'
-            pathDst = '/vsimem/tmp' + str(uuid.uuid4()) + '.world_map.centroids.shp'
+            pathDst = '/vsimem/tmp' + str(uuid.uuid4()) + '.test.centroids.shp'
         elif wkb == ogr.wkbLineString:
             lname = 'lines'
-            pathDst = '/vsimem/tmp' + str(uuid.uuid4()) + '.world_map.line.shp'
+            pathDst = '/vsimem/tmp' + str(uuid.uuid4()) + '.test.line.shp'
         else:
             raise NotImplementedError()
 
@@ -617,7 +630,7 @@ class TestObjects():
                 for i in range(ldef.GetFieldCount()):
                     fDst.SetField(i, fSrc.GetField(i))
 
-                lyrDst.CreateFeature(fDst)
+                assert lyrDst.CreateFeature(fDst) == ogr.OGRERR_NONE
 
         assert isinstance(dsDst, ogr.DataSource)
         dsDst.FlushCache()

@@ -21,6 +21,8 @@ pipelines:
           - apt-get update
           - apt-get -y install xvfb
           - apt-get -y install git-lfs
+          - apt-get install -y wget
+          - apt-get install -y unzip
           - Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
           - ps aux | grep X
           - DISPLAY=:1.0
@@ -30,10 +32,11 @@ pipelines:
           - git lfs fetch
           - git lfs pull
           - git lfs checkout
+          - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
+          - unzip qgisresources.zip
+          - mkdir test-results
           - python make/setuprepository.py
-          - python enmapboxtesting/prepare_ci_test.py
           #- python -m nose2 discover tests "test_*.py" > test-reports/test-report.txt
-
           - python -m nose2 -s enmapboxtesting test_crosshair
           - python -m nose2 -s enmapboxtesting test_cursorlocationsvalues
           - python -m nose2 -s enmapboxtesting test_datasources

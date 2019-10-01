@@ -7,6 +7,7 @@ exit /b
 
 :sub
 
+python -m make/setuprepository
 :: python -m nose2 --verbose discover enmapboxtesting "test_*.py"
 python -m nose2 -s enmapboxtesting test_applications
 python -m nose2 -s enmapboxtesting test_crosshair
