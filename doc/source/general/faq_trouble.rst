@@ -51,7 +51,7 @@ How can I solve the following error...
 ... **Installation: no module named pip**
 
 In case you run into problems during installation because pip is not available in your python environment
-(error message ``C:/.../python3.exe: No module named pip`` or similar), follow these steps:
+(error message ``C:/.../python3.exe: No module named pip`` or similar), follow these steps (Windows):
 
 Start the OSGeo4W installer from the OSGeo4W Shell by calling
 
@@ -90,6 +90,37 @@ Click :guilabel:`Finish` when the installation is done. **Now repeat the steps 2
 
 ....
 
+|
+
+.. _faq_requirements:
+
+... **Python package installation with requirements.txt does not work**
+
+Usually, all dependencies can be installed with one line:
+
+   .. code-block:: batch
+
+      python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
+
+If the method above did not work for some reason, try installing the packages one by one:
+
+    .. code-block:: bash
+
+        python3 -m pip install numpy
+        python3 -m pip install scipy
+        python3 -m pip install scikit-learn
+        python3 -m pip install matplotlib
+
+   *and optionally*:
+
+    .. code-block:: batch
+
+        python3 -m pip install astropy
+
+....
+
+|
+
 ... **Error loading the plugin**
 
     In case of missing requirements you should see an error message like this
@@ -100,6 +131,8 @@ Click :guilabel:`Finish` when the installation is done. **Now repeat the steps 2
     in this example ``pyqtgraph`` and ``sklearn`` are missing.
 
 ....
+
+|
 
 ... **Installation of Astropy fails**
 
@@ -112,12 +145,16 @@ Click :guilabel:`Finish` when the installation is done. **Now repeat the steps 2
 
 ....
 
+|
+
 ... **Wrong value for parameter MSYS**
 
     This error sometimes occurs when activating the EnMAP-Box AlgorithmProvider in Windows. Please install
     the *msys (command line utilities)* package with the OSGeo4W package installer.
 
 ....
+
+|
 
 ... **This plugin is broken: 'module' object has not attribute 'GRIORA_NearestNeighbor'**
 

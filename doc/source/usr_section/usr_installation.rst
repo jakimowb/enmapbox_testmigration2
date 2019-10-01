@@ -146,22 +146,17 @@ Windows
 Linux
 ~~~~~
 
-.. note:: Tested on Ubuntu 18.10
+.. note:: Tested on Ubuntu 18.04
 
 #. Open the terminal and install all missing packages using pip:
 
-    .. code-block:: bash
+   .. code-block:: batch
 
-        python3 -m pip install numpy
-        python3 -m pip install scipy
-        python3 -m pip install scikit-learn
-        python3 -m pip install matplotlib
+      python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
-   *and optionally*:
+   .. error::
 
-    .. code-block:: batch
-
-        python3 -m pip install astropy
+      See :ref:`FAQ <faq_requirements>` if you run into problems installing the packages.
 
 
 .. _install-packages-mac:
@@ -173,19 +168,13 @@ Mac
 
 #. Open the terminal and install all missing packages using pip:
 
-    .. code-block:: bash
+   .. code-block:: batch
 
-        python3 -m pip install numpy
-        python3 -m pip install scipy
-        python3 -m pip install scikit-learn
-        python3 -m pip install matplotlib
+      python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
-    *and optionally*:
+   .. error::
 
-    .. code-block:: batch
-
-        python3 -m pip install astropy
-
+      See :ref:`FAQ <faq_requirements>` if you run into problems installing the packages.
 
 
 ....
