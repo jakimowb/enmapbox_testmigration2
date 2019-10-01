@@ -47,7 +47,9 @@ pipelines:
           - python -m nose2 -s enmapboxtesting test_mapcanvas
           - python -m nose2 -s enmapboxtesting test_mimedata
           - python -m nose2 -s enmapboxtesting test_options
+          - set +e
           - python -m nose2 -s enmapboxtesting test_speclibs
+          - set -e
           - python -m nose2 -s enmapboxtesting test_spectralprofilesources
           - python -m nose2 -s enmapboxtesting test_testdata_dependency
           - python -m nose2 -s enmapboxtesting test_testing
