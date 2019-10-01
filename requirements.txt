@@ -4,19 +4,22 @@
 # see https://www.python.org/dev/peps/pep-0440/#version-specifiers
 ###### Requirements ######
 
-gdal
+gdal ; platform_system != "Linux"
 numpy>=1.15
 scipy>=1.1
 scikit-learn>=0.19.2
+matplotlib>=3.0
 
 
 # pyqtgrapgh is now part of the EnMAP-Box code in enmapbox/externals/qps/externals/pyqtgraph
 # pyqtgraph>=0.11
 # https://bitbucket.org/hu-geomatics/enmap-box/downloads/pyqtgraph-0.11.0.dev0.zip
+# git+https://github.com/pyqtgraph/pyqtgraph
 
-matplotlib>=3.0
 
-#git+https://github.com/pyqtgraph/pyqtgraph
+## optional requirements (uncomment to install)
+#astropy
+
 
 ###### Refers to other requirements files (e.g. for hub-datacube?) ######
 #-r otherfolder/other-requirements.txt
