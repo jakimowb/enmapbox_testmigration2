@@ -17,7 +17,9 @@ gitpython
 git-lfs
 pb_tool
 
-unittest-xml-reporting # unit tests only
+# unit tests only
+nose2
+unittest-xml-reporting
 
 recommonmark
 sphinx
