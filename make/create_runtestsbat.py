@@ -15,7 +15,7 @@ PREFACE = \
 :: use this script to run unit tests locally
 ::
 set CI=True
-python runfirst.py
+python make/setuprepository.py
 """
 
 dirOut = 'test-reports/today'

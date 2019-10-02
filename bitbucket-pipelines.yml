@@ -35,7 +35,5 @@ pipelines:
           - python make/setuprepository.py
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
-          - set +e
           - /bin/bash runtests.sh
-          - set -e
 
