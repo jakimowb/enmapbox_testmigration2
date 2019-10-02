@@ -35,25 +35,7 @@ pipelines:
           - python make/setuprepository.py
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
-          - mkdir test-results
-
-          #- python -m nose2 discover tests "test_*.py" > test-reports/test-report.txt
-
-          - python -m nose2 -s enmapboxtesting test_crosshair
-          - python -m nose2 -s enmapboxtesting test_cursorlocationsvalues
-          - python -m nose2 -s enmapboxtesting test_datasources
-          - python -m nose2 -s enmapboxtesting test_docksanddatasources
-          - python -m nose2 -s enmapboxtesting test_enmapbox
-          - python -m nose2 -s enmapboxtesting test_enmapboxplugin
-          - python -m nose2 -s enmapboxtesting test_layerproperties
-          - python -m nose2 -s enmapboxtesting test_mapcanvas
-          - python -m nose2 -s enmapboxtesting test_mimedata
-          - python -m nose2 -s enmapboxtesting test_options
-          - python -m nose2 -s enmapboxtesting test_speclibs
-          - python -m nose2 -s enmapboxtesting test_spectralprofilesources
-          - python -m nose2 -s enmapboxtesting test_testdata_dependency
-          - python -m nose2 -s enmapboxtesting test_testing
-          - python -m nose2 -s enmapboxtesting test_utils
-
-          #- python -m nose2 -s enmapboxtesting test_applications
+          - set +e
+          - /bin/bash runtests.sh
+          - set -e
 
