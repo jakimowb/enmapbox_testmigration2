@@ -1,8 +1,7 @@
 
-:: use this script to run unit tests locally
-::
-set CI=True
-python make/setuprepository.py
+# use this script to run unit tests locally
+#
+python runfirst.py
 
 mkdir test-reports/today
 python -m nose2 -s enmapboxtesting test_applications ; mv nose2-junit.xml test-reports/today/test_applications.xml
