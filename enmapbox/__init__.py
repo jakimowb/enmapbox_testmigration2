@@ -55,6 +55,8 @@ DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui', 'ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui', 'ui', 'icons'])
 DIR_TESTDATA = os.path.join(DIR_REPO, 'enmapboxtestdata')
 
+DIR_UNITTESTS = os.path.join(DIR_REPO, 'enmapboxtesting')
+
 ENMAP_BOX_KEY = 'EnMAP-Box'
 
 
