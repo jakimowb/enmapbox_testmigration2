@@ -17,6 +17,8 @@ gitpython
 git-lfs
 pb_tool
 
+unittest-xml-reporting # unit tests only
+
 recommonmark
 sphinx
 sphinx-argparse
