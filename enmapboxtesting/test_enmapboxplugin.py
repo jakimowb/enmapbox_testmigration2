@@ -37,6 +37,10 @@ from qgis.utils import iface
 
 class TestEnMAPBoxPlugin(unittest.TestCase):
 
+    def setUp(self):
+        print('START TEST {}'.format(self.id()))
+        QgsProject.instance().removeMapLayers(QgsProject.instance().mapLayers().keys())
+
 
     def test_loadplugin(self):
         from enmapbox.enmapboxplugin import EnMAPBoxPlugin
@@ -50,10 +54,26 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
         #test algos
 
         import enmapboxgeoalgorithms.algorithms
+        exceptions = []
         for algorithm in enmapboxgeoalgorithms.algorithms.ALGORITHMS:
             self.assertIsInstance(algorithm, QgsProcessingAlgorithm)
-            algo2 = algorithm.create()
-            self.assertIsInstance(algo2, QgsProcessingAlgorithm)
+            algo2 = None
+
+            try:
+                algo2 = algorithm.create()
+            except Exception as ex:
+                exceptions.append((algorithm.name(), ex))
+
+
+        if len(exceptions) > 0:
+
+            names = '\n'.join([ex[0] for ex in exceptions])
+
+            info = ['Failed to create {} algorithm(s):\n{}\nDETAILS:'.format(len(exceptions), names)]
+            for ex in exceptions:
+                info.append('Failed Algorithm: {}\nStack trace:\n{}\n'.format(ex[0], str(ex[1])))
+            self.fail('\n'.join(info))
+
 
         from enmapbox.enmapboxplugin import EnMAPBoxPlugin
 

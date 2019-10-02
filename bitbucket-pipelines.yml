@@ -32,10 +32,11 @@ pipelines:
           - git lfs fetch
           - git lfs pull
           - git lfs checkout
+          - python make/setuprepository.py
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
           - mkdir test-results
-          - python make/setuprepository.py
+
           #- python -m nose2 discover tests "test_*.py" > test-reports/test-report.txt
 
           - python -m nose2 -s enmapboxtesting test_crosshair
@@ -48,9 +49,7 @@ pipelines:
           - python -m nose2 -s enmapboxtesting test_mapcanvas
           - python -m nose2 -s enmapboxtesting test_mimedata
           - python -m nose2 -s enmapboxtesting test_options
-          - set +e
           - python -m nose2 -s enmapboxtesting test_speclibs
-          - set -e
           - python -m nose2 -s enmapboxtesting test_spectralprofilesources
           - python -m nose2 -s enmapboxtesting test_testdata_dependency
           - python -m nose2 -s enmapboxtesting test_testing

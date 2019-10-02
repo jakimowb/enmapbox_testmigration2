@@ -33,6 +33,10 @@ from enmapbox.gui.docks import *
 
 class testDataSources(unittest.TestCase):
 
+    def setUp(self):
+        QgsProject.instance().removeMapLayers(QgsProject.instance().mapLayers().keys())
+
+
     def tearDown(self):
         QApplication.processEvents()
 
