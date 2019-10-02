@@ -186,13 +186,15 @@ class PWR_core:
         self.prg = prg_widget
         self.QGis_app = QGis_app
         res_raster = np.zeros([1, self.nrows, self.ncols])  # result raster of minimized d-values
-        d = 0.0
+        d = 0.0  # initial d-value for minimization algorithm
         for row in range(self.nrows):
             for col in range(self.ncols):
                 if self.NDVI(row=row, col=col) < self.NDVI_th:
                     res_raster[:, row, col] = self.nodat_val[1]
                     continue
-                  # initial d-value for minimization algorithm
+                if np.mean(self.in_raster[:, row, col]) == self.nodat_val[0]:
+                    res_raster[:, row, col] = self.nodat_val[1]
+                    continue
                 res = minimize_scalar(self.lambert_beer_ob_fun, d, args=[row, col], method='bounded', bounds=(0.0, 1.0))
                 res = res.x  # result in [cm] optically active water
                 res_raster[:, row, col] = res

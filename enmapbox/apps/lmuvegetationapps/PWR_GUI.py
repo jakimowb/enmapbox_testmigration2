@@ -141,7 +141,7 @@ class PWR:
 
         try:
             iPWR = PWR_core(nodat_val=self.nodat, division_factor=self.division_factor)
-            iPWR.initialize_PWR(input=self.image, output=self.out_path, lims=[930, 1060], NDWI_th=self.NDWI_th)
+            iPWR.initialize_PWR(input=self.image, output=self.out_path, lims=[930, 1060], NDVI_th=self.NDWI_th)
         except MemoryError:
             QMessageBox.critical(self.gui, 'error', "File too large to read. More RAM needed")
             self.main.prg_widget.gui.allow_cancel = True
