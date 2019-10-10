@@ -30,6 +30,11 @@ step-by-step tutorials which exemplify the software's capabilities.
 
 **This documentation is structured as follows:**
 
+.. toctree::
+   :caption: EO Symposium Cologne
+
+   eo_symposium.rst
+
 
 .. toctree::
     :maxdepth: 2
