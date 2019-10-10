@@ -1,16 +1,27 @@
 EnMAP-Box Schulung
 ##################
 
-.. todo:: Website under construction...
+.. |link_sym| raw:: html
 
-Diese Seite bietet eine kurze Übersicht betreffend der **Fachsession 4d: Schulung EnMAP-Box** im Rahmen des
-`2. Symposium zur angewandten Satellitenerdbeobachtung <https://www.dialogplattform-erdbeobachtung.de/cms>`_
-vom 12. bis 13. November 2019 in Köln.
-
-* Die Schulung findet am Mittwoch, den 13.11.19 von 11:00 - 12:30 statt.
-
-* Alle Interessierten werden gebeten sich vorher für die Schulung anzumelden, dazu reicht eine kurze formlose E-Mail
-  an enmapbox@enmap.org
+   <a href="https://www.dialogplattform-erdbeobachtung.de/cms" target="_blank">2. Symposium "Neue Perspektiven der Erdbeobachtung"</a>
 
 
-Link zum Programmpunkt: https://www.dialogplattform-erdbeobachtung.de/cms/programm#4d
+Am 13.11.2019 findet im Rahmen des |link_sym| eine Kurzschulung zur
+Arbeit mit der EnMAP-Box 3 statt. Die EnMAP-Box 3 ist ein frei-verfügbares QGIS Plugin zur Arbeit mit hyperspektralen
+EnMAP Daten und wird als Teil der Nutzungsvorbereitungen für die EnMAP-Mission entwickelt. Die Teilnehmenden erhalten
+einen Überblick über die Funktionalität des QGIS Plugins und die darin enthaltenen Applikationen. Am Beispiel einer
+Regressionsanalyse wird die Nutzer*innen-freundliche Integration von Verfahren des Maschinellen Lernens vorgestellt
+und live erprobt. Anschließend wird eine Einführung in die Arbeit mit dem ImageMath Tool der EnMAP-Box gegeben.
+
+.. admonition:: Registrierung
+
+   **Interessent*innen werden dringend um Registrierung unter** enmapbox@enmap.org **gebeten.**
+
+Die Kurzschulung ist als „Hands-on Exercise“ unter Nutzung eines eigenen Laptops mit QGIS und EnMAP-Box Plugin geplant.
+Teilnehmende werden daher gebeten, ein eigenes Laptop mitzubringen, auf dem QGIS und die EnMAP-Box
+entsprechend :ref:`dieser Anleitung <usr_installation>` installiert sind. Nach erfolgreicher Registrierung erhalten sie zudem
+Informationen zum Download der Testdaten.
+
+
+
+
