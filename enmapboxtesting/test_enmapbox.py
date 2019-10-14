@@ -123,12 +123,17 @@ class TestEnMAPBox(unittest.TestCase):
             QGIS_APP.exec_()
 
     def test_instanceWithData(self):
+        import gc
+        gc.collect()
+        mapLayers = [obj for obj in gc.get_objects() if isinstance(obj, QgsMapLayer)]
+        self.assertTrue(len(mapLayers) == 0)
+        del mapLayers
 
-
+        self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(self.EMB, EnMAPBox.instance())
         self.EMB.loadExampleData()
-
+        self.assertTrue(len(QgsProject.instance().mapLayers()) > 0)
         canvases = self.EMB.mapCanvases()
         self.assertTrue(canvases[-1] == self.EMB.activeMapCanvas())
 
@@ -137,8 +142,17 @@ class TestEnMAPBox(unittest.TestCase):
         if SHOW_GUI:
             QGIS_APP.exec_()
 
-    def test_Qgis(self):
+        # test closing the box via gui button
+        gc.collect()
 
+        self.EMB.ui.close()
+        gc.collect()
+
+        self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
+
+
+
+    def test_Qgis(self):
 
         from enmapbox import Qgis
         from enmapboxtestdata import enmap, landcover_polygons

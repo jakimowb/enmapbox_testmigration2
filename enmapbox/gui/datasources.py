@@ -389,6 +389,8 @@ class DataSourceSpectralLibrary(DataSourceSpatial):
         self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
         if not isinstance(self.mSpeclib, SpectralLibrary):
             raise Exception('Unable to read SpectraLibrary from {}'.format(self.mUri))
+
+        self.mSpeclib.setCustomProperty('ENMAPBOX_DATASOURCE', True)
         self.nProfiles = 0
         self.profileNames = []
         self.updateMetadata()
@@ -424,6 +426,7 @@ class DataSourceRaster(DataSourceSpatial):
         self.mDefaultRenderer = None
         self.mLayer = self.createUnregisteredMapLayer()
         assert isinstance(self.mLayer, QgsRasterLayer)
+        self.mLayer.setCustomProperty('ENMAPBOX_DATASOURCE',True)
 
         #self.mDataType = -1
         #self.mPxSize = QSizeF()

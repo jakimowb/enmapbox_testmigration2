@@ -315,14 +315,23 @@ class DataSourceManager(QObject):
 
 
 
-    def clear(self):
+    def clear(self, deleteMapLayers=True)->typing.List[DataSource]:
         """
         Removes all data source from DataSourceManager
         :return: [list-of-removed-DataSources]
         """
-        return self.removeSources(list(self.mSources))
 
-    def removeSources(self, dataSourceList: list = None) -> list:
+        dataSources = self.removeSources(list(self.mSources))
+        if deleteMapLayers:
+            for ds in dataSources:
+                if isinstance(ds, DataSourceRaster):
+                    #ds.mLayer.dataProvider.setInput(None)
+
+                    pass
+                    #del ds.mLayer
+        return dataSources
+
+    def removeSources(self, dataSourceList: list = None) -> typing.List[DataSource]:
         """
         Removes a list of data sources.
         :param dataSourceList: [list-of-datasources]
@@ -333,10 +342,10 @@ class DataSourceManager(QObject):
         removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
         return [r for r in removed if isinstance(r, DataSource)]
 
-    def removeSource(self, dataSource:DataSource):
+    def removeSource(self, dataSource:DataSource)->DataSource:
         """
         Removes the DataSource from the DataSourceManager
-        :param dataSource: the DataSource or datataource uri (str) to be removed
+        :param dataSource: the DataSource or its uri (str) to be removed
         :return: the removed DataSource. None if dataSource was not in the DataSourceManager
         """
         if isinstance(dataSource, str):

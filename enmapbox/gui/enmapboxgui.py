@@ -208,7 +208,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.closeEvent = self.closeEvent
 
         self.mMapLayerStore = QgsMapLayerStore()
-        MAP_LAYER_STORES.insert(0, self.mMapLayerStore)
+
 
         self.initQgisInterfaceVariables()
         if not isinstance(iface, QgisInterface):
@@ -338,6 +338,39 @@ class EnMAPBox(QgisInterface, QObject):
         return [l.layer() for l in self._hiddenQGISLayerGroup().findLayers() if isinstance(l.layer(), QgsMapLayer)]
 
 
+    def _removeHiddenLayers(self, layers):
+        if len(layers) > 0:
+            hiddenGroup = self._hiddenQGISLayerGroup()
+            for lyr in layers:
+                assert isinstance(lyr, QgsMapLayer)
+                hiddenGroup.removeLayer(lyr)
+            #print('REMOVE {} HIDDEN LAYERS'.format(len(layers)))
+            #for l in layers:
+            #    print(l)
+
+            for l in layers:
+                l.nameChanged.disconnect()
+                l.rendererChanged.disconnect()
+                pass
+                #l.disconnect()
+                #if isinstance(l, QgsRasterLayer):
+                #    l.dataProvider().setInput(None)
+                #elif isinstance(l, QgsVectorLayer):
+                #    pass
+                    #l.setDataUrl(None)
+            self.mapLayerStore().removeMapLayers(layers)
+            QgsProject.instance().removeMapLayers([l.id() for l in layers])
+
+
+
+    def _addHiddenLayers(self, layers):
+        hiddenGroup = self._hiddenQGISLayerGroup()
+        QgsProject.instance().addMapLayers(layers, False)
+        for lyr in layers:
+            assert isinstance(lyr, QgsMapLayer)
+            hiddenGroup.addLayer(lyr)
+
+
     def updateHiddenQGISLayers(self)->int:
         """
         Ensures that all Layers used in the EnMAP-Box are available and visible in the QGIS Layer Registry as well
@@ -355,23 +388,6 @@ class EnMAPBox(QgisInterface, QObject):
                     2. QgsProject.instance() (QgsProject) -> same accessors to add/remove map layers
         """
 
-        def removeHiddenLayers(layers):
-            if len(layers) > 0:
-                hiddenGroup = self._hiddenQGISLayerGroup()
-                for lyr in layers:
-                    assert isinstance(lyr, QgsMapLayer)
-                    hiddenGroup.removeLayer(lyr)
-                #print('REMOVE {} HIDDEN LAYERS'.format(len(layers)))
-                #for l in layers:
-                #    print(l)
-                QgsProject.instance().removeMapLayers([l.id() for l in layers])
-
-        def addHiddenLayers(layers):
-            hiddenGroup = self._hiddenQGISLayerGroup()
-            QgsProject.instance().addMapLayers(layers, False)
-            for lyr in layers:
-                assert isinstance(lyr, QgsMapLayer)
-                hiddenGroup.addLayer(lyr)
 
 
         # create Lookup for existing MapCanvas layers
@@ -413,7 +429,7 @@ class EnMAPBox(QgisInterface, QObject):
                     toRemove.append(qLyr)
                 else:
                     hiddenCanvasLayers.append(key)
-        removeHiddenLayers(toRemove)
+        self._removeHiddenLayers(toRemove)
 
         toAdd = []
 
@@ -439,10 +455,11 @@ class EnMAPBox(QgisInterface, QObject):
                 qLyr.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_SOURCE, None)
                 qLyr.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_MAPCANVAS, eCanvasID)
                 qLyr.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_ID, eLyr.id())
-                eLyr.nameChanged.connect(lambda *args, eLyr=eLyr, qLyr=qLyr: self.updateHiddenLayerName(eLyr, qLyr))
+                #eLyr.nameChanged.connect(lambda *args, eLyr=eLyr, qLyr=qLyr: self.updateHiddenLayerName(eLyr, qLyr))
+                eLyr.nameChanged.connect(self.updateHiddenLayerNames)
                 eLyr.rendererChanged.connect(lambda *args, eLyr=eLyr, qLyr=qLyr: self.updateHiddenLayerRenderer(eLyr, qLyr))
                 toAdd.append(qLyr)
-        addHiddenLayers(toAdd)
+        self._addHiddenLayers(toAdd)
         self.updateHiddenLayerNames()
 
     def updateHiddenLayerName(self, eLyr:QgsMapLayer, qLyr:QgsMapLayer):
@@ -1265,25 +1282,30 @@ class EnMAPBox(QgisInterface, QObject):
 
     def closeEvent(self, event):
         assert isinstance(event, QCloseEvent)
-        if True:
 
-            # de-refere the EnMAP-Box Singleton
-            EnMAPBox._instance = None
-            self.sigClosed.emit()
-            event.accept()
-        else:
-            event.ignore()
+        # de-refere the EnMAP-Box Singleton
+        EnMAPBox._instance = None
+
+
+        self.sigClosed.emit()
+
+        # remove all hidden layers
+        self.dataSourceManager.clear()
+        QApplication.processEvents()
+
+        store = self.mapLayerStore()
+        toRemove = store.mapLayers().values()
+        toRemoveIDs = [l.id() for l in toRemove]
+        store.removeMapLayers(toRemove)
+        QgsProject.instance().removeMapLayers(toRemoveIDs)
+        QApplication.processEvents()
+        EnMAPBox._instance = None
+        event.accept()
 
 
 
     def close(self):
         self.ui.close()
-
-
-        store = self.mapLayerStore()
-        store.removeMapLayers(list(store.mapLayers().values()))
-        self.dataSourceManager.clear()
-        EnMAPBox._instance = None
 
 
     """
