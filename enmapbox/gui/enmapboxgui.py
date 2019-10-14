@@ -344,20 +344,11 @@ class EnMAPBox(QgisInterface, QObject):
             for lyr in layers:
                 assert isinstance(lyr, QgsMapLayer)
                 hiddenGroup.removeLayer(lyr)
-            #print('REMOVE {} HIDDEN LAYERS'.format(len(layers)))
-            #for l in layers:
-            #    print(l)
 
             for l in layers:
                 l.nameChanged.disconnect()
                 l.rendererChanged.disconnect()
-                pass
-                #l.disconnect()
-                #if isinstance(l, QgsRasterLayer):
-                #    l.dataProvider().setInput(None)
-                #elif isinstance(l, QgsVectorLayer):
-                #    pass
-                    #l.setDataUrl(None)
+
             self.mapLayerStore().removeMapLayers(layers)
             QgsProject.instance().removeMapLayers([l.id() for l in layers])
 
@@ -1289,6 +1280,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.sigClosed.emit()
 
+
         # remove all hidden layers
         self.dataSourceManager.clear()
         QApplication.processEvents()
@@ -1299,6 +1291,10 @@ class EnMAPBox(QgisInterface, QObject):
         store.removeMapLayers(toRemove)
         QgsProject.instance().removeMapLayers(toRemoveIDs)
         QApplication.processEvents()
+
+        import gc
+        gc.collect()
+
         EnMAPBox._instance = None
         event.accept()
 
