@@ -34,9 +34,6 @@ Start a shell with admin rights and execute (:ref:`OSGeo4W shell <install-packag
 
 `Download PyCharm <https://www.jetbrains.com/pycharm/>`_ and install it to a location of choice.
 
-.. attention:: As of now (06/2019) there seems to be a `bug <https://gis.stackexchange.com/questions/317332/pycharm-2019-is-not-working-with-qgis-anymore/321429>`_
-               in PyCharm 2019 loading the PyQGIS environment, so it is advised to use PyCharm 2018 (https://www.jetbrains.com/pycharm/download/previous.html)
-
 Remember your **PyCharm installation folder** (e.g. ``C:\Program Files\JetBrains\PyCharm 2018.2.4``), we will need it later!
 
 4. System setup
