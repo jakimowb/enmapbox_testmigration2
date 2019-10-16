@@ -359,7 +359,7 @@ means spectra can be directly collected from an image. Furthermore, external lib
 Text Window |viewlist_textview|
 ~~~~~~~~~~~
 
-
+.. _processing_toolbox:
 
 4. Processing Toolbox
 =====================

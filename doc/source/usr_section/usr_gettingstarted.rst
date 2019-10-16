@@ -1,4 +1,4 @@
- .. include:: /icon_links.rst
+.. include:: /icon_links.rst
 
 .. _getting_started:
 
@@ -147,7 +147,8 @@ In this section we will use a processing algorithm from the EnMAP-Box algorithm 
 polygon dataset holding information on different landcover types into a classification raster, i.e., we are going to
 rasterize the vector dataset.
 
-* First of all, make sure the **Processing Toolbox** window is opened. If not, activate it via :menuselection:`View --> Panels --> Processing Toolbox`
+* First of all, make sure the :ref:`Processing Toolbox <processing_toolbox>` window is opened. If not,
+  activate it via :menuselection:`View --> Panels --> Processing Toolbox`
 * Open the :menuselection:`Classification from Vector` algorithm under :menuselection:`EnMAP-Box --> Create Raster`.
 * Use the following settings:
 
