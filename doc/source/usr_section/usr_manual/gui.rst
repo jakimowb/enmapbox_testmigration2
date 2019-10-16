@@ -359,6 +359,37 @@ means spectra can be directly collected from an image. Furthermore, external lib
 Text Window |viewlist_textview|
 ~~~~~~~~~~~
 
+
+Spectral Profile Sources
+========================
+
+This menu manages the connection between raster sources and spectral library windows.
+
+.. csv-table::
+   :header-rows: 1
+   :widths: auto
+
+   Button, Description
+   |plus_green|,  add a new profile source entry
+   |cross_red|, remove selected entries
+
+* In the **Source** column you can specify a source raster dataset. Double-clicking in the cell will open up a
+  dropdown menu where you can select from all loaded raster datasets.
+* **Sampling**: Here you can choose how spectra are sampled. Double-click into the cell to open the dropdown menu,
+  where you have several options available:
+
+  * SingleProfile: Extracts the spectral signature of the pixel at the selected location
+  * Sample3x3: Extracts spectral signatures of the pixel at the selected location and its adjacent pixels in a 3x3 neighborhood.
+  * Sample5x5: Extracts spectral signatures of the pixel at the selected location and its adjacent pixels in a 5x5 neighborhood.
+  * Sample3x3Mean: Extracts the mean spectral signature of the pixel at the selected location and its adjacent pixels in a 3x3 neighborhood.
+  * Sample5x5Mean: Extracts the mean spectral signature of the pixel at the selected location and its adjacent pixels in a 5x5 neighborhood.
+
+* **Destination**: Into which spectral library should the extracted spectra be imported. Double-click to open the dropdown menu.
+* **Scale**: Scale factor for on-the-fly conversion (e.g. if your raster is scaled between 0-10000 but you want to store values
+  between 0 and 1 in the spectral library)
+
+
+
 .. _processing_toolbox:
 
 4. Processing Toolbox
