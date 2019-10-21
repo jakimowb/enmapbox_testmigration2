@@ -732,6 +732,8 @@ class CanvasLink(QObject):
         srcCrs = srcCanvas.mapSettings().destinationCrs()
         srcExt = SpatialExtent.fromMapCanvas(srcCanvas)
 
+        assert isinstance(srcExt, SpatialExtent)
+
         # original center and extent
         centerSrc = SpatialPoint.fromMapCanvasCenter(srcCanvas)
         centerDst = SpatialPoint.fromMapCanvasCenter(dstCanvas)
@@ -744,7 +746,7 @@ class CanvasLink(QObject):
 
 
         assert isinstance(extentT, SpatialExtent), \
-        'Unable to transform {} from {} to {}'.format(srcExt.asWkt(), srcCrs.description(), dstCrs.description())
+        'Unable to transform {} from {} to {}'.format(srcExt.asWktCoordinates(), srcCrs.description(), dstCrs.description())
 
         centerT = SpatialPoint(srcExt.crs(), srcExt.center())
 

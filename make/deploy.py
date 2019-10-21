@@ -40,7 +40,7 @@ from enmapbox import DIR_REPO, __version__
 import git
 
 CHECK_COMMITS = False
-INCLUDE_TESTDATA = False #includes the testdata folder for none-master versions
+INCLUDE_TESTDATA = False  #includes the testdata folder for none-master versions
 
 ########## End of config section
 REPO = git.Repo(DIR_REPO)
@@ -50,6 +50,10 @@ PLUGIN_NAME = CFG.get('plugin', 'name')
 
 
 currentBranch = REPO.active_branch.name
+
+if currentBranch == 'master':
+    INCLUDE_TESTDATA = False
+
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')
 buildID = '{}.{}.{}'.format(re.search(r'(\.?[^.]*){2}', __version__).group()
                             , timestamp,

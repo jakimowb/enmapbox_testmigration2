@@ -446,9 +446,9 @@ class iREIP:
 
             try:
                 self.iiREIP.in_raster = self.core.in_raster[self.core.valid_bands, :, :]
+                del self.core.in_raster
                 if self.division_factor != 1.0:
                     self.iiREIP.in_raster = np.divide(self.iiREIP.in_raster, self.division_factor)
-                del self.core.in_raster
             except:
                 self.iiREIP.in_raster = self.iiREIP.read_image_window(image=self.image)
                 if self.division_factor != 1.0:
@@ -622,7 +622,7 @@ class iREIP_core:
     def write_deriv_image(self, deriv, mode):  #
 
         if mode == "first":
-            band_string_nr = ['band ' + str(x+1) for x, i in enumerate(self.valid_bands[:-1])]
+            band_string_nr = ['band ' + str(x+1) for x, i in enumerate(self.valid_bands)]
             deriv_output = self.output.split(".")
 
             for row in range(deriv.shape[1]):
@@ -640,12 +640,12 @@ class iREIP_core:
                 band.setDescription(band_string_nr[i])
                 band.setNoDataValue(self.nodat[1])
 
-            output.dataset().setMetadataItem(key='wavelength', value=self.valid_wl[:-1],
+            output.dataset().setMetadataItem(key='wavelength', value=self.valid_wl,
                                              domain='ENVI')
             output.dataset().setMetadataItem(key='wavelength units', value='Nanometers', domain='ENVI')
 
         if mode == "second":
-            band_string_nr = ['band ' + str(x+1) for x, i in enumerate(self.valid_bands[:-2])]
+            band_string_nr = ['band ' + str(x+1) for x, i in enumerate(self.valid_bands)]
             deriv_output = self.output.split(".")
             deriv_output = deriv_output[0] + "_2nd_deriv" + "." + deriv_output[1]
 
@@ -663,7 +663,7 @@ class iREIP_core:
                 band.setDescription(band_string_nr[i])
                 band.setNoDataValue(self.nodat[1])
 
-            output.dataset().setMetadataItem(key='wavelength', value=self.valid_wl[:-2], domain='ENVI')
+            output.dataset().setMetadataItem(key='wavelength', value=self.valid_wl, domain='ENVI')
             output.dataset().setMetadataItem(key='wavelength units', value='Nanometers', domain='ENVI')
 
     def find_closest(self, lambd):
@@ -708,8 +708,8 @@ class iREIP_core:
             smooth_array = savgol_filter(in_array[:], window_length=self.neighbors, polyorder=2)
         else:
             smooth_array = in_array[:]
-        first_deriv = np.diff(np.concatenate((smooth_array, [smooth_array[-1]])))
-        second_deriv = np.diff(np.concatenate((first_deriv, [first_deriv[-1]])))
+        first_deriv = np.gradient(smooth_array)
+        second_deriv = np.gradient(first_deriv)
         window = second_deriv[self.valid_bands]
         try:
             reip_index_1 = int(np.where(np.signbit(window[:-1]) != np.signbit(window[1:]))[0])
@@ -739,15 +739,17 @@ class iREIP_core:
         reip_pos = np.empty(shape=(1, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
 
         if self.useSavgolay == 1:
-            smooth_matrix = savgol_filter(in_matrix,
-                                          window_length=self.neighbors, polyorder=2, axis=0)
+            try:
+                smooth_matrix = savgol_filter(in_matrix,
+                                              window_length=self.neighbors, polyorder=2, axis=0)
+            except:
+                raise ValueError("Viewed range might be too small "
+                                 "for considered Savitzky-Golay-Filter neighbors.")
         else:
             smooth_matrix = in_matrix
 
-        d1 = np.diff(smooth_matrix, axis=0)
-        d2 = np.diff(d1, axis=0)
-
-        d2_valid_wl = self.valid_wl[:-2]
+        d1 = np.gradient(smooth_matrix, axis=0)
+        d2 = np.gradient(d1, axis=0)
 
         for row in range(in_matrix.shape[1]):
             for col in range(in_matrix.shape[2]):
@@ -756,22 +758,32 @@ class iREIP_core:
                     reip_index_1 = np.where(np.signbit(d2[:-1, row, col]) != np.signbit(d2[1:, row, col]))[0]
                     reip_index_2 = \
                         np.where(np.signbit(d2[:-1, row, col]) != np.signbit(d2[1:, row, col]))[0] + 1
-                    if len(reip_index_1) != 1 or len(reip_index_2) != 1:
-                        reip_pos[:, row, col] = self.nodat[1]
+                    if len(reip_index_1) > 1 or len(reip_index_2) > 1:
+                        reip_index_1 = int(np.min(reip_index_1))
+                        reip_index_2 = int(np.min(reip_index_2))
+                        # reip_pos[:, row, col] = self.nodat[1]
                     else:
-                        #  resolve accuracy of IP-position
-                        reip_index_1 = int(reip_index_1)
-                        reip_index_2 = int(reip_index_2)
-                        val_1 = d2[reip_index_1, row, col]
-                        val_2 = d2[reip_index_2, row, col]
-                        reip_pos_1 = d2_valid_wl[reip_index_1]
-                        reip_pos_2 = d2_valid_wl[reip_index_2]
-                        steps = (reip_pos_2 - reip_pos_1) ** 2 + 100
-                        pos_wl, tracker = list(zip(*(list(zip(*(
-                            np.linspace(reip_pos_1, reip_pos_2, steps),
-                            np.linspace(val_1, val_2, steps)))))))
-                        reip_pos_index = (np.abs(list(tracker))).argmin()
-                        reip_pos[:, row, col] = pos_wl[reip_pos_index]
+                        try:
+                            reip_index_1 = int(reip_index_1)
+                            reip_index_2 = int(reip_index_2)
+                        except:
+                            reip_pos[:, row, col] = self.nodat[1]
+                            continue
+
+                    #  resolve accuracy of IP-position
+                    val_1 = d2[reip_index_1, row, col]
+                    val_2 = d2[reip_index_2, row, col]
+                    if val_2 > val_1:
+                        reip_pos[:, row, col] = self.nodat[1]
+                        continue
+                    reip_pos_1 = self.valid_wl[reip_index_1]
+                    reip_pos_2 = self.valid_wl[reip_index_2]
+                    steps = (reip_pos_2 - reip_pos_1) ** 2 + 100
+                    pos_wl, tracker = list(zip(*(list(zip(*(
+                        np.linspace(reip_pos_1, reip_pos_2, steps),
+                        np.linspace(val_1, val_2, steps)))))))
+                    reip_pos_index = (np.abs(list(tracker))).argmin()
+                    reip_pos[:, row, col] = pos_wl[reip_pos_index]
                 else:
                     reip_pos[:, row, col] = self.nodat[1]
                 self.prgbar_process(pixel_no=row * self.ncols + col)

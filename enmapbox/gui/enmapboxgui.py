@@ -204,11 +204,9 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui = EnMAPBoxUI()
 
-
         self.ui.closeEvent = self.closeEvent
 
         self.mMapLayerStore = QgsMapLayerStore()
-
 
         self.initQgisInterfaceVariables()
         if not isinstance(iface, QgisInterface):

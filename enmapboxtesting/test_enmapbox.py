@@ -19,14 +19,16 @@
 
 
 import unittest, os
+from qgis.core import *
+from qgis.gui import *
+from qgis.core import QgsApplication
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication(loadProcessingFramework=False)
 
-SHOW_GUI = False and os.environ.get('CI') is None
+SHOW_GUI = True and os.environ.get('CI') is None
 
 from enmapbox import initAll
 initAll()
-
 from enmapbox.gui.enmapboxgui import EnMAPBox, EnMAPBoxSplashScreen
 from enmapbox.gui.docks import *
 from enmapbox.gui.mapcanvas import *
@@ -109,8 +111,6 @@ class TestEnMAPBox(unittest.TestCase):
         QApplication.processEvents()
 
     def test_instance(self):
-
-
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(self.EMB, EnMAPBox.instance())
         log = QgsApplication.instance().messageLog()
