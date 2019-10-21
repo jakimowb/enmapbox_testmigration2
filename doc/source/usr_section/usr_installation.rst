@@ -109,6 +109,8 @@ Windows
 
    .. image:: ../img/shell_install_output.png
 
+   If the package installation was successful, you can close the shell. The required packages are installed now and
+   you can continue to start/install the EnMAP-Box.
 
    |
 

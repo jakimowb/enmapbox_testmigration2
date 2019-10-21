@@ -326,6 +326,12 @@ means spectra can be directly collected from an image. Furthermore, external lib
 * To add/save a selected spectrum to the library, click the |plus_green| button. Mind the new table entry on the right of the window.
   If spectra should be directly added to the library while a pixel is selected/clicked, enable the |profile_add_auto| button.
 
+.. tip::
+
+   Have a look at the :ref:`Spectral Profile Sources <spectral_profile_sources>` window for more advanced settings for
+   collecting spectra.
+
+
 **Managing spectra:**
 
 * You can add additional fields to the table, for example in order to add information to every spectrum
@@ -359,6 +365,7 @@ means spectra can be directly collected from an image. Furthermore, external lib
 Text Window |viewlist_textview|
 ~~~~~~~~~~~
 
+.. _spectral_profile_sources:
 
 Spectral Profile Sources
 ========================
