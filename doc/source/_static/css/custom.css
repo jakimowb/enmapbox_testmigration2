@@ -14,13 +14,67 @@
 }
 */
 
+/* HyperEDU Style */
+@import url('https://fonts.googleapis.com/css?family=Oswald&display=swap');
+
+@import url('https://fonts.googleapis.com/css?family=Open+Sans&display=swap');
+
+body {
+  font-family: 'Open Sans', sans-serif;
+}
+
+footer {
+  font-family: 'Oswald', sans-serif;
+}
+
+h2, h3, h4, h5, h6 {
+  font-family: 'Oswald', sans-serif;
+  color: #05989F;
+}
+
+h1 {
+  font-family: 'Oswald', sans-serif;
+  color: #1F497D;
+}
+
+p.caption {
+  font-family: 'Oswald', sans-serif;
+/*  letter-spacing: 4px; */
+}
+
+.wy-menu-vertical header {
+  color: #1F497D;
+}
+
+.wy-menu-vertical a {
+  font-family: 'Open Sans', sans-serif;
+  color: #696969;
+}
+
+.wy-side-nav-search {
+  background-color: #C96E36;
+  background-image: url("../img/logo_background.png");
+  background-size: cover;
+  background-opacity: 0.5
+}
+
+.wy-side-nav-search > div.version {
+  color: rgba(255,255,255,0.7); /*increase version number opacity*/
+}
+
+.wy-nav-side {
+  background: #D9E1DD;
+}
+
+
+/* inline markups*/
 .menuselection {
   border:1px dashed #7fbbe366;
   background:#f1f9ff;
   font-size:95%;
   font-weight:700;
   border-radius:1px;
-  padding:2.4px 5px;
+  padding:0px 3px;
   margin:auto 2px
 }
 
@@ -30,7 +84,7 @@
   font-size:95%;
   font-weight:700;
   border-radius:1px;
-  padding:2.4px 5px;
+  padding:0px 3px;
   margin:auto 2px
 }
 
