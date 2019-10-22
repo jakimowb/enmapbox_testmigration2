@@ -57,7 +57,7 @@ p.caption {
 
 .wy-side-nav-search {
   background-color: #C96E36;
-  background-image: url("../img/logo_background.png");
+/*  background-image: url("../img/logo_background.png");*/
   background-size: cover;
   background-opacity: 0.5
 }
