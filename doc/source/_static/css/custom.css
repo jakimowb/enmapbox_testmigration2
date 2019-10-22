@@ -42,6 +42,10 @@ p.caption {
 /*  letter-spacing: 4px; */
 }
 
+.rst-content .toctree-wrapper p.caption {
+  font-family: 'Oswald', sans-serif;
+}
+
 .wy-menu-vertical header {
   color: #1F497D;
 }
