@@ -24,6 +24,10 @@ step-by-step tutorials which exemplify the software's capabilities.
 .. figure:: img/screenshot_main2.png
    :width: 100%
 
+**Image credits:**
+
+- Logo background (left to right): ESA adapted - Amsterdam, ESA adapted - Uruguay River Wetlands, EUSI/ESA adapted - Algerian Sands, ESA adapted - Kenya,
+
 
 |
 |
