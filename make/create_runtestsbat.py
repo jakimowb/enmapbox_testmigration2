@@ -10,17 +10,24 @@ PATH_RUNTESTS_SH = DIR_REPO / 'runtests.sh'
 
 jUnitXML = r'nose2-junit.xml'
 
-PREFACE = \
+PREFACE_BAT = \
 """
 :: use this script to run unit tests locally
 ::
 set CI=True
-python runfirst.py
+python make/setuprepository.py
+"""
+
+PREFACE_SH = \
+"""
+# use this script to run unit tests locally
+#
+python make/setuprepository.py
 """
 
 dirOut = 'test-reports/today'
-linesBat = [PREFACE]
-linesSh = [PREFACE]
+linesBat = [PREFACE_BAT]
+linesSh = [PREFACE_SH]
 linesBat.append('mkdir {}'.format(dirOut.replace('/', '\\')))
 linesSh.append('mkdir {}'.format(dirOut))
 

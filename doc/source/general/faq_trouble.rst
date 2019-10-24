@@ -11,6 +11,7 @@
 FAQ & Troubleshooting
 =====================
 
+
 Bug report & feedback
 =====================
 
@@ -48,114 +49,120 @@ How can I solve the following error...
 
 .. _faq_no_pip:
 
-... **Installation: no module named pip**
+* **Installation: no module named pip**
 
-In case you run into problems during installation because pip is not available in your python environment
-(error message ``C:/.../python3.exe: No module named pip`` or similar), follow these steps (Windows):
+  In case you run into problems during installation because pip is not available in your python environment
+  (error message ``C:/.../python3.exe: No module named pip`` or similar), follow these steps (Windows):
 
-Start the OSGeo4W installer from the OSGeo4W Shell by calling
+  Start the OSGeo4W installer from the OSGeo4W Shell by calling
 
-.. code-block:: batch
+  .. code-block:: batch
 
-   setup
+     setup
 
-.. image:: ../img/shell_setup.png
+  .. image:: ../img/shell_setup.png
 
-which will open the OSGeo4W Setup dialog.
+  which will open the OSGeo4W Setup dialog.
 
-Now navigate through the first pages of the dialog, by selecting the following settings:
+  Now navigate through the first pages of the dialog, by selecting the following settings:
 
-* Advanced Installation :guilabel:`Next`
-* Installation from Internet :guilabel:`Next`
-* default OSGeo4W root directory :guilabel:`Next`
-* local temp directory :guilabel:`Next`
-* direct connection :guilabel:`Next`
-* Select downloadsite ``http://download.osgeo.ogr`` :guilabel:`Next`
+  * Advanced Installation :guilabel:`Next`
+  * Installation from Internet :guilabel:`Next`
+  * default OSGeo4W root directory :guilabel:`Next`
+  * local temp directory :guilabel:`Next`
+  * direct connection :guilabel:`Next`
+  * Select downloadsite ``http://download.osgeo.ogr`` :guilabel:`Next`
 
-Then use the textbox to filter, select and install the following packages (see video below for help):
+  Then use the textbox to filter, select and install the following packages (see video below for help):
 
-* python3-pip
-* python3-setuptools
+  * python3-pip
+  * python3-setuptools
 
 
-Click on the |osgeoinstaller| symbol once, which should usually change the *Skip* setting to installing the most recent
-version. Only **AFTER** having selected both packages, click :guilabel:`Next`.
+  Click on the |osgeoinstaller| symbol once, which should usually change the *Skip* setting to installing the most recent
+  version. Only **AFTER** having selected both packages, click :guilabel:`Next`.
 
-.. raw:: html
+  .. raw:: html
 
-   <div><video width="90%" controls muted><source src="../_static/osgeo_install_short.webm" type="video/webm">Your browser does not support HTML5 video.</video>
-   <p><i>Demonstration of package selection in the Setup</i></p></div>
+     <div><video width="90%" controls muted><source src="../_static/osgeo_install_short.webm" type="video/webm">Your browser does not support HTML5 video.</video>
+     <p><i>Demonstration of package selection in the Setup</i></p></div>
 
-Click :guilabel:`Finish` when the installation is done. **Now repeat the steps 2.- 4. again**.
+  Click :guilabel:`Finish` when the installation is done. **Now repeat the steps 2.- 4. again**.
 
 ....
 
-|
 
 .. _faq_requirements:
 
-... **Python package installation with requirements.txt does not work**
+* **Python package installation with requirements.txt does not work**
 
-Usually, all dependencies can be installed with one line:
+  Usually, all dependencies can be installed with one line:
 
-   .. code-block:: batch
+     .. code-block:: batch
 
-      python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
+        python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
-If the method above did not work for some reason, try installing the packages one by one:
+  If the method above did not work for some reason, try installing the packages one by one:
 
-    .. code-block:: bash
+      .. code-block:: bash
 
-        python3 -m pip install numpy
-        python3 -m pip install scipy
-        python3 -m pip install scikit-learn
-        python3 -m pip install matplotlib
+          python3 -m pip install numpy
+          python3 -m pip install scipy
+          python3 -m pip install scikit-learn
+          python3 -m pip install matplotlib
 
-   *and optionally*:
+     *and optionally*:
 
-    .. code-block:: batch
+      .. code-block:: batch
 
-        python3 -m pip install astropy
-
-....
-
-|
-
-... **Error loading the plugin**
-
-    In case of missing requirements you should see an error message like this
-
-    .. image:: ../img/missing_package_warning.png
-
-    In that case please make sure you :ref:`installed all missing packages <install-python-packages>`,
-    in this example ``pyqtgraph`` and ``sklearn`` are missing.
+          python3 -m pip install astropy
 
 ....
 
-|
 
-... **Installation of Astropy fails**
+* **Linux: Image Cube tool missing qtopengl**
 
-    In some cases using an older version does the trick, using pip you can install older versions using the ``==versionnumber`` synthax. ``--force-reinstall``
-    is used here to ensure clean installation.
+  It might be necessary to install the Python bindings for QtOpenGL in order to start the Image Cube tool.
 
-    .. code-block:: batch
+  .. code-block:: bash
 
-       python3 -m pip install astropy==3.0.3 --force-reinstall
+     sudo apt-get install python3-pyqt5.qtopengl
 
-....
-
-|
-
-... **Wrong value for parameter MSYS**
-
-    This error sometimes occurs when activating the EnMAP-Box AlgorithmProvider in Windows. Please install
-    the *msys (command line utilities)* package with the OSGeo4W package installer.
 
 ....
 
-|
+* **Error loading the plugin**
 
-... **This plugin is broken: 'module' object has not attribute 'GRIORA_NearestNeighbor'**
+  In case of missing requirements you should see an error message like this
 
-    Your GDAL version seems to be outdated. update it to a version > 2.0
+  .. image:: ../img/missing_package_warning.png
+
+  In that case please make sure you :ref:`installed all missing packages <install-python-packages>`,
+  in this example ``pyqtgraph`` and ``sklearn`` are missing.
+
+....
+
+
+* **Installation of Astropy fails**
+
+  In some cases using an older version does the trick, using pip you can install older versions using the ``==versionnumber`` synthax. ``--force-reinstall``
+  is used here to ensure clean installation.
+
+  .. code-block:: batch
+
+     python3 -m pip install astropy==3.0.3 --force-reinstall
+
+....
+
+
+* **Wrong value for parameter MSYS**
+
+  This error sometimes occurs when activating the EnMAP-Box AlgorithmProvider in Windows. Please install
+  the *msys (command line utilities)* package with the OSGeo4W package installer.
+
+....
+
+
+* **This plugin is broken: 'module' object has not attribute 'GRIORA_NearestNeighbor'**
+
+  Your GDAL version seems to be outdated. update it to a version > 2.0

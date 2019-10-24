@@ -33,6 +33,7 @@ class ImageCubeApplication(EnMAPBoxApplication):
     def openglAvailable(self) -> bool:
         try:
             import OpenGL
+            import PyQt5.QtOpenGL
             self.mErrorMessage = None
             return True
         except Exception as ex:
@@ -58,7 +59,7 @@ class ImageCubeApplication(EnMAPBoxApplication):
             self.mImageCubeWidget.show()
         else:
             text = ['Unable to start '+ NAME]
-            text.append('OpenGL not available')
+            text.append('OpenGL / PyQt5.QtOpenGL not available')
             if isinstance(self.mErrorMessage, Exception):
                 text.append(str(self.mErrorMessage))
             text = '\n'.join(text)

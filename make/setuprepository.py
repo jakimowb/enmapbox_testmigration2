@@ -25,14 +25,14 @@ from make.compileresourcefiles import compileResourceFiles, compileQGISResourceF
 compileResourceFiles()
 
 # 2. create the qgisresource folder
-if isinstance(DIR_QGIS_REPO, str):
+if isinstance(DIR_QGIS_REPO, str) and os.path.isdir(DIR_QGIS_REPO):
     pathImages = os.path.join(DIR_QGIS_REPO, *['images', 'images.qrc'])
     if not os.path.isfile(pathImages):
         print('Wrong DIR_QGIS_REPO. Unable to find QGIS images.qrc in {}'.format(DIR_QGIS_REPO), file=sys.stderr)
     else:
         compileQGISResourceFiles(DIR_QGIS_REPO)
 else:
-    print('DIR_QGIS_REPO undefined. Some widgets might appear without icons', file=sys.stderr)
+    print('DIR_QGIS_REPO undefined. Some widgets might appear without icons')
 
 # 3. install the EnMAP-Box test data
 

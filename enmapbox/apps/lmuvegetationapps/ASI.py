@@ -838,7 +838,6 @@ class ASI_core:
                             self.valid_wl[i] for i in x_max if 850 < self.valid_wl[i] < 950],
                             default=[])
                         x_seq = np.append(x_max, len(window))
-
                         if self.valid_wl[x_seq[0]] > 650:
                             force_p = int(self.find_closest_value(554, self.valid_wl))
                             c_band = self.valid_wl.index(force_p)
