@@ -19,7 +19,7 @@ matplotlib>=3.0
 
 ## optional requirements (uncomment to install)
 #astropy
-
+pyopengl # required by  ImageCube app
 
 ###### Refers to other requirements files (e.g. for hub-datacube?) ######
 #-r otherfolder/other-requirements.txt
