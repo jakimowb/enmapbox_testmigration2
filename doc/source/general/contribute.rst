@@ -11,18 +11,22 @@ The project is hosted on https://bitbucket.org/hu-geomatics/enmap-box
 
 There are multiple ways how you can contribute to the EnMAP-Box.
 
-Submitting a bug report or a feature request
-============================================
+Submit a bug report or feature request
+======================================
 
 We use the Bitbucket issue tracker to track bugs and feature requests. Feel free to open an new issue if you have found
 a bug or wish to see a feature being implemented.
 
 https://bitbucket.org/hu-geomatics/enmap-box/issues
 
+Issue Tracker Tags
+------------------
+
+
 Provide source code
 ===================
 
-If your are not an  EnMAP-Box core developer, the preferred way to contribute code is to:
+If your are not an EnMAP-Box core developer, the preferred way to contribute code is to:
 
 1. Create a fork on Bitbucket.
 2. Clone the forked repository your local system.
@@ -32,6 +36,7 @@ If your are not an  EnMAP-Box core developer, the preferred way to contribute co
 6. Create a pull request from the forked repository (source) back to the original (destination).
 
 
+.. _contribute_fork
 
 1. Create a fork on Bitbucket
 .............................
@@ -43,6 +48,8 @@ Fork the EnMAP-Box repository https://bitbucket.org/hu-geomatics/enmap-box , e.g
 https://bitbucket.org/<my_account>/enmap-box_fork
 
 See https://confluence.atlassian.com/bitbucket/forking-a-repository-221449527.html for details
+
+.. _contribute_clone
 
 2. Clone the forked EnMAP-Box repository
 ........................................
@@ -66,6 +73,8 @@ Add the ``upstream`` remote repository
     $ git pull upstream master
 
 
+.. _contribute_modify
+
 3. Modify the local repository
 ..............................
 
@@ -74,6 +83,7 @@ Now you can start your own feature branch 'my_modifications'::
     $ git checkout -b my_modifications
 
 
+.. _contribute_commit
 
 4. Commit your changes
 ......................
@@ -86,6 +96,8 @@ Save your changes by commiting them to your local repository::
 Please use signed commits to make your individual contribution visible.
 Even better, use GnuPG-signed commits (-S)
 
+.. _contribute_push
+
 5. Push changes back to your fork
 .................................
 
@@ -96,17 +108,27 @@ The pull request informs us on the changes you like to bring into the EnMAP-Box.
 
 
 
-6. Creat a pull request
+.. _contribute_pull_request
+
+6. Create a pull request
 .......................
 
 Open the Bitbucket webpage of your fork and create a pull request.
 The pull request will inform us on the changed you made.
 
 
+
+
+
+
 Tests and Continuous Integration
 ================================
 
 Please support unit tests that test if your source code contribution works right.
+
+Licence Issues
+==============
+
 
 Documentation
 =============
@@ -115,7 +137,7 @@ The EnMAP-Box documentation is based on Sphinx and and hosted at https://enmap-b
 The reStructured text source files of the documentation are located in `doc\source` folder.
 
 Building the documentation
--------------------------
+--------------------------
 
 To build and text the documentation on your local system, navigate into the `doc` folder and run the make file::
 
@@ -124,4 +146,43 @@ To build and text the documentation on your local system, navigate into the `doc
 
 This will start Sphinx and create the HTML documentation into the `doc\build`.
 Open `doc/build/html/index.html` to visualize it in your web browser.
+
+Licensing
+=========
+
+The software produced for the EnMAP-Box is licensed according to the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License (SPDX short identifier: GPL-3.0), or (if desired) any later version.
+See either https://www.gnu.org/licenses/gpl-3.0.en.html or https://opensource.org/licenses/GPL-3.0 for further details of the license.
+
+A copy of this license is part of the EnMAP-Box repository https://bitbucket.org/hu-geomatics/enmap-box/src/master/LICENSE.md?fileviewer=file-view-default and delivered with each release of an EnMAP-Box plugin.
+
+Applying License Terms
+----------------------
+Each source code file of a contribution to the central repository should include the following notice to the license terms::
+
+    """
+    ***************************************************************************
+        <file name> - <short description>
+        -----------------------------------------------------------------------
+        begin                : <month and year of creation>
+        copyright            : (C) <year> <creator>
+        email                : <main address>
+
+    ***************************************************************************
+        This program is free software; you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation; either version 3 of the License, or
+        (at your option) any later version.
+                                                                                                                                                     *
+        This program is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+
+        You should have received a copy of the GNU General Public License
+        along with this software. If not, see <http://www.gnu.org/licenses/>.
+    ***************************************************************************
+    """
+
+
 
