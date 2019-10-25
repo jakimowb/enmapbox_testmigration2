@@ -1,6 +1,5 @@
 .. _contribute:
 
-
 How to contribute
 #################
 
@@ -17,14 +16,39 @@ Submit a bug report or feature request
 We use the Bitbucket issue tracker to track bugs and feature requests. Feel free to open an new issue if you have found
 a bug or wish to see a feature being implemented.
 
-https://bitbucket.org/hu-geomatics/enmap-box/issues
+In case you experience issues with the EnMAP-Box, do not hesitate to submit a
+ticket to our
+`Issue Tracker <https://bitbucket.org/hu-geomatics/enmap-box/issues>`_.
 
-Issue Tracker Tags
-------------------
+You are also welcome to post feature requests or pull requests.
+
+It is recommended to check that your issue complies with the
+following rules before submitting:
+
+*  Verify that your issue is not being currently addressed by other
+   `issues <https://bitbucket.org/hu-geomatics/enmap-box/issues?q=>`_
+   or `pull requests <https://bitbucket.org/hu-geomatics/enmap-box/pull-requests?>`_.
+
+*  If you are submitting a bug report, please:
+
+    * Report a short description how to reproduce it
+
+    * If an exception is raised, please **provide the full traceback**.
+
+    * If necessary, provide a link to the data that causes the bug
+
+    * If not feasible to include a reproducible snippet, please be specific about
+      what part of the EnMAP-Box (functions, widget) are involved and the shape of the data
+
+    * Include your operatin system type and version number of QGIS, Qt and the EnMAP-Box
+
+    *  Please ensure all **code snippets and error messages are formatted in
+        appropriate code blocks**.
 
 
-Provide source code
-===================
+
+Provide new source code
+=======================
 
 If your are not an EnMAP-Box core developer, the preferred way to contribute code is to:
 
@@ -118,16 +142,10 @@ The pull request will inform us on the changed you made.
 
 
 
-
-
-
 Tests and Continuous Integration
 ================================
 
 Please support unit tests that test if your source code contribution works right.
-
-Licence Issues
-==============
 
 
 Documentation
