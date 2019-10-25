@@ -56,5 +56,9 @@ The preferred way to contribute code is to fork the main EnMAP-Box repository, a
     $ git add modified_files
     $ git commit -a -m 'added x, modified y and fixed z' -s
 
+   .. note::
+        Please use signed commits only. Even better, use GnuPG-signed commits (-S)
 
+7. Push your changes to your forked repository
 
+    $ git push
