@@ -166,3 +166,17 @@ How can I solve the following error...
 * **This plugin is broken: 'module' object has not attribute 'GRIORA_NearestNeighbor'**
 
   Your GDAL version seems to be outdated. update it to a version > 2.0
+
+....
+
+* **Exception: Unable to find full path for "dockpanel.ui". Make its directory known to UI_DIRECTORIES**
+
+    It's likely that an update of the EnMAP-Box plugin failed to remove a previous version properly.
+    The following workaround might help:
+
+    1. Navigate into the active QGIS profile folder. It can be opened via Settings >  User Profiles > Open Active Profile Folder
+    2. Close QGIS. This is necessary to avoid any file handles on files or folders of the EnMAP-Box plugin.
+    3. Delete the EnMAP-Box plugin folder manually, e.g. `default/python/plugins/enmapboxplugin` if the active QGIS profile is 'default'.
+    4. Restart QGIS and install the most-recent EnMAP-Box version
+
+    This description was taken from https://bitbucket.org/hu-geomatics/enmap-box/issues/304/exception-unable-to-find-full-path-for
