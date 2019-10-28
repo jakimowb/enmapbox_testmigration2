@@ -2,6 +2,8 @@
 
 *Last Update: 2019-02-18*
 
+.. _dev_installation_detailed:
+
 Installation (Detailed)
 #######################
 
