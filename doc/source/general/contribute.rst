@@ -74,30 +74,29 @@ If your are not an EnMAP-Box core developer, the preferred way to contribute you
 1. Create a fork on Bitbucket
 .............................
 
-Creating a fork means to clone the EnMAP-Box repository into your own user space. This allows you to create your own
-feature branches, modify etc.
+Forking the EnMAP-box repository allows you to modify the EnMAP-Box code as you like and backup your contributions on a separated
+Bitbucket repository
 
-Fork the EnMAP-Box repository https://bitbucket.org/hu-geomatics/enmap-box , e.g. to
-https://bitbucket.org/<my_account>/enmap-box_fork
+Please read https://confluence.atlassian.com/bitbucket/forking-a-repository-221449527.html for details how you can create your own fork
+of the EnMAP-Box repository.
 
-See https://confluence.atlassian.com/bitbucket/forking-a-repository-221449527.html for details
 
 .. _contribute_clone:
 
 2. Clone the forked EnMAP-Box repository
 ........................................
 
-Now clone your fork to the your local disk, install the python requirements requirement and run the initial setup::
+Clone the forked EnMAP-Box repository *myfork* to your local disk::
 
-    $ git clone git@bitbucket.com/enmapbox.git
+    $ git clone git@bitbucket.com/myusername/myfork.git
     $ cd enmapbox
-    $ python3 -m pip install -r requirements_develop.txt
 
-For details on the EnMAP-Box repository setup please read [tbd]
+Now install python requirements and run the initial setup for the EnMAP-Box repository, as described in :ref:`dev_installation_detailed`
 
-Add the ``upstream`` remote repository
+Add the EnMAP-Box repository as *upstream* repository::
 
     $ git remote add upstream https://bitbucket.org/hu-geomatics/enmap-box
+
 
 .. note::
     From now on, you can synchronize the master branch of your forked repository with the EnMAP-Box repository by::
@@ -121,21 +120,20 @@ Now you can start your own feature branch 'my_modifications'::
 4. Commit your changes
 ......................
 
-Save your changes by commiting them to your local repository::
+Save your changes by committing them to your local repository::
 
     $ git add modified_files
     $ git commit -a -m 'added x, modified y and fixed z' -s
 
-Please use signed commits to make your individual contribution visible.
-Even better, use GnuPG-signed commits (-S)
+Please use signed commits to label your individual contribution visible.
+Even better, use GnuPG-signed commits (-S).
 
 .. _contribute_push:
 
 5. Push changes back to your fork
 .................................
 
-The pull request informs us on the changes you like to bring into the EnMAP-Box.
-
+The pull request informs us on the changes you like to bring into the EnMAP-Box::
 
     $ git push
 
@@ -174,19 +172,17 @@ Before you create a pull request, please check the following:
 Documentation
 =============
 
-The EnMAP-Box documentation is based on Sphinx and and hosted at https://enmap-box.readthedocs.io
-The reStructured text source files of the documentation are located in `doc\source` folder.
+The EnMAP-Box documentation is based on `Sphinx-build reStructured text <http://www.sphinx-doc.org/en/master/>`_ and hosted at https://enmap-box.readthedocs.io .
+The *.rst files are located in the repositories :code:`doc/source` folder.
 
-Building the documentation
---------------------------
-
-To build and text the documentation on your local system, navigate into the `doc` folder and run the make file::
+To build and text the documentation on your local system, navigate into the :code:`doc` folder and run the make file::
 
     $ cd doc
     $ make html
 
-This will start Sphinx and create the HTML documentation into the `doc\build`.
-Open `doc/build/html/index.html` to visualize it in your web browser.
+This will start Sphinx and create the HTML documentation into folder :code:`doc/build`.
+Open :code:`doc/build/html/index.html` to visualize it in your web browser.
+
 
 Licensing
 =========
@@ -195,14 +191,13 @@ The software produced for the EnMAP-Box is licensed according to the terms of th
 the Free Software Foundation, either version 3 of the License (SPDX short identifier: GPL-3.0), or (if desired) any later version.
 See either https://www.gnu.org/licenses/gpl-3.0.en.html or https://opensource.org/licenses/GPL-3.0 for further details of the license.
 
-A copy of this license is part of the EnMAP-Box repository https://bitbucket.org/hu-geomatics/enmap-box/src/master/LICENSE.md?fileviewer=file-view-default
-and delivered with each release of an EnMAP-Box plugin.
+A copy of this license is part of the EnMAP-Box repository (`LICENSE.txt <https://bitbucket.org/hu-geomatics/enmap-box/src/master/LICENSE.md>`_) and delivered with each release of an EnMAP-Box plugin.
 
 .. _contribute_apply_licence_terms:
 
 Applying License Terms
 ----------------------
-Each source code file of a contribution to the central repository should include the following notice to the license terms::
+Each source code contribution to the central repository should include the license terms at the beginning of the file::
 
     """
     ***************************************************************************
@@ -228,9 +223,10 @@ Each source code file of a contribution to the central repository should include
     ***************************************************************************
     """
 
+An example is given here: `enmapbox/__init__.py <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/enmapbox/__init__.py>`_
 
-
-
+.. note::
+    Todo: add PyCharm code template
 
 
 .. _contribute_CLA:
@@ -260,7 +256,6 @@ the contact details, rather than an email address provided by an employer.
 Corporate Contributor License Agreement (CCLA)
 ..............................................
 
-
 For a corporation that has assigned employees to work on the EnMap-Box, a CCLA is available for contributing
 intellectual property via the corporation, that may have been assigned as part of an employment agreement.
 
@@ -282,7 +277,7 @@ ccla.pdf and ccla.pdf.asc for corporate agreements. Zip files, other archives, o
 The files must be attached to the mail.
 
 When submitting by email, please fill the form with a pdf viewer, then print, sign, scan all pages into a single
-pdf file, and attach the pdf file to an email to cla@enmap.org. If possible, send the attachment from the email address
+pdf file, and attach the pdf file to an email to enmapbox@enmap.org. If possible, send the attachment from the email address
 in the document. Please send only one document per email.
 
 If you prefer to sign electronically, please fill the form, save it locally (e.g. icla.pdf), and sign the file by
@@ -290,6 +285,7 @@ preparing a detached PGP signature. For example, gpg --armor --detach-sign icla.
 
 The above will create a file icla.pdf.asc. Send both the file (icla.pdf) and signature (icla.pdf.asc) as attachments
 in the same email. Please send only one document (file plus signature) per email. Please do not submit your public key. Instead, please upload your public key to pgpkeys.mit.edu.
+
 
 .. _contribute_DCO:
 
@@ -304,34 +300,28 @@ be clarified.
 For this purpose, barriers for contributing are minimized and contributors pinky swear that they're
 submitting their own work or rather certify that they adhere to the requirements of the DCO defined in
 version 1.1 or later at https://developercertificate.org/ by signing-off their pull requests or similar ways of
-contributing .
+contributing.
 
 The DCO is very Git-centric, and it only relies on commit metadata.
-Indeed, signing-off a commit is just about appending a Signed-off-by: line in the commit comment as in:
 
-.. code-block::
+Indeed, signing-off a commit is just about appending a Signed-off-by. For example a commit like::
+
+    $ git commit -m 'Fixes issue XYZ' -s
+
+will create a commit message as in::
+
     commit b2c150d3aa82f6583b9aadfecc5f8fa1c74aca09
+    Fixes issue XYZ
+    Signed-off-by: Erwin Gerwin <erwin.gerwin@streetcat.com>
 
-    Modify various document (man page) files to explain
-    in more detail what --signoff means.
-
-    This was inspired by https://lwn.net/Articles/669976/ where
-    paulj noted, "adding [the] '-s' argument to [a] git commit
-    doesn't really mean you have even heard of the DCO...".
-    Extending git's documentation will make it easier to argue
-    that developers understood --signoff when they use it.
-
-    Signed-off-by: David A. Wheeler <dwheeler@dwheeler.com>
-    Signed-off-by: Junio C Hamano <gitster@pobox.com>
 
 Even this approach introduces a low barrier for contributions, it is very easy to use whatever email address you want
 for a commit, and the sign-off is just text. Since the issue of trust is important the use of GnuPG signatures
-in Git commits is recommended additionally, e.g. with:
+in Git commits is recommended additionally, e.g. with::
 
-.. code-block::
-    git commit -s -S (makes GnuPG-signed commits, and)
-    git log --show-signature (shows GnuPG signatures in the log history)
-    git merge --verify-signatures branch (ensures that all commits are signed and valid before performing a merge)
+    $ git commit -s -S (makes GnuPG-signed commits, and)
+    $ git log --show-signature (shows GnuPG signatures in the log history)
+    $ git merge --verify-signatures branch (ensures that all commits are signed and valid before performing a merge)
 
 Having to use GnuPG for all commits can be a bit daunting. Perhaps a simple alternative can be to require that
 contributors add their name and email to a file (e.g., CONTRIBUTORS), and do so with a GnuPG + signed-off commit,
@@ -343,4 +333,21 @@ and later at least sign-off commits.
 Tests and Continuous Integration
 ================================
 
-Please support unit tests that test if your source code contribution works right.
+Please provide some tests that show if your source code works right.
+Unit tests should be located in the repositories :code:`enmapboxtesting` folder.
+
+To run all tests call::
+
+    $ set CI=True
+    $ python -m nose2 -s enmapboxtesting
+
+
+
+.. note::
+    The environmental variable *CI=True* is used to inform test routines to **not enter** the GUI thread.
+    If unset, some widgets might pop-up and wait for your input to terminate.
+
+To run a specific unit test files *test_mytests*, call::
+
+    $ python -m nose2 -s enmapboxtesting test_mytests
+
