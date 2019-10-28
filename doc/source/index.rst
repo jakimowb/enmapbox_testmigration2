@@ -51,7 +51,6 @@ step-by-step tutorials which exemplify the software's capabilities.
 
     general/about.rst
     general/faq_trouble.rst
-    general/contact.rst
     general/contribute.rst
 
 ..  toctree::

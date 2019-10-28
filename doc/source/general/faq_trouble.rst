@@ -25,6 +25,12 @@ Bug report & feedback
 
           **Please report issues (bugs, suggestions etc.) via our** |link_bitbucket|.
 
+Contact
+=======
+
+**E-Mail:** enmapbox@enmap.org
+
+
 |
 |
 
