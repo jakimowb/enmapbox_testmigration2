@@ -34,3 +34,5 @@ enmapboxtestdata.zip
 doc/build
 /.gitignore
 /test/
+/test*/
+/test-reports/

@@ -28,6 +28,10 @@ Documentation: http://enmap-box.readthedocs.io
 
 Git Repository: https://bitbucket.org/hu-geomatics/enmap-box
 
+## How to contribute
+
+Our online documentation at [http://enmap-box.readthedocs.io](http://enmap-box.readthedocs.io/en/latest/general/contribute.html) describes how you can support the development of the EnMAP-Box.
+
 
 ## License
 
@@ -48,31 +52,6 @@ You can get support in the following ways:
  -  Open an issue with your question, bug report, feature request or other enhancement https://bitbucket.org/hu-geomatics/enmap-box/issues/new
  
  -  Write us an email: [andreas.rabe@geo.hu-berlin.de](mail://andreas.rabe@geo.hu-berlin.de) or [andreas.rabe@geo.hu-berlin.de](mail://benjamin.jakimow@geo.hu-berlin.de)
-
-
-## Contribute own source code
-
-
-If you like to contribute algorithms and applications to the EnMAP-Box,
-please describe your ideas in an [enhancement issue](), or contact us via [mail:enmap-box@enmap.org](mail:enmap-box@enmap.org).
-
-If you you wish to contribute source code directly, you preferably:
-
-1. Read our [contributor guidelines](CONTRIBUTOR_GUIDELINES.md)
-2. Create a fork of the EnMAP-Box development branch (
-[Bitbucket](https://confluence.atlassian.com/bitbucket/forking-a-repository-221449527.html),
-[GitHub](https://help.github.com/en/articles/fork-a-repo), 
-[GitLab](https://docs.gitlab.com/ee/gitlab-basics/fork-project.html))
-3. Make your changes
-4. Commit your canges to the forked repository. Please
-    - add ``[FEATURE]`` to your commit message AND give a clear description of the new feature.
-    - sign your contribution (``git commit -s -S``)
-5. Create a pull request to add your changes to the EnMAP-Box repository 
-([Bitbucket](https://confluence.atlassian.com/bitbucket/work-with-pull-requests-223220593.html), 
-[GitHub](https://help.github.com/articles/creating-a-pull-request-from-a-fork/), 
-[GitLab](https://docs.gitlab.com/ee/gitlab-basics/add-merge-request.html))
-
-The EnMAP-Box core developers will review your contribution and commit it upstream as appropriate.
 
 
 
