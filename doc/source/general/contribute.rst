@@ -3,22 +3,25 @@
 How to contribute
 #################
 
-The EnMAP-Box is developed as part of the EnMAP Core Science Team activities, and everyone is welcome to
-contribute.
+The EnMAP-Box is a freely available, platform-independent software designed to process hyperspectral remote sensing data,
+and particularly developed to handle data from the EnMAP sensor.
 
-The project is hosted on https://bitbucket.org/hu-geomatics/enmap-box
+It is provided as a plug-in for QGIS (https://www.qgis.org/en/site/).
 
-There are multiple ways how you can contribute to the EnMAP-Box.
+The development of the EnMAP-Box is funded within the EnMAP scientific preparation program under the
+DLR Space Administration (mission lead) and GFZ Potsdam (scientific lead) with resources from the
+German Federal Ministry for Economic Affairs and Energy.
+
+The EnMAP-Box source code is hosted in a public git repository at https://bitbucket.org/hu-geomatics/enmap-box.
+Approved QGIS plugin versions (“production releases”) are available at https://plugins.qgis.org/plugins/enmap-box
+
+Everyone is welcome to contribute to the EnMAP-Box. In follow we describe how you can do so.
 
 Submit a bug report or feature request
 ======================================
 
-We use the Bitbucket issue tracker to track bugs and feature requests. Feel free to open an new issue if you have found
-a bug or wish to see a feature being implemented.
-
 In case you experience issues with the EnMAP-Box, do not hesitate to submit a
-ticket to our
-`Issue Tracker <https://bitbucket.org/hu-geomatics/enmap-box/issues>`_.
+ticket to our `Issue Tracker <https://bitbucket.org/hu-geomatics/enmap-box/issues>`_.
 
 You are also welcome to post feature requests or pull requests.
 
@@ -40,17 +43,23 @@ following rules before submitting:
     * If not feasible to include a reproducible snippet, please be specific about
       what part of the EnMAP-Box (functions, widget) are involved and the shape of the data
 
-    * Include your operatin system type and version number of QGIS, Qt and the EnMAP-Box
+    * Include your operating system type and version number of QGIS, Qt and the EnMAP-Box
 
-    *  Please ensure all **code snippets and error messages are formatted in
+    *  Please ensure that **code snippets and error messages are formatted in
         appropriate code blocks**.
 
+    .. note::
+        You can use this `Markdown syntax <https://confluence.atlassian.com/bitbucketserver/markdown-syntax-guide-776639995.html>`_
+        to style your issues.
 
 
-Provide new source code
-=======================
 
-If your are not an EnMAP-Box core developer, the preferred way to contribute code is to:
+
+
+Provide source code
+===================
+
+If your are not an EnMAP-Box core developer, the preferred way to contribute code is to use pull requests:
 
 1. Create a fork on Bitbucket.
 2. Clone the forked repository your local system.
@@ -58,7 +67,6 @@ If your are not an EnMAP-Box core developer, the preferred way to contribute cod
 4. Commit your changes.
 5. Push changes back to the remote fork on Bitbucket.
 6. Create a pull request from the forked repository (source) back to the original (destination).
-
 
 .. _contribute_fork
 
