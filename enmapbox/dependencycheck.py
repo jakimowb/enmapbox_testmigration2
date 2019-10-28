@@ -139,12 +139,15 @@ def outdatedTestData()->bool:
 
     try:
         import warnings
-        from packaging import version
         import enmapboxtestdata
         from enmapbox import MIN_VERSION_TESTDATA
 
-        testDataOutdated = version.parse(enmapboxtestdata.__version__) < version.parse(MIN_VERSION_TESTDATA)
-        boxOutdated = version.parse(enmapboxtestdata.__version__) > version.parse(MIN_VERSION_TESTDATA)
+        def version_parse(version: str):
+            """Return comparable version string"""
+            return '.'.join(number.zfill(10) for number in version.split('.'))
+
+        testDataOutdated = version_parse(enmapboxtestdata.__version__) < version_parse(MIN_VERSION_TESTDATA)
+        boxOutdated = version_parse(enmapboxtestdata.__version__) > version_parse(MIN_VERSION_TESTDATA)
 
         if boxOutdated:
             warnings.warn('Testdata version {} required by EnMAP-Box, but installed version {} is newer. '
