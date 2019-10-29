@@ -14,10 +14,6 @@ pipelines:
           - docker
           - pip
         script: # Modify the commands below to build your repository.
-          - python -m pip install -r requirements.txt
-          - python -m pip install -r requirements_developer.txt
-          #- python -m pip install pytest-cov
-          - python -m pip install nose2
           - apt-get update
           - apt-get -y install xvfb
           - apt-get -y install git-lfs
@@ -28,6 +24,9 @@ pipelines:
           - DISPLAY=:1.0
           - export DISPLAY
           - mkdir test-reports
+          - python -m pip install -r requirements.txt
+          - python -m pip install -r requirements_developer.txt
+          - python -m pip install nose2
           - git lfs install
           - git lfs fetch
           - git lfs pull

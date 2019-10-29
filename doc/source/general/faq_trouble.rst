@@ -31,11 +31,8 @@ Contact
 **E-Mail:** enmapbox@enmap.org
 
 
-|
-|
-
-EnMAP-Box FAQ
-=============
+FAQ
+===
 
 This is a list of Frequently Asked Questions about the EnMAP-Box. Feel free to
 suggest new entries!
@@ -51,7 +48,6 @@ suggest new entries!
 
 
 How can I solve the following error...
---------------------------------------
 
 .. _faq_no_pip:
 
@@ -126,15 +122,20 @@ How can I solve the following error...
 ....
 
 
-* **Linux: Image Cube tool missing qtopengl**
+* **Image Cube tool missing qtopengl / Missing OpenGL / QtOpenGL packages**
 
-  It might be necessary to install the Python bindings for QtOpenGL in order to start the Image Cube tool.
+    On some systems we experiences problems related to a missing OpenGL support (e.g `Issue #299 <https://bitbucket.org/hu-geomatics/enmap-box/issues/299/image-cube-qt-issues-on-linux>`_)
 
-  .. code-block:: bash
+    1. Ensure that you have installed OpenGL drivers that support your graphic card
+    2. Ensure that `PyOpenGL <http://pyopengl.sourceforge.net`_  is installed::
 
-     sudo apt-get install python3-pyqt5.qtopengl
+        $ python3 -m pip install PyOpenGL
 
+    It might be necessary to install the Python bindings for QtOpenGL in order to start the Image Cube tool.
 
+      .. code-block:: bash
+
+         sudo apt-get install python3-pyqt5.qtopengl
 ....
 
 * **Error loading the plugin**
@@ -186,3 +187,4 @@ How can I solve the following error...
     4. Restart QGIS and install the most-recent EnMAP-Box version
 
     This description was taken from https://bitbucket.org/hu-geomatics/enmap-box/issues/304/exception-unable-to-find-full-path-for
+
