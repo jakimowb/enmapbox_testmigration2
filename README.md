@@ -32,7 +32,6 @@ Git Repository: https://bitbucket.org/hu-geomatics/enmap-box
 
 Our online documentation at [http://enmap-box.readthedocs.io](http://enmap-box.readthedocs.io/en/latest/general/contribute.html) describes how you can support the development of the EnMAP-Box.
 
-
 ## License
 
 The EnMAP-Box is released under the GNU Public License (GPL) Version 3 or above. A copy of this licence can be found in 

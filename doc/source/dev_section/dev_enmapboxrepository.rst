@@ -28,7 +28,7 @@ LICENCE.txt
 LICENCE.md
 README.md
 __init__.py
-contributors.txt
+CONTRIBUTORS.md
 index.html
 pb_tool.cfg
 qgis_plugin_develop.xml

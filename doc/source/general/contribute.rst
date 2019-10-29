@@ -148,6 +148,14 @@ The pull request will inform us on the changed you made.
 
 Before you create a pull request, please check the following:
 
+* make sure that every source code file provides a :ref:`licence notice <contribute_apply_licence_terms>`
+
+* make sure your code passes the tests and provide tests if your like to provide new functionality, like EnMAP-Box Applications
+
+* make sure your code is commented and documented
+
+* make sure your name is listed in the :code:`CONTRIBUTORS.md`
+
 * update your feature branch to the  current EnMAP-Box master branch::
 
         git fetch origin
@@ -161,12 +169,6 @@ Before you create a pull request, please check the following:
 
     * :code:`[feature] <title>` a new feature
     * :code:`[fix] <title>` a fix for a known issue. If possible, please refer to existing issue numbers like in `#123 #124`.
-
-* make sure that every source code file provides a :ref:`licence notice <contribute_apply_licence_terms>`
-
-* make sure your code passes the tests and provide tests if your like to provide new functionality, like EnMAP-Box Applications
-
-* make sure your code is commented and documented
 
 
 Documentation
@@ -333,9 +335,7 @@ in Git commits is recommended additionally, e.g. with::
     $ git log --show-signature (shows GnuPG signatures in the log history)
     $ git merge --verify-signatures branch (ensures that all commits are signed and valid before performing a merge)
 
-Having to use GnuPG for all commits can be a bit daunting. Perhaps a simple alternative can be to require that
-contributors add their name and email to a file (e.g., CONTRIBUTORS), and do so with a GnuPG + signed-off commit,
-and later at least sign-off commits.
+Having to use GnuPG for all commits can be a bit daunting.
 
 
 .. _contribute_test_and_ci:
@@ -357,7 +357,7 @@ To run all tests call::
     The environmental variable *CI=True* is used to inform test routines to **not enter** the GUI thread.
     If unset, some widgets might pop-up and wait for your input to terminate.
 
-To run a specific unit test files *test_mytests*, call::
+To run the unit tests in *test_mytests.py*, call::
 
     $ python -m nose2 -s enmapboxtesting test_mytests
 
