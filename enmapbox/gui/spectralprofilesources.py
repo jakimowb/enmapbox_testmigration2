@@ -12,6 +12,7 @@ from enmapbox.gui import *
 from enmapbox.gui.datasources import DataSourceRaster
 import numpy as np
 
+from ..externals.qps.speclib.spectrallibraries import FIELD_NAME as SPECLIB_FIELD_NAME
 
 class SpectralProfileSource(object):
 
@@ -469,6 +470,7 @@ class SpectralProfileBridge(QAbstractTableModel):
         self.mSrcModel = SpectralProfileSrcListModel()
         self.mBridgeItems = []
 
+        self.mEnsureUniqueProfileNames = True
 
         self.cnSrc = 'Source'
         self.cnDst = 'Destination'
@@ -740,6 +742,29 @@ class SpectralProfileBridge(QAbstractTableModel):
             for r in self[:]:
                 if isinstance(r, SpectralProfileRelation) and r.destination() == dst:
                     currentProfiles.extend(r.currentProfiles())
+
+            currentProfiles = [p for p in currentProfiles if isinstance(p, SpectralProfile)]
+
+            # replace white spaces with '_' (see https://bitbucket.org/hu-geomatics/enmap-box/issues/275/use-_-instead-of-as-separators-in-spectra)
+            for p in currentProfiles:
+                assert isinstance(p, SpectralProfile)
+                p.setName(p.name().replace(' ','_'))
+
+            # ensure unique profile names per Spectral Library,
+            # e.g. make 'sourceA', 'sourceA' to 'sourceA', 'sourceA2'
+            if self.mEnsureUniqueProfileNames:
+                uniqueNames = dst.speclib().uniqueValues(dst.speclib().fields().indexOf(SPECLIB_FIELD_NAME))
+                for p in currentProfiles:
+                    assert isinstance(p, SpectralProfile)
+                    name = p.name()
+                    i = 1
+                    while name in uniqueNames:
+                        i += 1
+                        name = '{}_{}'.format(p.name(), i)
+                    if i > 1:
+                        p.setName(name)
+                    uniqueNames.add(name)
+
             dst.setCurrentProfiles(currentProfiles)
 
 
