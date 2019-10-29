@@ -24,15 +24,6 @@ step-by-step tutorials which exemplify the software's capabilities.
 .. figure:: img/screenshot_main2.png
    :width: 100%
 
-|
-
-**Image credits:**
-
-- Logo background (left to right): ESA adapted - `Amsterdam <https://www.esa.int/ESA_Multimedia/Images/2017/05/Amsterdam_Netherlands>`_,
-  ESA adapted - `Uruguay River Wetlands <https://www.esa.int/ESA_Multimedia/Images/2019/01/Uruguay_River_wetlands>`_,
-  EUSI/ESA adapted - `Algerian Sands <https://www.esa.int/ESA_Multimedia/Images/2012/03/Algerian_sands>`_,
-  ESA adapted - `Kenya <https://www.esa.int/ESA_Multimedia/Images/2012/05/Kenya_Tanzania_Uganda>`_
-
 
 |
 |
@@ -51,7 +42,6 @@ step-by-step tutorials which exemplify the software's capabilities.
 
     general/about.rst
     general/faq_trouble.rst
-    general/contact.rst
     general/contribute.rst
 
 ..  toctree::
