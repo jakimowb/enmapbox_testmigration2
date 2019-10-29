@@ -164,4 +164,4 @@ rasterize the vector dataset.
 .. figure:: /img/example_rasterize_classification.png
    :width: 100%
 
-   Result of the :menuselection:`Classification from Vector` algorithm (right) and the input grid (left) and polygon dataset (middle)
+   Result of the Classification from Vector algorithm (right) and the input grid (left) and polygon dataset (middle)
