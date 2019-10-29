@@ -184,6 +184,8 @@ This will start Sphinx and create the HTML documentation into folder :code:`doc/
 Open :code:`doc/build/html/index.html` to visualize it in your web browser.
 
 
+.. _contribute_licensing:
+
 Licensing
 =========
 
@@ -193,11 +195,15 @@ See either https://www.gnu.org/licenses/gpl-3.0.en.html or https://opensource.or
 
 A copy of this license is part of the EnMAP-Box repository (`LICENSE.txt <https://bitbucket.org/hu-geomatics/enmap-box/src/master/LICENSE.md>`_) and delivered with each release of an EnMAP-Box plugin.
 
+The EnMAP-Box documentation is published under the terms of the Creative Commons 1.0 Universal (CC0) License.
+See https://creativecommons.org/publicdomain/zero/1.0/legalcode for further details of the license.
+
+
 .. _contribute_apply_licence_terms:
 
 Applying License Terms
 ----------------------
-Each source code contribution to the central repository should include the license terms at the beginning of the file::
+Each source code contribution to the central repository should include a reference to the GPL-3 license terms at the beginning of the file::
 
     """
     ***************************************************************************
@@ -223,10 +229,14 @@ Each source code contribution to the central repository should include the licen
     ***************************************************************************
     """
 
-An example is given here: `enmapbox/__init__.py <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/enmapbox/__init__.py>`_
+An example from the source code can be found here: `enmapbox/__init__.py <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/enmapbox/__init__.py>`_
 
 .. note::
     Todo: add PyCharm code template
+
+Images and other multimedia content from the EnMAP-Box documentation, i.e files within the EnMAP-Box repositories :code:`doc/source` folder,
+are published without copyright under the terms of the `CC0 license <https://creativecommons.org/publicdomain/zero/1.0/legalcode>`_.
+
 
 
 .. _contribute_CLA:
