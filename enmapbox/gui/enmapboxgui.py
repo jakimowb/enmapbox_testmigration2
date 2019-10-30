@@ -1652,19 +1652,26 @@ class EnMAPBox(QgisInterface, QObject):
 
     def spectralLibraries(self)->typing.List[SpectralLibrary]:
         """
-        Returns a list of SpectraLibraries that are registered to the internal MapLayerStore (i.e. opened in the
-        DataSource panel or shown in a SpectralLibrary Widget).
+        Returns a list of SpectraLibraries that either known as DataSource, added to one of the Maps or visible in a SpectralLibrary Widget).
         :return: [list-of-SpectralLibraries]
         """
-        speclibs = []
+        candidates = []
         for source in self.dataSourceManager.sources():
             if isinstance(source, DataSourceSpectralLibrary):
-                lyr = source.mapLayer()
-                if lyr not in speclibs and isinstance(lyr, SpectralLibrary):
-                    speclibs.append(lyr)
-        for lyr in self.mapLayerStore().mapLayers().values():
-            if isinstance(lyr, SpectralLibrary) and lyr not in speclibs:
-                speclibs.append(lyr)
+                candidates.append(source.mapLayer())
+        for lyr in self.mapLayers():
+            if isinstance(lyr, SpectralLibrary):
+                candidates.append(lyr)
+
+        for dock in self.docks():
+            if isinstance(dock, SpectralLibraryDock):
+                candidates.append(dock.speclib())
+
+        speclibs = []
+        for c in candidates:
+            if isinstance(c, SpectralLibrary) and c not in speclibs:
+                speclibs.append(c)
+
         return speclibs
 
     def mapCanvases(self)->typing.List[MapCanvas]:
