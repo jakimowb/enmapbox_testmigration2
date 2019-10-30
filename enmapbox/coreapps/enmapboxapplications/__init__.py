@@ -8,6 +8,7 @@ from enmapboxapplications.scatterplotapp.core import ScatterPlotApp
 from enmapboxapplications.synthmixapp.core import SynthmixApp
 from enmapboxapplications.forceapp.core import ForceApp
 from enmapboxapplications.classificationapp.core import ClassificationWorkflowApp
+from enmapboxapplications.regressionapp.core import RegressionWorkflowApp
 
 def enmapboxApplicationFactory(enmapBox):
     return [EnMAPBoxImageMathApp(enmapBox),
@@ -15,7 +16,8 @@ def enmapboxApplicationFactory(enmapBox):
             EnMAPBoxScatterPlotApp(enmapBox),
             EnMAPBoxSynthmixApp(enmapBox),
             #EnMAPBoxForceMosaikBuilderApp(enmapBox),
-            EnMAPBoxClassificationWorkflowApp(enmapBox)
+            EnMAPBoxClassificationWorkflowApp(enmapBox),
+            EnMAPBoxRegressionWorkflowApp(enmapBox)
             ]
 
 class EnMAPBoxImageMathApp(EnMAPBoxApplication):
@@ -154,6 +156,33 @@ class EnMAPBoxClassificationWorkflowApp(EnMAPBoxApplication):
 
     def startGUI(self, *args):
         w = ClassificationWorkflowApp(parent=self.enmapbox.ui)
+        w.show()
+
+
+class EnMAPBoxRegressionWorkflowApp(EnMAPBoxApplication):
+    def __init__(self, enmapBox, parent=None):
+        super().__init__(enmapBox, parent=parent)
+
+        self.name = 'RegressionWorkflowApp'
+        self.version = 'dev'
+        self.licence = 'GNU GPL-3'
+
+    def icon(self):
+        return QIcon(None)
+
+    def menu(self, appMenu):
+        assert isinstance(appMenu, QMenu)
+        a = appMenu.addAction('Regression Workflow')
+        assert isinstance(a, QAction)
+        a.setIcon(self.icon())
+        a.triggered.connect(self.startGUI)
+        return appMenu
+
+    def geoAlgorithms(self):
+        return []
+
+    def startGUI(self, *args):
+        w = RegressionWorkflowApp(parent=self.enmapbox.ui)
         w.show()
 
 

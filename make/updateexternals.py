@@ -116,11 +116,11 @@ def updateRemotes(remoteLocations):
 if __name__ == "__main__":
 
     # update remotes
-    to_update = ['qps',
-                 'hub-datacube',
-                 'hub-workflow',
+    to_update = [#'qps',
+                 #'hub-datacube',
+                 #'hub-workflow',
                  'enmapboxgeoalgorithms',
-                 'enmap-box-lmu-vegetation-apps',
+                 #'enmap-box-lmu-vegetation-apps',
                 ]
     updateRemotes(to_update)
     exit(0)
