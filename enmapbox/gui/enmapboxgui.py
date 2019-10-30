@@ -745,6 +745,7 @@ class EnMAPBox(QgisInterface, QObject):
             slw.sigFilesCreated.connect(self.addSources)
             #self.sigCurrentSpectraChanged.connect(dock.mSpeclibWidget.setCurrentSpectra)
             self.spectralProfileBridge().addDestination(slw)
+            #self.mapLayerStore().addMapLayer(dock.speclib())
 
         if isinstance(dock, MapDock):
 
@@ -980,7 +981,17 @@ class EnMAPBox(QgisInterface, QObject):
                         lyr.setRenderer(r)
                     lyrs.append(lyr)
 
+                # choose first none-geographic raster CRS as map CRS
+                for lyr in lyrs:
+
+                    if isinstance(lyr, QgsRasterLayer) and isinstance(lyr.crs(), QgsCoordinateReferenceSystem) and not lyr.crs().isGeographic():
+                        dock.mapCanvas().setDestinationCrs(lyr.crs())
+                        break
+
                 dock.addLayers(lyrs)
+
+
+
 
 
 
@@ -1645,7 +1656,16 @@ class EnMAPBox(QgisInterface, QObject):
         DataSource panel or shown in a SpectralLibrary Widget).
         :return: [list-of-SpectralLibraries]
         """
-        return [lyr for lyr in self.mapLayerStore().mapLayers().values() if isinstance(lyr, SpectralLibrary)]
+        speclibs = []
+        for source in self.dataSourceManager.sources():
+            if isinstance(source, DataSourceSpectralLibrary):
+                lyr = source.mapLayer()
+                if lyr not in speclibs and isinstance(lyr, SpectralLibrary):
+                    speclibs.append(lyr)
+        for lyr in self.mapLayerStore().mapLayers().values():
+            if isinstance(lyr, SpectralLibrary) and lyr not in speclibs:
+                speclibs.append(lyr)
+        return speclibs
 
     def mapCanvases(self)->typing.List[MapCanvas]:
         """
