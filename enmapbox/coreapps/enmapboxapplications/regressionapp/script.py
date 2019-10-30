@@ -73,8 +73,7 @@ def regressionWorkflow(
     regressor.fit(sample)
 
     if saveModel:
-        regressor.pickle(filename=filenameModel, emit=False)
-        print(filenameModel)
+        regressor.pickle(filename=filenameModel)
 
     setInfo('Step 3: predict regression')
     if saveRegression:
