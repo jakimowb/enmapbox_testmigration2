@@ -21,10 +21,20 @@
 # noinspection PyPep8Naming
 
 import os, sys, re, shutil, zipfile, datetime, requests, http, mimetypes
+
+import os, sys
+
+from os.path import dirname as dn
+DIR_ENMAPBOX_REPO = dn(dn(__file__))
+if not DIR_ENMAPBOX_REPO in sys.path:
+    sys.path.append(DIR_ENMAPBOX_REPO)
+
 from requests.auth import HTTPBasicAuth
 from http.client import responses
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+
+
 from enmapbox.testing import initQgisApplication
 qgisApp = initQgisApplication(loadProcessingFramework=False)
 
