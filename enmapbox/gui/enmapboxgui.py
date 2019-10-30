@@ -745,6 +745,7 @@ class EnMAPBox(QgisInterface, QObject):
             slw.sigFilesCreated.connect(self.addSources)
             #self.sigCurrentSpectraChanged.connect(dock.mSpeclibWidget.setCurrentSpectra)
             self.spectralProfileBridge().addDestination(slw)
+            #self.mapLayerStore().addMapLayer(dock.speclib())
 
         if isinstance(dock, MapDock):
 
@@ -980,7 +981,17 @@ class EnMAPBox(QgisInterface, QObject):
                         lyr.setRenderer(r)
                     lyrs.append(lyr)
 
+                # choose first none-geographic raster CRS as map CRS
+                for lyr in lyrs:
+
+                    if isinstance(lyr, QgsRasterLayer) and isinstance(lyr.crs(), QgsCoordinateReferenceSystem) and not lyr.crs().isGeographic():
+                        dock.mapCanvas().setDestinationCrs(lyr.crs())
+                        break
+
                 dock.addLayers(lyrs)
+
+
+
 
 
 
@@ -1641,11 +1652,27 @@ class EnMAPBox(QgisInterface, QObject):
 
     def spectralLibraries(self)->typing.List[SpectralLibrary]:
         """
-        Returns a list of SpectraLibraries that are registered to the internal MapLayerStore (i.e. opened in the
-        DataSource panel or shown in a SpectralLibrary Widget).
+        Returns a list of SpectraLibraries that either known as DataSource, added to one of the Maps or visible in a SpectralLibrary Widget).
         :return: [list-of-SpectralLibraries]
         """
-        return [lyr for lyr in self.mapLayerStore().mapLayers().values() if isinstance(lyr, SpectralLibrary)]
+        candidates = []
+        for source in self.dataSourceManager.sources():
+            if isinstance(source, DataSourceSpectralLibrary):
+                candidates.append(source.mapLayer())
+        for lyr in self.mapLayers():
+            if isinstance(lyr, SpectralLibrary):
+                candidates.append(lyr)
+
+        for dock in self.docks():
+            if isinstance(dock, SpectralLibraryDock):
+                candidates.append(dock.speclib())
+
+        speclibs = []
+        for c in candidates:
+            if isinstance(c, SpectralLibrary) and c not in speclibs:
+                speclibs.append(c)
+
+        return speclibs
 
     def mapCanvases(self)->typing.List[MapCanvas]:
         """

@@ -776,14 +776,34 @@ class SpectralLibraryDock(Dock):
         self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.mSpeclibWidget)
 
+        speclib =self.speclib()
+        assert isinstance(speclib, SpectralLibrary)
         name = kwds.get('name')
         if isinstance(name, str):
-            self.speclib().setName(name)
+            speclib.setName(name)
 
-        self.setTitle(self.speclib().name())
-        self.speclib().nameChanged.connect(lambda slib=self.speclib(): self.setTitle(slib.name()))
-        self.sigTitleChanged.connect(self.speclib().setName)
+        self.setTitle(speclib.name())
+        speclib.nameChanged.connect(lambda slib=speclib: self.setTitle(slib.name()))
+        self.sigTitleChanged.connect(speclib.setName)
 
+
+        # add color attribute
+        """
+        COLOR_WIDGET = 'Color'
+        if False and COLOR_WIDGET in QgsGui.editorWidgetRegistry().factories().keys():
+
+            COLOR_FIELD = 'color'
+            b = speclib.isEditable()
+            speclib.startEditing()
+            field = QgsField(COLOR_FIELD, QVariant.String, 'varchar')
+            defaultValue = QgsDefaultValue('#ffffff', applyOnUpdate=False)
+            field.setDefaultValueDefinition(defaultValue)
+            speclib.addAttribute(field)
+            speclib.setEditorWidgetSetup(speclib.fields().lookupField(COLOR_FIELD), QgsEditorWidgetSetup('Color', {}))
+            speclib.commitChanges()
+            if b:
+                speclib.startEditing()
+        """
 
     def speclibWidget(self)->SpectralLibraryWidget:
         """

@@ -21,7 +21,7 @@ from qgis.PyQt.QtWidgets import *
 
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
-SHOW_GUI = False and os.environ.get('CI') is None
+SHOW_GUI = True and os.environ.get('CI') is None
 
 
 from enmapboxtestdata import *
@@ -181,7 +181,13 @@ class testDocks(unittest.TestCase):
 
     def test_SpeclibDock(self):
         da = DockArea()
+        profile = SpectralProfile()
+        profile.setName('Test')
+        profile.setValues(x=[1,2,3,4,5], y=[2,1,2,3,2])
         dock = SpectralLibraryDock()
+        dock.speclib().startEditing()
+        dock.speclib().addProfiles([profile])
+        dock.speclib().commitChanges()
         da.addDock(dock)
         da.show()
 

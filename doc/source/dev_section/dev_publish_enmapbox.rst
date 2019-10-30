@@ -87,3 +87,21 @@ and might be distributed using the repositories download section https://bitbuck
 
     .. note:: add/modify remote sources with ``RemoteInfo.create`` to specify other external git repository sources
               to be part of EnMAP-Box Source code
+
+
+Publish the EnMAP-Box documentation
+===================================
+
+Updates to the EnMAP-Box documentation (folder :code:`doc/source`) are automatically detected by readthedocs if they get pushed either to
+the *develop* or *master* branch.
+
+
+To create the HTML based documentation on your local system call:
+
+    cd doc
+    make html
+
+This creates a folder :code:`doc/build` with the HTML documentation. To visualize it, just open :code:`doc/build/html/index.html`
+in your webbrowser.
+
+
