@@ -66,7 +66,7 @@ def classificationWorkflow(sample, classifier, raster, n, cv,
     classifier.fit(sample)
 
     if saveModel:
-        classifier.pickle(filename=filenameModel, emit=False)
+        classifier.pickle(filename=filenameModel)
         print(filenameModel)
 
     setInfo('Step 3: predict classification')
