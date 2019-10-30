@@ -491,6 +491,17 @@ if __name__ == "__main__":
 
     # 1. update deploy/EnMAP-Box and
     #    create deploy/EnMAP-Box.<version>.<branch>.zip
+    import getopt
+    try:
+        print(sys.argv)
+        opts, args = getopt.getopt(sys.argv[1:], "t")
+    except getopt.GetoptError as err:
+        print(err)
+
+    for o, a in opts:
+        if o == '-t':
+            INCLUDE_TESTDATA = True
+
     build()
 
     # 2. Upload to Repository
