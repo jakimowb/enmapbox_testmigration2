@@ -85,7 +85,7 @@ class DataSourceManager(QObject):
             def addNoneImageSource(path:str):
                 if isinstance(path, str) and os.path.isfile(path):
 
-                    if self.mShowSpatialSourceinQGSAndEnMAPBox:
+                    if False and self.mShowSpatialSourceinQGSAndEnMAPBox:
                         if re.search(r'\.pkl$', path):
                             self.addSource(path)
                     else:
@@ -276,11 +276,25 @@ class DataSourceManager(QObject):
         """
         Adds datasources known to QGIS which do not exist here
         """
-        p = QgsProject.instance()
-        assert isinstance(p, QgsProject)
-        layers = list(p.mapLayers().values())
+        layers = []
 
-        self.addSources(layers)
+        from qgis.utils import iface
+        if isinstance(iface, QgisInterface):
+            root = iface.layerTreeView().model().rootGroup()
+            assert isinstance(root, QgsLayerTreeGroup)
+
+            for layerTree in root.findLayers():
+                assert isinstance(layerTree, QgsLayerTreeLayer)
+                s = ""
+                grp = layerTree
+                #grp.setCustomProperty('nodeHidden', 'true' if bHide else 'false')
+                lyr = layerTree.layer()
+
+                if isinstance(lyr, QgsMapLayer) and lyr.isValid() and not grp.customProperty('nodeHidded'):
+                    layers.append(layerTree.layer())
+
+        if len(layers) > 0:
+            self.addSources(layers)
 
 
 

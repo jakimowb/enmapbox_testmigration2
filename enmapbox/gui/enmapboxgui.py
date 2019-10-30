@@ -463,11 +463,17 @@ class EnMAPBox(QgisInterface, QObject):
         hiddenGroup = self._hiddenQGISLayerGroup()
         enmapboxLayerNames = {}
         enmapboxCanvasNames = {}
+        enmapboxSourceNames = {}
+
+
         for eLyr in self.mapLayers():
             enmapboxLayerNames[eLyr.id()] = eLyr.name()
         for c in self.mapCanvases():
             assert isinstance(c, MapCanvas)
             enmapboxCanvasNames[id(c)] = c.windowTitle()
+        for src in self.dataSourceManager.sources('SPATIAL'):
+            assert isinstance(src, DataSource)
+            enmapboxSourceNames[src.uri()] = src.name()
 
         if hiddenLayers is None:
             hiddenLayers = [ltn.layer() for ltn in hiddenGroup.findLayers() if isinstance(ltn.layer(), QgsMapLayer)]
@@ -480,9 +486,11 @@ class EnMAPBox(QgisInterface, QObject):
 
             eLayerName = enmapboxLayerNames.get(eLayerId)
             eCanvasName = enmapboxCanvasNames.get(eCanvasID)
+            eSourceName = enmapboxSourceNames.get(eLayerUri, '')
+
             if eLayerId is None:
                 # it's a source layer
-                name = '[EnMAP-Box] {}'.format(os.path.basename(eLayerUri))
+                name = '[EnMAP-Box] {}'.format(eSourceName)
             else:
                 # layer available in a map canvas
                 name = '[{}] {}'.format(eCanvasName, eLayerName)
