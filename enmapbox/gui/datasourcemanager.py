@@ -217,6 +217,10 @@ class DataSourceManager(QObject):
         :return: a list of successfully added DataSource instances.
                  Usually this will be a list with a single DataSource instance only, but in case of container datasets multiple instances might get returned.
         """
+        # do not add pathes if they already exist
+        if isinstance(newDataSource, str) and newDataSource in self.uriList():
+            return []
+
         newDataSources = DataSourceFactory.create(newDataSource, name=name, icon=icon)
 
         toAdd = []
