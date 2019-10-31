@@ -20,7 +20,7 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-import sys, os, collections, shutil, time, re, importlib
+import sys, os, collections, shutil, time, re, importlib, typing
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.PyQt.QtCore import QUrl
 from qgis.gui import *
@@ -31,7 +31,7 @@ URL_REQUIREMENTS = r'https://bitbucket.org/hu-geomatics/enmap-box/src/develop/re
 LAST_MISSED_PACKAGES = None
 LAST_MISSED_INFO = ''
 
-def checkAndShowMissingDependencies(packageNames):
+def checkAndShowMissingDependencies(packageNames)->bool:
     missing = missingPackages(packageNames)
 
     if len(missing) == 0:
@@ -44,43 +44,45 @@ def checkAndShowMissingDependencies(packageNames):
 
 
 
-def missingPackages(packageNames):
+def missingPackages(packageNames)->typing.List[str]:
     if not isinstance(packageNames, list):
         packageNames = [packageNames]
 
-    missing = collections.OrderedDict()
+    missing = []
     for p in packageNames:
-        if importlib.util.find_spec(p) is None:
-            missing[p] = 'Can not import python package ""'.format(p)
-    LAST_MISSED_PACKAGES = list(missing.keys())
+        if importlib.util.find_spec(p) is None and p not in missing:
+            missing.append(p)
+
     return missing
 
-def missingPackageInfo(missingPackages):
+def missingPackageInfo(missingPackages, html=True)->str:
 
-    assert isinstance(missingPackages, collections.OrderedDict)
+
+
+    assert isinstance(missingPackages, list)
     n = len(missingPackages)
-    info = ['Unable to import the following {} package(s):'.format(n)]
-    for pkg, ex in missingPackages.items():
-        info.append(pkg)
+    if n == 0:
+        return None
 
-    info.append('You can install from you shell with pip:')
-    DIR_REPO = os.path.dirname(os.path.dirname(__file__))
-    info.append('$python3 -m pip install -r {}\n'.format(URL_REQUIREMENTS))
-    info.append('use option --force-reinstall to update packages to required minimum versions')
+    from enmapbox import DIR_REPO
+    URL_INSTALLATION = r'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages'
+    info = ['The following {} package(s) are not installed:'.format(n)]
+    info.append('<ol>')
+    for i, pkg in enumerate(missingPackages):
+        info.append('\t<li>{}</li>'.format(pkg))
 
-    info.append('\nSystem info:')
-    info.append('Python executable: {}'.format(sys.executable))
-    info.append('Python prefix: {}'.format(sys.exec_prefix))
-    info.append('PYTHONPATH:')
-    for p in sorted(sys.path):
-        info.append('{}'.format(p))
-    info.append('\nOS ENVIRONMENT:')
-    for k,v in os.environ.items():
-        info.append('{}={}'.format(k,v))
+    pathRequirementsTxt = os.path.join(DIR_REPO, 'requirements.txt')
+
+    info.append('</ol>')
+    info.append('<p>Please follow the installation guide <a href="{0}">{0}</a><br/>'.format(URL_INSTALLATION))
+    info.append('and install missing packages, e.g. with pip:<br/><br/>')
+    info.append('\t<code>$ python3 -m pip install -r {}</code></p><hr>'.format(pathRequirementsTxt))
 
     info = '\n'.join(info)
 
-    LAST_MISSED_INFO = info
+    if not html:
+        info = re.sub('<br/>', '\n', info)
+        info = re.sub('<[^>]*>','', info)
     return  info
 
 def showDialog(info):

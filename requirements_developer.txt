@@ -4,22 +4,15 @@
 # see https://www.python.org/dev/peps/pep-0440/#version-specifiers
 ###### Requirements ######
 
-#standard requirements
--r requirements.txt
-
-# requirements for developers
-# Required packages to run tests
-#pytest
-#py
-#pytest-cov
-
+# required to build the EnMAP-Box
 gitpython
-git-lfs
 pb_tool
 
-# unit tests only
+# required for unit-testing
 nose2
 unittest-xml-reporting
+
+# required to build the documentation
 
 recommonmark
 sphinx
@@ -28,6 +21,8 @@ sphinx-markdown
 sphinx-rtd-theme
 sphinx-autobuild
 
-###### Refers to other requirements files (e.g. for hub-datacube?) ######
-#-r otherfolder/other-requirements.txt
-#
+# optionals
+git-lfs
+
+#standard requirements
+-r requirements.txt

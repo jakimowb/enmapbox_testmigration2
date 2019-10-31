@@ -62,34 +62,11 @@ class EnMAPBoxPlugin(object):
         Runs a check for availability of package dependencies and give an readible error message
         :return:
         """
-
-        missing = []
         from enmapbox import DEPENDENCIES, messageLog, DIR_REPO
-        for package in DEPENDENCIES:
-            spec = importlib.util.find_spec(package)
-            if spec is None:
-                missing.append(package)
-
+        from enmapbox.dependencycheck import missingPackages, missingPackageInfo
+        missing = missingPackages(DEPENDENCIES)
         if len(missing) > 0:
-
-            longText = ['Unable to import the following python package(s):']
-            longText.append('<b>{}</b>'.format(', '.join(missing)))
-            longText.append('<p>Please install missing packages using the local package manager like pip3 and root access:')
-            pathRequirementsTxt = os.path.join(DIR_REPO, 'requirements.txt')
-            longText.append('<code>python3 -m pip install -r {}</code>'.format(pathRequirementsTxt))
-            longText.append('More information available under:')
-            longText.append('<a href="http://enmap-box.readthedocs.io/en/latest/Installation.html">http://enmap-box.readthedocs.io/en/latest/Installation.html</a> </p>')
-
-            #longText.append('This Python:')
-            #longText.append('Executable: {}'.format(sys.executable))
-            #longText.append('ENVIRON:')
-            #for k in sorted(os.environ.keys()):
-            #    longText.append('\t{} ={}'.format(k, os.environ[k]))
-
-            longText = '<br/>\n'.join(longText)
-            messageLog(longText)
-            raise Exception(longText)
-
+            raise Exception(missingPackageInfo(missing))
 
     def initGui(self):
 
@@ -98,7 +75,7 @@ class EnMAPBoxPlugin(object):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         import enmapbox
         self.enmapBox = None
-        action = QAction(enmapbox.icon(), u'EnMAP-Box', self.iface)
+        action = QAction(enmapbox.icon(), 'EnMAP-Box', self.iface)
         self.iface.addPluginToRasterMenu('EnMAP-Box', action)
 
         action.triggered.connect(self.run)
