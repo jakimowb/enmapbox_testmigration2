@@ -479,3 +479,15 @@ Qt version used by QGIS.
 
      Qt Creator with opened metadataeditor.ui.
 
+..
+        SSH access on windows
+        1. create a ssh key pair
+        2. upload public key to repository of choice
+        3. install Putty
+        4. start Pageant.ext and add your private key to
+        5. add :code:`set GIT_SSH=C:\Program Files\PuTTY\plink.exe` to your startup script
+        6. there is an issue with a frozen command line when a server is connected the first time with ssh
+           (see https://stackoverflow.com/questions/33240137/git-clone-pull-continually-freezing-at-store-key-in-cache)
+           to solve it, start putty and connect try to the server once per SSH (e.g. to bitbucket.org). puty will save its fingerprint
+        7. now you can call git push using ssh authentification in background
+
