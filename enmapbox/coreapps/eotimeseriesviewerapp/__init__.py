@@ -19,9 +19,53 @@
 ***************************************************************************
 """
 
+import os, sys, importlib
+import qgis.utils
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QMenu, QAction
+from enmapbox.gui.applications import EnMAPBoxApplication
 
-import os
 APP_DIR = os.path.dirname(__file__)
+
+def timeseriesviewerPluginInstalled()->bool:
+    qgis.utils.updateAvailablePlugins()
+    return importlib.util.find_spec('eotimeseriesviewer') is not None
+
+
+class EOTimeSeriesViewerApp(EnMAPBoxApplication):
+
+
+    def __init__(self, enmapBox, parent=None):
+
+        super(EOTimeSeriesViewerApp, self).__init__(enmapBox, parent=parent)
+        self.mPluginInstalled = timeseriesviewerPluginInstalled()
+        if self.mPluginInstalled:
+            import eotimeseriesviewer
+            self.name = eotimeseriesviewer.TITLE
+            self.version = eotimeseriesviewer.__version__
+            self.licence = 'GNU GPL-3'
+
+
+    def icon(self):
+        if self.mPluginInstalled:
+            import eotimeseriesviewer
+            return eotimeseriesviewer.icon()
+        else:
+            return None
+
+    def menu(self, appMenu):
+        if self.mPluginInstalled:
+            a = appMenu.addAction(self.name)
+            a.setIcon(self.icon())
+            a.triggered.connect(self.startGUI)
+            return a
+        return None
+
+    def startGUI(self, *args):
+        from eotimeseriesviewer.main import TimeSeriesViewer
+        self.tsv = TimeSeriesViewer()
+        self.tsv.show()
+
 
 
 def enmapboxApplicationFactory(enmapBox):
@@ -30,17 +74,9 @@ def enmapboxApplicationFactory(enmapBox):
     :param enmapBox: the EnMAP-Box instance.
     :return: [list-of-EnMAPBoxApplications]
     """
-    import eotimeseriesviewerapp.enmapboxintegration
 
-    if eotimeseriesviewerapp.enmapboxintegration.PLUGIN_INSTALLED:
-
-        from eotimeseriesviewerapp.enmapboxintegration import EOTimeSeriesViewerApp
-        #returns a list of EnMAPBoxApplications
+    if timeseriesviewerPluginInstalled():
         return [EOTimeSeriesViewerApp(enmapBox)]
-
     else:
-        from qgis.core import QgsMessageLog
-
-        #QgsMessageLog.instance().logMessage('HUB TimeSeriesViewer QGIS Plugin is not installed.',
-        #                                    level=QgsMessageLog.INFO)
+        print('EO Time Series Viewer QGIS Plugin is not installed')
         return []
