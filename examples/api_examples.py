@@ -191,17 +191,17 @@ class Examples(unittest.TestCase):
 
         # list all docks
         from enmapbox.gui.docks import Dock, SpectralLibraryDock
-        for dock in enmapBox.dockManager.docks():
+        for dock in enmapBox.mDockManager.docks():
             assert isinstance(dock, Dock)
             print(dock)
 
         # list map docks only
-        for dock in enmapBox.dockManager.docks(dockType='MAP'):
+        for dock in enmapBox.mDockManager.docks(dockType='MAP'):
             assert isinstance(dock, Dock)
             print(dock)
 
         # list all spectral library docks
-        for dock in enmapBox.dockManager.docks(dockType='SPECLIB'):
+        for dock in enmapBox.mDockManager.docks(dockType='SPECLIB'):
             assert isinstance(dock, Dock)
             print(dock)
 

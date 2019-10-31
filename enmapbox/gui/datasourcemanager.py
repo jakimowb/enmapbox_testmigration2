@@ -78,14 +78,14 @@ class DataSourceManager(QObject):
         super(DataSourceManager, self).__init__()
         DataSourceManager._testInstance = self
         self.mSources = list()
-        self.mShowSpatialSourceinQGSAndEnMAPBox = True
+        self.mShowSpatialSourceInQgsAndEnMAPBox = True
         try:
             from hubflow import signals
 
             def addNoneImageSource(path:str):
                 if isinstance(path, str) and os.path.isfile(path):
 
-                    if False and self.mShowSpatialSourceinQGSAndEnMAPBox:
+                    if False and self.mShowSpatialSourceInQgsAndEnMAPBox:
                         if re.search(r'\.pkl$', path):
                             self.addSource(path)
                     else:
@@ -191,7 +191,6 @@ class DataSourceManager(QObject):
         """
         return [ds.uri() for ds in self.sources(sourceTypes=sourceTypes)]
 
-
     def addSources(self, sources:list) -> list:
         """
         Adds a list of new data sources
@@ -206,8 +205,6 @@ class DataSourceManager(QObject):
 
         return added
 
-    @pyqtSlot(str)
-    @pyqtSlot('QString')
     def addSource(self, newDataSource, name=None, icon=None):
         """
         Adds a new data source.
@@ -217,11 +214,24 @@ class DataSourceManager(QObject):
         :return: a list of successfully added DataSource instances.
                  Usually this will be a list with a single DataSource instance only, but in case of container datasets multiple instances might get returned.
         """
-        # do not add pathes if they already exist
-        if isinstance(newDataSource, str) and newDataSource in self.uriList():
+        # do not add paths if they already exist
+        from enmapbox.gui.enmapboxgui import OWNED_BY_SPECLIBWIDGET_KEY
+        if isinstance(newDataSource, str) and newDataSource in self.uriList() or \
+           isinstance(newDataSource, SpectralLibrary) and newDataSource.customProperty(OWNED_BY_SPECLIBWIDGET_KEY):
             return []
 
+
+
         newDataSources = DataSourceFactory.create(newDataSource, name=name, icon=icon)
+
+        from enmapbox import EnMAPBox
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox):
+            hiddenSpeclibUris = []
+            for d  in emb.dockManager().spectraLibraryDocks():
+                sl = d.speclib()
+                hiddenSpeclibUris.append(sl.source())
+            newDataSources = [ds for ds in newDataSources if ds.uri() not in hiddenSpeclibUris]
 
         toAdd = []
         for dsNew in newDataSources:
@@ -1020,7 +1030,7 @@ class DataSourceTreeView(TreeView):
 
         mapDocks = []
         if isinstance(enmapbox, EnMAPBox):
-            mapDocks = enmapbox.dockManager.docks('MAP')
+            mapDocks = enmapbox.mDockManager.docks('MAP')
 
         m = QMenu()
 
@@ -1210,7 +1220,7 @@ class DataSourceTreeView(TreeView):
 
         """
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        EnMAPBox.instance().dockManager.createDock('SPECLIB', speclib=speclib)
+        EnMAPBox.instance().dockManager().createDock('SPECLIB', speclib=speclib)
 
 
 class DataSourcePanelUI(QDockWidget, loadUI('datasourcepanel.ui')):
@@ -1558,7 +1568,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
     def onOpenSpeclib(self, speclib:SpectralLibrary):
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        EnMAPBox.instance().dockManager.createDock('SPECLIB', speclib=speclib)
+        EnMAPBox.instance().dockManager().createDock('SPECLIB', speclib=speclib)
 
     def onShowModelReport(self, model):
         assert isinstance(model, HubFlowDataSource)
@@ -1567,7 +1577,7 @@ class DataSourceManagerTreeModel(TreeModel):
         #this step should be done without writing anything on hard disk
         pathHTML = pfType.report().saveHTML().filename
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        EnMAPBox.instance().dockManager.createDock('WEBVIEW', url=pathHTML)
+        EnMAPBox.instance().dockManager().createDock('WEBVIEW', url=pathHTML)
 
 
 def CreateNodeFromDataSource(dataSource:DataSource, parent=None)->DataSourceTreeNode:

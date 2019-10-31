@@ -771,12 +771,18 @@ class SpectralLibraryDock(Dock):
     def __init__(self, speclib=None, *args, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
+        if not isinstance(speclib, SpectralLibrary):
+            from enmapbox.gui.enmapboxgui import OWNED_BY_SPECLIBWIDGET_KEY
+            speclib = SpectralLibrary()
+            speclib.setCustomProperty(OWNED_BY_SPECLIBWIDGET_KEY, True)
+
         self.mSpeclibWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
+
+
         self.mSpeclibWidget.setMapInteraction(False)
         self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.mSpeclibWidget)
 
-        speclib =self.speclib()
         assert isinstance(speclib, SpectralLibrary)
         name = kwds.get('name')
         if isinstance(name, str):
