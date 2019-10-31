@@ -852,6 +852,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                 layerRegistry.addMapLayers(mapLayers)
 
             i = parentIndex.row()
+            i = row
             if len(mapLayers) > 0:
                 for l in mapLayers:
                     parentLayerGroup.insertLayer(i, l)
