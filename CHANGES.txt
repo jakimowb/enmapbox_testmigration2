@@ -7,7 +7,8 @@ Version 3.5
     * Spectral Profile Source panel: controls how to extract SpectralProfiles and where to show them
     * supports import of multi-dimensional raster formats, like HDF and netCDF
     * ImageCube viewer to visualize hyperspectral data cubes (requires opengl)
-    * Added CONTRIBUTOR_GUIDELINES.md
+
+    * Added CONTRIBUTORS.md and "How to contribute" section to online documention
     * Documentation uses HYPERedu stylesheet (https://eo-college.org/members/hyperedu/)
 
 Version 3.4

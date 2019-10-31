@@ -343,7 +343,7 @@ class CanvasLinkTreeNodeGroup(TreeNode):
         from enmapbox import EnMAPBox
 
         otherMaps = collections.OrderedDict()
-        for mapDock in EnMAPBox.instance().dockManager.docks('MAP'):
+        for mapDock in EnMAPBox.instance().dockManager().docks('MAP'):
             assert isinstance(mapDock, MapDock)
             if mapDock.mapCanvas() == self.canvas:
                 continue
@@ -1201,6 +1201,15 @@ class DockManager(QObject):
 
     def dataSourceManager(self)->DataSourceManager:
         return self.mDataSourceManager
+
+
+    def mapDocks(self)->typing.List[SpectralLibraryDock]:
+        return [d for d in self if isinstance(d, MapDock)]
+
+    def spectraLibraryDocks(self)->typing.List[SpectralLibraryDock]:
+        return [d for d in self if isinstance(d, SpectralLibraryDock)]
+
+
 
     def removeDataSource(self, dataSource):
         """

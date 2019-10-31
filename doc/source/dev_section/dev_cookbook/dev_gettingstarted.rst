@@ -236,19 +236,19 @@ Dock titles, visibility and behaviour can be modified::
 Docks can be accessed similar to `DataSources`::
 
         from enmapbox.gui.docks import Dock, SpectralLibraryDock
-        for dock in enmapBox.dockManager.docks():
+        for dock in enmapBox.dockManager().docks():
             assert isinstance(dock, Dock)
             print(dock)
 
 The `dockType` keyword serves as filter::
 
         # list map docks only
-        for dock in enmapBox.dockManager.docks(dockType='MAP'):
+        for dock in enmapBox.dockManager().docks(dockType='MAP'):
             assert isinstance(dock, Dock)
             print(dock)
 
         # list all spectral library docks
-        for dock in enmapBox.dockManager.docks(dockType='SPELCIB'):
+        for dock in enmapBox.dockManager().docks(dockType='SPELCIB'):
             assert isinstance(dock, Dock)
             print(dock)
 

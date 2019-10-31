@@ -40,6 +40,7 @@ HIDDEN_ENMAPBOX_LAYER_MAPCANVAS = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_MAPCANVAS'
 HIDDEN_ENMAPBOX_LAYER_ID = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_ID'
 HIDDEN_ENMAPBOX_LAYER_SOURCE = 'ENMAPBOX/HIDDEN_ENMAPBOX_SOURCE_URI'
 
+OWNED_BY_SPECLIBWIDGET_KEY = 'OWNED_BY_SPECLIBWIDGET'
 
 
 class EnMAPBoxDocks(enum.Enum):
@@ -247,17 +248,17 @@ class EnMAPBox(QgisInterface, QObject):
 
         QgsProject.instance().layersAdded.connect(self.addSources)
 
-        self.dockManager = DockManager()
-        self.dockManager.connectDataSourceManager(self.dataSourceManager)
+        self.mDockManager = DockManager()
+        self.mDockManager.connectDataSourceManager(self.dataSourceManager)
 
         #
         self.dataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
         self.dataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
 
-        self.dockManager.connectDockArea(self.ui.dockArea)
+        self.mDockManager.connectDockArea(self.ui.dockArea)
         self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
 
-        self.ui.dockPanel.connectDockManager(self.dockManager)
+        self.ui.dockPanel.connectDockManager(self.mDockManager)
         self.ui.dockPanel.dockTreeView.currentLayerChanged.connect(self.onCurrentLayerChanged)
         model = self.ui.dockPanel.dockTreeView.model()
         assert isinstance(model, DockManagerTreeModel)
@@ -279,16 +280,16 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.onCurrentLayerChanged(None)
         self.ui.centralFrame.sigDragEnterEvent.connect(
-            lambda event: self.dockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
+            lambda event: self.mDockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
         self.ui.centralFrame.sigDragMoveEvent.connect(
-            lambda event: self.dockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
+            lambda event: self.mDockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
         self.ui.centralFrame.sigDragLeaveEvent.connect(
-            lambda event: self.dockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
+            lambda event: self.mDockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
         self.ui.centralFrame.sigDropEvent.connect(
-            lambda event: self.dockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
+            lambda event: self.mDockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
 
-        self.dockManager.sigDockAdded.connect(self.onDockAdded)
-        self.dockManager.sigDockRemoved.connect(self.onDockRemoved)
+        self.mDockManager.sigDockAdded.connect(self.onDockAdded)
+        self.mDockManager.sigDockRemoved.connect(self.onDockRemoved)
 
 
         self.initActions()
@@ -331,6 +332,9 @@ class EnMAPBox(QgisInterface, QObject):
         grp.setCustomProperty('nodeHidden',  'true' if bHide else 'false')
         ltv.setRowHidden(index.row(), index.parent(), bHide)
         return grp
+
+    def dockManager(self)->enmapbox.gui.dockmanager.DockManager:
+        return self.mDockManager
 
     def _hiddenLayers(self)->list:
         return [l.layer() for l in self._hiddenQGISLayerGroup().findLayers() if isinstance(l.layer(), QgsMapLayer)]
@@ -393,7 +397,7 @@ class EnMAPBox(QgisInterface, QObject):
             for ltn in mapNode.findLayers():
                 assert isinstance(ltn, QgsLayerTreeLayer)
                 qLyr = ltn.layer()
-                if isinstance(qLyr, QgsMapLayer):
+                if isinstance(qLyr, QgsMapLayer) and not isinstance(qLyr, SpectralLibrary):
                     eLayerId = qLyr.id()
                     LUT_ECANVAS_LAYERS[(eCanvasID, eLayerId)] = qLyr
 
@@ -620,13 +624,13 @@ class EnMAPBox(QgisInterface, QObject):
     def initActions(self):
         # link action to managers
         self.ui.mActionAddDataSource.triggered.connect(lambda : self.dataSourceManager.addDataSourceByDialog())
-        self.ui.mActionAddMapView.triggered.connect(lambda: self.dockManager.createDock('MAP'))
-        self.ui.mActionAddTextView.triggered.connect(lambda: self.dockManager.createDock('TEXT'))
-        self.ui.mActionAddWebView.triggered.connect(lambda: self.dockManager.createDock('WEBVIEW'))
-        self.ui.mActionAddMimeView.triggered.connect(lambda: self.dockManager.createDock('MIME'))
-        self.ui.mActionAddSpeclibView.triggered.connect(lambda: self.dockManager.createDock('SPECLIB'))
+        self.ui.mActionAddMapView.triggered.connect(lambda: self.mDockManager.createDock('MAP'))
+        self.ui.mActionAddTextView.triggered.connect(lambda: self.mDockManager.createDock('TEXT'))
+        self.ui.mActionAddWebView.triggered.connect(lambda: self.mDockManager.createDock('WEBVIEW'))
+        self.ui.mActionAddMimeView.triggered.connect(lambda: self.mDockManager.createDock('MIME'))
+        self.ui.mActionAddSpeclibView.triggered.connect(lambda: self.mDockManager.createDock('SPECLIB'))
         self.ui.mActionLoadExampleData.triggered.connect(lambda: self.openExampleData(
-            mapWindows=1 if len(self.dockManager.docks(MapDock)) == 0 else 0))
+            mapWindows=1 if len(self.mDockManager.docks(MapDock)) == 0 else 0))
 
         # activate map tools
 
@@ -750,10 +754,8 @@ class EnMAPBox(QgisInterface, QObject):
             slw = dock.speclibWidget()
             assert isinstance(slw, SpectralLibraryWidget)
             slw.plotWidget().backgroundBrush().setColor(QColor('black'))
-            slw.sigFilesCreated.connect(self.addSources)
-            #self.sigCurrentSpectraChanged.connect(dock.mSpeclibWidget.setCurrentSpectra)
             self.spectralProfileBridge().addDestination(slw)
-            #self.mapLayerStore().addMapLayer(dock.speclib())
+            slw.sigFilesCreated.connect(self.addSources)
 
         if isinstance(dock, MapDock):
 
@@ -1024,7 +1026,7 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigSpectralLibraryRemoved[str].emit(dataSource.uri())
             self.sigSpectralLibraryRemoved[DataSourceSpectralLibrary].emit(dataSource)
 
-        self.dockManager.removeDataSource(dataSource)
+        self.mDockManager.removeDataSource(dataSource)
 
     def onDataSourceAdded(self, dataSource:DataSource):
 
@@ -1122,7 +1124,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.mCurrentSpectra = spectra[:]
 
         # check if any SPECLIB window was opened
-        if len(self.dockManager.docks('SPECLIB')) == 0:
+        if len(self.dockManager().docks('SPECLIB')) == 0:
             #and getattr(self, '_initialSpeclibDockCreated', False) == False:
             dock = self.createDock('SPECLIB')
             assert isinstance(dock, SpectralLibraryDock)
@@ -1159,7 +1161,7 @@ class EnMAPBox(QgisInterface, QObject):
         :param kwds:
         :return:
         """
-        return self.dockManager.createDock(*args, **kwds)
+        return self.mDockManager.createDock(*args, **kwds)
 
     def removeDock(self, *args, **kwds):
         """
@@ -1168,7 +1170,7 @@ class EnMAPBox(QgisInterface, QObject):
         :param args:
         :param kwds:
         """
-        self.dockManager.removeDock(*args, **kwds)
+        self.mDockManager.removeDock(*args, **kwds)
 
     def dockManageTreeModel(self)->DockManagerTreeModel:
         """
@@ -1183,7 +1185,7 @@ class EnMAPBox(QgisInterface, QObject):
         :param dockType: optional, specifies the type of dock widgets to return
         :return: [list-of-DockWidgets]
         """
-        return self.dockManager.docks(dockType=dockType)
+        return self.mDockManager.docks(dockType=dockType)
 
     def addSources(self, sourceList):
         """
@@ -1688,7 +1690,7 @@ class EnMAPBox(QgisInterface, QObject):
         :return: [list-of-MapCanvases]
         """
         from enmapbox.gui.mapcanvas import MapDock
-        return [d.mCanvas for d in self.dockManager.docks() if isinstance(d, MapDock)]
+        return [d.mCanvas for d in self.mDockManager.docks() if isinstance(d, MapDock)]
 
     def mapCanvas(self, virtual=False)->MapCanvas:
         """
@@ -1711,7 +1713,7 @@ class EnMAPBox(QgisInterface, QObject):
                 self.mQgisInterfaceMapCanvas.setExtent(layers[0].extent())
 
             return self.mQgisInterfaceMapCanvas
-        mapDocks = self.dockManager.docks(dockType='MAP')
+        mapDocks = self.mDockManager.docks(dockType='MAP')
         if len(mapDocks) > 0:
             return mapDocks[0].mapCanvas()
         else:
@@ -1753,7 +1755,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def legendInterface(self):
         """DockManager implements legend interface"""
-        return self.dockManager
+        return self.mDockManager
 
     def refreshLayerSymbology(self, layerId):
         pass
