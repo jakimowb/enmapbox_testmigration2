@@ -25,7 +25,7 @@
 ***************************************************************************
 """
 
-import sys, os, site, re
+import sys, os, site, re, pathlib
 
 import qgis
 from qgis.gui import QgisInterface
@@ -127,11 +127,17 @@ def initEnMAPBoxResources():
         import pyqtgraph
     except ModuleNotFoundError as ex:
 
-        from .externals.qps.externals import pyqtgraph
-        print('Could not import pyqtgraph. Use internal package from {}'.format(pyqtgraph.__file__))
-        sys.modules['pyqtgraph'] = pyqtgraph
-        s = ""
+        dirQpsExternals = pathlib.Path(DIR_REPO) / 'enmapbox' / 'externals' / 'qps' / 'externals'
+        assert os.path.isdir(dirQpsExternals)
 
+        import site
+        #print('ADD MODIFIED PYQTGRAPH TO SITE_LIBS')
+        site.addsitedir(dirQpsExternals)
+        #from .externals.qps.externals import pyqtgraph
+        #print('Could not import pyqtgraph. Use internal package from {}'.format(pyqtgraph.__file__))
+
+        #sys.modules['pyqtgraph'] = pyqtgraph
+        s = ""
 
 
 def initEditorWidgets():

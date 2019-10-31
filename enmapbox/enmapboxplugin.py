@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-import os, sys, site, importlib
+import os, sys, site, importlib, pathlib
 
 from qgis.core import QgsApplication, QgsProcessingProvider, QgsProcessingAlgorithm, Qgis
 from qgis.gui import QgisInterface
