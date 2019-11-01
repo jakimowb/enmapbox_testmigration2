@@ -94,20 +94,23 @@ class Tests(unittest.TestCase):
 
         emb = EnMAPBox()
         lyr = TestObjects.createRasterLayer()
-        lyr.setName('LAYER')
+        lyr.setName('RASTER')
         lyr2 = TestObjects.createVectorLayer()
+        lyr2.setName('VECTOR')
         emb.addSource(lyr)
         emb.addSource(lyr2)
 
         mapDock1 = emb.createDock('MAP')
         mapDock1.setTitle('MAP1')
         self.assertIsInstance(mapDock1, MapDock)
-        mapDock1.mapCanvas().setLayers([lyr])
+        mapDock1.mapCanvas().setLayers([lyr, lyr2])
 
 
         mapDock2 = emb.createDock('MAP')
         self.assertIsInstance(mapDock2, MapDock)
         mapDock2.setTitle('MAP2')
+
+        self.assertTrue(len(QgsProject.instance().mapLayers().values()) == 4)
 
         if SHOW_GUI:
             QGIS_APP.exec_()

@@ -35,7 +35,7 @@ import qgis.utils
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui.mapcanvas import MapCanvas
 from enmapbox.gui.dockmanager import DockManager, MapDock, DockManagerTreeModel, MapDockTreeNode
-from enmapbox.gui.datasourcemanager import DataSourceManager, DataSourceSpatial
+from enmapbox.gui.datasourcemanager import DataSourceManager, DataSourceSpatial, DataSourceRaster, DataSourceVector
 
 
 
@@ -45,6 +45,12 @@ HIDDEN_ENMAPBOX_LAYER_STATE = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_STATE'
 #HIDDEN_ENMAPBOX_LAYER_MAPCANVAS = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_MAPCANVAS'
 
 #HIDDEN_ENMAPBOX_LAYER_SOURCE = 'ENMAPBOX/HIDDEN_ENMAPBOX_SOURCE_URI'
+def qgisLayerNames() -> typing.List[str]:
+    """
+    Returns the current QGIS Layer names
+    :return:
+    """
+    return sorted([l.name() for l in QgsProject.instance().mapLayers().values()])
 
 def returnNone():
     return None
@@ -138,7 +144,7 @@ class HiddenQGISLayerManager(QObject):
 
         # search in data sources
         for ds in self.dataSourceManager():
-            if isinstance(ds, DataSourceSpatial):
+            if isinstance(ds, (DataSourceRaster, DataSourceVector)):
                 lyr = ds.mapLayer()
                 if type(lyr) in [QgsRasterLayer, QgsVectorLayer]:
                     state = HiddenLayerState(lyr.id(), 'EnMAP-Box', lyr.name())
@@ -297,8 +303,8 @@ class HiddenQGISLayerManager(QObject):
         ltv = qgis.utils.iface.layerTreeView()
         index = ltv.model().node2index(grp)
         grp.setItemVisibilityChecked(False)
-        #grp.setCustomProperty('nodeHidden',  'true' if self.mHideGroup else 'false')
-        #ltv.setRowHidden(index.row(), index.parent(), self.mHideGroup)
+        grp.setCustomProperty('nodeHidden',  'true' if self.mHideGroup else 'false')
+        ltv.setRowHidden(index.row(), index.parent(), self.mHideGroup)
         return grp
 
     def hiddenLayers(self, enmapboxLayerId:str)->typing.List[QgsMapLayer]:
@@ -344,6 +350,7 @@ class HiddenQGISLayerManager(QObject):
 
         if len(newQgisLayers) > 0:
             QgsProject.instance().addMapLayers(newQgisLayers, False)
+        s = ""
 
 
     def hiddenLayerName(self, state:HiddenLayerState):
