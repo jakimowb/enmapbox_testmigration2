@@ -7,9 +7,9 @@ Version 3.5
     * Spectral Profile Source panel: controls how to extract SpectralProfiles and where to show them
     * supports import of multi-dimensional raster formats, like HDF and netCDF
     * ImageCube viewer to visualize hyperspectral data cubes (requires opengl)
-
     * Added CONTRIBUTORS.md and "How to contribute" section to online documention
     * Documentation uses HYPERedu stylesheet (https://eo-college.org/members/hyperedu/)
+    * fixed start up of EO Time Series Viewer and Virtual Raster Builder QGIS Plugins from EnMAP-Box
 
 Version 3.4
     * Spectral Library Viewer: import spectral profiles from raster file based on vector positions

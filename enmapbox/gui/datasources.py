@@ -632,18 +632,28 @@ class DataSourceRaster(DataSourceSpatial):
 class DataSourceVector(DataSourceSpatial):
     def __init__(self, uri,  name=None, icon=None, providerKey:str=None):
         super(DataSourceVector, self).__init__(uri, name, icon, providerKey)
-        self.mGeomType = None
+
+        if name is None:
+            try:
+                if providerKey == 'WFS':
+                    self.setName('WFS:'+ uri)
+                else:
+                    self.setName(os.path.basename(uri))
+            except Exception as ex:
+                self.setName(str(uri))
+
+
+        self.mLayer = self.createUnregisteredMapLayer()
+
         self.updateMetadata()
 
-        if name is None and providerKey == 'WFS':
-            self.setName('WFS:'+self.name())
 
     def geometryType(self)->QgsWkbTypes:
         """
         Returns the QgsWkbTypes.GeometryType
         :return: QgsWkbTypes.GeometryType
         """
-        return self.mGeomType
+        return self.mapLayer().geometryType()
 
     def createUnregisteredMapLayer(self)->QgsVectorLayer:
         """
@@ -659,8 +669,8 @@ class DataSourceVector(DataSourceSpatial):
             # do not ask!
             QgsSettings().setValue(key, 'useProject')
 
-
-        lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider)
+        loptions = QgsVectorLayer.LayerOptions(False, False)
+        lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider, options=loptions)
 
         if isPrompt:
             QgsSettings().setValue(key, v)
@@ -672,15 +682,13 @@ class DataSourceVector(DataSourceSpatial):
 
     def updateMetadata(self, *args, **kwds):
         super(DataSourceVector, self).updateMetadata(*args, **kwds)
-        lyr = self.createUnregisteredMapLayer()
 
-        self.mGeomType = lyr.geometryType()
-
-        if self.mGeomType in [QgsWkbTypes.PointGeometry]:
+        gt = self.geometryType()
+        if gt in [QgsWkbTypes.PointGeometry]:
             self.mIcon = QIcon(':/enmapbox/gui/ui/icons/mIconPointLayer.svg')
-        elif self.mGeomType in [QgsWkbTypes.LineGeometry]:
+        elif gt in [QgsWkbTypes.LineGeometry]:
             self.mIcon = QIcon(':/images/themes/default/mIconLineLayer.svg')
-        elif self.mGeomType in [QgsWkbTypes.PolygonGeometry]:
+        elif gt in [QgsWkbTypes.PolygonGeometry]:
             self.mIcon = QIcon(':/images/themes/default/mIconPolygonLayer.svg')
 
 
