@@ -22,12 +22,16 @@
 import os, sys, importlib
 import qgis.utils
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QMenu, QAction
+from qgis.PyQt.QtWidgets import QMessageBox
 from enmapbox.gui.applications import EnMAPBoxApplication
 
 APP_DIR = os.path.dirname(__file__)
 
-def timeseriesviewerPluginInstalled()->bool:
+def qgisPluginInstalled()->bool:
+    """
+    Returns True if the EO Time Series Viewer QGIS Plugin is installed
+    :return: bool
+    """
     qgis.utils.updateAvailablePlugins()
     return importlib.util.find_spec('eotimeseriesviewer') is not None
 
@@ -38,33 +42,52 @@ class EOTimeSeriesViewerApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
 
         super(EOTimeSeriesViewerApp, self).__init__(enmapBox, parent=parent)
-        self.mPluginInstalled = timeseriesviewerPluginInstalled()
+        self.mPluginInstalled = qgisPluginInstalled()
+
+        self.name = 'EO Time Series Viewer'
+        self.mTSVInstance = None
+
         if self.mPluginInstalled:
             import eotimeseriesviewer
-            self.name = eotimeseriesviewer.TITLE
             self.version = eotimeseriesviewer.__version__
             self.licence = 'GNU GPL-3'
-
+        else:
+            self.version = 'Unknown'
+            self.licence = 'Unknown'
+        self.mTSVInstance = None
 
     def icon(self):
         if self.mPluginInstalled:
             import eotimeseriesviewer
             return eotimeseriesviewer.icon()
         else:
-            return None
+            return QIcon()
 
     def menu(self, appMenu):
-        if self.mPluginInstalled:
-            a = appMenu.addAction(self.name)
-            a.setIcon(self.icon())
-            a.triggered.connect(self.startGUI)
-            return a
-        return None
+        a = appMenu.addAction(self.name)
+        a.setIcon(self.icon())
+        a.triggered.connect(self.startGUI)
+        return a
+
 
     def startGUI(self, *args):
-        from eotimeseriesviewer.main import TimeSeriesViewer
-        self.tsv = TimeSeriesViewer()
-        self.tsv.show()
+        if qgisPluginInstalled():
+            from eotimeseriesviewer.main import TimeSeriesViewer
+
+            if not isinstance(self.mTSVInstance, TimeSeriesViewer):
+                self.mTSVInstance = TimeSeriesViewer.instance()
+                if not isinstance(self.mTSVInstance, TimeSeriesViewer):
+                    self.mTSVInstance = TimeSeriesViewer()
+                    self.mTSVInstance.ui.sigAboutToBeClosed.connect(self.onTimeSeriesViewerClosed)
+
+            self.mTSVInstance.show()
+
+        else:
+            QMessageBox.information(None, 'Missing QGIS Plugin',
+                                    'Please install and activate the EO Time Series Viewer QGIS Plugin.')
+
+    def onTimeSeriesViewerClosed(self, *args, **kwds):
+        self.mTSVInstance = None
 
 
 
@@ -75,8 +98,4 @@ def enmapboxApplicationFactory(enmapBox):
     :return: [list-of-EnMAPBoxApplications]
     """
 
-    if timeseriesviewerPluginInstalled():
-        return [EOTimeSeriesViewerApp(enmapBox)]
-    else:
-        print('EO Time Series Viewer QGIS Plugin is not installed')
-        return []
+    return [EOTimeSeriesViewerApp(enmapBox)]
