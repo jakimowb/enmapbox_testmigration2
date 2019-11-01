@@ -221,8 +221,10 @@ class DataSourceManager(QObject):
             return []
 
 
-
-        newDataSources = DataSourceFactory.create(newDataSource, name=name, icon=icon)
+        try:
+            newDataSources = DataSourceFactory.create(newDataSource, name=name, icon=icon)
+        except RuntimeError:
+            newDataSources = []
 
         from enmapbox import EnMAPBox
         emb = EnMAPBox.instance()

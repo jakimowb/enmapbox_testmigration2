@@ -673,7 +673,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         """
         return createDockTreeNode(dock, self.rootNode)
 
-    def canFetchMore(self, index):
+    def canFetchMore(self, index)->bool:
         node = self.index2node(index)
         if isinstance(node, LayerTreeNode):
             from enmapbox.gui.datasourcemanager import SpeclibProfilesTreeNode
@@ -688,23 +688,23 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         for node in to_remove:
             self.removeDockNode(node)
 
-    def mapDockTreeNodes(self)->list:
+    def mapDockTreeNodes(self)->typing.List[MapDockTreeNode]:
         """
         Returns all MapDockTreeNodes
         :return: [list-of-MapDockTreeNodes]
         """
         return [n for n in self.rootNode.children() if isinstance(n, MapDockTreeNode)]
 
-    def mapCanvases(self)->list:
+    def mapCanvases(self)->typing.List[MapCanvas]:
         """
         Returns all MapCanvases
         :return: [list-of-MapCanvases]
         """
         return [n.mapCanvas() for n in self.mapDockTreeNodes()]
 
-    def mapLayers(self)->list:
+    def mapLayers(self)->typing.List[QgsMapLayer]:
         """
-        Returns all map layers, also invisible layers that are  currently not added to a QgsMapCanvas
+        Returns all map layers, also invisible layers that are currently not added to a QgsMapCanvas
         :return: [list-of-QgsMapLayer]
         """
         layers = []

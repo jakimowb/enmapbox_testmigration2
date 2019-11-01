@@ -979,7 +979,7 @@ class MapCanvas(QgsMapCanvas):
 
     def mapTools(self)->MapCanvasMapTools:
         """
-        Retursn the map tools
+        Returns the map tools
         :return: MapCanvasMapTools
         """
         return self.mMapTools
@@ -1376,7 +1376,8 @@ class MapCanvas(QgsMapCanvas):
         if isinstance(EnMAPBox.instance(), EnMAPBox):
             store = EnMAPBox.instance().mapLayerStore()
         else:
-            store = QgsProject.instance()
+            self._mapStore = QgsMapLayerStore()
+            store = self._mapStore
         store.addMapLayers(newSet)
 
         super(MapCanvas, self).setLayers(newSet)
@@ -1384,7 +1385,7 @@ class MapCanvas(QgsMapCanvas):
         self.setRenderFlag(True)
         self.refreshAllLayers()
 
-        #signal what has been added, what has been removed
+        # signal what has been added, what has been removed
         removedLayers = [l for l in lastSet if l not in newSet]
         addedLayers = [l for l in newSet if l not in lastSet]
 

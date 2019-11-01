@@ -11,7 +11,7 @@
 *                                                                         *
 *   This program is free software; you can redistribute it and/or modify  *
 *   it under the terms of the GNU General Public License as published by  *
-*   the Free Software Foundation; either version 2 of the License, or     *
+*   the Free Software Foundation; either version 3 of the License, or     *
 *   (at your option) any later version.                                   *
 *                                                                         *
 ***************************************************************************
@@ -34,11 +34,6 @@ from enmapbox.gui.spectralprofilesources import SpectralProfileSourcePanel, Spec
 
 SETTINGS = enmapbox.enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
-
-HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
-HIDDEN_ENMAPBOX_LAYER_MAPCANVAS = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_MAPCANVAS'
-HIDDEN_ENMAPBOX_LAYER_ID = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_ID'
-HIDDEN_ENMAPBOX_LAYER_SOURCE = 'ENMAPBOX/HIDDEN_ENMAPBOX_SOURCE_URI'
 
 OWNED_BY_SPECLIBWIDGET_KEY = 'OWNED_BY_SPECLIBWIDGET'
 
@@ -236,47 +231,22 @@ class EnMAPBox(QgisInterface, QObject):
 
         #
         splash.showMessage('Init DataSourceManager')
-        self.dataSourceManager = DataSourceManager()
-
-        self.dataSourceManager.sigDataSourceAdded.connect(self.updateHiddenQGISLayers)
-        self.dataSourceManager.sigDataSourceRemoved.connect(self.updateHiddenQGISLayers)
-
-        #self.sigMapCanvasAdded.connect(self.updateHiddenQGISLayers)
-        self.sigMapCanvasRemoved.connect(self.updateHiddenQGISLayers)
-        self.sigMapLayersAdded.connect(self.updateHiddenQGISLayers)
-        self.sigMapLayersRemoved.connect(self.updateHiddenQGISLayers)
+        self.mDataSourceManager = DataSourceManager()
 
         QgsProject.instance().layersAdded.connect(self.addSources)
 
         self.mDockManager = DockManager()
-        self.mDockManager.connectDataSourceManager(self.dataSourceManager)
+        self.mDockManager.connectDataSourceManager(self.mDataSourceManager)
 
         #
-        self.dataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
-        self.dataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
+        self.mDataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
+        self.mDataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
 
         self.mDockManager.connectDockArea(self.ui.dockArea)
-        self.ui.dataSourcePanel.connectDataSourceManager(self.dataSourceManager)
+        self.ui.dataSourcePanel.connectDataSourceManager(self.mDataSourceManager)
 
         self.ui.dockPanel.connectDockManager(self.mDockManager)
         self.ui.dockPanel.dockTreeView.currentLayerChanged.connect(self.onCurrentLayerChanged)
-        model = self.ui.dockPanel.dockTreeView.model()
-        assert isinstance(model, DockManagerTreeModel)
-
-        def onLayerNameChanged(node, name):
-            hiddenLayers = []
-            if type(node) == QgsLayerTreeLayer:
-                eLyr = node.layer()
-                hiddenLayers = [l for l in self._hiddenLayers() if l.customProperty(HIDDEN_ENMAPBOX_LAYER_ID) == eLyr.id()]
-            elif type(node) == MapDockTreeNode:
-                # refresh all layer names from this map canvas
-                canvasID = id(node.mapCanvas())
-                hiddenLayers = [l for l in self._hiddenLayers() if l.customProperty(HIDDEN_ENMAPBOX_LAYER_MAPCANVAS) == canvasID]
-
-            if len(hiddenLayers) > 0:
-                self.updateHiddenLayerNames(hiddenLayers=hiddenLayers)
-
-        model.rootGroup().nameChanged.connect(onLayerNameChanged)
 
         self.onCurrentLayerChanged(None)
         self.ui.centralFrame.sigDragEnterEvent.connect(
@@ -308,200 +278,19 @@ class EnMAPBox(QgisInterface, QObject):
         setConfigOption('background', 'k')
         setConfigOption('foreground', 'w')
 
+        from enmapbox.gui.hiddenqgislayers import HiddenQGISLayerManager
+        self.mHiddenLayerManager = HiddenQGISLayerManager(self.mDataSourceManager, self.dockManageTreeModel())
+
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
         QApplication.processEvents()
         splash.hide()
 
-    def _hiddenQGISLayerGroup(self, bHide=True)->QgsLayerTreeGroup:
-        """
-        Returns the hidden QgsLayerTreeGroup in the QGIS Layer Tree
-        :return: QgsLayerTreeGroup
-        """
-        ltv = self.iface.layerTreeView()
-        assert isinstance(ltv, QgsLayerTreeView)
-        root = ltv.model().rootGroup()
-        assert isinstance(root, QgsLayerTreeGroup)
-        grp = root.findGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
-
-        if not isinstance(grp, QgsLayerTreeGroup):
-            grp = root.addGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
-
-        index = ltv.model().node2index(grp)
-        grp.setItemVisibilityChecked(False)
-        grp.setCustomProperty('nodeHidden',  'true' if bHide else 'false')
-        ltv.setRowHidden(index.row(), index.parent(), bHide)
-        return grp
+    def dataSourceManager(self)->enmapbox.gui.datasourcemanager.DataSourceManager:
+        return self.mDataSourceManager
 
     def dockManager(self)->enmapbox.gui.dockmanager.DockManager:
         return self.mDockManager
-
-    def _hiddenLayers(self)->list:
-        return [l.layer() for l in self._hiddenQGISLayerGroup().findLayers() if isinstance(l.layer(), QgsMapLayer)]
-
-
-    def _removeHiddenLayers(self, layers):
-        if len(layers) > 0:
-            hiddenGroup = self._hiddenQGISLayerGroup()
-            for lyr in layers:
-                assert isinstance(lyr, QgsMapLayer)
-                hiddenGroup.removeLayer(lyr)
-
-            for l in layers:
-                l.nameChanged.disconnect()
-                l.rendererChanged.disconnect()
-
-            self.mapLayerStore().removeMapLayers(layers)
-            QgsProject.instance().removeMapLayers([l.id() for l in layers])
-
-
-
-    def _addHiddenLayers(self, layers):
-        hiddenGroup = self._hiddenQGISLayerGroup()
-        QgsProject.instance().addMapLayers(layers, False)
-        for lyr in layers:
-            assert isinstance(lyr, QgsMapLayer)
-            hiddenGroup.addLayer(lyr)
-
-
-    def updateHiddenQGISLayers(self)->int:
-        """
-        Ensures that all Layers used in the EnMAP-Box are available and visible in the QGIS Layer Registry as well
-        e.g. to be visible in the QgsMapLayerComboBox
-
-        Naming:
-            layer name - standard QGIS Layer
-            [EnMAP-Box] filename.ext - EnMAP-Box raster/vector data source without any visible layer
-            [Map Canvas#n] layer name - EnMAP-Box layer in MapCanvas#n
-
-
-        Background: removing layers from the QGIS LayerTree releases its C++ memory. Therefore, we need to maintain
-                    two separated QgsMapLayerRegistries:
-                    1. EnMAPBox.mapLayerRegistry (QgsMapLayerRegistry)
-                    2. QgsProject.instance() (QgsProject) -> same accessors to add/remove map layers
-        """
-
-
-
-        # create Lookup for existing MapCanvas layers
-        LUT_ECANVAS_LAYERS = {}
-
-        model = self.ui.dockPanel.dockTreeView.model()
-        assert isinstance(model, DockManagerTreeModel)
-
-        for mapNode in model.mapDockTreeNodes():
-            assert isinstance(mapNode, MapDockTreeNode)
-            canvas = mapNode.mapCanvas()
-            assert isinstance(canvas, QgsMapCanvas)
-            eCanvasID = id(canvas)
-            for ltn in mapNode.findLayers():
-                assert isinstance(ltn, QgsLayerTreeLayer)
-                qLyr = ltn.layer()
-                if isinstance(qLyr, QgsMapLayer) and not isinstance(qLyr, SpectralLibrary):
-                    eLayerId = qLyr.id()
-                    LUT_ECANVAS_LAYERS[(eCanvasID, eLayerId)] = qLyr
-
-        enmapboxSourceUris = [src.uri() for src in self.dataSourceManager.sources('SPATIAL')]
-        hiddenSourceUris = []
-        hiddenCanvasLayers = []
-        # remove layers that point to unknown, sources, MapCanvases or layer ids
-        toRemove = []
-        for qLyr in self._hiddenLayers():
-            eLayerUri = qLyr.customProperty(HIDDEN_ENMAPBOX_LAYER_SOURCE)
-            eLayerId = qLyr.customProperty(HIDDEN_ENMAPBOX_LAYER_ID)
-            eCanvasID = qLyr.customProperty(HIDDEN_ENMAPBOX_LAYER_MAPCANVAS)
-            key = (eCanvasID, eLayerId)
-
-            if eLayerUri is not None:
-                if eLayerUri not in enmapboxSourceUris:
-                    toRemove.append(qLyr)
-                else:
-                    hiddenSourceUris.append(eLayerUri)
-            elif eLayerId is not None:
-                if key not in LUT_ECANVAS_LAYERS.keys():
-                    toRemove.append(qLyr)
-                else:
-                    hiddenCanvasLayers.append(key)
-        self._removeHiddenLayers(toRemove)
-
-        toAdd = []
-
-        # add missing source layers
-        for src in self.dataSourceManager.sources('SPATIAL'):
-            assert isinstance(src, DataSourceSpatial)
-            if src.uri() not in hiddenSourceUris:
-                qLyr = src.createUnregisteredMapLayer()
-                qLyr.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_SOURCE, src.uri())
-                qLyr.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_MAPCANVAS, None)
-                qLyr.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_ID, None)
-                toAdd.append(qLyr)
-
-        # add missing canvas layers.
-
-        for key, eLyr in LUT_ECANVAS_LAYERS.items():
-            if not isinstance(eLyr, QgsMapLayer):
-                s = ""
-            if key not in hiddenCanvasLayers:
-                eCanvasID, eLayerId = key
-                assert eLayerId == eLyr.id()
-                qLyr = eLyr.clone()
-                qLyr.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_SOURCE, None)
-                qLyr.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_MAPCANVAS, eCanvasID)
-                qLyr.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_ID, eLyr.id())
-                #eLyr.nameChanged.connect(lambda *args, eLyr=eLyr, qLyr=qLyr: self.updateHiddenLayerName(eLyr, qLyr))
-                eLyr.nameChanged.connect(self.updateHiddenLayerNames)
-                eLyr.rendererChanged.connect(lambda *args, eLyr=eLyr, qLyr=qLyr: self.updateHiddenLayerRenderer(eLyr, qLyr))
-                toAdd.append(qLyr)
-        self._addHiddenLayers(toAdd)
-        self.updateHiddenLayerNames()
-
-    def updateHiddenLayerName(self, eLyr:QgsMapLayer, qLyr:QgsMapLayer):
-        self.updateHiddenLayerNames(hiddenLayers=[qLyr])
-
-    def updateHiddenLayerRenderer(self, eLyr: QgsMapLayer, qLyr: QgsMapLayer):
-        if qLyr.id() in QgsProject.instance().mapLayers().keys() and \
-            qLyr.customProperty(HIDDEN_ENMAPBOX_LAYER_ID) == eLyr.id():
-            qLyr.setRenderer(eLyr.renderer().clone())
-
-    def updateHiddenLayerNames(self, hiddenLayers=None):
-        hiddenGroup = self._hiddenQGISLayerGroup()
-        enmapboxLayerNames = {}
-        enmapboxCanvasNames = {}
-        enmapboxSourceNames = {}
-
-
-        for eLyr in self.mapLayers():
-            enmapboxLayerNames[eLyr.id()] = eLyr.name()
-        for c in self.mapCanvases():
-            assert isinstance(c, MapCanvas)
-            enmapboxCanvasNames[id(c)] = c.windowTitle()
-        for src in self.dataSourceManager.sources('SPATIAL'):
-            assert isinstance(src, DataSource)
-            enmapboxSourceNames[src.uri()] = src.name()
-
-        if hiddenLayers is None:
-            hiddenLayers = [ltn.layer() for ltn in hiddenGroup.findLayers() if isinstance(ltn.layer(), QgsMapLayer)]
-
-        for qLyr in hiddenLayers:
-            assert isinstance(qLyr, QgsMapLayer)
-            eLayerId = qLyr.customProperty(HIDDEN_ENMAPBOX_LAYER_ID)
-            eLayerUri = qLyr.customProperty(HIDDEN_ENMAPBOX_LAYER_SOURCE)
-            eCanvasID = qLyr.customProperty(HIDDEN_ENMAPBOX_LAYER_MAPCANVAS)
-
-            eLayerName = enmapboxLayerNames.get(eLayerId)
-            eCanvasName = enmapboxCanvasNames.get(eCanvasID)
-            eSourceName = enmapboxSourceNames.get(eLayerUri, '')
-
-            if eLayerId is None:
-                # it's a source layer
-                name = '[EnMAP-Box] {}'.format(eSourceName)
-            else:
-                # layer available in a map canvas
-                name = '[{}] {}'.format(eCanvasName, eLayerName)
-
-            ltn = self._hiddenQGISLayerGroup().findLayer(qLyr)
-            if isinstance(ltn, QgsLayerTreeLayer):
-                ltn.setName(name)
 
 
     def onCurrentLayerChanged(self, layer):
@@ -529,7 +318,7 @@ class EnMAPBox(QgisInterface, QObject):
         Returns a list of ClassificationSchemes, derived from datasets known to the EnMAP-Box
         :return: [list-of-ClassificationSchemes
         """
-        return self.dataSourceManager.classificationSchemata()
+        return self.mDataSourceManager.classificationSchemata()
 
     def loadCursorLocationValueInfo(self, spatialPoint:SpatialPoint, mapCanvas:MapCanvas):
         """
@@ -623,7 +412,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def initActions(self):
         # link action to managers
-        self.ui.mActionAddDataSource.triggered.connect(lambda : self.dataSourceManager.addDataSourceByDialog())
+        self.ui.mActionAddDataSource.triggered.connect(lambda : self.mDataSourceManager.addDataSourceByDialog())
         self.ui.mActionAddMapView.triggered.connect(lambda: self.mDockManager.createDock('MAP'))
         self.ui.mActionAddTextView.triggered.connect(lambda: self.mDockManager.createDock('TEXT'))
         self.ui.mActionAddWebView.triggered.connect(lambda: self.mDockManager.createDock('WEBVIEW'))
@@ -955,7 +744,7 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.datasources import DataSourceSpatial
         for dataItem in droppedData:
             if isinstance(dataItem, DataSourceSpatial):
-                dataSources = self.dataSourceManager.addSource(dataItem)
+                dataSources = self.mDataSourceManager.addSource(dataItem)
                 if mapDock is None:
                     mapDock = self.createDock('MAP')
                 mapDock.addLayers([ds.createRegisteredMapLayer() for ds in dataSources])
@@ -983,7 +772,7 @@ class EnMAPBox(QgisInterface, QObject):
                 dock = self.createDock('MAP')
                 assert isinstance(dock, MapDock)
                 lyrs = []
-                for src in self.dataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']):
+                for src in self.mDataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']):
                     lyr = src.createUnregisteredMapLayer()
                     if isinstance(lyr, QgsRasterLayer):
                         r = defaultRasterRenderer(lyr)
@@ -1149,7 +938,7 @@ class EnMAPBox(QgisInterface, QObject):
         :return: [list-of-datasource-URIs (str)]
         """
 
-        sources = self.dataSourceManager.sources(sourceTypes=sourceType)
+        sources = self.mDataSourceManager.sources(sourceTypes=sourceType)
         if onlyUri:
             sources = [ds.uri() for ds in sources]
         return sources
@@ -1193,7 +982,7 @@ class EnMAPBox(QgisInterface, QObject):
         :return: Returns a list of added DataSources or the list of DataSources that were derived from a single data source uri.
         """
         assert isinstance(sourceList, list)
-        return self.dataSourceManager.addSources(sourceList)
+        return self.mDataSourceManager.addSources(sourceList)
 
     def addSource(self, source, name=None):
         """
@@ -1202,7 +991,7 @@ class EnMAPBox(QgisInterface, QObject):
         :param name:
         :return: [list-of-dataSources]
         """
-        return self.dataSourceManager.addSource(source, name=name)
+        return self.mDataSourceManager.addSource(source, name=name)
 
 
     def removeSources(self, dataSourceList:list=None):
@@ -1211,14 +1000,14 @@ class EnMAPBox(QgisInterface, QObject):
         Removes all sources available if `dataSourceList` remains unspecified.
         :param dataSourceList:[list-of-data-sources]
         """
-        self.dataSourceManager.removeSources(dataSourceList)
+        self.mDataSourceManager.removeSources(dataSourceList)
 
     def removeSource(self, source):
         """
         Removes a single datasource
         :param source: DataSource or str
         """
-        self.dataSourceManager.removeSource(source)
+        self.mDataSourceManager.removeSource(source)
 
     def menu(self, title)->QMenu:
         """
@@ -1301,7 +1090,7 @@ class EnMAPBox(QgisInterface, QObject):
 
 
         # remove all hidden layers
-        self.dataSourceManager.clear()
+        self.mDataSourceManager.clear()
         QApplication.processEvents()
 
         store = self.mapLayerStore()
@@ -1666,7 +1455,7 @@ class EnMAPBox(QgisInterface, QObject):
         :return: [list-of-SpectralLibraries]
         """
         candidates = []
-        for source in self.dataSourceManager.sources():
+        for source in self.mDataSourceManager.sources():
             if isinstance(source, DataSourceSpectralLibrary):
                 candidates.append(source.mapLayer())
         for lyr in self.mapLayers():
@@ -1704,7 +1493,7 @@ class EnMAPBox(QgisInterface, QObject):
             self.mQgisInterfaceMapCanvas.setLayers([])
 
             layers = []
-            for ds in self.dataSourceManager.sources():
+            for ds in self.mDataSourceManager.sources():
                 if isinstance(ds, DataSourceSpatial):
                     layers.append(ds.createUnregisteredMapLayer())
             self.mQgisInterfaceMapCanvas.setLayers(layers)
