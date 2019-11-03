@@ -111,7 +111,7 @@ Predict Classification
 In this step the classification will be applied to an image, which is usually (but not necessarily) the same image used in the fitting of the classifier.
 The :menuselection:`Predict Classification` algorithm can be found in the same category (:menuselection:`EnMAP-Box --> Classification`).
 
-* Select the image you want to classify as :guilabel:`Raster` and the :file:`.pkl` from the previous step as :guilabel:`Classifier`.
+* Select the image you want to classify as :guilabel:`Raster` and the :file:`.pkl` file from the previous step as :guilabel:`Classifier`.
 * For the test data this might look something like this:
 
   .. image:: ../../img/predict_classification.png

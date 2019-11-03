@@ -115,9 +115,10 @@ How can I solve the following error...
 
      *and optionally*:
 
-      .. code-block:: batch
+      .. code-block:: sh
 
           python3 -m pip install astropy
+          python3 -m pip install PyOpenGL
 
 ....
 
@@ -131,7 +132,7 @@ How can I solve the following error...
 
         $ python3 -m pip install PyOpenGL
 
-    It might be necessary to install the Python bindings for QtOpenGL in order to start the Image Cube tool.
+    On Linux, it might be necessary to install the Python bindings for QtOpenGL in order to start the Image Cube tool.
 
       .. code-block:: bash
 
