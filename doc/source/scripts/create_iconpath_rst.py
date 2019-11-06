@@ -8,11 +8,12 @@ basedir = join(dirname(abspath(__file__)), '..')
 icondirs = ['../../enmapbox/gui/ui/icons/',
             '../../enmapbox/externals/qps/ui/icons/',
             'img/icons/']
+extentions = ('.svg', '.png')
 
 text = ''
 for dir in icondirs:
     for file in listdir(join(basedir, dir)):
-        if file.endswith('.svg') or file.endswith('.png'):
+        if file.endswith(extentions):
             print(file)
             text += '.. |{}| image:: /{}\n   :width: 28px\n'.format(basename(file)[:-4], join(dir, file))
 
