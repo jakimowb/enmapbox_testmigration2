@@ -113,11 +113,12 @@ How can I solve the following error...
           python3 -m pip install scikit-learn
           python3 -m pip install matplotlib
 
-     *and optionally*:
+      *and optionally*:
 
-      .. code-block:: batch
+      .. code-block:: sh
 
           python3 -m pip install astropy
+          python3 -m pip install PyOpenGL
 
 ....
 
@@ -131,7 +132,7 @@ How can I solve the following error...
 
         $ python3 -m pip install PyOpenGL
 
-    It might be necessary to install the Python bindings for QtOpenGL in order to start the Image Cube tool.
+    On Linux, it might be necessary to install the Python bindings for QtOpenGL in order to start the Image Cube tool.
 
       .. code-block:: bash
 
@@ -152,7 +153,19 @@ How can I solve the following error...
 
 * **Installation of Astropy fails**
 
-  In some cases using an older version does the trick, using pip you can install older versions using the ``==versionnumber`` synthax. ``--force-reinstall``
+
+
+  In case you experience problems with installing **astropy**, you might also try the following:
+
+  * Go to  https://www.lfd.uci.edu/~gohlke/pythonlibs/#astropy and look for the .whl files. Download the newest version
+    which fits your windows and python setup, e.g. *astropy‑3.0.5‑cp37‑cp37m‑win_amd64.whl* for Python 3.7 (*cp37*) on a 64 bit windows (*win_amd64)*.
+  * Install the downloaded file using pip (**change path accordingly!**):
+
+    .. code-block:: batch
+
+       python3 -m pip install C:\Downloads\astropy-3.0.5-cp37-cp37m-win_amd64.whl
+
+  In some cases using an older version also does the trick, using pip you can install older versions using the ``==versionnumber`` synthax. ``--force-reinstall``
   is used here to ensure clean installation.
 
   .. code-block:: batch
