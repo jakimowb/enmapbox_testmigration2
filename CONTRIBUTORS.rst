@@ -1,6 +1,6 @@
 People who made large contributions to the EnMAP-Box
 
-## Earth Observation Lab, Humboldt-Universität zu Berlin, Germany
+Earth Observation Lab, Humboldt-Universität zu Berlin, Germany
 
 * Andreas Rabe <andreas.rabe@geo.hu-berlin.de>
 * Benjamin Jakimow <benjamin.jakimow@geo.hu-berlin.de>
@@ -12,12 +12,12 @@ People who made large contributions to the EnMAP-Box
 * Stefan Ernst <stefan.ernst@geo.hu-berlin.de>
 * Fabian Thiel <fabian.thiel@geo.hu-berlin.de>
 
-## Ludwig-Maximilians-Universität München, Germany
+Ludwig-Maximilians-Universität München, Germany
 
 * Martin Danner <martin.danner@iggf.geo.uni-muenchen.de>
 * Matthias Wocher <m.wocher@iggf.geo.uni-muenchen.de>
 
-## GFZ German Research Centre For Geosciences, Potsdam, Germany
+GFZ German Research Centre For Geosciences, Potsdam, Germany
 
 * Daniel Scheffler <daniel.scheffler@gfz-potsdam.de>
 * Christian Mielke <chmielke@gfz-potsdam.de>

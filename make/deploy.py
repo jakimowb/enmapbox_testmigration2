@@ -21,7 +21,9 @@
 # noinspection PyPep8Naming
 
 import os, sys, re, shutil, zipfile, datetime, requests, http, mimetypes
-
+import docutils
+import docutils.writers
+from qgis.PyQt.QtXml import *
 import os, sys
 
 from os.path import dirname as dn
@@ -224,7 +226,6 @@ def build():
 
 
 
-
     pluginname = cfg.get('plugin', 'name')
     pathZip = jp(DIR_DEPLOY, '{}.{}.zip'.format(pluginname, buildID))
     dirPlugin = jp(DIR_DEPLOY, pluginname)
@@ -236,6 +237,7 @@ def build():
             shutil.copytree(enmapbox.DIR_TESTDATA, os.path.join(dirPlugin, os.path.basename(enmapbox.DIR_TESTDATA)))
         s = ""
 
+    createCHANGELOG(dirPlugin)
 
     # 5. create a zip
     print('Create zipfile...')
@@ -269,6 +271,68 @@ def build():
 
 
     print('Finished')
+
+
+def createCHANGELOG(dirPlugin):
+    """
+    Reads the CHANGELOG.rst and creates the deploy/CHANGELOG (without extension!) for the QGIS Plugin Manager
+    :return:
+    """
+
+    pathMD = os.path.join(DIR_REPO, 'CHANGELOG.rst')
+    pathCL = os.path.join(dirPlugin, 'CHANGELOG')
+
+    os.makedirs(os.path.dirname(pathCL), exist_ok=True)
+    assert os.path.isfile(pathMD)
+    import sphinx.transforms
+    import docutils.core
+
+    overrides = {'stylesheet':None,
+                 'embed_stylesheet':False,
+                 'output_encoding':'utf-8',
+                 }
+
+    html = docutils.core.publish_file(source_path=pathMD, writer_name='html5', settings_overrides=overrides)
+
+    from xml.dom import minidom
+    xml = minidom.parseString(html)
+    #  remove headline
+    for i, node in enumerate(xml.getElementsByTagName('h1')):
+        if i == 0:
+            node.parentNode.removeChild(node)
+        else:
+            node.tagName = 'h4'
+
+    for node in xml.getElementsByTagName('link'):
+        node.parentNode.removeChild(node)
+
+    for node in xml.getElementsByTagName('meta'):
+        if node.getAttribute('name') == 'generator':
+            node.parentNode.removeChild(node)
+
+
+    xml = xml.getElementsByTagName('body')[0]
+    html = xml.toxml()
+    html_cleaned = []
+    for line in html.split('\n'):
+        # line to modify
+        line = re.sub(r'class="[^"]*"', '', line)
+        line = re.sub(r'id="[^"]*"', '', line)
+        line = re.sub(r'<li><p>', '<li>', line)
+        line = re.sub(r'</p></li>', '</li>', line)
+        line = re.sub(r'</?(dd|dt|div|body)[ ]*>', '', line)
+        line = line.strip()
+        if line != '':
+            html_cleaned.append(line)
+    # make html compact
+
+    with open(pathCL, 'w', encoding='utf-8') as f:
+        f.write('\n'.join(html_cleaned))
+
+    if False:
+        with open(pathCL+'.html', 'w', encoding='utf-8') as f:
+            f.write('\n'.join(html_cleaned))
+    s = ""
 
 
 def updateRepositoryXML(path:str=None):

@@ -23,7 +23,7 @@ examples/                       Code examples how to use the EnMAP-Box API
 examples/minimumexample/        Exemplary EnMAP-Box Application
 site-packages/                  Other python libraries the EnMAP-Box depends on
 snippets/                       Small source code snippets.
-CHANGES.txt
+CHANGELOG
 LICENCE.txt
 LICENCE.md
 README.md
