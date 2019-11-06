@@ -37,7 +37,7 @@ class UiLibrary(QComboBox):
         self.addItem('')
 
         # add all speclibs
-        for source in self.enmapBox.dataSourceManager():
+        for source in self.enmapBox.dataSourceManager().mSources:
             if isinstance(source, DataSourceSpectralLibrary):
                 if source.mUri not in self.filenames:
                     self.names.append(source.mName)
