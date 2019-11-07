@@ -45,8 +45,8 @@ def rasterProvider(uri:str) -> str:
         providers.append('wms')
         providers.append('wcs')
 
+    loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
     for p in providers:
-        loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
         lyr = QgsRasterLayer(uri, '', p, options=loptions)
         if lyr.isValid() or len(lyr.subLayers()) > 0:
             return lyr.providerType()
@@ -71,8 +71,9 @@ def vectorProvider(uri:str) -> str:
     if re.search('url=', uri):
         providers.insert(0,providers.pop(providers.index('WFS')))
 
+    loptions = QgsVectorLayer.LayerOptions(False, False)
     for p in providers:
-        lyr = QgsVectorLayer(uri, '', p)
+        lyr = QgsVectorLayer(uri, '', p, options=loptions)
         if lyr.isValid():
             return lyr.providerType()
     return None
@@ -669,7 +670,7 @@ class DataSourceVector(DataSourceSpatial):
             # do not ask!
             QgsSettings().setValue(key, 'useProject')
 
-        loptions = QgsVectorLayer.LayerOptions(False, False)
+        loptions = QgsVectorLayer.LayerOptions(True, False)
         lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider, options=loptions)
 
         if isPrompt:
