@@ -1,5 +1,7 @@
 .. include:: /icon_links.rst
 
+.. _tut_urban_unmixing:
+
 =============================================
 Regression-based unmixing of urban land cover
 =============================================
