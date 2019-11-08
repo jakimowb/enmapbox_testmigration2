@@ -4,8 +4,10 @@ CHANGELOG
 Version 3.5
 -----------
 
-(including last hotfixes from 2019-11-06)
+(including last hotfixes from 2019-11-08)
 
+* vector layer styling is loaded by default
+* fixed error that was thrown when closing the EnMAP-Box
 * fixed bug in SynthMixApplication
 * Spectral Library Viewer: import and export of ASD, EcoSIS and SPECCHIO csv/binary files
 * Spectral Profile Source panel: controls how to extract SpectralProfiles and where to show them
