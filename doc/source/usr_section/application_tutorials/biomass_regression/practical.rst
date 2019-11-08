@@ -72,6 +72,7 @@ containing point based biomass estimates sampled from an existing LiDAR derived 
 
 .. [4] Dubayah, R.O., A. Swatantran, W. Huang, L. Duncanson, H. Tang, K. Johnson, J.O. Dunne, and G.C. Hurtt. 2017. CMS: LiDAR-derived Biomass, Canopy Height and Cover, Sonoma County, California, 2013. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1523
 
+|
 
 Exercise A: Introduction to the EnMAP-Box - Remote sensing of terrestrial ecosystems
 ************************************************************************************
@@ -353,8 +354,8 @@ Exercise B: Regression based mapping - estimating biomass
   which we will now use to validate the biomass predictions. Open and link these withheld samples in a new
   Map View. Compare the biomass values in the withheld samples to the model predicted biomass estimates.
   We will use these reference values to statistically evaluate our biomass predictions.
-* In the :guilabel:`Processing Toolbox`, go to the EnMAP-Box algorithms, expand the Accuracy Assessment menu,
-  and select Regression Performance. Run the Regression Performance algorithm with the following inputs:
+* In the :guilabel:`Processing Toolbox`, go to :menuselection:`EnMAP-Box --> Accuracy Assessment --> Regression Performance`.
+  Run the Regression Performance algorithm with the following inputs:
 
   * :guilabel:`Prediction`: :file:`biomass_estimation.bsq`
   * :guilabel:`Reference`: :file:`biomassSample_compliment.bsq`
@@ -375,6 +376,8 @@ Learning Activities
   * **B2**: How do the biomass estimates compare to the withheld samples? How do they compare to the training samples?
   * **B3**: Discuss the accuracy results, both in terms of the statistical measures, as well as the form of the scatterplot.
 
+
+|
 
 Exercise C: Introduction to ImageMath - Creating an NDVI mask
 *************************************************************
@@ -442,7 +445,7 @@ Exercise C: Introduction to ImageMath - Creating an NDVI mask
 
   .. code-block:: python
 
-     NDVI = (NIR - RED)\\(NIR + RED)
+     NDVI = (NIR - RED)/(NIR + RED)
 
   In the :guilabel:`Outputs` panel, define the output variable name as ``NDVI``, and select an output file
   path and file name (e.g. :file:`C:\Users\USERNAME\Desktop\NDVI.bsq`). Note, if you leave the file name black, the output
