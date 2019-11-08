@@ -55,7 +55,7 @@ class testClassUtils(unittest.TestCase):
         pt2 = pickle.loads(d)
 
 
-        self.assertEquals(pt1, pt2)
+        self.assertEqual(pt1, pt2)
 
 
     def test_gdalDataset(self):
@@ -81,7 +81,7 @@ class testClassUtils(unittest.TestCase):
         ds = gdalDataset(enmap)
         lyr = QgsRasterLayer(enmap)
 
-        self.assertEquals(ds.GetGeoTransform(), layerGeoTransform(lyr))
+        self.assertEqual(ds.GetGeoTransform(), layerGeoTransform(lyr))
 
         self.assertIsInstance(ds, gdal.Dataset)
         self.assertIsInstance(lyr, QgsRasterLayer)

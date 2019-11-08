@@ -799,6 +799,9 @@ class EnMAPBox(QgisInterface, QObject):
         Reacts on removed data sources
         :param dataSource: DataSource
         """
+        assert isinstance(dataSource, DataSource)
+
+        self.mDockManager.removeDataSource(dataSource)
 
         self.sigDataSourceRemoved[str].emit(dataSource.uri())
         self.sigDataSourceRemoved[DataSource].emit(dataSource)
@@ -815,7 +818,7 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigSpectralLibraryRemoved[str].emit(dataSource.uri())
             self.sigSpectralLibraryRemoved[DataSourceSpectralLibrary].emit(dataSource)
 
-        self.mDockManager.removeDataSource(dataSource)
+
 
     def onDataSourceAdded(self, dataSource:DataSource):
 
@@ -1082,23 +1085,24 @@ class EnMAPBox(QgisInterface, QObject):
     def closeEvent(self, event):
         assert isinstance(event, QCloseEvent)
 
-        # de-refere the EnMAP-Box Singleton
+
+
+        try:
+            # remove all hidden layers
+            self.mDataSourceManager.clear()
+            QApplication.processEvents()
+
+            store = self.mapLayerStore()
+            toRemove = store.mapLayers().values()
+            toRemoveIDs = [l.id() for l in toRemove]
+            store.removeMapLayers(toRemove)
+            QgsProject.instance().removeMapLayers(toRemoveIDs)
+            QApplication.processEvents()
+        except Exception as ex:
+            messageLog(str(ex), Qgis.Critical)
+        # de-refer the EnMAP-Box Singleton
         EnMAPBox._instance = None
-
-
         self.sigClosed.emit()
-
-
-        # remove all hidden layers
-        self.mDataSourceManager.clear()
-        QApplication.processEvents()
-
-        store = self.mapLayerStore()
-        toRemove = store.mapLayers().values()
-        toRemoveIDs = [l.id() for l in toRemove]
-        store.removeMapLayers(toRemove)
-        QgsProject.instance().removeMapLayers(toRemoveIDs)
-        QApplication.processEvents()
 
         import gc
         gc.collect()
