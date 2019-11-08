@@ -13,7 +13,7 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, shutil
+import unittest, shutil, tempfile
 from collections import namedtuple
 from enmapbox.testing import initQgisApplication, TestObjects
 
@@ -26,7 +26,7 @@ from enmapbox.gui.applications import *
 
 enmapbox.initAll()
 
-DIR_TMP = os.path.join(DIR_REPO, *['test', 'tmp_enmapboxApplicationTests'])
+DIR_TMP = os.path.join(DIR_REPO, *['tmp', 'tmp_enmapboxApplicationTests'])
 
 
 class test_applications(unittest.TestCase):
