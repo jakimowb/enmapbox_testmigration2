@@ -149,7 +149,7 @@ class TestEnMAPBox(unittest.TestCase):
         gc.collect()
 
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
-
+        self.assertTrue(EnMAPBox.instance() == None)
 
 
     def test_Qgis(self):
@@ -247,20 +247,30 @@ class TestEnMAPBox(unittest.TestCase):
 
     def test_loadAndUnloadData(self):
         E = self.EMB
-        E.loadExampleData()
-        n = len(E.dataSources())
-        self.assertTrue(n > 0)
+        mapDock = E.createDock('MAP') # empty map
+        self.assertIsInstance(mapDock, MapDock)
+        self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
+
+        self.assertTrue(len(E.dataSources()) == 0)
 
         # load
         E.loadExampleData()
-        self.assertEqual(n, len(E.dataSources()))
+        self.assertTrue(len(E.dataSources()) > 0)
+        ns = len(E.dataSources('SPATIAL'))
+        self.assertTrue(len(QgsProject.instance().mapLayers())  > 0)
+
+        # add layer to map
+        mapDock.addLayers([TestObjects.createRasterLayer()])
 
         # unload
         E.removeSources()
         self.assertTrue(len(E.dataSources()) == 0)
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
+
+
+        #if SHOW_GUI:
+        #    QGIS_APP.exec_()
 
 
 
