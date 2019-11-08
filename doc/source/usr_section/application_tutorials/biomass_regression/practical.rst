@@ -74,8 +74,8 @@ containing point based biomass estimates sampled from an existing LiDAR derived 
 
 |
 
-Exercise A: Introduction to the EnMAP-Box - Remote sensing of terrestrial ecosystems
-************************************************************************************
+Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
+***********************************************************************
 
 .. admonition:: Description
 
@@ -151,52 +151,57 @@ Exercise A: Introduction to the EnMAP-Box - Remote sensing of terrestrial ecosys
 5. Multiple map views
 =====================
 
-* Close Map #1 from the previous exercise by using the |cl_mv| icon on the blue Map #1 title bar.
 * The EnMAP-Box enables users to work with multiple Map Views, which can be flexibly organized and geospatially linked.
-  Open two new Map Views. Note two Data View entries appear corresponding to the open Map Views
-* To change the arrangement of Map Views, click and hold on the blue Map #2 title bar and drag it to the right edge of
-  Map #1. A transparent blue rectangle appears indicating the docking position once you stop holding the mouse button.
-  Release the mouse button to move the map to that position.
+  Open a new Map View. Note a Data View entry appears corresponding to the new Map View.
+
+* Display :file:`enmap_sonoma.bsq` as an RGB composite of your choice in Map #2.
 
 .. tip::
 
+   When loading a raster image to a map view, you may also right click the filename in the :guilabel:`Data Sources`
+   panel and select either :guilabel:`Open in existing map` or :guilabel:`Open in new map`. If the raster image has wavelength
+   information associated with it, you may also select a predefined composite from the context menu.
+
+* For geospatial linking, click on :guilabel:`View` in the Menu and select :guilabel:`Set Map Linking`. In the Map Linking window,
+  select the |link_mapscale_center| :guilabel:`Link Map Scale and Center` option and close the dialog. You may also
+  right click a map window you wish to link and select :guilabel:`Link with other maps`.
+
+
+
+.. .. image:: img/Slide4_MovingMultipleViews.PNG
+
+* Display :file:`enmap_sonoma.bsq` as a true color composite Map #1 and as an RGB composite of your choice in Map #2.
+  Move the map views to best fit the orientation of the data.
+
+.. image:: img/Slide5_LinkingMultipleViews.PNG
+
+.. tip::
+
+   Map Windows can be re-arranged by clicking on the blue Map title bar and dragging it to the desired position.
+   A transparent blue rectangle will appear indicating the docking position once you release the mouse button.
    You may also undock map views from the EnMAP-Box window by selecting |float_window| from the blue Map title bar.
    To re-dock a Map View, click and drag the blue Map title bar to an open Map View already docked in the EnMAP-Box window.
+
+
 
 .. |cl_mv| image:: ../urban_unmixing/tut_img/cl_mv.png
 
 .. |float_window| image:: img/float_window.png
 
-.. image:: img/Slide4_MovingMultipleViews.PNG
-
-* Display :file:`enmap_sonoma.bsq` as a true color composite Map #1 and as an RGB composite of your choice in Map #2.
-  Move the map views to best fit the orientation of the data.
-
-.. tip::
-
-   When loading a raster image to a map view, you may also right click the filename in the :guilabel:`Data Sources` panel and select
-   either :guilabel:`Open in existing map` or :guilabel:`Open in new map`. If the raster image has wavelength information associated with it, you
-   may also select a predefined composite from the context menu.
-
-* For geospatial linking, click on :guilabel:`View` in the Menu and select :guilabel:`Set Map Linking`. In the :guilabel:`Map Linking` window,
-  select the |link_mapscale_center| :guilabel:`Link Map Scale and Center` option and close the dialog.
-  You may also right click a map window you wish to link and select :guilabel:`Link with other maps`
-
-.. image:: img/Slide5_LinkingMultipleViews.PNG
-
 
 6. Visualize vector data
 ========================
 
-* Close Map #2 from the previous step
+* Close Map #2 from the previous step.
 * Load :file:`biomass_sonoma.shp` to Map #1.
 * To change the order of stacked layers, go to the :guilabel:`Data Views` panel and drag one layer on top or below
   another one. Arrange the layer stack so that :file:`biomass_sonoma.shp` is displayed on top of :file:`enmap_sonoma.bsq`.
 * By default, vector files are displayed with a single uniform symbol. To change this symbology, right
   click on :file:`biomass_sonoma.shp` in the :guilabel:`Data Views` panel, select :guilabel:`Layer Properties` and navigate to :guilabel:`Symbology`
   in the LayerProperties window. You can now change the symbology in accordance to the QGIS functionality. 
-  Select “Graduated” from the dropdown menu, and select “biomass” in Column and “Color” in Method. 
-  Press :guilabel:`Classify` and then :guilabel:`OK` to display the relative biomass values associated with each point.
+  Select “Graduated” from the dropdown menu, and select “biomass” in Column and “Color” in Method.
+  Set the :guilabel:`Color ramp` to run from white to green.
+* Press :guilabel:`Classify` and then :guilabel:`OK` to display the relative biomass values associated with each point.
   Explore the different ways you can display this information using the QGIS symbology functionality.
 
 .. image:: img/Slide6_VectorSymbology.PNG
@@ -237,8 +242,8 @@ Exercise A: Introduction to the EnMAP-Box - Remote sensing of terrestrial ecosys
 
 |
 
-Exercise B: Regression based mapping - estimating biomass
-*********************************************************
+Exercise B: Regression based mapping of aboveground forest biomass
+******************************************************************
 
 .. admonition:: Description
 
@@ -250,7 +255,7 @@ Exercise B: Regression based mapping - estimating biomass
    * Introduces a regression-based mapping approach for taking point measurements of biomass and generating
      spatial biomass estimates using an input raster of hyperspectral imagery.
    * Demonstrates the ‘Regression-based mapping’ application of the EnMAP-Box.
-   * Demonstrate accuracy assessment of our biomass estimates using the EnMAP-Box algorithms.
+   * Conduct an accuracy assessment of our biomass estimates using the EnMAP-Box algorithms.
 
    Duration: 20 min
 
@@ -274,8 +279,8 @@ Exercise B: Regression based mapping - estimating biomass
   well as a Reference vector file with attributes containing a variable of interest to map, in our case, biomass.
 * Select the following inputs:
 
-  * :guilabel:`Raster`: :file:`biomass_sonoma.bsq`
-  * :guilabel:`Reference`: :file:`biomass_sonoma.bsq`
+  * :guilabel:`Raster`: :file:`enmap_sonoma.bsq`
+  * :guilabel:`Reference`: :file:`biomass_sonoma.shp`
   * :guilabel:`Attribute`: biomass
 
 3. Stratified Sampling
@@ -343,8 +348,18 @@ Exercise B: Regression based mapping - estimating biomass
 8. Visualize biomass results
 ============================
 
+* The outputs from the Regression Workflow will appear in the Data Sources panel:
+
+  * :file:`biomass_prediction.bsq`: spatially continuous biomass estimation based on the spectral information contained
+    within each EnMAP pixel.
+  *	:file:`biomassSample.bsq`: biomass information used for training the regression model, rasterized to the EnMAP grid and spatially aligning with pixels from which training spectra were sampled.
+  *	:file:`biomassSample_compliment.bsq`: rasterized biomass values of withheld samples.
+
 * Open :file:`enmap_sonoma.bsq` as an RGB composite of your choice (refer to Exercise A3 if needed)
 * Open the :file:`biomass_prediction.bsq` in a new Map View and link to the Map #1 (refer to Exercise A5 if needed).
+  Use the Layer Properties to change the color ramp to white-green.
+
+.. image:: img/biomass_result.png
 
 
 9. Validation of biomass maps
@@ -379,8 +394,8 @@ Learning Activities
 
 |
 
-Exercise C: Introduction to ImageMath - Creating an NDVI mask
-*************************************************************
+Exercise C: Creating an NDVI-based tree mask with ImageMath
+***********************************************************
 
 .. admonition:: Description
 
@@ -432,7 +447,7 @@ Exercise C: Introduction to ImageMath - Creating an NDVI mask
 * In the :guilabel:`Inputs` panel, select :file:`enmap_sonoma.bsq` from the dropdown menu. The variable name is automatically taken
   from the filename, but may be changed if desired. Note: if you wish to process multiple rasters with different
   grids, you can also define a resampling method from the dropdown menu and the grid to be sampled to in the
-  Output Grid panel.
+  :guilabel:`Output Grid` panel.
 * In the :guilabel:`Editor panel`, define the RED and NIR bands in our imagery. These correspond to bands 42 and 73
   in our imagery, respectively, and we can define them using python indexing syntax (i.e. 0 indexed array slicing):
 
@@ -456,6 +471,8 @@ Exercise C: Introduction to ImageMath - Creating an NDVI mask
 
 * A new raster dataset :file:`NDVI.bsq` will appear in the :guilabel:`Data Sources` panel.
   Open this in a new Map Viewer and link to the biomass estimates (see Exercise A5).
+
+.. image:: img/ndvi_result.png
 
 3. Create and apply a mask
 ==========================
@@ -492,6 +509,8 @@ Exercise C: Introduction to ImageMath - Creating an NDVI mask
 
 * Open an RGB composite of :file:`enmap_sonoma.bsq` in Map #1 and open and link the masked biomass image in a new
   Map window. Refer to Exercise A5 if needed.
+
+.. image:: img/masked_biomass.png
 
 Learning Activities
 ===================
