@@ -669,7 +669,7 @@ class DataSourceVector(DataSourceSpatial):
             # do not ask!
             QgsSettings().setValue(key, 'useProject')
 
-        loptions = QgsVectorLayer.LayerOptions(False, False)
+        loptions = QgsVectorLayer.LayerOptions(True, False)
         lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider, options=loptions)
 
         if isPrompt:
