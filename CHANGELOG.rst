@@ -6,7 +6,7 @@ Version 3.5
 
 (including last hotfixes from 2019-11-12)
 
-* fixed smaller issues in LMU vegetation app
+* removed numba imports from LMU vegetation app
 * vector layer styling is loaded by default
 * fixed error that was thrown when closing the EnMAP-Box
 * fixed bug in SynthMixApplication
