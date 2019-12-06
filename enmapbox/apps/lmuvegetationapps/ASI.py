@@ -7,7 +7,7 @@ from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
 from osgeo import gdal
 import pyqtgraph as pg
-from numba import jit
+#from numba import jit
 
 from scipy.spatial import ConvexHull
 import sys, os
@@ -740,6 +740,7 @@ class ASI_core:
                     #full_hull_y = []
                     if max_:  # if local maximum has been found
                         x_max, y_max = map(list, zip(*max_))
+                        print(x_max)
                         x_seq = np.append(x_max, len(window))
                         if self.valid_wl[x_seq[0]] > 650:
                             force_p = int(self.find_closest_value(554, self.valid_wl))
@@ -798,7 +799,8 @@ class ASI_core:
 
                 self.prgbar_process(pixel_no=row * self.ncols + col)
 
-        cr_spectrum[np.isnan(cr_spectrum)] = 0
+        if self.calc_crs_flag:
+            cr_spectrum[np.isnan(cr_spectrum)] = 0
 
         return asi_result, cr_spectrum
 

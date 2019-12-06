@@ -9,7 +9,7 @@ import os
 
 from scipy.optimize import minimize_scalar
 from scipy.interpolate import interp1d
-from numba import jit
+#from numba import jit
 
 # ======================================================================================================================
 # function definitions

@@ -17,8 +17,13 @@
 ***************************************************************************
 """
 
-import os, sys, re, shutil, zipfile, datetime
+import os, sys, re, shutil, zipfile, datetime, pathlib
 os.environ['READTHEDOCS'] = 'True'
+
+DIR_ENMAPBOX_REPO = pathlib.Path(__file__).parents[1].as_posix()
+if not DIR_ENMAPBOX_REPO in sys.path:
+    sys.path.append(DIR_ENMAPBOX_REPO)
+
 from enmapbox import DIR_REPO
 from enmapbox.externals.qps.make import updateexternals
 from enmapbox.externals.qps.make.updateexternals import RemoteInfo
@@ -115,12 +120,20 @@ def updateRemotes(remoteLocations):
 
 if __name__ == "__main__":
 
-    # update remotes
-    to_update = [#'qps',
-                 #'hub-datacube',
-                 #'hub-workflow',
-                 'enmapboxgeoalgorithms',
-                 #'enmap-box-lmu-vegetation-apps',
-                ]
+    import getopt
+
+    try:
+        print(sys.argv)
+        opts, to_update = getopt.getopt(sys.argv[1:], "")
+    except getopt.GetoptError as err:
+        print(err)
+
+    if len(to_update) == 0:
+        to_update = ['qps',
+                     'hub-datacube',
+                     'hub-workflow',
+                     'enmapboxgeoalgorithms',
+                     'enmap-box-lmu-vegetation-apps',
+                    ]
     updateRemotes(to_update)
     exit(0)

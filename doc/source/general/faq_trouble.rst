@@ -46,6 +46,16 @@ suggest new entries!
 ..      Read :ref:`install_qgis_windows` for more details on this.
 
 
+.. _faq_how_to_cite_enmapbox
+
+* **How to cite the EnMAP-Box?**
+
+Please cite the EnMAP-Box as::
+
+    EnMAP-Box Developers (2019): EnMAP-Box 3 - A QGIS Plugin to process and visualize
+    hyperspectral remote sensing data. www.enmap.org/enmapbox.html
+
+
 
 How can I solve the following error...
 
