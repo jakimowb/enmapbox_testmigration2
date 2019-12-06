@@ -1,4 +1,4 @@
-# This is a sample build configuration for Python.
+git pu# This is a sample build configuration for Python.
 # Check our guides at https://confluence.atlassian.com/x/x4UWN for more examples.
 # Only use spaces to indent your .yml configuration.
 # -----
@@ -24,9 +24,9 @@ pipelines:
           - DISPLAY=:1.0
           - export DISPLAY
           - mkdir test-reports
-          - python -m pip install -r requirements.txt
-          - python -m pip install -r requirements_developer.txt
-          - python -m pip install nose2
+          - python3 -m pip install -r requirements.txt
+          - python3 -m pip install -r requirements_developer.txt
+          - python3 -m pip install nose2
           - git lfs install
           - git lfs fetch
           - git lfs pull
