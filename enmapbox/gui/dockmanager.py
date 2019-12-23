@@ -1131,8 +1131,16 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             actionCopyStyle.triggered.connect(lambda : pasteStyleToClipboard(lyr))
 
             menu.addSeparator()
+            b = isinstance(canvas, QgsMapCanvas)
+            action = menu.addAction('Zoom to layer')
+            action.triggered.connect(lambda *args, l=lyr, c=canvas: self.onZoomToLayer(l, c))
+            action.setEnabled(b)
+
             action = menu.addAction('Set layer CRS to map canvas')
             action.triggered.connect(lambda: canvas.setDestinationCrs(lyr.crs()))
+            action.setEnabled(b)
+
+
 
             action = menu.addAction('Copy layer path')
             action.triggered.connect(lambda: QApplication.clipboard().setText(lyr.source()))
@@ -1171,6 +1179,19 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 a.triggered.connect(lambda: QApplication.clipboard().setText('{}'.format(node.value())))
 
         return menu
+
+    def onZoomToLayer(self,lyr:QgsMapLayer, canvas:QgsMapCanvas):
+
+        assert isinstance(lyr, QgsMapLayer)
+        assert isinstance(canvas, QgsMapCanvas)
+
+        ext = SpatialExtent.fromLayer(lyr).toCrs(canvas.mapSettings().destinationCrs())
+        if isinstance(ext, SpatialExtent):
+            canvas.setExtent(ext)
+        else:
+            s = ""
+
+
 
     def setLayerStyle(self, layer, canvas):
 
