@@ -55,38 +55,30 @@ def qgisLayerNames() -> typing.List[str]:
 def returnNone():
     return None
 
-class HiddenLayerState(object):
+class HiddenLayerSource(object):
 
-    @staticmethod
-    def fromJson(t:str):
+    def __init__(self, layerIdEnMAPBox:str, layerContext:str):
 
-        vid, vloc, vname = json.loads(t)
+        assert isinstance(layerIdEnMAPBox, str)
+        assert isinstance(layerContext, str)
 
+        self.mLayerContext = layerContext
+        self.mLayerIdEnMAPBox= layerIdEnMAPBox
+        self.mLayerIdQgis = None
 
-        return HiddenLayerState(vid, vloc, vname)
-
-    def __init__(self, lidEnMAPBox:str, location:str, layerName:str):
-        assert isinstance(lidEnMAPBox, str)
-        assert isinstance(location, str)
-        assert isinstance(layerName, str)
-        self.mLayerIDEnMAPBox= lidEnMAPBox
-        self.mLocation = location
-        self.mLayerName = layerName
-        self.mEnMAPBoxLayerRef = returnNone
-
-    def json(self)->str:
-        return json.dumps((self.mLayerIDEnMAPBox, self.mLocation, self.mLayerName))
+    def setLayerIdQgis(self, layerId:str):
+        assert isinstance(self.mLayerIdQgis)
+        self.mLayerIdQgis = layerId
 
     def __eq__(self, other):
-        if isinstance(other, HiddenLayerState):
-            return self.mLayerIDEnMAPBox == other.mLayerIDEnMAPBox and \
-                self.mLocation == other.mLocation and \
-                self.mLayerName == other.mLayerName
+        if isinstance(other, HiddenLayerSource):
+            return self.mLayerIdEnMAPBox == other.mLayerIdEnMAPBox and \
+                   self.mLayerContext == other.mLayerContext
         else:
             return False
 
     def __hash__(self):
-        return hash((self.mLayerIDEnMAPBox, self.mLocation, self.mLayerName))
+        return hash((self.mLayerIdEnMAPBox, self.mLayerIdQgis))
 
 class HiddenQGISLayerManager(QObject):
 
@@ -100,19 +92,19 @@ class HiddenQGISLayerManager(QObject):
         self.mDockManagerTreeModel = dockManagerTreeModel
         self.mHideGroup = True
 
+        self.mE2Q = dict()
 
-        self.mMapLayerStore = QgsMapLayerStore()
+        self.mMapLayerStore = None
 
-        self.mLinkedEnMAPBoxLayer = weakref.WeakSet()
-
-        self.mDataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
+        self.mDataSourceManager.sigDataSourceAdded.connect(self.sync)
         self.mDataSourceManager.sigDataSourceRemoved.connect(self.sync)
 
         root = self.mDockManagerTreeModel.rootGroup()
         assert isinstance(root, QgsLayerTree)
-        root.addedChildren.connect(self.onDockManagerNodeAdded)
+        root.addedChildren.connect(self.sync)
+        root.removedChildren.connect(self.sync)
         root.nameChanged.connect(self.onDockManagerNodeNameChanged)
-        root.willRemoveChildren.connect(self.onDockManagerNodesWillBeRemoved)
+        #root.willRemoveChildren.connect(self.onDockManagerNodesWillBeRemoved)
 
     def dataSourceManager(self)->DataSourceManager:
         return self.mDataSourceManager
@@ -120,38 +112,25 @@ class HiddenQGISLayerManager(QObject):
     def dockManagerTreeModel(self)->DockManagerTreeModel:
         return self.mDockManagerTreeModel
 
+    def qgsHiddenLayerIds(self)->typing.List[str]:
+        grp = self.hiddenLayerGroup()
+        return grp.findLayerIds()
 
-    def currentQGISLayerStates(self, layerIds:list=None)->typing.List[HiddenLayerState]:
-
-        results = list()
-
-        for lyr in QgsProject.instance().mapLayers().values():
-            assert isinstance(lyr, QgsMapLayer)
-            state =  lyr.customProperty(HIDDEN_ENMAPBOX_LAYER_STATE)
-            if isinstance(state, str):
-                state = HiddenLayerState.fromJson(state)
-                if isinstance(state, HiddenLayerState):
-                    results.append(state)
-
-        if isinstance(layerIds, list):
-            results = [s for s in results if s.mLayerIDEnMAPBox in layerIds]
-
-        return results
-
-    def currentEnMAPBoxLayerStates(self, layerIds:list=None)->typing.List[HiddenLayerState]:
-
-        results = list()
-
+    def enmapboxLayerRefs(self, layerIds:typing.List[str]):
+        """
+        Returns for each layerId a (layer references, location name)
+        :param layerIds: str
+        :type layerIds: str
+        :return: dict() with key = id, value = QgsMapLayer
+        """
+        REFS = dict()
         # search in data sources
         for ds in self.dataSourceManager():
             if isinstance(ds, (DataSourceRaster, DataSourceVector)):
                 lyr = ds.mapLayer()
                 if type(lyr) in [QgsRasterLayer, QgsVectorLayer]:
-                    state = HiddenLayerState(lyr.id(), 'EnMAP-Box', lyr.name())
-                    state.mEnMAPBoxLayerRef = weakref.ref(lyr)
-                    results.append(state)
-                else:
-                    s = ""
+                    if lyr.id() in layerIds:
+                        REFS[lyr.id()] = (lyr, 'EnMAP-Box')
 
         # search in map layer trees (to find also unchecked map layers = not added to a map canvas)
         for mapNode in self.dockManagerTreeModel().mapDockTreeNodes():
@@ -160,123 +139,119 @@ class HiddenQGISLayerManager(QObject):
                 assert isinstance(layerTreeLayer, QgsLayerTreeLayer)
                 lyr = layerTreeLayer.layer()
                 if type(lyr) in [QgsVectorLayer, QgsRasterLayer]:
-                    state = HiddenLayerState(lyr.id(), mapName, lyr.name())
-                    state.mEnMAPBoxLayerRef = weakref.ref(lyr)
-                    results.append(state)
+                    if lyr.id() in layerIds:
+                        REFS[lyr.id()] = (lyr, mapName)
 
-        if isinstance(layerIds, list):
-            results = [s for s in results if s.mLayerIDEnMAPBox in layerIds]
+        return REFS
 
-        return results
+    def enmapboxLayerIds(self)->typing.List[str]:
+        """
+        Returns the layer ids of QgsMapLayers in the EnMAP-Box
+        :return: list[str]
+        :rtype:
+        """
+        ids = list()
+
+        # search in data sources
+        for ds in self.dataSourceManager():
+            if isinstance(ds, (DataSourceRaster, DataSourceVector)):
+                lyr = ds.mapLayer()
+                if type(lyr) in [QgsRasterLayer, QgsVectorLayer]:
+                    ids.append(lyr.id())
+
+        # search in map layer trees (to find also unchecked map layers = not added to a map canvas)
+        for mapNode in self.dockManagerTreeModel().mapDockTreeNodes():
+            mapName = mapNode.name()
+            for layerTreeLayer in mapNode.findLayers():
+                assert isinstance(layerTreeLayer, QgsLayerTreeLayer)
+                lyr = layerTreeLayer.layer()
+                if type(lyr) in [QgsVectorLayer, QgsRasterLayer]:
+                    ids.append(lyr.id())
+
+        return ids
 
     def sync(self):
+        """
+        Synchronizes the QGIS hidden layers with that in the EnMAP-Box
+        :return:
+        :rtype:
+        """
+        assert isinstance(self.mMapLayerStore,
+                          (QgsMapLayerStore, QgsProject)), 'Set EnMAPBox map layer store before calling this method'
 
-        stateEnMAPBox = self.currentEnMAPBoxLayerStates()
-        stateQGIS = self.currentQGISLayerStates()
+        idsEnMAPBox = self.enmapboxLayerIds()
+        idsQGIS = self.qgsHiddenLayerIds()
 
-        toRemove = [s for s in stateQGIS if s not in stateEnMAPBox]
-        toAdd = [s for s in stateEnMAPBox if s not in stateQGIS]
-        toKeep = [s for s in stateQGIS if s in stateQGIS]
+        lutEIds = list(self.mE2Q.keys())
+        lutQIds = list(self.mE2Q.values())
+
+        toAdd = [e for e in idsEnMAPBox if e not in self.mE2Q.keys()]
+        toRemove = [e for e in self.mE2Q.keys() if e not in idsEnMAPBox]
+
+
+        #stateEnMAPBox = self.currentEnMAPBoxLayerStates()
+        #stateQGIS = self.currentQGISLayerStates()
+
+        #toRemove = [s for s in stateQGIS if s not in stateEnMAPBox]
+        #toAdd = [s for s in stateEnMAPBox if s not in stateQGIS]
+        #toKeep = [s for s in stateQGIS if s in stateQGIS]
 
         self.removeHiddenLayers(toRemove)
         self.addHiddenLayers(toAdd)
-        self.updateHiddenLayers(toKeep)
+        #self.updateHiddenLayers(toKeep)
 
-    def removeHiddenLayers(self, states:typing.List[HiddenLayerState]):
-
-        if len(states) == 0:
+    def removeHiddenLayers(self, enmapBoxLayerIDs:typing.List[str]):
+        if len(enmapBoxLayerIDs) == 0:
             return
 
-        KEYS = [(s.mLayerIDEnMAPBox, s.mLocation) for s in states]
+        qgisIds = [self.mE2Q.get(e, None) for e in enmapBoxLayerIDs]
+        qgisIds = [q for q in qgisIds if isinstance(q, str)]
 
-        qgisLayerIdsToRemove = []
-        qgisNodesToRemove = []
+        for e in enmapBoxLayerIDs:
+            self.mE2Q.pop(e)
 
-        for node in self.qgisLayerTreeRoot().findLayers():
+        nodesToRemove = []
+        for node in self.hiddenLayerGroup().findLayers():
             if isinstance(node, QgsLayerTreeNode):
-                jsonString = node.customProperty(HIDDEN_ENMAPBOX_LAYER_STATE)
-                if isinstance(jsonString, str):
-                    state = HiddenLayerState.fromJson(jsonString)
-                    key = (state.mLayerIDEnMAPBox, state.mLocation)
-                    if key in KEYS:
-                        qgisLayerIdsToRemove.append(node.layer().id())
-                        qgisNodesToRemove.append(node)
+                qgsLyr = node.layer()
+                if isinstance(qgsLyr, QgsMapLayer) and qgsLyr.id() in qgisIds:
+                    nodesToRemove.append(node)
 
-        for node in qgisNodesToRemove:
+        for node in nodesToRemove:
             node.parent().removeChildNode(node)
 
-        QgsProject.instance().removeMapLayers(qgisLayerIdsToRemove)
+        QgsProject.instance().removeMapLayers(qgisIds)
 
 
     def onDockManagerNodeNameChanged(self, node:QgsLayerTreeNode, name:str):
-        statesToUpdate = []
-        if isinstance(node, MapDockTreeNode):
-            statesToUpdate = self.currentEnMAPBoxLayerStates(layerIds=node.findLayerIds())
-        if type(node) == QgsLayerTreeLayer:
-            statesToUpdate = self.currentEnMAPBoxLayerStates(layerIds=node.layer().id())
-
-
-        statesToUpdate = self.currentQGISLayerStates(layerIds=[s.mLayerIDEnMAPBox for s in statesToUpdate])
-        self.updateHiddenLayers(statesToUpdate)
-
+        if isinstance(node, QgsLayerTreeLayer):
+            self.updateHiddenLayerName(node.layerId())
+        elif isinstance(node, QgsLayerTreeGroup):
+            self.updateHiddenLayerName(node.findLayerIds())
 
     def onDockManagerNodesWillBeRemoved(self, node:QgsLayerTreeNode, indexFrom:int, indexTo:int):
 
-        KEY_LIST = []
-
-
-
         if isinstance(node, QgsLayerTreeGroup):
             layerIdsToBeRemoved = []
-
-
             mapNode = node
             while isinstance(mapNode.parent(), QgsLayerTreeNode) and not isinstance(node, MapDockTreeNode):
                 mapNode = mapNode.parent()
             if not isinstance(mapNode, QgsLayerTreeGroup):
                 return
-            location = mapNode.name()
 
-            layerIds = []
-
+            eIds = []
             for n in node.children()[indexFrom:indexTo+1]:
                 if isinstance(n, QgsLayerTreeLayer):
                     lyr = n.layer()
                     if isinstance(lyr, QgsMapLayer):
-                        layerIds.append(lyr.id())
-            enmapBoxStateToBeRemoved = [s for s in self.currentEnMAPBoxLayerStates() if s.mLocation == location and s.mLayerIDEnMAPBox in layerIds]
-
-            self.removeHiddenLayers(enmapBoxStateToBeRemoved)
-
-    def onDataSourceAdded(self, dataSource):
-        if isinstance(dataSource, DataSourceSpatial):
-            stateEnMAPBox = self.currentEnMAPBoxLayerStates()
-            stateQGIS = self.currentQGISLayerStates()
-
-            toAdd = [s for s in stateEnMAPBox if s not in stateQGIS]
-            toKeep = [s for s in stateQGIS if s in stateQGIS]
-
-
-            self.addHiddenLayers(toAdd)
-
-
-    def onDockManagerNodeAdded(self, node:QgsLayerTreeNode, indexFrom:int, indexTo:int):
-        #self.sigMapCanvasAdded.connect(self.updateHiddenQGISLayers)
-        if isinstance(node, QgsLayerTreeGroup):
-
-            addedLayerIds = []
-            for n in node.children()[indexFrom:indexTo + 1]:
-                if isinstance(n, QgsLayerTreeLayer):
-                    lyr = n.layer()
-                    if type(lyr) in [QgsVectorLayer, QgsRasterLayer]:
-                        addedLayerIds.append(lyr.id())
-
-            statesAdded = self.currentEnMAPBoxLayerStates(layerIds=addedLayerIds)
-            self.addHiddenLayers(statesAdded)
+                        eIds.append(lyr.id())
+            self.removeHiddenLayers(eIds)
 
     def setGroupVisibility(self, b:bool):
         self.mHideGroup = b
         self.hiddenLayerGroup() #this updates the group
+
+
 
 
     def qgisLayerTreeRoot(self)->QgsLayerTreeGroup:
@@ -298,6 +273,7 @@ class HiddenQGISLayerManager(QObject):
         grp = root.findGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
 
         if not isinstance(grp, QgsLayerTreeGroup):
+            print('CREATE HIDDEN_ENMAPBOX_LAYER_GROUP')
             grp = root.addGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
 
         ltv = qgis.utils.iface.layerTreeView()
@@ -307,84 +283,51 @@ class HiddenQGISLayerManager(QObject):
         ltv.setRowHidden(index.row(), index.parent(), self.mHideGroup)
         return grp
 
-    def hiddenLayers(self, enmapboxLayerId:str)->typing.List[QgsMapLayer]:
-        """
-        Returns the QGIS layers that corresponds to the EnMAP-box layer with enmapboxLayerId
-        :param enmapboxLayerId: str
-        :return: [list-of-QgsMapLayers]
-        """
-        assert isinstance(enmapboxLayerId, str)
-
-        results = []
-        for lyr in QgsProject.instance().mapLayers().values():
-            jsonStr = lyr.customProperty(HIDDEN_ENMAPBOX_LAYER_STATE)
-            if isinstance(jsonStr, str) and enmapboxLayerId in jsonStr:
-                results.append(lyr)
-        return results
 
 
-    def addHiddenLayers(self, states:typing.List[HiddenLayerState]):
-        if len(states) == 0:
+    def addHiddenLayers(self, enmapBoxLayerIds:typing.List[str]):
+        if len(enmapBoxLayerIds) == 0:
             return
 
         hiddenGroup = self.hiddenLayerGroup()
 
         newQgisLayers = []
-        for state in states:
-            enmapBoxLayer = state.mEnMAPBoxLayerRef()
-            if isinstance(enmapBoxLayer, QgsMapLayer):
+        REFS = self.enmapboxLayerRefs(enmapBoxLayerIds)
 
+        for layerId in enmapBoxLayerIds:
+            if layerId in REFS.keys():
+                enmapBoxLayer, location = REFS[layerId]
                 lyr = enmapBoxLayer.clone()
                 assert isinstance(lyr, QgsMapLayer)
-                lyr.setName(self.hiddenLayerName(state))
-                jsonString = state.json()
-                lyr.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_STATE, jsonString)
-                if enmapBoxLayer not in self.mLinkedEnMAPBoxLayer:
-                    enmapBoxLayer.rendererChanged.connect(lambda s=state: self.updateHiddenLayers([s]))
-                    self.mLinkedEnMAPBoxLayer.add(enmapBoxLayer)
-
-                node = hiddenGroup.addLayer(lyr)
-
-                node.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_STATE, jsonString)
+                lyr.setName(self.hiddenLayerName(enmapBoxLayer, location))
+                lyr.setCustomProperty(HIDDEN_ENMAPBOX_LAYER_STATE, enmapBoxLayer.id())
+                #node = hiddenGroup.addLayer(lyr)
                 newQgisLayers.append(lyr)
+                self.mE2Q[enmapBoxLayer.id()] = lyr.id()
 
         if len(newQgisLayers) > 0:
             QgsProject.instance().addMapLayers(newQgisLayers, False)
-        s = ""
 
+    def hiddenLayerName(self, enmapBoxLayer:QgsMapLayer, location:str)->str:
+        """
+        Returns the name in QGIS
+        :param enmapBoxLayer:
+        :type enmapBoxLayer:
+        :param location:
+        :type location:
+        :return:
+        :rtype:
+        """
+        return '[{}] {}'.format(location, enmapBoxLayer.name())
 
-    def hiddenLayerName(self, state:HiddenLayerState):
-        lyr = state.mEnMAPBoxLayerRef()
-        assert isinstance(lyr, QgsMapLayer)
-        name = lyr.name()
-        return '[{}] {}'.format(state.mLocation, name)
+    def updateHiddenLayerName(self, enmapBoxLayerIds:typing.List[str]):
 
+        if len(enmapBoxLayerIds) > 0:
+            REFS = self.enmapboxLayerRefs(enmapBoxLayerIds)
 
-
-
-    def updateAllHiddenLayers(self):
-        self.updateHiddenLayers(self.currentQGISLayerStates())
-
-    def updateHiddenLayers(self, states:typing.List[HiddenLayerState]):
-
-        assert isinstance(states, list)
-        if len(states) == 0:
-            return
-
-        layerIds = [s.mLayerIDEnMAPBox for s in states]
-        states = self.currentEnMAPBoxLayerStates(layerIds=layerIds)
-
-        for enmapBoxState in states:
-
-            if isinstance(enmapBoxState, HiddenLayerState):
-
-                lyrEnMAPBox = enmapBoxState.mEnMAPBoxLayerRef()
-                if isinstance(lyrEnMAPBox, QgsMapLayer):
-                    for lyrQgis in self.hiddenLayers(enmapBoxState.mLayerIDEnMAPBox):
-                        lyrQgis.setName(self.hiddenLayerName(enmapBoxState))
-                        lyrQgis.setRenderer(lyrEnMAPBox.renderer().clone())
-                else:
-                    s = ""
-
-
-            s = ""
+            for eId, (eLyr, location) in REFS.items():
+                qId = self.mE2Q.get(eId)
+                if isinstance(qId, str):
+                    qLyr = QgsProject.instance().mapLayer(qId)
+                    if isinstance(qLyr, QgsMapLayer):
+                        qLyr.setName(self.hiddenLayerName(eLyr, location))

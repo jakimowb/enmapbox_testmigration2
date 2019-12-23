@@ -18,7 +18,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.testing import *
 
-SHOW_GUI = True and os.environ.get('CI') is None
+SHOW_GUI = False and os.environ.get('CI') is None
 QGIS_APP = initQgisApplication(loadProcessingFramework=False)
 
 from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -30,6 +30,13 @@ class Tests(unittest.TestCase):
 
     def setUp(self) -> None:
         QgsProject.instance().removeAllMapLayers()
+
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox):
+            emb.close()
+
+
+        s = ""
 
     def test_hiddenLayerManager(self):
 
@@ -43,6 +50,7 @@ class Tests(unittest.TestCase):
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
 
         hlm = HiddenQGISLayerManager(dsm, dtm)
+        hlm.mMapLayerStore = QgsMapLayerStore()
 
         self.assertIsInstance(qgis.utils.iface, QgisInterface)
 
@@ -92,7 +100,12 @@ class Tests(unittest.TestCase):
     def test_modeLayer(self):
         qgis.utils.iface.ui.show()
 
+        def qgisLayers():
+            return QgsProject.instance().mapLayers().values()
+
         emb = EnMAPBox()
+        self.assertTrue(len(qgisLayers()) == 0)
+
         lyr = TestObjects.createRasterLayer()
         lyr.setName('RASTER')
         lyr2 = TestObjects.createVectorLayer()
@@ -100,17 +113,25 @@ class Tests(unittest.TestCase):
         emb.addSource(lyr)
         emb.addSource(lyr2)
 
+        if len(qgisLayers()) != 2:
+            for i, l in enumerate(qgisLayers()):
+                print('{}: {}'.format(i, l))
+
+        self.assertTrue(len(qgisLayers()) == 2)
+
         mapDock1 = emb.createDock('MAP')
         mapDock1.setTitle('MAP1')
         self.assertIsInstance(mapDock1, MapDock)
         mapDock1.mapCanvas().setLayers([lyr, lyr2])
 
+        self.assertTrue(len(qgisLayers()) == 4)
 
         mapDock2 = emb.createDock('MAP')
         self.assertIsInstance(mapDock2, MapDock)
         mapDock2.setTitle('MAP2')
 
-        self.assertTrue(len(QgsProject.instance().mapLayers().values()) == 4)
+        self.assertTrue(len(qgisLayers()) == 4)
+
 
         if SHOW_GUI:
             QGIS_APP.exec_()

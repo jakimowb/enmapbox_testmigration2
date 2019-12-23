@@ -216,10 +216,11 @@ class DataSourceManager(QObject):
         """
         # do not add paths if they already exist
         from enmapbox.gui.enmapboxgui import OWNED_BY_SPECLIBWIDGET_KEY
+        from enmapbox.gui.hiddenqgislayers import HIDDEN_ENMAPBOX_LAYER_STATE
         if isinstance(newDataSource, str) and newDataSource in self.uriList() or \
-           isinstance(newDataSource, SpectralLibrary) and newDataSource.customProperty(OWNED_BY_SPECLIBWIDGET_KEY):
+           isinstance(newDataSource, SpectralLibrary) and newDataSource.customProperty(OWNED_BY_SPECLIBWIDGET_KEY) or \
+           isinstance(newDataSource, QgsMapLayer) and newDataSource.customProperty(HIDDEN_ENMAPBOX_LAYER_STATE):
             return []
-
 
         try:
             newDataSources = DataSourceFactory.create(newDataSource, name=name, icon=icon)

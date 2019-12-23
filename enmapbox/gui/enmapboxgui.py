@@ -279,7 +279,8 @@ class EnMAPBox(QgisInterface, QObject):
         setConfigOption('foreground', 'w')
 
         from enmapbox.gui.hiddenqgislayers import HiddenQGISLayerManager
-        self.mHiddenLayerManager = HiddenQGISLayerManager(self.mDataSourceManager, self.dockManageTreeModel())
+        self.mHiddenLayerManager = HiddenQGISLayerManager(self.mDataSourceManager, self.dockManagerTreeModel())
+        self.mHiddenLayerManager.mMapLayerStore = self.mMapLayerStore
 
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
@@ -558,7 +559,7 @@ class EnMAPBox(QgisInterface, QObject):
             self.setMapTool(self.mMapToolKey, canvases=[canvas])
             canvas.mapTools().mtCursorLocation.sigLocationRequest[SpatialPoint, QgsMapCanvas].connect(self.setCurrentLocation)
 
-            for node in self.dockManageTreeModel().mapDockTreeNodes():
+            for node in self.dockManagerTreeModel().mapDockTreeNodes():
                 assert isinstance(node, MapDockTreeNode)
                 if node.mapCanvas() == canvas:
                     node.sigAddedLayers.connect(self.sigMapLayersAdded[list].emit)
@@ -964,7 +965,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         self.mDockManager.removeDock(*args, **kwds)
 
-    def dockManageTreeModel(self)->DockManagerTreeModel:
+    def dockManagerTreeModel(self)->DockManagerTreeModel:
         """
         Retursn the DockManagerTreeModel
         :return: DockManagerTreeModel

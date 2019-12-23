@@ -157,7 +157,12 @@ def build():
 
     if True:
         # 1. clean an existing directory = the enmapboxplugin folder
-        pb_tool.clean_deployment(ask_first=False)
+        if os.path.isdir(DIR_DEPLOY):
+            try:
+                pb_tool.clean_deployment(ask_first=False)
+            except:
+                pass
+
 
 
 
@@ -185,7 +190,7 @@ def build():
         compileResourceFiles()
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
-        pb_tool.deploy_files(pathCfg, DIR_DEPLOY, quick=True, confirm=False)
+        pb_tool.deploy_files(pathCfg, DIR_DEPLOY, 'default', quick=True, confirm=False)
 
         if True:
             remove_shortcutVisibleInContextMenu(DIR_DEPLOY)
