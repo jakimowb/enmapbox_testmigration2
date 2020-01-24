@@ -30,7 +30,7 @@ import sys, os, site, re, pathlib
 import qgis
 from qgis.gui import QgisInterface
 from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider
-from qgis.PyQt.QtCore import QSettings
+from qgis.PyQt.QtCore import QSettings, QResource
 from qgis.PyQt.QtGui import QIcon
 
 
@@ -105,23 +105,25 @@ def messageLog(msg, level=Qgis.Info):
         msg = str(msg)
     QgsApplication.instance().messageLog().logMessage(msg, 'EnMAP-Box', level)
 
+def scantree(path, ending='')->pathlib.Path:
+    """Recursively returns file paths in directory"""
+    for entry in os.scandir(path):
+        if entry.is_dir(follow_symlinks=False):
+            yield from scantree(entry.path, ending=ending)
+        else:
+            if entry.path.endswith(ending):
+                yield pathlib.Path(entry.path)
 
 def initEnMAPBoxResources():
     """
-    Loads (or reloads) EnMAP-Box Resources
+    Loads (or reloads) all Qt RESOUR files
     """
 
-    try:
-        import enmapbox.resources
-        enmapbox.resources.qInitResources()
-    except ModuleNotFoundError as ex:
-        print('Unable to import enmapbox.resources', file=sys.stderr)
-
-    try:
-        from .externals.qps.qpsresources import qInitResources as initQPSResources
-        initQPSResources()
-    except ModuleNotFoundError as ex:
-        print('Unable to import qps.resources', file=sys.stderr)
+    for rccFile in scantree(DIR_ENMAPBOX, ending='.rcc'):
+        try:
+            assert QResource.registerResource(rccFile.as_posix())
+        except Exception as ex:
+            print('Unable to load resource file {}'.format(rccFile.as_posix()), file=sys.stderr)
 
     try:
         import pyqtgraph

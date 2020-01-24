@@ -65,20 +65,22 @@ class EnMAPBoxTestCase(qgis.testing.TestCase):
         print('## setUpClass')
         # app = qgis.testing.start_app(cleanup=True)
 
-        import qgis.testing.mocked
-        iface = qgis.testing.mocked.get_iface()
-        import qgis.utils
-        qgis.utils.iface = iface
 
-        QgsGui.editorWidgetRegistry().initEditors()
+        #iface = qgis.testing.mocked.get_iface()
+        #import qgis.utils
+        #qgis.utils.iface = iface
+        initQgisApplication()
+        import enmapbox
+        enmapbox.initAll()
+        #.editorWidgetRegistry().initEditors()
+        s = ""
 
-        print('## setUpClass - cleanup')
-        for store in eotimeseriesviewer.MAP_LAYER_STORES:
-            store.removeAllMapLayers()
         print('## setUpClass - done')
 
     def setUp(self):
         print('## Start {}'.format(self._testMethodName))
+        import enmapbox
+        enmapbox.initAll()
 
     @classmethod
     def tearDownClass(cls):

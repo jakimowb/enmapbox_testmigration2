@@ -21,14 +21,14 @@
 import unittest, os
 from qgis.core import *
 from qgis.gui import *
+from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsApplication
-from enmapbox.testing import initQgisApplication, TestObjects
-QGIS_APP = initQgisApplication(loadProcessingFramework=False)
+from qgis.PyQt.QtCore import QResource
+from enmapbox.testing import initQgisApplication, TestObjects, EnMAPBoxTestCase
 
-SHOW_GUI = True and os.environ.get('CI') is None
+os.environ['CI'] = os.environ.get('CI', 'False')
 
-from enmapbox import initAll
-initAll()
+
 from enmapbox.gui.enmapboxgui import EnMAPBox, EnMAPBoxSplashScreen
 from enmapbox.gui.docks import *
 from enmapbox.gui.mapcanvas import *
@@ -60,7 +60,7 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
 
 
 
-class TestEnMAPBoxSplashScreen(unittest.TestCase):
+class TestEnMAPBoxSplashScreen(EnMAPBoxTestCase):
 
     def test_splashScreen(self):
 
@@ -82,45 +82,24 @@ class TestEnMAPBoxSplashScreen(unittest.TestCase):
         timer.startTimer(2)
         timer.timeout.connect(onTimeOut)
 
-        if SHOW_GUI:
-            w.show()
-            splash.show()
-            QGIS_APP.processEvents()
-            QGIS_APP.exec_()
+        self.showGui([w, splash])
 
 
 
-class TestEnMAPBox(unittest.TestCase):
+class TestEnMAPBox(EnMAPBoxTestCase):
 
-    def setUp(self):
-
-        emb = EnMAPBox.instance()
-        if isinstance(emb, EnMAPBox):
-            emb.close()
-        QApplication.processEvents()
-
-        self.EMB = EnMAPBox(None)
-
-
-    def tearDown(self):
-        emb = EnMAPBox.instance()
-        if isinstance(emb, EnMAPBox):
-            emb.close()
-
-        self.EMB = None
-        QApplication.processEvents()
 
     def test_instance(self):
+        EB = EnMAPBox()
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
-        self.assertEqual(self.EMB, EnMAPBox.instance())
+        self.assertEqual(EB, EnMAPBox.instance())
         log = QgsApplication.instance().messageLog()
 
         from enmapbox import messageLog
         messageLog('EnMAPBox TEST STARTED', Qgis.Info)
         s = ""
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui()
 
     def test_instanceWithData(self):
         import gc
@@ -128,24 +107,23 @@ class TestEnMAPBox(unittest.TestCase):
         mapLayers = [obj for obj in gc.get_objects() if isinstance(obj, QgsMapLayer)]
         self.assertTrue(len(mapLayers) == 0)
         del mapLayers
+        EMB = EnMAPBox()
 
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
-        self.assertEqual(self.EMB, EnMAPBox.instance())
-        self.EMB.loadExampleData()
+        self.assertEqual(EMB, EnMAPBox.instance())
+        EMB.loadExampleData()
         self.assertTrue(len(QgsProject.instance().mapLayers()) > 0)
-        canvases = self.EMB.mapCanvases()
-        self.assertTrue(canvases[-1] == self.EMB.activeMapCanvas())
+        canvases = EMB.mapCanvases()
+        self.assertTrue(canvases[-1] == EMB.activeMapCanvas())
 
 
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui()
 
         # test closing the box via gui button
         gc.collect()
 
-        self.EMB.ui.close()
+        EMB.ui.close()
         gc.collect()
 
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
@@ -192,8 +170,7 @@ class TestEnMAPBox(unittest.TestCase):
             dock = self.EMB.createDock(d)
             self.assertIsInstance(dock, Dock)
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui()
 
     def test_mapDockInteraction(self):
         E = self.EMB
@@ -215,8 +192,7 @@ class TestEnMAPBox(unittest.TestCase):
         E.addSource(landcover_polygons)
         self.assertTrue(len(E.dataSources()) == 2)
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui()
 
     def test_mapCanvas(self):
         E = self.EMB
@@ -234,16 +210,14 @@ class TestEnMAPBox(unittest.TestCase):
         for c in E.mapCanvases():
             self.assertIsInstance(c, MapCanvas)
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui()
 
     def test_loadExampleData(self):
         E = self.EMB
         E.loadExampleData()
         n = len(E.dataSources())
         self.assertTrue(n > 0)
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui()
 
     def test_loadAndUnloadData(self):
         E = self.EMB
@@ -277,7 +251,7 @@ class TestEnMAPBox(unittest.TestCase):
 
 
 
-class TestEnMAPBoxWorkflows(unittest.TestCase):
+class TestEnMAPBoxWorkflows(EnMAPBoxTestCase):
 
     def test_speclibDocks(self):
         EMB = EnMAPBox()
@@ -348,5 +322,4 @@ class MyGeoAlgorithmus(QgsProcessingAlgorithm):
 
 
 if __name__ == '__main__':
-    SHOW_GUI = False
     unittest.main()
