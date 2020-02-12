@@ -9,15 +9,14 @@ from qgis.gui import *
 from qgis.gui import QgisInterface, QgsDockWidget, QgsPluginManagerInterface
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtCore import QMimeData
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtXml import *
-from qgis.PyQt.QtXml import QDomDocument
+from PyQt5.QtGui import *
+
+from PyQt5.QtXml import *
+from PyQt5.QtXml import QDomDocument
 from qgis.PyQt import uic
 from osgeo import gdal, ogr
 import numpy as np
-
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QDialogButtonBox, QLabel, QGridLayout, QMainWindow
 
 REMOVE_setShortcutVisibleInContextMenu = hasattr(QAction, 'setShortcutVisibleInContextMenu')
 
@@ -260,7 +259,7 @@ def nextColor(color, mode='cat')->QColor:
         value = 128
         alpha = 255
         s = ""
-    while hue > 360:
+    while hue >= 360:
         hue -= 360
 
     return QColor.fromHsl(hue, sat, value, alpha)
@@ -579,6 +578,7 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
 
             if not os.path.isfile(p):
                 missing.append(t)
+
         match = re.search(r'resource="[^:].*/QGIS[^/"]*/images/images.qrc"',txt)
         if match:
             txt = txt.replace(match.group(), 'resource=":/images/images.qrc"')
@@ -672,9 +672,7 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
         buffer.flush()
         buffer.seek(0)
 
-
-
-        #if existent, make resource file directories available to the python path (sys.path)
+        # if existent, make resource file directories available to the python path (sys.path)
         baseDir = os.path.dirname(pathUi)
         tmpDirs = []
         if True:
@@ -685,8 +683,7 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
                     tmpDirs.append(d)
             sys.path.extend(tmpDirs)
 
-        #create requried mockups
-
+        # create requried mockups
         if True:
             FORM_CLASS_MOCKUP_MODULES = [os.path.splitext(os.path.basename(p))[0] for p in qrcPaths]
             FORM_CLASS_MOCKUP_MODULES = [m for m in FORM_CLASS_MOCKUP_MODULES if m not in sys.modules.keys()]
@@ -695,8 +692,7 @@ def loadUIFormClass(pathUi:str, from_imports=False, resourceSuffix:str='', fixQG
 
                 sys.modules[mockupModule] = resourcemockup
 
-
-        #load form class
+        # load form class
         try:
             FORM_CLASS, _ = uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
         except Exception as ex1:
@@ -851,6 +847,23 @@ def zipdir(pathDir, pathZip):
                 if os.path.isfile(filename):  # regular files only
                     arcname = os.path.join(os.path.relpath(root, relroot), file)
                     zip.write(filename, arcname)
+
+def scanResources(path=':')->typing.Iterator[str]:
+    """
+    Returns all resource-paths of the Qt Resource system
+    :param path:
+    :type path:
+    :return:
+    :rtype:
+    """
+    D = QDirIterator(path)
+    while D.hasNext():
+        entry = D.next()
+        if D.fileInfo().isDir():
+            yield from scanResources(path=entry)
+        elif D.fileInfo().isFile():
+            yield D.filePath()
+
 
 
 def convertMetricUnit(value: float, u1: str, u2: str)->float:
@@ -1077,7 +1090,7 @@ def parseWavelength(dataset):
 
                 if re.search(r'wavelength.units?', key):
                     if re.search(r'(Micrometers?|um|μm)', values, re.I):
-                        wlu = 'um'  # fix with python 3 UTF
+                        wlu = 'μm'  # fix with python 3 UTF
                     elif re.search(r'(Nanometers?|nm)', values, re.I):
                         wlu = 'nm'
                     elif re.search(r'(Millimeters?|mm)', values, re.I):
