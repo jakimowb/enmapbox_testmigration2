@@ -1455,10 +1455,10 @@ class DockManager(QObject):
 
 
 
-class DockPanelUI(QgsDockWidget, loadUI('dockpanel.ui')):
+class DockPanelUI(QgsDockWidget):
     def __init__(self, parent=None):
         super(DockPanelUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(enmapboxUiPath('dockpanel.ui'), self)
         self.dockManager = None
         assert isinstance(self.dockTreeView, DockTreeView)
 

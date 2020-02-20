@@ -1226,10 +1226,10 @@ class DataSourceTreeView(TreeView):
         EnMAPBox.instance().dockManager().createDock('SPECLIB', speclib=speclib)
 
 
-class DataSourcePanelUI(QDockWidget, loadUI('datasourcepanel.ui')):
+class DataSourcePanelUI(QDockWidget):
     def __init__(self, parent=None):
         super(DataSourcePanelUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(enmapboxUiPath('datasourcepanel.ui'), self)
         self.mDataSourceManager = None
         assert isinstance(self.dataSourceTreeView, DataSourceTreeView)
 

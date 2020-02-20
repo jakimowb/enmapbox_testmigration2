@@ -19,26 +19,22 @@
 """
 
 
-import os, collections
+import os, collections, pathlib
 from qgis.core import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-from enmapbox.gui.utils import loadUI, jp
+from enmapbox.gui.utils import loadUi, jp
 from enmapbox import DIR_REPO
 
 
-class AboutDialog(QDialog, loadUI('aboutdialog.ui')):
-    def __init__(self, parent=None):
+class AboutDialog(QDialog):
+    def __init__(self, *args , **kwds):
         """Constructor."""
-        super(AboutDialog, self).__init__(parent)
-        # Set up the user interface from Designer.
-        # After setupUI you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
-        self.setupUi(self)
+        super().__init__(*args , **kwds)
+        pathUi
+        loadUi()
 
         self.mTitle = self.windowTitle()
         self.listWidget.currentItemChanged.connect(lambda: self.setAboutTitle())

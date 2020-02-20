@@ -19,8 +19,20 @@
 """
 
 from ..externals.qps.utils import *
-from enmapbox import DIR_UIFILES
-UI_DIRECTORIES.append(DIR_UIFILES)
+
+def enmapboxUiPath(name:str)->pathlib.Path:
+    """
+    Translate a base name `name` into the absolute path of an ui-file
+    :param name: str
+    :type name: pathlib.Path
+    :return:
+    :rtype:
+    """
+    from enmapbox import DIR_UIFILES
+    path = pathlib.Path(DIR_UIFILES) / name
+    assert path.is_file()
+    return path
+
 
 def guessDataProvider(src:str)->str:
     """

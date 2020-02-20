@@ -65,7 +65,7 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         activate or deactivate algorithms from the provider.
         """
 
-        ProcessingConfig.setGroupIcon(self.name(), self.getIcon())
+        ProcessingConfig.setGroupIcon(self.name(), self.icon())
         ProcessingConfig.addSetting(Setting(self.name(), self.mSettingsPrefix+'_ACTIVATE',
                                             self.tr('Activates the EnMAP-Box'), True))
         ProcessingConfig.addSetting(Setting(self.name(), self.mSettingsPrefix+'_HELPPATH', 'Location of EnMAP-Box docs', 'default'))

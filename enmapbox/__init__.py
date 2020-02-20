@@ -57,6 +57,8 @@ DIR_UNITTESTS = os.path.join(DIR_REPO, 'enmapboxtesting')
 ENMAP_BOX_KEY = 'EnMAP-Box'
 
 
+
+
 def enmapboxSettings()->QSettings:
     """
     Returns the QSettings object for EnMAP-Box Settings
@@ -74,15 +76,15 @@ LOAD_INTERNAL_APPS = settings.value('EMB_LOAD_IA', True)
 site.addsitedir(DIR_SITEPACKAGES)
 
 
-# make the EnMAP-Box resources available
-
-#try:
-#    from .externals.qps import resourcemockup
-#    if not 'images' in sys.modules.keys():
-#        sys.modules['images'] = resourcemockup
-#
-#except:
-#    pass
+# test PyQtGraph
+try:
+    import pyqtgraph
+except:
+    pSrc = pathlib.Path(DIR_ENMAPBOX) / 'externals' / 'qps' / 'externals'
+    assert pSrc.is_dir()
+    site.addsitedir(pSrc)
+    import pyqtgraph
+    s = ""
 
 
 def icon()->QIcon:
@@ -116,30 +118,11 @@ def scantree(path, ending='')->pathlib.Path:
 
 def initEnMAPBoxResources():
     """
-    Loads (or reloads) all Qt RESOUR files
+    Loads (or reloads) all Qt resource files
     """
+    from .externals.qps.resources import initQtResources
+    initQtResources(DIR_ENMAPBOX)
 
-    for rccFile in scantree(DIR_ENMAPBOX, ending='.rcc'):
-        try:
-            assert QResource.registerResource(rccFile.as_posix())
-        except Exception as ex:
-            print('Unable to load resource file {}'.format(rccFile.as_posix()), file=sys.stderr)
-
-    try:
-        import pyqtgraph
-    except ModuleNotFoundError as ex:
-
-        dirQpsExternals = pathlib.Path(DIR_REPO) / 'enmapbox' / 'externals' / 'qps' / 'externals'
-        assert os.path.isdir(dirQpsExternals)
-
-        import site
-        #print('ADD MODIFIED PYQTGRAPH TO SITE_LIBS')
-        site.addsitedir(dirQpsExternals)
-        #from .externals.qps.externals import pyqtgraph
-        #print('Could not import pyqtgraph. Use internal package from {}'.format(pyqtgraph.__file__))
-
-        #sys.modules['pyqtgraph'] = pyqtgraph
-        s = ""
 
 
 def initEditorWidgets():
@@ -196,6 +179,7 @@ def initAll():
     Calls other init routines required to run the EnMAP-Box properly
     """
     initEnMAPBoxResources()
+    from enmapbox.externals.qps.resources import ResourceBrowser
     initEditorWidgets()
     initEnMAPBoxProcessingProvider()
     initMapLayerConfigWidgetFactories()

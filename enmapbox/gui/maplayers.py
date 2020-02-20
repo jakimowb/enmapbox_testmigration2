@@ -7,16 +7,16 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
 import numpy as np
 from enmapbox import DIR_UIFILES
-from enmapbox.gui.utils import loadUIFormClass, parseWavelength, convertMetricUnit
-from enmapbox.gui.utils import LUT_WAVELENGTH
+from enmapbox.gui.utils import parseWavelength, convertMetricUnit, LUT_WAVELENGTH,  loadUi, enmapboxUiPath
+
 import enmapbox
 
-class EnMAPBoxRasterLayerConfigWidget(QgsMapLayerConfigWidget, loadUIFormClass(os.path.join(DIR_UIFILES, 'rasterlayerconfigwidget.ui'))):
+class EnMAPBoxRasterLayerConfigWidget(QgsMapLayerConfigWidget):
 
     def __init__(self, layer:QgsRasterLayer, canvas:QgsMapCanvas, parent:QWidget=None):
 
         super(EnMAPBoxRasterLayerConfigWidget, self).__init__(layer, canvas, parent=parent)
-        self.setupUi(self)
+        loadUi(enmapboxUiPath('rasterlayerconfigwidget.ui'), self)
         self.mCanvas = canvas
         self.mLayer = layer
         self.mLayer.rendererChanged.connect(self.onRendererChanged)

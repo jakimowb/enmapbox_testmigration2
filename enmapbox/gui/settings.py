@@ -20,6 +20,7 @@
 import os
 
 from enmapbox import enmapboxSettings
+from enmapbox.gui.utils import loadUi, enmapboxUiPath
 from qgis.core import *
 from qgis.gui import *
 from qgis.PyQt.QtGui import *
@@ -272,13 +273,12 @@ class SettingsWidgetDelegates(QStyledItemDelegate):
             if index.data() != w.color():
                 model.setData(index, w.color(), Qt.EditRole)
 
-from enmapbox.gui.utils import loadUI
-class SettingsDialog(QDialog, loadUI('settingsdialog.ui')):
+
+class SettingsDialog(QDialog):
 
     def __init__(self, parent=None):
         super(SettingsDialog, self).__init__(parent=parent)
-        self.setupUi(self)
-
+        loadUi(enmapboxUiPath('settingsdialog.ui'), self)
 
         self.modelGlobals = SettingsTableModel(enmapboxSettings(), parent=self)
         self.tableViewGlobalSettings.setModel(self.modelGlobals)
