@@ -193,7 +193,7 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         """
         assert isinstance(algorithmns, list)
         for a in algorithmns:
-            self.addAlgorithm(a.create(), _emitUpdated = False)
+            self.addAlgorithm(a, _emitUpdated = False)
         if len(algorithmns) > 0:
             self.emitUpdated()
         #self.refreshAlgorithms()

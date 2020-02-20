@@ -5,25 +5,12 @@ import enmapboxtestdata
 from reclassifyapp.reclassify import *
 from enmapbox.gui import ClassificationScheme
 from enmapbox.gui.utils import *
+from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox import EnMAPBox, EnMAPBoxApplication
 
-SHOW_GUI = True
-
-class TestEnMAPBoxApplications(TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-
-        cls.qgsApp = initQgisApplication()
-
-    @classmethod
-    def tearDownClass(cls):
-
-        cls.qgsApp.quit()
-
+class TestEnMAPBoxApplications(EnMAPBoxTestCase):
 
     def setUp(self):
-
         self.emb = EnMAPBox()
         self.emb.loadExampleData()
 
@@ -33,7 +20,7 @@ class TestEnMAPBoxApplications(TestCase):
 
 
     def test_UiLibrary(self):
-        # addresses https://bitbucket.org/hu-geomatics/enmap-box/issues/310/attributeerror-function-object-has-no
+        # Addresses https://bitbucket.org/hu-geomatics/enmap-box/issues/310/attributeerror-function-object-has-no
 
         enmapBox = EnMAPBox.instance()
         self.assertIsInstance(enmapBox, EnMAPBox)
@@ -52,13 +39,10 @@ class TestEnMAPBoxApplications(TestCase):
         speclibCB = UiLibrary()
 
 
-        self.assertIsInstance(speclibCB, QComboBox)
         self.assertTrue(len(speclibDataSources) == speclibCB.count() - 1)
 
 
 
 
 if __name__ == "__main__":
-
-    SHOW_GUI = False
     unittest.main()

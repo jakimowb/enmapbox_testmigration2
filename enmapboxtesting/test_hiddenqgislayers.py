@@ -17,26 +17,12 @@ import qgis.utils
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.testing import *
-
-SHOW_GUI = False and os.environ.get('CI') is None
-QGIS_APP = initQgisApplication(loadProcessingFramework=False)
-
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui.datasourcemanager import *
 from enmapbox.gui.dockmanager import *
 
 from enmapbox.gui.hiddenqgislayers import *
-class Tests(unittest.TestCase):
-
-    def setUp(self) -> None:
-        QgsProject.instance().removeAllMapLayers()
-
-        emb = EnMAPBox.instance()
-        if isinstance(emb, EnMAPBox):
-            emb.close()
-
-
-        s = ""
+class Tests(EnMAPBoxTestCase):
 
     def test_hiddenLayerManager(self):
 
@@ -132,10 +118,7 @@ class Tests(unittest.TestCase):
 
         self.assertTrue(len(qgisLayers()) == 4)
 
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
-
+        self.showGui(emb.ui)
 
     def test_hiddenLayerManagerInBox(self):
 
@@ -145,11 +128,7 @@ class Tests(unittest.TestCase):
         lyr = TestObjects.createRasterLayer()
         emb.addSource(lyr)
 
-
-
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(emb.ui)
 
 if __name__ == "__main__":
     unittest.main()

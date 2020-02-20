@@ -1,0 +1,11 @@
+[run]
+include =
+    */enmapbox/*
+
+
+omit =
+    */qps/externals/*
+
+
+
+

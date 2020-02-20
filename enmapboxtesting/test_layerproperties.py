@@ -14,16 +14,11 @@ import unittest
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.testing import initQgisApplication, TestObjects
-QGIS_APP = initQgisApplication()
+from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapboxtestdata import enmap, hires, library
 from enmapbox.gui.mapcanvas import *
-SHOW_GUI = False and os.environ.get('CI') is None
-
 from enmapbox.gui.maplayers import *
-from enmapbox.testing import TestObjects
-class LayerRendererTests(unittest.TestCase):
-
+class LayerRendererTests(EnMAPBoxTestCase):
 
     def test_EnMAPBoxRasterLayerConfigWidget(self):
 
@@ -54,7 +49,6 @@ class LayerRendererTests(unittest.TestCase):
         w.widgetChanged.connect(w.apply)
         w.show()
 
-
         w = None
         def onChanged(layer):
             if isinstance(layer, QgsRasterLayer):
@@ -67,34 +61,26 @@ class LayerRendererTests(unittest.TestCase):
         cb.layerChanged.connect(onChanged)
         cb.show()
 
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
-
+        self.showGui(cb)
 
     def test_defaultRenderer(self):
         #1 band, byte
-        ds = TestObjects.inMemoryImage(nb=1, eType=gdal.GDT_Byte)
-        lyr = QgsRasterLayer(ds.GetFileList()[0])
+        ds = lyr = TestObjects.createRasterLayer(nb=1, eType=gdal.GDT_Byte)
         r = defaultRasterRenderer(lyr)
         self.assertIsInstance(r, QgsSingleBandGrayRenderer)
 
         #1 band, classification
-        ds = TestObjects.inMemoryImage(nc=3)
-        lyr = QgsRasterLayer(ds.GetFileList()[0])
+        lyr = TestObjects.createRasterLayer(nc=3)
         r = defaultRasterRenderer(lyr)
         self.assertIsInstance(r, QgsPalettedRasterRenderer)
 
         #3 bands, byte
-        ds = TestObjects.inMemoryImage(nb=3, eType=gdal.GDT_Byte)
-        lyr = QgsRasterLayer(ds.GetFileList()[0])
+        lyr = TestObjects.createRasterLayer(nb=3, eType=gdal.GDT_Byte)
         r = defaultRasterRenderer(lyr)
         self.assertIsInstance(r, QgsMultiBandColorRenderer)
 
-
         #10 bands, int
-        ds = TestObjects.inMemoryImage(nb=10, eType=gdal.GDT_Int16)
-        lyr = QgsRasterLayer(ds.GetFileList()[0])
+        lyr = TestObjects.createRasterLayer(nb=10, eType=gdal.GDT_Int16)
         r = defaultRasterRenderer(lyr)
         self.assertIsInstance(r, QgsMultiBandColorRenderer)
 

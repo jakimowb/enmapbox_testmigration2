@@ -154,6 +154,7 @@ def initEnMAPBoxProcessingProvider():
         existingAlgNames = [a.name() for a in registry.algorithms() if a.groupId() == _enmapboxProvider.id()]
         missingAlgs = [a for a in enmapboxgeoalgorithms.algorithms.ALGORITHMS if a.name() not in existingAlgNames]
         _enmapboxProvider.addAlgorithms(missingAlgs)
+        s = ""
 
 
     except Exception as ex:
