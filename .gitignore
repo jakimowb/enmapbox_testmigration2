@@ -21,7 +21,7 @@ enmapbox/resources.py
 enmapboxtestdata.zip
 
 
-
+.coveragec
 
 # Untrack compiled files
 *.pyc 
