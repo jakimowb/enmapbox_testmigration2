@@ -9,10 +9,11 @@ from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 import gdal
 from enmapbox.gui import *
+from enmapbox.gui.utils import enmapboxUiPath
 from enmapbox.gui.datasources import DataSourceRaster
 import numpy as np
 
-from ..externals.qps.speclib.spectrallibraries import FIELD_NAME as SPECLIB_FIELD_NAME
+from ..externals.qps.speclib.core import FIELD_NAME as SPECLIB_FIELD_NAME
 
 class SpectralProfileSource(object):
 
@@ -940,13 +941,13 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
 
 
 
-class SpectralProfileSourcePanel(QgsDockWidget, loadUI('spectralprofilesourcepanel.ui')):
+class SpectralProfileSourcePanel(QgsDockWidget):
 
 
     def __init__(self, *args, **kwds):
         super(SpectralProfileSourcePanel, self).__init__(*args, **kwds)
-        self.setupUi(self)
 
+        loadUi(enmapboxUiPath('spectralprofilesourcepanel.ui'), self)
         self.progressBar.setVisible(False)
 
         self.mRunAsync = True

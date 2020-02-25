@@ -479,12 +479,13 @@ class MimeDataTextEdit(QTextEdit):
         event.accept()
 
 
-class MimeDataDockWidget(QWidget, loadUI('mimedatadockwidget.ui')):
+class MimeDataDockWidget(QWidget):
 
 
     def __init__(self, parent=None):
         super(MimeDataDockWidget, self).__init__(parent=parent)
-        self.setupUi(self)
+        loadUi(enmapboxUiPath('mimedatadockwidget.ui'), self)
+
 
     def loadFile(self, path):
         if os.path.isfile(path):
@@ -528,7 +529,7 @@ class MimeDataDockWidget(QWidget, loadUI('mimedatadockwidget.ui')):
 
 
 
-class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
+class TextDockWidget(QWidget):
     """
     A widget to display text files
     """
@@ -545,7 +546,8 @@ class TextDockWidget(QWidget, loadUI('textdockwidget.ui')):
         :param parent:
         """
         super(TextDockWidget, self).__init__(parent=parent)
-        self.setupUi(self)
+        loadUi(enmapboxUiPath('textdockwidget.ui'), self)
+
         self.setAcceptDrops(True)
         self.mFile = None
         self.mTitle = self.windowTitle()

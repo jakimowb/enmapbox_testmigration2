@@ -186,8 +186,8 @@ def build():
         #    print('Failed to compile resources')
         #    print(ex)
 
-        from make.compileresourcefiles import compileResourceFiles
-        compileResourceFiles()
+        from make.compileresourcefiles import compileEnMAPBoxResources
+        compileEnMAPBoxResources()
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
         pb_tool.deploy_files(pathCfg, DIR_DEPLOY, 'default', quick=True, confirm=False)
@@ -572,11 +572,5 @@ if __name__ == "__main__":
             INCLUDE_TESTDATA = True
 
     build()
-
-    # 2. Upload to Repository
-    # upload deploy/EnMAP-Box.<version>.<branch>.zip to https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/downloads
-    # this step requires to provide upload credentials
-    #uploadDeveloperPlugin()
-
     exit()
 

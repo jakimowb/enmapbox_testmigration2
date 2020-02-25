@@ -15,39 +15,23 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest, shutil, tempfile
 from collections import namedtuple
-from enmapbox.testing import initQgisApplication, TestObjects
+from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 
-QGIS_APP = initQgisApplication()
-SHOW_GUI = False and os.environ.get('CI') is None
-from enmapbox.gui.utils import *
+
 from enmapbox import EnMAPBox, DIR_ENMAPBOX, DIR_REPO
 import enmapbox.gui
 from enmapbox.gui.applications import *
 
-enmapbox.initAll()
-
 DIR_TMP = os.path.join(DIR_REPO, *['tmp', 'tmp_enmapboxApplicationTests'])
 
 
-class test_applications(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        pass
-
-    def setUp(self):
-        eb = EnMAPBox.instance()
-        if isinstance(eb, EnMAPBox):
-            eb.close()
-        QApplication.processEvents()
+class test_applications(EnMAPBoxTestCase):
 
     def tearDown(self):
         eb = EnMAPBox.instance()
         if isinstance(eb, EnMAPBox):
             eb.close()
             QApplication.processEvents()
-            EnMAPBox._instance = None
-
 
 
     def createTestData(self)->(str, str, str):
@@ -160,7 +144,6 @@ class test_applications(unittest.TestCase):
         reg.removeApplication(app2)
         self.assertTrue(len(reg.applications()) == 1, msg='Unable to remove application')
 
-
         #load a folder
         reg = ApplicationRegistry(EB)
         for d in TESTDATA.validAppDirs:
@@ -201,9 +184,7 @@ class test_applications(unittest.TestCase):
         m = MainUiFunc()
         m.show()
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
-
+        self.showGui()
 
 
     def test_externalApp(self):
@@ -273,14 +254,13 @@ class test_applications(unittest.TestCase):
                 for a in menuItem.actions():
                     triggerActions(a, prefix='"{}"->'.format(menuItem.title()))
 
-        #test core apps / tools
-        if SHOW_GUI:
-            for title in ['Tools', 'Applications']:
+        for title in ['Tools', 'Applications']:
 
-                print('## TEST QMenu "{}"'.format(title))
+            print('## TEST QMenu "{}"'.format(title))
 
-                triggerActions(EB.menu(title))
+            triggerActions(EB.menu(title))
 
+        self.showGui()
 
 
 if __name__ == "__main__":

@@ -30,7 +30,7 @@ import sys, os, site, re, pathlib
 import qgis
 from qgis.gui import QgisInterface
 from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider
-from qgis.PyQt.QtCore import QSettings
+from qgis.PyQt.QtCore import QSettings, QResource
 from qgis.PyQt.QtGui import QIcon
 
 
@@ -57,6 +57,8 @@ DIR_UNITTESTS = os.path.join(DIR_REPO, 'enmapboxtesting')
 ENMAP_BOX_KEY = 'EnMAP-Box'
 
 
+
+
 def enmapboxSettings()->QSettings:
     """
     Returns the QSettings object for EnMAP-Box Settings
@@ -74,15 +76,15 @@ LOAD_INTERNAL_APPS = settings.value('EMB_LOAD_IA', True)
 site.addsitedir(DIR_SITEPACKAGES)
 
 
-# make the EnMAP-Box resources available
-
-#try:
-#    from .externals.qps import resourcemockup
-#    if not 'images' in sys.modules.keys():
-#        sys.modules['images'] = resourcemockup
-#
-#except:
-#    pass
+# test PyQtGraph
+try:
+    import pyqtgraph
+except:
+    pSrc = pathlib.Path(DIR_ENMAPBOX) / 'externals' / 'qps' / 'externals'
+    assert pSrc.is_dir()
+    site.addsitedir(pSrc)
+    import pyqtgraph
+    s = ""
 
 
 def icon()->QIcon:
@@ -105,39 +107,22 @@ def messageLog(msg, level=Qgis.Info):
         msg = str(msg)
     QgsApplication.instance().messageLog().logMessage(msg, 'EnMAP-Box', level)
 
+def scantree(path, ending='')->pathlib.Path:
+    """Recursively returns file paths in directory"""
+    for entry in os.scandir(path):
+        if entry.is_dir(follow_symlinks=False):
+            yield from scantree(entry.path, ending=ending)
+        else:
+            if entry.path.endswith(ending):
+                yield pathlib.Path(entry.path)
 
 def initEnMAPBoxResources():
     """
-    Loads (or reloads) EnMAP-Box Resources
+    Loads (or reloads) all Qt resource files
     """
+    from .externals.qps.resources import initQtResources
+    initQtResources(DIR_ENMAPBOX)
 
-    try:
-        import enmapbox.resources
-        enmapbox.resources.qInitResources()
-    except ModuleNotFoundError as ex:
-        print('Unable to import enmapbox.resources', file=sys.stderr)
-
-    try:
-        from .externals.qps.qpsresources import qInitResources as initQPSResources
-        initQPSResources()
-    except ModuleNotFoundError as ex:
-        print('Unable to import qps.resources', file=sys.stderr)
-
-    try:
-        import pyqtgraph
-    except ModuleNotFoundError as ex:
-
-        dirQpsExternals = pathlib.Path(DIR_REPO) / 'enmapbox' / 'externals' / 'qps' / 'externals'
-        assert os.path.isdir(dirQpsExternals)
-
-        import site
-        #print('ADD MODIFIED PYQTGRAPH TO SITE_LIBS')
-        site.addsitedir(dirQpsExternals)
-        #from .externals.qps.externals import pyqtgraph
-        #print('Could not import pyqtgraph. Use internal package from {}'.format(pyqtgraph.__file__))
-
-        #sys.modules['pyqtgraph'] = pyqtgraph
-        s = ""
 
 
 def initEditorWidgets():
@@ -169,6 +154,7 @@ def initEnMAPBoxProcessingProvider():
         existingAlgNames = [a.name() for a in registry.algorithms() if a.groupId() == _enmapboxProvider.id()]
         missingAlgs = [a for a in enmapboxgeoalgorithms.algorithms.ALGORITHMS if a.name() not in existingAlgNames]
         _enmapboxProvider.addAlgorithms(missingAlgs)
+        s = ""
 
 
     except Exception as ex:
@@ -178,15 +164,11 @@ def initEnMAPBoxProcessingProvider():
             info.append(p)
         print('\n'.join(info), file=sys.stderr)
 
-_mapLayerConfigFactories = []
+
 def initMapLayerConfigWidgetFactories():
-
-    from enmapbox.gui.maplayers import EnMAPBoxRasterLayerConfigWidgetFactory
-
-    import qgis.utils
-    if isinstance(qgis.utils.iface, QgisInterface):
-        factory = EnMAPBoxRasterLayerConfigWidgetFactory()
-        _mapLayerConfigFactories.append(factory)
+    from .externals.qps import registerMapLayerConfigWidgetFactories, mapLayerConfigWidgetFactories
+    registerMapLayerConfigWidgetFactories()
+    for factory in mapLayerConfigWidgetFactories():
         qgis.utils.iface.registerMapLayerConfigWidgetFactory(factory)
 
 def initAll():
@@ -194,6 +176,7 @@ def initAll():
     Calls other init routines required to run the EnMAP-Box properly
     """
     initEnMAPBoxResources()
+    from enmapbox.externals.qps.resources import ResourceBrowser
     initEditorWidgets()
     initEnMAPBoxProcessingProvider()
     initMapLayerConfigWidgetFactories()

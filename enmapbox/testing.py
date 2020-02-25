@@ -27,16 +27,15 @@ from qgis.gui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
-from .externals.qps.testing import TestObjects, WFS_Berlin, WMS_GMAPS, WMS_OSM
+from .externals.qps.testing import TestObjects, WFS_Berlin, WMS_GMAPS, WMS_OSM, TestCase
 import qgis.utils
-import qgis.testing
 import numpy as np
 from osgeo import gdal, ogr, osr
 
 
 from enmapbox.gui.utils import file_search
 from enmapbox import DIR_TESTDATA
-from unittest import TestCase
+
 
 SHOW_GUI = True
 
@@ -48,8 +47,8 @@ def initQgisApplication(*args, loadProcessingFramework=True, **kwds)->QgsApplica
     if isinstance(QgsApplication.instance(), QgsApplication):
         return QgsApplication.instance()
     else:
-        from .externals.qps.testing import initQgisApplication
-        app = initQgisApplication(*args, loadProcessingFramework=loadProcessingFramework, **kwds)
+        from .externals.qps.testing import start_app, StartOptions
+        app = start_app(*args, options=StartOptions.All, **kwds)
 
         import enmapbox
         enmapbox.initEnMAPBoxResources()
@@ -59,44 +58,13 @@ def initQgisApplication(*args, loadProcessingFramework=True, **kwds)->QgsApplica
         return app
 
 
-class EnMAPBoxTestCase(qgis.testing.TestCase):
+class EnMAPBoxTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        print('## setUpClass')
-        # app = qgis.testing.start_app(cleanup=True)
 
-        import qgis.testing.mocked
-        iface = qgis.testing.mocked.get_iface()
-        import qgis.utils
-        qgis.utils.iface = iface
-
-        QgsGui.editorWidgetRegistry().initEditors()
-
-        print('## setUpClass - cleanup')
-        for store in eotimeseriesviewer.MAP_LAYER_STORES:
-            store.removeAllMapLayers()
-        print('## setUpClass - done')
-
-    def setUp(self):
-        print('## Start {}'.format(self._testMethodName))
-
-    @classmethod
-    def tearDownClass(cls):
-        app = QgsApplication.instance()
-        if isinstance(app, QgsApplication):
-            pass
-
-    def showGui(self, widgets=None, execute=None):
-        app = QgsApplication.instance()
-        if isinstance(app, QgsApplication) and not str(os.environ.get('CI')).lower() in ['true', '1', 'yes']:
-            if widgets != None:
-                if not isinstance(widgets, list):
-                    widgets = [widgets]
-                for w in widgets:
-                    if isinstance(w, (QMainWindow, QWidget)):
-                        w.show()
-
-            app.exec_()
+        super().setUpClass()
+        import enmapbox
+        enmapbox.initAll()
 
 
 class TestObjects(TestObjects):

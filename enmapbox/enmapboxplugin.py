@@ -40,6 +40,7 @@ class EnMAPBoxPlugin(object):
             # fix for issue #221
             os.environ['JOBLIB_MULTIPROCESSING'] = '0'
 
+        pathes = sys.path[:]
         dirPlugin = os.path.dirname(__file__)
         site.addsitedir(dirPlugin)
         import enmapbox
@@ -56,6 +57,8 @@ class EnMAPBoxPlugin(object):
         enmapbox.initEnMAPBoxProcessingProvider()
 
         #assert self.enmapBoxProvider == QgsApplication.instance().processingRegistry().providerById('enmapbox')
+
+        self.mAddedSysPaths = [p for p in sys.path if p not in pathes]
 
     def initialDependencyCheck(self):
         """

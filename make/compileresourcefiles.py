@@ -1,26 +1,21 @@
-import os, sys, fnmatch, six, subprocess, re
-
-ROOT = os.path.dirname(os.path.dirname(__file__))
-
-from enmapbox import DIR_REPO
-from enmapbox.externals.qps.make.make import compileResourceFile, compileQGISResourceFiles
-from enmapbox.externals.qps.utils import file_search
+import os, sys, fnmatch, six, subprocess, re, pathlib, typing
+import qgis.testing
 
 
+def compileEnMAPBoxResources():
+    #app = qgis.testing.start_app()
+    from enmapbox.externals.qps.make.make import compileResourceFiles
 
-def compileResourceFiles():
+    DIR_REPO = pathlib.Path(__file__).parents[1]
+    directories = [DIR_REPO / 'enmapbox',
+                   DIR_REPO / 'site-packages'
+                   ]
 
-    dir1 = os.path.join(DIR_REPO, 'enmapbox')
-    dir2 = os.path.join(DIR_REPO, 'site-packages')
+    for d in directories:
+        compileResourceFiles(d)
 
-    qrcFiles = []
-    for pathDir in [dir1, dir2]:
-        qrcFiles += list(file_search(pathDir, '*.qrc', recursive=True))
-
-    for file in qrcFiles:
-        print('Compile {}...'.format(file))
-        compileResourceFile(file)
+    print('Finished')
 
 
 if __name__ == "__main__":
-    compileResourceFiles()
+    compileEnMAPBoxResources()

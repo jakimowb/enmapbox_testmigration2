@@ -891,9 +891,6 @@ class MapCanvas(QgsMapCanvas):
 
     def __init__(self, parent=None):
         super(MapCanvas, self).__init__(parent=parent)
-        #KeepRefs.__init__(self)
-        #from enmapbox.gui.docks import MapDock
-        #assert isinstance(parentMapDock, MapDock)
 
         self._id = 'MapCanvas.#{}'.format(MapCanvas._cnt)
         self.setWindowTitle(self._id)
@@ -907,6 +904,13 @@ class MapCanvas(QgsMapCanvas):
 
 
         self.setCrosshairVisibility(False)
+
+        from enmapbox import EnMAPBox
+
+        if EnMAPBox.instance():
+            self.mMapLayerStore = EnMAPBox.instance().mapLayerStore()
+        else:
+            self.mMapLayerStore = QgsMapLayerStore()
 
         # init the map tool set
         self.mCadDock = QgsAdvancedDigitizingDockWidget(self)
@@ -1333,6 +1337,10 @@ class MapCanvas(QgsMapCanvas):
         self.sigCanvasLinkAdded.emit(canvasLink)
         return canvasLink
 
+
+    def mapLayerStore(self):
+        return self.mMapLayerStore
+
     def removeCanvasLink(self, canvasLink):
         """
         Removes the link to another canvas
@@ -1373,12 +1381,7 @@ class MapCanvas(QgsMapCanvas):
         from enmapbox import EnMAPBox
 
         #register map layers (required for drawing on a MapCanvas)
-        if isinstance(EnMAPBox.instance(), EnMAPBox):
-            store = EnMAPBox.instance().mapLayerStore()
-        else:
-            self._mapStore = QgsMapLayerStore()
-            store = self._mapStore
-        store.addMapLayers(newSet)
+        self.mapLayerStore().addMapLayers(newSet)
 
         super(MapCanvas, self).setLayers(newSet)
 
@@ -1386,13 +1389,14 @@ class MapCanvas(QgsMapCanvas):
         self.refreshAllLayers()
 
         # signal what has been added, what has been removed
-        removedLayers = [l for l in lastSet if l not in newSet]
-        addedLayers = [l for l in newSet if l not in lastSet]
+        import sip
+        removedLayers = [l for l in lastSet if not sip.isdeleted(l) and l not in newSet]
+        addedLayers = [l for l in newSet if not sip.isdeleted(l) and l not in lastSet]
 
         if len(removedLayers) > 0:
-            self.sigLayersRemoved.emit(removedLayers)
+            self.sigLayersRemoved[list].emit(removedLayers)
         if len(addedLayers) > 0:
-            self.sigLayersAdded.emit(addedLayers)
+            self.sigLayersAdded[list].emit(addedLayers)
         return self
 
 

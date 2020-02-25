@@ -21,18 +21,58 @@
 import unittest, os
 from qgis.core import *
 from qgis.gui import *
+from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsApplication
-from enmapbox.testing import initQgisApplication, TestObjects
-QGIS_APP = initQgisApplication(loadProcessingFramework=False)
+from qgis.PyQt.QtCore import QResource
+from enmapbox.testing import initQgisApplication, TestObjects, EnMAPBoxTestCase
 
-SHOW_GUI = True and os.environ.get('CI') is None
+os.environ['CI'] = os.environ.get('CI', 'False')
 
-from enmapbox import initAll
-initAll()
+
 from enmapbox.gui.enmapboxgui import EnMAPBox, EnMAPBoxSplashScreen
 from enmapbox.gui.docks import *
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui import *
+
+
+class MyOutputRaster(QgsProcessingParameterDefinition):
+
+    def __init__(self, name='', description='', ext='bsq'):
+        QgsProcessingParameterDefinition.__init__(self, name, description)
+        self.ext = ext
+
+    def getFileFilter(self, alg):
+        if self.ext is None:
+            return self.tr('ENVI (*.bsq *.bil);;TIFF (*.tif);;All files(*.*)', 'OutputFile')
+        else:
+            return self.tr('%s files(*.%s)', 'OutputFile') % (self.ext, self.ext)
+
+    def getDefaultFileExtension(self, alg):
+
+        return 'bsq'
+
+class MyGeoAlgorithmus(QgsProcessingAlgorithm):
+
+    def defineCharacteristics(self):
+        self.name = 'TestAlgorithm'
+        self.group = 'TestGroup'
+        #self.addParameter(ParameterRaster('infile', 'Test Input Image'))
+        self.addOutput(QgsProcessingParameterRasterLayer('outfile1', 'Test Output Image'))
+        self.addOutput(MyOutputRaster('outfile2', 'Test MyOutput Image'))
+
+    def processAlgorithm(self, progress):
+        # map processing framework parameters to that of you algorithm
+        infile = self.getParameterValue('infile')
+        outfile = self.getOutputValue('outfile')
+        outfile2 = self.getOutputValue('outfile2')
+        s  =""
+        # define
+        # todo:
+
+
+    def help(self):
+        return True, '<todo: describe test>'
+
 
 
 # mini test
@@ -60,7 +100,7 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
 
 
 
-class TestEnMAPBoxSplashScreen(unittest.TestCase):
+class TestEnMAPBoxSplashScreen(EnMAPBoxTestCase):
 
     def test_splashScreen(self):
 
@@ -82,70 +122,72 @@ class TestEnMAPBoxSplashScreen(unittest.TestCase):
         timer.startTimer(2)
         timer.timeout.connect(onTimeOut)
 
-        if SHOW_GUI:
-            w.show()
-            splash.show()
-            QGIS_APP.processEvents()
-            QGIS_APP.exec_()
+        self.showGui([w, splash])
 
 
 
-class TestEnMAPBox(unittest.TestCase):
-
-    def setUp(self):
-
-        emb = EnMAPBox.instance()
-        if isinstance(emb, EnMAPBox):
-            emb.close()
-        QApplication.processEvents()
-
-        self.EMB = EnMAPBox(None)
-
+class TestEnMAPBox(EnMAPBoxTestCase):
 
     def tearDown(self):
+
         emb = EnMAPBox.instance()
         if isinstance(emb, EnMAPBox):
             emb.close()
 
-        self.EMB = None
-        QApplication.processEvents()
+        assert EnMAPBox.instance() is None
+
+        QgsProject.instance().removeAllMapLayers()
+
+
+        super().tearDown()
+
+    def test_resources(self):
+
+        from enmapbox.externals.qps.resources import ResourceBrowser
+
+        b = ResourceBrowser()
+
+        "F:\miniconda3\envs\qgis_stable\Library\qgis\qtplugins;" \
+        "F:\miniconda3\envs\qgis_stable\Library\plugins;" \
+        "F:\miniconda3\envs\qgis_stable\Library\qtplugins;" \
+        "F:\miniconda3\envs\qgis_stable\Library\plugins;"
+
+        self.showGui(b)
+        s = ""
 
     def test_instance(self):
+        EB = EnMAPBox()
+
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
-        self.assertEqual(self.EMB, EnMAPBox.instance())
+        self.assertEqual(EB, EnMAPBox.instance())
         log = QgsApplication.instance().messageLog()
 
         from enmapbox import messageLog
         messageLog('EnMAPBox TEST STARTED', Qgis.Info)
         s = ""
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(EB.ui)
 
     def test_instanceWithData(self):
-        import gc
-        gc.collect()
-        mapLayers = [obj for obj in gc.get_objects() if isinstance(obj, QgsMapLayer)]
-        self.assertTrue(len(mapLayers) == 0)
-        del mapLayers
+
+        EMB = EnMAPBox()
 
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
-        self.assertEqual(self.EMB, EnMAPBox.instance())
-        self.EMB.loadExampleData()
+        self.assertEqual(EMB, EnMAPBox.instance())
+        EMB.loadExampleData()
         self.assertTrue(len(QgsProject.instance().mapLayers()) > 0)
-        canvases = self.EMB.mapCanvases()
-        self.assertTrue(canvases[-1] == self.EMB.activeMapCanvas())
+        canvases = EMB.mapCanvases()
+        self.assertTrue(canvases[-1] == EMB.activeMapCanvas())
 
 
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(EMB.ui)
 
         # test closing the box via gui button
+        import gc
         gc.collect()
 
-        self.EMB.ui.close()
+        EMB.close()
         gc.collect()
 
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
@@ -188,24 +230,22 @@ class TestEnMAPBox(unittest.TestCase):
 
     def test_createDock(self):
 
+        EMB = EnMAPBox()
         for d in ['MAP', 'TEXT', 'SPECLIB', 'MIME']:
-            dock = self.EMB.createDock(d)
+            dock = EMB.createDock(d)
             self.assertIsInstance(dock, Dock)
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui()
 
     def test_mapDockInteraction(self):
-        E = self.EMB
+
+        E = EnMAPBox()
         E.loadExampleData()
         self.assertTrue(len(E.dataSources()) > 0)
 
 
 
-
-
     def test_addSources(self):
-        E = self.EMB
+        E = EnMAPBox()
         E.loadExampleData()
         E.removeSources(E.dataSources())
         self.assertTrue(len(E.dataSources()) == 0)
@@ -215,11 +255,10 @@ class TestEnMAPBox(unittest.TestCase):
         E.addSource(landcover_polygons)
         self.assertTrue(len(E.dataSources()) == 2)
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui()
 
     def test_mapCanvas(self):
-        E = self.EMB
+        E = EnMAPBox()
         self.assertTrue(E.mapCanvas() is None)
         self.assertIsInstance(E.mapCanvas(virtual=True), MapCanvas)
         canvases = E.mapCanvases()
@@ -234,19 +273,17 @@ class TestEnMAPBox(unittest.TestCase):
         for c in E.mapCanvases():
             self.assertIsInstance(c, MapCanvas)
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui()
 
     def test_loadExampleData(self):
-        E = self.EMB
+        E = EnMAPBox()
         E.loadExampleData()
         n = len(E.dataSources())
         self.assertTrue(n > 0)
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui()
 
     def test_loadAndUnloadData(self):
-        E = self.EMB
+        E = EnMAPBox()
         mapDock = E.createDock('MAP') # empty map
         self.assertIsInstance(mapDock, MapDock)
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
@@ -271,13 +308,6 @@ class TestEnMAPBox(unittest.TestCase):
 
         #if SHOW_GUI:
         #    QGIS_APP.exec_()
-
-
-
-
-
-
-class TestEnMAPBoxWorkflows(unittest.TestCase):
 
     def test_speclibDocks(self):
         EMB = EnMAPBox()
@@ -304,49 +334,5 @@ class TestEnMAPBoxWorkflows(unittest.TestCase):
         for p in profiles:
             self.assertIsInstance(p, SpectralProfile)
 
-
-
-
-
-class MyOutputRaster(QgsProcessingParameterDefinition):
-
-    def __init__(self, name='', description='', ext='bsq'):
-        QgsProcessingParameterDefinition.__init__(self, name, description)
-        self.ext = ext
-
-    def getFileFilter(self, alg):
-        if self.ext is None:
-            return self.tr('ENVI (*.bsq *.bil);;TIFF (*.tif);;All files(*.*)', 'OutputFile')
-        else:
-            return self.tr('%s files(*.%s)', 'OutputFile') % (self.ext, self.ext)
-
-    def getDefaultFileExtension(self, alg):
-
-        return 'bsq'
-
-class MyGeoAlgorithmus(QgsProcessingAlgorithm):
-
-    def defineCharacteristics(self):
-        self.name = 'TestAlgorithm'
-        self.group = 'TestGroup'
-        #self.addParameter(ParameterRaster('infile', 'Test Input Image'))
-        self.addOutput(QgsProcessingParameterRasterLayer('outfile1', 'Test Output Image'))
-        self.addOutput(MyOutputRaster('outfile2', 'Test MyOutput Image'))
-
-    def processAlgorithm(self, progress):
-        # map processing framework parameters to that of you algorithm
-        infile = self.getParameterValue('infile')
-        outfile = self.getOutputValue('outfile')
-        outfile2 = self.getOutputValue('outfile2')
-        s  =""
-        # define
-        # todo:
-
-
-    def help(self):
-        return True, '<todo: describe test>'
-
-
 if __name__ == '__main__':
-    SHOW_GUI = False
     unittest.main()
