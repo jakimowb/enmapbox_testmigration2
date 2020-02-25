@@ -164,15 +164,11 @@ def initEnMAPBoxProcessingProvider():
             info.append(p)
         print('\n'.join(info), file=sys.stderr)
 
-_mapLayerConfigFactories = []
+
 def initMapLayerConfigWidgetFactories():
-
-    from enmapbox.gui.maplayers import EnMAPBoxRasterLayerConfigWidgetFactory
-
-    import qgis.utils
-    if isinstance(qgis.utils.iface, QgisInterface):
-        factory = EnMAPBoxRasterLayerConfigWidgetFactory()
-        _mapLayerConfigFactories.append(factory)
+    from .externals.qps import registerMapLayerConfigWidgetFactories, mapLayerConfigWidgetFactories
+    registerMapLayerConfigWidgetFactories()
+    for factory in mapLayerConfigWidgetFactories():
         qgis.utils.iface.registerMapLayerConfigWidgetFactory(factory)
 
 def initAll():

@@ -1,25 +1,28 @@
-import sys, os, re
-from osgeo import gdal, ogr, osr
+import typing, pathlib
+from qgis.core import QgsRasterLayer, QgsRasterRenderer
 from qgis.core import *
+from qgis.gui import QgsMapCanvas, QgsMapLayerConfigWidget, QgsRasterBandComboBox
 from qgis.gui import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtGui import QIcon
 import numpy as np
-from enmapbox import DIR_UIFILES
-from enmapbox.gui.utils import parseWavelength, convertMetricUnit, LUT_WAVELENGTH,  loadUi, enmapboxUiPath
 
-import enmapbox
+from ..utils import loadUi, parseWavelength, convertMetricUnit
+class RasterBandConfigWidget(QgsMapLayerConfigWidget):
 
-class EnMAPBoxRasterLayerConfigWidget(QgsMapLayerConfigWidget):
+    @staticmethod
+    def icon()->QIcon:
+        return QIcon(':/qps/ui/icons/rasterband_select.svg')
 
     def __init__(self, layer:QgsRasterLayer, canvas:QgsMapCanvas, parent:QWidget=None):
 
-        super(EnMAPBoxRasterLayerConfigWidget, self).__init__(layer, canvas, parent=parent)
-        loadUi(enmapboxUiPath('rasterlayerconfigwidget.ui'), self)
+        super(RasterBandConfigWidget, self).__init__(layer, canvas, parent=parent)
+        pathUi = pathlib.Path(__file__).parents[1] / 'ui' / 'rasterbandconfigwidget.ui'
+        loadUi(pathUi, self)
+        assert isinstance(layer, QgsRasterLayer)
         self.mCanvas = canvas
         self.mLayer = layer
-        self.mLayer.rendererChanged.connect(self.onRendererChanged)
+        self.mLayer.rendererChanged.connect(self.syncToLayer)
         assert isinstance(self.cbSingleBand, QgsRasterBandComboBox)
 
         self.cbSingleBand.setLayer(self.mLayer)
@@ -64,74 +67,104 @@ class EnMAPBoxRasterLayerConfigWidget(QgsMapLayerConfigWidget):
         self.btnSetSBBand_NIR.clicked.connect(lambda: self.setWL(('NIR',)))
         self.btnSetSBBand_SWIR.clicked.connect(lambda: self.setWL(('SWIR',)))
 
-        self.btnSetMBBands_RGB.clicked.connect(lambda : self.setWL(('R','G','B')))
+        self.btnSetMBBands_RGB.clicked.connect(lambda : self.setWL(('R', 'G', 'B')))
         self.btnSetMBBands_NIRRG.clicked.connect(lambda: self.setWL(('NIR', 'R', 'G')))
         self.btnSetMBBands_SWIRNIRR.clicked.connect(lambda: self.setWL(('SWIR', 'NIR', 'R')))
 
+        self.syncToLayer()
 
-        self.initRenderer()
+        self.setPanelTitle('Band Selection')
 
-        self.setPanelTitle('EnMAP-Box Raster Settings')
-
-    def onRendererChanged(self):
-        self.initRenderer()
-
-    def initRenderer(self):
+    def syncToLayer(self):
 
         renderer = self.mLayer.renderer()
-        w = self.renderBandWidget
-        assert isinstance(self.labelRenderType, QLabel)
-        assert isinstance(w, QStackedWidget)
-        self.labelRenderType.setText(str(renderer.type()))
-        if isinstance(renderer, (QgsSingleBandGrayRenderer, QgsSingleBandColorDataRenderer, QgsSingleBandPseudoColorRenderer, QgsPalettedRasterRenderer)):
-            w.setCurrentWidget(self.pageSingleBand)
-        elif isinstance(renderer, QgsMultiBandColorRenderer):
-            w.setCurrentWidget(self.pageMultiBand)
-        else:
-            w.setCurrentWidget(self.pageUnknown)
+        self.setRenderer(renderer)
 
     def renderer(self)->QgsRasterRenderer:
-        return self.mLayer.renderer()
-
-    def apply(self):
-        r = self.renderer()
-        newRenderer = None
-        if isinstance(r, QgsSingleBandGrayRenderer):
+        oldRenderer = self.mLayer.renderer()
+        if isinstance(oldRenderer, QgsSingleBandGrayRenderer):
             newRenderer = self.renderer().clone()
             newRenderer.setGrayBand(self.cbSingleBand.currentBand())
 
-        elif isinstance(r, QgsSingleBandPseudoColorRenderer):
-            pass
+        elif isinstance(oldRenderer, QgsSingleBandPseudoColorRenderer):
             # there is a bug when using the QgsSingleBandPseudoColorRenderer.setBand()
             # see https://github.com/qgis/QGIS/issues/31568
-            #band = self.cbSingleBand.currentBand()
-            vMin, vMax = r.shader().minimumValue(), r.shader().maximumValue()
+            # band = self.cbSingleBand.currentBand()
+            vMin, vMax = oldRenderer.shader().minimumValue(), oldRenderer.shader().maximumValue()
             shader = QgsRasterShader(vMin, vMax)
 
-            f = r.shader().rasterShaderFunction()
+            f = oldRenderer.shader().rasterShaderFunction()
             if isinstance(f, QgsColorRampShader):
                 shaderFunction = QgsColorRampShader(f)
             else:
                 shaderFunction = QgsRasterShaderFunction(f)
 
             shader.setRasterShaderFunction(shaderFunction)
-            newRenderer = QgsSingleBandPseudoColorRenderer(r.input(), self.cbSingleBand.currentBand(), shader)
+            newRenderer = QgsSingleBandPseudoColorRenderer(oldRenderer.input(), self.cbSingleBand.currentBand(), shader)
 
-        elif isinstance(r, QgsPalettedRasterRenderer):
-            newRenderer = QgsPalettedRasterRenderer(r.input(), self.cbSingleBand.currentBand(), r.classes())
+        elif isinstance(oldRenderer, QgsPalettedRasterRenderer):
+            newRenderer = QgsPalettedRasterRenderer(oldRenderer.input(), self.cbSingleBand.currentBand(),
+                                                    oldRenderer.classes())
 
-            #r.setBand(band)
-        elif isinstance(r, QgsSingleBandColorDataRenderer):
-            newRenderer = QgsSingleBandColorDataRenderer(r.input(), self.cbSingleBand.currentBand())
+            # r.setBand(band)
+        elif isinstance(oldRenderer, QgsSingleBandColorDataRenderer):
+            newRenderer = QgsSingleBandColorDataRenderer(oldRenderer.input(), self.cbSingleBand.currentBand())
 
-        elif isinstance(r, QgsMultiBandColorRenderer):
-            newRenderer = self.renderer().clone()
+        elif isinstance(oldRenderer, QgsMultiBandColorRenderer):
+            newRenderer = oldRenderer.clone()
+            newRenderer.setInput(oldRenderer.input())
             newRenderer.setRedBand(self.cbMultiBandRed.currentBand())
             newRenderer.setGreenBand(self.cbMultiBandGreen.currentBand())
             newRenderer.setBlueBand(self.cbMultiBandBlue.currentBand())
+        return newRenderer
 
-        if isinstance(newRenderer, QgsRasterRenderer):
+    def setRenderer(self, renderer:QgsRasterRenderer):
+        w = self.renderBandWidget
+        assert isinstance(self.labelRenderType, QLabel)
+        assert isinstance(w, QStackedWidget)
+        self.labelRenderType.setText(str(renderer.type()))
+        if isinstance(renderer, (
+                QgsSingleBandGrayRenderer,
+                QgsSingleBandColorDataRenderer,
+                QgsSingleBandPseudoColorRenderer,
+                QgsPalettedRasterRenderer)):
+            w.setCurrentWidget(self.pageSingleBand)
+
+            if isinstance(renderer, QgsSingleBandGrayRenderer):
+                self.cbSingleBand.setBand(renderer.grayBand())
+
+            elif isinstance(renderer, QgsSingleBandPseudoColorRenderer):
+                self.cbSingleBand.setBand(renderer.band())
+
+            elif isinstance(renderer, QgsPalettedRasterRenderer):
+                self.cbSingleBand.setBand(renderer.band())
+
+            elif isinstance(renderer, QgsSingleBandColorDataRenderer):
+                self.cbSingleBand.setBand(renderer.usesBands()[0])
+
+        elif isinstance(renderer, QgsMultiBandColorRenderer):
+            w.setCurrentWidget(self.pageMultiBand)
+            self.cbMultiBandRed.setBand(renderer.redBand())
+            self.cbMultiBandGreen.setBand(renderer.greenBand())
+            self.cbMultiBandBlue.setBand(renderer.blueBand())
+
+        else:
+            w.setCurrentWidget(self.pageUnknown)
+
+
+
+
+    def shouldTriggerLayerRepaint(self)->bool:
+        return True
+
+    def apply(self):
+
+        newRenderer = self.renderer()
+
+        if isinstance(newRenderer, QgsRasterRenderer) and isinstance(self.mLayer, QgsRasterLayer):
+            newRenderer.setInput(self.mLayer.dataProvider())
             self.mLayer.setRenderer(newRenderer)
+            self.widgetChanged.emit()
 
     def wlBand(self, wlKey:str)->int:
         if isinstance(self.mWL, np.ndarray):
@@ -154,39 +187,32 @@ class EnMAPBoxRasterLayerConfigWidget(QgsMapLayerConfigWidget):
             self.cbMultiBandGreen.setBand(bG)
             self.cbMultiBandRed.setBand(bR)
 
-        pass
+        self.widgetChanged.emit()
 
     def setDockMode(self, dockMode:bool):
         pass
 
-class EnMAPBoxRasterLayerConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
+class RasterBandConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
 
     def __init__(self):
-        import enmapbox
-
-        super(EnMAPBoxRasterLayerConfigWidgetFactory, self).__init__('EnMAPBox', enmapbox.icon())
-        self.setIcon(enmapbox.icon())
-
+        super(RasterBandConfigWidgetFactory, self).__init__('Raster Band', RasterBandConfigWidget.icon())
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(True)
-        self.setTitle('EnMAP-Box Raster Layer Properties')
+        self.setTitle('Band Selection')
 
     def supportsLayer(self, layer):
-
         if isinstance(layer, QgsRasterLayer):
             return True
 
         return False
 
     def supportLayerPropertiesDialog(self):
-        return False
+        return True
 
     def supportsStyleDock(self):
         return True
 
-
     def createWidget(self, layer, canvas, dockWidget=True, parent=None)->QgsMapLayerConfigWidget:
-
-        w = EnMAPBoxRasterLayerConfigWidget(layer, canvas, parent=parent)
-        self._w = w
+        w = RasterBandConfigWidget(layer, canvas, parent=parent)
         return w
+
