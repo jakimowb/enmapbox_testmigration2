@@ -7,7 +7,6 @@ def run():
 
     DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
     resource_files = list(file_search(DIR_REPO, '*_rc.py', recursive=True))
-
     needApp = not isinstance(QApplication.instance(), QApplication)
     if needApp:
         app = start_app(resources=resource_files)
