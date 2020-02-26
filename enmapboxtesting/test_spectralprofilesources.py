@@ -14,24 +14,17 @@ import unittest, os
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.testing import initQgisApplication, TestObjects
-QGIS_APP = initQgisApplication()
+from enmapbox.testing import EnMAPBoxTestCase, TestObjects
+
 from enmapboxtestdata import enmap, hires, library
 from enmapbox.gui.mapcanvas import *
-SHOW_GUI = False and not os.environ.get('CI')
 
-from enmapbox.gui.maplayers import *
+
 from enmapbox.testing import TestObjects
 from enmapbox.gui.spectralprofilesources import *
 from enmapbox import EnMAPBox
-class SpectralProfileSourceTests(unittest.TestCase):
+class SpectralProfileSourceTests(EnMAPBoxTestCase):
 
-    def tearDown(self):
-        emb = EnMAPBox.instance()
-        if isinstance(emb, EnMAPBox):
-            emb.close()
-
-        QApplication.processEvents()
 
     def test_SpeclibList(self):
 
@@ -56,8 +49,7 @@ class SpectralProfileSourceTests(unittest.TestCase):
         lv.setModel(model)
         lv.show()
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(lv)
 
 
     def test_SpectralProfileSamplingMode(self):
@@ -133,8 +125,7 @@ class SpectralProfileSourceTests(unittest.TestCase):
             if rw.samplingMode() == SpectralProfileSamplingMode.Sample5x5:
                 self.assertTrue(len(rw.currentProfiles()) == 25)
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+
 
     def test_EnMAPBox(self):
         from qgis.PyQt.QtWidgets import QAction
@@ -149,8 +140,8 @@ class SpectralProfileSourceTests(unittest.TestCase):
         enmapBox.createDock('SPECLIB')
         c = enmapBox.mapCanvases()[0]
         enmapBox.loadCurrentMapSpectra(SpatialPoint.fromMapCanvasCenter(c), c)
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+
+        self.showGui(enmapBox.ui)
 
 
     def test_SpectralProfileBridge(self):
@@ -189,8 +180,7 @@ class SpectralProfileSourceTests(unittest.TestCase):
         for r in results:
             self.assertIsInstance(r, SpectralProfileRelation)
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+
 
     def test_SpectralProfiledock(self):
 
@@ -216,9 +206,7 @@ class SpectralProfileSourceTests(unittest.TestCase):
             p.bridge().addDestination(slw1)
             p.bridge().addDestination(slw2)
 
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(p)
 
 if __name__ == "__main__":
     unittest.main()

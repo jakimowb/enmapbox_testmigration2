@@ -20,7 +20,7 @@
 """
 
 
-import sys, os
+import sys, os, pathlib
 from enmapbox.gui import *
 from enmapbox.gui.utils import loadUIFormClass, guessDataProvider
 from metadataeditorapp.metadatakeys import *
@@ -980,11 +980,12 @@ class MetadataItemDialog(QDialog):
 
 
 
-class MetadataEditorDialog(QDialog, loadUIFormClass(pathUi)):
+class MetadataEditorDialog(QDialog):
     """Constructor."""
     def __init__(self, parent=None):
         super(MetadataEditorDialog, self).__init__(parent, Qt.Window)
-        self.setupUi(self)
+        path = pathlib.Path(__file__).parent / 'metadataeditor.ui'
+        loadUi(path, self)
         assert isinstance(self.treeView, TreeView)
         self.mSourceModel = OptionListModel()
         self.mMetadataModel = MetadataTreeModel(parent=self.treeView)

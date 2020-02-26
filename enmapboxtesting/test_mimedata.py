@@ -20,23 +20,13 @@ from qgis.core import *
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-from enmapbox.testing import initQgisApplication
-QGIS_APP = initQgisApplication()
+from enmapbox.testing import EnMAPBoxTestCase
+
 from enmapboxtestdata import enmap, hires, library, landcover_polygons
 import enmapbox.gui.mimedata as mimedata
 
 
-class MimeDataTests(unittest.TestCase):
-
-    def setUp(self):
-        from enmapbox import EnMAPBox
-
-        eb = EnMAPBox.instance()
-        if isinstance(eb, EnMAPBox):
-            eb.close()
-
-
-        QgsApplication.processEvents()
+class MimeDataTests(EnMAPBoxTestCase):
 
 
     def test_conversions(self):
@@ -104,7 +94,6 @@ class MimeDataTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    os.environ['CI'] = 'True'
     unittest.main()
 
 

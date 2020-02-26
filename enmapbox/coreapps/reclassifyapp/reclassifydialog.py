@@ -19,28 +19,20 @@
 ***************************************************************************
 """
 
-
+import pathlib
 from qgis.core import *
 from qgis.gui import *
 from enmapbox.gui import *
 from reclassifyapp import APP_DIR
 
-loadUi = lambda name: loadUIFormClass(os.path.join(APP_DIR, name))
 
-
-
-class ReclassifyDialog(QDialog, loadUi('reclassifydialog.ui')):
+class ReclassifyDialog(QDialog):
     """Constructor."""
     def __init__(self, parent=None):
         super(ReclassifyDialog, self).__init__(parent, Qt.Window)
-        # Set up the user interface from Designer.
-        # After setupUI you can access any designer object by doing
-        # self.<objectname>, and you can use autoconnect slots - see
-        # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
-        # #widgets-and-dialogs-with-auto-connect
+        path = pathlib.Path(__file__).parent / 'reclassifydialog.ui'
+        loadUi(path, self)
 
-        # Important!
-        self.setupUi(self)
 
         assert isinstance(self.mapLayerComboBox, QgsMapLayerComboBox)
         assert isinstance(self.tableWidget, QTableWidget)

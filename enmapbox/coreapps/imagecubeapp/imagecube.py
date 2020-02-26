@@ -3,7 +3,7 @@
 Demonstrates GLVolumeItem for displaying volumetric data.
 
 """
-import os, sys, re, pickle, enum, time
+import os, sys, re, pickle, enum, time, pathlib
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
@@ -11,7 +11,7 @@ from qgis.core import *
 from qgis.gui import *
 import numpy as np
 
-from enmapbox.gui.utils import loadUIFormClass, SpatialExtent
+from enmapbox.gui.utils import loadUi, SpatialExtent
 from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
 import enmapbox.externals.qps.externals.pyqtgraph.opengl as gl
 from OpenGL.GL import *
@@ -404,16 +404,16 @@ class ImageCubeRenderJob(object):
 
 
 
-pathUi = os.path.join(os.path.dirname(__file__), 'imagecube.ui')
-class ImageCubeWidget(QWidget, loadUIFormClass(pathUi)):
+
+class ImageCubeWidget(QWidget):
 
     sigExtentRequested = pyqtSignal()
 
     def __init__(self, *args, **kwds):
 
         super(ImageCubeWidget, self).__init__(*args, **kwds)
-
-        self.setupUi(self)
+        pathUi = pathlib.Path(__file__).parent / 'imagecube.ui'
+        loadUi(pathUi, self)
         self.setWindowTitle('Image Cube')
         self.mCanvas = QgsMapCanvas()
         self.mCanvas.setVisible(False)

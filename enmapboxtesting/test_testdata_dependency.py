@@ -3,13 +3,11 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 
-SHOW_GUI = False and os.environ.get('CI') is None
+from enmapbox.testing import EnMAPBoxTestCase
 
-from enmapbox.testing import initQgisApplication
-QGIS_APP = initQgisApplication(loadProcessingFramework=False)
 import unittest
 
-class Test(unittest.TestCase):
+class Test(EnMAPBoxTestCase):
 
     def test_version(self):
 

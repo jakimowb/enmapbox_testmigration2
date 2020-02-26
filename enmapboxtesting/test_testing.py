@@ -12,12 +12,15 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 
 import unittest
 from qgis import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from enmapbox.testing import *
-QGIS_APP = initQgisApplication()
+from qgis.core import *
+from qgis.gui import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtCore import *
+from enmapbox.testing import EnMAPBoxTestCase, TestObjects
+from osgeo import gdal, ogr, osr
 
-class Tests(unittest.TestCase):
+class Tests(EnMAPBoxTestCase):
 
     def tearDown(self):
 
@@ -26,8 +29,8 @@ class Tests(unittest.TestCase):
         if isinstance(emb, EnMAPBox):
             emb.close()
 
-        QApplication.processEvents()
 
+        QApplication.processEvents()
     def test_inMemoryImage(self):
         self.assertIsInstance(TestObjects.inMemoryImage(), gdal.Dataset)
 
@@ -57,8 +60,8 @@ class Tests(unittest.TestCase):
             self.assertIsInstance(a, QgsProcessingAlgorithm)
 
     def test_initQgsApplication(self):
-
-        self.assertIsInstance(QGIS_APP, QGuiApplication)
+        app = QgsApplication.instance()
+        self.assertIsInstance(app, QGuiApplication)
 
         import qgis.utils
         self.assertIsInstance(qgis.utils.iface, QgisInterface)

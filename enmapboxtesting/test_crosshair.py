@@ -14,15 +14,13 @@ import unittest
 from qgis import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
-from enmapbox.testing import initQgisApplication
-QGIS_APP = initQgisApplication()
+from enmapbox.testing import EnMAPBoxTestCase
 from enmapboxtestdata import enmap, hires, library
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui import CrosshairDialog
 
-SHOW_GUI = False and os.environ.get('CI') is None
 
-class CrosshairTests(unittest.TestCase):
+class CrosshairTests(EnMAPBoxTestCase):
 
     def test_crosshair(self):
         import site, sys
@@ -40,12 +38,7 @@ class CrosshairTests(unittest.TestCase):
 
 
 
-        if SHOW_GUI:
-            style = CrosshairDialog.getCrosshairStyle(mapCanvas=refCanvas)
-            if style is not None:
-                self.assertIsInstance(style, CrosshairStyle)
-
-            QGIS_APP.exec_()
+        self.showGui(refCanvas)
 
 if __name__ == "__main__":
     unittest.main()

@@ -19,16 +19,14 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from osgeo import gdal, ogr, osr
-from enmapbox.testing import initQgisApplication
+from enmapbox.testing import EnMAPBoxTestCase
 
-SHOW_GUI = False and os.environ.get('CI') is None
-QGIS_APP = initQgisApplication()
 
 from enmapbox.gui.utils import *
 from enmapboxtestdata import enmap
 
 
-class testClassUtils(unittest.TestCase):
+class testClassUtils(EnMAPBoxTestCase):
     """Test rerources work."""
 
     def setUp(self):

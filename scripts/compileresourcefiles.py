@@ -4,7 +4,7 @@ import qgis.testing
 
 def compileEnMAPBoxResources():
     #app = qgis.testing.start_app()
-    from enmapbox.externals.qps.make.make import compileResourceFiles
+    from enmapbox.externals.qps.resources import compileResourceFiles
 
     DIR_REPO = pathlib.Path(__file__).parents[1]
     directories = [DIR_REPO / 'enmapbox',

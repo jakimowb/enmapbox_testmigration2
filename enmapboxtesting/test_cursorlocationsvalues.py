@@ -20,20 +20,14 @@ from qgis.core import *
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
-from enmapbox.testing import initQgisApplication
+from enmapbox.testing import EnMAPBoxTestCase
 from enmapboxtestdata import enmap, landcover_polygons
-QGIS_APP = initQgisApplication()
 from enmapbox.gui import *
 from enmapbox.testing import TestObjects
 from enmapbox.externals.qps.cursorlocationvalue import CursorLocationInfoDock
 
-SHOW_GUI = False and os.environ.get('CI') is None
+class CursorLocationTest(EnMAPBoxTestCase):
 
-class CursorLocationTest(unittest.TestCase):
-
-    def setUp(self):
-
-        pass
 
     def webLayers(self)->list:
 
@@ -65,13 +59,11 @@ class CursorLocationTest(unittest.TestCase):
         self.assertIsInstance(point, SpatialPoint)
 
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(cldock)
 
 
 if __name__ == "__main__":
 
-    #exampleMapLinking()
     unittest.main()
 
 

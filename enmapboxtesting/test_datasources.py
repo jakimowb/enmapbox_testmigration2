@@ -16,10 +16,9 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import os, unittest, tempfile, pathlib
 
-from enmapbox.testing import initQgisApplication, TestObjects
-SHOW_GUI = False and os.environ.get('CI') is None
+from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 
-QGIS_APP = initQgisApplication()
+
 from enmapbox.gui.utils import *
 from enmapbox.gui.datasourcemanager import *
 from enmapbox import EnMAPBox
@@ -27,7 +26,7 @@ from enmapboxtestdata import enmap, hires, landcover_polygons, library
 
 USE_WEBSOURCES = False
 
-class standardDataSources(unittest.TestCase):
+class standardDataSources(EnMAPBoxTestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -106,34 +105,8 @@ class standardDataSources(unittest.TestCase):
         return [self.wfsUri, self.wmsUri]
 
     def createTestSourceLayers(self)->list:
-        #return [QgsRasterLayer(self.wmsUri, '', 'wms'), QgsVectorLayer(self.wfsUri, '', 'WFS'),
-        #        QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons), SpectralLibrary.readFrom(library)
-        #        ]
 
         return [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons), SpectralLibrary.readFrom(library)]
-
-
-
-    def test_netCDF(self):
-
-        path = r'Q:\Processing_BJ\99_OSARIS_Testdata\Loibl-2019-OSARIS-Ala-Archa\Coherences\20151207--20151231-coherence.grd'
-        path = r'C:\Users\geo_beja\Downloads\onns_for_enmap-box\janzandr-onns_for_enmap-box-06f21e484bb2\hzg_onns_testdata\S3A_OL_2_WFRC8R_20160720T093421_20160720T093621_20171002T063739_0119_006_307______MR1_R_NT_002_sylt.nc'
-
-        import gdal
-
-        if SHOW_GUI and os.path.isfile(path):
-            gdal.SetConfigOption('CPL_ZIP_ENCODING', 'UTF-8')
-            uri, name, provider = DataSourceFactory.isRasterSource(path)
-
-            dsl = DataSourceFactory.create(uri)
-
-            self.assertIsInstance(dsl, list)
-            for ds in dsl:
-                self.assertIsInstance(ds, DataSourceRaster)
-
-
-
-
 
     def test_classifier(self):
 
@@ -391,17 +364,8 @@ class standardDataSources(unittest.TestCase):
 
 
 
-class standardDataSourceTreeNodes(unittest.TestCase):
+class standardDataSourceTreeNodes(EnMAPBoxTestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        pass
-    def setUp(self):
-
-        pass
-
-    def tearDown(self):
-        pass
 
     def createTestSources(self)->list:
 
@@ -420,23 +384,6 @@ class standardDataSourceTreeNodes(unittest.TestCase):
         sl = SpectralLibrary.readFrom(library)
         self.assertIsInstance(sl, SpectralLibrary)
         reg.addMapLayer(sl, False)
-
-
-    def test_websources(self):
-
-        if os.environ.get('CI'):
-            return
-
-        wmsUri = r'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0'
-        wfsUri = r'restrictToRequestBBOX=''1'' srsname=''EPSG:25833'' typename=''fis:re_postleit'' url=''http://fbinter.stadt-berlin.de/fb/wfs/geometry/senstadt/re_postleit'' version=''auto'''
-
-        wfs = QgsVectorLayer(wfsUri, '', 'WFS')
-        self.assertIsInstance(wfs, QgsVectorLayer)
-        self.assertTrue(wfs.isValid())
-
-        wms = QgsRasterLayer(wmsUri, '', 'wms')
-        self.assertIsInstance(wms, QgsRasterLayer)
-        self.assertTrue(wms.isValid())
 
     def test_sourceNodes(self):
 
@@ -588,18 +535,7 @@ class standardDataSourceTreeNodes(unittest.TestCase):
 
 
 
-class hubflowTestCases(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        pass
-    def setUp(self):
-
-
-        pass
-
-    def tearDown(self):
-        pass
+class hubflowTestCases(EnMAPBoxTestCase):
 
 
     def test_hubflowsources(self):
@@ -645,8 +581,7 @@ class hubflowTestCases(unittest.TestCase):
         DSM.addSources(hubFlowObjects)
         self.assertTrue(len(DSM) == len(hubFlowObjects))
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(DSM)
 
     def test_hubflowtypes(self):
         """
@@ -683,7 +618,6 @@ class hubflowTestCases(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    os.environ['CI'] = 'True'
     unittest.main()
 
 

@@ -26,22 +26,14 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
 
-from enmapbox.testing import initQgisApplication
+from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.gui.utils import *
 from enmapbox.gui.widgets.models import *
 from enmapboxtestdata import *
 
-QGIS_APP = initQgisApplication()
-SHOW_GUI = False and os.environ.get('CI') is None
 
 
-class TestEnMAPBoxPlugin(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
+class TestEnMAPBoxPlugin(EnMAPBoxTestCase):
 
     def test_optionmodel(self):
 
@@ -58,8 +50,7 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
         m.addOptions(options)
 
         #m.removeOptions(options)
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(cb)
 
 if __name__ == '__main__':
 

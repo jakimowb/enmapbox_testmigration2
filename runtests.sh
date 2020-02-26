@@ -1,13 +1,13 @@
 #!/bin/bash
-QT_QPA_PLATFORM=offscreen
-export QT_QPA_PLATFORM
-CI=True
-export CI
-
-find . -name "*.pyc" -exec rm -f {} \;
-export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-python3 runfirst.py
-
+    QT_QPA_PLATFORM=offscreen
+    export QT_QPA_PLATFORM
+    CI=True
+    export CI
+    
+    find . -name "*.pyc" -exec rm -f {} \;
+    export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+    python3 runfirst.py
+    
 python3 -m coverage run --rcfile=.coveragec   enmapboxtesting/test_applications.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py
@@ -16,8 +16,8 @@ python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_depen
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_docksanddatasources.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxplugin.py
+python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxprocessingprovider.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_hiddenqgislayers.py
-python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_layerproperties.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mapcanvas.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mimedata.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_options.py

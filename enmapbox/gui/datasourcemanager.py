@@ -404,7 +404,11 @@ class DataSourceGroupTreeNode(TreeNode):
         assert inspect.isclass(classDef)
         assert isinstance(groupName, str)
         if icon is None:
-            icon = QApplication.style().standardIcon(QStyle.SP_DirOpenIcon)
+            style = QApplication.style()
+            if isinstance(style, QStyle):
+                icon = style.standardIcon(QStyle.SP_DirOpenIcon)
+            else:
+                icon = QIcon(r':/qt-project.org/styles/commonstyle/images/dirclosed-32.png')
 
         super(DataSourceGroupTreeNode, self).__init__(parentNode, name=groupName, icon=icon)
         self.mFlag1stSource = False

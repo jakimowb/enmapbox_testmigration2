@@ -2,7 +2,7 @@
 
 """
 ***************************************************************************
-    deploy.py
+    create_plugin.py
     Script to build the EnMAP-Box QGIS Plugin from Repository code
     ---------------------
     Date                 : August 2017
@@ -20,32 +20,20 @@
 """
 # noinspection PyPep8Naming
 
-import os, sys, re, shutil, zipfile, datetime, requests, http, mimetypes
+import os, sys, re, shutil, zipfile, datetime, requests, http, mimetypes, pathlib
 import docutils
 import docutils.writers
 from qgis.PyQt.QtXml import *
 import os, sys
-
-from os.path import dirname as dn
-DIR_ENMAPBOX_REPO = dn(dn(__file__))
-if not DIR_ENMAPBOX_REPO in sys.path:
-    sys.path.append(DIR_ENMAPBOX_REPO)
+from enmapbox.gui.utils import file_search
 
 from requests.auth import HTTPBasicAuth
 from http.client import responses
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
-
-
-from enmapbox.testing import initQgisApplication
-qgisApp = initQgisApplication(loadProcessingFramework=False)
-
-
-from enmapbox.gui.utils import jp, file_search
-
 from qgis.PyQt.QtCore import *
-import numpy as np
-from pb_tool import pb_tool # install with: pip install pb_tool
+
+#from pb_tool import pb_tool # install with: pip install pb_tool
 
 import enmapbox
 from enmapbox import DIR_REPO, __version__
@@ -53,6 +41,10 @@ import git
 
 CHECK_COMMITS = False
 INCLUDE_TESTDATA = False  #includes the testdata folder for none-master versions
+
+
+########## Config Section
+
 
 ########## End of config section
 REPO = git.Repo(DIR_REPO)
@@ -136,7 +128,7 @@ def mkDir(d, delete=False):
         os.makedirs(d)
 
 
-def build():
+def create_enmapbox_plugin():
 
     # local pb_tool configuration file.
     pathCfg = jp(DIR_REPO, 'pb_tool.cfg')
@@ -186,7 +178,7 @@ def build():
         #    print('Failed to compile resources')
         #    print(ex)
 
-        from make.compileresourcefiles import compileEnMAPBoxResources
+        from scripts.compileresourcefiles import compileEnMAPBoxResources
         compileEnMAPBoxResources()
 
         # 3. Deploy = write the data to the new enmapboxplugin folder
@@ -571,6 +563,6 @@ if __name__ == "__main__":
         if o == '-t':
             INCLUDE_TESTDATA = True
 
-    build()
+    create_enmapbox_plugin()
     exit()
 

@@ -15,18 +15,11 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest, shutil
 from collections import namedtuple
-from enmapbox.testing import initQgisApplication, TestObjects
-
-QGIS_APP = initQgisApplication()
-SHOW_GUI = False and os.environ.get('CI') is None
-from enmapbox.gui.utils import *
-
-enmapbox.initAll()
-
+from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 from enmapbox.dependencycheck import *
 
 
-class test_dependencycheck(unittest.TestCase):
+class test_dependencycheck(EnMAPBoxTestCase):
 
 
     def test_missingPackages(self):
@@ -47,8 +40,7 @@ class test_dependencycheck(unittest.TestCase):
         v.show()
         v.logMessage(info1, 'TEST', Qgis.Warning)
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(v)
 
 
 if __name__ == "__main__":

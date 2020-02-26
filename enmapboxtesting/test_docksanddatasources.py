@@ -19,9 +19,7 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
 
 
-from enmapbox.testing import initQgisApplication, TestObjects
-QGIS_APP = initQgisApplication()
-SHOW_GUI = True and os.environ.get('CI') is None
+from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 
 
 from enmapboxtestdata import *
@@ -31,14 +29,7 @@ from enmapbox.gui.dockmanager import *
 from enmapbox.gui.docks import *
 
 
-class testDataSources(unittest.TestCase):
-
-    def setUp(self):
-        QgsProject.instance().removeMapLayers(QgsProject.instance().mapLayers().keys())
-
-
-    def tearDown(self):
-        QApplication.processEvents()
+class testDataSources(EnMAPBoxTestCase):
 
     def test_dataSourceManager(self):
 
@@ -106,21 +97,18 @@ class testDataSources(unittest.TestCase):
         w.show()
         DM.createDock('MAP')
         DM.createDock('SPECLIB')
-        if SHOW_GUI:
 
-            QGIS_APP.exec_()
+        self.showGui(w)
 
 
-class testDocks(unittest.TestCase):
-
-    def tearDown(self):
-        QApplication.processEvents()
+class testDocks(EnMAPBoxTestCase):
 
     def test_dockLabel(self):
         from pyqtgraph.dockarea.Dock import Dock as pgDock
         dock = pgDock('Test')
 
         l  =DockLabel(dock, 'testlabel')
+
 
     def test_pgDock(self):
 
@@ -130,8 +118,7 @@ class testDocks(unittest.TestCase):
         dock = pgDock('Test')
         da.addDock(dock)
         da.show()
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(da)
 
 
     def test_MimeDataDock(self):
@@ -139,8 +126,7 @@ class testDocks(unittest.TestCase):
         dock = MimeDataDock()
         da.addDock(dock)
         da.show()
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(da)
 
 
     def test_TextDock(self):
@@ -175,8 +161,7 @@ class testDocks(unittest.TestCase):
 
         da.addDock(dock)
         da.show()
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(da)
 
 
     def test_SpeclibDock(self):
@@ -189,24 +174,16 @@ class testDocks(unittest.TestCase):
         dock.speclib().addProfiles([profile])
         dock.speclib().commitChanges()
         da.addDock(dock)
-        da.show()
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(da)
 
     def test_MapDock(self):
         da = DockArea()
         from enmapbox.gui.mapcanvas import MapDock
         dock = MapDock()
         da.addDock(dock)
-        da.show()
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(da)
 
 if __name__ == "__main__":
-    os.environ['CI'] = True
-    SHOW_GUI = False
     unittest.main()
 
 

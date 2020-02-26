@@ -24,9 +24,8 @@ from qgis.gui import *
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QResource
-from enmapbox.testing import initQgisApplication, TestObjects, EnMAPBoxTestCase
+from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 
-os.environ['CI'] = os.environ.get('CI', 'False')
 
 
 from enmapbox.gui.enmapboxgui import EnMAPBox, EnMAPBoxSplashScreen
