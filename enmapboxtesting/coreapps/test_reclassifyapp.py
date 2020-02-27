@@ -1,18 +1,16 @@
 import unittest
 from unittest import TestCase
-from enmapbox.testing import initQgisApplication, TestObjects
-import enmapboxtestdata
+from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from reclassifyapp.reclassify import *
 from enmapbox.gui import ClassificationScheme
 from enmapbox.gui.utils import *
-QGIS_APP = initQgisApplication()
 
-SHOW_GUI = True
 
-class TestReclassify(TestCase):
+class TestReclassify(EnMAPBoxTestCase):
 
     @classmethod
     def setUpClass(cls):
+        super().setUpClass()
         from tempfile import mkdtemp
         cls.testDir = mkdtemp(prefix='TestDir')
         cls.classA = TestObjects.inMemoryImage(nc=2)
@@ -25,8 +23,6 @@ class TestReclassify(TestCase):
         drv.CreateCopy(cls.pathClassA, cls.classA)
         #drv.CreateCopy(cls.pathClassB, cls.classB)
 
-        cls.qgsApp = initQgisApplication()
-
     @classmethod
     def tearDownClass(cls):
         cls.classA = None
@@ -35,12 +31,6 @@ class TestReclassify(TestCase):
         #if os.path.exists(cls.testDir):
         #    os.remove(cls.testDir)
 
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     def test_hubflow_reclassify(self):
         import hubflow.core
@@ -173,9 +163,6 @@ class TestReclassify(TestCase):
         for key in ['labelLookup','dstClassScheme','pathDst','pathSrc']:
             self.assertTrue(key in settings.keys(), msg='Missing setting key "{}"'.format(key))
 
-        if SHOW_GUI:
-            dialog.show()
-            QGIS_APP.exec_()
 
         dstCS = dialog.dstClassificationScheme()
         dialog.close()
@@ -193,7 +180,7 @@ class TestReclassify(TestCase):
         self.assertEqual(dstCS, cs2, msg='Expected:\n{}\nbut got:\n{}'.format(dstCS.toString(), cs2.toString()))
         self.assertEqual(dstCS, cs3, msg='Expected:\n{}\nbut got:\n{}'.format(dstCS.toString(), cs3.toString()))
 
+        self.showGui(dialog)
 if __name__ == "__main__":
 
-    SHOW_GUI = False
     unittest.main()

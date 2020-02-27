@@ -1,13 +1,13 @@
 #!/bin/bash
-    QT_QPA_PLATFORM=offscreen
-    export QT_QPA_PLATFORM
-    CI=True
-    export CI
-    
-    find . -name "*.pyc" -exec rm -f {} \;
-    export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-    python3 runfirst.py
-    
+QT_QPA_PLATFORM=offscreen
+export QT_QPA_PLATFORM
+CI=True
+export CI
+
+find . -name "*.pyc" -exec rm -f {} \;
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+python3 runfirst.py
+
 python3 -m coverage run --rcfile=.coveragec   enmapboxtesting/test_applications.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py

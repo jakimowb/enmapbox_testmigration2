@@ -21,16 +21,13 @@
 
 import unittest, time
 
-from enmapbox.testing import initQgisApplication, TestObjects
-SHOW_GUI = True
-QGS_APP = initQgisApplication()
-
+from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapboxtestdata import landcover_polygons, enmap
 from metadataeditorapp.metadataeditor import *
 from enmapbox.gui.utils import *
 
 
-class TestMDMetadataKeys(unittest.TestCase):
+class TestMDMetadataKeys(EnMAPBoxTestCase):
     @classmethod
     def setUpClass(cls):
         from enmapbox.testing import initQgisApplication
@@ -330,8 +327,7 @@ class TestMDMetadataKeys(unittest.TestCase):
             rn.appendChildNodes([node1])
             print('fill {} ... {}'.format(i, time.time()-t0))
 
-        if SHOW_GUI:
-            QGS_APP.exec_()
+        self.showGui(TV)
 
     def test_MetadataTreeView(self):
 
@@ -354,16 +350,14 @@ class TestMDMetadataKeys(unittest.TestCase):
             print('{}: {}'.format(source.source(), time.time()-t0))
             pass
 
-        if SHOW_GUI:
-            qApp.exec_()
+        self.showGui(TV)
 
     def test_inputdialog(self):
 
         w = QgsListWidget(QVariant.Double)
         w.setList([None, None, None, None])
         w.show()
-        if SHOW_GUI:
-            QGS_APP.exec_()
+        self.showGui(TV)
 
 
     def test_MDDialog(self):
@@ -386,8 +380,7 @@ class TestMDMetadataKeys(unittest.TestCase):
         #d.addSources(self.createNotSupportedSources())
         #self.assertTrue(len(d.mSourceModel) == len(sources))
 
-        if SHOW_GUI:
-            QGS_APP.exec_()
+        self.showGui(d)
 
 if __name__ == "__main__":
 

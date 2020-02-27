@@ -5,7 +5,9 @@ from enmapbox.gui.utils import file_search
 
 def create_runtests():
 
-    DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
+    DIR_SCRIPTS = pathlib.Path(__file__).resolve().parent
+    DIR_REPO = DIR_SCRIPTS.parent
+
     DIR_TESTS = DIR_REPO / 'enmapboxtesting'
 
     assert DIR_REPO.is_dir()
@@ -13,38 +15,38 @@ def create_runtests():
     assert DIR_TESTS.is_dir()
 
 
-    PATH_RUNTESTS_BAT = DIR_REPO / 'runtests.bat'
-    PATH_RUNTESTS_SH = DIR_REPO / 'runtests.sh'
+    PATH_RUNTESTS_BAT = DIR_SCRIPTS / 'runtests.bat'
+    PATH_RUNTESTS_SH = DIR_SCRIPTS / 'runtests.sh'
 
     PREFACE_BAT = \
-    """
-    :: use this script to run unit tests locally
-    ::
-    @echo off
-    set CI=True
-    
-    WHERE python3 >nul 2>&1 && (
-        echo Found "python3" command
-        set PYTHON=python3
-    ) || (
-        echo Did not found "python3" command. use "python" instead
-        set PYTHON=python
-    )
-    
-    start %PYTHON% make/setuprepository.py
-    """
+"""
+:: use this script to run unit tests locally
+::
+@echo off
+set CI=True
+
+WHERE python3 >nul 2>&1 && (
+    echo Found "python3" command
+    set PYTHON=python3
+) || (
+    echo Did not found "python3" command. use "python" instead
+    set PYTHON=python
+)
+
+start %PYTHON% scripts/setuprepository.py
+"""
 
     PREFACE_SH = \
-    """#!/bin/bash
-    QT_QPA_PLATFORM=offscreen
-    export QT_QPA_PLATFORM
-    CI=True
-    export CI
-    
-    find . -name "*.pyc" -exec rm -f {} \;
-    export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-    python3 runfirst.py
-    """
+"""#!/bin/bash
+QT_QPA_PLATFORM=offscreen
+export QT_QPA_PLATFORM
+CI=True
+export CI
+
+find . -name "*.pyc" -exec rm -f {} \;
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+python3 scripts/setuprepository.py
+"""
 
 
     #dirOut = 'test-reports/today'

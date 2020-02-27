@@ -4,14 +4,12 @@ from osgeo import gdal, gdal_array, osr
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
-from enmapbox.testing import initQgisApplication, TestObjects
-
-QGIS_APP = initQgisApplication(loadProcessingFramework=False, loadEditorWidgets=False)
-
-SHOW_GUI = True
+from qgis.core import *
+from qgis.gui import *
+from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 
 from imagecubeapp.imagecube import *
-class VTest(unittest.TestCase):
+class VTest(EnMAPBoxTestCase):
 
     def createImageCube(self, nb=10, ns=20, nl=30, crs='EPSG.32633')->QgsRasterLayer:
 
@@ -144,8 +142,7 @@ class VTest(unittest.TestCase):
             W.setRasterLayer(layers[0])
             W.startDataLoading()
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(W)
 
     def test_extent(self):
 
@@ -203,5 +200,9 @@ class VTest(unittest.TestCase):
         W.startDataLoading()
 
 
-        if SHOW_GUI:
-            QGIS_APP.exec_()
+        self.showGui(W)
+
+if __name__ == "__main__":
+
+    unittest.main()
+

@@ -13,7 +13,7 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, shutil, tempfile
+import unittest, shutil, tempfile, pathlib, gc
 from collections import namedtuple
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 
@@ -32,6 +32,20 @@ class test_applications(EnMAPBoxTestCase):
         if isinstance(eb, EnMAPBox):
             eb.close()
             QApplication.processEvents()
+        self.otherDialogs.clear()
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        cls.otherDialogs = []
+
+    def setUp(self):
+
+        self.otherDialogs.clear()
+        for obj in gc.get_objects():
+            if isinstance(obj, QDialog):
+                self.otherDialogs.append(obj)
 
 
     def createTestData(self)->(str, str, str):
@@ -186,23 +200,6 @@ class test_applications(EnMAPBoxTestCase):
 
         self.showGui()
 
-
-    def test_externalApp(self):
-
-
-        EB = EnMAPBox()
-        self.assertIsInstance(EB, EnMAPBox)
-
-        pathAppDir = r'C:\Users\geo_beja\Repositories\enmap-box-workshop2019\tutorials\progtut2\exercise3\smallexampleapp'
-        if os.path.isdir(pathAppDir):
-            reg = ApplicationRegistry(EB)
-            reg.addApplicationFolder(pathAppDir)
-            self.assertTrue(len(reg) > 0, msg='Failed to add example EnMAPBoxApplication from {}'.format(pathAppDir))
-
-            EB.addApplication(pathAppDir)
-            self.assertTrue(len(EB.applicationRegistry) == 1)
-            s = ""
-
     def test_deployed_apps(self):
 
         pathCoreApps = os.path.join(DIR_ENMAPBOX, 'coreapps')
@@ -233,11 +230,18 @@ class test_applications(EnMAPBoxTestCase):
             if n1 == n2:
                 print('Unable to add EnMAPBoxApplications from {}'.format(d), file=sys.stderr)
 
-
-
+    def closeBlockingDialogs(self):
+        w = QApplication.instance().activeModalWidget()
+        if isinstance(w, QWidget):
+            print('Close blocking {} "{}"'.format(w.__class__.__name__, w.windowTitle()))
+            w.close()
 
     def test_enmapbox_start(self):
 
+
+        timer = QTimer()
+        timer.timeout.connect(self.closeBlockingDialogs)
+        timer.start(500)
 
         EB = EnMAPBox()
 

@@ -33,6 +33,7 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from qgis.PyQt.QtCore import *
 
+from enmapbox.externals.qps.make.deploy import QGISMetadataFileWriter
 #from pb_tool import pb_tool # install with: pip install pb_tool
 
 import enmapbox
@@ -45,181 +46,59 @@ INCLUDE_TESTDATA = False  #includes the testdata folder for none-master versions
 
 ########## Config Section
 
+MD = QGISMetadataFileWriter()
+MD.mTags = ['Raster']
+MD.mCategory = 'Raster'
 
 ########## End of config section
-REPO = git.Repo(DIR_REPO)
-pathCfg = jp(DIR_REPO, 'pb_tool.cfg')
-CFG = pb_tool.get_config(pathCfg)
-PLUGIN_NAME = CFG.get('plugin', 'name')
-
-
-currentBranch = REPO.active_branch.name
-
-if currentBranch == 'master':
-    INCLUDE_TESTDATA = False
-
-timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')
-buildID = '{}.{}.{}'.format(re.search(r'(\.?[^.]*){2}', __version__).group()
-                            , timestamp,
-                            re.sub(r'[\\/]','_', currentBranch))
-
-DIR_DEPLOY = jp(DIR_REPO, 'deploy')
-
-PLUGIN_REPO_XML_REMOTE = os.path.join(DIR_DEPLOY, 'qgis_plugin_develop.xml')
-PLUGIN_REPO_XML_LOCAL  = os.path.join(DIR_DEPLOY, 'qgis_plugin_develop_local.xml')
-URL_DOWNLOADS = r'https://bitbucket.org/hu-geomatics/enmap-box/downloads'
-URL_WIKI = r'https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/wiki/src'
-
-
-def remove_shortcutVisibleInContextMenu(rootDir):
-
-    uiFiles = file_search(rootDir, '*.ui', recursive=True)
-
-    regex = re.compile(r'<property name="shortcutVisibleInContextMenu">[^<]*<bool>true</bool>[^<]*</property>', re.MULTILINE)
-
-
-    for p in uiFiles:
-        assert isinstance(p, str)
-        assert os.path.isfile(p)
-
-        with open(p, encoding='utf-8') as f:
-            xml = f.read()
-
-        if 'shortcutVisibleInContextMenu' in xml:
-            print('remove "shortcutVisibleInContextMenu" properties from {}'.format(p))
-            xml = regex.sub('', xml)
-
-            with open(p, 'w', encoding='utf-8') as f:
-                f.write(xml)
-
-
-def rm(p):
-    """
-    Remove files or directory 'p'
-    :param p: path of file or directory to be removed.
-    """
-    if os.path.isfile(p):
-        os.remove(p)
-    elif os.path.isdir(p):
-        shutil.rmtree(p)
-
-
-def cleanDir(d):
-    """
-    Remove content from directory 'd'
-    :param d: directory to be cleaned.
-    """
-    assert os.path.isdir(d)
-    for root, dirs, files in os.walk(d):
-        for p in dirs + files: rm(jp(root, p))
-        break
-
-
-
-def mkDir(d, delete=False):
-    """
-    Make directory.
-    :param d: path of directory to be created
-    :param delete: set on True to delete the directory contents, in case the directory already existed.
-    """
-    if delete and os.path.isdir(d):
-        cleanDir(d)
-    if not os.path.isdir(d):
-        os.makedirs(d)
 
 
 def create_enmapbox_plugin():
 
-    # local pb_tool configuration file.
-    pathCfg = jp(DIR_REPO, 'pb_tool.cfg')
-    cfg = pb_tool.get_config(pathCfg)
-    cdir = os.path.dirname(pathCfg)
-    pluginname = cfg.get('plugin', 'name')
-    dirPlugin = jp(DIR_DEPLOY, pluginname)
-    os.chdir(cdir)
+    DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
+    assert (DIR_REPO / '.git').is_dir()
 
-    mkDir(DIR_DEPLOY)
+    DIR_DEPLOY = DIR_REPO / 'deploy'
 
-    if os.path.isdir(dirPlugin):
-        print('Remove old build folder...')
-        shutil.rmtree(dirPlugin, ignore_errors=True)
+    try:
+        import git
+        REPO = git.Repo(DIR_REPO)
+        currentBranch = REPO.active_branch.name
+    except Exception as ex:
+        currentBranch = 'TEST'
+        print('Unable to find git repo. Set currentBranch to "{}"'.format(currentBranch))
 
-    # required to choose andy DIR_DEPLOY of choice
-    # issue tracker: https://github.com/g-sherman/plugin_build_tool/issues/4
+    timestamp = datetime.datetime.now().isoformat().split('.')[0].replace(':', '')
+    version = ''
+    BUILD_NAME = re.sub(r'[\/]', '_', 'enmapboxplugin.{}.{}.{}'.format(currentBranch, timestamp))
 
-    if True:
-        # 1. clean an existing directory = the enmapboxplugin folder
-        if os.path.isdir(DIR_DEPLOY):
-            try:
-                pb_tool.clean_deployment(ask_first=False)
-            except:
-                pass
+    PLUGIN_DIR = DIR_DEPLOY / BUILD_NAME
+    PLUGIN_ZIP = DIR_DEPLOY / '{}.zip'.format(BUILD_NAME)
 
+    os.makedirs(PLUGIN_DIR, exist_ok=True)
 
+    PATH_METADATAFILE = DIR_DEPLOY / 'metadata.txt'
+    MD.mVersion = BUILD_NAME
+    MD.writeMetadataTxt(PATH_METADATAFILE)
 
+    #1. (re)-compile all enmapbox resource files
 
-        if currentBranch not in ["develop", "master"]:
-            print('Skipped automatic version update because current branch is not "develop" or "master". ')
-        else:
-            # 2. set the version to all relevant files
-            # r = REPO.git.execute(['git','diff', '--exit-code']).split()
-            diffs = [r for r in REPO.index.diff(None) if 'deploy.py' not in str(r)]
-            if CHECK_COMMITS and len(diffs) > 0:
-                # there are diffs. we need to commit them first.
-                # This should not be done automatically, as each commit should contain a proper commit message
-                raise Exception('Please commit all changes first.')
+    from scripts.compileresourcefiles import compileEnMAPBoxResources
+    compileEnMAPBoxResources()
 
-        # 2. Compile. Basically call pyrcc to create the resources.rc file
-        # I don't know how to call this from pure python
-
-        #try:
-        #    pb_tool.compile_files(cfg)
-        #except Exception as ex:
-        #    print('Failed to compile resources')
-        #    print(ex)
-
-        from scripts.compileresourcefiles import compileEnMAPBoxResources
-        compileEnMAPBoxResources()
-
-        # 3. Deploy = write the data to the new enmapboxplugin folder
-        pb_tool.deploy_files(pathCfg, DIR_DEPLOY, 'default', quick=True, confirm=False)
-
-        if True:
-            remove_shortcutVisibleInContextMenu(DIR_DEPLOY)
-
-        # 4. As long as we can not specify in the pb_tool.cfg which file types are not to deploy,
-        # we need to remove them afterwards.
-        # issue: https://github.com/g-sherman/plugin_build_tool/issues/5
-        print('Remove files...')
-
-        if True:
-            # delete help folder
-            shutil.rmtree(os.path.join(dirPlugin, *['help']), ignore_errors=True)
-        for f in file_search(DIR_DEPLOY, re.compile('(svg|pyc)$'), recursive=True):
-            os.remove(f)
 
     #update metadata version
-    if True:
-        pathMetadata = jp(dirPlugin, 'metadata.txt')
-        # update version number in metadata
-        f = open(pathMetadata)
-        lines = f.readlines()
-        f.close()
-        lines = re.sub('version=.*\n', 'version={}\n'.format(buildID), ''.join(lines))
-        f = open(pathMetadata, 'w')
-        f.write(lines)
-        f.flush()
-        f.close()
 
-        pathPackageInit = jp(dirPlugin, *['enmapbox', '__init__.py'])
-        f = open(pathPackageInit)
-        lines = f.read()
-        f.close()
-        lines = re.sub(r'(__version__\W*=\W*)([^\n]+)', r'__version__ = "{}"\n'.format(buildID), lines)
-        f = open(pathPackageInit, 'w')
-        f.write(lines)
-        f.flush()
-        f.close()
+
+    pathPackageInit = jp(dirPlugin, *['enmapbox', '__init__.py'])
+    f = open(pathPackageInit)
+    lines = f.read()
+    f.close()
+    lines = re.sub(r'(__version__\W*=\W*)([^\n]+)', r'__version__ = "{}"\n'.format(buildID), lines)
+    f = open(pathPackageInit, 'w')
+    f.write(lines)
+    f.flush()
+    f.close()
 
 
 

@@ -52,7 +52,7 @@ def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
     band.SetColorTable(ct)
 
 
-def reclassify(pathSrc:str, pathDst:str, dstClassScheme, labelLookup,
+def reclassify(pathSrc:str, pathDst:str, dstClassScheme:ClassificationScheme, labelLookup:dict,
                drvDst = None,
                bandIndices=0, tileSize=None, co=None):
     """
@@ -77,6 +77,10 @@ def reclassify(pathSrc:str, pathDst:str, dstClassScheme, labelLookup,
 
     names = dstClassScheme.classNames()
     colors = dstClassScheme.classColors()
+
+    if len(names) == 0:
+        # nothing to reclassify
+        return None
 
     # hubflow requires to handel the `unclassified` class (label = 0, always first position) separately
     newDef = hubflow.core.ClassDefinition(names=names[1:], colors=[c.name() for c in colors[1:]])
