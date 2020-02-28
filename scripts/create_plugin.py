@@ -24,33 +24,54 @@ import os, sys, re, shutil, zipfile, datetime, requests, http, mimetypes, pathli
 import docutils
 import docutils.writers
 from qgis.PyQt.QtXml import *
-import os, sys
+import os, sys, typing
 from enmapbox.gui.utils import file_search
 
 from requests.auth import HTTPBasicAuth
 from http.client import responses
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
+
 from qgis.PyQt.QtCore import *
 
 from enmapbox.externals.qps.make.deploy import QGISMetadataFileWriter
-#from pb_tool import pb_tool # install with: pip install pb_tool
 
 import enmapbox
 from enmapbox import DIR_REPO, __version__
-import git
+
 
 CHECK_COMMITS = False
-INCLUDE_TESTDATA = False  #includes the testdata folder for none-master versions
+INCLUDE_TESTDATA = True  #includes the testdata folder for none-master versions
 
 
 ########## Config Section
 
 MD = QGISMetadataFileWriter()
+MD.mName = 'EnMAP-Box 3'
+MD.mDescription = 'Imaging Spectroscopy and Remote Sensing for QGIS'
 MD.mTags = ['Raster']
-MD.mCategory = 'Raster'
+MD.mCategory = 'Analysis'
+MD.mAuthor = 'Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden'
+MD.mIcon = 'enmapbox/gui/ui/icons/enmapbox.png'
+MD.mHomepage = 'http://www.enmap.org/'
+MD.mAbout = 'The EnMAP-Box is designed to process and visualize hyperspectral remote sensing data, and particularly developed to handle EnMAP products.'
+MD.mTracker = 'https://bitbucket.org/hu-geomatics/enmap-box/issues'
+MD.mRepository = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
 
 ########## End of config section
+
+
+def scantree(path, pattern=re.compile('.$'))->typing.Iterator[pathlib.Path]:
+    """
+    Recursively returns file paths in directory
+    :param path: root directory to search in
+    :param pattern: str with required file ending, e.g. ".py" to search for *.py files
+    :return: pathlib.Path
+    """
+    for entry in os.scandir(path):
+        if entry.is_dir(follow_symlinks=False):
+            yield from scantree(entry.path, pattern=pattern)
+        elif entry.is_file and pattern.search(entry.path):
+            yield pathlib.Path(entry.path)
 
 
 def create_enmapbox_plugin():
@@ -68,16 +89,19 @@ def create_enmapbox_plugin():
         currentBranch = 'TEST'
         print('Unable to find git repo. Set currentBranch to "{}"'.format(currentBranch))
 
-    timestamp = datetime.datetime.now().isoformat().split('.')[0].replace(':', '')
-    version = ''
-    BUILD_NAME = re.sub(r'[\/]', '_', 'enmapboxplugin.{}.{}.{}'.format(currentBranch, timestamp))
+    timestamp = datetime.datetime.now().isoformat().split('.')[0]
 
-    PLUGIN_DIR = DIR_DEPLOY / BUILD_NAME
-    PLUGIN_ZIP = DIR_DEPLOY / '{}.zip'.format(BUILD_NAME)
+    BUILD_NAME = '{}.{}.{}'.format(__version__, timestamp, currentBranch)
+    BUILD_NAME = re.sub(r'[:-]', '', BUILD_NAME)
+    BUILD_NAME = re.sub(r'[\\/]', '_', BUILD_NAME)
+    PLUGIN_DIR = DIR_DEPLOY / 'enmapboxplugin'
+    PLUGIN_ZIP = DIR_DEPLOY / 'enmapboxplugin.{}.zip'.format(BUILD_NAME)
 
+    if PLUGIN_DIR.is_dir():
+        shutil.rmtree(PLUGIN_DIR)
     os.makedirs(PLUGIN_DIR, exist_ok=True)
 
-    PATH_METADATAFILE = DIR_DEPLOY / 'metadata.txt'
+    PATH_METADATAFILE = PLUGIN_DIR / 'metadata.txt'
     MD.mVersion = BUILD_NAME
     MD.writeMetadataTxt(PATH_METADATAFILE)
 
@@ -86,51 +110,54 @@ def create_enmapbox_plugin():
     from scripts.compileresourcefiles import compileEnMAPBoxResources
     compileEnMAPBoxResources()
 
+    # copy python and resource files
+    pattern = re.compile('\.(py|svg|png|txt|ui|tif|qml|md)$')
+    files = list(scantree(DIR_REPO / 'enmapbox', pattern=pattern))
+    files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
+    files.append(DIR_REPO / '__init__.py')
+    files.append(DIR_REPO / 'CHANGELOG.rst')
+    files.append(DIR_REPO / 'CONTRIBUTORS.rst')
+    files.append(DIR_REPO / 'LICENSE.md')
+    files.append(DIR_REPO / 'LICENSE.txt')
+    files.append(DIR_REPO / 'requirements.txt')
+    files.append(DIR_REPO / 'requirements_developer.txt')
+
+    for fileSrc in files:
+        assert fileSrc.is_file()
+        fileDst = PLUGIN_DIR / fileSrc.relative_to(DIR_REPO)
+        os.makedirs(fileDst.parent, exist_ok=True)
+        shutil.copy(fileSrc, fileDst.parent)
 
     #update metadata version
 
-
-    pathPackageInit = jp(dirPlugin, *['enmapbox', '__init__.py'])
-    f = open(pathPackageInit)
+    f = open(DIR_REPO / 'enmapbox' / '__init__.py')
     lines = f.read()
     f.close()
-    lines = re.sub(r'(__version__\W*=\W*)([^\n]+)', r'__version__ = "{}"\n'.format(buildID), lines)
-    f = open(pathPackageInit, 'w')
+    lines = re.sub(r'(__version__\W*=\W*)([^\n]+)', r'__version__ = "{}"\n'.format(BUILD_NAME), lines)
+    f = open(PLUGIN_DIR  / 'enmapbox' / '__init__.py', 'w')
     f.write(lines)
     f.flush()
     f.close()
 
-
-
-    pluginname = cfg.get('plugin', 'name')
-    pathZip = jp(DIR_DEPLOY, '{}.{}.zip'.format(pluginname, buildID))
-    dirPlugin = jp(DIR_DEPLOY, pluginname)
-
     # include test data into test versions
     if INCLUDE_TESTDATA and not re.search(currentBranch, 'master', re.I):
         if os.path.isdir(enmapbox.DIR_TESTDATA):
+            shutil.copytree(enmapbox.DIR_TESTDATA, PLUGIN_DIR / 'enmapboxtestdata')
 
-            shutil.copytree(enmapbox.DIR_TESTDATA, os.path.join(dirPlugin, os.path.basename(enmapbox.DIR_TESTDATA)))
-        s = ""
-
-    createCHANGELOG(dirPlugin)
+    createCHANGELOG(PLUGIN_DIR)
 
     # 5. create a zip
     print('Create zipfile...')
     from enmapbox.gui.utils import zipdir
 
-    zipdir(dirPlugin, pathZip)
-
-    # 6. Update XML repositories
-    updateRepositoryXML()
-
+    zipdir(PLUGIN_DIR, PLUGIN_ZIP)
 
     # 7. install the zip file into the local QGIS instance. You will need to restart QGIS!
     if True:
         info = []
         info.append('\n### To update/install the EnMAP-Box, run this command on your QGIS Python shell:\n')
         info.append('from pyplugin_installer.installer import pluginInstaller')
-        info.append('pluginInstaller.installFromZipFile(r"{}")'.format(pathZip))
+        info.append('pluginInstaller.installFromZipFile(r"{}")'.format(PLUGIN_ZIP))
         info.append('#### Close (and restart manually)\n')
         #print('iface.mainWindow().close()\n')
         info.append('QProcess.startDetached(QgsApplication.arguments()[0], [])')

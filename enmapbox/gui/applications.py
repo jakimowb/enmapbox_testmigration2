@@ -27,7 +27,7 @@ from PyQt5.QtWidgets import *
 
 from enmapbox.gui.utils import *
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
 from enmapbox import messageLog, DIR_REPO as ROOT
 
 DEBUG = False #set this on True to not hide external-app errors
@@ -350,7 +350,7 @@ class ApplicationRegistry(QObject):
 
         # load QGIS Processing Framework Integration
         import enmapbox.algorithmprovider
-        if isinstance(enmapbox.algorithmprovider.instance(), enmapbox.algorithmprovider.EnMAPBoxAlgorithmProvider):
+        if isinstance(enmapbox.algorithmprovider.instance(), enmapbox.algorithmprovider.EnMAPBoxProcessingProvider):
             self.loadProcessingAlgorithms(appWrapper)
 
         if DEBUG:
@@ -378,7 +378,7 @@ class ApplicationRegistry(QObject):
             import enmapbox.algorithmprovider
             provider = enmapbox.algorithmprovider.instance()
 
-            if isinstance(provider, EnMAPBoxAlgorithmProvider):
+            if isinstance(provider, EnMAPBoxProcessingProvider):
                 provider.addAlgorithms(processingAlgorithms)
             else:
                 print('Can not find EnMAPBoxAlgorithmProvider')
@@ -436,7 +436,7 @@ class ApplicationRegistry(QObject):
 
         import enmapbox.algorithmprovider
         provider = enmapbox.algorithmprovider.instance()
-        assert isinstance(provider, EnMAPBoxAlgorithmProvider)
+        assert isinstance(provider, EnMAPBoxProcessingProvider)
         provider.removeAlgorithms(appWrapper.processingAlgorithms)
 
 

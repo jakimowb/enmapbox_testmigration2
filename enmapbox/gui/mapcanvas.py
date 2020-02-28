@@ -907,10 +907,7 @@ class MapCanvas(QgsMapCanvas):
 
         from enmapbox import EnMAPBox
 
-        if EnMAPBox.instance():
-            self.mMapLayerStore = EnMAPBox.instance().mapLayerStore()
-        else:
-            self.mMapLayerStore = QgsMapLayerStore()
+
 
         # init the map tool set
         self.mCadDock = QgsAdvancedDigitizingDockWidget(self)
@@ -1337,10 +1334,6 @@ class MapCanvas(QgsMapCanvas):
         self.sigCanvasLinkAdded.emit(canvasLink)
         return canvasLink
 
-
-    def mapLayerStore(self):
-        return self.mMapLayerStore
-
     def removeCanvasLink(self, canvasLink):
         """
         Removes the link to another canvas
@@ -1373,25 +1366,24 @@ class MapCanvas(QgsMapCanvas):
             assert isinstance(l, QgsMapLayer)
 
         lastSet = self.layers()
-        newSet = mapLayers[:]
 
         #register not-registered layers
         #reg = QgsProject.instance()
         #reg.addMapLayers(newSet)
         from enmapbox import EnMAPBox
 
-        #register map layers (required for drawing on a MapCanvas)
-        self.mapLayerStore().addMapLayers(newSet)
+        QgsProject.instance().addMapLayers(mapLayers, False)
 
-        super(MapCanvas, self).setLayers(newSet)
+
+        super(MapCanvas, self).setLayers(mapLayers)
 
         self.setRenderFlag(True)
         self.refreshAllLayers()
 
         # signal what has been added, what has been removed
         import sip
-        removedLayers = [l for l in lastSet if not sip.isdeleted(l) and l not in newSet]
-        addedLayers = [l for l in newSet if not sip.isdeleted(l) and l not in lastSet]
+        removedLayers = [l for l in lastSet if not sip.isdeleted(l) and l not in mapLayers]
+        addedLayers = [l for l in mapLayers if not sip.isdeleted(l) and l not in lastSet]
 
         if len(removedLayers) > 0:
             self.sigLayersRemoved[list].emit(removedLayers)
@@ -1568,6 +1560,6 @@ class MapDock(Dock):
         return self.mCanvas
 
     def removeLayers(self, mapLayers):
-        newSet = [l for l in self.mCanvas.layers() if l not in mapLayers]
+        newSet = [l for l in self.mapCanvas().layers() if l not in mapLayers]
         self.setLayers(newSet)
 

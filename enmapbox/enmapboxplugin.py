@@ -50,13 +50,8 @@ class EnMAPBoxPlugin(object):
         #run a dependency check
         self.initialDependencyCheck()
 
-        # initialize resources etc.
+        # initialize resources, processing provider etc.
         enmapbox.initAll()
-
-        # add the EnMAP-Box Provider
-        enmapbox.initEnMAPBoxProcessingProvider()
-
-        #assert self.enmapBoxProvider == QgsApplication.instance().processingRegistry().providerById('enmapbox')
 
         self.mAddedSysPaths = [p for p in sys.path if p not in pathes]
 
@@ -104,12 +99,16 @@ class EnMAPBoxPlugin(object):
         for action in self.toolbarActions:
             self.iface.removeToolBarIcon(action)
 
+        import enmapbox
+        enmapbox.removeEnMAPBoxProcessingProvider()
+
         if isinstance(EnMAPBox.instance(), EnMAPBox):
             EnMAPBox.instance().close()
         EnMAPBox._instance = None
 
-        from enmapbox.algorithmprovider import ID
-        QgsApplication.instance().processingRegistry().removeProvider(ID)
+
+
+
 
 
 

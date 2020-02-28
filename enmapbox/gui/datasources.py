@@ -427,6 +427,7 @@ class DataSourceRaster(DataSourceSpatial):
         self.mDefaultRenderer = None
         self.mLayer = self.createUnregisteredMapLayer()
         assert isinstance(self.mLayer, QgsRasterLayer)
+
         self.mLayer.setCustomProperty('ENMAPBOX_DATASOURCE',True)
 
         #self.mDataType = -1
@@ -645,7 +646,6 @@ class DataSourceVector(DataSourceSpatial):
 
 
         self.mLayer = self.createUnregisteredMapLayer()
-
         self.updateMetadata()
 
 
@@ -714,7 +714,7 @@ class DataSourceFactory(object):
             if re.search('(HDF|SENTINEL).*:.*:.*', src):
                 src = src
             elif os.path.isfile(src):
-                src = os.path.abspath(src)
+                src = pathlib.Path(src).as_posix()
             else:
                 pass
         else:

@@ -1240,6 +1240,7 @@ class DockManager(QObject):
         :return:
         """
         if isinstance(dataSource, DataSourceSpatial):
+
             for mapDock in [d for d in self.mDocks if isinstance(d, MapDock)]:
                 mapDock.removeLayersByURI(dataSource.uri())
 
