@@ -120,7 +120,7 @@ def initEnMAPBoxResources():
     """
     Loads (or reloads) all Qt resource files
     """
-    from .externals.qps.resources import initQtResources
+    from .externals.qps.resources import initQtResources, initResourceFile
     initQtResources(DIR_ENMAPBOX)
 
 

@@ -339,7 +339,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../resources.qrc"/>
+  <include location="../../enmapboxresources.qrc"/>
   <include location="../../../../../QGIS/images/images.qrc"/>
   <include location="../../../../qgispluginsupport/qps/qpsresources.qrc"/>
  </resources>

@@ -160,7 +160,7 @@
   </action>
  </widget>
  <resources>
-  <include location="../../resources.qrc"/>
+  <include location="../../enmapboxresources.qrc"/>
   <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections/>

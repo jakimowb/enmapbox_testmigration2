@@ -76,7 +76,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../resources.qrc"/>
+  <include location="../../enmapboxresources.qrc"/>
  </resources>
  <connections/>
 </ui>
