@@ -25,7 +25,7 @@ from enmapbox.externals.qps.utils import *
 from enmapbox.externals.qps.layerproperties import *
 from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui import SpectralLibrary
-
+import sip
 LUT_DOCKTYPES = {'MAP':MapDock,
                  'TEXT':TextDock,
                  'MIME':MimeDataDock,
@@ -459,16 +459,17 @@ class MapDockTreeNode(DockTreeNode):
 
     def onWillRemoveChildren(self, node, idxFrom, idxTo):
         self.mRemovedLayerCache.clear()
+        to_remove = []
         for n in node.children()[idxFrom:idxTo + 1]:
             if type(n) == QgsLayerTreeLayer:
-                self.mRemovedLayerCache.append(n.layer())
+                to_remove.append(n.layer())
+        self.mRemovedLayerCache.extend(to_remove)
+
 
     def onRemovedChildren(self, node, idxFrom, idxTo):
         self.updateCanvas()
-
-        lyrs = self.mRemovedLayerCache[:]
+        self.sigRemovedLayers[list].emit(self.mRemovedLayerCache[:])
         self.mRemovedLayerCache.clear()
-        self.sigRemovedLayers.emit(lyrs)
 
     def updateChildNodes(self):
         """
@@ -584,14 +585,6 @@ class MapDockTreeNode(DockTreeNode):
             #self.layerNode.insertChildNode(idx, l)
             self.insertChildNode(idx, l)
 
-
-
-
-
-
-
-
-
 class DockManagerTreeModel(QgsLayerTreeModel):
     def __init__(self, dockManager, parent=None):
         self.rootNode = LayerTreeNode(None, '<hidden root node>')
@@ -695,6 +688,19 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         """
         return [n for n in self.rootNode.children() if isinstance(n, MapDockTreeNode)]
 
+    def mapDockTreeNode(self, canvas:QgsMapCanvas)->MapDockTreeNode:
+        """
+        Returns the MapDockTreeNode that is connected to `canvas`
+        :param canvas: QgsMapCanvas
+        :type canvas:
+        :return: MapDockTreeNode
+        :rtype:
+        """
+        for n in self.mapDockTreeNodes():
+            if n.mapCanvas() == canvas:
+                return n
+        return None
+
     def mapCanvases(self)->typing.List[MapCanvas]:
         """
         Returns all MapCanvases
@@ -704,7 +710,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
     def mapLayers(self)->typing.List[QgsMapLayer]:
         """
-        Returns all map layers, also invisible layers that are currently not added to a QgsMapCanvas
+        Returns all map layers, also those that are invisible and not added to a QgsMapCanvas
         :return: [list-of-QgsMapLayer]
         """
         layers = []
@@ -713,15 +719,24 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                 layers.extend([l.layer() for l in node.findLayers()])
         return layers
 
-    def removeLayers(self, layers: list):
+    def removeLayers(self, layers: typing.List[QgsMapLayer]):
+        """Removes the node linked to map layers"""
         assert isinstance(layers, list)
 
         mapDockTreeNodes = [n for n in self.rootNode.children() if isinstance(n, MapDockTreeNode)]
+        to_remove = []
         for mapDockTreeNode in mapDockTreeNodes:
             assert isinstance(mapDockTreeNode, MapDockTreeNode)
             for lyr in layers:
                 assert isinstance(lyr, QgsMapLayer)
-                mapDockTreeNode.removeLayer(lyr)
+                node = mapDockTreeNode.findLayer(lyr)
+                if isinstance(node, QgsLayerTreeLayer):
+                    to_remove.append(node)
+        self.removeNodes(to_remove)
+
+    def removeNodes(self, nodes:typing.List[QgsLayerTreeNode]):
+        for n in nodes:
+            n.parent().removeChildNode(n)
 
     def removeNode(self, node):
         idx = self.node2index(node)
@@ -1112,7 +1127,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
         selectedLayerNodes = [n for n in self.mDockTreeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
         selectedMapLayers = [n.layer() for n in self.mDockTreeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
-        selectedLayerIDs = [n.layer().id() for n in self.mDockTreeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
+
         if type(node) is QgsLayerTreeLayer:
             # get parent dock node -> related map canvas
             mapNode = findParent(node, MapDockTreeNode)
@@ -1140,11 +1155,8 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             action.triggered.connect(lambda: canvas.setDestinationCrs(lyr.crs()))
             action.setEnabled(b)
 
-
-
             action = menu.addAction('Copy layer path')
             action.triggered.connect(lambda: QApplication.clipboard().setText(lyr.source()))
-
 
             menu.addSeparator()
 
@@ -1156,8 +1168,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
             action = menu.addAction('Remove layer')
             action.setToolTip('Remove layer from map canvas')
-            action._refToNodes = selectedLayerNodes
-            action.triggered.connect(lambda: self.mDockTreeView.model().removeLayers(selectedMapLayers))
+            action.triggered.connect(lambda *arg, nodes=selectedLayerNodes: self.mDockTreeView.model().removeNodes(nodes))
 
             action = menu.addAction('Layer properties')
             action.setToolTip('Set layer properties')

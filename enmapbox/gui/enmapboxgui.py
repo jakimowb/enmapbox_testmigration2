@@ -284,6 +284,8 @@ class EnMAPBox(QgisInterface, QObject):
         QgsProject.instance().layersWillBeRemoved.connect(self.onLayersWillBeRemoved)
 
         self._layerTreeNodes = [] #needed to keep a reference on created LayerTreeNodes
+        self._layerTreeGroup : QgsLayerTreeGroup = None
+
         self.mDockManager = DockManager()
         self.mDockManager.connectDataSourceManager(self.mDataSourceManager)
         self.mDockManager.connectDockArea(self.ui.dockArea)
@@ -388,16 +390,25 @@ class EnMAPBox(QgisInterface, QObject):
             toAdd = [l for l in knownInEnMAPBox if l not in knownInQGIS]
             toRemove = [l for l in knownInQGIS if l not in knownInEnMAPBox]
 
+            # update QGIS layer tree
             for l in toAdd:
                 node = EnMAPBoxLayerTreeLayer(l)
                 self._layerTreeNodes.append(node)
                 grp.addChildNode(node)
 
             for l in toRemove:
+                # remove from hidden qgis layer tree
                 layerTreeLayer = grp.findLayer(l)
                 if isinstance(layerTreeLayer, EnMAPBoxLayerTreeLayer):
                     layerTreeLayer.parent().removeChildNode(layerTreeLayer)
                     self._layerTreeNodes.remove(layerTreeLayer)
+
+            # cleanup EnMAP-Box layer tree
+            if len(toRemove) > 0:
+                self.dockManagerTreeModel().removeLayers(toRemove)
+
+
+                #QgsProject.instance().removeMapLayers([l.id() for l in toRemove])
 
             for node in grp.children():
                 if isinstance(node, EnMAPBoxLayerTreeLayer):
@@ -466,15 +477,7 @@ class EnMAPBox(QgisInterface, QObject):
         Returns a list of all EnMAP-Box map layers that are shown in a MapCanvas or the related Layer Tree View
         :return: [list-of-QgsMapLayers]
         """
-        from enmapbox.gui.dockmanager import MapDockTreeNode
-        root = self.layerTreeView().layerTreeModel().rootGroup()
-        assert isinstance(root, QgsLayerTreeGroup)
-
-        lyrs = []
-        for grp in root.findGroups():
-            if isinstance(grp, MapDockTreeNode):
-                lyrs.extend([ltn.layer() for ltn in grp.findLayers() if isinstance(ltn.layer(), QgsMapLayer)])
-        return lyrs
+        return self.layerTreeView().layerTreeModel().mapLayers()
 
     def addPanel(self, area, panel, show=True):
         """
@@ -672,23 +675,21 @@ class EnMAPBox(QgisInterface, QObject):
             assert isinstance(canvas, MapCanvas)
             canvas.sigCrosshairPositionChanged.connect(self.onCrosshairPositionChanged)
             canvas.setCrosshairVisibility(True)
-            canvas.sigLayersAdded.connect(lambda lyrs, c=canvas: self.sigMapLayersAdded[list, MapCanvas].emit(lyrs, c))
-            canvas.sigLayersRemoved.connect(lambda lyrs, c=canvas: self.sigMapLayersRemoved[list, MapCanvas].emit(lyrs, c))
+            #canvas.sigLayersAdded.connect(lambda lyrs, c=canvas: self.onCanvasLayerAdded(lyrs, c))
+            #canvas.sigLayersRemoved.connect(lambda lyrs, c=canvas: self.onCanvasLayerRemoved(lyrs, c))
 
             self.setMapTool(self.mMapToolKey, canvases=[canvas])
             canvas.mapTools().mtCursorLocation.sigLocationRequest[SpatialPoint, QgsMapCanvas].connect(self.setCurrentLocation)
 
-            for node in self.dockManagerTreeModel().mapDockTreeNodes():
-                assert isinstance(node, MapDockTreeNode)
-                if node.mapCanvas() == canvas:
-                    node.sigAddedLayers.connect(self.sigMapLayersAdded[list].emit)
-                    node.sigRemovedLayers.connect(self.sigMapLayersRemoved[list].emit)
+            node = self.dockManagerTreeModel().mapDockTreeNode(canvas)
+            assert isinstance(node, MapDockTreeNode)
+            node.sigAddedLayers.connect(self.sigMapLayersAdded[list].emit)
+            node.sigRemovedLayers.connect(self.sigMapLayersRemoved[list].emit)
 
 
             self.sigMapCanvasAdded.emit(canvas)
 
         self.sigDockAdded.emit(dock)
-
 
     def onDockRemoved(self, dock):
         if isinstance(dock, MapDock):
@@ -941,6 +942,8 @@ class EnMAPBox(QgisInterface, QObject):
         # finally, remove related map layers
         if isinstance(dataSource, DataSourceSpatial):
             self.removeMapLayer(dataSource.mapLayer())
+
+        self.syncHiddenLayers()
 
     def onDataSourceAdded(self, dataSource:DataSource):
 
@@ -1236,14 +1239,16 @@ class EnMAPBox(QgisInterface, QObject):
         grp = root.findGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
 
         if not isinstance(grp, QgsLayerTreeGroup):
+            assert not isinstance(self._layerTreeGroup, QgsLayerTreeGroup)
             print('CREATE HIDDEN_ENMAPBOX_LAYER_GROUP')
             grp = root.addGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
+            self._layerTreeGroup = grp
 
         ltv = qgis.utils.iface.layerTreeView()
         index = ltv.model().node2index(grp)
         grp.setItemVisibilityChecked(False)
 
-        hide = False
+        hide = str(os.environ.get('CI', None)).lower() not in ['1', 'true']
         grp.setCustomProperty('nodeHidden',  'true' if hide else 'false')
         ltv.setRowHidden(index.row(), index.parent(), hide)
 

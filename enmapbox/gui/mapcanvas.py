@@ -24,6 +24,7 @@ from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapMouseEvent
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
+import sip
 import time
 import numpy as np
 
@@ -1367,13 +1368,7 @@ class MapCanvas(QgsMapCanvas):
 
         lastSet = self.layers()
 
-        #register not-registered layers
-        #reg = QgsProject.instance()
-        #reg.addMapLayers(newSet)
-        from enmapbox import EnMAPBox
-
         QgsProject.instance().addMapLayers(mapLayers, False)
-
 
         super(MapCanvas, self).setLayers(mapLayers)
 
@@ -1381,7 +1376,6 @@ class MapCanvas(QgsMapCanvas):
         self.refreshAllLayers()
 
         # signal what has been added, what has been removed
-        import sip
         removedLayers = [l for l in lastSet if not sip.isdeleted(l) and l not in mapLayers]
         addedLayers = [l for l in mapLayers if not sip.isdeleted(l) and l not in lastSet]
 

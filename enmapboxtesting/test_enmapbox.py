@@ -235,11 +235,13 @@ class TestEnMAPBox(EnMAPBoxTestCase):
             self.assertIsInstance(dock, Dock)
         self.showGui()
 
-    def test_mapDockInteraction(self):
+    def test_qgis_interactions(self):
 
+        import qgis.utils
         E = EnMAPBox()
         E.loadExampleData()
-        self.assertTrue(len(E.dataSources()) > 0)
+
+        self.showGui([E.ui, qgis.utils.iface.ui])
 
 
 
