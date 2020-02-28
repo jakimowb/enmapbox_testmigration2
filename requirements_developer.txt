@@ -6,11 +6,6 @@
 
 # required to build the EnMAP-Box
 gitpython
-pb_tool
-
-# required for unit-testing
-nose2
-unittest-xml-reporting
 
 # required to build the documentation
 
@@ -20,7 +15,6 @@ sphinx-argparse
 sphinx-markdown
 sphinx-rtd-theme
 sphinx-autobuild
-
 docutils
 
 # optionals

@@ -8,6 +8,7 @@ enmapboxtestdata/
 
 qgisresources
 qgisresources/
+qgisresources.zip
 
 # we do not like to have compiled qt resource files in our repository!
 site-packages/qps/qpsresources.py
