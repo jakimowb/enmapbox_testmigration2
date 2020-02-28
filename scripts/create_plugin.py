@@ -40,7 +40,7 @@ from enmapbox import DIR_REPO, __version__
 
 
 CHECK_COMMITS = False
-INCLUDE_TESTDATA = True  #includes the testdata folder for none-master versions
+INCLUDE_TESTDATA = False  #includes the testdata folder for none-master versions
 
 
 ########## Config Section

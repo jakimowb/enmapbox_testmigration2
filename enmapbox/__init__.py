@@ -136,9 +136,17 @@ def initEditorWidgets():
 def collectAlgorithms()->list:
     import inspect
     algs = []
-    import enmapboxgeoalgorithms.algorithms
-    for a in enmapboxgeoalgorithms.algorithms.ALGORITHMS:
-        algs.append(a.create())
+    try:
+        import enmapboxgeoalgorithms.algorithms
+        for a in enmapboxgeoalgorithms.algorithms.ALGORITHMS:
+            try:
+                algs.append(a.create())
+            except Exception as ex2:
+                traceback.print_stack()
+                print(ex2)
+
+    except Exception as ex:
+        print(ex)
     """
     for name, obj in inspect.getmembers(enmapboxgeoalgorithms.algorithms):
         if inspect.isclass(obj) and issubclass(obj, QgsProcessingAlgorithm):
