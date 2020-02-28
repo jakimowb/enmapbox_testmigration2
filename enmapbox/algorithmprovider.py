@@ -42,8 +42,7 @@ LONG_NAME = 'EnMAP-Box (build {})'.format(__version__)
 
 
 
-
-class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
+class EnMAPBoxProcessingProvider(QgsProcessingProvider):
 
 
     """
@@ -51,7 +50,7 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
     It enhances the "standard" processing.core.AlgorithmProvider by functionality to add and remove GeoAlgorithms during runtime.
     """
     def __init__(self):
-        super(EnMAPBoxAlgorithmProvider, self).__init__()
+        super(EnMAPBoxProcessingProvider, self).__init__()
         #internal list of GeoAlgorithms. Is used on re-loads and can be manipulated
         self.mAlgorithms = []
         self.mSettingsPrefix = self.id().upper().replace(' ', '_')
@@ -182,7 +181,7 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         :return:
         """
 
-        super(EnMAPBoxAlgorithmProvider,self).addAlgorithm(algorithm)
+        super(EnMAPBoxProcessingProvider, self).addAlgorithm(algorithm)
         self.mAlgorithms.append(algorithm)
         if _emitUpdated:
             self.emitUpdated()
@@ -222,7 +221,7 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
 
         copies = [a.create() for a in self.algorithms()]
         self.removeAlgorithms(self.algorithms())
-        super(EnMAPBoxAlgorithmProvider,self).refreshAlgorithms()
+        super(EnMAPBoxProcessingProvider, self).refreshAlgorithms()
         self.addAlgorithms(copies)
 
     def loadAlgorithms(self):
@@ -234,7 +233,7 @@ class EnMAPBoxAlgorithmProvider(QgsProcessingProvider):
         self.addAlgorithms(self.mAlgorithms)
 
 
-def instance()->EnMAPBoxAlgorithmProvider:
+def instance()->EnMAPBoxProcessingProvider:
     """
     Returns the EnMAPBoxAlgorithmProvider instance registered to QgsProcessingRegistry
     :return:

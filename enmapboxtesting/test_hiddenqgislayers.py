@@ -120,15 +120,28 @@ class Tests(EnMAPBoxTestCase):
 
         self.showGui(emb.ui)
 
+
     def test_hiddenLayerManagerInBox(self):
+
+
+        emb = EnMAPBox()
 
         qgis.utils.iface.ui.show()
 
-        emb = EnMAPBox()
-        lyr = TestObjects.createRasterLayer()
-        emb.addSource(lyr)
+        from enmapbox.externals.qps.resources import ResourceBrowser
+        emb.loadExampleData()
+        #lyr = TestObjects.createRasterLayer()
+        #emb.addSource(lyr)
 
         self.showGui(emb.ui)
+
+    def test_resources(self):
+        from enmapbox.externals.qps.resources import ResourceBrowser
+        B = ResourceBrowser()
+        B.show()
+
+        self.showGui(B)
+
 
 if __name__ == "__main__":
     unittest.main()

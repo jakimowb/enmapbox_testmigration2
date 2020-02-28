@@ -1743,7 +1743,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../resources.qrc"/>
+  <include location="../../enmapboxresources.qrc"/>
   <include location="../../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections>

@@ -20,6 +20,8 @@ import enum, warnings
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
+from qgis.core import *
+from qgis.gui import *
 from enmapbox import messageLog
 from enmapbox.gui import *
 from enmapbox.gui.docks import *
@@ -29,11 +31,14 @@ from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
 from ..externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from ..externals.qps.layerproperties import showLayerPropertiesDialog
-from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
 from enmapbox.gui.spectralprofilesources import SpectralProfileSourcePanel, SpectralProfileBridge, SpectralProfileSource
 
 SETTINGS = enmapbox.enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
+
+HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
+HIDDEN_ENMAPBOX_LAYER_STATE = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_STATE'
 
 OWNED_BY_SPECLIBWIDGET_KEY = 'OWNED_BY_SPECLIBWIDGET'
 
@@ -142,6 +147,55 @@ def getIcon()->QIcon:
     warnings.warn(DeprecationWarning('Use enmapbox.icon() instead to return the EnMAP-Box icon'))
     return enmapbox.icon()
 
+class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
+
+    def __init__(self, *args, **kwds):
+
+        canvas = None
+        if 'canvas' in kwds.keys():
+            canvas = kwds.pop('canvas')
+
+        super().__init__(*args, **kwds)
+        self.setUseLayerName(False)
+
+        self.mCanvas : QgsMapCanvas = None
+        lyr = self.layer()
+        if isinstance(lyr, QgsMapLayer):
+            lyr.nameChanged.connect(self.updateLayerTitle)
+
+        if isinstance(canvas, QgsMapCanvas):
+            self.setCanvas(canvas)
+
+        self.updateLayerTitle()
+
+    def updateLayerTitle(self, *args):
+        """
+        Updates node name and layer title (not name) to: [<location in enmapbox>] <layer name>
+        """
+        location = '[EnMAP-Box]'
+        name = '<not connected>'
+        if isinstance(self.mCanvas, QgsMapCanvas):
+            location = '[{}]'.format(self.mCanvas.windowTitle())
+
+        lyr = self.layer()
+        if isinstance(lyr, QgsMapLayer):
+            name = lyr.name()
+
+        title = '{} {}'.format(location, name)
+        if isinstance(lyr, QgsMapLayer):
+            lyr.setTitle(title)
+
+        self.setName(title)
+
+    def setCanvas(self, canvas:QgsMapCanvas):
+        if isinstance(self.mCanvas, QgsMapCanvas):
+            self.mCanvas.windowTitleChanged.disconnect(self.updateLayerTitle)
+        self.mCanvas = canvas
+        if isinstance(self.mCanvas, QgsMapCanvas):
+            self.mCanvas.windowTitleChanged.connect(self.updateLayerTitle)
+        self.updateLayerTitle()
+
+
 
 
 
@@ -194,10 +248,7 @@ class EnMAPBox(QgisInterface, QObject):
         QgisInterface.__init__(self)
 
         self.ui = EnMAPBoxUI()
-
         self.ui.closeEvent = self.closeEvent
-
-        self.mMapLayerStore = QgsMapLayerStore()
 
         self.initQgisInterfaceVariables()
         if not isinstance(iface, QgisInterface):
@@ -227,21 +278,28 @@ class EnMAPBox(QgisInterface, QObject):
         #
         splash.showMessage('Init DataSourceManager')
         self.mDataSourceManager = DataSourceManager()
-
-        QgsProject.instance().layersAdded.connect(self.addSources)
-
-        self.mDockManager = DockManager()
-        self.mDockManager.connectDataSourceManager(self.mDataSourceManager)
-
-        #
         self.mDataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
         self.mDataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
+        QgsProject.instance().layersAdded.connect(self.addMapLayers)
+        QgsProject.instance().layersWillBeRemoved.connect(self.onLayersWillBeRemoved)
 
+        self._layerTreeNodes = [] #needed to keep a reference on created LayerTreeNodes
+        self.mDockManager = DockManager()
+        self.mDockManager.connectDataSourceManager(self.mDataSourceManager)
         self.mDockManager.connectDockArea(self.ui.dockArea)
         self.ui.dataSourcePanel.connectDataSourceManager(self.mDataSourceManager)
 
         self.ui.dockPanel.connectDockManager(self.mDockManager)
         self.ui.dockPanel.dockTreeView.currentLayerChanged.connect(self.onCurrentLayerChanged)
+
+
+        root = self.dockManagerTreeModel().rootGroup()
+        assert isinstance(root, QgsLayerTree)
+        root.addedChildren.connect(self.syncHiddenLayers)
+        root.removedChildren.connect(self.syncHiddenLayers)
+
+        #
+
 
         self.onCurrentLayerChanged(None)
         self.ui.centralFrame.sigDragEnterEvent.connect(
@@ -273,20 +331,87 @@ class EnMAPBox(QgisInterface, QObject):
         setConfigOption('background', 'k')
         setConfigOption('foreground', 'w')
 
-        from enmapbox.gui.hiddenqgislayers import HiddenQGISLayerManager
-        self.mHiddenLayerManager = HiddenQGISLayerManager(self.mDataSourceManager, self.dockManagerTreeModel())
-        self.mHiddenLayerManager.mMapLayerStore = self.mMapLayerStore
-
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
         QApplication.processEvents()
         splash.hide()
+        self.addProject(QgsProject.instance())
 
     def dataSourceManager(self)->enmapbox.gui.datasourcemanager.DataSourceManager:
         return self.mDataSourceManager
 
     def dockManager(self)->enmapbox.gui.dockmanager.DockManager:
         return self.mDockManager
+
+    def addMapLayer(self, layer:QgsMapLayer):
+        self.addMapLayers([layer])
+
+    def addMapLayers(self, layers:typing.List[QgsMapLayer]):
+        layers = [l for l in layers if isinstance(l, QgsMapLayer)]
+        unregistered = [l for l in layers if l not in QgsProject.instance().mapLayers().values()]
+        unknown = self.mapLayers()
+        if len(unregistered) > 0:
+            QgsProject.instance().addMapLayers(unregistered, False)
+            # this triggers the DataSourceManager to add new sources
+        if len(unknown) > 0:
+            self.dataSourceManager().addSources(unknown)
+        self.syncHiddenLayers()
+
+    def onLayersWillBeRemoved(self, layers):
+        self.dataSourceManager().removeSources(layers)
+
+    def syncHiddenLayers(self):
+        grp = self.hiddenLayerGroup()
+        if isinstance(grp, QgsLayerTreeGroup):
+            knownInQGIS = [l.layer() for l in grp.findLayers() if isinstance(l.layer(), QgsMapLayer)]
+
+            # search in data sources
+            knownAsDataSource = []
+            for ds in self.dataSourceManager():
+                if isinstance(ds, (DataSourceRaster, DataSourceVector)):
+                    lyr = ds.mapLayer()
+                    if type(lyr) in [QgsRasterLayer, QgsVectorLayer]:
+                        knownAsDataSource.append(lyr)
+
+            knownInEnMAPBox = knownAsDataSource + self.mapLayers()
+
+            L2C = dict()
+            for l in knownInEnMAPBox:
+                assert isinstance(l, QgsMapLayer)
+
+                L2C[l] = None
+                for c in self.mapCanvases():
+                    if l in c.layers():
+                        L2C[l] = c
+                        break
+
+            toAdd = [l for l in knownInEnMAPBox if l not in knownInQGIS]
+            toRemove = [l for l in knownInQGIS if l not in knownInEnMAPBox]
+
+            for l in toAdd:
+                node = EnMAPBoxLayerTreeLayer(l)
+                self._layerTreeNodes.append(node)
+                grp.addChildNode(node)
+
+            for l in toRemove:
+                layerTreeLayer = grp.findLayer(l)
+                if isinstance(layerTreeLayer, EnMAPBoxLayerTreeLayer):
+                    layerTreeLayer.parent().removeChildNode(layerTreeLayer)
+                    self._layerTreeNodes.remove(layerTreeLayer)
+
+            for node in grp.children():
+                if isinstance(node, EnMAPBoxLayerTreeLayer):
+                    node.setCanvas(L2C.get(node.layer(), None))
+                else:
+                    s =""
+
+    def removeMapLayer(self, layer:QgsMapLayer):
+        self.removeMapLayers([layer])
+
+    def removeMapLayers(self, layers:typing.List[QgsMapLayer]):
+        layers = [l for l in layers if isinstance(l, QgsMapLayer)]
+
+        self.syncHiddenLayers()
 
 
     def onCurrentLayerChanged(self, layer):
@@ -301,7 +426,7 @@ class EnMAPBox(QgisInterface, QObject):
         if isinstance(layer, (QgsRasterLayer, QgsVectorLayer)):
             self.currentLayerChanged.emit(layer)
 
-    def processingProvider(self)->EnMAPBoxAlgorithmProvider:
+    def processingProvider(self)->EnMAPBoxProcessingProvider:
         """
         Returns the EnMAPBoxAlgorithmProvider or None, if it was not initialized
         :return:
@@ -333,7 +458,8 @@ class EnMAPBox(QgisInterface, QObject):
         Returns the EnMAP-Box internal QgsMapLayerStore
         :return: QgsMapLayerStore
         """
-        return self.mMapLayerStore
+        return QgsProject.instance()
+        #return self.mMapLayerStore
 
     def mapLayers(self)->list:
         """
@@ -347,9 +473,7 @@ class EnMAPBox(QgisInterface, QObject):
         lyrs = []
         for grp in root.findGroups():
             if isinstance(grp, MapDockTreeNode):
-
                 lyrs.extend([ltn.layer() for ltn in grp.findLayers() if isinstance(ltn.layer(), QgsMapLayer)])
-
         return lyrs
 
     def addPanel(self, area, panel, show=True):
@@ -814,7 +938,9 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigSpectralLibraryRemoved[str].emit(dataSource.uri())
             self.sigSpectralLibraryRemoved[DataSourceSpectralLibrary].emit(dataSource)
 
-
+        # finally, remove related map layers
+        if isinstance(dataSource, DataSourceSpatial):
+            self.removeMapLayer(dataSource.mapLayer())
 
     def onDataSourceAdded(self, dataSource:DataSource):
 
@@ -838,21 +964,8 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigSpectralLibraryAdded[str].emit(dataSource.uri())
             self.sigSpectralLibraryAdded[DataSourceSpectralLibrary].emit(dataSource)
 
-
-
-
-    def saveProject(self, saveAs=False):
-        proj = QgsProject.instance()
-        path = proj.fileName()
-        if saveAs or not os.path.exists(path):
-            path, filter = QFileDialog.getSaveFileName(self.ui, \
-                                               'Choose a filename to save the QGIS project file',
-                                               # directory=os.path.dirname(path)
-                                               filter='QGIS files (*.qgs *.QGIS)')
-            if len(path) > 0:
-                proj.setFileName(path)
-
-        proj.write()
+        if isinstance(dataSource, DataSourceSpatial):
+            self.addMapLayer(dataSource.mapLayer())
 
     def restoreProject(self):
         raise NotImplementedError()
@@ -1088,11 +1201,11 @@ class EnMAPBox(QgisInterface, QObject):
             self.mDataSourceManager.clear()
             QApplication.processEvents()
 
-            store = self.mapLayerStore()
-            toRemove = store.mapLayers().values()
-            toRemoveIDs = [l.id() for l in toRemove]
-            store.removeMapLayers(toRemove)
-            QgsProject.instance().removeMapLayers(toRemoveIDs)
+            #store = self.mapLayerStore()
+            #toRemove = store.mapLayers().values()
+            #toRemoveIDs = [l.id() for l in toRemove]
+            #store.removeMapLayers(toRemove)
+            #QgsProject.instance().removeMapLayers(toRemoveIDs)
             QApplication.processEvents()
         except Exception as ex:
             messageLog(str(ex), Qgis.Critical)
@@ -1110,6 +1223,31 @@ class EnMAPBox(QgisInterface, QObject):
 
     def close(self):
         self.ui.close()
+
+    def hiddenLayerGroup(self)->QgsLayerTreeGroup:
+        """
+        Returns the hidden QgsLayerTreeGroup in the QGIS Layer Tree
+        :return: QgsLayerTreeGroup
+        """
+
+        ltv = qgis.utils.iface.layerTreeView()
+        assert isinstance(ltv, QgsLayerTreeView)
+        root = ltv.model().rootGroup()
+        grp = root.findGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
+
+        if not isinstance(grp, QgsLayerTreeGroup):
+            print('CREATE HIDDEN_ENMAPBOX_LAYER_GROUP')
+            grp = root.addGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
+
+        ltv = qgis.utils.iface.layerTreeView()
+        index = ltv.model().node2index(grp)
+        grp.setItemVisibilityChecked(False)
+
+        hide = False
+        grp.setCustomProperty('nodeHidden',  'true' if hide else 'false')
+        ltv.setRowHidden(index.row(), index.parent(), hide)
+
+        return grp
 
 
     """
@@ -1161,6 +1299,21 @@ class EnMAPBox(QgisInterface, QObject):
     # def actionAddPart(self): pass
     def actionAddPgLayer(self):
         return self.ui.mActionAddDataSource
+
+    def addProject(self, project:str):
+        # 1- clear everything
+        # restore
+        if isinstance(project, str):
+            self.addProject(pathlib.Path(project))
+        elif isinstance(project, pathlib.Path) and project.is_file():
+            p = QgsProject()
+            p.read(project.as_posix())
+            self.addProject(p)
+        elif isinstance(project, QgsProject):
+            scope = 'HU-Berlin'
+            key = 'EnMAP-Box'
+
+            s = ""
 
     def actionAddRasterLayer(self):
         return self.ui.mActionAddDataSource
@@ -1278,6 +1431,17 @@ class EnMAPBox(QgisInterface, QObject):
     def actionOpenProject(self):
         pass
 
+    def openProject(self, project):
+        if isinstance(project, str):
+            project = pathlib.Path(project)
+        if isinstance(project, pathlib.Path):
+            p = QgsProject()
+            p.read(project.as_posix())
+            self.openProject(project)
+        elif isinstance(project, QgsProject):
+            self.addProject(project)
+
+
     def actionOpenTable(self):
         pass
 
@@ -1333,10 +1497,25 @@ class EnMAPBox(QgisInterface, QObject):
         pass
 
     def actionSaveProject(self):
-        pass
+        proj = QgsProject.instance()
+
+        self.saveProject(proj.filename())
 
     def actionSaveProjectAs(self):
-        pass
+        path = QgsProject.instance()
+        path, filter = QFileDialog.getSaveFileName(self.ui, 'Choose a filename to save the QGIS project file',
+                                                   filter='QGIS files (*.qgs *.QGIS)')
+        if len(path) > 0:
+            self.saveProject(path)
+
+    def saveProject(self, path: str):
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        proj = QgsProject.instance()
+        proj.setFileName(path.as_posix())
+        proj.write(path.as_posix())
+
+
 
     def actionSelect(self):
         pass

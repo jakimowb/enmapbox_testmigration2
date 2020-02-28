@@ -17,11 +17,11 @@ class ProcessingProviderTests(TestCase):
 
     def test_processing_provider(self):
 
-        from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider
+        from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
         reg = QgsApplication.instance().processingRegistry()
 
         pNames = [p.name() for p in reg.providers()]
-        provider = EnMAPBoxAlgorithmProvider()
+        provider = EnMAPBoxProcessingProvider()
         self._p = provider
         pNames2 = [p.name() for p in reg.providers()]
         self.assertIsInstance(provider, QgsProcessingProvider)

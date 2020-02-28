@@ -17,7 +17,7 @@
 ***************************************************************************
 """
 
-import os
+import os, pathlib, enum
 
 from enmapbox import enmapboxSettings
 from enmapbox.gui.utils import loadUi, enmapboxUiPath
@@ -26,8 +26,46 @@ from qgis.gui import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtWidgets import QStyledItemDelegate
+from qgis.PyQt.QtXml import *
 
+
+class SettingsKey(enum.Enum):
+    # describe default settings (might be loaded from txt file in future
+    LoadProcessingFrameWork = 'LOAD_PF'
+    LoadApplications = 'LOAD_EA'
+    Debug = 'DEBUG'
+    SplashScreen = 'SPLASHSCREEN'
+    MessageTimeout = 'MESSAGE_TIMEOUT'
+    ApplicationPath = 'APPLICATION_PATH'
+
+class EnMAPBoxSettings(QgsSettings):
+
+    def __init__(self):
+        super().__init__(QSettings.UserScope, 'HU-Berlin', 'EnMAP-Box')
+
+
+        # define missing default values
+        self.restoreDefaultValues(overwrite=False)
+        s = ""
+
+    def writeSettingsToProject(self, project:QgsProject):
+        pass
+
+    def readSettingsFromProject(self, project:QgsProject):
+        pass
+
+    def writeXml(self, element:QDomElement):
+        pass
+
+    def readXml(self, element:QDomElement):
+        pass
+
+    def restoreDefaultValues(self, overwrite=True):
+
+        allKeys = self.allKeys()
+
+        if overwrite or SettingsKey.ApplicationPath.value not in allKeys:
+            self.setValue(SettingsKey.ApplicationPath.value, None)
 
 
 GLOBAL_DEFAULT_SETTINGS = dict()
@@ -340,11 +378,3 @@ def showSettingsDialog(parent=None):
     w = SettingsDialog(parent=parent)
     w.show()
 
-
-if __name__ == '__main__':
-
-    from enmapbox.testing import initQgisApplication
-    qapp = initQgisApplication()
-    initGlobalSettings()
-    showSettingsDialog()
-    qapp.exec_()

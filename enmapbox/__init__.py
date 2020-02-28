@@ -25,11 +25,11 @@
 ***************************************************************************
 """
 
-import sys, os, site, re, pathlib
+import sys, os, site, re, pathlib, traceback
 
 import qgis
 from qgis.gui import QgisInterface
-from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider
+from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider, QgsProcessingAlgorithm
 from qgis.PyQt.QtCore import QSettings, QResource
 from qgis.PyQt.QtGui import QIcon
 
@@ -56,7 +56,7 @@ DIR_UNITTESTS = os.path.join(DIR_REPO, 'enmapboxtesting')
 
 ENMAP_BOX_KEY = 'EnMAP-Box'
 
-
+_ENMAPBOX_PROCESSING_PROVIDER : QgsProcessingProvider = None
 
 
 def enmapboxSettings()->QSettings:
@@ -120,7 +120,7 @@ def initEnMAPBoxResources():
     """
     Loads (or reloads) all Qt resource files
     """
-    from .externals.qps.resources import initQtResources
+    from .externals.qps.resources import initQtResources, initResourceFile
     initQtResources(DIR_ENMAPBOX)
 
 
@@ -133,36 +133,69 @@ def initEditorWidgets():
     registerEditorWidgets()
 
 
-_enmapboxProvider = None
+def collectAlgorithms()->list:
+    import inspect
+    algs = []
+    try:
+        import enmapboxgeoalgorithms.algorithms
+        for a in enmapboxgeoalgorithms.algorithms.ALGORITHMS:
+            try:
+                algs.append(a.create())
+            except Exception as ex2:
+                traceback.print_stack()
+                print(ex2)
+
+    except Exception as ex:
+        print(ex)
+    """
+    for name, obj in inspect.getmembers(enmapboxgeoalgorithms.algorithms):
+        if inspect.isclass(obj) and issubclass(obj, QgsProcessingAlgorithm):
+            try:
+                alg = obj()
+                algs.append(alg)
+            except Exception as ex:
+                print('Failed to load {}\n{}'.format(str(obj), ex, file=sys.stderr))
+    """
+    return algs
+
 def initEnMAPBoxProcessingProvider():
     """Initializes the EnMAPBoxProcessingProvider"""
-    from enmapbox.algorithmprovider import EnMAPBoxAlgorithmProvider, ID
+    from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider, ID
 
     registry = QgsApplication.instance().processingRegistry()
     assert isinstance(registry, QgsProcessingRegistry)
-    global _enmapboxProvider
-    prov = registry.providerById(ID)
-    if not isinstance(prov, QgsProcessingProvider):
-        _enmapboxProvider = EnMAPBoxAlgorithmProvider()
-        assert isinstance(_enmapboxProvider, EnMAPBoxAlgorithmProvider)
-        registry.addProvider(_enmapboxProvider)
+    provider = registry.providerById(ID)
+    if not isinstance(provider, QgsProcessingProvider):
+        provider = EnMAPBoxProcessingProvider()
+        registry.addProvider(provider)
 
-        assert registry.providerById(ID) == _enmapboxProvider
+    assert isinstance(provider, EnMAPBoxProcessingProvider)
+    assert registry.providerById(ID) == provider
+    global _ENMAPBOX_PROCESSING_PROVIDER
+    _ENMAPBOX_PROCESSING_PROVIDER = provider
 
     try:
-        import enmapboxgeoalgorithms.algorithms
-        existingAlgNames = [a.name() for a in registry.algorithms() if a.groupId() == _enmapboxProvider.id()]
-        missingAlgs = [a for a in enmapboxgeoalgorithms.algorithms.ALGORITHMS if a.name() not in existingAlgNames]
-        _enmapboxProvider.addAlgorithms(missingAlgs)
-        s = ""
-
+        existingAlgNames = [a.name() for a in registry.algorithms() if a.groupId() == provider.id()]
+        missingAlgs = [a for a in collectAlgorithms() if a.name() not in existingAlgNames]
+        provider.addAlgorithms(missingAlgs)
 
     except Exception as ex:
-        info = ['Failed to load QgsProcessingAlgorithms.\n{}'.format(str(ex))]
+        traceback.print_exc()
+        info = ['Failed to load enmapboxgeoalgorithms.algorithms.ALGORITHMS.\n{}'.format(str(ex))]
         info.append('PYTHONPATH:')
         for p in sorted(sys.path):
             info.append(p)
         print('\n'.join(info), file=sys.stderr)
+
+def removeEnMAPBoxProcessingProvider():
+    """Removes the EnMAPBoxProcessingProvider"""
+    from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider, ID
+    registry = QgsApplication.instance().processingRegistry()
+    provider = registry.providerById(ID)
+    if isinstance(provider, EnMAPBoxProcessingProvider):
+        registry.removeProvider(ID)
+    global _ENMAPBOX_PROCESSING_PROVIDER
+    _ENMAPBOX_PROCESSING_PROVIDER = None
 
 
 def initMapLayerConfigWidgetFactories():
@@ -176,7 +209,6 @@ def initAll():
     Calls other init routines required to run the EnMAP-Box properly
     """
     initEnMAPBoxResources()
-    from enmapbox.externals.qps.resources import ResourceBrowser
     initEditorWidgets()
     initEnMAPBoxProcessingProvider()
     initMapLayerConfigWidgetFactories()
