@@ -734,18 +734,14 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                     to_remove.append(node)
         self.removeNodes(to_remove)
 
-    def removeNodes(self, nodes:typing.List[QgsLayerTreeNode]):
+    def removeNodes(self, nodes: typing.List[QgsLayerTreeNode]):
         for n in nodes:
-            n.parent().removeChildNode(n)
-
-    def removeNode(self, node):
-        idx = self.node2index(node)
-        p = self.index2node(idx.parent())
-        p.removeChildNode(node)
+            if isinstance(n, QgsLayerTreeNode) and isinstance(n.parent, QgsLayerTreeNode):
+                n.parent().removeChildNode(n)
 
     def removeDockNode(self, node):
         self.mDockManager.removeDock(node.dock)
-        self.removeNode(node)
+        self.removeNodes([node])
 
     def flags(self, index):
         if not index.isValid():
@@ -1121,12 +1117,8 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         node = self.mDockTreeView.currentNode()
         if node is None:
             return
-        parentNode = node.parent()
-        parentDockNode = findParent(node, DockTreeNode, checkInstance=True)
         menu = QMenu()
-
-        selectedLayerNodes = [n for n in self.mDockTreeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
-        selectedMapLayers = [n.layer() for n in self.mDockTreeView.selectedNodes() if type(n) == QgsLayerTreeLayer]
+        selectedLayerNodes = list(set(self.mDockTreeView.selectedLayerNodes()))
 
         if type(node) is QgsLayerTreeLayer:
             # get parent dock node -> related map canvas
@@ -1159,12 +1151,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             action.triggered.connect(lambda: QApplication.clipboard().setText(lyr.source()))
 
             menu.addSeparator()
-
-            def removeLayerTreeNodes(nodes):
-                for node in nodes:
-                    assert isinstance(node, QgsLayerTreeLayer)
-                    parentNode = node.parent()
-                    parentNode.removeChildNode(node)
 
             action = menu.addAction('Remove layer')
             action.setToolTip('Remove layer from map canvas')

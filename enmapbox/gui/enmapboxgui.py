@@ -407,23 +407,24 @@ class EnMAPBox(QgisInterface, QObject):
             if len(toRemove) > 0:
                 self.dockManagerTreeModel().removeLayers(toRemove)
 
-
-                #QgsProject.instance().removeMapLayers([l.id() for l in toRemove])
-
             for node in grp.children():
                 if isinstance(node, EnMAPBoxLayerTreeLayer):
                     node.setCanvas(L2C.get(node.layer(), None))
                 else:
                     s =""
 
-    def removeMapLayer(self, layer:QgsMapLayer):
-        self.removeMapLayers([layer])
+    def removeMapLayer(self, layer:QgsMapLayer, remove_from_project=True):
+        self.removeMapLayers([layer], remove_from_project=remove_from_project)
 
-    def removeMapLayers(self, layers:typing.List[QgsMapLayer]):
-        layers = [l for l in layers if isinstance(l, QgsMapLayer)]
-
+    def removeMapLayers(self, layers:typing.List[QgsMapLayer], remove_from_project=True):
+        """
+        Removes layers from the EnMAP-Box. Does not affect the DataSource list
+        """
+        layers = [l for l in layers if isinstance(l, QgsMapLayer) and l in self.dockManagerTreeModel().mapLayers()]
         self.syncHiddenLayers()
 
+        if remove_from_project:
+            QgsProject.instance().removeMapLayers([l.id() for l in layers])
 
     def onCurrentLayerChanged(self, layer):
 
