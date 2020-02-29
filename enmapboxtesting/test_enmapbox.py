@@ -240,6 +240,9 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         import qgis.utils
         E = EnMAPBox()
         E.loadExampleData()
+        QgsApplication.instance().processEvents()
+        #l = E.dockManagerTreeModel().mapLayers()[0]
+        #E.dockManagerTreeModel().removeLayers([l])
 
         self.showGui([E.ui, qgis.utils.iface.ui])
 

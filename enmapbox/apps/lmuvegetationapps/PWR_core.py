@@ -8,7 +8,7 @@ import struct
 import os
 
 from scipy.optimize import minimize_scalar
-from scipy.interpolate import interp1d
+#from scipy.interpolate import interp1d
 #from numba import jit
 
 # ======================================================================================================================
@@ -35,8 +35,6 @@ class PWR_core:
     def initialize_PWR(self, input, output, lims, NDVI_th=0.0):
         self.grid, self.wl, self.nbands, self.nrows, self.ncols, self.in_raster = \
             self.read_image2(image=input)
-
-        #print(self.grid)
 
         self.n_wl = len(self.wl)
         self.pixel_total = self.nrows * self.ncols

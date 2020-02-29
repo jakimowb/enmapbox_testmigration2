@@ -36,11 +36,14 @@ class test_applications(EnMAPBoxTestCase):
         EB.ui.hide()
 
         from lmuvegetationapps.enmapboxintegration import LMU_EnMAPBoxApp
+        from lmuvegetationapps.IVVRM_GUI import IVVRM_GUI
 
-        app = LMU_EnMAPBoxApp(EB)
-        app.start_GUI_IVVRM()
+        w = IVVRM_GUI()
+        self.showGui(w)
+        #app = LMU_EnMAPBoxApp(EB)
+        #app.start_GUI_IVVRM()
 
-        self.showGui()
+        self.showGui(EB.ui)
 
 if __name__ == "__main__":
 
