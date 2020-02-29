@@ -736,7 +736,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
     def removeNodes(self, nodes: typing.List[QgsLayerTreeNode]):
         for n in nodes:
-            if isinstance(n, QgsLayerTreeNode) and isinstance(n.parent, QgsLayerTreeNode):
+            if isinstance(n, QgsLayerTreeNode) and isinstance(n.parent(), QgsLayerTreeNode):
                 n.parent().removeChildNode(n)
 
     def removeDockNode(self, node):

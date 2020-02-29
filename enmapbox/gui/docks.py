@@ -140,7 +140,7 @@ class Dock(pgDock, KeepRefs):
             a.triggered.connect(lambda : self.setVisible(True))
 
         a = menu.addAction('Close Dock')
-        a.triggered.connect(lambda : self.close())
+        a.triggered.connect(lambda: self.close())
         return menu
 
     sigVisibilityChanged = pyqtSignal(bool)

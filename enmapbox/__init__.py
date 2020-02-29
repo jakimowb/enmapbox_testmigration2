@@ -192,10 +192,12 @@ def removeEnMAPBoxProcessingProvider():
     from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider, ID
     registry = QgsApplication.instance().processingRegistry()
     provider = registry.providerById(ID)
+
     if isinstance(provider, EnMAPBoxProcessingProvider):
+        global _ENMAPBOX_PROCESSING_PROVIDER
+        _ENMAPBOX_PROCESSING_PROVIDER = None
+        # this deletes the C++ object
         registry.removeProvider(ID)
-    global _ENMAPBOX_PROCESSING_PROVIDER
-    _ENMAPBOX_PROCESSING_PROVIDER = None
 
 
 def initMapLayerConfigWidgetFactories():

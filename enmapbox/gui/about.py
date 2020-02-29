@@ -33,8 +33,9 @@ class AboutDialog(QDialog):
     def __init__(self, *args , **kwds):
         """Constructor."""
         super().__init__(*args , **kwds)
-        pathUi
-        loadUi()
+        from enmapbox import DIR_UIFILES
+        pathUi = pathlib.Path(DIR_UIFILES) / 'aboutdialog.ui'
+        loadUi(pathUi, self)
 
         self.mTitle = self.windowTitle()
         self.listWidget.currentItemChanged.connect(lambda: self.setAboutTitle())
