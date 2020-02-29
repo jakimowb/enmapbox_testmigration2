@@ -8,3 +8,4 @@ from ..externals.qps.classification.classificationscheme import ClassificationSc
 from ..externals.qps.models import Option, OptionListModel, TreeNode, TreeModel, TreeView
 from ..externals.qps.maptools import *
 from ..externals.qps.layerproperties import subLayerDefinitions, subLayers, openRasterLayerSilent
+from ..externals.qps.resources import ResourceBrowser, scanResources

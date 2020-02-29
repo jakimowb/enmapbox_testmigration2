@@ -400,8 +400,10 @@ class EnMAPBox(QgisInterface, QObject):
                 # remove from hidden qgis layer tree
                 layerTreeLayer = grp.findLayer(l)
                 if isinstance(layerTreeLayer, EnMAPBoxLayerTreeLayer):
+                    if layerTreeLayer in self._layerTreeNodes:
+                        self._layerTreeNodes.remove(layerTreeLayer)
                     layerTreeLayer.parent().removeChildNode(layerTreeLayer)
-                    self._layerTreeNodes.remove(layerTreeLayer)
+
 
             # cleanup EnMAP-Box layer tree
             if len(toRemove) > 0:

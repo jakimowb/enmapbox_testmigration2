@@ -154,6 +154,14 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.showGui(b)
         s = ""
 
+
+    def test_AboutDialog(self):
+
+        from enmapbox.gui.about import AboutDialog
+        d = AboutDialog()
+        self.assertIsInstance(d, AboutDialog)
+        self.showGui(d)
+
     def test_instance(self):
         EB = EnMAPBox()
 
@@ -170,7 +178,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
     def test_instanceWithData(self):
 
         EMB = EnMAPBox()
-
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(EMB, EnMAPBox.instance())
@@ -178,19 +185,8 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertTrue(len(QgsProject.instance().mapLayers()) > 0)
         canvases = EMB.mapCanvases()
         self.assertTrue(canvases[-1] == EMB.activeMapCanvas())
-
-
         self.showGui(EMB.ui)
 
-        # test closing the box via gui button
-        import gc
-        gc.collect()
-
-        EMB.close()
-        gc.collect()
-
-        self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
-        self.assertTrue(EnMAPBox.instance() == None)
 
 
     def test_Qgis(self):
