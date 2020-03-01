@@ -859,10 +859,9 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
             mapLayers = extractMapLayers(mimeData)
 
-            if isinstance(layerRegistry, QgsMapLayerStore):
+            if isinstance(layerRegistry, (QgsMapLayerStore, QgsProject)):
                 layerRegistry.addMapLayers(mapLayers)
 
-            i = parentIndex.row()
             i = row
             if len(mapLayers) > 0:
                 for l in mapLayers:
@@ -908,6 +907,9 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                     node.writeXml(rootElem, context)
             doc.appendChild(rootElem)
             mimeData.setData(MDF_LAYERTREEMODELDATA, textToByteArray(doc))
+
+        mimeSuper = super(DockManagerTreeModel, self).mimeData(indexes)
+
         return mimeData
 
     def parentNodesFromIndices(self, indices, nodeInstanceType=DockTreeNode):

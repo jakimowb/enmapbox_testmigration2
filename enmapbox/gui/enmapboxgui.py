@@ -379,7 +379,12 @@ class EnMAPBox(QgisInterface, QObject):
 
             L2C = dict()
             for l in knownInEnMAPBox:
-                assert isinstance(l, QgsMapLayer)
+                if sip.isdeleted(l):
+                    print('SIP deleted {}'.format(str(l)))
+                    continue
+                if not isinstance(l, QgsMapLayer):
+                    print('Not a QgsMapLayer: {}'.format(str(l)))
+                    continue
 
                 L2C[l] = None
                 for c in self.mapCanvases():
