@@ -320,6 +320,10 @@ class DataSourceSpatial(DataSource):
 
         self.mProvider = providerKey
         self.mLayer = None
+        self.mLayerId = None
+
+    def mapLayerId(self)->str:
+        return self.mLayerId
 
     def mapLayer(self)->QgsMapLayer:
         return self.mLayer
@@ -363,8 +367,12 @@ class HubFlowDataSource(DataSource):
 
         return 'hubflow:{}:{}:{}'.format(obj.__class__.__name__, id(obj), uri)
 
-    def __init__(self, obj, name=None, icon=None):
-        id = HubFlowDataSource.createID(obj)
+    def __init__(self, obj, uri:str=None, name:str=None, icon:QIcon=None):
+
+        if isinstance(uri, str):
+            id = uri
+        else:
+            id = HubFlowDataSource.createID(obj)
         super(HubFlowDataSource, self).__init__(id, name, icon)
 
         if not isinstance(icon, QIcon):
@@ -427,6 +435,7 @@ class DataSourceRaster(DataSourceSpatial):
         self.mDefaultRenderer = None
         self.mLayer = self.createUnregisteredMapLayer()
         assert isinstance(self.mLayer, QgsRasterLayer)
+        self.mLayerId = self.mLayer.id()
 
         self.mLayer.setCustomProperty('ENMAPBOX_DATASOURCE',True)
 
@@ -440,6 +449,7 @@ class DataSourceRaster(DataSourceSpatial):
         self.mWaveLengths = []
         self.mWaveLengthUnits = []
         self.updateMetadata()
+
 
     def mapLayer(self)->QgsRasterLayer:
         return self.mLayer
@@ -646,6 +656,8 @@ class DataSourceVector(DataSourceSpatial):
 
 
         self.mLayer = self.createUnregisteredMapLayer()
+        assert isinstance(self.mLayer, QgsVectorLayer)
+        self.mLayerId = self.mLayer.id()
         self.updateMetadata()
 
 
@@ -1013,9 +1025,12 @@ class DataSourceFactory(object):
         :param kwds:
         :return: HubFlowDataSource
         """
+        uri = None
+        if isinstance(src, (str, pathlib.Path)):
+            uri = str(pathlib.Path(src))
         isHubFlow, obj = DataSourceFactory.isHubFlowObj(src)
         if isHubFlow:
-            return [HubFlowDataSource(obj, **kwds)]
+            return [HubFlowDataSource(obj, uri=uri, **kwds)]
         return []
 
     @staticmethod

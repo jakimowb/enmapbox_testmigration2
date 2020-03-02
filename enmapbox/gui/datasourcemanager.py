@@ -79,24 +79,8 @@ class DataSourceManager(QObject):
         DataSourceManager._testInstance = self
         self.mSources = list()
         self.mShowSpatialSourceInQgsAndEnMAPBox = True
-        try:
-            from hubflow import signals
 
-            def addNoneImageSource(path:str):
-                if isinstance(path, str) and os.path.isfile(path):
-
-                    if False and self.mShowSpatialSourceInQgsAndEnMAPBox:
-                        if re.search(r'\.pkl$', path):
-                            self.addSource(path)
-                    else:
-
-                        self.addSource(path)
-
-            signals.sigFileCreated.connect(addNoneImageSource)
-        except Exception as ex:
-            messageLog(ex)
-
-    def __iter__(self):
+    def __iter__(self)->typing.Iterator[DataSource]:
         return iter(self.mSources)
 
     def __len__(self) -> int:
@@ -305,7 +289,7 @@ class DataSourceManager(QObject):
                 #grp.setCustomProperty('nodeHidden', 'true' if bHide else 'false')
                 lyr = layerTree.layer()
 
-                if isinstance(lyr, QgsMapLayer) and lyr.isValid() and not grp.customProperty('nodeHidded'):
+                if isinstance(lyr, QgsMapLayer) and lyr.isValid() and not grp.customProperty('nodeHidden'):
                     layers.append(layerTree.layer())
 
         if len(layers) > 0:
@@ -371,22 +355,33 @@ class DataSourceManager(QObject):
         removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
         return [r for r in removed if isinstance(r, DataSource)]
 
-    def removeSource(self, dataSource:DataSource)->DataSource:
+    def removeSource(self, dataSource)->DataSource:
         """
         Removes the DataSource from the DataSourceManager
-        :param dataSource: the DataSource or its uri (str) to be removed
+        :param dataSource: the DataSource or its uri (str) or a QgsMapLayer to be removed
         :return: the removed DataSource. None if dataSource was not in the DataSourceManager
         """
-        if isinstance(dataSource, str):
-            self.removeSources([ds for ds in self.mSources if ds.uri() == dataSource])
+        to_remove = []
+        if isinstance(dataSource, QgsMapLayer):
+            for ds in self:
+                if isinstance(ds, DataSourceSpatial) and isinstance(ds.mapLayer(), QgsMapLayer) and ds.mapLayer().id() == dataSource.id():
+                    to_remove.append(ds)
+        elif isinstance(dataSource, str):
+            for ds in self:
+                if ds.uri == dataSource:
+                    to_remove.append(ds)
+        elif isinstance(dataSource, DataSource):
+            if dataSource in self:
+                to_remove.append(dataSource)
+
+        assert len(to_remove) <= 1
+        if len(to_remove) == 1:
+            self.mSources.remove(to_remove[0])
+            self.sigDataSourceRemoved.emit(to_remove[0])
+            return dataSource
         else:
-            assert isinstance(dataSource, DataSource)
-            if dataSource in self.mSources:
-                self.mSources.remove(dataSource)
-                self.sigDataSourceRemoved.emit(dataSource)
-                return dataSource
-            else:
-                messageLog('can not remove {}'.format(dataSource))
+            return None
+
 
     def sourceTypes(self):
         """
@@ -475,6 +470,7 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
 
         self.mDataSource = None
         self.mNodeSize = None
+        self.mNodePath = None
 
         super(DataSourceTreeNode, self).__init__(parent, '<empty>')
         KeepRefs.__init__(self)
@@ -498,10 +494,13 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
         uri = self.mDataSource.uri()
         if os.path.isfile(uri):
             self.mSrcSize = os.path.getsize(self.mDataSource.uri())
-            self.mNodeSize = TreeNode(self, 'File size', values=fileSizeString(self.mSrcSize))
+            self.mNodePath = TreeNode(self, 'Uri', values=[self.mDataSource.uri()])
+            self.mNodeSize = TreeNode(self, 'Size', values=fileSizeString(self.mSrcSize))
         else:
+            self.mNodePath = None
             self.mNodeSize = TreeNode(self, 'Size', values='unknown')
             self.mSrcSize = -1
+
 
     def dataSource(self)->DataSource:
         """
@@ -815,7 +814,6 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
     def connectDataSource(self, processingTypeDataSource):
         super(HubFlowObjectTreeNode, self).connectDataSource(processingTypeDataSource)
         assert isinstance(self.mDataSource, HubFlowDataSource)
-
 
         if isinstance(self.mDataSource.flowObject(), hubflow.core.FlowObject):
 
@@ -1240,16 +1238,19 @@ class DataSourcePanelUI(QDockWidget):
         # init actions
         self.actionAddDataSource.triggered.connect(lambda : self.mDataSourceManager.addDataSourceByDialog())
         self.actionRemoveDataSource.triggered.connect(lambda: self.mDataSourceManager.removeSources(self.selectedDataSources()))
-        self.actionRemoveDataSource.setEnabled(False) #will be enabled with selection of node
-        def onSync():
-            self.mDataSourceManager.importSourcesFromQGISRegistry()
-        #    self.mDataSourceManager.exportSourcesToQGISRegistry(showLayers=True)
-        self.actionSyncWithQGIS.triggered.connect(onSync)
+        self.actionRemoveDataSource.setEnabled(False) # will be enabled with selection of node
+
+        # self.mDataSourceManager.exportSourcesToQGISRegistry(showLayers=True)
+        self.actionSyncWithQGIS.triggered.connect(self.onSyncToQGIS)
 
         hasQGIS = qgisAppQgisInterface() is not None
         self.actionSyncWithQGIS.setEnabled(hasQGIS)
 
         self.initActions()
+
+    def onSyncToQGIS(self, *args):
+        if isinstance(self.mDataSourceManager, DataSourceManager):
+            self.mDataSourceManager.importSourcesFromQGISRegistry()
 
     def initActions(self):
 
@@ -1340,7 +1341,7 @@ class DataSourceManagerTreeModel(TreeModel):
         types = []
 
         types.append(MDF_DATASOURCETREEMODELDATA)
-        types.append(MDF_LAYERTREEMODELDATA)
+        types.append(MDF_QGIS_LAYERTREEMODELDATA)
         types.append(MDF_URILIST)
         return types
 
@@ -1509,6 +1510,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
         for node in to_remove:
             sourceGroup.removeChildNode(node)
+
 
     def supportedDragActions(self):
         return Qt.CopyAction

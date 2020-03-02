@@ -126,7 +126,7 @@ class MapCanvasTests(EnMAPBoxTestCase):
         allFiles = [enmap, hires, landcover_polygons, library]
         spatialFiles = [enmap, hires, landcover_polygons]
 
-        from enmapbox.gui.mimedata import MDF_URILIST, MDF_DATASOURCETREEMODELDATA, MDF_SPECTRALLIBRARY, MDF_DOCKTREEMODELDATA
+        from enmapbox.gui.mimedata import MDF_URILIST, MDF_DATASOURCETREEMODELDATA, MDF_SPECTRALLIBRARY, MDF_ENMAPBOX_LAYERTREEMODELDATA
         md = QMimeData()
         md.setUrls([QUrl.fromLocalFile(f) for f in allFiles])
 

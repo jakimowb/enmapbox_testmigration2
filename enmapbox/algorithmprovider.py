@@ -19,7 +19,7 @@
 
 import os, pathlib
 
-from enmapbox import __version__
+from enmapbox import __version__, messageLog
 from qgis.core import *
 from qgis.PyQt.QtGui import QIcon
 
@@ -54,6 +54,24 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         #internal list of GeoAlgorithms. Is used on re-loads and can be manipulated
         self.mAlgorithms = []
         self.mSettingsPrefix = self.id().upper().replace(' ', '_')
+
+        try:
+            import hubflow.signals
+            hubflow.signals.sigFileCreated.connect(self.onHubFlowFileCreated)
+        except Exception as ex:
+            messageLog(ex)
+
+    def onHubFlowFileCreated(self, file):
+        """
+        Add file created  by hubflow to the EnMAP-Box
+        :return:
+        """
+        from enmapbox import EnMAPBox
+        if EnMAPBox is not None:
+            emb = EnMAPBox.instance()
+            if isinstance(emb, EnMAPBox):
+                emb.addSource(file)
+
 
     def initializeSettings(self):
         """This is the place where you should add config parameters
