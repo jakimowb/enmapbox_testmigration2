@@ -27,7 +27,7 @@
 *                                                                         *
 ***************************************************************************
 """
-import os, csv, tempfile, uuid, time
+import os, csv, tempfile, uuid, time, typing
 from osgeo import gdal, gdal_array
 from ..core import *
 
@@ -311,8 +311,7 @@ class EnviSpectralLibraryIO(AbstractSpectralLibraryIO):
                 if isinstance(sl, SpectralLibrary):
                     speclib.startEditing()
                     speclib.beginEditCommand('Add ENVI Spectral Library from {}'.format(path))
-                    speclib.copyEditorWidgetSetup(sl)
-                    speclib.addSpeclib(sl, True)
+                    speclib.addSpeclib(sl, addMissingFields=True)
                     speclib.endEditCommand()
                     speclib.commitChanges()
 

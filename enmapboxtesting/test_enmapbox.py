@@ -237,8 +237,35 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         E = EnMAPBox()
         E.loadExampleData()
         QgsApplication.instance().processEvents()
-        #l = E.dockManagerTreeModel().mapLayers()[0]
-        #E.dockManagerTreeModel().removeLayers([l])
+
+        dsSpatial = E.dataSourceManager().sources('SPATIAL')
+        self.assertIsInstance(dsSpatial, list)
+        ds1 = dsSpatial[0]
+        self.assertIsInstance(ds1, DataSourceSpatial)
+        uri = ds1.uri()
+        uri2 = ds1.mapLayer().source()
+        # remove layers from the QgsProject and see what happens.
+        # this should remove the entire dataset
+        if False:
+            lyr = ds1.createUnregisteredMapLayer()
+            QgsProject.instance().addMapLayer(lyr)
+
+            n1 = len(E.dataSources())
+            # remove a layer unknown to EnMAP-Box
+            QgsProject.instance().removeMapLayer(lyr)
+            self.assertEqual(n1, len(E.dataSources()))
+
+            # remove a layer known to an EnMAP-Box map canvas
+            lyr = E.mapLayers()[0]
+            self.assertIsInstance(lyr, QgsMapLayer)
+            QgsProject.instance().removeMapLayer(lyr)
+            self.assertEqual(n1, len(E.dataSources()))
+
+        # remove a datasource
+        #E.removeSource(ds1)
+        #self.assertEqual(n1 - 1, len(E.dataSources()))
+        #QgsProject.instance().removeMapLayer(ds1.mapLayer())
+        #self.assertEqual(n1-1, len(E.dataSources()))
 
         self.showGui([E.ui, qgis.utils.iface.ui])
 
@@ -280,7 +307,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         E.loadExampleData()
         n = len(E.dataSources())
         self.assertTrue(n > 0)
-        self.showGui()
+        self.showGui(E.ui)
 
     def test_loadAndUnloadData(self):
         E = EnMAPBox()

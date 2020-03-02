@@ -84,7 +84,7 @@ class MimeDataTests(EnMAPBoxTestCase):
         md = mimedata.fromLayerList(mapLayers)
 
         self.assertIsInstance(md, QMimeData)
-        self.assertTrue(mimedata.MDF_LAYERTREEMODELDATA in md.formats())
+        self.assertTrue(mimedata.MDF_QGIS_LAYERTREEMODELDATA in md.formats())
 
         layers = mimedata.extractMapLayers(md)
         for lyr in layers:

@@ -82,10 +82,43 @@ class testDataSources(EnMAPBoxTestCase):
 
     def test_dockmanager(self):
 
+        lyr = TestObjects.createRasterLayer()
+
+        self.assertTrue(lyr.id() not in QgsProject.instance().mapLayers().keys())
+
         DM = DockManager()
+
         self.assertTrue(len(DM) == 0)
         dock = DM.createDock('MAP')
         self.assertIsInstance(dock, MapDock)
+        dock.mapCanvas().setLayers([lyr])
+        self.assertTrue(lyr.id() in QgsProject.instance().mapLayers().keys())
+
+        DMTM = DockManagerTreeModel(DM)
+        self.assertIsInstance(DMTM, DockManagerTreeModel)
+
+        mapNodes = DMTM.mapDockTreeNodes()
+        self.assertTrue(len(mapNodes) == 1)
+        mapNode = mapNodes[0]
+        self.assertIsInstance(mapNode, MapDockTreeNode)
+        c = mapNode.mapCanvas()
+        self.assertIsInstance(c, QgsMapCanvas)
+        self.assertTrue(lyr in c.layers())
+        self.assertTrue(lyr.id() in mapNode.findLayerIds())
+
+        ltn = mapNode.findLayer(lyr)
+        self.assertIsInstance(ltn, QgsLayerTreeLayer)
+
+        idx = DMTM.node2index(ltn)
+        self.assertIsInstance(idx, QModelIndex)
+        self.assertTrue(idx.isValid())
+
+        mimeData = DMTM.mimeData([idx])
+        self.assertIsInstance(mimeData, QMimeData)
+
+        s = ""
+
+
 
     def test_DockPanelUI(self):
 
@@ -100,8 +133,6 @@ class testDataSources(EnMAPBoxTestCase):
 
         self.showGui(w)
 
-
-class testDocks(EnMAPBoxTestCase):
 
     def test_dockLabel(self):
         from pyqtgraph.dockarea.Dock import Dock as pgDock

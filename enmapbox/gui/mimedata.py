@@ -11,16 +11,16 @@ from enmapbox.gui.datasources import DataSource, DataSourceSpatial
 from ..externals.qps.layerproperties import defaultRasterRenderer, defaultBands
 from enmapbox.gui import SpectralLibrary
 
-MDF_DOCKTREEMODELDATA = 'application/enmapbox.docktreemodeldata'
-MDF_DOCKTREEMODELDATA_XML = 'dock_tree_model_data'
+
 
 MDF_RASTERBANDS = 'application/enmapbox.rasterbanddata'
 
 MDF_DATASOURCETREEMODELDATA = 'application/enmapbox.datasourcetreemodeldata'
 MDF_DATASOURCETREEMODELDATA_XML = 'data_source_tree_model_data'
 
-MDF_LAYERTREEMODELDATA = 'application/qgis.layertreemodeldata'
-MDF_LAYERTREEMODELDATA_XML = 'layer_tree_model_data'
+MDF_ENMAPBOX_LAYERTREEMODELDATA = 'application/enmapbox.layertreemodeldata'
+MDF_QGIS_LAYERTREEMODELDATA = 'application/qgis.layertreemodeldata'
+MDF_QGIS_LAYERTREEMODELDATA_XML = 'layer_tree_model_data'
 
 MDF_PYTHON_OBJECTS = 'application/enmapbox/objectreference'
 MDF_SPECTRALLIBRARY = 'application/hub-spectrallibrary'
@@ -110,12 +110,12 @@ def fromLayerList(mapLayers):
         urls.append(QUrl.fromLocalFile(l.source()))
     doc = QDomDocument()
     context = QgsReadWriteContext()
-    node = doc.createElement(MDF_LAYERTREEMODELDATA_XML)
+    node = doc.createElement(MDF_QGIS_LAYERTREEMODELDATA_XML)
     doc.appendChild(node)
     for c in tree.children():
         c.writeXml(node, context)
 
-    mimeData.setData(MDF_LAYERTREEMODELDATA, doc.toByteArray())
+    mimeData.setData(MDF_QGIS_LAYERTREEMODELDATA, doc.toByteArray())
 
     return mimeData
 
@@ -127,7 +127,7 @@ def containsMapLayers(mimeData:QMimeData)->bool:
     :param mimeData:
     :return:
     """
-    valid = [MDF_RASTERBANDS, MDF_DATASOURCETREEMODELDATA, MDF_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE, MDF_URILIST]
+    valid = [MDF_RASTERBANDS, MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE, MDF_URILIST]
 
     for f in valid:
         if f in mimeData.formats():
@@ -144,23 +144,21 @@ def extractMapLayers(mimeData:QMimeData)->list:
     """
     assert isinstance(mimeData, QMimeData)
     newMapLayers = []
-    if MDF_LAYERTREEMODELDATA in mimeData.formats():
+
+
+    QGIS_LAYERTREE_FORMAT = None
+    if MDF_ENMAPBOX_LAYERTREEMODELDATA in mimeData.formats():
+        QGIS_LAYERTREE_FORMAT = MDF_ENMAPBOX_LAYERTREEMODELDATA
+    elif MDF_QGIS_LAYERTREEMODELDATA in mimeData.formats():
+        QGIS_LAYERTREE_FORMAT = MDF_QGIS_LAYERTREEMODELDATA
+
+    if QGIS_LAYERTREE_FORMAT in mimeData.formats():
         doc = QDomDocument()
-        doc.setContent(mimeData.data(MDF_LAYERTREEMODELDATA))
-        xml = doc.toString()
-        node = doc.firstChildElement(MDF_LAYERTREEMODELDATA_XML)
+        doc.setContent(mimeData.data(QGIS_LAYERTREE_FORMAT))
+        node = doc.firstChildElement(MDF_QGIS_LAYERTREEMODELDATA_XML)
         context = QgsReadWriteContext()
         #context.setPathResolver(QgsProject.instance().pathResolver())
         layerTree = QgsLayerTree.readXml(node, context)
-        lt = QgsLayerTreeGroup.readXml(node, context)
-        #layerTree.resolveReferences(QgsProject.instance(), True)
-        registeredQGISLayers = QgsProject.instance().mapLayers()
-        from enmapbox import EnMAPBox
-        registeredEnMAPBoxLayers = {}
-        if isinstance(EnMAPBox.instance(), EnMAPBox):
-            store = EnMAPBox.instance().mapLayerStore()
-            registeredEnMAPBoxLayers.update(store.mapLayers())
-
 
         attributesLUT= {}
         childs = node.childNodes()
@@ -173,18 +171,15 @@ def extractMapLayers(mimeData:QMimeData)->list:
         for treeLayer in layerTree.findLayers():
             assert isinstance(treeLayer, QgsLayerTreeLayer)
 
-            mapLayer = treeLayer.layer()
 
-            if not isinstance(mapLayer, QgsMapLayer):
-                id = treeLayer.layerId()
+            id = treeLayer.layerId()
+            mapLayer = QgsProject.instance().mapLayer(id)
 
-                if id in registeredEnMAPBoxLayers.keys():
-                    mapLayer = registeredEnMAPBoxLayers[id]
+            if QGIS_LAYERTREE_FORMAT == MDF_QGIS_LAYERTREEMODELDATA:
+                # clone the layer if it comes from the QGIS Application
+                mapLayer = mapLayer.clone()
 
-                elif id in registeredQGISLayers.keys():
-                    mapLayer = registeredQGISLayers[id]
-
-                elif id in attributesLUT.keys():
+            if not isinstance(mapLayer, QgsMapLayer) and id in attributesLUT.keys():
                     attributes = attributesLUT[id]
                     name = attributes.get('name')
                     src = attributes['source']
@@ -192,6 +187,7 @@ def extractMapLayers(mimeData:QMimeData)->list:
 
                     if providerKey in ['gdal','wms']:
                         mapLayer = QgsRasterLayer(src, name, providerKey)
+
                     elif providerKey in ['ogr','WFS']:
                         mapLayer = QgsVectorLayer(src, name, providerKey)
 
@@ -199,7 +195,7 @@ def extractMapLayers(mimeData:QMimeData)->list:
                         mapLayer.setName(attributes['name'])
 
 
-            if isinstance(mapLayer, QgsMapLayer):
+            if isinstance(mapLayer, (QgsRasterLayer, QgsVectorLayer)):
                 newMapLayers.append(mapLayer)
 
 
@@ -213,6 +209,7 @@ def extractMapLayers(mimeData:QMimeData)->list:
             newMapLayers.append(lyr)
 
     elif MDF_DATASOURCETREEMODELDATA in mimeData.formats():
+        # this drop comes from the datasource tree
         dsUUIDs = pickle.loads(mimeData.data(MDF_DATASOURCETREEMODELDATA))
 
         for uuid4 in dsUUIDs:
@@ -223,6 +220,11 @@ def extractMapLayers(mimeData:QMimeData)->list:
                 if isinstance(lyr, QgsRasterLayer):
                     lyr.setRenderer(defaultRasterRenderer(lyr))
                 newMapLayers.append(lyr)
+
+    elif MDF_ENMAPBOX_LAYERTREEMODELDATA in mimeData.formats():
+        # this drop comes from the dock tree
+
+        s = ""
 
     elif QGIS_URILIST_MIMETYPE in mimeData.formats():
         for uri in QgsMimeDataUtils.decodeUriList(mimeData):

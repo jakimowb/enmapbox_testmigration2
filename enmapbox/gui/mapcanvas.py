@@ -1488,7 +1488,6 @@ class MapDock(Dock):
         assert isinstance(mapDock, MapDock)
         self.linkWithCanvas(mapDock.mCanvas, linkType)
 
-
     def linkWithCanvas(self, canvas, linkType):
         assert isinstance(canvas, QgsMapCanvas)
         canvas.createCanvasLink(canvas, linkType)
@@ -1500,60 +1499,7 @@ class MapDock(Dock):
         """
         return self.mCanvas
 
-    def layers(self)->list:
-        """
-        Returns the list of QgsMapLayers shown in the MapCanvas
-        :return: [list-of-QgsMapLayers]
-        """
-        return self.mCanvas.layers()
-
-    def setLayers(self, mapLayers:list):
-        """
-        Sets the QgsMapLayers to be shown in the QgsMapCanvas
-        :param mapLayers: [list-of-QgsMapLayers]
-        """
-        assert isinstance(mapLayers, list)
-        self.mCanvas.setLayers(mapLayers)
-
-
-    def addLayers(self, mapLayers):
-        if not type(mapLayers) is list:
-            mapLayers = [mapLayers]
-        for l in mapLayers:
-            assert isinstance(l, QgsMapLayer)
-        self.setLayers(mapLayers + self.mCanvas.layers())
-
-    def removeLayersByURI(self, uri):
-        """
-        Removes layer by its uri
-        :param uri: str or pathlib.Path
-        """
-        if isinstance(uri, str):
-            path = pathlib.Path(uri)
-        if isinstance(uri, pathlib.Path):
-            path = uri
-
-        assert isinstance(path, pathlib.Path)
-        posix = path.as_posix()
-        to_remove = []
-        for lyr in self.mCanvas.layers():
-            if isinstance(lyr, QgsMapLayer):
-                srcPath = pathlib.Path(lyr.source())
-                srcPosix = srcPath.as_posix()
-                if srcPosix.startswith(posix):
-                    to_remove.append(lyr)
-
-        if len(to_remove) > 0:
-            self.removeLayers(to_remove)
-
-    def mapCanvas(self)->MapCanvas:
-        """
-        Returns the MapCanvas
-        :return: MapCanvas
-        """
-        return self.mCanvas
-
-    def removeLayers(self, mapLayers):
-        newSet = [l for l in self.mapCanvas().layers() if l not in mapLayers]
-        self.setLayers(newSet)
-
+    def addLayers(self, layers:typing.List[QgsMapLayer]):
+        assert isinstance(layers, list)
+        new_set = self.mapCanvas().layers() + layers
+        self.mapCanvas().setLayers(new_set)

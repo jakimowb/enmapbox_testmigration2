@@ -21,67 +21,9 @@ from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui.datasourcemanager import *
 from enmapbox.gui.dockmanager import *
 
-from enmapbox.gui.hiddenqgislayers import *
+
 class Tests(EnMAPBoxTestCase):
 
-    def test_hiddenLayerManager(self):
-
-        dsm = DataSourceManager()
-
-        dockArea = DockArea()
-        dm = DockManager()
-        dm.connectDockArea(dockArea)
-        dtm = DockManagerTreeModel(dm)
-
-        self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
-
-        hlm = HiddenQGISLayerManager(dsm, dtm)
-        hlm.mMapLayerStore = QgsMapLayerStore()
-
-        self.assertIsInstance(qgis.utils.iface, QgisInterface)
-
-        self.assertIsInstance(hlm, HiddenQGISLayerManager)
-
-        def qgisLayerNames()->typing.List[str]:
-            return sorted([l.name() for l in QgsProject.instance().mapLayers().values()])
-
-
-        self.assertListEqual(qgisLayerNames(), [] )
-
-        lyr = TestObjects.createRasterLayer()
-        lyr.setName('LAYER_1')
-        sources = dsm.addSource(lyr)
-        self.assertListEqual(qgisLayerNames(), ['[EnMAP-Box] LAYER_1'] )
-        self.assertTrue(len(dsm) == 1)
-
-        # add layer to map canvas
-
-        mapDock = dm.createDock('MAP')
-        mapDock.setTitle('MAP_1')
-        self.assertIsInstance(mapDock, MapDock)
-        mapDock.mapCanvas().setLayers([lyr])
-        self.assertListEqual(qgisLayerNames(), ['[EnMAP-Box] LAYER_1', '[MAP_1] LAYER_1'])
-
-        mapNode = dtm.mapDockTreeNodes()[0]
-        self.assertIsInstance(mapNode, MapDockTreeNode)
-
-        # rename mapDock
-        mapDock.setTitle('MAP_1R')
-        self.assertListEqual(qgisLayerNames(), ['[EnMAP-Box] LAYER_1', '[MAP_1R] LAYER_1'])
-
-        # make layer invisible
-        #mapDock.mapCanvas().setLayers([])
-        self.assertTrue(len(mapNode.findLayers()) == 1)
-        self.assertListEqual(qgisLayerNames(), ['[EnMAP-Box] LAYER_1', '[MAP_1R] LAYER_1'])
-
-        lyrNodes = mapNode.findLayers()
-        for n in lyrNodes:
-            mapNode.removeChildNode(n)
-        self.assertListEqual(qgisLayerNames(), ['[EnMAP-Box] LAYER_1'])
-
-        # remove sources
-        dsm.removeSources(sources)
-        self.assertListEqual(qgisLayerNames(), [])
 
     def test_modeLayer(self):
         qgis.utils.iface.ui.show()
