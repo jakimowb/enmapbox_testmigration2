@@ -30,81 +30,21 @@ pathUI = os.path.join(os.path.dirname(__file__), 'GUI_IVVRM_Inform_alpha.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__), 'GUI_LoadTxtFile.ui')
 pathUI3 = os.path.join(os.path.dirname(__file__), 'GUI_Select_Wavelengths.ui')
 
-from enmapbox.gui.utils import loadUi
-class IVVRM_Start_GUI(QWidget):
+
+class IVVRM_Start_GUI(QWidget, loadUIFormClass(pathUI_Load)):
     def __init__(self, parent=None):
         super(IVVRM_Start_GUI, self).__init__(parent)
-        loadUi(pathUI_Load, self)
+        self.setupUi(self)
 
 
-class IVVRM_GUI(QDialog):
+class IVVRM_GUI(QDialog, loadUIFormClass(pathUI)):
     def __init__(self, parent=None):
         super(IVVRM_GUI, self).__init__(parent)
-        loadUi(pathUI, self)
+        self.setupUi(self)
 
         # fix the sendHoverEvent crash by replacing the slot function
         self.graphicsView.scene().sendHoverEvents = self.onHoverEvent
         self.graphicsView.setBackground(QColor('black'))
-
-
-
-        self.plotItem = self.graphicsView.getPlotItem()
-        assert isinstance(self.plotItem, pg.PlotItem)
-        self.viewBox = self.plotItem.getViewBox()
-        assert isinstance(self.viewBox, pg.ViewBox)
-        self.viewBoxMenu = self.viewBox.menu
-        assert isinstance(self.viewBoxMenu, QMenu)
-        assert isinstance(self.viewBoxMenu, pg.ViewBoxMenu.ViewBoxMenu)
-
-
-        # add color settings to the viewbox context menu
-        from qgis.gui import QgsColorButton
-        self.btnBackgroundColor = QgsColorButton()
-        self.btnBackgroundColor.colorChanged.connect(self.setBackgroundColor)
-        self.btnAxisColor = QgsColorButton()
-        self.btnAxisColor.colorChanged.connect(self.setAxisColor)
-
-        l = QGridLayout()
-        l.addWidget(QLabel('Background'), 0, 0)
-        l.addWidget(self.btnBackgroundColor, 0, 1)
-        l.addWidget(QLabel('Axes'), 1, 0)
-        l.addWidget(self.btnAxisColor, 1, 1)
-
-        self.colorWidget = QWidget()
-        self.colorWidget.setLayout(l)
-        self.viewBoxMenu.addSeparator()
-        m = self.viewBoxMenu.addMenu('Plot Colors')
-        wa = QWidgetAction(m)
-        wa.setDefaultWidget(self.colorWidget)
-        m.addAction(wa)
-
-        # set default colors
-        self.setBackgroundColor('white')
-        self.setAxisColor('black')
-
-    def setAxisColor(self, color: QColor):
-        if not isinstance(color, QColor):
-            color = QColor(color)
-        assert isinstance(color, QColor)
-        if color != self.btnAxisColor.color():
-            self.btnAxisColor.setColor(color)
-        else:
-            for name in self.plotItem.axes.keys():
-                ax = self.plotItem.getAxis(name)
-                if isinstance(ax, pg.AxisItem):
-                    ax.setPen(QColor(color))
-                    ax.setTextPen(QColor(color))
-
-    def setBackgroundColor(self, color: QColor):
-        if not isinstance(color, QColor):
-            color = QColor(color)
-        assert isinstance(color, QColor)
-        if color != self.btnBackgroundColor.color():
-            self.btnBackgroundColor.setColor(color)
-        else:
-            self.btnBackgroundColor.setColor(QColor(color))
-            self.graphicsView.setBackground(QColor(color))
-
 
     def onHoverEvent(self, *args, **kwds):
         """

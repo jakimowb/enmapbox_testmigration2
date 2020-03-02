@@ -4,8 +4,7 @@ import numpy as np
 import numpy.ma as ma
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import Qt
-from enmapbox.externals import pyqtgraph as pg
-#import pyqtgraph as pg
+import pyqtgraph as pg
 from scipy.stats import mode
 
 import sys, os

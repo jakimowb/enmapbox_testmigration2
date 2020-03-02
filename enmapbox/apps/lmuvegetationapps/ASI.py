@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 from hubflow.core import *
-#from gdalconst import *
+from gdalconst import *
 import numpy as np
-#import struct
+import struct
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
-#from osgeo import gdal
+from osgeo import gdal
 import pyqtgraph as pg
+#from numba import jit
 
-#from scipy.spatial import ConvexHull
+from scipy.spatial import ConvexHull
 import sys, os
 from lmuvegetationapps.peakdetect import *
 from scipy.interpolate import *
-import warnings
 
 from enmapbox.gui.utils import loadUIFormClass
 
@@ -206,10 +206,10 @@ class ASI:
     def calc_3band(self):
         if not self.calc_3band_flag:
             self.calc_3band_flag = True
-            self.gui.lowWaveEdit.setText(str(460))
-            self.limits[0] = 460
-            self.gui.upWaveEdit.setText(str(1105))
-            self.limits[1] = 1105
+            self.gui.lowWaveEdit.setText(str(400))
+            self.limits[0] = 400
+            self.gui.upWaveEdit.setText(str(1090))
+            self.limits[1] = 1090
             self.init_plot()
             if self.max_ndvi_pos:
                 self.plot_example(max_ndvi_pos=self.max_ndvi_pos)
@@ -261,8 +261,7 @@ class ASI:
 
         self.gui.crsView.plot(self.core.wl, cr_spectrum, clear=True, pen="g", fillLevel=0, 
                               fillBrush=(255, 255, 255, 30), name='cr_spec')
-        self.gui.crsView.addItem(pg.InfiniteLine(0, angle=0, pen='r'))
-        self.gui.crsView.addItem(pg.InfiniteLine(1, angle=0, pen='w'))
+        self.gui.crsView.addItem(pg.InfiniteLine(1, angle=0, pen='r'))
         self.gui.crsView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
         self.gui.crsView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
 
@@ -548,8 +547,6 @@ class ASI_core:
         return grid, wl, nbands, nrows, ncols
 
     def write_integral_image(self, result):
-        #result = result.astype(float)
-
         output = RasterDataset.fromArray(array=result, filename=self.output, grid=self.grid,
                                          driver=EnviDriver())
 
@@ -743,6 +740,7 @@ class ASI_core:
                     #full_hull_y = []
                     if max_:  # if local maximum has been found
                         x_max, y_max = map(list, zip(*max_))
+                        print(x_max)
                         x_seq = np.append(x_max, len(window))
                         if self.valid_wl[x_seq[0]] > 650:
                             force_p = int(self.find_closest_value(554, self.valid_wl))
@@ -808,7 +806,7 @@ class ASI_core:
 
     def segmented_convex_hull_3d_3band(self, in_matrix, limits, lookahead=None, delta=None):
 
-        self.prg.gui.lblCaption_l.setText("Separating Ccx, Cab, and H2o integral ranges...")
+        self.prg.gui.lblCaption_l.setText("Separating Car, Cab, and H2o integral ranges...")
 
         low, up = limits
         if not low >= 350 and not up <= 2500:
@@ -819,20 +817,14 @@ class ASI_core:
         res3band = np.empty(shape=(3, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
         absorb_area = np.empty(shape=(3, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
         hull_area = np.empty(shape=(3, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
-        # test
-        cr_absorb_area = np.empty(shape=(3, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
-        ones_sum = np.empty(shape=(3, np.shape(in_matrix)[1], np.shape(in_matrix)[2]))
-        ones = np.ones_like(in_matrix)
         #in_matrix = self.interp_watervapor_3d(in_matrix)
 
-        closest = [self.find_closest_value(553, self.valid_wl), self.find_closest_value(554, self.valid_wl),
-                        self.find_closest_value(787, self.valid_wl),
+        closest = [self.find_closest_value(554, self.valid_wl),
+                        self.find_closest_value(800, self.valid_wl),
                         self.find_closest_value(900, self.valid_wl),
-                        self.find_closest_value(1105, self.valid_wl)]
+                        self.find_closest_value(1100, self.valid_wl)]
 
         closest_bands = [i for i, x in enumerate(self.valid_wl) if x in closest]
-        if len(closest_bands) < 5:
-            closest_bands.insert(0, closest_bands[0])
         # window = in_matrix[self.valid_bands, :, :]
 
         for row in range(in_matrix.shape[1]):
@@ -841,29 +833,20 @@ class ASI_core:
                     window = in_matrix[:, row, col]
                     max_, min_ = peakdetect(window, lookahead=lookahead, delta=delta)
                     full_hull_x = []
-                    green_peak = 0
                     if max_:  # if local maximum has been found
                         x_max, y_max = map(list, zip(*max_))
                         x = 0
                         nir_peak = max([
-                            self.valid_wl[i] for i in x_max if 850 < self.valid_wl[i] < 970],
+                            self.valid_wl[i] for i in x_max if 850 < self.valid_wl[i] < 950],
                             default=[])
                         x_seq = np.append(x_max, len(window))
-                        # if self.valid_wl[x_seq[0]] < 550:
-                        #     res3band[:, row, col] = np.nan
-                        #     continue
                         if self.valid_wl[x_seq[0]] > 650:
                             force_p = int(self.find_closest_value(554, self.valid_wl))
                             c_band = self.valid_wl.index(force_p)
                             x_seq = np.insert(x_seq, 0, c_band)
-                            closest_bands[1] = x_seq[0]
-                            green_peak = 0
-                        else:
-                            if 545 < self.valid_wl[x_seq[0]] < 600:
-                                closest_bands[1] = x_seq[0]
-                                green_peak = 1
+                            closest_bands[0] = x_seq[0]
                         if nir_peak:
-                            closest_bands[3] = self.valid_wl.index(nir_peak)
+                            closest_bands[2] = self.valid_wl.index(nir_peak)
                         for i in x_seq:  # segmented convex hull with detected maxima as separators
                             wl_sample = self.valid_wl[x:i]
                             valid_array = list(zip(wl_sample, window[x:i]))
@@ -872,9 +855,8 @@ class ASI_core:
                             full_hull_x = np.append(full_hull_x, hull_x)
                             x = i
                     else:  # no local maximum -> upper hull over limits
-                        nir_peak = 0
-                        force_p = int(closest[1])
-                        force_p2 = int(closest[3])
+                        force_p = int(closest[0])
+                        force_p2 = int(closest[2])
                         c_band = self.valid_wl.index(force_p)
                         edge_band = self.valid_wl.index(force_p2)
                         x_seq = [len(window)]
@@ -895,93 +877,33 @@ class ASI_core:
 
                     full_hull_x = interp1d(interp_range[hull_x_index], window[hull_x_index])
                     contiguous_hull_x = full_hull_x(interp_range)
-
-                    indices = np.nonzero(np.isin(contiguous_hull_x, window))[0]
-
-                    item0 = next((self.valid_wl[indices[l]] for l in range(len(indices)) if
-                                  500 < self.valid_wl[indices[l]] < 550), None)
-                    item1 = next((self.valid_wl[indices[l]] for l in range(len(indices)) if
-                                  550 < self.valid_wl[indices[l]] < 700), None)
-                    item2 = next((self.valid_wl[indices[l]] for l in range(len(indices)) if
-                                  700 < self.valid_wl[indices[l]] < 800), None)
-                    item3 = next((self.valid_wl[indices[l]] for l in range(len(indices)) if
-                                  910 < self.valid_wl[indices[l]] < 950), None)
-                    item4 = next((self.valid_wl[indices[l]] for l in range(len(indices)) if
-                                  970 < self.valid_wl[indices[l]] < 1105), None)
-                    if item0:
-                        closest_bands[0] = self.valid_wl.index(item0)
-                    if item1 and green_peak != 1:
-                        closest_bands[1] = self.valid_wl.index(item1)
-                    if item2:
-                        closest_bands[2] = self.valid_wl.index(item2)
-                    if item3 and nir_peak == 0:
-                        closest_bands[3] = self.valid_wl.index(item3)
-                    if item4:
-                        closest_bands[4] = self.valid_wl.index(item4)
                 else:
                     contiguous_hull_x = np.nan
                 k = 0
-                if np.mean(in_matrix[:, row, col]) == self.nodat[0]:
-                    res3band[:, row, col] = np.nan
-                    continue
-                if np.max(in_matrix[:, row, col]) > 1:  # bad pixel exclusion with reflectances > 1
-                    res3band[:, row, col] = 0
-                    continue
                 for j, i in enumerate(closest_bands):
-                    if j == 1:  # skip the red shoulder
+                    if j == 2:  # skip the red shoulder
                         k = i
                         continue
-                    if j == 2:
-                        j -= 1  # avoid j-overflow for size 2
                     if j == 3:
+                        j -= 1  # avoid j-overflow for size 2
+                    if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
+                        absorb_area[j, row, col] = (np.nansum(contiguous_hull_x[k:i]) - np.nansum(in_matrix[k:i, row, col]))# / np.nansum(contiguous_hull_x[k:i])
+                        hull_area[j, row, col] = np.nansum(contiguous_hull_x[k:i])
+                        try:
+                            res3band[j, row, col] = absorb_area[j, row, col] / hull_area[j, row, col]
+                        except ZeroDivisionError:
+                            #print('zeroDivision')
+                            res3band[j, row, col] = 0
                         k = i
-                        j -= 1
-                        continue
-                    if j == 4:
-                        j -= 2
-                    try:
-
-                        # absorb_area[j, row, col] = np.nansum(np.log(1/in_matrix[k:i, row, col])) - \
-                        #                                (np.nansum(np.log(1/contiguous_hull_x[k:i])))
-                        # hull_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:i, row, col]))
-                        #res3band[j, row, col] = absorb_area[j, row, col] / hull_area[j, row, col]
-
-                        cr_absorb_area[j, row, col] = np.nansum((np.log(1/in_matrix[k:i, row, col]) -
-                                                                 np.log(1/contiguous_hull_x[k:i])) /
-                                                                np.log(1/in_matrix[k:i, row, col]))
-                        ones_sum[j, row, col] = np.nansum(ones[k:i, row, col])
-                        absorb_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:i, row, col]) -
-                                                             np.log(1 / contiguous_hull_x[k:i]))  # / np.nansum(contiguous_hull_x[k:i])
-                        hull_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:i, row, col]))
-                        res3band[j, row, col] = absorb_area[j, row, col] / hull_area[j, row, col]
-                        #res3band[j, row, col] = cr_absorb_area[j, row, col] / ones_sum[j, row, col]
-                    except ZeroDivisionError:
+                    else:
                         res3band[j, row, col] = np.nan
-
-                    # if j == 0 and res3band[j, row, col] > 1:
-                    #     res3band[j, row, col] = 0
-
-                    k = i
-
-                # max_ = np.amax(ones_sum, axis=1, keepdims=True)
-                # res3band = absorb_area/max_
+                        k = i
 
                 self.prgbar_process(pixel_no=row * self.ncols + col)
-        # perc = np.percentile(hull_area, 90, axis=1, keepdims=True)
-        # perc = np.percentile(perc, 90, axis=2, keepdims=True)
-        max_hull_1 = np.nanmean(hull_area, axis=1, keepdims=True)
-        max_hull_2 = np.nanmean(max_hull_1, axis=2, keepdims=True)
-        max_1 = np.amax(ones_sum, axis=1, keepdims=True)
-        max_ = np.amax(max_1, axis=2, keepdims=True)
-        #print(max_hull_2)
-        #res3band = absorb_area / max_hull_2
-        cr_absorb_area[cr_absorb_area < 0] = 0
-        res3band[0, :, :] = cr_absorb_area[0, :, :] / max_[0]
-        res3band[1, :, :] = cr_absorb_area[1, :, :] / max_[1]
-        res3band[2, :, :] = absorb_area[2, :, :] / max_hull_2[2]
 
-        res3band[res3band < 0] = 0
-        res3band[~np.isfinite(res3band)] = self.nodat[1]
+        #res3band[0, :, :] = res3band[1, :, :] / res3band[0, :, :]
+
+        res3band[np.isnan(res3band)] = self.nodat[1]
         return res3band
 
     def execute_ASI(self, in_raster, prg_widget=None, QGis_app=None):
@@ -1045,7 +967,7 @@ class ASI_core:
             if self.prg.gui.lblCancel.text() == "-1":  # Cancel has been hit shortly before
                 self.prg.gui.lblCancel.setText("")
                 self.prg.gui.cmdCancel.setDisabled(False)
-                QMessageBox.information(self.prg.gui, "Cancelled", "Calculation cancelled")
+                raise ValueError("Calculation canceled")
             self.prg.gui.prgBar.setValue(pixel_no*100 // self.pixel_total)  # progress value is index-orientated
             #self.prg.gui.lblCaption_l.setText("Processing...")
             self.prg.gui.lblCaption_r.setText("pixel %i of %i" % (pixel_no, self.pixel_total))

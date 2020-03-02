@@ -6,8 +6,7 @@ from scipy.interpolate import interp1d
 
 from qgis.gui import *
 #ensure to call QGIS before PyQtGraph
-from enmapbox.externals import pyqtgraph as pg
-#import pyqtgraph as pg
+import pyqtgraph as pg
 #from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
@@ -188,15 +187,12 @@ class LUT:
         self.N, self.chl, self.cw, self.cm, self.car, self.cbr, self.canth, self.lai, self.alia, self.hspot, \
         self.oza, self.sza, self.raa, self.psoil, self.laiu, self.sd, self.h, self.cd = ([] for i in range(self.npara_flat))
 
-        self.depends = 0  # ...
-
         # self.all_inputs = [self.N, self.chl, self.cw, self.cm, self.car, self.cbr, self.canth, self.lai, self.alia,
         #                   self.hspot, self.oza, self.sza, self.raa, self.psoil, self.laiu, self.sd, self.h, self.cd]
 
         self.path = None
         self.LUT_name = None
         self.sensor = "default"
-
 
         self.ns = None
         self.nlut_total = None
@@ -324,9 +320,6 @@ class LUT:
         self.gui.B_LoadBackSpec.clicked.connect(lambda: self.select_background(bg_type="load"))
         self.gui.B_LoadBackSpec.pressed.connect(lambda: self.select_background(bg_type="load"))
         self.gui.push_SelectFile.clicked.connect(lambda: self.open_file(type="background"))  # load own spectrum
-
-        # dependencies:
-        self.gui.CarCabCheck.stateChanged.connect(lambda: self.init_dependency(which='car_cab'))
 
         # Radio Buttons
         self.gui.radio_fix_N.clicked.connect(lambda: self.txt_enables(para="N", mode="fix"))
@@ -463,18 +456,6 @@ class LUT:
 
         if para in self.dict_checks:
             self.dict_checks[para] = mode
-
-    def init_dependency(self, which):
-        if which == 'car_cab' and self.depends == 0:
-            self.depends = 1
-            for object in range(12):
-                self.dict_objects["car"][object].setDisabled(True)
-        else:
-            self.depends = 0
-            for object in range(12):
-                self.dict_objects["car"][object].setDisabled(False)
-        # if which == 'placeholder_1' ...
-
 
     def set_boundaries(self):
         self.dict_boundaries = {"N": [1.0, 3.0],
@@ -617,7 +598,6 @@ class LUT:
     def get_inputs(self):
         self.dict_vals = dict(zip(self.para_flat, ([] for _ in range(self.npara_flat))))
         for para in self.dict_objects:
-
             for object in range(4, 12):
                 if not self.dict_objects[para][object].text() == "":
                     try:
@@ -635,9 +615,7 @@ class LUT:
     def check_inputs(self):
 
         for i, key in enumerate(self.para_list[0]):
-            if key == 'car' and self.depends != 0:
-                continue
-            elif len(self.dict_vals[self.para_list[0][i]]) > 3:
+            if len(self.dict_vals[self.para_list[0][i]]) > 3:
                 if self.dict_vals[self.para_list[0][i]][2] > self.dict_vals[self.para_list[0][i]][1] or \
                                 self.dict_vals[self.para_list[0][i]][2] < self.dict_vals[self.para_list[0][i]][0]:
                     self.abort(message='Parameter %s: mean value must lie between min and max' % self.para_list[0][i])
@@ -660,9 +638,7 @@ class LUT:
 
         if self.canopy_arch == "sail":
             for i, key in enumerate(self.para_list[1]):
-                if key == 'car' and self.depends != 0:
-                    continue
-                elif len(self.dict_vals[self.para_list[1][i]]) > 3:
+                if len(self.dict_vals[self.para_list[1][i]]) > 3:
                     if self.dict_vals[self.para_list[1][i]][2] > self.dict_vals[self.para_list[1][i]][1] or \
                                     self.dict_vals[self.para_list[1][i]][2] < self.dict_vals[self.para_list[1][i]][0]:
                         self.abort(message='Parameter %s: mean value must lie between min and max' % self.para_list[1][i])
@@ -779,7 +755,7 @@ class LUT:
                                     psi=[0.0, 180.0], N=[1.1, 2.5], cab=[0.0, 80.0], cw=[0.0002, 0.02],
                                     cm=[0.0001, 0.005], LAI=[0.5, 8.0], LIDF=[10.0, 80.0], typeLIDF=[2],
                                     hspot=[0.1], psoil=[0.5], cp=[0.001], ccl=[0.001], car=[0.0, 12.0],
-                                    cbrown=[0.0, 1.0], anth=[0.0, 10.0], soil=[0.1]*2101, depends=0, testmode=1)
+                                    cbrown=[0.0, 1.0], anth=[0.0, 10.0], soil=[0.1]*2101, testmode=1)
 
         return time50x/2
 
@@ -809,7 +785,7 @@ class LUT:
                                     cab=[1.0, 80.0, 5], cw=[0.02, 0.04, 3], cm=[0.018],
                                     LAI=[5.0], LIDF=[45.0], typeLIDF=[2],
                                     hspot=[0.1], psoil=[0.5], car=[],
-                                    cbrown=[], anth=[], cp=[], ccl=[], LAIu=[], cd=[], sd=[], h=[], depends=0,
+                                    cbrown=[], anth=[], cp=[], ccl=[], LAIu=[], cd=[], sd=[], h=[],
                                     prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
 
         # model_I = mod.Init_Model(lop="prospectD", canopy_arch="sail", nodat=-999,
@@ -858,8 +834,7 @@ class LUT:
                                         car=self.dict_vals['car'], cbrown=self.dict_vals['cbr'], soil=self.bg_spec,
                                         anth=self.dict_vals['canth'], cp=[], ccl=[], LAIu=self.dict_vals['laiu'],
                                         cd=self.dict_vals['cd'], sd=self.dict_vals['sd'], h=self.dict_vals['h'],
-                                        prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app,
-                                        depends=self.depends)
+                                        prgbar_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
 
         except ValueError as e:
             self.abort(message="An error occured while creating the LUT: %s" % str(e))

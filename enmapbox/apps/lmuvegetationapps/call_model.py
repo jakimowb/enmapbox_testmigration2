@@ -3,6 +3,7 @@
 import os
 import time
 from math import radians
+from matplotlib import pyplot as plt
 import lmuvegetationapps.SAIL as SAIL
 import numpy as np
 from scipy.stats import truncnorm
@@ -99,13 +100,12 @@ class Call_model:
 
 class Setup_multiple:
 
-    def __init__(self, ns, paras, depends):
+    def __init__(self, ns, paras):
         self.whichlogicals = []
         self.nruns_logic_geo, self.nruns_logic_no_geo, self.nruns_logic_total = (1, 1, 1)
         self.para_nums = {"N": 0, "cab": 1, "car": 2, "anth": 3, "cbrown": 4, "cw": 5, "cm": 6, "cp": 7, "ccl": 8,
                           "LAI": 9, "typeLIDF": 10, "LIDF": 11, "hspot": 12, "psoil": 13, "tts": 14, "tto": 15,
                           "psi": 16, "LAIu": 17, "cd": 18, "sd": 19, "h": 20}
-        self.depends = depends
         self.npara = len(self.para_nums)
         self.paras = paras
         self.ns = int(ns)
@@ -114,7 +114,6 @@ class Setup_multiple:
     def create_grid(self):
         #1 find logically distributed parameters
         for para_key in self.paras:
-            #print(para_key)
             #print(self.paras[para_key])
             if len(self.paras[para_key]) == 3:  # logical distr. = min, max, nsteps
                 self.whichlogicals.append(para_key)
@@ -168,11 +167,6 @@ class Setup_multiple:
                                                                      repeat=self.repeat_accum/self.nruns_logic[para_key],
                                                                      multiply=multiply,
                                                                      nsteps=self.paras[para_key][2])
-
-            if self.depends == 1 and para_key == 'car':
-                    self.para_grid[:, self.para_nums[para_key]] = self.car_cab_dependency(
-                        grid=self.para_grid[:, self.para_nums['cab']])
-
         return self.para_grid
 
     def fixed(self, para_name, value):
@@ -199,36 +193,6 @@ class Setup_multiple:
 
         return return_list
 
-    def car_cab_dependency(self, grid):
-
-        def truncated_noise(y, lower, upper):
-            while True:
-                y_noise = np.random.laplace(loc=0, scale=spread, size=1) + y
-                if upper > y_noise > lower:
-                    return y_noise
-
-        def refine_noise(y, y_lin_noise, lower, upper):
-            for i in range(len(y_lin_noise)):
-                if upper[i] < y_lin_noise[i] or lower[i] > y_lin_noise[i]:
-                    y_lin_noise[i] = truncated_noise(y[i], lower[i], upper[i])
-            return y_lin_noise
-
-        # constants from ANGERS03 Leaf Optical Data
-        slope = 0.2234
-        intercept = 0.9861
-        spread = 4.6839
-        car_lin = slope * grid + intercept
-        lower_car = slope / spread * 3 * grid
-        upper_car = slope * spread / 3 * grid + 2 * intercept
-
-        car_lin_noise = np.random.laplace(loc=0, scale=spread, size=len(car_lin)) + car_lin
-
-        car_lin_noise = refine_noise(car_lin, car_lin_noise, lower_car, upper_car)
-
-        car_lin_noise = refine_noise(car_lin, car_lin_noise, lower_car, upper=np.tile(26, len(grid)))
-
-        return car_lin_noise
-
 
 class Init_Model:
 
@@ -244,13 +208,12 @@ class Init_Model:
         self.s2s = s2s
         self.geo_mode = None
         self.soil = None
-        self.which_depends = {'car_cab': False}
         self.para_names = ["N", "cab", "car", "anth", "cbrown", "cw", "cm", "cp", "ccl",
                           "LAI", "typeLIDF", "LIDF", "hspot", "psoil", "tts", "tto",
                           "psi", "LAIu", "cd", "sd", "h"]
 
     def initialize_multiple(self, LUT_dir, LUT_name, ns, max_per_file=50000, testmode=0,
-                            prgbar_widget=None, QGis_app=None, soil=None, depends=None, **paras):
+                            prgbar_widget=None, QGis_app=None, soil=None, **paras):
         # Setup multiple runs with l size logical distribution & n size statistical distribution
         # param_input = [N, cab, cw, cm, LAI, typeLIDF, LIDF, hspot, psoil, car, anth, cbrown, tts, tto, psi] # update: geometry comes lastly
 
@@ -260,11 +223,9 @@ class Init_Model:
         else:
             self.geo_mode = "no_geo"
 
-        depends = depends
-
         self.max_filelength = max_per_file
         npara = len(self.para_names)
-        setup = Setup_multiple(ns=ns, paras=paras, depends=depends)
+        setup = Setup_multiple(ns=ns, paras=paras)
         para_grid = setup.create_grid()
 
         crun_max = setup.nruns_total
@@ -354,7 +315,6 @@ class Init_Model:
         if prgbar_widget:
             prgbar_widget.gui.lblCaption_l.setText("Creating LUT")
             QGis_app.processEvents()
-            QGis_app.processEvents()
 
         for geo_ensemble in range(n_ensembles_geo):
 
@@ -381,7 +341,7 @@ class Init_Model:
                             prgbar_widget.gui.lblCaption_r.setText('File %s of %s' % (str(run), str(crun_max)))
                             QGis_app.processEvents()
                         else:
-                            print("LUT ensemble geo #" + str(geo_ensemble) + "; split #" + str(split) + " of " + str(crun_max) + "; n = " + str(i))
+                            print("LUT ensemble geo #" + str(geo_ensemble) + "; split #" + str(split) + " of " + str(crun_max))
                     else:
                         if prgbar_widget:
                             prgbar_widget.gui.prgBar.setValue(run*100/crun_max)
@@ -472,122 +432,67 @@ def example_multi():
 
     ### Free Part (values later parsed from GUI):
     # Logically distributed parameter: [min, max, nsteps]
-    tts = [35]
-    tto = [0.0]
-    psi = [0.0]
+    tts = [30, 55, 6]
+    tto = [0.0, 30.0, 3]
+    psi = [0.0, 180, 7]
+
 
     # Statistically distributed parameter [min, max, (mean, sigma)]
-    N = [1.0, 2.0, 1.5, 0.2]
-    #cab = [1, 100, 45, 20]
-    cab = [0, 100, 50, 40]
-    #depends = None
-    depends = 1
-    car = [1, 26, 9, 5]
-    anth = [1, 5, 2, 0.8]
-    cbrown = [0,0.2]
-    cw = [0.005, 0.07, 0.04, 0.02]
-    cm = [0.002, 0.01]
+    N = [1.0, 2.2, 1.5, 0.3]
+    cab = [0.0, 80.0, 45.0, 20.0]
+    car = [0.0, 15.0]
+    anth = [0.0, 5.0]
+    cbrown = [0.0, 1.0]
+    cw = [0.0, 0.1]
+    cm = [0.0, 0.01]
 
-    LAI = [1.5, 7.5, 4.0, 2.0]
+    LAI = [0.0, 8.0, 4.5, 1.0]
 
-    LIDF = [25, 65, 45, 15]  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
-    #LIDF = [25, 65, 45, 15]
-    # LIDF = ALIA
-    hspot = [0.01]
-    psoil = [0, 1]
+    LIDF = [10.0, 85.0, 47.0, 25.0]  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
+    # typeLIDF=2: LIDF = ALIA
+    hspot = [0.0, 0.1]
+    psoil = [0.0, 1.0]
 
-    LAIu = [1]
-    sd = [1000]
-    h = [2]
-    cd = [1]
+    LAIu = [0.0, 8.0, 4.5, 1.0]
+    sd = [1000, 3000]
+    h = [2, 10]
+    cd = [1, 20]
 
     # Fixed parameters
     typeLIDF = [2]  # 1: Beta, 2: Ellipsoidal
 
-    lop = "prospectD"
-    canopy_arch = ""
-    s2s = "default"
-
-    LUT_dir = "D:/test/"
-    LUT_name = "X"
-    ns = 200
+    LUT_dir = "Z:/Matthias/LUT_test/"
+    LUT_name = "LUT_test"
+    ns = 20
     int_boost = 1
     nodat = -999
 
-    soil = float(psoil[0])*Rsoil1+(1-float(psoil[0]))*Rsoil2
+    lop = "prospectD"
+    canopy_arch = "sail"
+    s2s = "default"
+
+    soil = [0.1]*2101
 
     model_I = Init_Model(lop=lop, canopy_arch=canopy_arch, nodat=nodat, int_boost=int_boost, s2s=s2s)
     model_I.initialize_multiple(LUT_dir=LUT_dir, LUT_name=LUT_name, ns=ns, tts=tts, tto=tto, psi=psi, N=N, cab=cab, cw=cw, cm=cm,
                                 LAI=LAI, LAIu=LAIu, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot, psoil=psoil, car=car, cbrown=cbrown, soil=soil,
-                                anth=anth, cd=cd, h=h, sd=sd, testmode=0, depends=depends)
-
+                                anth=anth, cd=cd, h=h, sd=sd, testmode=0)
 
 if __name__ == '__main__':
-    import numpy as np
-    from matplotlib import pyplot as plt
-    from scipy.stats import gaussian_kde, truncnorm
-    from lmuvegetationapps.dataSpec import Rsoil1, Rsoil2
+    # print(example_single() / 1000.0)
+    # plt.plot(range(len(example_single())), example_single() / 1000.0)
+    # plt.show()
+    x = example_multi()
 
-    #example_multi()
 
-    lut = np.load("D:/test/X_0_0.npy")
-
-    lutMembers = lut.shape[1]
-
-    spectra = np.asarray(lut[-2101:, :lutMembers])
-    variables = np.asarray(lut[:21, :lutMembers])
-
-    # print(sum(mask))
-    # print(nansum)
-
-    x = np.asarray(variables[1, :])
-    y = np.asarray(variables[2, :])
-
-    xx = np.linspace(min(x), max(x), 100)
-    # Angers Car-Cab-Relationship Parameters:
-    slope = 0.2234
-    intercept = 0.9861
-    std = 4.6839
-    yy = slope * xx + intercept
-    max_Ccx = 26
-    max_Cab = 100
-    lower = slope / std * 3 * xx
-    upper = slope * std / 3 * xx + 2 * intercept
-
-    mask = ~np.isnan(y) & ~np.isnan(x)
-    x = x[mask]
-    y = y[mask]
-
-    xy = np.vstack([x, y])
-
-    # z = gaussian_kde(xy)(xy)
-    # idz = z.argsort()
-    # x, y, z = x[idz], y[idz], z[idz]
-
-    size = 23
-    #plt.rcParams.update(params)
-
-    fig, ax = plt.subplots(figsize=(9, 9))
-    plt.plot(xx, lower, 'k--', label='lower constraint')
-    plt.plot(xx, upper, 'k-.', label='upper constraint')
-    ax.axhline(max_Ccx, 0, 100, c='k', ls=':', label='max $C_{cx}$; $C_{ab}$')
-    ax.axvline(max_Cab, 0, 100, c='k', ls=':')
-    ax.scatter(x, y, s=10)
-    plt.xlabel(r'$\bf C_{ab}$ (PROSAIL) $[µg \ cm^{-2}]$', fontsize=size)
-    plt.ylabel(r'$\bf C_{cx}$ (PROSAIL) $[µg \ cm^{-2}]$', fontsize=size)
-    # ax.text(0.02, 0.97, "f(x) = %.3fx %+.3f" % (slope, intercept),
-    #         ha='left', va='center', transform=ax.transAxes)
-    plt.ylim(0, 30)
-    plt.plot(xx, yy, 'k', label="f(x) = %.3fx %+.3f" % (slope, intercept))
-    plt.legend(loc=2, fontsize=size-6, frameon=True, framealpha=1, facecolor='inherit', edgecolor=None)
-    plt.title("PROSAIL; " + " n = " + f'{np.count_nonzero(~np.isnan(x)):,}', fontsize=size)
-    ax.tick_params("both", labelsize=size)
-    plt.tight_layout()
-    ax.text(0.5, 0.95, r"($\bf{c}$)",
-            ha='center', va='center', transform=ax.transAxes, fontsize=size)
+    fig = plt.figure(figsize=(10, 5))
+    plt.plot(range(400, 2501), x)
+    plt.xlabel('Wavelength [nm]')
+    plt.ylabel('Reflectance [-]')
+    plt.xlim(400, 2500)
+    plt.xticks(np.arange(400, 2500, 200))
+    plt.ylim(0, 0.7)
     plt.show()
-    #plt.savefig("E:/Testdaten/ASI_test/Figures/LUT_Car_Cab_Depend.png", dpi=600)
-
 
 
 
