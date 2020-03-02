@@ -9,9 +9,9 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.Qsci import *
-from PyQt5.QtWebKitWidgets import QWebView
-from PyQt5.QtWebKit import QWebSettings
-
+#from PyQt5.QtWebKitWidgets import QWebView
+#from PyQt5.QtWebKit import QWebSettings
+from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
 
 from enmapbox.gui.utils import loadUIFormClass
 from enmapboxapplications.utils import loadUIFormClass

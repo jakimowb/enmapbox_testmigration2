@@ -66,6 +66,8 @@ class Tests(EnMAPBoxTestCase):
         import qgis.utils
         self.assertIsInstance(qgis.utils.iface, QgisInterface)
 
+
+
 if __name__ == "__main__":
     unittest.main()
 
