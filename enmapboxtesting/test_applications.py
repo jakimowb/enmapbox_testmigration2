@@ -188,6 +188,8 @@ class test_applications(EnMAPBoxTestCase):
         reg.addApplicationFolder(rootFolder, isRootFolder=True)
         self.assertTrue(len(reg) > 0, msg='Failed to add example EnMAPBoxApplication from {}'.format(rootFolder))
 
+        print('finished')
+        s = ""
 
     def test_IVVM(self):
 
