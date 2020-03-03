@@ -33,7 +33,8 @@ def run(debug:bool=False, processing:bool=True, applications:bool=True, sources:
     '''
 
     from enmapbox.testing import initQgisApplication
-    qgisApp = initQgisApplication()
+    from enmapbox.externals.qps.resources import findQGISResourceFiles
+    qgisApp = initQgisApplication(resources=findQGISResourceFiles())
     import enmapbox
     enmapbox.DEBUG = debug
     enmapbox.LOAD_PROCESSING_FRAMEWORK = processing
