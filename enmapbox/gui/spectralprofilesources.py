@@ -30,8 +30,8 @@ class SpectralProfileSource(object):
         self.mUri = uri
         self.mName = name
         self.mProvider = provider
-
         self.mLyr = None
+
     def setName(self, name:str):
         self.mName = name
 
@@ -45,7 +45,6 @@ class SpectralProfileSource(object):
         if not isinstance(self.mLyr, QgsRasterLayer):
             loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
             self.mLyr = QgsRasterLayer(self.mUri, self.mName, self.mProvider, options=loptions)
-
         return self.mLyr
 
 
@@ -97,7 +96,7 @@ class SpectralProfileSrcListModel(QAbstractListModel):
     def __getitem__(self, slice):
         return self.mSources[slice]
 
-    def sources(self)->list:
+    def sources(self)->typing.List[SpectralProfileSource]:
         return self[:]
 
     def addSource(self, source:SpectralProfileSource)->SpectralProfileSource:
@@ -118,14 +117,21 @@ class SpectralProfileSrcListModel(QAbstractListModel):
             return QModelIndex()
 
     def removeSource(self, source:SpectralProfileSource)->SpectralProfileSource:
-        assert isinstance(source, SpectralProfileSource)
-        if source in self.mSources:
-            i = self.mSources.index(source)
-            self.beginRemoveRows(QModelIndex(), i, i)
-            self.mSources.remove(source)
-            self.endRemoveRows()
-            return source
-        return None
+        if isinstance(source, str):
+            to_remove = [s for s in self.sources() if s.mUri == source]
+            result = None
+            for s in to_remove:
+                result = self.removeSource(s)
+            return result
+        else:
+            assert isinstance(source, SpectralProfileSource)
+            if source in self.mSources:
+                i = self.mSources.index(source)
+                self.beginRemoveRows(QModelIndex(), i, i)
+                self.mSources.remove(source)
+                self.endRemoveRows()
+                return source
+            return None
 
     def rowCount(self, parent: QModelIndex = None)->int:
         return len(self)
@@ -149,15 +155,22 @@ class SpectralProfileSrcListModel(QAbstractListModel):
             return None
 
         source = self.mSources[index.row()]
-        assert isinstance(source, SpectralProfileSource)
-        if role == Qt.DisplayRole:
-            return source.name()
-        elif role == Qt.DecorationRole:
-            return QIcon(r':/images/themes/default/mIconRaster.svg')
-        elif role == Qt.ToolTipRole:
-            return source.toolTip()
-        elif role == Qt.UserRole:
-            return source
+        if isinstance(source, SpectralProfileSource):
+            if role == Qt.DisplayRole:
+                return source.name()
+            elif role == Qt.DecorationRole:
+                pass
+                #return QIcon(r':/images/themes/default/mIconRaster.svg')
+            elif role == Qt.ToolTipRole:
+                return source.toolTip()
+            elif role == Qt.UserRole:
+                return source
+        elif source is None:
+            if role == Qt.DisplayRole:
+                return 'None'
+            elif role == Qt.ToolTipRole:
+                return 'No raster source selected.'
+
         return None
 
 
@@ -181,8 +194,6 @@ class SpectralProfileDstListModel(QAbstractListModel):
 
     def spectralLibraryWidgets(self)->typing.List[SpectralLibraryWidget]:
         return self[:]
-
-
 
     def addSpectralLibraryWidget(self, slw:SpectralLibraryWidget)->SpectralLibraryWidget:
         assert isinstance(slw, SpectralLibraryWidget)
@@ -215,7 +226,8 @@ class SpectralProfileDstListModel(QAbstractListModel):
             self.mSLWs.remove(slw)
             self.endRemoveRows()
             return slw
-        return None
+        else:
+            return None
 
     def rowCount(self, parent: QModelIndex = None)->int:
         return len(self)
@@ -239,19 +251,19 @@ class SpectralProfileDstListModel(QAbstractListModel):
             return None
 
         slw = self.mSLWs[index.row()]
-        assert isinstance(slw, SpectralLibraryWidget)
+        if isinstance(slw, SpectralLibraryWidget):
 
-        if role == Qt.DisplayRole:
-            return slw.windowTitle()
+            if role == Qt.DisplayRole:
+                return slw.windowTitle()
 
-        elif role == Qt.ToolTipRole:
-            return slw.windowTitle()
+            elif role == Qt.ToolTipRole:
+                return slw.windowTitle()
 
-        elif role == Qt.DecorationRole:
-            return QIcon(r':/enmapbox/gui/ui/icons/viewlist_spectrumdock.svg')
+            elif role == Qt.DecorationRole:
+                return QIcon(r':/enmapbox/gui/ui/icons/viewlist_spectrumdock.svg')
 
-        elif role == Qt.UserRole:
-            return slw
+            elif role == Qt.UserRole:
+                return slw
 
         return None
 
@@ -357,7 +369,8 @@ class SpectralProfileRelation(object):
         self.mScale = scale
 
     def scale(self)->float:
-        return self.mScale
+        return float(self.mScale)
+
     def currentProfiles(self)->typing.List[SpectralProfile]:
         return [p for p in self.mCurrentProfiles if isinstance(p, SpectralProfile)]
 
@@ -467,8 +480,15 @@ class SpectralProfileBridge(QAbstractTableModel):
     def __init__(self, *args, **kwds):
         super(SpectralProfileBridge, self).__init__(*args, **kwds)
 
-        self.mDstModel = SpectralProfileDstListModel()
         self.mSrcModel = SpectralProfileSrcListModel()
+        self.mDstModel = SpectralProfileDstListModel()
+
+        self.mSrcModel.rowsRemoved.connect(lambda : self.updateListColumn(self.cnSrc))
+        #self.mSrcModel.rowsInserted.connect(lambda : self.updateListColumn(self.cnSrc))
+
+        self.mDstModel.rowsRemoved.connect(lambda : self.updateListColumn(self.cnDst))
+        #self.mDstModel.rowsInserted.connect(lambda : self.updateListColumn(self.cnDst))
+
         self.mBridgeItems = []
 
         self.mEnsureUniqueProfileNames = True
@@ -479,6 +499,31 @@ class SpectralProfileBridge(QAbstractTableModel):
         self.cnScale = 'Scale'
 
         self.mTasks = dict()
+
+    def updateListColumn(self, column:str):
+        if isinstance(column, int):
+            column = self.columnNames()[column]
+        assert isinstance(column, str)
+
+        nRows = self.rowCount(None)
+        if nRows > 0:
+            col = self.columnNames().index(column)
+
+            if column == self.cnSrc:
+                for r in range(nRows):
+                    relation = self[r]
+                    assert isinstance(relation, SpectralProfileRelation)
+                    if relation.source() not in self.sources():
+                        relation.setSource(None)
+            if column == self.cnDst:
+                for r in range(nRows):
+                    relation = self[r]
+                    assert isinstance(relation, SpectralProfileRelation)
+                    if relation.destination() not in self.destinations():
+                        relation.setDestination(None)
+
+            self.dataChanged.emit(self.createIndex(0, col), self.createIndex(nRows-1, col))
+
 
     def __getitem__(self, slice):
         return self.mBridgeItems[slice]
@@ -497,9 +542,19 @@ class SpectralProfileBridge(QAbstractTableModel):
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
 
-        if role == Qt.DisplayRole:
-            if orientation == Qt.Horizontal:
-                return self.columnNames()[section]
+
+        if orientation == Qt.Horizontal:
+            cn = self.columnNames()[section]
+            if role == Qt.DisplayRole:
+                return cn
+            elif role == Qt.DecorationRole:
+                if cn == self.cnDst:
+                    return QIcon(r':/enmapbox/gui/ui/icons/viewlist_spectrumdock.svg')
+
+                if cn == self.cnSrc:
+                    return QIcon(r':/images/themes/default/mIconRaster.svg')
+
+
 
         return super(SpectralProfileBridge, self).headerData(section, orientation, role)
 
@@ -539,7 +594,7 @@ class SpectralProfileBridge(QAbstractTableModel):
                 return dst.windowTitle()
 
             if cn == self.cnScale:
-                return item.scale()
+                return float(item.scale())
 
         if role == Qt.EditRole:
             if cn == self.cnScale:
@@ -548,13 +603,6 @@ class SpectralProfileBridge(QAbstractTableModel):
         if role == Qt.CheckStateRole:
             if c == 0:
                 return Qt.Checked if item.mIsActive else Qt.Unchecked
-
-        if role == Qt.DecorationRole:
-            if cn == self.cnDst and isinstance(dst, SpectralLibraryWidget):
-                return QIcon(r':/enmapbox/gui/ui/icons/viewlist_spectrumdock.svg')
-
-            if cn == self.cnSrc and isinstance(src, SpectralProfileSource):
-                return QIcon(r':/images/themes/default/mIconRaster.svg')
 
         if role == Qt.ToolTipRole:
             if cn == self.cnDst and isinstance(dst, SpectralLibraryWidget):
@@ -593,12 +641,14 @@ class SpectralProfileBridge(QAbstractTableModel):
                     changed = True
 
         if role == Qt.EditRole:
-            if cn == self.cnSrc and isinstance(value, SpectralProfileSource):
+            if cn == self.cnSrc and isinstance(value, SpectralProfileSource) or value is None:
                 item.setSource(value)
                 changed = True
-            if cn == self.cnDst and isinstance(value, SpectralLibraryWidget):
+
+            if cn == self.cnDst and isinstance(value, SpectralLibraryWidget) or value is None:
                 item.setDestination(value)
                 changed = True
+
             if cn == self.cnSampling and isinstance(value, SpectralProfileSamplingMode):
                 item.setSamplingMode(value)
                 changed = True
@@ -664,7 +714,14 @@ class SpectralProfileBridge(QAbstractTableModel):
             self.addSource(source)
 
     def addSource(self, source:SpectralProfileSource):
-        self.mSrcModel.addSource(source)
+        n = len(self.mSrcModel)
+        src = self.mSrcModel.addSource(source)
+
+        # if this is the first source, set it to all existing relations
+        if n == 0 and isinstance(src, SpectralProfileSource):
+            for r in self.bridgeItems():
+                r.setSource(src)
+
 
     def removeSource(self, source:SpectralProfileSource):
         
@@ -677,16 +734,18 @@ class SpectralProfileBridge(QAbstractTableModel):
         assert isinstance(slw, SpectralLibraryWidget)
         _slw = self.mDstModel.addSpectralLibraryWidget(slw)
         if isinstance(_slw, SpectralLibraryWidget):
-            # add a new bridge item by default
-            #src = SpectralProfileSource(None, None, None)
+            # ensure at that there is least one relation with this SpectralLibraryWidget
+            addRelation = len([r for r in self.bridgeItems()
+                               if r.destination() == _slw]) == 0
+            if addRelation:
+                # use last-used profile source
+                if len(self) > 0:
+                    src = self[-1].source()
+                else:
+                    src = SpectralProfileTopLayerSource()
+                item = SpectralProfileRelation(src, _slw)
 
-            if len(self) > 0:
-                src = self[-1].source()
-            else:
-                src = SpectralProfileTopLayerSource()
-            item = SpectralProfileRelation(src, _slw)
-
-            self.addProfileRelation(item)
+                self.addProfileRelation(item)
 
     def removeDestination(self, slw:SpectralLibraryWidget):
         assert isinstance(slw, SpectralLibraryWidget)
@@ -833,7 +892,6 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
         super(SpectralProfileBridgeViewDelegate, self).__init__(parent=parent)
         self.mTableView = tableView
 
-
     def sortFilterProxyModel(self)->QSortFilterProxyModel:
         return self.mTableView.model()
 
@@ -843,7 +901,7 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
     def setItemDelegates(self, tableView:QTableView):
         bridge = self.bridge()
 
-        for c in [bridge.cnSrc, bridge.cnDst, bridge.cnSampling]:
+        for c in [bridge.cnSrc, bridge.cnDst, bridge.cnSampling, bridge.cnScale]:
             i = bridge.columnNames().index(c)
             tableView.setItemDelegateForColumn(i, self)
 
@@ -865,15 +923,30 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
 
             if cname == bridge.cnSrc:
                 w = QComboBox(parent=parent)
-                w.setModel(bridge.dataSourceModel())
-            if cname == bridge.cnDst:
+                model = bridge.dataSourceModel()
+                assert isinstance(model, SpectralProfileSrcListModel)
+                w.setModel(model)
+                s = ""
+
+            elif cname == bridge.cnDst:
                 w = QComboBox(parent=parent)
-                w.setModel(bridge.spectralLibraryModel())
-            if cname == bridge.cnSampling:
+                model = bridge.spectralLibraryModel()
+                assert isinstance(model, SpectralProfileDstListModel)
+                w.setModel(model)
+                s = ""
+
+            elif cname == bridge.cnSampling:
                 w = QComboBox(parent=parent)
                 for mode in SpectralProfileSamplingMode:
                     assert isinstance(mode, SpectralProfileSamplingMode)
                     w.addItem(mode.name, mode)
+
+            elif cname == bridge.cnScale:
+                w = QgsDoubleSpinBox(parent=parent)
+                w.setClearValue(1)
+                w.setMinimum(sys.float_info.min)
+                w.setMaximum(sys.float_info.max)
+
 
         return w
 
@@ -915,6 +988,10 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
                     if editor.itemData(i, role=Qt.UserRole) == item.samplingMode():
                         editor.setCurrentIndex(i)
 
+            elif cname == bridge.cnScale:
+                assert isinstance(editor, QgsDoubleSpinBox)
+                editor.setValue(item.scale())
+
 
 
     def setModelData(self, w, bridge, proxyIndex):
@@ -935,6 +1012,9 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
                 assert isinstance(w, QComboBox)
                 bridge.setData(index, w.currentData(Qt.UserRole), Qt.EditRole)
 
+            elif cname == bridge.cnScale:
+                assert isinstance(w, QgsDoubleSpinBox)
+                bridge.setData(index, w.value(), Qt.EditRole)
             else:
                 raise NotImplementedError()
 
@@ -969,10 +1049,8 @@ class SpectralProfileSourcePanel(QgsDockWidget):
 
         self.onSelectionChanged([],[])
 
-
     def setRunAsync(self, b:bool):
         self.mRunAsync = b
-
 
     def onSelectionChanged(self, selected:QItemSelection, deselected:QItemSelection):
         self.actionRemoveRelation.setEnabled(len(self.tableView.selectionModel().selectedRows()) > 0)
@@ -987,7 +1065,12 @@ class SpectralProfileSourcePanel(QgsDockWidget):
             self.bridge().removeProfileRelation(item)
 
 
-    def createRelation(self):
+    def createRelation(self)->SpectralProfileRelation:
+        """
+        Create a relation between a SpectralProfielSource and a SpectralProfileWidget
+        :return:
+        :rtype:
+        """
         src = SpectralProfileTopLayerSource()
         dst = None
         if len(self.bridge().spectralLibraryModel()) > 0:
@@ -1000,7 +1083,7 @@ class SpectralProfileSourcePanel(QgsDockWidget):
 
         relation = SpectralProfileRelation(src, dst)
         self.bridge().addProfileRelation(relation)
-
+        return relation
 
     def bridge(self)->SpectralProfileBridge:
 

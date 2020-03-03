@@ -186,27 +186,66 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
 
         p = SpectralProfileSourcePanel()
 
-        lyr1 = TestObjects.createRasterLayer(nb=5)
-        lyr1.setName('source 1')
-        lyr2 = TestObjects.createRasterLayer(nb=3)
-        lyr2.setName('source 2')
+        def addSrc(*args):
+            lyr = TestObjects.createRasterLayer()
+            p.bridge().addRasterLayer(lyr)
 
-        p.bridge().addRasterLayer(lyr1)
-        p.bridge().addRasterLayer(lyr2)
-        p.bridge().addRasterLayer(lyr2)
-        p.show()
+        def delSrc(*args):
+            model = p.bridge().dataSourceModel()
+            if len(model) > 0:
+                model.removeSource(model[-1])
 
-        if True:
-            slw1 = SpectralLibraryWidget()
-            slw1.speclib().setName('Speclib 1')
+        def addSpeclib(*args):
+            model = p.bridge().spectralLibraryModel()
+            slw = SpectralLibraryWidget()
+            slw.speclib().setName('Speclib {} {}'.format(len(model) + 1, id(slw)))
+            p.bridge().addDestination(slw)
 
-            slw2 = SpectralLibraryWidget()
-            slw2.speclib().setName('Speclib 2')
+        def delSpeclib(*args):
+            model = p.bridge().spectralLibraryModel()
+            if len(model) > 0:
+                model.removeSpeclib(model[-1])
 
-            p.bridge().addDestination(slw1)
-            p.bridge().addDestination(slw2)
+        w = QWidget()
+        btnAddSrc = QPushButton('Add source', parent=w)
+        btnAddSrc.clicked.connect(addSrc)
+        btnDelSrc = QPushButton('Remove source', parent=w)
+        btnDelSrc.clicked.connect(delSrc)
+        btnAddDst = QPushButton('Add speclib', parent=w)
+        btnAddDst.clicked.connect(addSpeclib)
+        btnDelDst = QPushButton('Remove speclib', parent=w)
+        btnDelDst.clicked.connect(delSpeclib)
 
-        self.showGui(p)
+        w.setLayout(QVBoxLayout())
+
+        l = QHBoxLayout()
+        for btn in [btnAddSrc, btnAddDst, btnDelSrc, btnDelDst]:
+            l.addWidget(btn)
+        w.layout().addLayout(l)
+        w.layout().addWidget(p)
+        w.show()
+
+        p.bridge().dataSourceModel().addSource(SpectralProfileTopLayerSource())
+        self.assertEqual(len(p.bridge().dataSourceModel()), 1)
+        self.assertEqual(len(p.bridge().spectralLibraryModel()), 0)
+
+        btnAddSrc.clicked.emit()
+        btnAddDst.clicked.emit()
+
+        self.assertEqual(len(p.bridge().dataSourceModel()), 2)
+        self.assertEqual(len(p.bridge().spectralLibraryModel()), 1)
+
+        btnAddSrc.clicked.emit()
+        self.assertEqual(len(p.bridge().dataSourceModel()), 3)
+        btnDelSrc.clicked.emit()
+        self.assertEqual(len(p.bridge().dataSourceModel()), 2)
+
+
+        btnAddDst.clicked.emit()
+        btnAddSrc.clicked.emit()
+        QApplication.processEvents()
+
+        self.showGui(w)
 
 if __name__ == "__main__":
     unittest.main()

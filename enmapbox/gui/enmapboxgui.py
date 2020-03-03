@@ -948,6 +948,7 @@ class EnMAPBox(QgisInterface, QObject):
         if isinstance(dataSource, DataSourceRaster):
             self.sigRasterSourceRemoved[str].emit(dataSource.uri())
             self.sigRasterSourceRemoved[DataSourceRaster].emit(dataSource)
+            self.spectralProfileBridge().removeSource(dataSource.uri())
 
         if isinstance(dataSource, DataSourceVector):
             self.sigVectorSourceRemoved[str].emit(dataSource.uri())
