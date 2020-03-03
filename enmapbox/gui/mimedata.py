@@ -204,7 +204,7 @@ def extractMapLayers(mimeData:QMimeData)->list:
 
         for t in data:
             uri, baseName, providerKey, band = t
-            lyr = QgsRasterLayer(uri, baseName=baseName, providerKey=providerKey)
+            lyr = QgsRasterLayer(uri, baseName=baseName, providerType=providerKey)
             lyr.setRenderer(defaultRasterRenderer(lyr, bandIndices=[band]))
             newMapLayers.append(lyr)
 
