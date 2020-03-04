@@ -56,6 +56,7 @@ MD.mHomepage = 'http://www.enmap.org/'
 MD.mAbout = 'The EnMAP-Box is designed to process and visualize hyperspectral remote sensing data, and particularly developed to handle EnMAP products.'
 MD.mTracker = 'https://bitbucket.org/hu-geomatics/enmap-box/issues'
 MD.mRepository = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
+MD.mQgisMinimumVersion = '3.10'
 
 ########## End of config section
 
