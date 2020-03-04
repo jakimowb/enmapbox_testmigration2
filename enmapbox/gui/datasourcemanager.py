@@ -1334,14 +1334,12 @@ class DataSourceManagerTreeModel(TreeModel):
     def columnCount(self, index):
         return 2
 
-
-
     def mimeTypes(self):
         # specifies the mime types handled by this model
         types = []
-
         types.append(MDF_DATASOURCETREEMODELDATA)
         types.append(MDF_QGIS_LAYERTREEMODELDATA)
+        types.append(QGIS_URILIST_MIMETYPE)
         types.append(MDF_URILIST)
         return types
 
@@ -1350,7 +1348,7 @@ class DataSourceManagerTreeModel(TreeModel):
         assert isinstance(data, QMimeData)
 
         result = False
-
+        added = []
         if action in [Qt.MoveAction, Qt.CopyAction]:
             # collect nodes
             nodes = []
@@ -1361,25 +1359,33 @@ class DataSourceManagerTreeModel(TreeModel):
             # add new data from external sources
             elif data.hasFormat(MDF_URILIST):
                 for url in data.urls():
-                    self.dataSourceManager.addSource(url)
+                    added.extend(self.dataSourceManager.addSource(url))
 
             # add data dragged from QGIS
-            elif data.hasFormat("application/qgis.layertreemodeldata"):
+            elif data.hasFormat(MDF_QGIS_LAYERTREEMODELDATA) or data.hasFormat(QGIS_URILIST_MIMETYPE):
 
-                doc = QDomDocument()
-                doc.setContent(data.data('application/qgis.layertreemodeldata'))
-                rootElem = doc.documentElement()
-                elem = rootElem.firstChildElement()
-                added = []
-                while not elem.isNull():
-                    node = QgsLayerTreeNode.readXml(elem, QgsProject.instance())
-                    added.extend(self.dataSourceManager.addSource(node))
-                    elem = elem.nextSiblingElement()
-                return any([isinstance(ds, DataSource) for ds in added])
+                lyrs = extractMapLayers(data)
+
+                added.extend([self.dataSourceManager.addSource(l) for l in lyrs])
+#                return  any(added)
+
+                #if len(lyrs) > 0:
+
+                #doc = QDomDocument()
+                #doc.setContent(data.data(MDF_QGIS_LAYERTREEMODELDATA))
+                #rootElem = doc.documentElement()
+                #elem = rootElem.firstChildElement()
+                #added = []
+                #while not elem.isNull():
+                #    node = QgsLayerTreeNode.readXml(elem, QgsProject.instance())
+                #    added.extend(self.dataSourceManager.addSource(node))
+                #    elem = elem.nextSiblingElement()
+                #return any([isinstance(ds, DataSource) for ds in added])
 
                 #result = QgsLayerTreeModel.dropMimeData(self, data, action, row, column, parent)
 
-        return result
+
+        return len(added) > 0
 
     def mimeData(self, indexes:list)->QMimeData:
         indexes = sorted(indexes)
@@ -1510,7 +1516,6 @@ class DataSourceManagerTreeModel(TreeModel):
 
         for node in to_remove:
             sourceGroup.removeChildNode(node)
-
 
     def supportedDragActions(self):
         return Qt.CopyAction
