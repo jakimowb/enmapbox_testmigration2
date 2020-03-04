@@ -36,6 +36,8 @@ training for working with the EnMAP-Box.
 2. Requirements
 ---------------
 
+.. TODO Update Version
+
 This practical requires at least version 3.3.20190131T1928.develop of the EnMAP-Box 3.
 There might be some minor changes for higher versions (e.g., changed menu labels, added parameter options, etc.).
 
@@ -57,12 +59,17 @@ mixed training data from spectral libraries.
 
 :download:`You can download the data here (tutorial_unmixing_materials.zip):` https://box.hu-berlin.de/f/01d6196ab1e34956bd5d/?dl=1
 
-The practical dataset contains two hyperspectral images covering an area along the urban gradient of Berlin, Germany, a spectral library,
-and detailed land cover reference information. The practical dataset is a subset extracted from the Berlin-Urban-Gradient dataset available here:
-http://doi.org/10.5880/enmap.2016.008
-
+The practical dataset contains an EnMAP-image (simulation) covering an area along the urban gradient of Berlin, Germany,
+a second hyperspectral image at higher spatial resolution (HyMap, 3.6 m), a spectral library and detailed land cover
+reference information.
 
 .. image:: tut_img/data_table.PNG
+
+The practical dataset is a subset extracted from the Berlin-Urban-Gradient dataset (http://doi.org/10.5880/enmap.2016.008).
+Please cite the dataset as follows:
+
+.. [4] Okujeni, Akpona; van der Linden, Sebastian; Hostert, Patrick (2016): Berlin-Urban-Gradient dataset 2009 -
+       An EnMAP Preparatory Flight Campaign (Datasets). V. 1.2. GFZ Data Services. http://doi.org/10.5880/enmap.2016.008
 
 
 |
@@ -184,7 +191,7 @@ Exercise A: Urban land cover
      .. raw:: html
 
         <div><details> <summary>click to expand...</summary>
-        <img src="../../_static/img/tut_a2.png" alt="---Image can not be displayed---">
+        <img src="../../../_static/img/tut_a2.png" alt="---Image can not be displayed---">
         </details></div>
         </br>
 
@@ -264,7 +271,7 @@ Exercise B: Spectral mixing
      .. raw:: html
 
         <div><details> <summary> click to expand... </summary>
-        <img src="../../_static/img/tut_b2.png" alt="---Image can not be displayed---">
+        <img src="../../../_static/img/tut_b2.png" alt="---Image can not be displayed---">
         </details></div>
         </br>
 
@@ -329,7 +336,7 @@ Exercise C: Urban spectral libraries
      .. raw:: html
 
         <div><details> <summary> click to expand... </summary>
-        <img src="../../_static/img/tut_c1.png" alt="---Image can not be displayed---">
+        <img src="../../../_static/img/tut_c1.png" alt="---Image can not be displayed---">
         <p style="color:#2980B9;">The roof class shows a very high within-class variability. The classes pavement, low vegetation,
         and tree show a high within-class variability. The classes soil and water show a rather low within-class variability.</p>
         </details></div>
@@ -567,9 +574,9 @@ Exercise E: Validation of fraction maps
 * The **Regression Performance** algorithm in the **Accuracy Assessment** tools of the EnMAP-Box geoalgorithms implements the accuracy assessment for quantitative data. Scatterplots and statistical measures are reported in an HTML report. Run the **Regression Performance** algorithm with the following inputs:
 
   * :guilabel:`Prediction`: :file:`fraction_level1_estimation.bsq`
-  * :guilabel:`Reference`: :file:`berlin_level1_reference.shp`
+  * :guilabel:`Reference`: :file:`berlin_level1_reference.bsq`
 
-* Make yourself familiar with HTML report.
+* Make yourself familiar with the HTML report.
 
 .. image:: tut_img/17_accuracies.png
    :width: 100%

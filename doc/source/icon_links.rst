@@ -258,6 +258,10 @@
    :width: 28px
 .. |cursor_zoom_pixelscale| image:: /../../enmapbox/externals/qps/ui/icons/cursor_zoom_pixelscale.svg
    :width: 28px
+.. |edit_gdal_metadata| image:: /../../enmapbox/externals/qps/ui/icons/edit_gdal_metadata.svg
+   :width: 28px
+.. |edit_ogr_metadata| image:: /../../enmapbox/externals/qps/ui/icons/edit_ogr_metadata.svg
+   :width: 28px
 .. |pan_center| image:: /../../enmapbox/externals/qps/ui/icons/pan_center.svg
    :width: 28px
 .. |plus_green| image:: /../../enmapbox/externals/qps/ui/icons/plus_green.svg
@@ -279,6 +283,8 @@
 .. |profile_save| image:: /../../enmapbox/externals/qps/ui/icons/profile_save.svg
    :width: 28px
 .. |raster| image:: /../../enmapbox/externals/qps/ui/icons/raster.svg
+   :width: 28px
+.. |rasterband_select| image:: /../../enmapbox/externals/qps/ui/icons/rasterband_select.svg
    :width: 28px
 .. |raster_classification| image:: /../../enmapbox/externals/qps/ui/icons/raster_classification.svg
    :width: 28px
