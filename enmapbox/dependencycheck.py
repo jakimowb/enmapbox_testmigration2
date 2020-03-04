@@ -27,24 +27,54 @@ from qgis.gui import *
 from qgis.core import *
 from qgis.PyQt.QtWidgets import QMessageBox
 
-URL_REQUIREMENTS = r'https://bitbucket.org/hu-geomatics/enmap-box/src/develop/requirements.txt'
-LAST_MISSED_PACKAGES = None
-LAST_MISSED_INFO = ''
-
 def checkAndShowMissingDependencies(packageNames)->bool:
-    missing = missingPackages(packageNames)
+    """
+    Checks for requirements (python packages, gdal/ogr functionality, ...)
 
-    if len(missing) == 0:
+    :param packageNames:
+    :type packageNames:
+    :return: bool, False in case of any issue, True else.
+    :rtype:
+    """
+    missing = missingPackages(packageNames)
+    gdalissues = checkGDALIssues()
+
+    infoText = ''
+    if len(missing) > 0:
+        infoText += missingPackageInfo(missing)
+    if len(gdalissues) > 0:
+        infoText += 'GDAL/OGR Problem(s):'
+        for i, issue in enumerate(gdalissues):
+            infoText += '{}:{}'.format(i+1, issue)
+    if infoText == '':
         return True
     else:
-        info = missingPackageInfo(missing)
-        showDialog(info)
+        showDialog(infoText)
         return False
 
+def checkGDALIssues()->typing.List[str]:
+    """
+    Tests for known GDAL issues
+    :return: list of errors / known problems
+    """
+    from osgeo import ogr
+    issues = []
+    drv = ogr.GetDriverByName('GPKG')
 
+    if not isinstance(drv, ogr.Driver):
+        info = 'GDAL/OGR installation does not support the GeoPackage (GPKG) vector driver'
+        info += '(https://gdal.org/drivers/vector/gpkg.html).\n'
+        issues.append(info)
+    return issues
 
 
 def missingPackages(packageNames)->typing.List[str]:
+    """
+    :param packageNames:
+    :type packageNames:
+    :return:
+    :rtype:
+    """
     if not isinstance(packageNames, list):
         packageNames = [packageNames]
 
@@ -55,17 +85,13 @@ def missingPackages(packageNames)->typing.List[str]:
 
     return missing
 
-def missingPackageInfo(missingPackages, html=True)->str:
-
-
-
+def missingPackageInfo(missingPackages:typing.List[str], html=True)->str:
     assert isinstance(missingPackages, list)
     n = len(missingPackages)
     if n == 0:
         return None
 
-    from enmapbox import DIR_REPO
-    URL_INSTALLATION = r'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages'
+    from enmapbox import DIR_REPO, URL_INSTALLATION
     info = ['The following {} package(s) are not installed:'.format(n)]
     info.append('<ol>')
     for i, pkg in enumerate(missingPackages):
@@ -85,7 +111,14 @@ def missingPackageInfo(missingPackages, html=True)->str:
         info = re.sub('<[^>]*>','', info)
     return  info
 
-def showDialog(info):
+def showDialog(info:str):
+    """
+    Opens a dialog with the text in "info"
+    :param info: str, test to show
+
+    :return:
+    :rtype:
+    """
     from PyQt5.QtCore import QSize
     from PyQt5.QtWidgets import QDialog, QTextEdit, QVBoxLayout, QLabel
     class DependencyInfoWidget(QDialog):
