@@ -95,6 +95,8 @@ def missingPackageInfo(missingPackages:typing.List[str], html=True)->str:
     info = ['The following {} package(s) are not installed:'.format(n)]
     info.append('<ol>')
     for i, pkg in enumerate(missingPackages):
+        if pkg == 'sklearn':
+            pkg = 'scikit-learn'
         info.append('\t<li>{}</li>'.format(pkg))
 
     pathRequirementsTxt = os.path.join(DIR_REPO, 'requirements.txt')
@@ -135,7 +137,7 @@ def showDialog(info:str):
             l.addWidget(self.textEdit)
 
         def setText(self, text):
-            self.textEdit.setText(text)
+            self.textEdit.setHtml(text)
 
 
 

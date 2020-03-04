@@ -18,6 +18,8 @@ from collections import namedtuple
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 from enmapbox.dependencycheck import *
 
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtCore import *
 
 class test_dependencycheck(EnMAPBoxTestCase):
 
@@ -29,7 +31,7 @@ class test_dependencycheck(EnMAPBoxTestCase):
         self.assertListEqual(missing, ['noneExistingFakePkg'])
 
     def test_missingPackageInfo(self):
-        info1 = missingPackageInfo(['noneExistingFake', 'gdal'])
+        info1 = missingPackageInfo(['noneExistingFake', 'gdal', 'sklearn'])
         self.assertIsInstance(info1, str)
         print(info1)
 
@@ -41,6 +43,27 @@ class test_dependencycheck(EnMAPBoxTestCase):
         v.logMessage(info1, 'TEST', Qgis.Warning)
 
         self.showGui(v)
+
+    def test_gdalissues(self):
+
+        l = checkGDALIssues()
+        self.assertIsInstance(l, list)
+        for i in l:
+            self.assertIsInstance(i, str)
+
+    def test_sklearn(self):
+        # addresses https://bitbucket.org/hu-geomatics/enmap-box/issues/307/installation-problem-sklearn
+        info = missingPackageInfo(['sklearn'])
+        self.assertTrue('scikit-learn' in info)
+
+    def test_dependecyCheck(self):
+        from enmapbox import DEPENDENCIES
+
+        r = checkAndShowMissingDependencies(DEPENDENCIES)
+        self.assertTrue(r)
+        QTimer.singleShot(500, QApplication.instance().closeAllWindows)
+        r = checkAndShowMissingDependencies(DEPENDENCIES + ['nonexisting'])
+        self.assertFalse(r)
 
 
 if __name__ == "__main__":
