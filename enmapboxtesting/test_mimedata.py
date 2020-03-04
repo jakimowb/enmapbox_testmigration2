@@ -12,15 +12,16 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest
+import unittest, pathlib, os
 from qgis import *
 from qgis.gui import *
 
 from qgis.core import *
-from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
+from qgis.core import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
 from enmapbox.testing import EnMAPBoxTestCase
+from enmapbox import EnMAPBox, DIR_TESTDATA
 
 from enmapboxtestdata import enmap, hires, library, landcover_polygons
 import enmapbox.gui.mimedata as mimedata
@@ -90,6 +91,26 @@ class MimeDataTests(EnMAPBoxTestCase):
         for lyr in layers:
             self.assertIsInstance(lyr, QgsMapLayer)
             self.assertTrue(lyr)
+
+    def test_dropping_files(self):
+
+
+        EB = EnMAPBox()
+        dockManager = EB.dockManager()
+        dockArea = dockManager.currentDockArea()
+
+        for root, dirs, files in os.walk(DIR_TESTDATA):
+            for file in files:
+                path = pathlib.Path(root) / file
+                md = QMimeData()
+                md.setUrls([QUrl.fromLocalFile(path.as_posix())])
+                print('Drop {}'.format(path.name))
+                event = QDropEvent(QPoint(0,0 ), Qt.CopyAction, md, Qt.LeftButton, Qt.NoModifier)
+                dockManager.onDockAreaDragDropEvent(dockArea, event)
+            s = ""
+
+        self.showGui(EB.ui)
+        EB.close()
 
 
 
