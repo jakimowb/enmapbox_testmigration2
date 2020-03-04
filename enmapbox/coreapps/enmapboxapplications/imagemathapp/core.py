@@ -11,7 +11,7 @@ from PyQt5.QtGui import *
 from PyQt5.Qsci import *
 #from PyQt5.QtWebKitWidgets import QWebView
 #from PyQt5.QtWebKit import QWebSettings
-from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
+#from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
 
 from enmapbox.gui.utils import loadUIFormClass
 from enmapboxapplications.utils import loadUIFormClass
@@ -693,10 +693,11 @@ class ProgressBar(hubdc.progressbar.CUIProgressBar):
     def setPercentage(self, percentage):
         self.bar.setValue(int(percentage))
 
-class WebLog(QWebView):
+class WebLog(QTextBrowser):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._currentText = ''
+        self.setOpenExternalLinks(True)
 #        self.settings().setFontFamily(QWebSettings.FixedFont)
 
     def setText(self, text):
@@ -758,7 +759,7 @@ class ImageMathApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui')))
         self.uiLog().setText('')
 
         self.uiRoutines().sigHTMLSelected.connect(self.uiLog().setHtml)
-        self.uiRoutines().sigURLSelected.connect(self.uiLog().setUrl)
+        self.uiRoutines().sigURLSelected.connect(lambda qUrl: self.uiLog().setHtml(qUrl.url()))
         self.uiRoutines().sigRoutineDoubleClicked.connect(self.uiCode().replaceSelectedTextAndFocus)
 
 
