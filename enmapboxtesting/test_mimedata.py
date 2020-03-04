@@ -20,6 +20,8 @@ from qgis.core import *
 from qgis.core import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtWidgets import *
+
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox import EnMAPBox, DIR_TESTDATA
 
@@ -92,24 +94,62 @@ class MimeDataTests(EnMAPBoxTestCase):
             self.assertIsInstance(lyr, QgsMapLayer)
             self.assertTrue(lyr)
 
-    def test_dropping_files(self):
 
+    def file2DropEvent(self, path)->QDropEvent:
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(path)
+        md = QMimeData()
+        md.setUrls([QUrl.fromLocalFile(path.as_posix())])
+        print('Drop {}'.format(path.name))
+        self._mdref = md
+        return QDropEvent(QPoint(0, 0), Qt.CopyAction, md, Qt.LeftButton, Qt.NoModifier)
 
+    def test_dropping_files_empty_dockarea(self):
+        files = []
+        for root, dirs, f in os.walk(DIR_TESTDATA):
+            for file in f:
+                files.append(pathlib.Path(root) / file)
+
+        # drop on
         EB = EnMAPBox()
         dockManager = EB.dockManager()
         dockArea = dockManager.currentDockArea()
+        for path in files:
+            dockManager.onDockAreaDragDropEvent(dockArea, self.file2DropEvent(path))
+        EB.close()
 
-        for root, dirs, files in os.walk(DIR_TESTDATA):
-            for file in files:
-                path = pathlib.Path(root) / file
-                md = QMimeData()
-                md.setUrls([QUrl.fromLocalFile(path.as_posix())])
-                print('Drop {}'.format(path.name))
-                event = QDropEvent(QPoint(0,0 ), Qt.CopyAction, md, Qt.LeftButton, Qt.NoModifier)
-                dockManager.onDockAreaDragDropEvent(dockArea, event)
+    def test_dropping_files_speclib_widget(self):
+        files = []
+        for root, dirs, f in os.walk(DIR_TESTDATA):
+            for file in f:
+                files.append(pathlib.Path(root) / file)
+
+        # drop on spectral library widget
+        from enmapbox.gui.docks import SpectralLibraryDock
+        from enmapbox.gui import SpectralLibraryWidget
+        from enmapboxtestdata import library
+        EB = EnMAPBox()
+        sld = EB.createDock('SPECLIB')
+        self.assertIsInstance(sld, SpectralLibraryDock)
+        w = sld.speclibWidget()
+        self.assertIsInstance(w, SpectralLibraryWidget)
+
+        # drop a speclib
+        self.assertTrue(len(w.speclib()) == 0)
+        w.dropEvent(self.file2DropEvent(library))
+        self.assertTrue(len(w.speclib()) > 0)
+
+        # drop ASD file
+        asdFile = pathlib.Path(DIR_TESTDATA) / 'asd' / 'txt' / 'ribb00002.asd.txt'
+        if asdFile.is_file():
+            w.dropEvent(self.file2DropEvent(asdFile))
             s = ""
 
-        self.showGui(EB.ui)
+
+        # drop random files
+        for file in files:
+            w.dropEvent(self.file2DropEvent(file))
+            QApplication.processEvents()
         EB.close()
 
 
