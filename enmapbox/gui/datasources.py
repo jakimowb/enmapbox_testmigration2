@@ -809,6 +809,7 @@ class DataSourceFactory(object):
                         if cls.canRead(src):
                             uri = src
                             break
+
                 else:
                     s = ""
         return uri, None

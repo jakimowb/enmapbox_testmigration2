@@ -778,9 +778,7 @@ class SpectralLibraryDock(Dock):
             speclib = SpectralLibrary()
             speclib.setCustomProperty(OWNED_BY_SPECLIBWIDGET_KEY, True)
 
-        self.mSpeclibWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
-
-
+        self.mSpeclibWidget:SpectralLibraryWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
         self.mSpeclibWidget.setMapInteraction(False)
         self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.mSpeclibWidget)

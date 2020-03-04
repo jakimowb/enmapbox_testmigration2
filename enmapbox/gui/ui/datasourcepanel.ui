@@ -257,7 +257,7 @@
     <string>Sync</string>
    </property>
    <property name="toolTip">
-    <string>Synchronize data sources with QGIS</string>
+    <string>Add data sources that are opened in QGIS</string>
    </property>
   </action>
   <action name="actionCollapseTreeNodes">

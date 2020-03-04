@@ -45,6 +45,8 @@ class MapCanvasTests(EnMAPBoxTestCase):
         lyr = TestObjects.createRasterLayer()
         self.assertTrue(lyr not in QgsProject.instance().mapLayers().values())
         mapCanvas.setLayers([lyr])
+        mapCanvas.setDestinationCrs(lyr.crs())
+        mapCanvas.zoomToFullExtent()
         #self.assertTrue(lyr in QgsProject.instance().mapLayers().values())
         self.assertTrue(lyr in mapCanvas.layers())
 
@@ -64,6 +66,8 @@ class MapCanvasTests(EnMAPBoxTestCase):
                     action.trigger()
                 except Exception as ex:
                     self.fail('Failed to trigger QAction "{}\n\t{}"'.find(info, ex))
+
+        self.showGui(mapCanvas)
 
     def test_canvaslinks(self):
         canvases = []
