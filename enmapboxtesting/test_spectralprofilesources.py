@@ -199,6 +199,7 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
             model = p.bridge().spectralLibraryModel()
             slw = SpectralLibraryWidget()
             slw.speclib().setName('Speclib {} {}'.format(len(model) + 1, id(slw)))
+            slw.show()
             p.bridge().addDestination(slw)
 
         def delSpeclib(*args):

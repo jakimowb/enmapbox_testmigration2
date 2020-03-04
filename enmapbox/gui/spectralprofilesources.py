@@ -638,6 +638,12 @@ class SpectralProfileBridge(QAbstractTableModel):
                 b = value == Qt.Checked
                 if b != item.isActive():
                     item.mIsActive = b
+
+                    if b is False:
+                        # remove current spectrum from connected speclib?
+                        item.mCurrentProfiles.clear()
+                        self.updateCurrentProfiles(item.destination())
+
                     changed = True
 
         if role == Qt.EditRole:
