@@ -238,20 +238,22 @@ Exercise B: Spectral mixing
 2. Visualize image spectra
 --------------------------
 
-* The EnMAP-Box offers **Spectral Library Windows (SpectralLibrary #)** for visualizing spectra and handling their metadata. To visualize image spectra,
-  activate the **Identify** tool together with the **Identify raster profiles** |identifytools| option. Click on an image pixel. SpectralLibrary #1 opens automatically displaying
-  the respective pixel spectrum (green line). The plotted spectrum always refers to the top-most raster layer of the respective Map Window you click on.
+* The EnMAP-Box offers **Spectral Library Windows (SpectralLibrary #)** for visualizing spectra and handling their
+  metadata. To visualize image spectra, activate the **Identify** tool together with the **Identify raster profiles**
+  |identifytools| option. Click on an image pixel. SpectralLibrary #1 opens automatically displaying the respective
+  pixel spectrum (green line). The plotted spectrum always refers to the top-most raster layer of the respective Map
+  Window you click on (unless you change this in the :ref:`Spectral Profile Sources <spectral_profile_sources>` panel).
 
 * Make yourself familiar with the following tools in the Spectral Library #1 toolbar:
 
   * The |plus_green| icon adds a plotted spectrum to a collection. Each collected spectrum (white line) gets an entry in the attribute table with a predefined name (filename and coordinates).
-  * The |profile_add_auto| icon automatically adds spectra to the collection when clicking on image pixels.
-  * The |mActionDeleteSelected| icon in the Actions column deletes a spectrum from the collection. Multiple spectra can be deleted based on previous selections (use :kbd:`Ctrl` or :kbd:`Shift` to select multiple rows).
-  * The |plot_style| icon in the Actions column allow the user to change the pot style of a collected spectrum. The style of multiple spectra can be changed based on previous selections.
-  *	The |mActionToggleEditing| icon switches on the editing mode. You can now edit the attribute table (e.g. edit the name of a spectrum), add or delete colums using the |mActionNewAttribute| |mActionDeleteAttribute| icons, etc.
-  *	The |speclib_save| icon saves a spectrum or a collection of spectra as a spectral library. Further information on spectral libraries and library formats will follow in Exercise C.
+  * By clicking |mIconCollapse| next to the |plus_green| icon you can activate the |profile_add_auto| :sup:`Add Profiles automatically` mode, which will automatically add spectra to the collection when clicking on image pixels.
+  * The |mActionToggleEditing| icon switches on the editing mode. You can now edit the attribute table (e.g. edit the name of a spectrum), add or delete colums using the |mActionNewAttribute| |mActionDeleteAttribute| icons, etc.
+  * You can delete selected spectra in editing mode using the |mActionDeleteSelected| icon (hold :kbd:`Ctrl` or :kbd:`Shift` to select multiple rows).
+  * The |speclib_save| icon saves a spectrum or a collection of spectra as a spectral library. Further information on spectral libraries and library formats will follow in Exercise C.
 
-.. image:: tut_img/06_spectrallibrary.png
+
+.. image:: tut_img/06_spectrallibrary_new.png
    :width: 100%
 
 .. admonition:: Learning activities
