@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QMenu, QAction
 from qgis._core import QgsRasterLayer
 
 from enmapbox.gui.applications import EnMAPBoxApplication
-# from enmapboxapplications.imagemathapp.core import ImageMathApp
+from enmapboxapplications.imagemathapp.core import ImageMathApp
 from enmapboxapplications.imagestatistics.core import ImageStatisticsApp
 from enmapboxapplications.scatterplotapp.core import ScatterPlotApp
 from enmapboxapplications.synthmixapp.core import SynthmixApp
@@ -15,7 +15,7 @@ from enmapboxapplications.regressionapp.core import RegressionWorkflowApp
 
 def enmapboxApplicationFactory(enmapBox):
     return [
-        #EnMAPBoxImageMathApp(enmapBox),
+        EnMAPBoxImageMathApp(enmapBox),
         EnMAPBoxImageStatisticsApp(enmapBox),
         EnMAPBoxScatterPlotApp(enmapBox),
         EnMAPBoxSynthmixApp(enmapBox),
