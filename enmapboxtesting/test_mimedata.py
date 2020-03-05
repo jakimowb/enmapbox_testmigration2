@@ -117,6 +117,8 @@ class MimeDataTests(EnMAPBoxTestCase):
         for path in files:
             dockManager.onDockAreaDragDropEvent(dockArea, self.file2DropEvent(path))
             QApplication.processEvents()
+            for d in dockManager.docks():
+                dockManager.removeDock(d)
         EB.close()
 
     def test_dropping_files_speclib_widget(self):
@@ -153,6 +155,7 @@ class MimeDataTests(EnMAPBoxTestCase):
         for file in files:
             w.dropEvent(self.file2DropEvent(file))
             QApplication.processEvents()
+            EB.dataSourceManager().removeSource(file)
         EB.close()
 
 
