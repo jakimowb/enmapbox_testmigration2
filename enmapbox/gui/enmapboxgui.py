@@ -263,7 +263,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         assert isinstance(qgsUtils.iface, QgisInterface)
 
-        self.mCurrentSpectra = []  # set of currently selected spectral profiles
+        #self.mCurrentSpectra = []  # set of currently selected spectral profiles
         self.mCurrentMapLocation = None
 
         # define managers
@@ -668,8 +668,6 @@ class EnMAPBox(QgisInterface, QObject):
                 mapCanvas.setCrosshairPosition(spatialPoint, emitSignal=False)
 
 
-
-
     def spectralProfileBridge(self)->SpectralProfileBridge:
         return self.ui.spectralProfileSourcePanel.bridge()
 
@@ -718,7 +716,7 @@ class EnMAPBox(QgisInterface, QObject):
 
 
     @pyqtSlot(SpatialPoint, QgsMapCanvas)
-    def loadCurrentMapSpectra(self, spatialPoint:SpatialPoint, mapCanvas:QgsMapCanvas=None):
+    def loadCurrentMapSpectra(self, spatialPoint:SpatialPoint, mapCanvas:QgsMapCanvas=None, runAsync:bool=None):
         """
         Loads SpectralProfiles from a location defined by `spatialPoint`
         :param spatialPoint: SpatialPoint
@@ -728,7 +726,7 @@ class EnMAPBox(QgisInterface, QObject):
         if len(self.docks(SpectralLibraryDock)) == 0:
             self.createDock(SpectralLibraryDock)
 
-        self.ui.spectralProfileSourcePanel.loadCurrentMapSpectra(spatialPoint, mapCanvas=mapCanvas)
+        self.ui.spectralProfileSourcePanel.loadCurrentMapSpectra(spatialPoint, mapCanvas=mapCanvas, runAsync=runAsync)
 
 
     def setMapTool(self, mapToolKey:MapTools, *args, canvases=None, **kwds):
@@ -1061,7 +1059,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         :return: [list-of-spectra]
         """
-        return self.mCurrentSpectra[:]
+        return self.spectralProfileBridge().currentProfiles()
 
     def dataSources(self, sourceType='ALL', onlyUri:bool=True)->list:
         """

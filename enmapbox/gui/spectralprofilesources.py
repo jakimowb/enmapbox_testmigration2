@@ -492,7 +492,7 @@ class SpectralProfileBridge(QAbstractTableModel):
         self.mBridgeItems = []
 
         self.mEnsureUniqueProfileNames = True
-
+        self.mRunAsync = False
         self.cnSrc = 'Source'
         self.cnDst = 'Destination'
         self.cnSampling = 'Sampling'
@@ -524,6 +524,9 @@ class SpectralProfileBridge(QAbstractTableModel):
 
             self.dataChanged.emit(self.createIndex(0, col), self.createIndex(nRows-1, col))
 
+    def setRunAsync(self, b:bool):
+        assert isinstance(b, bool)
+        self.mRunAsync = b
 
     def __getitem__(self, slice):
         return self.mBridgeItems[slice]
@@ -787,8 +790,8 @@ class SpectralProfileBridge(QAbstractTableModel):
                 r.mCurrentProfiles.clear()
 
             # 2. set current profiles per relation
-
             for rw in relationWrappers:
+                assert isinstance(rw, SpectralProfileRelationWrapper)
                 r = rw.unwrap(self.mBridgeItems)
                 if isinstance(r, SpectralProfileRelation):
                     r.mCurrentProfiles.extend(rw.currentProfiles())
@@ -802,8 +805,25 @@ class SpectralProfileBridge(QAbstractTableModel):
 
         return updatedRelations
 
+    def currentProfiles(self)->typing.List[SpectralProfile]:
+        """
+        Returns the current profiles
+        :return:
+        :rtype:
+        """
+        profiles = []
+        for relation in self:
+            if relation.isActive():
+                profiles.extend(relation.currentProfiles())
+        return profiles
+
     def updateCurrentProfiles(self, dst:SpectralLibraryWidget):
         if isinstance(dst, SpectralLibraryWidget):
+
+            # no need to add, as they profiles will get blocked anyway
+            if dst.currentProfilesMode() == SpectralLibraryWidget.CurrentProfilesMode.block:
+                return
+
             currentProfiles = []
             for r in self[:]:
                 if isinstance(r, SpectralProfileRelation) and r.destination() == dst:
@@ -811,25 +831,47 @@ class SpectralProfileBridge(QAbstractTableModel):
 
             currentProfiles = [p for p in currentProfiles if isinstance(p, SpectralProfile)]
 
-            # replace white spaces with '_' (see https://bitbucket.org/hu-geomatics/enmap-box/issues/275/use-_-instead-of-as-separators-in-spectra)
+            # replace white spaces with '_'
+            # see https://bitbucket.org/hu-geomatics/enmap-box/issues/275/use-_-instead-of-as-separators-in-spectra
             for p in currentProfiles:
                 assert isinstance(p, SpectralProfile)
                 p.setName(p.name().replace(' ','_'))
 
-            # ensure unique profile names per Spectral Library,
+            # ensure unique profile names per Spectral Library
             # e.g. make 'sourceA', 'sourceA' to 'sourceA', 'sourceA2'
+
             if self.mEnsureUniqueProfileNames:
                 uniqueNames = dst.speclib().uniqueValues(dst.speclib().fields().indexOf(SPECLIB_FIELD_NAME))
-                for p in currentProfiles:
-                    assert isinstance(p, SpectralProfile)
-                    name = p.name()
-                    i = 1
-                    while name in uniqueNames:
-                        i += 1
-                        name = '{}_{}'.format(p.name(), i)
-                    if i > 1:
-                        p.setName(name)
-                    uniqueNames.add(name)
+
+                if dst.currentProfilesMode() == SpectralLibraryWidget.CurrentProfilesMode.normal:
+                    # current profiles named can get replaced
+                    for p in dst.currentProfiles():
+                        name : str = p.name()
+                        if name in uniqueNames:
+                            uniqueNames.remove(name)
+
+                if len(uniqueNames) > 0:
+                    # matches on names ending on '_<number>'
+                    rx = re.compile(r'^_(\d+)$')
+
+                    for p in currentProfiles:
+                        assert isinstance(p, SpectralProfile)
+                        name = p.name()
+                        if name in uniqueNames:
+                            # we need to change the profile name
+                            # <name>_<number> occur in the unique names?
+                            l = len(name)
+                            numbered = [int(rx.search(n[l:]).group(1))
+                                        for n in uniqueNames
+                                        if len(n) >= l
+                                        and n.startswith(name)
+                                        and rx.search(n[l:])]
+                            if len(numbered) > 0:
+                                name = '{}_{}'.format(name, max(numbered) + 1)
+                            elif name in uniqueNames:
+                                name = '{}_1'.format(name)
+                            p.setName(name)
+                            uniqueNames.add(name)
 
             dst.setCurrentProfiles(currentProfiles)
 
@@ -838,13 +880,16 @@ class SpectralProfileBridge(QAbstractTableModel):
         if tid in self.mTasks.keys():
             del self.mTasks[tid]
 
-    def loadProfiles(self, spatialPoint:SpatialPoint, mapCanvas:QgsMapCanvas=None, runAsync:bool=False):
+    def loadProfiles(self, spatialPoint:SpatialPoint, mapCanvas:QgsMapCanvas=None, runAsync:bool=None):
         """
         Loads profiles from sources and sends them to their destinations
         :param spatialPoint: SpatialPoint
         """
 
         n = len(self)
+
+        if not isinstance(runAsync, bool):
+            runAsync = self.mRunAsync
 
         self.sigProgress.emit(0)
 
@@ -1036,7 +1081,6 @@ class SpectralProfileSourcePanel(QgsDockWidget):
         loadUi(enmapboxUiPath('spectralprofilesourcepanel.ui'), self)
         self.progressBar.setVisible(False)
 
-        self.mRunAsync = True
         self.mBridge = SpectralProfileBridge()
         self.mBridge.sigProgress.connect(self.progressBar.setValue)
         self.mProxyModel = QSortFilterProxyModel()
@@ -1056,7 +1100,7 @@ class SpectralProfileSourcePanel(QgsDockWidget):
         self.onSelectionChanged([],[])
 
     def setRunAsync(self, b:bool):
-        self.mRunAsync = b
+        self.bridge().setRunAsync(b)
 
     def onSelectionChanged(self, selected:QItemSelection, deselected:QItemSelection):
         self.actionRemoveRelation.setEnabled(len(self.tableView.selectionModel().selectedRows()) > 0)
@@ -1092,14 +1136,9 @@ class SpectralProfileSourcePanel(QgsDockWidget):
         return relation
 
     def bridge(self)->SpectralProfileBridge:
-
         return self.mBridge
 
-    def loadCurrentMapSpectra(self, spatialPoint:SpatialPoint, mapCanvas:QgsMapCanvas=None, runAsync=None):
-
-        if runAsync is None:
-            runAsync = self.mRunAsync
-
+    def loadCurrentMapSpectra(self, spatialPoint:SpatialPoint, mapCanvas:QgsMapCanvas=None, runAsync:bool=None):
         self.bridge().loadProfiles(spatialPoint, mapCanvas=mapCanvas, runAsync=runAsync)
 
 def doLoadSpectralProfiles(task, spatialPoint, relations:typing.List[SpectralProfileRelationWrapper])->typing.Tuple[SpatialPoint, typing.List[SpectralProfileRelationWrapper]]:
@@ -1131,9 +1170,7 @@ def doLoadSpectralProfiles(task, spatialPoint, relations:typing.List[SpectralPro
         if task.isCanceled():
             return None
 
-
         lyr = None
-
 
         # create raster source layer
         if isinstance(src, SpectralProfileTopLayerSource):
