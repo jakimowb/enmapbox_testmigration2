@@ -116,6 +116,7 @@ class MimeDataTests(EnMAPBoxTestCase):
         dockArea = dockManager.currentDockArea()
         for path in files:
             dockManager.onDockAreaDragDropEvent(dockArea, self.file2DropEvent(path))
+            QApplication.processEvents()
         EB.close()
 
     def test_dropping_files_speclib_widget(self):
@@ -137,12 +138,14 @@ class MimeDataTests(EnMAPBoxTestCase):
         # drop a speclib
         self.assertTrue(len(w.speclib()) == 0)
         w.dropEvent(self.file2DropEvent(library))
+        QApplication.processEvents()
         self.assertTrue(len(w.speclib()) > 0)
 
         # drop ASD file
         asdFile = pathlib.Path(DIR_TESTDATA) / 'asd' / 'txt' / 'ribb00002.asd.txt'
         if asdFile.is_file():
             w.dropEvent(self.file2DropEvent(asdFile))
+            QApplication.processEvents()
             s = ""
 
 
