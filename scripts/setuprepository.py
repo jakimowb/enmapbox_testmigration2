@@ -5,11 +5,13 @@ Run this script after you have cloned the EnMAP-Box repository
 import sys, getopt
 def setup_enmapbox_repository():
     # specify the local path to the cloned QGIS repository
-    import os, sys, pathlib
+    import os, sys, pathlib, site
 
     DIR_REPO = pathlib.Path(__file__).parents[1].resolve()
     DIR_SITEPACKAGES = DIR_REPO / 'site-packages'
     DIR_QGISRESOURCES = DIR_REPO / 'qgisresources'
+
+    site.addsitedir(DIR_REPO)
 
     # 1. compile EnMAP-Box resource files (*.qrc) into corresponding python modules (*.py)
     from scripts.compileresourcefiles import compileEnMAPBoxResources
