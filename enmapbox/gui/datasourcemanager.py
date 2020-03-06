@@ -69,8 +69,6 @@ class DataSourceManager(QObject):
     sigDataSourceAdded = pyqtSignal(DataSource)
     sigDataSourceRemoved = pyqtSignal(DataSource)
 
-
-
     def __init__(self):
         """
         Constructor
@@ -79,6 +77,15 @@ class DataSourceManager(QObject):
         DataSourceManager._testInstance = self
         self.mSources = list()
         self.mShowSpatialSourceInQgsAndEnMAPBox = True
+        QgsProject.instance().layerWillBeRemoved.connect(self.onLayersWillBeRemoved)
+
+
+
+    def onLayersWillBeRemoved(self, lid):
+
+
+        to_remove = [ds for ds in self.sources() if isinstance(ds, DataSourceSpatial) and ds.mapLayerId() == lid]
+        self.removeSources(to_remove)
 
     def __iter__(self)->typing.Iterator[DataSource]:
         return iter(self.mSources)
@@ -166,8 +173,13 @@ class DataSourceManager(QObject):
 
         return results
 
+    def layerSources(self)->typing.List[str]:
+        return [ds.mapLayer().source() for ds in self.sources() if isinstance(ds, DataSourceSpatial)]
 
-    def uriList(self, sourceTypes='ALL') -> list:
+    def layerIds(self)->typing.List[str]:
+        return [ds.mapLayerId() for ds in self.sources() if isinstance(ds, DataSourceSpatial)]
+
+    def uriList(self, sourceTypes='ALL') -> typing.List[str]:
         """
         Returns URIs of registered data sources
         :param sourcetype: uri filter as used in sources(sourceTypes=<types>).
@@ -189,7 +201,7 @@ class DataSourceManager(QObject):
 
         return added
 
-    def addSource(self, newDataSource, name=None, icon=None):
+    def addSource(self, newDataSource, name=None, icon=None)->typing.List[DataSource]:
         """
         Adds a new data source.
         :param newDataSource: any object
@@ -198,25 +210,28 @@ class DataSourceManager(QObject):
         :return: a list of successfully added DataSource instances.
                  Usually this will be a list with a single DataSource instance only, but in case of container datasets multiple instances might get returned.
         """
-        # do not add paths if they already exist
-        from enmapbox.gui.enmapboxgui import OWNED_BY_SPECLIBWIDGET_KEY
-        if isinstance(newDataSource, str) and newDataSource in self.uriList() or \
-           isinstance(newDataSource, SpectralLibrary) and newDataSource.customProperty(OWNED_BY_SPECLIBWIDGET_KEY):
-            return []
+        # do not add paths if the are already known
+        knownStrings = self.uriList() + self.layerIds() + self.layerSources()
+        if isinstance(newDataSource, str):
+            if newDataSource in knownStrings:
+                return []
+
+            layers = [ds.mapLayerId() for ds in self.sources() if isinstance(ds, DataSourceSpatial)]
+            layers += [ds.mapLayer().source() for ds in self.sources() if isinstance(ds, DataSourceSpatial)]
+            if newDataSource in layers:
+                return None
+
+        if isinstance(newDataSource, QgsMapLayer):
+            if not newDataSource.isValid() or \
+                    newDataSource.source() in knownStrings or \
+                    newDataSource.id() in knownStrings:
+                return []
+
 
         try:
             newDataSources = DataSourceFactory.create(newDataSource, name=name, icon=icon)
         except RuntimeError:
             newDataSources = []
-
-        from enmapbox import EnMAPBox
-        emb = EnMAPBox.instance()
-        if isinstance(emb, EnMAPBox):
-            hiddenSpeclibUris = []
-            for d  in emb.dockManager().spectraLibraryDocks():
-                sl = d.speclib()
-                hiddenSpeclibUris.append(sl.source())
-            newDataSources = [ds for ds in newDataSources if ds.uri() not in hiddenSpeclibUris]
 
         toAdd = []
         for dsNew in newDataSources:
@@ -540,12 +555,18 @@ class SpatialDataSourceTreeNode(DataSourceTreeNode):
         assert isinstance(dataSource, DataSourceSpatial)
         super(SpatialDataSourceTreeNode, self).connectDataSource(dataSource)
         ext = dataSource.spatialExtent()
+        dataSource.mapLayer().nameChanged.connect(self.onNameChanged)
         mu = QgsUnitTypes.toString(ext.crs().mapUnits())
         assert isinstance(ext, SpatialExtent)
         assert self.nodeCRS is None
         self.nodeCRS = CRSLayerTreeNode(self, ext.crs())
         self.nodeExtXmu = TreeNode(self.mNodeSize, 'Width', values='{} {}'.format(ext.width(), mu))
         self.nodeExtYmu = TreeNode(self.mNodeSize, 'Height', values='{} {}'.format(ext.height(), mu))
+
+    def onNameChanged(self):
+        ds = self.dataSource()
+        if isinstance(ds, DataSourceSpatial) and isinstance(ds.mapLayer(), QgsMapLayer):
+            self.setName(ds.mapLayer().name())
 
     def disconnectDataSource(self):
         super(SpatialDataSourceTreeNode, self).disconnectDataSource()
@@ -778,32 +799,28 @@ class SpeclibProfilesTreeNode(TreeNode):
             for p in self.mSpeclib:
                 TreeNode(self, p.name())
 
-class SpeclibDataSourceTreeNode(FileDataSourceTreeNode):
+class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super(SpeclibDataSourceTreeNode, self).__init__(*args, **kwds)
         self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
-        self.profileNode = None
-        self.mSpeclib = None
 
     def speclib(self)->SpectralLibrary:
         """
         Returns the SpectralLibrary
         :return: SpectralLibrary
         """
-        return self.mSpeclib
+        if isinstance(self.dataSource(), DataSourceSpectralLibrary):
+            return self.dataSource().speclib()
+        else:
+            return None
 
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpectralLibrary)
         super(SpeclibDataSourceTreeNode, self).connectDataSource(dataSource)
-        assert isinstance(self.mDataSource.mSpeclib, SpectralLibrary)
+        assert isinstance(self.mDataSource.speclib(), SpectralLibrary)
+        self.nodeFeatures.setName('Profiles')
+        self.nodeFeatures.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
 
-        self.profileNode = SpeclibProfilesTreeNode(self, dataSource.mSpeclib)
-        #self.profileNode.mSpeclib = dataSource.mSpeclib
-        #self.profiles= TreeNode(self, 'Profiles',
-        #                            tooltip='Spectral profiles',
-        #                            value='{}'.format(len(self.dataSource.mSpeclib)))
-        #for name in dataSource.profileNames:
-        #    TreeNode(self.profiles, name)
 
 class HubFlowObjectTreeNode(DataSourceTreeNode):
 
@@ -1310,9 +1327,9 @@ class DataSourcePanelUI(QDockWidget):
 
 LUT_DATASOURCTYPES = collections.OrderedDict()
 LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/images/themes/default/mIconRaster.svg'))
+LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries', QIcon(':/qps/ui/icons/speclib.svg'))
 LUT_DATASOURCTYPES[DataSourceVector] = ('Vector Data', QIcon(':/images/themes/default/mIconVector.svg'))
 LUT_DATASOURCTYPES[HubFlowDataSource] = ('Models', QIcon(':/images/themes/default/processingAlgorithm.svg'))
-LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries', QIcon(':/qps/ui/icons/speclib.svg'))
 LUT_DATASOURCTYPES[DataSourceFile] = ('Other Files', QIcon(':/trolltech/styles/commonstyle/images/file-128.png'))
 LUT_DATASOURCTYPES[DataSource] = ('Other sources', QIcon(':/trolltech/styles/commonstyle/images/standardbutton-open-32.png'))
 
@@ -1541,9 +1558,6 @@ class DataSourceManagerTreeModel(TreeModel):
         if isinstance(node, TreeNode) and node.isCheckable():
             flags |= Qt.ItemIsUserCheckable
 
-
-
-
         return flags
 
     def contextMenu(self, node):
@@ -1602,15 +1616,15 @@ def CreateNodeFromDataSource(dataSource:DataSource, parent=None)->DataSourceTree
     if not isinstance(dataSource, DataSource):
         return None
 
-    #hint: take care of class inheritance order
+    #hint: take care of class inheritance order. inherited classes first
     if isinstance(dataSource, HubFlowDataSource):
         node = HubFlowObjectTreeNode(parent, dataSource)
     elif isinstance(dataSource, DataSourceRaster):
         node = RasterDataSourceTreeNode(parent, dataSource)
-    elif isinstance(dataSource, DataSourceVector):
-        node = VectorDataSourceTreeNode(parent, dataSource)
     elif isinstance(dataSource, DataSourceSpectralLibrary):
         node = SpeclibDataSourceTreeNode(parent, dataSource)
+    elif isinstance(dataSource, DataSourceVector):
+        node = VectorDataSourceTreeNode(parent, dataSource)
     elif isinstance(dataSource, DataSourceFile):
         node = FileDataSourceTreeNode(parent, dataSource)
     else:

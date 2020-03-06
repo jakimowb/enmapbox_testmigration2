@@ -40,9 +40,6 @@ HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
 HIDDEN_ENMAPBOX_LAYER_STATE = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_STATE'
 
-OWNED_BY_SPECLIBWIDGET_KEY = 'OWNED_BY_SPECLIBWIDGET'
-
-
 class EnMAPBoxDocks(enum.Enum):
     MapDock = 'MAP'
     SpectralLibraryDock = 'SPECLIB'
@@ -380,7 +377,7 @@ class EnMAPBox(QgisInterface, QObject):
             # search in data sources
             knownAsDataSource = []
             for ds in self.dataSourceManager():
-                if isinstance(ds, (DataSourceRaster, DataSourceVector)):
+                if isinstance(ds, DataSourceSpatial):
                     id = ds.mapLayerId()
                     if id not in [None, '']:
                         knownAsDataSource.append(id)
@@ -432,12 +429,13 @@ class EnMAPBox(QgisInterface, QObject):
 
     def removeMapLayers(self, layers:typing.List[QgsMapLayer], remove_from_project=True):
         """
-        Removes layers from the EnMAP-Box. Does not affect the DataSource list
+        Removes layers from the EnMAP-Box / DataSource list
         """
         layers = [l for l in layers if isinstance(l, QgsMapLayer) and l in self.dockManagerTreeModel().mapLayers()]
         self.syncHiddenLayers()
 
         if remove_from_project:
+            print('REMOVE FROM QgsProject.instance(): \n{}'.format('\n'.join(l.source() for l in layers)))
             QgsProject.instance().removeMapLayers([l.id() for l in layers])
 
     def onCurrentLayerChanged(self, layer):
@@ -684,6 +682,7 @@ class EnMAPBox(QgisInterface, QObject):
             slw.plotWidget().backgroundBrush().setColor(QColor('black'))
             self.spectralProfileBridge().addDestination(slw)
             slw.sigFilesCreated.connect(self.addSources)
+            self.dataSourceManager().addSource(slw.speclib())
 
         if isinstance(dock, MapDock):
 
@@ -906,19 +905,21 @@ class EnMAPBox(QgisInterface, QObject):
                 dock = self.createDock('MAP')
                 assert isinstance(dock, MapDock)
                 lyrs = []
-                for src in self.mDataSourceManager.sources(sourceTypes=['RASTER', 'VECTOR']):
-                    lyr = src.createUnregisteredMapLayer()
-                    if isinstance(lyr, QgsRasterLayer):
-                        r = defaultRasterRenderer(lyr)
-                        r.setInput(lyr.dataProvider())
-                        lyr.setRenderer(r)
-                    lyrs.append(lyr)
+                for src in added:
+                    if isinstance(src, DataSourceSpatial):
+                        lyr = src.createUnregisteredMapLayer()
+                        if isinstance(lyr, QgsRasterLayer):
+                            r = defaultRasterRenderer(lyr)
+                            r.setInput(lyr.dataProvider())
+                            lyr.setRenderer(r)
+                        lyrs.append(lyr)
 
                 # choose first none-geographic raster CRS as map CRS
+                crs_is_set = False
                 for lyr in lyrs:
-
                     if isinstance(lyr, QgsRasterLayer) and isinstance(lyr.crs(), QgsCoordinateReferenceSystem) and not lyr.crs().isGeographic():
                         dock.mapCanvas().setDestinationCrs(lyr.crs())
+                        crs_is_set = True
                         break
 
                 dock.addLayers(lyrs)
@@ -948,13 +949,20 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigRasterSourceRemoved[DataSourceRaster].emit(dataSource)
             self.spectralProfileBridge().removeSource(dataSource.uri())
 
+        if isinstance(dataSource, DataSourceSpectralLibrary):
+            to_remove = [d for d in self.dockManager().docks() \
+                         if isinstance(d, SpectralLibraryDock) \
+                         and d.speclib() == dataSource.speclib()]
+            for d in to_remove:
+                self.dockManager().removeDock(d)
+
+            self.sigSpectralLibraryRemoved[str].emit(dataSource.uri())
+            self.sigSpectralLibraryRemoved[DataSourceSpectralLibrary].emit(dataSource)
+
         if isinstance(dataSource, DataSourceVector):
             self.sigVectorSourceRemoved[str].emit(dataSource.uri())
             self.sigVectorSourceRemoved[DataSourceVector].emit(dataSource)
 
-        if isinstance(dataSource, DataSourceSpectralLibrary):
-            self.sigSpectralLibraryRemoved[str].emit(dataSource.uri())
-            self.sigSpectralLibraryRemoved[DataSourceSpectralLibrary].emit(dataSource)
 
         # finally, remove related map layers
         if isinstance(dataSource, DataSourceSpatial):

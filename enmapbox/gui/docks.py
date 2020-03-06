@@ -558,14 +558,18 @@ class TextDockWidget(QWidget):
         self.btnLoadFile.setDefaultAction(self.actionLoadFile)
         self.btnSaveFile.setDefaultAction(self.actionSaveFile)
         self.btnSaveFileAs.setDefaultAction(self.actionSaveFileAs)
-        self.actionLoadFile.triggered.connect(lambda: self.loadFile(
-            QFileDialog.getOpenFileName(self, 'Open File', directory=self.mFile, filter=TextDockWidget.FILTERS)))
-
+        self.actionLoadFile.triggered.connect(self.onOpenFile)
         self.actionSaveFile.triggered.connect(lambda: self.save(saveAs=False))
         self.actionSaveFileAs.triggered.connect(lambda :self.save(saveAs=True))
-
         self.actionSaveFile.setEnabled(False)
         self.updateTitle()
+
+    def onOpenFile(self):
+
+        path, result = QFileDialog.getOpenFileName(self, 'Open File', directory=self.mFile, filter=TextDockWidget.FILTERS)
+        if isinstance(path, str) and len(path) > 0:
+            self.loadFile(path)
+
 
     def dragEnterEvent(self, event:QDragEnterEvent):
         """
@@ -770,13 +774,11 @@ class SpectralLibraryDock(Dock):
     A Dock to show SpectraLProfiles
     """
     sigLoadFromMapRequest = pyqtSignal()
-    def __init__(self, speclib:SpectralLibrary=None, *args, **kwds):
+    def __init__(self,  *args, speclib:SpectralLibrary=None, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
         if not isinstance(speclib, SpectralLibrary):
-            from enmapbox.gui.enmapboxgui import OWNED_BY_SPECLIBWIDGET_KEY
             speclib = SpectralLibrary()
-            speclib.setCustomProperty(OWNED_BY_SPECLIBWIDGET_KEY, True)
 
         self.mSpeclibWidget:SpectralLibraryWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
         self.mSpeclibWidget.setMapInteraction(False)
