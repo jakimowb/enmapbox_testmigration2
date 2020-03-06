@@ -41,7 +41,6 @@ from ..layerproperties import AddAttributeDialog
 BAND_INDEX = 'Band Index'
 SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY : None
 
-
 def defaultCurvePlotStyle()->PlotStyle:
     ps = PlotStyle()
     ps.setLineColor('white')
@@ -1132,8 +1131,8 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
 
         # remove old spectra
         if isinstance(self.speclib(), SpectralLibrary):
-            self.removeSpectralProfilePDIs(self.speclib().allFeatureIds())
-            self.disconnectSpeclibSignals()
+            self.removeSpectralProfilePDIs(self.mPlotDataItems.keys())
+            #self.disconnectSpeclibSignals()
         self.mSpeclib = None
 
         if isinstance(speclib, SpectralLibrary):
@@ -1161,7 +1160,7 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             self.mSpeclib.committedAttributeValuesChanges.connect(self.onCommittedAttributeValuesChanges)
             self.mSpeclib.rendererChanged.connect(self.onRendererChanged)
             #additional security to disconnect
-            self.mSpeclib.willBeDeleted.connect(lambda : self.setSpeclib(None))
+            self.mSpeclib.willBeDeleted.connect(lambda: self.setSpeclib(None))
 
 
     def disconnectSpeclibSignals(self):
@@ -2176,6 +2175,9 @@ class SpectralLibraryWidget(QMainWindow):
         self.mDualView.showContextMenuExternally.connect(self.onShowContextMenuExternally)
         self.mDualView.tableView().willShowContextMenu.connect(self.onWillShowContextMenu)
 
+        self.mSpeclib.attributeAdded.connect(self.onAttributesChanges)
+        self.mSpeclib.attributeDeleted.connect(self.onAttributesChanges)
+
         self.mPlotWidget: SpectralLibraryPlotWidget
         assert isinstance(self.mPlotWidget, SpectralLibraryPlotWidget)
         self.mPlotWidget.setDualView(self.mDualView)
@@ -2218,6 +2220,35 @@ class SpectralLibraryWidget(QMainWindow):
         self.clearTable = self.clearSpectralLibrary
 
         self.mIODialogs = list()
+
+    def onAttributesChanges(self):
+        import collections
+
+        speclib = self.speclib()
+        # as it should be
+        C1 = collections.OrderedDict()
+        for i, n in enumerate(speclib.fieldNames()):
+            C1[n] = speclib.attributeTableConfig().columnHidden(i)
+
+        config = speclib.attributeTableConfig()
+        tv = self.mDualView.tableView()
+        tv.setAttributeTableConfig(config)
+        if False:
+            for i, column in enumerate(config.columns()):
+                if column.hidden:
+                    tv.hideColumn(i)
+                else:
+                    tv.showColumn(i)
+
+        #for i, k in enumerate(C1):
+        #    visible = speclib
+        #tvModel = tv.model()
+        #assert isinstance(tv, QgsAttributeTableView)
+        #assert isinstance(tvModel, QSortFilterProxyModel)
+        s = ""
+
+
+
     def closeEvent(self, *args, **kwargs):
 
         super(SpectralLibraryWidget, self).closeEvent(*args, **kwargs)
@@ -2616,13 +2647,26 @@ class SpectralLibraryWidget(QMainWindow):
         """
         Slot to add an optional QgsField / attribute
         """
-
-        if self.mSpeclib.isEditable():
+        speclib = self.speclib()
+        if speclib.isEditable():
             d = AddAttributeDialog(self.mSpeclib)
             d.exec_()
             if d.result() == QDialog.Accepted:
                 field = d.field()
-                self.mSpeclib.addAttribute(field)
+                from collections import OrderedDict
+                C1 = OrderedDict()
+                C2 = OrderedDict()
+                C3 = OrderedDict()
+
+                for i, n in enumerate(speclib.fieldNames()):
+                    C1[n] = speclib.attributeTableConfig().columnHidden(i)
+
+                speclib.addAttribute(field)
+                for i, n in enumerate(speclib.fieldNames()):
+                    C2[n] = speclib.attributeTableConfig().columnHidden(i)
+                    C3[n] = self.mDualView.attributeTableConfig().columnHidden(i)
+
+                s = ""
         else:
             log('call SpectralLibrary().startEditing before adding attributes')
 
