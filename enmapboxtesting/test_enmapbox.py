@@ -182,7 +182,8 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertTrue(len(QgsProject.instance().mapLayers()) > 0)
         canvases = EMB.mapCanvases()
         self.assertTrue(canvases[-1] == EMB.activeMapCanvas())
-        self.showGui(EMB.ui)
+        import qgis.utils
+        self.showGui([EMB.ui, qgis.utils.iface.mainWindow()])
 
 
 

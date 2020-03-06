@@ -349,7 +349,7 @@ class EnMAPBox(QgisInterface, QObject):
     def addMapLayers(self, layers:typing.List[QgsMapLayer]):
         layers = [l for l in layers if isinstance(l, QgsMapLayer)]
         unregistered = [l for l in layers if l not in QgsProject.instance().mapLayers().values()]
-        unknown = self.mapLayers()
+        unknown = [l for l in layers if l not in self.mapLayers()]
         if len(unregistered) > 0:
             QgsProject.instance().addMapLayers(unregistered, False)
             # this triggers the DataSourceManager to add new sources
