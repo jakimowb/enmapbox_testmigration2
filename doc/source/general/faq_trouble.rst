@@ -50,10 +50,10 @@ suggest new entries!
 
 * **How to cite the EnMAP-Box?**
 
-Please cite the EnMAP-Box as::
+  Please cite the EnMAP-Box as::
 
-    EnMAP-Box Developers (2019): EnMAP-Box 3 - A QGIS Plugin to process and visualize
-    hyperspectral remote sensing data. www.enmap.org/enmapbox.html
+      EnMAP-Box Developers (2019): EnMAP-Box 3 - A QGIS Plugin to process and visualize
+      hyperspectral remote sensing data. www.enmap.org/enmapbox.html
 
 
 

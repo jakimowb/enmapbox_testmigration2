@@ -16,6 +16,8 @@ Regression-based unmixing of urban land cover
 Introduction
 ============
 
+.. TODO Slide Collection Link once on EOC or directly link here
+
 1. Background
 -------------
 
@@ -103,7 +105,8 @@ Exercise A: Urban land cover
 2. Load data
 ------------
 
-* The EnMAP-Box offers simple drag & drop capabilities to load data from an external explorer. Drag the following datasets from your explorer into the Data Sources panel:
+* The EnMAP-Box offers simple drag & drop capabilities to load data from an external explorer.
+  Drag the following datasets from your explorer into the :guilabel:`Data Sources` panel:
 
   * Raster: :file:`hymap_berlin.bsq`, :file:`enmap_berlin.bsq`
   * Vector: :file:`landcover_berlin.shp`
