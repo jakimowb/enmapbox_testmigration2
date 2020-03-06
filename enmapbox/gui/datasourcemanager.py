@@ -1200,12 +1200,11 @@ class DataSourceTreeView(TreeView):
                 ds = gdal.Open(lyr.source())
                 if isinstance(rgb, str):
                     if re.search('DEFAULT', rgb):
+                        r = defaultRasterRenderer(lyr, sampleSize=sampleSize)
                         rgb = defaultBands(ds)
                     else:
                         rgb = [bandClosestToWavelength(ds, s) for s in rgb.split(',')]
-
-                assert isinstance(rgb, list)
-                r = defaultRasterRenderer(lyr, bandIndices=rgb, sampleSize=sampleSize)
+                        r = defaultRasterRenderer(lyr, bandIndices=rgb, sampleSize=sampleSize)
                 lyr.setRenderer(r)
 
 
