@@ -2225,28 +2225,23 @@ class SpectralLibraryWidget(QMainWindow):
         import collections
 
         speclib = self.speclib()
+
+        all_names = speclib.fields().names()
+
         # as it should be
-        C1 = collections.OrderedDict()
-        for i, n in enumerate(speclib.fieldNames()):
-            C1[n] = speclib.attributeTableConfig().columnHidden(i)
+        shouldBeVisible = []
+        tableConfig = speclib.attributeTableConfig()
+        assert isinstance(tableConfig, QgsAttributeTableConfig)
+        names = []
+        hidden = []
+        for c in tableConfig.columns():
+            assert isinstance(c, QgsAttributeTableConfig.ColumnConfig)
+            names.append(c.name)
+            hidden.append(c.hidden)
+        missing = [n for n in all_names if n not in names and n not in [FIELD_VALUES, FIELD_FID]]
 
-        config = speclib.attributeTableConfig()
-        tv = self.mDualView.tableView()
-        tv.setAttributeTableConfig(config)
-        if False:
-            for i, column in enumerate(config.columns()):
-                if column.hidden:
-                    tv.hideColumn(i)
-                else:
-                    tv.showColumn(i)
-
-        #for i, k in enumerate(C1):
-        #    visible = speclib
-        #tvModel = tv.model()
-        #assert isinstance(tv, QgsAttributeTableView)
-        #assert isinstance(tvModel, QSortFilterProxyModel)
-        s = ""
-
+        if len(missing) > 0:
+            self.mDualView.setAttributeTableConfig(QgsAttributeTableConfig())
 
 
     def closeEvent(self, *args, **kwargs):
@@ -2653,20 +2648,7 @@ class SpectralLibraryWidget(QMainWindow):
             d.exec_()
             if d.result() == QDialog.Accepted:
                 field = d.field()
-                from collections import OrderedDict
-                C1 = OrderedDict()
-                C2 = OrderedDict()
-                C3 = OrderedDict()
-
-                for i, n in enumerate(speclib.fieldNames()):
-                    C1[n] = speclib.attributeTableConfig().columnHidden(i)
-
                 speclib.addAttribute(field)
-                for i, n in enumerate(speclib.fieldNames()):
-                    C2[n] = speclib.attributeTableConfig().columnHidden(i)
-                    C3[n] = self.mDualView.attributeTableConfig().columnHidden(i)
-
-                s = ""
         else:
             log('call SpectralLibrary().startEditing before adding attributes')
 
@@ -2961,8 +2943,3 @@ class SpectralLibraryPanel(QgsDockWidget):
         :param mode: SpectralLibraryWidget.CurrentProfilesMode
         """
         self.SLW.setCurrentProfilesMode(mode)
-
-class SpectralLibraryLayerStyleWidget(QgsMapLayerConfigWidget):
-
-    pass
-
