@@ -1178,12 +1178,23 @@ def doLoadSpectralProfiles(task, spatialPoint, relations:typing.List[SpectralPro
             for potentialSource in src.mapSources():
                 potentialLayer = potentialSource.rasterLayer()
                 assert isinstance(potentialLayer, QgsRasterLayer)
+
                 pos2 = spatialPoint.toCrs(potentialLayer.crs())
+                if not potentialLayer.extent().contains(pos2):
+                    continue
+
+                renderer = potentialLayer.renderer()
                 dp = potentialLayer.dataProvider()
                 assert isinstance(dp, QgsRasterDataProvider)
-                value, hasValue = dp.sample(pos2, 1)
-                if hasValue:
-                    lyr = potentialLayer
+                assert isinstance(renderer, QgsRasterRenderer)
+
+                # use visible pixels only
+                for b in renderer.usesBands():
+                    value, hasValue = dp.sample(pos2, b)
+                    if hasValue:
+                        lyr = potentialLayer
+                        break
+                if isinstance(lyr, QgsRasterLayer):
                     break
         else:
             lyr = src.rasterLayer()
