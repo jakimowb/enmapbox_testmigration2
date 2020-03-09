@@ -6,17 +6,22 @@ Applications
 ImageMath
 =========
 
-Image Statistics
-================
+.. _synthMix:
 
-Synthmix Regression Mapper
-==========================
+Regression-based unmixing (synthMix)
+====================================
 
 
 .. _Classification Workflow:
 
 Classification Workflow
 =======================
+
+.. _Regression Workflow:
+
+Regression Workflow
+===================
+
 
 
 EO Time Series Viewer

@@ -8,10 +8,37 @@
 Tools
 *****
 
-Scatter Plot
-============
+Image Statistics
+================
 
-The Scatter Plot tool allows you to plot the values of two bands against each other. You can specify the following settings:
+The image statistics tool provides access to basic summary statistics for each raster band. Those statistics are reported
+in a table and can be visualized as a histogram. It can be opened from the menu bar via :menuselection:`Tools --> ImageStatistics`
+
+* In order to calculate the statistics, select a desired raster dataset under :guilabel:`Raster`.
+* Optionally, you can specify a :guilabel:`Mask` in order to only include a subset of pixels.
+* Under :guilabel:`Accuracy` you can specify whether the statistics will be calculated based on a random subset of the data
+  (*Estimated*) or using the complete dataset (*Actual*). Using a subset will be faster.
+* :guilabel:`Histogram bins`: Choose between different algorithms used to calculate the size/number of histogram bins.
+* Click the |action| button to start the calculation of the image statistics.
+
+  .. figure:: /img/image_statistics_tool.png
+     :width: 80%
+
+     Image Statistics tool
+
+* After the calculation is complete, a tabular representation of the results is shown.
+* In order to show a histogram of a bands value distribution, select a row in the table.
+* Multiple histograms can be plotted by activating the |plus_green| button
+* In order to show all possible histograms (i.e., one histogram for each band) click the |histogram| button.
+* Check the |mIconEditableEdits| button in order to only draw lines of the histogram (advised if multiple are plotted)
+
+....
+
+Scatterplot
+===========
+
+The Scatterplot tool allows you to plot the values of two bands against each other.
+It can be opened from the menu bar via :menuselection:`Tools --> Scatterplot`. You can specify the following settings:
 
  * :guilabel:`Band X`: Choose the raster (first dropdown menu) and the band (second dropdown menu) to be plotted on the X-axis.
    ``Min`` and ``Max`` depict the limits of the axis. By default, Min and Max will be automatically derived. You can also

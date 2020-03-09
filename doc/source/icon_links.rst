@@ -324,6 +324,10 @@
    :width: 28px
 .. |cb1| image:: /img/icons/cb1.png
    :width: 28px
+.. |histogram| image:: /img/icons/histogram.svg
+   :width: 28px
+.. |iconClearConsole| image:: /img/icons/iconClearConsole.svg
+   :width: 28px
 .. |mActionAddRasterLayer| image:: /img/icons/mActionAddRasterLayer.svg
    :width: 28px
 .. |mActionDataSourceManager| image:: /img/icons/mActionDataSourceManager.svg
@@ -357,6 +361,8 @@
 .. |mActionSetProjection| image:: /img/icons/mActionSetProjection.svg
    :width: 28px
 .. |mActionToggleEditing| image:: /img/icons/mActionToggleEditing.svg
+   :width: 28px
+.. |mIconEditableEdits| image:: /img/icons/mIconEditableEdits.svg
    :width: 28px
 .. |plot_style| image:: /img/icons/plot_style.svg
    :width: 28px
