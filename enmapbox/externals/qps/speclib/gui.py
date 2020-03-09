@@ -467,6 +467,7 @@ class SpectralProfilePlotDataItem(PlotDataItem):
                 is_finite = np.isfinite(y)
                 connected = np.logical_and(is_finite, np.roll(is_finite, -1))
                 keep = is_finite + connected
+                #y[np.logical_not(is_finite)] = np.nanmin(y)
                 y = y[keep]
                 x = x[keep]
                 connected = connected[keep]
@@ -1827,7 +1828,7 @@ class SpectralProfileEditorWidget(QWidget):
         loadUi(speclibUiPath('spectralprofileeditorwidget.ui'), self)
         self.mDefault = None
         self.mModel = SpectralProfileValueTableModel(parent=self)
-        self.mModel.dataChanged.connect(lambda :self.sigProfileValuesChanged.emit(self.profileValues()))
+        self.mModel.dataChanged.connect(lambda: self.sigProfileValuesChanged.emit(self.profileValues()))
         self.mModel.sigColumnValueUnitChanged.connect(self.onValueUnitChanged)
         self.mModel.sigColumnDataTypeChanged.connect(self.onDataTypeChanged)
 
@@ -2612,13 +2613,14 @@ class SpectralLibraryWidget(QMainWindow):
         return self.mSpeclib
 
     def onSaveEdits(self, *args):
-
-        if self.mSpeclib.isModified():
-
-            b = self.mSpeclib.isEditable()
-            self.mSpeclib.commitChanges()
+        speclib = self.speclib()
+        if isinstance(speclib, SpectralLibrary) and speclib.isModified():
+            b = speclib.isEditable()
+            success = speclib.commitChanges()
+            if not success:
+                speclib.reload()
             if b:
-                self.mSpeclib.startEditing()
+                speclib.startEditing()
 
     def onSelectionChanged(self, selected, deselected, clearAndSelect):
         """
@@ -2708,7 +2710,7 @@ class SpectralLibraryWidget(QMainWindow):
         """
         speclib = self.speclib()
         if speclib.isEditable():
-            d = AddAttributeDialog(self.mSpeclib)
+            d = AddAttributeDialog(self.mSpeclib, case_sensitive=False)
             d.exec_()
             if d.result() == QDialog.Accepted:
                 field = d.field()
@@ -2727,7 +2729,6 @@ class SpectralLibraryWidget(QMainWindow):
                 if accepted:
                     i = self.mSpeclib.fields().indexFromName(fieldName)
                     if i >= 0:
-                        b = self.mSpeclib.isEditable()
                         self.mSpeclib.startEditing()
                         self.mSpeclib.deleteAttribute(i)
                         self.mSpeclib.commitChanges()
