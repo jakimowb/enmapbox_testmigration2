@@ -315,6 +315,21 @@ class EnMAPBox(QgisInterface, QObject):
         splash.showMessage('Load EnMAPBoxApplications...')
         self.initEnMAPBoxApplications()
 
+        # add developer tools to the Tools menu
+        m = self.menu('Tools')
+        m.addSeparator()
+        m = m.addMenu('Developers')
+        m.addAction(self.ui.mActionAddMimeView)
+        a = m.addAction('Resource Browser')
+        a.setToolTip('Opens a Browser to inspect the Qt Resource system')
+
+        def onShowResourceBrowser():
+            from ..externals.qps.resources import showResources
+            browser = showResources()
+            browser.setWindowTitle('Resource Browser')
+            a._browser = browser
+        a.triggered.connect(onShowResourceBrowser)
+
         self.ui.setVisible(True)
         splash.finish(self.ui)
 

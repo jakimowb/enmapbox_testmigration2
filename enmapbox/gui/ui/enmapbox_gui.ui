@@ -136,7 +136,6 @@
     <addaction name="mActionAddMapView"/>
     <addaction name="mActionAddSpeclibView"/>
     <addaction name="mActionAddTextView"/>
-    <addaction name="mActionAddMimeView"/>
     <addaction name="separator"/>
     <addaction name="menuPanels"/>
    </widget>
