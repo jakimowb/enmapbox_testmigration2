@@ -22,14 +22,6 @@
 # You should have received a copy of the GNU Lesser General Public License along
 # with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Top-level package for enpt_enmapboxapp."""
-
-from .version import __version__, __versionalias__   # noqa (E402 + F401)
-
-__author__ = """Daniel Scheffler"""
-__email__ = 'danschef@gfz-potsdam.de'
-__all__ = ['__version__',
-           '__versionalias__',
-           '__author__',
-           '__email__'
-           ]
+__version__ = '0.3.2'
+__versionalias__ = '20200130.01'
+__author__ = 'Daniel Scheffler'
