@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-import enum, warnings
+import enum, warnings, typing
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
@@ -1661,6 +1661,37 @@ class EnMAPBox(QgisInterface, QObject):
 
 
         self.ui.addDockWidget(area, dockWidget, orientation=orientation)
+
+    def showProcessingAlgorithmDialog(self, algorithmName:typing.Union[str, QgsProcessingAlgorithm])->QWidget:
+        """
+        :param algorithmName:
+        :type algorithmName:
+        :return:
+        :rtype: processing.gui.AlgorithmDialog.AlgorithmDialog
+        """
+        """Opens the dialog to start an QgsProcessingAlgorithm"""
+
+        from processing.gui.AlgorithmDialog import AlgorithmDialog
+
+        algorithm = None
+        all_names = []
+        for alg in QgsApplication.processingRegistry().algorithms():
+            assert isinstance(alg, QgsProcessingAlgorithm)
+            all_names.append(alg.id())
+            if algorithmName == alg or \
+               algorithmName in alg.id():
+                algorithm = alg
+                break
+
+        if not isinstance(algorithm, QgsProcessingAlgorithm):
+            raise Exception('Algorithm {} not found in QGIS Processing Registry'.format(algorithmName))
+
+
+        dlg = alg.createCustomParametersWidget(self.ui)
+        if not dlg:
+            dlg = AlgorithmDialog(alg, parent=self.ui)
+        dlg.show()
+        return dlg
 
     def addLayerMenu(self):
         pass

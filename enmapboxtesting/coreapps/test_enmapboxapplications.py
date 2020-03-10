@@ -1,22 +1,41 @@
-import unittest
-from unittest import TestCase
-from enmapbox.testing import initQgisApplication, TestObjects
-import enmapboxtestdata
-from reclassifyapp.reclassify import *
-from enmapbox.gui import ClassificationScheme
-from enmapbox.gui.utils import *
+import unittest, pathlib, site
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox import EnMAPBox, EnMAPBoxApplication
+from enmapbox.gui.utils import *
+from enmapbox import DIR_ENMAPBOX
+from qgis.PyQt.QtWidgets import QWidget
+
+
+site.addsitedir(pathlib.Path(DIR_ENMAPBOX) / 'coreapps')
+from reclassifyapp.reclassify import *
 
 class TestEnMAPBoxApplications(EnMAPBoxTestCase):
 
-    def setUp(self):
-        self.emb = EnMAPBox()
-        self.emb.loadExampleData()
+    def test_createtestdata(self):
+        EB = EnMAPBox()
+        EB.initEnMAPBoxApplications()
+        all_ids = [a.id() for a in QgsApplication.processingRegistry().algorithms()]
 
-    def tearDown(self):
-        self.emb.close()
-        self.emb = None
+        test_algs = [a for a in all_ids if a.startswith('enmapbox:CreateTest')]
+
+        from processing.gui.AlgorithmDialog import AlgorithmDialog
+        import time
+        for a in test_algs:
+            n_before = len(EB.dataSources())
+            d = EB.showProcessingAlgorithmDialog(a)
+            self.assertIsInstance(d, AlgorithmDialog)
+            d.buttonBox().button(QDialogButtonBox.Ok).click()
+            time.sleep(2)
+            while QgsApplication.taskManager().countActiveTasks() > 0:
+                QgsApplication.processEvents()
+            QgsApplication.processEvents()
+            time.sleep(2)
+
+            n_produced = len(EB.dataSources()) - n_before
+            d.buttonBox().button(QDialogButtonBox.Close).click()
+            self.assertTrue(n_produced > 0, msg='Algorithm "{}" did not create any data source'.format(a.id()))
+
+        self.showGui(EB.ui)
 
 
     def test_UiLibrary(self):
