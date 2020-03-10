@@ -34,5 +34,5 @@ pipelines:
           - python scripts/setuprepository.py
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
-          - /bin/bash runtests.sh
+          - /bin/bash scripts/runtests.sh
 
