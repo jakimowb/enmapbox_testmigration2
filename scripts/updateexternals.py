@@ -101,12 +101,6 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
 
 ## GFZ
 
-RemoteInfo.create(r'https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git',
-                  prefixLocal=r'enmapbox/apps/enpt_enmapboxapp',
-                  prefixRemote=r'enpt_enmapboxapp',
-                  #remoteBranch='master'
-                  remoteBranch='master'
-                  )
 
 def updateRemotes(remoteLocations):
     """
