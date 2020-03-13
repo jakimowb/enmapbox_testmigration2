@@ -207,11 +207,13 @@ class DataSource(object):
         self.setName(name)
         self.setIcon(icon)
 
-    def __eq__(self, other):
-        return other is not None and \
-               self.uri() == other.uri()
+    def __eq__(self, other)->bool:
+        if not isinstance(other, DataSource):
+            return None
+        else:
+            return self.uri() == other.uri()
 
-    def uuid(self):
+    def uuid(self)->str:
         """
         Returns the Unique Identifier that was created when initializing this object.
         :return: UUID
@@ -313,10 +315,16 @@ class DataSourceSpatial(DataSource):
     """
     Abstract class to describe spatial data from local files but also web sources
     """
-    def __init__(self, uri, name=None, icon=None, providerKey:str=None):
+    def __init__(self, uri:str, name:str=None, icon:QIcon=None, providerKey:str=None, layer:QgsMapLayer=None):
+
+        if isinstance(layer, QgsMapLayer):
+            uri = layer.source()
+            name = layer.name()
+            providerKey = layer.dataProvider().name()
+        assert isinstance(providerKey, str) and providerKey in QgsProviderRegistry.instance().providerList()
 
         super(DataSourceSpatial, self).__init__(uri, name=name, icon=icon)
-        assert isinstance(providerKey, str) and providerKey in QgsProviderRegistry.instance().providerList()
+
 
         self.mProvider = providerKey
         self.mLayer = None
@@ -388,55 +396,22 @@ class HubFlowDataSource(DataSource):
 
 
 
-class DataSourceSpectralLibrary(DataSourceSpatial):
-
-    def __init__(self, uri, name=None, icon=None):
-        if icon is None:
-            icon = QIcon(':/qps/ui/icons/speclib.svg')
-        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='ogr')
-
-        self.mSpeclib = SpectralLibrary.readFrom(self.mUri)
-        if not isinstance(self.mSpeclib, SpectralLibrary):
-            raise Exception('Unable to read SpectraLibrary from {}'.format(self.mUri))
-
-        self.mSpeclib.setCustomProperty('ENMAPBOX_DATASOURCE', True)
-        self.nProfiles = 0
-        self.profileNames = []
-        self.updateMetadata()
-
-    def createUnregisteredMapLayer(self, *args, **kwds)->QgsVectorLayer:
-        return QgsVectorLayer(self.mSpeclib.source(), self.mSpeclib.name(), self.mProvider)
-        #return self.spectralLibrary()
-
-    def updateMetadata(self, *args, **kwds):
-        if isinstance(self.mSpeclib, SpectralLibrary):
-            self.mSpeclib.setName(os.path.basename(self.mUri))
-            self.setName(self.mSpeclib.name())
-
-            self.nProfiles = len(self.mSpeclib)
-            self.profileNames = []
-            for p in self.mSpeclib.profiles():
-                assert isinstance(p, SpectralProfile)
-                self.profileNames.append(p.name())
-
-    def speclib(self)->SpectralLibrary:
-        """
-        :return: SpectralLibrary
-        """
-        return self.mSpeclib
-
-
 class DataSourceRaster(DataSourceSpatial):
 
-    def __init__(self, uri:str, name:str=None, icon=None, providerKey:str=None):
+    def __init__(self, uri:str, name:str=None, icon=None, providerKey:str=None, layer:QgsRasterLayer=None):
 
-        super(DataSourceRaster, self).__init__(uri, name=name, icon=icon, providerKey=providerKey)
+        if isinstance(layer, QgsRasterLayer):
+            uri = layer.source()
+
+        super(DataSourceRaster, self).__init__(uri, name=name, icon=icon, providerKey=providerKey, layer=layer)
 
         self.mDefaultRenderer = None
-        self.mLayer = self.createUnregisteredMapLayer()
-        assert isinstance(self.mLayer, QgsRasterLayer)
-        self.mLayerId = self.mLayer.id()
 
+        if not isinstance(layer, QgsRasterLayer):
+            layer = self.createUnregisteredMapLayer()
+        assert isinstance(layer, QgsRasterLayer)
+        self.mLayer = layer
+        self.mLayerId = self.mLayer.id()
         self.mLayer.setCustomProperty('ENMAPBOX_DATASOURCE',True)
 
         #self.mDataType = -1
@@ -642,9 +617,8 @@ class DataSourceRaster(DataSourceSpatial):
 
 
 class DataSourceVector(DataSourceSpatial):
-    def __init__(self, uri,  name=None, icon=None, providerKey:str=None):
-        super(DataSourceVector, self).__init__(uri, name, icon, providerKey)
-
+    def __init__(self, uri,  name=None, icon=None, providerKey:str=None, layer:QgsVectorLayer=None):
+        super(DataSourceVector, self).__init__(uri, name, icon, providerKey, layer=layer)
         if name is None:
             try:
                 if providerKey == 'WFS':
@@ -654,9 +628,11 @@ class DataSourceVector(DataSourceSpatial):
             except Exception as ex:
                 self.setName(str(uri))
 
+        if not isinstance(layer, QgsVectorLayer):
+            layer = self.createUnregisteredMapLayer()
 
-        self.mLayer = self.createUnregisteredMapLayer()
-        assert isinstance(self.mLayer, QgsVectorLayer)
+        assert isinstance(layer, QgsVectorLayer)
+        self.mLayer = layer
         self.mLayerId = self.mLayer.id()
         self.updateMetadata()
 
@@ -703,6 +679,55 @@ class DataSourceVector(DataSourceSpatial):
             self.mIcon = QIcon(':/images/themes/default/mIconLineLayer.svg')
         elif gt in [QgsWkbTypes.PolygonGeometry]:
             self.mIcon = QIcon(':/images/themes/default/mIconPolygonLayer.svg')
+
+
+class DataSourceSpectralLibrary(DataSourceVector):
+
+    def __init__(self, uri, name=None, icon=None, speclib: SpectralLibrary = None):
+        if icon is None:
+            icon = QIcon(':/qps/ui/icons/speclib.svg')
+
+        if isinstance(speclib, SpectralLibrary):
+            uri = speclib.source()
+            name = speclib.name()
+            layer = speclib
+        else:
+            layer = SpectralLibrary.readFrom(uri)
+            assert isinstance(layer, SpectralLibrary), 'Unable to read SpectraLibrary from {}'.format(uri)
+        assert isinstance(layer, SpectralLibrary)
+
+        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='ogr', layer=layer)
+
+
+        # reset uri to original file
+        self.mUri = uri
+
+
+        self.setIcon(icon)
+
+        self.nProfiles = 0
+        self.profileNames = []
+        self.updateMetadata()
+
+    def createUnregisteredMapLayer(self) ->SpectralLibrary:
+
+        return SpectralLibrary(uri=self.mLayer.source())
+
+    def updateMetadata(self, *args, **kwds):
+
+        speclib = self.speclib()
+        if isinstance(speclib, SpectralLibrary):
+            self.setName(speclib.name())
+            self.mIcon = QIcon(':/qps/ui/icons/speclib.svg')
+
+    def mapLayer(self) -> SpectralLibrary:
+        return super().mapLayer()
+
+    def speclib(self) -> SpectralLibrary:
+        """
+        :return: SpectralLibrary
+        """
+        return self.mapLayer()
 
 
 class DataSourceFactory(object):
@@ -809,6 +834,7 @@ class DataSourceFactory(object):
                         if cls.canRead(src):
                             uri = src
                             break
+
                 else:
                     s = ""
         return uri, None
@@ -872,7 +898,7 @@ class DataSourceFactory(object):
             return sources
         else:
 
-            if src is None or isinstance(src, str) and len(src) == 0:
+            if src in [None, '', QVariant()]:
                 return []
 
             elif isinstance(src, DataSource):
@@ -882,7 +908,12 @@ class DataSourceFactory(object):
                     return [DataSourceRaster(src.uri, name=src.name, providerKey=src.providerKey)]
                 elif src.layerType == 'vector':
                     return [DataSourceVector(src.uri, name=src.name, providerKey=src.providerKey)]
-
+            elif isinstance(src, SpectralLibrary):
+                return [DataSourceSpectralLibrary(None, speclib=src)]
+            elif isinstance(src, QgsVectorLayer):
+                return [DataSourceVector(None, layer=src)]
+            elif isinstance(src, QgsRasterLayer):
+                return [DataSourceRaster(None, layer=src)]
 
             elif type(src) in [str, QUrl]:
                 src = DataSourceFactory.srcToString(src)

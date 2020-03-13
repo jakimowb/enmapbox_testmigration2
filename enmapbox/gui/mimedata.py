@@ -170,12 +170,10 @@ def extractMapLayers(mimeData:QMimeData)->list:
 
         for treeLayer in layerTree.findLayers():
             assert isinstance(treeLayer, QgsLayerTreeLayer)
-
-
             id = treeLayer.layerId()
             mapLayer = QgsProject.instance().mapLayer(id)
 
-            if QGIS_LAYERTREE_FORMAT == MDF_QGIS_LAYERTREEMODELDATA:
+            if isinstance(mapLayer, QgsMapLayer) and QGIS_LAYERTREE_FORMAT == MDF_QGIS_LAYERTREEMODELDATA:
                 # clone the layer if it comes from the QGIS Application
                 mapLayer = mapLayer.clone()
 

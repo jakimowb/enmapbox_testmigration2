@@ -160,14 +160,29 @@ class ClassificationWorkflowApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi,
             else:
                 oversampling = self.uiOversampling_.value()
 
+
+            raster = Raster(filename=self.uiRaster_.currentLayer().source())
+
+            tmpfilename = '/vsimem/classificationapp/reprojected.gpkg'
+            if not ds.projection().equal(raster.grid().projection()):
+                # reproject vector
+                ds.reproject(projection=raster.grid().projection(), filename=tmpfilename, driver=GeoPackageDriver())
+                filename = tmpfilename
+
             vectorClassification = VectorClassification(filename=filename, classAttribute=name,
                                                         minDominantCoverage=self.uiPurity_.value() / 100.,
                                                         oversampling=oversampling)
-            raster = Raster(filename=self.uiRaster_.currentLayer().source())
+
             self.log('Rasterize reference on raster grid with x{} resolution oversampling and select pixel with at leased {}% purity'.format(self.uiOversampling_.value(), self.uiPurity_.value()))
             classification = Classification.fromClassification(filename=self.rasterizationFilename(),
                                                                classification=vectorClassification, grid=raster.grid(),
                                                                **ApplierOptions(emitFileCreated=False, progressBar=self.progressBar()))
+
+            try:
+                gdal.Unlink(tmpfilename)
+            except:
+                pass
+
             self.log('')
             self.progressBar().setPercentage(0)
 

@@ -36,9 +36,16 @@ class CrosshairTests(EnMAPBoxTestCase):
         refCanvas.show()
         refCanvas.mCrosshairItem.setVisibility(True)
 
+        menu = refCanvas.contextMenu(SpatialPoint.fromMapCanvasCenter(refCanvas))
+        menu.show()
 
+        QgsProject.instance().addMapLayer(lyr)
+        QgsProject.instance().removeMapLayer(lyr)
+        del lyr
+        self.assertTrue(refCanvas.mCrosshairItem.rasterGridLayer() == None)
 
-        self.showGui(refCanvas)
+        menu = refCanvas.contextMenu(SpatialPoint.fromMapCanvasCenter(refCanvas))
+        self.showGui([refCanvas, menu])
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,4 @@
-import typing, pathlib
+import typing, pathlib, sys
 from qgis.core import QgsRasterLayer, QgsRasterRenderer
 from qgis.core import *
 from qgis.gui import QgsMapCanvas, QgsMapLayerConfigWidget, QgsRasterBandComboBox
@@ -6,9 +6,10 @@ from qgis.gui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
-from ..utils import loadUi
+from ..utils import loadUi, gdalDataset, ogrDataSource
 import numpy as np
 from .core import QpsMapLayerConfigWidget
+from ..classification.classificationscheme import ClassificationScheme, ClassificationSchemeWidget, ClassInfo
 from osgeo import gdal, ogr
 
 class GDALMetadataModel(QAbstractTableModel):
@@ -90,15 +91,23 @@ class GDALMetadataModel(QAbstractTableModel):
 
     def _read_maplayer(self) -> list:
         items = []
+
+        if not isinstance(self.mLayer, QgsMapLayer) or not self.mLayer.isValid():
+            return items
+
+
+
         if isinstance(self.mLayer, QgsRasterLayer) and self.mLayer.dataProvider().name() == 'gdal':
             ds = gdal.Open(self.mLayer.source())
+
             if isinstance(ds, gdal.Dataset):
+                z = len(str(ds.RasterCount))
                 for (domain, key, value) in self._read_majorobject(ds):
                     items.append(GDALMetadataModel.MDItem('Dataset', domain, key, value))
                 for b in range(ds.RasterCount):
                     band = ds.GetRasterBand(b + 1)
                     assert isinstance(band, gdal.Band)
-                    bandKey = 'Band{}'.format(b + 1)
+                    bandKey = 'Band{}'.format(str(b + 1).zfill(z))
                     for (domain, key, value) in self._read_majorobject(band):
                         items.append(GDALMetadataModel.MDItem(bandKey, domain, key, value))
 
@@ -107,10 +116,11 @@ class GDALMetadataModel(QAbstractTableModel):
             if isinstance(ds, ogr.DataSource):
                 for (domain, key, value) in self._read_majorobject(ds):
                     items.append(GDALMetadataModel.MDItem('Datasource', domain, key, value))
+                z = len(str(ds.GetLayerCount()))
                 for b in range(ds.GetLayerCount()):
                     lyr = ds.GetLayer(b)
                     assert isinstance(lyr, ogr.Layer)
-                    lyrKey = 'Layer{}'.format(b + 1)
+                    lyrKey = 'Layer{}'.format(str(b + 1).zfill(z))
                     for (domain, key, value) in self._read_majorobject(lyr):
                         items.append(GDALMetadataModel.MDItem(lyrKey, domain, key, value))
 
@@ -141,25 +151,22 @@ class GDALMetadataModelTreeView(QTreeView):
 class GDALMetadataModelConfigWidget(QpsMapLayerConfigWidget):
 
 
-    def __init__(self, layer:QgsMapLayer, canvas:QgsMapCanvas, parent:QWidget=None):
+    def __init__(self, layer:QgsMapLayer=None, canvas:QgsMapCanvas=None, parent:QWidget=None):
+
+        if layer is None:
+            layer = QgsRasterLayer()
+        if canvas is None:
+            canvas = QgsMapCanvas()
+
         super(GDALMetadataModelConfigWidget, self).__init__(layer, canvas, parent=parent)
         pathUi = pathlib.Path(__file__).parents[1] / 'ui' / 'gdalmetadatamodelwidget.ui'
         loadUi(pathUi, self)
-
-        if isinstance(layer, QgsRasterLayer):
-            self.setPanelTitle('GDAL Metadata')
-            self.setToolTip('Layer metadata according to the GDAL Metadata model')
-            self.setWindowIcon(QIcon(':/qps/ui/icons/edit_gdal_metadata.svg'))
-        elif isinstance(layer, QgsVectorLayer):
-            self.setPanelTitle('OGR Metadata')
-            self.setToolTip('Layer metadata according to the OGR Metadata model')
-            self.setWindowIcon(QIcon(':/qps/ui/icons/edit_ogr_metadata.svg'))
 
         self.tvMetadata: QTableView
         self.tbFilter: QLineEdit
         self.btnMatchCase.setDefaultAction(self.optionMatchCase)
         self.btnRegex.setDefaultAction(self.optionRegex)
-
+        self._cs = None
         self.metadataModel = GDALMetadataModel()
         self.metadataProxyModel = QSortFilterProxyModel()
         self.metadataProxyModel.setSourceModel(self.metadataModel)
@@ -169,16 +176,72 @@ class GDALMetadataModelConfigWidget(QpsMapLayerConfigWidget):
         self.tbFilter.textChanged.connect(self.updateFilter)
         self.optionMatchCase.changed.connect(self.updateFilter)
         self.optionRegex.changed.connect(self.updateFilter)
+        assert isinstance(self.classificationSchemeWidget, ClassificationSchemeWidget)
 
-        is_gdal = isinstance(layer, QgsRasterLayer) and layer.dataProvider().name() == 'gdal'
-        is_ogr = isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'ogr'
+        self.is_gdal = self.is_ogr = self.supportsGDALClassification = False
+        self.classificationSchemeWidget.setIsEditable(False)
+
+        self.setLayer(layer)
+
+    def setLayer(self, layer:QgsMapLayer):
+        """
+        Set the maplayer
+        :param layer:
+        :type layer:
+        :return:
+        :rtype:
+        """
+
+        if not (isinstance(layer, QgsMapLayer) and layer.isValid()):
+            self.is_gdal = self.is_ogr = self.supportsGDALClassification = False
+        else:
+
+            self.is_gdal = isinstance(layer, QgsRasterLayer) and layer.dataProvider().name() == 'gdal'
+            self.is_ogr = isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'ogr'
+
+            if isinstance(layer, QgsRasterLayer):
+                self.setPanelTitle('GDAL Metadata')
+                self.setToolTip('Layer metadata according to the GDAL Metadata model')
+                self.setWindowIcon(QIcon(':/qps/ui/icons/edit_gdal_metadata.svg'))
+                self.supportsGDALClassification = \
+                    self.is_gdal and layer.dataProvider().dataType(1) in \
+                    [Qgis.Byte, Qgis.UInt16, Qgis.Int16, Qgis.UInt32, Qgis.Int32, Qgis.Int32]
+
+
+            elif isinstance(layer, QgsVectorLayer):
+                self.setPanelTitle('OGR Metadata')
+                self.setToolTip('Layer metadata according to the OGR Metadata model')
+                self.setWindowIcon(QIcon(':/qps/ui/icons/edit_ogr_metadata.svg'))
+
+            self.syncToLayer()
 
     def apply(self):
-        #todo: apply changes to vector layer
-        pass
+        if self.is_gdal:
+            ds = gdalDataset(self.mapLayer(), gdal.GA_Update)
+            assert isinstance(ds, gdal.Dataset)
+
+            if self.supportsGDALClassification:
+                cs = self.classificationSchemeWidget.classificationScheme()
+                if isinstance(cs, ClassificationScheme):
+                    self.mapLayer().dataProvider().setEditable(True)
+                    cs.saveToRaster(ds)
+                    ds.FlushCache()
+
 
     def syncToLayer(self):
-        self.metadataModel.syncToLayer()
+
+        lyr = self.mapLayer()
+        self.metadataModel.setLayer(lyr)
+        if self.supportsGDALClassification:
+            self._cs = ClassificationScheme.fromMapLayer(lyr)
+
+        if isinstance(self._cs, ClassificationScheme) and len(self._cs) > 0:
+            self.gbClassificationScheme.setVisible(True)
+            self.classificationSchemeWidget.setClassificationScheme(self._cs)
+        else:
+            self.classificationSchemeWidget.classificationScheme().clear()
+            self.gbClassificationScheme.setVisible(False)
+
 
     def updateFilter(self, *args):
 
@@ -207,6 +270,8 @@ class GDALMetadataConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
 
         self.mIconGDAL = QIcon(':/qps/ui/icons/edit_gdal_metadata.svg')
         self.mIconOGR  = QIcon(':/qps/ui/icons/edit_ogr_metadata.svg')
+
+
     def supportsLayer(self, layer):
         self.mIsGDAL = isinstance(layer, QgsRasterLayer) and layer.dataProvider().name() == 'gdal'
         self.mIsOGR = isinstance(layer, QgsVectorLayer) and layer.dataProvider().name() == 'ogr'

@@ -18,8 +18,9 @@
 """
 
 import sys, os, site
+from qgis.PyQt.QtWidgets import QApplication
 import qgis.testing
-import qgis.utils
+
 
 def run(debug:bool=False, processing:bool=True, applications:bool=True, sources:list=None):
     '''
@@ -47,7 +48,7 @@ def run(debug:bool=False, processing:bool=True, applications:bool=True, sources:
 
     from enmapbox.gui.enmapboxgui import EnMAPBox
 
-
+    import qgis.utils
     enmapBox = EnMAPBox(qgis.utils.iface)
     enmapBox.run()
     if sources is not None:
@@ -58,9 +59,9 @@ def run(debug:bool=False, processing:bool=True, applications:bool=True, sources:
                 dock.addLayers([lyr])
             except: pass
 
-    qgisApp.exec_()
+
 
 
 if __name__ == '__main__':
-
     run()
+    QApplication.instance().exec_()

@@ -28,9 +28,7 @@ USE_WEBSOURCES = False
 
 class standardDataSources(EnMAPBoxTestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        pass
+
     def setUp(self):
         eb = EnMAPBox.instance()
         if isinstance(eb, EnMAPBox):
@@ -164,11 +162,13 @@ class standardDataSources(EnMAPBoxTestCase):
         ds = ds[0]
         self.assertIsInstance(ds, DataSourceSpectralLibrary)
 
+
+
     def test_layerSourceUpdate(self):
 
         path = '/vsimem/image.bsq'
         path = tempfile.mktemp(suffix='image.tif')
-        TestObjects.inMemoryImage(nb=5, nl=500, path=path)
+        TestObjects.createRasterDataset(nb=5, nl=500, path=path)
         c = QgsMapCanvas()
         c.show()
         lyr = QgsRasterLayer(path)
@@ -189,7 +189,7 @@ class standardDataSources(EnMAPBoxTestCase):
 
         # del lyr
         if False:
-            TestObjects.inMemoryImage(nb=2, nl=1000, path=path)
+            TestObjects.createRasterDataset(nb=2, nl=1000, path=path)
             lyr.reload()
 
             r = lyr.renderer()
@@ -210,7 +210,7 @@ class standardDataSources(EnMAPBoxTestCase):
 
         path = tempfile.mktemp(suffix='image.bsq')
         path = '/vsimem/image.bsq'
-        TestObjects.inMemoryImage(nb=2, nl=500, path=path)
+        TestObjects.createRasterDataset(nb=2, nl=500, path=path)
 
 
         src1 = DataSourceFactory.create(path)[0]
@@ -220,7 +220,7 @@ class standardDataSources(EnMAPBoxTestCase):
         self.assertEqual(src1.nBands(), 2)
         self.assertEqual(src1.nLines(), 500)
         time.sleep(1)
-        TestObjects.inMemoryImage(nb=30, nl=1000, path=path)
+        TestObjects.createRasterDataset(nb=30, nl=1000, path=path)
 
         src2 = DataSourceFactory.create(path)[0]
         time.sleep(1)
@@ -265,11 +265,12 @@ class standardDataSources(EnMAPBoxTestCase):
         reg.removeAllMapLayers()
         dsm = DataSourceManager()
         uris = [library, enmap, landcover_polygons]
+        uris = [pathlib.Path(p).as_posix() for p in uris]
         dsm.addSources(uris)
 
         self.assertTrue((len(dsm) == len(uris)))
         dsm.addSources(uris)
-        self.assertTrue((len(dsm) == len(uris)), msg='Redundant sources are not allowed')
+        self.assertEqual(len(dsm), len(uris), msg='Redundant sources are not allowed')
         uriList = dsm.uriList()
         self.assertIsInstance(uriList, list)
         self.assertTrue(len(uriList) == len(uris))
@@ -297,10 +298,6 @@ class standardDataSources(EnMAPBoxTestCase):
         reg.addMapLayers(lyrs)
         self.assertTrue((len(dsm) == 0))
 
-        dsm.importSourcesFromQGISRegistry()
-        l = len(dsm)
-        self.assertTrue((l == len(reg.mapLayers())))
-
         reg.removeAllMapLayers()
 
         # test doubles input
@@ -317,6 +314,18 @@ class standardDataSources(EnMAPBoxTestCase):
         except:
             pass
 
+        # rmeove
+        dsm = DataSourceManager()
+        lyr = TestObjects.createVectorLayer()
+        dsm.addSource(lyr)
+        self.assertTrue(len(dsm) == 1)
+        QgsProject.instance().addMapLayer(lyr)
+        self.assertTrue(len(dsm) == 1)
+
+        self.assertFalse(sip.isdeleted(lyr))
+        QgsProject.instance().removeMapLayer(lyr)
+        self.assertTrue(sip.isdeleted(lyr))
+        self.assertTrue(len(dsm) == 0)
         s = ""
 
 
@@ -361,10 +370,6 @@ class standardDataSources(EnMAPBoxTestCase):
             print('Test "{}"'.format(uri))
             ds = EB.addSource(uri)
 
-
-
-
-class standardDataSourceTreeNodes(EnMAPBoxTestCase):
 
 
     def createTestSources(self)->list:
@@ -437,7 +442,7 @@ class standardDataSourceTreeNodes(EnMAPBoxTestCase):
         dsm.addSource(landcover_polygons)
         self.assertEqual(M.rowCount(None), 2)
 
-        dsm.addSource(library)
+        added = dsm.addSource(library)
         self.assertEqual(M.rowCount(None), 3)
 
         from enmapbox.gui.mapcanvas import MapCanvas
@@ -526,16 +531,6 @@ class standardDataSourceTreeNodes(EnMAPBoxTestCase):
                     if n > 3:
                         break
 
-
-
-
-        s = ""
-
-
-
-
-
-class hubflowTestCases(EnMAPBoxTestCase):
 
 
     def test_hubflowsources(self):
