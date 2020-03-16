@@ -1,0 +1,20 @@
+ENVI
+description = {
+C:\source\hub-datacube\doc\source\examples\rasterband\raster.bsq}
+samples = 4
+lines   = 1
+bands   = 1
+header offset = 0
+file type = ENVI Classification
+data type = 3
+interleave = bsq
+byte order = 0
+classes = 4
+class lookup = {
+0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255}
+class names = {
+unclassified, class 1, class 2, class 3}
+map info = {Geographic Lat/Lon, 1, 1, 0, 0.000277777777777778, 0.000277777777777778, 0.000277777777777778,WGS-84}
+coordinate system string = {GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]}
+band names = {
+Band 1}
