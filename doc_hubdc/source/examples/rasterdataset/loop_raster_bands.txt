@@ -1,0 +1,4 @@
+Band 1 Stats: Minimum=110, Maximum=3759, Mean=212.88073662811726
+Band 2 Stats: Minimum=105, Maximum=3757, Mean=214.96880571233484
+Band 3 Stats: Minimum=96, Maximum=3792, Mean=217.37383030398556
+...
