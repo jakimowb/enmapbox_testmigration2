@@ -299,7 +299,9 @@ class DockArea(pgDockArea):
         #assert isinstance(enmapboxdock, Dock)
         v = None
         try:
+            visibility = enmapboxdock.isVisible()
             v = super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
+            enmapboxdock.setVisible(visibility)
             self.sigDockAdded.emit(enmapboxdock)
         except:
             pass
