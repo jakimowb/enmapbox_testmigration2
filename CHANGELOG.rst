@@ -4,7 +4,6 @@ CHANGELOG
 Version 3.6
 -----------
 
-
 * Map Canvas Crosshair can now show the pixel boundaries of any raster source known to QGIS
 * Spectral Profile Source panel is properly updated on removal/adding of raster sources or spectral libraries
 * Spectral Library Viewer
@@ -19,7 +18,6 @@ Version 3.6
   according to the classification scheme
 * updated in LMU vegetation app
 * updated EnPTEnMAPBoxApp (see http://enmap.gitext.gfz-potsdam.de/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp for documentation)
-
 * removed several bugs, e.g. #285, #206,
 
 Version 3.5

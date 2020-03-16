@@ -319,7 +319,17 @@ class DataSourceSpatial(DataSource):
 
         if isinstance(layer, QgsMapLayer):
             uri = layer.source()
-            name = layer.name()
+            if name in [None, '']:
+                if layer.providerType() == 'WFS':
+                    hasTypeName = re.search(r'typename=([^ ]+)', layer.source())
+                    if hasTypeName:
+                        name = 'WFS:{}'.format(hasTypeName.group(1))
+                    else:
+                        name = 'WFS:{}'.format(layer.name())
+                elif layer.providerType() == 'wms':
+                    name = 'WMS:{}'.format(layer.name())
+                else:
+                    name = os.path.basename(uri)
             providerKey = layer.dataProvider().name()
         assert isinstance(providerKey, str) and providerKey in QgsProviderRegistry.instance().providerList()
 
@@ -619,19 +629,10 @@ class DataSourceRaster(DataSourceSpatial):
 class DataSourceVector(DataSourceSpatial):
     def __init__(self, uri,  name=None, icon=None, providerKey:str=None, layer:QgsVectorLayer=None):
         super(DataSourceVector, self).__init__(uri, name, icon, providerKey, layer=layer)
-        if name is None:
-            try:
-                if providerKey == 'WFS':
-                    self.setName('WFS:'+ uri)
-                else:
-                    self.setName(os.path.basename(uri))
-            except Exception as ex:
-                self.setName(str(uri))
-
         if not isinstance(layer, QgsVectorLayer):
             layer = self.createUnregisteredMapLayer()
-
         assert isinstance(layer, QgsVectorLayer)
+
         self.mLayer = layer
         self.mLayerId = self.mLayer.id()
         self.updateMetadata()

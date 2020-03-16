@@ -593,7 +593,7 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
         nFeat = lyr.featureCount()
         nFields = lyr.fields().count()
 
-        geomType = ['Point','Line','Polygon','Unknown','Null'][lyr.geometryType()]
+        geomType = ['Point', 'Line', 'Polygon', 'Unknown', 'Null'][lyr.geometryType()]
         wkbType = QgsWkbTypes.displayString(int(lyr.wkbType()))
 
         if re.search('polygon', wkbType, re.I):
