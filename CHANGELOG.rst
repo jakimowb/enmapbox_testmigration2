@@ -4,7 +4,6 @@ CHANGELOG
 Version 3.6
 -----------
 
-
 * Map Canvas Crosshair can now show the pixel boundaries of any raster source known to QGIS
 * Spectral Profile Source panel is properly updated on removal/adding of raster sources or spectral libraries
 * Spectral Library Viewer
