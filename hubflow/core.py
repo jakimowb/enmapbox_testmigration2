@@ -5293,7 +5293,7 @@ class _EstimatorPredict(ApplierOperator):
             self.setFlowMetadataClassDefinition('prediction',
                                                 classDefinition=estimator.sample().classification().classDefinition())
         elif isinstance(estimator, Clusterer):
-            self.setFlowMetadataClassDefinition('prediction', classDefinition=estimator._classDefinition)
+            self.setFlowMetadataClassDefinition('prediction', classDefinition=estimator.classDefinition())
         elif isinstance(estimator, Regressor):
             if isinstance(estimator.sample(), FractionSample):
                 self.setFlowMetadataFractionDefinition('prediction',
