@@ -58,13 +58,15 @@ class EnMAPBoxPlugin(object):
         """
         Runs a check for availability of package dependencies and give an readible error message
         :return:
+        :return:
         """
         from enmapbox import DEPENDENCIES, messageLog, DIR_REPO
         from enmapbox.dependencycheck import missingPackages, missingPackageInfo, requiredPackages
 
         missing = missingPackages(requiredPackages())
         if len(missing) > 0:
-            warnings.warn(missingPackageInfo(missing), ImportWarning)
+            info = missingPackageInfo(missing, html=False)
+            warnings.warn(info, ImportWarning)
 
     def initGui(self):
 

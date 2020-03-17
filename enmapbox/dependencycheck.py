@@ -111,22 +111,22 @@ def missingPackages(packageNames: typing.List[str])->typing.List[str]:
 
     return missing
 
-def missingPackageInfo(missingPackages: typing.List[str], html=True)->str:
+def missingPackageInfo(missing_packages: typing.List[str], html=True)->str:
     """
     Converts a list of missing packages into better readible output.
-    :param missingPackages: list of uninstalled packages
+    :param missing_packages: list of uninstalled packages
     :param html: bool, set True (default) to return HTML output string
     :return: str
     """
-    assert isinstance(missingPackages, list)
-    n = len(missingPackages)
+    assert isinstance(missing_packages, list)
+    n = len(missing_packages)
     if n == 0:
         return None
 
     from enmapbox import DIR_REPO, URL_INSTALLATION
     info = ['The following {} package(s) are not installed:'.format(n)]
     info.append('<ol>')
-    for i, pkg in enumerate(missingPackages):
+    for i, pkg in enumerate(missing_packages):
         if pkg == 'sklearn':
             pkg = 'scikit-learn'
         info.append('\t<li>{}</li>'.format(pkg))
