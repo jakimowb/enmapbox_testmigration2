@@ -15,7 +15,7 @@ class SynthmixApp(QMainWindow):
 
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
-        loadUi(join(pathUi, 'main.ui'))
+        loadUi(join(pathUi, 'main.ui'), self)
         #self.setupUi(self)
         self.uiInfo_ = QLabel()
         self.statusBar().addWidget(self.uiInfo_, 1)

@@ -45,7 +45,7 @@ class UiLibrary(QComboBox):
 class UiLabeledLibrary(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        loadUi(join(pathUi, 'labeledLibary.ui'))
+        loadUi(join(pathUi, 'labeledLibary.ui'), self)
         #self.setupUi(self)
         self.uiLibrary().currentIndexChanged.connect(self.setFields)
         self.setFields(0)
@@ -92,7 +92,7 @@ class UiWorkflowMainWindow(QMainWindow):
 
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
-        loadUi(join(pathUi, 'main.ui'))
+        loadUi(join(pathUi, 'main.ui'), self)
         #self.setupUi(self)
 
         self.uiRun().clicked.connect(self.run)

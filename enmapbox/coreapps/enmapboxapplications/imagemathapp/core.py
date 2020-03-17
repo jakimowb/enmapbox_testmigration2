@@ -108,7 +108,7 @@ class Input(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        loadUi(join(pathUi, 'input.ui'))
+        loadUi(join(pathUi, 'input.ui'), self)
         #self.setupUi(self)
         self.nameByLayer = True
 
@@ -267,7 +267,7 @@ class Output(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        loadUi(join(pathUi, 'output.ui'))
+        loadUi(join(pathUi, 'output.ui'), self)
         #self.setupUi(self)
 
         self.uiSetArray.hide()
@@ -351,7 +351,7 @@ class RemovableItem(QWidget):
 
     def __init__(self, type, parent=None):
         super().__init__(parent)
-        loadUi(join(pathUi, 'removableItem.ui'))
+        loadUi(join(pathUi, 'removableItem.ui'), self)
         #self.setupUi(self)
         self.type = type
         self.uiItem = None
@@ -410,7 +410,7 @@ class ItemList(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        loadUi(join(pathUi, 'itemList.ui'))
+        loadUi(join(pathUi, 'itemList.ui'), self)
         #self.setupUi(self)
         assert self.TYPE is not None
         self.addItem()
@@ -506,7 +506,7 @@ class Extent(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        loadUi(join(pathUi, 'extent.ui'))
+        loadUi(join(pathUi, 'extent.ui'), self)
         #self.setupUi(self)
 
         self.uiMode.currentIndexChanged.connect(self.onCurrentIndexChanged)
@@ -559,7 +559,7 @@ class Resolution(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        loadUi(join(pathUi, 'resolution.ui'))
+        loadUi(join(pathUi, 'resolution.ui'), self)
         #self.setupUi(self)
         self.uiMode.currentIndexChanged.connect(self.onCurrentIndexChanged)
         self.uiMode.currentIndexChanged.emit(0)
@@ -600,7 +600,7 @@ class Resolution(QWidget):
 class Grid(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        loadUi(join(pathUi, 'grid.ui'))
+        loadUi(join(pathUi, 'grid.ui'), self)
         #self.setupUi(self)
 
         self.uiLayer().setCurrentIndex(0)
@@ -755,7 +755,7 @@ class ImageMathApp(QMainWindow):
 
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
-        loadUi(join(pathUi, 'main.ui'))
+        loadUi(join(pathUi, 'main.ui'), self)
         #self.setupUi(self)
         self.uiExecute().clicked.connect(self.execute)
 

@@ -33,7 +33,7 @@ class ImageStatisticsApp(QMainWindow):
 
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
-        loadUi(join(pathUi, 'main.ui'))
+        loadUi(join(pathUi, 'main.ui'), self)
         #self.setupUi(self)
         self.uiRaster().setCurrentIndex(0)
         self.uiMask().setCurrentIndex(0)
