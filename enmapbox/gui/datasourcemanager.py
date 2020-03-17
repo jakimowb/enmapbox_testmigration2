@@ -1549,13 +1549,13 @@ class DataSourceManagerTreeModel(TreeModel):
         flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDropEnabled
 
         if isinstance(node, (DataSourceTreeNode, RasterBandTreeNode, DataSourceGroupTreeNode)):
-            flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+            flags = flags | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
-            flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+            flags = flags | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
 
         if isinstance(node, TreeNode) and node.isCheckable():
-            flags |= Qt.ItemIsUserCheckable
+            flags = flags | Qt.ItemIsUserCheckable
 
         return flags
 
