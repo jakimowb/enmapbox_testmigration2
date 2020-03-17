@@ -3894,7 +3894,7 @@ class Classification(Raster):
         return Classification(filename=filename)
 
     @classmethod
-    def fromVector(cls, filename, vector, grid=None, masks=None, **kwargs):
+    def fromVector(cls, filename, vector, grid, masks=None, **kwargs):
         assert isinstance(vector, VectorClassification)
         classification = cls.fromClassification(filename=filename, classification=vector, grid=grid, masks=masks, **kwargs)
         assert isinstance(classification, Classification)
