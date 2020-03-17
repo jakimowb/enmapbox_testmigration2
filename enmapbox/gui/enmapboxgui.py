@@ -93,7 +93,7 @@ class EnMAPBoxSplashScreen(QSplashScreen):
         :return:
         """
         if alignment is None:
-            alignment = Qt.AlignCenter | Qt.AlignBottom
+            alignment = int(Qt.AlignCenter | Qt.AlignBottom)
         if color is None:
             color = QColor('black')
         super(EnMAPBoxSplashScreen, self).showMessage(text, alignment, color)

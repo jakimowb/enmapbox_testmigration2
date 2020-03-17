@@ -1,25 +1,27 @@
 import inspect
 import tempfile
 import traceback
+
+from PyQt5.uic import loadUi
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from enmapboxapplications.utils import loadUIFormClass
 from hubflow.core import *
 from enmapboxapplications.regressionapp.script import regressionWorkflow, ProgressBar
 
 pathUi = join(dirname(__file__), 'ui')
 
 
-class RegressionWorkflowApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
+class RegressionWorkflowApp(QMainWindow):
 
     def __init__(self, parent=None):
 
         QMainWindow.__init__(self, parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'main.ui'), self)
+        #self.setupUi(self)
         self.uiInfo_ = QLabel()
         self.statusBar().addWidget(self.uiInfo_, 1)
 

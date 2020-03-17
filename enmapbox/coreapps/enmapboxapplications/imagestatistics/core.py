@@ -1,9 +1,6 @@
-from os.path import join, dirname, basename, splitext, exists, isabs, abspath
-from os import remove
 import traceback
-import tempfile
-from osgeo import gdal
-import numpy
+
+from PyQt5.uic import loadUi
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
@@ -11,14 +8,12 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 import pyqtgraph as pg
 from pyqtgraph.widgets.PlotWidget import PlotWidget as PlotWidget_
-from enmapbox.gui.utils import loadUIFormClass
-import hubdc.progressbar
+
 from hubflow.core import *
-import operator
 
 pathUi = join(dirname(__file__), 'ui')
 
-class ProgressBar(hubdc.progressbar.CUIProgressBar):
+class ProgressBar(CUIProgressBar):
 
     def __init__(self, bar):
         assert isinstance(bar, QProgressBar)
@@ -34,11 +29,12 @@ class PlotWidget(PlotWidget_):
     def __init__(self, parent, background='#ffffff'):
         PlotWidget_.__init__(self, parent=parent, background=background)
 
-class ImageStatisticsApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
+class ImageStatisticsApp(QMainWindow):
 
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'main.ui'), self)
+        #self.setupUi(self)
         self.uiRaster().setCurrentIndex(0)
         self.uiMask().setCurrentIndex(0)
         self.uiTableView().setEditTriggers(QAbstractItemView.NoEditTriggers)

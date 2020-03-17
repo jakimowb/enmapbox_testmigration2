@@ -1,11 +1,12 @@
 import traceback
+
+from PyQt5.uic import loadUi
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import pyqtgraph as pg
-from enmapbox.gui.utils import loadUIFormClass
+
 from hubflow.core import *
 
 pg.setConfigOption('background', 'w')
@@ -13,7 +14,7 @@ pg.setConfigOption('foreground', 'k')
 
 pathUi = join(dirname(__file__), 'ui')
 
-class ProgressBar(hubdc.progressbar.CUIProgressBar):
+class ProgressBar(CUIProgressBar):
 
     def __init__(self, bar):
         assert isinstance(bar, QProgressBar)
@@ -44,11 +45,12 @@ class ImageView(pg.ImageView):
         self.ui.menuBtn.setVisible(bool)
         self.ui.histogram.setVisible(bool)
 
-class ScatterPlotApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
+class ScatterPlotApp(QMainWindow):
 
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'main.ui'), self)
+        #self.setupUi(self)
         self.uiInfo_ = QLabel()
         self.uiFit_.hide()
         self.statusBar().addWidget(self.uiInfo_, 1)
