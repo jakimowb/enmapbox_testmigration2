@@ -102,6 +102,12 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
         info = missingPackageInfo(missing)
         self.assertIsInstance(info, str)
 
+        from enmapbox.enmapboxplugin import EnMAPBoxPlugin
+
+        import qgis.utils
+        p = EnMAPBoxPlugin(qgis.utils.iface)
+        p.initialDependencyCheck()
+
 
 if __name__ == '__main__':
 

@@ -64,7 +64,7 @@ class EnMAPBoxPlugin(object):
 
         missing = missingPackages(requiredPackages())
         if len(missing) > 0:
-            warnings.warn(missingPackageInfo(missing), ModuleNotFoundError)
+            warnings.warn(missingPackageInfo(missing), ImportWarning)
 
     def initGui(self):
 
