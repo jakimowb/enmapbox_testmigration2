@@ -391,6 +391,10 @@ class HubFlowDataSource(DataSource):
             id = uri
         else:
             id = HubFlowDataSource.createID(obj)
+
+        if name in [None, '']:
+            name = os.path.basename(id)
+
         super(HubFlowDataSource, self).__init__(id, name, icon)
 
         if not isinstance(icon, QIcon):

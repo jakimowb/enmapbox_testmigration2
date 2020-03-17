@@ -25,19 +25,19 @@ from enmapbox.gui.utils import *
 from enmapbox.gui.mimedata import *
 from enmapbox.gui.mapcanvas import MapDock
 from enmapbox.gui.datasources import *
+
 HUBFLOW = True
 HUBFLOW_MAX_VALUES = 1024
 SOURCE_TYPES = ['ALL', 'ANY', 'RASTER', 'VECTOR', 'SPATIAL', 'MODEL', 'SPECLIB']
 
-HIDDEN_DATASOURCE = '__HIDDEN__DATASOURCE'
 try:
     import hubflow.core
-    s = ""
-
 except Exception as ex:
-    messageLog('Unable to import hubflow API. Error "{}"'.format(ex), level=Qgis.Warning)
-    HUBFLOW = False
+    msg = 'Unable to import hubflow API. Error "{}"'.format(ex)
 
+    messageLog(msg, level=Qgis.Warning)
+
+    HUBFLOW = False
 
 def reprNL(obj, replacement=' '):
     """
@@ -79,11 +79,7 @@ class DataSourceManager(QObject):
         self.mShowSpatialSourceInQgsAndEnMAPBox = True
         QgsProject.instance().layerWillBeRemoved.connect(self.onLayersWillBeRemoved)
 
-
-
     def onLayersWillBeRemoved(self, lid):
-
-
         to_remove = [ds for ds in self.sources() if isinstance(ds, DataSourceSpatial) and ds.mapLayerId() == lid]
         self.removeSources(to_remove)
 
@@ -477,8 +473,6 @@ class DataSourceSizesTreeNode(TreeNode):
             TreeNode(n, 'Lines (y)', values='{}'.format(dataSource.nLines))
             TreeNode(n, 'Bands (z)', values='{}'.format(dataSource.nBands))
 
-
-
 class DataSourceTreeNode(TreeNode, KeepRefs):
 
     def __init__(self, parent:TreeNode, dataSource:DataSource):
@@ -515,7 +509,6 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
             self.mNodePath = None
             self.mNodeSize = TreeNode(self, 'Size', values='unknown')
             self.mSrcSize = -1
-
 
     def dataSource(self)->DataSource:
         """
@@ -728,7 +721,6 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
         self.setIcon(dataSource.icon())
         mu = QgsUnitTypes.toString(dataSource.spatialExtent().crs().mapUnits())
 
-
         self.mNodeExtXpx = TreeNode(self.mNodeSize, 'Samples',
                                     toolTip='Data Source Width in Pixel',
                                     values='{} px'.format(dataSource.nSamples()))
@@ -749,14 +741,9 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
                                    toolTip='Number of Raster Bands',
                                    values='{}'.format(dataSource.nBands()))
 
-
         for b in range(dataSource.mapLayer().bandCount()):
             bandName = dataSource.mapLayer().bandName(b+1)
             bandNode = RasterBandTreeNode(dataSource, b, self.mNodeBands, str(b+1), bandName)
-
-
-
-
 
     def disconnectDataSource(self):
         if self.mNodeExtXpx is not None:
@@ -837,8 +824,8 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
             moduleName = self.mDataSource.flowObject().__class__.__module__
             className = self.mDataSource.flowObject().__class__.__name__
             #self.setValue('{}.{}'.format(moduleName, className))
-            self.setName(className)
-            self.setToolTip('{}.{}'.format(moduleName, className))
+            self.setName(self.dataSource().name())
+            self.setToolTip('{} - {}.{}'.format(self.dataSource().name(), moduleName, className))
             self.fetchInternals(self.mDataSource.flowObject(), parentTreeNode=self)
 
     @staticmethod

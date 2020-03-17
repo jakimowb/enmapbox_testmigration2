@@ -25,8 +25,13 @@
 ***************************************************************************
 """
 
-import sys, os, site, re, pathlib, traceback
-
+import sys
+import os
+import site
+import re
+import pathlib
+import traceback
+import typing
 import qgis
 from qgis.gui import QgisInterface
 from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider, QgsProcessingAlgorithm
@@ -86,8 +91,6 @@ except:
     assert pSrc.is_dir()
     site.addsitedir(pSrc)
     import pyqtgraph
-    s = ""
-
 
 def icon()->QIcon:
     """
@@ -102,12 +105,18 @@ def messageLog(msg, level=Qgis.Info):
     """
     Writes a log message to the QGIS EnMAP-Box Log
     :param msg: log message string
-    :param level: Qgis.MessageLevel=[Qgis.Info |  Qgis.Warning| Qgis.Critical| Qgis.Success | Qgis.NONE]
+    :param level: Qgis.MessageLevel=[Qgis.Info|Qgis.Warning|Qgis.Critical|Qgis.Success|Qgis.NONE]
     """
-
     if not isinstance(msg, str):
         msg = str(msg)
-    QgsApplication.instance().messageLog().logMessage(msg, 'EnMAP-Box', level)
+    app = QgsApplication.instance()
+    if isinstance(app, QgsApplication):
+        app.messageLog().logMessage(msg, 'EnMAP-Box', level)
+    else:
+        if level == Qgis.Critical:
+            print(msg, file=sys.stderr)
+        else:
+            print(msg)
 
 def scantree(path, ending='')->pathlib.Path:
     """Recursively returns file paths in directory"""
@@ -125,8 +134,6 @@ def initEnMAPBoxResources():
     from .externals.qps.resources import initQtResources, initResourceFile
     initQtResources(DIR_ENMAPBOX)
 
-
-
 def initEditorWidgets():
     """
     Initialises QgsEditorWidgets
@@ -134,9 +141,13 @@ def initEditorWidgets():
     from .externals.qps import registerEditorWidgets
     registerEditorWidgets()
 
-
-def collectAlgorithms()->list:
-    import inspect
+def collectEnMAPBoxAlgorithms()->typing.List[QgsProcessingAlgorithm]:
+    """
+    Safely collects all QgsProcessingalgorithms from enmapboxgeoalgorithms.algorithms
+    Missing dependencies or import errors will not stop the EnMAP-Box from being loaded
+    :return: [QgsProcessingAlgorithms]
+    :rtype: list
+    """
     algs = []
     try:
         import enmapboxgeoalgorithms.algorithms
@@ -146,18 +157,9 @@ def collectAlgorithms()->list:
             except Exception as ex2:
                 traceback.print_stack()
                 print(ex2)
-
     except Exception as ex:
         print(ex)
-    """
-    for name, obj in inspect.getmembers(enmapboxgeoalgorithms.algorithms):
-        if inspect.isclass(obj) and issubclass(obj, QgsProcessingAlgorithm):
-            try:
-                alg = obj()
-                algs.append(alg)
-            except Exception as ex:
-                print('Failed to load {}\n{}'.format(str(obj), ex, file=sys.stderr))
-    """
+
     return algs
 
 def initEnMAPBoxProcessingProvider():
@@ -178,9 +180,8 @@ def initEnMAPBoxProcessingProvider():
 
     try:
         existingAlgNames = [a.name() for a in registry.algorithms() if a.groupId() == provider.id()]
-        missingAlgs = [a for a in collectAlgorithms() if a.name() not in existingAlgNames]
+        missingAlgs = [a for a in collectEnMAPBoxAlgorithms() if a.name() not in existingAlgNames]
         provider.addAlgorithms(missingAlgs)
-
     except Exception as ex:
         traceback.print_exc()
         info = ['Failed to load enmapboxgeoalgorithms.algorithms.ALGORITHMS.\n{}'.format(str(ex))]
@@ -188,8 +189,6 @@ def initEnMAPBoxProcessingProvider():
         for p in sorted(sys.path):
             info.append(p)
         print('\n'.join(info), file=sys.stderr)
-
-
 
 def removeEnMAPBoxProcessingProvider():
     """Removes the EnMAPBoxProcessingProvider"""
@@ -202,7 +201,6 @@ def removeEnMAPBoxProcessingProvider():
         _ENMAPBOX_PROCESSING_PROVIDER = None
         # this deletes the C++ object
         registry.removeProvider(ID)
-
 
 def initMapLayerConfigWidgetFactories():
     from .externals.qps import registerMapLayerConfigWidgetFactories, mapLayerConfigWidgetFactories

@@ -151,7 +151,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.showGui(b)
         s = ""
 
-
     def test_AboutDialog(self):
 
         from enmapbox.gui.about import AboutDialog
@@ -184,8 +183,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertTrue(canvases[-1] == EMB.activeMapCanvas())
         import qgis.utils
         self.showGui([EMB.ui, qgis.utils.iface.mainWindow()])
-
-
 
     def test_Qgis(self):
 

@@ -21,11 +21,14 @@
 """
 # noinspection PyPep8Naming
 import sys, os, collections, shutil, time, re, importlib, typing
+import pathlib
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.PyQt.QtCore import QUrl
 from qgis.gui import *
 from qgis.core import *
 from qgis.PyQt.QtWidgets import QMessageBox
+
+PACKAGE_LOOKUP = {'scikit-learn': 'sklearn'}
 
 def checkAndShowMissingDependencies(packageNames)->bool:
     """
@@ -68,11 +71,34 @@ def checkGDALIssues()->typing.List[str]:
     return issues
 
 
-def missingPackages(packageNames)->typing.List[str]:
+def requiredPackages()->typing.List[str]:
     """
-    :param packageNames:
+    Returns a list of packages that should be installable according to the `requirements.txt` file
+    :return: [list of strings]
+    :rtype: list
+    """
+
+    file = pathlib.Path(__file__).resolve().parents[1] / 'requirements.txt'
+    assert file.is_file(), '{} does not exist'.format(file)
+    packages = []
+    rx = re.compile(r'^[a-zA-Z_-][a-zA-Z0-9_-]*')
+    with open(file, 'r') as f:
+        lines = f.readlines()
+        lines = [l.strip() for l in lines]
+        lines = [l for l in lines if not l.startswith('#') and len(l) > 0]
+        for l in lines:
+            match = rx.search(l)
+            if match:
+                packages.append(match.group())
+
+    return packages
+
+def missingPackages(packageNames: typing.List[str])->typing.List[str]:
+    """
+    Returns a list of package names that can not be imported
+    :param packageNames: list of packages that should be installed
     :type packageNames:
-    :return:
+    :return: list of packages that is not installed
     :rtype:
     """
     if not isinstance(packageNames, list):
@@ -80,21 +106,27 @@ def missingPackages(packageNames)->typing.List[str]:
 
     missing = []
     for p in packageNames:
-        if importlib.util.find_spec(p) is None and p not in missing:
+        if importlib.util.find_spec(PACKAGE_LOOKUP.get(p, p)) is None and p not in missing:
             missing.append(p)
 
     return missing
 
-def missingPackageInfo(missingPackages:typing.List[str], html=True)->str:
-    assert isinstance(missingPackages, list)
-    n = len(missingPackages)
+def missingPackageInfo(missing_packages: typing.List[str], html=True)->str:
+    """
+    Converts a list of missing packages into better readible output.
+    :param missing_packages: list of uninstalled packages
+    :param html: bool, set True (default) to return HTML output string
+    :return: str
+    """
+    assert isinstance(missing_packages, list)
+    n = len(missing_packages)
     if n == 0:
         return None
 
     from enmapbox import DIR_REPO, URL_INSTALLATION
     info = ['The following {} package(s) are not installed:'.format(n)]
     info.append('<ol>')
-    for i, pkg in enumerate(missingPackages):
+    for i, pkg in enumerate(missing_packages):
         if pkg == 'sklearn':
             pkg = 'scikit-learn'
         info.append('\t<li>{}</li>'.format(pkg))

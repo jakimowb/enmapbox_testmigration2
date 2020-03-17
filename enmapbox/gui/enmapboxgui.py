@@ -29,6 +29,7 @@ from enmapbox.gui.dockmanager import DockManagerTreeModel, MapDockTreeNode
 from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
+from enmapbox.dependencycheck import requiredPackages, missingPackages, missingPackageInfo
 from ..externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from ..externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
@@ -322,13 +323,7 @@ class EnMAPBox(QgisInterface, QObject):
         m.addAction(self.ui.mActionAddMimeView)
         a = m.addAction('Resource Browser')
         a.setToolTip('Opens a Browser to inspect the Qt Resource system')
-
-        def onShowResourceBrowser():
-            from ..externals.qps.resources import showResources
-            browser = showResources()
-            browser.setWindowTitle('Resource Browser')
-            a._browser = browser
-        a.triggered.connect(onShowResourceBrowser)
+        a.triggered.connect(self.showResourceBrowser)
 
         self.ui.setVisible(True)
         splash.finish(self.ui)
@@ -338,11 +333,46 @@ class EnMAPBox(QgisInterface, QObject):
         setConfigOption('background', 'k')
         setConfigOption('foreground', 'w')
 
+        # check missing packages and show a message
+        # see https://bitbucket.org/hu-geomatics/enmap-box/issues/366/start-enmap-box-in-standard-qgis
+        missing = missingPackages(requiredPackages())
+        if len(missing) > 0:
+            info = missingPackageInfo(missing, html=True)
+            info = '<html>' + info + '</html>'
+
+            # taken from qgsmessagebar.cpp
+            # void QgsMessageBar::pushMessage( const QString &title, const QString &text, const QString &showMore, Qgis::MessageLevel level, int duration )
+            viewer = QgsMessageViewer()
+            title = 'Missing Python Package(s)!'
+            viewer.setWindowTitle(title)
+            viewer.setMessageAsHtml(info)
+            a = QAction('Show more')
+            btn = QToolButton()
+            btn.setStyleSheet( "background-color: rgba(255, 255, 255, 0); color: black; text-decoration: underline;" )
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
+            btn.addAction(a)
+            btn.setDefaultAction(a)
+            btn.triggered.connect(viewer.exec_)
+            btn.triggered.connect(btn.deleteLater)
+            self.__btn = (btn, viewer, a)
+            item = QgsMessageBarItem(title, ', '.join(missing), btn, Qgis.Critical, 200)
+            self.messageBar().pushItem(item)
+
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
         QApplication.processEvents()
         splash.hide()
         self.addProject(QgsProject.instance())
+
+    def showResourceBrowser(self):
+        """
+        Opens a browser widget that lists all Qt Resources
+        """
+        from ..externals.qps.resources import showResources
+        browser = showResources()
+        browser.setWindowTitle('Resource Browser')
+        a._browser = browser
 
     def disconnectQGISSignals(self):
 
@@ -871,7 +901,18 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.close()
         self.deleteLater()
 
-    def onLogMessage(self, message, tag, level):
+    def onLogMessage(self, message:str, tag:str, level):
+        """
+        Receives log messages and, if tag=EnMAP-Box, displays them in the EnMAP-Box message bar.
+        :param message:
+        :type message:
+        :param tag:
+        :type tag:
+        :param level:
+        :type level:
+        :return:
+        :rtype:
+        """
         msgLines = message.split('\n')
         if '' in message.split('\n'):
             msgLines = msgLines[0:msgLines.index('')]
@@ -884,7 +925,13 @@ class EnMAPBox(QgisInterface, QObject):
         assert isinstance(mbar, QgsMessageBar)
         line1 = msgLines[0]
         showMore = '' if len(msgLines) == 1 else '\n'.join(msgLines[1:])
-        mbar.pushMessage(tag, line1, showMore, level, 50)
+
+        if level == Qgis.Critical:
+            duration = 200
+        else:
+            duration = 50
+
+        mbar.pushMessage(tag, line1, showMore, level, duration)
 
     def onDataDropped(self, droppedData):
         assert isinstance(droppedData, list)
