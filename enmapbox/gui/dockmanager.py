@@ -643,6 +643,9 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         :return:
         """
         dockNode = createDockTreeNode(dock, self.rootNode)
+        if isinstance(dockNode, DockTreeNode):
+            idx = self.node2index(dockNode)
+            self.dataChanged.emit(idx, idx, [Qt.CheckStateRole])
         return dock
 
     def canFetchMore(self, index)->bool:
@@ -1413,6 +1416,8 @@ class DockManager(QObject):
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
 
+
+
         dockArea = kwds.get('dockArea', self.currentDockArea())
         if not isinstance(dockArea, DockArea):
             warnings.warn('DockManager not connected to any DockArea yet. \nAdd DockAreas with connectDockArea(self, dockArea)')
@@ -1423,7 +1428,7 @@ class DockManager(QObject):
             dock.sigClosed.connect(self.removeDock)
             self.mDocks.append(dock)
             self.sigDockAdded.emit(dock)
-
+        dock.setVisible(True)
         return dock
 
     def onSpeclibWillBeDeleted(self, lyr):

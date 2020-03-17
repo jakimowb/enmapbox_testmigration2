@@ -13,16 +13,10 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, shutil
-from collections import namedtuple
-
-
-from enmapbox.gui.utils import *
-from enmapbox import EnMAPBox, DIR_ENMAPBOX, DIR_REPO
-import enmapbox.gui
+import unittest
+from enmapbox import EnMAPBox
 from enmapbox.gui.applications import *
-
-from enmapbox.testing import EnMAPBoxTestCase, TestObjects
+from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox import DIR_ENMAPBOX
 path = os.path.join(DIR_ENMAPBOX, 'apps')
 if path not in sys.path:
@@ -33,15 +27,14 @@ class test_applications(EnMAPBoxTestCase):
 
     def test_application(self):
         EB = EnMAPBox()
-        EB.initEnMAPBoxApplications()
+
         from enpt_enmapboxapp.enpt_enmapboxapp import EnPTEnMAPBoxApp
         app = [a for a in EB.applicationRegistry.applications() if isinstance(a, EnPTEnMAPBoxApp)]
         self.assertTrue(len(app) == 1, msg='EnPTEnMAPBoxApp was not loaded during EnMAP-Box startup')
 
         app = app[0]
         self.assertIsInstance(app, EnPTEnMAPBoxApp)
-        app.startGUI()
-
+        #app.startGUI()
         self.showGui(EB.ui)
 
 
