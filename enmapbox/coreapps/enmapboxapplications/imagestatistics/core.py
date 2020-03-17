@@ -9,6 +9,7 @@ from PyQt5.QtGui import *
 import pyqtgraph as pg
 from pyqtgraph.widgets.PlotWidget import PlotWidget as PlotWidget_
 
+from hubdc.progressbar import CUIProgressBar
 from hubflow.core import *
 
 pathUi = join(dirname(__file__), 'ui')

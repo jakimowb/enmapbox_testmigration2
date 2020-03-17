@@ -1,4 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QProgressBar
+
+from hubdc.progressbar import CUIProgressBar
 from hubflow.core import *
 
 

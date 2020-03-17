@@ -7,6 +7,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 import pyqtgraph as pg
 
+from hubdc.progressbar import CUIProgressBar
 from hubflow.core import *
 
 pg.setConfigOption('background', 'w')
