@@ -789,30 +789,30 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                 if column == 0:
 
                     if isinstance(node, DockTreeNode):
-                        flags |= Qt.ItemIsUserCheckable | \
+                        flags = flags | Qt.ItemIsUserCheckable | \
                                  Qt.ItemIsEditable | \
                                  Qt.ItemIsDropEnabled
 
                         if isL1:
-                            flags |= Qt.ItemIsDropEnabled
+                            flags = flags | Qt.ItemIsDropEnabled
 
 
                     if node.name() == 'Layers':
-                        flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable
+                        flags = flags | Qt.ItemIsUserCheckable | Qt.ItemIsEditable
 
                     if isinstance(node, CheckableLayerTreeNode):
-                        flags |= Qt.ItemIsUserCheckable
+                        flags = flags | Qt.ItemIsUserCheckable
 
                 if column == 1:
                     pass
                         # mapCanvas Layer Tree Nodes
             elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
                 if column == 0:
-                    flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled | Qt.ItemIsDragEnabled
+                    flags = flags | Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled | Qt.ItemIsDragEnabled
 
                 #if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
                 #if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
-                #    flags |= Qt.ItemIsDragEnabled
+                #    flags = flags | Qt.ItemIsDragEnabled
             elif not isinstance(node, QgsLayerTree):
                 s = ""
             else:
