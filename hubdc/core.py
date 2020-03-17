@@ -8,21 +8,15 @@ try:
 except:
     try:
         import matplotlib
-
         matplotlib.use('QT5Agg')
         import matplotlib.pyplot as plt
     except:
         pass
 
-from collections import Iterable
 from collections import OrderedDict
-import os
-from os import makedirs, remove
-from os.path import dirname, exists, join, basename, splitext, abspath, isabs
-from shutil import copyfile, rmtree
+from os import makedirs
+from os.path import dirname, exists, splitext, abspath, isabs
 import datetime
-from random import randint
-import tempfile
 from osgeo import gdal, gdal_array, ogr, osr
 import numpy as np
 import hubdc.hubdcerrors as errors

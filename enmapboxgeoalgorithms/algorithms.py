@@ -1,9 +1,6 @@
-from shutil import rmtree
-import sys
 from qgis.core import *
 from hubflow.core import *
-from enmapboxgeoalgorithms.provider import EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, TESTALGORITHMS, \
-    ALGORITHMS, Help, Link, Cookbook
+from enmapboxgeoalgorithms.provider import EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, ALGORITHMS, Help, Link, Cookbook
 from enmapboxgeoalgorithms.estimators import parseClassifiers, parseClusterers, parseRegressors, parseTransformers
 from enmapboxgeoalgorithms.filters.convolution import parseSpatialKernel, parseSpectralKernel
 from enmapboxgeoalgorithms.filters.morphology import parseMorphology

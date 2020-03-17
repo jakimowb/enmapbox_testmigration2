@@ -3,7 +3,6 @@ from qgis.core import *
 from hubflow.core import *
 import hubdc.progressbar
 from enmapboxgeoalgorithms import ENMAPBOXGEOALGORITHMS_VERSION
-#from enmapboxgeoalgorithms.algorithms import ALGORITHMS, TESTALGORITHMS
 from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 
 TESTALGORITHMS = list()

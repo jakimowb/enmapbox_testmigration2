@@ -5,12 +5,9 @@ The :class:`~hubdc.applier.Applier` class is the main point of entry in this mod
 """
 
 from __future__ import print_function
-import sys, os, pickle
-from collections import OrderedDict
 from multiprocessing import Pool, cpu_count
 from timeit import default_timer as now
 import numpy
-from osgeo import gdal, osr, ogr
 from osgeo.gdal_array import NumericTypeCodeToGDALTypeCode
 from hubdc.core import *
 import hubdc.core  # needed for sphinx
