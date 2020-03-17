@@ -644,9 +644,19 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         """
         dockNode = createDockTreeNode(dock, self.rootNode)
         if isinstance(dockNode, DockTreeNode):
-            idx = self.node2index(dockNode)
-            self.dataChanged.emit(idx, idx, [Qt.CheckStateRole])
+            if self.rowCount() == 1:
+                # fix for https://bitbucket.org/hu-geomatics/enmap-box/issues/361/newly-created-mapview-is-not-checked-as
+                QTimer.singleShot(500, self.update_docknode_visibility)
         return dock
+
+    def update_docknode_visibility(self):
+
+        QApplication.processEvents()
+
+        if self.rowCount() > 0:
+            idx0 = self.index(0,0)
+            idx1 = self.index(self.rowCount()-1, 0)
+            self.dataChanged.emit(idx0, idx1, [Qt.CheckStateRole])
 
     def canFetchMore(self, index)->bool:
         node = self.index2node(index)
@@ -1416,7 +1426,7 @@ class DockManager(QObject):
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
 
-
+        dock.setVisible(True)
 
         dockArea = kwds.get('dockArea', self.currentDockArea())
         if not isinstance(dockArea, DockArea):
@@ -1424,11 +1434,12 @@ class DockManager(QObject):
         else:
             dockArea.addDock(dock, *args, **kwds)
 
+        dock.setVisible(True)
+
         if dock not in self.mDocks:
             dock.sigClosed.connect(self.removeDock)
             self.mDocks.append(dock)
             self.sigDockAdded.emit(dock)
-        dock.setVisible(True)
         return dock
 
     def onSpeclibWillBeDeleted(self, lyr):
