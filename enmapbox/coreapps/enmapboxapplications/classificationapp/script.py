@@ -18,7 +18,7 @@ class ProgressBar(hubdc.progressbar.CUIProgressBar):
         QApplication.processEvents()
 
 
-def classificationWorkflow(sample, classifier, raster, n, cv,
+def classificationWorkflow(sample, classifier, raster, mask, n, cv,
                            saveSampledClassificationComplement, saveSampledClassification,
                            saveModel, saveClassification, saveProbability, saveRGB, saveReport,
                            filenameSampledClassification, filenameSampledClassificationComplement,
@@ -71,11 +71,11 @@ def classificationWorkflow(sample, classifier, raster, n, cv,
 
     setInfo('Step 3: predict classification')
     if saveClassification:
-        classifier.predict(filename=filenameClassification, raster=raster, progressBar=progressBar)
+        classifier.predict(filename=filenameClassification, raster=raster, mask=mask, progressBar=progressBar)
 
     setInfo('Step 4: predict probability')
     if saveProbability:
-        probability = classifier.predictProbability(filename=filenameProbability, raster=raster, progressBar=progressBar)
+        probability = classifier.predictProbability(filename=filenameProbability, raster=raster, mask=mask, progressBar=progressBar)
         if saveRGB:
             probability.asClassColorRGBRaster(filename='{}_rgb{}'.format(*splitext(filenameProbability)))
 
@@ -96,6 +96,7 @@ def test():
     classificationWorkflow(sample=sample,
                            classifier=Classifier(sklEstimator=RandomForestClassifier()),
                            raster=Raster(filename=enmapboxtestdata.enmap),
+                           mask=None,
                            n=labels.classDefinition().classes() * [10],
                            cv=10,
                            saveModel=True,

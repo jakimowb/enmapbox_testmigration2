@@ -353,6 +353,19 @@ class ClassificationWorkflowApp(QMainWindow):
                 return
             raster2 = Raster(filename=qgsRaster2.source())
 
+            qgsMask2 = self.uiMask_.currentLayer()
+            if isinstance(qgsMask2, QgsRasterLayer):
+                mask2 = Mask(filename=qgsMask2.source())
+                if not raster.grid().equal(other=mask2.grid()):
+                    self.log('Error: raster and mask grids do not match')
+                    return
+            elif isinstance(qgsMask2, QgsVectorLayer):
+                mask2 = VectorMask(filename=qgsMask2.source())
+            elif qgsMask2 is None:
+                mask2 = None
+            else:
+                assert 0
+
             n = [spinbox.value() for spinbox in self.spinboxes]
             if np.sum(n) == np.sum(self.counts): # perform no random sampling if all samples are used
                 n = None
@@ -370,6 +383,7 @@ class ClassificationWorkflowApp(QMainWindow):
             classificationWorkflow(sample=sample,
                                    classifier=classifier,
                                    raster=raster2,
+                                   mask=mask2,
                                    n=n,
                                    cv=cv,
                                    saveSampledClassification=saveSampledClassification,
