@@ -8,7 +8,7 @@ def compileEnMAPBoxResources():
 
     DIR_REPO = pathlib.Path(__file__).parents[1]
     directories = [DIR_REPO / 'enmapbox',
-                   DIR_REPO / 'site-packages'
+                   #DIR_REPO / 'site-packages'
                    ]
 
     for d in directories:
