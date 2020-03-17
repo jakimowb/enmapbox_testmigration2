@@ -1,15 +1,7 @@
-from os.path import join, dirname, basename, splitext, exists, isabs, abspath
-from os import remove
-import tempfile
-from osgeo import gdal
-import numpy
-from qgis.core import *
-from qgis.gui import *
+from PyQt5.uic import loadUi
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
 
-from enmapbox.gui.utils import loadUIFormClass
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui.datasources import DataSourceSpectralLibrary
 from hubflow.core import *
@@ -50,10 +42,11 @@ class UiLibrary(QComboBox):
         else:
             return None
 
-class UiLabeledLibrary(QWidget, loadUIFormClass(pathUi=join(pathUi, 'labeledLibary.ui'))):
+class UiLabeledLibrary(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'labeledLibary.ui'))
+        #self.setupUi(self)
         self.uiLibrary().currentIndexChanged.connect(self.setFields)
         self.setFields(0)
 
@@ -95,11 +88,12 @@ class UiLabeledLibrary(QWidget, loadUIFormClass(pathUi=join(pathUi, 'labeledLiba
         else:
             return text
 
-class UiWorkflowMainWindow(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
+class UiWorkflowMainWindow(QMainWindow):
 
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'main.ui'))
+        #self.setupUi(self)
 
         self.uiRun().clicked.connect(self.run)
         self.uiCancel().clicked.connect(self.cancel)

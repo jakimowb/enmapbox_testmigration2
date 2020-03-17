@@ -1,13 +1,14 @@
 import inspect
 import tempfile
 import traceback
+
+from PyQt5.uic import loadUi
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from enmapboxapplications.utils import loadUIFormClass
 from hubflow.core import *
 from enmapboxapplications.classificationapp.script import classificationWorkflow, ProgressBar
 
@@ -15,11 +16,12 @@ from enmapboxapplications.classificationapp.script import classificationWorkflow
 pathUi = join(dirname(__file__), 'ui')
 
 
-class ClassificationWorkflowApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
+class ClassificationWorkflowApp(QMainWindow):
 
     def __init__(self, parent=None):
 
         QMainWindow.__init__(self, parent)
+        loadUi(join(pathUi, 'main.ui'))
         self.setupUi(self)
         self.uiInfo_ = QLabel()
         self.statusBar().addWidget(self.uiInfo_, 1)
