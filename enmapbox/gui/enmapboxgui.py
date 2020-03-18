@@ -1086,13 +1086,13 @@ class EnMAPBox(QgisInterface, QObject):
                 self.loadCursorLocationValueInfo(spatialPoint, mapCanvas)
 
             if bCenter:
-                mapCanvas.setCenter(spatialPoint)
+                pt = spatialPoint.toCrs(mapCanvas.mapSettings().destinationCrs())
+                if isinstance(pt, SpatialPoint):
+                    mapCanvas.setCenter(pt)
+                    mapCanvas.refresh()
 
         if bSP:
             self.loadCurrentMapSpectra(spatialPoint, mapCanvas)
-
-
-
 
     def currentLocation(self)->SpatialPoint:
         """
@@ -1100,8 +1100,6 @@ class EnMAPBox(QgisInterface, QObject):
         :return: SpatialPoint
         """
         return self.mCurrentMapLocation
-
-
 
     def setCurrentSpectra(self, spectra:list):
         """
