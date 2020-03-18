@@ -120,7 +120,7 @@ def test_Classifier():
               algFit.P_CODE: algFit.code(),
               algFit.P_OUTPUT_ESTIMATOR: filenameEstimator}
         runalg(alg=algFit, io=io, info=algFit.displayName())
-        return
+
         # predict
         algPredict = ClassifierPredict()
         filename = join(outdir, 'ClassifierPredict{}.bsq'.format(algFit.displayName().split()[1]))
@@ -257,14 +257,13 @@ def test_OpenTestMaps():
 
 
 def test_ExtractSamples():
-    alg = ExtractOrdinationFeilhauerEtAll2014()
-    io = {alg.P_RASTER: r'C:\Work\data\hannes_feilhauer\aisa.tif',
-          alg.P_VECTOR: r'C:\Work\data\hannes_feilhauer\plotsClean.gpkg',
-          alg.P_OUTPUT_RASTER: join(outdir, 'ExtractOrdinationFeilhauerEtAll2014Raster.bsq'),
-          alg.P_OUTPUT_REGRESSION: join(outdir, 'ExtractOrdinationFeilhauerEtAll2014Regression.bsq'),
-          alg.P_OUTPUT_VECTOR: join(outdir, 'ExtractOrdinationFeilhauerEtAll2014Vector.gpkg')}
-    runalg(alg=alg, io=io)
-    return
+    # alg = ExtractOrdinationFeilhauerEtAll2014()
+    # io = {alg.P_RASTER: r'C:\Work\data\hannes_feilhauer\aisa.tif',
+    #       alg.P_VECTOR: r'C:\Work\data\hannes_feilhauer\plotsClean.gpkg',
+    #       alg.P_OUTPUT_RASTER: join(outdir, 'ExtractOrdinationFeilhauerEtAll2014Raster.bsq'),
+    #       alg.P_OUTPUT_REGRESSION: join(outdir, 'ExtractOrdinationFeilhauerEtAll2014Regression.bsq'),
+    #       alg.P_OUTPUT_VECTOR: join(outdir, 'ExtractOrdinationFeilhauerEtAll2014Vector.gpkg')}
+    # runalg(alg=alg, io=io)
 
     alg = ExtractSamples()
     io = {alg.P_RASTER: enmap,
@@ -314,8 +313,6 @@ def test_Fraction():
           alg.P_OUTPUT_FRACTION: join(outdir, 'FractionFromVectorClassification.bsq')}
     runalg(alg=alg, io=io)
 
-    assert 0
-
     alg = FractionFromClassification()
     io = {alg.P_CLASSIFICATION: enmapClassification,
           alg.P_OUTPUT_FRACTION: join(outdir, 'FractionFromClassification.bsq')}
@@ -360,6 +357,15 @@ def test_RasterBandSubsetting():
     for bandName, band in zip(bandNames, outraster.dataset().bands()):
         assert bandName == band.description()
 
+def test_RasterConvolve():
+    assert exists(join(outdir, 'CreateTestdataFraction.bsq'))
+    for alg in ALGORITHMS:
+        if isinstance(alg, RasterConvolve):
+            io = {alg.P_RASTER: join(outdir, 'CreateTestdataFraction.bsq'),  # enmap, EnMAP to slow
+                  alg.P_CODE: alg.code(),
+                  alg.P_OUTPUT_RASTER: join(outdir, 'RasterConvolve' + alg.name())}
+            runalg(alg=alg, io=io)
+            break
 
 def test_Raster():
     test_RasterBandSubsetting()
@@ -382,14 +388,7 @@ def test_Raster():
             runalg(alg=alg, io=io)
             break
 
-    assert exists(join(outdir, 'CreateTestdataFraction.bsq'))
-    for alg in ALGORITHMS:
-        if isinstance(alg, RasterConvolve):
-            io = {alg.P_RASTER: join(outdir, 'CreateTestdataFraction.bsq'),  # enmap, EnMAP to slow
-                  alg.P_CODE: alg.code(),
-                  alg.P_OUTPUT_RASTER: join(outdir, 'RasterConvolve' + alg.name())}
-            runalg(alg=alg, io=io)
-            break
+    test_RasterConvolve()
 
     alg = RasterUniqueValues()
     io = {alg.P_RASTER: enmapClassification,
@@ -619,23 +618,6 @@ def test_VectorUniqueValues():
     runalg(alg=alg, io=io)
 
 
-def test_SynthMix():
-    return  # synthmix is currently not available
-    # alg = SynthMix()
-    # filenameRaster = join(outdir, 'SynthMixRaster.bsq')
-    # filenameFraction = join(outdir, 'SynthMixFraction.bsq')
-    # io = {alg.P_RASTER: enmap,
-    #       alg.P_CLASSIFICATION: enmapClassification,
-    #       alg.P_MASK: enmapMask,
-    #       alg.P_N: 100,
-    #       alg.P_COMPLEXITY2LIKELIHOOD: 1.0,
-    #       alg.P_COMPLEXITY3LIKELIHOOD: 0.0,
-    #       alg.P_CLASSLIKELIHOODS: 0,
-    #       alg.P_OUTPUT_RASTER: filenameRaster,
-    #       alg.P_OUTPUT_FRACTION: filenameFraction}
-    # runalg(alg=alg, io=io)
-
-
 def printMenu():
     menu = dict()
     for alg in ALGORITHMS:
@@ -654,7 +636,7 @@ def printMenu():
 
 if __name__ == '__main__':
 
-    test_RasterBandSubsetting()
+    test_RasterConvolve()
     exit()
 
     test_Classification()
@@ -679,7 +661,7 @@ if __name__ == '__main__':
     test_VectorFromRandomPointsFromClassification()
     test_VectorUniqueValues()
     test_ImportLibrary()
-    test_SynthMix()
+
     generateRST()
 
 # printMenu()
