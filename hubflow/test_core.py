@@ -5,6 +5,7 @@ from sklearn.cross_decomposition import PLSRegression
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import enmapboxtestdata
+from hubdc.progressbar import CUIProgressBar
 from hubflow.core import *
 import hubflow.testdata
 #import hubdc.testdata
