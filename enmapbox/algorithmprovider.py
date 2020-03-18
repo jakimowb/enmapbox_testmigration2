@@ -140,7 +140,7 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         """
         return 'bsq'
 
-    def defaultVectorFileExtension(self)->str:
+    def defaultVectorFileExtension(self, hasGeometry:bool=True)->str:
         """
         :return: 'shp'
         """

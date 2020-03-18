@@ -75,6 +75,21 @@ class testDataSources(EnMAPBoxTestCase):
         self.assertIsInstance(sources[0], DataSourceVector)
         self.assertIs(sources[0], signalArgs[1])
 
+        lyrWFS = QgsVectorLayer(TestObjects.uriWFS(), 'WFS', 'WFS')
+        if lyrWFS.isValid():
+            for o in [lyrWFS, lyrWFS.source()]:
+                sources = DSM.addSource(o)
+                self.assertTrue(len(sources) == 1)
+                self.assertIsInstance(sources[0], DataSourceVector)
+                DSM.removeSources(sources)
+
+        lyrWMS = QgsRasterLayer(TestObjects.uriWMS(), 'WMS', 'wms')
+        if lyrWMS.isValid():
+            for o in [lyrWMS, lyrWMS.source()]:
+                sources = DSM.addSource(o)
+                self.assertTrue(len(sources) == 1)
+                self.assertIsInstance(sources[0], DataSourceRaster)
+                DSM.removeSources(sources)
 
     def test_dockview(self):
         TV = DockTreeView(None)

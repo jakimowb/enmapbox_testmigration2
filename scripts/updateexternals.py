@@ -51,39 +51,39 @@ RemoteInfo.create(r'https://bitbucket.org/ecstagriculture/enmap-box-lmu-vegetati
 
 ## enmap-box-geoalgorithmsprovider.git
 
-RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
-                  key='enmapboxgeoalgorithms',
-                  prefixLocal=r'doc/source/usr_section/usr_manual/processing_algorithms',
-                  prefixRemote=r'doc/source/processing_algorithms',
-                  remoteBranch='develop')
-
-
-RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
-                  key='enmapboxgeoalgorithms',
-                  prefixLocal=r'enmapbox/coreapps/enmapboxapplications',
-                  prefixRemote=r'enmapboxapplications',
-                  excluded=['ressources.py'],
-                  remoteBranch='develop')
-
-RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
-                  key='enmapboxgeoalgorithms',
-                  prefixLocal=r'site-packages/enmapboxgeoalgorithms',
-                  prefixRemote=r'enmapboxgeoalgorithms',
-                  remoteBranch='develop')
+# RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
+#                   key='enmapboxgeoalgorithms',
+#                   prefixLocal=r'doc/source/usr_section/usr_manual/processing_algorithms',
+#                   prefixRemote=r'doc/source/processing_algorithms',
+#                   remoteBranch='develop')
+#
+#
+# RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
+#                   key='enmapboxgeoalgorithms',
+#                   prefixLocal=r'enmapbox/coreapps/enmapboxapplications',
+#                   prefixRemote=r'enmapboxapplications',
+#                   excluded=['ressources.py'],
+#                   remoteBranch='develop')
+#
+# RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider.git',
+#                   key='enmapboxgeoalgorithms',
+#                   prefixLocal=r'site-packages/enmapboxgeoalgorithms',
+#                   prefixRemote=r'enmapboxgeoalgorithms',
+#                   remoteBranch='develop')
 
 ## hub-datacube.git
 
-RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
-                  prefixLocal=r'site-packages/hubdc',
-                  prefixRemote=r'hubdc',
-                  excluded=['gis','testdata'],
-                  remoteBranch='develop')
-
-RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
-                  prefixLocal=r'doc/source/dev_section/dev_cookbook/hubdc',
-                  prefixRemote=r'doc/source',
-                  excluded=['conf.py', 'index.rst'],
-                  remoteBranch='develop')
+# RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
+#                   prefixLocal=r'site-packages/hubdc',
+#                   prefixRemote=r'hubdc',
+#                   excluded=['gis','testdata'],
+#                   remoteBranch='develop')
+#
+# RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-datacube.git',
+#                   prefixLocal=r'doc/source/dev_section/dev_cookbook/hubdc',
+#                   prefixRemote=r'doc/source',
+#                   excluded=['conf.py', 'index.rst'],
+#                   remoteBranch='develop')
 
 
 ## hub-workflow.git
@@ -101,12 +101,6 @@ RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
 
 ## GFZ
 
-RemoteInfo.create(r'https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git',
-                  prefixLocal=r'enmapbox/apps/enpt_enmapboxapp',
-                  prefixRemote=r'enpt_enmapboxapp',
-                  #remoteBranch='master'
-                  remoteBranch='master'
-                  )
 
 def updateRemotes(remoteLocations):
     """
@@ -130,9 +124,9 @@ if __name__ == "__main__":
 
     if len(to_update) == 0:
         to_update = ['qps',
-                     'hub-datacube',
-                     'hub-workflow',
-                     'enmapboxgeoalgorithms',
+                     #'hub-datacube',
+                     #'hub-workflow',
+                     #'enmapboxgeoalgorithms',
                      'enmap-box-lmu-vegetation-apps',
                     ]
     updateRemotes(to_update)

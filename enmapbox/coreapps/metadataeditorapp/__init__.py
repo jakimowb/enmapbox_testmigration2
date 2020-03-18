@@ -25,8 +25,8 @@ from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
 
 APP_DIR = os.path.dirname(__file__)
-APP_NAME = 'Metdata Editor'
-VERSION = '0.1'
+APP_NAME = 'Metdata Viewer'
+VERSION = '0.2'
 LICENSE = 'GPL-3'
 
 from enmapbox.gui.applications import EnMAPBoxApplication
@@ -81,8 +81,6 @@ class MetaDataEditorApp(EnMAPBoxApplication):
     def startGUI(self):
         from metadataeditorapp.metadataeditor import MetadataEditorDialog
         d = MetadataEditorDialog(parent=self.enmapbox.ui)
-        sources = self.enmapbox.dataSources('SPATIAL')
-        d.addSources(sources)
         d.show()
 
 

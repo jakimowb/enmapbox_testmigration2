@@ -48,7 +48,7 @@ class EcoSISSpectralLibraryIO(AbstractSpectralLibraryIO):
     See https://ecosis.org for details.
     """
     @staticmethod
-    def canRead(path:str):
+    def canRead(path:str)->bool:
         """
         Returns true if it can read the source defined by path
         :param path: source uri
@@ -154,7 +154,7 @@ class EcoSISSpectralLibraryIO(AbstractSpectralLibraryIO):
         return speclib
 
     @staticmethod
-    def write(speclib:SpectralLibrary, path:str, progressDialog:QProgressDialog, delimiter:str=';'):
+    def write(speclib:SpectralLibrary, path:str, progressDialog:QProgressDialog = None, delimiter:str=';'):
         """
         Writes the SpectralLibrary to path and returns a list of written files that can be used to open the spectral library with readFrom
         """

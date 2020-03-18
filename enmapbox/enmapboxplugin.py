@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+# noinspection PyPep8Naming
 """
 ***************************************************************************
     EnMAPBoxPlugin.py
@@ -16,15 +16,14 @@
 *                                                                         *
 ***************************************************************************
 """
-import os, sys, site, importlib, pathlib
-
+import os
+import sys
+import site
+import warnings
 from qgis.core import QgsApplication, QgsProcessingProvider, QgsProcessingAlgorithm, Qgis
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QTimer, QOperatingSystemVersion
 from qgis.PyQt.QtWidgets import QAction
-
-import numpy as np
-
 
 
 class EnMAPBoxPlugin(object):
@@ -59,12 +58,15 @@ class EnMAPBoxPlugin(object):
         """
         Runs a check for availability of package dependencies and give an readible error message
         :return:
+        :return:
         """
         from enmapbox import DEPENDENCIES, messageLog, DIR_REPO
-        from enmapbox.dependencycheck import missingPackages, missingPackageInfo
-        missing = missingPackages(DEPENDENCIES)
+        from enmapbox.dependencycheck import missingPackages, missingPackageInfo, requiredPackages
+
+        missing = missingPackages(requiredPackages())
         if len(missing) > 0:
-            raise Exception(missingPackageInfo(missing))
+            info = missingPackageInfo(missing, html=False)
+            warnings.warn(info, ImportWarning)
 
     def initGui(self):
 

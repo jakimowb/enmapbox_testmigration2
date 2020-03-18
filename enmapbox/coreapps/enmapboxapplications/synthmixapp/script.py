@@ -1,5 +1,4 @@
 from hubflow.core import *
-from sklearn.ensemble import RandomForestRegressor
 
 
 def synthmixRegressionEnsemble(filename, classificationSample, targets, regressor, raster, runs, n,
@@ -172,6 +171,8 @@ class Aggregate(ApplierOperator):
 
 def test():
     import enmapboxtestdata
+    from sklearn.ensemble import RandomForestRegressor
+
     library = EnviSpectralLibrary(filename=enmapboxtestdata.library)
     labels = Classification.fromEnviSpectralLibrary(filename='/vsimem/synthmixRegressionEnsemble/labels.bsq',
                                                     library=library, attribute='level_2')

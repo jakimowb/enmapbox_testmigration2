@@ -10,7 +10,7 @@
 
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 
-import unittest, os
+import unittest, os, random
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -181,7 +181,6 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
             self.assertIsInstance(r, SpectralProfileRelation)
 
 
-
     def test_SpectralProfiledock(self):
 
         p = SpectralProfileSourcePanel()
@@ -199,6 +198,7 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
             model = p.bridge().spectralLibraryModel()
             slw = SpectralLibraryWidget()
             slw.speclib().setName('Speclib {} {}'.format(len(model) + 1, id(slw)))
+            slw.show()
             p.bridge().addDestination(slw)
 
         def delSpeclib(*args):
@@ -246,6 +246,33 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
         QApplication.processEvents()
 
         self.showGui(w)
+
+    def test_currentprofiles(self):
+        from enmapbox.gui import MapTools
+        eb = EnMAPBox()
+        eb.loadExampleData()
+        eb.setMapTool(MapTools.SpectralProfile)
+
+        c = eb.mapCanvases()[0]
+        self.assertIsInstance(c, QgsMapCanvas)
+        eb.spectralProfileBridge().setRunAsync(False)
+        def randomRasterPosition():
+            layer : QgsRasterLayer = random.choice([l for l in c.layers() if isinstance(l, QgsRasterLayer)])
+            ext = layer.extent()
+            dx = random.uniform(-10, 10) * layer.rasterUnitsPerPixelX()
+            dy = random.uniform(-10, 10) * layer.rasterUnitsPerPixelY()
+            point = SpatialPoint.fromMapLayerCenter(layer)
+            point = SpatialPoint(point.crs(), point.x() + dx, point.y() + dy)
+            eb.setCurrentLocation(point, mapCanvas=c)
+
+
+        self.assertTrue(len(eb.currentSpectra()) == 0)
+        randomRasterPosition()
+        self.assertTrue(len(eb.currentSpectra()) > 0)
+
+        randomRasterPosition()
+
+        randomRasterPosition()
 
 if __name__ == "__main__":
     unittest.main()

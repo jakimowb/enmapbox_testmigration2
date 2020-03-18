@@ -1058,20 +1058,47 @@ class MapCanvas(QgsMapCanvas):
 
         actionTop = mPxGrid.addAction('Top Raster')
         actionBottom = mPxGrid.addAction('Bottom Raster')
+
         if len(rasterLayers) == 0:
             actionTop.setEnabled(False)
             actionBottom.setEnabled(False)
-
         else:
             actionTop.triggered.connect(lambda b, layer=rasterLayers[0]: onShowRasterGrid(layer))
             actionBottom.triggered.connect(lambda b, layer=rasterLayers[-1]: onShowRasterGrid(layer))
-            mPxGrid.addSeparator()
-            for l in rasterLayers:
-                assert isinstance(l, QgsRasterLayer)
-                ischecked = self.mCrosshairItem.mRasterGridLayer == l
-                action = mPxGrid.addAction(l.name())
-                action.setChecked(ischecked)
-                action.triggered.connect(lambda b, layer=l: onShowRasterGrid(layer))
+
+        mPxGrid.addSeparator()
+        wa = QWidgetAction(mPxGrid)
+
+        cb = QgsMapLayerComboBox()
+        cb.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        cb.setAllowEmptyLayer(True)
+
+        # keep the list short an focus on
+
+        # list each source only once
+        all_layers = QgsProject.instance().mapLayers().values()
+        all_layers = sorted(all_layers, key=lambda l: not l.title().startswith('[EnMAP-Box]'))
+
+        excepted_layers = []
+        sources = []
+        for l in all_layers:
+            if l.source() in sources:
+                excepted_layers.append(l)
+            else:
+                sources.append(l.source())
+        cb.setExceptedLayerList(excepted_layers)
+
+        for i in range(cb.count()):
+            lyr = cb.layer(i)
+            if lyr == self.mCrosshairItem.rasterGridLayer():
+                cb.setCurrentIndex(i)
+                break
+        cb.layerChanged.connect(onShowRasterGrid)
+        wa.setDefaultWidget(cb)
+        mPxGrid.addAction(wa)
+
+
+            #action.triggered.connect(lambda b, layer=l: onShowRasterGrid(layer))
 
         menu.addSeparator()
 
@@ -1454,9 +1481,6 @@ class MapDock(Dock):
         self.mCanvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
         self.layout.addWidget(self.mCanvas)
 
-        self.label.addMapLink.clicked.connect(lambda:CanvasLink.ShowMapLinkTargets(self))
-        self.label.removeMapLink.clicked.connect(lambda: self.mCanvas.removeAllCanvasLinks())
-
         if initSrc is not None:
             from enmapbox.gui.datasources import DataSourceFactory
             dataSources = DataSourceFactory.create(initSrc)
@@ -1474,9 +1498,6 @@ class MapDock(Dock):
 
         menuCanvas = self.mCanvas.contextMenu()
         return appendItemsToMenu(menuDock, menuCanvas)
-
-    def _createLabel(self, *args, **kwds)->MapDockLabel:
-        return MapDockLabel(self, *args, **kwds)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:

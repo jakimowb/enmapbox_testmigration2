@@ -399,17 +399,20 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.speclibWidget = dock.mSpeclibWidget
         assert isinstance(self.speclibWidget, SpectralLibraryWidget)
 
-        #self.showMapSpectra = CheckableLayerTreeNode(self, 'Show map profiles', checked=Qt.Checked)
-        #self.showMapSpectra.setCheckState(Qt.Checked if self.speclibWidget.mapInteraction() else Qt.Unchecked)
-        #self.showMapSpectra.sigCheckStateChanged.connect(
-        #    lambda s: self.speclibWidget.setMapInteraction(s == Qt.Checked))
         self.profilesNode = LayerTreeNode(self, 'Profiles', value=0)
-        self.speclibWidget.mSpeclib.committedFeaturesAdded.connect(self.updateNodes)
-        self.speclibWidget.mSpeclib.committedFeaturesRemoved.connect(self.updateNodes)
+
+        speclib = self.speclibWidget.speclib()
+        if isinstance(speclib, SpectralLibrary):
+            speclib.committedFeaturesAdded.connect(self.updateNodes)
+            speclib.committedFeaturesRemoved.connect(self.updateNodes)
+            self.updateNodes()
 
     def updateNodes(self):
-        assert isinstance(self.speclibWidget, SpectralLibraryWidget)
-        self.profilesNode.setValue(len(self.speclibWidget.mSpeclib))
+
+        if isinstance(self.speclibWidget, SpectralLibraryWidget):
+            speclib = self.speclibWidget.speclib()
+            if isinstance(speclib, SpectralLibrary):
+                self.profilesNode.setValue(len(speclib))
 
 
 class MapDockTreeNode(DockTreeNode):
@@ -639,7 +642,21 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         :param dock:
         :return:
         """
-        return createDockTreeNode(dock, self.rootNode)
+        dockNode = createDockTreeNode(dock, self.rootNode)
+        if isinstance(dockNode, DockTreeNode):
+            if self.rowCount() == 1:
+                # fix for https://bitbucket.org/hu-geomatics/enmap-box/issues/361/newly-created-mapview-is-not-checked-as
+                QTimer.singleShot(500, self.update_docknode_visibility)
+        return dock
+
+    def update_docknode_visibility(self):
+
+        QApplication.processEvents()
+
+        if self.rowCount() > 0:
+            idx0 = self.index(0,0)
+            idx1 = self.index(self.rowCount()-1, 0)
+            self.dataChanged.emit(idx0, idx1, [Qt.CheckStateRole])
 
     def canFetchMore(self, index)->bool:
         node = self.index2node(index)
@@ -735,12 +752,17 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
     def removeNodes(self, nodes: typing.List[QgsLayerTreeNode]):
         for n in nodes:
+            try:
+                n.disconnect()
+            except:
+                pass
             if isinstance(n, QgsLayerTreeNode) and isinstance(n.parent(), QgsLayerTreeNode):
                 n.parent().removeChildNode(n)
 
+
     def removeDockNode(self, node):
-        self.mDockManager.removeDock(node.dock)
         self.removeNodes([node])
+        self.mDockManager.removeDock(node.dock)
 
     def flags(self, index):
         if not index.isValid():
@@ -777,30 +799,30 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                 if column == 0:
 
                     if isinstance(node, DockTreeNode):
-                        flags |= Qt.ItemIsUserCheckable | \
+                        flags = flags | Qt.ItemIsUserCheckable | \
                                  Qt.ItemIsEditable | \
                                  Qt.ItemIsDropEnabled
 
                         if isL1:
-                            flags |= Qt.ItemIsDropEnabled
+                            flags = flags | Qt.ItemIsDropEnabled
 
 
                     if node.name() == 'Layers':
-                        flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable
+                        flags = flags | Qt.ItemIsUserCheckable | Qt.ItemIsEditable
 
                     if isinstance(node, CheckableLayerTreeNode):
-                        flags |= Qt.ItemIsUserCheckable
+                        flags = flags | Qt.ItemIsUserCheckable
 
                 if column == 1:
                     pass
                         # mapCanvas Layer Tree Nodes
             elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup]:
                 if column == 0:
-                    flags |= Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled | Qt.ItemIsDragEnabled
+                    flags = flags | Qt.ItemIsUserCheckable | Qt.ItemIsEditable | Qt.ItemIsDropEnabled | Qt.ItemIsDragEnabled
 
                 #if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
                 #if isinstance(dockNode, MapDockTreeNode) and node != dockNode.layerNode:
-                #    flags |= Qt.ItemIsDragEnabled
+                #    flags = flags | Qt.ItemIsDragEnabled
             elif not isinstance(node, QgsLayerTree):
                 s = ""
             else:
@@ -1394,11 +1416,17 @@ class DockManager(QObject):
             dock = WebViewDock(*args, **kwds)
 
         elif cls == SpectralLibraryDock:
+            speclib = kwds.get('speclib')
+            if isinstance(speclib, SpectralLibrary):
+                kwds['name'] = speclib.name()
             dock = SpectralLibraryDock(*args, **kwds)
             dock.mSpeclibWidget.setMapInteraction(False)
+            dock.speclib().willBeDeleted.connect(lambda *args, d=dock:self.removeDock(d))
 
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
+
+        dock.setVisible(True)
 
         dockArea = kwds.get('dockArea', self.currentDockArea())
         if not isinstance(dockArea, DockArea):
@@ -1406,12 +1434,16 @@ class DockManager(QObject):
         else:
             dockArea.addDock(dock, *args, **kwds)
 
+        dock.setVisible(True)
+
         if dock not in self.mDocks:
             dock.sigClosed.connect(self.removeDock)
             self.mDocks.append(dock)
             self.sigDockAdded.emit(dock)
-
         return dock
+
+    def onSpeclibWillBeDeleted(self, lyr):
+        s = ""
 
     """
     QgsLegendInterface() Slots
@@ -1484,29 +1516,31 @@ class MapCanvasBridge(QgsLayerTreeMapCanvasBridge):
     def setLayerTreeLayers(self):
 
         canvasLayers = self.mapCanvas().layers()
-        treeNodeLayerNodes = self.rootGroup().findLayers()
-        treeNodeLayers = [n.layer() for n in treeNodeLayerNodes]
+        canvasLayerIds = [l.id() for l in canvasLayers]
+        treeNodeLayerIds = self.rootGroup().findLayerIds()
+
 
         # new layers to add?
         # newChildLayers = [l for l in canvasLayers if l not in treeNodeLayers]
 
         # layers to set visible?
-        for layer in canvasLayers:
-            if layer not in treeNodeLayers:
-                # insert new layers on top of layer tree
-                # todo: place behind first visible predecessor and keep order
-                self.rootGroup().insertLayer(0, layer)
+        to_add = [i for i in canvasLayerIds if i not in treeNodeLayerIds]
 
+        for lid in to_add:
+            layer = [l for l in canvasLayers if l.id() == lid][0]
+            self.rootGroup().insertLayer(0, layer)
             # set canvas on visible
-            lNode = self.rootGroup().findLayer(layer.id())
-            lNode.setItemVisibilityChecked(Qt.Checked)
+            lNode = self.rootGroup().findLayer(lid)
+            if isinstance(lNode, QgsLayerTreeLayer):
+                lNode.setItemVisibilityChecked(Qt.Checked)
 
-        # layers to hide?
-        for layer in treeNodeLayers:
-            if isinstance(layer, QgsMapLayer) and layer not in canvasLayers:
-                lnode = self.rootGroup().findLayer(layer.id())
-                if isinstance(lnode, QgsLayerTreeLayer):
-                    lnode.setItemVisibilityChecked(Qt.Unchecked)
+        if False:
+            # layers to hide?
+            for lid in treeNodeLayerIds:
+                if isinstance(lid, QgsMapLayer) and lid not in canvasLayers:
+                    lnode = self.rootGroup().findLayer(lid.id())
+                    if isinstance(lnode, QgsLayerTreeLayer):
+                        lnode.setItemVisibilityChecked(Qt.Unchecked)
 
 
 

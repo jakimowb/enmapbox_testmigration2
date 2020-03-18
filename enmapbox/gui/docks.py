@@ -151,7 +151,6 @@ class Dock(pgDock, KeepRefs):
         if i != self.isVisible():
             self.sigVisibilityChanged.emit(self.isVisible())
 
-
     def setTitle(self, title):
         """
         Override setTitle to emit a signal after title was changed
@@ -166,7 +165,7 @@ class Dock(pgDock, KeepRefs):
 
     def _createLabel(self, *args, **kwds):
         """
-        Overide this function to provide a dock-specific label
+        Override this function to provide a dock-specific label
         :return:
         """
         return DockLabel(self,  *args, **kwds)
@@ -186,7 +185,6 @@ class Dock(pgDock, KeepRefs):
             win.show()
         else:
             area = self.home.addTempArea()
-        #print "added temp area", area, area.window()
         return area
 
     def setOrientation(self, o='auto', force=False):
@@ -299,25 +297,13 @@ class DockArea(pgDockArea):
         #assert isinstance(enmapboxdock, Dock)
         v = None
         try:
+            visibility = enmapboxdock.isVisible()
             v = super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
+            enmapboxdock.setVisible(visibility)
             self.sigDockAdded.emit(enmapboxdock)
         except:
             pass
         return v
-
-
-    def addTempArea(self):
-        #overwrites the original method
-        if self.home is None:
-            area = DockArea(temporary=True, home=self)
-            self.tempAreas.append(area)
-            win = DockWindow(area)
-            area.win = win
-            win.show()
-        else:
-            area = self.home.addTempArea()
-        #print "added temp area", area, area.window()
-        return area
 
     # forward to EnMAPBox
     def dragEnterEvent(self, event):
@@ -558,14 +544,18 @@ class TextDockWidget(QWidget):
         self.btnLoadFile.setDefaultAction(self.actionLoadFile)
         self.btnSaveFile.setDefaultAction(self.actionSaveFile)
         self.btnSaveFileAs.setDefaultAction(self.actionSaveFileAs)
-        self.actionLoadFile.triggered.connect(lambda: self.loadFile(
-            QFileDialog.getOpenFileName(self, 'Open File', directory=self.mFile, filter=TextDockWidget.FILTERS)))
-
+        self.actionLoadFile.triggered.connect(self.onOpenFile)
         self.actionSaveFile.triggered.connect(lambda: self.save(saveAs=False))
         self.actionSaveFileAs.triggered.connect(lambda :self.save(saveAs=True))
-
         self.actionSaveFile.setEnabled(False)
         self.updateTitle()
+
+    def onOpenFile(self):
+
+        path, result = QFileDialog.getOpenFileName(self, 'Open File', directory=self.mFile, filter=TextDockWidget.FILTERS)
+        if isinstance(path, str) and len(path) > 0:
+            self.loadFile(path)
+
 
     def dragEnterEvent(self, event:QDragEnterEvent):
         """
@@ -770,17 +760,13 @@ class SpectralLibraryDock(Dock):
     A Dock to show SpectraLProfiles
     """
     sigLoadFromMapRequest = pyqtSignal()
-    def __init__(self, speclib:SpectralLibrary=None, *args, **kwds):
+    def __init__(self,  *args, speclib:SpectralLibrary=None, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
         if not isinstance(speclib, SpectralLibrary):
-            from enmapbox.gui.enmapboxgui import OWNED_BY_SPECLIBWIDGET_KEY
             speclib = SpectralLibrary()
-            speclib.setCustomProperty(OWNED_BY_SPECLIBWIDGET_KEY, True)
 
-        self.mSpeclibWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
-
-
+        self.mSpeclibWidget:SpectralLibraryWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
         self.mSpeclibWidget.setMapInteraction(False)
         self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.mSpeclibWidget)

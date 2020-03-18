@@ -1,23 +1,22 @@
 import traceback
+
+from PyQt5.uic import loadUi
 from qgis.core import *
 from qgis.gui import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapbox.gui.utils import loadUIFormClass
 from enmapboxapplications.widgets.core import UiLabeledLibrary
 from enmapboxapplications.synthmixapp.script import synthmixRegressionEnsemble
 from hubflow.core import *
 
 pathUi = join(dirname(__file__), 'ui')
 
-class SynthmixApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
+class SynthmixApp(QMainWindow):
 
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'main.ui'), self)
+        #self.setupUi(self)
         self.uiInfo_ = QLabel()
         self.statusBar().addWidget(self.uiInfo_, 1)
         self.initRegressor()

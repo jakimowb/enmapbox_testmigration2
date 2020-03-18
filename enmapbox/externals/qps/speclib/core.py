@@ -37,6 +37,7 @@ from qgis.gui import QgsGui
 from ..utils import *
 from ..speclib import speclibSettings, EDITOR_WIDGET_REGISTRY_KEY
 
+
 # get to now how we can import this module
 MODULE_IMPORT_PATH = None
 
@@ -48,13 +49,16 @@ for name, module in sys.modules.items():
 MIMEDATA_SPECLIB = 'application/hub-spectrallibrary'
 MIMEDATA_SPECLIB_LINK = 'application/hub-spectrallibrary-link'
 MIMEDATA_XQT_WINDOWS_CSV = 'application/x-qt-windows-mime;value="Csv"'
+
+# see https://doc.qt.io/qt-5/qwinmime.html
 MIMEDATA_TEXT = 'text/plain'
-MIMEDATA_URL = 'text/url'
+MIMEDATA_URL = 'text/uri-list'
 
 SPECLIB_EPSG_CODE = 4326
 SPECLIB_CRS = QgsCoordinateReferenceSystem('EPSG:{}'.format(SPECLIB_EPSG_CODE))
 
 SPECLIB_CLIPBOARD = weakref.WeakValueDictionary()
+DEFAULT_NAME = 'SpectralLibrary'
 
 OGR_EXTENSION2DRIVER = dict()
 OGR_EXTENSION2DRIVER[''] = []  # list all drivers without specific extension
@@ -562,9 +566,7 @@ class SpectralProfile(QgsFeature):
         wl, wlu = parseWavelength(layer)
 
         y = list(results.values())
-        for v in y:
-            if not isinstance(v, (float, int)):
-                return None
+        y = [v if isinstance(v, (int, float)) else float('NaN') for v in y]
 
         profile = SpectralProfile()
         profile.setName(SpectralProfile.profileName(layer.name(), geoPosition=position))
@@ -921,19 +923,26 @@ class SpectralProfile(QgsFeature):
         """
         return self.__copy__()
 
-    def plot(self):
+    def plot(self)->QWidget:
         """
         Plots this profile to an new PyQtGraph window
         :return:
         """
-        from .plotting import SpectralProfilePlotDataItem
+        from .gui import SpectralProfilePlotDataItem
+        from ..plotstyling.plotstyling import PlotStyle
         from ..externals import pyqtgraph as pg
-        pi = SpectralProfilePlotDataItem(self)
-        pi.setClickable(True)
+        pdi = SpectralProfilePlotDataItem(self)
+        pdi.setClickable(True)
         pw = pg.plot(title=self.name())
-        pw.getPlotItem().addItem(pi)
+        pw.getPlotItem().addItem(pdi)
 
-        pi.setColor('green')
+        style = PlotStyle.fromPlotDataItem(pdi)
+        style.setLineColor('green')
+        style.setMarkerSymbol('Triangle')
+        style.setMarkerColor('green')
+        style.apply(pdi)
+
+        return pw
         # pg.QAPP.exec_()
 
     def __reduce_ex__(self, protocol):
@@ -1041,18 +1050,23 @@ class SpectralLibrary(QgsVectorLayer):
             sl = SPECLIB_CLIPBOARD.get(sid)
             if isinstance(sl, SpectralLibrary) and id(sl) == sid:
                 return sl
-            else:
-                return None
-        elif MIMEDATA_SPECLIB in mimeData.formats():
-            return SpectralLibrary.readFromPickleDump(mimeData.data(MIMEDATA_SPECLIB))
 
-        elif MIMEDATA_TEXT in mimeData.formats():
+        if MIMEDATA_SPECLIB in mimeData.formats():
+            sl = SpectralLibrary.readFromPickleDump(mimeData.data(MIMEDATA_SPECLIB))
+            if isinstance(sl, SpectralLibrary) and len(sl) > 0:
+                return sl
+
+        if mimeData.hasUrls():
+            sl = SpectralLibrary.readFrom(mimeData.urls()[0])
+            if isinstance(sl, SpectralLibrary) and len(sl) > 0:
+                return sl
+
+        if MIMEDATA_TEXT in mimeData.formats():
             txt = mimeData.text()
             from ..speclib.io.csvdata import CSVSpectralLibraryIO
-            return CSVSpectralLibraryIO.fromString(txt)
-
-        elif MIMEDATA_URL in mimeData.formats():
-            return SpectralLibrary.readFrom(mimeData.urls()[0])
+            sl = CSVSpectralLibraryIO.fromString(txt)
+            if isinstance(sl, SpectralLibrary) and len(sl) > 0:
+                return sl
 
         return None
 
@@ -1104,9 +1118,10 @@ class SpectralLibrary(QgsVectorLayer):
     def readFromVector(vector_qgs_layer: QgsVectorLayer = None,
                        raster_qgs_layer: QgsRasterLayer = None,
                        progressDialog: typing.Union[QProgressDialog, ProgressHandler] = None,
-                       nameField=None,
-                       all_touched=False,
-                       returnProfileList=False):
+                       nameField: str = None,
+                       all_touched: bool =False,
+                       copy_attributes: bool = False,
+                       returnProfileList: bool =False):
         """
         Reads SpectraProfiles from a raster source, based on the locations specified in a vector data set.
         Opens a Select Polygon Layer dialog to select the correct polygon and returns a Spectral Library with
@@ -1125,8 +1140,7 @@ class SpectralLibrary(QgsVectorLayer):
         :return: Spectral Library | [list-of-profiles]
         """
 
-        # the SpectralLibrary to be returned
-        spectral_library = SpectralLibrary()
+
 
         # homogenize source file formats
         try:
@@ -1149,20 +1163,23 @@ class SpectralLibrary(QgsVectorLayer):
                 if not isinstance(vector_qgs_layer, QgsVectorLayer) or not isinstance(raster_qgs_layer, QgsRasterLayer):
                     return
 
-        # get the shapefile fields and check the minimum requirements
 
+        # the SpectralLibrary to be returned
+        spectral_library = SpectralLibrary()
+
+        # get the shapefile fields and check the minimum requirements
         # field in the vector source
         vector_fields = vector_qgs_layer.fields()
-
-        # fields in the output-spectral library
-        speclib_fields = createStandardFields()
+        fields_to_copy = []
+        if copy_attributes:
+            assert spectral_library.startEditing()
+            for field in vector_fields:
+                if spectral_library.fields().indexOf(field.name()) == -1:
+                    spectral_library.addAttribute(QgsField(field))
+                    fields_to_copy.append(field.name())
+            assert spectral_library.commitChanges()
 
         # fields we need to copy values from the vector source to each SpectralProfile
-        fields_to_copy = []
-        for field in vector_fields:
-            if speclib_fields.indexOf(field.name()) == -1:
-                speclib_fields.append(QgsField(field))
-                fields_to_copy.append(field.name())
         options = QgsVectorFileWriter.SaveVectorOptions()
         options.driverName = 'GPKG'
         # set spatial filter in destination CRS
@@ -1174,10 +1191,23 @@ class SpectralLibrary(QgsVectorLayer):
         ct.setSourceCrs(vector_qgs_layer.crs())
         ct.setDestinationCrs(raster_qgs_layer.crs())
         options.ct = ct
-        error = QgsVectorFileWriter.writeAsVectorFormat(layer=vector_qgs_layer,
-                                                        fileName=tmpPath,
-                                                        options=options)
-        vector_qgs_layer.disconnect()
+
+        if False:
+            # todo: remove deprecation warning
+            writer = QgsVectorFileWriter(tmpPath,
+                                         'UTF-8',
+                                         vector_qgs_layer.fields(),
+                                         vector_qgs_layer.wkbType(),
+                                         vector_qgs_layer.crs(),
+                                         'GPKG')
+            for f in vector_qgs_layer:
+                writer.addFeature(f)
+            del writer
+        else:
+            error = QgsVectorFileWriter.writeAsVectorFormat(layer=vector_qgs_layer,
+                                                            fileName=tmpPath,
+                                                            options=options)
+        #vector_qgs_layer.disconnect()
         del vector_qgs_layer
 
         # make the internal FID a normal attribute which gdal can rasterize
@@ -1302,12 +1332,12 @@ class SpectralLibrary(QgsVectorLayer):
 
         attr_idx_profile = []
         attr_idx_feature = []
-        tmpProfile = SpectralProfile(fields=speclib_fields)
+        tmpProfile = SpectralProfile(fields=spectral_library.fields())
         for fieldName in fields_to_copy:
             attr_idx_profile.append(tmpProfile.fields().indexOf(fieldName))
             attr_idx_feature.append(vector_fields.indexOf(fieldName))
 
-        # store relevant features in memory for faster accesss
+        # store relevant features in memory for faster access
         features = {}
         featureAttributes = {}
         for f in tmp_qgs_layer.getFeatures(unique_fids):
@@ -1380,7 +1410,7 @@ class SpectralLibrary(QgsVectorLayer):
 
             feature = features[fid]
             assert isinstance(feature, QgsFeature)
-            profile = SpectralProfile(fields=speclib_fields)
+            profile = SpectralProfile(fields=spectral_library.fields())
 
             # 2.1 set profile id
             profile.setId(iProfile)
@@ -1406,7 +1436,7 @@ class SpectralLibrary(QgsVectorLayer):
             g = geo_coordinates[iProfile]
             profile.setGeometry(QgsPoint(g[0], g[1]))
 
-            # 2.4 copy vector feature attribute
+            # 2.4 copy vector feature attributes
             for idx_p, idx_f in zip(attr_idx_profile, attr_idx_feature):
                 profile.setAttribute(idx_p, feature.attribute(idx_f))
 
@@ -1420,9 +1450,6 @@ class SpectralLibrary(QgsVectorLayer):
         if isinstance(progressDialog, (QProgressDialog, ProgressHandler)):
             progressDialog.setLabelText('Create speclib...')
 
-        assert spectral_library.startEditing()
-        spectral_library.addMissingFields(vector_fields)
-        assert spectral_library.commitChanges()
         assert spectral_library.startEditing()
 
         # spectral_library.addProfiles(profiles)
@@ -1802,6 +1829,12 @@ class SpectralLibrary(QgsVectorLayer):
         :param uri: path or uri of the source from which to read SpectralProfiles and return them in a SpectralLibrary
         :return: SpectralLibrary
         """
+        if isinstance(uri, QUrl):
+            if uri.isLocalFile():
+                uri = uri.toLocalFile()
+            else:
+                uri.toString()
+
         if isinstance(uri, str) and uri.endswith('.gpkg'):
             try:
                 return SpectralLibrary(uri=uri)
@@ -1814,7 +1847,12 @@ class SpectralLibrary(QgsVectorLayer):
         for cls in sorted(readers, key=lambda r: r.score(uri)):
             try:
                 if cls.canRead(uri):
-                    return cls.readFrom(uri, progressDialog=progressDialog)
+                    sl = cls.readFrom(uri, progressDialog=progressDialog)
+                    if isinstance(sl, SpectralLibrary):
+
+                        if sl.name() in [DEFAULT_NAME, '']:
+                            sl.setName(os.path.basename(uri))
+                        return sl
             except Exception as ex:
                 s = ""
         return None
@@ -1835,7 +1873,7 @@ class SpectralLibrary(QgsVectorLayer):
 
     sigProgressInfo = pyqtSignal(int, int, str)
 
-    def __init__(self, name='SpectralLibrary', uri=None):
+    def __init__(self, name=DEFAULT_NAME, uri=None):
 
         lyrOptions = QgsVectorLayer.LayerOptions(loadDefaultStyle=False, readExtentFromXml=False)
 
@@ -2388,7 +2426,8 @@ class AbstractSpectralLibraryIO(object):
     @staticmethod
     def canRead(path: str) -> bool:
         """
-        Returns true if it can read the source defined by path
+        Returns true if it can read the source defined by path.
+        Well behaving implementations use a try-catch block and return False in case of errors.
         :param path: source uri
         :return: True, if source is readable.
         """
@@ -2405,13 +2444,15 @@ class AbstractSpectralLibraryIO(object):
         return None
 
     @staticmethod
-    def write(speclib: SpectralLibrary, path: str, progressDialog: typing.Union[QProgressDialog, ProgressHandler]) -> \
+    def write(speclib: SpectralLibrary,
+              path: str,
+              progressDialog: typing.Union[QProgressDialog, ProgressHandler] = None) -> \
     typing.List[str]:
         """
         Writes the SpectralLibrary.
         :param speclib: SpectralLibrary to write
         :param path: file path to write the SpectralLibrary to
-        :param progressDialog:  QProgressDialog, which well-behave implementations can use to show the writting progress.
+        :param progressDialog:  QProgressDialog, which well-behave implementations can use to show the writing progress.
         :return: a list of paths that can be used to re-open all written profiles
         """
         assert isinstance(speclib, SpectralLibrary)
