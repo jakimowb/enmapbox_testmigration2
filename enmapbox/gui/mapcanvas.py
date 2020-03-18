@@ -1481,9 +1481,6 @@ class MapDock(Dock):
         self.mCanvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
         self.layout.addWidget(self.mCanvas)
 
-        self.label.addMapLink.clicked.connect(lambda:CanvasLink.ShowMapLinkTargets(self))
-        self.label.removeMapLink.clicked.connect(lambda: self.mCanvas.removeAllCanvasLinks())
-
         if initSrc is not None:
             from enmapbox.gui.datasources import DataSourceFactory
             dataSources = DataSourceFactory.create(initSrc)
@@ -1501,9 +1498,6 @@ class MapDock(Dock):
 
         menuCanvas = self.mCanvas.contextMenu()
         return appendItemsToMenu(menuDock, menuCanvas)
-
-    def _createLabel(self, *args, **kwds)->MapDockLabel:
-        return MapDockLabel(self, *args, **kwds)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
