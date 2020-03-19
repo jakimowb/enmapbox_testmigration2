@@ -151,7 +151,6 @@ class Dock(pgDock, KeepRefs):
         if i != self.isVisible():
             self.sigVisibilityChanged.emit(self.isVisible())
 
-
     def setTitle(self, title):
         """
         Override setTitle to emit a signal after title was changed
@@ -166,7 +165,7 @@ class Dock(pgDock, KeepRefs):
 
     def _createLabel(self, *args, **kwds):
         """
-        Overide this function to provide a dock-specific label
+        Override this function to provide a dock-specific label
         :return:
         """
         return DockLabel(self,  *args, **kwds)
@@ -186,7 +185,6 @@ class Dock(pgDock, KeepRefs):
             win.show()
         else:
             area = self.home.addTempArea()
-        #print "added temp area", area, area.window()
         return area
 
     def setOrientation(self, o='auto', force=False):
@@ -306,20 +304,6 @@ class DockArea(pgDockArea):
         except:
             pass
         return v
-
-
-    def addTempArea(self):
-        #overwrites the original method
-        if self.home is None:
-            area = DockArea(temporary=True, home=self)
-            self.tempAreas.append(area)
-            win = DockWindow(area)
-            area.win = win
-            win.show()
-        else:
-            area = self.home.addTempArea()
-        #print "added temp area", area, area.window()
-        return area
 
     # forward to EnMAPBox
     def dragEnterEvent(self, event):
