@@ -1074,8 +1074,8 @@ class Grid(object):
         '''
         assert isinstance(buffer, int)
         extent = self.extent()
-        extent = extent.buffer(buffer=buffer * self.resolution().x(), left=left, right=right)
-        extent = extent.buffer(buffer=buffer * self.resolution().y(), up=up, down=down)
+        extent = extent.buffer(buffer=buffer * self.resolution().x(), left=left, right=right, up=False, down=False)
+        extent = extent.buffer(buffer=buffer * self.resolution().y(), left=False, right=False, up=up, down=down)
         return Grid(extent=extent, resolution=self.resolution())
 
     def anchor(self, point):
