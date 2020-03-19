@@ -770,8 +770,9 @@ class Raster(Map):
     '''Class for managing raster maps like :class:`~Mask`, :class:`~Classification`,
     :class:`~Regression` and :class:`~Fraction`.'''
 
-    def __init__(self, filename, eAccess=gdal.GA_ReadOnly):
+    def __init__(self, filename: str, eAccess=gdal.GA_ReadOnly):
         '''Create instance from the raster located at the given ``filename``.'''
+        assert isinstance(filename, str)
         self._filename = filename
         self._rasterDataset = None
         self._eAccess = eAccess

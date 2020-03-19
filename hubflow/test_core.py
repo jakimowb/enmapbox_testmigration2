@@ -8,8 +8,6 @@ import enmapboxtestdata
 from hubdc.progressbar import CUIProgressBar
 from hubflow.core import *
 import hubflow.testdata
-#import hubdc.testdata
-from hubflow.testdata import vectorRegression
 
 CUIProgressBar.SILENT = False
 overwrite = not True
@@ -81,7 +79,7 @@ class Test(TestCase):
 
         # a) response function from ENVI Speclib
 
-        sentinel2ResponseFunction = EnviSpectralLibrary(filename=r'C:\source\hub-workflow\hubflow\sensors\sentinel2.sli')
+        sentinel2ResponseFunction = EnviSpectralLibrary(filename=r'C:\source\QGISPlugIns\enmap-box\hubflow\sensors\sentinel2.sli')
         sentinel2Sensor = SensorDefinition.fromEnviSpectralLibrary(library=sentinel2ResponseFunction,
                                                                    isResponseFunction=True)
         print(sentinel2Sensor)
@@ -115,7 +113,7 @@ class Test(TestCase):
 
     def test_SensorDefinitionResampleArray(self):
 
-        sentinel2ResponseFunction = EnviSpectralLibrary(filename=r'C:\source\hub-workflow\hubflow\sensors\sentinel2.sli')
+        sentinel2ResponseFunction = EnviSpectralLibrary(filename=r'C:\source\QGISPlugIns\enmap-box\hubflow\sensors\sentinel2.sli')
         sentinel2Sensor = SensorDefinition.fromEnviSpectralLibrary(library=sentinel2ResponseFunction,
                                                                    isResponseFunction=True)
 
@@ -171,10 +169,6 @@ class Test(TestCase):
 
         raster = enmapClassificationSample.raster()
         classification = enmapClassificationSample.classification()
-#        classification.toRasterMetadata(raster=raster, classificationSchemeName='level 42')
-
-#        print(Classification.fromRasterMetadata(filename=join(outdir, 'ClassificationFromRasterMetadata.bsq'),
-#                                                raster=raster, classificationSchemeName='level 42'))
 
         # resampling
         print(enmapClassification)
@@ -192,16 +186,13 @@ class Test(TestCase):
 
 
         def ufunc(array, meta):
-            carray = np.copy(array)
-            for old, new in zip([0, 1, 2, 3, 4, 255], [1, 2, 3, 4, 5, 0]):
-                carray[array == old] = new
-            return carray
+            return (array > 1000) + 1
 
         classDefinition = ClassDefinition(names=['land', 'water', 'shadow','snow', 'cloud'],
                                           colors=['orange', 'blue', 'grey', 'snow', 'white'])
 
         print(Classification.fromRasterAndFunction(filename=join(outdir, 'ClassificationFromRasterAndFunction.bsq'),
-                                                   raster=Raster(filename=hubdc.testdata.LT51940232010189KIS01.cfmask),
+                                                   raster=enmap,
                                                    ufunc=ufunc, classDefinition=classDefinition))
 
         print(Classification.fromClassification(filename=join(outdir, 'hymapLandCover.bsq'),
@@ -686,13 +677,6 @@ class TestRaster(TestCase):
 
         print(enmap.resample(filename=join(outdir, 'RasterResample.bsq'), grid=enmap.grid().atResolution(10), resampleAlg=gdal.GRA_Average))
 
-    def test_extractRegions(self):
-
-        assert 0
-
-        vector = Vector(filename=r'C:\Users\janzandr\Desktop\regions.gpkg')
-        profiles, attributes = enmap.extractRegions(vector=vector)
-
 
 class TestFraction(TestCase):
 
@@ -725,6 +709,9 @@ class TestRegression(TestCase):
 
 
     def test_ordinationPfeilhauerEtAll2014(self):
+
+        # todo prepare new testdata
+        return
 
         from sklearn.ensemble import RandomForestRegressor
 
@@ -791,7 +778,8 @@ class TestRegressionSample(TestCase):
         print(regressionSample)
 
     def test_fromArtmo(self):
-
+        ''# todo prepare new testdata
+        return
         from enmapboxtestdata.artmo import directional_reflectance, directional_reflectance_meta
         directional_reflectance = r'C:\Work\data\artmo\Directional_reflectance_PROSAIL1000_FVC.txt'
         directional_reflectance_meta = r'C:\Work\data\artmo\Directional_reflectance_PROSAIL1000_FVC_meta.txt'
