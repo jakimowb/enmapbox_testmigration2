@@ -6,6 +6,8 @@ The :class:`~hubdc.applier.Applier` class is the main point of entry in this mod
 
 from __future__ import print_function
 from multiprocessing import Pool, cpu_count
+from os import walk
+from os.path import splitdrive, split, splitext, join
 from timeit import default_timer as now
 import numpy
 from osgeo.gdal_array import NumericTypeCodeToGDALTypeCode
@@ -631,10 +633,10 @@ class ApplierInputRasterGroup(ApplierIOGroup):
 
         def abspath_split(path):
 
-            drive, path_and_file = os.path.splitdrive(path)
+            drive, path_and_file = splitdrive(path)
             folders = []
             while 1:
-                path, folder = os.path.split(path)
+                path, folder = split(path)
 
                 if folder != "":
                     folders.append(folder)
@@ -646,7 +648,7 @@ class ApplierInputRasterGroup(ApplierIOGroup):
         off = len(abspath_split(folder)) # Python 3
 
         group = ApplierInputRasterGroup()
-        for root, dirs, files in os.walk(folder):
+        for root, dirs, files in walk(folder):
             # key = '/'.join(os.path._abspath_split(root)[2][off:]) # Python 2
             key = '/'.join(abspath_split(root)[off:]) # Python 3
 
@@ -657,7 +659,7 @@ class ApplierInputRasterGroup(ApplierIOGroup):
             for dir in dirs:
                 subgroup.setGroup(key=dir, value=ApplierInputRasterGroup())
             for file in files:
-                fileBasenameWithoutExtension, fileExtension = os.path.splitext(file)
+                fileBasenameWithoutExtension, fileExtension = splitext(file)
                 for extension in extensions:
                     if extension != '': assert extension[0] == '.'
                     if fileExtension.lower() != extension.lower():
@@ -666,7 +668,7 @@ class ApplierInputRasterGroup(ApplierIOGroup):
                         if not ufunc(dirname=root, basename=fileBasenameWithoutExtension, extension=fileExtension):
                             continue
                     subgroup.setRaster(key=fileBasenameWithoutExtension,
-                                       value=ApplierInputRaster(filename=os.path.join(root, file)))
+                                       value=ApplierInputRaster(filename=join(root, file)))
         return group
 
     #@staticmethod
@@ -953,7 +955,7 @@ class Applier(object):
             description = self.operatorType.__name__
 
         if not overwrite:
-            allExists = all([os.path.exists(raster.filename()) for raster in self.outputRaster.flatRasters()])
+            allExists = all([exists(raster.filename()) for raster in self.outputRaster.flatRasters()])
             if allExists:
                 self.controls.progressBar.setText('skip {} (all outputs exist and OVERWRITE=FALSE)'.format(description))
                 return

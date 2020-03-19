@@ -23,27 +23,6 @@ from qgis.PyQt.QtCore import *
 
 class test_dependencycheck(EnMAPBoxTestCase):
 
-
-    def test_missingPackages(self):
-
-        missing = missingPackages(['sys', 'noneExistingFakePkg'])
-        self.assertIsInstance(missing, list)
-        self.assertListEqual(missing, ['noneExistingFakePkg'])
-
-    def test_missingPackageInfo(self):
-        info1 = missingPackageInfo(['noneExistingFake', 'gdal', 'sklearn'])
-        self.assertIsInstance(info1, str)
-        print(info1)
-
-        info2 = missingPackageInfo([])
-        self.assertTrue(info2 == None)
-
-        v = QgsMessageLogViewer()
-        v.show()
-        v.logMessage(info1, 'TEST', Qgis.Warning)
-
-        self.showGui(v)
-
     def test_gdalissues(self):
 
         l = checkGDALIssues()
@@ -51,19 +30,60 @@ class test_dependencycheck(EnMAPBoxTestCase):
         for i in l:
             self.assertIsInstance(i, str)
 
-    def test_sklearn(self):
+    def test_lookup(self):
+        # some python packages have a different name when to be installed with pip
         # addresses https://bitbucket.org/hu-geomatics/enmap-box/issues/307/installation-problem-sklearn
-        info = missingPackageInfo(['sklearn'])
-        self.assertTrue('scikit-learn' in info)
 
-    def test_dependecyCheck(self):
-        from enmapbox import DEPENDENCIES
+        import enmapbox.dependencycheck
+        enmapbox.dependencycheck.PACKAGE_LOOKUP['foobar'] = 'foo-bar'
 
-        r = checkAndShowMissingDependencies(DEPENDENCIES)
-        self.assertTrue(r)
-        QTimer.singleShot(500, QApplication.instance().closeAllWindows)
-        r = checkAndShowMissingDependencies(DEPENDENCIES + ['nonexisting'])
-        self.assertFalse(r)
+        info = missingPackageInfo([PIPPackage('foobar')])
+        self.assertTrue('foobar' in info)
+        self.assertTrue('foo-bar' in info)
+
+
+    def test_pippackage(self):
+
+        pkg = PIPPackage('foobar')
+
+        self.assertFalse(pkg.isInstalled())
+
+        self.assertIsInstance(pkg.installCommand(), str)
+
+        pkg.installPackage()
+
+        pkg = PIPPackage('gdal')
+        self.assertTrue(pkg.isInstalled())
+
+
+    def test_pippackagemodel(self):
+
+        model = PIPPackageInstallerModel()
+        self.assertTrue(len(model) == 0)
+
+        model.addPackages([PIPPackage('foobar'),
+                           PIPPackage('gdal')]
+                          )
+
+        self.assertEqual(len(model), 2)
+        self.assertEqual(model.rowCount(), 2)
+
+        model.installAll()
+
+        tv = QTableView()
+        tv.setModel(model)
+
+        self.showGui(tv)
+
+    def test_PIPInstaller(self):
+
+        pkgs = requiredPackages()
+        pkgs.append(PIPPackage('foobar'))
+        w = PIPPackageInstaller()
+        w.addPackages(pkgs)
+       #w.model.installAll()
+
+        self.showGui(w)
 
 
 if __name__ == "__main__":

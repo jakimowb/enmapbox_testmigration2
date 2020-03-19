@@ -7,16 +7,13 @@
 # these should already part of a standard QGIS installation
 gdal ; platform_system != "Linux"
 numpy>=1.15
-scipy>=1.1
-scikit-learn>=0.19.2
 matplotlib>=3.0
 
-# we need pyqtgraph. however, it's last master release is from nov 2016 pyqtgraph-0.10.0
-# so far we copied a snapshot from the development branch to enmapbox/externals/qps/externals/pyqtgraph
-# and fixed some urgent errors.
-# in future we like to use the upcoming pyqtgraph-0.11 release
-
-## optional requirements (uncomment to install)
-# astropy
+# required by parts of EnMAP-Box Core
+scipy>=1.1
+scikit-learn>=0.19.2
+astropy # required for convolution
 pyopengl # required by ImageCube app
 
+# required by parts of EnMAP-Box Applications
+enpt_enmapboxapp
