@@ -72,13 +72,42 @@ class PIPPackage(object):
 
     def installPackage(self, *args, **kwds):
         args = self.installArgs(*args, **kwds)
-        output = subprocess.run(args, capture_output=True, check=False)
-        assert isinstance(output, subprocess.CompletedProcess)
-        self.stderrMsg = output.stderr.decode()
-        self.stdoutMsg = output.stdout.decode()
 
-    def installArgs(self, user:bool = True):
-        args = ['pip', 'install']
+        self.stderrMsg = ''
+        self.stdoutMsg = ''
+        if True:
+            try:
+                results = subprocess.check_output(args, stderr=subprocess.STDOUT, shell=True)
+                self.stderrMsg = ""
+                self.stdoutMsg = results.decode()
+            except subprocess.CalledProcessError as ex:
+                self.stderrMsg = ex.stdout.decode()
+                if len(self.stderrMsg) == 0:
+                    self.stderrMsg = 'Failed to install {}.\nPlease close QGIS and try "{}" on your CLI.'.format(self.pyPkgName, self.installCommand())
+                self.stdoutMsg = ""
+
+            except Exception as otherEx:
+                print(otherEx, file=sys.stderr)
+
+
+
+    def installArgs(self, user:bool = True) -> typing.List[str]:
+
+        # find pip
+        import shutil
+        args = []
+        if shutil.which('pip3'):
+            args.append('pip3')
+        elif shutil.which('python3'):
+            args.append('python -m pip')
+        elif shutil.which('pip'):
+            args.append('pip')
+        elif shutil.which('python'):
+            args.append('python')
+        else:
+            args.append('pip')
+
+        args.append('install')
         if user:
             args.append('--user')
         args.append(self.pipCmd)
@@ -149,6 +178,15 @@ def requiredPackages()->typing.List[PIPPackage]:
                 packages.append(pkg)
 
     return packages
+
+
+def missingPackages()->typing.List[PIPPackage]:
+    """
+    Returns missing packages
+    :return: [PIPPackage]
+    :rtype:
+    """
+    return [p for p in requiredPackages() if not p.isInstalled()]
 
 def missingPackageInfo(missing_packages: typing.List[PIPPackage], html=True)->str:
     """
@@ -364,12 +402,13 @@ class PIPPackageInstallerModel(QAbstractTableModel):
         QApplication.processEvents()
         idx = self.pkg2index(pkg)
         pkg.installPackage()
+        QApplication.processEvents()
         self.dataChanged.emit(idx, self.index(idx.row(), self.columnCount() - 1))
         if len(pkg.stdoutMsg) > 0:
             self.sigStdOutMessage.emit(pkg.stdoutMsg)
 
         if len(pkg.stderrMsg) > 0:
-            self.sigStdOutMessage.emit(pkg.stderrMsg)
+            self.sigStdErrMessage.emit(pkg.stderrMsg)
 
     def __len__(self):
         return len(self.mPackages)

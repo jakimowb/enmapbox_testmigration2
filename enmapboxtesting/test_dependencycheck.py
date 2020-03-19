@@ -44,16 +44,16 @@ class test_dependencycheck(EnMAPBoxTestCase):
 
     def test_pippackage(self):
 
-        pkg = PIPPackage('foobar')
-
-        self.assertFalse(pkg.isInstalled())
-
-        self.assertIsInstance(pkg.installCommand(), str)
-
-        pkg.installPackage()
-
         pkg = PIPPackage('gdal')
         self.assertTrue(pkg.isInstalled())
+        self.assertIsInstance(pkg.installCommand(), str)
+        pkg.installPackage()
+
+        pkg = PIPPackage('foobar')
+        self.assertFalse(pkg.isInstalled())
+        self.assertIsInstance(pkg.installCommand(), str)
+        pkg.installPackage()
+
 
 
     def test_pippackagemodel(self):

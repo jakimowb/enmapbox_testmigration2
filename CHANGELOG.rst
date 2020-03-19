@@ -4,6 +4,8 @@ CHANGELOG
 Version 3.6
 -----------
 
+* EnMAP-Box plugin can be installed and started without having none-standard python packages installed (#366)
+* Added installer to install missing python packages (#371)
 * Map Canvas Crosshair can now show the pixel boundaries of any raster source known to QGIS
 * Spectral Profile Source panel is properly updated on removal/adding of raster sources or spectral libraries
 * Spectral Library Viewer
