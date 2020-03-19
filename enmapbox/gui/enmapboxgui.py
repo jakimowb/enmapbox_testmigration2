@@ -29,7 +29,7 @@ from enmapbox.gui.dockmanager import DockManagerTreeModel, MapDockTreeNode
 from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
-from enmapbox.dependencycheck import requiredPackages, missingPackages, missingPackageInfo
+from enmapbox.dependencycheck import requiredPackages, missingPackageInfo
 from ..externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from ..externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
@@ -335,28 +335,25 @@ class EnMAPBox(QgisInterface, QObject):
 
         # check missing packages and show a message
         # see https://bitbucket.org/hu-geomatics/enmap-box/issues/366/start-enmap-box-in-standard-qgis
-        missing = missingPackages(requiredPackages())
-        if len(missing) > 0:
-            info = missingPackageInfo(missing, html=True)
-            info = '<html>' + info + '</html>'
+        from ..dependencycheck import requiredPackages
+        if len([p for p in requiredPackages() if not p.isInstalled()]) > 0:
 
             # taken from qgsmessagebar.cpp
             # void QgsMessageBar::pushMessage( const QString &title, const QString &text, const QString &showMore, Qgis::MessageLevel level, int duration )
-            viewer = QgsMessageViewer()
+
             title = 'Missing Python Package(s)!'
-            viewer.setWindowTitle(title)
-            viewer.setMessageAsHtml(info)
-            a = QAction('Show more')
+
+            a = QAction('Install missing')
             btn = QToolButton()
             btn.setStyleSheet( "background-color: rgba(255, 255, 255, 0); color: black; text-decoration: underline;" )
             btn.setCursor(Qt.PointingHandCursor)
             btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
             btn.addAction(a)
             btn.setDefaultAction(a)
-            btn.triggered.connect(viewer.exec_)
+            btn.triggered.connect(self.showPackageInstaller)
             btn.triggered.connect(btn.deleteLater)
-            self.__btn = (btn, viewer, a)
-            item = QgsMessageBarItem(title, ', '.join(missing), btn, Qgis.Critical, 200)
+            self.__btn = btn
+            item = QgsMessageBarItem(title, '', btn, Qgis.Critical, 200)
             self.messageBar().pushItem(item)
 
         # finally, let this be the EnMAP-Box Singleton
@@ -365,6 +362,17 @@ class EnMAPBox(QgisInterface, QObject):
         splash.hide()
         self.addProject(QgsProject.instance())
 
+    def showPackageInstaller(self):
+        """
+        Opens a GUI to install missing PIP packages
+        """
+        from ..dependencycheck import PIPPackageInstaller, requiredPackages
+
+        w = PIPPackageInstaller()
+        w.addPackages(requiredPackages())
+        w.show()
+
+
     def showResourceBrowser(self):
         """
         Opens a browser widget that lists all Qt Resources
@@ -372,7 +380,7 @@ class EnMAPBox(QgisInterface, QObject):
         from ..externals.qps.resources import showResources
         browser = showResources()
         browser.setWindowTitle('Resource Browser')
-        a._browser = browser
+        self._browser = browser
 
     def disconnectQGISSignals(self):
 
@@ -653,6 +661,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.mActionOpenIssueReportPage.triggered.connect(lambda : webbrowser.open(enmapbox.CREATE_ISSUE))
         self.ui.mActionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.REPOSITORY))
         self.ui.mActionOpenOnlineDocumentation.triggered.connect(lambda : webbrowser.open(enmapbox.DOCUMENTATION))
+
+        self.ui.mActionShowPackageInstaller.triggered.connect(self.showPackageInstaller)
 
         # finally, fix the popup mode of menus
         for toolBar in self.ui.findChildren(QToolBar):

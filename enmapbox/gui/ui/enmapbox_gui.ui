@@ -112,6 +112,8 @@
     <addaction name="mActionSaveProject"/>
     <addaction name="mActionSaveProjectAs"/>
     <addaction name="separator"/>
+    <addaction name="mActionShowPackageInstaller"/>
+    <addaction name="separator"/>
     <addaction name="mActionExit"/>
    </widget>
    <widget class="QMenu" name="menuView">
@@ -685,6 +687,14 @@
    </property>
    <property name="toolTip">
     <string>Save Edits</string>
+   </property>
+  </action>
+  <action name="mActionShowPackageInstaller">
+   <property name="text">
+    <string>Package Installer</string>
+   </property>
+   <property name="toolTip">
+    <string>Opens an installer for required python packages</string>
    </property>
   </action>
  </widget>

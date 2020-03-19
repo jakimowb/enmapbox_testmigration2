@@ -20,40 +20,84 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-import sys, os, collections, shutil, time, re, importlib, typing
+import sys, os, collections, shutil, time, re, importlib, typing, subprocess
 import pathlib
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.PyQt.QtCore import QUrl
 from qgis.gui import *
 from qgis.core import *
-from qgis.PyQt.QtWidgets import QMessageBox
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
 
-PACKAGE_LOOKUP = {'scikit-learn': 'sklearn'}
 
-def checkAndShowMissingDependencies(packageNames)->bool:
-    """
-    Checks for requirements (python packages, gdal/ogr functionality, ...)
+# look-up for pip package name and how it gets imported in python
+# e.g. 'pip install scikit-learn' installs a package that is imported via 'import sklearn'
+# Keys need to be lowercase, as accepted by PIP
+PACKAGE_LOOKUP = {'scikit-learn': 'sklearn',
+                  'pyopengl': 'OpenGL'
+                  }
 
-    :param packageNames:
-    :type packageNames:
-    :return: bool, False in case of any issue, True else.
-    :rtype:
-    """
-    missing = missingPackages(packageNames)
-    gdalissues = checkGDALIssues()
+# just in case a package cannot /should not simply get installed
+# calling pip install --user <pip package name>
+INSTALLATION_HINT = {
+    'enpt_enmapboxapp' : 'git+https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git'
+}
 
-    infoText = ''
-    if len(missing) > 0:
-        infoText += missingPackageInfo(missing)
-    if len(gdalissues) > 0:
-        infoText += 'GDAL/OGR Problem(s):'
-        for i, issue in enumerate(gdalissues):
-            infoText += '{}:{}'.format(i+1, issue)
-    if infoText == '':
-        return True
-    else:
-        showDialog(infoText)
-        return False
+for k in PACKAGE_LOOKUP.keys():
+    assert k == k.lower()
+
+class PIPPackage(object):
+
+    def __init__(self, pyPkg:str, pipCmd:str=None):
+
+        assert isinstance(pyPkg, str)
+        assert len(pyPkg) > 0
+
+        if pipCmd is None:
+            pipCmd = PACKAGE_LOOKUP.get(pyPkg, pyPkg)
+
+        self.pyPkgName:str = pyPkg
+        self.pipCmd:str = pipCmd
+        self.stderrMsg = ''
+        self.stdoutMsg = ''
+
+    def __str__(self):
+        return '{}'.format(self.pyPkgName)
+
+    def __eq__(self, other):
+        if not isinstance(other, PIPPackage):
+            return False
+        return self.pyPkgName == other.pyPkgName
+
+    def installPackage(self, *args, **kwds):
+        args = self.installArgs(*args, **kwds)
+        output = subprocess.run(args, capture_output=True, check=False)
+        assert isinstance(output, subprocess.CompletedProcess)
+        self.stderrMsg = output.stderr.decode()
+        self.stdoutMsg = output.stdout.decode()
+
+    def installArgs(self, user:bool = True):
+        args = ['pip', 'install']
+        if user:
+            args.append('--user')
+        args.append(self.pipCmd)
+        return args
+
+    def installCommand(self, *args, **kwds)->str:
+        return ' '.join(self.installArgs(*args, **kwds))
+
+    def isInstalled(self) -> bool:
+        """
+        Returns True if the package is installed and can be imported in python
+        :return:
+        :rtype:
+        """
+        try:
+            __import__(self.pyPkgName)
+            return True
+        except ModuleNotFoundError:
+            return False
 
 def checkGDALIssues()->typing.List[str]:
     """
@@ -71,54 +115,52 @@ def checkGDALIssues()->typing.List[str]:
     return issues
 
 
-def requiredPackages()->typing.List[str]:
+def requiredPackages()->typing.List[PIPPackage]:
     """
-    Returns a list of packages that should be installable according to the `requirements.txt` file
+    Returns a list of pip packages that should be installable according to the `requirements.txt` file
     :return: [list of strings]
     :rtype: list
     """
 
+    # see https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
+    # for details of requirements format
+
     file = pathlib.Path(__file__).resolve().parents[1] / 'requirements.txt'
     assert file.is_file(), '{} does not exist'.format(file)
     packages = []
-    rx = re.compile(r'^[a-zA-Z_-][a-zA-Z0-9_-]*')
+    rxPipPkg = re.compile(r'^[a-zA-Z_-][a-zA-Z0-9_-]*')
+
     with open(file, 'r') as f:
         lines = f.readlines()
         lines = [l.strip() for l in lines]
+
+        # A line that begins with # is treated as a comment and ignored.
         lines = [l for l in lines if not l.startswith('#') and len(l) > 0]
-        for l in lines:
-            match = rx.search(l)
+
+        # Whitespace followed by a # causes the # and the remainder of the line to be treated as a comment.
+        lines = [l.split(' #')[0] for l in lines]
+        for line in lines:
+            match = rxPipPkg.search(line)
             if match:
-                packages.append(match.group())
+                pipPkg = match.group()
+                pyPkg = PACKAGE_LOOKUP.get(pipPkg, pipPkg)
+                cmd = INSTALLATION_HINT.get(pipPkg, line)
+                pkg = PIPPackage(pyPkg, cmd)
+                packages.append(pkg)
 
     return packages
 
-def missingPackages(packageNames: typing.List[str])->typing.List[str]:
+def missingPackageInfo(missing_packages: typing.List[PIPPackage], html=True)->str:
     """
-    Returns a list of package names that can not be imported
-    :param packageNames: list of packages that should be installed
-    :type packageNames:
-    :return: list of packages that is not installed
-    :rtype:
-    """
-    if not isinstance(packageNames, list):
-        packageNames = [packageNames]
-
-    missing = []
-    for p in packageNames:
-        if importlib.util.find_spec(PACKAGE_LOOKUP.get(p, p)) is None and p not in missing:
-            missing.append(p)
-
-    return missing
-
-def missingPackageInfo(missing_packages: typing.List[str], html=True)->str:
-    """
-    Converts a list of missing packages into better readible output.
+    Converts a list of missing packages into better readable output.
     :param missing_packages: list of uninstalled packages
     :param html: bool, set True (default) to return HTML output string
     :return: str
     """
     assert isinstance(missing_packages, list)
+    for p in missing_packages:
+        assert isinstance(p, PIPPackage)
+    missing_packages = [p for p in missing_packages if isinstance(p, PIPPackage) and not p.isInstalled()]
     n = len(missing_packages)
     if n == 0:
         return None
@@ -127,9 +169,9 @@ def missingPackageInfo(missing_packages: typing.List[str], html=True)->str:
     info = ['The following {} package(s) are not installed:'.format(n)]
     info.append('<ol>')
     for i, pkg in enumerate(missing_packages):
-        if pkg == 'sklearn':
-            pkg = 'scikit-learn'
-        info.append('\t<li>{}</li>'.format(pkg))
+
+        assert isinstance(pkg, PIPPackage)
+        info.append('\t<li>{} (install by "{}")</li>'.format(pkg.pyPkgName, pkg.installCommand()))
 
     pathRequirementsTxt = os.path.join(DIR_REPO, 'requirements.txt')
 
@@ -144,49 +186,6 @@ def missingPackageInfo(missing_packages: typing.List[str], html=True)->str:
         info = re.sub('<br/>', '\n', info)
         info = re.sub('<[^>]*>','', info)
     return  info
-
-def showDialog(info:str):
-    """
-    Opens a dialog with the text in "info"
-    :param info: str, test to show
-
-    :return:
-    :rtype:
-    """
-    from PyQt5.QtCore import QSize
-    from PyQt5.QtWidgets import QDialog, QTextEdit, QVBoxLayout, QLabel
-    class DependencyInfoWidget(QDialog):
-
-        def __init__(self, parent=None):
-            super(DependencyInfoWidget, self).__init__(parent=parent)
-            self.setFixedSize(QSize(400, 200))
-            self.setModal(True)
-            self.setWindowTitle('Missing python packages')
-            l = QVBoxLayout()
-            self.setLayout(l)
-            l.addWidget(QLabel('Missing python packages'))
-            self.textEdit = QTextEdit()
-            l.addWidget(self.textEdit)
-
-        def setText(self, text):
-            self.textEdit.setHtml(text)
-
-
-
-    app = QApplication.instance()
-    init = not isinstance(app, QApplication)
-    if init:
-        app = QApplication([])
-
-    w = DependencyInfoWidget()
-    w.setText(info)
-    w.setModal(True)
-    w.exec_()
-
-    if init:
-        app.exec_()
-
-
 
 def missingTestData()->bool:
     """
@@ -329,4 +328,164 @@ def installTestData(overwrite_existing=False, ask=True):
 
     dialog.open()
     dialog.exec_()
+
+
+class PIPPackageInstallerModel(QAbstractTableModel):
+
+    sigStdOutMessage = pyqtSignal(str)
+    sigStdErrMessage = pyqtSignal(str)
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+
+        self.cnPkg = 'Package'
+        self.cnStatus = 'Status'
+        self.cnCommand = 'Installation Command'
+        self.mColumnNames = [self.cnPkg, self.cnStatus, self.cnCommand]
+        self.mPackages = []
+
+        self.mUser = True
+
+    def setUser(self, b:bool):
+        self.mUser = b == True
+        self.dataChanged.emit(self.createIndex(0,0), self.createIndex(self.rowCount()-1, self.columnCount()-1))
+
+    def installAll(self):
+        for pkg in [p for p in self if not p.isInstalled()]:
+            self.installPackage(pkg)
+
+    def installPackage(self, pkg:PIPPackage):
+        assert isinstance(pkg, PIPPackage)
+        assert pkg in self.mPackages
+        if pkg.isInstalled():
+            self.sigStdOutMessage.emit('{} is already installed'.format(pkg.pyPkgName))
+            return
+        self.sigStdOutMessage.emit('Install {}\n"{}"'.format(pkg.pyPkgName, pkg.installCommand()))
+        QApplication.processEvents()
+        idx = self.pkg2index(pkg)
+        pkg.installPackage()
+        self.dataChanged.emit(idx, self.index(idx.row(), self.columnCount() - 1))
+        if len(pkg.stdoutMsg) > 0:
+            self.sigStdOutMessage.emit(pkg.stdoutMsg)
+
+        if len(pkg.stderrMsg) > 0:
+            self.sigStdOutMessage.emit(pkg.stderrMsg)
+
+    def __len__(self):
+        return len(self.mPackages)
+
+    def __iter__(self) -> typing.Iterator[PIPPackage]:
+        return iter(self.mPackages)
+
+    def rowCount(self, parent: QModelIndex = ...) -> int:
+        return len(self.mPackages)
+
+    def columnCount(self, parent: QModelIndex = ...) -> int:
+        return len(self.mColumnNames)
+
+    def pkg2index(self, pkg:PIPPackage) -> QModelIndex:
+        assert pkg in self.mPackages
+        return self.index(self.mPackages.index(pkg), 0)
+
+    def headerData(self, col, orientation, role=None):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self.mColumnNames[col]
+        elif orientation == Qt.Vertical and role == Qt.DisplayRole:
+            return col
+        return None
+
+    def index(self, row: int, column: int, parent: QModelIndex = ...) -> QModelIndex:
+        pkg = self.mPackages[row]
+        return self.createIndex(row, column, pkg)
+
+    def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
+
+        if not index.isValid():
+            return None
+
+        pkg = self.mPackages[index.row()]
+
+        assert isinstance(pkg, PIPPackage)
+        cn = self.mColumnNames[index.column()]
+        if role == Qt.DisplayRole:
+            if cn == self.cnPkg:
+                return pkg.pyPkgName
+            if cn == self.cnStatus:
+                if pkg.isInstalled():
+                    return 'Installed'
+                else:
+                    return 'Not installed'
+            if cn == self.cnCommand:
+                if not pkg.isInstalled():
+                    return pkg.installCommand(user=self.mUser)
+
+
+        if role == Qt.ForegroundRole:
+            if cn == self.cnStatus:
+                if pkg.isInstalled():
+                    return QColor('green')
+                else:
+                    return QColor('red')
+
+
+
+
+    def addPackages(self, packages:typing.List[PIPPackage]):
+
+        if len(packages) > 0:
+            for p in packages:
+                assert isinstance(p, PIPPackage)
+            n = self.rowCount()
+            self.beginInsertRows(QModelIndex(), n, n + len(packages) - 1)
+            self.mPackages.extend(packages)
+            self.endInsertRows()
+
+    def removePackages(self):
+        pass
+
+
+class PIPPackageInstaller(QWidget):
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        from enmapbox.gui import loadUi
+        from enmapbox import DIR_UIFILES
+        path = pathlib.Path(DIR_UIFILES) / 'pippackageinstaller.ui'
+        loadUi(path, self)
+
+        self.model = PIPPackageInstallerModel()
+        self.model.sigStdErrMessage.connect(lambda txt: self.addText(txt, QColor('red')))
+        self.model.sigStdOutMessage.connect(self.addText)
+        self.proxyModel = QSortFilterProxyModel()
+        self.proxyModel.setSourceModel(self.model)
+        self.tableView.setModel(self.proxyModel)
+
+        self.cbUser.toggled.connect(self.model.setUser)
+        self.cbMissingOnly.toggled.connect(self.showMissingOnly)
+        self.showMissingOnly(self.cbMissingOnly.isChecked())
+
+        self.tableView.setSortingEnabled(True)
+        self.tableView.sortByColumn(1, Qt.DescendingOrder)
+        self.buttonBox.button(QDialogButtonBox.YesToAll).clicked.connect(self.model.installAll)
+        self.buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
+
+
+    def showMissingOnly(self, b:bool):
+        if b:
+            self.proxyModel.setFilterRegExp(QRegExp('Not installed', Qt.CaseInsensitive, QRegExp.Wildcard))
+        else:
+            self.proxyModel.setFilterRegExp(None)
+
+        self.proxyModel.setFilterKeyColumn(1)
+
+    def addText(self, text:str, color:QColor=None):
+
+        c = self.textBrowser.textColor()
+        if isinstance(color, QColor):
+            self.textBrowser.setTextColor(color)
+        self.textBrowser.append('\n'+text)
+        self.textBrowser.setTextColor(c)
+
+    def addPackages(self, packages:typing.List[PIPPackage]):
+        self.model.addPackages(packages)
 

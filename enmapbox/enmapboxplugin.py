@@ -61,9 +61,8 @@ class EnMAPBoxPlugin(object):
         :return:
         """
         from enmapbox import DEPENDENCIES, messageLog, DIR_REPO
-        from enmapbox.dependencycheck import missingPackages, missingPackageInfo, requiredPackages
-
-        missing = missingPackages(requiredPackages())
+        from enmapbox.dependencycheck import missingPackageInfo, requiredPackages
+        missing = [p for p in requiredPackages() if not p.isInstalled()]
         if len(missing) > 0:
             info = missingPackageInfo(missing, html=False)
             warnings.warn(info, ImportWarning)
