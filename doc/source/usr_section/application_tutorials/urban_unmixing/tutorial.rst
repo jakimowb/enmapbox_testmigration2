@@ -538,7 +538,7 @@ Exercise E: Validation of fraction maps
 1. Create reference fraction map
 --------------------------------
 
-* A reference fraction map is created by rasterizing available reference land cover information to the pixel grid of the estimated fraction map. To obtain reasonable fractions, the reference land cover information needs to be at a significantly higher spatial resolution than the pixel grid. To create reference fractions, use the following processing algorithm: :menusselection:`Create Raster --> Fraction from Vector`.
+* A reference fraction map is created by rasterizing available reference land cover information to the pixel grid of the estimated fraction map. To obtain reasonable fractions, the reference land cover information needs to be at a significantly higher spatial resolution than the pixel grid. To create reference fractions, use the following processing algorithm :menuselection:`Create Raster --> Fraction from Vector`.
 * Enter the following data / parameters (use the tool tips for their description):
 
   * :guilabel:`Pixel Grid`: :file:`fraction_level1_estimation.bsq`
