@@ -1,3 +1,5 @@
+from shutil import rmtree
+
 from qgis.core import *
 from hubflow.core import *
 from enmapboxgeoalgorithms.provider import EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, ALGORITHMS, Help, Link, Cookbook
@@ -842,10 +844,10 @@ class OpenTestMaps_Modeler(EnMAPAlgorithm):
 
     def processAlgorithm_(self):
         import enmapboxtestdata
-        library = EnviSpectralLibrary(filename=enmapboxtestdata.speclib)
+        library = EnviSpectralLibrary(filename=enmapboxtestdata.library)
         return {'enmap': enmapboxtestdata.enmap,
-                'hymap': enmapboxtestdata.hymap,
-                'landcover': enmapboxtestdata.landcover,
+                'hymap': enmapboxtestdata.hires,
+                'landcover': enmapboxtestdata.landcover_polygons,
                 'speclib': library.raster().filename()}
 
     def flags(self):
