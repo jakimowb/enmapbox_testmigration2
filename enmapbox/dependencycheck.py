@@ -59,8 +59,9 @@ class PIPPackage(object):
 
         self.pyPkgName:str = pyPkg
         self.pipCmd:str = pipCmd
-        self.stderrMsg = ''
-        self.stdoutMsg = ''
+        self.localLocation:str = ''
+        self.stderrMsg:str = ''
+        self.stdoutMsg:str = ''
 
     def __str__(self):
         return '{}'.format(self.pyPkgName)
@@ -75,7 +76,7 @@ class PIPPackage(object):
 
         self.stderrMsg = ''
         self.stdoutMsg = ''
-        if True:
+        if False:
             try:
                 results = subprocess.check_output(args, stderr=subprocess.STDOUT, shell=True)
                 self.stderrMsg = ""
@@ -88,22 +89,35 @@ class PIPPackage(object):
 
             except Exception as otherEx:
                 print(otherEx, file=sys.stderr)
-
-
+        else:
+            from contextlib import redirect_stderr, redirect_stdout
+            import io
+            se = io.StringIO()
+            so = io.StringIO()
+            with redirect_stderr(se):
+                with redirect_stdout(so):
+                    try:
+                        sys.argv = ["pip"] + args[1:]
+                        import pip._internal.cli.main
+                        pip._internal.cli.main.main()
+                    except Exception as ex:
+                        print(ex, file=sys.stderr)
+            self.stderrMsg = se.getvalue()
+            self.stdoutMsg = so.getvalue()
 
     def installArgs(self, user:bool = True) -> typing.List[str]:
 
-        # find pip
+        # find local pip executable
         import shutil
         args = []
         if shutil.which('pip3'):
             args.append('pip3')
         elif shutil.which('python3'):
-            args.append('python -m pip')
+            args.append('python3 -m pip')
         elif shutil.which('pip'):
             args.append('pip')
         elif shutil.which('python'):
-            args.append('python')
+            args.append('python -m pip')
         else:
             args.append('pip')
 
@@ -368,7 +382,8 @@ def installTestData(overwrite_existing=False, ask=True):
     dialog.exec_()
 
 
-class PIPPackageInstallerModel(QAbstractTableModel):
+
+class PIPPackageInstallerTableModel(QAbstractTableModel):
 
     sigStdOutMessage = pyqtSignal(str)
     sigStdErrMessage = pyqtSignal(str)
@@ -380,6 +395,9 @@ class PIPPackageInstallerModel(QAbstractTableModel):
         self.cnStatus = 'Status'
         self.cnCommand = 'Installation Command'
         self.mColumnNames = [self.cnPkg, self.cnStatus, self.cnCommand]
+        self.mColumnToolTips = ['Python package name',
+                                'Status of python package installation',
+                                'Command to install the package from your command line interface']
         self.mPackages = []
 
         self.mUser = True
@@ -427,8 +445,12 @@ class PIPPackageInstallerModel(QAbstractTableModel):
         return self.index(self.mPackages.index(pkg), 0)
 
     def headerData(self, col, orientation, role=None):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return self.mColumnNames[col]
+        if orientation == Qt.Horizontal:
+            if role == Qt.DisplayRole:
+                return self.mColumnNames[col]
+            if role == Qt.ToolTipRole:
+                return self.mColumnToolTips[col]
+
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
             return col
         return None
@@ -455,9 +477,7 @@ class PIPPackageInstallerModel(QAbstractTableModel):
                 else:
                     return 'Not installed'
             if cn == self.cnCommand:
-                if not pkg.isInstalled():
-                    return pkg.installCommand(user=self.mUser)
-
+                return pkg.installCommand(user=self.mUser)
 
         if role == Qt.ForegroundRole:
             if cn == self.cnStatus:
@@ -465,6 +485,19 @@ class PIPPackageInstallerModel(QAbstractTableModel):
                     return QColor('green')
                 else:
                     return QColor('red')
+
+        if role == Qt.ToolTipRole:
+            if cn == self.cnPkg:
+                return self.mColumnNames[index.column()]
+
+            if cn == self.cnCommand:
+                info = 'Command to install {} from your CLI.'.format(pkg.pyPkgName)
+                if 'git+' in pkg.installCommand():
+                    info += '\nThis command requires having git (https://www.git-scm.com) installed!'
+                return info
+
+        if role == Qt.UserRole:
+            return pkg
 
 
 
@@ -483,6 +516,39 @@ class PIPPackageInstallerModel(QAbstractTableModel):
         pass
 
 
+class PIPPackageInstallerTableView(QTableView):
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:
+        """
+        Opens the context menu
+        """
+        index = self.indexAt(event.pos())
+
+        if not index.isValid():
+            return
+
+        pkg = index.data(Qt.UserRole)
+        txt = index.data(Qt.DisplayRole)
+        if not isinstance(pkg, PIPPackage):
+            return
+
+        model = self.model().sourceModel()
+        assert isinstance(model, PIPPackageInstallerTableModel)
+
+        m = QMenu()
+        a = m.addAction('Copy')
+        a.triggered.connect(lambda *args, v=txt: QApplication.clipboard().setText(v))
+
+        a = m.addAction('Install')
+        a.setEnabled(not pkg.isInstalled())
+        a.triggered.connect(lambda *args, pm=model, p=pkg: pm.installPackage(p))
+
+        m.exec_(event.globalPos())
+
+
 class PIPPackageInstaller(QWidget):
 
     def __init__(self, *args, **kwds):
@@ -492,7 +558,7 @@ class PIPPackageInstaller(QWidget):
         path = pathlib.Path(DIR_UIFILES) / 'pippackageinstaller.ui'
         loadUi(path, self)
 
-        self.model = PIPPackageInstallerModel()
+        self.model = PIPPackageInstallerTableModel()
         self.model.sigStdErrMessage.connect(lambda txt: self.addText(txt, QColor('red')))
         self.model.sigStdOutMessage.connect(self.addText)
         self.proxyModel = QSortFilterProxyModel()
@@ -503,6 +569,7 @@ class PIPPackageInstaller(QWidget):
         self.cbMissingOnly.toggled.connect(self.showMissingOnly)
         self.showMissingOnly(self.cbMissingOnly.isChecked())
 
+        assert isinstance(self.tableView, PIPPackageInstallerTableView)
         self.tableView.setSortingEnabled(True)
         self.tableView.sortByColumn(1, Qt.DescendingOrder)
         self.buttonBox.button(QDialogButtonBox.YesToAll).clicked.connect(self.model.installAll)
