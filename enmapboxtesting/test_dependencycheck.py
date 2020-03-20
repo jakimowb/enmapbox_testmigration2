@@ -23,6 +23,11 @@ from qgis.PyQt.QtCore import *
 
 class test_dependencycheck(EnMAPBoxTestCase):
 
+    def setUp(self):
+        super().setUp()
+        if str(os.environ.get('CI')).lower() in ['1', 'true', 'yes']:
+            QTimer.singleShot(2000, QApplication.instance().closeAllWindows)
+
     def test_gdalissues(self):
 
         l = checkGDALIssues()

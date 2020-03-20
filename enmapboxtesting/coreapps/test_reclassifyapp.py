@@ -13,8 +13,8 @@ class TestReclassify(EnMAPBoxTestCase):
         super().setUpClass()
         from tempfile import mkdtemp
         cls.testDir = mkdtemp(prefix='TestDir')
-        cls.classA = TestObjects.inMemoryImage(nc=2)
-        cls.classB = TestObjects.inMemoryImage(nc=5)
+        cls.classA = TestObjects.createRasterDataset(nc=2)
+        cls.classB = TestObjects.createRasterDataset(nc=5)
 
         cls.pathClassA = cls.classA.GetDescription()
         cls.pathClassB = cls.classB.GetDescription()
@@ -35,7 +35,7 @@ class TestReclassify(EnMAPBoxTestCase):
     def test_hubflow_reclassify(self):
         import hubflow.core
         from enmapbox.testing import TestObjects
-        dsSrc = TestObjects.inMemoryImage(10,20,nc=5)
+        dsSrc = TestObjects.createRasterDataset(10,20,nc=5)
         self.assertIsInstance(dsSrc, gdal.Dataset)
         classNamesOld = ['Unclassified', 'Class 1', 'Class 2', 'Class 3', 'Class 4']
         self.assertEqual(dsSrc.GetRasterBand(1).GetCategoryNames(), classNamesOld)
@@ -115,7 +115,7 @@ class TestReclassify(EnMAPBoxTestCase):
 
 
         LUT = {0:0, 1:1, 2:1}
-        classA = TestObjects.inMemoryImage()
+        classA = TestObjects.createRasterDataset()
         self.assertIsInstance(classA, gdal.Dataset)
         pathSrc = classA.GetFileList()[0]
         pathDst = '/vsimem/testresult.bsq'

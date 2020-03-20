@@ -26,7 +26,6 @@ from enmapboxtestdata import enmap
 
 
 class testClassUtils(EnMAPBoxTestCase):
-    """Test rerources work."""
 
     def test_speclibImports(self):
 
