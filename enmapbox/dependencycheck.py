@@ -415,11 +415,16 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
                 self.installPackage(pkg)
 
 
-    def showWarning(self)-> bool:
+    def showWarning(self) -> bool:
+        """
+        Opens the warning to
+        :return:
+        :rtype:
+        """
 
         if not self.mWarned:
             info = """
-            <b>Please prefer to install missing packages with your local package manager!</b>
+            <b>Please try to install the missing package(s) with your local package manager first!</b>
             <p>Common package managers in QGIS environments are:
             <ul>
                 <li><a href="https://trac.osgeo.org/osgeo4w/">OSGeo4W (Windows)<a/></li>
@@ -434,6 +439,7 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
                              info,
                              QMessageBox.Abort | QMessageBox.Ignore)
             box.setTextFormat(Qt.RichText)
+            box.setDefaultButton(QMessageBox.Abort)
             result = box.exec_()
 
             if result == QMessageBox.Abort:
