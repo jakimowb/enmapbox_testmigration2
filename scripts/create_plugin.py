@@ -40,7 +40,7 @@ from enmapbox import DIR_REPO, __version__
 
 
 CHECK_COMMITS = False
-INCLUDE_TESTDATA = True  #includes the testdata folder for none-master versions
+INCLUDE_TESTDATA = False  #includes the testdata folder for none-master versions
 
 
 ########## Config Section
@@ -115,6 +115,9 @@ def create_enmapbox_plugin():
     pattern = re.compile('\.(py|svg|png|txt|ui|tif|qml|md)$')
     files = list(scantree(DIR_REPO / 'enmapbox', pattern=pattern))
     files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
+    files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
+    files.extend(list(scantree(DIR_REPO / 'hubdc', pattern=pattern)))
+    files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
     files.append(DIR_REPO / '__init__.py')
     files.append(DIR_REPO / 'CHANGELOG.rst')
     files.append(DIR_REPO / 'CONTRIBUTORS.rst')
@@ -122,6 +125,7 @@ def create_enmapbox_plugin():
     files.append(DIR_REPO / 'LICENSE.txt')
     files.append(DIR_REPO / 'requirements.txt')
     files.append(DIR_REPO / 'requirements_developer.txt')
+
 
     for fileSrc in files:
         assert fileSrc.is_file()
