@@ -400,6 +400,8 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
                                 'Command to install the package from your command line interface']
         self.mPackages = []
 
+        self.mWarned = False
+
         self.mUser = True
 
     def setUser(self, b:bool):
@@ -407,26 +409,61 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
         self.dataChanged.emit(self.createIndex(0,0), self.createIndex(self.rowCount()-1, self.columnCount()-1))
 
     def installAll(self):
-        for pkg in [p for p in self if not p.isInstalled()]:
-            self.installPackage(pkg)
+
+        if self.showWarning():
+            for pkg in [p for p in self if not p.isInstalled()]:
+                self.installPackage(pkg)
+
+
+    def showWarning(self)-> bool:
+
+        if not self.mWarned:
+            info = """
+            <b>Please prefer to install missing packages with your local package manager!</b>
+            <p>Common package managers in QGIS environments are:
+            <ul>
+                <li><a href="https://trac.osgeo.org/osgeo4w/">OSGeo4W (Windows)<a/></li>
+                <li><a href="https://docs.conda.io">minconda/anaconda (all platforms)<a/></li>
+                <li><a href="https://linux.die.net/man/8/apt-get">apt-get (Linux)</li>
+                <li><a href="https://brew.sh">homebrew (macOS)</a></li>
+            </ul>
+            </p>
+            """
+            box = QMessageBox(QMessageBox.Warning,
+                             'Package Installation',
+                             info,
+                             QMessageBox.Abort | QMessageBox.Ignore)
+            box.setTextFormat(Qt.RichText)
+            result = box.exec_()
+
+            if result == QMessageBox.Abort:
+                return False
+            else:
+                self.mWarned = True
+                return True
+        else:
+            return True
 
     def installPackage(self, pkg:PIPPackage):
         assert isinstance(pkg, PIPPackage)
         assert pkg in self.mPackages
-        if pkg.isInstalled():
-            self.sigStdOutMessage.emit('{} is already installed'.format(pkg.pyPkgName))
-            return
-        self.sigStdOutMessage.emit('Install {}\n"{}"'.format(pkg.pyPkgName, pkg.installCommand()))
-        QApplication.processEvents()
-        idx = self.pkg2index(pkg)
-        pkg.installPackage()
-        QApplication.processEvents()
-        self.dataChanged.emit(idx, self.index(idx.row(), self.columnCount() - 1))
-        if len(pkg.stdoutMsg) > 0:
-            self.sigStdOutMessage.emit(pkg.stdoutMsg)
 
-        if len(pkg.stderrMsg) > 0:
-            self.sigStdErrMessage.emit(pkg.stderrMsg)
+        if self.showWarning():
+
+            if pkg.isInstalled():
+                self.sigStdOutMessage.emit('{} is already installed'.format(pkg.pyPkgName))
+                return
+            self.sigStdOutMessage.emit('Install {}\n"{}"'.format(pkg.pyPkgName, pkg.installCommand()))
+            QApplication.processEvents()
+            idx = self.pkg2index(pkg)
+            pkg.installPackage()
+            QApplication.processEvents()
+            self.dataChanged.emit(idx, self.index(idx.row(), self.columnCount() - 1))
+            if len(pkg.stdoutMsg) > 0:
+                self.sigStdOutMessage.emit(pkg.stdoutMsg)
+
+            if len(pkg.stderrMsg) > 0:
+                self.sigStdErrMessage.emit(pkg.stderrMsg)
 
     def __len__(self):
         return len(self.mPackages)
