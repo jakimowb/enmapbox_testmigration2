@@ -19,8 +19,9 @@ pipelines:
           - apt-get -y install python3.7
           - which python3.7
           #- update-alternatives --install /usr/bin/python python3 /usr/bin/python3.6 1
-          - update-alternatives --install /usr/bin/python python3 /usr/bin/python3.7 1
-          - update-alternatives  --set python3 /usr/bin/python3.7
+          - update-alternatives --install /usr/bin/python python3 /usr/bin/python3.7 3
+          - update-alternatives --config python
+          - python3.7 --version
           - python3 --version
           - python --version
     - step:
