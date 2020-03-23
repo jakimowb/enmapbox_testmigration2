@@ -4,6 +4,7 @@
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
 image: continuumio/miniconda3
+
 pipelines:
   branches:
     '{master, develop}':
@@ -27,6 +28,7 @@ pipelines:
           - conda create --name qgis_stable python=3.7
           - conda activate qgis_stable
           - conda install qgis --channel=conda-forge
+          - conda env list
           - python --version
           - python3 --version
           - mkdir test-reports
@@ -37,10 +39,10 @@ pipelines:
           - git lfs fetch
           - git lfs pull
           - git lfs checkout
-          - python3 scripts/setuprepository.py
-          - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
-          - unzip qgisresources.zip
-          - /bin/bash scripts/runtests.sh
+          #- python3 scripts/setuprepository.py
+          #- wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
+          #- unzip qgisresources.zip
+          #- /bin/bash scripts/runtests.sh
 definitions:
   caches:
     condacache: /opt/python/bin
