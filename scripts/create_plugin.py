@@ -111,8 +111,8 @@ def create_enmapbox_plugin():
     from scripts.compileresourcefiles import compileEnMAPBoxResources
     compileEnMAPBoxResources()
 
-    # copy python and resource files
-    pattern = re.compile('\.(py|svg|png|txt|ui|tif|qml|md)$')
+    # copy python and other resource files
+    pattern = re.compile(r'\.(py|svg|png|txt|ui|tif|qml|md|js|css)$')
     files = list(scantree(DIR_REPO / 'enmapbox', pattern=pattern))
     files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
