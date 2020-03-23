@@ -8,15 +8,15 @@ pipelines:
   branches:
     '{master, develop}':
     - step:
-        - name: prepare environment
-        - image: qgis/qgis
-          services:
-            - docker
-          caches:
-            - docker
-            - pip
-          script: # Modify the commands below to build your repository.
-            - python3.7 --version
+        name: prepare environment
+        image: qgis/qgis
+        services:
+          - docker
+        caches:
+          - docker
+          - pip
+        script: # Modify the commands below to build your repository.
+          - python3.7 --version
     - step:
         image: qgis/qgis
         services:
