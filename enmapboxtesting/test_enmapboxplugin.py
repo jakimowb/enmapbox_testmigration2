@@ -89,19 +89,19 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
 
     def test_dependencies(self):
 
-        from enmapbox.dependencycheck import requiredPackages, missingPackages, missingPackageInfo, PACKAGE_LOOKUP
+        from enmapbox.dependencycheck import requiredPackages, missingPackages, missingPackageInfo, PIPPackage
 
         pkgs = requiredPackages()
         for p in pkgs:
-            self.assertIsInstance(p, str)
+            self.assertIsInstance(p, PIPPackage)
 
-        missing = missingPackages(['foobar42'])
+        missing = missingPackages()
         self.assertIsInstance(missing, list)
-        self.assertTrue('foobar42' in missing)
+        missing += [PIPPackage('foobar42')]
 
         info = missingPackageInfo(missing)
         self.assertIsInstance(info, str)
-
+        self.assertTrue('foobar42' in info)
         from enmapbox.enmapboxplugin import EnMAPBoxPlugin
 
         import qgis.utils

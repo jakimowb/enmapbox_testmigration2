@@ -31,7 +31,11 @@ class Tests(EnMAPBoxTestCase):
         def qgisLayers():
             return QgsProject.instance().mapLayers().values()
 
-        emb = EnMAPBox()
+
+        emb = EnMAPBox.instance()
+        if not isinstance(emb, EnMAPBox):
+            emb = EnMAPBox()
+
         self.assertTrue(len(qgisLayers()) == 0)
 
         lyr = TestObjects.createRasterLayer()

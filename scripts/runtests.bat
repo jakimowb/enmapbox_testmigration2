@@ -27,9 +27,13 @@ start %PYTHON% scripts/setuprepository.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mapcanvas.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mimedata.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_options.py
+%PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_settings.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_speclibs.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_spectralprofilesources.py
+%PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_template.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testdata_dependency.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testing.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_utils.py
+%PYTHON% -m coverage run --rcfile=.coveragec --append  hubdc/test/test_algorithm.py
+%PYTHON% -m coverage run --rcfile=.coveragec --append  hubdc/test/test_core.py
 %PYTHON% -m coverage report

@@ -32,7 +32,7 @@ class Tests(EnMAPBoxTestCase):
 
         QApplication.processEvents()
     def test_inMemoryImage(self):
-        self.assertIsInstance(TestObjects.inMemoryImage(), gdal.Dataset)
+        self.assertIsInstance(TestObjects.createRasterDataset(), gdal.Dataset)
 
     def test_inMemoryVector(self):
         ds = TestObjects.createVectorDataSet()

@@ -1841,8 +1841,7 @@ class SpectralLibrary(QgsVectorLayer):
             except Exception as ex:
                 print(ex)
                 return None
-
-        readers = AbstractSpectralLibraryIO.__subclasses__()
+        readers = AbstractSpectralLibraryIO.subClasses()
 
         for cls in sorted(readers, key=lambda r: r.score(uri)):
             try:
@@ -1903,7 +1902,8 @@ class SpectralLibrary(QgsVectorLayer):
             srs.ImportFromEPSG(SPECLIB_EPSG_CODE)
             co = ['GEOMETRY_NAME=geom',
                   'GEOMETRY_NULLABLE=YES',
-                  'FID=fid'
+                  'FID=fid',
+                  'OVERWRITE=YES',
                   ]
 
             lyr = dsSrc.CreateLayer(name, srs=srs, geom_type=ogr.wkbPoint, options=co)
@@ -1913,7 +1913,14 @@ class SpectralLibrary(QgsVectorLayer):
             assert isinstance(ldefn, ogr.FeatureDefn)
             for f in ogrStandardFields():
                 lyr.CreateField(f)
-            dsSrc.FlushCache()
+            try:
+                dsSrc.FlushCache()
+            except RuntimeError as rt:
+                if 'failed: no such module: rtree' in str(rt):
+                    pass
+                else:
+                    raise rt
+
         else:
             dsSrc = ogr.Open(uri)
             assert isinstance(dsSrc, ogr.DataSource)
@@ -2422,6 +2429,34 @@ class AbstractSpectralLibraryIO(object):
     """
     Abstract class interface to define I/O operations for spectral libraries
     """
+    _SUB_CLASSES = []
+
+    @staticmethod
+    def subClasses():
+
+
+        from .io.artmo import ARTMOSpectralLibraryIO
+        from .io.asd import ASDSpectralLibraryIO
+        from .io.clipboard import ClipboardIO
+        from .io.csvdata import CSVSpectralLibraryIO
+        from .io.ecosis import EcoSISSpectralLibraryIO
+        from .io.envi import EnviSpectralLibraryIO
+        from .io.specchio import SPECCHIOSpectralLibraryIO
+
+        subClasses = [
+                    EnviSpectralLibraryIO,
+                    ASDSpectralLibraryIO,
+                    ClipboardIO,
+                    CSVSpectralLibraryIO,
+                    ARTMOSpectralLibraryIO,
+                    EcoSISSpectralLibraryIO,
+                    SPECCHIOSpectralLibraryIO,
+                ]
+        for c in AbstractSpectralLibraryIO.__subclasses__():
+            if c not in subClasses:
+                subClasses.append(c)
+
+        return subClasses
 
     @staticmethod
     def canRead(path: str) -> bool:
@@ -2509,3 +2544,5 @@ def deleteSelected(layer):
         layer.commitChanges()
 
     # saveEdits(layer, leaveEditable=b)
+
+
