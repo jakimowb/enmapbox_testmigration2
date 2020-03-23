@@ -14,6 +14,7 @@ pipelines:
         caches:
           - docker
           - pip
+          - condacache
         script: # Modify the commands below to build your repository.
           - apt-get -y install xvfb
           - apt-get -y install git-lfs
@@ -29,13 +30,17 @@ pipelines:
           - python --version
           - python3 --version
           - mkdir test-reports
-          - python3 -m pip install -r requirements.txt
+          #- python3 -m pip install -r requirements.txt
+          # requirements_developer.txt calls the requirements.txt as well
           - python3 -m pip install -r requirements_developer.txt
-          #- git lfs install
-          #- git lfs fetch
-          #- git lfs pull
-          #- git lfs checkout
-          #- python3 scripts/setuprepository.py
-          #- wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
-          #- unzip qgisresources.zip
-          #- /bin/bash scripts/runtests.sh
+          - git lfs install
+          - git lfs fetch
+          - git lfs pull
+          - git lfs checkout
+          - python3 scripts/setuprepository.py
+          - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
+          - unzip qgisresources.zip
+          - /bin/bash scripts/runtests.sh
+definitions:
+  caches:
+    condacache: /opt/python/bin
