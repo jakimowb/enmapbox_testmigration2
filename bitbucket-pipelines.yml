@@ -44,13 +44,14 @@ pipelines:
           - python3 scripts/setuprepository.py
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
-          - python3 -m coverage run --rcfile=.coveragec   enmapboxtesting/test_applications.py
+          - python3 -m coverage run --rcfile=.coveragec   enmapboxtesting/test_enmapbox.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_applications.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasources.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_dependencycheck.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_docksanddatasources.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox.py
+
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxplugin.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxprocessingprovider.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_hiddenqgislayers.py
