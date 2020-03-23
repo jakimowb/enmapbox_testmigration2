@@ -167,6 +167,9 @@ class ClassificationWorkflowApp(QMainWindow):
 
             tmpfilename = '/vsimem/classificationapp/reprojected.gpkg'
             if not ds.projection().equal(raster.grid().projection()):
+                self.log('Projection mismatch between Raster and Reference.')
+                return
+
                 # reproject vector
                 ds.reproject(projection=raster.grid().projection(), filename=tmpfilename, driver=GeoPackageDriver())
                 filename = tmpfilename
