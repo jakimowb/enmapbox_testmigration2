@@ -1,9 +1,16 @@
-from unittest import TestCase
+from sys import version_info
+from unittest import TestCase, skipIf
 
 import enmapboxtestdata
 from hubdc.algorithm.sampling import sample_points, sample_polygons
 from hubdc.core import openRasterDataset, openVectorDataset
 
+min_version = 40000 + 600
+this_version = version_info.major * 10000 + version_info.minor * 100
+skiptests = this_version < min_version
+
+
+@skipIf(skiptests, 'not supported in this Python version')
 class Test(TestCase):
 
     def test_sample_points(self):
