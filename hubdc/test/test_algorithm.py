@@ -5,7 +5,7 @@ import enmapboxtestdata
 from hubdc.algorithm.sampling import sample_points, sample_polygons
 from hubdc.core import openRasterDataset, openVectorDataset
 
-min_version = 40000 + 600
+min_version = 30000 + 600
 this_version = version_info.major * 10000 + version_info.minor * 100
 skiptests = this_version < min_version
 
