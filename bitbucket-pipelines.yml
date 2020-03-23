@@ -7,7 +7,7 @@ image: continuumio/miniconda3
 
 pipelines:
   branches:
-    '{master, develop}':
+    '{master,develop}':
     - step:
         name: run unit tests
         services:
@@ -45,4 +45,4 @@ pipelines:
           #- /bin/bash scripts/runtests.sh
 definitions:
   caches:
-    condacache: /opt/python/bin
+    condacache: /opt/conda
