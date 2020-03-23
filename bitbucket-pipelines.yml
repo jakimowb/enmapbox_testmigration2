@@ -16,8 +16,9 @@ pipelines:
           - docker
           - pip
         script: # Modify the commands below to build your repository.
-          - python3.7 --version
+          - python3 --version
     - step:
+        name: test python code
         image: qgis/qgis
         services:
           - docker
