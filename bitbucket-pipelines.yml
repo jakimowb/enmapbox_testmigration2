@@ -3,7 +3,7 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: python:3.7
+image: python:3.7.7
 pipelines:
   branches:
     '{master, develop}':
@@ -15,6 +15,7 @@ pipelines:
           - docker
           - pip
         script: # Modify the commands below to build your repository.
+          - python3 --version
           - apt-get update
           - apt-get -y install xvfb
           - apt-get -y install git-lfs
@@ -31,7 +32,7 @@ pipelines:
           - git lfs fetch
           - git lfs pull
           - git lfs checkout
-          - python scripts/setuprepository.py
+          - python3 scripts/setuprepository.py
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
           - /bin/bash scripts/runtests.sh
