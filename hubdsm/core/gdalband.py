@@ -34,7 +34,7 @@ class GdalBand(object):
         return self.number - 1
 
     @property
-    def raster(self):
+    def raster(self) -> 'GdalRaster':
         """Return raster dataset."""
         from hubdsm.core.gdalraster import GdalRaster
         return GdalRaster(gdalDataset=self.gdalDataset)

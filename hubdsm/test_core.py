@@ -49,4 +49,4 @@ class TestRaster(TestCase):
             extent=Extent(ul=Location(x=13., y=53.), size=Size(x=1, y=1)), resolution=Resolution(x=0.01, y=0.01),
             projection=Projection.fromWgs84()
         )
-        raster.warp(grid=grid)
+        raster = raster.warp(grid=grid)

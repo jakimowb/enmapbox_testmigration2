@@ -143,8 +143,10 @@ class Raster(object):
         return array
 
     def warp(self, grid: Grid = None) -> Raster:
+        if grid is None:
+            grid = self.grid
         bands = list()
         for band in self.bands:
-            bands.append(band.readAsArray(grid=grid))
-        array = np.array(array)
-        return array
+            bands.append(band.warp(grid=grid))
+        bands = tuple(bands)
+        return Raster(name=self.name, bands=bands, grid=grid)
