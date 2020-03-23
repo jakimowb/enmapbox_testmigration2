@@ -24,7 +24,7 @@ pipelines:
           #- ps aux | grep X
           - DISPLAY=:1.0
           - export DISPLAY
-          - conda create --name qgis_stable
+          - conda create --name qgis_stable python=3.7
           - conda activate qgis_stable
           - conda install qgis --channel=conda-forge
           - python --version
