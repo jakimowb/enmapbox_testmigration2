@@ -20,7 +20,7 @@ pipelines:
           - apt-get install -y wget
           - apt-get install -y unzip
           - Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
-          - ps aux | grep X
+          #- ps aux | grep X
           - DISPLAY=:1.0
           - export DISPLAY
           - conda create --name qgis_stable
