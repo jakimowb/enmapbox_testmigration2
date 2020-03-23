@@ -3,12 +3,12 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
+image: qgis/qgis
 pipelines:
   branches:
     '{master, develop}':
     - step:
         name: prepare environment
-        image: python:3.7
         services:
           - docker
         caches:
@@ -21,7 +21,6 @@ pipelines:
           - python --version
     - step:
         name: test python code
-        image: qgis/qgis
         services:
           - docker
         caches:
@@ -30,6 +29,8 @@ pipelines:
         script: # Modify the commands below to build your repository.
           - python3 --version
           - apt-get update
+          - apt-get -y install python3.7
+          - python3 --version
           - apt-get -y install xvfb
           - apt-get -y install git-lfs
           - apt-get install -y wget
