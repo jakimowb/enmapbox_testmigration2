@@ -9,6 +9,7 @@ pipelines:
   branches:
     '{master, develop}':
     - step:
+        image: python:3.7
         services:
           - docker
         caches:
@@ -35,4 +36,3 @@ pipelines:
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
           - /bin/bash scripts/runtests.sh
-
