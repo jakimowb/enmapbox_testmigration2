@@ -26,7 +26,7 @@ pipelines:
           - docker
           - pip
         script: # Modify the commands below to build your repository.
-          - python3.7 --version
+          - python3 --version
           - apt-get update
           - apt-get -y install xvfb
           - apt-get -y install git-lfs
