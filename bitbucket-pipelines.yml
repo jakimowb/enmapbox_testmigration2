@@ -3,7 +3,7 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: qgis/qgis
+image: continuumio/miniconda3
 pipelines:
   branches:
     '{master, develop}':
@@ -14,17 +14,24 @@ pipelines:
         caches:
           - docker
           - pip
+          - condacache
         script: # Modify the commands below to build your repository.
           - apt-get -y install xvfb
           - apt-get -y install git-lfs
           - apt-get install -y wget
           - apt-get install -y unzip
           - Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
-          - ps aux | grep X
+          #- ps aux | grep X
           - DISPLAY=:1.0
           - export DISPLAY
+          - conda create --name qgis_stable python=3.7
+          - conda activate qgis_stable
+          - conda install qgis --channel=conda-forge
+          - python --version
+          - python3 --version
           - mkdir test-reports
-          - python3 -m pip install -r requirements.txt
+          #- python3 -m pip install -r requirements.txt
+          # requirements_developer.txt calls the requirements.txt as well
           - python3 -m pip install -r requirements_developer.txt
           - git lfs install
           - git lfs fetch
@@ -34,3 +41,6 @@ pipelines:
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
           - /bin/bash scripts/runtests.sh
+definitions:
+  caches:
+    condacache: /opt/python/bin
