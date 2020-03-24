@@ -3,48 +3,39 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: qgis/qgis
+image: continuumio/miniconda3
+
 pipelines:
-  branches:
-    '{master, develop}':
+  custom:
+    scheduled-testing:
     - step:
-        name: prepare environment
+        name: run unit tests
         services:
           - docker
         caches:
           - docker
-          - pip
+          #- pip
+          - condacache
         script: # Modify the commands below to build your repository.
-          - apt-get update
-          - apt-get -y install python3.7
-          - which python3.7
-          #- update-alternatives --install /usr/bin/python python3 /usr/bin/python3.6 1
-          - update-alternatives --install /usr/bin/python python3 /usr/bin/python3.7 1
-          - update-alternatives  --set python3 /usr/bin/python3.7
-          - python3 --version
-          - python --version
-    - step:
-        name: test python code
-        services:
-          - docker
-        caches:
-          - docker
-          - pip
-        script: # Modify the commands below to build your repository.
-          - python3 --version
-          - apt-get update
-          - apt-get -y install python3.7
-          - python3 --version
           - apt-get -y install xvfb
           - apt-get -y install git-lfs
           - apt-get install -y wget
           - apt-get install -y unzip
           - Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
-          - ps aux | grep X
+          #- ps aux | grep X
           - DISPLAY=:1.0
           - export DISPLAY
+          #- /opt/python/bin/conda update -y conda
+          - conda update -y conda
+          - conda create --name qgis_stable python=3.7
+          - conda activate qgis_stable
+          - conda install qgis --channel=conda-forge
+          - conda env list
+          - python --version
+          - python3 --version
           - mkdir test-reports
-          - python3 -m pip install -r requirements.txt
+          #- python3 -m pip install -r requirements.txt
+          # requirements_developer.txt calls the requirements.txt as well
           - python3 -m pip install -r requirements_developer.txt
           - git lfs install
           - git lfs fetch
@@ -53,4 +44,29 @@ pipelines:
           - python3 scripts/setuprepository.py
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
-          - /bin/bash scripts/runtests.sh
+          - python3 -m coverage run --rcfile=.coveragec   enmapboxtesting/test_applications.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasources.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_dependencycheck.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_docksanddatasources.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxplugin.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxprocessingprovider.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_hiddenqgislayers.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mapcanvas.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mimedata.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_options.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_settings.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_speclibs.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_spectralprofilesources.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_template.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testdata_dependency.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testing.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_utils.py
+          - python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_algorithm.py
+          - python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_core.py
+          - python3 -m coverage report
+definitions:
+  caches:
+    condacache: /opt/conda

@@ -8,6 +8,7 @@
 
 """
 import enmapbox, os
+import xmlrunner
 
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
@@ -270,8 +271,9 @@ class test_applications(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-
-    unittest.main()
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
+    #import xmlrunner
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
 
 
 

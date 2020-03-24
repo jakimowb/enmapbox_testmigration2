@@ -6,7 +6,7 @@ export CI
 
 find . -name "*.pyc" -exec rm -f {} \;
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-python3 scripts/setuprepository.py
+# python3 scripts/setuprepository.py
 
 python3 -m coverage run --rcfile=.coveragec   enmapboxtesting/test_applications.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py

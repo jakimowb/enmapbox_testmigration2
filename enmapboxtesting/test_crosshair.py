@@ -48,7 +48,9 @@ class CrosshairTests(EnMAPBoxTestCase):
         self.showGui([refCanvas, menu])
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
+    #import xmlrunner
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
 
 
 
