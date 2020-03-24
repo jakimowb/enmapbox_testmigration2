@@ -1,7 +1,8 @@
 ===============================
-ONNS: OLCI Neural Network Swarm
+Ocean Colour analysis with ONNS
 ===============================
 
+**Ocean Colour analysis with the OLCI Neural Network Swarm (ONNS)**
 
 Overview
 ========
@@ -13,10 +14,10 @@ About
 -----
 
 Satellites observe the oceans, coasts and inland waters. Water quality parameters can be estimated from ocean colour
-using the in-water algorithm ONNS, which has been developed at the Institute of Coastal Research at the Helmholtz-Zentrum
-Geesthacht (https://hzg.de/institutes_platforms/coastal_research/operational_systems/remote_sensing/index.php.en).
-The EnMAP-Box (https://enmap-box.readthedocs.io/en/latest/) is a free and open source plug-in for QGIS to visualize
-and process satellite remote sensing data with special emphasis to the hyperspectral EnMAP sensor (http://www.enmap.org/).
+using the in-water algorithm ONNS, which has been developed at the `Institute of Coastal Research at the Helmholtz-Zentrum
+Geesthacht <https://hzg.de/institutes_platforms/coastal_research/operational_systems/remote_sensing/index.php.en>`_.
+The EnMAP-Box is a free and open source plug-in for QGIS to visualize
+and process satellite remote sensing data with special emphasis to the hyperspectral `EnMAP <http://www.enmap.org/>`_ sensor.
 The following tutorial describes the usability and functionality of the Python-based ONNS processing tool in the EnMAP-Box.
 
 
@@ -35,8 +36,8 @@ centimetres for very turbid waters. By the way – photosynthesis of phytoplankt
 sunlight roughly until the 1%-depth, also referred to as euphotic depth.
 
 The primary aim of ocean colour remote sensing is to quantify the water constituents, i.e. the phytoplankton biomass in
-terms of their Chlorophyll-a pigment content, :math:`Chl \ \mathrm{[mg \ m^{−3}]}`, total (organic + inorganic) suspended matter concentration,
-:math:`TSM \ \mathrm{[g \ m^{-3}]}`, and CDOM absorption at 440 nm, :math:`a_{cdom}(440) \ \mathrm{[m^{-1}]}`. Beyond
+terms of their Chlorophyll-a pigment content, Chl [mg m :sup:`−3`], total (organic + inorganic) suspended matter concentration,
+TSM [g m :sup:`-3`], and CDOM absorption at 440 nm, a :sub:`cdom` (440) [m :sup:`-1`]. Beyond
 this, additional water mass-characterizing optical parameters, e.g. absorption and scattering properties, can be estimated.
 Hyperspectral information, as provided by the EnMAP mission, allow further differentiation of spectral features associated
 to algae types (phytoplankton groups) or sediment properties.
@@ -47,7 +48,7 @@ application of suitable in-water algorithms. Ocean, coastal and inland water bod
 these algorithms. The core in-water processor including optical water type classification is the ONNS
 (OLCI Neural Network Swarm) algorithm [1]_ version 0.9. It is an EnMAP-precursor algorithm, which is specially developed
 for data evaluation of the multi-spectral Ocean and Land Colour Instrument (OLCI) on board
-Sentinel-3 (https://sentinel.esa.int/web/sentinel/missions/sentinel-3/overview/mission-summary).
+`Sentinel-3 <https://sentinel.esa.int/web/sentinel/missions/sentinel-3/overview/mission-summary>`_.
 Satellite data from other ocean colour sensors can be analysed as well by means of an intermediate band-shifting procedure [2]_.
 Atmospheric correction must be provided before utilization of the in-water algorithm, different models are available
 for this, e.g. Polymer [3]_ or C2RCC [4]_ (but may lead to different retrieval results). Alternatively, in situ
@@ -98,21 +99,21 @@ ONNS output
 The minimum output of the water algorithm ONNS contains 12 typical ocean colour products each with an estimate of
 their associated uncertainties:
 
-#. Concentration of Chlorophyll-a, :math:`Chl \ \mathrm{[mg \ m^{−3}]}`,
-#. Concentration of inorganic suspended matter (minerals), :math:`ISM \ \mathrm{[g \ m^{-3}]}`,
-#. Absorption coefficient of CDOM at 440 nm, :math:`a_{cdom}(440) \ \mathrm{[m^{-1}]}`,
-#. Absorption coefficient of phytoplankton particles at 440 nm, :math:`a_{p}(440) \ \mathrm{[m^{-1}]}`,
-#. Absorption coefficient of minerals at 440 nm, :math:`a_{m}(440) \ \mathrm{[m^{-1}]}`,
-#. Absorption coefficient of detritus plus gelbstoff at 412 nm, :math:`a_{dg}(412) \ \mathrm{[m^{-1}]}`,
-#. Scattering coefficient of phytoplankton particles at 440 nm, :math:`b_{p}(440) \ \mathrm{[m^{-1}]}`,
-#. Scattering coefficient of minerals at 440 nm, :math:`b_{m}(440) \ \mathrm{[m^{-1}]}`,
-#. Total backscattering coefficient of all particles (organic and inorganic) at 510 nm, :math:`b_{bp}(510) \ \mathrm{[m^{-1}]}`,
-#. Downwelling diffuse attenuation coefficient at 490 nm, :math:`K_{d}(490) \ \mathrm{[m^{-1}]}`,
-#. Upwelling diffuse attenuation coefficient at 490 nm, :math:`K_{u}(490) \ \mathrm{[m^{-1}]}` and
-#. Forel-Ule number, :math:`FU \ \mathrm{[-]}`.
+#. Concentration of Chlorophyll-a, Chl [mg m :sup:`−3`],
+#. Concentration of inorganic suspended matter (minerals), ISM [g m :sup:`-3`],
+#. Absorption coefficient of CDOM at 440 nm, a :sub:`cdom` (440) [m :sup:`-1`],
+#. Absorption coefficient of phytoplankton particles at 440 nm, a :sub:`p` (440) [m :sup:`-1`],
+#. Absorption coefficient of minerals at 440 nm, a :sub:`m` (440) [m :sup:`-1``],
+#. Absorption coefficient of detritus plus gelbstoff at 412 nm, a :sub:`dg` (412) [m :sup:`-1`],
+#. Scattering coefficient of phytoplankton particles at 440 nm, b :sub:`p` (440) [m :sup:`-1`],
+#. Scattering coefficient of minerals at 440 nm, b :sub:`m` (440) [m :sup:`-1`]`,
+#. Total backscattering coefficient of all particles (organic and inorganic) at 510 nm, b :sub:`bp` (510) [m :sup:`-1`],
+#. Downwelling diffuse attenuation coefficient at 490 nm, K :sub:`d` (490) [m :sup:`-1`],
+#. Upwelling diffuse attenuation coefficient at 490 nm, K :sub:`u` (490) [m :sup:`-1`] and
+#. Forel-Ule number, FU [-].
 
 The standard output contains additional derived properties, such as total absorption and scattering coefficients
-at 440 nm, optical dominance at 440 nm as well as estimated concentration of dissolved organic carbon (:math:`\mathrm{DOC \ [mg \ m^{-3}]}`).
+at 440 nm, optical dominance at 440 nm as well as estimated concentration of dissolved organic carbon (DOC [mg m :sup:`-3`]).
 In addition, input remote-sensing reflectances and some information on the optical water types (OWT) are provided.
 In a third saving option, excessive information on OWT classification can be stored.
 
@@ -161,7 +162,7 @@ Development Lead
 
 Martin Hieronymi (martin.hieronymi@hzg.de)
 
-Institute of Coastal Research, Helmholtz-Zentrum Geesthacht (https://hzg.de/institutes_platforms/coastal_research/operational_systems/remote_sensing/index.php.en)
+`Institute of Coastal Research, Helmholtz-Zentrum Geesthacht <https://hzg.de/institutes_platforms/coastal_research/operational_systems/remote_sensing/index.php.en>`_
 
 
 Contributors
