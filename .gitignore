@@ -6,7 +6,7 @@ tmp/
 doc/build/
 */build/
 enmapboxtestdata/
-
+test-reports/
 qgisresources
 qgisresources/
 qgisresources.zip
