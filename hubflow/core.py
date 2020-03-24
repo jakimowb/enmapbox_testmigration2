@@ -2595,6 +2595,7 @@ class Mask(Raster):
         Raster.__init__(self, filename)
         if noDataValues is None:
             noDataValues = self.dataset().noDataValues(default=0)
+        assert len(noDataValues) == self.dataset().zsize()
         self._noDataValues = noDataValues
         self._minOverallCoverage = float(minOverallCoverage)
         self._indices = indices

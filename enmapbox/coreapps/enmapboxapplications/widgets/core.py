@@ -83,7 +83,7 @@ class UiLabeledLibrary(QWidget):
 
     def currentField(self):
         text = self.uiField().currentText()
-        if text is '':
+        if text == '':
             return None
         else:
             return text
