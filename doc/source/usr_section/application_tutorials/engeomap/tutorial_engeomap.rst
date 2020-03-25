@@ -64,7 +64,7 @@ This section describes the necessary requirements to the input data and potentia
 
  .. figure:: img/figure4.jpg
 
-Figure 4 Basic processing workflow for EnGeoMAP with modules, input and output highlighted. 
+    Figure 4 Basic processing workflow for EnGeoMAP with modules, input and output highlighted.
 
 
 1. Theoretical Background
