@@ -37,7 +37,6 @@ from qgis.gui import QgsGui
 from ..utils import *
 from ..speclib import speclibSettings, EDITOR_WIDGET_REGISTRY_KEY
 
-
 # get to now how we can import this module
 MODULE_IMPORT_PATH = None
 
@@ -558,10 +557,13 @@ class SpectralProfile(QgsFeature):
         Reads a SpectralProfile from a QgsRasterLayer
         :param layer: QgsRasterLayer
         :param position: SpatialPoint
-        :return: SpectralProfile
+        :return: SpectralProfile or None, if profile is out of layer bounds.
         """
 
         position = position.toCrs(layer.crs())
+        if not layer.extent().contains(position):
+            return None
+
         results = layer.dataProvider().identify(position, QgsRaster.IdentifyFormatValue).results()
         wl, wlu = parseWavelength(layer)
 
@@ -923,7 +925,7 @@ class SpectralProfile(QgsFeature):
         """
         return self.__copy__()
 
-    def plot(self)->QWidget:
+    def plot(self) -> QWidget:
         """
         Plots this profile to an new PyQtGraph window
         :return:
@@ -1119,9 +1121,9 @@ class SpectralLibrary(QgsVectorLayer):
                        raster_qgs_layer: QgsRasterLayer = None,
                        progressDialog: typing.Union[QProgressDialog, ProgressHandler] = None,
                        nameField: str = None,
-                       all_touched: bool =False,
+                       all_touched: bool = False,
                        copy_attributes: bool = False,
-                       returnProfileList: bool =False):
+                       returnProfileList: bool = False):
         """
         Reads SpectraProfiles from a raster source, based on the locations specified in a vector data set.
         Opens a Select Polygon Layer dialog to select the correct polygon and returns a Spectral Library with
@@ -1139,8 +1141,6 @@ class SpectralLibrary(QgsVectorLayer):
                                         are to be added to another SpectraLibrary anyway.
         :return: Spectral Library | [list-of-profiles]
         """
-
-
 
         # homogenize source file formats
         try:
@@ -1162,7 +1162,6 @@ class SpectralLibrary(QgsVectorLayer):
 
                 if not isinstance(vector_qgs_layer, QgsVectorLayer) or not isinstance(raster_qgs_layer, QgsRasterLayer):
                     return
-
 
         # the SpectralLibrary to be returned
         spectral_library = SpectralLibrary()
@@ -1207,21 +1206,22 @@ class SpectralLibrary(QgsVectorLayer):
             error = QgsVectorFileWriter.writeAsVectorFormat(layer=vector_qgs_layer,
                                                             fileName=tmpPath,
                                                             options=options)
-        #vector_qgs_layer.disconnect()
+        # vector_qgs_layer.disconnect()
         del vector_qgs_layer
 
         # make the internal FID a normal attribute which gdal can rasterize
         tmp_qgs_layer = QgsVectorLayer(tmpPath)
+        assert tmp_qgs_layer.isValid()
+
         if tmp_qgs_layer.featureCount() == 0:
             info = 'No intersection between\nraster {} and vector {}'.format(raster_qgs_layer.source(),
-                                                                             vector_qgs_layer.source())
+                                                                             tmp_qgs_layer.source())
             print(info)
             if isinstance(progressDialog, (QProgressDialog, ProgressHandler)):
                 progressDialog.setLabelText('No intersection between raster and vector source')
                 progressDialog.setValue(progressDialog.maximum())
             return spectral_library
-        assert isinstance(tmp_qgs_layer, QgsVectorLayer)
-        assert tmp_qgs_layer.isValid()
+
         assert tmp_qgs_layer.startEditing()
         fidName = 'tmpFID'
         i = 1
@@ -1841,6 +1841,7 @@ class SpectralLibrary(QgsVectorLayer):
             except Exception as ex:
                 print(ex)
                 return None
+
         readers = AbstractSpectralLibraryIO.subClasses()
 
         for cls in sorted(readers, key=lambda r: r.score(uri)):
@@ -1902,8 +1903,7 @@ class SpectralLibrary(QgsVectorLayer):
             srs.ImportFromEPSG(SPECLIB_EPSG_CODE)
             co = ['GEOMETRY_NAME=geom',
                   'GEOMETRY_NULLABLE=YES',
-                  'FID=fid',
-                  'OVERWRITE=YES',
+                  'FID=fid'
                   ]
 
             lyr = dsSrc.CreateLayer(name, srs=srs, geom_type=ogr.wkbPoint, options=co)
@@ -1913,6 +1913,7 @@ class SpectralLibrary(QgsVectorLayer):
             assert isinstance(ldefn, ogr.FeatureDefn)
             for f in ogrStandardFields():
                 lyr.CreateField(f)
+
             try:
                 dsSrc.FlushCache()
             except RuntimeError as rt:
@@ -2434,7 +2435,6 @@ class AbstractSpectralLibraryIO(object):
     @staticmethod
     def subClasses():
 
-
         from .io.artmo import ARTMOSpectralLibraryIO
         from .io.asd import ASDSpectralLibraryIO
         from .io.clipboard import ClipboardIO
@@ -2444,14 +2444,14 @@ class AbstractSpectralLibraryIO(object):
         from .io.specchio import SPECCHIOSpectralLibraryIO
 
         subClasses = [
-                    EnviSpectralLibraryIO,
-                    ASDSpectralLibraryIO,
-                    ClipboardIO,
-                    CSVSpectralLibraryIO,
-                    ARTMOSpectralLibraryIO,
-                    EcoSISSpectralLibraryIO,
-                    SPECCHIOSpectralLibraryIO,
-                ]
+            EnviSpectralLibraryIO,
+            ASDSpectralLibraryIO,
+            CSVSpectralLibraryIO,
+            ARTMOSpectralLibraryIO,
+            EcoSISSpectralLibraryIO,
+            SPECCHIOSpectralLibraryIO,
+            ClipboardIO,
+        ]
         for c in AbstractSpectralLibraryIO.__subclasses__():
             if c not in subClasses:
                 subClasses.append(c)
@@ -2482,7 +2482,7 @@ class AbstractSpectralLibraryIO(object):
     def write(speclib: SpectralLibrary,
               path: str,
               progressDialog: typing.Union[QProgressDialog, ProgressHandler] = None) -> \
-    typing.List[str]:
+            typing.List[str]:
         """
         Writes the SpectralLibrary.
         :param speclib: SpectralLibrary to write

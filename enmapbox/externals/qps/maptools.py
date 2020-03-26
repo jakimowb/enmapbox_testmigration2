@@ -72,12 +72,11 @@ def createQgsMapCanvasUserInputWidget(canvas: QgsMapCanvas) -> QgsUserInputWidge
         mUserInputWidget.setAnchorPoint(QgsFloatingWidget.TopRight)
     return mUserInputWidget
 
-
 class MapTools(enum.Enum):
     """
     Static class to support the creation of QgsMapTools.
     """
-    # def __init__(self):
+    #def __init__(self):
     #    raise Exception('This class is not for any instantiation')
     ZoomIn = 'ZOOM_IN'
     ZoomOut = 'ZOOM_OUT'
@@ -182,7 +181,6 @@ class MapTools(enum.Enum):
     @staticmethod
     def mapToolEnums() -> list:
         return list(MapTools.__members__.values())
-
 
 class CursorLocationMapTool(QgsMapToolEmitPoint):
     """
@@ -356,7 +354,6 @@ class FullExtentMapTool(QgsMapTool):
     """
     A QgsMapTool to scale a QgsMapCanvas to the full extent of all available QgsMapLayers.
     """
-
     def __init__(self, canvas):
         super(FullExtentMapTool, self).__init__(canvas)
         self.mCursor = createCursor(':/qps/ui/icons/cursor_zoom_fullextent.svg')
@@ -369,7 +366,6 @@ class FullExtentMapTool(QgsMapTool):
     def flags(self):
         return QgsMapTool.Transient
 
-
 class PointLayersMapTool(CursorLocationMapTool):
 
     def __init__(self, canvas):
@@ -377,7 +373,6 @@ class PointLayersMapTool(CursorLocationMapTool):
         self.layerType = QgsMapToolIdentify.AllLayers
         self.identifyMode = QgsMapToolIdentify.LayerSelection
         QgsMapToolIdentify.__init__(self, canvas)
-
 
 class SpatialExtentMapTool(QgsMapToolEmitPoint):
     """
@@ -538,10 +533,11 @@ class QgsFeatureAction(QAction):
     """
     This is a python copy of the qgis/app/QgsFeatureAction.cpp
     """
-    from weakref import WeakKeyDictionary
-    sLastUsedValues = WeakKeyDictionary()
+    sLastUsedValues = dict()
 
-    def __init__(self, name: str, f: QgsFeature, layer: QgsVectorLayer, actionID: id, defaultAttr: int,
+    def __init__(self, name: str, f: QgsFeature, layer: QgsVectorLayer,
+                 actionID: id = '',
+                 defaultAttr: int = -1,
                  parent: QObject = None):
 
         super(QgsFeatureAction, self).__init__(name, parent)
@@ -565,12 +561,10 @@ class QgsFeatureAction(QAction):
         """
         f = QgsFeature(self.mFeature) if cloneFeatures else self.mFeature
 
-        context = QgsAttributeEditorContext()
-
         myDa = QgsDistanceArea()
         myDa.setSourceCrs(self.mLayer.crs(), QgsProject.instance().transformContext())
         myDa.setEllipsoid(QgsProject.instance().ellipsoid())
-
+        context = QgsAttributeEditorContext(self.mOuterContext, QgsAttributeEditorContext.StandaloneDialog)
         context.setDistanceArea(myDa)
         # context.setVectorLayerTools()
         # context.setMapCanvas()
@@ -613,16 +607,6 @@ class QgsFeatureAction(QAction):
             return False
 
         name = "featureactiondlg:{}:{}".format(self.mLayer.id(), self.mFeature.id())
-
-        # QgsAttributeDialog * dialog = QgisApp::instance()->findChild < QgsAttributeDialog * > (name);
-        # if (dialog)
-        #    {
-        #        delete
-        #    h;
-        #    dialog->raise ();
-        #    dialog->activateWindow();
-        #    return true;
-        #    }
 
         dialog = self.newDialog(True)
         dialog.setHighlight(h)
@@ -670,7 +654,10 @@ class QgsFeatureAction(QAction):
 
         return True
 
-    def addFeature(self, defaultAttributes: dict, showModal: bool, scope: QgsExpressionContextScope):
+    def addFeature(self,
+                   initialAttributeValues: dict = dict(),
+                   showModal: bool = True,
+                   scope: QgsExpressionContextScope = None) -> bool:
 
         if not (isinstance(self.mLayer, QgsVectorLayer) and self.mLayer.isEditable()):
             return
@@ -678,7 +665,6 @@ class QgsFeatureAction(QAction):
         reuseLastValues = bool(QgsSettings().value('qgis/digitizing/reuseLastValues', False))
 
         fields = self.mLayer.fields()
-        initialAttributeValues = dict()
 
         context = self.mLayer.createExpressionContext()
         if scope:
@@ -720,11 +706,14 @@ class QgsFeatureAction(QAction):
             dialog.setAttribute(Qt.WA_DeleteOnClose)
             dialog.setMode(QgsAttributeEditorContext.AddFeatureMode)
             dialog.setEditCommandMessage(self.text())
-            dialog.attributeForm().featureSaved.connect(self.onFeatureSaved)
 
+            dialog.attributeForm().featureSaved.connect(
+                lambda f, form=dialog.attributeForm(): self.onFeatureSaved(f, form))
+            self._d = dialog
             if not showModal:
                 self.setParent(dialog)
                 dialog.show()
+
                 self.mFeature = None
                 return True
 
@@ -735,7 +724,7 @@ class QgsFeatureAction(QAction):
     def setForceSuppressFormPopup(self, force: bool):
         self.mForceSuppressFormPopup = force
 
-    def onFeatureSaved(self, feature: QgsFeature):
+    def onFeatureSaved(self, feature: QgsFeature, form: QgsAttributeForm):
         form = self.sender()
         if not isinstance(form, QgsAttributeForm):
             return
@@ -756,27 +745,36 @@ class QgsFeatureAction(QAction):
             for idx in range(fields.count()):
 
                 newValues = feature.attributes();
-                origValues = self.sLastUsedValues[self.mLayer]
+                origValues = self.sLastUsedValues[self.mLayer.id()]
 
                 if origValues[idx] != newValues.at(idx):
                     # QgsDebugMsg( QStringLiteral( "saving %1 for %2" ).arg( sLastUsedValues[mLayer][idx].toString() ).arg( idx ) );
-                    self.sLastUsedValues[self.mLayer][idx] = newValues.at(idx)
+
+                    # QgsDebugMsg( QStringLiteral( "saving %1 for %2" ).arg( sLastUsedValues[mLayer][idx].toString() ).arg( idx ) );
+                    self.sLastUsedValues[self.mLayer.id()][idx] = newValues.at(idx)
 
 
 class QgsMapToolDigitizeFeature(QgsMapToolCapture):
     digitizingCompleted = pyqtSignal(QgsFeature)
     digitizingFinished = pyqtSignal()
 
-    def __init__(self, canvas: QgsMapCanvas, layer: QgsMapLayer, mode, cadDockWidget: QgsAdvancedDigitizingDockWidget):
+    def __init__(self,
+                 canvas: QgsMapCanvas,
+                 layer: QgsMapLayer,
+                 mode: QgsMapToolCapture.CaptureMode,
+                 cadDockWidget: QgsAdvancedDigitizingDockWidget,
+                 vectorLayerTools: QgsVectorLayerTools = None
+                 ):
 
         super(QgsMapToolDigitizeFeature, self).__init__(canvas, cadDockWidget, mode)
 
         self.mCheckGeometryType = True
         self.mLayer = layer
         self.mCurrentLayer = None
-        # mToolName = tr( "Digitize feature" );
-        # connect( QgisApp::instance(), &QgisApp::newProject, this, &QgsMapToolDigitizeFeature::stopCapturing );
-        # connect( QgisApp::instance(), &QgisApp::projectRead, this, &QgsMapToolDigitizeFeature::stopCapturing );
+        self.mVectorLayerTools = vectorLayerTools
+
+    def setVectorLayerTools(self, vectorLayerTools: QgsVectorLayerTools):
+        self.mVectorLayerTools = vectorLayerTools
 
     def digitized(self, f: QgsFeature):
         self.digitizingCompleted.emit(f)
@@ -887,12 +885,18 @@ class QgsMapToolDigitizeFeature(QgsMapToolCapture):
                 g = None
                 if layerWKBType == QgsWkbTypes.Point:
                     g = QgsGeometry(savePoint)
+                elif QgsWkbTypes.isMultiType(layerWKBType) and not QgsWkbTypes.hasZ(layerWKBType):
+                    # g = QgsGeometry::fromMultiPointXY( QgsMultiPointXY() << savePoint );
+                    g = QgsGeometry.fromMultiPointXY(savePoint)
+                    g = QgsGeometry(savePoint)
                 elif not QgsWkbTypes.isMultiType(layerWKBType) and QgsWkbTypes.hasZ(layerWKBType):
                     g = QgsGeometry(QgsPoint(savePoint.x(), savePoint.y(),
                                              savePoint.z() if isMatchPointZ else self.defaultZValue()))
                 elif QgsWkbTypes.isMultiType(layerWKBType) and not QgsWkbTypes.hasZ(layerWKBType):
-                    # g = QgsGeometry::fromMultiPointXY( QgsMultiPointXY() << savePoint );
-                    g = QgsGeometry.fromMultiPointXY(savePoint)
+                    mp = QgsMultiPoint()
+                    mp.addGeometry(savePoint)
+                    g = QgsGeometry()
+                    g.set(mp)
 
                 elif QgsWkbTypes.isMultiType(layerWKBType) and QgsWkbTypes.hasZ(layerWKBType):
 
@@ -1029,19 +1033,26 @@ class QgsMapToolDigitizeFeature(QgsMapToolCapture):
 
 class QgsMapToolAddFeature(QgsMapToolDigitizeFeature):
 
-    def __init__(self, canvas: QgsMapCanvas, mode, cadDockWidget: QgsAdvancedDigitizingDockWidget):
-        super(QgsMapToolAddFeature, self).__init__(canvas, canvas.currentLayer(), mode, cadDockWidget)
+    def __init__(self, canvas: QgsMapCanvas, mode, cadDockWidget: QgsAdvancedDigitizingDockWidget,
+                 vectorLayerTools: QgsVectorLayerTools = None):
+        super(QgsMapToolAddFeature, self).__init__(canvas, canvas.currentLayer(), mode, cadDockWidget,
+                                                   vectorLayerTools=vectorLayerTools)
 
         self.setCheckGeometryType(True)
-        # mToolName = tr( "Add feature" );
-        # connect( QgisApp::instance(), &QgisApp::newProject, this, &QgsMapToolAddFeature::stopCapturing );
-        # connect( QgisApp::instance(), &QgisApp::projectRead, this, &QgsMapToolAddFeature::stopCapturing );
+        QgsProject.instance().readProject.connect(self.stopCapturing)
+        QgsProject.instance().projectSaved.connect(self.stopCapturing)
         QgsProject.instance().cleared.connect(self.stopCapturing)
 
     def addFeature(self, vlayer: QgsVectorLayer, f: QgsFeature, showModal: bool) -> bool:
 
+        context = QgsAttributeEditorContext()
+        context.setVectorLayerTools(self.mVectorLayerTools)
+        context.setMapCanvas(self.canvas())
+        context.setCadDockWidget(self.cadDockWidget())
+        context.setFormMode(QgsAttributeEditorContext.StandaloneDialog)
         scope = QgsExpressionContextUtils.mapToolCaptureScope(self.snappingMatches())
         action = QgsFeatureAction("add feature", f, vlayer, '', -1, self)
+        action.setAttributeEditorContext(context)
         res = action.addFeature({}, showModal, scope)
         if showModal:
             del action
