@@ -58,16 +58,6 @@ class GdalRaster(object):
         assert gdalDataset.GetProjection() != ''
         return GdalRaster(gdalDataset=gdalDataset)
 
-    @classmethod
-    def fromArray(
-            cls, array: np.ndarray, grid: Grid = None, filename: str = None,
-            driver: 'RasterDriver' = None, options: List[str] = None
-    ) -> GdalRaster:
-        from hubdsm.core.rasterdriver import RasterDriver
-        if driver is None:
-            driver = RasterDriver.fromFilename(filename=filename)
-        return driver.createFromArray(array=array, grid=grid, filename=filename, options=options)
-
     @property
     def filenames(self) -> str:
         """Return filenames list."""
@@ -79,7 +69,7 @@ class GdalRaster(object):
     @property
     def filename(self) -> str:
         """Return filename."""
-        return self.description
+        return self.gdalDataset.GetDescription()
 
     def setGrid(self, grid: Grid):
         """Set grid."""
@@ -89,6 +79,7 @@ class GdalRaster(object):
 
     def band(self, number) -> GdalBand:
         """Return the band dataset."""
+        assert number >= 1
         return GdalBand(gdalDataset=self.gdalDataset, gdalBand=self.gdalDataset.GetRasterBand(number), number=number)
 
     @property

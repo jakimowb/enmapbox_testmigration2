@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from os.path import basename
-from typing import Tuple, List, Sequence, Union
+from typing import Tuple, List, Sequence, Union, Iterator
 
 import numpy as np
 from osgeo import gdal
@@ -11,7 +11,7 @@ from hubdsm.core.band import Band
 from hubdsm.core.gdalband import GdalBand
 from hubdsm.core.gdalraster import GdalRaster
 from hubdsm.core.grid import Grid
-from hubdsm.core.rasterdriver import RasterDriver
+from hubdsm.core.gdalrasterdriver import GdalRasterDriver
 
 
 @dataclass(frozen=True)
@@ -30,20 +30,20 @@ class Raster(object):
         assert isinstance(self.grid, Grid)
         assert len(self.bandNames) == len(set(self.bandNames)), 'each band name must be unique'
 
+    @classmethod
+    def open(cls, filenameOrGdalRaster: Union[str, GdalRaster]) -> Raster:
+        if isinstance(filenameOrGdalRaster, str):
+            gdalRaster = GdalRaster.open(filename=filenameOrGdalRaster)
+        elif isinstance(filenameOrGdalRaster, GdalRaster):
+            gdalRaster = filenameOrGdalRaster
+        else:
+            raise ValueError('filenameOrGdalRaster')
+        return cls.fromGdalRaster(gdalRaster=gdalRaster)
+
     @staticmethod
-    def open(filename: str, name: str = None, grid: Grid = None, gra: int = gdal.GRA_NearestNeighbour) -> Raster:
-        gdalRaster = GdalRaster.open(filename=filename)
-        if grid is None:
-            grid = gdalRaster.grid
-        if name is None:
-            name = basename(filename)
-        bands = tuple(
-            Band(
-                name=gdalBand.description, filename=filename, number=gdalBand.number, noDataValue=gdalBand.noDataValue,
-                gra=gra, gdt=gdalBand.gdt, mask=None
-            ) for gdalBand in gdalRaster.bands
-        )
-        return Raster(name=name, bands=bands, grid=grid)
+    def fromGdalRaster(gdalRaster: GdalRaster) -> Raster:
+        bands = tuple(Band.fromGdalBand(gdalBand=gdalBand) for gdalBand in gdalRaster.bands)
+        return Raster(name=gdalRaster.filename, bands=bands, grid = gdalRaster.grid)
 
     @property
     def bandNames(self) -> Tuple[str, ...]:
@@ -63,7 +63,7 @@ class Raster(object):
         assert isinstance(selectors, (list, tuple))
         for selector in selectors:
             if isinstance(selector, int):
-                assert 1 <= selector <= len(self)
+                assert 1 <= selector <= len(self.bands)
                 number = selector
             elif isinstance(selector, str):
                 number = bandNames.index(selector) + 1
@@ -129,18 +129,23 @@ class Raster(object):
     #         array = warpedInGdalBand weiter
     #         gdalBand.writeArray(array=array, grid=self.grid)
 
-    def readAsArray(self, grid: Grid = None) -> np.ndarray:
+    def readAsArray(self, grid: Grid = None, gra=gdal.GRA_NearestNeighbour) -> np.ndarray:
+        '''Return 3d array.'''
+        return np.array(list(self.iterArrays(grid=grid, gra=gra)))
+
+    def iterArrays(self, grid: Grid = None, gra=gdal.GRA_NearestNeighbour) -> Iterator[np.ndarray]:
+        '''Iterates over 2d band arrays.'''
         if grid is None:
             grid = self.grid
-        gdt = self.band(number=1).gdt
         for band in self.bands:
-            assert band.gdt == gdt
+            yield band.readAsArray(grid=grid, gra=gra)
 
-        array = list()
+    def iterMaskArrays(self, grid: Grid = None, gra=gdal.GRA_NearestNeighbour) -> Iterator[np.ndarray]:
+        '''Iterates over 2d mask band arrays.'''
+        if grid is None:
+            grid = self.grid
         for band in self.bands:
-            array.append(band.readAsArray(grid=grid))
-        array = np.array(array)
-        return array
+            yield band.readAsMaskArray(grid=grid, gra=gra)
 
     def warp(self, grid: Grid = None) -> Raster:
         if grid is None:

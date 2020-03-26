@@ -9,6 +9,7 @@ from hubdsm.core.category import Category
 from hubdsm.core.color import Color
 from hubdsm.core.grid import Grid
 from hubdsm.core.metadataformatter import MetadataFormatter
+from hubdsm.error import ProjectionMismatchError
 
 
 @dataclass(frozen=True)
@@ -40,7 +41,7 @@ class GdalBand(object):
         return GdalRaster(gdalDataset=self.gdalDataset)
 
     @property
-    def gdt(self) -> int:
+    def gdalDataType(self) -> int:
         """Return GDAL data type."""
         return self.gdalBand.DataType
 
@@ -56,10 +57,15 @@ class GdalBand(object):
     def readAsArray(self, grid: Grid = None, gra=gdal.GRA_NearestNeighbour) -> np.ndarray:
         """Return 2d array."""
 
+        if gra is None:
+            gra = gdal.GRA_NearestNeighbour
+
         if grid is None:
             array = self.gdalBand.ReadAsArray(resample_alg=gra)
         else:
             assert isinstance(grid, Grid)
+            if grid.projection != self.grid.projection:
+                raise ProjectionMismatchError()
             assert grid.extent.within(self.grid.extent)
             resolution = self.grid.resolution
             extent = self.grid.extent
@@ -73,7 +79,7 @@ class GdalBand(object):
                 buf_xsize=buf_xsize, buf_ysize=buf_ysize,
                 resample_alg=gra
             )
-        assert isinstance(array, np.ndarray), type(array)
+        assert isinstance(array, np.ndarray)
         assert array.ndim == 2
         return array
 

@@ -14,7 +14,7 @@ from hubdsm.core.shape import RasterShape
 
 
 @dataclass
-class RasterDriver(object):
+class GdalRasterDriver(object):
     name: str
     options: List[str] = field(default_factory=list)
 
@@ -23,7 +23,7 @@ class RasterDriver(object):
         assert isinstance(self.options, list)
 
     @classmethod
-    def fromFilename(cls, filename: Optional[str]) -> RasterDriver:
+    def fromFilename(cls, filename: Optional[str]) -> GdalRasterDriver:
 
         if filename is None or filename == '':
             return MEM_DRIVER
@@ -50,10 +50,10 @@ class RasterDriver(object):
         assert gdalDriver is not None
         return gdalDriver
 
-    def createDataset(
-            self, grid: Grid, bands=1, gdt: int = gdal.GDT_Float32, filename: str = '', options: List[str] = None
+    def create(
+            self, grid: Grid, bands=1, gdalDataType: int = gdal.GDT_Float32, filename: str = None, options: List[str] = None
     ) -> GdalRaster:
-        """Create new raster dataset."""
+        """Create new GDAL raster."""
 
         assert isinstance(grid, Grid)
         assert isinstance(bands, int) and bands >= 0
@@ -63,7 +63,7 @@ class RasterDriver(object):
         assert isinstance(options, list)
         utf8_path = filename
         ysize, xsize = grid.shape
-        gdalDataset = self.gdalDriver.Create(utf8_path, xsize, ysize, bands, gdt, options)
+        gdalDataset = self.gdalDriver.Create(utf8_path, xsize, ysize, bands, gdalDataType, options)
         gdalDataset.SetProjection(grid.projection.wkt)
         gdalDataset.SetGeoTransform(grid.geoTransform.gdalGeoTransform())
         return GdalRaster(gdalDataset=gdalDataset)
@@ -72,30 +72,30 @@ class RasterDriver(object):
             self, array: np.ndarray, grid: Optional[Grid] = None, filename: str = None,
             options: List[str] = None
     ) -> GdalRaster:
-        """Create new raster from array."""
+        """Create new GDAL raster from array."""
         assert isinstance(array, np.ndarray)
         assert array.ndim == 3
         if grid is None:
             grid = Grid.makePseudoGridFromArray(array=array)
         bands = len(array)
-        gdt = NumericTypeCodeToGDALTypeCode(array.dtype)
-        raster = self.createDataset(grid=grid, bands=bands, gdt=gdt, filename=filename, options=options)
-        raster.writeArray(array=array, grid=grid)
-        return raster
+        gdalDataType = NumericTypeCodeToGDALTypeCode(array.dtype)
+        gdalRaster = self.create(grid=grid, bands=bands, gdalDataType=gdalDataType, filename=filename, options=options)
+        gdalRaster.writeArray(array=array, grid=grid)
+        return gdalRaster
 
     def createFromShape(
-            self, shape: RasterShape, gdt: int = gdal.GDT_Float32, grid: Grid = None, filename: str = None,
+            self, shape: RasterShape, gdalDataType: int = gdal.GDT_Float32, grid: Grid = None, filename: str = None,
             options: List[str] = None
     ) -> GdalRaster:
-        """Create new raster from array shape."""
+        """Create new GDAL raster from array shape."""
         assert isinstance(shape, RasterShape)
         if grid is None:
             grid = Grid.makePseudoGridFromShape(shape=shape.gridShape)
-        raster = self.createDataset(grid=grid, bands=shape.z, gdt=gdt, filename=filename, options=options)
-        return raster
+        gdalRaster = self.create(grid=grid, bands=shape.z, gdalDataType=gdalDataType, filename=filename, options=options)
+        return gdalRaster
 
     def delete(self, filename: str, raiseError=False):
-        """Delete raster file on disk or unlink on /vsimem/."""
+        """Delete GDAL raster file on disk or unlink on /vsimem/."""
         if filename.startswith('/vsimem/'):
             gdal.Unlink(filename)
         if exists(filename):
@@ -255,11 +255,11 @@ class EnviCreationOption(object):
         ADD = 'SUFFIX=ADD'
 
 
-MEM_DRIVER = RasterDriver(name='MEM')
-VRT_DRIVER = RasterDriver(name='VRT')
-ENVI_DRIVER = RasterDriver(name='ENVI')
-ENVI_BSQ__DRIVER = RasterDriver(name='ENVI', options=[EnviCreationOption.INTERLEAVE.BSQ])
-ENVI_BIL_DRIVER = RasterDriver(name='ENVI', options=[EnviCreationOption.INTERLEAVE.BIL])
-ENVI_BIP_DRIVER = RasterDriver(name='ENVI', options=[EnviCreationOption.INTERLEAVE.BIP])
-GTIFF_DRIVER = RasterDriver(name='GTiff', options=[GeoTiffCreationOption.INTERLEAVE.BAND])
-ERDAS_DRIVER = RasterDriver(name='HFA')
+MEM_DRIVER = GdalRasterDriver(name='MEM')
+VRT_DRIVER = GdalRasterDriver(name='VRT')
+ENVI_DRIVER = GdalRasterDriver(name='ENVI')
+ENVI_BSQ__DRIVER = GdalRasterDriver(name='ENVI', options=[EnviCreationOption.INTERLEAVE.BSQ])
+ENVI_BIL_DRIVER = GdalRasterDriver(name='ENVI', options=[EnviCreationOption.INTERLEAVE.BIL])
+ENVI_BIP_DRIVER = GdalRasterDriver(name='ENVI', options=[EnviCreationOption.INTERLEAVE.BIP])
+GTIFF_DRIVER = GdalRasterDriver(name='GTiff', options=[GeoTiffCreationOption.INTERLEAVE.BAND])
+ERDAS_DRIVER = GdalRasterDriver(name='HFA')
