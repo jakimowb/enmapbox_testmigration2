@@ -1,12 +1,19 @@
 from shutil import rmtree
 
 from qgis.core import *
+
+from enmapboxprocessing.algorithms.classificationstatistics import ClassificationStatistics
 from hubflow.core import *
 from enmapboxgeoalgorithms.provider import EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, ALGORITHMS, Help, Link, Cookbook
 from enmapboxgeoalgorithms.estimators import parseClassifiers, parseClusterers, parseRegressors, parseTransformers
 from enmapboxgeoalgorithms.filters.convolution import parseSpatialKernel, parseSpectralKernel
 from enmapboxgeoalgorithms.filters.morphology import parseMorphology
 from enmapboxgeoalgorithms.filters.other import parseOtherFilter
+
+ALGORITHMS.append(ClassificationStatistics())
+
+
+
 
 class ClassificationFromFraction(EnMAPAlgorithm):
     def displayName(self):
@@ -34,28 +41,28 @@ class ClassificationFromFraction(EnMAPAlgorithm):
 ALGORITHMS.append(ClassificationFromFraction())
 
 
-class ClassificationStatistics(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Classification Statistics'
-
-    def description(self):
-        return 'This algorithm returns class count statistics. The output will be shown in the log window and can the copied from there accordingly.'
-
-    def group(self):
-        return self.GROUP_AUXILLIARY
-
-    def defineCharacteristics(self):
-        self.addParameterClassification()
-
-    def processAlgorithm_(self):
-        classification = self.getParameterClassification()
-        values = classification.statistics()
-        for name, n in zip(classification.classDefinition().names(), values):
-            self._progressBar.setText('{}: {}'.format(name, n))
-        return {}
-
-
-ALGORITHMS.append(ClassificationStatistics())
+# class ClassificationStatistics(EnMAPAlgorithm):
+#     def displayName(self):
+#         return 'Classification Statistics'
+#
+#     def description(self):
+#         return 'This algorithm returns class count statistics. The output will be shown in the log window and can the copied from there accordingly.'
+#
+#     def group(self):
+#         return self.GROUP_AUXILLIARY
+#
+#     def defineCharacteristics(self):
+#         self.addParameterClassification()
+#
+#     def processAlgorithm_(self):
+#         classification = self.getParameterClassification()
+#         values = classification.statistics()
+#         for name, n in zip(classification.classDefinition().names(), values):
+#             self._progressBar.setText('{}: {}'.format(name, n))
+#         return {}
+#
+#
+# ALGORITHMS.append(ClassificationStatistics())
 
 class ClassificationFromVectorClassification(EnMAPAlgorithm):
     def group(self): return self.GROUP_CREATE_RASTER
