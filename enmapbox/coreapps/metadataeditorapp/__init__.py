@@ -25,8 +25,8 @@ from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
 
 APP_DIR = os.path.dirname(__file__)
-APP_NAME = 'Metdata Viewer'
-VERSION = '0.2'
+APP_NAME = 'Metadata Viewer'
+VERSION = '0.3'
 LICENSE = 'GPL-3'
 
 from enmapbox.gui.applications import EnMAPBoxApplication
