@@ -316,6 +316,9 @@ class EnMAPBox(QgisInterface, QObject):
                                         self.messageBar().pushItem(QgsMessageBarItem(title, text, level)))
         self.mVectorLayerTools.sigFreezeCanvases.connect(self.freezeCanvases)
         self.mVectorLayerTools.sigEditingStarted.connect(self.updateCurrentLayerActions)
+        self.mVectorLayerTools.sigZoomRequest.connect(self.zoomToExtent)
+        self.mVectorLayerTools.sigPanRequest.connect(self.panToPoint)
+
 
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
@@ -785,7 +788,6 @@ class EnMAPBox(QgisInterface, QObject):
             self.dataSourceManager().addSource(slw.speclib())
 
         if isinstance(dock, MapDock):
-
             canvas = dock.mapCanvas()
             assert isinstance(canvas, MapCanvas)
             canvas.sigCrosshairPositionChanged.connect(self.onCrosshairPositionChanged)
@@ -799,9 +801,10 @@ class EnMAPBox(QgisInterface, QObject):
             assert isinstance(node, MapDockTreeNode)
             node.sigAddedLayers.connect(self.sigMapLayersAdded[list].emit)
             node.sigRemovedLayers.connect(self.sigMapLayersRemoved[list].emit)
-
-
             self.sigMapCanvasAdded.emit(canvas)
+
+        if isinstance(dock, AttributeTableDock):
+            dock.attributeTableWidget.setVectorLayerTools(self.mVectorLayerTools)
 
         self.sigDockAdded.emit(dock)
 
@@ -1944,11 +1947,59 @@ class EnMAPBox(QgisInterface, QObject):
         # noinspection PyArgumentList
         QgsProject.instance().removeAllMapLayers()
 
+    def zoomToSelected(self):
+        """
+        Zooms the current map canvas to the selected features of the current map layer
+        :return:
+        """
+        lyr = self.currentLayer()
+        canvas = self.currentMapCanvas()
+
+        if isinstance(lyr, QgsVectorLayer) and lyr.selectedFeatureCount() > 0 and isinstance(canvas, QgsMapCanvas):
+            s = ""
+
+        pass
+
+    def zoomToExtent(self, extent: SpatialExtent):
+        """
+        Zooms the current map canvas to a requested extent
+        """
+        canvas = self.currentMapCanvas()
+        if isinstance(canvas, QgsMapCanvas) and isinstance(extent, SpatialExtent):
+            ext = extent.toCrs(canvas.mapSettings().destinationCrs())
+            if isinstance(ext, SpatialExtent):
+                canvas.setExtent(ext)
+
+
+    def panToPoint(self, point: SpatialPoint):
+        """
+        pans the current map canvas to the provided point
+        """
+        canvas = self.currentMapCanvas()
+        if isinstance(canvas, QgsMapCanvas) and isinstance(point, SpatialPoint):
+            p = point.toCrs(canvas.mapSettings().destinationCrs())
+            if isinstance(p, SpatialPoint):
+                canvas.setCenter(p)
+
+    def panToSelected(self):
+        """
+        Pans the current map canvas to the selected features in a current map canvas
+        :return:
+        """
+        canvas = self.currentMapCanvas()
+        lyr = self.currentLayer()
+        if isinstance(lyr, QgsVectorLayer) and isinstance(canvas, QgsMapCanvas):
+
+            s  =""
+
+
     # ---------------- API Mock for QgsInterface follows -------------------
 
     def zoomFull(self):
-        """Zoom to the map full extent."""
-        pass
+        """Zooms the current map canvas to its full extent"""
+        canvas = self.currentMapCanvas()
+        if isinstance(canvas, QgsMapCanvas):
+            canvas.zoomToFullExtent()
 
     def zoomToPrevious(self):
         """Zoom to previous view extent."""
@@ -1989,11 +2040,12 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.addSource(lyr, base_name)
 
-    def activeMapCanvas(self) -> MapCanvas:
+    def currentMapCanvas(self) -> MapCanvas:
         """
         Returns the active map canvas, i.e. the MapCanvas that was clicked last.
         :return: MapCanvas
         """
+
         from enmapbox.gui.mapcanvas import KEY_LAST_CLICKED
         canvases = sorted(self.mapCanvases(), key=lambda c: c.property(KEY_LAST_CLICKED))
         if len(canvases) > 0:
@@ -2001,7 +2053,7 @@ class EnMAPBox(QgisInterface, QObject):
         else:
             return None
 
-    def setActiveMapCanvas(self, mapCanvas: MapCanvas) -> bool:
+    def setCurrentMapCanvas(self, mapCanvas: MapCanvas) -> bool:
         """
         Sets the active map canvas
         :param mapCanvas: MapCanvas
@@ -2027,13 +2079,13 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.dockPanel.dockTreeView.setCurrentLayer(mapLayer)
 
-        canvas = self.activeMapCanvas()
+        canvas = self.currentMapCanvas()
         if isinstance(canvas, MapCanvas) and mapLayer in canvas.layers():
             canvas.setCurrentLayer(mapLayer)
 
         for canvas in self.mapCanvases():
             if mapLayer in canvas.layers():
-                self.setActiveMapCanvas(canvas)
+                self.setCurrentMapCanvas(canvas)
                 canvas.setCurrentLayer(mapLayer)
 
         self.updateCurrentLayerActions()

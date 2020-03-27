@@ -747,13 +747,17 @@ class AttributeTableDock(Dock):
     """
     A dock to show a VectorLayer attribute table
     """
-    def __init__(self, layer:QgsVectorLayer, *args, **kwds):
+    def __init__(self, layer: QgsVectorLayer, *args, **kwds):
         super(AttributeTableDock, self).__init__(*args, **kwds)
         from enmapbox.externals.qps.layerproperties import AttributeTableWidget
         self.attributeTableWidget = AttributeTableWidget(layer)
         self.addWidget(self.attributeTableWidget, 0, 0)
-        self.setTitle(self.attributeTableWidget.windowTitle())
-        self.attributeTableWidget.windowTitleChanged.connect(self.setTitle)
+        self.updateTitle(self.attributeTableWidget.windowTitle())
+        self.attributeTableWidget.windowTitleChanged.connect(self.updateTitle)
+
+    def updateTitle(self, title: str):
+        # we need to get a short name, not the entire title
+        self.setTitle(title.split('::')[0])
 
 class MimeDataDock(Dock):
     """

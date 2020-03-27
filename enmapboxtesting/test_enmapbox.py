@@ -180,7 +180,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         EMB.loadExampleData()
         self.assertTrue(len(QgsProject.instance().mapLayers()) > 0)
         canvases = EMB.mapCanvases()
-        self.assertTrue(canvases[-1] == EMB.activeMapCanvas())
+        self.assertTrue(canvases[-1] == EMB.currentMapCanvas())
         import qgis.utils
         self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
 

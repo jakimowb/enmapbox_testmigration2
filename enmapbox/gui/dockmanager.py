@@ -1081,7 +1081,8 @@ class DockTreeView(QgsLayerTreeView):
         #self.header().setResizeMode(1, QHeaderView.ResizeToContents)
         self.currentLayerChanged.connect(self.onCurrentLayerChanged)
 
-    def onCurrentLayerChanged(self, layer:QgsMapCanvas):
+
+    def onCurrentLayerChanged(self, layer: QgsMapLayer):
         for canvas in self.layerTreeModel().mapCanvases():
             assert isinstance(canvas, MapCanvas)
             if layer in canvas.layers():
@@ -1564,9 +1565,13 @@ class MapCanvasBridge(QgsLayerTreeMapCanvasBridge):
                     if isinstance(lnode, QgsLayerTreeLayer):
                         lnode.setItemVisibilityChecked(Qt.Unchecked)
 
-
-
-def createDockTreeNode(dock:Dock, parent=None)->DockTreeNode:
+def createDockTreeNode(dock:Dock, parent=None) -> DockTreeNode:
+    """
+    Returns a DockTreeNode corresponding to a Dock
+    :param dock:
+    :param parent:
+    :return:
+    """
     if isinstance(dock, Dock):
         dockType = type(dock)
         if dockType is MapDock:
@@ -1575,6 +1580,8 @@ def createDockTreeNode(dock:Dock, parent=None)->DockTreeNode:
             return TextDockTreeNode(parent, dock)
         elif dockType is SpectralLibraryDock:
             return SpeclibDockTreeNode(parent, dock)
+        elif dockType is AttributeTableDock:
+            return AttributeTableDockTreeNode(parent, dock)
         else:
             return DockTreeNode(parent, dock)
     return None
