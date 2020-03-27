@@ -545,7 +545,11 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
                     return 'Not installed'
             if cn == self.cnCommand:
                 cmd = pkg.installCommand(user=self.mUser)
-                return re.search(r'python(\.exe).*$', cmd, re.I).group()
+                match = re.search(r'python(\.exe)?.*$', cmd, re.I)
+                if match:
+                    return match.group()
+                else:
+                    return cmd
 
         if role == Qt.ForegroundRole:
             if cn == self.cnStatus:
