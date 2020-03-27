@@ -5,6 +5,25 @@
 # Created by: PyQt5 UI code generator 5.7
 #
 # WARNING! All changes made in this file will be lost!
+"""
+***************************************************************************
+    exampleapp/enmapboxintegration.py
+
+    This module defines the interactions between an application and
+    the EnMAPBox.
+    ---------------------
+    Date                 : Juli 2017
+    Copyright            : (C) 2017 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+*                                                                         *
+*   This program is free software; you can redistribute it and/or modify  *
+*   it under the terms of the GNU General Public License as published by  *
+*   the Free Software Foundation; either version 2 of the License, or     *
+*   (at your option) any later version.                                   *
+*                                                                         *
+***************************************************************************
+"""
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 

@@ -2,13 +2,16 @@
 # -*- coding: utf-8 -*-
 """
 ***************************************************************************
-    exampleapp/userinterfaces.py
+    engeomap.py
 
-    Some exemplary (graphical) user interfaces, making use of the Qt framework.
+This is EnGeoMAP further information can be found in the following open acess publication:
+Mielke, C.; Rogass, C.; Boesche, N.; Segl, K.; Altenberger, U. 
+EnGeoMAP 2.0—Automated Hyperspectral Mineral Identification for the German EnMAP Space Mission. 
+Remote Sens. 2016, 8, 127. 
     ---------------------
-    Date                 : Juli 2017
-    Copyright            : (C) 2017 by Benjamin Jakimow
-    Email                : benjamin.jakimow@geo.hu-berlin.de
+    Date                 : Juli 2019
+    Copyright            : (C) 2019 by Christian Mielke
+    Email                : christian.mielke@gfz-potsdam.de
 ***************************************************************************
 *                                                                         *
 *   This program is free software; you can redistribute it and/or modify  *
@@ -28,7 +31,7 @@ from scipy import interpolate
 from scipy import spatial
 from scipy import optimize
 from scipy import signal
-from engeomap import APP_DIR
+#from engeomap import APP_DIR
 
 ##### I need this to parse header inforation:
 ###########
@@ -58,7 +61,7 @@ def return_header_list(filename):
     return j
 
 
-def splitter_hd(liste): # lliste kommt zb aus return header
+def splitter_hd(liste): 
     hd_liste = {}
     prp = []
     val = []
@@ -79,7 +82,7 @@ def splitter_hd(liste): # lliste kommt zb aus return header
     w = hd_liste.keys()
     return hd_liste, w, prp, val
 
-def splitter_hd2(liste): # lliste kommt zb aus return header
+def splitter_hd2(liste): 
     hd_liste = {}
     prp = []
     val = []
@@ -258,7 +261,7 @@ def interpolate_generic1nmlib(wv, data):
     neowave = numpy.arange(numpy.trunc(min(wv)), numpy.trunc(max(wv)), 1)
     arr = numpy.zeros([data.shape[0], len(neowave)])
     for j in numpy.arange(0, data.shape[0], 1):
-        interpolator = interpolate.splrep(wv, data[j, :], s=0)#Smoothing Spline macht manchmal richtig ärger was dann zu nans im ganzen Datensatz führt
+        interpolator = interpolate.splrep(wv, data[j, :], s=0)
         arr[j, :] = interpolate.splev(neowave, interpolator, der=0)
     return arr, neowave
 
@@ -330,7 +333,7 @@ def interpolate_generic1nmlib_unique(wv,data):
     neowave=numpy.arange(numpy.trunc(min(wv)),numpy.trunc(max(wv))+1,1)
     arr=numpy.zeros([data.shape[0],len(neowave)])
     for j in numpy.arange(0,data.shape[0],1):
-        interpolator=interpolate.splrep(wv,data[j,:],s=0)#Smoothing Spline macht manchmal richtig ärger was dann zu nans im ganzen Datensatz führt
+        interpolator=interpolate.splrep(wv,data[j,:],s=0)
         arr[j,:]=interpolate.splev(neowave,interpolator,der=0)
     return arr,neowave
     
@@ -466,6 +469,7 @@ def cvx_hull_oclip(wv,daten):
 ########
 
 
+
 ###
 ###Calculate Feature Weights for EnGEoMAP
 ##########
@@ -494,6 +498,7 @@ def weighting_lib2(rm_rel,wav):
     depthvec = numpy.array(depthvec)
     flvec = numpy.array(flvec)
     ast = depthvec/lenvec
+    lensum=numpy.sum(lenvec)#neos
     astsum = numpy.sum(ast)
     ast /= astsum
     depthsum = numpy.sum(depthvec)
@@ -507,8 +512,7 @@ def weighting_lib2(rm_rel,wav):
         ind = numpy.where(lbls == j[1])
         w[ind] = w[ind]*alles[j[0]]
         ww[ind] = ww[ind]*alles[j[0]]
-    return w, ww
-
+    return w,ww,astsum,depthsum,flsum,allessum
 
 #check features
 def scrut_weigh3(rm_abs,rm_rel,wav,vnir_thr,swir_thr):
@@ -563,7 +567,6 @@ def scrut_weigh3(rm_abs,rm_rel,wav,vnir_thr,swir_thr):
         posswirmax=wav[r_abs_mod_swir][swirargmax]
     return r_abs_mod,r_rel,vnirmax,swirmax,posvnirmax,posswirmax
 
-
 def corr(libdat_rel_weighted,w_rel_scale):
     sz=numpy.corrcoef(numpy.concatenate((libdat_rel_weighted,w_rel_scale[numpy.newaxis,:])))
     correlate=sz[-1,:-1]
@@ -581,6 +584,57 @@ def unmixxx(crmlib,spec,corrcoeffs,thresh=0.5):
 ##########End Feature Weights
 #############
 #####
+# input wavelength and spectrum in new resolution and abs weighted spectrum
+
+def lo_hull(wv,spc,absolute,thr=0.0001):
+    msk=numpy.where(absolute<=thr,0,1)
+    absolute*=msk
+    lbls,nlbl=ndimage.label(absolute)
+    nlbl = numpy.arange(1, nlbl + 1, 1)
+    dada=[]
+    wb=[]
+    dada.append(wv[0])
+    wb.append(spc[0])
+    for i in enumerate(nlbl):
+        indices = numpy.where(lbls == i[1])
+        s = absolute[indices]
+        t = wv[indices]
+        spp=spc[indices]
+        sd=numpy.argmax(s)
+        dada.append(t[sd])
+        wb.append(spp[sd])
+    dada.append(wv[-1])
+    wb.append(spc[-1])
+    dadan=numpy.asarray(dada)
+    wbn=numpy.asarray(wb)
+    hull=numpy.interp(wv,dadan,wbn)
+    minn=spc-hull
+    negmsk=numpy.where(minn<0,1,0)
+    minnn=minn*negmsk
+    minnn=numpy.abs(minnn)
+    lbls, nlbl = ndimage.label(minnn)
+    nlbl = numpy.arange(1, nlbl + 1, 1)
+    for i in enumerate(nlbl):
+        indices = numpy.where(lbls == i[1])
+        s = minnn[indices]
+        t = wv[indices]
+        spp = spc[indices]
+        sd=numpy.argmax(s)
+        dada.append(t[sd])
+        wb.append(spp[sd])
+    hullx=numpy.asarray(dada)
+    hully=numpy.asarray(wb)
+    argh1=numpy.argsort(hullx)
+    hullneox=hullx[argh1]
+    hullneoy=hully[argh1]
+    hulllfin=numpy.interp(wv,hullneox,hullneoy)
+    feinalpos=numpy.nan_to_num(spc-hulllfin)#absolute removal
+    norms=numpy.nan_to_num(hulllfin/spc)#relative removal
+    numpy.place(norms, norms > 1, 1)
+    numpy.place(norms, norms < 0, 0)
+    numpy.place(feinalpos, feinalpos < 0, 0)
+    relative=norms
+    return wv,spc,hull,hulllfin,feinalpos,relative
 
 def treat_library_cvx(wv,data,neowave,vnir_thr=0.01,swir_thr=0.02):
     arr,nwv=interpolate_generic1nmlib_nwave(wv,data,neowave,flag=0)
@@ -599,7 +653,7 @@ def treat_library_cvx(wv,data,neowave,vnir_thr=0.01,swir_thr=0.02):
         try:
             cvxabs[j,:],cvxrel[j,:],cvxhull[j,:]=cvx_uhull2(arr[j,:],nwv,cont_switch=1)
             cvxabs_mod[j,:],cvxrel_mod[j,:],vnirmax[j],swirmax,posvnirmax[j],posswirmax[j]=scrut_weigh3(cvxabs[j,:],cvxrel[j,:],nwv,vnir_thr,swir_thr)
-            w_rel_scale[j,:],w_rel_chm_scale[j,:]=weighting_lib2(cvxrel_mod[j,:],nwv)
+            w_rel_scale[j,:],w_rel_chm_scale[j,:],a,b,c,d=weighting_lib2(cvxrel_mod[j,:],nwv)
         except Exception:
             print('Some Error with the spectrum occured')
             cvxabs_mod[j,:],cvxrel_mod[j,:],vnirmax[j],swirmax,posvnirmax[j],posswirmax[j]=numpy.zeros_like(arr[j,:]), numpy.ones_like(arr[j,:]),0,0,0,0
@@ -625,13 +679,48 @@ def treat_library_cvx_full_range(wv,data,neowave,vnir_thr=0.00,swir_thr=0.00):
         try:
             cvxabs[j,:],cvxrel[j,:],cvxhull[j,:]=cvx_hull(arr[j,:],nwv,cont_switch=1)
             cvxabs_mod[j,:],cvxrel_mod[j,:],vnirmax[j],swirmax,posvnirmax[j],posswirmax[j]=scrut_weigh3(cvxabs[j,:],cvxrel[j,:],nwv,vnir_thr,swir_thr)
-            w_rel_scale[j,:],w_rel_chm_scale[j,:]=weighting_lib2(cvxrel_mod[j,:],nwv)#w_rel_scale und chmscale ist das gleiche
+            w_rel_scale[j,:],w_rel_chm_scale[j,:],a,b,c,d=weighting_lib2(cvxrel_mod[j,:],nwv)
         except Exception:
             print('Some Error with the spectrum occured')
             cvxabs[j,:],cvxrel[j,:],cvxhull[j,:]=numpy.zeros_like(arr[j,:]), numpy.ones_like(arr[j,:]), arr[j,:] # Please mind the colinearity!
-        #cvxabs_mod[j,:],cvxrel_mod[j,:],vnirmax[j],swirmax,posvnirmax[j],posswirmax[j]=numpy.zeros_like(arr[j,:]), numpy.ones_like(arr[j,:]),0,0,0,0
-        #    continue
     return cvxabs_mod,cvxrel_mod,w_rel_scale,w_rel_chm_scale,vnirmax,swirmax
+
+
+#hull calculation Only!
+
+def treat_library_cvx_full_range_lo(wv,data,neowave,vnir_thr=0.00,swir_thr=0.00):
+    arr,nwv=interpolate_generic1nmlib_nwave(wv,data,neowave,flag=0)
+    #return arr,nwv
+    cvxabs=numpy.zeros_like(arr)
+    cvxabsa = numpy.zeros_like(arr)#
+    cvxabsb = numpy.zeros_like(arr)#
+    cvxrel=numpy.zeros_like(arr)
+    cvxhull=numpy.zeros_like(arr)
+    cvxhullb = numpy.zeros_like(arr)#
+    cvxhullc = numpy.zeros_like(arr)#
+    w_rel_chm_scale=numpy.zeros_like(arr)
+    w_rel_scale=numpy.zeros_like(arr)
+    cvxrel_mod=numpy.zeros_like(arr)
+    cvxabs_mod=numpy.zeros_like(arr)
+    posvnirmax=numpy.zeros((arr.shape[0]))
+    posswirmax=numpy.zeros((arr.shape[0]))
+    swirmax=numpy.zeros((arr.shape[0]))
+    vnirmax=numpy.zeros((arr.shape[0]))
+    cvx_poshull=numpy.zeros_like(arr)
+    for j in numpy.arange(0,arr.shape[0],1):
+        try:
+            cvxabs[j,:],cvxrel[j,:],cvxhull[j,:]=cvx_hull(arr[j,:],nwv,cont_switch=1)
+            cvxabs[j,:],cvxrel_mod[j,:],vnirmax[j],swirmax,posvnirmax[j],posswirmax[j]=scrut_weigh3(cvxabs[j,:],cvxrel[j,:],nwv,vnir_thr,swir_thr)#cvxabsb
+            w_rel_scale[j,:],w_rel_chm_scale[j,:],a,b,c,d=weighting_lib2(cvxrel_mod[j,:],nwv)
+            wv1,spc1,hull1,hulllfin1,feinalpos1,relative1=lo_hull(nwv,arr[j,:],w_rel_chm_scale[j,:])#####################NEU Reflectance Peaks
+            #cvxhullb[j,:]=feinalpos1#
+            #cvxhullc[j,:]=hulllfin1#
+            cvxabs[j,:],cvxrel_mod[j,:],vnirmax[j],swirmax,posvnirmax[j],posswirmax[j]=scrut_weigh3(feinalpos1,relative1,nwv,vnir_thr,swir_thr)#####################NEU Reflectance Peaks
+            w_rel_scale[j, :], w_rel_chm_scale[j, :], a, b, c, d = weighting_lib2(cvxrel_mod[j, :], nwv)#####################NEU Reflectance Peaks
+        except Exception:
+            print('Some Error with the spectrum occured')
+            cvxabs[j,:],cvxrel[j,:],cvxhull[j,:]=numpy.zeros_like(arr[j,:]), numpy.ones_like(arr[j,:]), arr[j,:] # Please mind the colinearity!
+    return cvxabs_mod,cvxrel_mod,w_rel_scale,w_rel_chm_scale,vnirmax,swirmax#,cvxhull,cvxabsa,cvxabsb,cvxhullb,cvxhullc
 
 #########
 ########Fitting Routines
@@ -651,6 +740,10 @@ def fitting_cvx(wfrom,wto,data,libdat_rel_weighted,libdat_rel_chm_weighted,libda
     bvlss=numpy.ones([lshape[0],dshape[1]])*0#*-999
     bvlserr=numpy.ones([dshape[1]])#*-999
     lsqerr=numpy.ones([dshape[1]])#*-999
+    astsum=numpy.zeros([sdadasfdshape[1]])
+    depthsum=numpy.zeros([dshape[1]])
+    flsum=numpy.zeros([dshape[1]])
+    allessum=numpy.zeros([dshape[1]])
     for j in numpy.arange(0,dshape[1],1):
         output=interpolate_1nm_spectrum(wto,wfrom,data[:,j],flag=None)
         if numpy.sum(output==0):
@@ -662,12 +755,19 @@ def fitting_cvx(wfrom,wto,data,libdat_rel_weighted,libdat_rel_chm_weighted,libda
             swirdepthmat[j]=-1
             vnirposmat[j]=-1
             swirposmat[j]=-1
+            astsum[j]=-1
+            depthsum[j]=-1
+            flsum[j]=-1
+            allessum[j]=-1
         else:
             try:
                 rm_abs_dat,rm_rel_dat,hull_dat=cvx_uhull2(output,wto,cont_switch=1)
                 absolutee,relativee,vnirdepthmat[j],swirdepthmat[j],vnirposmat[j],swirposmat[j]=scrut_weigh3(rm_abs_dat,rm_rel_dat,wto,vnir_thr,swir_thr)
-                w_rel_scale,w_rel_chm_scale=weighting_lib2(relativee,wto)
-                #print(w_rel_scale)
+                w_rel_scale,w_rel_chm_scale,a,b,c,d=weighting_lib2(relativee,wto)
+                astsum[j] = a
+                depthsum[j] = b
+                flsum[j] = c
+                allessum[j] = d
                 correlat[:,j]=corr(libdat_rel_weighted,w_rel_scale)
                 numpy.nan_to_num(correlat[:,j])
                 correlat[:,j][~numpy.isfinite(correlat[:,j])]=0
@@ -678,7 +778,7 @@ def fitting_cvx(wfrom,wto,data,libdat_rel_weighted,libdat_rel_chm_weighted,libda
                 bvlss[:,j],bvlserr[j]=unmixxx(libdat_abs,absolutee,correlat[:,j],thresh=0.5)
             except Exception:
                 bvlserr[j]=9999
-    return correlat,bvlss,bvlserr,vnirposmat,vnirdepthmat,swirposmat,swirdepthmat
+    return correlat,bvlss,bvlserr,vnirposmat,vnirdepthmat,swirposmat,swirdepthmat,astsum,depthsum,flsum,allessum
 
 def fitting_cvx_fullrange(wfrom,wto,data,libdat_rel_weighted,libdat_rel_chm_weighted,libdat_abs,vnir_thr=0.00,swir_thr=0.00,lib_flag=0,mix_minerals=6,fit_threshold=0.5):
     dshape2=data.shape
@@ -694,8 +794,10 @@ def fitting_cvx_fullrange(wfrom,wto,data,libdat_rel_weighted,libdat_rel_chm_weig
     bvlss=numpy.ones([lshape[0],dshape[1]])*0#*-999
     bvlserr=numpy.ones([dshape[1]])#*-999
     lsqerr=numpy.ones([dshape[1]])#*-999
-    print(vnir_thr)
-    print(swir_thr)
+    astsum=numpy.zeros([dshape[1]])
+    depthsum=numpy.zeros([dshape[1]])
+    flsum=numpy.zeros([dshape[1]])
+    allessum=numpy.zeros([dshape[1]])
     for j in numpy.arange(0,dshape[1],1):
         output=interpolate_1nm_spectrum(wto,wfrom,data[:,j],flag=None)
         if numpy.sum(output==0):
@@ -707,12 +809,19 @@ def fitting_cvx_fullrange(wfrom,wto,data,libdat_rel_weighted,libdat_rel_chm_weig
             swirdepthmat[j]=-1
             vnirposmat[j]=-1
             swirposmat[j]=-1
+            astsum[j] = -1
+            depthsum[j] = -1
+            flsum[j] = -1
+            allessum[j] = -1
         else:
             try:
                 rm_abs_dat,rm_rel_dat,hull_dat=cvx_hull(output,wto,cont_switch=1)
                 absolutee,relativee,vnirdepthmat[j],swirdepthmat[j],vnirposmat[j],swirposmat[j]=scrut_weigh3(rm_abs_dat,rm_rel_dat,wto,vnir_thr,swir_thr)
-                w_rel_scale,w_rel_chm_scale=weighting_lib2(relativee,wto)
-                #print(w_rel_scale)
+                w_rel_scale,w_rel_chm_scale,a,b,c,d=weighting_lib2(relativee,wto)
+                astsum[j] = a
+                depthsum[j] = b
+                flsum[j] = c
+                allessum[j] = d
                 correlat[:,j]=corr(libdat_rel_weighted,w_rel_scale)
                 numpy.nan_to_num(correlat[:,j])
                 correlat[:,j][~numpy.isfinite(correlat[:,j])]=0
@@ -723,7 +832,92 @@ def fitting_cvx_fullrange(wfrom,wto,data,libdat_rel_weighted,libdat_rel_chm_weig
                 bvlss[:,j],bvlserr[j]=unmixxx(libdat_abs,absolutee,correlat[:,j],thresh=0.5)
             except Exception:
                 bvlserr[j]=9999
-    return correlat,bvlss,bvlserr,vnirposmat,vnirdepthmat,swirposmat,swirdepthmat
+    return correlat,bvlss,bvlserr,vnirposmat,vnirdepthmat,swirposmat,swirdepthmat,astsum,depthsum,flsum,allessum
+
+def fitting_cvx_fullrange_lo(wfrom,wto,data,libdat_rel_weighted,libdat_rel_chm_weighted,libdat_abs,vnir_thr,swir_thr,lib_flag,mix_minerals,fit_threshold):
+    dshape2=data.shape
+    data=data.reshape(dshape2[0],dshape2[1]*dshape2[2])
+    dshape=data.shape
+    lshape=libdat_rel_weighted.shape
+    correlat=numpy.zeros([lshape[0],dshape[1]])
+    vnirdepthmat=numpy.zeros([dshape[1]])
+    swirdepthmat=numpy.zeros([dshape[1]])
+    vnirposmat=numpy.zeros([dshape[1]])
+    swirposmat=numpy.zeros([dshape[1]])
+    leastsquares=numpy.ones([lshape[0],dshape[1]])*0#*-999
+    bvlss=numpy.ones([lshape[0],dshape[1]])*0#*-999
+    bvlserr=numpy.ones([dshape[1]])#*-999
+    lsqerr=numpy.ones([dshape[1]])#*-999
+    astsum=numpy.zeros([dshape[1]])
+    depthsum=numpy.zeros([dshape[1]])
+    flsum=numpy.zeros([dshape[1]])
+    allessum=numpy.zeros([dshape[1]])
+    for j in numpy.arange(0,dshape[1],1):
+        output=interpolate_1nm_spectrum(wto,wfrom,data[:,j],flag=None)
+        if numpy.sum(output==0):
+            rm_abs_dat=output
+            rm_rel_dat=output
+            hull_dat=output
+            correlat[:,j]=numpy.zeros([lshape[0]])
+            vnirdepthmat[j]=-1
+            swirdepthmat[j]=-1
+            vnirposmat[j]=-1
+            swirposmat[j]=-1
+            astsum[j] = -1
+            depthsum[j] = -1
+            flsum[j] = -1
+            allessum[j] = -1
+        else:
+            try:
+                rm_abs_dat,rm_rel_dat,hull_dat=cvx_hull(output,wto,cont_switch=1)
+                absolutee,relativee,vnirdepthmat[j],swirdepthmat[j],vnirposmat[j],swirposmat[j]=scrut_weigh3(rm_abs_dat,rm_rel_dat,wto,vnir_thr,swir_thr)
+                w_rel_scale,w_rel_chm_scale,a,b,c,d=weighting_lib2(relativee,wto)
+            except Exception:
+                bvlserr[j] = 9999
+                rm_abs_dat = output
+                rm_rel_dat = output
+                hull_dat = output
+                correlat[:, j] = numpy.zeros([lshape[0]])
+                vnirdepthmat[j] = -1
+                swirdepthmat[j] = -1
+                vnirposmat[j] = -1
+                swirposmat[j] = -1
+                astsum[j] = -1
+                depthsum[j] = -1
+                flsum[j] = -1
+                allessum[j] = -1
+                pass
+            try:
+                wv1_bil, spc1_bil, hull1_bil, hulllfin1_bil, feinalpos1_bil, relative1_bil = lo_hull(wto,output, w_rel_chm_scale)  #####################NEU Reflectance Peaks#
+                cvxabs_mod_bil,cvxrel_mod_bil, vnirmax_bil, swirmax_bil, posvnirmax_bil,posswirmax_bil=scrut_weigh3(feinalpos1_bil,relative1_bil,wto,vnir_thr,swir_thr)  #####################NEU Reflectance Peaks
+                w_rel_scale_bil, w_rel_chm_scale_bil, a1, b1, c1, d1 = weighting_lib2(cvxrel_mod_bil,wto)  #####################NEU Reflectance Peaks
+                astsum[j] = a1
+                depthsum[j] = b1
+                flsum[j] = c1
+                allessum[j] = d1
+                correlat[:,j]=corr(libdat_rel_weighted,w_rel_scale_bil)
+                numpy.nan_to_num(correlat[:,j])
+                correlat[:,j][~numpy.isfinite(correlat[:,j])]=0
+                numpy.place(correlat[:,j],correlat[:,j]<=0,0)
+            except Exception:
+                 bvlserr[j] = 9999
+                 rm_abs_dat = output
+                 rm_rel_dat = output
+                 hull_dat = output
+                 correlat[:, j] = numpy.zeros([lshape[0]])
+                 vnirdepthmat[j] = -1
+                 swirdepthmat[j] = -1
+                 vnirposmat[j] = -1
+                 swirposmat[j] = -1
+                 astsum[j] = -1
+                 depthsum[j] = -1
+                 flsum[j] = -1
+                 allessum[j] = -1
+            try:
+                bvlss[:,j],bvlserr[j]=unmixxx(libdat_abs_bil,cvxabs_mod_bil,correlat[:,j],thresh=0.5)
+            except Exception:
+                bvlserr[j]=9999
+    return correlat,bvlss,bvlserr,vnirposmat,vnirdepthmat,swirposmat,swirdepthmat,astsum,depthsum,flsum,allessum
 
 
 ###
@@ -756,8 +950,7 @@ def reshreib2d(data,name,shp):
     schreibeBSQsingle(data,name)
     return None
 
-#mit Correlationscoeff fuer jeden Maximumsschritt auch mit aufheben und zurückgeben
-#Achtung es kann zu Fehlern kommen wenn der gleiche Corelationswert mehrfach auftritt!
+
 def own_mix_corelation(corelate1,mix_minerals):
     shp=corelate1.shape
     corelate1[~numpy.isfinite(corelate1)]=0
@@ -852,10 +1045,7 @@ def schreibefarbfile7(numpyarray,out,classfilename):
 ##########
     ################
     ########################
-    #############################Wie schreibe ich Frabfiles
-
-#Um die Farbe aus den Highest Corelations Herauszuschreiben ist so leider falsch!!!
-#Nur das ausgegebene Geotiffbildchen stimmt. Der Rest ist Mist!!!->Envi Classification
+    #############################WRITE cOLORFILE
 def schreibeBSQsingle_band_class_best_matchmat(numpyarray,out,classfilename):
     numpy.place(numpyarray,numpyarray<0,255)
     numpyarray=numpyarray.astype('uint8')
@@ -896,9 +1086,8 @@ def schreibeBSQsingle_band_class_best_matchmat(numpyarray,out,classfilename):
     cnum='classes ='+str(classes_numbers)+'\n'
     description='description ='+'{'+description+'}'+'\n'
     class_names='class names ='+class_names+'\n'
-    #return unik_vals,obd,class_names,class_lookup,description,orighdr    
-    orighdr[1]=description
-    orighdr[6]='file type = ENVI Classification'+'\n'
+    orighdr[5] = 'file type = ENVI Classification' + '\n'
+    orighdr.insert(1, description)
     orighdr.append(cnum)
     orighdr.append(class_lookup)
     orighdr.append(class_names)
@@ -948,7 +1137,7 @@ def own_mix_distance(corelate1,mix_minerals):
                zd[ind]=0
     return ws,w_corrcoef     
 
-def corr_colours(corrmat,colorfile,basename,shape_param,minerals,thresh=0.5):
+def corr_colours(corrmat,colorfile,basename,shape_param,minerals,thresh=0.0):
     threshold_applied=copy.deepcopy(corrmat)
     numpy.place(threshold_applied,threshold_applied<thresh,0)
     indexmat,maxcormat=own_mix_corelation(threshold_applied,minerals)
@@ -957,32 +1146,26 @@ def corr_colours(corrmat,colorfile,basename,shape_param,minerals,thresh=0.5):
     schreibeBSQ(maxcormat,basename+'_best_matches_')
     schreibeBSQ(indexmat,basename+'_best_matches_indices')
     rgb=schreibeBSQsingle_band_class_best_matchmat(indexmat[0,:,:],basename+'_best_fit_coleur',colorfile)
-    rgb2=schreibeBSQsingle_band_class_best_matchmat(indexmat[1,:,:],basename+'_second_best_fit_coleur',colorfile)
     indexmedian=signal.medfilt2d(indexmat[0,:,:],kernel_size=3)
     schreibeBSQsingle(indexmedian,basename+'_median_filtered_best_match_index')
     rgbm=schreibeBSQsingle_band_class_best_matchmat(indexmedian,basename+'_median_filtered__best_fit_coleur',colorfile)
     indexmedian2=signal.medfilt2d(indexmat[1,:,:],kernel_size=3)
-    schreibeBSQsingle(indexmedian2,basename+'_median_filtered_second_match_index')
-    rgbm2=schreibeBSQsingle_band_class_best_matchmat(indexmedian2,basename+'_median_filtered__second_best_fit_coleur',colorfile)
-    return rgb,rgb2,indexmat,rgbm,rgbm2
+    return rgb,indexmat,rgbm
 
-def corr_colours_unmix(corrmat,colorfile,basename,shape_param,minerals,thresh=0.02):
+def corr_colours_unmix(corrmat,colorfile,basename,shape_param,minerals,thresh=0.00):
     threshold_applied=copy.deepcopy(corrmat)
     numpy.place(threshold_applied,threshold_applied<thresh,0)
     indexmat,maxcormat=own_mix_corelation(threshold_applied,minerals)
     indexmat=indexmat.reshape(minerals,shape_param[1],shape_param[2])
     maxcormat=maxcormat.reshape(minerals,shape_param[1],shape_param[2])
     rgb=schreibeBSQsingle_band_class_best_matchmat(indexmat[0,:,:],basename+'_best_unmix_coleur',colorfile)
-    rgb2=schreibeBSQsingle_band_class_best_matchmat(indexmat[1,:,:],basename+'_second_best_unmix_coleur',colorfile)
     schreibeBSQ(maxcormat,basename+'_highest_abundance_unmix_')
     schreibeBSQ(indexmat,basename+'_highest_abundance_unmix_indices')
     indexmedian=signal.medfilt2d(indexmat[0,:,:],kernel_size=3)
     schreibeBSQsingle(indexmedian,basename+'_median_filtered_best_match_index')
     rgbm=schreibeBSQsingle_band_class_best_matchmat(indexmedian,basename+'_median_filtered_best_unmix_coleur',colorfile)
     indexmedian2=signal.medfilt2d(indexmat[1,:,:],kernel_size=3)
-    schreibeBSQsingle(indexmedian2,basename+'_median_filtered_second_match_index')
-    rgbm2=schreibeBSQsingle_band_class_best_matchmat(indexmedian2,basename+'_median_filtered_second_best_unmix_coleur',colorfile)
-    return rgb,rgb2,indexmat,rgbm,rgbm2
+    return rgb,indexmat,rgbm
 
 def corr_colours_dist(corrmat,colorfile,basename,shape_param,minerals):
     threshold_applied=copy.deepcopy(corrmat)
@@ -1110,6 +1293,3 @@ def rewrite_headers(inputbildhdr):#read orginal header and read map info and crs
             continue
         open(j[1],'a').writelines(L)
     return None
-######
-#######
-#####
