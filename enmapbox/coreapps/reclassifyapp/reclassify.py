@@ -26,7 +26,7 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QSize
 import numpy as np
 import hubflow.core
-
+import hubdc.core
 from enmapbox.gui.utils import gdalDataset as getDataset
 
 def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
@@ -93,7 +93,7 @@ def reclassify(pathSrc:str, pathDst:str, dstClassScheme:ClassificationScheme, la
     return gdal.Open(pathDst)
 
 
-def guessRasterDriver(path:str)->hubflow.core.RasterDriver:
+def guessRasterDriver(path: str) -> hubflow.core.RasterDriver:
     """
     Converts a file path into the corresponding a raster driver
     :param path: str, file path
@@ -102,14 +102,14 @@ def guessRasterDriver(path:str)->hubflow.core.RasterDriver:
     assert isinstance(path, str)
 
     if re.search(r'\.(bsq|bil|bip)$', path, re.I):
-        return hubflow.core.EnviDriver
+        return hubdc.core.EnviDriver()
     elif re.search(r'\.g?tiff?$', path, re.I):
-        return hubflow.core.GTiffDriver()
+        return hubdc.core.GTiffDriver()
     elif re.search(r'\.vrt$', path,  re.I):
-        return hubflow.core.VrtDriver()
-    elif re.search(r'\.(img|hfa)', path , re.I):
-        return hubflow.core.ErdasDriver()
-    return hubflow.core.EnviDriver()
+        return hubdc.core.VrtDriver()
+    elif re.search(r'\.(img|hfa)', path, re.I):
+        return hubdc.core.ErdasDriver()
+    return hubdc.core.EnviDriver()
 
 
 def depr_reclassify(pathSrc, pathDst, labelLookup,

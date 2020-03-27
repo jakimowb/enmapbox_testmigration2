@@ -33,7 +33,6 @@ class ReclassifyDialog(QDialog):
         path = pathlib.Path(__file__).parent / 'reclassifydialog.ui'
         loadUi(path, self)
 
-
         assert isinstance(self.mapLayerComboBox, QgsMapLayerComboBox)
         assert isinstance(self.tableWidget, QTableWidget)
         assert isinstance(self.dstClassificationSchemeWidget, ClassificationSchemeWidget)

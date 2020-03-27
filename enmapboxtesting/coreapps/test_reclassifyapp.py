@@ -1,6 +1,10 @@
 import unittest
+import site
+import pathlib
 from unittest import TestCase
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
+from enmapbox import DIR_ENMAPBOX
+site.addsitedir(pathlib.Path(DIR_ENMAPBOX) / 'coreapps')
 from reclassifyapp.reclassify import *
 from enmapbox.gui import ClassificationScheme
 from enmapbox.gui.utils import *
@@ -95,12 +99,10 @@ class TestReclassify(EnMAPBoxTestCase):
 
     def test_hubflowrasterdriverguess(self):
 
-
-
-        self.assertIsInstance(guessRasterDriver('foo.bsq'), hubflow.core.ENVIBSQDriver)
-        self.assertIsInstance(guessRasterDriver('foo.bip'), hubflow.core.ENVIBIPDriver)
-        self.assertIsInstance(guessRasterDriver('foo.bil'), hubflow.core.ENVIBILDriver)
-        self.assertIsInstance(guessRasterDriver('foo.vrt'), hubflow.core.VRTDriver)
+        self.assertIsInstance(guessRasterDriver('foo.bsq'), hubflow.core.EnviDriver)
+        self.assertIsInstance(guessRasterDriver('foo.bip'), hubflow.core.EnviDriver)
+        self.assertIsInstance(guessRasterDriver('foo.bil'), hubflow.core.EnviDriver)
+        self.assertIsInstance(guessRasterDriver('foo.vrt'), hubflow.core.VrtDriver)
         self.assertIsInstance(guessRasterDriver('foo.tif'), hubflow.core.GTiffDriver)
         self.assertIsInstance(guessRasterDriver('foo.tiff'), hubflow.core.GTiffDriver)
         self.assertIsInstance(guessRasterDriver('foo.gtiff'), hubflow.core.GTiffDriver)
@@ -160,7 +162,7 @@ class TestReclassify(EnMAPBoxTestCase):
         self.assertEqual(dstCS, dialog.dstClassificationScheme())
 
         settings = dialog.reclassificationSettings()
-        for key in ['labelLookup','dstClassScheme','pathDst','pathSrc']:
+        for key in ['labelLookup','dstClassScheme', 'pathDst', 'pathSrc']:
             self.assertTrue(key in settings.keys(), msg='Missing setting key "{}"'.format(key))
 
 
