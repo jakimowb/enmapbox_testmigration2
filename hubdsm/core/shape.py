@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 
-from force4qgis.hubforce.core.base import DataClassArray
+from hubdsm.core.base import DataClassArray
 
 
 @dataclass(frozen=True)

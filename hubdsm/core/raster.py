@@ -7,7 +7,7 @@ from typing import Tuple, List, Sequence, Union, Iterator
 import numpy as np
 from osgeo import gdal
 
-from hubdsm.core.band import Band
+from hubdsm.core.band import Band, Mask
 from hubdsm.core.gdalband import GdalBand
 from hubdsm.core.gdalraster import GdalRaster
 from hubdsm.core.grid import Grid
@@ -28,7 +28,7 @@ class Raster(object):
         for band in self.bands:
             assert isinstance(band, Band)
         assert isinstance(self.grid, Grid)
-        assert len(self.bandNames) == len(set(self.bandNames)), 'each band name must be unique'
+        #assert len(self.bandNames) == len(set(self.bandNames)), 'each band name must be unique'
 
     @classmethod
     def open(cls, filenameOrGdalRaster: Union[str, GdalRaster]) -> Raster:
@@ -98,7 +98,7 @@ class Raster(object):
         """
         return Raster(name=self.name, bands=self.bands + raster.bands, grid=self.grid)
 
-    def withMask(self, mask: Raster) -> Raster:
+    def withMask(self, mask: Raster, invert=False) -> Raster:
         if len(self.bands) == len(mask.bands):
             maskBands = mask.bands
         elif len(mask.bands) == 1:
@@ -106,7 +106,9 @@ class Raster(object):
         else:
             assert 0
 
-        bands = tuple(band.withMask(mask=maskBand) for band, maskBand in zip(self.bands, maskBands))
+        bands = tuple(
+            band.withMask(mask=Mask(band=maskBand, invert=invert)) for band, maskBand in zip(self.bands, maskBands)
+        )
         return Raster(name=self.name, bands=bands, grid=self.grid)
 
     def withName(self, name: str) -> Raster:
@@ -129,23 +131,25 @@ class Raster(object):
     #         array = warpedInGdalBand weiter
     #         gdalBand.writeArray(array=array, grid=self.grid)
 
-    def readAsArray(self, grid: Grid = None, gra=gdal.GRA_NearestNeighbour) -> np.ndarray:
+    def readAsArray(self, grid: Grid = None, gdalResamplingAlgorithm=gdal.GRA_NearestNeighbour) -> np.ndarray:
         '''Return 3d array.'''
-        return np.array(list(self.iterArrays(grid=grid, gra=gra)))
+        return np.array(list(self.iterArrays(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)))
 
-    def iterArrays(self, grid: Grid = None, gra=gdal.GRA_NearestNeighbour) -> Iterator[np.ndarray]:
+    def iterArrays(self, grid: Grid = None, gdalResamplingAlgorithm=gdal.GRA_NearestNeighbour) -> Iterator[np.ndarray]:
         '''Iterates over 2d band arrays.'''
         if grid is None:
             grid = self.grid
         for band in self.bands:
-            yield band.readAsArray(grid=grid, gra=gra)
+            yield band.readAsArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)
 
-    def iterMaskArrays(self, grid: Grid = None, gra=gdal.GRA_NearestNeighbour) -> Iterator[np.ndarray]:
+    def iterMaskArrays(
+            self, grid: Grid = None, gdalResamplingAlgorithm=gdal.GRA_NearestNeighbour
+    ) -> Iterator[np.ndarray]:
         '''Iterates over 2d mask band arrays.'''
         if grid is None:
             grid = self.grid
         for band in self.bands:
-            yield band.readAsMaskArray(grid=grid, gra=gra)
+            yield band.readAsMaskArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)
 
     def warp(self, grid: Grid = None) -> Raster:
         if grid is None:

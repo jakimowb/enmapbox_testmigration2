@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from osgeo import osr
 
-from force4qgis.hubforce.core.spatial.projection import Projection
+from hubdsm.core.projection import Projection
 
 
 @dataclass(frozen=True)

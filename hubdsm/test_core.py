@@ -5,6 +5,7 @@ import numpy as np
 from osgeo import gdal
 
 from enmapboxtestdata import enmap
+from hubdsm.core.band import Band, Mask
 from hubdsm.core.coordinatetransformation import CoordinateTransformation
 from hubdsm.core.extent import Extent
 from hubdsm.core.gdalraster import GdalRaster
@@ -29,7 +30,7 @@ class TestRaster(TestCase):
         print(raster)
 
     def test_readAll(self):
-        raster = Raster.open(filename=enmap)
+        raster = Raster.open(enmap)
         array = raster.readAsArray()
         assert isinstance(array, np.ndarray)
         assert array.shape == (177, 400, 220)
@@ -46,15 +47,14 @@ class TestRaster(TestCase):
             projection=Projection.fromWgs84()
         )
 
-        MEM_DRIVER.createFromArray(array=array2, grid=grid2)
-        raster1 = Raster.open(gdalRaster=MEM_DRIVER.createFromArray(array=array1, grid=grid1)).rename(bandNames=['B1'])
-        raster2 = Raster.open(filename='/vsimem/r2.bsq').rename(bandNames=['B2'])
+        raster1 = Raster.open(MEM_DRIVER.createFromArray(array=array1, grid=grid1)).rename(bandNames=['B1'])
+        raster2 = Raster.open(MEM_DRIVER.createFromArray(array=array2, grid=grid2)).rename(bandNames=['B2'])
         raster = raster1.addBands(raster=raster2)
         assert raster.grid.equal(grid1)
         assert np.all(raster1.readAsArray() == array1)
         assert np.all(raster2.readAsArray() == array2)
         gold = [[[0., 1.], [2., 3.]], [[2.5, 4.5], [10.5, 12.5]]]
-        lead = raster.readAsArray(gra=gdal.GRA_Average)
+        lead = raster.readAsArray(gdalResamplingAlgorithm=gdal.GRA_Average)
         assert np.all(np.equal(lead, gold))
 
     def test_readBlockwise(self):
@@ -75,7 +75,7 @@ class TestRaster(TestCase):
             assert np.all(np.equal(gold, lead))
 
     def test_readWithInvalidProjection(self):
-        raster = Raster.open(filename=enmap)
+        raster = Raster.open(enmap)
         grid = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=90, y=90)), resolution=raster.grid.resolution,
             projection=Projection.fromWgs84()
@@ -84,3 +84,16 @@ class TestRaster(TestCase):
             raster.readAsArray(grid=grid)
         except ProjectionMismatchError:
             pass
+
+
+class TestBand(TestCase):
+
+    def test_read(self):
+        mask = Mask(band=Band.fromGdalBand(MEM_DRIVER.createFromArray(array=np.array([[[1, 1, 1, 0, 0, 0]]])).band(1)))
+        band = Band.fromGdalBand(MEM_DRIVER.createFromArray(array=np.array([[[-1, 0, 1, -1, 0, 1]]])).band(1))
+        band.gdalBand.setNoDataValue(-1)
+        band = band.withMask(mask=mask)
+
+        assert np.all(np.equal(band.readAsArray(), [[-1, 0, 1, -1, 0, 1]]))
+        assert np.all(np.equal(mask.readAsArray(), [[True, True, True, False, False, False]]))
+        assert np.all(np.equal(band.readAsMaskArray(), [[False, True, True, False, False, False]]))
