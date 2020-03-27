@@ -227,6 +227,8 @@ class EnMAPBox(QgisInterface, QObject):
     sigMapCanvasRemoved = pyqtSignal(MapCanvas)
     sigMapCanvasAdded = pyqtSignal(MapCanvas)
 
+    sigProjectWillBeSaved = pyqtSignal()
+
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
     def __init__(self, iface:QgisInterface=None):
         assert EnMAPBox.instance() is None, 'EnMAPBox already started. Call EnMAPBox.instance() to get a handle to.'
@@ -416,6 +418,7 @@ class EnMAPBox(QgisInterface, QObject):
         if len(unknown) > 0:
             self.dataSourceManager().addSources(unknown)
         self.syncHiddenLayers()
+
 
     def onLayersWillBeRemoved(self, layerIDs):
         """
@@ -693,8 +696,8 @@ class EnMAPBox(QgisInterface, QObject):
         #self.ui.mActionAddFeature.triggered.connect(self.onAddFeatureTriggered)
         self.setMapTool(MapTools.CursorLocation)
 
-        self.ui.mActionSaveProject.triggered.connect(lambda: self.saveProject(saveAs=False))
-        self.ui.mActionSaveProjectAs.triggered.connect(lambda: self.saveProject(saveAs=True))
+        self.ui.mActionSaveProject.triggered.connect(lambda: self.saveProject(False))
+        self.ui.mActionSaveProjectAs.triggered.connect(lambda: self.saveProject(True))
         from enmapbox.gui.mapcanvas import CanvasLinkDialog
         self.ui.mActionMapLinking.triggered.connect(lambda : CanvasLinkDialog.showDialog(parent=self.ui, canvases=self.mapCanvases()))
         from enmapbox.gui.about import AboutDialog
@@ -1641,30 +1644,38 @@ class EnMAPBox(QgisInterface, QObject):
     def actionSaveEdits(self):
         return self.mActionSaveEdits
 
-
     def actionSaveMapAsImage(self):
         pass
 
-    def actionSaveProject(self):
-        proj = QgsProject.instance()
+    def actionSaveProject(self) -> QAction:
+        return self.mActionSaveProject
 
-        self.saveProject(proj.filename())
+    def actionSaveProjectAs(self) -> QAction:
+        return self.mActionSaveProjectAs
 
-    def actionSaveProjectAs(self):
-        path = QgsProject.instance()
-        path, filter = QFileDialog.getSaveFileName(self.ui, 'Choose a filename to save the QGIS project file',
-                                                   filter='QGIS files (*.qgs *.QGIS)')
-        if len(path) > 0:
-            self.saveProject(path)
+    def saveProject(self, saveAs: bool):
+        """
+        Call to save EnMAP-Box settings in a QgsProject file
+        :param saveAs: bool, if True, opens a dialog to save the project into another file
+        """
 
-    def saveProject(self, path: str):
-        if not isinstance(path, pathlib.Path):
-            path = pathlib.Path(path)
-        proj = QgsProject.instance()
-        proj.setFileName(path.as_posix())
-        proj.write(path.as_posix())
+        # todo: save EnMAP Project settings
+        # 1. save data sources
+
+        # 2. save docks / map canvases
 
 
+
+
+        # inform others that the project will be saves
+        self.sigProjectWillBeSaved.emit()
+
+        # call QGIS standard functionality
+        from qgis.utils import iface
+        if saveAs:
+            iface.actionSaveProjectAs().trigger()
+        else:
+            iface.actionSaveProject().trigger()
 
     def actionSelect(self):
         pass

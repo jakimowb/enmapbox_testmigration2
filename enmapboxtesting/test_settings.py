@@ -73,6 +73,13 @@ class TestEnMAPBoxPlugin(EnMAPBoxTestCase):
         self.assertIsInstance(d, SettingsDialog)
         self.showGui(d)
 
+    def test_saveProject(self):
+
+        box = EnMAPBox()
+
+#       box.onWriteProject()
+   #    box.actionSaveProject().trigger()
+
 if __name__ == '__main__':
 
     import xmlrunner

@@ -232,6 +232,13 @@ if not os.environ.get('READTHEDOCS') in ['True', 'TRUE', True]:
     from enmapbox.gui.applications import EnMAPBoxApplication
     EnMAPBoxApplication = EnMAPBoxApplication
 
+def tr(text: str) -> str:
+    """
+    to be implemented: string translation
+    :param text:
+    :return: str
+    """
+    return text
 
 class Qgis(object):
     '''Collection of some static methodes to programmatically interact with QGIS inside the QGIS console.'''
