@@ -35,13 +35,14 @@ from qgis.PyQt.QtGui import *
 # e.g. 'pip install scikit-learn' installs a package that is imported via 'import sklearn'
 # Keys need to be lowercase, as accepted by PIP
 PACKAGE_LOOKUP = {'scikit-learn': 'sklearn',
-                  'pyopengl': 'OpenGL'
+                  'pyopengl': 'OpenGL',
+                  'enpt-enmapboxapp': 'enpt_enmapboxapp'
                   }
 
 # just in case a package cannot /should not simply get installed
 # calling pip install --user <pip package name>
 INSTALLATION_HINT = {
-    'enpt_enmapboxapp' : 'git+https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git'
+    #'enpt_enmapboxapp' : 'git+https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git'
 }
 
 for k in PACKAGE_LOOKUP.keys():
