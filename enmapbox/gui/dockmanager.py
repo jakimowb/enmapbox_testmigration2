@@ -26,11 +26,13 @@ from enmapbox.externals.qps.layerproperties import *
 from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui import SpectralLibrary
 import sip
-LUT_DOCKTYPES = {'MAP':MapDock,
-                 'TEXT':TextDock,
-                 'MIME':MimeDataDock,
-                 'WEBVIEW':WebViewDock,
-                 'SPECLIB':SpectralLibraryDock}
+LUT_DOCKTYPES = {'MAP': MapDock,
+                 'TEXT': TextDock,
+                 'MIME': MimeDataDock,
+                 'WEBVIEW': WebViewDock,
+                 'SPECLIB': SpectralLibraryDock,
+                 'ATTRIBUTE': AttributeTableDock
+                 }
 
 for cls in list(LUT_DOCKTYPES.values()):
     LUT_DOCKTYPES[cls] = cls
@@ -280,6 +282,21 @@ class TextDockTreeNode(DockTreeNode):
     def setLinkedFile(self, path):
         self.fileNode.setValue(path)
         self.fileNode.setTooltip(path)
+
+class AttributeTableDockTreeNode(DockTreeNode):
+    def __init__(self, parent, dock):
+        assert isinstance(dock, AttributeTableDock)
+        super(AttributeTableDockTreeNode, self).__init__(parent, dock)
+        self.setIcon(QIcon(r':/enmapbox/gui/ui/icons/viewlist_attributetabledock.svg'))
+
+    def connectDock(self, dock):
+        assert isinstance(dock, AttributeTableDock)
+        super(AttributeTableDockTreeNode, self).connectDock(dock)
+
+        #self.fileNode = LayerTreeNode(self, 'File')
+        #dock.mTextDockWidget.sigSourceChanged.connect(self.setLinkedFile)
+        #self.setLinkedFile(dock.mTextDockWidget.mFile)
+
 
 class CanvasLinkTreeNode(TreeNode):
     def __init__(self, parent, canvasLink, name, **kwds):
@@ -688,7 +705,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                 s = ""
         s = ""
 
-    def mapDockTreeNodes(self)->typing.List[MapDockTreeNode]:
+    def mapDockTreeNodes(self) -> typing.List[MapDockTreeNode]:
         """
         Returns all MapDockTreeNodes
         :return: [list-of-MapDockTreeNodes]
@@ -708,21 +725,21 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                 return n
         return None
 
-    def mapCanvases(self)->typing.List[MapCanvas]:
+    def mapCanvases(self) -> typing.List[MapCanvas]:
         """
         Returns all MapCanvases
         :return: [list-of-MapCanvases]
         """
         return [n.mapCanvas() for n in self.mapDockTreeNodes()]
 
-    def mapLayerIds(self)->typing.List[str]:
+    def mapLayerIds(self) -> typing.List[str]:
         ids = []
         for node in self.mapDockTreeNodes():
             if isinstance(node, MapDockTreeNode):
                 ids.extend(node.findLayerIds())
         return ids
 
-    def mapLayers(self)->typing.List[QgsMapLayer]:
+    def mapLayers(self) -> typing.List[QgsMapLayer]:
         """
         Returns all map layers, also those that are invisible and not added to a QgsMapCanvas
         :return: [list-of-QgsMapLayer]
@@ -749,7 +766,6 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                     to_remove.append(node)
         self.removeNodes(to_remove)
 
-
     def removeNodes(self, nodes: typing.List[QgsLayerTreeNode]):
         for n in nodes:
             try:
@@ -758,7 +774,6 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                 pass
             if isinstance(n, QgsLayerTreeNode) and isinstance(n.parent(), QgsLayerTreeNode):
                 n.parent().removeChildNode(n)
-
 
     def removeDockNode(self, node):
         self.removeNodes([node])
@@ -830,12 +845,9 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
             return flags
 
-
     def headerData(self, section, orientation, role=None):
-
         if role == Qt.DisplayRole:
             return self.columnNames[section]
-
         return None
 
 
@@ -881,7 +893,6 @@ class DockManagerTreeModel(QgsLayerTreeModel):
             if action == Qt.CopyAction:
                 mapLayers = [l.clone() for l in mapLayers]
 
-
             i = row
             if len(mapLayers) > 0:
                 QgsProject.instance().addMapLayers(mapLayers, False)
@@ -891,13 +902,11 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                 return True
 
         elif isinstance(dockNode, TextDockTreeNode):
-
             s = ""
 
         return False
 
     def mimeData(self, indexes):
-
         indexes = sorted(indexes)
 
         if len(indexes) == 0:
@@ -945,7 +954,6 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         return list(results)
 
     def data(self, index, role):
-
         if not index.isValid():
             return None
 
@@ -1073,16 +1081,13 @@ class DockTreeView(QgsLayerTreeView):
         #self.header().setResizeMode(1, QHeaderView.ResizeToContents)
         self.currentLayerChanged.connect(self.onCurrentLayerChanged)
 
-
     def onCurrentLayerChanged(self, layer:QgsMapCanvas):
         for canvas in self.layerTreeModel().mapCanvases():
             assert isinstance(canvas, MapCanvas)
             if layer in canvas.layers():
                 canvas.setCurrentLayer(layer)
 
-        s = ""
-
-    def layerTreeModel(self)->DockManagerTreeModel:
+    def layerTreeModel(self) -> DockManagerTreeModel:
         return self.model()
 
     def setModel(self, model):
@@ -1144,10 +1149,10 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
             lyr = node.layer()
 
+
             actionPasteStyle = menu.addAction('Paste Style')
             actionPasteStyle.triggered.connect(lambda : pasteStyleFromClipboard(lyr))
             actionPasteStyle.setEnabled(MDF_QGIS_LAYER_STYLE in QApplication.clipboard().mimeData().formats())
-
 
             actionCopyStyle = menu.addAction('Copy Style')
             actionCopyStyle.triggered.connect(lambda : pasteStyleToClipboard(lyr))
@@ -1170,6 +1175,12 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             action = menu.addAction('Remove layer')
             action.setToolTip('Remove layer from map canvas')
             action.triggered.connect(lambda *arg, nodes=selectedLayerNodes: self.mDockTreeView.model().removeNodes(nodes))
+
+            if isinstance(lyr, QgsVectorLayer):
+                action = menu.addAction('Open Attribute Table')
+                action.setToolTip('Opens the layer attribute table')
+                action.triggered.connect(lambda *args, l=lyr: self.openAttributeTable(l))
+
 
             action = menu.addAction('Layer properties')
             action.setToolTip('Set layer properties')
@@ -1204,6 +1215,11 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             s = ""
 
 
+    def openAttributeTable(self, layer):
+        from enmapbox import EnMAPBox
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox) and isinstance(layer, QgsVectorLayer):
+            emb.createDock('ATTRIBUTE', layer=layer)
 
     def setLayerStyle(self, layer, canvas):
 
@@ -1389,8 +1405,8 @@ class DockManager(QObject):
         existingDocks = self.docks(dockType)
         existingNames = [d.title() for d in existingDocks]
         n = len(existingDocks) + 1
-        dockTypes = [MapDock, TextDock, MimeDataDock, WebViewDock, SpectralLibraryDock]
-        dockBaseNames = ['Map', 'Text', 'MimeData', 'HTML Viewer', 'SpectralLibrary']
+        dockTypes = [MapDock, TextDock, MimeDataDock, WebViewDock, SpectralLibraryDock, AttributeTableDock]
+        dockBaseNames = ['Map', 'Text', 'MimeData', 'HTML Viewer', 'SpectralLibrary', 'Attribute Table']
         baseName = 'Dock'
         if cls in dockTypes:
             baseName = dockBaseNames[dockTypes.index(cls)]
@@ -1421,7 +1437,13 @@ class DockManager(QObject):
                 kwds['name'] = speclib.name()
             dock = SpectralLibraryDock(*args, **kwds)
             dock.mSpeclibWidget.setMapInteraction(False)
-            dock.speclib().willBeDeleted.connect(lambda *args, d=dock:self.removeDock(d))
+            dock.speclib().willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
+
+        elif cls == AttributeTableDock:
+            layer = kwds.pop('layer')
+            assert isinstance(layer, QgsVectorLayer), 'QgsVectorLayer "layer" is not defined'
+            dock = AttributeTableDock(layer, *args, **kwds)
+            layer.willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
 
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))

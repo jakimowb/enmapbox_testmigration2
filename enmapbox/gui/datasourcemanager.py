@@ -39,14 +39,16 @@ except Exception as ex:
 
     HUBFLOW = False
 
-def reprNL(obj, replacement=' '):
+
+def reprNL(obj, replacement: str = ' ') -> str:
     """
-    Repturn repl withouth newline
+    Return an object's repl value without newlines
     :param obj:
     :param replacement:
     :return:
     """
-    return repr(obj).replace('\n',replacement)
+    return repr(obj).replace('\n', replacement)
+
 
 class DataSourceManager(QObject):
     """
@@ -404,7 +406,7 @@ class DataSourceManager(QObject):
 
 class DataSourceGroupTreeNode(TreeNode):
 
-    def __init__(self, parentNode, groupName:str, classDef, icon=None):
+    def __init__(self, parentNode, groupName: str, classDef, icon=None):
         assert inspect.isclass(classDef)
         assert isinstance(groupName, str)
         if icon is None:
@@ -1312,12 +1314,28 @@ class DataSourcePanelUI(QDockWidget):
         return sources
 
 LUT_DATASOURCTYPES = collections.OrderedDict()
-LUT_DATASOURCTYPES[DataSourceRaster] = ('Raster Data', QIcon(':/images/themes/default/mIconRaster.svg'))
-LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = ('Spectral Libraries', QIcon(':/qps/ui/icons/speclib.svg'))
-LUT_DATASOURCTYPES[DataSourceVector] = ('Vector Data', QIcon(':/images/themes/default/mIconVector.svg'))
-LUT_DATASOURCTYPES[HubFlowDataSource] = ('Models', QIcon(':/images/themes/default/processingAlgorithm.svg'))
-LUT_DATASOURCTYPES[DataSourceFile] = ('Other Files', QIcon(':/trolltech/styles/commonstyle/images/file-128.png'))
-LUT_DATASOURCTYPES[DataSource] = ('Other sources', QIcon(':/trolltech/styles/commonstyle/images/standardbutton-open-32.png'))
+LUT_DATASOURCTYPES[DataSourceRaster] = \
+    ('Raster Data',
+     QIcon(':/images/themes/default/mIconRaster.svg'),
+    'Raster data sources')
+LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = \
+    ('Spectral Libraries',
+     QIcon(':/qps/ui/icons/speclib.svg'),
+     'Spectral Libraries')
+LUT_DATASOURCTYPES[DataSourceVector] = \
+    ('Vector Data',
+     QIcon(':/images/themes/default/mIconVector.svg'),
+     'Vector data sources')
+LUT_DATASOURCTYPES[HubFlowDataSource] = \
+    ('Models',
+     QIcon(':/images/themes/default/processingAlgorithm.svg'),
+     'Model files and objects')
+LUT_DATASOURCTYPES[DataSourceFile] = ('Other Files',
+                                      QIcon(':/trolltech/styles/commonstyle/images/file-128.png'),
+                                      None)
+LUT_DATASOURCTYPES[DataSource] = ('Other sources',
+                                  QIcon(':/trolltech/styles/commonstyle/images/standardbutton-open-32.png'),
+                                  None)
 
 
 class DataSourceManagerTreeModel(TreeModel):
@@ -1464,14 +1482,14 @@ class DataSourceManagerTreeModel(TreeModel):
         """"""
         assert isinstance(dataSource, DataSource)
 
-
         for groupDataType, t in LUT_DATASOURCTYPES.items():
             if isinstance(dataSource, groupDataType):
-                groupName, groupIcon = t
+                groupName, groupIcon, groupToolTip = t
                 break
         if groupName is None:
-
-            groupName, groupIcon = LUT_DATASOURCTYPES[DataSource]
+            groupName, groupIcon, groupToolTip = LUT_DATASOURCTYPES[DataSource]
+            if groupToolTip is None:
+                groupToolTip = groupName
             groupDataType = DataSource
 
         srcGroups = self.sourceGroups()
@@ -1480,6 +1498,7 @@ class DataSourceManagerTreeModel(TreeModel):
                 # group node does not exist.
                 # create new group node and add it to the model
                 srcGrp = DataSourceGroupTreeNode(self.rootNode(), groupName, groupDataType)
+                srcGrp.setToolTip(groupToolTip)
                 srcGrp.setIcon(groupIcon)
                 srcGrp.setExpanded(True)
 

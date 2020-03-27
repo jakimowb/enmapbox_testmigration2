@@ -394,20 +394,20 @@ def example():
     out_mode = "single"  # "single" or "individual"
     noisetype = 2
     noiselevel = 1.0 # percent
-    sensor = 1 # ASD
+    sensor = 0 # ASD
     nodat_Geo = -999
     nodat_Image = -999
     nodat_Out = -999
     inversion_range = None
 
-    if sensor == 1:  # ASD
+    if sensor == 0:  # ASD
         exclude_bands = list(range(0, 51)) + list(range(1009, 1129)) + \
                         list(range(1371, 1650)) + list(range(2050, 2151))
         # 350-400nm, 1359-1479nm, 1721-200nm, #2450-2500
     elif sensor == 2:  # EnMAP
         exclude_bands = list(range(78, 88)) + list(range(128, 138)) + list(
         range(161, 189))  # Überlappung VNIR, Water1, Water2
-    elif sensor == 3:  # Sentinel-2
+    elif sensor == 1:  # Sentinel-2
         exclude_bands = [10]
 
     # LUT-Path

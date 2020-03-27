@@ -786,6 +786,13 @@
            </property>
           </spacer>
          </item>
+         <item row="7" column="3">
+          <widget class="QCheckBox" name="CarCabCheck">
+           <property name="text">
+            <string>Make Ccx Cab-dependent</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </item>
@@ -931,9 +938,9 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>-323</y>
+           <y>0</y>
            <width>971</width>
-           <height>1051</height>
+           <height>1053</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout_19">
@@ -977,7 +984,7 @@
             <property name="flat">
              <bool>true</bool>
             </property>
-            <property name="collapsed">
+            <property name="collapsed" stdset="0">
              <bool>false</bool>
             </property>
             <layout class="QGridLayout" name="gridLayout_36">
@@ -1038,7 +1045,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Carotenoids (Car) [mug/cm2] 
+                <string>Carotenoids (Ccx) [mug/cm2] 
 [0.0 - 30.0]</string>
                </property>
               </widget>
@@ -1083,6 +1090,425 @@
                 <string>Water Content (Cw) [cm] 
 [0.001 - 0.7]</string>
                </property>
+              </widget>
+             </item>
+             <item row="1" column="2">
+              <spacer name="horizontalSpacer_59">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Maximum</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item row="8" column="3">
+              <widget class="QFrame" name="frame_31">
+               <property name="frameShape">
+                <enum>QFrame::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Plain</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_21">
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QFrame" name="frame_32">
+                  <property name="frameShape">
+                   <enum>QFrame::NoFrame</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Plain</enum>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_14">
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <item row="1" column="1">
+                    <widget class="QFrame" name="frame_36">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QGridLayout" name="gridLayout_15">
+                      <property name="leftMargin">
+                       <number>9</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item row="0" column="0">
+                       <widget class="QLineEdit" name="txt_gauss_min_canth">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>min</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="1">
+                       <widget class="QLineEdit" name="txt_gauss_max_canth">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>max</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="3">
+                       <widget class="QLineEdit" name="txt_gauss_std_canth">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="2">
+                       <widget class="QLineEdit" name="txt_gauss_mean_canth">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>mean</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="4">
+                       <spacer name="horizontalSpacer_30">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>50</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item row="1" column="3">
+                    <widget class="QFrame" name="frame_34">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_23">
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QLineEdit" name="txt_log_min_canth">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>min</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_log_max_canth">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>max</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_log_steps_canth">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>steps</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QFrame" name="frame_35">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_24">
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QRadioButton" name="radio_gauss_canth">
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>Statistical: Gauss</string>
+                        </property>
+                        <attribute name="buttonGroup">
+                         <string notr="true">buttonGroup_5</string>
+                        </attribute>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QRadioButton" name="radio_uni_canth">
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>Statistical: Uniform</string>
+                        </property>
+                        <attribute name="buttonGroup">
+                         <string notr="true">buttonGroup_5</string>
+                        </attribute>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_29">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>10</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item row="1" column="0">
+                    <widget class="QFrame" name="frame_33">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_22">
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QLineEdit" name="txt_fix_canth">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>2</string>
+                        </property>
+                        <property name="placeholderText">
+                         <string>value</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_28">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item row="0" column="0">
+                    <widget class="QRadioButton" name="radio_fix_canth">
+                     <property name="font">
+                      <font>
+                       <pointsize>7</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Fixed</string>
+                     </property>
+                     <property name="iconSize">
+                      <size>
+                       <width>12</width>
+                       <height>12</height>
+                      </size>
+                     </property>
+                     <attribute name="buttonGroup">
+                      <string notr="true">buttonGroup_5</string>
+                     </attribute>
+                    </widget>
+                   </item>
+                   <item row="0" column="3">
+                    <widget class="QRadioButton" name="radio_log_canth">
+                     <property name="font">
+                      <font>
+                       <pointsize>7</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Logical</string>
+                     </property>
+                     <attribute name="buttonGroup">
+                      <string notr="true">buttonGroup_5</string>
+                     </attribute>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="PlotWidget" name="viewCanth">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>46</height>
+                   </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">border-right-color: rgb(255, 255, 127);</string>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::Panel</enum>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
               </widget>
              </item>
              <item row="7" column="3">
@@ -1521,6 +1947,42 @@
                    <property name="bottomMargin">
                     <number>0</number>
                    </property>
+                   <item row="0" column="3">
+                    <widget class="QRadioButton" name="radio_log_car">
+                     <property name="font">
+                      <font>
+                       <pointsize>7</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Logical</string>
+                     </property>
+                     <attribute name="buttonGroup">
+                      <string notr="true">buttonGroup_4</string>
+                     </attribute>
+                    </widget>
+                   </item>
+                   <item row="0" column="0">
+                    <widget class="QRadioButton" name="radio_fix_car">
+                     <property name="font">
+                      <font>
+                       <pointsize>7</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Fixed</string>
+                     </property>
+                     <property name="iconSize">
+                      <size>
+                       <width>12</width>
+                       <height>12</height>
+                      </size>
+                     </property>
+                     <attribute name="buttonGroup">
+                      <string notr="true">buttonGroup_4</string>
+                     </attribute>
+                    </widget>
+                   </item>
                    <item row="1" column="0">
                     <widget class="QFrame" name="frame_27">
                      <property name="frameShape">
@@ -1672,42 +2134,6 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
-                       <widget class="QLineEdit" name="txt_gauss_min_car">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>min</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="1">
-                       <widget class="QLineEdit" name="txt_gauss_max_car">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>max</string>
-                        </property>
-                       </widget>
-                      </item>
                       <item row="0" column="3">
                        <widget class="QLineEdit" name="txt_gauss_std_car">
                         <property name="maximumSize">
@@ -1759,6 +2185,42 @@
                          </size>
                         </property>
                        </spacer>
+                      </item>
+                      <item row="0" column="1">
+                       <widget class="QLineEdit" name="txt_gauss_max_car">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>max</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="0" column="0">
+                       <widget class="QLineEdit" name="txt_gauss_min_car">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>min</string>
+                        </property>
+                       </widget>
                       </item>
                      </layout>
                     </widget>
@@ -1827,42 +2289,6 @@
                      </layout>
                     </widget>
                    </item>
-                   <item row="0" column="3">
-                    <widget class="QRadioButton" name="radio_log_car">
-                     <property name="font">
-                      <font>
-                       <pointsize>7</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Logical</string>
-                     </property>
-                     <attribute name="buttonGroup">
-                      <string notr="true">buttonGroup_4</string>
-                     </attribute>
-                    </widget>
-                   </item>
-                   <item row="0" column="0">
-                    <widget class="QRadioButton" name="radio_fix_car">
-                     <property name="font">
-                      <font>
-                       <pointsize>7</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Fixed</string>
-                     </property>
-                     <property name="iconSize">
-                      <size>
-                       <width>12</width>
-                       <height>12</height>
-                      </size>
-                     </property>
-                     <attribute name="buttonGroup">
-                      <string notr="true">buttonGroup_4</string>
-                     </attribute>
-                    </widget>
-                   </item>
                   </layout>
                  </widget>
                 </item>
@@ -1890,22 +2316,6 @@
                 </item>
                </layout>
               </widget>
-             </item>
-             <item row="1" column="2">
-              <spacer name="horizontalSpacer_59">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Maximum</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
              </item>
              <item row="4" column="3">
               <widget class="QFrame" name="frame_19">
@@ -3525,409 +3935,6 @@
                </layout>
               </widget>
              </item>
-             <item row="8" column="3">
-              <widget class="QFrame" name="frame_31">
-               <property name="frameShape">
-                <enum>QFrame::NoFrame</enum>
-               </property>
-               <property name="frameShadow">
-                <enum>QFrame::Plain</enum>
-               </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_21">
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QFrame" name="frame_32">
-                  <property name="frameShape">
-                   <enum>QFrame::NoFrame</enum>
-                  </property>
-                  <property name="frameShadow">
-                   <enum>QFrame::Plain</enum>
-                  </property>
-                  <layout class="QGridLayout" name="gridLayout_14">
-                   <property name="leftMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="topMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                   <item row="1" column="1">
-                    <widget class="QFrame" name="frame_36">
-                     <property name="frameShape">
-                      <enum>QFrame::NoFrame</enum>
-                     </property>
-                     <property name="frameShadow">
-                      <enum>QFrame::Plain</enum>
-                     </property>
-                     <layout class="QGridLayout" name="gridLayout_15">
-                      <property name="leftMargin">
-                       <number>9</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item row="0" column="0">
-                       <widget class="QLineEdit" name="txt_gauss_min_canth">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>min</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="1">
-                       <widget class="QLineEdit" name="txt_gauss_max_canth">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>max</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_canth">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
-                       <widget class="QLineEdit" name="txt_gauss_mean_canth">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>mean</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="4">
-                       <spacer name="horizontalSpacer_30">
-                        <property name="orientation">
-                         <enum>Qt::Horizontal</enum>
-                        </property>
-                        <property name="sizeType">
-                         <enum>QSizePolicy::Maximum</enum>
-                        </property>
-                        <property name="sizeHint" stdset="0">
-                         <size>
-                          <width>50</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                       </spacer>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                   <item row="1" column="3">
-                    <widget class="QFrame" name="frame_34">
-                     <property name="frameShape">
-                      <enum>QFrame::NoFrame</enum>
-                     </property>
-                     <property name="frameShadow">
-                      <enum>QFrame::Plain</enum>
-                     </property>
-                     <layout class="QHBoxLayout" name="horizontalLayout_23">
-                      <property name="leftMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="QLineEdit" name="txt_log_min_canth">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>min</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QLineEdit" name="txt_log_max_canth">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>max</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QLineEdit" name="txt_log_steps_canth">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>steps</string>
-                        </property>
-                       </widget>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                   <item row="0" column="1">
-                    <widget class="QFrame" name="frame_35">
-                     <property name="frameShape">
-                      <enum>QFrame::NoFrame</enum>
-                     </property>
-                     <property name="frameShadow">
-                      <enum>QFrame::Plain</enum>
-                     </property>
-                     <layout class="QHBoxLayout" name="horizontalLayout_24">
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="QRadioButton" name="radio_gauss_canth">
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>Statistical: Gauss</string>
-                        </property>
-                        <attribute name="buttonGroup">
-                         <string notr="true">buttonGroup_5</string>
-                        </attribute>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QRadioButton" name="radio_uni_canth">
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>Statistical: Uniform</string>
-                        </property>
-                        <attribute name="buttonGroup">
-                         <string notr="true">buttonGroup_5</string>
-                        </attribute>
-                       </widget>
-                      </item>
-                      <item>
-                       <spacer name="horizontalSpacer_29">
-                        <property name="orientation">
-                         <enum>Qt::Horizontal</enum>
-                        </property>
-                        <property name="sizeType">
-                         <enum>QSizePolicy::Maximum</enum>
-                        </property>
-                        <property name="sizeHint" stdset="0">
-                         <size>
-                          <width>10</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                       </spacer>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                   <item row="1" column="0">
-                    <widget class="QFrame" name="frame_33">
-                     <property name="frameShape">
-                      <enum>QFrame::NoFrame</enum>
-                     </property>
-                     <property name="frameShadow">
-                      <enum>QFrame::Plain</enum>
-                     </property>
-                     <layout class="QHBoxLayout" name="horizontalLayout_22">
-                      <property name="leftMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="QLineEdit" name="txt_fix_canth">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>2</string>
-                        </property>
-                        <property name="placeholderText">
-                         <string>value</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item>
-                       <spacer name="horizontalSpacer_28">
-                        <property name="orientation">
-                         <enum>Qt::Horizontal</enum>
-                        </property>
-                        <property name="sizeType">
-                         <enum>QSizePolicy::Maximum</enum>
-                        </property>
-                        <property name="sizeHint" stdset="0">
-                         <size>
-                          <width>20</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                       </spacer>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
-                   <item row="0" column="0">
-                    <widget class="QRadioButton" name="radio_fix_canth">
-                     <property name="font">
-                      <font>
-                       <pointsize>7</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Fixed</string>
-                     </property>
-                     <property name="iconSize">
-                      <size>
-                       <width>12</width>
-                       <height>12</height>
-                      </size>
-                     </property>
-                     <attribute name="buttonGroup">
-                      <string notr="true">buttonGroup_5</string>
-                     </attribute>
-                    </widget>
-                   </item>
-                   <item row="0" column="3">
-                    <widget class="QRadioButton" name="radio_log_canth">
-                     <property name="font">
-                      <font>
-                       <pointsize>7</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Logical</string>
-                     </property>
-                     <attribute name="buttonGroup">
-                      <string notr="true">buttonGroup_5</string>
-                     </attribute>
-                    </widget>
-                   </item>
-                  </layout>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="PlotWidget" name="viewCanth">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>16777215</width>
-                    <height>46</height>
-                   </size>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true">border-right-color: rgb(255, 255, 127);</string>
-                  </property>
-                  <property name="frameShape">
-                   <enum>QFrame::Panel</enum>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
             </layout>
            </widget>
           </item>
@@ -3955,7 +3962,7 @@
             <property name="title">
              <string>Canopy Model Parameters</string>
             </property>
-            <property name="collapsed">
+            <property name="collapsed" stdset="0">
              <bool>false</bool>
             </property>
             <layout class="QGridLayout" name="gridLayout_18">
@@ -7051,13 +7058,13 @@
             <property name="checkable">
              <bool>false</bool>
             </property>
-            <property name="collapsed">
+            <property name="collapsed" stdset="0">
              <bool>false</bool>
             </property>
-            <property name="saveCollapsedState">
+            <property name="saveCollapsedState" stdset="0">
              <bool>true</bool>
             </property>
-            <property name="saveCheckedState">
+            <property name="saveCheckedState" stdset="0">
              <bool>false</bool>
             </property>
             <layout class="QGridLayout" name="gridLayout_53" rowstretch="0,0,0,0,0,0">
@@ -9117,23 +9124,23 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup_17"/>
-  <buttongroup name="buttonGroup_3"/>
-  <buttongroup name="buttonGroup_11"/>
-  <buttongroup name="buttonGroup_12"/>
-  <buttongroup name="buttonGroup_9"/>
-  <buttongroup name="buttonGroup_6"/>
-  <buttongroup name="buttonGroup_5"/>
-  <buttongroup name="buttonGroup_15"/>
-  <buttongroup name="buttonGroup_19"/>
-  <buttongroup name="buttonGroup_4"/>
-  <buttongroup name="buttonGroup_18"/>
-  <buttongroup name="buttonGroup_10"/>
-  <buttongroup name="buttonGroup_8"/>
   <buttongroup name="buttonGroup_13"/>
-  <buttongroup name="buttonGroup_16"/>
-  <buttongroup name="buttonGroup_14"/>
+  <buttongroup name="buttonGroup_19"/>
+  <buttongroup name="buttonGroup_5"/>
+  <buttongroup name="buttonGroup_8"/>
   <buttongroup name="buttonGroup_2"/>
+  <buttongroup name="buttonGroup_17"/>
+  <buttongroup name="buttonGroup_10"/>
+  <buttongroup name="buttonGroup_6"/>
+  <buttongroup name="buttonGroup_9"/>
+  <buttongroup name="buttonGroup_3"/>
+  <buttongroup name="buttonGroup_12"/>
+  <buttongroup name="buttonGroup_14"/>
+  <buttongroup name="buttonGroup_15"/>
+  <buttongroup name="buttonGroup_16"/>
+  <buttongroup name="buttonGroup_18"/>
   <buttongroup name="buttonGroup_7"/>
+  <buttongroup name="buttonGroup_4"/>
+  <buttongroup name="buttonGroup_11"/>
  </buttongroups>
 </ui>

@@ -253,6 +253,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.mMapToolKey = MapTools.Pan
         self.mMapToolMode = None
 
+        self.mCurrentMapLayer: QgsMapLayer = None
+
         self.initPanels()
 
         if not DEBUG:
@@ -278,7 +280,7 @@ class EnMAPBox(QgisInterface, QObject):
         QgsProject.instance().layersWillBeRemoved.connect(self.onLayersWillBeRemoved)
 
         self._layerTreeNodes = [] #needed to keep a reference on created LayerTreeNodes
-        self._layerTreeGroup : QgsLayerTreeGroup = None
+        self._layerTreeGroup: QgsLayerTreeGroup = None
 
         self.mDockManager = DockManager()
         self.mDockManager.connectDataSourceManager(self.mDataSourceManager)
@@ -286,16 +288,14 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.dataSourcePanel.connectDataSourceManager(self.mDataSourceManager)
 
         self.ui.dockPanel.connectDockManager(self.mDockManager)
-        self.ui.dockPanel.dockTreeView.currentLayerChanged.connect(self.onCurrentLayerChanged)
-
+        self.ui.dockPanel.dockTreeView.currentLayerChanged.connect(self.updateCurrentLayerActions)
 
         root = self.dockManagerTreeModel().rootGroup()
         assert isinstance(root, QgsLayerTree)
         root.addedChildren.connect(self.syncHiddenLayers)
         root.removedChildren.connect(self.syncHiddenLayers)
-
         #
-        self.onCurrentLayerChanged(None)
+        self.updateCurrentLayerActions()
         self.ui.centralFrame.sigDragEnterEvent.connect(
             lambda event: self.mDockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
         self.ui.centralFrame.sigDragMoveEvent.connect(
@@ -309,6 +309,13 @@ class EnMAPBox(QgisInterface, QObject):
         self.mDockManager.sigDockRemoved.connect(self.onDockRemoved)
 
         self.initActions()
+
+        from enmapbox.externals.qps.vectorlayertools import VectorLayerTools
+        self.mVectorLayerTools = VectorLayerTools()
+        self.mVectorLayerTools.sigMessage.connect(lambda title, text, level:
+                                        self.messageBar().pushItem(QgsMessageBarItem(title, text, level)))
+        self.mVectorLayerTools.sigFreezeCanvases.connect(self.freezeCanvases)
+        self.mVectorLayerTools.sigEditingStarted.connect(self.updateCurrentLayerActions)
 
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
@@ -387,13 +394,13 @@ class EnMAPBox(QgisInterface, QObject):
         QgsProject.instance().layersAdded.disconnect(self.addMapLayers)
         QgsProject.instance().layersWillBeRemoved.disconnect(self.onLayersWillBeRemoved)
 
-    def dataSourceManager(self)->enmapbox.gui.datasourcemanager.DataSourceManager:
+    def dataSourceManager(self) -> enmapbox.gui.datasourcemanager.DataSourceManager:
         return self.mDataSourceManager
 
-    def dockManager(self)->enmapbox.gui.dockmanager.DockManager:
+    def dockManager(self) -> enmapbox.gui.dockmanager.DockManager:
         return self.mDockManager
 
-    def addMapLayer(self, layer:QgsMapLayer):
+    def addMapLayer(self, layer: QgsMapLayer):
         self.addMapLayers([layer])
 
     def addMapLayers(self, layers:typing.List[QgsMapLayer]):
@@ -488,22 +495,45 @@ class EnMAPBox(QgisInterface, QObject):
         self.syncHiddenLayers()
 
         if remove_from_project:
-            print('REMOVE FROM QgsProject.instance(): \n{}'.format('\n'.join(l.source() for l in layers)))
             QgsProject.instance().removeMapLayers([l.id() for l in layers])
 
-    def onCurrentLayerChanged(self, layer):
+    def updateCurrentLayerActions(self, *args):
+        """
+        Enables/disables actions and buttons that relate to the current layer and its current state
+        """
+        layer = self.currentLayer()
+        isVector = isinstance(layer, QgsVectorLayer)
 
-        b = isinstance(layer, QgsVectorLayer)
+        hasSelectedFeatures = False
 
-        self.ui.mActionSelectFeatures.setEnabled(b)
-        self.ui.mActionToggleEditing.setEnabled(b)
-        self.ui.mActionAddFeature.setEnabled(b)
-        self.ui.mActionSaveEdits.setEnabled(b)
+        for l in self.dockTreeView().model().mapLayers():
+            if isinstance(l, QgsVectorLayer) and l.selectedFeatureCount() > 0:
+                hasSelectedFeatures = True
+                break
+
+        self.ui.mActionDeselectFeatures.setEnabled(hasSelectedFeatures)
+        self.ui.mActionSelectFeatures.setEnabled(isVector)
+        self.ui.mActionToggleEditing.setEnabled(isVector)
+        self.ui.mActionToggleEditing.setChecked(isVector and layer.isEditable())
+        self.ui.mActionAddFeature.setEnabled(isVector and layer.isEditable())
+
+        if isVector:
+            if layer.geometryType() == QgsWkbTypes.PointGeometry:
+                icon = QIcon(':/images/themes/default/mActionCapturePoint.svg')
+            elif layer.geometryType() == QgsWkbTypes.LineGeometry:
+                icon = QIcon(':/images/themes/default/mActionCaptureLine.svg')
+            elif layer.geometryType() == QgsWkbTypes.PolygonGeometry:
+                icon = QIcon(':/images/themes/default/mActionCapturePolygon.svg')
+            else:
+                icon = QIcon(':/images/themes/default/mActionCapturePolygon.svg')
+            self.ui.mActionAddFeature.setIcon(icon)
+
+        self.ui.mActionSaveEdits.setEnabled(isVector and layer.isEditable())
 
         if isinstance(layer, (QgsRasterLayer, QgsVectorLayer)):
             self.currentLayerChanged.emit(layer)
 
-    def processingProvider(self)->EnMAPBoxProcessingProvider:
+    def processingProvider(self) -> EnMAPBoxProcessingProvider:
         """
         Returns the EnMAPBoxAlgorithmProvider or None, if it was not initialized
         :return:
@@ -601,6 +631,12 @@ class EnMAPBox(QgisInterface, QObject):
         else:
             raise Exception('argument "app" has unknown type: {}. '.format(str(app)))
 
+    def freezeCanvases(self, b: bool):
+        """
+        Freezes/releases the map canvases
+        """
+        for c in self.mapCanvases():
+            c.freeze(b)
 
     def initActions(self):
         # link action to managers
@@ -629,7 +665,15 @@ class EnMAPBox(QgisInterface, QObject):
         initMapToolAction(self.ui.mActionZoomFullExtent, MapTools.ZoomFull)
         initMapToolAction(self.ui.mActionIdentify, MapTools.CursorLocation)
         initMapToolAction(self.ui.mActionSelectFeatures, MapTools.SelectFeature)
-        initMapToolAction(self.ui.mActionSelectFeatures, MapTools.AddFeature)
+        initMapToolAction(self.ui.mActionAddFeature, MapTools.AddFeature)
+
+        def onEditingToggled(b: bool):
+            l = self.currentLayer()
+            if b:
+                self.mVectorLayerTools.startEditing(l)
+            else:
+                self.mVectorLayerTools.stopEditing(l, True)
+        self.ui.mActionToggleEditing.toggled.connect(onEditingToggled)
 
         m = QMenu()
         m.addAction(self.ui.optionSelectFeaturesRectangle)
@@ -643,7 +687,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.optionSelectFeaturesFreehand.triggered.connect(self.onSelectFeatureOptionTriggered)
         self.ui.optionSelectFeaturesRadius.triggered.connect(self.onSelectFeatureOptionTriggered)
         self.ui.mActionDeselectFeatures.triggered.connect(self.deselectFeatures)
-
+        #self.ui.mActionAddFeature.triggered.connect(self.onAddFeatureTriggered)
         self.setMapTool(MapTools.CursorLocation)
 
         self.ui.mActionSaveProject.triggered.connect(lambda: self.saveProject(saveAs=False))
@@ -685,6 +729,7 @@ class EnMAPBox(QgisInterface, QObject):
         :return: [list-of-QActions]
         """
         return [a for a in self.ui.findChildren(QAction) if a.property(EnMAPBox.MAPTOOLACTION)]
+
 
     def onSelectFeatureOptionTriggered(self):
 
@@ -745,8 +790,7 @@ class EnMAPBox(QgisInterface, QObject):
             assert isinstance(canvas, MapCanvas)
             canvas.sigCrosshairPositionChanged.connect(self.onCrosshairPositionChanged)
             canvas.setCrosshairVisibility(True)
-            #canvas.sigLayersAdded.connect(lambda lyrs, c=canvas: self.onCanvasLayerAdded(lyrs, c))
-            #canvas.sigLayersRemoved.connect(lambda lyrs, c=canvas: self.onCanvasLayerRemoved(lyrs, c))
+            canvas.mapTools().setVectorLayerTools(self.mVectorLayerTools)
 
             self.setMapTool(self.mMapToolKey, canvases=[canvas])
             canvas.mapTools().mtCursorLocation.sigLocationRequest[SpatialPoint, QgsMapCanvas].connect(self.setCurrentLocation)
@@ -782,7 +826,6 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.spectralProfileSourcePanel.loadCurrentMapSpectra(spatialPoint, mapCanvas=mapCanvas, runAsync=runAsync)
 
-
     def setMapTool(self, mapToolKey:MapTools, *args, canvases=None, **kwds):
         """
         Sets the active QgsMapTool for all canvases know to the EnMAP-Box.
@@ -791,15 +834,11 @@ class EnMAPBox(QgisInterface, QObject):
         :param kwds:
         :return:
         """
-
-
         mode = None
 
         for btnSelectFeature in self.ui.toolBarVectorTools.findChildren(QToolButton):
             if btnSelectFeature.defaultAction() == self.ui.mActionSelectFeatures:
                 break
-
-
 
         if mapToolKey == MapTools.SelectFeature:
             if self.ui.optionSelectFeaturesRectangle.isChecked():
@@ -816,12 +855,14 @@ class EnMAPBox(QgisInterface, QObject):
         else:
             btnSelectFeature.setChecked(False)
 
-
         if mapToolKey == MapTools.SpectralProfile:
             #SpectralProfile is a shortcut for Identify + return with profile option
             self.ui.optionIdentifyProfile.setChecked(True)
             self.ui.mActionIdentify.setChecked(True)
             return
+
+        if mapToolKey == MapTools.AddFeature:
+            s = ""
 
         self.mMapToolKey = mapToolKey
         self.mMapToolMode = mode
@@ -841,7 +882,6 @@ class EnMAPBox(QgisInterface, QObject):
                 mapTools.mtSelectFeature.setSelectionMode(self.mMapToolMode)
 
             mapTools.activate(mapToolKey)
-
             results.append(canvas.mapTool())
 
         for action in self._mapToolActions():
@@ -851,13 +891,10 @@ class EnMAPBox(QgisInterface, QObject):
             else:
                 action.setChecked(False)
 
-
         b = self.ui.mActionIdentify.isChecked()
         self.ui.optionIdentifyCursorLocation.setEnabled(b)
         self.ui.optionIdentifyProfile.setEnabled(b)
         self.ui.optionMoveCenter.setEnabled(b)
-
-
         return results
 
     def initEnMAPBoxApplications(self):
@@ -1171,12 +1208,18 @@ class EnMAPBox(QgisInterface, QObject):
         """
         self.mDockManager.removeDock(*args, **kwds)
 
-    def dockManagerTreeModel(self)->DockManagerTreeModel:
+    def dockTreeView(self) -> enmapbox.gui.dockmanager.DockTreeView:
         """
-        Retursn the DockManagerTreeModel
+        Returns the DockTreeView
+        """
+        return self.ui.dockPanel.dockTreeView
+
+    def dockManagerTreeModel(self) -> DockManagerTreeModel:
+        """
+        Returns the DockManagerTreeModel
         :return: DockManagerTreeModel
         """
-        return self.ui.dockPanel.dockTreeView.model()
+        return self.dockTreeView().model()
 
     def docks(self, dockType=None):
         """
@@ -1593,7 +1636,8 @@ class EnMAPBox(QgisInterface, QObject):
         pass
 
     def actionSaveEdits(self):
-        pass
+        return self.mActionSaveEdits
+
 
     def actionSaveMapAsImage(self):
         pass
@@ -1744,7 +1788,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         dlg = alg.createCustomParametersWidget(self.ui)
         if not dlg:
-            dlg = AlgorithmDialog(alg, parent=self.ui)
+            dlg = AlgorithmDialog(alg.create(), parent=self.ui)
         dlg.show()
         return dlg
 
@@ -1945,19 +1989,19 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.addSource(lyr, base_name)
 
-    def activeMapCanvas(self)->MapCanvas:
+    def activeMapCanvas(self) -> MapCanvas:
         """
         Returns the active map canvas, i.e. the MapCanvas that was clicked last.
         :return: MapCanvas
         """
         from enmapbox.gui.mapcanvas import KEY_LAST_CLICKED
-        canvases = sorted(self.mapCanvases(), key=lambda c:c.property(KEY_LAST_CLICKED))
+        canvases = sorted(self.mapCanvases(), key=lambda c: c.property(KEY_LAST_CLICKED))
         if len(canvases) > 0:
             return canvases[-1]
         else:
             return None
 
-    def setActiveMapCanvas(self, mapCanvas:MapCanvas)->bool:
+    def setActiveMapCanvas(self, mapCanvas: MapCanvas) -> bool:
         """
         Sets the active map canvas
         :param mapCanvas: MapCanvas
@@ -1971,38 +2015,46 @@ class EnMAPBox(QgisInterface, QObject):
         else:
             return False
 
+    def setActiveLayer(self, mapLayer: QgsMapLayer) -> bool:
+        return self.setCurrentLayeer(mapLayer)
 
-    def setActiveLayer(self, mapLayer:QgsMapLayer)->True:
+    def setCurrentLayer(self, mapLayer: QgsMapLayer) -> bool:
         """
         Set the active layer (layer gets selected in the Data View legend).
         :param mapLayer: QgsMapLayer
         :return: bool. True, if mapLayer exists, False otherwise.
         """
 
+        self.ui.dockPanel.dockTreeView.setCurrentLayer(mapLayer)
+
         canvas = self.activeMapCanvas()
         if isinstance(canvas, MapCanvas) and mapLayer in canvas.layers():
             canvas.setCurrentLayer(mapLayer)
-            return True
 
         for canvas in self.mapCanvases():
             if mapLayer in canvas.layers():
                 self.setActiveMapCanvas(canvas)
                 canvas.setCurrentLayer(mapLayer)
-                return True
-        return False
 
-    def activeLayer(self)->QgsMapLayer:
+        self.updateCurrentLayerActions()
+
+        return isinstance(mapLayer, QgsMapLayer)
+
+    def currentLayer(self) -> QgsMapLayer:
         """
         Returns the current layer of the active map canvas
         :return: QgsMapLayer
         """
+        return self.ui.dockPanel.dockTreeView.currentLayer()
         # noinspection PyArgumentList
-        canvas = self.activeMapCanvas()
-        if isinstance(canvas, QgsMapCanvas):
-            return canvas.currentLayer()
-        else:
-            return None
+        #canvas = self.activeMapCanvas()
+        #if isinstance(canvas, QgsMapCanvas):
+        #    return canvas.currentLayer()
+        #else:
+        #    return None
 
+    def activeLayer(self):
+        return self.currentLayer()
 
     def addToolBarIcon(self, action):
         """Add an icon to the plugins toolbar.

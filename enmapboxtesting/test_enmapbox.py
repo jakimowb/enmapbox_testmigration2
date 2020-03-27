@@ -169,7 +169,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         messageLog('EnMAPBox TEST STARTED', Qgis.Info)
         s = ""
 
-        self.showGui([EMB.ui, qgis.utils.iface.mainWindow()])
+        self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
 
     def test_instanceWithData(self):
 
@@ -182,7 +182,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         canvases = EMB.mapCanvases()
         self.assertTrue(canvases[-1] == EMB.activeMapCanvas())
         import qgis.utils
-        self.showGui([EMB.ui, qgis.utils.iface.mainWindow()])
+        self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
 
     def test_Qgis(self):
 

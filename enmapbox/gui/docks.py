@@ -743,12 +743,23 @@ class WebViewDock(Dock):
         settings.setAttribute(QWebSettings.LocalStorageEnabled, True)
         settings.setAttribute(QWebSettings.AutoLoadImages, True)
 
+class AttributeTableDock(Dock):
+    """
+    A dock to show a VectorLayer attribute table
+    """
+    def __init__(self, layer:QgsVectorLayer, *args, **kwds):
+        super(AttributeTableDock, self).__init__(*args, **kwds)
+        from enmapbox.externals.qps.layerproperties import AttributeTableWidget
+        self.attributeTableWidget = AttributeTableWidget(layer)
+        self.addWidget(self.attributeTableWidget, 0, 0)
+        self.setTitle(self.attributeTableWidget.windowTitle())
+        self.attributeTableWidget.windowTitleChanged.connect(self.setTitle)
 
 class MimeDataDock(Dock):
     """
     A dock to show dropped mime data
     """
-    def __init__(self,*args, **kwds):
+    def __init__(self, *args, **kwds):
         super(MimeDataDock, self).__init__(*args, **kwds)
 
         self.mimeDataWidget = MimeDataDockWidget(self)

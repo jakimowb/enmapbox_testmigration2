@@ -14,9 +14,9 @@ from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 # from qgis.PyQt import uic
 from enmapbox.externals.qps.externals import pyqtgraph as pg
-from lmuvegetationapps import call_model as mod
+from lmuvegetationapps import call_model_v as mod
 # from enmapbox.gui.applications import EnMAPBoxApplication
-from lmuvegetationapps.Spec2Sensor_cl import Spec2Sensor
+from lmuvegetationapps.Spec2Sensor_cl_v import Spec2Sensor
 # import enmapboxtestdata
 import warnings
 import csv
@@ -610,7 +610,7 @@ class IVVRM:
                                                 soil=self.bg_spec,
                                                 LAIu=self.para_dict["LAIu"], cd=self.para_dict["cd"],
                                                 sd=self.para_dict["sd"],
-                                                h=self.para_dict["h"])
+                                                h=self.para_dict["h"])[0,:]
 
         if item is not None:
             self.item = item

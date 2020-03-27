@@ -5,7 +5,7 @@ import os
 from qgis.PyQt.QtWidgets import *
 from osgeo import gdal
 from lmuvegetationapps.PWR_core import PWR_core
-import time
+#import time
 
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_PWR.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
