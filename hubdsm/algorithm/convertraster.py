@@ -1,17 +1,15 @@
-from collections import OrderedDict
-from typing import Dict, Union, List
+from typing import Union, List
 
 import numpy as np
 from osgeo.gdal_array import GDALTypeCodeToNumericTypeCode
 
 from hubdsm.core.gdalrasterdriver import GdalRasterDriver
 from hubdsm.core.raster import Raster
-from hubdsm.error import GridMismatchError, BandCountMismatchError
 
 
 def convertRaster(
         raster: Raster, noDataValues: List[Union[float, int]] = None, gdalDataType: int = None, filename: str = None,
-        options: List[str] = None
+        gdalCreationOptions: List[str] = None, processingOptions: List[str] = None
 ) -> Raster:
     '''
     Convert raster allows to perform several converion tasks at ones:
@@ -33,7 +31,9 @@ def convertRaster(
 
     driver = GdalRasterDriver.fromFilename(filename=filename)
     outGdalRaster = driver.create(
-        grid=raster.grid, bands=len(raster.bands), gdalDataType=gdalDataType, filename=filename, options=options)
+        grid=raster.grid, bands=len(raster.bands), gdalDataType=gdalDataType, filename=filename,
+        gdalCreationOptions=gdalCreationOptions
+    )
 
     for outGdalBand, array, maskArray, noDataValue in zip(
             outGdalRaster.bands, raster.iterArrays(), raster.iterMaskArrays(), noDataValues

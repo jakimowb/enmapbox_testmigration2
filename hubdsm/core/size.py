@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 
-import numpy as np
-
-from force4qgis.hubforce.core.base import DataClassArray
+from hubdsm.core.base import DataClassArray
 
 
 @dataclass(frozen=True)

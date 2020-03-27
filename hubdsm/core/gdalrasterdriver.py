@@ -51,26 +51,27 @@ class GdalRasterDriver(object):
         return gdalDriver
 
     def create(
-            self, grid: Grid, bands=1, gdalDataType: int = gdal.GDT_Float32, filename: str = None, options: List[str] = None
+            self, grid: Grid, bands=1, gdalDataType: int = gdal.GDT_Float32, filename: str = None,
+            gdalCreationOptions: List[str] = None
     ) -> GdalRaster:
         """Create new GDAL raster."""
 
         assert isinstance(grid, Grid)
         assert isinstance(bands, int) and bands >= 0
         filename = self.prepareCreation(filename)
-        if options is None:
-            options = self.options
-        assert isinstance(options, list)
+        if gdalCreationOptions is None:
+            gdalCreationOptions = self.options
+        assert isinstance(gdalCreationOptions, list)
         utf8_path = filename
         ysize, xsize = grid.shape
-        gdalDataset = self.gdalDriver.Create(utf8_path, xsize, ysize, bands, gdalDataType, options)
+        gdalDataset = self.gdalDriver.Create(utf8_path, xsize, ysize, bands, gdalDataType, gdalCreationOptions)
         gdalDataset.SetProjection(grid.projection.wkt)
         gdalDataset.SetGeoTransform(grid.geoTransform.gdalGeoTransform())
         return GdalRaster(gdalDataset=gdalDataset)
 
     def createFromArray(
             self, array: np.ndarray, grid: Optional[Grid] = None, filename: str = None,
-            options: List[str] = None
+            gdalCreationOptions: List[str] = None
     ) -> GdalRaster:
         """Create new GDAL raster from array."""
         assert isinstance(array, np.ndarray)
@@ -79,19 +80,23 @@ class GdalRasterDriver(object):
             grid = Grid.makePseudoGridFromArray(array=array)
         bands = len(array)
         gdalDataType = NumericTypeCodeToGDALTypeCode(array.dtype)
-        gdalRaster = self.create(grid=grid, bands=bands, gdalDataType=gdalDataType, filename=filename, options=options)
+        gdalRaster = self.create(
+            grid=grid, bands=bands, gdalDataType=gdalDataType, filename=filename,
+            gdalCreationOptions=gdalCreationOptions
+        )
         gdalRaster.writeArray(array=array, grid=grid)
         return gdalRaster
 
     def createFromShape(
             self, shape: RasterShape, gdalDataType: int = gdal.GDT_Float32, grid: Grid = None, filename: str = None,
-            options: List[str] = None
+            gdalCreationOptions: List[str] = None
     ) -> GdalRaster:
         """Create new GDAL raster from array shape."""
         assert isinstance(shape, RasterShape)
         if grid is None:
             grid = Grid.makePseudoGridFromShape(shape=shape.gridShape)
-        gdalRaster = self.create(grid=grid, bands=shape.z, gdalDataType=gdalDataType, filename=filename, options=options)
+        gdalRaster = self.create(grid=grid, bands=shape.z, gdalDataType=gdalDataType, filename=filename,
+            gdalCreationOptions=gdalCreationOptions)
         return gdalRaster
 
     def delete(self, filename: str, raiseError=False):

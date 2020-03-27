@@ -44,10 +44,10 @@ class GdalRaster(object):
         return Grid.fromGeoTransform(geoTransform=self.geoTransform, shape=shape, projection=projection)
 
     @property
-    def driver(self) -> 'RasterDriver':
-        from force4qgis.hubforce.core.raster.rasterdriver import RasterDriver
+    def driver(self) -> 'GdalRasterDriver':
+        from hubdsm.core.gdalrasterdriver import GdalRasterDriver
         gdalDriver: gdal.Driver = self.gdalDataset.GetDriver()
-        return RasterDriver(name=gdalDriver.ShortName)
+        return GdalRasterDriver(name=gdalDriver.ShortName)
 
     @staticmethod
     def open(filename: str, access: int = gdal.GA_ReadOnly) -> GdalRaster:
