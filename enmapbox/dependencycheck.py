@@ -22,14 +22,17 @@
 # noinspection PyPep8Naming
 import sys, os, collections, shutil, time, re, importlib, typing, subprocess
 import pathlib
+import copy
+from difflib import SequenceMatcher
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.PyQt.QtCore import QUrl
 from qgis.gui import *
 from qgis.core import *
+
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
-
+import sip
 
 # look-up for pip package name and how it gets imported in python
 # e.g. 'pip install scikit-learn' installs a package that is imported via 'import sklearn'
@@ -50,7 +53,7 @@ for k in PACKAGE_LOOKUP.keys():
 
 class PIPPackage(object):
 
-    def __init__(self, pyPkg:str, pipCmd:str=None):
+    def __init__(self, pyPkg: str, pipCmd: str=None):
 
         assert isinstance(pyPkg, str)
         assert len(pyPkg) > 0
@@ -58,11 +61,11 @@ class PIPPackage(object):
         if pipCmd is None:
             pipCmd = PACKAGE_LOOKUP.get(pyPkg, pyPkg)
 
-        self.pyPkgName:str = pyPkg
-        self.pipCmd:str = pipCmd
-        self.localLocation:str = ''
-        self.stderrMsg:str = ''
-        self.stdoutMsg:str = ''
+        self.pyPkgName: str = pyPkg
+        self.pipCmd: str = pipCmd
+        self.localLocation: str = ''
+        self.stderrMsg: str = ''
+        self.stdoutMsg: str = ''
 
     def __str__(self):
         return '{}'.format(self.pyPkgName)
@@ -77,7 +80,18 @@ class PIPPackage(object):
 
         self.stderrMsg = ''
         self.stdoutMsg = ''
-        if False:
+        if True:
+            cmd = ' '.join(args)
+            try:
+                process = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                self.stderrMsg = str(process.stdout)
+            except subprocess.CalledProcessError as ex:
+                self.stderrMsg = ex.stderr
+            except Exception as ex2:
+                self.stderrMsg = str(ex2)
+
+
+        elif False:
             try:
                 results = subprocess.check_output(args, stderr=subprocess.STDOUT, shell=True)
                 self.stderrMsg = ""
@@ -106,21 +120,24 @@ class PIPPackage(object):
             self.stderrMsg = se.getvalue()
             self.stdoutMsg = so.getvalue()
 
-    def installArgs(self, user:bool = True) -> typing.List[str]:
+    def installArgs(self, user: bool = True) -> typing.List[str]:
 
-        # find local pip executable
+        # find path of local pip executable
         import shutil
         args = []
-        if shutil.which('pip3'):
-            args.append('pip3')
-        elif shutil.which('python3'):
-            args.append('python3 -m pip')
-        elif shutil.which('pip'):
-            args.append('pip')
-        elif shutil.which('python'):
-            args.append('python -m pip')
+        if False:
+            if shutil.which('pip3'):
+                args.append('pip3')
+            elif shutil.which('python3'):
+                args.append('python3 -m pip')
+            elif shutil.which('pip'):
+                args.append('pip')
+            elif shutil.which('python'):
+                args.append('python -m pip')
+            else:
+                args.append('pip')
         else:
-            args.append('pip')
+            args.append(str(localPythonExecutable()) + ' -m pip')
 
         args.append('install')
         if user:
@@ -128,7 +145,13 @@ class PIPPackage(object):
         args.append(self.pipCmd)
         return args
 
-    def installCommand(self, *args, **kwds)->str:
+    def installCommand(self, *args, **kwds) -> str:
+        """
+        Returns the installation command as str
+        :param args:
+        :param kwds:
+        :return:
+        """
         return ' '.join(self.installArgs(*args, **kwds))
 
     def isInstalled(self) -> bool:
@@ -142,6 +165,58 @@ class PIPPackage(object):
             return True
         except ModuleNotFoundError:
             return False
+
+
+def localPythonExecutable() -> pathlib.Path:
+    """
+    Searches for the local python executable
+    :return:
+    """
+
+    candidates = [shutil.which('python3'),
+                  shutil.which('python')]
+
+    candidates = [c for c in candidates if isinstance(c, str) and len(c) > 0]
+
+    r = os.path.dirname(os.__file__)
+    similarity = [SequenceMatcher(None, r, c).ratio() for c in candidates]
+
+    pyexe = candidates[similarity.index(min(similarity))]
+    return pathlib.Path(pyexe)
+
+
+
+
+
+
+class PIPCommandTask(QgsTask):
+
+    sigMessage = pyqtSignal(str, bool)
+    def __init__(self, description:str, packages: typing.List[PIPPackage], callback=None):
+        super().__init__(description, QgsTask.CanCancel)
+        self.packages: typing.List[PIPPackage] = packages
+        self.callback = callback
+
+    def run(self):
+        n = len(self.packages)
+        for i, pkg in enumerate(self.packages):
+            assert isinstance(pkg, PIPPackage)
+            self.sigMessage.emit(pkg.installCommand(), False)
+            pkg.installPackage()
+            if len(pkg.stdoutMsg) > 0:
+                self.sigMessage.emit(pkg.stdoutMsg, False)
+            if len(pkg.stderrMsg) > 0:
+                self.sigMessage.emit(pkg.stderrMsg, True)
+
+            if self.isCanceled():
+                return False
+            self.setProgress(i+1)
+        return True
+
+    def finished(self, result):
+
+        if self.callback is not None:
+            self.callback(result, self)
 
 def checkGDALIssues()->typing.List[str]:
     """
@@ -386,8 +461,8 @@ def installTestData(overwrite_existing=False, ask=True):
 
 class PIPPackageInstallerTableModel(QAbstractTableModel):
 
-    sigStdOutMessage = pyqtSignal(str)
-    sigStdErrMessage = pyqtSignal(str)
+    #sigStdOutMessage = pyqtSignal(str)
+    #sigStdErrMessage = pyqtSignal(str)
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
@@ -409,68 +484,16 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
         self.mUser = b == True
         self.dataChanged.emit(self.createIndex(0,0), self.createIndex(self.rowCount()-1, self.columnCount()-1))
 
-    def installAll(self):
+    def updatePackage(self, pkg:PIPPackage):
 
-        if self.showWarning():
-            for pkg in [p for p in self if not p.isInstalled()]:
-                self.installPackage(pkg)
-
-
-    def showWarning(self) -> bool:
-        """
-        Opens the warning to
-        :return:
-        :rtype:
-        """
-
-        if not self.mWarned:
-            info = """
-            <b>Please try to install the missing package(s) with your local package manager first!</b>
-            <p>Common package managers in QGIS environments are:
-            <ul>
-                <li><a href="https://trac.osgeo.org/osgeo4w/">OSGeo4W (Windows)<a/></li>
-                <li><a href="https://docs.conda.io">minconda/anaconda (all platforms)<a/></li>
-                <li><a href="https://linux.die.net/man/8/apt-get">apt-get (Linux)</li>
-                <li><a href="https://brew.sh">homebrew (macOS)</a></li>
-            </ul>
-            </p>
-            """
-            box = QMessageBox(QMessageBox.Warning,
-                             'Package Installation',
-                             info,
-                             QMessageBox.Abort | QMessageBox.Ignore)
-            box.setTextFormat(Qt.RichText)
-            box.setDefaultButton(QMessageBox.Abort)
-            result = box.exec_()
-
-            if result == QMessageBox.Abort:
-                return False
-            else:
-                self.mWarned = True
-                return True
-        else:
-            return True
-
-    def installPackage(self, pkg:PIPPackage):
         assert isinstance(pkg, PIPPackage)
-        assert pkg in self.mPackages
+        idx = self.pkg2index(pkg)
+        if idx.isValid():
+            r = idx.row()
+            self.dataChanged.emit(  self.createIndex(r, 0),
+                                    self.createIndex(r, self.columnCount()-1))
 
-        if self.showWarning():
-
-            if pkg.isInstalled():
-                self.sigStdOutMessage.emit('{} is already installed'.format(pkg.pyPkgName))
-                return
-            self.sigStdOutMessage.emit('Install {}\n"{}"'.format(pkg.pyPkgName, pkg.installCommand()))
-            QApplication.processEvents()
-            idx = self.pkg2index(pkg)
-            pkg.installPackage()
-            QApplication.processEvents()
-            self.dataChanged.emit(idx, self.index(idx.row(), self.columnCount() - 1))
-            if len(pkg.stdoutMsg) > 0:
-                self.sigStdOutMessage.emit(pkg.stdoutMsg)
-
-            if len(pkg.stderrMsg) > 0:
-                self.sigStdErrMessage.emit(pkg.stderrMsg)
+        s = ""
 
     def __len__(self):
         return len(self.mPackages)
@@ -521,7 +544,8 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
                 else:
                     return 'Not installed'
             if cn == self.cnCommand:
-                return pkg.installCommand(user=self.mUser)
+                cmd = pkg.installCommand(user=self.mUser)
+                return re.search(r'python(\.exe).*$', cmd, re.I).group()
 
         if role == Qt.ForegroundRole:
             if cn == self.cnStatus:
@@ -562,6 +586,8 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
 
 class PIPPackageInstallerTableView(QTableView):
 
+    sigInstallPackageRequest = pyqtSignal(list)
+
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
 
@@ -578,20 +604,26 @@ class PIPPackageInstallerTableView(QTableView):
         txt = index.data(Qt.DisplayRole)
         if not isinstance(pkg, PIPPackage):
             return
+        pkgs = [idx.data(Qt.UserRole) for idx in self.selectionModel().selectedRows()]
 
         model = self.model().sourceModel()
         assert isinstance(model, PIPPackageInstallerTableModel)
 
+        cmd = pkg.installCommand(user=model.mUser)
         m = QMenu()
         a = m.addAction('Copy')
+        a.setToolTip('Copies the installation command')
         a.triggered.connect(lambda *args, v=txt: QApplication.clipboard().setText(v))
+
+        a = m.addAction('Copy (executable)')
+        a.setToolTip('Copies the installation command including path of python executable')
+        a.triggered.connect(lambda *args, v=cmd: QApplication.clipboard().setText(v))
 
         a = m.addAction('Install')
         a.setEnabled(not pkg.isInstalled())
-        a.triggered.connect(lambda *args, pm=model, p=pkg: pm.installPackage(p))
+        a.triggered.connect(lambda *args, p=pkgs: self.sigInstallPackageRequest.emit(p))
 
         m.exec_(event.globalPos())
-
 
 class PIPPackageInstaller(QWidget):
 
@@ -602,9 +634,10 @@ class PIPPackageInstaller(QWidget):
         path = pathlib.Path(DIR_UIFILES) / 'pippackageinstaller.ui'
         loadUi(path, self)
 
+        self.mWarned = False
+
+        self.mTasks = dict()
         self.model = PIPPackageInstallerTableModel()
-        self.model.sigStdErrMessage.connect(lambda txt: self.addText(txt, QColor('red')))
-        self.model.sigStdOutMessage.connect(self.addText)
         self.proxyModel = QSortFilterProxyModel()
         self.proxyModel.setSourceModel(self.model)
         self.tableView.setModel(self.proxyModel)
@@ -615,10 +648,104 @@ class PIPPackageInstaller(QWidget):
 
         assert isinstance(self.tableView, PIPPackageInstallerTableView)
         self.tableView.setSortingEnabled(True)
+        self.tableView.sigInstallPackageRequest.connect(self.installPackages)
         self.tableView.sortByColumn(1, Qt.DescendingOrder)
-        self.buttonBox.button(QDialogButtonBox.YesToAll).clicked.connect(self.model.installAll)
+        self.buttonBox.button(QDialogButtonBox.YesToAll).clicked.connect(self.installAll)
         self.buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
 
+        self.actionClearConsole.triggered.connect(self.textBrowser.clear)
+        self.actionCopyConsole.triggered.connect(
+            lambda : QgsApplication.instance().clipboard().setText(self.textBrowser.toPlainText()))
+        self.btnClearConsole.setDefaultAction(self.actionClearConsole)
+        self.btnCopyConsole.setDefaultAction(self.actionCopyConsole)
+
+    def onProgressChanged(self, progress):
+        self.progressBar.setValue(int(progress))
+
+    def onCompleted(self, result: bool, task: PIPCommandTask):
+        if isinstance(task, PIPCommandTask) and not sip.isdeleted(task):
+            for pkg in task.packages:
+                self.model.updatePackage(pkg)
+            if result is False:
+                self.progressBar.setValue(0)
+            self.onRemoveTask(id(task))
+
+    def installAll(self):
+
+        self.installPackages([p for p in self.model if not p.isInstalled()])
+
+    def installPackages(self, packages: typing.List[PIPPackage]):
+
+        if not self.showWarning():
+            return
+
+        for p in packages:
+            assert isinstance(p, PIPPackage)
+        pkgs = []
+        for p in packages:
+            if p not in pkgs:
+                pkgs.append(p)
+        #pkgs = [copy.deepcopy(p) for p in packages]
+        pkgs = packages
+        self.progressBar.setRange(0, len(pkgs))
+        self.progressBar.setValue(-1)
+
+        qgsTask = PIPCommandTask('PIP installation', pkgs, callback=self.onCompleted)
+        tid = id(qgsTask)
+        qgsTask.progressChanged.connect(self.onProgressChanged)
+        qgsTask.taskCompleted.connect(lambda *args, tid = tid: self.onRemoveTask(tid))
+        qgsTask.taskTerminated.connect(lambda *args, tid = tid: self.onRemoveTask(tid))
+        qgsTask.sigMessage.connect(self.onTaskMessage)
+        self.mTasks[tid] = qgsTask
+
+        tm = QgsApplication.taskManager()
+        assert isinstance(tm, QgsTaskManager)
+        tm.addTask(qgsTask)
+
+    def onTaskMessage(self, msg:str, is_error:bool):
+        if is_error:
+            self.addText(msg, QColor('red'))
+        else:
+            self.addText(msg)
+
+    def onRemoveTask(self, tid):
+        if tid in self.mTasks.keys():
+            del self.mTasks[tid]
+
+
+    def showWarning(self) -> bool:
+        """
+        Opens the warning to
+        :return:
+        :rtype:
+        """
+        if not self.mWarned:
+            info = """
+            <b>Please try to install the missing package(s) with your local package manager first!</b>
+            <p>Common package managers in QGIS environments are:
+            <ul>
+                <li><a href="https://trac.osgeo.org/osgeo4w/">OSGeo4W (Windows)<a/></li>
+                <li><a href="https://docs.conda.io">minconda/anaconda (all platforms)<a/></li>
+                <li><a href="https://linux.die.net/man/8/apt-get">apt-get (Linux)</li>
+                <li><a href="https://brew.sh">homebrew (macOS)</a></li>
+            </ul>
+            </p>
+            """
+            box = QMessageBox(QMessageBox.Warning,
+                             'Package Installation',
+                             info,
+                             QMessageBox.Abort | QMessageBox.Ignore)
+            box.setTextFormat(Qt.RichText)
+            box.setDefaultButton(QMessageBox.Abort)
+            result = box.exec_()
+
+            if result == QMessageBox.Abort:
+                return False
+            else:
+                self.mWarned = True
+                return True
+        else:
+            return True
 
     def showMissingOnly(self, b:bool):
         if b:

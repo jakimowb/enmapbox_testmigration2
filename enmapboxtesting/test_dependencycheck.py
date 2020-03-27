@@ -14,6 +14,7 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest, shutil
+import uuid
 from collections import namedtuple
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 from enmapbox.dependencycheck import *
@@ -40,12 +41,14 @@ class test_dependencycheck(EnMAPBoxTestCase):
         # addresses https://bitbucket.org/hu-geomatics/enmap-box/issues/307/installation-problem-sklearn
 
         import enmapbox.dependencycheck
-        enmapbox.dependencycheck.PACKAGE_LOOKUP['foobar'] = 'foo-bar'
+        pipName = self.nonexistingPackageName()
+        pyName = pipName.replace('-','_')
+        enmapbox.dependencycheck.PACKAGE_LOOKUP[pyName] = pipName
 
-        info = missingPackageInfo([PIPPackage('foobar')])
-        self.assertTrue('foobar' in info)
-        self.assertTrue('foo-bar' in info)
-
+        info = missingPackageInfo([PIPPackage(pyName)])
+        self.assertTrue(pyName in info)
+        self.assertTrue(pipName in info)
+        del enmapbox.dependencycheck.PACKAGE_LOOKUP[pyName]
 
     def test_pippackage(self):
 
@@ -54,7 +57,7 @@ class test_dependencycheck(EnMAPBoxTestCase):
         self.assertIsInstance(pkg.installCommand(), str)
         pkg.installPackage()
 
-        pkg = PIPPackage('foobar')
+        pkg = PIPPackage(self.nonexistingPackageName())
         self.assertFalse(pkg.isInstalled())
         self.assertIsInstance(pkg.installCommand(), str)
         pkg.installPackage()
@@ -64,30 +67,42 @@ class test_dependencycheck(EnMAPBoxTestCase):
         model = PIPPackageInstallerTableModel()
         self.assertTrue(len(model) == 0)
 
-        model.addPackages([PIPPackage('foobar'),
+        model.addPackages([PIPPackage(self.nonexistingPackageName()),
                            PIPPackage('gdal')]
                           )
 
         self.assertEqual(len(model), 2)
         self.assertEqual(model.rowCount(), 2)
 
-        model.installAll()
-
         tv = QTableView()
         tv.setModel(model)
 
         self.showGui(tv)
 
+    def nonexistingPackageName(self) -> str:
+        s = str(uuid.uuid4())
+        return 'foobar'+s
+
     def test_PIPInstaller(self):
 
         pkgs = requiredPackages()
-        pkgs.append(PIPPackage('foobar'))
+        pkgs = [PIPPackage(self.nonexistingPackageName()),
+                PIPPackage(self.nonexistingPackageName()),
+                PIPPackage(self.nonexistingPackageName())]
+        pkgs += requiredPackages()
         w = PIPPackageInstaller()
         w.addPackages(pkgs)
+        w.installAll()
        #w.model.installAll()
 
         self.showGui(w)
 
+
+    def test_findpython(self):
+
+        p = localPythonExecutable()
+        self.assertIsInstance(p, pathlib.Path)
+        self.assertTrue(p.is_file())
 
 if __name__ == "__main__":
 
