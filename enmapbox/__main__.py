@@ -22,7 +22,7 @@ from qgis.PyQt.QtWidgets import QApplication
 import qgis.testing
 
 
-def run(debug:bool=False, processing:bool=True, applications:bool=True, sources:list=None):
+def run(debug: bool=False, processing: bool=True, applications: bool=True, sources: list=None):
     '''
     Starts the EnMAP-Box GUI.
 
