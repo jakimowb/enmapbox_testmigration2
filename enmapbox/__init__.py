@@ -158,7 +158,10 @@ def collectEnMAPBoxAlgorithms()->typing.List[QgsProcessingAlgorithm]:
                 traceback.print_stack()
                 print(ex2)
     except Exception as ex:
-        print(ex)
+        traceback.print_stack()
+        info = 'Unable to load enmapboxgeoalgorithms.algorithms'
+        info += '\n'+str(ex)
+        print(info, file=sys.stderr)
 
     return algs
 
@@ -174,7 +177,7 @@ def initEnMAPBoxProcessingProvider():
         registry.addProvider(provider)
 
     assert isinstance(provider, EnMAPBoxProcessingProvider)
-    assert registry.providerById(ID) == provider
+    assert id(registry.providerById(ID)) == id(provider)
     global _ENMAPBOX_PROCESSING_PROVIDER
     _ENMAPBOX_PROCESSING_PROVIDER = provider
 
