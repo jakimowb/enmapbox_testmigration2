@@ -184,11 +184,6 @@ def localPythonExecutable() -> pathlib.Path:
     pyexe = candidates[similarity.index(max(similarity))]
     return pathlib.Path(pyexe)
 
-
-
-
-
-
 class PIPCommandTask(QgsTask):
 
     sigMessage = pyqtSignal(str, bool)
