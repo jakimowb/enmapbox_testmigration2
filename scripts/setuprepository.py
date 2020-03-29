@@ -14,15 +14,12 @@ def setup_enmapbox_repository():
     site.addsitedir(DIR_REPO)
 
     # 1. compile EnMAP-Box resource files (*.qrc) into corresponding python modules (*.py)
+    print('Compile EnMAP-Box resource files...')
     from scripts.compileresourcefiles import compileEnMAPBoxResources
     compileEnMAPBoxResources()
 
-
-    # 2. create the qgisresource folder which contains
-    from enmapbox.externals.qps.resources import compileQGISResourceFiles
-    compileQGISResourceFiles(None, DIR_QGISRESOURCES)
-
-    # 3. install the EnMAP-Box test data
+    # 2. install the EnMAP-Box test data
+    print('Install EnMAP-Box Test Data')
     import enmapbox.dependencycheck
     enmapbox.dependencycheck.installTestData(overwrite_existing=False, ask=False)
 
