@@ -47,7 +47,7 @@ class TestReclassify(EnMAPBoxTestCase):
         self.assertTrue(pathSrc.startswith('/vsimem/'))
 
         pathResultFiles = []
-        for i, ext in enumerate(['bsq','BSQ', 'bil','BIL', 'bip','BIP', 'tif', 'TIF', 'tiff', 'TIFF', 'gtiff', 'GTIFF']):
+        for i, ext in enumerate(['bsq', 'BSQ', 'bil', 'BIL', 'bip', 'BIP', 'tif', 'TIF', 'tiff', 'TIFF']):
 
             pathDst = r'/vsimem/testclasstiff{}.{}'.format(i, ext)
 
@@ -71,22 +71,22 @@ class TestReclassify(EnMAPBoxTestCase):
             #driver = guessRasterDriver(pathDst)
             r = classification.reclassify(filename=pathDst,
                                       classDefinition=newDef,
-                                      mapping={0:0,1:1,2:1})#,
+                                      mapping={0:0, 1:1, 2:1})#,
                                         #outclassificationDriver=driver)
 
 
             ds = gdal.Open(pathDst)
 
             self.assertIsInstance(ds, gdal.Dataset)
-            if re.search('\.(bsq|bil|bip)$', pathDst, re.I):
-                self.assertTrue(ds.GetDriver().ShortName == 'ENVI'
-                        , msg='Not opened with ENVI driver, but {}: {}'.format(ds.GetDriver().ShortName, pathDst))
-            elif re.search('\.g?tiff?$', pathDst, re.I):
-                self.assertTrue(ds.GetDriver().ShortName == 'GTiff'
-                        , msg='Not opened with GTiff driver, but {}: {}'.format(ds.GetDriver().ShortName, pathDst))
-            elif re.search('\.vrt$', pathDst, re.I):
-                self.assertTrue(ds.GetDriver().ShortName == 'VRT'
-                        , msg='Not opened with VRT driver, but {}: {}'.format(ds.GetDriver().ShortName, pathDst))
+            if re.search(r'\.(bsq|bil|bip)$', pathDst, re.I):
+                self.assertTrue(ds.GetDriver().ShortName == 'ENVI',
+                        msg='Not opened with ENVI driver, but {}: {}'.format(ds.GetDriver().ShortName, pathDst))
+            elif re.search(r'\.tiff?$', pathDst, re.I):
+                self.assertTrue(ds.GetDriver().ShortName == 'GTiff',
+                        msg='Not opened with GTiff driver, but {}: {}'.format(ds.GetDriver().ShortName, pathDst))
+            elif re.search(r'\.vrt$', pathDst, re.I):
+                self.assertTrue(ds.GetDriver().ShortName == 'VRT',
+                        msg='Not opened with VRT driver, but {}: {}'.format(ds.GetDriver().ShortName, pathDst))
             else:
                 self.fail('Unknown extension {}'.format(pathDst))
             pathResultFiles.append(pathDst)
