@@ -43,7 +43,7 @@ pipelines:
           - git lfs checkout
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
-          - pytohn3 --version
+          - python3 --version
           - python3 scripts/setuprepository.py
           - python3 -m coverage run --rcfile=.coveragec   enmapboxtesting/test_enmapbox.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_applications.py
