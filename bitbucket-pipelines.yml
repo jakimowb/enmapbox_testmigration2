@@ -32,18 +32,18 @@ pipelines:
           - conda activate qgis_stable
           - conda install qgis --channel=conda-forge
           - conda env list
-          - python --version
-          - python3 --version
           - mkdir test-reports
           #- python3 -m pip install -r requirements.txt
           # requirements_developer.txt calls the requirements.txt as well
-          - python3 -m pip install -r requirements_developer.txt
+          - python3 -m pip install -r requirements.txt
+          - python3 -m pip instal xmlrunner
           - git lfs install
           - git lfs fetch
           - git lfs pull
           - git lfs checkout
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
+          - pytohn3 --version
           - python3 scripts/setuprepository.py
           - python3 -m coverage run --rcfile=.coveragec   enmapboxtesting/test_enmapbox.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_applications.py
