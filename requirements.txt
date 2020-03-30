@@ -19,4 +19,4 @@ pyopengl # required by ImageCube app
 # required by parts of EnMAP-Box Applications
 numba # required by EnSoMAP
 netCDF4 # required by ONNS
-enpt-enmapboxapp # required by EnPT
+#enpt-enmapboxapp # required by EnPT
