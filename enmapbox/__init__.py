@@ -92,7 +92,7 @@ except:
     site.addsitedir(pSrc)
     import pyqtgraph
 
-def icon()->QIcon:
+def icon() -> QIcon:
     """
     Returns the EnMAP icon.
     (Requires that the EnMAP resources have been loaded before)

@@ -1,9 +1,6 @@
-import os, sys, fnmatch, six, subprocess, re, pathlib, typing
-import qgis.testing
-
+import pathlib
 
 def compileEnMAPBoxResources():
-    #app = qgis.testing.start_app()
     from enmapbox.externals.qps.resources import compileResourceFiles
 
     DIR_REPO = pathlib.Path(__file__).parents[1]
