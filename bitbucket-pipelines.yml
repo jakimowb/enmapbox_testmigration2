@@ -44,6 +44,7 @@ pipelines:
           - unzip qgisresources.zip
           - python3 --version
           - python3 scripts/setuprepository.py
+          - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
           - python3 -m coverage run --rcfile=.coveragec   enmapboxtesting/test_enmapbox.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_applications.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
