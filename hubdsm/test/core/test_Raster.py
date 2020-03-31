@@ -1,15 +1,13 @@
-from os.path import join
-from unittest import TestCase
+from unittest.case import TestCase
 
 import numpy as np
 from osgeo import gdal
 
 from enmapboxtestdata import enmap
-from hubdsm.core.band import Band, Mask
-from hubdsm.core.coordinatetransformation import CoordinateTransformation
+from hubdsm.core.error import ProjectionMismatchError
 from hubdsm.core.extent import Extent
 from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.core.gdalrasterdriver import GdalRasterDriver, ENVI_DRIVER, MEM_DRIVER
+from hubdsm.core.gdalrasterdriver import MEM_DRIVER
 from hubdsm.core.grid import Grid
 from hubdsm.core.location import Location
 from hubdsm.core.projection import Projection
@@ -17,17 +15,22 @@ from hubdsm.core.raster import Raster
 from hubdsm.core.resolution import Resolution
 from hubdsm.core.shape import GridShape
 from hubdsm.core.size import Size
-from hubdsm.error import ProjectionMismatchError
-
-outdir = r'c:\unittests\hubdsm'
 
 
 class TestRaster(TestCase):
 
+    def test_open(self):
+        try:
+            Raster.open(filenameOrGdalRaster=None)
+        except ValueError:
+            pass
+
     def test_fromGdalRaster(self):
         gdalRaster = GdalRaster.open(filename=enmap)
         raster = Raster.fromGdalRaster(gdalRaster=gdalRaster)
-        print(raster)
+        for number, band in enumerate(raster.bands, 1):
+            self.assertEqual(band.number, number)
+            self.assertEqual(band.filename, enmap)
 
     def test_readAll(self):
         raster = Raster.open(enmap)
@@ -60,9 +63,8 @@ class TestRaster(TestCase):
     def test_readBlockwise(self):
         array = np.array(range(5 * 4)).reshape((1, 5, 4))
         raster = Raster.fromGdalRaster(MEM_DRIVER.createFromArray(array=array))
-
         leads = list()
-        for subgrid in raster.grid.blocks(shape=GridShape(y=2, x=2)):
+        for subgrid in raster.grid.subgrids(shape=GridShape(y=2, x=2)):
             leads.append(raster.readAsArray(grid=subgrid)[0])
         golds = [
             [[0, 1], [4, 5]],
@@ -85,15 +87,50 @@ class TestRaster(TestCase):
         except ProjectionMismatchError:
             pass
 
+    def test_select(self):
+        raster = Raster.open(
+            MEM_DRIVER.createFromArray(array=np.ones(shape=(3,10,10)))
+        ).rename(bandNames=['B1', 'B2', 'B3'])
+        self.assertEqual(raster.select(selectors=[1, 3]).bandNames, ('B1', 'B3'))
+        self.assertEqual(raster.select(selectors=['B1', 'B3']).bandNames, ('B1', 'B3'))
+        try:
+            raster.select(selectors=[None])
+        except ValueError:
+            pass
 
-class TestBand(TestCase):
+    def test_band(self):
+        raster = Raster.open(
+            MEM_DRIVER.createFromArray(array=np.ones(shape=(3, 10, 10)))
+        ).rename(bandNames=['B1', 'B2', 'B3'])
+        self.assertEqual(raster.band(number=2), raster.bands[1])
 
-    def test_read(self):
-        mask = Mask(band=Band.fromGdalBand(MEM_DRIVER.createFromArray(array=np.array([[[1, 1, 1, 0, 0, 0]]])).band(1)))
-        band = Band.fromGdalBand(MEM_DRIVER.createFromArray(array=np.array([[[-1, 0, 1, -1, 0, 1]]])).band(1))
-        band.gdalBand.setNoDataValue(-1)
-        band = band.withMask(mask=mask)
+    def test_rename(self):
+        raster = Raster.open(
+            MEM_DRIVER.createFromArray(array=np.ones(shape=(3, 10, 10)))
+        ).rename(bandNames=['B1', 'B2', 'B3'], name='Raster')
+        self.assertEqual(raster.rename().bandNames, ('B1', 'B2', 'B3'))
+        self.assertEqual(raster.rename().name, 'Raster')
+        self.assertEqual(raster.withName('NewRaster').name, 'NewRaster')
 
-        assert np.all(np.equal(band.readAsArray(), [[-1, 0, 1, -1, 0, 1]]))
-        assert np.all(np.equal(mask.readAsArray(), [[True, True, True, False, False, False]]))
-        assert np.all(np.equal(band.readAsMaskArray(), [[False, True, True, False, False, False]]))
+    def test_withMask(self):
+        raster = Raster.open(
+            MEM_DRIVER.createFromArray(array=np.ones(shape=(3, 10, 10)))
+        )
+        raster = raster.withMask(raster=raster)
+        for band in raster.bands:
+            self.assertEqual(band.mask.band.number, band.number)
+        raster = raster.withMask(raster=raster.select(selectors=[1]))
+        for band in raster.bands:
+            self.assertEqual(band.mask.band.number, 1)
+        try:
+            raster.withMask(raster=raster.select(selectors=[1, 2]))
+        except ValueError:
+            pass
+
+    def test_iterArrays(self):
+        mask = Raster.open(MEM_DRIVER.createFromArray(array=np.array([[[1]], [[0]]])))
+        raster = Raster.open(MEM_DRIVER.createFromArray(array=np.array([[[10]], [[20]]])))
+        raster = raster.withMask(raster=mask)
+        self.assertTrue(np.all(np.equal(raster.readAsArray(), [[[10]], [[20]]])))
+        self.assertTrue(np.all(np.equal(raster.readAsMaskArray(), [[[True]], [[False]]])))
+

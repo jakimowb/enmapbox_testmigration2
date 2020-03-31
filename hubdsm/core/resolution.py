@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
@@ -19,7 +19,7 @@ class Resolution(DataClassArray):
         assert self.x > 0, 'Resolution must be greater than 0'
         assert self.y > 0, 'Resolution must be greater than 0'
 
-    def equal(self, other: Resolution, tol: Optional[float] = None) -> bool:
+    def equal(self, other: 'Resolution', tol: Optional[float] = None) -> bool:
         """Return whether self is equal to other."""
         assert isinstance(other, Resolution)
         if tol is None:

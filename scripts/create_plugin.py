@@ -118,7 +118,6 @@ def create_enmapbox_plugin():
     files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdc', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
-    files.extend(list(scantree(DIR_REPO / 'enmapboxprocessing', pattern=pattern)))
     files.append(DIR_REPO / '__init__.py')
     files.append(DIR_REPO / 'CHANGELOG.rst')
     files.append(DIR_REPO / 'CONTRIBUTORS.rst')

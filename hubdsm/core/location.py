@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
@@ -16,7 +16,10 @@ class Location(DataClassArray):
         assert isinstance(self.x, (int, float))
         assert isinstance(self.y, (int, float))
 
-    def equal(self, other: Location, tol: Optional[float]):
+    def equal(self, other: 'Location', tol: Optional[float]):
+        """Compore self with other location with given tolerance."""
+
+        assert isinstance(other, Location)
         if tol is None:
             tol = 1e-5
         return np.all(np.abs(np.subtract(self, other)) <= tol)

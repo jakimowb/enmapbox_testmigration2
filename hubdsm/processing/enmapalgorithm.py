@@ -1,13 +1,12 @@
-from __future__ import annotations
-import sys
+# from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Union, Any, Dict
 
-from numpy.ma import isin
 from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 from qgis._core import (QgsProcessingParameterDefinition, QgsProcessingParameterMapLayer,
-                        QgsProcessingParameterRasterLayer, QgsProcessingFeedback, QgsProcessingContext)
+                        QgsProcessingParameterRasterLayer, QgsProcessingFeedback, QgsProcessingContext,
+                        QgsProcessingParameterBand)
 
 
 class EnMAPAlgorithm(QgisAlgorithm):
@@ -68,7 +67,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
     def hasHtmlOutputs(self, *args, **kwargs):
         return False
 
-    def description(self) -> Union[Help, str]:
+    def description(self) -> Union['Help', str]:
         return Help('undocumented algorithm')
 
     def shortHelpString(self):
@@ -197,5 +196,17 @@ class EnMAPProcessingParameterRasterLayer(QgsProcessingParameterRasterLayer):
     ):
         QgsProcessingParameterRasterLayer.__init__(
             self, name=name, description=description, defaultValue=defaultValue, optional=optional
+        )
+        self.help = help
+
+
+class EnMAPProcessingParameterBand(QgsProcessingParameterBand):
+    def __init__(
+            self, name: str, description: str, parentLayerParameterName: str, defaultValue: Any = None,
+            optional: bool = False, allowMultiple: bool = False, help=Help()
+    ):
+        QgsProcessingParameterBand.__init__(
+            self, name=name, description=description, defaultValue=defaultValue,
+            parentLayerParameterName=parentLayerParameterName, optional=optional, allowMultiple=allowMultiple
         )
         self.help = help

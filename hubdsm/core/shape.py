@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 from dataclasses import dataclass
 
 from hubdsm.core.base import DataClassArray
@@ -15,13 +15,13 @@ class GridShape(DataClassArray):
         assert self.y > 0
         assert self.x > 0
 
-    def withX(self, x: int) -> GridShape:
+    def withX(self, x: int) -> 'GridShape':
         return GridShape(y=self.y, x=x)
 
-    def withY(self, y: int) -> GridShape:
+    def withY(self, y: int) -> 'GridShape':
         return GridShape(y=y, x=self.x)
 
-    def withZ(self, z: int) -> RasterShape:
+    def withZ(self, z: int) -> 'RasterShape':
         return RasterShape(z=z, y=self.y, x=self.x)
 
 
@@ -43,5 +43,5 @@ class RasterShape(DataClassArray):
     def gridShape(self) -> GridShape:
         return GridShape(y=self.y, x=self.x)
 
-    def withZ(self, z: int) -> RasterShape:
+    def withZ(self, z: int) -> 'RasterShape':
         return RasterShape(z=z, y=self.y, x=self.x)

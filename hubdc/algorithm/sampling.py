@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
@@ -84,7 +84,7 @@ def sample_polygons_iterateOverFeatures(
 def sample_polygons(
         raster: RasterDataset, vector: VectorDataset, fieldNames: List[str] = None,
         oversampling=1, allTouched=False
-) -> List[Sample]:
+) -> List['Sample']:
     if fieldNames is None:
         fieldNames = []
 
