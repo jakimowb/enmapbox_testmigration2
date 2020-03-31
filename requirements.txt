@@ -9,6 +9,7 @@ gdal ; platform_system != "Linux"
 numpy>=1.15
 matplotlib>=3.0
 pip>=20.0
+dataclasses ; python_version < '3.7'
 
 # required by parts of EnMAP-Box Core
 scipy>=1.1
