@@ -24,6 +24,7 @@ python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_optio
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_settings.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_speclibs.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_spectralprofilesources.py
+python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_splashscreen.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_template.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testdata_dependency.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testing.py
