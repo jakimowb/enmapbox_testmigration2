@@ -351,14 +351,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         for p in profiles:
             self.assertIsInstance(p, SpectralProfile)
 
+
 if __name__ == '__main__':
     import xmlrunner
-
-    suite = unittest.TestSuite()
-    suite.addTest(TestEnMAPBoxSplashScreen())
-    suite.addTest(TestEnMAPBox())
-    suite.addTest(TestEnMAPBoxApp())
-
-    runner = xmlrunner.XMLTestRunner(output='test-reports')
-    runner.run(suite)
-    #unittest.main(testRunner=runner, buffer=False)
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
