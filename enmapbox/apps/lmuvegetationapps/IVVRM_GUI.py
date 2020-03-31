@@ -95,15 +95,14 @@ class IVVRM_GUI(QDialog):
                     ax.setPen(QColor(color))
                     ax.setTextPen(QColor(color))
 
-
     def setBackgroundColor(self, color: QColor):
         if not isinstance(color, QColor):
             color = QColor(color)
         assert isinstance(color, QColor)
         if color != self.btnBackgroundColor.color():
-            self.btnBackgroundColor.setColor(color)
-        else:
+            # changing btnBackgroundColor.color() will trigger setBackgroundColor again
             self.btnBackgroundColor.setColor(QColor(color))
+        else:
             self.graphicsView.setBackground(QColor(color))
 
     def onHoverEvent(self, *args, **kwds):
