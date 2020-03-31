@@ -107,6 +107,17 @@ class DataSourceManager(QObject):
                 return source
         return None
 
+    def mapLayers(self) -> typing.List[QgsMapLayer]:
+        """
+        Returns the map layers related to EnMAP-Box sources
+        :return: list of QgsMapLayers
+        """
+        layers = []
+        for s in self:
+            if isinstance(s, DataSourceSpatial) and isinstance(s.mapLayer(), QgsMapLayer):
+                layers.append(s.mapLayer())
+        return layers
+
     def sources(self, sourceTypes=None) -> list:
         """
         Returns the managed DataSources
@@ -368,7 +379,7 @@ class DataSourceManager(QObject):
         removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
         return [r for r in removed if isinstance(r, DataSource)]
 
-    def removeSource(self, dataSource)->DataSource:
+    def removeSource(self, dataSource) -> DataSource:
         """
         Removes the DataSource from the DataSourceManager
         :param dataSource: the DataSource or its uri (str) or a QgsMapLayer to be removed
@@ -381,7 +392,7 @@ class DataSourceManager(QObject):
                     to_remove.append(ds)
         elif isinstance(dataSource, str):
             for ds in self:
-                if ds.uri == dataSource:
+                if ds.uri() == dataSource:
                     to_remove.append(ds)
         elif isinstance(dataSource, DataSource):
             if dataSource in self:
@@ -389,8 +400,11 @@ class DataSourceManager(QObject):
 
         assert len(to_remove) <= 1
         if len(to_remove) == 1:
-            self.mSources.remove(to_remove[0])
-            self.sigDataSourceRemoved.emit(to_remove[0])
+            ds = to_remove[0]
+            assert isinstance(ds, DataSource)
+            self.mSources.remove(ds)
+
+            self.sigDataSourceRemoved.emit(ds)
             return dataSource
         else:
             return None
