@@ -1,5 +1,4 @@
-from __future__ import annotations
-
+# from __future__ import annotations
 from dataclasses import dataclass
 from os.path import basename
 from typing import Tuple, List, Sequence, Union, Iterator
@@ -29,10 +28,10 @@ class Raster(object):
         for band in self.bands:
             assert isinstance(band, Band)
         assert isinstance(self.grid, Grid)
-        #assert len(self.bandNames) == len(set(self.bandNames)), 'each band name must be unique'
+        # assert len(self.bandNames) == len(set(self.bandNames)), 'each band name must be unique'
 
     @classmethod
-    def open(cls, filenameOrGdalRaster: Union[str, GdalRaster]) -> Raster:
+    def open(cls, filenameOrGdalRaster: Union[str, GdalRaster]) -> 'Raster':
         if isinstance(filenameOrGdalRaster, str):
             gdalRaster = GdalRaster.open(filename=filenameOrGdalRaster)
         elif isinstance(filenameOrGdalRaster, GdalRaster):
@@ -42,9 +41,9 @@ class Raster(object):
         return cls.fromGdalRaster(gdalRaster=gdalRaster)
 
     @staticmethod
-    def fromGdalRaster(gdalRaster: GdalRaster) -> Raster:
+    def fromGdalRaster(gdalRaster: GdalRaster) -> 'Raster':
         bands = tuple(Band.fromGdalBand(gdalBand=gdalBand) for gdalBand in gdalRaster.bands)
-        return Raster(name=gdalRaster.filename, bands=bands, grid = gdalRaster.grid)
+        return Raster(name=gdalRaster.filename, bands=bands, grid=gdalRaster.grid)
 
     @property
     def bandNames(self) -> Tuple[str, ...]:
@@ -56,7 +55,7 @@ class Raster(object):
     def select(
             self, selectors: Sequence[Union[str, int]], newBandNames: Sequence[str] = None,
             newRasterName: str = None
-    ) -> Raster:
+    ) -> 'Raster':
 
         # derives band numbers and new names
         numbers = list()
@@ -83,7 +82,7 @@ class Raster(object):
         raster = Raster(name=newRasterName, bands=bands, grid=self.grid)
         return raster
 
-    def rename(self, name: str = None, bandNames: Sequence[str] = None) -> Raster:
+    def rename(self, name: str = None, bandNames: Sequence[str] = None) -> 'Raster':
         """Rename raster and raster bands."""
         if name is None:
             name = self.name
@@ -94,11 +93,11 @@ class Raster(object):
         raster = self.select(selectors=selectors, newBandNames=bandNames, newRasterName=name)
         return raster
 
-    def addBands(self, raster: Raster) -> Raster:
+    def addBands(self, raster: 'Raster') -> 'Raster':
         """Return raster containing all bands copied from the first raster and bands from the second input."""
         return Raster(name=self.name, bands=self.bands + raster.bands, grid=self.grid)
 
-    def withMask(self, raster: Raster, invert=False) -> Raster:
+    def withMask(self, raster: 'Raster', invert=False) -> 'Raster':
         """Return raster with new mask raster."""
         if len(self.bands) == len(raster.bands):
             maskBands = raster.bands
@@ -112,7 +111,7 @@ class Raster(object):
         )
         return Raster(name=self.name, bands=bands, grid=self.grid)
 
-    def withName(self, name: str) -> Raster:
+    def withName(self, name: str) -> 'Raster':
         return Raster(name=name, bands=self.bands, grid=self.grid)
 
     def readAsArray(self, grid: Grid = None, gdalResamplingAlgorithm=gdal.GRA_NearestNeighbour) -> np.ndarray:
@@ -139,7 +138,7 @@ class Raster(object):
         for band in self.bands:
             yield band.readAsMaskArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)
 
-    #def warp(self, grid: Grid = None) -> Raster:
+    # def warp(self, grid: Grid = None) -> Raster:
     #    if grid is None:
     #        grid = self.grid
     #    bands = list()

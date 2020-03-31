@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterator, List
 
@@ -45,7 +45,7 @@ class Grid(object):
         return GeoTransform(ul=self.extent.ul, resolution=self.resolution)
 
     @classmethod
-    def fromGeoTransform(cls, geoTransform: GeoTransform, shape: GridShape, projection=None) -> Grid:
+    def fromGeoTransform(cls, geoTransform: GeoTransform, shape: GridShape, projection=None) -> 'Grid':
         if projection is None:
             projection = Projection.fromWgs84()
         resolution = geoTransform.resolution
@@ -54,7 +54,7 @@ class Grid(object):
         return Grid(extent=extent, resolution=resolution, projection=projection)
 
     @classmethod
-    def makePseudoGridFromShape(cls, shape: GridShape) -> Grid:
+    def makePseudoGridFromShape(cls, shape: GridShape) -> 'Grid':
         arcSecond = 1. / 3600.
         resolution = Resolution(x=arcSecond, y=arcSecond)
         ul = Location(x=0, y=shape.y * resolution.y)
@@ -63,7 +63,7 @@ class Grid(object):
         return Grid(extent=extent, resolution=resolution)
 
     @classmethod
-    def makePseudoGridFromArray(cls, array: np.ndarray) -> Grid:
+    def makePseudoGridFromArray(cls, array: np.ndarray) -> 'Grid':
         assert 2 <= array.ndim <= 3
         *_, y, x = array.shape
         return cls.makePseudoGridFromShape(shape=GridShape(y=y, x=x))
@@ -82,7 +82,7 @@ class Grid(object):
         size = pixelLocation._ * self.resolution._ * np.array([+1, -1])
         return Location.fromIterable(offset + size)
 
-    def equal(self, other: Grid, tol: float = 1e-6) -> bool:
+    def equal(self, other: 'Grid', tol: float = 1e-6) -> bool:
         """Return whether self is equal to other."""
         if not self.resolution.equal(other=other.resolution, tol=tol):
             return False
@@ -106,7 +106,7 @@ class Grid(object):
         '''Return 2d array of pixel y coordinates with optional offset.'''
         return np.int32(np.asarray(self.yPixelCoordinates(offset=offset)).reshape(-1, 1) * np.ones(shape=self.shape))
 
-    def subgrid(self, offset: PixelLocation, shape: GridShape) -> Grid:
+    def subgrid(self, offset: PixelLocation, shape: GridShape) -> 'Grid':
         """Return shape-sized subgrid at offset."""
         assert isinstance(offset, PixelLocation)
         assert isinstance(shape, GridShape)
@@ -122,7 +122,7 @@ class Grid(object):
         extent = Extent(ul=ul, size=size)
         return Grid(extent=extent, resolution=self.resolution, projection=self.projection)
 
-    def subgrids(self, shape: GridShape) -> Iterator[Grid]:
+    def subgrids(self, shape: GridShape) -> Iterator['Grid']:
         """Iterate in shape-sized subgrids over the grid."""
         assert isinstance(shape, GridShape)
         shape = GridShape.fromIterable(np.minimum(shape, self.shape))

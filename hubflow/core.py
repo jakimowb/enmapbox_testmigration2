@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 import json
 import io
 import random, pickle
@@ -3846,7 +3846,7 @@ class Classification(Raster):
         return Raster.asMask(self, minOverallCoverage=minOverallCoverage, invert=invert)
 
     @classmethod
-    def fromArray(cls, array, filename, classDefinition=None, grid=None, **kwargs) -> Classification:
+    def fromArray(cls, array, filename, classDefinition=None, grid=None, **kwargs) -> 'Classification':
         '''
         Create instance from given ``array``.
 
@@ -5348,10 +5348,10 @@ class _EstimatorPredictProbability(ApplierOperator):
             X = np.float64(self.features[:, valid[0]].T)
             y = estimator.sklEstimator().predict_proba(X=X)
             for ci, yi in zip(estimator.sklEstimator().classes_, y.reshape(X.shape[0], -1).T):
-                prediction[ci-1, valid[0]] = yi
+                prediction[ci - 1, valid[0]] = yi
             # fill missing classes with zeroes
             for i in range(noutputs):
-                if i+1 not in estimator.sklEstimator().classes_:
+                if i + 1 not in estimator.sklEstimator().classes_:
                     prediction[i, valid[0]] = 0
 
         self.outputRaster.raster(key='fraction').setArray(array=prediction)

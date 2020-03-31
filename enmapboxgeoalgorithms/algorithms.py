@@ -2,7 +2,7 @@ from shutil import rmtree
 
 from qgis.core import *
 
-from hubdsm.processing.uniquebandvaluecounts import ClassificationStatistics
+from hubdsm.processing.uniquebandvaluecounts import UniqueBandValueCounts
 from hubflow.core import *
 from enmapboxgeoalgorithms.provider import (EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, Help, Link, Cookbook,
                                             ALGORITHMS)
@@ -11,7 +11,7 @@ from enmapboxgeoalgorithms.filters.convolution import parseSpatialKernel, parseS
 from enmapboxgeoalgorithms.filters.morphology import parseMorphology
 from enmapboxgeoalgorithms.filters.other import parseOtherFilter
 
-ALGORITHMS.append(ClassificationStatistics())
+ALGORITHMS.append(UniqueBandValueCounts())
 
 
 class ClassificationFromFraction(EnMAPAlgorithm):

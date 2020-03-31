@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Union, Any, List, Dict
 
@@ -25,7 +25,7 @@ class GdalBand(object):
         assert isinstance(self.number, int)
 
     @staticmethod
-    def open(filename: str, number: int, access: int = gdal.GA_ReadOnly) -> GdalBand:
+    def open(filename: str, number: int, access: int = gdal.GA_ReadOnly) -> 'GdalBand':
         from hubdsm.core.gdalraster import GdalRaster
         return GdalRaster.open(filename=filename, access=access).band(number=number)
 

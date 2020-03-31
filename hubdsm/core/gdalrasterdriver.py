@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 from dataclasses import dataclass, field
 from os import makedirs
 from os.path import splitext, isabs, abspath, exists, dirname
@@ -23,7 +23,7 @@ class GdalRasterDriver(object):
         assert isinstance(self.options, list)
 
     @classmethod
-    def fromFilename(cls, filename: Optional[str]) -> GdalRasterDriver:
+    def fromFilename(cls, filename: Optional[str]) -> 'GdalRasterDriver':
 
         if filename is None or filename == '':
             return MEM_DRIVER

@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
@@ -42,11 +42,11 @@ class Band(object):
             self._gdalBand = GdalBand.open(filename=self.filename, number=self.number)
         return self._gdalBand
 
-    def rename(self, name) -> Band:
+    def rename(self, name) -> 'Band':
         '''Return band with new name.'''
         return Band(name=name, filename=self.filename, number=self.number, mask=self.mask, _gdalBand=self._gdalBand)
 
-    def withMask(self, mask: Mask) -> Band:
+    def withMask(self, mask: Mask) -> 'Band':
         '''Return band with mask.'''
         return Band(
             name=self.name, filename=self.filename, number=self.number, mask=mask,

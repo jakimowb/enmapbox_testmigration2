@@ -1,4 +1,4 @@
-from __future__ import annotations
+# from __future__ import annotations
 from typing import List, NamedTuple
 from dataclasses import dataclass
 
@@ -30,14 +30,14 @@ class Geometry(object):
         return ogrGeometry.ExportToWkt()
 
     @classmethod
-    def fromLocation(cls, location: Location) -> Geometry:
+    def fromLocation(cls, location: Location) -> 'Geometry':
         """Create point geometry."""
         wkt = f'POINT ({location.x} {location.y})'
         wkt = Geometry.formatWkt(wkt)
         return Geometry(wkt=wkt)
 
     @classmethod
-    def fromPolygonCoordinates(cls, locations: List[Location]) -> Geometry:
+    def fromPolygonCoordinates(cls, locations: List[Location]) -> 'Geometry':
         """Create polygon geometry."""
         assert len(locations) > 0
         ring = ogr.Geometry(ogr.wkbLinearRing)
@@ -60,7 +60,7 @@ class Geometry(object):
         return ogrGeometry
 
     @property
-    def envelope(self) -> Envelope:
+    def envelope(self) -> 'Envelope':
         """Returns envelope."""
         return Envelope(*self.ogrGeometry.GetEnvelope())
 
@@ -90,29 +90,29 @@ class Geometry(object):
                 locations.append(Location(x=x, y=y))
         return locations
 
-    def intersects(self, other: Geometry) -> bool:
+    def intersects(self, other: 'Geometry') -> bool:
         """Return whether self and other intersect."""
         assert isinstance(other, Geometry)
         return self.ogrGeometry.Intersects(other.ogrGeometry)
 
-    def intersection(self, other: Geometry) -> Geometry:
+    def intersection(self, other: 'Geometry') -> 'Geometry':
         """Return intersection of self and other."""
         assert isinstance(other, Geometry)
         ogrGeometry = self.ogrGeometry.Intersection(other.ogrGeometry)
         return Geometry(wkt=ogrGeometry.ExportToWkt())
 
-    def union(self, other: Geometry) -> Geometry:
+    def union(self, other: 'Geometry') -> 'Geometry':
         """Return union of self and other."""
         assert isinstance(other, Geometry)
         ogrGeometry = self.ogrGeometry.Union(other.ogrGeometry)
         return Geometry(wkt=ogrGeometry.ExportToWkt())
 
-    def within(self, other: Geometry) -> bool:
+    def within(self, other: 'Geometry') -> bool:
         """Returns whether self is within other."""
         assert isinstance(other, Geometry)
         return self.ogrGeometry.Within(other.ogrGeometry)
 
-    def reproject(self, coordinateTransformation: CoordinateTransformation) -> Geometry:
+    def reproject(self, coordinateTransformation: CoordinateTransformation) -> 'Geometry':
         """Reproject self."""
         ogrGeometry = self.ogrGeometry
         ogrGeometry.Transform(coordinateTransformation.osrCoordinateTransformation)
@@ -120,7 +120,7 @@ class Geometry(object):
         wkt = Geometry.formatWkt(wkt)
         return Geometry(wkt=wkt)
 
-    def buffer(self, distance: float) -> Geometry:
+    def buffer(self, distance: float) -> 'Geometry':
         """Buffered self."""
         wkt = self.ogrGeometry.Buffer(distance).ExportToWkt()
         wkt = Geometry.formatWkt(wkt=wkt)

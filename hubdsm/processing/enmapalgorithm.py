@@ -1,5 +1,4 @@
-from __future__ import annotations
-import sys
+# from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Union, Any, Dict
@@ -68,7 +67,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
     def hasHtmlOutputs(self, *args, **kwargs):
         return False
 
-    def description(self) -> Union[Help, str]:
+    def description(self) -> Union['Help', str]:
         return Help('undocumented algorithm')
 
     def shortHelpString(self):
