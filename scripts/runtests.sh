@@ -28,6 +28,7 @@ python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_templ
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testdata_dependency.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testing.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_utils.py
+python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_vectorlayertools.py
 python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_algorithm.py
 python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_core.py
 python3 -m coverage report

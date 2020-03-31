@@ -10,7 +10,7 @@ from osgeo import gdal, gdal_array
 from hubdsm.core.gdalband import GdalBand
 from hubdsm.core.geotransform import GeoTransform, GdalGeoTransform
 from hubdsm.core.grid import Grid
-from hubdsm.core.metadataformatter import MetadataFormatter
+from hubdsm.core.gdalmetadatavalueformatter import GdalMetadataValueFormatter
 from hubdsm.core.projection import Projection
 from hubdsm.core.shape import RasterShape, GridShape
 
@@ -145,7 +145,7 @@ class GdalRaster(object):
         if gdalString is None:
             assert not required, f'missing metadata item: {key} in {domain}'
             return default
-        return MetadataFormatter.stringToValue(gdalString, dtype=dtype)
+        return GdalMetadataValueFormatter.stringToValue(gdalString, dtype=dtype)
 
     def metadataDomain(self, domain=''):
         """Returns the metadata dictionary for the given ``domain``."""
@@ -168,7 +168,7 @@ class GdalRaster(object):
         if value is None:
             return
         key = key.replace(' ', '_').strip()
-        gdalString = MetadataFormatter.valueToString(value)
+        gdalString = GdalMetadataValueFormatter.valueToString(value)
         self.gdalDataset.SetMetadataItem(key, gdalString, domain)
 
     def setMetadataDomain(self, values: Dict[str, Union[Any, List[Any]]], domain: str):

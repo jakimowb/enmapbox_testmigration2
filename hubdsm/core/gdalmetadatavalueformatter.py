@@ -1,4 +1,4 @@
-class MetadataFormatter(object):
+class GdalMetadataValueFormatter(object):
     """Class for managing GDAL metadata value formatting."""
 
     @classmethod
@@ -12,11 +12,7 @@ class MetadataFormatter(object):
 
     @classmethod
     def stringToValue(cls, string, dtype):
-        """
-        Returns a representation of ``string`` as value of given ``dtype``.
-        If ``string`` represents a list of values in curly brackets (e.g. ``{1, 2, 3}``),
-        a list of values is returned.
-        """
+        """Returns a representation of string as value of given type."""
 
         string.strip()
         if string.startswith('{') and string.endswith('}'):

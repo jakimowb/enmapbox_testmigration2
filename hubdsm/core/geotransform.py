@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import NamedTuple
 
@@ -23,8 +22,8 @@ class GeoTransform(object):
 
     def gdalGeoTransform(self) -> GdalGeoTransform:
         return GdalGeoTransform(upperLeftX=self.ul.x, upperLeftY=self.ul.y,
-                                xResolution=self.resolution.x, yResolution=-self.resolution.y,
-                                rowRotation=0., columnRotation=0.)
+            xResolution=self.resolution.x, yResolution=-self.resolution.y,
+            rowRotation=0., columnRotation=0.)
 
 
 class GdalGeoTransform(NamedTuple):

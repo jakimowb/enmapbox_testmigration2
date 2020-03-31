@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 import io
 import random, pickle
@@ -3621,7 +3622,7 @@ class ClassDefinition(FlowObject):
         >>> ClassDefinition.fromArray(array=[[[1, 2, 3]]]) # doctest: +ELLIPSIS
         ClassDefinition(classes=3, names=['class 1', 'class 2', 'class 3'], colors=[...])
         '''
-        return ClassDefinition(classes=np.max(array))
+        return ClassDefinition(classes=int(np.max(array)))
 
     @staticmethod
     def fromRaster(raster):
@@ -3845,7 +3846,7 @@ class Classification(Raster):
         return Raster.asMask(self, minOverallCoverage=minOverallCoverage, invert=invert)
 
     @classmethod
-    def fromArray(cls, array, filename, classDefinition=None, grid=None, **kwargs):
+    def fromArray(cls, array, filename, classDefinition=None, grid=None, **kwargs) -> Classification:
         '''
         Create instance from given ``array``.
 

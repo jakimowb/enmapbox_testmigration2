@@ -8,8 +8,8 @@ from osgeo import gdal
 from hubdsm.core.category import Category
 from hubdsm.core.color import Color
 from hubdsm.core.grid import Grid
-from hubdsm.core.metadataformatter import MetadataFormatter
-from hubdsm.error import ProjectionMismatchError
+from hubdsm.core.gdalmetadatavalueformatter import GdalMetadataValueFormatter
+from hubdsm.core.error import ProjectionMismatchError
 
 
 @dataclass(frozen=True)
@@ -108,7 +108,7 @@ class GdalBand(object):
         if value is None:
             return
         key = key.replace(' ', '_')
-        gdalString = MetadataFormatter.valueToString(value)
+        gdalString = GdalMetadataValueFormatter.valueToString(value)
         self.gdalBand.SetMetadataItem(key, gdalString, domain)
 
     def setMetadataDomain(self, values: Dict[str, Union[Any, List[Any]]], domain: str):
@@ -130,7 +130,7 @@ class GdalBand(object):
         if required:
             assert gdalString is not None
             return default
-        return MetadataFormatter.stringToValue(gdalString, dtype=dtype)
+        return GdalMetadataValueFormatter.stringToValue(gdalString, dtype=dtype)
 
     def metadataDomain(self, domain=''):
         """Return the metadata dictionary for the given ``domain``."""

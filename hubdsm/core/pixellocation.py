@@ -9,30 +9,30 @@ from hubdsm.core.location import Location
 class PixelLocation(Location):
     """Subpixel location."""
 
-    def __post_init__(self):
+    def __post_init__(self) -> PixelLocation:
         assert isinstance(self.x, (int, float))
         assert isinstance(self.y, (int, float))
 
     @property
-    def upperLeft(self):
+    def upperLeft(self) -> PixelLocation:
         """Pixel upper-left corner location."""
         return self.snap(func=floor)
 
     @property
-    def lowerRight(self):
+    def lowerRight(self) -> PixelLocation:
         """Pixel lower-right corner location."""
         return self.snap(func=ceil)
 
     @property
-    def center(self):
+    def center(self) -> PixelLocation:
         """Return the pixel center location."""
         return self.snap(func=lambda v: floor(v) + 0.5)
 
     @property
-    def round(self):
+    def round(self) -> PixelLocation:
         """Return closest pixel corner location."""
         return self.snap(func=round)
 
-    def snap(self, func):
+    def snap(self, func) -> PixelLocation:
         """Return snapped pixel location."""
         return PixelLocation(x=func(self.x), y=func(self.y))

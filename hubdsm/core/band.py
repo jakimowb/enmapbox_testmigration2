@@ -1,13 +1,14 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Optional, Tuple, Sequence, Union
-from uuid import uuid4
+from typing import Optional
 
 import numpy as np
 from osgeo import gdal
 
+from hubdsm.core.bandsample import BandSample
 from hubdsm.core.gdalband import GdalBand
 from hubdsm.core.grid import Grid
+from hubdsm.core.mask import Mask
 
 
 @dataclass
@@ -56,15 +57,11 @@ class Band(object):
         '''Return 2d array.'''
         return self.gdalBand.readAsArray(grid=grid, gra=gdalResamplingAlgorithm)
 
-    def readAsMaskArray(
-            self, grid: Grid = None, noDataValue: Union[int, float] = None,
-            gdalResamplingAlgorithm=gdal.GRA_NearestNeighbour
-    ) -> np.ndarray:
-        '''Return 2d mask array.'''
+    def readAsMaskArray(self, grid: Grid = None, gdalResamplingAlgorithm=gdal.GRA_NearestNeighbour) -> np.ndarray:
+        '''Return 2d mask array. Combines the internal mask given by the no data value and the external mask.'''
         if grid is None:
             grid = self.gdalBand.grid
-        if noDataValue is None:
-            noDataValue = self.gdalBand.noDataValue
+        noDataValue = self.gdalBand.noDataValue
         array = self.readAsArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)
         if noDataValue is np.nan:
             maskArray1 = np.logical_not(np.isnan(array))
@@ -79,33 +76,15 @@ class Band(object):
             maskArray = maskArray1
         return maskArray
 
-
-#    def warp(self, filename: str = None, grid: Grid = None):
-#        key128bit = uuid4().hex
-#        filename = f'/vsimem/hubdsm.core.band.Band.warp/{key128bit}.vrt'
-#        gdal.Translate(destName=filename, srcDS=)
-#        return Band(name=self.name, filename=filename, number=1, noDataValue=self.noDataValue, gra=gra, gdt=self.gdt)
-
-@dataclass
-class Mask(object):
-    band: Band
-    noDataValue: Union[int, float] = None
-    invert: bool = False
-
-    def __post_init__(self):
-        assert isinstance(self.band, Band)
-        assert isinstance(self.invert, bool)
-        assert isinstance(self.noDataValue, (int, float, type(None)))
-
-    def readAsArray(self, grid: Grid = None, gdalResamplingAlgorithm: int = gdal.GRA_NearestNeighbour) -> np.ndarray:
-        noDataValue = self.noDataValue
-        if noDataValue is None:
-            noDataValue = self.band.gdalBand.noDataValue
-            if noDataValue is None:
-                noDataValue = 0
-        array = self.band.readAsMaskArray(grid=grid, noDataValue=noDataValue,
-            gdalResamplingAlgorithm=gdalResamplingAlgorithm
-        )
-        if self.invert:
-            array = np.logical_not(array)
-        return array
+    def readAsSample(
+            self, grid: Grid = None, gdalResamplingAlgorithmBand: int = gdal.GRA_NearestNeighbour,
+            gdalResamplingAlgorithmMask: int = gdal.GRA_NearestNeighbour
+    ) -> BandSample:
+        if grid is None:
+            grid = self.gdalBand.grid
+        array = self.readAsArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithmBand)
+        maskArray = self.readAsMaskArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithmMask)
+        values = array[maskArray]
+        xLocations = grid.xPixelCoordinatesArray()[maskArray]
+        yLocations = grid.yPixelCoordinatesArray()[maskArray]
+        return BandSample(xLocations=xLocations, yLocations=yLocations, values=values)
