@@ -355,9 +355,9 @@ if __name__ == '__main__':
     import xmlrunner
 
     suite = unittest.TestSuite()
-    suite.addTest(TestEnMAPBoxSplashScreen)
-    suite.addTest(TestEnMAPBox)
-    suite.addTest(TestEnMAPBoxApp)
+    suite.addTest(TestEnMAPBoxSplashScreen())
+    suite.addTest(TestEnMAPBox())
+    suite.addTest(TestEnMAPBoxApp())
 
     runner = xmlrunner.XMLTestRunner(output='test-reports')
     runner.run(suite)
