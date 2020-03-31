@@ -244,7 +244,7 @@ class test_applications(EnMAPBoxTestCase):
 
         timer = QTimer()
         timer.timeout.connect(self.closeBlockingDialogs)
-        timer.start(500)
+        timer.start(1000)
 
         EB = EnMAPBox()
 
@@ -257,15 +257,18 @@ class test_applications(EnMAPBoxTestCase):
             if isinstance(menuItem, QAction):
                 print('Trigger QAction {}"{}" {}'.format(prefix, menuItem.text(), menuItem.toolTip()))
                 menuItem.trigger()
+                QApplication.processEvents()
             elif isinstance(menuItem, QMenu):
                 for a in menuItem.actions():
                     triggerActions(a, prefix='"{}"->'.format(menuItem.title()))
+                    QApplication.processEvents()
 
         for title in ['Tools', 'Applications']:
 
             print('## TEST QMenu "{}"'.format(title))
 
             triggerActions(EB.menu(title))
+            QApplication.processEvents()
 
         self.showGui()
 
