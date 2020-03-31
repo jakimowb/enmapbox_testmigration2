@@ -543,14 +543,16 @@ class EnMAPBox(QgisInterface, QObject):
                 if isinstance(node, EnMAPBoxLayerTreeLayer):
                     node.setCanvas(L2C.get(node.layerId(), None))
 
-    def removeMapLayer(self, layer:QgsMapLayer, remove_from_project=True):
+    def removeMapLayer(self, layer:QgsMapLayer, remove_from_project: bool =True):
         self.removeMapLayers([layer], remove_from_project=remove_from_project)
 
-    def removeMapLayers(self, layers:typing.List[QgsMapLayer], remove_from_project=True):
+    def removeMapLayers(self, layers: typing.List[QgsMapLayer], remove_from_project=True):
         """
-        Removes layers from the EnMAP-Box / DataSource list
+        Removes layers from the EnMAP-Box
         """
-        layers = [l for l in layers if isinstance(l, QgsMapLayer) and l in self.dockManagerTreeModel().mapLayers()]
+        layersDS = self.dataSourceManager().mapLayers()
+        layersTM = self.dockManagerTreeModel().mapLayers()
+        layers = [l for l in layers if isinstance(l, QgsMapLayer) and l in layersDS + layersTM]
         self.syncHiddenLayers()
 
         if remove_from_project:
@@ -1122,7 +1124,6 @@ class EnMAPBox(QgisInterface, QObject):
         assert isinstance(dataSource, DataSource)
 
         # remove any layer that matches the same source uri
-
         model: DockManagerTreeModel = self.dockManagerTreeModel()
         model.removeDataSource(dataSource)
 
@@ -1148,11 +1149,10 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigVectorSourceRemoved[str].emit(dataSource.uri())
             self.sigVectorSourceRemoved[DataSourceVector].emit(dataSource)
 
-
         # finally, remove related map layers
         if isinstance(dataSource, DataSourceSpatial):
             self.removeMapLayer(dataSource.mapLayer())
-
+            QgsProject.instance().removeMapLayer(dataSource.mapLayerId())
         self.syncHiddenLayers()
 
     def onDataSourceAdded(self, dataSource:DataSource):

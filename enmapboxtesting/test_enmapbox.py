@@ -324,12 +324,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         # unload
         E.removeSources()
         self.assertTrue(len(E.dataSources()) == 0)
-
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
-
-
-        #if SHOW_GUI:
-        #    QGIS_APP.exec_()
 
     def test_speclibDocks(self):
         EMB = EnMAPBox()
@@ -342,7 +337,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertTrue(len(sources) > 0 )
         layers = [QgsRasterLayer(p) for p in sources]
         self.assertTrue(len(layers) > 0)
-        mapDock.setLayers(layers)
+        mapDock.mapCanvas().setLayers(layers)
 
         speclibDock = EMB.createDock('SPECLIB')
         self.assertIsInstance(speclibDock, SpectralLibraryDock)
@@ -358,4 +353,12 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
 if __name__ == '__main__':
     import xmlrunner
-    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
+
+    suite = unittest.TestSuite()
+    suite.addTest(TestEnMAPBoxSplashScreen)
+    suite.addTest(TestEnMAPBox)
+    suite.addTest(TestEnMAPBoxApp)
+
+    runner = xmlrunner.XMLTestRunner(output='test-reports')
+    runner.run(suite)
+    #unittest.main(testRunner=runner, buffer=False)
