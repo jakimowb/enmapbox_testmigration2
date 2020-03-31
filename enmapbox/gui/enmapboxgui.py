@@ -84,6 +84,14 @@ class EnMAPBoxSplashScreen(QSplashScreen):
         pm = QPixmap(':/enmapbox/gui/ui/logo/splashscreen.png')
         super(EnMAPBoxSplashScreen, self).__init__(parent, pixmap=pm)
 
+        effect = QGraphicsDropShadowEffect()
+        effect.setBlurRadius(5)
+        effect.setColor(QColor('white'))
+        self.setGraphicsEffect(effect)
+
+        css = "" \
+              ""
+
     def showMessage(self, text:str, alignment:Qt.Alignment=None, color:QColor=None):
         """
         Shows a message
@@ -254,7 +262,12 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.mMapToolKey = MapTools.Pan
         self.mMapToolMode = None
+        self.mMessageBarItems = []
 
+        def removeItem(item):
+            if item in self.mMessageBarItems:
+                self.mMessageBarItems.remove(item)
+        self.messageBar().widgetRemoved.connect(removeItem)
         self.mCurrentMapLayer: QgsMapLayer = None
 
         self.initPanels()
@@ -357,7 +370,7 @@ class EnMAPBox(QgisInterface, QObject):
 
             a = QAction('Install missing')
             btn = QToolButton()
-            btn.setStyleSheet( "background-color: rgba(255, 255, 255, 0); color: black; text-decoration: underline;" )
+            btn.setStyleSheet("background-color: rgba(255, 255, 255, 0); color: black; text-decoration: underline;" )
             btn.setCursor(Qt.PointingHandCursor)
             btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
             btn.addAction(a)
@@ -373,6 +386,46 @@ class EnMAPBox(QgisInterface, QObject):
         QApplication.processEvents()
         splash.hide()
         self.addProject(QgsProject.instance())
+
+    def addMessageBarTextBoxItem(self, title: str, text: str,
+                                 level: Qgis.MessageLevel = Qgis.Info,
+                                 buttonTitle = 'Show more',
+                                 html=False):
+        """
+        Adds a message to the message bar that can be shown in detail using a text browser.
+        :param title:
+        :param text:
+        :param level:
+        :param buttonTitle:
+        :param html:
+        :return:
+        """
+
+
+        def showMessage(msg):
+            viewer = QgsMessageViewer()
+            viewer.setWindowTitle(title)
+            if html:
+                viewer.setMessageAsHtml(msg)
+            else:
+                viewer.setMessageAsPlainText(msg)
+            viewer.showMessage(blocking=True)
+
+
+        a = QAction(buttonTitle)
+        btn = QToolButton()
+        btn.setStyleSheet("background-color: rgba(255, 255, 255, 0); color: black; text-decoration: underline;")
+        btn.setCursor(Qt.PointingHandCursor)
+        btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
+        btn.addAction(a)
+        btn.setDefaultAction(a)
+        btn.triggered.connect(lambda *args, msg=text: showMessage(msg))
+        btn.triggered.connect(btn.deleteLater)
+
+        item = QgsMessageBarItem(title, '', btn, level, 200)
+        item.__btn = btn
+        self.mMessageBarItems.append(item)
+        self.messageBar().pushItem(item)
 
     def showPackageInstaller(self):
         """
@@ -947,6 +1000,23 @@ class EnMAPBox(QgisInterface, QObject):
             else:
                 print('Unable to load EnMAPBoxApplication(s) from path: "{}"'.format(p), file=sys.stderr)
 
+        errorApps = [app for app, v in self.applicationRegistry.mAppInitializationMessages.items()
+                     if v != True]
+
+        if len(errorApps) > 0:
+            title = 'EnMAPBoxApplication error(s)'
+            info = [title + ':']
+            for app in errorApps:
+                v = self.applicationRegistry.mAppInitializationMessages[app]
+                info.append(r'</br><b>{}:</b>'.format(app))
+                info.append('<p>')
+                if v == False:
+                    info.append(r'"{}" did not return any EnMAPBoxApplication\n'.format(v))
+                elif isinstance(v, str):
+                    info.append('<code>{}</code>'.format(v))
+                info.append('</p>')
+            self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Critical, html=True)
+        s = ""
 
     def exit(self):
         """Closes the EnMAP-Box"""
