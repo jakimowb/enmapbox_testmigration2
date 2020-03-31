@@ -272,8 +272,4 @@ class test_applications(EnMAPBoxTestCase):
 
 if __name__ == "__main__":
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-    #import xmlrunner
-    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
 
