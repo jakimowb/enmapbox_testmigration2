@@ -32,7 +32,7 @@ pipelines:
           - python3 -m pip install -r requirements.txt
           - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
           - python3 --version
-          - echo "## PYTHONPATH ##
+          - echo "## PYTHONPATH ##"
           - printenv PYTHONPATH
           - python3 scripts/setuprepository.py
           - python3 scripts/create_plugin.py -tu
