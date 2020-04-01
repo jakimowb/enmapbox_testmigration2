@@ -19,16 +19,28 @@ pipelines:
           - apt-get install -y unzip
           - apt-get -y install xvfb
           - apt-get -y install git-lfs
+          - git lfs install
+          - git lfs fetch
+          - git lfs pull
+          - git lfs checkout
           - Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
           #- ps aux | grep X
           - DISPLAY=:1.0
           - export DISPLAY
+          - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
+          - unzip qgisresources.zip
           - python3 -m pip install -r requirements.txt
           - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
           - python3 --version
+          - echo "## PYTHONPATH ##
+          - printenv PYTHONPATH
           - python3 scripts/setuprepository.py
           - python3 scripts/create_plugin.py -tu
-
+        artifacts: # defining the artifacts to be passed to each future step.
+          - deploy/enmapboxplugin/**
+          - deploy/enmapboxplugin.*.zip
+          - enmapboxtestdata/**
+          - qgisresources/**
     - step:
         name: run unit tests
         services:
@@ -48,19 +60,14 @@ pipelines:
           - mkdir test-reports
           - python3 -m pip install -r requirements.txt
           - python3 -m pip install xmlrunner
-          - git lfs install
-          - git lfs fetch
-          - git lfs pull
-          - git lfs checkout
-          - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
-          - unzip qgisresources.zip
           - python3 --version
-          - echo "## PYTHONPATH ##
-          - printenv PYTHONPATH
           - python3 scripts/setuprepository.py
           - python3 scripts/create_plugin.py -tu
-          - export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
           - cd deploy/enmapboxplugin
+          - export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
+          - echo "## PYTHONPATH ##
+          - printenv PYTHONPATH
+
           # run scripts/createruntests.py to generate the following lines
           - python3 -m coverage run --rcfile=.coveragec  enmapboxtesting/test_applications.py
           #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
