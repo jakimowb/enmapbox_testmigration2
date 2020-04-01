@@ -69,7 +69,7 @@ pipelines:
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_utils.py
           - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_vectorlayertools.py
           - python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_algorithm.py
-          - python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_core.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_core.py
           - python3 -m coverage report
 definitions:
   caches:
