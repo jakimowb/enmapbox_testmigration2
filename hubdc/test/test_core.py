@@ -66,14 +66,12 @@ class TestRasterDriver(TestCase):
         print(GTiffDriver())
         print(ErdasDriver())
 
-    def test_prepareCreation(self):
-        relativeFilename = 'test_output/test.bsq'
-        absoluteFilename = EnviDriver().prepareCreation(filename=relativeFilename)
-        assert abspath(relativeFilename) == absoluteFilename
-        assert '' == EnviDriver().prepareCreation(filename=None)
-
-
-        EnviDriver().prepareCreation(filename='test_output/test.bsq')
+    #def test_prepareCreation(self):
+        #relativeFilename = 'test_output/test.bsq'
+        #absoluteFilename = EnviDriver().prepareCreation(filename=relativeFilename)
+        #assert abspath(relativeFilename) == absoluteFilename
+        #assert '' == EnviDriver().prepareCreation(filename=None)
+        #EnviDriver().prepareCreation(filename='test_output/test.bsq')
 
     def test_equal(self):
         d1 = EnviDriver()
@@ -153,11 +151,11 @@ class TestVectorDriver(TestCase):
         driver = ESRIShapefileDriver()
         points = [Point(x, y, Projection.wgs84()) for x, y in ((-1, -1), (1, 1))]
 
-        filename = 'test_data/VectorDriver.delete.shp'
-        ds = VectorDataset.fromPoints(points=points, filename=filename, driver=driver)
-        ds.close()
-        driver.delete(filename=filename)
-        assert not exists(filename)
+        #filename = 'test_data/VectorDriver.delete.shp'
+        #ds = VectorDataset.fromPoints(points=points, filename=filename, driver=driver)
+        #ds.close()
+        #driver.delete(filename=filename)
+        #assert not exists(filename)
 
         filename = '/vsimem/VectorDriver.delete.shp'
         ds = VectorDataset.fromPoints(points=points, filename=filename, driver=driver)
