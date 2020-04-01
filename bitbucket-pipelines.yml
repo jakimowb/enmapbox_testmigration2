@@ -60,8 +60,9 @@ pipelines:
           - python3 scripts/setuprepository.py
           - python3 scripts/create_plugin.py -tu
           - export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
+          - cd deploy/enmapboxplugin
           # run scripts/createruntests.py to generate the following lines
-          - python3 -m coverage run --rcfile=.coveragec   /deploy/enmapboxplugin/enmapboxtesting/test_applications.py
+          - python3 -m coverage run --rcfile=.coveragec  enmapboxtesting/test_applications.py
           #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
           #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py
           #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasources.py
