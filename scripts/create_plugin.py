@@ -41,7 +41,7 @@ from enmapbox import DIR_REPO, __version__
 
 CHECK_COMMITS = False
 INCLUDE_TESTDATA = False  #includes the testdata folder for none-master versions
-
+INCLUDE_UNITTESTS = False
 
 ########## Config Section
 
@@ -126,6 +126,8 @@ def create_enmapbox_plugin():
     files.append(DIR_REPO / 'requirements.txt')
     files.append(DIR_REPO / 'requirements_developer.txt')
 
+    if INCLUDE_UNITTESTS:
+        files.extend(list(scantree(DIR_REPO / 'enmapboxtesting', pattern=re.compile('\.py$'))))
 
     for fileSrc in files:
         assert fileSrc.is_file()
@@ -148,6 +150,7 @@ def create_enmapbox_plugin():
     if INCLUDE_TESTDATA and not re.search(currentBranch, 'master', re.I):
         if os.path.isdir(enmapbox.DIR_TESTDATA):
             shutil.copytree(enmapbox.DIR_TESTDATA, PLUGIN_DIR / 'enmapboxtestdata')
+
 
     createCHANGELOG(PLUGIN_DIR)
 
@@ -466,14 +469,15 @@ if __name__ == "__main__":
     import getopt
     try:
         print(sys.argv)
-        opts, args = getopt.getopt(sys.argv[1:], "t")
+        opts, args = getopt.getopt(sys.argv[1:], "tu")
     except getopt.GetoptError as err:
         print(err)
 
     for o, a in opts:
         if o == '-t':
             INCLUDE_TESTDATA = True
-
+        if o == '-u':
+            INCLUDE_UNITTESTS = True
     create_enmapbox_plugin()
     exit()
 
