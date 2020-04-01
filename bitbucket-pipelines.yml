@@ -61,11 +61,9 @@ pipelines:
           - python3 -m pip install -r requirements.txt
           - python3 -m pip install xmlrunner
           - python3 --version
-          - python3 scripts/setuprepository.py
-          - python3 scripts/create_plugin.py -tu
-          - cd deploy/enmapboxplugin
           - export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
           - echo " PYTHONPATH "
+          - cd deploy/enmapboxplugin
           - printenv PYTHONPATH
 
           # run scripts/createruntests.py to generate the following lines
