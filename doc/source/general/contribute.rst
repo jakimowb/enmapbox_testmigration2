@@ -63,7 +63,7 @@ If your are not an EnMAP-Box core developer, the preferred way to contribute you
 
 
 1. :ref:`Fork the EnMAP-Box repository<contribute_fork>`
-2. :ref:`Clone you fork<contribute_clone>`
+2. :ref:`Clone your fork<contribute_clone>`
 3. :ref:`Modify the source code <contribute_modify>`
 4. :ref:`Commit your modifications <contribute_commit>`
 5. :ref:`Push your modification to your fork <contribute_push>` and
