@@ -1,9 +1,8 @@
 from typing import Dict
 
-from qgis._core import QgsProcessingFeedback, QgsProcessingContext, QgsRasterLayer
+from qgis._core import QgsProcessingFeedback, QgsProcessingContext
 
-from hubdsm.processing.enmapalgorithm import (EnMAPAlgorithm, Help,
-                                              EnMAPProcessingParameterRasterLayer, Group, EnMAPProcessingParameterBand)
+from hubdsm.processing.enmapalgorithm import *
 from hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
 from hubdsm.core.raster import Raster
 
@@ -20,6 +19,7 @@ class UniqueBandValueCounts(EnMAPAlgorithm):
 
     P_RASTER = 'raster'
     P_BAND = 'band'
+    P_OUTSTRING = 'outstring'
 
     def defineCharacteristics(self):
         self.addParameter(
@@ -34,13 +34,20 @@ class UniqueBandValueCounts(EnMAPAlgorithm):
                 help=Help(text='Raster band.'))
         )
 
+        self.addOutput(
+            EnMAPProcessingOutputString(
+                name=self.P_OUTSTRING, description='Output String', help=Help(text='Output string.')))
+
     def processAlgorithm_(self, parameters: Dict, context: QgsProcessingContext, feedback: QgsProcessingFeedback):
         qgsRasterLayer: QgsRasterLayer = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         raster = Raster.open(qgsRasterLayer.source())
         band = raster.band(number=self.parameterAsInt(parameters, self.P_BAND, context))
         total = 0
+        text = list()
         for id, count in uniqueBandValueCounts(band=band).items():
-            feedback.pushInfo(f'{id}: {count}')
+            text.append(f'{id}: {count}')
             total += count
-        feedback.pushInfo(f'total: {total}')
-        return {}
+        text.append(f'total: {total}')
+        text = '\n'.join(text)
+        feedback.pushInfo(text)
+        return {self.P_OUTSTRING: text}

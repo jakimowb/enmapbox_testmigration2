@@ -4,9 +4,7 @@ from enum import Enum
 from typing import List, Union, Any, Dict
 
 from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
-from qgis._core import (QgsProcessingParameterDefinition, QgsProcessingParameterMapLayer,
-                        QgsProcessingParameterRasterLayer, QgsProcessingFeedback, QgsProcessingContext,
-                        QgsProcessingParameterBand)
+from qgis._core import *
 
 
 class EnMAPAlgorithm(QgisAlgorithm):
@@ -209,4 +207,12 @@ class EnMAPProcessingParameterBand(QgsProcessingParameterBand):
             self, name=name, description=description, defaultValue=defaultValue,
             parentLayerParameterName=parentLayerParameterName, optional=optional, allowMultiple=allowMultiple
         )
+        self.help = help
+
+
+class EnMAPProcessingOutputString(QgsProcessingOutputString):
+    def __init__(
+            self, name: str, description: str, help=Help()
+    ):
+        QgsProcessingOutputString.__init__(self, name=name, description=description)
         self.help = help
