@@ -14,7 +14,7 @@ pipelines:
           - docker
         caches:
           - docker
-        scripts:
+        script:
           - apt-get install -y wget
           - apt-get install -y unzip
           - apt-get -y install xvfb
