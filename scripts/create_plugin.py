@@ -60,8 +60,7 @@ MD.mQgisMinimumVersion = '3.10'
 
 ########## End of config section
 
-
-def scantree(path, pattern=re.compile('.$'))->typing.Iterator[pathlib.Path]:
+def scantree(path, pattern=re.compile('.$')) -> typing.Iterator[pathlib.Path]:
     """
     Recursively returns file paths in directory
     :param path: root directory to search in

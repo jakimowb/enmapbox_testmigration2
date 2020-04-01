@@ -9,6 +9,27 @@ pipelines:
   custom:
     scheduled-testing:
     - step:
+        name: create plugin folder
+        services:
+          - docker
+        caches:
+          - docker
+        scripts:
+          - apt-get install -y wget
+          - apt-get install -y unzip
+          - apt-get -y install xvfb
+          - apt-get -y install git-lfs
+          - Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
+          #- ps aux | grep X
+          - DISPLAY=:1.0
+          - export DISPLAY
+          - python3 -m pip install -r requirements.txt
+          - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+          - python3 --version
+          - python3 scripts/setuprepository.py
+          - python3 scripts/create_plugin.py -tu
+
+    - step:
         name: run unit tests
         services:
           - docker
@@ -20,20 +41,11 @@ pipelines:
           #- apt-get -y install build-essential
           - apt-get -y install xvfb
           - apt-get -y install git-lfs
-          - apt-get install -y wget
-          - apt-get install -y unzip
           - Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
           #- ps aux | grep X
           - DISPLAY=:1.0
           - export DISPLAY
-          #- /opt/python/bin/conda update -y conda
-          #- conda update -y conda
-          #- conda create --name qgis_stable python=3.7
-          #- conda activate qgis_stable
-          #- conda install qgis --channel=conda-forge
-          #- conda env list
           - mkdir test-reports
-          # requirements_developer.txt calls the requirements.txt as well
           - python3 -m pip install -r requirements.txt
           - python3 -m pip install xmlrunner
           - git lfs install
@@ -43,6 +55,8 @@ pipelines:
           - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
           - unzip qgisresources.zip
           - python3 --version
+          - echo "## PYTHONPATH ##
+          - printenv PYTHONPATH
           - python3 scripts/setuprepository.py
           - python3 scripts/create_plugin.py -tu
           - export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
