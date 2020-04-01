@@ -9,6 +9,39 @@ pipelines:
   custom:
     scheduled-testing:
     - step:
+        name: create plugin folder
+        services:
+          - docker
+        caches:
+          - docker
+        script:
+          - apt-get install -y wget
+          - apt-get install -y unzip
+          - apt-get -y install xvfb
+          - apt-get -y install git-lfs
+          - git lfs install
+          - git lfs fetch
+          - git lfs pull
+          - git lfs checkout
+          - Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
+          #- ps aux | grep X
+          - DISPLAY=:1.0
+          - export DISPLAY
+          - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
+          - unzip qgisresources.zip
+          - python3 -m pip install -r requirements.txt
+          - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+          - python3 --version
+          - echo " PYTHONPATH "
+          - printenv PYTHONPATH
+          - python3 scripts/setuprepository.py
+          - python3 scripts/create_plugin.py -tu
+        artifacts: # defining the artifacts to be passed to each future step.
+          - deploy/enmapboxplugin/**
+          - deploy/enmapboxplugin.*.zip
+          - enmapboxtestdata/**
+          - qgisresources/**
+    - step:
         name: run unit tests
         services:
           - docker
@@ -20,53 +53,44 @@ pipelines:
           #- apt-get -y install build-essential
           - apt-get -y install xvfb
           - apt-get -y install git-lfs
-          - apt-get install -y wget
-          - apt-get install -y unzip
           - Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
           #- ps aux | grep X
           - DISPLAY=:1.0
           - export DISPLAY
-          #- /opt/python/bin/conda update -y conda
-          #- conda update -y conda
-          #- conda create --name qgis_stable python=3.7
-          #- conda activate qgis_stable
-          #- conda install qgis --channel=conda-forge
-          #- conda env list
           - mkdir test-reports
-          # requirements_developer.txt calls the requirements.txt as well
           - python3 -m pip install -r requirements.txt
           - python3 -m pip install xmlrunner
-          - git lfs install
-          - git lfs fetch
-          - git lfs pull
-          - git lfs checkout
-          - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
-          - unzip qgisresources.zip
           - python3 --version
-          - python3 scripts/setuprepository.py
-          - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-          - python3 -m coverage run --rcfile=.coveragec   enmapboxtesting/test_enmapbox.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_applications.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasources.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_dependencycheck.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_docksanddatasources.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxplugin.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxprocessingprovider.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_hiddenqgislayers.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mapcanvas.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mimedata.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_options.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_settings.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_speclibs.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_spectralprofilesources.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_template.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testdata_dependency.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testing.py
-          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_utils.py
-          - python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_algorithm.py
-          - python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_core.py
+          - export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
+          - echo " PYTHONPATH "
+          - cd deploy/enmapboxplugin
+          - printenv PYTHONPATH
+
+          # run scripts/createruntests.py to generate the following lines
+          - python3 -m coverage run --rcfile=.coveragec  enmapboxtesting/test_applications.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasources.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_dependencycheck.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_docksanddatasources.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxplugin.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxprocessingprovider.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_hiddenqgislayers.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mapcanvas.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mimedata.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_options.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_settings.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_speclibs.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_spectralprofilesources.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_splashscreen.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_template.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testdata_dependency.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testing.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_utils.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_vectorlayertools.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_algorithm.py
+          #- python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_core.py
           - python3 -m coverage report
 definitions:
   caches:

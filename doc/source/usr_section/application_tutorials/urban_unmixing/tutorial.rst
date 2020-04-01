@@ -11,7 +11,10 @@ Regression-based unmixing of urban land cover
 
 **Contributions from:** Sam Cooper, Patrick Hostert, Clemens Jaenicke, Benjamin Jakimow, Andreas Rabe, Fabian Thiel
 
-**Date:** 05/02/2019
+
+**Publication date:** 05/02/2019
+
+**Latest update:** 19/03/2020
 
 Introduction
 ============

@@ -30,6 +30,7 @@ start %PYTHON% scripts/setuprepository.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_settings.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_speclibs.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_spectralprofilesources.py
+%PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_splashscreen.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_template.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testdata_dependency.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testing.py

@@ -34,6 +34,7 @@ class test_applications(EnMAPBoxTestCase):
             eb.close()
             QApplication.processEvents()
         self.otherDialogs.clear()
+        print('Class tear down done', flush=True)
 
     @classmethod
     def setUpClass(cls):
@@ -65,7 +66,7 @@ class test_applications(EnMAPBoxTestCase):
         TESTDATA.validAppDirs = []
 
         #1. valid app 1
-        pAppDir = os.path.join(DIR_REPO, *['examples','minimumexample'])
+        pAppDir = os.path.join(DIR_REPO, *['examples', 'minimumexample'])
 
         TESTDATA.validAppDirs.append(pAppDir)
 
@@ -162,7 +163,7 @@ class test_applications(EnMAPBoxTestCase):
         #load a folder
         reg = ApplicationRegistry(EB)
         for d in TESTDATA.validAppDirs:
-            self.assertTrue(reg.addApplicationFolder(d))
+            self.assertTrue(reg.addApplicationFolder(d), msg='added {} returned False'.format(d))
         self.assertEqual(len(reg), len(TESTDATA.validAppDirs))
 
         reg = ApplicationRegistry(EB)
@@ -244,7 +245,7 @@ class test_applications(EnMAPBoxTestCase):
 
         timer = QTimer()
         timer.timeout.connect(self.closeBlockingDialogs)
-        timer.start(500)
+        timer.start(1000)
 
         EB = EnMAPBox()
 
@@ -257,23 +258,22 @@ class test_applications(EnMAPBoxTestCase):
             if isinstance(menuItem, QAction):
                 print('Trigger QAction {}"{}" {}'.format(prefix, menuItem.text(), menuItem.toolTip()))
                 menuItem.trigger()
+                QApplication.processEvents()
             elif isinstance(menuItem, QMenu):
                 for a in menuItem.actions():
                     triggerActions(a, prefix='"{}"->'.format(menuItem.title()))
+                    QApplication.processEvents()
 
         for title in ['Tools', 'Applications']:
 
             print('## TEST QMenu "{}"'.format(title))
 
             triggerActions(EB.menu(title))
+            QApplication.processEvents()
 
         self.showGui()
 
 
 if __name__ == "__main__":
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-    #import xmlrunner
-    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
-
+    print('Tests done', flush=True)

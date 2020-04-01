@@ -610,8 +610,6 @@ class standardDataSources(EnMAPBoxTestCase):
                 #self.assertEqual(obj1, obj2)
                 #self.assertEqual(obj1, obj3)
 
-
-
 if __name__ == "__main__":
     import xmlrunner
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
