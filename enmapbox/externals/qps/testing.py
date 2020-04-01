@@ -313,7 +313,7 @@ class TestCase(qgis.testing.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if True and isinstance(QgsApplication.instance(), QgsApplication):
+        if False and isinstance(QgsApplication.instance(), QgsApplication):
             QgsApplication.exitQgis()
             QApplication.quit()
             import gc

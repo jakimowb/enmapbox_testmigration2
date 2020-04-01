@@ -1,5 +1,5 @@
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-from enmapbox.externals.qps.vectorlayertools import VectorTools
+from enmapbox.externals.qps.vectorlayertools import VectorLayerTools
 
 class TestCasesVectorLayerTools(EnMAPBoxTestCase):
 
@@ -9,7 +9,7 @@ class TestCasesVectorLayerTools(EnMAPBoxTestCase):
         lyr = TestObjects.createVectorLayer()
 
         f0 = lyr0.getFeature(0)
-        tools = VectorTools()
+        tools = VectorLayerTools()
 
         tools.startEditing(lyr)
         #tools.addFeature(lyr, None, f0.geometry(), f0)
