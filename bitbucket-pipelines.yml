@@ -14,6 +14,7 @@ pipelines:
           - docker
         caches:
           - docker
+          - pip
         script:
           - apt-get install -y wget
           - apt-get install -y unzip
@@ -47,8 +48,8 @@ pipelines:
           - docker
         caches:
           - docker
-          #- pip
-          - condacache
+          - pip
+          #- condacache
         script: # Modify the commands below to build your repository.
           #- apt-get -y install build-essential
           - apt-get -y install xvfb
@@ -63,6 +64,7 @@ pipelines:
           - python3 --version
           - export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
           - echo " PYTHONPATH "
+          - cp .coveragec deploy/enmapboxplugin
           - cd deploy/enmapboxplugin
           - printenv PYTHONPATH
 
