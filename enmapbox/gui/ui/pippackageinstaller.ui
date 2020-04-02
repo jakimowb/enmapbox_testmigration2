@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>477</width>
+    <width>968</width>
     <height>428</height>
    </rect>
   </property>
@@ -32,7 +32,7 @@
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Required Packages</string>
+      <string>Please note that some updates require to restart EnMAP-Box / QGIS before they can become effective.</string>
      </property>
     </widget>
    </item>
