@@ -166,7 +166,9 @@ def collectEnMAPBoxAlgorithms()->typing.List[QgsProcessingAlgorithm]:
     return algs
 
 def initEnMAPBoxProcessingProvider():
-    """Initializes the EnMAPBoxProcessingProvider"""
+    """
+    Initializes the EnMAPBoxProcessingProvider
+    """
     from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider, ID
 
     registry = QgsApplication.instance().processingRegistry()

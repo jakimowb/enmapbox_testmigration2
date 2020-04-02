@@ -115,6 +115,7 @@ def create_enmapbox_plugin():
     files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdc', pattern=pattern)))
+    files.extend(list(scantree(DIR_REPO / 'hubdsm', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
     #add unit tests
     files.extend(list(scantree(DIR_REPO / 'enmapboxtesting', pattern=re.compile(r'\.py$'))))
