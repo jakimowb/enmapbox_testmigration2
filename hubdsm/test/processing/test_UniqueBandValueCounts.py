@@ -6,7 +6,7 @@ from hubdsm.processing.uniquebandvaluecounts import UniqueBandValueCounts
 from hubdsm.test.processing.testcase import TestCase
 
 
-class TestClassificationStatistics(TestCase):
+class TestUniqueBandValueCounts(TestCase):
 
     def test_onLayerWithoutCategoricalRenderer(self):
         filename = '/vsimem/r.bsq'

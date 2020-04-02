@@ -1,7 +1,3 @@
-from typing import Dict
-
-from qgis._core import QgsProcessingFeedback, QgsProcessingContext
-
 from hubdsm.processing.enmapalgorithm import *
 from hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
 from hubdsm.core.raster import Raster
@@ -9,13 +5,13 @@ from hubdsm.core.raster import Raster
 
 class UniqueBandValueCounts(EnMAPAlgorithm):
     def displayName(self):
-        return 'Classification Statistics'
+        return 'Unique Band Value Counts'
 
     def description(self):
-        return 'This algorithm reports class counts.'
+        return uniqueBandValueCounts.__doc__
 
     def group(self):
-        return Group.Auxilliary.name
+        return Group.Auxilliary.value
 
     P_RASTER = 'raster'
     P_BAND = 'band'
@@ -24,14 +20,13 @@ class UniqueBandValueCounts(EnMAPAlgorithm):
     def defineCharacteristics(self):
         self.addParameter(
             EnMAPProcessingParameterRasterLayer(
-                name=self.P_RASTER, description='Classification',
-                help=Help(text='Classification Raster.'))
+                name=self.P_RASTER, description='Raster')
         )
 
         self.addParameter(
             EnMAPProcessingParameterBand(
-                name=self.P_BAND, description='Band', parentLayerParameterName=self.P_RASTER, defaultValue=1,
-                help=Help(text='Raster band.'))
+                name=self.P_BAND, description='Band', parentLayerParameterName=self.P_RASTER, defaultValue=1
+            )
         )
 
         self.addOutput(
