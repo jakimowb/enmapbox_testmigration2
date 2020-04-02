@@ -38,8 +38,8 @@ pipelines:
           - python3 scripts/setuprepository.py
           - python3 scripts/create_plugin.py -tu
         artifacts: # defining the artifacts to be passed to each future step.
-          - deploy/enmapboxplugin/**
           - deploy/enmapboxplugin.*.zip
+          - deploy/enmapboxplugin/**
           - enmapboxtestdata/**
           - qgisresources/**
     - step:
@@ -65,34 +65,34 @@ pipelines:
           - export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
           - echo " PYTHONPATH "
           - cp .coveragec deploy/enmapboxplugin
-          - cd deploy/enmapboxplugin
+          #- cd deploy/enmapboxplugin
           - printenv PYTHONPATH
 
           # run scripts/createruntests.py to generate the following lines
           - python3 -m coverage run --rcfile=.coveragec  enmapboxtesting/test_applications.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasources.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_dependencycheck.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_docksanddatasources.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxplugin.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxprocessingprovider.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_hiddenqgislayers.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mapcanvas.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mimedata.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_options.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_settings.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_speclibs.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_spectralprofilesources.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_splashscreen.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_template.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testdata_dependency.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testing.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_utils.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_vectorlayertools.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_algorithm.py
-          #- python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_core.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasources.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_dependencycheck.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_docksanddatasources.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxplugin.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxprocessingprovider.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_hiddenqgislayers.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mapcanvas.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mimedata.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_options.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_settings.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_speclibs.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_spectralprofilesources.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_splashscreen.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_template.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testdata_dependency.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testing.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_utils.py
+          - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_vectorlayertools.py
+          - python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_algorithm.py
+          - python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_core.py
           - python3 -m coverage report
 definitions:
   caches:

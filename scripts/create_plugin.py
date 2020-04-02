@@ -41,7 +41,6 @@ from enmapbox import DIR_REPO, __version__
 
 CHECK_COMMITS = False
 INCLUDE_TESTDATA = False  #includes the testdata folder for none-master versions
-INCLUDE_UNITTESTS = False
 
 ########## Config Section
 
@@ -117,6 +116,8 @@ def create_enmapbox_plugin():
     files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdc', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
+    #add unit tests
+    files.extend(list(scantree(DIR_REPO / 'enmapboxtesting', pattern=re.compile(r'\.py$'))))
     files.append(DIR_REPO / '__init__.py')
     files.append(DIR_REPO / 'CHANGELOG.rst')
     files.append(DIR_REPO / 'CONTRIBUTORS.rst')
@@ -125,8 +126,7 @@ def create_enmapbox_plugin():
     files.append(DIR_REPO / 'requirements.txt')
     files.append(DIR_REPO / 'requirements_developer.txt')
 
-    if INCLUDE_UNITTESTS:
-        files.extend(list(scantree(DIR_REPO / 'enmapboxtesting', pattern=re.compile('\.py$'))))
+
 
     for fileSrc in files:
         assert fileSrc.is_file()

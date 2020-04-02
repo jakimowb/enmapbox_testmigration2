@@ -52,7 +52,8 @@ class test_dependencycheck(EnMAPBoxTestCase):
 
     def test_pippackage(self):
 
-        pkg = PIPPackage('gdal')
+        pkg = PIPPackage('gdal', pipCmd='GDAL>=3.0')
+
         self.assertTrue(pkg.isInstalled())
         self.assertIsInstance(pkg.installCommand(), str)
         pkg.installPackage()
@@ -61,7 +62,6 @@ class test_dependencycheck(EnMAPBoxTestCase):
         self.assertFalse(pkg.isInstalled())
         self.assertIsInstance(pkg.installCommand(), str)
         pkg.installPackage()
-
 
     def test_pippackagemodel(self):
 
@@ -85,18 +85,46 @@ class test_dependencycheck(EnMAPBoxTestCase):
         return 'foobar'+s
 
     def test_PIPInstaller(self):
-
-        pkgs = requiredPackages()
         pkgs = [PIPPackage(self.nonexistingPackageName()),
                 PIPPackage(self.nonexistingPackageName()),
                 PIPPackage(self.nonexistingPackageName())]
         pkgs += requiredPackages()
         w = PIPPackageInstaller()
         w.addPackages(pkgs)
-        w.installAll()
+        #w.installAll()
        #w.model.installAll()
 
         self.showGui(w)
+
+    def test_PIPPackageInfoTask(self):
+
+        required = [PIPPackage(self.nonexistingPackageName())] + requiredPackages()
+        AVAILABLE = dict()
+        INSTALLED = dict()
+
+        def onAvailableVersion(pkg: str, version: str):
+            print('Available {}={}'.format(pkg, version))
+            AVAILABLE[pkg] = version
+
+        def onInstalledVersion(pkg: str, version: str):
+            print('Installed {}={}'.format(pkg, version))
+            INSTALLED[pkg] = version
+
+        def onProgress(p: int):
+            print('Progress {}'.format(p))
+
+        def onMessage(msg:str, is_error:bool):
+            print(msg)
+
+
+
+        task = PIPPackageInfoTask('package info', [p.pipPkgName for p in required])
+        task.progressChanged.connect(onProgress)
+        task.sigAvailableVersion.connect(onAvailableVersion)
+        task.sigInstalledVersion.connect(onInstalledVersion)
+        task.sigMessage.connect(onMessage)
+        task.run()
+        QApplication.processEvents()
 
 
     def test_findpython(self):
