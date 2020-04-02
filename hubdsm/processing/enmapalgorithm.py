@@ -62,6 +62,21 @@ class EnMAPAlgorithm(QgisAlgorithm):
                 feedback.reportError(line)
             raise Exception('unexpected error')
 
+    def parameter(self, parameters: Dict, name: str, context: QgsProcessingContext):
+        pd = self.parameterDefinition(name=name)
+        if isinstance(pd, EnMAPProcessingParameterRasterLayer):
+            value = self.parameterAsRasterLayer(parameters, name, context)
+        elif isinstance(pd, EnMAPProcessingParameterRasterDestination):
+            if isinstance(parameters[name], QgsProcessingOutputLayerDefinition):
+                value = str(self.parameterAsOutputLayer(parameters, name, context))
+            elif isinstance(parameters[name], str):
+                value = parameters[name]
+            else:
+                assert 0, repr(parameters[name])
+        else:
+            value = parameters[name]
+        return value
+
     def hasHtmlOutputs(self, *args, **kwargs):
         return False
 
@@ -138,20 +153,29 @@ class Help(object):
             assert isinstance(link, Link)
 
     def html(self):
-        htmlLinks = [r'<a href="{url}">{name}</a>'.format(url=link.url, name=link.name) for link in self.links]
-        htmlText = self.text.format(*htmlLinks)
-        htmlText = htmlText.replace('\n', '<br>')
+        if self.text == 'undocumented':
+            htmlText = ''
+        else:
+            htmlLinks = [r'<a href="{url}">{name}</a>'.format(url=link.url, name=link.name) for link in self.links]
+            htmlText = self.text.format(*htmlLinks)
+            htmlText = htmlText.replace('\n', '<br>')
         return htmlText
 
     def rst(self):
-        rstLinks = [r'`{name} <{url}>`_'.format(url=link.url, name=link.name) for link in self.links]
-        rstText = self.text.format(*rstLinks)
-        rstText = rstText.replace('\n', '\n\n')
+        if self.text == 'undocumented':
+            rstText = ''
+        else:
+            rstLinks = [r'`{name} <{url}>`_'.format(url=link.url, name=link.name) for link in self.links]
+            rstText = self.text.format(*rstLinks)
+            rstText = rstText.replace('\n', '\n\n')
         return rstText
 
     def tooltip(self):
-        links = [link.name for link in self.links]
-        tooltip = self.text.format(*links)
+        if self.text == 'undocumented':
+            tooltip = ''
+        else:
+            links = [link.name for link in self.links]
+            tooltip = self.text.format(*links)
         return tooltip
 
 
@@ -200,12 +224,38 @@ class EnMAPProcessingParameterRasterLayer(QgsProcessingParameterRasterLayer):
 
 class EnMAPProcessingParameterBand(QgsProcessingParameterBand):
     def __init__(
-            self, name: str, description: str, parentLayerParameterName: str, defaultValue: Any = None,
+            self, name: str, description: str, parentLayerParameterName: str, defaultValue: int = None,
             optional: bool = False, allowMultiple: bool = False, help=Help()
     ):
         QgsProcessingParameterBand.__init__(
             self, name=name, description=description, defaultValue=defaultValue,
             parentLayerParameterName=parentLayerParameterName, optional=optional, allowMultiple=allowMultiple
+        )
+        self.help = help
+
+
+class EnMAPProcessingParameterFile(QgsProcessingParameterFile):
+    def __init__(
+            self, name: str, description: str,
+            behavior: QgsProcessingParameterFile.Behavior = QgsProcessingParameterFile.File,
+            extension: str = '', defaultValue: str = None, optional: bool = False,
+            fileFilter: str = '', help=Help()
+    ):
+        QgsProcessingParameterFile.__init__(
+            self, name=name, description=description, behavior=behavior, extension=extension, defaultValue=defaultValue,
+            optional=optional, fileFilter=fileFilter
+        )
+        self.help = help
+
+
+class EnMAPProcessingParameterRasterDestination(QgsProcessingParameterRasterDestination):
+    def __init__(
+            self, name: str, description: str, defaultValue: str = None, optional: bool = False,
+            createByDefault: bool = True, help=Help()
+    ):
+        QgsProcessingParameterRasterDestination.__init__(
+            self, name=name, description=description, defaultValue=defaultValue, optional=optional,
+            createByDefault=createByDefault
         )
         self.help = help
 

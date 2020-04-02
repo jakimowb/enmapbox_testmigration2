@@ -1,4 +1,3 @@
-from os.path import splitext
 from typing import Tuple
 
 from osgeo import gdal
@@ -13,6 +12,9 @@ def importEnmapL1B(
         filenameVnir = filenameMetadataXml.replace('METADATA.XML', 'EnMAP-Box_VNIR.vrt')
     if filenameSwir is None:
         filenameSwir = filenameMetadataXml.replace('METADATA.XML', 'EnMAP-Box_SWIR.vrt')
+    assert isinstance(filenameMetadataXml, str)
+    assert isinstance(filenameVnir, str)
+    assert isinstance(filenameSwir, str)
     assert filenameVnir.lower().endswith('.vrt')
     assert filenameSwir.lower().endswith('.vrt')
 
