@@ -19,6 +19,11 @@ pipelines:
             - enmapboxtestdatacache
 
           script:
+            - apt-get -y install git-lfs
+            - git lfs install
+            - git lfs fetch
+            - git lfs pull
+            - git lfs checkout
             - python3 -m pip install -r requirements_developer.txt
             - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
             - echo "current dir:" $(pwd)
