@@ -29,6 +29,14 @@ from enmapbox.gui.enmapboxgui import EnMAPBox
 
 class TestEnMAPBoxEmpty(EnMAPBoxTestCase):
 
+    def test_findqgisresources(self):
+        from enmapbox.externals.qps.resources import findQGISResourceFiles
+        results = findQGISResourceFiles()
+        print('QGIS Resource files:')
+        for p in results:
+            print(p)
+        self.assertTrue(len(results) > 0)
+
     def test_empty(self):
         enmapbox = EnMAPBox(load_core_apps=False, load_other_apps=False)
         self.assertIsInstance(enmapbox, EnMAPBox)
