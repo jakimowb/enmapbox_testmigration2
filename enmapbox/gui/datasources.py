@@ -632,6 +632,10 @@ class DataSourceRaster(DataSourceSpatial):
 
 class DataSourceVector(DataSourceSpatial):
     def __init__(self, uri,  name=None, icon=None, providerKey:str=None, layer:QgsVectorLayer=None):
+
+        if name is None:
+            name = os.path.basename(uri)
+
         super(DataSourceVector, self).__init__(uri, name, icon, providerKey, layer=layer)
         if not isinstance(layer, QgsVectorLayer):
             layer = self.createUnregisteredMapLayer()
