@@ -2,10 +2,15 @@ from unittest import TestCase
 
 from osgeo import gdal
 
-from hubdsm.algorithm.importenmapl1b import importEnmapL1B
+from hubdsm.algorithm.importenmapl1b import importEnmapL1B, isEnmapL1BProduct
 
 
 class TestImportEnmapL1B(TestCase):
+
+    def test_isEnmapL1BProduct(self):
+        filenameMetadataXml = r'C:\Users\janzandr\Downloads\ENMAP01-____L1B-DT000000987_20130205T105307Z_001_V000101_20190426T143700Z__rows100-199\ENMAP01-____L1B-DT000000987_20130205T105307Z_001_V000101_20190426T143700Z-METADATA.XML'
+        self.assertTrue(isEnmapL1BProduct(filenameMetadataXml=filenameMetadataXml))
+        self.assertFalse(isEnmapL1BProduct(filenameMetadataXml=''))
 
     def test(self):
         dsVnir, dsSwir = importEnmapL1B(filenameMetadataXml=r'C:\Users\janzandr\Downloads\ENMAP01-____L1B-DT000000987_20130205T105307Z_001_V000101_20190426T143700Z__rows100-199\ENMAP01-____L1B-DT000000987_20130205T105307Z_001_V000101_20190426T143700Z-METADATA.XML')

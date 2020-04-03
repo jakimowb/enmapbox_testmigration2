@@ -1,3 +1,4 @@
+from os.path import basename
 from typing import Tuple
 
 from osgeo import gdal
@@ -51,3 +52,12 @@ def importEnmapL1B(
         rasterBand.FlushCache()
 
     return dsVnir, dsSwir
+
+def isEnmapL1BProduct(filenameMetadataXml: str):
+    # r'ENMAP01-____L1B-DT000000987_20130205T105307Z_001_V000101_20190426T143700Z__rows100-199\ENMAP01-____L1B-DT000000987_20130205T105307Z_001_V000101_20190426T143700Z-METADATA.XML'
+    basename_ = basename(filenameMetadataXml)
+    valid = True
+    valid &= basename_.startswith('ENMAP')
+    valid &= 'L1B' in basename_
+    valid &= basename_.endswith('METADATA.XML')
+    return valid
