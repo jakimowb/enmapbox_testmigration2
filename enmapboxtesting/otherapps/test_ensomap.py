@@ -51,6 +51,11 @@ class test_ensomap(EnMAPBoxTestCase):
 
         self.assertTrue(isinstance(app, list) or isinstance(app, EnMAPBoxApplication))
 
+    def test_EnMAPBox(self):
+        
+        emb = EnMAPBox()
+
+        self.assertIsInstance(emb, EnMAPBox)
 if __name__ == "__main__":
 
     import xmlrunner
