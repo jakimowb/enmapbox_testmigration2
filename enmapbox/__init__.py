@@ -74,14 +74,8 @@ def enmapboxSettings()->QSettings:
     return QSettings('HU-Berlin', ENMAP_BOX_KEY)
 
 settings = enmapboxSettings()
-
 DEBUG = settings.value('EMB_DEBUG', False)
-LOAD_PROCESSING_FRAMEWORK = settings.value('EMB_LOAD_PF', True)
-LOAD_EXTERNAL_APPS = settings.value('EMB_LOAD_EA', True)
-LOAD_INTERNAL_APPS = settings.value('EMB_LOAD_IA', True)
-
 site.addsitedir(DIR_SITEPACKAGES)
-
 
 # test PyQtGraph
 try:

@@ -238,7 +238,10 @@ class EnMAPBox(QgisInterface, QObject):
     sigProjectWillBeSaved = pyqtSignal()
 
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
-    def __init__(self, iface:QgisInterface=None):
+    def __init__(self,
+                 iface: QgisInterface = None,
+                 load_core_apps: bool = True,
+                 load_other_apps: bool = True):
         assert EnMAPBox.instance() is None, 'EnMAPBox already started. Call EnMAPBox.instance() to get a handle to.'
 
         splash = EnMAPBoxSplashScreen(parent=None)
@@ -339,7 +342,10 @@ class EnMAPBox(QgisInterface, QObject):
 
         # load EnMAP-Box applications
         splash.showMessage('Load EnMAPBoxApplications...')
-        self.initEnMAPBoxApplications()
+
+        import enmapbox
+
+        self.initEnMAPBoxApplications(load_core_apps=load_core_apps, load_other_apps=load_other_apps)
 
         # add developer tools to the Tools menu
         m = self.menu('Tools')
@@ -958,7 +964,9 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.optionMoveCenter.setEnabled(b)
         return results
 
-    def initEnMAPBoxApplications(self):
+    def initEnMAPBoxApplications(self,
+                                 load_core_apps: bool = True,
+                                 load_other_apps: bool = True):
         """
         Initialized EnMAPBoxApplications
         """
@@ -967,27 +975,28 @@ class EnMAPBox(QgisInterface, QObject):
 
         listingBasename = 'enmapboxapplications.txt'
 
+        DIR_ENMAPBOX = pathlib.Path(enmapbox.DIR_ENMAPBOX)
+        INTERNAL_APPS = DIR_ENMAPBOX / 'coreapps'
+        EXTERNAL_APPS = DIR_ENMAPBOX / 'coreapps'
         # load internal "core" apps
-        INTERNAL_APPS = jp(DIR_ENMAPBOX, *['coreapps'])
-        if enmapbox.LOAD_INTERNAL_APPS:
+        if load_core_apps:
             self.applicationRegistry.addApplicationFolder(INTERNAL_APPS, isRootFolder=True)
         # check for listing file
-        p = os.path.join(INTERNAL_APPS, listingBasename)
+        p = INTERNAL_APPS / listingBasename
         if os.path.isfile(p):
             self.applicationRegistry.addApplicationListing(p)
 
         # load external / standard apps
-        EXTERNAL_APPS = jp(DIR_ENMAPBOX, *['apps'])
-        if enmapbox.LOAD_EXTERNAL_APPS:
+        if load_other_apps:
             self.applicationRegistry.addApplicationFolder(EXTERNAL_APPS, isRootFolder=True)
 
         # check for listing file
-        p = os.path.join(EXTERNAL_APPS, listingBasename)
+        p = EXTERNAL_APPS / listingBasename
         if os.path.isfile(p):
             self.applicationRegistry.addApplicationListing(p)
 
         # check for listing file in root
-        p = os.path.join(DIR_ENMAPBOX, listingBasename)
+        p = DIR_ENMAPBOX / listingBasename
         if os.path.isfile(p):
             self.applicationRegistry.addApplicationListing(p)
 
@@ -1003,7 +1012,7 @@ class EnMAPBox(QgisInterface, QObject):
                 print('Unable to load EnMAPBoxApplication(s) from path: "{}"'.format(p), file=sys.stderr)
 
         errorApps = [app for app, v in self.applicationRegistry.mAppInitializationMessages.items()
-                     if v != True]
+                     if v is not True]
 
         if len(errorApps) > 0:
             title = 'EnMAPBoxApplication error(s)'
