@@ -98,7 +98,7 @@ class ReclassifyDialog(QDialog):
                 to_exclude.append(l)
             else:
                 cs = ClassificationScheme.fromMapLayer(l)
-                if len(cs) == 0:
+                if cs is None or len(cs) == 0:
                     to_exclude.append(l)
         self.mapLayerComboBox.setExceptedLayerList(to_exclude)
 
