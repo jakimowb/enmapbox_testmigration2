@@ -6,8 +6,8 @@
 #image: continuumio/miniconda3
 image: qgis/qgis
 pipelines:
-  custom:
-    fix403linuxcrash:
+  branches:
+    feature/crash#403:
       - step:
           name: basic qgis loading
           services:
@@ -38,6 +38,7 @@ pipelines:
             #- CI=True
             #- export CI
 
+  custom:
     scheduled-testing:
       - step:
           name: setup repository
