@@ -262,6 +262,9 @@ class ApplicationRegistry(QObject):
                 appPkgRoot = os.path.dirname(appPackagePath)
                 pkgFile = os.path.join(appPackagePath, '__init__.py')
 
+                if appPkgName in ['ensomap']:
+                    raise Exception('Skipped loading EnMAPBoxApplication "{}"'.format(appPkgName))
+
                 print('Load EnMAPBoxApplication(s) from "{}"'.format(appPkgName))
 
                 if not os.path.isfile(pkgFile):
