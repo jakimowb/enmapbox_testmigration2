@@ -29,7 +29,7 @@ pipelines:
             - python3 scripts/setup_repository.py
             - python3 enmapbox --debug --no_exec
             - python3 enmapboxtesting/test_enmapbox_empty.py
-            - python3 enmapboxtesting/test_enmpabox.py
+            - python3 enmapboxtesting/test_enmapbox.py
             #- CI=True
             #- export CI
 
