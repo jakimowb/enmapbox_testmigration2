@@ -50,7 +50,7 @@ it as source in your PyCharm project (left-mouse, mark directory as source):
 ===================================== ==========================================================================================================================================
 Script                                Purpose
 ===================================== ==========================================================================================================================================
-``scripts/setuprepository.py``        Creates resource files etc. required to test the EnMAP-Box
+``scripts/setup_repository.py``        Creates resource files etc. required to test the EnMAP-Box
 ``scripts/create_plugin.py``          Create the EnMAP-Box Plugin ZIP file.
 ``scripts/compileresourcefiles.py``   Complies EnMAP-Box resources (*.svg, *.png) into a *_rc.py
 ``scripts/iconselect.py``             Opens a browser to show EnMAP-Box and QGIS resource paths
@@ -111,7 +111,7 @@ Install the EnMAP-Box repository
     ============= ====================================================================
 
 
-#. Run ``scripts/setuprepository.py`` to create Qt resource modules and perform a dependency check.
+#. Run ``scripts/setup_repository.py`` to create Qt resource modules and perform a dependency check.
 
    The EnMAP-Box uses the Qt resource system (see https://doc.qt.io/qt-5/resources.html for details) to access icons.
    This step creates for each Qt resource file (``filename.qrc``) a corresponding python module
@@ -135,7 +135,7 @@ Install the EnMAP-Box repository
          The QGIS icon for raster (mIconRaster.svg)
 
    If we start and develop application from inside PyCharm, we usually don't have access to QGIS desktop application
-   resources. However, if you have downloaded the QGIS repository as described above, ``scripts/setuprepository.py``
+   resources. However, if you have downloaded the QGIS repository as described above, ``scripts/setup_repository.py``
    will look for it, compile the resource files and write them into folder ``enmap-box/qgisresources``.
 
 

@@ -106,7 +106,7 @@ def create_enmapbox_plugin():
 
     #1. (re)-compile all enmapbox resource files
 
-    from scripts.compileresourcefiles import compileEnMAPBoxResources
+    from scripts.compile_resourcefiles import compileEnMAPBoxResources
     compileEnMAPBoxResources()
 
     # copy python and other resource files

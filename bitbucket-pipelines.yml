@@ -18,11 +18,13 @@ pipelines:
           script:
             - python3 -m pip install -r requirements.txt
             - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+            - echo "current dir: $(pwd) "
             - python3 --version
             - echo " PYTHONPATH "
             - printenv PYTHONPATH
             - QT_QPA_PLATFORM=offscreen
             - export QT_QPA_PLATFORM
+            - python3 scripts/setup_repository.py
             - python3 enmapbox --debug --no_exec
             - python3 enmapboxtesting/test_enmapbox_empty.py
             #- CI=True
@@ -30,7 +32,7 @@ pipelines:
 
     scheduled-testing:
       - step:
-          name: create plugin folder
+          name: setup repository
           services:
             - docker
           caches:
@@ -51,15 +53,12 @@ pipelines:
             #- export DISPLAY
             - QT_QPA_PLATFORM=offscreen
             - export QT_QPA_PLATFORM
-            - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
-            - unzip qgisresources.zip
             - python3 -m pip install -r requirements.txt
             - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
             - python3 --version
             - echo " PYTHONPATH "
             - printenv PYTHONPATH
-            - python3 scripts/setuprepository.py
-            - python3 scripts/create_plugin.py -tu
+            - python3 scripts/setup_repository.py
           artifacts: # defining the artifacts to be passed to each future step.
             - deploy/enmapboxplugin.*.zip
             - deploy/enmapboxplugin/**
@@ -123,3 +122,4 @@ pipelines:
 definitions:
   caches:
     condacache: /opt/conda
+    qgisresourcecache:

@@ -14,25 +14,22 @@ def setup_enmapbox_repository():
 
     site.addsitedir(DIR_REPO)
 
+    from scripts.compile_resourcefiles import compileEnMAPBoxResources
+    from scripts.install_testdata import install_qgisresources, install_enmapboxtestdata
+
     # 1. compile EnMAP-Box resource files (*.qrc) into corresponding python modules (*.py)
     print('Compile EnMAP-Box resource files...')
-    from scripts.compileresourcefiles import compileEnMAPBoxResources
     compileEnMAPBoxResources()
 
     # 2. install the EnMAP-Box test data
     print('Install EnMAP-Box Test Data')
-    import enmapbox.dependencycheck
-    enmapbox.dependencycheck.installTestData(overwrite_existing=False, ask=False)
+    install_enmapboxtestdata()
 
+    print('Install QGIS resource files')
+    install_qgisresources()
     print('EnMAP-Box repository setup finished')
 
 
 if __name__ == "__main__":
     print('setup repository')
-    try:
-        print(sys.argv)
-        opts, options = getopt.getopt(sys.argv[1:], "")
-    except getopt.GetoptError as err:
-        print(err, file=sys.stderr)
-
     setup_enmapbox_repository()

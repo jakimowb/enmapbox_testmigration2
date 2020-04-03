@@ -12,7 +12,7 @@ WHERE python3 >nul 2>&1 && (
     set PYTHON=python
 )
 
-start %PYTHON% scripts/setuprepository.py
+start %PYTHON% scripts/setup_repository.py
 
 %PYTHON% -m coverage run --rcfile=.coveragec   enmapboxtesting/test_applications.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py

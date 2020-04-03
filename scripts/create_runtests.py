@@ -35,7 +35,7 @@ WHERE python3 >nul 2>&1 && (
     set PYTHON=python
 )
 
-start %PYTHON% scripts/setuprepository.py
+start %PYTHON% scripts/setup_repository.py
 """
 
     PREFACE_SH = \
@@ -47,7 +47,7 @@ export CI
 
 find . -name "*.pyc" -exec rm -f {} \;
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-# python3 scripts/setuprepository.py
+# python3 scripts/setup_repository.py
 """
 
 
