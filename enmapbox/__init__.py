@@ -95,6 +95,10 @@ def icon() -> QIcon:
     return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
 
 
+def debugLog(msg: str):
+    if DEBUG:
+        print('DEBUG:'+msg, flush=True)
+
 def messageLog(msg, level=Qgis.Info):
     """
     Writes a log message to the QGIS EnMAP-Box Log
@@ -127,26 +131,22 @@ def initEnMAPBoxResources():
     """
     Loads (or reloads) all Qt resource files
     """
-    if DEBUG:
-        print('started initEnMAPBoxResources', flush=True)
+    debugLog('started initEnMAPBoxResources')
     from .externals.qps.resources import initQtResources, initResourceFile
     initQtResources(DIR_ENMAPBOX)
-    if DEBUG:
-        print('finished initEnMAPBoxResources', flush=True)
+    debugLog('finished initEnMAPBoxResources')
 
 
 def initEditorWidgets():
     """
     Initialises QgsEditorWidgets
     """
-    if DEBUG:
-        print('started initEditorWidgets', flush=True)
+    debugLog('started initEditorWidgets')
 
     from .externals.qps import registerEditorWidgets
     registerEditorWidgets()
 
-    if DEBUG:
-        print('finished initEditorWidgets', flush=True)
+    debugLog('finished initEditorWidgets')
         
 def collectEnMAPBoxAlgorithms() -> typing.List[QgsProcessingAlgorithm]:
     """
@@ -176,8 +176,7 @@ def initEnMAPBoxProcessingProvider():
     """
     Initializes the EnMAPBoxProcessingProvider
     """
-    if DEBUG:
-        print('started initEnMAPBoxProcessingProvider', flush=True)
+    debugLog('started initEnMAPBoxProcessingProvider')
     from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider, ID
 
     registry = QgsApplication.instance().processingRegistry()
@@ -205,8 +204,7 @@ def initEnMAPBoxProcessingProvider():
         messageLog(info, Qgis.Warning)
         print('\n'.join(info), file=sys.stderr)
     
-    if DEBUG:
-        print('started initEnMAPBoxProcessingProvider', flush=True)
+    debugLog('started initEnMAPBoxProcessingProvider')
 
 
 def removeEnMAPBoxProcessingProvider():
@@ -223,16 +221,14 @@ def removeEnMAPBoxProcessingProvider():
 
 
 def initMapLayerConfigWidgetFactories():
-    if DEBUG:
-        print('started initMapLayerConfigWidgetFactories', flush=True)
+    debugLog('started initMapLayerConfigWidgetFactories')
 
     from .externals.qps import registerMapLayerConfigWidgetFactories, mapLayerConfigWidgetFactories
     registerMapLayerConfigWidgetFactories()
     for factory in mapLayerConfigWidgetFactories():
         qgis.utils.iface.registerMapLayerConfigWidgetFactory(factory)
 
-    if DEBUG:
-        print('finished initMapLayerConfigWidgetFactories', flush=True)
+    debugLog('finished initMapLayerConfigWidgetFactories')
 
 
 def initAll():

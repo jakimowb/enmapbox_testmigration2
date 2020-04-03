@@ -17,7 +17,10 @@
 **************************************************************************
 """
 
-import sys, os, site
+import sys
+import os
+import site
+import argparse
 from qgis.PyQt.QtWidgets import QApplication
 import qgis.testing
 
@@ -55,20 +58,14 @@ def run(sources: list = None, debug: bool = False):
 
 
 if __name__ == '__main__':
-    import getopt
+    parser = argparse.ArgumentParser(description='Start the EnMAP-Box')
+    parser.add_argument('-d', '--debug', required=False, help='Debug mode with more outputs', action='store_true')
+    parser.add_argument('-x', '--no_exec', required=False, help='Close EnMAP-Box if QApplication is not existent', action='store_true')
+    args = parser.parse_args()
 
-    try:
-        print(sys.argv)
-        opts, args = getopt.getopt(sys.argv[1:], "d")
-    except getopt.GetoptError as err:
-        print(err)
-
-    debug = False
-    for o, a in opts:
-        if o == '-d':
-            debug = True
-
-    b = isinstance(QApplication.instance(), QApplication)
-    run(debug=debug)
-    if not b:
+    app_exists = isinstance(QApplication.instance(), QApplication)
+    run(debug=args.debug)
+    if not app_exists and not args.no_exec:
         QApplication.instance().exec_()
+    else:
+        print('Finished enmapbox.__main__.py')
