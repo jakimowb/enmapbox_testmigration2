@@ -22,7 +22,7 @@ from qgis.PyQt.QtWidgets import QApplication
 import qgis.testing
 
 
-def run(sources: list=None):
+def run(sources: list = None, debug: bool = False):
     """
     Starts the EnMAP-Box GUI.
     """
@@ -30,6 +30,8 @@ def run(sources: list=None):
     from enmapbox.externals.qps.resources import findQGISResourceFiles
     qgisApp = initQgisApplication(resources=findQGISResourceFiles())
     import enmapbox
+
+    enmapbox.DEBUG = debug is True
 
     # initialize resources and background frameworks
     # if started from QGIS, this is done by enmapbox/enmapboxplugin.py
@@ -53,7 +55,20 @@ def run(sources: list=None):
 
 
 if __name__ == '__main__':
+    import getopt
+
+    try:
+        print(sys.argv)
+        opts, args = getopt.getopt(sys.argv[1:], "d")
+    except getopt.GetoptError as err:
+        print(err)
+
+    debug = False
+    for o, a in opts:
+        if o == '-d':
+            debug = True
+
     b = isinstance(QApplication.instance(), QApplication)
-    run()
+    run(debug=debug)
     if not b:
         QApplication.instance().exec_()
