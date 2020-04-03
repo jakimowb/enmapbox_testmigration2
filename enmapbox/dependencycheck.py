@@ -22,7 +22,7 @@
 # noinspection PyPep8Naming
 import sys, os, collections, shutil, time, re, importlib, typing, subprocess
 import pathlib
-import copy
+import requests
 from difflib import SequenceMatcher
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.PyQt.QtCore import QUrl
@@ -105,7 +105,12 @@ class PIPPackage(object):
         if True:
             cmd = ' '.join(args)
             try:
-                process = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                process = subprocess.run(cmd,
+                                         check=True,
+                                         shell=True,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE,
+                                         universal_newlines=True)
                 self.stderrMsg = str(process.stdout)
             except subprocess.CalledProcessError as ex:
                 self.stderrMsg = ex.stderr
@@ -219,7 +224,7 @@ class PIPPackageInfoTask(QgsTask):
     sigMessage = pyqtSignal(str, bool)
     sigInstalledVersion = pyqtSignal(str, str)
     sigAvailableVersion = pyqtSignal(str, str)
-
+    sigAvailableVersionJson = pyqtSignal(str, dict)
     def __init__(self, description: str,
                  pipPackages: typing.List[str],
                  load_latest_versions: bool=True,
@@ -229,6 +234,7 @@ class PIPPackageInfoTask(QgsTask):
         self.callback = callback
         self.INSTALLED_VERSIONS = dict()
         self.LATEST_VERSIONS = dict()
+        self.LATEST_VERSION_JSON = dict()
         self.load_latest_versions: bool = load_latest_versions
 
     def run(self):
@@ -238,7 +244,10 @@ class PIPPackageInfoTask(QgsTask):
         # get info on installed packages
         cmdList = str(localPythonExecutable()) + ' -m pip list'
         self.sigMessage.emit('Search for installed versions...', False)
-        process = subprocess.run(cmdList, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        process = subprocess.run(cmdList,
+                                 check=True, shell=True,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
                                  universal_newlines=True)
 
         rxInstalled = re.compile(r'({})\s+({})'.format(rxPipPackageName.pattern, rxPipVersion.pattern))
@@ -260,39 +269,43 @@ class PIPPackageInfoTask(QgsTask):
 
         self.setProgress(1)
 
-        # info on remote package version
+        # get info about remote package versions
         self.sigMessage.emit('Search for latest versions...', False)
+
+        import warnings
+        warnings.simplefilter('ignore', ResourceWarning)
+
+        session = requests.Session()
         for i, pipPkg in enumerate(self.packages):
-            cmdLatestVersion = str(localPythonExecutable()) + ' -m pip search -V {}'.format(pipPkg)
             self.LATEST_VERSIONS[pipPkg] = ""
-            try:
-                process = subprocess.run(cmdLatestVersion, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                         universal_newlines=True)
-                stdout = process.stdout
-                rxMaxVersion = re.compile(r'^({})\s+\(({})\)'.format(pipPkg, rxPipVersion.pattern), re.I)
-                for line in stdout.splitlines():
-                    match = rxMaxVersion.search(line)
-                    if match:
-                        version = match.group(2)
-                        pipName = match.group(1)
-                        self.LATEST_VERSIONS[pipName] = version
-                        self.sigAvailableVersion.emit(pipName, version)
-                        if pipName != pipPkg:
-                            self.sigMessage.emit('PIP Package "{}" is correctly written "{}"'.format(pipPkg, pipName), True)
-                        self.sigMessage.emit('Latest version "{}" = {}'.format(pipName, version), False)
-            except subprocess.CalledProcessError as ex:
-                info = 'request error: "{}"\nreturn message: {}\nreturn code: {}'.format(str(ex.cmd).strip(),
-                                                                                       str(ex.stderr).strip(),
-                                                                                       ex.returncode)
-                self.sigMessage.emit(info, True)
-            except Exception as ex:
-                info = str(ex)
-                self.sigMessage.emit(info, True)
+
+            url = "https://pypi.python.org/pypi/{}/json".format(pipPkg)
+            jsonDict = dict()
+            version = ''
+            with session.get(url) as response:
+                if response.status_code == 200:
+                    jsonDict = response.json()
+                else:
+                    info = 'request: "{}"\nreturned: {}\nstatus code: {}'.format(response.request.url,
+                                                                             response.reason,
+                                                                             response.status_code)
+                    self.sigMessage.emit(info, True)
+
+            if isinstance(jsonDict, dict) and len(jsonDict) > 0:
+                version = jsonDict['info']['version']
+                pipName = jsonDict['info']['name']
+                if pipName != pipPkg:
+                    self.sigMessage.emit('PIP Package "{}" is correctly written "{}"'.format(pipPkg, pipName), True)
+                self.sigMessage.emit('Latest version "{}" = {}'.format(pipName, version), False)
+            self.sigAvailableVersionJson.emit(pipPkg, jsonDict)
+            self.sigAvailableVersion.emit(pipPkg, version)
 
             if self.isCanceled():
+                session.close()
                 self.sigMessage.emit('version retrieval canceled', False)
                 return False
             self.setProgress(i+2)
+        session.close()
         return True
 
     def finished(self, result):

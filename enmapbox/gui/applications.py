@@ -167,6 +167,8 @@ class ApplicationRegistry(QObject):
         Loads EnMAPBoxApplications from locations defined in a text file
         :param appPkgFile: str, filepath to file with locations of EnMAPBoxApplications
         """
+        if isinstance(appPkgFile, pathlib.Path):
+            appPkgFile = str(appPkgFile)
         assert isinstance(appPkgFile, str)
         assert os.path.isfile(appPkgFile)
         pkgFileDir = os.path.dirname(appPkgFile)
@@ -238,6 +240,9 @@ class ApplicationRegistry(QObject):
                                directory without any __init__.py which contains EnMAPBoxApplication folders
         :return: bool, True if any EnMAPBoxApplication was added
         """
+        if isinstance(appPackagePath, pathlib.Path):
+            appPackagePath = str(appPackagePath)
+
         if isRootFolder:
             assert (isinstance(appPackagePath, str) and os.path.isdir(appPackagePath))
             subDirs = []
@@ -256,6 +261,9 @@ class ApplicationRegistry(QObject):
                 appPkgName = os.path.basename(appPackagePath)
                 appPkgRoot = os.path.dirname(appPackagePath)
                 pkgFile = os.path.join(appPackagePath, '__init__.py')
+
+                if appPkgName in ['ensomap']:
+                    raise Exception('Skipped loading EnMAPBoxApplication "{}"'.format(appPkgName))
 
                 print('Load EnMAPBoxApplication(s) from "{}"'.format(appPkgName))
 

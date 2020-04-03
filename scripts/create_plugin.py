@@ -117,7 +117,7 @@ def create_enmapbox_plugin():
     files.extend(list(scantree(DIR_REPO / 'hubdc', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdsm', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
-    #add unit tests
+    # add unit tests
     files.extend(list(scantree(DIR_REPO / 'enmapboxtesting', pattern=re.compile(r'\.py$'))))
     files.append(DIR_REPO / '__init__.py')
     files.append(DIR_REPO / 'CHANGELOG.rst')
@@ -126,8 +126,6 @@ def create_enmapbox_plugin():
     files.append(DIR_REPO / 'LICENSE.txt')
     files.append(DIR_REPO / 'requirements.txt')
     files.append(DIR_REPO / 'requirements_developer.txt')
-
-
 
     for fileSrc in files:
         assert fileSrc.is_file()

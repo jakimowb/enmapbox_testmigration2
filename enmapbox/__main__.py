@@ -22,24 +22,14 @@ from qgis.PyQt.QtWidgets import QApplication
 import qgis.testing
 
 
-def run(debug: bool=False, processing: bool=True, applications: bool=True, sources: list=None):
-    '''
+def run(sources: list=None):
+    """
     Starts the EnMAP-Box GUI.
-
-    :param debug: whether to run in debug mode
-    :param processing: whether to load the processing framework
-    :param applications: whether to load none core application
-    :param sources: list of sources to be added
-    :return:
-    '''
-
+    """
     from enmapbox.testing import initQgisApplication
     from enmapbox.externals.qps.resources import findQGISResourceFiles
     qgisApp = initQgisApplication(resources=findQGISResourceFiles())
     import enmapbox
-    enmapbox.DEBUG = debug
-    enmapbox.LOAD_PROCESSING_FRAMEWORK = processing
-    enmapbox.LOAD_EXTERNAL_APPS = applications
 
     # initialize resources and background frameworks
     # if started from QGIS, this is done by enmapbox/enmapboxplugin.py
@@ -53,15 +43,17 @@ def run(debug: bool=False, processing: bool=True, applications: bool=True, sourc
     enmapBox.run()
     if sources is not None:
         for source in enmapBox.addSources(sourceList=sources):
-            try: # add as map
+            try:
+                # add as map
                 lyr = source.createUnregisteredMapLayer()
                 dock = enmapBox.createDock('MAP')
                 dock.addLayers([lyr])
-            except: pass
-
-
+            except:
+                pass
 
 
 if __name__ == '__main__':
+    b = isinstance(QApplication.instance(), QApplication)
     run()
-    QApplication.instance().exec_()
+    if not b:
+        QApplication.instance().exec_()

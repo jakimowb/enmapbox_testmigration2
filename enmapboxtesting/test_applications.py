@@ -28,29 +28,14 @@ DIR_TMP = os.path.join(DIR_REPO, *['tmp', 'tmp_enmapboxApplicationTests'])
 
 class test_applications(EnMAPBoxTestCase):
 
+
     def tearDown(self):
-        eb = EnMAPBox.instance()
-        if isinstance(eb, EnMAPBox):
-            eb.close()
-            QApplication.processEvents()
-        self.otherDialogs.clear()
-        print('Class tear down done', flush=True)
+        super().tearDown()
+        app = QgsApplication.instance()
+        if isinstance(app, QgsApplication):
+            app.closeAllWindows()
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-
-        cls.otherDialogs = []
-
-    def setUp(self):
-
-        self.otherDialogs.clear()
-        for obj in gc.get_objects():
-            if isinstance(obj, QDialog):
-                self.otherDialogs.append(obj)
-
-
-    def createTestData(self)->(str, str, str):
+    def createTestData(self) -> (str, str, str):
         """
         :return: (path folder, filelist_abs, filelist_rel)
         """
@@ -195,14 +180,11 @@ class test_applications(EnMAPBoxTestCase):
 
     def test_IVVM(self):
 
-        eb = EnMAPBox(None)
-
-
         from lmuvegetationapps.IVVRM_GUI import MainUiFunc
         m = MainUiFunc()
-        m.show()
 
-        self.showGui()
+        self.showGui(m)
+
 
     def test_deployed_apps(self):
 
@@ -233,6 +215,8 @@ class test_applications(EnMAPBoxTestCase):
             n2 = len(reg)
             if n1 == n2:
                 print('Unable to add EnMAPBoxApplications from {}'.format(d), file=sys.stderr)
+
+        EB.close()
 
     def closeBlockingDialogs(self):
         w = QApplication.instance().activeModalWidget()

@@ -33,7 +33,6 @@ class EnMAPBoxPlugin(object):
         assert isinstance(iface, QgisInterface)
         self.iface = iface
 
-
         if QOperatingSystemVersion.current().name() == 'macOS':
             # os.environ['SKLEARN_SITE_JOBLIB']='True'True
             # fix for issue #221
@@ -46,7 +45,7 @@ class EnMAPBoxPlugin(object):
 
         site.addsitedir(enmapbox.DIR_SITEPACKAGES)
 
-        #run a dependency check
+        # run a dependency check
         self.initialDependencyCheck()
 
         # initialize resources, processing provider etc.
