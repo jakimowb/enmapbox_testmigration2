@@ -18,7 +18,7 @@ pipelines:
           script:
             - python3 -m pip install -r requirements.txt
             - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-            - echo "current dir: $(pwd) "
+            - echo "current dir:" $(pwd)
             - python3 --version
             - echo " PYTHONPATH "
             - printenv PYTHONPATH
