@@ -44,7 +44,7 @@ pipelines:
             - pip
             - qgisresourcecache
             - enmapboxtestdatacache
-        script:
+          script:
             - apt-get install -y wget
             - apt-get install -y unzip
             #- apt-get -y install xvfb
@@ -65,7 +65,8 @@ pipelines:
             - echo " PYTHONPATH "
             - printenv PYTHONPATH
             - python3 scripts/setup_repository.py
-          artifacts: # defining the artifacts to be passed to each future step.
+          artifacts:
+            # defining the artifacts to be passed to each future step.
             - deploy/enmapboxplugin.*.zip
             - deploy/enmapboxplugin/**
             - enmapboxtestdata/**
