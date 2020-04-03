@@ -21,6 +21,12 @@ pipelines:
             - python3 --version
             - echo " PYTHONPATH "
             - printenv PYTHONPATH
+            - QT_QPA_PLATFORM=offscreen
+            - export QT_QPA_PLATFORM
+            - python3 enmapboxtesting/test_enmapbox_empty.py
+            - python3 enmapboxtesting/test_applications.py
+            #- CI=True
+            #- export CI
 
     scheduled-testing:
       - step:
@@ -33,16 +39,18 @@ pipelines:
           script:
             - apt-get install -y wget
             - apt-get install -y unzip
-            - apt-get -y install xvfb
+            #- apt-get -y install xvfb
             - apt-get -y install git-lfs
             - git lfs install
             - git lfs fetch
             - git lfs pull
             - git lfs checkout
-            - Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
+            #- Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
             #- ps aux | grep X
-            - DISPLAY=:1.0
-            - export DISPLAY
+            #- DISPLAY=:1.0
+            #- export DISPLAY
+            - QT_QPA_PLATFORM=offscreen
+            - export QT_QPA_PLATFORM
             - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
             - unzip qgisresources.zip
             - python3 -m pip install -r requirements.txt
