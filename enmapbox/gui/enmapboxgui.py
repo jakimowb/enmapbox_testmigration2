@@ -977,7 +977,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         DIR_ENMAPBOX = pathlib.Path(enmapbox.DIR_ENMAPBOX)
         INTERNAL_APPS = DIR_ENMAPBOX / 'coreapps'
-        EXTERNAL_APPS = DIR_ENMAPBOX / 'coreapps'
+        EXTERNAL_APPS = DIR_ENMAPBOX / 'apps'
         # load internal "core" apps
         if load_core_apps:
             self.applicationRegistry.addApplicationFolder(INTERNAL_APPS, isRootFolder=True)

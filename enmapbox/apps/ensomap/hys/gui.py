@@ -116,7 +116,7 @@ class WIDGET:
     def widget_group_box(self, title, layout = "V"):
         group_box = QGroupBox(title)
         self.level[-1].addWidget(group_box)
-        if layout is "H":
+        if layout == "H":
             lay = QHBoxLayout()
         else:
             lay = QVBoxLayout()
