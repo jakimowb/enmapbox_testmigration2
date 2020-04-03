@@ -36,6 +36,7 @@ class TestEnMAPBoxEmpty(EnMAPBoxTestCase):
 
         testVector = TestObjects.createVectorLayer()
         enmapbox.addSource(testVector)
+        enmapbox.loadExampleData()
         self.showGui(enmapbox.ui)
 
 if __name__ == '__main__':
