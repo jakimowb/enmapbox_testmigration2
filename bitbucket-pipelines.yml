@@ -15,18 +15,22 @@ pipelines:
           caches:
             - docker
             - pip
+            - qgisresourcecache
+            - enmapboxtestdatacache
+
           script:
             - python3 -m pip install -r requirements_developer.txt
             - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
             - echo "current dir:" $(pwd)
             - python3 --version
-            - echo " PYTHONPATH "
             - printenv PYTHONPATH
+            - printenv QGIS_PREFIX_PATH
             - QT_QPA_PLATFORM=offscreen
             - export QT_QPA_PLATFORM
             - python3 scripts/setup_repository.py
             - python3 enmapbox --debug --no_exec
             - python3 enmapboxtesting/test_enmapbox_empty.py
+            - python3 enmapboxtesting/test_enmpabox.py
             #- CI=True
             #- export CI
 
@@ -38,7 +42,9 @@ pipelines:
           caches:
             - docker
             - pip
-          script:
+            - qgisresourcecache
+            - enmapboxtestdatacache
+        script:
             - apt-get install -y wget
             - apt-get install -y unzip
             #- apt-get -y install xvfb
@@ -71,6 +77,8 @@ pipelines:
           caches:
             - docker
             - pip
+            - qgisresourcecache
+            - enmapboxtestdatacache
             #- condacache
           script: # Modify the commands below to build your repository.
             #- apt-get -y install build-essential
@@ -122,5 +130,5 @@ pipelines:
 definitions:
   caches:
     condacache: /opt/conda
-    qgisresourcecache: /opt/qgisresources
-    enmapboxtestdata: /opt/enmapboxtestdata
+    qgisresourcecache: /opt/atlassian/pipelines/agent/build/qgisresources
+    enmapboxtestdatacache: /opt/atlassian/pipelines/agent/build/enmapboxtestdata
