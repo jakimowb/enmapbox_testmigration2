@@ -10,6 +10,7 @@ test-reports/
 qgisresources
 qgisresources/
 qgisresources.zip
+hubdc/test/output_core
 
 # we do not like to have compiled qt resource files in our repository!
 site-packages/qps/qpsresources.py
