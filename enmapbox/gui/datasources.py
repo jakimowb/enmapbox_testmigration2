@@ -315,7 +315,12 @@ class DataSourceSpatial(DataSource):
     """
     Abstract class to describe spatial data from local files but also web sources
     """
-    def __init__(self, uri:str, name:str=None, icon:QIcon=None, providerKey:str=None, layer:QgsMapLayer=None):
+    def __init__(self,
+                 uri: str,
+                 name: str = None,
+                 icon: QIcon = None,
+                 providerKey: str = None,
+                 layer: QgsMapLayer = None):
 
         if isinstance(layer, QgsMapLayer):
             uri = layer.source()
@@ -331,6 +336,10 @@ class DataSourceSpatial(DataSource):
                 else:
                     name = os.path.basename(uri)
             providerKey = layer.dataProvider().name()
+        else:
+            if name in [None, '']:
+                name = os.path.basename(uri)
+
         assert isinstance(providerKey, str) and providerKey in QgsProviderRegistry.instance().providerList()
 
         super(DataSourceSpatial, self).__init__(uri, name=name, icon=icon)
@@ -633,8 +642,6 @@ class DataSourceRaster(DataSourceSpatial):
 class DataSourceVector(DataSourceSpatial):
     def __init__(self, uri,  name=None, icon=None, providerKey:str=None, layer:QgsVectorLayer=None):
 
-        if name is None:
-            name = os.path.basename(uri)
 
         super(DataSourceVector, self).__init__(uri, name, icon, providerKey, layer=layer)
         if not isinstance(layer, QgsVectorLayer):

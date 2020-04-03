@@ -24,7 +24,7 @@ pipelines:
             - QT_QPA_PLATFORM=offscreen
             - export QT_QPA_PLATFORM
             - python3 enmapbox --debug --no_exec
-            #- python3 enmapboxtesting/test_applications.py
+            - python3 enmapboxtesting/test_enmapbox_empty.py
             #- CI=True
             #- export CI
 
