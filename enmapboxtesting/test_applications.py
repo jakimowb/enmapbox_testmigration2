@@ -50,7 +50,7 @@ class test_applications(EnMAPBoxTestCase):
                 self.otherDialogs.append(obj)
 
 
-    def createTestData(self)->(str, str, str):
+    def createTestData(self) -> (str, str, str):
         """
         :return: (path folder, filelist_abs, filelist_rel)
         """
