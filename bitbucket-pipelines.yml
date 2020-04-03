@@ -122,4 +122,5 @@ pipelines:
 definitions:
   caches:
     condacache: /opt/conda
-    qgisresourcecache:
+    qgisresourcecache: /opt/qgisresources
+    enmapboxtestdata: /opt/enmapboxtestdata
