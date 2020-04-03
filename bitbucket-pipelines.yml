@@ -16,7 +16,7 @@ pipelines:
             - docker
             - pip
           script:
-            - python3 -m pip install -r requirements.txt
+            - python3 -m pip install -r requirements_developer.txt
             - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
             - echo "current dir:" $(pwd)
             - python3 --version
