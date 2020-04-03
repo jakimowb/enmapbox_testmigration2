@@ -24,7 +24,6 @@ pipelines:
             - echo "current dir:" $(pwd)
             - python3 --version
             - printenv PYTHONPATH
-            - printenv QGIS_PREFIX_PATH
             - QT_QPA_PLATFORM=offscreen
             - export QT_QPA_PLATFORM
             - python3 scripts/setup_repository.py
