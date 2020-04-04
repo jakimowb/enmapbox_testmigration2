@@ -28,6 +28,13 @@ DIR_TMP = os.path.join(DIR_REPO, *['tmp', 'tmp_enmapboxApplicationTests'])
 
 class test_applications(EnMAPBoxTestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+
+        from enmapbox import DIR_ENMAPBOX
+        site.addsitedir(pathlib.Path(DIR_ENMAPBOX) / 'coreapps')
+        site.addsitedir(pathlib.Path(DIR_ENMAPBOX) / 'apps')
 
     def tearDown(self):
         super().tearDown()
