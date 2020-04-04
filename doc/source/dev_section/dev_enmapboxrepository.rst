@@ -19,7 +19,7 @@ Folder/File                     Purpose
 doc/                            EnMAP-Box Sphinx *.rst documentation
 enmapbox/                       EnMAP-Box source code
 enmapboxtesting/                Unit tests
-make/                           Scripts to setup the repository and build the EnMAP-Box QGIS Plugin
+scripts/                        Scripts to maintain the repository and build the EnMAP-Box QGIS Plugin
 examples/                       Code examples how to use the EnMAP-Box API
 examples/minimumexample/        Exemplary EnMAP-Box Application
 site-packages/                  Other python libraries the EnMAP-Box depends on
@@ -31,14 +31,13 @@ README.md
 __init__.py
 CONTRIBUTORS.md
 index.html
-pb_tool.cfg                     pb-tool configuration file (to be removed)
-qgis_plugin_develop.xml
 requirements.txt
 requirements_developer.txt
-setup.py
-.gitattributes
+setup.py                        required for read-the-docs installation
+.gitignore                      defines files that should be ignored by the repository
+.gitattributes                  defines binary files that are stored with git-lfs
 .readthedocs.yml
-.gitignore
+
 =============================== ========================================================================================
 
 Scripts for Developers
@@ -50,10 +49,12 @@ it as source in your PyCharm project (left-mouse, mark directory as source):
 ===================================== ==========================================================================================================================================
 Script                                Purpose
 ===================================== ==========================================================================================================================================
-``scripts/setup_repository.py``        Creates resource files etc. required to test the EnMAP-Box
+``scripts/setup_repository.py``       Creates resource files etc. required to test the EnMAP-Box by calling other scripts
 ``scripts/create_plugin.py``          Create the EnMAP-Box Plugin ZIP file.
-``scripts/compileresourcefiles.py``   Complies EnMAP-Box resources (*.svg, *.png) into a *_rc.py
-``scripts/iconselect.py``             Opens a browser to show EnMAP-Box and QGIS resource paths
+``scripts/create_plugin.py``          Create the two shell-scripts ``runtests.bat`` and ``runtests.sh`` to run unit tests.
+``scripts/install_testdata.py``       Downloads and installs the EnMAP-Box testdata and qgisresources
+``scripts/compile_resourcefiles.py``  Complies EnMAP-Box resources (*.svg, *.png) into *_rc.py files
+``scripts/iconselect.py``             Opens a browser to show EnMAP-Box and QGIS resources, e.g. icons
 ``scripts/updateexternals.py``        Update parts of the EnMAP-Box code which are hosted in external repositories. Read :ref:`here<dev_repo_update_remote_sources>` for details.
 ===================================== ==========================================================================================================================================
 
@@ -64,8 +65,10 @@ Some directories and files are not part of the repository and explicitly ignore 
 created during the development process. These are:
 
 ================================ =========================================================================================================
-enmapboxtestdata/                Official EnMAP-Box testdata. Not part of repository code, installed afterwards.
-qgisresources/                   QGIS resources compiled as python modules. Read :ref:`here<dev_repo_installation>` for details.
+enmapboxtestdata/                Official EnMAP-Box testdata. Not part of repository code, can be installed calling
+                                 ``scripts/install:_testdata.py``.
+qgisresources/                   QGIS resources compiled as python modules.
+                                 Read :ref:`here<dev_repo_installation>` for details.
 deploy/                          Builds of the EnMAP-Box plugin.
 deploy/enmapboxplugin            Folder with last EnMAP-Box Plugin build.
 deploy/enmapboxplugin.3.X...zip  Zipped version of a EnMAP-box Plugin build.

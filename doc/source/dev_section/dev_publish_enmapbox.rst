@@ -15,20 +15,19 @@ from. This requires that:
 
 2. git is available in your shell/command line (see :ref:`_dev_installation_detailed`)
 
-3. you use the EnMAP-Box code from the `EnMAP-Box repository` (see :ref:`dev_install_add_enmapbox_code`) instead from your local QGIS installation.
+3. you use the EnMAP-Box code from the `EnMAP-Box repository` (see :ref:`dev_install_add_enmapbox_code`) instead fromyour local QGIS installation.
 
 
 Calling:
 
 .. code-block:: batch
 
-    python make/deploy.py
+    python scripts/build_plugin.py
 
 creates or updates:
 
 * ``deploy/enmapboxplugin/`` which contains the plugin code + additional files
-* ``deploy/enmapboxplugin.3.3.20190214T1125.develop.zip`` - just ``deploy/enmapboxplugin`` as zip file
-* ``deploy/qgis_plugin_develop_local.xml`` a QGIS Plugin Repository XML that can be used for local testing
+* ``deploy/enmapboxplugin.3.7.20190214T1125.develop.zip`` - just ``deploy/enmapboxplugin`` as zip file
 
 .. note::
 
@@ -66,27 +65,6 @@ to http://plugins.qgis.org/plugins/ using an OSGeo account.
 
 Other versions, e.g. *development snapshots* are named like ``enmapboxplugin.3.3.20190214T1125.develop.zip`` or ``enmapboxplugin.3.3.20190214T1125.my_feature_branch.zip``
 and might be distributed using the repositories download section https://bitbucket.org/hu-geomatics/enmap-box/downloads/.
-
-..
-    Update external developments
-    ----------------------------
-
-    The EnMAP-Box repository source code includes source code that is maintained in other `external` repositories.
-    These locations and how its code is copied into the EnMAP-Box repository is described in ``make/updateexternals.py``.
-
-    To update code developed in an external location, e.g. call:
-
-    .. code-block:: python
-
-        import updateexternals
-        updateexternals.updateRemotes('qps')
-        updateexternals.updateRemotes('hub-datacube')
-        updateexternals.updateRemotes('hub-workflow')
-        updateexternals.updateRemotes('enmapboxapplications')
-        updateexternals.updateRemotes('enmapboxgeoalgorithms')
-
-    .. note:: add/modify remote sources with ``RemoteInfo.create`` to specify other external git repository sources
-              to be part of EnMAP-Box Source code
 
 
 Publish the EnMAP-Box documentation
