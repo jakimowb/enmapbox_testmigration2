@@ -3,6 +3,7 @@
 deploy/
 build/
 tmp/
+*/tmp/
 doc/build/
 */build/
 enmapboxtestdata/

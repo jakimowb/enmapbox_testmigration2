@@ -24,7 +24,8 @@ import os, sys, re, shutil, zipfile, datetime, requests, http, mimetypes, pathli
 import docutils
 import docutils.writers
 from qgis.PyQt.QtXml import *
-import os, sys, typing
+import typing
+import argparse
 from enmapbox.gui.utils import file_search
 
 from requests.auth import HTTPBasicAuth
@@ -40,7 +41,6 @@ from enmapbox import DIR_REPO, __version__
 
 
 CHECK_COMMITS = False
-INCLUDE_TESTDATA = False  #includes the testdata folder for none-master versions
 
 ########## Config Section
 
@@ -73,7 +73,7 @@ def scantree(path, pattern=re.compile('.$')) -> typing.Iterator[pathlib.Path]:
             yield pathlib.Path(entry.path)
 
 
-def create_enmapbox_plugin():
+def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False):
 
     DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
     assert (DIR_REPO / '.git').is_dir()
@@ -145,10 +145,13 @@ def create_enmapbox_plugin():
     f.close()
 
     # include test data into test versions
-    if INCLUDE_TESTDATA and not re.search(currentBranch, 'master', re.I):
+    if include_testdata and not re.search(currentBranch, 'master', re.I):
         if os.path.isdir(enmapbox.DIR_TESTDATA):
             shutil.copytree(enmapbox.DIR_TESTDATA, PLUGIN_DIR / 'enmapboxtestdata')
 
+    if include_qgisresources and not re.search(currentBranch, 'master', re.I):
+        qgisresources = pathlib.Path(DIR_REPO) / 'qgisresources'
+        shutil.copytree(qgisresources, PLUGIN_DIR / 'qgisresources')
 
     createCHANGELOG(PLUGIN_DIR)
 
@@ -458,24 +461,21 @@ def uploadDeveloperPlugin():
         settings.setValue(skeyUsr, session.auth.username)
 
 
-
-
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Install testdata')
+    parser.add_argument('-t', '--testdata',
+                        required=False,
+                        default=False,
+                        help='Add enmapboxtestdata directory to plugin zip',
+                        action='store_true')
+    parser.add_argument('-q', '--qgisresources',
+                        required=False,
+                        default=False,
+                        help='Add qgisresources directory to plugin zip. This is only required for test environments',
+                        action='store_true')
 
-    # 1. update deploy/EnMAP-Box and
-    #    create deploy/EnMAP-Box.<version>.<branch>.zip
-    import getopt
-    try:
-        print(sys.argv)
-        opts, args = getopt.getopt(sys.argv[1:], "tu")
-    except getopt.GetoptError as err:
-        print(err)
+    args = parser.parse_args()
 
-    for o, a in opts:
-        if o == '-t':
-            INCLUDE_TESTDATA = True
-        if o == '-u':
-            INCLUDE_UNITTESTS = True
-    create_enmapbox_plugin()
+    create_enmapbox_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
     exit()
 

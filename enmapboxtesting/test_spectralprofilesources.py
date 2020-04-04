@@ -10,7 +10,9 @@
 
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 
-import unittest, os, random
+import unittest
+import os
+import random
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *

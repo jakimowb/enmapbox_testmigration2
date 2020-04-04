@@ -50,25 +50,18 @@ pipelines:
             - qgisresourcecache
             - enmapboxtestdatacache
           script:
-            - apt-get install -y wget
-            - apt-get install -y unzip
-            #- apt-get -y install xvfb
             - apt-get -y install git-lfs
             - git lfs install
             - git lfs fetch
             - git lfs pull
             - git lfs checkout
-            #- Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
-            #- ps aux | grep X
-            #- DISPLAY=:1.0
-            #- export DISPLAY
+            - python3 -m pip install -r requirements_developer.txt
+            - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+            - echo "current dir:" $(pwd)
+            - python3 --version
+            - printenv PYTHONPATH
             - QT_QPA_PLATFORM=offscreen
             - export QT_QPA_PLATFORM
-            - python3 -m pip install -r requirements.txt
-            - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-            - python3 --version
-            - echo " PYTHONPATH "
-            - printenv PYTHONPATH
             - python3 scripts/setup_repository.py
           artifacts:
             # defining the artifacts to be passed to each future step.
@@ -87,27 +80,27 @@ pipelines:
             - enmapboxtestdatacache
             #- condacache
           script: # Modify the commands below to build your repository.
-            #- apt-get -y install build-essential
-            #- apt-get -y install xvfb
-            #- apt-get -y install git-lfs
-            #- Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
-            #- ps aux | grep X
+            - apt-get -y install git-lfs
+            - git lfs install
+            - git lfs fetch
+            - git lfs pull
+            - git lfs checkout
+            - python3 -m pip install -r requirements_developer.txt
+            - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+            - echo "current dir:" $(pwd)
+            - python3 --version
+            - printenv PYTHONPATH
             - QT_QPA_PLATFORM=offscreen
             - export QT_QPA_PLATFORM
-            - mkdir test-reports
-            - python3 -m pip install -r requirements.txt
-            - python3 -m pip install xmlrunner
-            - python3 --version
-            - export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
-            - echo " PYTHONPATH "
-
-            - python3 enmapboxtesting/test_enmapbox_empty.py
+            #- export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
+            #- echo " PYTHONPATH "
 
             #- cp .coveragec deploy/enmapboxplugin
             #- cd deploy/enmapboxplugin
 
 
             # run scripts/createruntests.py to generate the following lines
+            - python3 enmapboxtesting/test_enmapbox_empty.py
             - python3 -m coverage run --rcfile=.coveragec  enmapboxtesting/test_applications.py
             - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
             - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py

@@ -491,8 +491,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         layers = [QgsProject.instance().mapLayer(lid) for lid in layerIDs]
         self.removeMapLayers(layers, remove_from_project=False)
-        s  =""
-        #self.dataSourceManager().removeSources(layers)
+
 
     def syncHiddenLayers(self):
         grp = self.hiddenLayerGroup()
@@ -1465,8 +1464,9 @@ class EnMAPBox(QgisInterface, QObject):
 
         if not isinstance(grp, QgsLayerTreeGroup):
             assert not isinstance(self._layerTreeGroup, QgsLayerTreeGroup)
-            print('CREATE HIDDEN_ENMAPBOX_LAYER_GROUP')
+            enmapbox.debugLog('CREATE HIDDEN_ENMAPBOX_LAYER_GROUP')
             grp = root.addGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
+            grp.setCustomProperty('embedded', 1)
             self._layerTreeGroup = grp
 
         ltv = qgis.utils.iface.layerTreeView()

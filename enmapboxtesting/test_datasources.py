@@ -133,6 +133,7 @@ class standardDataSources(EnMAPBoxTestCase):
             if SHOW_GUI:
                 QGIS_APP.exec_()
 
+
     def test_testSources(self):
 
         for l in self.createTestSourceLayers():
