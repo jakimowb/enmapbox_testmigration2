@@ -368,9 +368,9 @@ class EnMAPBox(QgisInterface, QObject):
         # see https://bitbucket.org/hu-geomatics/enmap-box/issues/366/start-enmap-box-in-standard-qgis
         debugLog('Run dependency checks...')
 
-        #from ..dependencycheck import requiredPackages
-        requiredPackages = []
-        if len([p for p in requiredPackages() if not p.isInstalled()]) > 0:
+        from ..dependencycheck import requiredPackages
+        #requiredPackages = []
+        if len([p for p in [] if not p.isInstalled()]) > 0:
 
             # taken from qgsmessagebar.cpp
             # void QgsMessageBar::pushMessage( const QString &title, const QString &text, const QString &showMore, Qgis::MessageLevel level, int duration )
@@ -398,6 +398,8 @@ class EnMAPBox(QgisInterface, QObject):
 
         debugLog('call QApplication.processEvents()')
         QApplication.processEvents()
+
+        debugLog('add QProject.instance()')
         self.addProject(QgsProject.instance())
 
     def addMessageBarTextBoxItem(self, title: str, text: str,
