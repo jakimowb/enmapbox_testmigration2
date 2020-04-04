@@ -1032,7 +1032,7 @@ class EnMAPBox(QgisInterface, QObject):
                 if v == False:
                     info.append(r'"{}" did not return any EnMAPBoxApplication\n'.format(v))
                 elif isinstance(v, str):
-                    info.append('<code>{}</code>'.format(v))
+                    info.append('<code>{}</code>'.format(v.replace('\n', '</br>\n')))
                 info.append('</p>')
             self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Critical, html=True)
         s = ""
