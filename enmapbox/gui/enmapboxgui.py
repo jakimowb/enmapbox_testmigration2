@@ -22,7 +22,7 @@ from qgis import utils as qgsUtils
 import qgis.utils
 from qgis.core import *
 from qgis.gui import *
-from enmapbox import messageLog
+from enmapbox import messageLog, debugLog
 from enmapbox.gui import *
 from enmapbox.gui.docks import *
 from enmapbox.gui.dockmanager import DockManagerTreeModel, MapDockTreeNode
@@ -215,8 +215,8 @@ class EnMAPBox(QgisInterface, QObject):
     sigRasterSourceAdded = pyqtSignal([str],[DataSourceRaster])
     sigVectorSourceAdded = pyqtSignal([str],[DataSourceVector])
 
-    sigDataSourceRemoved = pyqtSignal([str],[DataSource])
-    sigSpectralLibraryRemoved = pyqtSignal([str],[DataSourceSpectralLibrary])
+    sigDataSourceRemoved = pyqtSignal([str], [DataSource])
+    sigSpectralLibraryRemoved = pyqtSignal([str], [DataSourceSpectralLibrary])
     sigRasterSourceRemoved = pyqtSignal([str],[DataSourceRaster])
     sigVectorSourceRemoved = pyqtSignal([str],[DataSourceVector])
 
@@ -281,15 +281,12 @@ class EnMAPBox(QgisInterface, QObject):
 
         assert isinstance(qgsUtils.iface, QgisInterface)
 
-        #self.mCurrentSpectra = []  # set of currently selected spectral profiles
         self.mCurrentMapLocation = None
 
         # define managers
-
         from enmapbox.gui.datasourcemanager import DataSourceManager
         from enmapbox.gui.dockmanager import DockManager
 
-        #
         splash.showMessage('Init DataSourceManager')
         self.mDataSourceManager = DataSourceManager()
         self.mDataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
@@ -297,7 +294,8 @@ class EnMAPBox(QgisInterface, QObject):
         QgsProject.instance().layersAdded.connect(self.addMapLayers)
         QgsProject.instance().layersWillBeRemoved.connect(self.onLayersWillBeRemoved)
 
-        self._layerTreeNodes = [] #needed to keep a reference on created LayerTreeNodes
+        # needed to keep a reference on created LayerTreeNodes
+        self._layerTreeNodes = []
         self._layerTreeGroup: QgsLayerTreeGroup = None
 
         self.mDockManager = DockManager()
@@ -312,6 +310,7 @@ class EnMAPBox(QgisInterface, QObject):
         assert isinstance(root, QgsLayerTree)
         root.addedChildren.connect(self.syncHiddenLayers)
         root.removedChildren.connect(self.syncHiddenLayers)
+
         #
         self.updateCurrentLayerActions()
         self.ui.centralFrame.sigDragEnterEvent.connect(
@@ -337,17 +336,16 @@ class EnMAPBox(QgisInterface, QObject):
         self.mVectorLayerTools.sigZoomRequest.connect(self.zoomToExtent)
         self.mVectorLayerTools.sigPanRequest.connect(self.panToPoint)
 
-
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
         # load EnMAP-Box applications
         splash.showMessage('Load EnMAPBoxApplications...')
 
-        import enmapbox
-
+        debugLog('Load EnMAPBoxApplications...')
         self.initEnMAPBoxApplications(load_core_apps=load_core_apps, load_other_apps=load_other_apps)
 
         # add developer tools to the Tools menu
+        debugLog('Modify menu...')
         m = self.menu('Tools')
         m.addSeparator()
         m = m.addMenu('Developers')
@@ -356,16 +354,18 @@ class EnMAPBox(QgisInterface, QObject):
         a.setToolTip('Opens a Browser to inspect the Qt Resource system')
         a.triggered.connect(self.showResourceBrowser)
 
+        debugLog('Set ui visible...')
         self.ui.setVisible(True)
-        splash.finish(self.ui)
 
+        debugLog('Set pyqtgraph config')
         from ..externals.pyqtgraph import setConfigOption
-        splash.showMessage('Load EnMAPBoxApplications...')
         setConfigOption('background', 'k')
         setConfigOption('foreground', 'w')
 
         # check missing packages and show a message
         # see https://bitbucket.org/hu-geomatics/enmap-box/issues/366/start-enmap-box-in-standard-qgis
+        debugLog('Run dependency checks...')
+
         from ..dependencycheck import requiredPackages
         if len([p for p in requiredPackages() if not p.isInstalled()]) > 0:
 
@@ -389,8 +389,14 @@ class EnMAPBox(QgisInterface, QObject):
 
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
+
+        debugLog('Finish splashscreen')
+        splash.finish(self.ui)
+
+        debugLog('call QApplication.processEvents()')
         QApplication.processEvents()
-        splash.hide()
+
+        debugLog('add QProject.instance()')
         self.addProject(QgsProject.instance())
 
     def addMessageBarTextBoxItem(self, title: str, text: str,
@@ -1023,7 +1029,7 @@ class EnMAPBox(QgisInterface, QObject):
                 if v == False:
                     info.append(r'"{}" did not return any EnMAPBoxApplication\n'.format(v))
                 elif isinstance(v, str):
-                    info.append('<code>{}</code>'.format(v))
+                    info.append('<code>{}</code>'.format(v.replace('\n', '<br />\n')))
                 info.append('</p>')
             self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Critical, html=True)
         s = ""
