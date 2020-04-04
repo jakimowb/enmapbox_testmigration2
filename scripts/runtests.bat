@@ -12,7 +12,7 @@ WHERE python3 >nul 2>&1 && (
     set PYTHON=python
 )
 
-start %PYTHON% scripts/setup_repository.py
+::start %PYTHON% scripts/setup_repository.py
 
 %PYTHON% -m coverage run --rcfile=.coveragec   enmapboxtesting/test_applications.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
@@ -23,6 +23,7 @@ start %PYTHON% scripts/setup_repository.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxplugin.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxprocessingprovider.py
+%PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox_empty.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_hiddenqgislayers.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mapcanvas.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mimedata.py

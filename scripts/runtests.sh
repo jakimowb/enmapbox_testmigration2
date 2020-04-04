@@ -17,6 +17,7 @@ python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_docks
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxplugin.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxprocessingprovider.py
+python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox_empty.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_hiddenqgislayers.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mapcanvas.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mimedata.py

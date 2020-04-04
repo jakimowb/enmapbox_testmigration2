@@ -138,8 +138,10 @@ class MapCanvasTests(EnMAPBoxTestCase):
         mapCanvas.setLayers([])
         mapCanvas.dropEvent(TestObjects.createDropEvent(md))
         #self.assertTrue(len(self.mapCanvas.layerPaths()) == len(spatialFiles))
+
+        layerPaths = [pathlib.Path(p) for p in mapCanvas.layerPaths()]
         for p in spatialFiles:
-            self.assertTrue(p in mapCanvas.layerPaths())
+            self.assertTrue(pathlib.Path(p) in layerPaths)
 
         #drop layertree
 

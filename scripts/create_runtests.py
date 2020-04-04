@@ -35,7 +35,7 @@ WHERE python3 >nul 2>&1 && (
     set PYTHON=python
 )
 
-start %PYTHON% scripts/setup_repository.py
+::start %PYTHON% scripts/setup_repository.py
 """
 
     PREFACE_SH = \
@@ -109,6 +109,8 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
         print('Update {}...'.format(PATH_YAML))
         with open(PATH_YAML, 'w', encoding='utf-8', newline='\n') as f:
             f.write(''.join(linesYAML))
-    s = ""
+
+
 if __name__ == "__main__":
     create_runtests()
+    exit(0)

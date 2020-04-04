@@ -28,6 +28,17 @@ from enmapbox import EnMAPBox
 class SpectralProfileSourceTests(EnMAPBoxTestCase):
 
 
+    def setUp(self):
+
+        super().setUp()
+
+        box = EnMAPBox.instance()
+        if isinstance(box, EnMAPBox):
+            box.close()
+
+        QgsProject.instance().removeAllMapLayers()
+
+
     def test_SpeclibList(self):
 
         model = SpectralProfileDstListModel()
@@ -134,7 +145,7 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
         action = QAction('test action')
         action.setShortcutVisibleInContextMenu(True)
         from enmapbox import EnMAPBox
-        enmapBox = EnMAPBox()
+        enmapBox = EnMAPBox(load_other_apps=False, load_core_apps=False)
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         enmapBox.loadExampleData()
         enmapBox.setMapTool(MapTools.SpectralProfile)
@@ -251,7 +262,7 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
 
     def test_currentprofiles(self):
         from enmapbox.gui import MapTools
-        eb = EnMAPBox()
+        eb = EnMAPBox(load_other_apps=False, load_core_apps=False)
         eb.loadExampleData()
         eb.setMapTool(MapTools.SpectralProfile)
 
