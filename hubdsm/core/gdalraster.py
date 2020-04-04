@@ -6,6 +6,7 @@ from os.path import exists
 import numpy as np
 from osgeo import gdal
 
+from hubdsm.core.error import ProjectionMismatchError
 from hubdsm.core.gdalband import GdalBand
 from hubdsm.core.geotransform import GeoTransform, GdalGeoTransform
 from hubdsm.core.grid import Grid
@@ -73,7 +74,7 @@ class GdalRaster(object):
     def setGrid(self, grid: Grid):
         """Set grid."""
         assert isinstance(grid, Grid)
-        self.gdalDataset.SetGeoTransform(grid.geoTransform)
+        self.gdalDataset.SetGeoTransform(grid.geoTransform.gdalGeoTransform())
         self.gdalDataset.SetProjection(grid.projection.wkt)
 
     def band(self, number) -> GdalBand:
@@ -87,15 +88,18 @@ class GdalRaster(object):
         for i in range(self.shape.z):
             yield self.band(number=i + 1)
 
-    def readAsArray(self, grid: Optional[Grid] = None, gra: int = gdal.GRA_NearestNeighbour) -> np.ndarray:
+    def readAsArray(self, grid: Optional[Grid] = None, gra: int = None) -> np.ndarray:
         """Read as 3d array."""
+
+        if gra is None:
+            gra = gdal.GRA_NearestNeighbour
 
         if grid is None:
             array = self.gdalDataset.ReadAsArray()
         else:
             assert isinstance(grid, Grid)
-            # assert grid.within(self.grid)
-            assert grid.extent.within(self.grid.extent)
+            if self.grid.projection != grid.projection:
+                raise ProjectionMismatchError()
             resolution = self.grid.resolution
             extent = self.grid.extent
             xoff = int(round((grid.extent.xmin - extent.xmin) / resolution.x, 0))
@@ -176,8 +180,44 @@ class GdalRaster(object):
         for key, value in values.items():
             self.setMetadataItem(key=key, value=value, domain=domain)
 
-    def setMetadataDict(self, values=Dict[str, Dict[str, Union[Any, List[Any]]]]):
+    def setMetadataDict(self, metadataDict=Dict[str, Dict[str, Union[Any, List[Any]]]]):
         """Set the metadata."""
-        assert isinstance(values, dict)
-        for domain, metadataDomain in values.items():
+        assert isinstance(metadataDict, dict)
+        for domain, metadataDomain in metadataDict.items():
             self.setMetadataDomain(values=metadataDomain, domain=domain)
+
+    def translate(
+            self, grid: Grid = None, filename: str = None, driver: 'GdalRasterDriver' = None, gco: List[str] = None,
+            gra: int = None, gto: gdal.TranslateOptions = None
+    ):
+        '''Return translated raster.'''
+        from hubdsm.core.gdalrasterdriver import GdalRasterDriver
+
+        if grid is None:
+            grid = self.grid
+
+        if driver is None:
+            driver = GdalRasterDriver.fromFilename(filename=filename)
+
+        assert isinstance(grid, Grid)
+        assert self.grid.projection == grid.projection
+        assert isinstance(driver, GdalRasterDriver)
+        if gco is None:
+            gco = driver.options
+        assert isinstance(gco, list)
+
+        filename = driver.prepareCreation(filename)
+
+        ul = grid.extent.ul
+        lr = grid.extent.lr
+        xRes, yRes = grid.resolution.x, grid.resolution.y
+
+        options = gdal.TranslateOptions(
+            options=gto, format=driver.name, creationOptions=gco,
+            resampleAlg=gra, projWin=[ul.x, ul.y, lr.x, lr.y],
+            xRes=xRes, yRes=yRes)
+        gdalDataset = gdal.Translate(destName=filename, srcDS=self.gdalDataset, options=options)
+
+        gdalRaster = GdalRaster(gdalDataset=gdalDataset)
+        gdalRaster.setGrid(grid=grid)
+        return gdalRaster

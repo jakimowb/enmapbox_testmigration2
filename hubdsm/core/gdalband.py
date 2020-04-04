@@ -25,9 +25,14 @@ class GdalBand(object):
         assert isinstance(self.number, int)
 
     @staticmethod
-    def open(filename: str, number: int, access: int = gdal.GA_ReadOnly) -> 'GdalBand':
+    def open(filenameOrGdalRaster: Union[str, 'GdalRaster'], number: int, access: int = gdal.GA_ReadOnly) -> 'GdalBand':
         from hubdsm.core.gdalraster import GdalRaster
-        return GdalRaster.open(filename=filename, access=access).band(number=number)
+        if isinstance(filenameOrGdalRaster, str):
+            gdalRaster = GdalRaster.open(filename=filenameOrGdalRaster, access=access)
+        else:
+            gdalRaster = filenameOrGdalRaster
+        assert isinstance(gdalRaster, GdalRaster)
+        return gdalRaster.band(number=number)
 
     @property
     def index(self):
@@ -54,7 +59,7 @@ class GdalBand(object):
         """Flush the cache."""
         self.gdalBand.FlushCache()
 
-    def readAsArray(self, grid: Grid = None, gra=gdal.GRA_NearestNeighbour) -> np.ndarray:
+    def readAsArray(self, grid: Grid = None, gra: int=None) -> np.ndarray:
         """Return 2d array."""
 
         if gra is None:
@@ -117,20 +122,21 @@ class GdalBand(object):
         for key, value in values.items():
             self.setMetadataItem(key=key, value=value, domain=domain)
 
-    def setMetadataDict(self, values=Dict[str, Dict[str, Union[Any, List[Any]]]]):
+    def setMetadataDict(self, metadataDict=Dict[str, Dict[str, Union[Any, List[Any]]]]):
         """Set the metadata."""
-        assert isinstance(values, dict)
-        for domain, metadataDomain in values.items():
+        assert isinstance(metadataDict, dict)
+        for domain, metadataDomain in metadataDict.items():
             self.setMetadataDomain(values=metadataDomain, domain=domain)
 
-    def metadataItem(self, key, domain='', default=None, required=False, dtype=str):
+    def metadataItem(self, key, domain='', default=None, dtype=str):
         """Return the metadata item."""
         key = key.replace(' ', '_')
         gdalString = self.gdalBand.GetMetadataItem(key, domain)
-        if required:
-            assert gdalString is not None
-            return default
-        return GdalMetadataValueFormatter.stringToValue(gdalString, dtype=dtype)
+        if gdalString is not None:
+            value = GdalMetadataValueFormatter.stringToValue(gdalString, dtype=dtype)
+        else:
+            value = None
+        return value
 
     def metadataDomain(self, domain=''):
         """Return the metadata dictionary for the given ``domain``."""
@@ -147,14 +153,6 @@ class GdalBand(object):
         for domain in self.metadataDomainList:
             metadataDict[domain] = self.metadataDomain(domain=domain)
         return metadataDict
-
-    def copyMetadata(self, other):
-        """Copy raster and raster band metadata from self to other """
-
-        assert isinstance(other, GdalBand)
-
-        for domain in other.metadataDomainList:
-            self.gdalBand.SetMetadata(other.gdalBand.GetMetadata(domain), domain)
 
     def setNoDataValue(self, value):
         """Set no data value."""
@@ -177,8 +175,13 @@ class GdalBand(object):
 
     def setCategories(self, categories: List[Category]):
         """Set categories."""
-        names = [category.name for category in categories]
-        colors = [category.color for category in categories]
+        ids = [c.id for c in categories]
+        maxId = max(ids)
+        names = ['n/a'] * (maxId + 1)
+        colors = [Color(red=0, green=0, blue=0)] * (maxId +1)
+        for c in categories:
+            names[c.id] = c.name
+            colors[c.id] = c.color
         self._setCategoryNames(names=names)
         self._setCategoryColors(colors)
 
@@ -197,9 +200,12 @@ class GdalBand(object):
     @property
     def categories(self) -> List[Category]:
         """Return categories."""
-        names = self._categoryNames()
-        colors = self._categoryColors()
-        return [Category(name=name, color=color) for name, color in zip(names, colors)]
+        categories = list()
+        for id, (name, color) in enumerate(zip(self._categoryNames(), self._categoryColors())):
+            if name == 'n/a' and color == Color():
+                continue
+            categories.append(Category(id=id, name=name, color=color))
+        return categories
 
     def _categoryNames(self) -> List[str]:
         """Return category names."""
@@ -223,25 +229,3 @@ class GdalBand(object):
         """Returns the list of metadata domain names."""
         domains = self.gdalBand.GetMetadataDomainList()
         return domains if domains is not None else []
-
-# @dataclass(frozen=True)
-# class Timeband(GdalBand):
-#     """Raster timeseries band dataset."""
-#
-#     @property
-#     def timeseries(self):
-#         """Return raster timeseries dataset."""
-#         from hubdatacube.core.raster.timeseries import Timeseries
-#         return Timeseries(gdalDataset=self.gdalDataset)
-#
-#     @property
-#     def date(self) -> Date:
-#         timeseries = self.timeseries
-#         dateIndex = floor(self.index / timeseries.shape4d.c)
-#         return timeseries.dates[dateIndex]
-#
-#     @property
-#     def name(self) -> str:
-#         timeseries = self.timeseries
-#         nameIndex = floor(self.index % timeseries.shape4d.c)
-#         return timeseries.names[nameIndex]

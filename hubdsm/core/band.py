@@ -1,4 +1,6 @@
 # from __future__ import annotations
+from math import nan
+
 from dataclasses import dataclass
 from typing import Optional
 
@@ -39,7 +41,7 @@ class Band(object):
     def gdalBand(self) -> GdalBand:
         '''Return GdalBand instance.'''
         if self._gdalBand is None:
-            self._gdalBand = GdalBand.open(filename=self.filename, number=self.number)
+            self._gdalBand = GdalBand.open(self.filename, number=self.number)
         return self._gdalBand
 
     def rename(self, name) -> 'Band':
@@ -53,37 +55,34 @@ class Band(object):
             _gdalBand=self._gdalBand
         )
 
-    def readAsArray(self, grid: Grid = None, gdalResamplingAlgorithm: int = gdal.GRA_NearestNeighbour) -> np.ndarray:
+    def readAsArray(self, grid: Grid = None, gra: int = None) -> np.ndarray:
         '''Return 2d array.'''
-        return self.gdalBand.readAsArray(grid=grid, gra=gdalResamplingAlgorithm)
+        return self.gdalBand.readAsArray(grid=grid, gra=gra)
 
-    def readAsMaskArray(self, grid: Grid = None, gdalResamplingAlgorithm=gdal.GRA_NearestNeighbour) -> np.ndarray:
+    def readAsMaskArray(self, grid: Grid = None, gra: int=None) -> np.ndarray:
         '''Return 2d mask array. Combines the internal mask given by the no data value and the external mask.'''
         if grid is None:
             grid = self.gdalBand.grid
         noDataValue = self.gdalBand.noDataValue
-        array = self.readAsArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)
-        if noDataValue is np.nan:
-            maskArray1 = np.logical_not(np.isnan(array))
-        elif noDataValue is None:
+        array = self.readAsArray(grid=grid, gra=gra)
+        if noDataValue is None:
             maskArray1 = np.full_like(array, fill_value=True, dtype=np.bool)
+        elif np.isnan(noDataValue):
+            maskArray1 = np.logical_not(np.isnan(array))
         else:
             maskArray1 = array != noDataValue
         if self.mask is not None:
-            maskArray2 = self.mask.readAsArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)
+            maskArray2 = self.mask.readAsArray(grid=grid, gra=gra)
             maskArray = np.logical_and(maskArray1, maskArray2)
         else:
             maskArray = maskArray1
         return maskArray
 
-    def readAsSample(
-            self, grid: Grid = None, gdalResamplingAlgorithmBand: int = gdal.GRA_NearestNeighbour,
-            gdalResamplingAlgorithmMask: int = gdal.GRA_NearestNeighbour
-    ) -> BandSample:
+    def readAsSample(self, grid: Grid = None, graBand: int = None, graMask: int = None) -> BandSample:
         if grid is None:
             grid = self.gdalBand.grid
-        array = self.readAsArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithmBand)
-        maskArray = self.readAsMaskArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithmMask)
+        array = self.readAsArray(grid=grid, gra=graBand)
+        maskArray = self.readAsMaskArray(grid=grid, gra=graMask)
         values = array[maskArray]
         xLocations = grid.xPixelCoordinatesArray()[maskArray]
         yLocations = grid.yPixelCoordinatesArray()[maskArray]

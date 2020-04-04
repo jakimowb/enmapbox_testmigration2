@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from random import randint
 
+from hubdsm.core.base import DataClassIterable
+
 
 @dataclass(frozen=True)
-class Color(object):
+class Color(DataClassIterable):
     red: int = 0
     green: int = 0
     blue: int = 0

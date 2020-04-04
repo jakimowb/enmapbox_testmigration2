@@ -17,9 +17,6 @@ class DataClassIterable(object):
     def __len__(self):
         return len(self.__dict__)
 
-    def __reversed__(self):
-        return reversed(tuple(self))
-
     @classmethod
     def fromIterable(cls, iterable: Iterable):
         parameters: List[inspect.Parameter] = list(inspect.signature(cls.__init__).parameters.values())[1:]

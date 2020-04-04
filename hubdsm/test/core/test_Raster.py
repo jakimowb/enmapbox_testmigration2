@@ -57,7 +57,7 @@ class TestRaster(TestCase):
         assert np.all(raster1.readAsArray() == array1)
         assert np.all(raster2.readAsArray() == array2)
         gold = [[[0., 1.], [2., 3.]], [[2.5, 4.5], [10.5, 12.5]]]
-        lead = raster.readAsArray(gdalResamplingAlgorithm=gdal.GRA_Average)
+        lead = raster.readAsArray(gra=gdal.GRA_Average)
         assert np.all(np.equal(lead, gold))
 
     def test_readBlockwise(self):

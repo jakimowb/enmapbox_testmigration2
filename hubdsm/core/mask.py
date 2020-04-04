@@ -19,11 +19,11 @@ class Mask(object):
     def withInvert(self, invert: bool):
         return Mask(band=self.band, invert=invert)
 
-    def readAsArray(self, grid: Grid = None, gdalResamplingAlgorithm: int = gdal.GRA_NearestNeighbour) -> np.ndarray:
+    def readAsArray(self, grid: Grid = None, gra: int = None) -> np.ndarray:
         if self.band.gdalBand.noDataValue is None:
-            array = self.band.readAsArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm) != 0
+            array = self.band.readAsArray(grid=grid, gra=gra) != 0
         else:
-            array = self.band.readAsMaskArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)
+            array = self.band.readAsMaskArray(grid=grid, gra=gra)
         if self.invert:
             array = np.logical_not(array)
         assert array.dtype == np.bool
