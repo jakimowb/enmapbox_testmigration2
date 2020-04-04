@@ -20,6 +20,7 @@ Version 3.6
   according to the classification scheme
 * updated in LMU vegetation app
 * updated EnPTEnMAPBoxApp (see http://enmap.gitext.gfz-potsdam.de/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp for documentation)
+* added EnSoMAP and EnGeoMAP applications provided by GFZ
 * removed several bugs, e.g. #285, #206,
 
 Version 3.5
