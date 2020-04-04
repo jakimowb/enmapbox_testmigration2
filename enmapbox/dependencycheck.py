@@ -33,7 +33,7 @@ from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 import sip
-
+from enmapbox import debugLog
 # look-up for pip package name and how it gets imported in python
 # e.g. 'pip install scikit-learn' installs a package that is imported via 'import sklearn'
 # Keys need to be lowercase, as accepted by PIP
@@ -359,7 +359,7 @@ def checkGDALIssues()->typing.List[str]:
     return issues
 
 
-def requiredPackages() -> typing.List[PIPPackage]:
+def requiredPackages(return_tuples: bool = False) -> typing.List[PIPPackage]:
     """
     Returns a list of pip packages that should be installable according to the `requirements.txt` file
     :return: [list of strings]
@@ -389,9 +389,12 @@ def requiredPackages() -> typing.List[PIPPackage]:
                 pipPkg = match.group()
                 pyPkg = PACKAGE_LOOKUP.get(pipPkg, pipPkg)
                 cmd = INSTALLATION_HINT.get(pipPkg, line)
-                pkg = PIPPackage(pyPkg, cmd)
+                debugLog('dependencycheck required package {}:{}:{}'.format(pyPkg, pipPkg, cmd))
+                if return_tuples:
+                    pkg = (pyPkg, pipPkg, cmd)
+                else:
+                    pkg = PIPPackage(pyPkg, cmd)
                 packages.append(pkg)
-
     return packages
 
 
