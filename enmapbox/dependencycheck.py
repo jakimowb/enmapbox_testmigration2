@@ -20,7 +20,15 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-import sys, os, collections, shutil, time, re, importlib, typing, subprocess
+import sys
+import os
+import collections
+import shutil
+import time
+import re
+import importlib
+import typing
+import subprocess
 import pathlib
 import requests
 from difflib import SequenceMatcher
@@ -48,6 +56,12 @@ PACKAGE_LOOKUP = {'scikit-learn': 'sklearn',
 INSTALLATION_HINT = {
     #'enpt_enmapboxapp' : 'git+https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git'
 }
+
+INSTALLATION_BLOCK = {'numba': 'should to be installed manually using the local package manager.\n' +
+                               'please read <a href="https://numba.pydata.org/numba-doc/dev/user/installing.html">' +
+                               'https://numba.pydata.org/numba-doc/dev/user/installing.html</a> for details'
+
+                      }
 
 # https://packaging.python.org/tutorials/packaging-projects/#uploading-your-project-to-pypi
 # pip package names: "name is the distribution name of your package.
@@ -98,11 +112,17 @@ class PIPPackage(object):
         return self.pyPkgName == other.pyPkgName
 
     def installPackage(self, *args, **kwds):
-        args = self.installArgs(*args, **kwds)
 
         self.stderrMsg = ''
         self.stdoutMsg = ''
-        if True:
+
+        if self.pipPkgName in INSTALLATION_BLOCK.keys():
+            self.stdoutMsg = ''
+            self.stderrMsg = 'Blocked pip install {}'.format(self.pipPkgName) + \
+                             'Reason: {}'.format(INSTALLATION_BLOCK[self.pipPkgName]) + \
+                             'Please install manually with your local package manager'
+        else:
+            args = self.installArgs(*args, **kwds)
             cmd = ' '.join(args)
             try:
                 process = subprocess.run(cmd,
@@ -111,40 +131,11 @@ class PIPPackage(object):
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE,
                                          universal_newlines=True)
-                self.stderrMsg = str(process.stdout)
+                self.stdoutMsg = str(process.stdout)
             except subprocess.CalledProcessError as ex:
                 self.stderrMsg = ex.stderr
             except Exception as ex2:
                 self.stderrMsg = str(ex2)
-
-        elif False:
-            try:
-                results = subprocess.check_output(args, stderr=subprocess.STDOUT, shell=True)
-                self.stderrMsg = ""
-                self.stdoutMsg = results.decode()
-            except subprocess.CalledProcessError as ex:
-                self.stderrMsg = ex.stdout.decode()
-                if len(self.stderrMsg) == 0:
-                    self.stderrMsg = 'Failed to install {}.\nPlease close QGIS and try "{}" on your CLI.'.format(self.pyPkgName, self.installCommand())
-                self.stdoutMsg = ""
-
-            except Exception as otherEx:
-                print(otherEx, file=sys.stderr)
-        else:
-            from contextlib import redirect_stderr, redirect_stdout
-            import io
-            se = io.StringIO()
-            so = io.StringIO()
-            with redirect_stderr(se):
-                with redirect_stdout(so):
-                    try:
-                        sys.argv = ["pip"] + args[1:]
-                        import pip._internal.cli.main
-                        pip._internal.cli.main.main()
-                    except Exception as ex:
-                        print(ex, file=sys.stderr)
-            self.stderrMsg = se.getvalue()
-            self.stdoutMsg = so.getvalue()
 
     def installArgs(self, user: bool = True, upgrade: bool = False) -> typing.List[str]:
 
@@ -196,11 +187,13 @@ class PIPPackage(object):
         :return:
         :rtype:
         """
-        try:
-            __import__(self.pyPkgName)
-            return True
-        except ModuleNotFoundError:
-            return False
+        #try:
+        #    __import__(self.pyPkgName)
+        #    return True
+        #except ModuleNotFoundError:
+        #    return False
+        spam_spec = importlib.util.find_spec(self.pyPkgName)
+        return spam_spec is not None
 
 def localPythonExecutable() -> pathlib.Path:
     """

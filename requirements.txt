@@ -18,6 +18,6 @@ astropy # required for convolution
 PyOpenGL # required by ImageCube app
 
 # required by parts of EnMAP-Box Applications
-numba # required by EnSoMAP
+numba ; platform_system != "Linux" # required by EnSoMAP, causes problems on Linux (miniconda)
 netCDF4 # required by ONNS
 enpt-enmapboxapp # required by EnPT

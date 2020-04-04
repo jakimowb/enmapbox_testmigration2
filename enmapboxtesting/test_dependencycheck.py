@@ -42,7 +42,7 @@ class test_dependencycheck(EnMAPBoxTestCase):
 
         import enmapbox.dependencycheck
         pipName = self.nonexistingPackageName()
-        pyName = pipName.replace('-','_')
+        pyName = pipName.replace('-', '_')
         enmapbox.dependencycheck.PACKAGE_LOOKUP[pyName] = pipName
 
         info = missingPackageInfo([PIPPackage(pyName)])
@@ -62,6 +62,15 @@ class test_dependencycheck(EnMAPBoxTestCase):
         self.assertFalse(pkg.isInstalled())
         self.assertIsInstance(pkg.installCommand(), str)
         pkg.installPackage()
+
+        n = self.nonexistingPackageName()
+
+        INSTALLATION_BLOCK[n] = 'reason'
+        pkg = PIPPackage(n)
+
+        pkg.installPackage()
+        self.assertTrue(pkg.stdoutMsg == '')
+        self.assertTrue('reason' in pkg.stderrMsg)
 
     def test_pippackagemodel(self):
 
@@ -139,6 +148,7 @@ class test_dependencycheck(EnMAPBoxTestCase):
         process = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  universal_newlines=True)
         self.assertTrue(process.stdout.startswith('Python 3.'))
+
 
 if __name__ == "__main__":
 
