@@ -119,8 +119,8 @@ class PIPPackage(object):
         if self.pipPkgName in INSTALLATION_BLOCK.keys():
             self.stdoutMsg = ''
             self.stderrMsg = 'Blocked pip install {}'.format(self.pipPkgName) + \
-                             'Reason: {}'.format(INSTALLATION_BLOCK[self.pipPkgName]) + \
-                             'Please install manually with your local package manager'
+                             '\nReason: {}'.format(INSTALLATION_BLOCK[self.pipPkgName]) + \
+                             '\nPlease install manually with your local package manager'
         else:
             args = self.installArgs(*args, **kwds)
             cmd = ' '.join(args)
