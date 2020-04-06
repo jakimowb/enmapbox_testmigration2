@@ -190,7 +190,28 @@ class TestEnMAPBox(EnMAPBoxTestCase):
             result3 = Qgis.activeRaster()
             s = ""
 
-        s = ""
+        box = EnMAPBox(load_core_apps=False, load_other_apps=False)
+        iface = qgis.utils.iface
+        self.assertIsInstance(iface, QgisInterface)
+        root = iface.layerTreeView().model().rootGroup()
+        self.assertIsInstance(root, QgsLayerTree)
+
+        self.assertTrue(len(box.dataSources()) == 0)
+
+        lyrNew = TestObjects.createVectorLayer()
+        QgsProject.instance().addMapLayer(lyrNew, True)
+        QgsApplication.processEvents()
+
+        self.assertEqual(len(box.dataSources()), 0)
+
+        nQGIS = len(root.findLayerIds())
+        box.dataSourceManager().importSourcesFromQGISRegistry()
+        QgsApplication.processEvents()
+        self.assertEqual(len(box.dataSources()), nQGIS)
+
+        QgsApplication.processEvents()
+
+        self.assertEqual(len(box.dataSources()), nQGIS)
 
     def test_createDock(self):
 
