@@ -143,7 +143,7 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
     def test_EnMAPBox(self):
         from qgis.PyQt.QtWidgets import QAction
         action = QAction('test action')
-        action.setShortcutVisibleInContextMenu(True)
+        #action.setShortcutVisibleInContextMenu(True)
         from enmapbox import EnMAPBox
         enmapBox = EnMAPBox(load_other_apps=False, load_core_apps=False)
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
