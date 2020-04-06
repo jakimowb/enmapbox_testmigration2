@@ -291,7 +291,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.mDataSourceManager = DataSourceManager()
         self.mDataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
         self.mDataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
-        QgsProject.instance().layersAdded.connect(self.addMapLayers)
+        #QgsProject.instance().layersAdded.connect(self.addMapLayers)
         QgsProject.instance().layersWillBeRemoved.connect(self.onLayersWillBeRemoved)
 
         # needed to keep a reference on created LayerTreeNodes
@@ -460,9 +460,14 @@ class EnMAPBox(QgisInterface, QObject):
         self._browser = browser
 
     def disconnectQGISSignals(self):
-
-        QgsProject.instance().layersAdded.disconnect(self.addMapLayers)
-        QgsProject.instance().layersWillBeRemoved.disconnect(self.onLayersWillBeRemoved)
+        try:
+            QgsProject.instance().layersAdded.disconnect(self.addMapLayers)
+        except TypeError:
+            pass
+        try:
+            QgsProject.instance().layersWillBeRemoved.disconnect(self.onLayersWillBeRemoved)
+        except TypeError:
+            pass
 
     def dataSourceManager(self) -> enmapbox.gui.datasourcemanager.DataSourceManager:
         return self.mDataSourceManager

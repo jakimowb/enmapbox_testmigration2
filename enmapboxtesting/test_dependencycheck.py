@@ -145,7 +145,10 @@ class test_dependencycheck(EnMAPBoxTestCase):
         import subprocess
         cmd = str(p) + ' --version'
 
-        process = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        process = subprocess.run(cmd,
+                                 check=True,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
                                  universal_newlines=True)
         self.assertTrue(process.stdout.startswith('Python 3.'))
 

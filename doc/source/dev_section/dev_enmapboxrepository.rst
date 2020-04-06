@@ -80,13 +80,14 @@ deploy/enmapboxplugin.3.X...zip  Zipped version of a EnMAP-box Plugin build.
 Install the EnMAP-Box repository
 ================================
 
-#. Open your shell and clone the EnMAP-Box repository:
+#. Open your shell, clone the EnMAP-Box repository and pull large binary files:
 
     .. code-block:: batch
 
         cd <my_repositories>
         git clone https://bitbucket.org/hu-geomatics/enmap-box.git
         cd enmap-box
+        git lfs pull
 
 #. Add ``<my_repositories>/enmapbox/`` as source location to your PyCharm project
     (instead of that in your QGIS active profile!)

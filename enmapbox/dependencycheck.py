@@ -59,8 +59,10 @@ INSTALLATION_HINT = {
 
 INSTALLATION_BLOCK = {'numba': 'should to be installed manually using the local package manager.\n' +
                                'please read <a href="https://numba.pydata.org/numba-doc/dev/user/installing.html">' +
-                               'https://numba.pydata.org/numba-doc/dev/user/installing.html</a> for details'
+                               'https://numba.pydata.org/numba-doc/dev/user/installing.html</a> for details',
 
+                      'numpy': 'needs to be installed/updated manually with local package manager',
+                      'GDAL': 'needs to be installed/updated manually with local package manager'
                       }
 
 # https://packaging.python.org/tutorials/packaging-projects/#uploading-your-project-to-pypi
@@ -801,6 +803,8 @@ class PIPPackageInstaller(QWidget):
         self.proxyModel.setSourceModel(self.model)
         self.tableView.setModel(self.proxyModel)
 
+        self.progressBar.setVisible(False)
+
         self.cbUser.toggled.connect(self.model.setUser)
         self.cbMissingOnly.toggled.connect(self.showMissingOnly)
         self.showMissingOnly(self.cbMissingOnly.isChecked())
@@ -818,8 +822,6 @@ class PIPPackageInstaller(QWidget):
             lambda : QgsApplication.instance().clipboard().setText(self.textBrowser.toPlainText()))
         self.btnClearConsole.setDefaultAction(self.actionClearConsole)
         self.btnCopyConsole.setDefaultAction(self.actionCopyConsole)
-
-
 
     def onProgressChanged(self, progress):
         self.progressBar.setValue(int(progress))
