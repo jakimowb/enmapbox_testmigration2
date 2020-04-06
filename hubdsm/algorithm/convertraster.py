@@ -1,15 +1,16 @@
-from typing import Union, List
+from typing import Union, List, Callable
 
 import numpy as np
 from osgeo.gdal_array import GDALTypeCodeToNumericTypeCode
 
+from hubdsm.algorithm.processingoptions import ProcessingOptions
 from hubdsm.core.gdalrasterdriver import GdalRasterDriver
 from hubdsm.core.raster import Raster
 
 
 def convertRaster(
         raster: Raster, noDataValues: List[Union[float, int]] = None, gdalDataType: int = None, filename: str = None,
-        gdalCreationOptions: List[str] = None, processingOptions: List[str] = None
+        co: List[str] = None, po=ProcessingOptions()
 ) -> Raster:
     '''
     Convert raster allows to perform several converion tasks at ones:
@@ -32,20 +33,27 @@ def convertRaster(
     driver = GdalRasterDriver.fromFilename(filename=filename)
     outGdalRaster = driver.create(
         grid=raster.grid, bands=len(raster.bands), gdalDataType=gdalDataType, filename=filename,
-        gdalCreationOptions=gdalCreationOptions
+        gdalCreationOptions=co
     )
 
-    for outGdalBand, array, maskArray, noDataValue in zip(
-            outGdalRaster.bands, raster.iterArrays(), raster.iterMaskArrays(), noDataValues
-    ):
-        # convert type
-        if array.dtype != numpyDataType:
-            array = array.astype(dtype=numpyDataType)
-        # set noDataValue
-        if noDataValue is not None:
-            array[np.logical_not(maskArray)] = noDataValue
-        # write
-        outGdalBand.writeArray(array=array)
-        outGdalBand.setNoDataValue(value=noDataValue)
-
+    subgrids = list(raster.grid.subgrids(shape=po.getShape(default=raster.grid.shape)))
+    n = len(subgrids) * len(raster.bands)
+    i = 1
+    t0 = po.callbackStart(convertRaster.__name__)
+    for subgrid in subgrids:
+        for outGdalBand, array, maskArray, noDataValue in zip(
+                outGdalRaster.bands, raster.iterArrays(grid=subgrid), raster.iterMaskArrays(grid=subgrid), noDataValues
+        ):
+            po.callbackProgress(i, n)
+            i += 1
+            # convert type
+            if array.dtype != numpyDataType:
+                array = array.astype(dtype=numpyDataType)
+            # set noDataValue
+            if noDataValue is not None:
+                array[np.logical_not(maskArray)] = noDataValue
+            # write
+            outGdalBand.writeArray(array=array, grid=subgrid)
+            outGdalBand.setNoDataValue(value=noDataValue)
+    po.callbackFinish(convertRaster.__name__, t0=t0)
     return Raster.open(outGdalRaster)

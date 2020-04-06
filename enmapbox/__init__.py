@@ -49,7 +49,7 @@ DEPENDENCIES = ['numpy', 'scipy', 'osgeo.gdal', 'PyQt5', 'sklearn', 'matplotlib'
 DOCUMENTATION = 'https://enmap-box.readthedocs.io/'
 URL_TESTDATA = r'https://bitbucket.org/hu-geomatics/enmap-box-testdata/get/master.zip'
 URL_INSTALLATION = r'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages'
-
+URL_QGIS_RESOURCES = r'https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip'
 MIN_VERSION_TESTDATA = '0.11'
 
 DIR_ENMAPBOX = os.path.dirname(__file__)
@@ -66,7 +66,7 @@ ENMAP_BOX_KEY = 'EnMAP-Box'
 _ENMAPBOX_PROCESSING_PROVIDER : QgsProcessingProvider = None
 
 
-def enmapboxSettings()->QSettings:
+def enmapboxSettings() -> QSettings:
     """
     Returns the QSettings object for EnMAP-Box Settings
     :return: QSettings
@@ -74,14 +74,8 @@ def enmapboxSettings()->QSettings:
     return QSettings('HU-Berlin', ENMAP_BOX_KEY)
 
 settings = enmapboxSettings()
-
 DEBUG = settings.value('EMB_DEBUG', False)
-LOAD_PROCESSING_FRAMEWORK = settings.value('EMB_LOAD_PF', True)
-LOAD_EXTERNAL_APPS = settings.value('EMB_LOAD_EA', True)
-LOAD_INTERNAL_APPS = settings.value('EMB_LOAD_IA', True)
-
 site.addsitedir(DIR_SITEPACKAGES)
-
 
 # test PyQtGraph
 try:
@@ -92,7 +86,7 @@ except:
     site.addsitedir(pSrc)
     import pyqtgraph
 
-def icon()->QIcon:
+def icon() -> QIcon:
     """
     Returns the EnMAP icon.
     (Requires that the EnMAP resources have been loaded before)
@@ -100,6 +94,10 @@ def icon()->QIcon:
     """
     return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
 
+
+def debugLog(msg: str):
+    if DEBUG:
+        print('DEBUG:'+msg, flush=True)
 
 def messageLog(msg, level=Qgis.Info):
     """
@@ -118,7 +116,8 @@ def messageLog(msg, level=Qgis.Info):
         else:
             print(msg)
 
-def scantree(path, ending='')->pathlib.Path:
+
+def scantree(path, ending: str = '') -> pathlib.Path:
     """Recursively returns file paths in directory"""
     for entry in os.scandir(path):
         if entry.is_dir(follow_symlinks=False):
@@ -127,21 +126,29 @@ def scantree(path, ending='')->pathlib.Path:
             if entry.path.endswith(ending):
                 yield pathlib.Path(entry.path)
 
+
 def initEnMAPBoxResources():
     """
     Loads (or reloads) all Qt resource files
     """
+    debugLog('started initEnMAPBoxResources')
     from .externals.qps.resources import initQtResources, initResourceFile
     initQtResources(DIR_ENMAPBOX)
+    debugLog('finished initEnMAPBoxResources')
+
 
 def initEditorWidgets():
     """
     Initialises QgsEditorWidgets
     """
+    debugLog('started initEditorWidgets')
+
     from .externals.qps import registerEditorWidgets
     registerEditorWidgets()
 
-def collectEnMAPBoxAlgorithms()->typing.List[QgsProcessingAlgorithm]:
+    debugLog('finished initEditorWidgets')
+        
+def collectEnMAPBoxAlgorithms() -> typing.List[QgsProcessingAlgorithm]:
     """
     Safely collects all QgsProcessingalgorithms from enmapboxgeoalgorithms.algorithms
     Missing dependencies or import errors will not stop the EnMAP-Box from being loaded
@@ -166,7 +173,10 @@ def collectEnMAPBoxAlgorithms()->typing.List[QgsProcessingAlgorithm]:
     return algs
 
 def initEnMAPBoxProcessingProvider():
-    """Initializes the EnMAPBoxProcessingProvider"""
+    """
+    Initializes the EnMAPBoxProcessingProvider
+    """
+    debugLog('started initEnMAPBoxProcessingProvider')
     from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider, ID
 
     registry = QgsApplication.instance().processingRegistry()
@@ -187,11 +197,15 @@ def initEnMAPBoxProcessingProvider():
         provider.addAlgorithms(missingAlgs)
     except Exception as ex:
         traceback.print_exc()
-        info = ['Failed to load enmapboxgeoalgorithms.algorithms.ALGORITHMS.\n{}'.format(str(ex))]
+        info = ['EnMAP-Box: Failed to load enmapboxgeoalgorithms.algorithms.ALGORITHMS.\n{}'.format(str(ex))]
         info.append('PYTHONPATH:')
         for p in sorted(sys.path):
             info.append(p)
+        messageLog(info, Qgis.Warning)
         print('\n'.join(info), file=sys.stderr)
+    
+    debugLog('started initEnMAPBoxProcessingProvider')
+
 
 def removeEnMAPBoxProcessingProvider():
     """Removes the EnMAPBoxProcessingProvider"""
@@ -205,11 +219,17 @@ def removeEnMAPBoxProcessingProvider():
         # this deletes the C++ object
         registry.removeProvider(ID)
 
+
 def initMapLayerConfigWidgetFactories():
+    debugLog('started initMapLayerConfigWidgetFactories')
+
     from .externals.qps import registerMapLayerConfigWidgetFactories, mapLayerConfigWidgetFactories
     registerMapLayerConfigWidgetFactories()
     for factory in mapLayerConfigWidgetFactories():
         qgis.utils.iface.registerMapLayerConfigWidgetFactory(factory)
+
+    debugLog('finished initMapLayerConfigWidgetFactories')
+
 
 def initAll():
     """
@@ -235,6 +255,7 @@ if not os.environ.get('READTHEDOCS') in ['True', 'TRUE', True]:
     from enmapbox.gui.applications import EnMAPBoxApplication
     EnMAPBoxApplication = EnMAPBoxApplication
 
+
 def tr(text: str) -> str:
     """
     to be implemented: string translation
@@ -244,7 +265,7 @@ def tr(text: str) -> str:
     return text
 
 class Qgis(object):
-    '''Collection of some static methodes to programmatically interact with QGIS inside the QGIS console.'''
+    """Collection of some static methodes to programmatically interact with QGIS inside the QGIS console."""
 
     @classmethod
     def activeRaster(cls):

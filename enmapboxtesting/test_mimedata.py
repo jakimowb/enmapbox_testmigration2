@@ -31,6 +31,22 @@ import enmapbox.gui.mimedata as mimedata
 
 class MimeDataTests(EnMAPBoxTestCase):
 
+    def setUp(self):
+
+        super().setUp()
+        box = EnMAPBox.instance()
+        if isinstance(box, EnMAPBox):
+            box.close()
+        QApplication.processEvents()
+        QgsProject.instance().removeAllMapLayers()
+
+    def tearDown(self):
+        super().tearDown()
+        box = EnMAPBox.instance()
+        if isinstance(box, EnMAPBox):
+            box.close()
+        QApplication.processEvents()
+        QgsProject.instance().removeAllMapLayers()
 
     def test_conversions(self):
         for t1 in ['normalstring', b'bytestring', r'rawstring']:
@@ -106,7 +122,10 @@ class MimeDataTests(EnMAPBoxTestCase):
 
     def test_dropping_files_empty_dockarea(self):
         files = []
+        nMax = 50
         for root, dirs, f in os.walk(DIR_TESTDATA):
+            if len(files) >= nMax:
+                break
             for file in f:
                 files.append(pathlib.Path(root) / file)
 
@@ -119,11 +138,18 @@ class MimeDataTests(EnMAPBoxTestCase):
             QApplication.processEvents()
             for d in dockManager.docks():
                 dockManager.removeDock(d)
+            EB.dataSourceManager().removeSources(EB.dataSourceManager().sources())
+            QgsProject.instance().removeAllMapLayers()
+            QApplication.processEvents()
+
         EB.close()
 
     def test_dropping_files_speclib_widget(self):
         files = []
+        nMax = 50
         for root, dirs, f in os.walk(DIR_TESTDATA):
+            if len(files) >= nMax:
+                break
             for file in f:
                 files.append(pathlib.Path(root) / file)
 
@@ -153,11 +179,13 @@ class MimeDataTests(EnMAPBoxTestCase):
 
         # drop random files
         for file in files:
-            w.dropEvent(self.file2DropEvent(file))
+            event = self.file2DropEvent(file)
+            w.dropEvent(event)
             QApplication.processEvents()
             EB.dataSourceManager().removeSource(file)
+            QApplication.processEvents()
+            #QgsProject.instance().removeAllMapLayers()
         EB.close()
-
 
 
 if __name__ == "__main__":

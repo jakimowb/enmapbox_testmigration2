@@ -39,7 +39,7 @@ from enmapbox import DIR_TESTDATA
 
 SHOW_GUI = True
 
-def initQgisApplication(*args, loadProcessingFramework=True, **kwds)->QgsApplication:
+def start_app(*args, loadProcessingFramework: bool = True, **kwds) -> QgsApplication:
     """
     Initializes a QGIS Environment
     :return: QgsApplication instance of local QGIS installation
@@ -57,6 +57,7 @@ def initQgisApplication(*args, loadProcessingFramework=True, **kwds)->QgsApplica
         enmapbox.initEditorWidgets()
         return app
 
+initQgisApplication = start_app
 
 class EnMAPBoxTestCase(TestCase):
     @classmethod
@@ -73,11 +74,11 @@ class TestObjects(TestObjects):
     """
 
     @staticmethod
-    def uriWMS()->str:
+    def uriWMS() -> str:
         return r'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0'
 
     @staticmethod
-    def uriWFS()->str:
+    def uriWFS() -> str:
         return r'restrictToRequestBBOX=''1'' srsname=''EPSG:25833'' typename=''fis:re_postleit'' url=''http://fbinter.stadt-berlin.de/fb/wfs/geometry/senstadt/re_postleit'' version=''auto'''
 
     @staticmethod
@@ -166,18 +167,18 @@ class TestObjects(TestObjects):
                 self.version = '0.8.15'
                 self.description = 'test app'
 
-            def icon(self)->QIcon:
+            def icon(self) -> QIcon:
 
                 return EnMAPBox.icon()
 
-            def menu(self, parentMenu)->QMenu:
+            def menu(self, parentMenu) -> QMenu:
 
                 assert isinstance(parentMenu, QMenu)
                 action = parentMenu.addAction('Hello')
                 action.triggered.connect(testAlgorithm)
                 return parentMenu
 
-            def processingAlgorithms(self)->list:
+            def processingAlgorithms(self) -> list:
 
 
                 return [ExampleProcessingAlgorithm()]

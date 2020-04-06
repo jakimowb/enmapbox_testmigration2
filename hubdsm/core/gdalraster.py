@@ -1,16 +1,15 @@
-from __future__ import annotations
-
+# from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, List, Union, Any, Dict, Iterable
 from os.path import exists
 
 import numpy as np
-from osgeo import gdal, gdal_array
+from osgeo import gdal
 
 from hubdsm.core.gdalband import GdalBand
 from hubdsm.core.geotransform import GeoTransform, GdalGeoTransform
 from hubdsm.core.grid import Grid
-from hubdsm.core.metadataformatter import MetadataFormatter
+from hubdsm.core.gdalmetadatavalueformatter import GdalMetadataValueFormatter
 from hubdsm.core.projection import Projection
 from hubdsm.core.shape import RasterShape, GridShape
 
@@ -50,7 +49,7 @@ class GdalRaster(object):
         return GdalRasterDriver(name=gdalDriver.ShortName)
 
     @staticmethod
-    def open(filename: str, access: int = gdal.GA_ReadOnly) -> GdalRaster:
+    def open(filename: str, access: int = gdal.GA_ReadOnly) -> 'GdalRaster':
         assert isinstance(filename, str)
         assert exists(filename) or filename.startswith('/vsimem/'), filename
         gdalDataset: gdal.Dataset = gdal.Open(filename, access)
@@ -134,7 +133,7 @@ class GdalRaster(object):
         return domainList
 
     def metadataItem(
-            self, key: str, domain: str, dtype: Optional[str, float, int] = None, required=False, default=None):
+            self, key: str, domain: str, dtype: Union[str, float, int] = None, required=False, default=None):
         """Return (type-casted) metadata value.
         If metadata item is missing, but not required, return the default value."""
 
@@ -145,7 +144,7 @@ class GdalRaster(object):
         if gdalString is None:
             assert not required, f'missing metadata item: {key} in {domain}'
             return default
-        return MetadataFormatter.stringToValue(gdalString, dtype=dtype)
+        return GdalMetadataValueFormatter.stringToValue(gdalString, dtype=dtype)
 
     def metadataDomain(self, domain=''):
         """Returns the metadata dictionary for the given ``domain``."""
@@ -168,7 +167,7 @@ class GdalRaster(object):
         if value is None:
             return
         key = key.replace(' ', '_').strip()
-        gdalString = MetadataFormatter.valueToString(value)
+        gdalString = GdalMetadataValueFormatter.valueToString(value)
         self.gdalDataset.SetMetadataItem(key, gdalString, domain)
 
     def setMetadataDomain(self, values: Dict[str, Union[Any, List[Any]]], domain: str):

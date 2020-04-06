@@ -141,7 +141,7 @@ class DataSource(object):
 
         self.__refs__.append(weakref.ref(self))
 
-    def isSameSource(self, dataSource)->bool:
+    def isSameSource(self, dataSource) -> bool:
         """
         Returns True if the dataSource points to the same source
         :param dataSource: DataSource
@@ -164,7 +164,7 @@ class DataSource(object):
         assert isinstance(uri, str)
         self.mUri = uri
 
-    def modificationTime(self)->QDateTime:
+    def modificationTime(self) -> QDateTime:
         """
         Optimally returns the last time the data of the data source has been changed.
         :return: QDateTime
@@ -172,7 +172,7 @@ class DataSource(object):
         return self.mModificationTime
 
 
-    def isNewVersionOf(self, dataSource)->bool:
+    def isNewVersionOf(self, dataSource) -> bool:
         """
         Checks of if THIS data source is a newer version of 'dataSource'
         :param dataSource: DataSource
@@ -207,20 +207,20 @@ class DataSource(object):
         self.setName(name)
         self.setIcon(icon)
 
-    def __eq__(self, other)->bool:
+    def __eq__(self, other) -> bool:
         if not isinstance(other, DataSource):
             return None
         else:
             return self.uri() == other.uri()
 
-    def uuid(self)->str:
+    def uuid(self) -> str:
         """
         Returns the Unique Identifier that was created when initializing this object.
         :return: UUID
         """
         return self.mUuid
 
-    def uri(self)->str:
+    def uri(self) -> str:
         """Returns the URI string that describes the data source"""
         return self.mUri
 
@@ -231,7 +231,7 @@ class DataSource(object):
         """
         self.mIcon = icon
 
-    def icon(self)->QIcon:
+    def icon(self) -> QIcon:
         """
         Returns the icon associated with the data source
         :return: QIcon
@@ -258,7 +258,7 @@ class DataSource(object):
         self.mName = name
         return self
 
-    def name(self)->str:
+    def name(self) -> str:
         """
         :return: name of DataSource
         """
@@ -315,7 +315,12 @@ class DataSourceSpatial(DataSource):
     """
     Abstract class to describe spatial data from local files but also web sources
     """
-    def __init__(self, uri:str, name:str=None, icon:QIcon=None, providerKey:str=None, layer:QgsMapLayer=None):
+    def __init__(self,
+                 uri: str,
+                 name: str = None,
+                 icon: QIcon = None,
+                 providerKey: str = None,
+                 layer: QgsMapLayer = None):
 
         if isinstance(layer, QgsMapLayer):
             uri = layer.source()
@@ -331,6 +336,10 @@ class DataSourceSpatial(DataSource):
                 else:
                     name = os.path.basename(uri)
             providerKey = layer.dataProvider().name()
+        else:
+            if name in [None, '']:
+                name = os.path.basename(uri)
+
         assert isinstance(providerKey, str) and providerKey in QgsProviderRegistry.instance().providerList()
 
         super(DataSourceSpatial, self).__init__(uri, name=name, icon=icon)
@@ -340,28 +349,28 @@ class DataSourceSpatial(DataSource):
         self.mLayer = None
         self.mLayerId = None
 
-    def mapLayerId(self)->str:
+    def mapLayerId(self) -> str:
         return self.mLayerId
 
-    def mapLayer(self)->QgsMapLayer:
+    def mapLayer(self) -> QgsMapLayer:
         return self.mLayer
 
-    def provider(self)->str:
+    def provider(self) -> str:
         """
         Returns the provider name
         :return: str
         """
         return self.mProvider
 
-    def spatialExtent(self)->SpatialExtent:
+    def spatialExtent(self) -> SpatialExtent:
         """
         Returns the SpatialExtent of this data source.
         :return: SpatailExtent
         """
-        return SpatialExtent.fromLayer(self.createUnregisteredMapLayer())
+        return SpatialExtent.fromLayer(self.mapLayer())
 
 
-    def createUnregisteredMapLayer(self, *args, **kwds)->QgsMapLayer:
+    def createUnregisteredMapLayer(self, *args, **kwds) -> QgsMapLayer:
         """
         creates and returns a QgsMapLayer from self.src
         the QgsMapLayer should not be registered in the QgsMapLayerRegistry
@@ -377,7 +386,7 @@ class DataSourceSpatial(DataSource):
 class HubFlowDataSource(DataSource):
 
     @staticmethod
-    def createID(obj)->str:
+    def createID(obj) -> str:
         import hubflow.core
         assert isinstance(obj, hubflow.core.FlowObject)
         attr = getattr(obj, 'filename', None)
@@ -440,28 +449,28 @@ class DataSourceRaster(DataSourceSpatial):
         self.updateMetadata()
 
 
-    def mapLayer(self)->QgsRasterLayer:
+    def mapLayer(self) -> QgsRasterLayer:
         return self.mLayer
 
-    def pixelSize(self)->QSizeF:
+    def pixelSize(self) -> QSizeF:
         return QSizeF(self.mLayer.rasterUnitsPerPixelX(), self.mLayer.rasterUnitsPerPixelY())
 
-    def dataType(self)->Qgis.DataType:
+    def dataType(self) -> Qgis.DataType:
         """
         Returns the data type of the first band.
         :return: Qgis.DataType
         """
         return self.mLayer.dataProvider().dataType(1)
 
-    def nSamples(self)->int:
+    def nSamples(self) -> int:
         """Returns the number of samples / columns / pixels in y direction"""
         return self.mLayer.width()
 
-    def nLines(self)->int:
+    def nLines(self) -> int:
         """Returns the number of lines / rows / pixels in y direction"""
         return self.mLayer.height()
 
-    def nBands(self)->int:
+    def nBands(self) -> int:
         return self.mLayer.bandCount()
 
 
@@ -575,7 +584,7 @@ class DataSourceRaster(DataSourceSpatial):
         self.setIcon(icon)
 
 
-    def isNewVersionOf(self, dataSource)->bool:
+    def isNewVersionOf(self, dataSource) -> bool:
         """
         Checks of if THIS raster data source is a newer version of 'dataSource'
         :param dataSource: DataSource
@@ -597,7 +606,7 @@ class DataSourceRaster(DataSourceSpatial):
                 and self.dataType() == dataSource.dataType()
 
 
-    def createUnregisteredMapLayer(self)->QgsRasterLayer:
+    def createUnregisteredMapLayer(self) -> QgsRasterLayer:
         """
         Creates a QgsRasterLayer from self.mUri and self.mProvider. Avoids time-consuming initialization routines.
         :return: QgsRasterLayer
@@ -632,6 +641,8 @@ class DataSourceRaster(DataSourceSpatial):
 
 class DataSourceVector(DataSourceSpatial):
     def __init__(self, uri,  name=None, icon=None, providerKey:str=None, layer:QgsVectorLayer=None):
+
+
         super(DataSourceVector, self).__init__(uri, name, icon, providerKey, layer=layer)
         if not isinstance(layer, QgsVectorLayer):
             layer = self.createUnregisteredMapLayer()
@@ -642,14 +653,14 @@ class DataSourceVector(DataSourceSpatial):
         self.updateMetadata()
 
 
-    def geometryType(self)->QgsWkbTypes:
+    def geometryType(self) -> QgsWkbTypes:
         """
         Returns the QgsWkbTypes.GeometryType
         :return: QgsWkbTypes.GeometryType
         """
         return self.mapLayer().geometryType()
 
-    def createUnregisteredMapLayer(self)->QgsVectorLayer:
+    def createUnregisteredMapLayer(self) -> QgsVectorLayer:
         """
         creates and returns a QgsVectorLayer from self.src
         :return:
@@ -714,7 +725,7 @@ class DataSourceSpectralLibrary(DataSourceVector):
         self.profileNames = []
         self.updateMetadata()
 
-    def createUnregisteredMapLayer(self) ->SpectralLibrary:
+    def createUnregisteredMapLayer(self) -> SpectralLibrary:
 
         return SpectralLibrary(uri=self.mLayer.source())
 
@@ -740,7 +751,7 @@ class DataSourceFactory(object):
     SUBDATASETPREFERENCES = {}
 
     @staticmethod
-    def srcToString(src)->str:
+    def srcToString(src) -> str:
         """
         Extracts the source uri that can be used to open a new QgsMapLayer
         :param src: QUrl | str
@@ -764,7 +775,7 @@ class DataSourceFactory(object):
         return src
 
     @staticmethod
-    def isVectorSource(src)->typing.Tuple[str,str]:
+    def isVectorSource(src) -> typing.Tuple[str,str]:
         """
         Tests if 'src' is a vector data source. If True, returns the uri and provider key
         :param src: any type
@@ -787,7 +798,7 @@ class DataSourceFactory(object):
         return None, None
 
     @staticmethod
-    def isRasterSource(src)->typing.Tuple[str, str, str]:
+    def isRasterSource(src) -> typing.Tuple[str, str, str]:
         """
         Returns the source uri, name and provider keys if it can be handled as known raster data source.
         :param src: any type
@@ -820,7 +831,7 @@ class DataSourceFactory(object):
 
 
     @staticmethod
-    def isSpeclib(src)->typing.Tuple[str, str]:
+    def isSpeclib(src) -> typing.Tuple[str, str]:
         """
         :param src: path or object that might be a SpectralLibrary
         :return: (uri, None) if True
@@ -846,7 +857,7 @@ class DataSourceFactory(object):
 
 
     @staticmethod
-    def isHubFlowObj(src)->typing.Tuple[bool, object]:
+    def isHubFlowObj(src) -> typing.Tuple[bool, object]:
         """
         Returns the source uri if it can be handled as known hubflow data source.
         :param src: any type
@@ -887,7 +898,7 @@ class DataSourceFactory(object):
         return DataSourceFactory.create(*args, **kwds)
 
     @staticmethod
-    def create(src, name=None, icon=None)->typing.List[DataSource]:
+    def create(src, name=None, icon=None) -> typing.List[DataSource]:
         """
         Returns the best suited DataSource Instance(s) to an unknown source
         :param source: anything

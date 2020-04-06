@@ -5,8 +5,6 @@ def enmapboxApplicationFactory(enmapBox):
     :return: EnMAPBoxApplication | [list-of-EnMAPBoxApplications]
     """
 
-    try:
-        from enpt_enmapboxapp.enpt_enmapboxapp import EnPTEnMAPBoxApp
-        return [EnPTEnMAPBoxApp(enmapBox)]
-    except ModuleNotFoundError:
-        return []
+    from enpt_enmapboxapp.enpt_enmapboxapp import EnPTEnMAPBoxApp
+    return [EnPTEnMAPBoxApp(enmapBox)]
+

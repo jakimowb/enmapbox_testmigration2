@@ -79,13 +79,13 @@ class DataSourceManager(QObject):
         DataSourceManager._testInstance = self
         self.mSources = list()
         self.mShowSpatialSourceInQgsAndEnMAPBox = True
-        QgsProject.instance().layerWillBeRemoved.connect(self.onLayersWillBeRemoved)
+        #QgsProject.instance().layerWillBeRemoved.connect(self.onLayersWillBeRemoved)
 
     def onLayersWillBeRemoved(self, lid):
         to_remove = [ds for ds in self.sources() if isinstance(ds, DataSourceSpatial) and ds.mapLayerId() == lid]
         self.removeSources(to_remove)
 
-    def __iter__(self)->typing.Iterator[DataSource]:
+    def __iter__(self) -> typing.Iterator[DataSource]:
         return iter(self.mSources)
 
     def __len__(self) -> int:
@@ -106,6 +106,17 @@ class DataSourceManager(QObject):
             if source.uuid() == uuID:
                 return source
         return None
+
+    def mapLayers(self) -> typing.List[QgsMapLayer]:
+        """
+        Returns the map layers related to EnMAP-Box sources
+        :return: list of QgsMapLayers
+        """
+        layers = []
+        for s in self:
+            if isinstance(s, DataSourceSpatial) and isinstance(s.mapLayer(), QgsMapLayer):
+                layers.append(s.mapLayer())
+        return layers
 
     def sources(self, sourceTypes=None) -> list:
         """
@@ -148,7 +159,7 @@ class DataSourceManager(QObject):
 
         return results
 
-    def classificationSchemata(self)->list:
+    def classificationSchemata(self) -> list:
         """
         Reads all DataSource and returns a list of found classification schemata
         :return: [list-if-ClassificationSchemes]
@@ -171,10 +182,10 @@ class DataSourceManager(QObject):
 
         return results
 
-    def layerSources(self)->typing.List[str]:
+    def layerSources(self) -> typing.List[str]:
         return [ds.mapLayer().source() for ds in self.sources() if isinstance(ds, DataSourceSpatial)]
 
-    def layerIds(self)->typing.List[str]:
+    def layerIds(self) -> typing.List[str]:
         return [ds.mapLayerId() for ds in self.sources() if isinstance(ds, DataSourceSpatial)]
 
     def uriList(self, sourceTypes='ALL') -> typing.List[str]:
@@ -199,7 +210,7 @@ class DataSourceManager(QObject):
 
         return added
 
-    def addSource(self, newDataSource, name=None, icon=None)->typing.List[DataSource]:
+    def addSource(self, newDataSource, name=None, icon=None) -> typing.List[DataSource]:
         """
         Adds a new data source.
         :param newDataSource: any object
@@ -341,7 +352,7 @@ class DataSourceManager(QObject):
 
 
 
-    def clear(self, deleteMapLayers=True)->typing.List[DataSource]:
+    def clear(self, deleteMapLayers=True) -> typing.List[DataSource]:
         """
         Removes all data source from DataSourceManager
         :return: [list-of-removed-DataSources]
@@ -368,7 +379,7 @@ class DataSourceManager(QObject):
         removed = [self.removeSource(dataSource) for dataSource in dataSourceList]
         return [r for r in removed if isinstance(r, DataSource)]
 
-    def removeSource(self, dataSource)->DataSource:
+    def removeSource(self, dataSource) -> DataSource:
         """
         Removes the DataSource from the DataSourceManager
         :param dataSource: the DataSource or its uri (str) or a QgsMapLayer to be removed
@@ -381,7 +392,7 @@ class DataSourceManager(QObject):
                     to_remove.append(ds)
         elif isinstance(dataSource, str):
             for ds in self:
-                if ds.uri == dataSource:
+                if ds.uri() == dataSource:
                     to_remove.append(ds)
         elif isinstance(dataSource, DataSource):
             if dataSource in self:
@@ -389,8 +400,11 @@ class DataSourceManager(QObject):
 
         assert len(to_remove) <= 1
         if len(to_remove) == 1:
-            self.mSources.remove(to_remove[0])
-            self.sigDataSourceRemoved.emit(to_remove[0])
+            ds = to_remove[0]
+            assert isinstance(ds, DataSource)
+            self.mSources.remove(ds)
+
+            self.sigDataSourceRemoved.emit(ds)
             return dataSource
         else:
             return None
@@ -423,7 +437,7 @@ class DataSourceGroupTreeNode(TreeNode):
         self.sigAddedChildren.connect(self.onChildsChanged)
         self.sigRemovedChildren.connect(self.onChildsChanged)
 
-    def groupName(self)->str:
+    def groupName(self) -> str:
         return self.mGroupName
 
     def onChildsChanged(self, *args):
@@ -435,7 +449,7 @@ class DataSourceGroupTreeNode(TreeNode):
         if n > 0 and self.mFlag1stSource == False:
             pass
 
-    def dataSources(self)->list:
+    def dataSources(self) -> list:
         """
         Returns the DataSource instances part of this group.
         :return: [list-of-DataSources]
@@ -512,7 +526,7 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
             self.mNodeSize = TreeNode(self, 'Size', values='unknown')
             self.mSrcSize = -1
 
-    def dataSource(self)->DataSource:
+    def dataSource(self) -> DataSource:
         """
         Returns the DataSource this DataSourceTreeNode represents.
         :return: DataSource
@@ -793,7 +807,7 @@ class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
         super(SpeclibDataSourceTreeNode, self).__init__(*args, **kwds)
         self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
 
-    def speclib(self)->SpectralLibrary:
+    def speclib(self) -> SpectralLibrary:
         """
         Returns the SpectralLibrary
         :return: SpectralLibrary
@@ -831,7 +845,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
             self.fetchInternals(self.mDataSource.flowObject(), parentTreeNode=self)
 
     @staticmethod
-    def fetchInternals(obj:object, parentTreeNode:TreeNode=None, fetchedObjectIds:set=None)->TreeNode:
+    def fetchInternals(obj:object, parentTreeNode:TreeNode=None, fetchedObjectIds:set=None) -> TreeNode:
         """
         Represents a python object as TreeNode structure.
         :param obj: any type of python object
@@ -1294,7 +1308,7 @@ class DataSourcePanelUI(QDockWidget):
         s = self.selectedDataSources()
         self.actionRemoveDataSource.setEnabled(len(s) > 0)
 
-    def selectedDataSources(self)->list:
+    def selectedDataSources(self) -> list:
         """
         :return: [list-of-selected-DataSources]
         """
@@ -1408,7 +1422,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
         return len(added) > 0
 
-    def mimeData(self, indexes:list)->QMimeData:
+    def mimeData(self, indexes:list) -> QMimeData:
         indexes = sorted(indexes)
         if len(indexes) == 0:
             return None
@@ -1470,10 +1484,10 @@ class DataSourceManagerTreeModel(TreeModel):
         mimeData.setUrls([QUrl.fromLocalFile(uri) if os.path.isfile(uri) else QUrl(uri) for uri in uriList])
         return mimeData
 
-    def sourceGroups(self)->list:
+    def sourceGroups(self) -> list:
         return [n for n in self.rootNode().childNodes() if isinstance(n, DataSourceGroupTreeNode)]
 
-    def sourceGroup(self, dataSource:DataSource)->DataSourceGroupTreeNode:
+    def sourceGroup(self, dataSource:DataSource) -> DataSourceGroupTreeNode:
         """
         Returns the DataSourceGroupTreeNode related to a given data source.
         :param dataSource: DataSource
@@ -1611,7 +1625,7 @@ class DataSourceManagerTreeModel(TreeModel):
         EnMAPBox.instance().dockManager().createDock('WEBVIEW', url=pathHTML)
 
 
-def CreateNodeFromDataSource(dataSource:DataSource, parent=None)->DataSourceTreeNode:
+def CreateNodeFromDataSource(dataSource:DataSource, parent=None) -> DataSourceTreeNode:
     """
     Generates a DataSourceTreeNode
     :param dataSource:

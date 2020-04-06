@@ -10,7 +10,9 @@
 
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 
-import unittest, os, random
+import unittest
+import os
+import random
 from qgis import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -24,6 +26,17 @@ from enmapbox.testing import TestObjects
 from enmapbox.gui.spectralprofilesources import *
 from enmapbox import EnMAPBox
 class SpectralProfileSourceTests(EnMAPBoxTestCase):
+
+
+    def setUp(self):
+
+        super().setUp()
+
+        box = EnMAPBox.instance()
+        if isinstance(box, EnMAPBox):
+            box.close()
+
+        QgsProject.instance().removeAllMapLayers()
 
 
     def test_SpeclibList(self):
@@ -130,9 +143,9 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
     def test_EnMAPBox(self):
         from qgis.PyQt.QtWidgets import QAction
         action = QAction('test action')
-        action.setShortcutVisibleInContextMenu(True)
+        #action.setShortcutVisibleInContextMenu(True)
         from enmapbox import EnMAPBox
-        enmapBox = EnMAPBox()
+        enmapBox = EnMAPBox(load_other_apps=False, load_core_apps=False)
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         enmapBox.loadExampleData()
         enmapBox.setMapTool(MapTools.SpectralProfile)
@@ -249,7 +262,7 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
 
     def test_currentprofiles(self):
         from enmapbox.gui import MapTools
-        eb = EnMAPBox()
+        eb = EnMAPBox(load_other_apps=False, load_core_apps=False)
         eb.loadExampleData()
         eb.setMapTool(MapTools.SpectralProfile)
 

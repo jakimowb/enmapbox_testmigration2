@@ -96,32 +96,6 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
 
 
 
-class TestEnMAPBoxSplashScreen(EnMAPBoxTestCase):
-
-    def test_splashScreen(self):
-
-        import time
-        import enmapbox
-        w = QWidget()
-
-        splash = EnMAPBoxSplashScreen(parent=w)
-        self.assertIsInstance(splash, EnMAPBoxSplashScreen)
-        i = 0
-        splash.showMessage('Message {} {}'.format(i, str(time.time())))
-        def onTimeOut(*args):
-            nonlocal i
-            splash.showMessage('Message {} {}'.format(i, str(time.time())))
-            i += 1
-        self.assertFalse(splash.size().isNull())
-
-        timer = QTimer()
-        timer.startTimer(2)
-        timer.timeout.connect(onTimeOut)
-
-        self.showGui([w, splash])
-
-
-
 class TestEnMAPBox(EnMAPBoxTestCase):
 
     def tearDown(self):
@@ -216,7 +190,28 @@ class TestEnMAPBox(EnMAPBoxTestCase):
             result3 = Qgis.activeRaster()
             s = ""
 
-        s = ""
+        box = EnMAPBox(load_core_apps=False, load_other_apps=False)
+        iface = qgis.utils.iface
+        self.assertIsInstance(iface, QgisInterface)
+        root = iface.layerTreeView().model().rootGroup()
+        self.assertIsInstance(root, QgsLayerTree)
+
+        self.assertTrue(len(box.dataSources()) == 0)
+
+        lyrNew = TestObjects.createVectorLayer()
+        QgsProject.instance().addMapLayer(lyrNew, True)
+        QgsApplication.processEvents()
+
+        self.assertEqual(len(box.dataSources()), 0)
+
+        nQGIS = len(root.findLayerIds())
+        box.dataSourceManager().importSourcesFromQGISRegistry()
+        QgsApplication.processEvents()
+        self.assertEqual(len(box.dataSources()), nQGIS)
+
+        QgsApplication.processEvents()
+
+        self.assertEqual(len(box.dataSources()), nQGIS)
 
     def test_createDock(self):
 
@@ -324,12 +319,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         # unload
         E.removeSources()
         self.assertTrue(len(E.dataSources()) == 0)
-
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
-
-
-        #if SHOW_GUI:
-        #    QGIS_APP.exec_()
 
     def test_speclibDocks(self):
         EMB = EnMAPBox()
@@ -342,7 +332,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertTrue(len(sources) > 0 )
         layers = [QgsRasterLayer(p) for p in sources]
         self.assertTrue(len(layers) > 0)
-        mapDock.setLayers(layers)
+        mapDock.mapCanvas().setLayers(layers)
 
         speclibDock = EMB.createDock('SPECLIB')
         self.assertIsInstance(speclibDock, SpectralLibraryDock)
@@ -355,6 +345,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         profiles = SpectralProfile.fromMapCanvas(mapDock.mapCanvas(), center)
         for p in profiles:
             self.assertIsInstance(p, SpectralProfile)
+
 
 if __name__ == '__main__':
     import xmlrunner

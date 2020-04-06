@@ -137,6 +137,12 @@ class TestReclassify(EnMAPBoxTestCase):
 
 
     def test_dialog(self):
+
+        layers = [TestObjects.createRasterLayer(nc=5),
+                  TestObjects.createRasterLayer(nb=10),
+                  TestObjects.createVectorLayer()]
+        QgsProject.instance().addMapLayers(layers)
+
         from reclassifyapp.reclassifydialog import ReclassifyDialog
         dialog = ReclassifyDialog()
         self.assertIsInstance(dialog, ReclassifyDialog)

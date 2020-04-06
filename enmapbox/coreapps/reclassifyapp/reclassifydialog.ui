@@ -57,7 +57,11 @@
            <number>2</number>
           </property>
           <item row="0" column="1">
-           <widget class="QgsMapLayerComboBox" name="mapLayerComboBox"/>
+           <widget class="QgsMapLayerComboBox" name="mapLayerComboBox">
+            <property name="toolTip">
+             <string>Select source raster file. Needs to have a classifcation scheme defined, e.g. as categorical raster renderer.</string>
+            </property>
+           </widget>
           </item>
           <item row="0" column="2">
            <widget class="QToolButton" name="btnSelectSrcfile">
@@ -209,7 +213,7 @@
          <property name="maximumSize">
           <size>
            <width>16777215</width>
-           <height>300</height>
+           <height>16777215</height>
           </size>
          </property>
          <property name="whatsThis">

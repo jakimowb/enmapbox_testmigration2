@@ -42,8 +42,8 @@ class ReclassifyDialog(QDialog):
         excluded = [p for p in QgsProviderRegistry.instance().providerList() if p not in ['gdal']]
         self.mapLayerComboBox.setExcludedProviders(excluded)
         self.mapLayerComboBox.setShowCrs(False)
-        self.mapLayerComboBox.currentIndexChanged.connect(self.validate)
-
+        self.updateExceptedLayerList()
+        QgsProject.instance().layersAdded.connect(self.updateExceptedLayerList)
 
         #now define all the logic behind the UI which can not be defined in the QDesigner
         assert isinstance(self.dstFileWidget, QgsFileWidget)
@@ -59,12 +59,14 @@ class ReclassifyDialog(QDialog):
 
         self.dstClassificationSchemeWidget.classificationScheme().sigClassesAdded.connect(self.refreshTransformationTable)
         self.dstClassificationSchemeWidget.classificationScheme().sigClassesRemoved.connect(self.refreshTransformationTable)
+        self.mDstClassSchemeInitialized = False
 
-        self.mapLayerComboBox.currentIndexChanged.connect(self.refreshTransformationTable)
+        self.mapLayerComboBox.layerChanged.connect(self.onSourceRasterChanged)
         self.mapLayerComboBox.currentIndexChanged.connect(self.validate)
 
         self.btnSelectSrcfile.setDefaultAction(self.actionAddRasterSource)
         self.dstFileWidget.fileChanged.connect(self.validate)
+
 
 
         def onAddRaster(*args):
@@ -75,7 +77,32 @@ class ReclassifyDialog(QDialog):
                 self.setSrcRaster(file)
 
         self.actionAddRasterSource.triggered.connect(onAddRaster)
+        self.onSourceRasterChanged()
 
+
+    def onSourceRasterChanged(self):
+        lyr = self.mapLayerComboBox.currentLayer()
+        if isinstance(lyr, QgsRasterLayer) and not self.mDstClassSchemeInitialized:
+            cs = ClassificationScheme.fromMapLayer(lyr)
+            if isinstance(cs, ClassificationScheme) and len(cs) > 0:
+                self.setDstClassificationScheme(cs)
+                self.mDstClassSchemeInitialized = True
+        self.refreshTransformationTable()
+        self.validate()
+
+    def updateExceptedLayerList(self, *args):
+
+        to_exclude = []
+        for l in QgsProject.instance().mapLayers().values():
+            if not isinstance(l, QgsRasterLayer):
+                to_exclude.append(l)
+                continue
+            cs = ClassificationScheme.fromMapLayer(l)
+            if cs is None or len(cs) == 0:
+                to_exclude.append(l)
+                continue
+
+        self.mapLayerComboBox.setExceptedLayerList(to_exclude)
 
     def loadEnMAPBoxSources(self):
 
@@ -130,6 +157,7 @@ class ReclassifyDialog(QDialog):
         :return: str
         """
         return self.dstFileWidget.filePath()
+
 
     def knownRasterSources(self)->list:
         """
@@ -209,7 +237,7 @@ class ReclassifyDialog(QDialog):
         return False
 
 
-    def srcClassificationScheme(self)->ClassificationScheme:
+    def srcClassificationScheme(self) -> ClassificationScheme:
         """
         Reuturns the ClassificationScheme of the selected source raster
         :return: ClassificationScheme
@@ -235,7 +263,6 @@ class ReclassifyDialog(QDialog):
             self.tableWidget.removeRow(0)
         from difflib import SequenceMatcher
 
-
         # clear the table widget
         assert isinstance(self.tableWidget, QTableWidget)
         while self.tableWidget.rowCount() > 0:
@@ -245,7 +272,7 @@ class ReclassifyDialog(QDialog):
         if not isinstance(self.mSrcClassScheme, ClassificationScheme):
             return
 
-        dstClassScheme = self.dstClassificationSchemeWidget.classificationScheme()
+        dstClassScheme = self.dstClassificationScheme()
         dstClassNames = [c.mName for c in dstClassScheme]
 
         self.tableWidget.setRowCount(len(self.mSrcClassScheme))

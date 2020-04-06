@@ -24,7 +24,6 @@ from enmapbox.gui.datasourcemanager import *
 from enmapbox import EnMAPBox
 from enmapboxtestdata import enmap, hires, landcover_polygons, library
 
-USE_WEBSOURCES = False
 
 class standardDataSources(EnMAPBoxTestCase):
 
@@ -104,7 +103,11 @@ class standardDataSources(EnMAPBoxTestCase):
 
     def createTestSourceLayers(self)->list:
 
-        return [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons), SpectralLibrary.readFrom(library)]
+        #return [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons), SpectralLibrary.readFrom(library)]
+        return [TestObjects.createRasterLayer(),
+                TestObjects.createVectorLayer(ogr.wkbPoint),
+                TestObjects.createVectorLayer(ogr.wkbPolygon),
+                TestObjects.createSpectralLibrary(10)]
 
     def test_classifier(self):
 
@@ -132,6 +135,7 @@ class standardDataSources(EnMAPBoxTestCase):
 
             if SHOW_GUI:
                 QGIS_APP.exec_()
+
 
     def test_testSources(self):
 
@@ -325,7 +329,7 @@ class standardDataSources(EnMAPBoxTestCase):
         self.assertFalse(sip.isdeleted(lyr))
         QgsProject.instance().removeMapLayer(lyr)
         self.assertTrue(sip.isdeleted(lyr))
-        self.assertTrue(len(dsm) == 0)
+        #self.assertTrue(len(dsm) == 0)
         s = ""
 
 
@@ -363,7 +367,7 @@ class standardDataSources(EnMAPBoxTestCase):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         EB = EnMAPBox.instance()
         if not isinstance(EB, EnMAPBox):
-            EB = EnMAPBox(None)
+            EB = EnMAPBox(load_other_apps=False, load_core_apps=False)
 
         uriList = self.createTestSources()
         for uri in uriList:
@@ -609,7 +613,6 @@ class standardDataSources(EnMAPBoxTestCase):
                 self.assertIsInstance(obj3, hubflow.core.FlowObject)
                 #self.assertEqual(obj1, obj2)
                 #self.assertEqual(obj1, obj3)
-
 
 
 if __name__ == "__main__":

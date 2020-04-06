@@ -98,7 +98,7 @@ def start_app(cleanup=True, options=StartOptions.Minimized, resources:list=[])->
         con = sqlite3.connect(QgsApplication.qgisUserDatabaseFilePath())
         cursor = con.execute("SELECT name FROM sqlite_master WHERE type='table'")
         tables = [v[0] for v in cursor.fetchall() if v[0] != 'sqlite_sequence']
-        if not 'tbl_srs' in tables:
+        if 'tbl_srs' not in tables:
             info = ['{} misses "tbl_srs"'.format(QgsApplication.qgisSettingsDirPath())]
             info.append('Settings directory might be outdated: {}'.format(QgsApplication.instance().qgisSettingsDirPath()))
             print('\n'.join(info), file=sys.stderr)
@@ -151,11 +151,12 @@ class QgisMockup(QgisInterface):
         self.mCanvas.setCanvasColor(Qt.black)
         self.mLayerTreeView = QgsLayerTreeView()
         self.mRootNode = QgsLayerTree()
+        self.mLayerTreeRegistryBridge = QgsLayerTreeRegistryBridge(self.mRootNode, QgsProject.instance())
         self.mLayerTreeModel = QgsLayerTreeModel(self.mRootNode)
         self.mLayerTreeView.setModel(self.mLayerTreeModel)
         self.mLayerTreeMapCanvasBridge = QgsLayerTreeMapCanvasBridge(self.mRootNode, self.mCanvas)
         self.mLayerTreeMapCanvasBridge.setAutoSetupOnFirstLayer(True)
-
+        #QgsProject.instance().legendLayersAdded.connect(self.addLegendLayers)
         self.mPluginManager = QgsPluginManagerMockup()
 
         self.ui = QMainWindow()
@@ -192,6 +193,9 @@ class QgisMockup(QgisInterface):
                 except:
                     setattr(self, n, getattr(self._mock, n))
 
+    def addLegendLayers(self, mapLayers:typing.List[QgsMapLayer]):
+        for l in mapLayers:
+            self.mRootNode.addLayer(l)
 
     def pluginManagerInterface(self) -> QgsPluginManagerInterface:
         return self.mPluginManager
@@ -313,7 +317,7 @@ class TestCase(qgis.testing.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        if True and isinstance(QgsApplication.instance(), QgsApplication):
+        if False and isinstance(QgsApplication.instance(), QgsApplication):
             QgsApplication.exitQgis()
             QApplication.quit()
             import gc
@@ -605,7 +609,9 @@ class TestObjects():
         pkgPath = QgsApplication.instance().pkgDataPath()
         assert os.path.isdir(pkgPath)
 
-        pathSrc = None
+        pathSrc = pathlib.Path(__file__).parent / 'landcover_polygons.geojson'
+        assert pathSrc.is_file(), 'Unable to find {}'.format(pathSrc)
+        """
         potentialPathes = [
             os.path.join(os.path.dirname(__file__), 'testpolygons.geojson'),
             os.path.join(pkgPath, *['resources', 'data', 'world_map.shp']),
@@ -614,10 +620,11 @@ class TestObjects():
             if os.path.isfile(p):
                 pathSrc = p
                 break
-
         assert os.path.isfile(pathSrc), 'Unable to find QGIS "world_map.shp". QGIS Pkg path = {}'.format(pkgPath)
 
-        dsSrc = ogr.Open(pathSrc)
+        """
+
+        dsSrc = ogr.Open(pathSrc.as_posix())
         assert isinstance(dsSrc, ogr.DataSource)
         lyrSrc = dsSrc.GetLayer(0)
         assert isinstance(lyrSrc, ogr.Layer)

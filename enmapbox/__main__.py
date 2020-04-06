@@ -17,29 +17,24 @@
 **************************************************************************
 """
 
-import sys, os, site
+import sys
+import os
+import site
+import argparse
 from qgis.PyQt.QtWidgets import QApplication
 import qgis.testing
 
 
-def run(debug: bool=False, processing: bool=True, applications: bool=True, sources: list=None):
-    '''
+def run(sources: list = None, debug: bool = False):
+    """
     Starts the EnMAP-Box GUI.
-
-    :param debug: whether to run in debug mode
-    :param processing: whether to load the processing framework
-    :param applications: whether to load none core application
-    :param sources: list of sources to be added
-    :return:
-    '''
-
+    """
     from enmapbox.testing import initQgisApplication
     from enmapbox.externals.qps.resources import findQGISResourceFiles
     qgisApp = initQgisApplication(resources=findQGISResourceFiles())
     import enmapbox
-    enmapbox.DEBUG = debug
-    enmapbox.LOAD_PROCESSING_FRAMEWORK = processing
-    enmapbox.LOAD_EXTERNAL_APPS = applications
+
+    enmapbox.DEBUG = debug is True
 
     # initialize resources and background frameworks
     # if started from QGIS, this is done by enmapbox/enmapboxplugin.py
@@ -53,15 +48,24 @@ def run(debug: bool=False, processing: bool=True, applications: bool=True, sourc
     enmapBox.run()
     if sources is not None:
         for source in enmapBox.addSources(sourceList=sources):
-            try: # add as map
+            try:
+                # add as map
                 lyr = source.createUnregisteredMapLayer()
                 dock = enmapBox.createDock('MAP')
                 dock.addLayers([lyr])
-            except: pass
-
-
+            except:
+                pass
 
 
 if __name__ == '__main__':
-    run()
-    QApplication.instance().exec_()
+    parser = argparse.ArgumentParser(description='Start the EnMAP-Box')
+    parser.add_argument('-d', '--debug', required=False, help='Debug mode with more outputs', action='store_true')
+    parser.add_argument('-x', '--no_exec', required=False, help='Close EnMAP-Box if QApplication is not existent', action='store_true')
+    args = parser.parse_args()
+
+    app_exists = isinstance(QApplication.instance(), QApplication)
+    run(debug=args.debug)
+    if not app_exists and not args.no_exec:
+        QApplication.instance().exec_()
+    else:
+        print('Finished enmapbox.__main__.py')

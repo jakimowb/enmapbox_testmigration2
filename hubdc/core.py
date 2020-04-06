@@ -1,5 +1,4 @@
-from __future__ import annotations
-
+# from __future__ import annotations
 from math import floor
 from typing import List
 
@@ -8,6 +7,7 @@ try:
 except:
     try:
         import matplotlib
+
         matplotlib.use('QT5Agg')
         import matplotlib.pyplot as plt
     except:
@@ -518,7 +518,7 @@ class Extent(object):
         '''Returns the lower left corner.'''
         return Point(x=self.xmin(), y=self.ymin(), projection=self.projection())
 
-    def buffer(self, buffer: float, left=True, right=True, up=True, down=True) -> Extent:
+    def buffer(self, buffer: float, left=True, right=True, up=True, down=True) -> 'Extent':
         '''Returns a new instance with a buffer applied in different directions.'''
         assert isinstance(buffer, float)
         extent = Extent(
@@ -1017,8 +1017,8 @@ class Grid(object):
         if not self.projection().equal(other=point.projection()):
             point = point.reproject(projection=self.projection())
 
-        x = int(floor( (point.x() - self.extent().xmin()) / self.resolution().x() ))
-        y = int(floor( (self.extent().ymax() - point.y()) / self.resolution().y() ))
+        x = int(floor((point.x() - self.extent().xmin()) / self.resolution().x()))
+        y = int(floor((self.extent().ymax() - point.y()) / self.resolution().y()))
         return Pixel(x=x, y=y)
 
     def geoTransform(self):
@@ -2449,7 +2449,7 @@ class VectorDataset(object):
         raster.flushCache()
         return raster
 
-    def createFidDataset(self, filename, fidName='_fid') -> VectorDataset:
+    def createFidDataset(self, filename, fidName='_fid') -> 'VectorDataset':
         '''Create a vector dataset with same features but only one FID attribute.'''
 
         driver = VectorDriver.fromFilename(filename=filename)
@@ -2600,7 +2600,6 @@ class VectorDataset(object):
         ogrDataSource = gdal.VectorTranslate(destNameOrDestDS=filename, srcDS=self.ogrDataSource(), options=options)
         vectorDataset = VectorDataset(ogrDataSource=ogrDataSource, layerNameOrIndex=self.layerNameOrIndex())
         return vectorDataset
-
 
     def featureCount(self):
         '''Returns the number of features.'''

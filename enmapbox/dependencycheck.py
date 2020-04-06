@@ -20,9 +20,17 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-import sys, os, collections, shutil, time, re, importlib, typing, subprocess
+import sys
+import os
+import collections
+import shutil
+import time
+import re
+import importlib
+import typing
+import subprocess
 import pathlib
-import copy
+import requests
 from difflib import SequenceMatcher
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.PyQt.QtCore import QUrl
@@ -33,13 +41,14 @@ from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 import sip
-
+from enmapbox import debugLog
 # look-up for pip package name and how it gets imported in python
 # e.g. 'pip install scikit-learn' installs a package that is imported via 'import sklearn'
 # Keys need to be lowercase, as accepted by PIP
 PACKAGE_LOOKUP = {'scikit-learn': 'sklearn',
-                  'pyopengl': 'OpenGL',
-                  'enpt-enmapboxapp': 'enpt_enmapboxapp'
+                  'PyOpenGL': 'OpenGL',
+                  'enpt-enmapboxapp': 'enpt_enmapboxapp',
+                  'GDAL': 'gdal'
                   }
 
 # just in case a package cannot /should not simply get installed
@@ -48,8 +57,23 @@ INSTALLATION_HINT = {
     #'enpt_enmapboxapp' : 'git+https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git'
 }
 
+INSTALLATION_BLOCK = {'numba': 'should to be installed manually using the local package manager.\n' +
+                               'please read <a href="https://numba.pydata.org/numba-doc/dev/user/installing.html">' +
+                               'https://numba.pydata.org/numba-doc/dev/user/installing.html</a> for details',
+
+                      'numpy': 'needs to be installed/updated manually with local package manager',
+                      'GDAL': 'needs to be installed/updated manually with local package manager'
+                      }
+
+# https://packaging.python.org/tutorials/packaging-projects/#uploading-your-project-to-pypi
+# pip package names: "name is the distribution name of your package.
+# This can be any name as long as only contains letters, numbers, _ , and -."
+rxPipPackageName = re.compile(r'^[a-zA-Z]+[a-zA-Z0-9-_]*')
+rxPipVersion = re.compile(r'([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?' + \
+               r'(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?')
+
 for k in PACKAGE_LOOKUP.keys():
-    assert k == k.lower()
+    assert rxPipPackageName.search(k)
 
 class PIPPackage(object):
 
@@ -60,12 +84,26 @@ class PIPPackage(object):
 
         if pipCmd is None:
             pipCmd = PACKAGE_LOOKUP.get(pyPkg, pyPkg)
-
+        pipCmd = pipCmd.strip()
+        pipName = re.search(r'^[^<>=| ]+', pipCmd).group()
         self.pyPkgName: str = pyPkg
         self.pipCmd: str = pipCmd
+        self.pipPkgName = pipName
         self.localLocation: str = ''
         self.stderrMsg: str = ''
         self.stdoutMsg: str = ''
+
+        self.mLatestVersion = '<unknown>'
+
+        try:
+            __import__(self.pyPkgName)
+            self.mInstalledVersion = '<installed>'
+        except ModuleNotFoundError:
+            pass
+        self.mInstalledVersion = ''
+
+    def updateAvailable(self) -> bool:
+        return self.mInstalledVersion < self.mLatestVersion
 
     def __str__(self):
         return '{}'.format(self.pyPkgName)
@@ -76,51 +114,32 @@ class PIPPackage(object):
         return self.pyPkgName == other.pyPkgName
 
     def installPackage(self, *args, **kwds):
-        args = self.installArgs(*args, **kwds)
 
         self.stderrMsg = ''
         self.stdoutMsg = ''
-        if True:
+
+        if self.pipPkgName in INSTALLATION_BLOCK.keys():
+            self.stdoutMsg = ''
+            self.stderrMsg = 'Blocked pip install {}'.format(self.pipPkgName) + \
+                             '\nReason: {}'.format(INSTALLATION_BLOCK[self.pipPkgName]) + \
+                             '\nPlease install manually with your local package manager'
+        else:
+            args = self.installArgs(*args, **kwds)
             cmd = ' '.join(args)
             try:
-                process = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-                self.stderrMsg = str(process.stdout)
+                process = subprocess.run(cmd,
+                                         check=True,
+                                         shell=True,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE,
+                                         universal_newlines=True)
+                self.stdoutMsg = str(process.stdout)
             except subprocess.CalledProcessError as ex:
                 self.stderrMsg = ex.stderr
             except Exception as ex2:
                 self.stderrMsg = str(ex2)
 
-
-        elif False:
-            try:
-                results = subprocess.check_output(args, stderr=subprocess.STDOUT, shell=True)
-                self.stderrMsg = ""
-                self.stdoutMsg = results.decode()
-            except subprocess.CalledProcessError as ex:
-                self.stderrMsg = ex.stdout.decode()
-                if len(self.stderrMsg) == 0:
-                    self.stderrMsg = 'Failed to install {}.\nPlease close QGIS and try "{}" on your CLI.'.format(self.pyPkgName, self.installCommand())
-                self.stdoutMsg = ""
-
-            except Exception as otherEx:
-                print(otherEx, file=sys.stderr)
-        else:
-            from contextlib import redirect_stderr, redirect_stdout
-            import io
-            se = io.StringIO()
-            so = io.StringIO()
-            with redirect_stderr(se):
-                with redirect_stdout(so):
-                    try:
-                        sys.argv = ["pip"] + args[1:]
-                        import pip._internal.cli.main
-                        pip._internal.cli.main.main()
-                    except Exception as ex:
-                        print(ex, file=sys.stderr)
-            self.stderrMsg = se.getvalue()
-            self.stdoutMsg = so.getvalue()
-
-    def installArgs(self, user: bool = True) -> typing.List[str]:
+    def installArgs(self, user: bool = True, upgrade: bool = False) -> typing.List[str]:
 
         # find path of local pip executable
         import shutil
@@ -142,17 +161,27 @@ class PIPPackage(object):
         args.append('install')
         if user:
             args.append('--user')
+
+        if upgrade:
+            args.append('--upgrade')
         args.append(self.pipCmd)
         return args
 
     def installCommand(self, *args, **kwds) -> str:
         """
-        Returns the installation command as str
+        Returns the installation command as string
         :param args:
         :param kwds:
-        :return:
+        :return: str
         """
         return ' '.join(self.installArgs(*args, **kwds))
+
+    def updateCommand(self) -> str:
+        """
+        Returns the update command as string
+        :return: str
+        """
+        return self.installCommand(upgrade=True)
 
     def isInstalled(self) -> bool:
         """
@@ -160,12 +189,13 @@ class PIPPackage(object):
         :return:
         :rtype:
         """
-        try:
-            __import__(self.pyPkgName)
-            return True
-        except ModuleNotFoundError:
-            return False
-
+        #try:
+        #    __import__(self.pyPkgName)
+        #    return True
+        #except ModuleNotFoundError:
+        #    return False
+        spam_spec = importlib.util.find_spec(self.pyPkgName)
+        return spam_spec is not None
 
 def localPythonExecutable() -> pathlib.Path:
     """
@@ -184,20 +214,115 @@ def localPythonExecutable() -> pathlib.Path:
     pyexe = candidates[similarity.index(max(similarity))]
     return pathlib.Path(pyexe)
 
-class PIPCommandTask(QgsTask):
+class PIPPackageInfoTask(QgsTask):
 
     sigMessage = pyqtSignal(str, bool)
-    def __init__(self, description:str, packages: typing.List[PIPPackage], callback=None):
+    sigInstalledVersion = pyqtSignal(str, str)
+    sigAvailableVersion = pyqtSignal(str, str)
+    sigAvailableVersionJson = pyqtSignal(str, dict)
+    def __init__(self, description: str,
+                 pipPackages: typing.List[str],
+                 load_latest_versions: bool=True,
+                 callback=None):
+        super().__init__(description, QgsTask.CanCancel)
+        self.packages: typing.List[str] = pipPackages
+        self.callback = callback
+        self.INSTALLED_VERSIONS = dict()
+        self.LATEST_VERSIONS = dict()
+        self.LATEST_VERSION_JSON = dict()
+        self.load_latest_versions: bool = load_latest_versions
+
+    def run(self):
+        # pip version identifier
+        # see https://www.python.org/dev/peps/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
+        nTotal = len(self.packages) + 1
+        # get info on installed packages
+        cmdList = str(localPythonExecutable()) + ' -m pip list'
+        self.sigMessage.emit('Search for installed versions...', False)
+        process = subprocess.run(cmdList,
+                                 check=True, shell=True,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 universal_newlines=True)
+
+        rxInstalled = re.compile(r'({})\s+({})'.format(rxPipPackageName.pattern, rxPipVersion.pattern))
+        stdout = process.stdout
+        for line in process.stdout.splitlines():
+            match = rxInstalled.search(line)
+            if match:
+                pipPkg = match.group(1)
+                version = match.group(2)
+                if pipPkg in self.packages:
+                    self.sigInstalledVersion.emit(pipPkg, version)
+                    self.INSTALLED_VERSIONS[pipPkg] = version
+                else:
+                    s = ""
+                    #print('no requested: {}'.format(pipPkg))
+
+        if not self.load_latest_versions:
+            return True
+
+        self.setProgress(1)
+
+        # get info about remote package versions
+        self.sigMessage.emit('Search for latest versions...', False)
+
+        import warnings
+        warnings.simplefilter('ignore', ResourceWarning)
+
+        session = requests.Session()
+        for i, pipPkg in enumerate(self.packages):
+            self.LATEST_VERSIONS[pipPkg] = ""
+
+            url = "https://pypi.python.org/pypi/{}/json".format(pipPkg)
+            jsonDict = dict()
+            version = ''
+            with session.get(url) as response:
+                if response.status_code == 200:
+                    jsonDict = response.json()
+                else:
+                    info = 'request: "{}"\nreturned: {}\nstatus code: {}'.format(response.request.url,
+                                                                             response.reason,
+                                                                             response.status_code)
+                    self.sigMessage.emit(info, True)
+
+            if isinstance(jsonDict, dict) and len(jsonDict) > 0:
+                version = jsonDict['info']['version']
+                pipName = jsonDict['info']['name']
+                if pipName != pipPkg:
+                    self.sigMessage.emit('PIP Package "{}" is correctly written "{}"'.format(pipPkg, pipName), True)
+                self.sigMessage.emit('Latest version "{}" = {}'.format(pipName, version), False)
+            self.sigAvailableVersionJson.emit(pipPkg, jsonDict)
+            self.sigAvailableVersion.emit(pipPkg, version)
+
+            if self.isCanceled():
+                session.close()
+                self.sigMessage.emit('version retrieval canceled', False)
+                return False
+            self.setProgress(i+2)
+        session.close()
+        return True
+
+    def finished(self, result):
+        if self.callback is not None:
+            self.callback(result, self)
+
+class PIPInstallCommandTask(QgsTask):
+
+    sigMessage = pyqtSignal(str, bool)
+
+    def __init__(self, description:str, packages: typing.List[PIPPackage], upgrade=True, user=True, callback=None):
         super().__init__(description, QgsTask.CanCancel)
         self.packages: typing.List[PIPPackage] = packages
         self.callback = callback
-
+        self.mUpgrade: bool  = upgrade
+        self.mUser: bool = user
     def run(self):
         n = len(self.packages)
         for i, pkg in enumerate(self.packages):
             assert isinstance(pkg, PIPPackage)
-            self.sigMessage.emit(pkg.installCommand(), False)
-            pkg.installPackage()
+            self.sigMessage.emit(pkg.installCommand(user=self.mUser, upgrade=self.mUpgrade), False)
+            pkg.installPackage(user=self.mUser, upgrade=self.mUpgrade)
             if len(pkg.stdoutMsg) > 0:
                 self.sigMessage.emit(pkg.stdoutMsg, False)
             if len(pkg.stderrMsg) > 0:
@@ -229,7 +354,7 @@ def checkGDALIssues()->typing.List[str]:
     return issues
 
 
-def requiredPackages()->typing.List[PIPPackage]:
+def requiredPackages(return_tuples: bool = False) -> typing.List[PIPPackage]:
     """
     Returns a list of pip packages that should be installable according to the `requirements.txt` file
     :return: [list of strings]
@@ -259,9 +384,12 @@ def requiredPackages()->typing.List[PIPPackage]:
                 pipPkg = match.group()
                 pyPkg = PACKAGE_LOOKUP.get(pipPkg, pipPkg)
                 cmd = INSTALLATION_HINT.get(pipPkg, line)
-                pkg = PIPPackage(pyPkg, cmd)
+                debugLog('dependencycheck required package {}:{}:{}'.format(pyPkg, pipPkg, cmd))
+                if return_tuples:
+                    pkg = (pyPkg, pipPkg, cmd)
+                else:
+                    pkg = PIPPackage(pyPkg, cmd)
                 packages.append(pkg)
-
     return packages
 
 
@@ -463,32 +591,53 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
         super().__init__(*args, **kwds)
 
         self.cnPkg = 'Package'
-        self.cnStatus = 'Status'
+        self.cnInstalledVersion = 'Installed'
+        self.cnLatestVersion = 'Latest'
         self.cnCommand = 'Installation Command'
-        self.mColumnNames = [self.cnPkg, self.cnStatus, self.cnCommand]
+        self.mColumnNames = [self.cnPkg, self.cnInstalledVersion, self.cnLatestVersion, self.cnCommand]
         self.mColumnToolTips = ['Python package name',
-                                'Status of python package installation',
-                                'Command to install the package from your command line interface']
+                                'Installed version',
+                                'Latest version',
+                                'Command to install/update the package from your command line interface']
         self.mPackages = []
-
         self.mWarned = False
-
         self.mUser = True
 
-    def setUser(self, b:bool):
+    def setUser(self, b: bool):
         self.mUser = b == True
         self.dataChanged.emit(self.createIndex(0,0), self.createIndex(self.rowCount()-1, self.columnCount()-1))
 
-    def updatePackage(self, pkg:PIPPackage):
 
+    def packageFromPIPName(self, pipName:str) -> PIPPackage:
+        for pkg in self:
+            if pkg.pipPkgName.lower() == pipName.lower():
+                return pkg
+        return None
+
+    def updateInstalledVersion(self, pipName:str, installedVersion: str):
+        pkg = self.packageFromPIPName(pipName)
+        if isinstance(pkg, PIPPackage):
+            pkg.mInstalledVersion = installedVersion
+            self.updatePackage(pkg)
+
+    def updateAvailableVersion(self, pipName:str, availableVersion: str):
+        pkg = self.packageFromPIPName(pipName)
+        if isinstance(pkg, PIPPackage):
+            pkg.mLatestVersion = availableVersion
+            self.updatePackage(pkg)
+
+    def updatePackage(self, pkg:PIPPackage):
         assert isinstance(pkg, PIPPackage)
         idx = self.pkg2index(pkg)
         if idx.isValid():
             r = idx.row()
-            self.dataChanged.emit(  self.createIndex(r, 0),
-                                    self.createIndex(r, self.columnCount()-1))
+            self.dataChanged.emit(self.createIndex(r, 0),
+                                  self.createIndex(r, self.columnCount()-1))
+    def __getitem__(self, slice):
+        return self.mPackages[slice]
 
-        s = ""
+    def __contains__(self, item):
+        return item in self.mPackages
 
     def __len__(self):
         return len(self.mPackages)
@@ -533,13 +682,15 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
         if role == Qt.DisplayRole:
             if cn == self.cnPkg:
                 return pkg.pyPkgName
-            if cn == self.cnStatus:
-                if pkg.isInstalled():
-                    return 'Installed'
+            if cn == self.cnInstalledVersion:
+                if pkg.mInstalledVersion == '':
+                    return '<not installed>'
                 else:
-                    return 'Not installed'
+                    return pkg.mInstalledVersion
+            if cn == self.cnLatestVersion:
+                return pkg.mLatestVersion
             if cn == self.cnCommand:
-                cmd = pkg.installCommand(user=self.mUser)
+                cmd = pkg.installCommand(user=self.mUser, upgrade=pkg.mInstalledVersion < pkg.mLatestVersion)
                 match = re.search(r'python(\.exe)?.*$', cmd, re.I)
                 if match:
                     return match.group()
@@ -547,18 +698,20 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
                     return cmd
 
         if role == Qt.ForegroundRole:
-            if cn == self.cnStatus:
-                if pkg.isInstalled():
-                    return QColor('green')
-                else:
+            if cn == self.cnInstalledVersion:
+                if pkg.mInstalledVersion == '':
                     return QColor('red')
+                elif pkg.mLatestVersion > pkg.mInstalledVersion:
+                    return QColor('orange')
+                else:
+                    return QColor('green')
 
         if role == Qt.ToolTipRole:
             if cn == self.cnPkg:
                 return self.mColumnNames[index.column()]
 
             if cn == self.cnCommand:
-                info = 'Command to install {} from your CLI.'.format(pkg.pyPkgName)
+                info = 'Command to install/update {} from your CLI.'.format(pkg.pyPkgName)
                 if 'git+' in pkg.installCommand():
                     info += '\nThis command requires having git (https://www.git-scm.com) installed!'
                 return info
@@ -586,6 +739,8 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
 class PIPPackageInstallerTableView(QTableView):
 
     sigInstallPackageRequest = pyqtSignal(list)
+    sigPackageReloadRequest = pyqtSignal(list)
+
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
@@ -618,9 +773,16 @@ class PIPPackageInstallerTableView(QTableView):
         a.setToolTip('Copies the installation command including path of python executable')
         a.triggered.connect(lambda *args, v=cmd: QApplication.clipboard().setText(v))
 
-        a = m.addAction('Install')
-        a.setEnabled(not pkg.isInstalled())
+        isInstalled = pkg.isInstalled()
+        isUpdatable = pkg.updateAvailable()
+
+        a = m.addAction('Install/Update')
+        a.setEnabled(not isInstalled or isUpdatable)
         a.triggered.connect(lambda *args, p=pkgs: self.sigInstallPackageRequest.emit(p))
+
+        a = m.addAction('Reload')
+        a.setToolTip('Reloads installed and available package versions')
+        a.triggered.connect(lambda *args, p=pkgs: self.sigPackageReloadRequest.emit(pkgs))
 
         m.exec_(event.globalPos())
 
@@ -641,6 +803,8 @@ class PIPPackageInstaller(QWidget):
         self.proxyModel.setSourceModel(self.model)
         self.tableView.setModel(self.proxyModel)
 
+        self.progressBar.setVisible(False)
+
         self.cbUser.toggled.connect(self.model.setUser)
         self.cbMissingOnly.toggled.connect(self.showMissingOnly)
         self.showMissingOnly(self.cbMissingOnly.isChecked())
@@ -648,6 +812,7 @@ class PIPPackageInstaller(QWidget):
         assert isinstance(self.tableView, PIPPackageInstallerTableView)
         self.tableView.setSortingEnabled(True)
         self.tableView.sigInstallPackageRequest.connect(self.installPackages)
+        self.tableView.sigPackageReloadRequest.connect(self.reloadPythonPackages)
         self.tableView.sortByColumn(1, Qt.DescendingOrder)
         self.buttonBox.button(QDialogButtonBox.YesToAll).clicked.connect(self.installAll)
         self.buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
@@ -661,12 +826,16 @@ class PIPPackageInstaller(QWidget):
     def onProgressChanged(self, progress):
         self.progressBar.setValue(int(progress))
 
-    def onCompleted(self, result: bool, task: PIPCommandTask):
-        if isinstance(task, PIPCommandTask) and not sip.isdeleted(task):
+    def onCompleted(self, result: bool, task: PIPInstallCommandTask):
+        if isinstance(task, PIPInstallCommandTask) and not sip.isdeleted(task):
             for pkg in task.packages:
                 self.model.updatePackage(pkg)
             if result is False:
                 self.progressBar.setValue(0)
+            self.onRemoveTask(id(task))
+            self.loadPIPVersionInfo(task.packages, load_latest_versions=False)
+        elif isinstance(task, PIPPackageInfoTask) and not sip.isdeleted(task):
+            s = ""
             self.onRemoveTask(id(task))
 
     def installAll(self):
@@ -677,7 +846,6 @@ class PIPPackageInstaller(QWidget):
 
         if not self.showWarning():
             return
-
         for p in packages:
             assert isinstance(p, PIPPackage)
         pkgs = []
@@ -689,14 +857,43 @@ class PIPPackageInstaller(QWidget):
         self.progressBar.setRange(0, len(pkgs))
         self.progressBar.setValue(-1)
 
-        qgsTask = PIPCommandTask('PIP installation', pkgs, callback=self.onCompleted)
+        qgsTask = PIPInstallCommandTask('PIP installation', pkgs, callback=self.onCompleted)
+        self.startTask(qgsTask)
+
+    def reloadPythonPackages(self, pipPackages: typing.List[PIPPackage]):
+        import importlib
+        for pkg in pipPackages:
+            try:
+                module = __import__(pkg.pyPkgName)
+                importlib.reload(module)
+                info = '{} reloaded'.format(module)
+                self.addText(info, True)
+            except Exception as ex:
+                self.addText(str(ex), True)
+
+    def loadPIPVersionInfo(self, pipPackages: typing.List[PIPPackage], load_latest_versions: bool= True):
+        if len(pipPackages) == 0:
+            pipPackages = self.model[:]
+        else:
+            for p in pipPackages:
+                assert isinstance(p, PIPPackage)
+        # get names
+        pipPackageNames = [p.pipPkgName for p in pipPackages]
+
+        task = PIPPackageInfoTask('Get package information', pipPackageNames, load_latest_versions=load_latest_versions)
+        task.sigInstalledVersion.connect(self.model.updateInstalledVersion)
+        task.sigAvailableVersion.connect(self.model.updateAvailableVersion)
+        self.startTask(task)
+
+
+    def startTask(self, qgsTask:QgsTask):
         tid = id(qgsTask)
+
         qgsTask.progressChanged.connect(self.onProgressChanged)
         qgsTask.taskCompleted.connect(lambda *args, tid = tid: self.onRemoveTask(tid))
         qgsTask.taskTerminated.connect(lambda *args, tid = tid: self.onRemoveTask(tid))
         qgsTask.sigMessage.connect(self.onTaskMessage)
         self.mTasks[tid] = qgsTask
-
         tm = QgsApplication.taskManager()
         assert isinstance(tm, QgsTaskManager)
         tm.addTask(qgsTask)
@@ -759,9 +956,10 @@ class PIPPackageInstaller(QWidget):
         c = self.textBrowser.textColor()
         if isinstance(color, QColor):
             self.textBrowser.setTextColor(color)
-        self.textBrowser.append('\n'+text)
+        self.textBrowser.append(text)
         self.textBrowser.setTextColor(c)
 
-    def addPackages(self, packages:typing.List[PIPPackage]):
+    def addPackages(self, packages: typing.List[PIPPackage]):
         self.model.addPackages(packages)
+        self.loadPIPVersionInfo(packages)
 

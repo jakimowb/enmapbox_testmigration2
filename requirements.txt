@@ -5,18 +5,19 @@
 ###### Requirements ######
 
 # these should already part of a standard QGIS installation
-gdal ; platform_system != "Linux"
+GDAL ; platform_system != "Linux"
 numpy>=1.15
 matplotlib>=3.0
 pip>=20.0
+dataclasses ; python_version < '3.7'
 
 # required by parts of EnMAP-Box Core
 scipy>=1.1
 scikit-learn>=0.19.2
 astropy # required for convolution
-pyopengl # required by ImageCube app
+PyOpenGL # required by ImageCube app
 
 # required by parts of EnMAP-Box Applications
-numba # required by EnSoMAP
+numba ; platform_system != "Linux" # required by EnSoMAP, causes problems on Linux (miniconda)
 netCDF4 # required by ONNS
-#enpt-enmapboxapp # required by EnPT
+enpt-enmapboxapp # required by EnPT
