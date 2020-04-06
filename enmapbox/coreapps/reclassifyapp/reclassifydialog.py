@@ -96,10 +96,12 @@ class ReclassifyDialog(QDialog):
         for l in QgsProject.instance().mapLayers().values():
             if not isinstance(l, QgsRasterLayer):
                 to_exclude.append(l)
-            else:
-                cs = ClassificationScheme.fromMapLayer(l)
-                if cs is None or len(cs) == 0:
-                    to_exclude.append(l)
+                continue
+            cs = ClassificationScheme.fromMapLayer(l)
+            if cs is None or len(cs) == 0:
+                to_exclude.append(l)
+                continue
+
         self.mapLayerComboBox.setExceptedLayerList(to_exclude)
 
     def loadEnMAPBoxSources(self):

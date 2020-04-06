@@ -803,6 +803,8 @@ class PIPPackageInstaller(QWidget):
         self.proxyModel.setSourceModel(self.model)
         self.tableView.setModel(self.proxyModel)
 
+        self.progressBar.setVisible(False)
+
         self.cbUser.toggled.connect(self.model.setUser)
         self.cbMissingOnly.toggled.connect(self.showMissingOnly)
         self.showMissingOnly(self.cbMissingOnly.isChecked())
@@ -820,8 +822,6 @@ class PIPPackageInstaller(QWidget):
             lambda : QgsApplication.instance().clipboard().setText(self.textBrowser.toPlainText()))
         self.btnClearConsole.setDefaultAction(self.actionClearConsole)
         self.btnCopyConsole.setDefaultAction(self.actionCopyConsole)
-
-
 
     def onProgressChanged(self, progress):
         self.progressBar.setValue(int(progress))
