@@ -71,7 +71,7 @@ class TestReclassify(EnMAPBoxTestCase):
             newDef.setNoDataNameAndColor(newNames[0], QColor('yellow'))
 
             # driver = guessRasterDriver(pathDst)
-            r = classification.reclassify(filename=pathDst,
+            classification.reclassify(filename=pathDst,
                                       classDefinition=newDef,
                                       mapping={0:0, 1:1, 2:1})#,
                                         #outclassificationDriver=driver)
@@ -94,7 +94,7 @@ class TestReclassify(EnMAPBoxTestCase):
 
         for pathDst in pathResultFiles:
             ds = gdal.Open(pathDst)
-            files = ds.GetFileList()
+            #files = ds.GetFileList()
             band = ds.GetRasterBand(1)
             self.assertIsInstance(band.GetCategoryNames(), list, msg='Failed to set any category names to "{}"'.format(pathDst))
             self.assertEqual(newNames, band.GetCategoryNames(), msg='Failed to set all category names to "{}"'.format(pathDst))
