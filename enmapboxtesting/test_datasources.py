@@ -177,6 +177,7 @@ class standardDataSources(EnMAPBoxTestCase):
             self.assertIsInstance(ds, list)
             self.assertTrue(len(ds) > 0, msg='not datasource returned for {}'.format(file))
             self.assertIsInstance(ds[0], DataSourceSpectralLibrary)
+            print('loaded {}'.format(file))
 
 
     def test_layerSourceUpdate(self):
