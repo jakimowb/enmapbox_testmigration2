@@ -166,6 +166,15 @@ class standardDataSources(EnMAPBoxTestCase):
         ds = ds[0]
         self.assertIsInstance(ds, DataSourceSpectralLibrary)
 
+        import enmapboxtestdata.asd.asd
+        from enmapbox import scantree
+
+        asdDir = pathlib.Path(enmapboxtestdata.__file__).parent
+        asdFiles = scantree(asdDir, '.asd')
+        for file in asdFiles:
+            ds = DataSourceFactory.create(file)
+            self.assertIsInstance(ds, list)
+            self.assertIsInstance(ds[0], DataSourceSpectralLibrary)
 
 
     def test_layerSourceUpdate(self):
