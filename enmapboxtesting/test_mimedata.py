@@ -110,8 +110,7 @@ class MimeDataTests(EnMAPBoxTestCase):
             self.assertIsInstance(lyr, QgsMapLayer)
             self.assertTrue(lyr)
 
-
-    def file2DropEvent(self, path)->QDropEvent:
+    def file2DropEvent(self, path) -> QDropEvent:
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
         md = QMimeData()
@@ -130,7 +129,7 @@ class MimeDataTests(EnMAPBoxTestCase):
                 files.append(pathlib.Path(root) / file)
 
         # drop on
-        EB = EnMAPBox()
+        EB = EnMAPBox(load_core_apps=False, load_other_apps=False)
         dockManager = EB.dockManager()
         dockArea = dockManager.currentDockArea()
         for path in files:
@@ -139,6 +138,7 @@ class MimeDataTests(EnMAPBoxTestCase):
             for d in dockManager.docks():
                 dockManager.removeDock(d)
             EB.dataSourceManager().removeSources(EB.dataSourceManager().sources())
+            QApplication.processEvents()
             QgsProject.instance().removeAllMapLayers()
             QApplication.processEvents()
 
@@ -146,7 +146,7 @@ class MimeDataTests(EnMAPBoxTestCase):
 
     def test_dropping_files_speclib_widget(self):
         files = []
-        nMax = 50
+        nMax = 25
         for root, dirs, f in os.walk(DIR_TESTDATA):
             if len(files) >= nMax:
                 break
@@ -157,7 +157,7 @@ class MimeDataTests(EnMAPBoxTestCase):
         from enmapbox.gui.docks import SpectralLibraryDock
         from enmapbox.gui import SpectralLibraryWidget
         from enmapboxtestdata import library
-        EB = EnMAPBox()
+        EB = EnMAPBox(load_other_apps=False, load_core_apps=False)
         sld = EB.createDock('SPECLIB')
         self.assertIsInstance(sld, SpectralLibraryDock)
         w = sld.speclibWidget()
@@ -184,7 +184,7 @@ class MimeDataTests(EnMAPBoxTestCase):
             QApplication.processEvents()
             EB.dataSourceManager().removeSource(file)
             QApplication.processEvents()
-            #QgsProject.instance().removeAllMapLayers()
+
         EB.close()
 
 

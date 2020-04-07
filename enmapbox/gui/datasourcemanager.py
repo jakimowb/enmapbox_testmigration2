@@ -1450,7 +1450,7 @@ class DataSourceManagerTreeModel(TreeModel):
                     exportedNodes.append(node)
 
         uriList = list()
-        uuidList =list()
+        uuidList = list()
 
         bandInfo = list()
 
@@ -1481,7 +1481,9 @@ class DataSourceManagerTreeModel(TreeModel):
         if len(bandInfo) > 0:
             mimeData.setData(MDF_RASTERBANDS, pickle.dumps(bandInfo))
 
-        mimeData.setUrls([QUrl.fromLocalFile(uri) if os.path.isfile(uri) else QUrl(uri) for uri in uriList])
+        urls = [QUrl.fromLocalFile(uri) if os.path.isfile(uri) else QUrl(uri) for uri in uriList]
+        if len(urls) > 0:
+            mimeData.setUrls(urls)
         return mimeData
 
     def sourceGroups(self) -> list:

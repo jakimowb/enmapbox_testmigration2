@@ -1059,9 +1059,11 @@ class SpectralLibrary(QgsVectorLayer):
                 return sl
 
         if mimeData.hasUrls():
-            sl = SpectralLibrary.readFrom(mimeData.urls()[0])
-            if isinstance(sl, SpectralLibrary) and len(sl) > 0:
-                return sl
+            urls = mimeData.urls()
+            if isinstance(urls, list) and len(urls) > 0:
+                sl = SpectralLibrary.readFrom(urls[0])
+                if isinstance(sl, SpectralLibrary) and len(sl) > 0:
+                    return sl
 
         if MIMEDATA_TEXT in mimeData.formats():
             txt = mimeData.text()
@@ -1311,8 +1313,9 @@ class SpectralLibrary(QgsVectorLayer):
         # GDAL 3.0 considers authority specific axis order
         # see https://github.com/OSGeo/gdal/issues/1974
         #     https://gdal.org/tutorials/osr_api_tut.html
-        rasterSRS.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
-        speclibSRS.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        if gdal.__version__ >= '3.0':
+            rasterSRS.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+            speclibSRS.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
 
         # transform many coordinates fast!
         transSRS = osr.CoordinateTransformation(rasterSRS, speclibSRS)
