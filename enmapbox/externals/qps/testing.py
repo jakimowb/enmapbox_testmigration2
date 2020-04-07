@@ -55,11 +55,10 @@ def start_app(cleanup=True, options=StartOptions.Minimized, resources:list=[])->
         print('Found existing QgsApplication.instance()')
         qgsApp = QgsApplication.instance()
     else:
+        # load resource files, e.g to make icons available
+        for path in resources:
+            initResourceFile(path)
         qgsApp = qgis.testing.start_app(cleanup=cleanup)
-
-    # load resource files, e.g to make icons available
-    for path in resources:
-        initResourceFile(path)
 
     # initialize things not done by qgis.test.start_app()...
     if not QgsProviderRegistry.instance().libraryDirectory().exists():

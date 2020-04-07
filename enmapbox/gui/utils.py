@@ -42,7 +42,7 @@ def guessDataProvider(src:str)->str:
     """
     if re.search(r'\.(bsq|tiff?|jp2|jp2000|j2k|png)', src, re.I):
         return 'gdal'
-    elif re.search(r'\.(sli|esl)$', src, re.I):  # probably a spectral library
+    elif re.search(r'\.(sli|esl|asd|asd.txt)$', src, re.I):  # probably a spectral library
         return 'enmapbox_speclib'
     elif re.search(r'\.(shp|gpkg|kml)$', src, re.I):  # probably a vector file
         return 'ogr'

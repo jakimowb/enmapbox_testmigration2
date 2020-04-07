@@ -166,6 +166,26 @@ class standardDataSources(EnMAPBoxTestCase):
         ds = ds[0]
         self.assertIsInstance(ds, DataSourceSpectralLibrary)
 
+        import enmapboxtestdata.asd.asd
+        from enmapbox import scantree
+        from enmapbox.externals.qps.speclib.io.asd import ASDSpectralLibraryIO
+        asdDir = pathlib.Path(enmapboxtestdata.__file__).parent
+        asdFiles = list(scantree(asdDir, '.asd'))
+
+        for file in asdFiles:
+            file = str(file)
+            print('Load SpectralLibrary from {}...'.format(file), flush=True)
+            self.assertTrue(os.path.isfile(file))
+            self.assertTrue(ASDSpectralLibraryIO.canRead(file))
+            slib = ASDSpectralLibraryIO.readFrom(file)
+
+            self.assertIsInstance(slib, SpectralLibrary)
+            ds = DataSourceFactory.create(file)
+
+            self.assertIsInstance(ds, list)
+            self.assertTrue(len(ds) > 0, msg='not datasource returned for {}'.format(file))
+            self.assertIsInstance(ds[0], DataSourceSpectralLibrary)
+
 
 
     def test_layerSourceUpdate(self):

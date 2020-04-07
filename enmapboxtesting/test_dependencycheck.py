@@ -149,6 +149,7 @@ class test_dependencycheck(EnMAPBoxTestCase):
                                  check=True,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE,
+                                 shell=True,
                                  universal_newlines=True)
         self.assertTrue(process.stdout.startswith('Python 3.'))
 
