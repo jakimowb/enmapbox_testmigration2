@@ -1,11 +1,14 @@
 import unittest
 import site
 import pathlib
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtCore import *
 from unittest import TestCase
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapbox import DIR_ENMAPBOX
 site.addsitedir(pathlib.Path(DIR_ENMAPBOX) / 'coreapps')
 from reclassifyapp.reclassify import *
+from reclassifyapp.reclassifydialog import *
 from enmapbox.gui import ClassificationScheme
 from enmapbox.gui.utils import *
 
@@ -17,20 +20,15 @@ class TestReclassify(EnMAPBoxTestCase):
         super().setUpClass()
         from tempfile import mkdtemp
         cls.testDir = mkdtemp(prefix='TestDir')
-        cls.classA = TestObjects.createRasterDataset(nc=2)
-        cls.classB = TestObjects.createRasterDataset(nc=5)
-
-        cls.pathClassA = cls.classA.GetDescription()
-        cls.pathClassB = cls.classB.GetDescription()
-        cls.pathClassTemp = os.path.join(cls.testDir, 'classificationTemp.bsq')
-        drv = gdal.GetDriverByName('ENVI')
-        drv.CreateCopy(cls.pathClassA, cls.classA)
-        #drv.CreateCopy(cls.pathClassB, cls.classB)
+        cls.classA = TestObjects.createRasterLayer(nc=2)
+        cls.classB = TestObjects.createRasterLayer(nc=5)
 
     @classmethod
     def tearDownClass(cls):
         cls.classA = None
         cls.classB = None
+
+        QgsProject.instance().removeAllMapLayers()
         #todo: remove temp files
         #if os.path.exists(cls.testDir):
         #    os.remove(cls.testDir)
@@ -38,6 +36,7 @@ class TestReclassify(EnMAPBoxTestCase):
 
     def test_hubflow_reclassify(self):
         import hubflow.core
+        import uuid
         from enmapbox.testing import TestObjects
         dsSrc = TestObjects.createRasterDataset(10,20,nc=5)
         self.assertIsInstance(dsSrc, gdal.Dataset)
@@ -47,9 +46,10 @@ class TestReclassify(EnMAPBoxTestCase):
         self.assertTrue(pathSrc.startswith('/vsimem/'))
 
         pathResultFiles = []
+        uid = uuid.uuid4()
         for i, ext in enumerate(['bsq', 'BSQ', 'bil', 'BIL', 'bip', 'BIP', 'tif', 'TIF', 'tiff', 'TIFF']):
 
-            pathDst = r'/vsimem/testclasstiff{}.{}'.format(i, ext)
+            pathDst = r'/vsimem/testclasstiff{}.{}.{}'.format(i, uid, ext)
 
             classification = hubflow.core.Classification(pathSrc)
             oldDef = classification.classDefinition()
@@ -68,7 +68,7 @@ class TestReclassify(EnMAPBoxTestCase):
             newDef = hubflow.core.ClassDefinition(names=newNames[1:], colors=[c.name() for c in newColors[1:]])
             newDef.setNoDataNameAndColor(newNames[0], QColor('yellow'))
 
-            #driver = guessRasterDriver(pathDst)
+            # driver = guessRasterDriver(pathDst)
             r = classification.reclassify(filename=pathDst,
                                       classDefinition=newDef,
                                       mapping={0:0, 1:1, 2:1})#,
@@ -94,8 +94,10 @@ class TestReclassify(EnMAPBoxTestCase):
         for pathDst in pathResultFiles:
             ds = gdal.Open(pathDst)
             band = ds.GetRasterBand(1)
-            self.assertIsInstance(band.GetCategoryNames(), list, msg='Failed to set category names to "{}"'.format(pathDst))
+            self.assertIsInstance(band.GetCategoryNames(), list, msg='Failed to set any category names to "{}"'.format(pathDst))
             self.assertEqual(newNames, band.GetCategoryNames(), msg='Failed to set all category names to "{}"'.format(pathDst))
+            print('Success: created {}'.format(pathDst))
+
 
     def test_hubflowrasterdriverguess(self):
 
@@ -134,6 +136,19 @@ class TestReclassify(EnMAPBoxTestCase):
         self.assertIsInstance(csDst2, ClassificationScheme)
         self.assertEqual(csDst,csDst2 )
 
+    def test_transformation_table(self):
+
+        tv = QTableView()
+        model = ReclassifyTableModel()
+        pm = QSortFilterProxyModel()
+        pm.setSourceModel(model)
+        tv.setModel(pm)
+
+        viewDelegate = ReclassifyTableViewDelegate(tv)
+        viewDelegate.setItemDelegates(tv)
+        model.setSource(ClassificationScheme.create(2))
+        model.setDestination(ClassificationScheme.create(256))
+        self.showGui(tv)
 
 
     def test_dialog(self):
@@ -147,19 +162,12 @@ class TestReclassify(EnMAPBoxTestCase):
         dialog = ReclassifyDialog()
         self.assertIsInstance(dialog, ReclassifyDialog)
 
-
-        self.assertIs(dialog.srcRaster(), None)
-        self.assertListEqual(dialog.knownRasterSources(), [])
-
-        dialog.setSrcRaster(self.pathClassA)
-        self.assertListEqual(dialog.knownRasterSources(), [self.pathClassA])
-        self.assertEqual(dialog.srcRaster(), self.pathClassA)
-        dialog.setSrcRaster(self.pathClassB)
-        self.assertEqual(dialog.srcRaster(), self.pathClassB)
-        dialog.setSrcRaster(self.pathClassA)
-        self.assertEqual(dialog.srcRaster(), self.pathClassA)
-
-
+        dialog.setSrcRasterLayer(self.classA)
+        self.assertEqual(dialog.srcRasterLayer(), self.classA)
+        dialog.setSrcRasterLayer(self.classA)
+        self.assertEqual(dialog.srcRasterLayer(), self.classA)
+        dialog.setSrcRasterLayer(self.classB)
+        self.assertEqual(dialog.srcRasterLayer(), self.classB)
 
         dialog.setDstRaster(os.path.join(self.testDir, 'testclass.bsq'))
         dstCS = ClassificationScheme.create(2)
@@ -168,7 +176,7 @@ class TestReclassify(EnMAPBoxTestCase):
         self.assertEqual(dstCS, dialog.dstClassificationScheme())
 
         settings = dialog.reclassificationSettings()
-        for key in ['labelLookup','dstClassScheme', 'pathDst', 'pathSrc']:
+        for key in ['labelLookup', 'dstClassScheme', 'pathDst', 'pathSrc']:
             self.assertTrue(key in settings.keys(), msg='Missing setting key "{}"'.format(key))
 
 
@@ -189,6 +197,8 @@ class TestReclassify(EnMAPBoxTestCase):
         self.assertEqual(dstCS, cs3, msg='Expected:\n{}\nbut got:\n{}'.format(dstCS.toString(), cs3.toString()))
 
         self.showGui(dialog)
+
+
 if __name__ == "__main__":
 
     import xmlrunner
