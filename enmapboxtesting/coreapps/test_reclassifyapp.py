@@ -101,7 +101,6 @@ class TestReclassify(EnMAPBoxTestCase):
             print('Success: created {}'.format(pathDst))
             del ds
 
-
     def test_hubflowrasterdriverguess(self):
 
         self.assertIsInstance(guessRasterDriver('foo.bsq'), hubflow.core.EnviDriver)

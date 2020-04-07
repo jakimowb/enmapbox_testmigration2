@@ -59,6 +59,7 @@ pipelines:
             - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
             - echo "current dir:" $(pwd)
             - python3 --version
+            - gdalinfo --version
             - printenv PYTHONPATH
             - QT_QPA_PLATFORM=offscreen
             - export QT_QPA_PLATFORM
