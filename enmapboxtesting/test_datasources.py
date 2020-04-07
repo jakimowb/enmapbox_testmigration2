@@ -172,8 +172,10 @@ class standardDataSources(EnMAPBoxTestCase):
         asdDir = pathlib.Path(enmapboxtestdata.__file__).parent
         asdFiles = scantree(asdDir, '.asd')
         for file in asdFiles:
+            self.assertTrue(os.path.isfile(file))
             ds = DataSourceFactory.create(file)
             self.assertIsInstance(ds, list)
+            self.assertTrue(len(ds) > 0, msg='not datasource returned for {}'.format(file))
             self.assertIsInstance(ds[0], DataSourceSpectralLibrary)
 
 
