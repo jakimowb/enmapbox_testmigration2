@@ -930,10 +930,10 @@ class DataSourceFactory(object):
                 return [DataSourceVector(None, layer=src)]
             elif isinstance(src, QgsRasterLayer):
                 return [DataSourceRaster(None, layer=src)]
-
+            elif isinstance(src, pathlib.Path):
+                src = str(src)
             elif type(src) in [str, QUrl]:
                 src = DataSourceFactory.srcToString(src)
-
 
             if src in [None, type(None)]:
                 return []
