@@ -1,5 +1,6 @@
 import unittest
 import site
+import time
 import pathlib
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
@@ -46,11 +47,13 @@ class TestReclassify(EnMAPBoxTestCase):
         self.assertTrue(pathSrc.startswith('/vsimem/'))
 
         pathResultFiles = []
-        uid = uuid.uuid4()
+        tmpDir = self.tempDir('test_reclassifyapp', cleanup=True)
+
+
         for i, ext in enumerate(['bsq', 'BSQ', 'bil', 'BIL', 'bip', 'BIP', 'tif', 'TIF', 'tiff', 'TIFF']):
 
-            pathDst = r'/vsimem/testclasstiff{}.{}.{}'.format(i, uid, ext)
-
+            pathDst = tmpDir / 'testclasstiff{}.{}'.format(i, ext)
+            pathDst = pathDst.as_posix()
             classification = hubflow.core.Classification(pathSrc)
             oldDef = classification.classDefinition()
             self.assertEqual(oldDef.names(), classNamesOld[1:])
@@ -64,7 +67,6 @@ class TestReclassify(EnMAPBoxTestCase):
             # but this does'nt
             #newDef = hubflow.core.ClassDefinition(names=newNames[1:], colors=newColors[1:])
 
-
             newDef = hubflow.core.ClassDefinition(names=newNames[1:], colors=[c.name() for c in newColors[1:]])
             newDef.setNoDataNameAndColor(newNames[0], QColor('yellow'))
 
@@ -73,7 +75,6 @@ class TestReclassify(EnMAPBoxTestCase):
                                       classDefinition=newDef,
                                       mapping={0:0, 1:1, 2:1})#,
                                         #outclassificationDriver=driver)
-
 
             ds = gdal.Open(pathDst)
 
@@ -93,10 +94,12 @@ class TestReclassify(EnMAPBoxTestCase):
 
         for pathDst in pathResultFiles:
             ds = gdal.Open(pathDst)
+            files = ds.GetFileList()
             band = ds.GetRasterBand(1)
             self.assertIsInstance(band.GetCategoryNames(), list, msg='Failed to set any category names to "{}"'.format(pathDst))
             self.assertEqual(newNames, band.GetCategoryNames(), msg='Failed to set all category names to "{}"'.format(pathDst))
             print('Success: created {}'.format(pathDst))
+            del ds
 
 
     def test_hubflowrasterdriverguess(self):

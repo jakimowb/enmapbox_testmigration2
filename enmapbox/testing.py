@@ -20,7 +20,15 @@
 """
 # noinspection PyPep8Naming
 
-import os, sys, re, io, importlib, uuid, warnings
+import os
+import sys
+import re
+import io
+import shutil
+import importlib
+import uuid
+import warnings
+import pathlib
 import sip
 from qgis.core import *
 from qgis.gui import *
@@ -67,6 +75,21 @@ class EnMAPBoxTestCase(TestCase):
         import enmapbox
         enmapbox.initAll()
 
+    def tempDir(self, subdir: str = None, cleanup: bool = False) -> pathlib.Path:
+        """
+        Returns the <enmapbox-repository/test-outputs> directory
+        :param subdir:
+        :param cleanup:
+        :return: pathlib.Path
+        """
+        from enmapbox import DIR_REPO
+        p = pathlib.Path(DIR_REPO) / 'test-outputs'
+        if isinstance(subdir, str):
+            p = p / subdir
+        if p.exists() and p.is_dir():
+            shutil.rmtree(p)
+        os.makedirs(p, exist_ok=True)
+        return p
 
 class TestObjects(TestObjects):
     """
