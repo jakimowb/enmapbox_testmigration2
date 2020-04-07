@@ -452,25 +452,24 @@ class standardDataSources(EnMAPBoxTestCase):
         from enmapbox.gui.mapcanvas import MapCanvas
 
 
-        for i, grpNode in enumerate(M.rootNode().children()):
+        for i, grpNode in enumerate(M.rootNode().childNodes()):
             self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
-            grpIndex = M.node2index(grpNode)
+            grpIndex = M.node2idx(grpNode)
             self.assertIsInstance(grpIndex, QModelIndex)
             self.assertTrue(grpIndex.isValid())
             self.assertEqual(grpIndex.row(), i)
 
-
             rasterSourceNodes = []
 
-            for j, dNode in enumerate(grpNode.children()):
+            for j, dNode in enumerate(grpNode.childNodes()):
                 self.assertIsInstance(dNode, DataSourceTreeNode)
-                nodeIndex = M.node2index(dNode)
+                nodeIndex = M.node2idx(dNode)
                 self.assertIsInstance(nodeIndex, QModelIndex)
                 self.assertTrue(nodeIndex.isValid())
                 self.assertEqual(nodeIndex.row(), j)
 
                 mapCanvas = MapCanvas()
-                #get mime data
+                # get mime data
                 mimeData = M.mimeData([nodeIndex])
                 self.assertIsInstance(mimeData, QMimeData)
 
@@ -492,8 +491,21 @@ class standardDataSources(EnMAPBoxTestCase):
                 if isinstance(dNode, RasterDataSourceTreeNode):
                     self.assertIsInstance(dNode.mDataSource, DataSourceRaster)
                     mapCanvas.dropEvent(createDropEvent(mimeData))
+                    QApplication.processEvents()
                     self.assertTrue(len(mapCanvas.layers()) == 1)
                     rasterSourceNodes.append(dNode)
+
+                    # set drag / drop of raster band
+                    # see https://bitbucket.org/hu-geomatics/enmap-box/issues/408/dropping-a-raster-band-onto-the-grey-area
+                    for bandNode in dNode.mNodeBands.childNodes():
+                        self.assertIsInstance(bandNode, RasterBandTreeNode)
+                        bandMime = M.mimeData([M.node2idx(bandNode)])
+                        n = len(mapCanvas.layers())
+                        mapCanvas.dropEvent(createDropEvent(bandMime))
+                        QApplication.processEvents()
+                        self.assertEqual(len(mapCanvas.layers()), n+1)
+                        break
+
                 if isinstance(dNode, VectorDataSourceTreeNode):
                     self.assertIsInstance(dNode.mDataSource, DataSourceVector)
                     mapCanvas.dropEvent(createDropEvent(mimeData))
@@ -503,25 +515,19 @@ class standardDataSources(EnMAPBoxTestCase):
                     self.assertIsInstance(dNode.mDataSource, DataSourceSpectralLibrary)
 
                     # drop speclib to mapcanvas
+                    n = len(mapCanvas.layers())
                     mapCanvas.dropEvent(createDropEvent(mimeData))
-                    self.assertTrue(len(mapCanvas.layers()) == 1)
-
-                    # drop speclib to spectral library widgets
-                    from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget, MIMEDATA_SPECLIB_LINK
-                    self.assertTrue(MIMEDATA_SPECLIB_LINK in mimeData.formats())
-                    w = SpectralLibraryWidget()
-                    w.show()
-                    w.plotWidget.dropEvent(createDropEvent(mimeData))
-                    self.assertEqual(len(w.speclib()), len(dNode.mDataSource.speclib()))
-
-
+                    QApplication.processEvents()
+                    self.assertEqual(len(mapCanvas.layers()), n+1)
 
                 if isinstance(dNode, HubFlowObjectTreeNode):
                     pass
 
+                QApplication.processEvents()
+
             for node in rasterSourceNodes:
                 self.assertIsInstance(node, RasterDataSourceTreeNode)
-                self.assertIsInstance(node.childNodes(), TreeNode)
+                self.assertIsInstance(node.childNodes(), list)
                 n0 = len(mapCanvas.layers())
                 for n, child in enumerate(node.mNodeBands.children()):
                     self.assertIsInstance(child, RasterBandTreeNode)
