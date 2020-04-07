@@ -8,6 +8,7 @@ doc/build/
 */build/
 enmapboxtestdata/
 test-reports/
+test-outputs/
 qgisresources
 qgisresources/
 qgisresources.zip
