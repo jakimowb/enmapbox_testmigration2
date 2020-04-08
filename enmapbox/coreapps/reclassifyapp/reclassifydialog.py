@@ -88,9 +88,8 @@ class ReclassifyTableModel(QAbstractTableModel):
 
         oldSrc = self.mSrc
         self.mSrc = cs
-
+        self.mMapping.clear()
         if isinstance(oldSrc, ClassificationScheme):
-            self.mMapping.clear()
             self.matchClassNames()
             try:
                 oldSrc.sigClassesRemoved.disconnect(self.onSourceClassesRemoved)
@@ -99,6 +98,7 @@ class ReclassifyTableModel(QAbstractTableModel):
                 pass
         self.mSrc.sigClassesRemoved.connect(self.onSourceClassesRemoved)
         self.mSrc.dataChanged.connect(self.onSourceDataChanged)
+
         self.endResetModel()
 
     def onSourceDataChanged(self, idx0, idx1, roles):
@@ -336,13 +336,16 @@ class ReclassifyDialog(QDialog):
 
     def onSourceRasterChanged(self):
         lyr = self.mapLayerComboBox.currentLayer()
+        cs_final = ClassificationScheme()
         if isinstance(lyr, QgsRasterLayer):
             cs = ClassificationScheme.fromMapLayer(lyr)
             if isinstance(cs, ClassificationScheme) and len(cs) > 0:
+                cs_final = cs
                 if not self.mDstClassSchemeInitialized:
                     self.setDstClassificationScheme(cs)
                     self.mDstClassSchemeInitialized = True
-                self.mModel.setSource(cs)
+
+        self.mModel.setSource(cs_final)
         self.validate()
 
     def setDstClassificationPath(self, path:str):

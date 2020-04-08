@@ -155,8 +155,20 @@ class TestReclassify(EnMAPBoxTestCase):
 
     def test_dialog(self):
 
+        lyr = TestObjects.createRasterLayer(nb=10)
+        self.assertIsInstance(lyr, QgsRasterLayer)
+
+        classes = [QgsPalettedRasterRenderer.Class(0, QColor('black'), 'unclassified'),
+                   QgsPalettedRasterRenderer.Class(1, QColor('red'), 'foo'),
+                   QgsPalettedRasterRenderer.Class(2, QColor('green'), 'bar')
+                   ]
+
+        renderer = QgsPalettedRasterRenderer(lyr.dataProvider(), 2, classes)
+        renderer.setInput(lyr.dataProvider())
+        lyr.setRenderer(renderer)
         layers = [TestObjects.createRasterLayer(nc=5),
                   TestObjects.createRasterLayer(nb=10),
+                  lyr,
                   TestObjects.createVectorLayer()]
         QgsProject.instance().addMapLayers(layers)
 
