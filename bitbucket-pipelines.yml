@@ -7,7 +7,7 @@
 image: qgis/qgis
 pipelines:
   branches:
-    feature/crash#403:
+    discover_unittests:
       - step:
           name: basic qgis loading
           services:
@@ -32,9 +32,9 @@ pipelines:
             - QT_QPA_PLATFORM=offscreen
             - export QT_QPA_PLATFORM
             - python3 scripts/setup_repository.py
+            # start the enmap box, but close the initialized GUI
             - python3 enmapbox --debug --no_exec
-            - python3 enmapboxtesting/test_enmapbox_empty.py
-            - python3 enmapboxtesting/test_enmapbox.py
+            - coverage run -m unittest discover
             #- CI=True
             #- export CI
 
