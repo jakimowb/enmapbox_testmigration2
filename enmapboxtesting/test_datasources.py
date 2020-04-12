@@ -91,6 +91,30 @@ class standardDataSources(EnMAPBoxTestCase):
                 self.assertIsInstance(source.icon(), QIcon)
 
 
+    def test_subdatasets(self):
+        path = r'H:\Processing_BJ\01_Data\Sentinel2\T21LWL\S2B_MSIL1C_20191208T140049_N0208_R067_T21LWL_20191208T153903.SAFE\MTD_MSIL1C.xml'
+        dsm = DataSourceManager()
+        if os.path.isfile(path):
+
+            ds = gdal.Open(path)
+            assert isinstance(ds, gdal.Dataset)
+            subs = ds.GetSubDatasets()
+            import datetime
+            for (name, descr) in subs:
+
+                t0 = datetime.datetime.now()
+                lyr = QgsRasterLayer(name)
+                self.assertTrue(lyr.isValid())
+                dt1 = datetime.datetime.now() - t0
+                t0 = datetime.datetime.now()
+
+                ds = DataSourceFactory.create(name)
+                dt2 = datetime.datetime.now() - t0
+
+                self.assertIsInstance(ds, list)
+                self.assertTrue(len(ds) == 1)
+                self.assertIsInstance(ds[0], DataSourceRaster)
+
     def createTestSources(self)->list:
 
         #return [library, self.wfsUri, self.wmsUri, enmap, landcover_polygons]
@@ -350,8 +374,6 @@ class standardDataSources(EnMAPBoxTestCase):
         QgsProject.instance().removeMapLayer(lyr)
         self.assertTrue(sip.isdeleted(lyr))
         #self.assertTrue(len(dsm) == 0)
-        s = ""
-
 
     def test_datasourcmanagertreemodel(self):
         reg = QgsProject.instance()
