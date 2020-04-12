@@ -32,8 +32,14 @@ class Grid(object):
         isClose = np.all(np.logical_or(isCloseToZero, isCloseToResolution))
         assert isClose, f'{self.extent.size} is not multiple of {self.resolution}'
 
-    def withResolution(self, resolution: Resolution):
+    def withExtent(self, extent: Extent) -> 'Grid':
+        return Grid(extent=extent, resolution=self.resolution, projection=self.projection)
+
+    def withResolution(self, resolution: Resolution) -> 'Grid':
         return Grid(extent=self.extent, resolution=resolution, projection=self.projection)
+
+    def withProjection(self, projection: Projection) -> 'Grid':
+        return Grid(extent=self.extent, resolution=self.resolution, projection=projection)
 
     @property
     def shape(self) -> GridShape:
@@ -62,12 +68,6 @@ class Grid(object):
         extent = Extent(ul=ul, size=size)
         return Grid(extent=extent, resolution=resolution)
 
-    @classmethod
-    def makePseudoGridFromArray(cls, array: np.ndarray) -> 'Grid':
-        assert 2 <= array.ndim <= 3
-        *_, y, x = array.shape
-        return cls.makePseudoGridFromShape(shape=GridShape(y=y, x=x))
-
     def pixelLocation(self, location: Location) -> PixelLocation:
         """Return pixel location on the grid."""
         assert isinstance(location, Location)
@@ -87,6 +87,8 @@ class Grid(object):
         if not self.resolution.equal(other=other.resolution, tol=tol):
             return False
         if not self.extent.equal(other=other.extent, tol=tol):
+            return False
+        if self.projection != other.projection:
             return False
         return True
 

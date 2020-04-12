@@ -71,7 +71,7 @@ class TestReclassify(EnMAPBoxTestCase):
             newDef.setNoDataNameAndColor(newNames[0], QColor('yellow'))
 
             # driver = guessRasterDriver(pathDst)
-            r = classification.reclassify(filename=pathDst,
+            classification.reclassify(filename=pathDst,
                                       classDefinition=newDef,
                                       mapping={0:0, 1:1, 2:1})#,
                                         #outclassificationDriver=driver)
@@ -94,7 +94,7 @@ class TestReclassify(EnMAPBoxTestCase):
 
         for pathDst in pathResultFiles:
             ds = gdal.Open(pathDst)
-            files = ds.GetFileList()
+            #files = ds.GetFileList()
             band = ds.GetRasterBand(1)
             self.assertIsInstance(band.GetCategoryNames(), list, msg='Failed to set any category names to "{}"'.format(pathDst))
             self.assertEqual(newNames, band.GetCategoryNames(), msg='Failed to set all category names to "{}"'.format(pathDst))
@@ -155,8 +155,20 @@ class TestReclassify(EnMAPBoxTestCase):
 
     def test_dialog(self):
 
+        lyr = TestObjects.createRasterLayer(nb=10)
+        self.assertIsInstance(lyr, QgsRasterLayer)
+
+        classes = [QgsPalettedRasterRenderer.Class(0, QColor('black'), 'unclassified'),
+                   QgsPalettedRasterRenderer.Class(1, QColor('red'), 'foo'),
+                   QgsPalettedRasterRenderer.Class(2, QColor('green'), 'bar')
+                   ]
+
+        renderer = QgsPalettedRasterRenderer(lyr.dataProvider(), 2, classes)
+        renderer.setInput(lyr.dataProvider())
+        lyr.setRenderer(renderer)
         layers = [TestObjects.createRasterLayer(nc=5),
                   TestObjects.createRasterLayer(nb=10),
+                  lyr,
                   TestObjects.createVectorLayer()]
         QgsProject.instance().addMapLayers(layers)
 

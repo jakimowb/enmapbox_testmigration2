@@ -5,6 +5,7 @@ import random, pickle
 from collections import namedtuple
 from os import remove
 from os.path import basename, join
+from time import sleep
 from typing import Iterable
 from warnings import warn
 
@@ -4058,7 +4059,16 @@ class Classification(Raster):
         applier.setOutputRaster('outclassification', filename=filename)
         applier.apply(operatorType=_ClassificationReclassify, classification=self, classDefinition=classDefinition,
             mapping=mapping)
-        return Classification(filename=filename)
+        classification = Classification(filename=filename)
+
+        ### workaround to fix issue #410 ###
+        classification.dataset().gdalDataset().GetFileList()
+        classification.dataset().gdalDataset().GetRasterBand(1)
+        ####################################
+
+
+        return classification
+
 
     def resample(self, filename, grid, **kwargs):
         '''

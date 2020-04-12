@@ -23,15 +23,6 @@ class Extent(DataClassArray):
         envelope = geometry.envelope
         return Extent(ul=envelope.ul, size=envelope.size)
 
-    @classmethod
-    def fromUnion(cls, extents: List['Extent']):
-        assert isinstance(extents, list)
-        assert len(extents) > 0
-        bigExtent = extents[0]
-        for extent in extents:
-            bigExtent = bigExtent.union(extent)
-        return bigExtent
-
     @property
     def geometry(self) -> Geometry:
         return Geometry.fromPolygonCoordinates(locations=[self.ul, self.ur, self.lr, self.ll])

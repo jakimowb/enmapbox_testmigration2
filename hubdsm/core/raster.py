@@ -114,29 +114,27 @@ class Raster(object):
     def withName(self, name: str) -> 'Raster':
         return Raster(name=name, bands=self.bands, grid=self.grid)
 
-    def readAsArray(self, grid: Grid = None, gdalResamplingAlgorithm=gdal.GRA_NearestNeighbour) -> np.ndarray:
+    def readAsArray(self, grid: Grid = None, gra: int = None) -> np.ndarray:
         '''Return 3d array.'''
-        return np.array(list(self.iterArrays(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)))
+        return np.array(list(self.iterArrays(grid=grid, gra=gra)))
 
-    def readAsMaskArray(self, grid: Grid = None, gdalResamplingAlgorithm=gdal.GRA_NearestNeighbour) -> np.ndarray:
+    def readAsMaskArray(self, grid: Grid = None, gra: int = None) -> np.ndarray:
         '''Return 3d mask array.'''
-        return np.array(list(self.iterMaskArrays(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)))
+        return np.array(list(self.iterMaskArrays(grid=grid, gra=gra)))
 
-    def iterArrays(self, grid: Grid = None, gdalResamplingAlgorithm=gdal.GRA_NearestNeighbour) -> Iterator[np.ndarray]:
+    def iterArrays(self, grid: Grid = None, gra: int = None) -> Iterator[np.ndarray]:
         '''Iterates over 2d band arrays.'''
         if grid is None:
             grid = self.grid
         for band in self.bands:
-            yield band.readAsArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)
+            yield band.readAsArray(grid=grid, gra=gra)
 
-    def iterMaskArrays(
-            self, grid: Grid = None, gdalResamplingAlgorithm=gdal.GRA_NearestNeighbour
-    ) -> Iterator[np.ndarray]:
+    def iterMaskArrays(self, grid: Grid = None, gra: int = None) -> Iterator[np.ndarray]:
         '''Iterates over 2d mask band arrays.'''
         if grid is None:
             grid = self.grid
         for band in self.bands:
-            yield band.readAsMaskArray(grid=grid, gdalResamplingAlgorithm=gdalResamplingAlgorithm)
+            yield band.readAsMaskArray(grid=grid, gra=gra)
 
     # def warp(self, grid: Grid = None) -> Raster:
     #    if grid is None:

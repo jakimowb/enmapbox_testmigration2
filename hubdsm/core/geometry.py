@@ -17,16 +17,14 @@ class Geometry(object):
     def __post_init__(self):
         assert isinstance(self.wkt, str)
         ogrGeometry = self.ogrGeometry
-        assert ogrGeometry.ExportToWkt() == self.wkt, \
-            f'invalid wkt format:\n' \
-            f'{repr(self.wkt)}\n' \
-            f'expected:\n' \
-            f'{repr(ogrGeometry.ExportToWkt())}'
+        if ogrGeometry.ExportToWkt() != self.wkt:
+            raise ValueError(f'invalid wkt format:\n{repr(self.wkt)}\nexpected:\n{repr(ogrGeometry.ExportToWkt())}')
 
     @staticmethod
     def formatWkt(wkt: str) -> str:
         ogrGeometry: ogr.Geometry = ogr.CreateGeometryFromWkt(wkt)
-        assert ogrGeometry is not None, f'invalid wkt: {repr(wkt)}'
+        if ogrGeometry is None:
+            raise ValueError(f'invalid wkt: {repr(wkt)}')
         return ogrGeometry.ExportToWkt()
 
     @classmethod

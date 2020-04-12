@@ -439,6 +439,9 @@ class EnMAPBox(QgisInterface, QObject):
         self.mMessageBarItems.append(item)
         self.messageBar().pushItem(item)
 
+    def showAttributeTable(self, lyr:QgsVectorLayer, filerExpression:str = ""):
+        pass
+
     def showPackageInstaller(self):
         """
         Opens a GUI to install missing PIP packages
@@ -717,7 +720,10 @@ class EnMAPBox(QgisInterface, QObject):
 
     def initActions(self):
         # link action to managers
-        self.ui.mActionAddDataSource.triggered.connect(lambda : self.mDataSourceManager.addDataSourceByDialog())
+        self.ui.mActionAddDataSource.triggered.connect(self.mDataSourceManager.addDataSourceByDialog)
+        self.ui.mActionAddSentinel2.triggered.connect(self.mDataSourceManager.addSentinel2ByDialog)
+        self.ui.mActionAddSubDatasets.triggered.connect(self.mDataSourceManager.addSubDatasetsByDialog)
+
         self.ui.mActionAddMapView.triggered.connect(lambda: self.mDockManager.createDock('MAP'))
         self.ui.mActionAddTextView.triggered.connect(lambda: self.mDockManager.createDock('TEXT'))
         self.ui.mActionAddWebView.triggered.connect(lambda: self.mDockManager.createDock('WEBVIEW'))
@@ -1341,7 +1347,6 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.mDataSourceManager.addSource(source, name=name)
 
-
     def removeSources(self, dataSourceList:list=None):
         """
         Removes data sources.
@@ -1519,7 +1524,13 @@ class EnMAPBox(QgisInterface, QObject):
 
 
     ### ACTIONS ###
-    def actionAbout(self):
+    def actionAddSentinel2(self) -> QAction:
+        return self.ui.mActionAddSentinel2
+
+    def actionAddSubDatasets(self) -> QAction:
+        return self.ui.mActionAddSubDatasets
+
+    def actionAbout(self) -> QAction:
         return self.ui.mActionAbout
 
     def actionAddAfsLayer(self):
@@ -1907,7 +1918,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def iconSize(self, dockedToolbar=False):
         #return self.ui.mActionAddDataSource.icon().availableSizes()[0]
-        return QSize(16,16)
+        return QSize(16, 16)
 
     def spectralLibraries(self)->typing.List[SpectralLibrary]:
         """
@@ -2012,6 +2023,7 @@ class EnMAPBox(QgisInterface, QObject):
     def openMessageLog(self):
 
         pass
+
 
     ###
     ###

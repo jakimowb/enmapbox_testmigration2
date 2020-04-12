@@ -36,11 +36,11 @@ def rasterProvider(uri:str) -> str:
     if uri in [None, type(None)]:
         return None
 
-
     providers = []
 
-    if os.path.isfile(uri) or uri.startswith('/vsimem'):
+    if os.path.isfile(uri) or uri.startswith('/vsimem') or re.search(r'^.+:.+:.+', uri):
         providers.append('gdal')
+
     if re.search('url=', uri):
         providers.append('wms')
         providers.append('wcs')
@@ -355,6 +355,10 @@ class DataSourceSpatial(DataSource):
     def mapLayer(self) -> QgsMapLayer:
         return self.mLayer
 
+    def setName(self, name: str):
+        super().setName(name)
+        self.mLayer.setName(name)
+
     def provider(self) -> str:
         """
         Returns the provider name
@@ -421,7 +425,7 @@ class HubFlowDataSource(DataSource):
 
 class DataSourceRaster(DataSourceSpatial):
 
-    def __init__(self, uri:str, name:str=None, icon=None, providerKey:str=None, layer:QgsRasterLayer=None):
+    def __init__(self, uri: str, name: str=None, icon=None, providerKey: str=None, layer: QgsRasterLayer=None):
 
         if isinstance(layer, QgsRasterLayer):
             uri = layer.source()
@@ -940,7 +944,7 @@ class DataSourceFactory(object):
 
             #DataSource.instances()
 
-            #run checks on input sources
+            # run checks on input sources
             if isinstance(src, SpectralLibrary):
                 sourceTestFunctions = [DataSourceFactory.checkForSpeclib]
             elif isinstance(src, gdal.Dataset) or isinstance(src, QgsRasterLayer):
@@ -970,7 +974,7 @@ class DataSourceFactory(object):
                             sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForHubFlow)))
                         elif guess == 'WFS':
                             sourceTestFunctions.insert(0, sourceTestFunctions.pop(sourceTestFunctions.index(DataSourceFactory.checkForVector)))
-                    #files where we are sure we can not load them
+                    # files where we are sure we can not load
                     elif os.path.isfile(src) and re.search(r'\.(py)$', src):
                         return []
 
@@ -979,11 +983,7 @@ class DataSourceFactory(object):
                 if len(sources) > 0:
                     return sources
 
-
             return []
-
-
-
 
     @staticmethod
     def checkForRaster(src, **kwds) -> typing.List[DataSourceRaster]:

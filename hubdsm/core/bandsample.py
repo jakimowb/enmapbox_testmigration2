@@ -13,7 +13,7 @@ class BandSample(object):
         assert isinstance(self.xLocations, np.ndarray)
         assert isinstance(self.yLocations, np.ndarray)
         assert isinstance(self.values, np.ndarray)
-        assert self.xLocations.shape == self.yLocations.shape == self.values.shape
+        assert self.xLocations.shape == self.yLocations.shape == self.values.shape == (self.n, )
         assert self.xLocations.ndim == self.yLocations.ndim == self.values.ndim == 1
 
     @property
