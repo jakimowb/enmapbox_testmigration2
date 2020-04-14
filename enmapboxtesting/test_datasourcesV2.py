@@ -16,8 +16,6 @@ from enmapbox.gui.dadasourcesV2 import *
 
 class MyTestCase(EnMAPBoxTestCase):
 
-
-
     def test_something(self):
         reg = QgsApplication.dataItemProviderRegistry()
 
