@@ -236,7 +236,6 @@ class DataSourceManager(QObject):
                     newDataSource.id() in knownStrings:
                 return []
 
-
         try:
             newDataSources = DataSourceFactory.create(newDataSource, name=name, icon=icon)
         except RuntimeError:
@@ -249,7 +248,7 @@ class DataSourceManager(QObject):
             if len(sameSources) == 0:
                 toAdd.append(dsNew)
             else:
-                #we have similar sources.
+                # we have similar sources.
 
                 older = []
                 newer = []
@@ -264,14 +263,50 @@ class DataSourceManager(QObject):
                     QApplication.processEvents()
                     toAdd.append(dsNew)
 
-
-
         for ds in toAdd:
             if ds not in self.mSources:
                 self.mSources.append(ds)
                 self.sigDataSourceAdded.emit(ds)
 
         return toAdd
+
+    def addSentinel2ByDialog(self, *args):
+        filter = ['Sentinel-2 Metadata (MTD_MSIL*.xml)',
+                  'XML files (*.xml)',
+                  'All files (*.*)'
+                  ]
+        self.addSubDatasetsByDialog(title='Add Sentinel-2 Data', filter=';;'.join(filter))
+
+    def addSubDatasetsByDialog(self, *args, title='Add Sub-Datasets', filter: str = 'All files (*.*)'):
+        from enmapbox.externals.qps.subdatasets import SubDatasetSelectionDialog
+        from enmapbox import enmapboxSettings
+        SETTINGS = enmapboxSettings()
+        defaultRoot = SETTINGS.value('lastsourcedir', None)
+
+        if defaultRoot is None:
+            defaultRoot = DIR_TESTDATA
+
+        if not os.path.exists(defaultRoot):
+            defaultRoot = None
+
+        d = SubDatasetSelectionDialog()
+        d.setWindowTitle(title)
+        d.setFileFilter(filter)
+        d.setDefaultRoot(defaultRoot)
+        result = d.exec_()
+
+        if result == QDialog.Accepted:
+            subdatasets = d.selectedSubDatasets()
+            layers = []
+            loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
+            for i, s in enumerate(subdatasets):
+                lyr = QgsRasterLayer(s, options=loptions)
+                if i == 0:
+                    paths = d.fileWidget.splitFilePaths(d.fileWidget.filePath())
+                    SETTINGS.setValue('lastsourcedir', os.path.dirname(paths[0]))
+
+                layers.append(lyr)
+            self.addSources(layers)
 
     def addDataSourceByDialog(self):
         """
