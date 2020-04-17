@@ -4,7 +4,6 @@ import numpy as np
 from osgeo.gdal_array import NumericTypeCodeToGDALTypeCode
 
 from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.classdefinition import ClassDefinition
 from hubdsm.core.gdalrasterdriver import GdalRasterDriver
 from hubdsm.core.raster import Raster
 
@@ -25,8 +24,8 @@ def remapRasterValues(
     mapping = {s: t for s,t in zip(sources, targets)}
     gdalDataType = NumericTypeCodeToGDALTypeCode(targets.dtype)
     driver = GdalRasterDriver.fromFilename(filename=filename)
-    outGdalRaster = driver.create(grid=raster.grid, bands=len(raster.bands), gdalDataType=gdalDataType,
-        filename=filename, gdalCreationOptions=co
+    outGdalRaster = driver.create(grid=raster.grid, bands=len(raster.bands), gdt=gdalDataType,
+        filename=filename, gco=co
     )
 
     subgrids = list(raster.grid.subgrids(shape=po.getShape(default=raster.grid.shape)))

@@ -32,8 +32,8 @@ def convertRaster(
 
     driver = GdalRasterDriver.fromFilename(filename=filename)
     outGdalRaster = driver.create(
-        grid=raster.grid, bands=len(raster.bands), gdalDataType=gdalDataType, filename=filename,
-        gdalCreationOptions=co
+        grid=raster.grid, bands=len(raster.bands), gdt=gdalDataType, filename=filename,
+        gco=co
     )
 
     subgrids = list(raster.grid.subgrids(shape=po.getShape(default=raster.grid.shape)))

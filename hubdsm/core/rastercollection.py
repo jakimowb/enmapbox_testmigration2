@@ -1,0 +1,66 @@
+# from __future__ import annotations
+from collections import OrderedDict
+
+from dataclasses import dataclass
+from typing import Tuple, Union, Dict
+
+import numpy as np
+from hubdsm.core.grid import Grid
+from hubdsm.core.raster import Raster
+
+
+@dataclass(frozen=True)
+class RasterCollection(object):
+    """Raster collection."""
+    name: str = ''
+    rasters: Tuple[Raster, ...] = tuple()
+
+    def __post_init__(self):
+        assert isinstance(self.name, str)
+        assert isinstance(self.rasters, tuple)
+        for raster in self.rasters:
+            assert isinstance(raster, Raster)
+
+    def toBands(self, grid: Grid = None) -> 'Raster':
+        """Return raster containing all bands from all raster. If grid is not given, grid from first raster is used."""
+        if grid is None:
+            assert len(self.rasters) > 0
+            grid = self.rasters[0].grid
+        bands = list()
+        for raster in self.rasters:
+            bands.extend(raster.bands)
+        return Raster(name='stack', bands=tuple(bands), grid=grid)
+
+    def withName(self, name: str) -> 'RasterCollection':
+        return RasterCollection(name=name, rasters=self.rasters)
+
+    def readAsSample(self, grid: Grid = None, **kwargs) -> Dict[str, np.recarray]:
+        """Like Raster.readAsSample(grid, **kwargs), but fields are grouped by raster names."""
+        sample = self.toBands(grid=grid).readAsSample(grid=grid, **kwargs)
+        # split features band-wise
+        offset = 0
+        samples = OrderedDict()
+        for raster in self.rasters:
+            names = list(sample.dtype.names[offset:offset + len(raster.bands)])
+            samples[raster.name] = sample[names]
+            offset += len(raster.bands)
+        # include locations
+        names = list(sample.dtype.names[offset:])
+        samples['_location'] = sample[names]
+        return samples
+
+    @property
+    def setCategories(self):
+        return self.band(1).gdalBand.setCategories
+
+    def setNoDataValue(self, value: Union[int, float]):
+        for band in self.bands:
+            band.setNoDataValue(value=value)
+
+    @property
+    def rasterize(self):
+        return self.band(1).rasterize
+
+    def fill(self, value: Union[int, float]):
+        for band in self.bands:
+            band.fill(value=value)

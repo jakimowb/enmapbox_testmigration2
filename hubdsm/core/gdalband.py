@@ -4,12 +4,14 @@ from typing import Optional, Union, Any, List, Dict
 
 import numpy as np
 from osgeo import gdal
+from osgeo.gdal import GDALRasterizeOptions
 
 from hubdsm.core.category import Category
 from hubdsm.core.color import Color
 from hubdsm.core.grid import Grid
 from hubdsm.core.gdalmetadatavalueformatter import GdalMetadataValueFormatter
 from hubdsm.core.error import ProjectionMismatchError
+from hubdsm.core.ogrlayer import OgrLayer
 
 
 @dataclass(frozen=True)
@@ -56,10 +58,10 @@ class GdalBand(object):
         return self.raster.grid
 
     def flushCache(self):
-        """Flush the cache."""
+        self.gdalDataset.FlushCache()
         self.gdalBand.FlushCache()
 
-    def readAsArray(self, grid: Grid = None, gra: int=None) -> np.ndarray:
+    def readAsArray(self, grid: Grid = None, gra: int = None) -> np.ndarray:
         """Return 2d array."""
 
         if gra is None:
@@ -71,21 +73,44 @@ class GdalBand(object):
             assert isinstance(grid, Grid)
             if grid.projection != self.grid.projection:
                 raise ProjectionMismatchError()
-            assert grid.extent.within(self.grid.extent)
-            resolution = self.grid.resolution
-            extent = self.grid.extent
-            buf_ysize, buf_xsize = grid.shape
-            xoff = round((grid.extent.xmin - extent.xmin) / resolution.x, 0)
-            yoff = round((extent.ymax - grid.extent.ymax) / resolution.y, 0)
-            xsize = round((grid.extent.xmax - grid.extent.xmin) / resolution.x, 0)
-            ysize = round((grid.extent.ymax - grid.extent.ymin) / resolution.y, 0)
-            array = self.gdalBand.ReadAsArray(
-                xoff=xoff, yoff=yoff, win_xsize=xsize, win_ysize=ysize,
-                buf_xsize=buf_xsize, buf_ysize=buf_ysize,
-                resample_alg=gra
-            )
+            if grid.extent.within(self.grid.extent):
+                # read data directly
+                resolution = self.grid.resolution
+                extent = self.grid.extent
+                buf_ysize, buf_xsize = grid.shape
+                xoff = round((grid.extent.xmin - extent.xmin) / resolution.x, 0)
+                yoff = round((extent.ymax - grid.extent.ymax) / resolution.y, 0)
+                xsize = round((grid.extent.xmax - grid.extent.xmin) / resolution.x, 0)
+                ysize = round((grid.extent.ymax - grid.extent.ymin) / resolution.y, 0)
+                array = self.gdalBand.ReadAsArray(
+                    xoff=xoff, yoff=yoff, win_xsize=xsize, win_ysize=ysize,
+                    buf_xsize=buf_xsize, buf_ysize=buf_ysize,
+                    resample_alg=gra
+                )
+            else:
+                # translate into target grid and read
+                ul = grid.extent.ul
+                lr = grid.extent.lr
+                xRes, yRes = grid.resolution.x, grid.resolution.y
+                _translateOptions = gdal.TranslateOptions(
+                    format='MEM', resampleAlg=gra, projWin=[ul.x, ul.y, lr.x, lr.y], xRes=xRes, yRes=yRes,
+                    bandList=[self.number]
+                )
+                translateOptions = gdal.TranslateOptions(
+                    format='MEM', resampleAlg=gra, width=grid.shape.x, height=grid.shape.y,
+                    projWin=[ul.x, ul.y, lr.x, lr.y],
+                    bandList=[self.number]
+                )
+
+                ds: gdal.Dataset = gdal.Translate(destName='', srcDS=self.gdalDataset, options=translateOptions)
+                array = ds.GetRasterBand(1).ReadAsArray()
+
         assert isinstance(array, np.ndarray)
         assert array.ndim == 2
+
+        if not np.all(np.equal(array.shape, grid.shape)):
+            assert 0
+
         return array
 
     def writeArray(self, array: np.ndarray, grid: Optional[Grid] = None):
@@ -107,6 +132,30 @@ class GdalBand(object):
     def fill(self, value):
         """Write constant ``value`` to the whole raster band."""
         self.gdalBand.Fill(value)
+
+    def rasterize(
+            self, layer: Union[OgrLayer, str], burnValue: Union[int, float] = 1, burnAttribute: str=None, allTouched=False,
+            filterSQL: str = None
+    ):
+        '''Burn layer into band.'''
+        if isinstance(layer, OgrLayer):
+            ogrLayer = layer
+        elif isinstance(layer, str):
+            ogrLayer = OgrLayer.open(layer)
+        else:
+            raise ValueError(layer)
+
+        assert isinstance(ogrLayer, OgrLayer)
+        if ogrLayer.projection != self.grid.projection:
+            raise ProjectionMismatchError()
+        rasterizeLayerOptions = list()
+        if allTouched:
+            rasterizeLayerOptions.append('ALL_TOUCHED=TRUE')
+        if burnAttribute:
+            rasterizeLayerOptions.append('ATTRIBUTE=' + burnAttribute)
+        gdal.RasterizeLayer(
+            self.gdalDataset, [1], ogrLayer.ogrLayer, burn_values=[burnValue], options=rasterizeLayerOptions
+        )
 
     def setMetadataItem(self, key, value: Union[Any, List[Any]], domain=''):
         """Set metadata item."""
@@ -173,17 +222,18 @@ class GdalBand(object):
         """Return description."""
         return self.gdalBand.GetDescription()
 
-    def setCategories(self, categories: List[Category]):
+    def setCategories(self, categories: Optional[List[Category]]):
         """Set categories."""
-        ids = [c.id for c in categories]
-        maxId = max(ids)
-        names = ['n/a'] * (maxId + 1)
-        colors = [Color(red=0, green=0, blue=0)] * (maxId +1)
-        for c in categories:
-            names[c.id] = c.name
-            colors[c.id] = c.color
-        self._setCategoryNames(names=names)
-        self._setCategoryColors(colors)
+        if categories is not None:
+            ids = [c.id for c in categories]
+            maxId = max(ids)
+            names = ['n/a'] * (maxId + 1)
+            colors = [Color(red=0, green=0, blue=0)] * (maxId + 1)
+            for c in categories:
+                names[c.id] = c.name
+                colors[c.id] = c.color
+            self._setCategoryNames(names=names)
+            self._setCategoryColors(colors)
 
     def _setCategoryNames(self, names: List[str]):
         """Set category names."""
@@ -198,13 +248,15 @@ class GdalBand(object):
         self.gdalBand.SetColorTable(colorTable)
 
     @property
-    def categories(self) -> List[Category]:
+    def categories(self) -> Optional[List[Category]]:
         """Return categories."""
         categories = list()
         for id, (name, color) in enumerate(zip(self._categoryNames(), self._categoryColors())):
             if name == 'n/a' and color == Color():
                 continue
             categories.append(Category(id=id, name=name, color=color))
+        if len(categories) == 0:
+            categories = None
         return categories
 
     def _categoryNames(self) -> List[str]:

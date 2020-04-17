@@ -50,11 +50,17 @@ class GdalRaster(object):
         return GdalRasterDriver(name=gdalDriver.ShortName)
 
     @staticmethod
-    def open(filename: str, access: int = gdal.GA_ReadOnly) -> 'GdalRaster':
-        assert isinstance(filename, str)
-        assert exists(filename) or filename.startswith('/vsimem/'), filename
-        gdalDataset: gdal.Dataset = gdal.Open(filename, access)
-        assert gdalDataset is not None, filename
+    def open(filenameOrGdalDataset: Union[str, gdal.Dataset], access: int = gdal.GA_ReadOnly) -> 'GdalRaster':
+
+        if isinstance(filenameOrGdalDataset, str):
+            assert exists(filenameOrGdalDataset) or filenameOrGdalDataset.startswith('/vsimem/')
+            gdalDataset: gdal.Dataset = gdal.Open(filenameOrGdalDataset, access)
+        elif isinstance(filenameOrGdalDataset, gdal.Dataset):
+            gdalDataset = filenameOrGdalDataset
+        else:
+            raise ValueError(filenameOrGdalDataset)
+
+        assert gdalDataset is not None
         assert gdalDataset.GetProjection() != ''
         return GdalRaster(gdalDataset=gdalDataset)
 
@@ -124,6 +130,11 @@ class GdalRaster(object):
         assert len(array) == self.shape.z
         for band, bandArray in zip(self.bands, array):
             band.writeArray(bandArray, grid=grid)
+
+    def setNoDataValue(self, value: Union[int, float]):
+        """Set no data value to all bands."""
+        for band in self.bands:
+            band.setNoDataValue(value=value)
 
     def flushCache(self):
         """Flush the cache."""

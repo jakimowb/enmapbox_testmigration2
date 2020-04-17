@@ -92,21 +92,49 @@ class Grid(object):
             return False
         return True
 
-    def xPixelCoordinates(self, offset=0) -> List[int]:
-        '''Return pixel coordinates in x dimension with optional offset.'''
+    def xPixelCoordinates(self, grid: 'Grid' = None) -> List[int]:
+        '''Return pixel coordinates in x dimension with optional master grid.'''
+        if grid is None:
+            offset = 0
+        else:
+            assert isinstance(grid, Grid)
+            assert self.resolution.equal(other=grid.resolution)
+            offset = int(round((self.extent.xmin - grid.extent.xmin) / grid.resolution.x))
         return [x + offset for x in range(self.shape.x)]
 
-    def yPixelCoordinates(self, offset=0) -> List[int]:
-        '''Return pixel coordinates in y dimension with optional offset.'''
+    def yPixelCoordinates(self, grid: 'Grid'=None) -> List[int]:
+        '''Return pixel coordinates in y dimension with optional master grid.'''
+        if grid is None:
+            offset = 0
+        else:
+            assert isinstance(grid, Grid)
+            assert self.resolution.equal(other=grid.resolution)
+            offset = int(round((grid.extent.ymax - self.extent.ymax) / grid.resolution.y))
         return [y + offset for y in range(self.shape.y)]
 
-    def xPixelCoordinatesArray(self, offset=0):
-        '''Return 2d array of pixel x coordinates with optional offset.'''
-        return np.int32(np.asarray(self.xPixelCoordinates(offset=offset)).reshape(1, -1) * np.ones(shape=self.shape))
+    def xPixelCoordinatesArray(self, grid: 'Grid' = None) -> np.ndarray:
+        '''Return 2d array of pixel x coordinates with optional master grid.'''
+        return np.int32(np.asarray(self.xPixelCoordinates(grid=grid)).reshape(1, -1) * np.ones(shape=self.shape))
 
-    def yPixelCoordinatesArray(self, offset=0):
-        '''Return 2d array of pixel y coordinates with optional offset.'''
-        return np.int32(np.asarray(self.yPixelCoordinates(offset=offset)).reshape(-1, 1) * np.ones(shape=self.shape))
+    def yPixelCoordinatesArray(self, grid: 'Grid'=None) -> np.ndarray:
+        '''Return 2d array of pixel y coordinates with optional master grid.'''
+        return np.int32(np.asarray(self.yPixelCoordinates(grid=grid)).reshape(-1, 1) * np.ones(shape=self.shape))
+
+    def xMapCoordinates(self) -> List[float]:
+        '''Return the list of map coordinates in x dimension.'''
+        return [self.extent.xmin + (x + 0.5) * self.resolution.x for x in range(self.shape.x)]
+
+    def yMapCoordinates(self) -> List[float]:
+        '''Returns the list of map coordinates in y dimension.'''
+        return [self.extent.ymax - (y + 0.5) * self.resolution.y for y in range(self.shape.y)]
+
+    def xMapCoordinatesArray(self) -> np.ndarray:
+        '''Returns the 2d array of map x coordinates.'''
+        return np.asarray(self.xMapCoordinates()).reshape(1, -1) * np.ones(shape=self.shape)
+
+    def yMapCoordinatesArray(self) -> np.ndarray:
+        '''Returns the 2d array of map y coordinates.'''
+        return np.asarray(self.yMapCoordinates()).reshape(-1, 1) * np.ones(shape=self.shape)
 
     def subgrid(self, offset: PixelLocation, shape: GridShape) -> 'Grid':
         """Return shape-sized subgrid at offset."""

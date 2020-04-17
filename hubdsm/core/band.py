@@ -1,4 +1,5 @@
 # from __future__ import annotations
+from collections import OrderedDict
 from math import nan
 
 from dataclasses import dataclass
@@ -7,7 +8,7 @@ from typing import Optional
 import numpy as np
 from osgeo import gdal
 
-from hubdsm.core.bandsample import BandSample
+from hubdsm.core.sample import Sample
 from hubdsm.core.gdalband import GdalBand
 from hubdsm.core.grid import Grid
 from hubdsm.core.mask import Mask
@@ -48,7 +49,7 @@ class Band(object):
         '''Return band with new name.'''
         return Band(name=name, filename=self.filename, number=self.number, mask=self.mask, _gdalBand=self._gdalBand)
 
-    def withMask(self, mask: Mask) -> 'Band':
+    def withMask(self, mask: Optional[Mask]) -> 'Band':
         '''Return band with mask.'''
         return Band(
             name=self.name, filename=self.filename, number=self.number, mask=mask,
@@ -59,7 +60,7 @@ class Band(object):
         '''Return 2d array.'''
         return self.gdalBand.readAsArray(grid=grid, gra=gra)
 
-    def readAsMaskArray(self, grid: Grid = None, gra: int=None) -> np.ndarray:
+    def readAsMaskArray(self, grid: Grid = None, gra: int = None) -> np.ndarray:
         '''Return 2d mask array. Combines the internal mask given by the no data value and the external mask.'''
         if grid is None:
             grid = self.gdalBand.grid
@@ -76,14 +77,28 @@ class Band(object):
             maskArray = np.logical_and(maskArray1, maskArray2)
         else:
             maskArray = maskArray1
+
+        if not np.all(np.equal(maskArray.shape, grid.shape)):
+            assert 0
+
         return maskArray
 
-    def readAsSample(self, grid: Grid = None, graBand: int = None, graMask: int = None) -> BandSample:
-        if grid is None:
-            grid = self.gdalBand.grid
-        array = self.readAsArray(grid=grid, gra=graBand)
-        maskArray = self.readAsMaskArray(grid=grid, gra=graMask)
-        values = array[maskArray]
-        xLocations = grid.xPixelCoordinatesArray()[maskArray]
-        yLocations = grid.yPixelCoordinatesArray()[maskArray]
-        return BandSample(xLocations=xLocations, yLocations=yLocations, values=values)
+    @property
+    def rasterize(self):
+        return self.gdalBand.rasterize
+
+    @property
+    def noDataValue(self):
+        return self.gdalBand.noDataValue
+
+    @property
+    def setNoDataValue(self):
+        return self.gdalBand.setNoDataValue
+
+    @property
+    def fill(self):
+        return self.gdalBand.fill
+
+    @property
+    def flushCache(self):
+        return self.gdalBand.flushCache

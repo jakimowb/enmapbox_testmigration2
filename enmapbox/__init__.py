@@ -37,6 +37,9 @@ from qgis.gui import QgisInterface
 from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider, QgsProcessingAlgorithm
 from qgis.PyQt.QtCore import QSettings, QResource
 from qgis.PyQt.QtGui import QIcon
+from osgeo import gdal
+
+gdal.SetConfigOption('GDAL_VRT_ENABLE_PYTHON', 'YES')
 
 
 __version__ = '3.6' #subsub-version information is added during build process
@@ -231,13 +234,14 @@ def initMapLayerConfigWidgetFactories():
     debugLog('finished initMapLayerConfigWidgetFactories')
 
 
-def initAll():
+def initAll(processing=True):
     """
     Calls other init routines required to run the EnMAP-Box properly
     """
     initEnMAPBoxResources()
     initEditorWidgets()
-    initEnMAPBoxProcessingProvider()
+    if processing:
+        initEnMAPBoxProcessingProvider()
     initMapLayerConfigWidgetFactories()
 
 

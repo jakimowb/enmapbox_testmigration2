@@ -68,8 +68,12 @@ class TestGrid(TestCase):
             resolution=Resolution(x=2, y=2),
             projection=Projection.fromWgs84()
         )
+
+        # test full grid
         self.assertListEqual(grid.xPixelCoordinates(), [0, 1, 2, 3, 4])
         self.assertListEqual(grid.yPixelCoordinates(), [0, 1, 2])
+        self.assertListEqual(grid.xMapCoordinates(), [1.0, 3.0, 5.0, 7.0, 9.0])
+        self.assertListEqual(grid.yMapCoordinates(), [-1.0, -3.0, -5.0])
         self.assertTrue(np.all(np.equal(
             grid.xPixelCoordinatesArray(),
             [[0, 1, 2, 3, 4], [0, 1, 2, 3, 4], [0, 1, 2, 3, 4]]
@@ -78,6 +82,22 @@ class TestGrid(TestCase):
             grid.yPixelCoordinatesArray(),
             [[0, 0, 0, 0, 0], [1, 1, 1, 1, 1], [2, 2, 2, 2, 2]]
         )))
+        self.assertTrue(np.all(np.equal(
+            grid.xMapCoordinatesArray(),
+            [[1.0, 3.0, 5.0, 7.0, 9.0], [1.0, 3.0, 5.0, 7.0, 9.0], [1.0, 3.0, 5.0, 7.0, 9.0]]
+        )))
+        self.assertTrue(np.all(np.equal(
+            grid.yMapCoordinatesArray(),
+            [[-1.0, -1.0, -1.0, -1.0, -1.0], [-3.0, -3.0, -3.0, -3.0, -3.0], [-5.0, -5.0, -5.0, -5.0, -5.0]]
+        )))
+
+        # test subgrid
+        subgrid = grid.subgrid(offset=PixelLocation(x=2, y=1), shape=GridShape(x=2, y=2))
+        self.assertListEqual(subgrid.xPixelCoordinates(grid=grid), [2, 3])
+        self.assertListEqual(subgrid.yPixelCoordinates(grid=grid), [1, 2])
+        self.assertListEqual(subgrid.xMapCoordinates(), [5.0, 7.0])
+        self.assertListEqual(subgrid.yMapCoordinates(), [-3.0, -5.0])
+
 
     def test_subgrids(self):
         grid = Grid(
