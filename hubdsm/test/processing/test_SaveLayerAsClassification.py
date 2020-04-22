@@ -1,7 +1,9 @@
 import numpy as np
 from qgis._core import QgsRasterLayer
 
-from hubdsm.core.gdalrasterdriver import ENVI_DRIVER
+from hubdsm.core.category import Category
+from hubdsm.core.color import Color
+from hubdsm.core.gdalrasterdriver import ENVI_DRIVER, MEM_DRIVER
 from hubdsm.core.raster import Raster
 from hubdsm.processing.importenmapl1b import ImportEnmapL1B
 from hubdsm.processing.savelayerasclassification import SaveLayerAsClassification, saveLayerAsClassification
@@ -10,18 +12,23 @@ from hubdsm.test.processing.testcase import TestCase
 
 class TestSaveLayerAsClassification(TestCase):
 
-    def test_coreAlgo(self):
-        filename = r'C:\Users\janzandr\Desktop\raster.bsq'
-        rasterLayer = QgsRasterLayer(filename)
-        classification = saveLayerAsClassification(qgsRasterLayer=rasterLayer, filename=filename.replace('raster.bsq', 'classification.vrt'))
-        print(classification.categories)
+    def test(self):
 
-    def test_processingAlgo(self):
-        filename = r'C:\Users\janzandr\Desktop\raster.bsq'
+        filename = 'c:/vsimem/raster.bsq'
+        raster = Raster.createFromArray(array=np.array([[[0,10,20]]]), filename=filename)
+        categories = [
+            Category(id=10, name='a', color=Color(255, 0, 0)),
+            Category(id=20, name='b', color=Color(0, 0, 255))
+        ]
+        raster.setCategories(categories=categories)
+        del raster
+
         alg = SaveLayerAsClassification()
         io = {
             alg.P_RASTER: QgsRasterLayer(filename),
-            alg.P_OUTRASTER: filename.replace('raster.bsq', 'classification.bsq')
+            alg.P_OUTRASTER: 'c:/vsimem/classification.vrt'
         }
         result = self.runalg(alg=alg, io=io)
-        print(Raster.open(result[alg.P_OUTRASTER]).categories)
+
+        classification = Raster.open(result[alg.P_OUTRASTER])
+        self.assertSequenceEqual(classification.categories, categories)

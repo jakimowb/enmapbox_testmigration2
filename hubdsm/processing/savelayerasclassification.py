@@ -65,10 +65,7 @@ def saveLayerAsClassification(qgsRasterLayer: QgsRasterLayer, filename: str) -> 
         categories.append(category)
 
     driver = GdalRasterDriver.fromFilename(filename=filename)
-    if driver is VRT_DRIVER:
-        classification = raster.saveAsVrt(filename=filename)
-    else:
-        gdalBand = raster.band(1).gdalBand.translate(filename=filename, driver=driver)
-        classification = Raster.open(gdalBand.raster)
+    gdalBand = raster.band(1).gdalBand.translate(filename=filename, driver=driver)
+    classification = Raster.open(gdalBand.raster)
     classification.setCategories(categories=categories)
     return classification
