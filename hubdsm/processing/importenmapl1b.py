@@ -21,7 +21,6 @@ class ImportEnmapL1B(EnMAPAlgorithm):
         self.addParameter(
             EnMAPProcessingParameterFile(
                 name=self.P_FILE, description='METADATA.XML',
-                defaultValue=r'C:\Users\janzandr\Downloads\ENMAP01-____L1B-DT000000987_20130205T105307Z_001_V000101_20190426T143700Z__rows100-199\ENMAP01-____L1B-DT000000987_20130205T105307Z_001_V000101_20190426T143700Z-METADATA.XML',
                 help=Help(text='Metadata file associated with L1B product.')
             )
         )

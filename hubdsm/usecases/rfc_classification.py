@@ -27,13 +27,13 @@ landcoverRaster.setNoDataValue(value=0)
 # build raster collection and give more meaningful names
 stack = RasterCollection(
     rasters=(
-        landcoverRaster.withName(name='landcover').rename(bandNames=['classId']),
+        landcoverRaster.withName(name='landcover'),
         featuresRaster.withName(name='features')
     )
 )
 
 # draw samples from raster collection
-samples = stack.readAsSample(graRaster=gdal.GRA_Average, graMask=gdal.GRA_Mode, xMap='x', yMap='y')
+samples, location = stack.readAsSample(graRaster=gdal.GRA_Average, graMask=gdal.GRA_Mode, xMap='x', yMap='y')
 
 # pretty print sample
 for rasterName, sample in samples.items():
@@ -42,8 +42,8 @@ for rasterName, sample in samples.items():
         print(f'  {fieldName}: {sample[fieldName]}')
 
 # fit and apply RFC
-y = samples['landcover'].classId
-X = np.transpose([samples['features'][name] for name in samples['features'].dtype.names])
+y = samples['landcover'].array().ravel()
+X = samples['features'].array().T
 estimator = RandomForestClassifier(n_estimators=10, n_jobs=8)
 estimator.fit(X=X, y=y)
 classification = estimatorPredict(raster=featuresRaster, estimator=estimator, filename='data/rfc.bsq')

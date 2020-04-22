@@ -16,7 +16,7 @@ class TestUniqueBandValueCounts(TestCase):
         mask = Raster.open(MEM_DRIVER.createFromArray(array=np.array([[[1, 1, 1, 1, 1, 0, 0, 0, 0, 0]]])))
         raster = Raster.open(
             MEM_DRIVER.createFromArray(array=np.array([[[-1, 0, 2, 2, 30, -1, 0, 2, 2, 30]]]))
-        ).withMask(raster=mask)
+        ).withMask(mask=mask)
         band = raster.band(number=1)
         lead = uniqueBandValueCounts(band=band, po=ProcessingOptions(shape=GridShape(y=100, x=999999999999)))
         gold = {-1: 1, 0: 1, 2: 2, 30: 1}
