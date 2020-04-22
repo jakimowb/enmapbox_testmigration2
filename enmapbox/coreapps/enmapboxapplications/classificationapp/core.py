@@ -1,13 +1,14 @@
 import inspect
 import tempfile
 import traceback
+
+from PyQt5.uic import loadUi
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from enmapboxapplications.utils import loadUIFormClass
 from hubflow.core import *
 from enmapboxapplications.classificationapp.script import classificationWorkflow, ProgressBar
 
@@ -15,12 +16,13 @@ from enmapboxapplications.classificationapp.script import classificationWorkflow
 pathUi = join(dirname(__file__), 'ui')
 
 
-class ClassificationWorkflowApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
+class ClassificationWorkflowApp(QMainWindow):
 
     def __init__(self, parent=None):
 
         QMainWindow.__init__(self, parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'main.ui'), self)
+        #self.setupUi(self)
         self.uiInfo_ = QLabel()
         self.statusBar().addWidget(self.uiInfo_, 1)
 
@@ -165,6 +167,9 @@ class ClassificationWorkflowApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi,
 
             tmpfilename = '/vsimem/classificationapp/reprojected.gpkg'
             if not ds.projection().equal(raster.grid().projection()):
+                self.log('Projection mismatch between Raster and Reference.')
+                return
+
                 # reproject vector
                 ds.reproject(projection=raster.grid().projection(), filename=tmpfilename, driver=GeoPackageDriver())
                 filename = tmpfilename
@@ -351,6 +356,19 @@ class ClassificationWorkflowApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi,
                 return
             raster2 = Raster(filename=qgsRaster2.source())
 
+            qgsMask2 = self.uiMask_.currentLayer()
+            if isinstance(qgsMask2, QgsRasterLayer):
+                mask2 = Mask(filename=qgsMask2.source())
+                if not raster.grid().equal(other=mask2.grid()):
+                    self.log('Error: raster and mask grids do not match')
+                    return
+            elif isinstance(qgsMask2, QgsVectorLayer):
+                mask2 = VectorMask(filename=qgsMask2.source())
+            elif qgsMask2 is None:
+                mask2 = None
+            else:
+                assert 0
+
             n = [spinbox.value() for spinbox in self.spinboxes]
             if np.sum(n) == np.sum(self.counts): # perform no random sampling if all samples are used
                 n = None
@@ -368,6 +386,7 @@ class ClassificationWorkflowApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi,
             classificationWorkflow(sample=sample,
                                    classifier=classifier,
                                    raster=raster2,
+                                   mask=mask2,
                                    n=n,
                                    cv=cv,
                                    saveSampledClassification=saveSampledClassification,

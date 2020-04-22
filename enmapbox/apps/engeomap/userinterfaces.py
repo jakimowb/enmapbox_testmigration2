@@ -25,7 +25,6 @@ import time
 from qgis.gui import QgsFileWidget
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-#from PIL import Image
 from enmapbox.gui.utils import loadUIFormClass
 from engeomap import APP_DIR
 
@@ -107,20 +106,27 @@ class EnGeoMAPGUI(QDialog, loadUIFormClass(pathUi)):
         p['swirt'] = self.swir_thresh.toPlainText()
         p['fit_thresh'] = self.fit_thresh.toPlainText()
         p['mixminerals'] = self.ixminerals.toPlainText()
-        # p['enmap'] = checkstatus(self.enmap_psf)
-        # p['hyperion'] = checkstatus(self.hyperion_psf)
+        p['upper_hull'] = checkstatus(self.upper_hull)
+        p['upper_lower'] = checkstatus(self.upper_lower_hull)
         p['laboratory'] = checkstatus(self.lab_image)
         p['liblab'] = checkstatus(self.lab_lib)
         p['image'] = self.input_image.text()
         p['library'] = self.speclib.text()
         p['farbe'] = self.colormap.text()
         p['ende'] = self.imbusy
-        #  L.append()
         return p
 
     def startAlgorithm(self):
         params = self.collectParameters()
         from engeomap.algorithms import engeomapp_headless
         from engeomap.algorithms import mapper_fullrange
-        engeomapp_headless(params)
-        mapper_fullrange(params)
+        from engeomap.algorithms import mapper_fullrange2
+        if params['upper_hull']==1:
+            engeomapp_headless(params)
+            mapper_fullrange(params)
+        if params['upper_lower']==1:
+            engeomapp_headless(params)
+            mapper_fullrange2(params)
+        else:
+            engeomapp_headless(params)
+            mapper_fullrange(params)

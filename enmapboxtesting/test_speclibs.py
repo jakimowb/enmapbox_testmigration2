@@ -26,7 +26,6 @@ from enmapboxtestdata import enmap
 
 
 class testClassUtils(EnMAPBoxTestCase):
-    """Test rerources work."""
 
     def test_speclibImports(self):
 
@@ -56,7 +55,8 @@ class testClassUtils(EnMAPBoxTestCase):
 
 if __name__ == "__main__":
 
-    unittest.main()
+    import xmlrunner
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
 
 
 

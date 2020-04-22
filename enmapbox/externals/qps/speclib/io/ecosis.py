@@ -20,7 +20,7 @@ class EcoSISCSVDialect(pycsv.Dialect):
     quoting = pycsv.QUOTE_NONE
 
 
-def findDialect(file)->pycsv.Dialect:
+def findDialect(file) -> pycsv.Dialect:
 
     if isinstance(file, str):
         file = open(file, 'r', encoding='utf-8')
@@ -48,7 +48,7 @@ class EcoSISSpectralLibraryIO(AbstractSpectralLibraryIO):
     See https://ecosis.org for details.
     """
     @staticmethod
-    def canRead(path:str)->bool:
+    def canRead(path:str) -> bool:
         """
         Returns true if it can read the source defined by path
         :param path: source uri
@@ -59,7 +59,7 @@ class EcoSISSpectralLibraryIO(AbstractSpectralLibraryIO):
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 for line in f:
-                    line = f.readline().strip()
+                    line = line.strip()
                     if len(line) > 0:
                         # most-right header name must be a number
                         lastColumn = [c for c in re.split(r'[\t\n;,]', line) if c != ''][-1]
@@ -70,7 +70,7 @@ class EcoSISSpectralLibraryIO(AbstractSpectralLibraryIO):
         return False
 
     @staticmethod
-    def readFrom(path, progressDialog:typing.Union[QProgressDialog, ProgressHandler]=None)->SpectralLibrary:
+    def readFrom(path, progressDialog:typing.Union[QProgressDialog, ProgressHandler]=None) -> SpectralLibrary:
         """
         Returns the SpectralLibrary read from "path"
         :param path: source of SpectralLibrary
@@ -154,7 +154,7 @@ class EcoSISSpectralLibraryIO(AbstractSpectralLibraryIO):
         return speclib
 
     @staticmethod
-    def write(speclib:SpectralLibrary, path:str, progressDialog:QProgressDialog, delimiter:str=';'):
+    def write(speclib:SpectralLibrary, path:str, progressDialog:QProgressDialog = None, delimiter:str=';'):
         """
         Writes the SpectralLibrary to path and returns a list of written files that can be used to open the spectral library with readFrom
         """
@@ -205,7 +205,7 @@ class EcoSISSpectralLibraryIO(AbstractSpectralLibraryIO):
         return writtenFiles
 
     @staticmethod
-    def score(uri:str)->int:
+    def score(uri:str) -> int:
         """
         Returns a score value for the give uri. E.g. 0 for unlikely/unknown, 20 for yes, probalby thats the file format the reader can read.
 

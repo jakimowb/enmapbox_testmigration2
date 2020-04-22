@@ -11,7 +11,10 @@ Regression-based unmixing of urban land cover
 
 **Contributions from:** Sam Cooper, Patrick Hostert, Clemens Jaenicke, Benjamin Jakimow, Andreas Rabe, Fabian Thiel
 
-**Date:** 05/02/2019
+
+**Publication date:** 05/02/2019
+
+**Latest update:** 19/03/2020
 
 Introduction
 ============
@@ -40,7 +43,7 @@ training for working with the EnMAP-Box.
 
 .. TODO Update Version
 
-This practical requires at least version 3.3.20190131T1928.develop of the EnMAP-Box 3.
+This practical requires at least version 3.3 of the EnMAP-Box 3.
 There might be some minor changes for higher versions (e.g., changed menu labels, added parameter options, etc.).
 
 
@@ -130,32 +133,10 @@ Exercise A: Urban land cover
   * To change the order of stacked layers, drag one layer on top or below another one. Arrange the layer stack so that
     :file:`landcover_berlin.shp` is displayed on top of :file:`hymap_berlin.bsq`.
   * To assign a multibandcolor RGB combination to a raster image, right click on the dataset, select :guilabel:`Layer Properties` and
-    navigate to :guilabel:`Style` in the :guilabel:`RasterLayerProperties` window. You can now select predefined composites (RGB, nIR, swIR), or
-    manually select your bands and render type. Contrast enhancement is further possible. Display :file:`hymap_berlin.bsq` as true color composite.
-
-   .. attention::
-
-      Note that the predefined options (RGB, nIR, swIR) are currently not available. Bands have to be selected manually at the moment.
-
-      .. list-table::
-
-         * - **Combination**
-           - **R**
-           - **G**
-           - **B**
-         * - TrueColor
-           - 660 nm
-           - 570 nm
-           - 480 nm
-         * - nIR
-           - 850 nm
-           - 660 nm
-           - 570 nm
-         * - swIR
-           - 850 nm
-           - 1650 nm
-           - 660 nm
-
+    navigate to :guilabel:`Band selection`. You can now select predefined composites (RGB, nIR, swIR), or
+    manually select your bands using the slider or dropdown lists. Display :file:`hymap_berlin.bsq` as true color composite,
+    by selecting R-G-B.
+  * You can specify things like contrast enhancement and data stretch under :menuselection:`Layer properties --> Symbology`.
 
 
   * The symbology of :file:`landcover_berlin.shp` is predefined by a QGIS layer style file (:file:`.qml`). To change this symbology,
@@ -249,7 +230,7 @@ Exercise B: Spectral mixing
 
 * Make yourself familiar with the following tools in the Spectral Library #1 toolbar:
 
-  * The |plus_green| icon adds a plotted spectrum to a collection. Each collected spectrum (white line) gets an entry in the attribute table with a predefined name (filename and coordinates).
+  * The |plus_green| icon adds a plotted spectrum to a collection. Each collected spectrum (white line) gets an entry in the attribute table with a predefined name (filename and id).
   * By clicking |mIconCollapse| next to the |plus_green| icon you can activate the |profile_add_auto| :sup:`Add Profiles automatically` mode, which will automatically add spectra to the collection when clicking on image pixels.
   * The |mActionToggleEditing| icon switches on the editing mode. You can now edit the attribute table (e.g. edit the name of a spectrum), add or delete colums using the |mActionNewAttribute| |mActionDeleteAttribute| icons, etc.
   * You can delete selected spectra in editing mode using the |mActionDeleteSelected| icon (hold :kbd:`Ctrl` or :kbd:`Shift` to select multiple rows).
@@ -323,14 +304,16 @@ Exercise C: Urban spectral libraries
 
 * Close all Map and Spectral Library Windows from the previous exercise.
 * To load the urban spectral library, click on the |viewlist_spectrumdock| icon to open a new Spectral Library Window and drag :file:`library_berlin.sli` from the :guilabel:`Data Sources` panel into SpectralLibrary #1. Get familiar with the representation of the spectral library and the attribute table.
+* By default, only 64 spectra will be displayed at once in the plot window. To change this number, right-click in the plot
+  area, go to :guilabel:`Profiles` and enter a higher number, e.g. ``75`` (total number of spectra in :file:`library_berlin.sli`)
 * To display a subset of spectra in a separate Library Window…
 
-  * Select the spectra of interest by clicking on their corresponding row numbers (use :kbd:`Ctrl` or :kbd:`Shift` to select multiple rows). To select spectra with the same attributes, prior sorting of the attribute table by clicking on the corresponding column header is recommended.
+  * Select the spectra of interest by clicking on their corresponding row numbers (use :kbd:`Ctrl` or :kbd:`Shift` to select multiple rows). To select spectra with the same attributes, prior sorting of the attribute table by clicking on the corresponding column header is recommended. You can also select the spectra directly in the plot window.
   * Click on the |mActionEditCopy| icon in the toolbar (or :kbd:`Ctrl+C`) to copy the selected spectra to clipboard.
   * Open a second Spectra Library Window. Similar to the work with multiple Map Windows, Spectral Library Windows can be arranged according to the user needs.
-  * Switch on the editing mode in the SpectralLibrary #2 toolbar and use the |mActionEditPaste| icon (or :kbd:`Ctrl+V`) to paste the copied spectra into SpectralLibrary #2. Switch off the editing mode.
+  * Switch on the editing mode |mActionToggleEditing| in the SpectralLibrary #2 toolbar and use the |mActionEditPaste| icon (or :kbd:`Ctrl+V`) to paste the copied spectra into SpectralLibrary #2. Switch off the editing mode.
 
-.. image:: tut_img/07_spectrallibraryhandling.png
+.. image:: tut_img/07_spectrallibraryhandling_new.png
    :width: 100%
 
 
@@ -558,7 +541,7 @@ Exercise E: Validation of fraction maps
 1. Create reference fraction map
 --------------------------------
 
-* A reference fraction map is created by rasterizing available reference land cover information to the pixel grid of the estimated fraction map. To obtain reasonable fractions, the reference land cover information needs to be at a significantly higher spatial resolution than the pixel grid. To create reference fractions, open the **Fraction from Vector** tool in the EnMAP-Box geoalgorithms.
+* A reference fraction map is created by rasterizing available reference land cover information to the pixel grid of the estimated fraction map. To obtain reasonable fractions, the reference land cover information needs to be at a significantly higher spatial resolution than the pixel grid. To create reference fractions, use the following processing algorithm :menuselection:`Create Raster --> Fraction from Vector`.
 * Enter the following data / parameters (use the tool tips for their description):
 
   * :guilabel:`Pixel Grid`: :file:`fraction_level1_estimation.bsq`

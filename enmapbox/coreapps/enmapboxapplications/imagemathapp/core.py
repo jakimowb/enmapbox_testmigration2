@@ -1,6 +1,8 @@
 from os.path import join, dirname, basename, splitext, exists, isabs, abspath
 from os import remove
 import tempfile
+
+from PyQt5.uic import loadUi
 from osgeo import gdal
 import numpy
 from qgis.core import *
@@ -12,9 +14,6 @@ from PyQt5.Qsci import *
 #from PyQt5.QtWebKitWidgets import QWebView
 #from PyQt5.QtWebKit import QWebSettings
 #from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
-
-from enmapbox.gui.utils import loadUIFormClass
-from enmapboxapplications.utils import loadUIFormClass
 
 from .calculator import Calulator, CodeExecutionError, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierOptions, ApplierControls
 import hubdc.core
@@ -100,7 +99,7 @@ class Float(ValidatedQLineEdit):
         except:
             return False
 
-class Input(QWidget, loadUIFormClass(pathUi=join(pathUi, 'input.ui'))):
+class Input(QWidget):
     sigLayerChanged = pyqtSignal(QgsMapLayer)
     sigNameChanged = pyqtSignal(str)
     sigImportArray = pyqtSignal()
@@ -109,7 +108,8 @@ class Input(QWidget, loadUIFormClass(pathUi=join(pathUi, 'input.ui'))):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'input.ui'), self)
+        #self.setupUi(self)
         self.nameByLayer = True
 
         self.uiImportArray.hide()
@@ -258,7 +258,7 @@ class OutputFilename(QgsFileWidget):
 
         return filename
 
-class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
+class Output(QWidget):
     sigFilenameChanged = pyqtSignal(str)
     sigNameChanged = pyqtSignal(str)
     sigSetArray = pyqtSignal()
@@ -267,7 +267,8 @@ class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'output.ui'), self)
+        #self.setupUi(self)
 
         self.uiSetArray.hide()
 
@@ -338,7 +339,7 @@ class Output(QWidget, loadUIFormClass(pathUi=join(pathUi, 'output.ui'))):
     def turnNameByFilenameOff(self):
         self.nameByFilename = False
 
-class RemovableItem(QWidget, loadUIFormClass(pathUi=join(pathUi, 'removableItem.ui'))):
+class RemovableItem(QWidget):
     sigCreated = pyqtSignal()
     sigRemoved = pyqtSignal()
     sigImportArray = pyqtSignal()
@@ -350,9 +351,9 @@ class RemovableItem(QWidget, loadUIFormClass(pathUi=join(pathUi, 'removableItem.
 
     def __init__(self, type, parent=None):
         super().__init__(parent)
+        loadUi(join(pathUi, 'removableItem.ui'), self)
+        #self.setupUi(self)
         self.type = type
-        self.setupUi(self)
-
         self.uiItem = None
         self.uiSpacer = self.uiLayout.itemAt(self.uiLayout.count() - 1)
         self.uiCreate.clicked.connect(self.createItem)
@@ -397,7 +398,7 @@ class RemovableItem(QWidget, loadUIFormClass(pathUi=join(pathUi, 'removableItem.
         else:
             return None
 
-class ItemList(QWidget, loadUIFormClass(pathUi=join(pathUi, 'itemList.ui'))):
+class ItemList(QWidget):
 
     TYPE = None
     sigImportArray = None
@@ -409,7 +410,8 @@ class ItemList(QWidget, loadUIFormClass(pathUi=join(pathUi, 'itemList.ui'))):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'itemList.ui'), self)
+        #self.setupUi(self)
         assert self.TYPE is not None
         self.addItem()
 
@@ -495,7 +497,7 @@ class Projection(QgsProjectionSelectionWidget):
             projection = hubdc.core.Projection(wkt=wkt)
         return projection
 
-class Extent(QWidget, loadUIFormClass(pathUi=join(pathUi, 'extent.ui'))):
+class Extent(QWidget):
 
     INTERSECTION = 'intersection'
     UNION = 'union'
@@ -504,7 +506,8 @@ class Extent(QWidget, loadUIFormClass(pathUi=join(pathUi, 'extent.ui'))):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'extent.ui'), self)
+        #self.setupUi(self)
 
         self.uiMode.currentIndexChanged.connect(self.onCurrentIndexChanged)
         self.uiMode.currentIndexChanged.emit(0)
@@ -547,7 +550,7 @@ class Extent(QWidget, loadUIFormClass(pathUi=join(pathUi, 'extent.ui'))):
         self.setMode(mode=mode)
 
 
-class Resolution(QWidget, loadUIFormClass(pathUi=join(pathUi, 'resolution.ui'))):
+class Resolution(QWidget):
 
     COARSEST = 'coarsest'
     FINEST = 'finest'
@@ -556,8 +559,8 @@ class Resolution(QWidget, loadUIFormClass(pathUi=join(pathUi, 'resolution.ui')))
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setupUi(self)
-
+        loadUi(join(pathUi, 'resolution.ui'), self)
+        #self.setupUi(self)
         self.uiMode.currentIndexChanged.connect(self.onCurrentIndexChanged)
         self.uiMode.currentIndexChanged.emit(0)
 
@@ -594,10 +597,11 @@ class Resolution(QWidget, loadUIFormClass(pathUi=join(pathUi, 'resolution.ui')))
         self.setMode(mode=mode)
 
 
-class Grid(QWidget, loadUIFormClass(pathUi=join(pathUi, 'grid.ui'))):
+class Grid(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setupUi(self)
+        loadUi(join(pathUi, 'grid.ui'), self)
+        #self.setupUi(self)
 
         self.uiLayer().setCurrentIndex(0)
         self.uiLayer().layerChanged.connect(self.setValueByLayer)
@@ -747,12 +751,12 @@ class Routines(QTreeWidget):
             self.sigRoutineDoubleClicked.emit(text)
 
 
-class ImageMathApp(QMainWindow, loadUIFormClass(pathUi=join(pathUi, 'main.ui'))):
+class ImageMathApp(QMainWindow):
 
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
-        self.setupUi(self)
-
+        loadUi(join(pathUi, 'main.ui'), self)
+        #self.setupUi(self)
         self.uiExecute().clicked.connect(self.execute)
 
         #assert isinstance(self.uiLog2_,  QWebView)

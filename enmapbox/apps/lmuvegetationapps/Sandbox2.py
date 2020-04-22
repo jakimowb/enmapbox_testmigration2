@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+import numpy as np
+
+# Zone Martin:
+a = np.asarray([15])
+b = a.T
+print(a.shape, b.shape)
+
+exit()
 
 water_absorption_bands = [range(959, 1022), range(1390, 1541)]
 flat_list = [item for sublist in water_absorption_bands for item in sublist]

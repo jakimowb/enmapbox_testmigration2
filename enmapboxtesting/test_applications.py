@@ -8,6 +8,7 @@
 
 """
 import enmapbox, os
+import xmlrunner
 
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
@@ -27,28 +28,21 @@ DIR_TMP = os.path.join(DIR_REPO, *['tmp', 'tmp_enmapboxApplicationTests'])
 
 class test_applications(EnMAPBoxTestCase):
 
-    def tearDown(self):
-        eb = EnMAPBox.instance()
-        if isinstance(eb, EnMAPBox):
-            eb.close()
-            QApplication.processEvents()
-        self.otherDialogs.clear()
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
 
-        cls.otherDialogs = []
+        from enmapbox import DIR_ENMAPBOX
+        site.addsitedir(pathlib.Path(DIR_ENMAPBOX) / 'coreapps')
+        site.addsitedir(pathlib.Path(DIR_ENMAPBOX) / 'apps')
 
-    def setUp(self):
+    def tearDown(self):
+        super().tearDown()
+        app = QgsApplication.instance()
+        if isinstance(app, QgsApplication):
+            app.closeAllWindows()
 
-        self.otherDialogs.clear()
-        for obj in gc.get_objects():
-            if isinstance(obj, QDialog):
-                self.otherDialogs.append(obj)
-
-
-    def createTestData(self)->(str, str, str):
+    def createTestData(self) -> (str, str, str):
         """
         :return: (path folder, filelist_abs, filelist_rel)
         """
@@ -64,7 +58,7 @@ class test_applications(EnMAPBoxTestCase):
         TESTDATA.validAppDirs = []
 
         #1. valid app 1
-        pAppDir = os.path.join(DIR_REPO, *['examples','minimumexample'])
+        pAppDir = os.path.join(DIR_REPO, *['examples', 'minimumexample'])
 
         TESTDATA.validAppDirs.append(pAppDir)
 
@@ -161,7 +155,7 @@ class test_applications(EnMAPBoxTestCase):
         #load a folder
         reg = ApplicationRegistry(EB)
         for d in TESTDATA.validAppDirs:
-            self.assertTrue(reg.addApplicationFolder(d))
+            self.assertTrue(reg.addApplicationFolder(d), msg='added {} returned False'.format(d))
         self.assertEqual(len(reg), len(TESTDATA.validAppDirs))
 
         reg = ApplicationRegistry(EB)
@@ -193,14 +187,11 @@ class test_applications(EnMAPBoxTestCase):
 
     def test_IVVM(self):
 
-        eb = EnMAPBox(None)
-
-
         from lmuvegetationapps.IVVRM_GUI import MainUiFunc
         m = MainUiFunc()
-        m.show()
 
-        self.showGui()
+        self.showGui(m)
+
 
     def test_deployed_apps(self):
 
@@ -232,6 +223,8 @@ class test_applications(EnMAPBoxTestCase):
             if n1 == n2:
                 print('Unable to add EnMAPBoxApplications from {}'.format(d), file=sys.stderr)
 
+        EB.close()
+
     def closeBlockingDialogs(self):
         w = QApplication.instance().activeModalWidget()
         if isinstance(w, QWidget):
@@ -243,7 +236,7 @@ class test_applications(EnMAPBoxTestCase):
 
         timer = QTimer()
         timer.timeout.connect(self.closeBlockingDialogs)
-        timer.start(500)
+        timer.start(1000)
 
         EB = EnMAPBox()
 
@@ -256,22 +249,22 @@ class test_applications(EnMAPBoxTestCase):
             if isinstance(menuItem, QAction):
                 print('Trigger QAction {}"{}" {}'.format(prefix, menuItem.text(), menuItem.toolTip()))
                 menuItem.trigger()
+                QApplication.processEvents()
             elif isinstance(menuItem, QMenu):
                 for a in menuItem.actions():
                     triggerActions(a, prefix='"{}"->'.format(menuItem.title()))
+                    QApplication.processEvents()
 
         for title in ['Tools', 'Applications']:
 
             print('## TEST QMenu "{}"'.format(title))
 
             triggerActions(EB.menu(title))
+            QApplication.processEvents()
 
         self.showGui()
 
 
 if __name__ == "__main__":
-
-    unittest.main()
-
-
-
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
+    print('Tests done', flush=True)

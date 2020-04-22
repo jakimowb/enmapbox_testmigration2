@@ -126,7 +126,7 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
         self.mPosition = point
         self.mCanvas.update()
 
-    def crosshairStyle(self)->CrosshairStyle:
+    def crosshairStyle(self) -> CrosshairStyle:
         """
         Returns the crosshair style
         :return: CrosshairStyle
@@ -146,7 +146,7 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
         if old != b:
             self.mCanvas.update()
 
-    def visibility(self)->bool:
+    def visibility(self) -> bool:
         """Returns the Crosshair visibility"""
         return self.mShow
 
@@ -178,7 +178,7 @@ class CrosshairMapCanvasItem(QgsMapCanvasItem):
         """
         self.mRasterGridLayer = None
 
-    def rasterGridLayer(self)->QgsRasterLayer:
+    def rasterGridLayer(self) -> QgsRasterLayer:
         """
         Returns the raster grid layer
         :return: QgsRasterLayer
@@ -412,13 +412,13 @@ def nicePredecessor(l):
 
 class CrosshairWidget(QWidget):
     """
-    A widget to configurate a CrossHair
+    A widget to configure a CrossHair
     """
     sigCrosshairStyleChanged = pyqtSignal(CrosshairStyle)
 
     def __init__(self, title='<#>', parent=None):
         super(CrosshairWidget, self).__init__(parent)
-        loadUi(DIR_UI_FILES / 'crosshairwidget.ui')
+        loadUi(pathlib.Path(__file__).parent / 'crosshairwidget.ui', self)
 
         self.mapCanvas.setExtent(QgsRectangle(0, 0, 1, 1))  #
 
@@ -545,7 +545,7 @@ class CrosshairDialog(QgsDialog):
         if isinstance(crosshairStyle, CrosshairStyle):
             self.setCrosshairStyle(crosshairStyle)
 
-    def crosshairStyle(self)->CrosshairStyle:
+    def crosshairStyle(self) -> CrosshairStyle:
         """
         Returns the specfied CrosshairStyle
         :return: CrosshairStyle

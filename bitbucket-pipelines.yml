@@ -3,36 +3,132 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
+#image: continuumio/miniconda3
 image: qgis/qgis
-
 pipelines:
   branches:
-    '{master, develop}':
-    - step:
-        services:
-          - docker
-        caches:
-          - docker
-          - pip
-        script: # Modify the commands below to build your repository.
-          - apt-get update
-          - apt-get -y install xvfb
-          - apt-get -y install git-lfs
-          - apt-get install -y wget
-          - apt-get install -y unzip
-          - Xvfb :1 -screen 0 1024x768x16 &> xvfb.log  &
-          - ps aux | grep X
-          - DISPLAY=:1.0
-          - export DISPLAY
-          - mkdir test-reports
-          - python3 -m pip install -r requirements.txt
-          - python3 -m pip install -r requirements_developer.txt
-          - git lfs install
-          - git lfs fetch
-          - git lfs pull
-          - git lfs checkout
-          - python scripts/setuprepository.py
-          - wget https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip -O qgisresources.zip
-          - unzip qgisresources.zip
-          - /bin/bash scripts/runtests.sh
+    discover_unittests:
+      - step:
+          name: basic qgis loading
+          services:
+            - docker
+          caches:
+            - docker
+            - pip
+            - qgisresourcecache
+            - enmapboxtestdatacache
 
+          script:
+            - apt-get -y install git-lfs
+            - git lfs install
+            - git lfs fetch
+            - git lfs pull
+            - git lfs checkout
+            - python3 -m pip install -r requirements_developer.txt
+            - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+            - echo "current dir:" $(pwd)
+            - python3 --version
+            - printenv PYTHONPATH
+            - QT_QPA_PLATFORM=offscreen
+            - export QT_QPA_PLATFORM
+            - python3 scripts/setup_repository.py
+            # start the enmap box, but close the initialized GUI
+            - python3 enmapbox --debug --no_exec
+            - coverage run -m unittest discover
+            #- CI=True
+            #- export CI
+
+  custom:
+    scheduled-testing:
+      - step:
+          name: setup repository
+          services:
+            - docker
+          caches:
+            - docker
+            - pip
+            - qgisresourcecache
+            - enmapboxtestdatacache
+          script:
+            - apt-get -y install git-lfs
+            - git lfs install
+            - git lfs fetch
+            - git lfs pull
+            - git lfs checkout
+            - python3 -m pip install -r requirements_developer.txt
+            - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+            - echo "current dir:" $(pwd)
+            - python3 --version
+            - gdalinfo --version
+            - printenv PYTHONPATH
+            - QT_QPA_PLATFORM=offscreen
+            - export QT_QPA_PLATFORM
+            - python3 scripts/setup_repository.py
+          artifacts:
+            # defining the artifacts to be passed to each future step.
+            - deploy/enmapboxplugin.*.zip
+            - deploy/enmapboxplugin/**
+            - enmapboxtestdata/**
+            - qgisresources/**
+      - step:
+          name: run unit tests
+          services:
+            - docker
+          caches:
+            - docker
+            - pip
+            - qgisresourcecache
+            - enmapboxtestdatacache
+            #- condacache
+          script: # Modify the commands below to build your repository.
+            - apt-get -y install git-lfs
+            - git lfs install
+            - git lfs fetch
+            - git lfs pull
+            - git lfs checkout
+            - python3 -m pip install -r requirements_developer.txt
+            - export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+            - echo "current dir:" $(pwd)
+            - python3 --version
+            - printenv PYTHONPATH
+            - QT_QPA_PLATFORM=offscreen
+            - export QT_QPA_PLATFORM
+            #- export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
+            #- echo " PYTHONPATH "
+
+            #- cp .coveragec deploy/enmapboxplugin
+            #- cd deploy/enmapboxplugin
+
+            - set +e # remove or set -e to exit at first error
+            # run scripts/createruntests.py to generate the following lines
+            - python3 enmapboxtesting/test_enmapbox_empty.py
+            - python3 -m coverage run --rcfile=.coveragec  enmapboxtesting/test_applications.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasources.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_dependencycheck.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_docksanddatasources.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxplugin.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapboxprocessingprovider.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_hiddenqgislayers.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mapcanvas.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_mimedata.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_options.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_settings.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_speclibs.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_spectralprofilesources.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_splashscreen.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_template.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testdata_dependency.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_testing.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_utils.py
+            - python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_vectorlayertools.py
+            - python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_algorithm.py
+            - python3 -m coverage run --rcfile=.coveragec --append  hubdc/test/test_core.py
+            - python3 -m coverage report
+definitions:
+  caches:
+    condacache: /opt/conda
+    qgisresourcecache: /opt/atlassian/pipelines/agent/build/qgisresources
+    enmapboxtestdatacache: /opt/atlassian/pipelines/agent/build/enmapboxtestdata

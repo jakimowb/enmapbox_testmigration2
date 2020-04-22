@@ -31,6 +31,22 @@ import enmapbox.gui.mimedata as mimedata
 
 class MimeDataTests(EnMAPBoxTestCase):
 
+    def setUp(self):
+
+        super().setUp()
+        box = EnMAPBox.instance()
+        if isinstance(box, EnMAPBox):
+            box.close()
+        QApplication.processEvents()
+        QgsProject.instance().removeAllMapLayers()
+
+    def tearDown(self):
+        super().tearDown()
+        box = EnMAPBox.instance()
+        if isinstance(box, EnMAPBox):
+            box.close()
+        QApplication.processEvents()
+        QgsProject.instance().removeAllMapLayers()
 
     def test_conversions(self):
         for t1 in ['normalstring', b'bytestring', r'rawstring']:
@@ -94,8 +110,7 @@ class MimeDataTests(EnMAPBoxTestCase):
             self.assertIsInstance(lyr, QgsMapLayer)
             self.assertTrue(lyr)
 
-
-    def file2DropEvent(self, path)->QDropEvent:
+    def file2DropEvent(self, path) -> QDropEvent:
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
         md = QMimeData()
@@ -106,12 +121,15 @@ class MimeDataTests(EnMAPBoxTestCase):
 
     def test_dropping_files_empty_dockarea(self):
         files = []
+        nMax = 50
         for root, dirs, f in os.walk(DIR_TESTDATA):
+            if len(files) >= nMax:
+                break
             for file in f:
                 files.append(pathlib.Path(root) / file)
 
         # drop on
-        EB = EnMAPBox()
+        EB = EnMAPBox(load_core_apps=False, load_other_apps=False)
         dockManager = EB.dockManager()
         dockArea = dockManager.currentDockArea()
         for path in files:
@@ -119,11 +137,19 @@ class MimeDataTests(EnMAPBoxTestCase):
             QApplication.processEvents()
             for d in dockManager.docks():
                 dockManager.removeDock(d)
+            EB.dataSourceManager().removeSources(EB.dataSourceManager().sources())
+            QApplication.processEvents()
+            QgsProject.instance().removeAllMapLayers()
+            QApplication.processEvents()
+
         EB.close()
 
     def test_dropping_files_speclib_widget(self):
         files = []
+        nMax = 25
         for root, dirs, f in os.walk(DIR_TESTDATA):
+            if len(files) >= nMax:
+                break
             for file in f:
                 files.append(pathlib.Path(root) / file)
 
@@ -131,7 +157,7 @@ class MimeDataTests(EnMAPBoxTestCase):
         from enmapbox.gui.docks import SpectralLibraryDock
         from enmapbox.gui import SpectralLibraryWidget
         from enmapboxtestdata import library
-        EB = EnMAPBox()
+        EB = EnMAPBox(load_other_apps=False, load_core_apps=False)
         sld = EB.createDock('SPECLIB')
         self.assertIsInstance(sld, SpectralLibraryDock)
         w = sld.speclibWidget()
@@ -153,15 +179,18 @@ class MimeDataTests(EnMAPBoxTestCase):
 
         # drop random files
         for file in files:
-            w.dropEvent(self.file2DropEvent(file))
+            event = self.file2DropEvent(file)
+            w.dropEvent(event)
             QApplication.processEvents()
             EB.dataSourceManager().removeSource(file)
+            QApplication.processEvents()
+
         EB.close()
 
 
-
 if __name__ == "__main__":
-    unittest.main()
+    import xmlrunner
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
 
 
 

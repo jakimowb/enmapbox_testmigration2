@@ -32,7 +32,7 @@ class Tests(EnMAPBoxTestCase):
 
         QApplication.processEvents()
     def test_inMemoryImage(self):
-        self.assertIsInstance(TestObjects.inMemoryImage(), gdal.Dataset)
+        self.assertIsInstance(TestObjects.createRasterDataset(), gdal.Dataset)
 
     def test_inMemoryVector(self):
         ds = TestObjects.createVectorDataSet()
@@ -69,7 +69,8 @@ class Tests(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    import xmlrunner
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
 
 
 

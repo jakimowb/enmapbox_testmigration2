@@ -1,4 +1,4 @@
-import os, sys, pathlib
+import os, sys, pathlib, re
 
 from enmapbox.gui.utils import file_search
 
@@ -8,15 +8,17 @@ def create_runtests():
     DIR_SCRIPTS = pathlib.Path(__file__).resolve().parent
     DIR_REPO = DIR_SCRIPTS.parent
 
-    DIR_TESTS = DIR_REPO / 'enmapboxtesting'
+    TEST_DIRECTORIES = [
+        DIR_REPO / 'enmapboxtesting',
+        DIR_REPO / 'hubdc' / 'test',
+    ]
 
     assert DIR_REPO.is_dir()
     assert (DIR_REPO / '.git').is_dir()
-    assert DIR_TESTS.is_dir()
-
 
     PATH_RUNTESTS_BAT = DIR_SCRIPTS / 'runtests.bat'
     PATH_RUNTESTS_SH = DIR_SCRIPTS / 'runtests.sh'
+    PATH_YAML = DIR_REPO / 'bitbucket-pipelines.yml'
 
     PREFACE_BAT = \
 """
@@ -33,7 +35,7 @@ WHERE python3 >nul 2>&1 && (
     set PYTHON=python
 )
 
-start %PYTHON% scripts/setuprepository.py
+::start %PYTHON% scripts/setup_repository.py
 """
 
     PREFACE_SH = \
@@ -45,29 +47,33 @@ export CI
 
 find . -name "*.pyc" -exec rm -f {} \;
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-python3 scripts/setuprepository.py
+# python3 scripts/setup_repository.py
 """
 
 
     #dirOut = 'test-reports/today'
     linesBat = [PREFACE_BAT]
     linesSh = [PREFACE_SH]
+    linesYAML = []
     #linesBat.append('mkdir {}'.format(dirOut.replace('/', '\\')))
     #linesSh.append('mkdir {}'.format(dirOut))
 
-
-    bnDirTests = os.path.basename(DIR_TESTS)
-    for i, file in enumerate(file_search(DIR_TESTS, 'test_*.py')):
-        file = pathlib.Path(file)
-        do_append = '' if i == 0 else '--append'
-        pathTest = str(pathlib.Path(*file.parts[-2:]).as_posix())
-        lineBat = '%PYTHON% -m coverage run --rcfile=.coveragec {}  {}'.format(do_append, pathTest)
-        lineSh = 'python3 -m coverage run --rcfile=.coveragec {}  {}'.format(do_append, pathTest)
-        linesBat.append(lineBat)
-        linesSh.append(lineSh)
+    n = 0
+    for DIR_TESTS in TEST_DIRECTORIES:
+        for i, file in enumerate(file_search(DIR_TESTS, 'test_*.py')):
+            file = pathlib.Path(file)
+            do_append = '' if n == 0 else '--append'
+            pathTest = file.relative_to(DIR_REPO).as_posix()
+            lineBat = '%PYTHON% -m coverage run --rcfile=.coveragec {}  {}'.format(do_append, pathTest)
+            lineSh = 'python3 -m coverage run --rcfile=.coveragec {}  {}'.format(do_append, pathTest)
+            linesBat.append(lineBat)
+            linesSh.append(lineSh)
+            linesYAML.append(lineSh)
+            n += 1
 
     linesBat.append('%PYTHON% -m coverage report')
     linesSh.append('python3 -m coverage report')
+    linesYAML.append('python3 -m coverage report')
 
     print('Write {}...'.format(PATH_RUNTESTS_BAT))
     with open(PATH_RUNTESTS_BAT, 'w', encoding='utf-8') as f:
@@ -77,6 +83,34 @@ python3 scripts/setuprepository.py
     with open(PATH_RUNTESTS_SH, 'w', encoding='utf-8', newline='\n') as f:
         f.write('\n'.join(linesSh))
 
+    yamlLines = ['- {}\n'.format(l) for l in linesYAML]
+    print(''.join(yamlLines))
+
+    if False:
+        assert PATH_YAML.is_file()
+        with open(PATH_YAML, 'r') as f:
+            linesYAML = f.readlines()
+
+        startLines = []
+        endLines = []
+
+        for i, line in enumerate(linesYAML):
+            if re.search('\W*# START UNITTESTS', line):
+                startLines.insert(0, i)
+            if re.search('\W*# END UNITTESTS', line):
+                endLines.insert(0, i)
+
+        assert len(startLines) == len(endLines)
+
+        for (i0, ie) in zip(startLines, endLines):
+            prefix = re.search(r'^.*(?=# START UNITTESTS)', linesYAML[i0]).group()
+            inplace = ['{}- {}\n'.format(prefix, l) for l in linesYAML]
+            linesYAML[i0+1:ie-1] = inplace
+        print('Update {}...'.format(PATH_YAML))
+        with open(PATH_YAML, 'w', encoding='utf-8', newline='\n') as f:
+            f.write(''.join(linesYAML))
+
 
 if __name__ == "__main__":
     create_runtests()
+    exit(0)

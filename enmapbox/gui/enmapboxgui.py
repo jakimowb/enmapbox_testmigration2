@@ -22,13 +22,14 @@ from qgis import utils as qgsUtils
 import qgis.utils
 from qgis.core import *
 from qgis.gui import *
-from enmapbox import messageLog
+from enmapbox import messageLog, debugLog
 from enmapbox.gui import *
 from enmapbox.gui.docks import *
 from enmapbox.gui.dockmanager import DockManagerTreeModel, MapDockTreeNode
 from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
+from enmapbox.dependencycheck import requiredPackages, missingPackageInfo
 from ..externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from ..externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
@@ -83,6 +84,14 @@ class EnMAPBoxSplashScreen(QSplashScreen):
         pm = QPixmap(':/enmapbox/gui/ui/logo/splashscreen.png')
         super(EnMAPBoxSplashScreen, self).__init__(parent, pixmap=pm)
 
+        effect = QGraphicsDropShadowEffect()
+        effect.setBlurRadius(5)
+        effect.setColor(QColor('white'))
+        self.setGraphicsEffect(effect)
+
+        css = "" \
+              ""
+
     def showMessage(self, text:str, alignment:Qt.Alignment=None, color:QColor=None):
         """
         Shows a message
@@ -92,7 +101,7 @@ class EnMAPBoxSplashScreen(QSplashScreen):
         :return:
         """
         if alignment is None:
-            alignment = Qt.AlignCenter | Qt.AlignBottom
+            alignment = int(Qt.AlignCenter | Qt.AlignBottom)
         if color is None:
             color = QColor('black')
         super(EnMAPBoxSplashScreen, self).showMessage(text, alignment, color)
@@ -206,8 +215,8 @@ class EnMAPBox(QgisInterface, QObject):
     sigRasterSourceAdded = pyqtSignal([str],[DataSourceRaster])
     sigVectorSourceAdded = pyqtSignal([str],[DataSourceVector])
 
-    sigDataSourceRemoved = pyqtSignal([str],[DataSource])
-    sigSpectralLibraryRemoved = pyqtSignal([str],[DataSourceSpectralLibrary])
+    sigDataSourceRemoved = pyqtSignal([str], [DataSource])
+    sigSpectralLibraryRemoved = pyqtSignal([str], [DataSourceSpectralLibrary])
     sigRasterSourceRemoved = pyqtSignal([str],[DataSourceRaster])
     sigVectorSourceRemoved = pyqtSignal([str],[DataSourceVector])
 
@@ -226,8 +235,13 @@ class EnMAPBox(QgisInterface, QObject):
     sigMapCanvasRemoved = pyqtSignal(MapCanvas)
     sigMapCanvasAdded = pyqtSignal(MapCanvas)
 
+    sigProjectWillBeSaved = pyqtSignal()
+
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
-    def __init__(self, iface:QgisInterface=None):
+    def __init__(self,
+                 iface: QgisInterface = None,
+                 load_core_apps: bool = True,
+                 load_other_apps: bool = True):
         assert EnMAPBox.instance() is None, 'EnMAPBox already started. Call EnMAPBox.instance() to get a handle to.'
 
         splash = EnMAPBoxSplashScreen(parent=None)
@@ -251,6 +265,13 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.mMapToolKey = MapTools.Pan
         self.mMapToolMode = None
+        self.mMessageBarItems = []
+
+        def removeItem(item):
+            if item in self.mMessageBarItems:
+                self.mMessageBarItems.remove(item)
+        self.messageBar().widgetRemoved.connect(removeItem)
+        self.mCurrentMapLayer: QgsMapLayer = None
 
         self.initPanels()
 
@@ -260,24 +281,22 @@ class EnMAPBox(QgisInterface, QObject):
 
         assert isinstance(qgsUtils.iface, QgisInterface)
 
-        #self.mCurrentSpectra = []  # set of currently selected spectral profiles
         self.mCurrentMapLocation = None
 
         # define managers
-
         from enmapbox.gui.datasourcemanager import DataSourceManager
         from enmapbox.gui.dockmanager import DockManager
 
-        #
         splash.showMessage('Init DataSourceManager')
         self.mDataSourceManager = DataSourceManager()
         self.mDataSourceManager.sigDataSourceRemoved.connect(self.onDataSourceRemoved)
         self.mDataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
-        QgsProject.instance().layersAdded.connect(self.addMapLayers)
+        #QgsProject.instance().layersAdded.connect(self.addMapLayers)
         QgsProject.instance().layersWillBeRemoved.connect(self.onLayersWillBeRemoved)
 
-        self._layerTreeNodes = [] #needed to keep a reference on created LayerTreeNodes
-        self._layerTreeGroup : QgsLayerTreeGroup = None
+        # needed to keep a reference on created LayerTreeNodes
+        self._layerTreeNodes = []
+        self._layerTreeGroup: QgsLayerTreeGroup = None
 
         self.mDockManager = DockManager()
         self.mDockManager.connectDataSourceManager(self.mDataSourceManager)
@@ -285,8 +304,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.dataSourcePanel.connectDataSourceManager(self.mDataSourceManager)
 
         self.ui.dockPanel.connectDockManager(self.mDockManager)
-        self.ui.dockPanel.dockTreeView.currentLayerChanged.connect(self.onCurrentLayerChanged)
-
+        self.ui.dockPanel.dockTreeView.currentLayerChanged.connect(self.updateCurrentLayerActions)
 
         root = self.dockManagerTreeModel().rootGroup()
         assert isinstance(root, QgsLayerTree)
@@ -294,7 +312,7 @@ class EnMAPBox(QgisInterface, QObject):
         root.removedChildren.connect(self.syncHiddenLayers)
 
         #
-        self.onCurrentLayerChanged(None)
+        self.updateCurrentLayerActions()
         self.ui.centralFrame.sigDragEnterEvent.connect(
             lambda event: self.mDockManager.onDockAreaDragDropEvent(self.ui.dockArea, event))
         self.ui.centralFrame.sigDragMoveEvent.connect(
@@ -309,53 +327,158 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.initActions()
 
+        from enmapbox.externals.qps.vectorlayertools import VectorLayerTools
+        self.mVectorLayerTools = VectorLayerTools()
+        self.mVectorLayerTools.sigMessage.connect(lambda title, text, level:
+                                        self.messageBar().pushItem(QgsMessageBarItem(title, text, level)))
+        self.mVectorLayerTools.sigFreezeCanvases.connect(self.freezeCanvases)
+        self.mVectorLayerTools.sigEditingStarted.connect(self.updateCurrentLayerActions)
+        self.mVectorLayerTools.sigZoomRequest.connect(self.zoomToExtent)
+        self.mVectorLayerTools.sigPanRequest.connect(self.panToPoint)
+
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
         # load EnMAP-Box applications
         splash.showMessage('Load EnMAPBoxApplications...')
-        self.initEnMAPBoxApplications()
+
+        debugLog('Load EnMAPBoxApplications...')
+        self.initEnMAPBoxApplications(load_core_apps=load_core_apps, load_other_apps=load_other_apps)
 
         # add developer tools to the Tools menu
+        debugLog('Modify menu...')
         m = self.menu('Tools')
         m.addSeparator()
         m = m.addMenu('Developers')
         m.addAction(self.ui.mActionAddMimeView)
         a = m.addAction('Resource Browser')
         a.setToolTip('Opens a Browser to inspect the Qt Resource system')
+        a.triggered.connect(self.showResourceBrowser)
 
-        def onShowResourceBrowser():
-            from ..externals.qps.resources import showResources
-            browser = showResources()
-            browser.setWindowTitle('Resource Browser')
-            a._browser = browser
-        a.triggered.connect(onShowResourceBrowser)
-
+        debugLog('Set ui visible...')
         self.ui.setVisible(True)
-        splash.finish(self.ui)
 
+        debugLog('Set pyqtgraph config')
         from ..externals.pyqtgraph import setConfigOption
-        splash.showMessage('Load EnMAPBoxApplications...')
         setConfigOption('background', 'k')
         setConfigOption('foreground', 'w')
 
+        # check missing packages and show a message
+        # see https://bitbucket.org/hu-geomatics/enmap-box/issues/366/start-enmap-box-in-standard-qgis
+        debugLog('Run dependency checks...')
+
+        from ..dependencycheck import requiredPackages
+        if len([p for p in requiredPackages() if not p.isInstalled()]) > 0:
+
+            # taken from qgsmessagebar.cpp
+            # void QgsMessageBar::pushMessage( const QString &title, const QString &text, const QString &showMore, Qgis::MessageLevel level, int duration )
+
+            title = 'Missing Python Package(s)!'
+
+            a = QAction('Install missing')
+            btn = QToolButton()
+            btn.setStyleSheet("background-color: rgba(255, 255, 255, 0); color: black; text-decoration: underline;" )
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
+            btn.addAction(a)
+            btn.setDefaultAction(a)
+            btn.triggered.connect(self.showPackageInstaller)
+            btn.triggered.connect(btn.deleteLater)
+            self.__btn = btn
+            item = QgsMessageBarItem(title, '', btn, Qgis.Critical, 200)
+            self.messageBar().pushItem(item)
+
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
+
+        debugLog('Finish splashscreen')
+        splash.finish(self.ui)
+
+        debugLog('call QApplication.processEvents()')
         QApplication.processEvents()
-        splash.hide()
+
+        debugLog('add QProject.instance()')
         self.addProject(QgsProject.instance())
 
+    def addMessageBarTextBoxItem(self, title: str, text: str,
+                                 level: Qgis.MessageLevel = Qgis.Info,
+                                 buttonTitle = 'Show more',
+                                 html=False):
+        """
+        Adds a message to the message bar that can be shown in detail using a text browser.
+        :param title:
+        :param text:
+        :param level:
+        :param buttonTitle:
+        :param html:
+        :return:
+        """
+
+
+        def showMessage(msg):
+            viewer = QgsMessageViewer()
+            viewer.setWindowTitle(title)
+            if html:
+                viewer.setMessageAsHtml(msg)
+            else:
+                viewer.setMessageAsPlainText(msg)
+            viewer.showMessage(blocking=True)
+
+
+        a = QAction(buttonTitle)
+        btn = QToolButton()
+        btn.setStyleSheet("background-color: rgba(255, 255, 255, 0); color: black; text-decoration: underline;")
+        btn.setCursor(Qt.PointingHandCursor)
+        btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
+        btn.addAction(a)
+        btn.setDefaultAction(a)
+        btn.triggered.connect(lambda *args, msg=text: showMessage(msg))
+        btn.triggered.connect(btn.deleteLater)
+
+        item = QgsMessageBarItem(title, '', btn, level, 200)
+        item.__btn = btn
+        self.mMessageBarItems.append(item)
+        self.messageBar().pushItem(item)
+
+    def showAttributeTable(self, lyr:QgsVectorLayer, filerExpression:str = ""):
+        pass
+
+    def showPackageInstaller(self):
+        """
+        Opens a GUI to install missing PIP packages
+        """
+        from ..dependencycheck import PIPPackageInstaller, requiredPackages
+
+        w = PIPPackageInstaller()
+        w.addPackages(requiredPackages())
+        w.show()
+
+
+    def showResourceBrowser(self):
+        """
+        Opens a browser widget that lists all Qt Resources
+        """
+        from ..externals.qps.resources import showResources
+        browser = showResources()
+        browser.setWindowTitle('Resource Browser')
+        self._browser = browser
+
     def disconnectQGISSignals(self):
+        try:
+            QgsProject.instance().layersAdded.disconnect(self.addMapLayers)
+        except TypeError:
+            pass
+        try:
+            QgsProject.instance().layersWillBeRemoved.disconnect(self.onLayersWillBeRemoved)
+        except TypeError:
+            pass
 
-        QgsProject.instance().layersAdded.disconnect(self.addMapLayers)
-        QgsProject.instance().layersWillBeRemoved.disconnect(self.onLayersWillBeRemoved)
-
-    def dataSourceManager(self)->enmapbox.gui.datasourcemanager.DataSourceManager:
+    def dataSourceManager(self) -> enmapbox.gui.datasourcemanager.DataSourceManager:
         return self.mDataSourceManager
 
-    def dockManager(self)->enmapbox.gui.dockmanager.DockManager:
+    def dockManager(self) -> enmapbox.gui.dockmanager.DockManager:
         return self.mDockManager
 
-    def addMapLayer(self, layer:QgsMapLayer):
+    def addMapLayer(self, layer: QgsMapLayer):
         self.addMapLayers([layer])
 
     def addMapLayers(self, layers:typing.List[QgsMapLayer]):
@@ -369,6 +492,7 @@ class EnMAPBox(QgisInterface, QObject):
             self.dataSourceManager().addSources(unknown)
         self.syncHiddenLayers()
 
+
     def onLayersWillBeRemoved(self, layerIDs):
         """
         Reacts on
@@ -381,8 +505,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         layers = [QgsProject.instance().mapLayer(lid) for lid in layerIDs]
         self.removeMapLayers(layers, remove_from_project=False)
-        s  =""
-        #self.dataSourceManager().removeSources(layers)
+
 
     def syncHiddenLayers(self):
         grp = self.hiddenLayerGroup()
@@ -439,33 +562,58 @@ class EnMAPBox(QgisInterface, QObject):
                 if isinstance(node, EnMAPBoxLayerTreeLayer):
                     node.setCanvas(L2C.get(node.layerId(), None))
 
-    def removeMapLayer(self, layer:QgsMapLayer, remove_from_project=True):
+    def removeMapLayer(self, layer:QgsMapLayer, remove_from_project: bool =True):
         self.removeMapLayers([layer], remove_from_project=remove_from_project)
 
-    def removeMapLayers(self, layers:typing.List[QgsMapLayer], remove_from_project=True):
+    def removeMapLayers(self, layers: typing.List[QgsMapLayer], remove_from_project=True):
         """
-        Removes layers from the EnMAP-Box / DataSource list
+        Removes layers from the EnMAP-Box
         """
-        layers = [l for l in layers if isinstance(l, QgsMapLayer) and l in self.dockManagerTreeModel().mapLayers()]
+        layersDS = self.dataSourceManager().mapLayers()
+        layersTM = self.dockManagerTreeModel().mapLayers()
+        layers = [l for l in layers if isinstance(l, QgsMapLayer) and l in layersDS + layersTM]
         self.syncHiddenLayers()
 
         if remove_from_project:
-            print('REMOVE FROM QgsProject.instance(): \n{}'.format('\n'.join(l.source() for l in layers)))
             QgsProject.instance().removeMapLayers([l.id() for l in layers])
 
-    def onCurrentLayerChanged(self, layer):
+    def updateCurrentLayerActions(self, *args):
+        """
+        Enables/disables actions and buttons that relate to the current layer and its current state
+        """
+        layer = self.currentLayer()
+        isVector = isinstance(layer, QgsVectorLayer)
 
-        b = isinstance(layer, QgsVectorLayer)
+        hasSelectedFeatures = False
 
-        self.ui.mActionSelectFeatures.setEnabled(b)
-        self.ui.mActionToggleEditing.setEnabled(b)
-        self.ui.mActionAddFeature.setEnabled(b)
-        self.ui.mActionSaveEdits.setEnabled(b)
+        for l in self.dockTreeView().model().mapLayers():
+            if isinstance(l, QgsVectorLayer) and l.selectedFeatureCount() > 0:
+                hasSelectedFeatures = True
+                break
+
+        self.ui.mActionDeselectFeatures.setEnabled(hasSelectedFeatures)
+        self.ui.mActionSelectFeatures.setEnabled(isVector)
+        self.ui.mActionToggleEditing.setEnabled(isVector)
+        self.ui.mActionToggleEditing.setChecked(isVector and layer.isEditable())
+        self.ui.mActionAddFeature.setEnabled(isVector and layer.isEditable())
+
+        if isVector:
+            if layer.geometryType() == QgsWkbTypes.PointGeometry:
+                icon = QIcon(':/images/themes/default/mActionCapturePoint.svg')
+            elif layer.geometryType() == QgsWkbTypes.LineGeometry:
+                icon = QIcon(':/images/themes/default/mActionCaptureLine.svg')
+            elif layer.geometryType() == QgsWkbTypes.PolygonGeometry:
+                icon = QIcon(':/images/themes/default/mActionCapturePolygon.svg')
+            else:
+                icon = QIcon(':/images/themes/default/mActionCapturePolygon.svg')
+            self.ui.mActionAddFeature.setIcon(icon)
+
+        self.ui.mActionSaveEdits.setEnabled(isVector and layer.isEditable())
 
         if isinstance(layer, (QgsRasterLayer, QgsVectorLayer)):
             self.currentLayerChanged.emit(layer)
 
-    def processingProvider(self)->EnMAPBoxProcessingProvider:
+    def processingProvider(self) -> EnMAPBoxProcessingProvider:
         """
         Returns the EnMAPBoxAlgorithmProvider or None, if it was not initialized
         :return:
@@ -563,10 +711,19 @@ class EnMAPBox(QgisInterface, QObject):
         else:
             raise Exception('argument "app" has unknown type: {}. '.format(str(app)))
 
+    def freezeCanvases(self, b: bool):
+        """
+        Freezes/releases the map canvases
+        """
+        for c in self.mapCanvases():
+            c.freeze(b)
 
     def initActions(self):
         # link action to managers
-        self.ui.mActionAddDataSource.triggered.connect(lambda : self.mDataSourceManager.addDataSourceByDialog())
+        self.ui.mActionAddDataSource.triggered.connect(self.mDataSourceManager.addDataSourceByDialog)
+        self.ui.mActionAddSentinel2.triggered.connect(self.mDataSourceManager.addSentinel2ByDialog)
+        self.ui.mActionAddSubDatasets.triggered.connect(self.mDataSourceManager.addSubDatasetsByDialog)
+
         self.ui.mActionAddMapView.triggered.connect(lambda: self.mDockManager.createDock('MAP'))
         self.ui.mActionAddTextView.triggered.connect(lambda: self.mDockManager.createDock('TEXT'))
         self.ui.mActionAddWebView.triggered.connect(lambda: self.mDockManager.createDock('WEBVIEW'))
@@ -591,7 +748,15 @@ class EnMAPBox(QgisInterface, QObject):
         initMapToolAction(self.ui.mActionZoomFullExtent, MapTools.ZoomFull)
         initMapToolAction(self.ui.mActionIdentify, MapTools.CursorLocation)
         initMapToolAction(self.ui.mActionSelectFeatures, MapTools.SelectFeature)
-        initMapToolAction(self.ui.mActionSelectFeatures, MapTools.AddFeature)
+        initMapToolAction(self.ui.mActionAddFeature, MapTools.AddFeature)
+
+        def onEditingToggled(b: bool):
+            l = self.currentLayer()
+            if b:
+                self.mVectorLayerTools.startEditing(l)
+            else:
+                self.mVectorLayerTools.stopEditing(l, True)
+        self.ui.mActionToggleEditing.toggled.connect(onEditingToggled)
 
         m = QMenu()
         m.addAction(self.ui.optionSelectFeaturesRectangle)
@@ -605,11 +770,11 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.optionSelectFeaturesFreehand.triggered.connect(self.onSelectFeatureOptionTriggered)
         self.ui.optionSelectFeaturesRadius.triggered.connect(self.onSelectFeatureOptionTriggered)
         self.ui.mActionDeselectFeatures.triggered.connect(self.deselectFeatures)
-
+        #self.ui.mActionAddFeature.triggered.connect(self.onAddFeatureTriggered)
         self.setMapTool(MapTools.CursorLocation)
 
-        self.ui.mActionSaveProject.triggered.connect(lambda: self.saveProject(saveAs=False))
-        self.ui.mActionSaveProjectAs.triggered.connect(lambda: self.saveProject(saveAs=True))
+        self.ui.mActionSaveProject.triggered.connect(lambda: self.saveProject(False))
+        self.ui.mActionSaveProjectAs.triggered.connect(lambda: self.saveProject(True))
         from enmapbox.gui.mapcanvas import CanvasLinkDialog
         self.ui.mActionMapLinking.triggered.connect(lambda : CanvasLinkDialog.showDialog(parent=self.ui, canvases=self.mapCanvases()))
         from enmapbox.gui.about import AboutDialog
@@ -623,6 +788,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.mActionOpenIssueReportPage.triggered.connect(lambda : webbrowser.open(enmapbox.CREATE_ISSUE))
         self.ui.mActionOpenProjectPage.triggered.connect(lambda: webbrowser.open(enmapbox.REPOSITORY))
         self.ui.mActionOpenOnlineDocumentation.triggered.connect(lambda : webbrowser.open(enmapbox.DOCUMENTATION))
+
+        self.ui.mActionShowPackageInstaller.triggered.connect(self.showPackageInstaller)
 
         # finally, fix the popup mode of menus
         for toolBar in self.ui.findChildren(QToolBar):
@@ -645,6 +812,7 @@ class EnMAPBox(QgisInterface, QObject):
         :return: [list-of-QActions]
         """
         return [a for a in self.ui.findChildren(QAction) if a.property(EnMAPBox.MAPTOOLACTION)]
+
 
     def onSelectFeatureOptionTriggered(self):
 
@@ -700,13 +868,11 @@ class EnMAPBox(QgisInterface, QObject):
             self.dataSourceManager().addSource(slw.speclib())
 
         if isinstance(dock, MapDock):
-
             canvas = dock.mapCanvas()
             assert isinstance(canvas, MapCanvas)
             canvas.sigCrosshairPositionChanged.connect(self.onCrosshairPositionChanged)
             canvas.setCrosshairVisibility(True)
-            #canvas.sigLayersAdded.connect(lambda lyrs, c=canvas: self.onCanvasLayerAdded(lyrs, c))
-            #canvas.sigLayersRemoved.connect(lambda lyrs, c=canvas: self.onCanvasLayerRemoved(lyrs, c))
+            canvas.mapTools().setVectorLayerTools(self.mVectorLayerTools)
 
             self.setMapTool(self.mMapToolKey, canvases=[canvas])
             canvas.mapTools().mtCursorLocation.sigLocationRequest[SpatialPoint, QgsMapCanvas].connect(self.setCurrentLocation)
@@ -715,9 +881,10 @@ class EnMAPBox(QgisInterface, QObject):
             assert isinstance(node, MapDockTreeNode)
             node.sigAddedLayers.connect(self.sigMapLayersAdded[list].emit)
             node.sigRemovedLayers.connect(self.sigMapLayersRemoved[list].emit)
-
-
             self.sigMapCanvasAdded.emit(canvas)
+
+        if isinstance(dock, AttributeTableDock):
+            dock.attributeTableWidget.setVectorLayerTools(self.mVectorLayerTools)
 
         self.sigDockAdded.emit(dock)
 
@@ -742,7 +909,6 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.spectralProfileSourcePanel.loadCurrentMapSpectra(spatialPoint, mapCanvas=mapCanvas, runAsync=runAsync)
 
-
     def setMapTool(self, mapToolKey:MapTools, *args, canvases=None, **kwds):
         """
         Sets the active QgsMapTool for all canvases know to the EnMAP-Box.
@@ -751,15 +917,11 @@ class EnMAPBox(QgisInterface, QObject):
         :param kwds:
         :return:
         """
-
-
         mode = None
 
         for btnSelectFeature in self.ui.toolBarVectorTools.findChildren(QToolButton):
             if btnSelectFeature.defaultAction() == self.ui.mActionSelectFeatures:
                 break
-
-
 
         if mapToolKey == MapTools.SelectFeature:
             if self.ui.optionSelectFeaturesRectangle.isChecked():
@@ -776,12 +938,14 @@ class EnMAPBox(QgisInterface, QObject):
         else:
             btnSelectFeature.setChecked(False)
 
-
         if mapToolKey == MapTools.SpectralProfile:
             #SpectralProfile is a shortcut for Identify + return with profile option
             self.ui.optionIdentifyProfile.setChecked(True)
             self.ui.mActionIdentify.setChecked(True)
             return
+
+        if mapToolKey == MapTools.AddFeature:
+            s = ""
 
         self.mMapToolKey = mapToolKey
         self.mMapToolMode = mode
@@ -801,7 +965,6 @@ class EnMAPBox(QgisInterface, QObject):
                 mapTools.mtSelectFeature.setSelectionMode(self.mMapToolMode)
 
             mapTools.activate(mapToolKey)
-
             results.append(canvas.mapTool())
 
         for action in self._mapToolActions():
@@ -811,16 +974,15 @@ class EnMAPBox(QgisInterface, QObject):
             else:
                 action.setChecked(False)
 
-
         b = self.ui.mActionIdentify.isChecked()
         self.ui.optionIdentifyCursorLocation.setEnabled(b)
         self.ui.optionIdentifyProfile.setEnabled(b)
         self.ui.optionMoveCenter.setEnabled(b)
-
-
         return results
 
-    def initEnMAPBoxApplications(self):
+    def initEnMAPBoxApplications(self,
+                                 load_core_apps: bool = True,
+                                 load_other_apps: bool = True):
         """
         Initialized EnMAPBoxApplications
         """
@@ -829,27 +991,28 @@ class EnMAPBox(QgisInterface, QObject):
 
         listingBasename = 'enmapboxapplications.txt'
 
+        DIR_ENMAPBOX = pathlib.Path(enmapbox.DIR_ENMAPBOX)
+        INTERNAL_APPS = DIR_ENMAPBOX / 'coreapps'
+        EXTERNAL_APPS = DIR_ENMAPBOX / 'apps'
         # load internal "core" apps
-        INTERNAL_APPS = jp(DIR_ENMAPBOX, *['coreapps'])
-        if enmapbox.LOAD_INTERNAL_APPS:
+        if load_core_apps:
             self.applicationRegistry.addApplicationFolder(INTERNAL_APPS, isRootFolder=True)
         # check for listing file
-        p = os.path.join(INTERNAL_APPS, listingBasename)
+        p = INTERNAL_APPS / listingBasename
         if os.path.isfile(p):
             self.applicationRegistry.addApplicationListing(p)
 
         # load external / standard apps
-        EXTERNAL_APPS = jp(DIR_ENMAPBOX, *['apps'])
-        if enmapbox.LOAD_EXTERNAL_APPS:
+        if load_other_apps:
             self.applicationRegistry.addApplicationFolder(EXTERNAL_APPS, isRootFolder=True)
 
         # check for listing file
-        p = os.path.join(EXTERNAL_APPS, listingBasename)
+        p = EXTERNAL_APPS / listingBasename
         if os.path.isfile(p):
             self.applicationRegistry.addApplicationListing(p)
 
         # check for listing file in root
-        p = os.path.join(DIR_ENMAPBOX, listingBasename)
+        p = DIR_ENMAPBOX / listingBasename
         if os.path.isfile(p):
             self.applicationRegistry.addApplicationListing(p)
 
@@ -864,6 +1027,23 @@ class EnMAPBox(QgisInterface, QObject):
             else:
                 print('Unable to load EnMAPBoxApplication(s) from path: "{}"'.format(p), file=sys.stderr)
 
+        errorApps = [app for app, v in self.applicationRegistry.mAppInitializationMessages.items()
+                     if v is not True]
+
+        if len(errorApps) > 0:
+            title = 'EnMAPBoxApplication error(s)'
+            info = [title + ':']
+            for app in errorApps:
+                v = self.applicationRegistry.mAppInitializationMessages[app]
+                info.append(r'</br><b>{}:</b>'.format(app))
+                info.append('<p>')
+                if v == False:
+                    info.append(r'"{}" did not return any EnMAPBoxApplication\n'.format(v))
+                elif isinstance(v, str):
+                    info.append('<code>{}</code>'.format(v.replace('\n', '<br />\n')))
+                info.append('</p>')
+            self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Critical, html=True)
+        s = ""
 
     def exit(self):
         """Closes the EnMAP-Box"""
@@ -871,7 +1051,18 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.close()
         self.deleteLater()
 
-    def onLogMessage(self, message, tag, level):
+    def onLogMessage(self, message:str, tag:str, level):
+        """
+        Receives log messages and, if tag=EnMAP-Box, displays them in the EnMAP-Box message bar.
+        :param message:
+        :type message:
+        :param tag:
+        :type tag:
+        :param level:
+        :type level:
+        :return:
+        :rtype:
+        """
         msgLines = message.split('\n')
         if '' in message.split('\n'):
             msgLines = msgLines[0:msgLines.index('')]
@@ -884,7 +1075,13 @@ class EnMAPBox(QgisInterface, QObject):
         assert isinstance(mbar, QgsMessageBar)
         line1 = msgLines[0]
         showMore = '' if len(msgLines) == 1 else '\n'.join(msgLines[1:])
-        mbar.pushMessage(tag, line1, showMore, level, 50)
+
+        if level == Qgis.Critical:
+            duration = 200
+        else:
+            duration = 50
+
+        mbar.pushMessage(tag, line1, showMore, level, duration)
 
     def onDataDropped(self, droppedData):
         assert isinstance(droppedData, list)
@@ -952,7 +1149,6 @@ class EnMAPBox(QgisInterface, QObject):
         assert isinstance(dataSource, DataSource)
 
         # remove any layer that matches the same source uri
-
         model: DockManagerTreeModel = self.dockManagerTreeModel()
         model.removeDataSource(dataSource)
 
@@ -978,11 +1174,10 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigVectorSourceRemoved[str].emit(dataSource.uri())
             self.sigVectorSourceRemoved[DataSourceVector].emit(dataSource)
 
-
         # finally, remove related map layers
         if isinstance(dataSource, DataSourceSpatial):
             self.removeMapLayer(dataSource.mapLayer())
-
+            QgsProject.instance().removeMapLayer(dataSource.mapLayerId())
         self.syncHiddenLayers()
 
     def onDataSourceAdded(self, dataSource:DataSource):
@@ -1039,13 +1234,13 @@ class EnMAPBox(QgisInterface, QObject):
                 self.loadCursorLocationValueInfo(spatialPoint, mapCanvas)
 
             if bCenter:
-                mapCanvas.setCenter(spatialPoint)
+                pt = spatialPoint.toCrs(mapCanvas.mapSettings().destinationCrs())
+                if isinstance(pt, SpatialPoint):
+                    mapCanvas.setCenter(pt)
+                    mapCanvas.refresh()
 
         if bSP:
             self.loadCurrentMapSpectra(spatialPoint, mapCanvas)
-
-
-
 
     def currentLocation(self)->SpatialPoint:
         """
@@ -1053,8 +1248,6 @@ class EnMAPBox(QgisInterface, QObject):
         :return: SpatialPoint
         """
         return self.mCurrentMapLocation
-
-
 
     def setCurrentSpectra(self, spectra:list):
         """
@@ -1116,12 +1309,18 @@ class EnMAPBox(QgisInterface, QObject):
         """
         self.mDockManager.removeDock(*args, **kwds)
 
-    def dockManagerTreeModel(self)->DockManagerTreeModel:
+    def dockTreeView(self) -> enmapbox.gui.dockmanager.DockTreeView:
         """
-        Retursn the DockManagerTreeModel
+        Returns the DockTreeView
+        """
+        return self.ui.dockPanel.dockTreeView
+
+    def dockManagerTreeModel(self) -> DockManagerTreeModel:
+        """
+        Returns the DockManagerTreeModel
         :return: DockManagerTreeModel
         """
-        return self.ui.dockPanel.dockTreeView.model()
+        return self.dockTreeView().model()
 
     def docks(self, dockType=None):
         """
@@ -1147,7 +1346,6 @@ class EnMAPBox(QgisInterface, QObject):
         :return: [list-of-dataSources]
         """
         return self.mDataSourceManager.addSource(source, name=name)
-
 
     def removeSources(self, dataSourceList:list=None):
         """
@@ -1282,8 +1480,9 @@ class EnMAPBox(QgisInterface, QObject):
 
         if not isinstance(grp, QgsLayerTreeGroup):
             assert not isinstance(self._layerTreeGroup, QgsLayerTreeGroup)
-            print('CREATE HIDDEN_ENMAPBOX_LAYER_GROUP')
+            enmapbox.debugLog('CREATE HIDDEN_ENMAPBOX_LAYER_GROUP')
             grp = root.addGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
+            grp.setCustomProperty('embedded', 1)
             self._layerTreeGroup = grp
 
         ltv = qgis.utils.iface.layerTreeView()
@@ -1325,7 +1524,13 @@ class EnMAPBox(QgisInterface, QObject):
 
 
     ### ACTIONS ###
-    def actionAbout(self):
+    def actionAddSentinel2(self) -> QAction:
+        return self.ui.mActionAddSentinel2
+
+    def actionAddSubDatasets(self) -> QAction:
+        return self.ui.mActionAddSubDatasets
+
+    def actionAbout(self) -> QAction:
         return self.ui.mActionAbout
 
     def actionAddAfsLayer(self):
@@ -1538,31 +1743,40 @@ class EnMAPBox(QgisInterface, QObject):
         pass
 
     def actionSaveEdits(self):
-        pass
+        return self.mActionSaveEdits
 
     def actionSaveMapAsImage(self):
         pass
 
-    def actionSaveProject(self):
-        proj = QgsProject.instance()
+    def actionSaveProject(self) -> QAction:
+        return self.mActionSaveProject
 
-        self.saveProject(proj.filename())
+    def actionSaveProjectAs(self) -> QAction:
+        return self.mActionSaveProjectAs
 
-    def actionSaveProjectAs(self):
-        path = QgsProject.instance()
-        path, filter = QFileDialog.getSaveFileName(self.ui, 'Choose a filename to save the QGIS project file',
-                                                   filter='QGIS files (*.qgs *.QGIS)')
-        if len(path) > 0:
-            self.saveProject(path)
+    def saveProject(self, saveAs: bool):
+        """
+        Call to save EnMAP-Box settings in a QgsProject file
+        :param saveAs: bool, if True, opens a dialog to save the project into another file
+        """
 
-    def saveProject(self, path: str):
-        if not isinstance(path, pathlib.Path):
-            path = pathlib.Path(path)
-        proj = QgsProject.instance()
-        proj.setFileName(path.as_posix())
-        proj.write(path.as_posix())
+        # todo: save EnMAP Project settings
+        # 1. save data sources
+
+        # 2. save docks / map canvases
 
 
+
+
+        # inform others that the project will be saves
+        self.sigProjectWillBeSaved.emit()
+
+        # call QGIS standard functionality
+        from qgis.utils import iface
+        if saveAs:
+            iface.actionSaveProjectAs().trigger()
+        else:
+            iface.actionSaveProject().trigger()
 
     def actionSelect(self):
         pass
@@ -1689,7 +1903,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         dlg = alg.createCustomParametersWidget(self.ui)
         if not dlg:
-            dlg = AlgorithmDialog(alg, parent=self.ui)
+            dlg = AlgorithmDialog(alg.create(), parent=self.ui)
         dlg.show()
         return dlg
 
@@ -1704,7 +1918,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def iconSize(self, dockedToolbar=False):
         #return self.ui.mActionAddDataSource.icon().availableSizes()[0]
-        return QSize(16,16)
+        return QSize(16, 16)
 
     def spectralLibraries(self)->typing.List[SpectralLibrary]:
         """
@@ -1810,6 +2024,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         pass
 
+
     ###
     ###
     ###
@@ -1845,11 +2060,59 @@ class EnMAPBox(QgisInterface, QObject):
         # noinspection PyArgumentList
         QgsProject.instance().removeAllMapLayers()
 
+    def zoomToSelected(self):
+        """
+        Zooms the current map canvas to the selected features of the current map layer
+        :return:
+        """
+        lyr = self.currentLayer()
+        canvas = self.currentMapCanvas()
+
+        if isinstance(lyr, QgsVectorLayer) and lyr.selectedFeatureCount() > 0 and isinstance(canvas, QgsMapCanvas):
+            s = ""
+
+        pass
+
+    def zoomToExtent(self, extent: SpatialExtent):
+        """
+        Zooms the current map canvas to a requested extent
+        """
+        canvas = self.currentMapCanvas()
+        if isinstance(canvas, QgsMapCanvas) and isinstance(extent, SpatialExtent):
+            ext = extent.toCrs(canvas.mapSettings().destinationCrs())
+            if isinstance(ext, SpatialExtent):
+                canvas.setExtent(ext)
+
+
+    def panToPoint(self, point: SpatialPoint):
+        """
+        pans the current map canvas to the provided point
+        """
+        canvas = self.currentMapCanvas()
+        if isinstance(canvas, QgsMapCanvas) and isinstance(point, SpatialPoint):
+            p = point.toCrs(canvas.mapSettings().destinationCrs())
+            if isinstance(p, SpatialPoint):
+                canvas.setCenter(p)
+
+    def panToSelected(self):
+        """
+        Pans the current map canvas to the selected features in a current map canvas
+        :return:
+        """
+        canvas = self.currentMapCanvas()
+        lyr = self.currentLayer()
+        if isinstance(lyr, QgsVectorLayer) and isinstance(canvas, QgsMapCanvas):
+
+            s  =""
+
+
     # ---------------- API Mock for QgsInterface follows -------------------
 
     def zoomFull(self):
-        """Zoom to the map full extent."""
-        pass
+        """Zooms the current map canvas to its full extent"""
+        canvas = self.currentMapCanvas()
+        if isinstance(canvas, QgsMapCanvas):
+            canvas.zoomToFullExtent()
 
     def zoomToPrevious(self):
         """Zoom to previous view extent."""
@@ -1890,19 +2153,20 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.addSource(lyr, base_name)
 
-    def activeMapCanvas(self)->MapCanvas:
+    def currentMapCanvas(self) -> MapCanvas:
         """
         Returns the active map canvas, i.e. the MapCanvas that was clicked last.
         :return: MapCanvas
         """
+
         from enmapbox.gui.mapcanvas import KEY_LAST_CLICKED
-        canvases = sorted(self.mapCanvases(), key=lambda c:c.property(KEY_LAST_CLICKED))
+        canvases = sorted(self.mapCanvases(), key=lambda c: c.property(KEY_LAST_CLICKED))
         if len(canvases) > 0:
             return canvases[-1]
         else:
             return None
 
-    def setActiveMapCanvas(self, mapCanvas:MapCanvas)->bool:
+    def setCurrentMapCanvas(self, mapCanvas: MapCanvas) -> bool:
         """
         Sets the active map canvas
         :param mapCanvas: MapCanvas
@@ -1916,38 +2180,46 @@ class EnMAPBox(QgisInterface, QObject):
         else:
             return False
 
+    def setActiveLayer(self, mapLayer: QgsMapLayer) -> bool:
+        return self.setCurrentLayeer(mapLayer)
 
-    def setActiveLayer(self, mapLayer:QgsMapLayer)->True:
+    def setCurrentLayer(self, mapLayer: QgsMapLayer) -> bool:
         """
         Set the active layer (layer gets selected in the Data View legend).
         :param mapLayer: QgsMapLayer
         :return: bool. True, if mapLayer exists, False otherwise.
         """
 
-        canvas = self.activeMapCanvas()
+        self.ui.dockPanel.dockTreeView.setCurrentLayer(mapLayer)
+
+        canvas = self.currentMapCanvas()
         if isinstance(canvas, MapCanvas) and mapLayer in canvas.layers():
             canvas.setCurrentLayer(mapLayer)
-            return True
 
         for canvas in self.mapCanvases():
             if mapLayer in canvas.layers():
-                self.setActiveMapCanvas(canvas)
+                self.setCurrentMapCanvas(canvas)
                 canvas.setCurrentLayer(mapLayer)
-                return True
-        return False
 
-    def activeLayer(self)->QgsMapLayer:
+        self.updateCurrentLayerActions()
+
+        return isinstance(mapLayer, QgsMapLayer)
+
+    def currentLayer(self) -> QgsMapLayer:
         """
         Returns the current layer of the active map canvas
         :return: QgsMapLayer
         """
+        return self.ui.dockPanel.dockTreeView.currentLayer()
         # noinspection PyArgumentList
-        canvas = self.activeMapCanvas()
-        if isinstance(canvas, QgsMapCanvas):
-            return canvas.currentLayer()
-        else:
-            return None
+        #canvas = self.activeMapCanvas()
+        #if isinstance(canvas, QgsMapCanvas):
+        #    return canvas.currentLayer()
+        #else:
+        #    return None
 
+    def activeLayer(self):
+        return self.currentLayer()
 
     def addToolBarIcon(self, action):
         """Add an icon to the plugins toolbar.

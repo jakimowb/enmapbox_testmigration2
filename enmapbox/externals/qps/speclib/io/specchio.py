@@ -10,7 +10,7 @@ class SPECCHIOSpectralLibraryIO(AbstractSpectralLibraryIO):
     See https://ecosis.org for details.
     """
     @staticmethod
-    def canRead(path)->bool:
+    def canRead(path) -> bool:
         """
         Returns true if it can read the source defined by path
         :param path: source uri
@@ -26,13 +26,23 @@ class SPECCHIOSpectralLibraryIO(AbstractSpectralLibraryIO):
         return False
 
     @staticmethod
-    def readFrom(path, wlu='nm', delimiter=',', progressDialog:typing.Union[QProgressDialog, ProgressHandler]=None)->SpectralLibrary:
+    def readFrom(path: str,
+                 wlu='nm',
+                 delimiter=',',
+                 progressDialog:typing.Union[QProgressDialog, ProgressHandler] = None) -> SpectralLibrary:
         """
-        Returns the SpectralLibrary read from "path"
-        :param path: source of SpectralLibrary
-        :return: SpectralLibrary
+         Returns the SpectralLibrary read from "path"
+        :param path:
+        :type path:
+        :param wlu:
+        :type wlu:
+        :param delimiter:
+        :type delimiter:
+        :param progressDialog:
+        :type progressDialog:
+        :return:
+        :rtype:
         """
-
         sl = SpectralLibrary()
         sl.startEditing()
         bn = os.path.basename(path)
@@ -78,8 +88,13 @@ class SPECCHIOSpectralLibraryIO(AbstractSpectralLibraryIO):
                 else:
                     metadataKeys.append(k)
 
-            numericValueKeys = sorted(numericValueKeys)
-            xValues = [float(v) for v in numericValueKeys]
+            # sort by wavelength
+            numericValueKeys = np.asarray(numericValueKeys, dtype=np.str)
+            xValues = np.asarray(numericValueKeys, dtype=np.float)
+            s = np.argsort(xValues)
+            numericValueKeys = numericValueKeys[s]
+            xValues = xValues[s]
+
             nProfiles = len(DATA[numericValueKeys[0]])
 
             sl.beginEditCommand('Set metadata columns')
@@ -121,7 +136,7 @@ class SPECCHIOSpectralLibraryIO(AbstractSpectralLibraryIO):
         return sl
 
     @staticmethod
-    def write(speclib:SpectralLibrary, path:str, progressDialog:typing.Union[QProgressDialog, ProgressHandler]=None, delimiter:str=',')->list:
+    def write(speclib:SpectralLibrary, path:str, progressDialog:typing.Union[QProgressDialog, ProgressHandler]=None, delimiter:str=',') -> list:
         """
         Writes the SpectralLibrary to path and returns a list of written files that can be used to open the spectral library with readFrom(...)
         :param speclib: SpectralLibrary
@@ -182,7 +197,7 @@ class SPECCHIOSpectralLibraryIO(AbstractSpectralLibraryIO):
         return writtenFiles
 
     @staticmethod
-    def score(uri:str)->int:
+    def score(uri:str) -> int:
         """
         Returns a score value for the give uri. E.g. 0 for unlikely/unknown, 20 for yes, probalby thats the file format the reader can read.
 

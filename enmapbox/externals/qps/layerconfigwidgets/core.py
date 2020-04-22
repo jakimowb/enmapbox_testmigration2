@@ -1,11 +1,15 @@
-import typing, pathlib, enum
+import typing
+import os
+import pathlib
+import enum
+import re
 from qgis.core import *
 from qgis.gui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import QIcon
 from ..utils import loadUi
 
-def configWidgetUi(name:str)->str:
+def configWidgetUi(name:str) -> str:
     """
     Returns the full path to a '*.ui' file
     :param name:
@@ -19,26 +23,26 @@ def configWidgetUi(name:str)->str:
 
 class QpsMapLayerConfigWidget(QgsMapLayerConfigWidget):
 
-    def __init__(self, mapLayer:QgsMapLayer, canvas:QgsMapCanvas, *args, **kwds):
+    def __init__(self, mapLayer: QgsMapLayer, canvas: QgsMapCanvas, *args, **kwds):
         assert isinstance(mapLayer, QgsMapLayer)
         assert isinstance(canvas, QgsMapCanvas)
         super().__init__(mapLayer, canvas, *args, **kwds)
         self.mMapLayer = mapLayer
         self.mCanvas = canvas
 
-    def canvas(self)->QgsMapCanvas:
+    def canvas(self) -> QgsMapCanvas:
         """
         Returns the QgsMapCanvas
         """
         return self.mCanvas
 
-    def mapLayer(self)->QgsMapLayer:
+    def mapLayer(self) -> QgsMapLayer:
         """
         Returns the map layer
         """
         return self.mMapLayer
 
-    def menuButtonMenu(self)->QMenu:
+    def menuButtonMenu(self) -> QMenu:
         return None
 
     def menuButtonToolTip(self):
@@ -139,7 +143,7 @@ class SourceConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def createWidget(self, layer, canvas, dockWidget=False, parent=None):
         return SourceConfigWidget(layer, canvas, parent=parent)
 
-    def supportsLayer(self, layer)->bool:
+    def supportsLayer(self, layer) -> bool:
         return isinstance(layer, QgsMapLayer)
 
     def supportLayerPropertiesDialog(self):
@@ -157,24 +161,27 @@ class SymbologyConfigWidget(QpsMapLayerConfigWidget):
         loadUi(configWidgetUi('symbologyconfigwidget.ui'), self)
         self.mSymbologyWidget = None
 
-
         self.mDefaultRenderer = None
         if isinstance(layer, (QgsRasterLayer, QgsVectorLayer)):
             self.mDefaultRenderer = layer.renderer().clone()
 
         self.syncToLayer()
 
-    def symbologyWidget(self)->typing.Union[QgsRendererRasterPropertiesWidget, QgsRendererPropertiesDialog]:
+    def symbologyWidget(self) -> typing.Union[QgsRendererRasterPropertiesWidget, QgsRendererPropertiesDialog]:
         return self.scrollArea.widget()
 
     def menuButtonMenu(self) ->QMenu:
         m = QMenu('Style')
 
         a = m.addAction('Load Style...')
+        a.triggered.connect(lambda: self.loadStyle(None))
         a = m.addAction('Save Style...')
+        a.triggered.connect(lambda: self.saveStyle(None))
         m.addSeparator()
         a = m.addAction('Save as Default')
+        a.triggered.connect(self.saveStyleAsDefault)
         a = m.addAction('Restore Default')
+        a.triggered.connect(self.loadDefaultStyle)
         m.addSeparator()
 
         m.addSeparator()
@@ -183,7 +190,127 @@ class SymbologyConfigWidget(QpsMapLayerConfigWidget):
 
         return m
 
+    def loadStyle(self, fileName:str=None):
+        lastUsedDir = QgsSettings().value("style/lastStyleDir")
 
+        if isinstance(fileName, pathlib.Path):
+            fileName = str(fileName.resolve())
+
+        if fileName is None:
+            fileName = QFileDialog.getOpenFileName(self,
+                                                   'Load layer properties from style file',
+                                                   lastUsedDir,
+                                                   'QGIS Layer Style file (*.qml)')
+        if len(fileName) == 0:
+            return
+        if not re.search(r'\.qml$', fileName, re.I):
+            fileName += '.qml'
+
+        oldStyle = self.mapLayer().styleManager().style(self.mapLayer().styleManager().currentStyle())
+        msg, success = self.mapLayer().loadNamedStyle(fileName)
+
+        if success:
+            self.syncToLayer()
+            QgsSettings().setValue('style/lastStyleDir', os.path.dirname(fileName))
+        else:
+            QMessageBox.information(self, 'Load Style', msg)
+
+
+    def saveStyle(self, fileName:str=None):
+        lastUsedDir = QgsSettings().value("style/lastStyleDir")
+
+        if isinstance(fileName, pathlib.Path):
+            fileName = str(fileName.resolve())
+
+        if fileName is None:
+            fileName = QFileDialog.getSaveFileName(self,
+                                                   'Save layer properties as style file',
+                                                   lastUsedDir,
+                                                   'QGIS Layer Style file (*.qml);;Styled Layer Descriptor (*.sld)'
+                                                   )
+        if len(fileName) == 0:
+            return
+
+        styleType = 'QML'
+        if re.search(r'\.sld$', fileName, re.I):
+            styleType = 'SLD'
+        else:
+            fileName = QgsFileUtils.ensureFileNameHasExtension(fileName, ['qml'])
+
+        self.apply()
+    def loadStyle(self, fileName:str=None):
+        lastUsedDir = QgsSettings().value("style/lastStyleDir")
+
+        if isinstance(fileName, pathlib.Path):
+            fileName = str(fileName.resolve())
+
+        if fileName is None:
+            fileName, filter = QFileDialog.getOpenFileName(self,
+                                                   'Load layer properties from style file',
+                                                   lastUsedDir,
+                                                   'QGIS Layer Style file (*.qml)')
+        if len(fileName) == 0:
+            return
+        if not re.search(r'\.qml$', fileName, re.I):
+            fileName += '.qml'
+
+        oldStyle = self.mapLayer().styleManager().style(self.mapLayer().styleManager().currentStyle())
+        msg, success = self.mapLayer().loadNamedStyle(fileName)
+
+        if success:
+            self.syncToLayer()
+            QgsSettings().setValue('style/lastStyleDir', os.path.dirname(fileName))
+        else:
+            QMessageBox.information(self, 'Load Style', msg)
+
+
+    def saveStyle(self, fileName:str=None):
+        lastUsedDir = QgsSettings().value("style/lastStyleDir")
+
+        if isinstance(fileName, pathlib.Path):
+            fileName = str(fileName.resolve())
+
+        if fileName is None:
+            fileName, filter = QFileDialog.getSaveFileName(self,
+                                                   'Save layer properties as style file',
+                                                   lastUsedDir,
+                                                   'QGIS Layer Style file (*.qml);;Styled Layer Descriptor (*.sld)'
+                                                   )
+        if len(fileName) == 0:
+            return
+
+        styleType = 'QML'
+        if re.search(r'\.sld$', fileName, re.I):
+            styleType = 'SLD'
+        else:
+            fileName = QgsFileUtils.ensureFileNameHasExtension(fileName, ['qml'])
+
+        self.apply()
+
+        fileName = pathlib.Path(fileName).resolve().as_posix()
+        if styleType == 'QML':
+            flag, msg = self.mapLayer().saveNamedStyle(fileName)
+        elif styleType == 'SLD':
+            flag, msg = self.mapLayer().saveSldStyle(fileName)
+
+        if flag:
+            QgsSettings().value("style/lastStyleDir", fileName)
+        else:
+            QMessageBox.information(self, 'Save Style', msg)
+
+    def saveStyleAsDefault(self):
+        self.apply()
+
+        msg, success = self.mapLayer().saveDefaultStyle()
+        if not success:
+            QMessageBox.information(self, 'Save Default Style', msg)
+
+    def loadDefaultStyle(self):
+        msg, success = self.mapLayer().loadDefaultStyle()
+        if success:
+            self.syncToLayer()
+        else:
+            QMessageBox.information(self, 'Load Default Style', msg)
 
     def setSymbologyWidget(self, w):
         wOld = self.scrollArea.widget()

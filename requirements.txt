@@ -5,18 +5,19 @@
 ###### Requirements ######
 
 # these should already part of a standard QGIS installation
-gdal ; platform_system != "Linux"
+GDAL ; platform_system != "Linux"
 numpy>=1.15
+matplotlib>=3.0
+pip>=20.0
+dataclasses ; python_version < '3.7'
+
+# required by parts of EnMAP-Box Core
 scipy>=1.1
 scikit-learn>=0.19.2
-matplotlib>=3.0
+astropy # required for convolution
+PyOpenGL # required by ImageCube app
 
-# we need pyqtgraph. however, it's last master release is from nov 2016 pyqtgraph-0.10.0
-# so far we copied a snapshot from the development branch to enmapbox/externals/qps/externals/pyqtgraph
-# and fixed some urgent errors.
-# in future we like to use the upcoming pyqtgraph-0.11 release
-
-## optional requirements (uncomment to install)
-# astropy
-pyopengl # required by ImageCube app
-
+# required by parts of EnMAP-Box Applications
+numba ; platform_system != "Linux" # required by EnSoMAP, causes problems on Linux (miniconda)
+netCDF4 # required by ONNS
+enpt-enmapboxapp # required by EnPT

@@ -151,7 +151,6 @@ class Dock(pgDock, KeepRefs):
         if i != self.isVisible():
             self.sigVisibilityChanged.emit(self.isVisible())
 
-
     def setTitle(self, title):
         """
         Override setTitle to emit a signal after title was changed
@@ -166,7 +165,7 @@ class Dock(pgDock, KeepRefs):
 
     def _createLabel(self, *args, **kwds):
         """
-        Overide this function to provide a dock-specific label
+        Override this function to provide a dock-specific label
         :return:
         """
         return DockLabel(self,  *args, **kwds)
@@ -186,7 +185,6 @@ class Dock(pgDock, KeepRefs):
             win.show()
         else:
             area = self.home.addTempArea()
-        #print "added temp area", area, area.window()
         return area
 
     def setOrientation(self, o='auto', force=False):
@@ -299,25 +297,13 @@ class DockArea(pgDockArea):
         #assert isinstance(enmapboxdock, Dock)
         v = None
         try:
+            visibility = enmapboxdock.isVisible()
             v = super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
+            enmapboxdock.setVisible(visibility)
             self.sigDockAdded.emit(enmapboxdock)
         except:
             pass
         return v
-
-
-    def addTempArea(self):
-        #overwrites the original method
-        if self.home is None:
-            area = DockArea(temporary=True, home=self)
-            self.tempAreas.append(area)
-            win = DockWindow(area)
-            area.win = win
-            win.show()
-        else:
-            area = self.home.addTempArea()
-        #print "added temp area", area, area.window()
-        return area
 
     # forward to EnMAPBox
     def dragEnterEvent(self, event):
@@ -757,12 +743,27 @@ class WebViewDock(Dock):
         settings.setAttribute(QWebSettings.LocalStorageEnabled, True)
         settings.setAttribute(QWebSettings.AutoLoadImages, True)
 
+class AttributeTableDock(Dock):
+    """
+    A dock to show a VectorLayer attribute table
+    """
+    def __init__(self, layer: QgsVectorLayer, *args, **kwds):
+        super(AttributeTableDock, self).__init__(*args, **kwds)
+        from enmapbox.externals.qps.layerproperties import AttributeTableWidget
+        self.attributeTableWidget = AttributeTableWidget(layer)
+        self.addWidget(self.attributeTableWidget, 0, 0)
+        self.updateTitle(self.attributeTableWidget.windowTitle())
+        self.attributeTableWidget.windowTitleChanged.connect(self.updateTitle)
+
+    def updateTitle(self, title: str):
+        # we need to get a short name, not the entire title
+        self.setTitle(title.split('::')[0])
 
 class MimeDataDock(Dock):
     """
     A dock to show dropped mime data
     """
-    def __init__(self,*args, **kwds):
+    def __init__(self, *args, **kwds):
         super(MimeDataDock, self).__init__(*args, **kwds)
 
         self.mimeDataWidget = MimeDataDockWidget(self)

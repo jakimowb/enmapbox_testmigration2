@@ -3,6 +3,8 @@
 Applications
 ************
 
+.. TODO add ensomap https://gitext.gfz-potsdam.de/stephane/HYSOMA-ENSOMAP
+
 ImageMath
 =========
 

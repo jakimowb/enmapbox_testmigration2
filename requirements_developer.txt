@@ -16,6 +16,8 @@ sphinx-markdown
 sphinx-rtd-theme
 sphinx-autobuild
 docutils
+coverage
+xmlrunner
 
 # optionals
 git-lfs

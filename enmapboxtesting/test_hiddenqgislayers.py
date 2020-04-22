@@ -25,13 +25,21 @@ from enmapbox.gui.dockmanager import *
 class Tests(EnMAPBoxTestCase):
 
 
+    def setUp(self):
+        super().setUp()
+
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox):
+            emb.close()
+        QgsProject.instance().removeAllMapLayers()
+
     def test_modeLayer(self):
         qgis.utils.iface.ui.show()
-
         def qgisLayers():
             return QgsProject.instance().mapLayers().values()
 
-        emb = EnMAPBox()
+        emb = EnMAPBox(load_core_apps=False, load_other_apps=False)
+
         self.assertTrue(len(qgisLayers()) == 0)
 
         lyr = TestObjects.createRasterLayer()
@@ -51,14 +59,18 @@ class Tests(EnMAPBoxTestCase):
         mapDock1.setTitle('MAP1')
         self.assertIsInstance(mapDock1, MapDock)
         mapDock1.mapCanvas().setLayers([lyr, lyr2])
+        self.assertTrue(len(qgisLayers()) == 2)
 
-        self.assertTrue(len(qgisLayers()) == 4)
+        lyr3 = TestObjects.createVectorLayer()
+
+        mapDock1.mapCanvas().setLayers([lyr3])
+        self.assertTrue(len(qgisLayers()) == 3)
 
         mapDock2 = emb.createDock('MAP')
         self.assertIsInstance(mapDock2, MapDock)
         mapDock2.setTitle('MAP2')
 
-        self.assertTrue(len(qgisLayers()) == 4)
+        self.assertTrue(len(qgisLayers()) == 3)
 
         self.showGui(emb.ui)
 
@@ -66,7 +78,7 @@ class Tests(EnMAPBoxTestCase):
     def test_hiddenLayerManagerInBox(self):
 
 
-        emb = EnMAPBox()
+        emb = EnMAPBox(load_core_apps=False, load_other_apps=False)
 
         qgis.utils.iface.ui.show()
 
@@ -86,7 +98,8 @@ class Tests(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    import xmlrunner
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
 
 
 

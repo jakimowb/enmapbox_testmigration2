@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>897</width>
+    <width>857</width>
     <height>509</height>
    </rect>
   </property>
@@ -88,8 +88,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>897</width>
-     <height>21</height>
+     <width>857</width>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAbout">
@@ -105,12 +105,21 @@
     <property name="title">
      <string>Project</string>
     </property>
+    <widget class="QMenu" name="menuAdd_Product">
+     <property name="title">
+      <string>Add Product</string>
+     </property>
+     <addaction name="mActionAddSentinel2"/>
+     <addaction name="mActionAddSubDatasets"/>
+    </widget>
     <addaction name="mActionAddDataSource"/>
+    <addaction name="menuAdd_Product"/>
     <addaction name="mActionLoadExampleData"/>
     <addaction name="separator"/>
-    <addaction name="mActionProjectSettings"/>
     <addaction name="mActionSaveProject"/>
     <addaction name="mActionSaveProjectAs"/>
+    <addaction name="separator"/>
+    <addaction name="mActionShowPackageInstaller"/>
     <addaction name="separator"/>
     <addaction name="mActionExit"/>
    </widget>
@@ -126,11 +135,11 @@
     <addaction name="mActionPan"/>
     <addaction name="mActionZoomIn"/>
     <addaction name="mActionZoomOut"/>
-    <addaction name="separator"/>
     <addaction name="mActionZoomFullExtent"/>
     <addaction name="mActionZoomPixelScale"/>
     <addaction name="separator"/>
     <addaction name="mActionIdentify"/>
+    <addaction name="separator"/>
     <addaction name="mActionMapLinking"/>
     <addaction name="separator"/>
     <addaction name="mActionAddMapView"/>
@@ -211,6 +220,8 @@
    <addaction name="optionIdentifyCursorLocation"/>
    <addaction name="optionIdentifyProfile"/>
    <addaction name="optionMoveCenter"/>
+   <addaction name="separator"/>
+   <addaction name="mActionMapLinking"/>
   </widget>
   <widget class="QToolBar" name="toolBarVectorTools">
    <property name="windowTitle">
@@ -269,7 +280,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionZoomIn.svg</normaloff>:/images/themes/default/mActionZoomIn.svg</iconset>
    </property>
    <property name="text">
@@ -316,15 +327,15 @@
      <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/qps/ui/icons/select_location.svg</iconset>
    </property>
    <property name="text">
-    <string>Identify Pixels and Features</string>
+    <string>Select Pixels and Features</string>
    </property>
    <property name="toolTip">
-    <string>Identify cursor location infos.</string>
+    <string>Identify a cursor location and collect pixels values, spectral profiles and or vector feature attributes.</string>
    </property>
   </action>
   <action name="mActionAddDataSource">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionDataSourceManager.svg</normaloff>:/images/themes/default/mActionDataSourceManager.svg</iconset>
    </property>
    <property name="text">
@@ -339,7 +350,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionZoomFullExtent.svg</normaloff>:/images/themes/default/mActionZoomFullExtent.svg</iconset>
    </property>
    <property name="text">
@@ -363,7 +374,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionZoomActual.svg</normaloff>:/images/themes/default/mActionZoomActual.svg</iconset>
    </property>
    <property name="text">
@@ -390,7 +401,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionPropertiesWidget.svg</normaloff>:/images/themes/default/mActionPropertiesWidget.svg</iconset>
    </property>
    <property name="text">
@@ -402,7 +413,7 @@
   </action>
   <action name="mActionProjectSettings">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/propertyicons/settings.svg</normaloff>:/images/themes/default/propertyicons/settings.svg</iconset>
    </property>
    <property name="text">
@@ -414,7 +425,7 @@
   </action>
   <action name="mActionExit">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mIconClose.svg</normaloff>:/images/themes/default/mIconClose.svg</iconset>
    </property>
    <property name="text">
@@ -423,7 +434,7 @@
   </action>
   <action name="mActionPanToSelected">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionPan.svg</normaloff>:/images/themes/default/mActionPan.svg</iconset>
    </property>
    <property name="text">
@@ -502,7 +513,7 @@
     <string>Move to Point</string>
    </property>
    <property name="toolTip">
-    <string>Center map on clicked locations</string>
+    <string>Center map to selected location</string>
    </property>
   </action>
   <action name="mActionLoadExampleData">
@@ -512,7 +523,7 @@
   </action>
   <action name="mActionSaveProjectAs">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionFileSaveAs.svg</normaloff>:/images/themes/default/mActionFileSaveAs.svg</iconset>
    </property>
    <property name="text">
@@ -541,10 +552,10 @@
      <normaloff>:/enmapbox/gui/ui/icons/link_basic.svg</normaloff>:/enmapbox/gui/ui/icons/link_basic.svg</iconset>
    </property>
    <property name="text">
-    <string>Set map linking</string>
+    <string>Set Map Linking</string>
    </property>
    <property name="toolTip">
-    <string>Opens a dialog to specify the linking between different maps</string>
+    <string>Specify the linking between different maps</string>
    </property>
   </action>
   <action name="mActionOpenOnlineDocumentation">
@@ -564,7 +575,7 @@
     <string>RP</string>
    </property>
    <property name="toolTip">
-    <string>Identify raster profiles to be shown in a Spectral Library.</string>
+    <string>Identify pixel profiles to be shown in a Spectral Library.</string>
    </property>
   </action>
   <action name="optionSelectFeaturesRectangle">
@@ -575,7 +586,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionSelectRectangle.svg</normaloff>:/images/themes/default/mActionSelectRectangle.svg</iconset>
    </property>
    <property name="text">
@@ -590,7 +601,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionSelectPolygon.svg</normaloff>:/images/themes/default/mActionSelectPolygon.svg</iconset>
    </property>
    <property name="text">
@@ -605,7 +616,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionSelectFreehand.svg</normaloff>:/images/themes/default/mActionSelectFreehand.svg</iconset>
    </property>
    <property name="text">
@@ -617,7 +628,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionSelectRadius.svg</normaloff>:/images/themes/default/mActionSelectRadius.svg</iconset>
    </property>
    <property name="text">
@@ -629,7 +640,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionSelectRectangle.svg</normaloff>:/images/themes/default/mActionSelectRectangle.svg</iconset>
    </property>
    <property name="text">
@@ -644,7 +655,7 @@
   </action>
   <action name="mActionDeselectFeatures">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionDeselectAll.svg</normaloff>:/images/themes/default/mActionDeselectAll.svg</iconset>
    </property>
    <property name="text">
@@ -655,8 +666,11 @@
    </property>
   </action>
   <action name="mActionToggleEditing">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionToggleEditing.svg</normaloff>:/images/themes/default/mActionToggleEditing.svg</iconset>
    </property>
    <property name="text">
@@ -664,8 +678,11 @@
    </property>
   </action>
   <action name="mActionAddFeature">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionCapturePolygon.svg</normaloff>:/images/themes/default/mActionCapturePolygon.svg</iconset>
    </property>
    <property name="text">
@@ -677,7 +694,7 @@
   </action>
   <action name="mActionSaveEdits">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionSaveEdits.svg</normaloff>:/images/themes/default/mActionSaveEdits.svg</iconset>
    </property>
    <property name="text">
@@ -685,6 +702,30 @@
    </property>
    <property name="toolTip">
     <string>Save Edits</string>
+   </property>
+  </action>
+  <action name="mActionShowPackageInstaller">
+   <property name="text">
+    <string>Package Installer</string>
+   </property>
+   <property name="toolTip">
+    <string>Opens an installer for required python packages</string>
+   </property>
+  </action>
+  <action name="mActionAddSentinel2">
+   <property name="text">
+    <string>Sentinel-2</string>
+   </property>
+   <property name="toolTip">
+    <string>Select and add images from Sentinel-2 outputs</string>
+   </property>
+  </action>
+  <action name="mActionAddSubDatasets">
+   <property name="text">
+    <string>Sub-Datasets</string>
+   </property>
+   <property name="toolTip">
+    <string>Select and add Sub-Datasets, e.g. from HDF images</string>
    </property>
   </action>
  </widget>
@@ -710,6 +751,7 @@
  </customwidgets>
  <resources>
   <include location="../../../../../QGIS/images/images.qrc"/>
+  <include location="../../../../QGIS/images/images.qrc"/>
   <include location="../../enmapboxresources.qrc"/>
   <include location="../../externals/qps/qpsresources.qrc"/>
  </resources>

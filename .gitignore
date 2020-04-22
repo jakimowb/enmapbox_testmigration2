@@ -3,12 +3,16 @@
 deploy/
 build/
 tmp/
+*/tmp/
 doc/build/
+*/build/
 enmapboxtestdata/
-
+test-reports/
+test-outputs/
 qgisresources
 qgisresources/
 qgisresources.zip
+hubdc/test/output_core
 
 # we do not like to have compiled qt resource files in our repository!
 site-packages/qps/qpsresources.py
@@ -40,3 +44,4 @@ doc/build
 /test/
 /test*/
 /test-reports/
+hubdc/gis/

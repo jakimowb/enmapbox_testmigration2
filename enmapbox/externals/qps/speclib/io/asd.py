@@ -153,19 +153,19 @@ class TM_STRUCT(object):
     def time(self):
         return datetime.time(hour=self.tm_hour, minute=self.tm_min, second=self.tm_sec)
 
-    def datetime64(self)->np.datetime64:
+    def datetime64(self) -> np.datetime64:
         return np.datetime64('{:04}-{:02}-{:02}T{:02}:{:02}:{:02}'.format(self.year(), self.month(), self.day(), self.tm_hour, self.tm_min, self.tm_sec))
 
-    def doy(self)->int:
+    def doy(self) -> int:
         return self.tm_yday
 
-    def day(self)->int:
+    def day(self) -> int:
         return self.tm_mday
 
-    def month(self)->int:
+    def month(self) -> int:
         return self.tm_mon + 1
 
-    def year(self)->int:
+    def year(self) -> int:
         return self.tm_year + 1900
 
 
@@ -334,18 +334,19 @@ class ASDSpectralLibraryIO(AbstractSpectralLibraryIO):
         a.triggered.connect(lambda *args, sl=spectralLibrary: read(sl))
 
     @staticmethod
-    def canRead(path, binary:bool=None)->bool:
+    def canRead(path, binary: bool = None) -> bool:
         """
         Returns true if it can read the source defined by path
-        :param path: source uri
-        :return: True, if source is readable.
+        :param path:
+        :type path:
+        :param binary: if True, will test if the file can be read as ASD binary.
+        :type binary:
+        :return:
+        :rtype:
         """
         if not os.path.isfile(path):
             return False
-
-
         if isinstance(binary, bool):
-
             try:
                 if binary:
                     st = os.stat(path)
@@ -390,9 +391,11 @@ class ASDSpectralLibraryIO(AbstractSpectralLibraryIO):
 
 
     @staticmethod
-    def readFrom(pathes:typing.Union[str, list], asdFields:typing.Iterable[str] = None, progressDialog:typing.Union[QProgressDialog, ProgressHandler]=None)->SpectralLibrary:
+    def readFrom(paths:typing.Union[str, list],
+                 asdFields:typing.Iterable[str] = None,
+                 progressDialog:typing.Union[QProgressDialog, ProgressHandler] = None) -> SpectralLibrary:
         """
-        :param pathes: list of source paths
+        :param paths: list of source paths
         :param asdFields: list of header information to be extracted from ASD binary files
         :return: SpectralLibrary
         """
@@ -400,15 +403,15 @@ class ASDSpectralLibraryIO(AbstractSpectralLibraryIO):
             #default fields to add as meta data
             asdFields = ['when', 'ref_time', 'dc_time', 'dc_corr', 'it', 'sample_count', 'instrument_num', 'spec_type']
 
-        if not isinstance(pathes, list):
-            pathes = [pathes]
+        if not isinstance(paths, list):
+            paths = [paths]
 
         sl = SpectralLibrary()
 
         profiles = []
         asdFieldsInitialized = False
 
-        for filePath in pathes:
+        for filePath in paths:
             bn = os.path.basename(filePath)
 
             if ASDSpectralLibraryIO.canRead(filePath, binary=True):

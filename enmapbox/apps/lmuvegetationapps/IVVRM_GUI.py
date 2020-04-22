@@ -5,15 +5,15 @@ import sys
 import os
 import numpy as np
 from scipy.interpolate import interp1d
-from qgis.gui import *
+# from qgis.gui import *
 
 # ensure to call QGIS before PyQtGraph
-from qgis.PyQt.QtCore import *
+# from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 
 from qgis.PyQt.QtWidgets import *
-from qgis.PyQt import uic
-import pyqtgraph as pg
+# from qgis.PyQt import uic
+from enmapbox.externals.qps.externals import pyqtgraph as pg
 from lmuvegetationapps import call_model as mod
 # from enmapbox.gui.applications import EnMAPBoxApplication
 from lmuvegetationapps.Spec2Sensor_cl import Spec2Sensor
@@ -21,7 +21,7 @@ from lmuvegetationapps.Spec2Sensor_cl import Spec2Sensor
 import warnings
 import csv
 
-from enmapbox.gui.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUi
 
 # import time
 
@@ -31,20 +31,79 @@ pathUI2 = os.path.join(os.path.dirname(__file__), 'GUI_LoadTxtFile.ui')
 pathUI3 = os.path.join(os.path.dirname(__file__), 'GUI_Select_Wavelengths.ui')
 
 
-class IVVRM_Start_GUI(QWidget, loadUIFormClass(pathUI_Load)):
+class IVVRM_Start_GUI(QWidget):
     def __init__(self, parent=None):
         super(IVVRM_Start_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI_Load, self)
 
 
-class IVVRM_GUI(QDialog, loadUIFormClass(pathUI)):
+class IVVRM_GUI(QDialog):
     def __init__(self, parent=None):
         super(IVVRM_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI, self)
 
         # fix the sendHoverEvent crash by replacing the slot function
         self.graphicsView.scene().sendHoverEvents = self.onHoverEvent
         self.graphicsView.setBackground(QColor('black'))
+
+        self.plotItem = self.graphicsView.getPlotItem()
+        # assert isinstance(self.plotItem, pg.PlotItem)
+        self.viewBox = self.plotItem.getViewBox()
+        # assert isinstance(self.viewBox, pg.ViewBox)
+        self.viewBoxMenu = self.viewBox.menu
+        # assert isinstance(self.viewBoxMenu, QMenu)
+        # assert isinstance(self.viewBoxMenu, pg.ViewBoxMenu.ViewBoxMenu)
+
+        # add color settings to the viewbox context menu
+        from qgis.gui import QgsColorButton
+        self.btnBackgroundColor = QgsColorButton()
+
+        self.btnBackgroundColor.colorChanged.connect(self.setBackgroundColor)
+        self.btnAxisColor = QgsColorButton()
+        self.btnAxisColor.colorChanged.connect(self.setAxisColor)
+
+        l = QGridLayout()
+        l.addWidget(QLabel('Background'), 0, 0)
+        l.addWidget(self.btnBackgroundColor, 0, 1)
+        l.addWidget(QLabel('Axes'), 1, 0)
+        l.addWidget(self.btnAxisColor, 1, 1)
+
+        self.colorWidget = QWidget()
+        self.colorWidget.setLayout(l)
+        self.viewBoxMenu.addSeparator()
+        m = self.viewBoxMenu.addMenu('Plot Colors')
+        wa = QWidgetAction(m)
+        wa.setDefaultWidget(self.colorWidget)
+        m.addAction(wa)
+
+    # set default colors
+        self.setBackgroundColor('black')
+        self.setAxisColor('white')
+
+
+    def setAxisColor(self, color: QColor):
+        if not isinstance(color, QColor):
+            color = QColor(color)
+        assert isinstance(color, QColor)
+        if color != self.btnAxisColor.color():
+            # changing btnAxisColor.color() will trigger setAxisColor again
+            self.btnAxisColor.setColor(color)
+        else:
+            for name in self.plotItem.axes.keys():
+                ax = self.plotItem.getAxis(name)
+                if isinstance(ax, pg.AxisItem):
+                    ax.setPen(QColor(color))
+                    ax.setTextPen(QColor(color))
+
+    def setBackgroundColor(self, color: QColor):
+        if not isinstance(color, QColor):
+            color = QColor(color)
+        assert isinstance(color, QColor)
+        if color != self.btnBackgroundColor.color():
+            # changing btnBackgroundColor.color() will trigger setBackgroundColor again
+            self.btnBackgroundColor.setColor(QColor(color))
+        else:
+            self.graphicsView.setBackground(QColor(color))
 
     def onHoverEvent(self, *args, **kwds):
         """
@@ -53,16 +112,16 @@ class IVVRM_GUI(QDialog, loadUIFormClass(pathUI)):
         pass
 
 
-class Load_Txt_File_GUI(QDialog, loadUIFormClass(pathUI2)):
+class Load_Txt_File_GUI(QDialog):
     def __init__(self, parent=None):
         super(Load_Txt_File_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI2, self)
 
 
-class Select_Wavelengths_GUI(QDialog, loadUIFormClass(pathUI3)):
+class Select_Wavelengths_GUI(QDialog):
     def __init__(self, parent=None):
         super(Select_Wavelengths_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI3, self)
 
 
 class Start_IVVRM:

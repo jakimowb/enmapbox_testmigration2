@@ -24,7 +24,6 @@ from enmapbox.gui.datasourcemanager import *
 from enmapbox import EnMAPBox
 from enmapboxtestdata import enmap, hires, landcover_polygons, library
 
-USE_WEBSOURCES = False
 
 class standardDataSources(EnMAPBoxTestCase):
 
@@ -92,6 +91,30 @@ class standardDataSources(EnMAPBoxTestCase):
                 self.assertIsInstance(source.icon(), QIcon)
 
 
+    def test_subdatasets(self):
+        path = r'H:\Processing_BJ\01_Data\Sentinel2\T21LWL\S2B_MSIL1C_20191208T140049_N0208_R067_T21LWL_20191208T153903.SAFE\MTD_MSIL1C.xml'
+        dsm = DataSourceManager()
+        if os.path.isfile(path):
+
+            ds = gdal.Open(path)
+            assert isinstance(ds, gdal.Dataset)
+            subs = ds.GetSubDatasets()
+            import datetime
+            for (name, descr) in subs:
+
+                t0 = datetime.datetime.now()
+                lyr = QgsRasterLayer(name)
+                self.assertTrue(lyr.isValid())
+                dt1 = datetime.datetime.now() - t0
+                t0 = datetime.datetime.now()
+
+                ds = DataSourceFactory.create(name)
+                dt2 = datetime.datetime.now() - t0
+
+                self.assertIsInstance(ds, list)
+                self.assertTrue(len(ds) == 1)
+                self.assertIsInstance(ds[0], DataSourceRaster)
+
     def createTestSources(self)->list:
 
         #return [library, self.wfsUri, self.wmsUri, enmap, landcover_polygons]
@@ -104,7 +127,11 @@ class standardDataSources(EnMAPBoxTestCase):
 
     def createTestSourceLayers(self)->list:
 
-        return [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons), SpectralLibrary.readFrom(library)]
+        #return [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons), SpectralLibrary.readFrom(library)]
+        return [TestObjects.createRasterLayer(),
+                TestObjects.createVectorLayer(ogr.wkbPoint),
+                TestObjects.createVectorLayer(ogr.wkbPolygon),
+                TestObjects.createSpectralLibrary(10)]
 
     def test_classifier(self):
 
@@ -132,6 +159,7 @@ class standardDataSources(EnMAPBoxTestCase):
 
             if SHOW_GUI:
                 QGIS_APP.exec_()
+
 
     def test_testSources(self):
 
@@ -161,6 +189,26 @@ class standardDataSources(EnMAPBoxTestCase):
         self.assertTrue(len(ds) == 1)
         ds = ds[0]
         self.assertIsInstance(ds, DataSourceSpectralLibrary)
+
+        import enmapboxtestdata.asd.asd
+        from enmapbox import scantree
+        from enmapbox.externals.qps.speclib.io.asd import ASDSpectralLibraryIO
+        asdDir = pathlib.Path(enmapboxtestdata.__file__).parent
+        asdFiles = list(scantree(asdDir, '.asd'))
+
+        for file in asdFiles:
+            file = str(file)
+            print('Load SpectralLibrary from {}...'.format(file), flush=True)
+            self.assertTrue(os.path.isfile(file))
+            self.assertTrue(ASDSpectralLibraryIO.canRead(file))
+            slib = ASDSpectralLibraryIO.readFrom(file)
+
+            self.assertIsInstance(slib, SpectralLibrary)
+            ds = DataSourceFactory.create(file)
+
+            self.assertIsInstance(ds, list)
+            self.assertTrue(len(ds) > 0, msg='not datasource returned for {}'.format(file))
+            self.assertIsInstance(ds[0], DataSourceSpectralLibrary)
 
 
 
@@ -325,9 +373,7 @@ class standardDataSources(EnMAPBoxTestCase):
         self.assertFalse(sip.isdeleted(lyr))
         QgsProject.instance().removeMapLayer(lyr)
         self.assertTrue(sip.isdeleted(lyr))
-        self.assertTrue(len(dsm) == 0)
-        s = ""
-
+        #self.assertTrue(len(dsm) == 0)
 
     def test_datasourcmanagertreemodel(self):
         reg = QgsProject.instance()
@@ -363,7 +409,7 @@ class standardDataSources(EnMAPBoxTestCase):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         EB = EnMAPBox.instance()
         if not isinstance(EB, EnMAPBox):
-            EB = EnMAPBox(None)
+            EB = EnMAPBox(load_other_apps=False, load_core_apps=False)
 
         uriList = self.createTestSources()
         for uri in uriList:
@@ -448,25 +494,24 @@ class standardDataSources(EnMAPBoxTestCase):
         from enmapbox.gui.mapcanvas import MapCanvas
 
 
-        for i, grpNode in enumerate(M.rootNode().children()):
+        for i, grpNode in enumerate(M.rootNode().childNodes()):
             self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
-            grpIndex = M.node2index(grpNode)
+            grpIndex = M.node2idx(grpNode)
             self.assertIsInstance(grpIndex, QModelIndex)
             self.assertTrue(grpIndex.isValid())
             self.assertEqual(grpIndex.row(), i)
 
-
             rasterSourceNodes = []
 
-            for j, dNode in enumerate(grpNode.children()):
+            for j, dNode in enumerate(grpNode.childNodes()):
                 self.assertIsInstance(dNode, DataSourceTreeNode)
-                nodeIndex = M.node2index(dNode)
+                nodeIndex = M.node2idx(dNode)
                 self.assertIsInstance(nodeIndex, QModelIndex)
                 self.assertTrue(nodeIndex.isValid())
                 self.assertEqual(nodeIndex.row(), j)
 
                 mapCanvas = MapCanvas()
-                #get mime data
+                # get mime data
                 mimeData = M.mimeData([nodeIndex])
                 self.assertIsInstance(mimeData, QMimeData)
 
@@ -488,8 +533,21 @@ class standardDataSources(EnMAPBoxTestCase):
                 if isinstance(dNode, RasterDataSourceTreeNode):
                     self.assertIsInstance(dNode.mDataSource, DataSourceRaster)
                     mapCanvas.dropEvent(createDropEvent(mimeData))
+                    QApplication.processEvents()
                     self.assertTrue(len(mapCanvas.layers()) == 1)
                     rasterSourceNodes.append(dNode)
+
+                    # set drag / drop of raster band
+                    # see https://bitbucket.org/hu-geomatics/enmap-box/issues/408/dropping-a-raster-band-onto-the-grey-area
+                    for bandNode in dNode.mNodeBands.childNodes():
+                        self.assertIsInstance(bandNode, RasterBandTreeNode)
+                        bandMime = M.mimeData([M.node2idx(bandNode)])
+                        n = len(mapCanvas.layers())
+                        mapCanvas.dropEvent(createDropEvent(bandMime))
+                        QApplication.processEvents()
+                        self.assertEqual(len(mapCanvas.layers()), n+1)
+                        break
+
                 if isinstance(dNode, VectorDataSourceTreeNode):
                     self.assertIsInstance(dNode.mDataSource, DataSourceVector)
                     mapCanvas.dropEvent(createDropEvent(mimeData))
@@ -499,25 +557,19 @@ class standardDataSources(EnMAPBoxTestCase):
                     self.assertIsInstance(dNode.mDataSource, DataSourceSpectralLibrary)
 
                     # drop speclib to mapcanvas
+                    n = len(mapCanvas.layers())
                     mapCanvas.dropEvent(createDropEvent(mimeData))
-                    self.assertTrue(len(mapCanvas.layers()) == 1)
-
-                    # drop speclib to spectral library widgets
-                    from enmapbox.gui.speclib.spectrallibraries import SpectralLibraryWidget, MIMEDATA_SPECLIB_LINK
-                    self.assertTrue(MIMEDATA_SPECLIB_LINK in mimeData.formats())
-                    w = SpectralLibraryWidget()
-                    w.show()
-                    w.plotWidget.dropEvent(createDropEvent(mimeData))
-                    self.assertEqual(len(w.speclib()), len(dNode.mDataSource.speclib()))
-
-
+                    QApplication.processEvents()
+                    self.assertEqual(len(mapCanvas.layers()), n+1)
 
                 if isinstance(dNode, HubFlowObjectTreeNode):
                     pass
 
+                QApplication.processEvents()
+
             for node in rasterSourceNodes:
                 self.assertIsInstance(node, RasterDataSourceTreeNode)
-                self.assertIsInstance(node.childNodes(), TreeNode)
+                self.assertIsInstance(node.childNodes(), list)
                 n0 = len(mapCanvas.layers())
                 for n, child in enumerate(node.mNodeBands.children()):
                     self.assertIsInstance(child, RasterBandTreeNode)
@@ -611,9 +663,9 @@ class standardDataSources(EnMAPBoxTestCase):
                 #self.assertEqual(obj1, obj3)
 
 
-
 if __name__ == "__main__":
-    unittest.main()
+    import xmlrunner
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
 
 
 

@@ -40,7 +40,7 @@ class EnMAPBoxApplication(QObject):
     and to provide interfaces the main EnMAP-Box
     """
     @staticmethod
-    def checkRequirements(enmapBoxApp)->(bool,str):
+    def checkRequirements(enmapBoxApp) -> (bool, str):
         """
         Tests if the EnMAPBoxApplication defines all required information.
         :param enmapBoxApp: EnMAPBoxApplication
@@ -85,7 +85,7 @@ class EnMAPBoxApplication(QObject):
         """
         return None
 
-    def icon(self)->QIcon:
+    def icon(self) -> QIcon:
         """
         Overwrite to return a QIcon
         http://doc.qt.io/qt-5/qicon.html
@@ -100,14 +100,14 @@ class EnMAPBoxApplication(QObject):
         """
         return None
 
-    def geoAlgorithms(self)->list:
+    def geoAlgorithms(self) -> list:
         """
         Deprecated. Use processingAlgorithms() to return a list of QgsProcessingAlgorithms
         """
         raise Exception('Use "processingAlgorithms" instead.')
 
 
-    def processingAlgorithms(self)->list:
+    def processingAlgorithms(self) -> list:
 
         return []
 
@@ -124,8 +124,6 @@ class ApplicationWrapper(QObject):
         self.menuItems = []
         self.processingAlgorithms = []
 
-
-
 class ApplicationRegistry(QObject):
     """
     Registry to load and remove EnMAPBox Applications
@@ -140,21 +138,20 @@ class ApplicationRegistry(QObject):
 
         self.mAppInitializationMessages = collections.OrderedDict()
 
-
     def __len__(self):
         return len(self.mAppWrapper)
 
     def __iter__(self):
         return iter(self.mAppWrapper.values())
 
-    def applications(self)->list:
+    def applications(self) -> list:
         """
         Returns the EnMAPBoxApplications
         :return: [list-of-EnMAPBoxApplications]
         """
         return [w.app for w in self.applicationWrapper()]
 
-    def applicationWrapper(self, nameOrApp=None)->list:
+    def applicationWrapper(self, nameOrApp=None) -> list:
         """
         Returns the EnMAPBoxApplicationWrappers.
         :param nameOrApp: str | EnMAPBoxApplication to return the ApplicationWrapper for
@@ -170,6 +167,8 @@ class ApplicationRegistry(QObject):
         Loads EnMAPBoxApplications from locations defined in a text file
         :param appPkgFile: str, filepath to file with locations of EnMAPBoxApplications
         """
+        if isinstance(appPkgFile, pathlib.Path):
+            appPkgFile = str(appPkgFile)
         assert isinstance(appPkgFile, str)
         assert os.path.isfile(appPkgFile)
         pkgFileDir = os.path.dirname(appPkgFile)
@@ -194,7 +193,7 @@ class ApplicationRegistry(QObject):
             self.addApplicationFolder(appPath)
 
 
-    def isApplicationFolder(self, appPackagePath:str)->bool:
+    def isApplicationFolder(self, appPackagePath:str) -> bool:
         """
         Checks if the directory "appPackage" contains an '__init__.py' with an enmapboxApplicationFactory
         :param appPackage: path to directory
@@ -234,13 +233,16 @@ class ApplicationRegistry(QObject):
         return results
 
 
-    def addApplicationFolder(self, appPackagePath:str, isRootFolder=False)->bool:
+    def addApplicationFolder(self, appPackagePath:str, isRootFolder=False) -> bool:
         """
         Loads an EnMAP-Box application from its root folder.
         :param appPackagePath: directory with an __init__.py which defines a .enmapboxApplicationFactory() or
                                directory without any __init__.py which contains EnMAPBoxApplication folders
         :return: bool, True if any EnMAPBoxApplication was added
         """
+        if isinstance(appPackagePath, pathlib.Path):
+            appPackagePath = str(appPackagePath)
+
         if isRootFolder:
             assert (isinstance(appPackagePath, str) and os.path.isdir(appPackagePath))
             subDirs = []
@@ -256,12 +258,13 @@ class ApplicationRegistry(QObject):
                 if not (isinstance(appPackagePath, str) and os.path.isdir(appPackagePath)):
                     raise Exception('Not a directory: "{}"'.format(appPackagePath))
 
-
-
                 appPkgName = os.path.basename(appPackagePath)
                 appPkgRoot = os.path.dirname(appPackagePath)
                 pkgFile = os.path.join(appPackagePath, '__init__.py')
 
+                blacklist = os.environ.get('EMB_APP_BLACKLIST', '').split(',')
+                if appPkgName in blacklist:
+                    raise Exception('Skipped loading EnMAPBoxApplication "{}"'.format(appPkgName))
 
                 print('Load EnMAPBoxApplication(s) from "{}"'.format(appPkgName))
 
@@ -283,7 +286,7 @@ class ApplicationRegistry(QObject):
 
                 factory = factory[0]
 
-                #create the app
+                # create the app
                 apps = factory(self.mEnMAPBox)
                 if not isinstance(apps, list):
                     apps = [apps]
@@ -298,21 +301,24 @@ class ApplicationRegistry(QObject):
                         foundValidApps = True
 
                 if foundValidApps:
-                    self.mAppInitializationMessages[basename] = 'initialized'
+                    # return True if app  factory returned a valid EnMAPBoxApplication
+                    self.mAppInitializationMessages[basename] = True
                 else:
-                    self.mAppInitializationMessages[basename] = 'no EnMAPBoxApplication returned'
+                    # return False if app factory did not return any EnMAPBoxApplication
+                    self.mAppInitializationMessages[basename] = False
                 return foundValidApps
 
             except Exception as ex:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 tbLines = traceback.format_tb(exc_traceback)
                 tbLines = ''.join(tbLines)
-                info = '{}\nTraceback:\n{}'.format(ex, tbLines)
+                info = '{}:{}\nTraceback:\n{}'.format(ex.__class__.__name__, ex, tbLines)
+                # return Error with Traceback
                 self.mAppInitializationMessages[basename] = info
                 print(info, file=sys.stderr)
                 return False
 
-    def addApplications(self, apps)->list:
+    def addApplications(self, apps) -> list:
         """
         Adds a list of EnMAP-Box applications with addApplication
         :param apps: [list-of-EnMAPBoxApplications]
@@ -320,7 +326,7 @@ class ApplicationRegistry(QObject):
         """
         return [self.addApplication(app) for app in apps]
 
-    def addApplication(self, app:EnMAPBoxApplication)->bool:
+    def addApplication(self, app:EnMAPBoxApplication) -> bool:
         """
         Adds a single EnMAP-Box application, i.a. a class that implemented the EnMAPBoxApplication Interface
         :param app: EnMAPBoxApplication

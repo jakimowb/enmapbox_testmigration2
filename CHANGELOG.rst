@@ -1,6 +1,29 @@
 CHANGELOG
 =========
 
+Version 3.6
+-----------
+
+* EnMAP-Box plugin can be installed and started without having none-standard python packages installed (#366)
+* Added installer to install missing python packages (#371)
+* Map Canvas Crosshair can now show the pixel boundaries of any raster source known to QGIS
+* Spectral Profile Source panel is properly updated on removal/adding of raster sources or spectral libraries
+* Spectral Library Viewer
+    * added color schemes to set plot and profile styles
+    * profile styles can be changed per profile (#268)
+    * current/temporary profiles are shown in the attribute table
+    * added workaround for #345 (Spectral library create new field: problems with default fields)
+    * loading profiles based in vector position is done in a background process (closed #329)
+    * closed #252
+* Classification Scheme Widget allows to paste/copy classification schemes from/to the clipboard.
+  This can be used to copy classes from other raster or vector layers, or to set the layer renderer
+  according to the classification scheme
+* updated in LMU vegetation app
+* updated EnPTEnMAPBoxApp (see http://enmap.gitext.gfz-potsdam.de/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp for documentation)
+* added EnSoMAP and EnGeoMAP applications provided by GFZ
+* added ONNS application provided by HZG
+* removed several bugs, e.g. #285, #206,
+
 Version 3.5
 -----------
 

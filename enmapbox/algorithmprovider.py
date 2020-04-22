@@ -140,14 +140,14 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         """
         return 'bsq'
 
-    def defaultVectorFileExtension(self)->str:
+    def defaultVectorFileExtension(self, hasGeometry:bool=True)->str:
         """
         :return: 'shp'
         """
         return 'shp'
 
     def supportedOutputRasterLayerExtensions(self)->list:
-        return ['bsq','bil','bip','tif']
+        return ['bsq','bil','bip','tif', 'vrt']
 
     def supportsNonFileBasedOutput(self)->bool:
         return False

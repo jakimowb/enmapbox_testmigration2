@@ -99,10 +99,10 @@ class Global_Inversion:
         self.gui.radOutIndividual.clicked.connect(lambda: self.select_outputmode(mode="individual"))
 
         # Sensor Type
-        self.gui.radFullRange.clicked.connect(lambda: self.select_sensor(sensor=1))
+        self.gui.radFullRange.clicked.connect(lambda: self.select_sensor(sensor=0))
+        self.gui.radSentinel.clicked.connect(lambda: self.select_sensor(sensor=1))
         self.gui.radEnMAP.clicked.connect(lambda: self.select_sensor(sensor=2))
-        self.gui.radSentinel.clicked.connect(lambda: self.select_sensor(sensor=3))
-        self.gui.radLandsat.clicked.connect(lambda: self.select_sensor(sensor=4))
+        self.gui.radLandsat.clicked.connect(lambda: self.select_sensor(sensor=3))
 
         # Geometry
         self.gui.cmdGeoFromFile.clicked.connect(lambda: self.open_file(mode="geo"))

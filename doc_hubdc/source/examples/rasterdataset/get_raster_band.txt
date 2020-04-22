@@ -1,0 +1,1 @@
+RasterBandDataset(raster=RasterDataset(gdalDataset=<osgeo.gdal.Dataset; proxy of <Swig Object of type 'GDALDatasetShadow *' at 0x000001A6FFF34B40> >), index=0)

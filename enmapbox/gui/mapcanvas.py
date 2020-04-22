@@ -144,6 +144,8 @@ class CanvasLinkDialog(QDialog):
 
         if canvases is None:
             canvases = emb.mapCanvases()
+        if len(canvases) <= 1:
+            return
 
         for c in canvases:
             assert isinstance(c, QgsMapCanvas)
@@ -798,7 +800,6 @@ class CanvasLink(QObject):
         return self.canvases[0] in canvasLink.canvases and \
                self.canvases[1] in canvasLink.canvases
 
-
     def __eq__(self, canvasLink):
         if not isinstance(canvasLink, CanvasLink):
             return False
@@ -814,9 +815,8 @@ class CanvasLink(QObject):
 
 
 class MapCanvasMapTools(QObject):
-
-
-    def __init__(self, canvas:QgsMapCanvas, cadDock:QgsAdvancedDigitizingDockWidget):
+    def __init__(self, canvas:QgsMapCanvas,
+                 cadDock:QgsAdvancedDigitizingDockWidget):
 
         super(MapCanvasMapTools, self).__init__(canvas)
         self.mCanvas = canvas
@@ -829,9 +829,14 @@ class MapCanvasMapTools(QObject):
         self.mtPixelScaleExtent = PixelScaleExtentMapTool(canvas)
         self.mtFullExtentMapTool = FullExtentMapTool(canvas)
         self.mtCursorLocation = CursorLocationMapTool(canvas, True)
-
         self.mtAddFeature = QgsMapToolAddFeature(canvas, QgsMapToolCapture.CaptureNone, cadDock)
         self.mtSelectFeature = QgsMapToolSelect(canvas)
+
+    def setVectorLayerTools(self, vectorLayerTools: QgsVectorLayerTools):
+        """
+        Sets the VectorLayerTools of an GUI application
+        """
+        self.mtAddFeature.setVectorLayerTools(vectorLayerTools)
 
     def activate(self, mapToolKey, **kwds):
 
@@ -906,10 +911,6 @@ class MapCanvas(QgsMapCanvas):
 
         self.setCrosshairVisibility(False)
 
-        from enmapbox import EnMAPBox
-
-
-
         # init the map tool set
         self.mCadDock = QgsAdvancedDigitizingDockWidget(self)
         self.mCadDock.setVisible(False)
@@ -979,7 +980,7 @@ class MapCanvas(QgsMapCanvas):
             super(MapCanvas, self).refresh()
             #super(MapCanvas, self).refreshAllLayers()
 
-    def mapTools(self)->MapCanvasMapTools:
+    def mapTools(self) -> MapCanvasMapTools:
         """
         Returns the map tools
         :return: MapCanvasMapTools
@@ -1314,6 +1315,9 @@ class MapCanvas(QgsMapCanvas):
 
     def contextMenuEvent(self, event):
 
+        # do not open in case of map tools that provide its own context menu
+        if self.mapTool() in [self.mapTools().mtAddFeature]:
+            return
         pos = event.globalPos()
         pos = self.mapFromGlobal(pos)
         point = self.mapSettings().mapToPixel().toMapCoordinates(pos.x(), pos.y())
@@ -1481,9 +1485,6 @@ class MapDock(Dock):
         self.mCanvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
         self.layout.addWidget(self.mCanvas)
 
-        self.label.addMapLink.clicked.connect(lambda:CanvasLink.ShowMapLinkTargets(self))
-        self.label.removeMapLink.clicked.connect(lambda: self.mCanvas.removeAllCanvasLinks())
-
         if initSrc is not None:
             from enmapbox.gui.datasources import DataSourceFactory
             dataSources = DataSourceFactory.create(initSrc)
@@ -1501,9 +1502,6 @@ class MapDock(Dock):
 
         menuCanvas = self.mCanvas.contextMenu()
         return appendItemsToMenu(menuDock, menuCanvas)
-
-    def _createLabel(self, *args, **kwds)->MapDockLabel:
-        return MapDockLabel(self, *args, **kwds)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:

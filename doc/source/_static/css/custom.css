@@ -70,6 +70,11 @@ p.caption {
   background: #D9E1DD;
 }
 
+/*
+.wy-menu-vertical li.current {
+    background: #00FF00;
+}
+*/
 
 /* inline markups*/
 .menuselection {
