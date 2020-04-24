@@ -12,7 +12,7 @@ from qgis.PyQt.QtWidgets import *
 
 from enmapbox.testing import EnMAPBoxTestCase
 
-from enmapbox.gui.dadasourcesV2 import *
+from enmapbox.gui.datasourcesV2 import *
 
 class MyTestCase(EnMAPBoxTestCase):
 
@@ -30,7 +30,7 @@ class MyTestCase(EnMAPBoxTestCase):
         tv.show()
 
         rasterSources = RasterCollectionItem()
-        m
+
         self.showGui(tv)
         #QApplication.exec_()
 
@@ -44,6 +44,7 @@ class MyTestCase(EnMAPBoxTestCase):
 
         item = RasterCollectionItem()
         self.assertIsInstance(item, QgsDataCollectionItem)
+
 
 if __name__ == '__main__':
     unittest.main()
