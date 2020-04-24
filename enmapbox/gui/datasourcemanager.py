@@ -56,7 +56,7 @@ class DataSourceManager(QObject):
        Similar like QGIS data registry, but manages non-spatial data sources (text files, spectral libraries etc.) as well.
     """
 
-    _testInstance = None
+    _instance = None
 
     @staticmethod
     def instance():
@@ -64,9 +64,7 @@ class DataSourceManager(QObject):
         if isinstance(EnMAPBox.instance(), EnMAPBox):
             return EnMAPBox.instance().dataSourceManager
         else:
-            return DataSourceManager._testInstance
-
-
+            return DataSourceManager._instance
 
     sigDataSourceAdded = pyqtSignal(DataSource)
     sigDataSourceRemoved = pyqtSignal(DataSource)
@@ -76,10 +74,13 @@ class DataSourceManager(QObject):
         Constructor
         """
         super(DataSourceManager, self).__init__()
-        DataSourceManager._testInstance = self
+        DataSourceManager._instance = self
         self.mSources = list()
         self.mShowSpatialSourceInQgsAndEnMAPBox = True
         #QgsProject.instance().layerWillBeRemoved.connect(self.onLayersWillBeRemoved)
+
+    def close(self):
+        DataSourceManager._instance = None
 
     def onLayersWillBeRemoved(self, lid):
         to_remove = [ds for ds in self.sources() if isinstance(ds, DataSourceSpatial) and ds.mapLayerId() == lid]
@@ -307,6 +308,7 @@ class DataSourceManager(QObject):
 
                 layers.append(lyr)
             self.addSources(layers)
+
 
     def addDataSourceByDialog(self):
         """

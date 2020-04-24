@@ -1464,8 +1464,8 @@ class EnMAPBox(QgisInterface, QObject):
 
     def close(self):
         self.disconnectQGISSignals()
+        self.mDataSourceManager.close()
         self.ui.close()
-
 
     def hiddenLayerGroup(self)->QgsLayerTreeGroup:
         """
@@ -2211,12 +2211,6 @@ class EnMAPBox(QgisInterface, QObject):
         :return: QgsMapLayer
         """
         return self.ui.dockPanel.dockTreeView.currentLayer()
-        # noinspection PyArgumentList
-        #canvas = self.activeMapCanvas()
-        #if isinstance(canvas, QgsMapCanvas):
-        #    return canvas.currentLayer()
-        #else:
-        #    return None
 
     def activeLayer(self):
         return self.currentLayer()
