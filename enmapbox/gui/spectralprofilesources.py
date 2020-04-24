@@ -368,7 +368,7 @@ class SpectralProfileRelation(object):
     def setScale(self, scale:float):
         self.mScale = scale
 
-    def scale(self)->float:
+    def scale(self) -> float:
         return float(self.mScale)
 
     def currentProfiles(self)->typing.List[SpectralProfile]:
@@ -383,13 +383,13 @@ class SpectralProfileRelation(object):
     def setSource(self, src:SpectralProfileSource):
         self.mSrc = src
 
-    def source(self)->SpectralProfileSource:
+    def source(self) -> SpectralProfileSource:
         return self.mSrc
 
-    def isActive(self)->bool:
+    def isActive(self) -> bool:
         return self.mIsActive
 
-    def setIsActive(self, b:bool):
+    def setIsActive(self, b: bool):
         assert isinstance(b, bool)
         self.mIsActive = b
 
@@ -408,7 +408,7 @@ class SpectralProfileRelation(object):
                and self.mSamplingMode == other.mSamplingMode \
                and self.mScale == other.mScale
 
-    def isValid(self)->bool:
+    def isValid(self) -> bool:
         return isinstance(self.destination(), SpectralLibraryWidget) \
                and isinstance(self.source(), SpectralProfileSource) \
                and isinstance(self.samplingMode(), SpectralProfileSamplingMode)
@@ -997,8 +997,6 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
                 w.setClearValue(1)
                 w.setMinimum(sys.float_info.min)
                 w.setMaximum(sys.float_info.max)
-
-
         return w
 
     def checkData(self, index, w, value):

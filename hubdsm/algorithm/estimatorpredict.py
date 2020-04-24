@@ -40,12 +40,15 @@ def estimatorPredict(
         po.callbackProgress(i, n)
         i += 1
         array = np.full(shape=(bands, *subgrid.shape), fill_value=noDataValue, dtype=numpyDataType)
-        sample = raster.readAsSample(grid=subgrid, mode=Raster.SampleMode.strict, xPixel='x', yPixel='y')
-        X = np.transpose([sample[name] for name in raster.bandNames])
+        sample, location = raster.readAsSample(
+            grid=subgrid, mode=Raster.SampleMode.strict, fieldNames=Raster.SampleFieldNames.bandIndices,
+            xPixel='x', yPixel='y'
+        )
+        X = sample.array().T
         y = estimator.predict(X=X)
         if isinstance(estimator, ClusterMixin):
             y += 1  # start with id=1, because zero is reserved as no data value
-        array[:, sample.y, sample.x] = y.reshape(len(sample), -1).T
+        array[:, location.y, location.x] = y.reshape(len(sample), -1).T
         outGdalRaster.writeArray(array=array, grid=subgrid)
     outGdalRaster.setNoDataValue(value=noDataValue)
     po.callbackFinish(estimatorPredict.__name__, t0=t0)

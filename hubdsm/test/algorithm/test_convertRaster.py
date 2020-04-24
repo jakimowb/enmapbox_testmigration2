@@ -16,7 +16,7 @@ class TestConvertRaster(TestCase):
         mask = Raster.open(MEM_DRIVER.createFromArray(array=np.array([[[1, 0, 1]]])))
         raster = Raster.open(MEM_DRIVER.createFromArray(array=np.array([[[1, 2, 0]]], dtype=np.uint8)))
         assert raster.readAsArray().dtype == np.uint8
-        raster = raster.withMask(raster=mask)
+        raster = raster.withMask(mask=mask)
 
         po = ProcessingOptions(shape=GridShape(x=1, y=1))
         converted = convertRaster(raster=raster, noDataValues=[-9999], gdalDataType=gdal.GDT_Float32, po=po)

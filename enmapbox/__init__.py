@@ -38,11 +38,7 @@ from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessing
 from qgis.PyQt.QtCore import QSettings, QResource
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal
-
-gdal.SetConfigOption('GDAL_VRT_ENABLE_PYTHON', 'YES')
-
-
-__version__ = '3.6' #subsub-version information is added during build process
+__version__ = '3.6.1' #subsub-version information is added during build process
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
@@ -66,7 +62,10 @@ DIR_UNITTESTS = os.path.join(DIR_REPO, 'enmapboxtesting')
 
 ENMAP_BOX_KEY = 'EnMAP-Box'
 
-_ENMAPBOX_PROCESSING_PROVIDER : QgsProcessingProvider = None
+_ENMAPBOX_PROCESSING_PROVIDER: QgsProcessingProvider = None
+
+gdal.SetConfigOption('GDAL_VRT_ENABLE_PYTHON', 'YES')
+
 
 
 def enmapboxSettings() -> QSettings:

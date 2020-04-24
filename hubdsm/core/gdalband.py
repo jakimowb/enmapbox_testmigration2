@@ -30,7 +30,7 @@ class GdalBand(object):
     def open(filenameOrGdalRaster: Union[str, 'GdalRaster'], number: int, access: int = gdal.GA_ReadOnly) -> 'GdalBand':
         from hubdsm.core.gdalraster import GdalRaster
         if isinstance(filenameOrGdalRaster, str):
-            gdalRaster = GdalRaster.open(filename=filenameOrGdalRaster, access=access)
+            gdalRaster = GdalRaster.open(filenameOrGdalRaster, access=access)
         else:
             gdalRaster = filenameOrGdalRaster
         assert isinstance(gdalRaster, GdalRaster)
@@ -281,3 +281,12 @@ class GdalBand(object):
         """Returns the list of metadata domain names."""
         domains = self.gdalBand.GetMetadataDomainList()
         return domains if domains is not None else []
+
+    def translate(
+            self, grid: Grid = None, filename: str = None, driver: 'GdalRasterDriver' = None, gco: List[str] = None,
+            gra: int = None, **kwargs
+    ) -> 'GdalBand':
+        '''Return translated raster band.'''
+        return self.raster.translate(
+            grid=grid, filename=filename, driver=driver, gco=gco, gra=gra, bandList=[self.number], **kwargs
+        ).band(1)

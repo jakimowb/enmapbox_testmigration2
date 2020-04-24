@@ -2,11 +2,12 @@
 from collections import OrderedDict
 
 from dataclasses import dataclass
-from typing import Tuple, Union, Dict
+from typing import Tuple, Union, Dict, Optional
 
 import numpy as np
 from hubdsm.core.grid import Grid
 from hubdsm.core.raster import Raster
+from hubdsm.core.table import Table
 
 
 @dataclass(frozen=True)
@@ -34,20 +35,17 @@ class RasterCollection(object):
     def withName(self, name: str) -> 'RasterCollection':
         return RasterCollection(name=name, rasters=self.rasters)
 
-    def readAsSample(self, grid: Grid = None, **kwargs) -> Dict[str, np.recarray]:
+    def readAsSample(self, grid: Grid = None, **kwargs) -> Tuple[Dict[str, Table], Optional[Table]]:
         """Like Raster.readAsSample(grid, **kwargs), but fields are grouped by raster names."""
-        sample = self.toBands(grid=grid).readAsSample(grid=grid, **kwargs)
+        sample, location = self.toBands(grid=grid).readAsSample(grid=grid, **kwargs)
         # split features band-wise
         offset = 0
         samples = OrderedDict()
         for raster in self.rasters:
-            names = list(sample.dtype.names[offset:offset + len(raster.bands)])
-            samples[raster.name] = sample[names]
+            names = list(sample.recarray.dtype.names[offset:offset + len(raster.bands)])
+            samples[raster.name] = Table(recarray=sample[names])
             offset += len(raster.bands)
-        # include locations
-        names = list(sample.dtype.names[offset:])
-        samples['_location'] = sample[names]
-        return samples
+        return samples, location
 
     @property
     def setCategories(self):

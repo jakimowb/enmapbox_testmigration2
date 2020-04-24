@@ -199,7 +199,7 @@ class GdalRaster(object):
 
     def translate(
             self, grid: Grid = None, filename: str = None, driver: 'GdalRasterDriver' = None, gco: List[str] = None,
-            gra: int = None, gto: gdal.TranslateOptions = None
+            gra: int = None, **kwargs
     ):
         '''Return translated raster.'''
         from hubdsm.core.gdalrasterdriver import GdalRasterDriver
@@ -224,9 +224,9 @@ class GdalRaster(object):
         xRes, yRes = grid.resolution.x, grid.resolution.y
 
         options = gdal.TranslateOptions(
-            options=gto, format=driver.name, creationOptions=gco,
+            format=driver.name, creationOptions=gco,
             resampleAlg=gra, projWin=[ul.x, ul.y, lr.x, lr.y],
-            xRes=xRes, yRes=yRes)
+            xRes=xRes, yRes=yRes, **kwargs)
         gdalDataset = gdal.Translate(destName=filename, srcDS=self.gdalDataset, options=options)
 
         gdalRaster = GdalRaster(gdalDataset=gdalDataset)

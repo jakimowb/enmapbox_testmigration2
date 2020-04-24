@@ -4,7 +4,9 @@ include =
 
 
 omit =
-    *enmapbox/externals/*
+    */enmapbox/externals/*
+    */hubflow/*
+    */hubdc/*
 
 
 

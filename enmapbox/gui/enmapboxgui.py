@@ -326,6 +326,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.mDockManager.sigDockRemoved.connect(self.onDockRemoved)
 
         self.initActions()
+        self.initActionsAddProduct()
 
         from enmapbox.externals.qps.vectorlayertools import VectorLayerTools
         self.mVectorLayerTools = VectorLayerTools()
@@ -798,6 +799,20 @@ class EnMAPBox(QgisInterface, QObject):
                 if isinstance(toolButton.defaultAction(), QAction) and isinstance(toolButton.defaultAction().menu(), QMenu):
                     toolButton.setPopupMode(QToolButton.MenuButtonPopup)
 
+    def initActionsAddProduct(self):
+        """
+        Initializes the product loaders under <menu> Project -> Add Product
+        """
+        menu = self.ui.menuAdd_Product
+        separator = self.ui.mActionAddSentinel2
+        assert isinstance(menu, QMenu)
+        assert isinstance(separator, QAction)
+
+        # add more product import actions hereafter
+        a = QAction('EnMAP L1B', parent=menu)
+        a.setToolTip('Import EnMAP L1B products')
+        a.triggered.connect(lambda *args : self.showProcessingAlgorithmDialog('enmapbox:ImportEnMAPL1BProduct'))
+        menu.insertAction(separator, a)
 
     def _mapToolButton(self, action)->QToolButton:
         for toolBar in self.ui.findChildren(QToolBar):
@@ -1464,8 +1479,8 @@ class EnMAPBox(QgisInterface, QObject):
 
     def close(self):
         self.disconnectQGISSignals()
+        self.mDataSourceManager.close()
         self.ui.close()
-
 
     def hiddenLayerGroup(self)->QgsLayerTreeGroup:
         """
@@ -2211,12 +2226,6 @@ class EnMAPBox(QgisInterface, QObject):
         :return: QgsMapLayer
         """
         return self.ui.dockPanel.dockTreeView.currentLayer()
-        # noinspection PyArgumentList
-        #canvas = self.activeMapCanvas()
-        #if isinstance(canvas, QgsMapCanvas):
-        #    return canvas.currentLayer()
-        #else:
-        #    return None
 
     def activeLayer(self):
         return self.currentLayer()

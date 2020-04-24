@@ -11,9 +11,11 @@ from enmapboxgeoalgorithms.filters.morphology import parseMorphology
 from enmapboxgeoalgorithms.filters.other import parseOtherFilter
 from hubdsm.processing.importenmapl1b import ImportEnmapL1B
 from hubdsm.processing.uniquebandvaluecounts import UniqueBandValueCounts
+from hubdsm.processing.savelayerasclassification import SaveLayerAsClassification
 
 ALGORITHMS.append(UniqueBandValueCounts())
 ALGORITHMS.append(ImportEnmapL1B())
+ALGORITHMS.append(SaveLayerAsClassification())
 
 
 class ClassificationFromFraction(EnMAPAlgorithm):

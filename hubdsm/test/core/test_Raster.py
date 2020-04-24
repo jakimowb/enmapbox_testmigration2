@@ -25,12 +25,12 @@ class TestRaster(TestCase):
 
     def test_open(self):
         try:
-            Raster.open(filenameOrGdalRaster=None)
+            Raster.open(None)
         except ValueError:
             pass
 
     def test_fromGdalRaster(self):
-        gdalRaster = GdalRaster.open(filename=enmap)
+        gdalRaster = GdalRaster.open(enmap)
         raster = Raster.fromGdalRaster(gdalRaster=gdalRaster)
         for number, band in enumerate(raster.bands, 1):
             self.assertEqual(band.number, number)
@@ -120,7 +120,7 @@ class TestRaster(TestCase):
     def test_rename(self):
         raster = Raster.open(
             MEM_DRIVER.createFromArray(array=np.ones(shape=(3, 10, 10)))
-        ).rename(bandNames=['B1', 'B2', 'B3'], name='Raster')
+        ).rename(bandNames=['B1', 'B2', 'B3']).withName(name='Raster')
         self.assertEqual(raster.rename().bandNames, ('B1', 'B2', 'B3'))
         self.assertEqual(raster.rename().name, 'Raster')
         self.assertEqual(raster.withName('NewRaster').name, 'NewRaster')
@@ -169,34 +169,34 @@ class TestRaster(TestCase):
         raster = raster.withMask(mask=mask).rename(bandNames=['B1', 'B2'])
 
         # test field names
-        sample = raster.readAsSample(fieldNames=Raster.SampleFieldNames.bandNames)
+        sample, location = raster.readAsSample(fieldNames=Raster.SampleFieldNames.bandNames)
         assert isinstance(sample.B1, np.ndarray)
         assert isinstance(sample.B2, np.ndarray)
         assert isinstance(sample['B1'], np.ndarray)
         assert isinstance(sample['B2'], np.ndarray)
-        sample = raster.readAsSample(fieldNames=Raster.SampleFieldNames.bandIndices)
+        sample, location = raster.readAsSample(fieldNames=Raster.SampleFieldNames.bandIndices)
         assert isinstance(sample['0'], np.ndarray)
         assert isinstance(sample['1'], np.ndarray)
 
         # sample also incomplete profiles (e.g. required for timeseries analysis)
-        sample = raster.readAsSample(xPixel='x', yPixel='y', mode=Raster.SampleMode.relaxed)
-        self.assertTrue(np.all(np.equal(sample.x, [1, 2, 3])))
-        self.assertTrue(np.all(np.equal(sample.y, [0, 0, 0])))
+        sample, location = raster.readAsSample(xPixel='x', yPixel='y', mode=Raster.SampleMode.relaxed)
+        self.assertTrue(np.all(np.equal(location.x, [1, 2, 3])))
+        self.assertTrue(np.all(np.equal(location.y, [0, 0, 0])))
         self.assertTrue(np.all(np.equal(sample.B1, [11, 12, 13])))
         self.assertTrue(np.all(np.equal(sample.B2, [21, 22, -1])))
 
         # sample only complete profiles (e.g. required for classification)
-        sample = raster.readAsSample(xPixel='x', yPixel='y', mode=Raster.SampleMode.strict)
-        self.assertTrue(np.all(np.equal(sample.x, [1, 2])))
-        self.assertTrue(np.all(np.equal(sample.y, [0, 0])))
+        sample, location = raster.readAsSample(xPixel='x', yPixel='y', mode=Raster.SampleMode.strict)
+        self.assertTrue(np.all(np.equal(location.x, [1, 2])))
+        self.assertTrue(np.all(np.equal(location.y, [0, 0])))
         self.assertTrue(np.all(np.equal(sample.B1, [11, 12])))
         self.assertTrue(np.all(np.equal(sample.B2, [21, 22])))
 
         # sample on subgrid
         subgrid = raster.grid.subgrid(offset=PixelLocation(x=2, y=0), shape=GridShape(x=2, y=1))
-        sample = raster.readAsSample(grid=subgrid, xPixel='x', yPixel='y', mode=Raster.SampleMode.relaxed)
-        self.assertTrue(np.all(np.equal(sample.x, [2, 3])))
-        self.assertTrue(np.all(np.equal(sample.y, [0, 0])))
+        sample, location = raster.readAsSample(grid=subgrid, xPixel='x', yPixel='y', mode=Raster.SampleMode.relaxed)
+        self.assertTrue(np.all(np.equal(location.x, [2, 3])))
+        self.assertTrue(np.all(np.equal(location.y, [0, 0])))
         self.assertTrue(np.all(np.equal(sample.B1, [12, 13])))
         self.assertTrue(np.all(np.equal(sample.B2, [22, -1])))
 

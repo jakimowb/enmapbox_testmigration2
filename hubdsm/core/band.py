@@ -1,14 +1,10 @@
 # from __future__ import annotations
-from collections import OrderedDict
-from math import nan
-
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 
 import numpy as np
 from osgeo import gdal
 
-from hubdsm.core.sample import Sample
 from hubdsm.core.gdalband import GdalBand
 from hubdsm.core.grid import Grid
 from hubdsm.core.mask import Mask
