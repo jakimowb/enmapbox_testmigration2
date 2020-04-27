@@ -230,6 +230,8 @@
    :width: 28px
 .. |system| image:: /../../enmapbox/gui/ui/icons/system.svg
    :width: 28px
+.. |viewlist_attributetabledock| image:: /../../enmapbox/gui/ui/icons/viewlist_attributetabledock.svg
+   :width: 28px
 .. |viewlist_dock| image:: /../../enmapbox/gui/ui/icons/viewlist_dock.svg
    :width: 28px
 .. |viewlist_mapdock| image:: /../../enmapbox/gui/ui/icons/viewlist_mapdock.svg
@@ -324,6 +326,8 @@
    :width: 28px
 .. |cb1| image:: /img/icons/cb1.png
    :width: 28px
+.. |combo| image:: /img/icons/combo.png
+   :width: 28px
 .. |histogram| image:: /img/icons/histogram.svg
    :width: 28px
 .. |iconClearConsole| image:: /img/icons/iconClearConsole.svg
@@ -365,4 +369,10 @@
 .. |mIconEditableEdits| image:: /img/icons/mIconEditableEdits.svg
    :width: 28px
 .. |plot_style| image:: /img/icons/plot_style.svg
+   :width: 28px
+.. |rb0| image:: /img/icons/rb0.png
+   :width: 28px
+.. |rb1| image:: /img/icons/rb1.png
+   :width: 28px
+.. |spin| image:: /img/icons/spin.png
    :width: 28px
