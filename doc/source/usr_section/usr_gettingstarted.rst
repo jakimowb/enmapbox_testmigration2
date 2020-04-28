@@ -37,7 +37,7 @@ Launching the EnMAP-Box
 Once you successfully :ref:`installed the EnMAP-Box <usr_installation>`, you can access the plugin via the |enmapbox| icon
 in the QGIS toolbar. Furthermore, the EnMAP-Box :ref:`Processing Algorithms` should also appear in the QGIS Processing Toolbox.
 
-.. figure:: ../img/ebx_firstopen.png
+.. figure:: ../img/manual_gui.png
 
     The Graphical User Interface (GUI) of the EnMAP-Box on first open
 

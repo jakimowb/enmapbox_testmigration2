@@ -41,9 +41,7 @@ training for working with the EnMAP-Box.
 2. Requirements
 ---------------
 
-.. TODO Update Version
-
-This practical requires at least version 3.3 of the EnMAP-Box 3.
+This practical requires at least version 3.6 of the EnMAP-Box 3.
 There might be some minor changes for higher versions (e.g., changed menu labels, added parameter options, etc.).
 
 
