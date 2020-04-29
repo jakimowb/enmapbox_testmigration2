@@ -94,8 +94,6 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
     def dummySlot(self, *arg, **kwds):
         print('Dummy Slot called.')
 
-
-
 class TestEnMAPBox(EnMAPBoxTestCase):
 
     def tearDown(self):

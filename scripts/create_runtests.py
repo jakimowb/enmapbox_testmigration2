@@ -59,17 +59,24 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
     #linesSh.append('mkdir {}'.format(dirOut))
 
     n = 0
-    for DIR_TESTS in TEST_DIRECTORIES:
-        for i, file in enumerate(file_search(DIR_TESTS, 'test_*.py')):
-            file = pathlib.Path(file)
-            do_append = '' if n == 0 else '--append'
-            pathTest = file.relative_to(DIR_REPO).as_posix()
-            lineBat = '%PYTHON% -m coverage run --rcfile=.coveragec {}  {}'.format(do_append, pathTest)
-            lineSh = 'python3 -m coverage run --rcfile=.coveragec {}  {}'.format(do_append, pathTest)
-            linesBat.append(lineBat)
-            linesSh.append(lineSh)
-            linesYAML.append(lineSh)
-            n += 1
+    if False:
+        for DIR_TESTS in TEST_DIRECTORIES:
+            for i, file in enumerate(file_search(DIR_TESTS, 'test_*.py')):
+                file = pathlib.Path(file)
+                do_append = '' if n == 0 else '--append'
+                pathTest = file.relative_to(DIR_REPO).as_posix()
+                lineBat = '%PYTHON% -m coverage run --rcfile=.coveragec {}  {}'.format(do_append, pathTest)
+                lineSh = 'python3 -m coverage run --rcfile=.coveragec {}  {}'.format(do_append, pathTest)
+                linesBat.append(lineBat)
+                linesSh.append(lineSh)
+                linesYAML.append(lineSh)
+                n += 1
+    else:
+        lineBat = '%PYTHON% -m coverage run -m unittest discover -s enmapboxtesting'
+        lineSh = 'python3 -m coverage run -m unittest discover -s enmapboxtesting'
+        linesBat.append(lineBat)
+        linesSh.append(lineSh)
+        linesYAML.append(lineSh)
 
     linesBat.append('%PYTHON% -m coverage report')
     linesSh.append('python3 -m coverage report')

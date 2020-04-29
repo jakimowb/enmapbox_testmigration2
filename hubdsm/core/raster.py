@@ -13,6 +13,7 @@ from hubdsm.core.gdalrasterdriver import VRT_DRIVER
 from hubdsm.core.mask import Mask
 from hubdsm.core.gdalraster import GdalRaster
 from hubdsm.core.grid import Grid
+from hubdsm.core.table import Table
 
 
 @dataclass(frozen=True)
@@ -185,9 +186,9 @@ class Raster(object):
             self, grid: Grid = None, mode=SampleMode.strict, fieldNames=SampleFieldNames.bandNames,
             graRaster: int = None, graMask: int = None,
             xPixel: str = None, yPixel: str = None, xMap: str = None, yMap: str = None,
-    ) -> np.recarray:
+    ) -> Union[Table, Optional[Table]]:
         '''
-        Sample raster at masked locations and return tabulated data as structured array.
+        Sample raster at masked locations and return tabulated data and (optional) locations.
         Use band names (fieldNames=0 is default) or band indices (fieldNames=1) as field names.
         Use strict sampling (mode=0 is default) to only sample profiles without any missing values
         (useful for fitting maschine learner).
@@ -195,7 +196,6 @@ class Raster(object):
         (useful for timeseries analysis).
         Use x/yPixel keywords to name and include sampled pixel locations.
         Use x/yMap keywords to name and include sampled map locations.
-
         '''
         if grid is None:
             grid = self.grid
@@ -213,6 +213,7 @@ class Raster(object):
         else:
             raise ValueError(mode)
 
+        # prepare data table
         arrays = []
         names = []
         for number in range(1, len(self.bands) + 1):
@@ -226,6 +227,15 @@ class Raster(object):
                 raise ValueError(fieldNames)
             arrays.append(array[maskArray])
             names.append(name)
+        dtype = np.dtype(dict(names=names, formats=tuple(array.dtype for array in arrays)))
+        sample = np.zeros(len(arrays[0]), dtype=dtype)
+        for name, array in zip(names, arrays):
+            sample[name] = array
+        sample = Table(recarray=np.rec.array(sample))
+
+        # prepare location table
+        arrays = []
+        names = []
         if xPixel is not None:
             arrays.append(grid.xPixelCoordinatesArray(grid=self.grid)[maskArray])
             names.append(xPixel)
@@ -238,14 +248,16 @@ class Raster(object):
         if yMap is not None:
             arrays.append(grid.yMapCoordinatesArray()[maskArray])
             names.append(yMap)
+        if len(arrays) > 0:
+            dtype = np.dtype(dict(names=names, formats=tuple(array.dtype for array in arrays)))
+            location = np.zeros(len(arrays[0]), dtype=dtype)
+            for name, array in zip(names, arrays):
+                location[name] = array
+            location = Table(recarray=np.rec.array(location))
+        else:
+            location = None
 
-        dtype = np.dtype(dict(names=names, formats=tuple(array.dtype for array in arrays)))
-        sample = np.zeros(len(arrays[0]), dtype=dtype)
-        for name, array in zip(names, arrays):
-            sample[name] = array
-        #sample = sample.view(np.recarray)
-        sample = np.rec.array(sample)
-        return sample
+        return sample, location
 
     @property
     def categories(self):

@@ -269,14 +269,15 @@ class DockArea(pgDockArea):
         """Removes *dock* from this DockArea and places it in a new window."""
 
         lastArea = dock.area
-
-
-        area = self.addTempArea()
-        area.win.resize(dock.size())
-        area.moveDock(dock, 'top', None)
+        super().floatDock(dock)
 
         if isinstance(lastArea, DockArea):
             lastArea.sigDockRemoved.emit(dock)
+
+        # fix for https://bitbucket.org/hu-geomatics/enmap-box/issues/424
+        newArea = dock.area
+        s2 = QSize(newArea.size().width()+1, newArea.size().height())
+        newArea.resize(s2)
 
     def apoptose(self):
         try:
@@ -367,6 +368,7 @@ class DockLabel(pgDockLabel):
 
                 dockArea.sigDockAdded.connect(lambda dock: self.setUnfloatButtonVisibility(dock, False))
                 dockArea.sigDockRemoved.connect(lambda dock: self.setUnfloatButtonVisibility(dock, True))
+        self.update()
 
     def setUnfloatButtonVisibility(self, dock, b:bool):
         self.btnUnFloat.setVisible(b)
@@ -398,8 +400,7 @@ class DockLabel(pgDockLabel):
         super(DockLabel, self).resizeEvent(ev)
     """
 
-
-    def resizeEvent(self, ev):
+    def resizeEvent(self, ev: QResizeEvent):
         if self.orientation == 'vertical':
             size = ev.size().width()
         else:

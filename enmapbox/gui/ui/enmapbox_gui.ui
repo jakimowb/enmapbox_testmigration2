@@ -110,6 +110,7 @@
       <string>Add Product</string>
      </property>
      <addaction name="mActionAddSentinel2"/>
+     <addaction name="separator"/>
      <addaction name="mActionAddSubDatasets"/>
     </widget>
     <addaction name="mActionAddDataSource"/>
@@ -728,6 +729,11 @@
     <string>Select and add Sub-Datasets, e.g. from HDF images</string>
    </property>
   </action>
+  <action name="actionEnMAP_L1B">
+   <property name="text">
+    <string>EnMAP L1B</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -750,7 +756,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../../../../QGIS/images/images.qrc"/>
+  <include location="../../../../QGIS/images/images.qrc"/>
   <include location="../../../../QGIS/images/images.qrc"/>
   <include location="../../enmapboxresources.qrc"/>
   <include location="../../externals/qps/qpsresources.qrc"/>

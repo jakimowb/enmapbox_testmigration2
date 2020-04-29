@@ -94,9 +94,15 @@ class GdalRasterDriver(object):
     def delete(self, filename: str):
         """Delete GDAL raster file on disk or unlink on /vsimem/."""
         if filename.startswith('/vsimem/'):
-            gdal.Unlink(filename)
+            try:
+                gdal.Unlink(filename)
+            except:
+                pass
         if exists(filename):
-            self.gdalDriver.Delete(filename)
+            try:
+                self.gdalDriver.Delete(filename)
+            except:
+                pass
 
     def prepareCreation(self, filename: str) -> str:
         """Return absolute filename and create root folder/subfolders if not existing."""
