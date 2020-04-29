@@ -1,5 +1,6 @@
 .. include:: /icon_links.rst
 
+.. _tutorial_biomass:
 
 Regression-based mapping of forest aboveground biomass
 ######################################################

@@ -85,12 +85,69 @@ Input Parameters:
 
    Once all parameters are entered, press the |action| button to start the classification workflow.
 
+|
+
+....
+
+|
 
 .. _Regression Workflow:
 
 Regression Workflow
 ===================
 
+You can find the Regression Workflow in the menu bar :menuselection:`Applications --> Classification Workflow`
+
+.. seealso:: Have a look at the :ref:`Biomass Mapping Tutorial <tutorial_biomass>` for a use case example of the Regression Workflow Application.
+
+Input Parameters:
+
+* **Training Inputs**
+
+  * :guilabel:`Raster`: Specify input raster based on which samples will be drawn for training a regressor.
+  * :guilabel:`Reference`: Specify vector dataset with reference information. Has to have a numeric column in the attribute table with a
+    target variable of interest. This vector dataset is rasterized/burned on-the-fly onto the grid of
+    the input raster in order to extract the sample. If the vector source is a polygon dataset, all pixels will be drawn which
+    intersect the polygon.
+
+  * :guilabel:`Attribute`: Attribute field in the reference vector layer which contains the regression target variable.
+
+* **Sampling**
+
+  * :guilabel:`Number of Strata` |spin|: Specify the desired number of strata sampling. If you don't want to use
+    stratified sampling, just enter ``1``.
+  * :guilabel:`Min` & :guilabel:`Max`: Defines the value range in which samples should be drawn.
+  * :guilabel:`Sample size` |combo| |spin|: Specify the sample size per stratum, either relative in percent or in absolute pixel counts.
+
+    Every stratum is listed below with the value range that is covered by this stratum depicted in square brackets
+    (e.g., ``Stratum 1: [1.0, 4.33]``). Furthermore, you can see and alter the number of pixels/samples for each stratum using the |spin| spinboxes.
+  * |cb0| :guilabel:`Save sample`: Activate this option and specify an output path to save the sample as a raster.
+
+* **Training**
+
+  * In the :guilabel:`Regressor` |combo| dropdown menu you can choose different regressors (e.g. Random Forest, Support Vector Regression, Kernel Ridge Regression)
+  * |mIconCollapse| :guilabel:`Model parameters`: Specify the parameters of the selected regressor.
+
+     .. hint::
+
+        Scikit-learn python syntax is used here, which means you can specify model parameters accordingly. Have a look at
+        the scikit-learn documentation on the individual parameters, e.g. for the `RandomForestRegressor <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html>`_
+
+  * |cb0| :guilabel:`Save model`: Activate this option to save the model file (:file:`.pkl`) to disk.
+
+* **Mapping**
+
+  * :guilabel:`Input Raster`: Specify the raster you would like to apply the trained regressor to (usually -but not necessarily-
+    this is the same as used for training)
+
+* **Cross-validation Accuracy Assessment**
+
+  * |cb0| Cross-validation with n-folds |spin|: Activate this setting to assess the accuracy of the regression by performing cross
+    validation. Specify the desired number of folds (default: 3). HTML report will be generated at the specified output path.
+
+.. admonition:: Run the classification workflow
+
+   Once all parameters are entered, press the |action| button to start the regression workflow.
 
 
 EO Time Series Viewer
