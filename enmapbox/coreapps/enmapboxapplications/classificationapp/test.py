@@ -10,7 +10,7 @@ if __name__ == '__main__':
     #import qgisresources.images
     #qgisresources.images.qInitResources()
 
-    enmapBox = EnMAPBox(None)
+    enmapBox = EnMAPBox(load_other_apps=False, load_core_apps=False)
     enmapBox.run()
     enmapBox.openExampleData(mapWindows=0)
 

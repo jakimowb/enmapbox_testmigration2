@@ -3,14 +3,14 @@ from unittest import TestCase
 
 import numpy as np
 
-from hubdsm.core.gdalrasterdriver import (GdalRasterDriver, MEM_DRIVER, ENVI_BSQ_DRIVER, ENVI_BIL_DRIVER,
-                                          ENVI_BIP_DRIVER, GTIFF_DRIVER, ERDAS_DRIVER, VRT_DRIVER)
+from hubdsm.core.gdaldriver import (GdalDriver, MEM_DRIVER, ENVI_BSQ_DRIVER, ENVI_BIL_DRIVER,
+                                    ENVI_BIP_DRIVER, GTIFF_DRIVER, ERDAS_DRIVER, VRT_DRIVER)
 
 
-class TestGdalRasterDriver(TestCase):
+class TestGdalDriver(TestCase):
 
     def test(self):
-        driver = GdalRasterDriver(name='MEM')
+        driver = GdalDriver(name='MEM')
 
     def test_fromFilename(self):
         settings = [([None, ''], MEM_DRIVER),
@@ -24,7 +24,7 @@ class TestGdalRasterDriver(TestCase):
 
         for filenames, driver in settings:
             for filename in filenames:
-                self.assertEqual(GdalRasterDriver.fromFilename(filename=filename), driver)
+                self.assertEqual(GdalDriver.fromFilename(filename=filename), driver)
 
     def test_create(self):
         MEM_DRIVER.createFromArray(array=np.array([[[1]]], dtype=np.uint8))

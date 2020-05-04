@@ -1,7 +1,7 @@
 import numpy as np
 from qgis._core import QgsRasterLayer
 
-from hubdsm.core.gdalrasterdriver import ENVI_DRIVER
+from hubdsm.core.gdaldriver import ENVI_DRIVER
 from hubdsm.processing.importenmapl1b import ImportEnmapL1B
 from hubdsm.test.processing.testcase import TestCase
 

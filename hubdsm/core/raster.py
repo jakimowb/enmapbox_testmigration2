@@ -1,6 +1,7 @@
 # from __future__ import annotations
 from enum import IntEnum
-from os.path import basename, abspath
+from os import makedirs
+from os.path import basename, abspath, dirname
 
 from dataclasses import dataclass
 from typing import Tuple, Sequence, Union, Iterator, Optional, List
@@ -9,7 +10,7 @@ import numpy as np
 from osgeo import gdal
 
 from hubdsm.core.band import Band
-from hubdsm.core.gdalrasterdriver import VRT_DRIVER
+from hubdsm.core.gdaldriver import VRT_DRIVER
 from hubdsm.core.mask import Mask
 from hubdsm.core.gdalraster import GdalRaster
 from hubdsm.core.grid import Grid
@@ -67,17 +68,17 @@ class Raster(object):
 
     @staticmethod
     def create(grid: Grid, bands=1, gdt: int = None, filename: str = None, gco: List[str] = None):
-        from hubdsm.core.gdalrasterdriver import GdalRasterDriver
-        driver = GdalRasterDriver.fromFilename(filename=filename)
-        gdalRaster = driver.create(grid=grid, bands=bands, gdt=gdt, filename=filename, gco=gco)
+        from hubdsm.core.gdaldriver import GdalDriver
+        driver = GdalDriver.fromFilename(filename=filename)
+        gdalRaster = driver.createRaster(grid=grid, bands=bands, gdt=gdt, filename=filename, gco=gco)
         return Raster.open(gdalRaster)
 
     @staticmethod
     def createFromArray(
             array: np.ndarray, grid: Optional[Grid] = None, filename: str = None, gco: List[str] = None
     ):
-        from hubdsm.core.gdalrasterdriver import GdalRasterDriver
-        driver = GdalRasterDriver.fromFilename(filename=filename)
+        from hubdsm.core.gdaldriver import GdalDriver
+        driver = GdalDriver.fromFilename(filename=filename)
         gdalRaster = driver.createFromArray(array=array, grid=grid, filename=filename, gco=gco)
         return Raster.open(gdalRaster)
 
@@ -183,7 +184,7 @@ class Raster(object):
         bandIndices = 1
 
     def readAsSample(
-            self, grid: Grid = None, mode=SampleMode.strict, fieldNames=SampleFieldNames.bandNames,
+            self, grid: Grid = None, mode: int = None, fieldNames: int = None,
             graRaster: int = None, graMask: int = None,
             xPixel: str = None, yPixel: str = None, xMap: str = None, yMap: str = None,
     ) -> Union[Table, Optional[Table]]:
@@ -201,6 +202,8 @@ class Raster(object):
             grid = self.grid
         if mode is None:
             mode = self.SampleMode.strict
+        if fieldNames is None:
+            fieldNames = self.SampleFieldNames.bandNames
 
         if mode is self.SampleMode.strict:
             maskArray = np.full(shape=grid.shape, fill_value=True, dtype=np.bool)
@@ -298,7 +301,12 @@ class Raster(object):
         lines = [line + '\n' for line in gdal.VSIFReadL(1, 100000, file).decode().split('\n')]
         gdal.VSIFCloseL(file)
         gdal.Unlink(tmpfilename)
+
         # - write sources
+        try:
+            makedirs(dirname(filename))
+        except:
+            pass
         with open(filename, 'w') as file:
             bandIndex = 0
             for line in lines:

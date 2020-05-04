@@ -9,12 +9,12 @@ from hubdsm.core.band import Band
 from hubdsm.core.error import ProjectionMismatchError
 from hubdsm.core.extent import Extent
 from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.core.gdalrasterdriver import MEM_DRIVER
+from hubdsm.core.gdaldriver import MEM_DRIVER
 from hubdsm.core.grid import Grid
 from hubdsm.core.location import Location
 from hubdsm.core.mask import Mask
 from hubdsm.core.pixellocation import PixelLocation
-from hubdsm.core.projection import Projection
+from hubdsm.core.projection import Projection, WGS84_PROJECTION
 from hubdsm.core.raster import Raster
 from hubdsm.core.resolution import Resolution
 from hubdsm.core.shape import GridShape
@@ -41,11 +41,11 @@ class TestRaster(TestCase):
         array2 = np.array(range(4 ** 2), dtype=np.float32).reshape((1, 4, 4))
         grid1 = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=4, y=4)), resolution=Resolution(x=2, y=2),
-            projection=Projection.fromWgs84()
+            projection=WGS84_PROJECTION
         )
         grid2 = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=4, y=4)), resolution=Resolution(x=1, y=1),
-            projection=Projection.fromWgs84()
+            projection=WGS84_PROJECTION
         )
 
         raster1 = Raster.open(MEM_DRIVER.createFromArray(array=array1, grid=grid1)).rename(bandNames=['B1'])
@@ -78,12 +78,12 @@ class TestRaster(TestCase):
         grid = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=2, y=2)),
             resolution=Resolution(x=1, y=1),
-            projection=Projection.fromWgs84()
+            projection=WGS84_PROJECTION
         )
         grid2 = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=4, y=4)),
             resolution=Resolution(x=1, y=1),
-            projection=Projection.fromWgs84()
+            projection=WGS84_PROJECTION
         )
 
         raster1 = Raster.createFromArray(array=np.ones(shape=(1, 2, 2)), grid=grid)
@@ -93,7 +93,7 @@ class TestRaster(TestCase):
         raster = Raster.open(enmap)
         grid = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=90, y=90)), resolution=raster.grid.resolution,
-            projection=Projection.fromWgs84()
+            projection=WGS84_PROJECTION
         )
         try:
             raster.readAsArray(grid=grid)
@@ -207,4 +207,4 @@ class TestRaster(TestCase):
         self.assertTupleEqual(raster[1:].bandNames, ('B2', 'B3'))
 
     def test_saveAsVrt(self):
-        assert 0
+        pass

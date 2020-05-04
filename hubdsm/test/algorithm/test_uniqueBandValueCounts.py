@@ -5,7 +5,7 @@ import numpy as np
 
 from hubdsm.algorithm.processingoptions import ProcessingOptions
 from hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
-from hubdsm.core.gdalrasterdriver import MEM_DRIVER
+from hubdsm.core.gdaldriver import MEM_DRIVER
 from hubdsm.core.raster import Raster
 from hubdsm.core.shape import GridShape
 
