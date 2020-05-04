@@ -10,8 +10,8 @@ The GUI
 
 
 
-1. Toolbar
-==========
+Toolbar
+=======
 
 In the toolbar you can find the most common tasks. See table below for information on different buttons and their functionality.
 
@@ -75,11 +75,15 @@ In the toolbar you can find the most common tasks. See table below for informati
      - Center map on clicked location
      - | This tool will move the center of the map
        | view to the pixel you click on
+   * - |link_basic|
+     - | Specify the linking between
+       | different maps
+     - Opens the Map Linking Dialog
 
+.. todo add vector editing symbols
 
-
-2. Data Sources
-===============
+Data Sources
+============
 
 The Data Sources panel lists the data in your current project, comparable to the Layers panel in QGIS. The following data types and their
 corresponding metadata are available:
@@ -145,13 +149,13 @@ corresponding metadata are available:
 
 .. tip::
 
-   * If you want to remove all layers of a type at once, right-click on the layer group (e.g. Raster Data) and select :guilabel:`Clear`
+   * If you want to remove all layers at once, right-click in the Data Sources panel and and select :guilabel:`Remove all DataSources`
    * The EnMAP-Box also supports Tile-/Web Map Services (e.g. Google Satellite or OpenStreetMap) as a raster layer. Just add them to
      your QGIS project as you normally would, and then click the |qgis_icon| :superscript:`Synchronize Data Sources with QGIS`
      button. Now they should appear in the data source panel and can be added to a Map View.
 
-3. Data Views
-=============
+Data Views
+==========
 
 The Data Views panel organizes the different windows and their content.
 You may change the name of a Window by double-clicking onto the name in the list.
@@ -213,20 +217,6 @@ In order to link Map Windows, go to :menuselection:`View --> Set Map Linking` in
 Here you can specify the above mentioned link options between the Map Windows. You may either specify linkages between pairs
 or link all canvases at once (the :guilabel:`All Canvases` option is only specifiable when the number of Map Windows is > 2). Remove
 created links by clicking |link_open|.
-
-**Alternative:** You can also create linkages between Map Windows directly from within the windows:
-
-.. warning:: Mind that this method might not work on Linux or Mac systems (due to display problems).
-             In that case just use :menuselection:`View --> Set Map Linking`.
-
-#. Click the |link_basic| button in the Map Window bar (|mapwindowbar|).
-#. Now the linking options/buttons appear the remaining Map Windows:
-
-   .. figure:: ../../img/map_linking2.png
-      :width: 100%
-
-#. Select the desired linking type by clicking on the respective button.
-
 
 .. raw:: html
 
@@ -399,8 +389,8 @@ This menu manages the connection between raster sources and spectral library win
 
 .. _processing_toolbox:
 
-4. Processing Toolbox
-=====================
+Processing Toolbox
+==================
 
 The processing toolbox is basically the same panel as in QGIS, i.e. it is mirrored into the EnMAP-Box GUI. Here you can find all the
 processing algorithms that come with the EnMAP-Box listed under *EnMAP-Box*. In case it is closed/not visible you can open
@@ -410,8 +400,8 @@ it via :menuselection:`View --> Panels --> QGIS Processing Toolbox`.
 
 See `QGIS Documentation - The toolbox <https://docs.qgis.org/3.4/en/docs/user_manual/processing/toolbox.html>`_ for further information.
 
-5. Cursor Location Values
-=========================
+Cursor Location Values
+======================
 
 This tools lets you inspect the values of a layer or multiple layers at the location where you click in the map view. To select a location (e.g. pixel or feature)
 use the |select_location| :superscript:`Select Cursor Location` button and click somewhere in the map view.

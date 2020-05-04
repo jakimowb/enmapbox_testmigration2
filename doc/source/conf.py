@@ -28,7 +28,7 @@ import PyQt5
 #    sys.modules['qgis.PyQt.{}'.format(m.__name__.split('.')[-1])] = m
 
 if True:
-    MOCK_MODULES = ['qgis','qgis.core','qgis.gui','qgis.utils',
+    MOCK_MODULES = ['qgis','qgis.core','qgis.gui','qgis.utils', 'osgeo',
                 'vrtbuilder','vrtbuilder.virtualrasters',
                 'qgis.PyQt','qgis.PyQt.Qt','qgis.PyQt.QtCore','qgis.PyQt.QtGui','qgis.PyQt.QtWidgets','qgis.PyQt.QtXml',
                 'processing','processing.core','processing.core.ProcessingConfig']
