@@ -1,4 +1,4 @@
-from os.path import basename
+from os.path import basename, exists
 from typing import Tuple
 
 from osgeo import gdal
@@ -28,14 +28,18 @@ def importEnmapL1B(
     offsets = [item.text for item in root.findall('specific/bandCharacterisation/bandID/OffsetOfBand')]
 
     # create VRTs
-    ds = gdal.Open(filenameMetadataXml.replace('-METADATA.XML', '-SPECTRAL_IMAGE_VNIR.GEOTIFF'))
+    filename = filenameMetadataXml.replace('-METADATA.XML', '-SPECTRAL_IMAGE_VNIR.TIF')
+    assert exists(filename)
+    ds = gdal.Open(filename)
     options = gdal.TranslateOptions(format='VRT')
     dsVnir: gdal.Dataset = gdal.Translate(destName=filenameVnir, srcDS=ds, options=options)
     dsVnir.SetMetadataItem('wavelength', '{'+', '.join(wavelength[:dsVnir.RasterCount]) + '}', 'ENVI')
     dsVnir.SetMetadataItem('wavelength_units', 'nanometers', 'ENVI')
     dsVnir.SetMetadataItem('fwhm', '{'+', '.join(fwhm[:dsVnir.RasterCount]) + '}', 'ENVI')
 
-    ds = gdal.Open(filenameMetadataXml.replace('-METADATA.XML', '-SPECTRAL_IMAGE_SWIR.GEOTIFF'))
+    filename = filenameMetadataXml.replace('-METADATA.XML', '-SPECTRAL_IMAGE_SWIR.TIF')
+    assert exists(filename)
+    ds = gdal.Open(filename)
     options = gdal.TranslateOptions(format='VRT')
     dsSwir: gdal.Dataset = gdal.Translate(destName=filenameSwir, srcDS=ds, options=options)
     dsSwir.SetMetadataItem('wavelength', '{'+', '.join(wavelength[dsVnir.RasterCount:]) + '}', 'ENVI')
