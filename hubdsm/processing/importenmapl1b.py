@@ -1,6 +1,5 @@
 from hubdsm.algorithm.importenmapl1b import importEnmapL1B
 from hubdsm.processing.enmapalgorithm import *
-from hubdsm.core.raster import Raster
 
 
 class ImportEnmapL1B(EnMAPAlgorithm):

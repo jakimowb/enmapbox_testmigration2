@@ -9,6 +9,8 @@ def importEnmapL1B(
 ) -> Tuple[gdal.Dataset, gdal.Dataset]:
     '''Return VNIR and SWIR VRT datasets with spectral information (wavelength and FWHM) and data gains/offsets.'''
 
+    assert isEnmapL1BProduct(filenameMetadataXml=filenameMetadataXml)
+
     if filenameVnir is None:
         filenameVnir = filenameMetadataXml.replace('METADATA.XML', 'EnMAP-Box_VNIR.vrt')
     if filenameSwir is None:
