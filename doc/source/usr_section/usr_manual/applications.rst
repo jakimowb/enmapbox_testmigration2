@@ -15,6 +15,56 @@ ImageMath
 Regression-based unmixing (synthMix)
 ====================================
 
+You can find the Regression-based unmixing in the menu bar :menuselection:`Applications --> Regression-based unmixing (synthMix)`
+
+.. seealso:: Have a look at the :ref:`Urban Unmixing Tutorial <tut_urban_unmixing>` for a use case example of the Regression-based unmixing Application.
+
+
+Input Parameters:
+
+* **Inputs**
+
+  * :guilabel:`Endmember Library`:
+  * :guilabel:`Class Attribute`:
+  * :guilabel:`Spectral Image`:
+
+* **Class Selection**
+
+  * :guilabel:`Target Classes` |combo|:
+
+* **Mixing Parameters**
+
+  * :guilabel:`Number of Synthetic Mixtures per Class`:
+  * :guilabel:`Include Original Library Endmembers` |cb0|:
+  * :guilabel:`Mixing Complexity Likelihoods`:
+
+    * 2EM:
+    * 3EM:
+    * 4EM:
+  * :guilabel:`Allow Within-Class Mixtures` |cb0|:
+  * :guilabel:`Class Likelihoods` |combo| *(Proportional | Equalized)*:
+
+* **Regression Algorithm**
+
+ * In the :guilabel:`Regressor` |combo| dropdown menu you can choose different regressors (e.g. Random Forest, Support Vector Regression, Kernel Ridge Regression)
+  * |mIconCollapse| :guilabel:`Model parameters`: Specify the parameters of the selected regressor.
+
+     .. hint::
+
+        Scikit-learn python syntax is used here, which means you can specify model parameters accordingly. Have a look at
+        the scikit-learn documentation on the individual parameters, e.g. for the `RandomForestRegressor <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html>`_
+
+  * :guilabel:`Use Ensemble` |cb0|:
+  * :guilabel:`Ensemble Size`:
+
+* **Outputs**
+
+
+|
+
+....
+
+|
 
 .. _Classification Workflow:
 
