@@ -1,9 +1,24 @@
 # -*- coding: utf-8 -*-
 
 
-import os, sys, importlib, re, fnmatch, io, zipfile, pathlib, warnings, collections, copy, shutil, typing, gc, sip
+import os
+import sys
+import importlib
+import re
+import fnmatch
+import io
+import zipfile
+import pathlib
+import warnings
+import collections
+import copy
+import shutil
+import typing
+import gc
+import sip
 import traceback
-
+import calendar
+import datetime
 from qgis.core import *
 from qgis.gui import *
 from qgis.PyQt.QtCore import *
@@ -14,7 +29,7 @@ from qgis.PyQt import uic
 from osgeo import gdal, ogr
 import numpy as np
 from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QDialogButtonBox, QLabel, QGridLayout, QMainWindow
-
+from . import DIR_UI_FILES
 # dictionary to store form classes and avoid multiple calls to read <myui>.ui
 QGIS_RESOURCE_WARNINGS = set()
 
@@ -207,15 +222,17 @@ def registeredMapLayers() -> list:
 METRIC_EXPONENTS = {
     "nm": -9, "um": -6, u"µm": -6, "mm": -3, "cm": -2, "dm": -1, "m": 0, "hm": 2, "km": 3
 }
+
 # add synonyms (lower-case)
-METRIC_EXPONENTS['nanometers'] = METRIC_EXPONENTS['nm']
-METRIC_EXPONENTS['micrometers'] = METRIC_EXPONENTS['μm'] = METRIC_EXPONENTS['um']
-METRIC_EXPONENTS['millimeters'] = METRIC_EXPONENTS['mm']
-METRIC_EXPONENTS['centimeters'] = METRIC_EXPONENTS['cm']
-METRIC_EXPONENTS['decimeters'] = METRIC_EXPONENTS['dm']
-METRIC_EXPONENTS['meters'] = METRIC_EXPONENTS['m']
-METRIC_EXPONENTS['hectometers'] = METRIC_EXPONENTS['hm']
-METRIC_EXPONENTS['kilometers'] = METRIC_EXPONENTS['km']
+METRIC_EXPONENTS['Nanometers'] = METRIC_EXPONENTS['nm']
+METRIC_EXPONENTS['Micrometers'] = METRIC_EXPONENTS['μm'] = METRIC_EXPONENTS['um']
+METRIC_EXPONENTS['Millimeters'] = METRIC_EXPONENTS['mm']
+METRIC_EXPONENTS['Centimeters'] = METRIC_EXPONENTS['cm']
+METRIC_EXPONENTS['Decimeters'] = METRIC_EXPONENTS['dm']
+METRIC_EXPONENTS['Meters'] = METRIC_EXPONENTS['m']
+METRIC_EXPONENTS['Hectometers'] = METRIC_EXPONENTS['hm']
+METRIC_EXPONENTS['Kilometers'] = METRIC_EXPONENTS['km']
+
 
 LUT_WAVELENGTH = dict({'B': 480,
                        'G': 570,
@@ -823,7 +840,140 @@ def scanResources(path=':') -> typing.Iterator[str]:
         elif D.fileInfo().isFile():
             yield D.filePath()
 
+def datetime64(value, dpy:int = None) -> np.datetime64:
+    """
+    Converts an input value into a numpy.datetime64 value.
+    :param value:
+    :return:
+    """
+    if isinstance(value, np.datetime64):
+        return value
+    elif isinstance(value, (str, datetime.date, datetime.datetime)):
+        return np.datetime64(value)
+    elif isinstance(value, int):
+        # expect a year
+        return np.datetime64('{:04}-01-01'.format(value))
+    elif isinstance(value, float):
+        # expect a decimal year
+        year = int(value)
+        fraction = value - year
 
+        if dpy is None:
+            dpy = 366 if calendar.isleap(year) else 365
+        else:
+            assert dpy in [365, 366]
+        # seconds of year
+        soy = np.round(fraction * dpy * 86400).astype(int)
+        return np.datetime64('{:04}-01-01'.format(year)) + np.timedelta64(soy, 's')
+
+    if isinstance(value, np.ndarray):
+        func = np.vectorize(datetime64)
+        return func(value)
+    else:
+        raise NotImplementedError('Unsupported input value: {}'.format(value))
+
+def day_of_year(date:np.datetime64) -> int:
+    """
+    Returns a date's Day-of-Year (DOY) (considering leap-years)
+    :param date: numpy.datetime64
+    :return: numpy.ndarray[int]
+    """
+    if not isinstance(date, np.datetime64):
+        date = np.datetime64(date)
+
+    dt = date - date.astype('datetime64[Y]') + 1
+    return dt.astype(int)
+
+def days_per_year(year):
+    """
+    Returns the days per year
+    :param year:
+    :return:
+    """
+    # is it a leap year?
+    if isinstance(year, float):
+        year = int(year)
+    elif isinstance(year, np.number):
+        year = int(year)
+    elif isinstance(year, np.datetime64):
+        year = year.astype(object).year
+    elif isinstance(year, datetime.date):
+        year = year.year
+    elif isinstance(year, datetime.datetime):
+        year = year.year
+    elif isinstance(year, np.ndarray):
+        func = np.vectorize(days_per_year)
+        return func(year)
+
+    return 366 if calendar.isleap(year) else 365
+
+    """
+    1. If the year is evenly divisible by 4, go to step 2. Otherwise, False.
+    2. If the year is evenly divisible by 100, go to step 3. Otherwise, False
+    3. If the year is evenly divisible by 400, True Otherwise, False
+    
+    """
+    """
+    Every year that is exactly divisible by four is a leap year, except for years that are exactly divisible by 100, 
+    but these centurial years are leap years, if they are exactly divisible by 400.
+    """
+    #is_leap = (year % 4 == 0 and not year % 100 == 0) or (year % 100 == 0 and year % 400 == 0)
+    #return np.where(is_leap, 366, 365)
+
+def convertDateUnit(value:np.datetime64, unit:str):
+    """
+    Converts a
+    :param value: numpy.datetime64 | datetime.date | datetime.datetime | float | int
+                  int values are interpreted as year
+                  float values are interpreted as decimal year
+    :param unit: output unit
+                (integer) Y - Year, M - Month, W - Week, D - Day, DOY - Day-of-Year
+                (float) DecimalYear (based on True number of days per year)
+                (float) DecimalYear[365] (based on 365 days per year, i.e. wrong for leap years)
+                (float) DecimalYear[366] (based on 366 days per year, i.e. wrong for none-leap years)
+
+    :return: float (if unit is decimal year), int else
+    """
+    # see https://numpy.org/doc/stable/reference/arrays.datetime.html#arrays-dtypes-dateunits
+    # for valid date units
+    if isinstance(value, np.ndarray):
+        func = np.vectorize(convertDateUnit)
+        return func(value, unit)
+
+    value = datetime64(value)
+    if unit == 'Y':
+        return value.astype(object).year
+    elif unit == 'M':
+        return value.astype(object).month
+    elif unit == 'D':
+        return value.astype(object).day
+    elif unit == 'W':
+        return value.astype(object).week
+    elif unit == 'DOY':
+        return int(((value - value.astype('datetime64[Y]')).astype('timedelta64[D]') + 1).astype(int))
+
+    elif unit.startswith('DecimalYear'):
+        year = value.astype(object).year
+        year64 = value.astype('datetime64[Y]')
+
+        # second of year
+        soy = (value - year64).astype('timedelta64[s]').astype(np.float64)
+
+        # seconds per year
+        if unit == 'DecimalYear[366]':
+            spy = 366 * 86400
+        elif unit == 'DecimalYear[365]':
+            spy = 365 * 86400
+        else:
+            spy = 366 if calendar.isleap(year) else 365
+            spy *= 86400
+        spy2 = np.datetime64('{:04}-01-01T00:00:00'.format(year+1)) - np.datetime64('{:04}-01-01T00:00:00'.format(year))
+        spy2 = int(spy2.astype(int))
+        if spy != spy2:
+            s = ""
+        return float(year + soy / spy)
+    else:
+        raise NotImplementedError()
 
 def convertMetricUnit(value: float, u1: str, u2: str) -> float:
     """
@@ -1029,48 +1179,109 @@ def parseWavelength(dataset) -> typing.Tuple[np.ndarray, str]:
     except:
         pass
 
+    def checkWavelengthUnit(key: str, value: str) -> str:
+        wlu = None
+        value = value.strip()
+        if re.search(r'wavelength.units?', key, re.I):
+            # metric length units
+            if re.search(r'^(Micrometers?|um|μm)$', values, re.I):
+                wlu = 'μm'  # fix with python 3 UTF
+            elif re.search(r'^(Nanometers?|nm)$', values, re.I):
+                wlu = 'nm'
+            elif re.search(r'^(Millimeters?|mm)$', values, re.I):
+                wlu = 'nm'
+            elif re.search(r'^(Centimeters?|cm)$', values, re.I):
+                wlu = 'nm'
+            elif re.search(r'^(Meters?|m)$', values, re.I):
+                wlu = 'nm'
+            elif re.search(r'^Wavenumber$', values, re.I):
+                wlu = '-'
+            elif re.search(r'^GHz$', values, re.I):
+                wlu = 'GHz'
+            elif re.search(r'^MHz$', values, re.I):
+                wlu = 'MHz'
+            # date / time units
+            elif re.search(r'^(Date|DTG|Date[_ ]?Time[_ ]?Group|Date[_ ]?Stamp|Time[_ ]?Stamp)$', values, re.I):
+                wlu = 'DateTime'
+            elif re.search(r'^Decimal[_ ]?Years?$', value, re.I):
+                wlu = 'DecimalYear'
+            elif re.search(r'^(Seconds?|s|secs?)$', values, re.I):
+                wlu = 's'
+            elif re.search(r'^Index$', values, re.I):
+                wlu = None
+            else:
+                wlu = None
+        return wlu
+
+    def checkWavelength(key: str, values:str):
+        wl = None
+        if re.search(r'wavelengths?$', key, re.I):
+            # remove trailing / ending { } and whitespace
+            values = re.sub('[{}]', '', values).strip()
+            if ',' not in values:
+                sep = ' '
+            else:
+                sep = ','
+            try:
+                wl = np.fromstring(values, sep=sep)
+            except Exception as ex:
+                pass
+        return wl
+
     if isinstance(dataset, gdal.Dataset):
-        for domain in dataset.GetMetadataDomainList():
-            # see http://www.harrisgeospatial.com/docs/ENVIHeaderFiles.html for supported wavelength units
+        # 1. check on dataset level
+        domains = dataset.GetMetadataDomainList()
+        if isinstance(domains, list):
+            for domain in domains:
+                # see http://www.harrisgeospatial.com/docs/ENVIHeaderFiles.html for supported wavelength units
 
-            mdDict = dataset.GetMetadata_Dict(domain)
+                mdDict = dataset.GetMetadata_Dict(domain)
 
-            for key, values in mdDict.items():
-                key = key.lower()
-                if re.search(r'wavelength$', key, re.I):
-                    tmp = re.findall(r'\d*\.\d+|\d+', values)  # find floats
-                    if len(tmp) != dataset.RasterCount:
-                        tmp = re.findall(r'\d+', values)  # find integers
-                    if len(tmp) == dataset.RasterCount:
-                        wl = np.asarray([float(w) for w in tmp])
-                    if wl is None and len(tmp) > 0 and len(tmp) != dataset.RasterCount:
-                        print('Wavelength definition in "{}" contains {} instead {} values'
-                              .format(key, len(tmp), dataset.RasterCount), file=sys.stderr)
+                for key, values in mdDict.items():
+                    if wl is None:
+                        wl = checkWavelength(key, values)
+                    if wlu is None:
+                        wlu = checkWavelengthUnit(key, values)
+                    if wl is not None and wlu is not None:
+                        # domain-specific check
+                        if domain == 'FORCE' and wlu == 'DecimalYear':
+                            # make decimal-year values leap-year sensitive
+                            wl = convertDateUnit(datetime64(wl, dpy=365), 'DecimalYear')
+                        break
 
-                if re.search(r'wavelength.units?', key):
-                    if re.search(r'(Micrometers?|um|μm)', values, re.I):
-                        wlu = 'μm'  # fix with python 3 UTF
-                    elif re.search(r'(Nanometers?|nm)', values, re.I):
-                        wlu = 'nm'
-                    elif re.search(r'(Millimeters?|mm)', values, re.I):
-                        wlu = 'nm'
-                    elif re.search(r'(Centimeters?|cm)', values, re.I):
-                        wlu = 'nm'
-                    elif re.search(r'(Meters?|m)', values, re.I):
-                        wlu = 'nm'
-                    elif re.search(r'Wavenumber', values, re.I):
-                        wlu = '-'
-                    elif re.search(r'GHz', values, re.I):
-                        wlu = 'GHz'
-                    elif re.search(r'MHz', values, re.I):
-                        wlu = 'MHz'
-                    elif re.search(r'Index', values, re.I):
-                        wlu = '-'
-                    else:
-                        wlu = '-'
+        if wl is not None and wlu is not None:
+            if len(wl) > dataset.RasterCount:
+                wl = wl[0:dataset.RasterCount]
+            return wl, wlu
 
-        if wl is not None and len(wl) > dataset.RasterCount:
-            wl = wl[0:dataset.RasterCount]
+        # 2. check on band level
+        wl = []
+        for b in range(dataset.RasterCount):
+            band: gdal.Band = dataset.GetRasterBand(b+1)
+            domains = band.GetMetadataDomainList()
+            if isinstance(domains, list):
+                for domain in domains:
+                    # see http://www.harrisgeospatial.com/docs/ENVIHeaderFiles.html for supported wavelength units
+                    mdDict = band.GetMetadata_Dict(domain)
+                    _wl = None
+                    for key, values in mdDict.items():
+                        if wlu is None:
+                            wlu = checkWavelengthUnit(key, values)
+                        if _wl is None:
+                            _wl = checkWavelength(key, values)
+                    if wlu is not None:
+                        s = ""
+                    if wlu and _wl:
+                        wl.append(_wl[0])
+                        break
+
+        if len(wl) == 0:
+            wl = None
+        else:
+            wl = np.asarray(wl)
+            if domain == 'FORCE' and wlu == 'DecimalYear':
+                # make decimal-year values leap-year sensitive
+                wl = convertDateUnit(datetime64(wl, dpy=365), 'DecimalYear')
 
     return wl, wlu
 
@@ -1638,6 +1849,27 @@ def setToolButtonDefaultActionMenu(toolButton:QToolButton, actions:list):
     menu.triggered.connect(toolButton.setDefaultAction)
     toolButton.setMenu(menu)
 
+class SearchFilesDialog(QgsDialog):
+    """
+    A dialog to select multiple files
+    """
+    sigFilesFound = pyqtSignal(list)
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        loadUi(DIR_UI_FILES / 'searchfilesdialog.ui', self)
+
+        self.btnMatchCase.setDefaultAction(self.optionMatchCase)
+        self.btnRegex.setDefaultAction(self.optionRegex)
+        self.btnRecursive.setDefaultAction(self.optionRecursive)
+        self.plainTextEdit: QPlainTextEdit
+
+
+
+
+    def validate(self):
+
+        s = ""
 
 
 class SelectMapLayersDialog(QgsDialog):
