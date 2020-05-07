@@ -108,3 +108,15 @@ def get_wl(sensor):
 
     return wl_sensor, fwhm
 
+def get_ndvi_wl(sensor):
+    red = {0: 326,
+           1: 3,
+           2: 47,
+           3: 3,
+           4: 16}
+    nir = {0: 486,
+           1: 7,
+           2: 69,
+           3: 4,
+           4: 27}
+    return red[sensor], nir[sensor]

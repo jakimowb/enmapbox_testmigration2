@@ -1,45 +1,31 @@
 # -*- coding: utf-8 -*-
 from hubflow.core import *
 import numpy as np
-import scipy
-from sklearn.decomposition import PCA
+# from sklearn.decomposition import PCA
 from sklearn.neural_network import MLPRegressor
-from sklearn.preprocessing import StandardScaler
-import os
-from sklearn.externals import joblib
-import gdal
-from gdalconst import *
-import struct
-import warnings
+# from sklearn.preprocessing import StandardScaler
+import joblib
+from lmuvegetationapps.Sensor_Info import get_ndvi_wl
 
-from lmuvegetationapps.Sensor_Info import get_wl
-
-class Functions:
+class MLRA_Training:  # Will be used for training new models, not for predictions!
 
     def __init__(self, main):
         self.m = main
         self.file_ext = None
         self.model_name = None
-        self.selecter = None
 
     def ann(self, X, y, activation, solver, alpha, max_iter=500):
-        self.model_name = "ann"
+        self.model_name = "ann_mlp"
         self.file_ext = ".ann"
         return MLPRegressor(activation=activation, solver=solver, alpha=alpha, max_iter=max_iter).fit(X, y)
 
-class Process:
+class Functions:
 
     def __init__(self, main):
         self.m = main
-        self.nbands = None
-        self.nrows = None
-        self.ncols = None
-        self.npara = None
-
         self.para_dict = {"N": 0, "cab": 1, "car": 2, "anth": 3, "cbrown": 4, "cw": 5, "cm": 6, "cp": 7, "ccl": 8,
                           "LAI": 9, "typeLIDF": 10, "LIDF": 11, "hspot": 12, "psoil": 13, "tts": 14, "tto": 15,
                           "psi": 16, "N2_can4": 17}
-
         self.conv = {
             "N": ["N", [1.0, 2.2], 1],
             "cab": ["chlorophyll", [10, 80], 1],
@@ -59,240 +45,265 @@ class Process:
             "anth": ["Canth", [0.0, 5.0], 1],  # Name, ylim/xlim, boost
             "cbrown": ["brown_pigments", [0.0, 1.0], 10],
             "N2_can4": ["N2_can4", [0, 30], 1]}
-
         self.wl_sensor = {1: 13, 2: 242, 3: 8, 4: 126}
 
         # 0: 'N', 1: 'cab', 2: 'cw', 3: 'cm', 4: 'LAI', 5: 'typeLIDF', 6: 'LIDF', 7: 'hspot',
         # 8: 'psoil', 9: 'tts', 10: 'tto', 11: 'psi', 12: 'cp', 13: ccl, 14: car, 15: anth, 16: cbrown
 
-    def NDVI(self, red, nir, in_matrix, thr):
-        NDVI_out = (in_matrix[:, :, nir] - in_matrix[:, :, red]) / (in_matrix[:, :, nir] + in_matrix[:, :, red])
+    def NDVI(self, bands, in_matrix, thr):
+        red, nir = bands[0], bands[1]
+        NDVI_out = (in_matrix[nir, :, :] - in_matrix[red, :, :]) / (in_matrix[nir, :, :] + in_matrix[red, :, :])
         NDVI_out = np.nan_to_num(NDVI_out)
         NDVI_out = np.where(NDVI_out > thr, 1, 0)
         return NDVI_out
 
     def read_image(self, image, dtype=np.float16):  # routine for loading bsq images, no bands are skipped anymore
 
-        dataset = gdal.Open(image)
-        self.nbands = dataset.RasterCount
-        self.nrows = dataset.RasterYSize
-        self.ncols = dataset.RasterXSize
+        # filename = "U:\ECST_III\Konferenzen\ESA_Workshop_2019\SPARC03-Barrax-B-geoSurfRefl_125_bands_EnMap_10B_ML_VHGP_Narea_noise"
+        # image = openRasterDataset(filename)
+        # meta = image.metadataDict()
+        # rasterDriverX = RasterDriver.fromFilename(filename)
+        # proj = image.projection()
+        #
+        # grid = Grid(extent=Extent(xmin=574873, xmax=578920, ymin=4322452, ymax=4325566, projection=proj),
+        #             resolution=6)
+        # grid = image.grid()
 
-        bands = range(self.nbands)
+        dataset = openRasterDataset(image)
+        in_matrix = dataset.readAsArray().astype(dtype=dtype)
+        nbands, nrows, ncols = in_matrix.shape
+        grid = dataset.grid()
 
-        in_matrix = np.zeros((self.nrows, self.ncols, self.nbands))
-        for i, band in enumerate(bands):
-            band = dataset.GetRasterBand(band + 1)
-            scancol = band.ReadRaster(0, 0, self.ncols, self.nrows, self.ncols, self.nrows, GDT_Float32)
-            in_matrix[:, :, i] = np.reshape(np.asarray(struct.unpack('f' * self.nrows * self.ncols, scancol),
-                                                             dtype=dtype), (self.nrows, self.ncols))
-        return self.nrows, self.ncols, self.nbands, in_matrix  # return a tuple back to the last function (type "dtype")
+        return nrows, ncols, nbands, grid, in_matrix  # return a tuple back to the last function (type "dtype")
 
-    def write_image(self, out_matrix, image_out, whichpara):
-        npara = len(whichpara)
-        driver = gdal.GetDriverByName('ENVI')
-        destination = driver.Create(image_out, self.ncols, self.nrows, npara, gdal.GDT_Float32)
-        for i, para in enumerate(whichpara):
-            band = destination.GetRasterBand(i+1)
-            band.SetDescription(para[0]) # temp! "para[0]" für whichpara=[['LAI']]
-            band.WriteArray(out_matrix[:,:,i])
-        destination.SetMetadataItem('data ignore value', str(-999), 'ENVI')
+    def write_image(self, out_matrix, image_out, grid, paras_out, out_mode):
+
+        if out_mode == 'single':
+            output = RasterDataset.fromArray(array=out_matrix, filename=image_out, grid=grid,
+                                             driver=EnviDriver())
+            output.setMetadataItem('data ignore value', self.m.proc_main.nodat[1], 'ENVI')
+
+            for iband, band in enumerate(output.bands()):
+                band.setDescription(paras_out[iband])
+                band.setNoDataValue(self.m.proc_main.nodat[1])
+        else:
+            for ipara in range(len(paras_out)):
+                image_out_individual = image_out[:-4] + "_" + paras_out[ipara] + image_out[-4:]
+                output = RasterDataset.fromArray(array=out_matrix[ipara, :, :], filename=image_out_individual, grid=grid,
+                                                 driver=EnviDriver())
+                output.setMetadataItem('data ignore value', self.m.proc_main.nodat[1], 'ENVI')
+                band = next(output.bands())  # output.bands() is a generator; here only one band
+                band.setDescription(paras_out[ipara])
+                band.setNoDataValue(self.m.proc_main.nodat[1])
+
+    def read_geometry(self, GeoIn):
+        _, georows, geocols, _, geometry_raw = self.read_image(image=GeoIn)
+
+        # Detect data range by inspecting the mean SZA in the image (where SZA > 0)
+        mean_SZA = np.mean(geometry_raw[geometry_raw > 0])
+        int_boost_geo = 10 ** (np.ceil(np.log10(mean_SZA)) - 2)  # evaluates as 1 for SZA=45, 100 for SZA=4500, ...
+
+        geometry_matrix = np.empty(shape=(3, georows, geocols))  # three "bands" for SZA, OZA, rAA
+        geometry_matrix.fill(-999)
+        geometry_matrix = geometry_raw / int_boost_geo  # insert all geometries from file into the geometry matrix
+
+        return geometry_matrix
 
     def which_model(self, geometry_matrix, geo):
-        nrows = geometry_matrix.shape[0]
-        ncols = geometry_matrix.shape[1]
+        nrows = geometry_matrix.shape[1]
+        ncols = geometry_matrix.shape[2]
         tts, tto, psi = geo
-        whichModel = np.zeros(shape=((nrows, ncols, 3)), dtype=np.int16)
+        whichModel = np.zeros(shape=((3, nrows, ncols)), dtype=np.int16)
 
         for row in range(nrows):
             for col in range(ncols):
                 # for the supplied geometry: find closest match in LUT
                 angles = []
-                angles.append(np.argmin(abs(geometry_matrix[row, col, 0] - tts)))  # tts
-                angles.append(np.argmin(abs(geometry_matrix[row, col, 1] - tto)))  # tto
-                angles.append(np.argmin(abs(geometry_matrix[row, col, 2] - psi)))  # psi
-                whichModel[row, col, 0] = angles[2] * len(tto) * len(tts) + angles[1] * len(tts) + angles[0]
+                angles.append(np.argmin(abs(geometry_matrix[0, row, col] - tts)))  # tts
+                angles.append(np.argmin(abs(geometry_matrix[1, row, col] - tto)))  # tto
+                angles.append(np.argmin(abs(geometry_matrix[2, row, col] - psi)))  # psi
+                whichModel[0, row, col] = angles[2] * len(tto) * len(tts) + angles[1] * len(tts) + angles[0]
         return whichModel
 
-class Application:
+class Processor:
     def __init__(self, main):
         self.m = main
-        self.global_list = ["LAI", "LIDF", "cab", "car", "anth", "cbrown", "N", "cm", "hspot"]
-        self.ann_activation = None
-        self.ann_solver = None
-        self.ann_max_iter = None
-        self.ann_alpha = None
-        self.ml_params_dict_ann = None
+        self.mlra_meta = {'ann':
+                              {'name': 'ann',
+                               'file_ext': '.ann',
+                               'file_name': 'ann_mlp'},
+                          'svr':
+                              {'name': 'svr',
+                               'file_ext': '.svr',
+                               'file_name': 'svr'}}
 
-    def setparams(self, noise=None, para=None):
+    def processor_setup(self, model_dir, ImgIn, ResOut, out_mode, mask_ndvi, ndvi_thr, mask_image, GeoIn,
+                        spatial_geo, paras, algorithm='ann', sensor_nr=2, fixed_geos=None, nodat=None):
+        self.model_dir = model_dir
+        self.ImgIn = ImgIn
+        self.ResOut = ResOut
+        self.out_mode = out_mode
+        self.mask_ndvi = mask_ndvi
+        self.ndvi_thr = ndvi_thr
+        self.mask_image = mask_image
+        self.GeoIn = GeoIn
+        self.spatial_geo = spatial_geo
+        self.paras = paras
+        self.algorithm = algorithm
+        self.sensor_nr = sensor_nr
+        if fixed_geos is None:
+            self.tts_unique, self.tto_unique, self.psi_unique = [None, None, None]
+        else:
+            self.tts_unique, self.tto_unique, self.psi_unique = fixed_geos
+        if nodat is None:
+            self.nodat = [-999, -999, -999]
+        else:
+            self.nodat = nodat
 
-        #################
-        ## Algorithmus ##
-        #################
+    def predict_from_dump(self, prg_widget=None, QGis_app=None):
 
-        # Pfad für die Models (entweder zum Abspeichern nach dem Training, oder zum Abruf bei Predictions!)
-        self.model_dir = r"E:\ECST_III\Processor\ML\Models\20200320/"
-        self.algorithmus = 'ann' # 'ann', 'gpr', 'svr', 'rforest'
-        warnings.filterwarnings('ignore')
+        if prg_widget:
+            prg_widget.gui.lblCaption_r.setText('Reading Input Image...')
+            QGis_app.processEvents()
 
-        ################
-        ## Prediction ##
-        ################
+        nrows, ncols, nbands, self.grid, in_matrix = self.m.func.read_image(image=self.ImgIn, dtype=np.int)
 
-        # Input Image für die Predictions
-        self.ImgIn = r"F:\Flugdaten2/Cali/BA_mosaic_su_cut.bsq"  # Oder hier nur das Subset mit den Felddaten? # Geo fehlt
-        self.GeoIn = None
-
-        self.int_boost_geo = 100 # Geometrien von 0 bis 9000 erhalten boost_geo = 100 -> 0° - 90°
-
-        # Output der predicted Variablen
-        self.ResOut = r"E:\ECST_III\Processor\ML\Output\20200320\California_BA_summer2.bsq"
-
-        # Von welchem Sensor sind die Daten?
-        self.sensor_nr = 2  # 1 = Sentinel, 2 = EnMAP, 3 = Landsat8, 4 = HyMap
-
-        # Sollen NDVI-Werte mit niedrigem Threshold ausgeklammert werden?
-        # self.mask_ndvi = {} # Nein
-        self.ndvi_thr = 0.05
-        self.mask_ndvi = {'red': 47, 'nir': 69, 'thr': self.ndvi_thr}  # Kanal für RED (ca. 668nm), Kanal für NIR (ca. 827nm), Threshold # Hymap: 16, 27 # EnMAP: 47, 69
-
-        # Distribute Geo?
-        self.spatial_geo = True
-
-        ##############
-        ## Training ##
-        ##############
-
-        # Liste an Variablen, die trainiert werden sollen
-        self.para_list = para
-        self.para_boost = True # scale parameter to range ~0-10 (das verbessert für manche Algorithmen die Qualität der Schätzung)
-        self.cv = 7  # neue Version: keine CV mehr
-
-        # Noise
-        self.conversion_factor = 10000 # EnMAP: 10000, FieldSpec: 1
-        self.noise_type = noise[0]
-        self.sigma = noise[1]
-
-        # Soll ein Image als Maske eingelesen werden?
-        self.mask_image = None
-        # self.mask_image = r"F:\SPARC\SPARC2003/HyMap_AtmCor/Barrax_BC_mask2.bsq"
-
-        self.para_list_flat = [item for sublist in self.para_list for item in sublist]
-
-
-    def predict_from_dump(self):
-
-        nrows, ncols, nbands, in_matrix = self.m.proc.read_image(image=self.ImgIn, dtype=np.int)  # Todo: hub-API
-
-        with open(self.model_dir + 'ann_mlp_paras.lut', 'r') as mlra_meta:
-            metacontent = mlra_meta.readlines()
+        with open(self.model_dir + '{}_paras.lut'.format(self.mlra_meta[self.algorithm]['file_name']), 'r') \
+                as mlra_metafile:
+            metacontent = mlra_metafile.readlines()
             metacontent = [line.rstrip('\n') for line in metacontent]
-        self.tts = [float(i) for i in metacontent[6].split("=")[1].split(";")]
-        self.tto = [float(i) for i in metacontent[7].split("=")[1].split(";")]
-        self.psi = [float(i) for i in metacontent[8].split("=")[1].split(";")]
+        self.all_tts = [float(i) for i in metacontent[6].split("=")[1].split(";")]
+        self.all_tto = [float(i) for i in metacontent[7].split("=")[1].split(";")]
+        self.all_psi = [float(i) for i in metacontent[8].split("=")[1].split(";")]
+
+        if prg_widget:
+            prg_widget.gui.lblCaption_r.setText('Reading Geometry Image...')
+            QGis_app.processEvents()
 
         if self.GeoIn:
-            geometry_matrix = self.m.proc.read_geometry(GeoIn=self.GeoIn, int_boost_geo=self.int_boost_geo)
+            geometry_matrix = self.m.func.read_geometry(GeoIn=self.GeoIn)
+            if not self.spatial_geo:  # get rid of spatial distribution of geometry (tts, tto, psi) within image
+                geometry_matrix[geometry_matrix == self.nodat[1]] = np.nan
+                geometry_matrix[0, :, :] = np.nanmean(geometry_matrix[0, :, :])
+                geometry_matrix[1, :, :] = np.nanmean(geometry_matrix[1, :, :])
+                geometry_matrix[2, :, :] = np.nanmean(geometry_matrix[2, :, :])
         else:
-            geometry_matrix = np.zeros(shape=(nrows,ncols,3))
-            geometry_matrix[:,:,0] = 45*self.int_boost_geo  # Todo: Abgreifen der Werte aus der GUI / setparams
+            geometry_matrix = np.zeros(shape=(3, nrows, ncols))
+            geometry_matrix[0, :, :] = self.tts_unique * 100
+            geometry_matrix[1, :, :] = self.tto_unique * 100
+            geometry_matrix[2, :, :] = self.psi_unique * 100
 
         if self.mask_image:
-            _, _, _, self.mask = self.m.proc.read_image(image=self.mask_image, dtype=np.int8)
-
-        if not self.spatial_geo:  # get rid of spatial distribution of geometry (tts, tto, psi) within image
-            geometry_matrix[geometry_matrix < 0] = np.nan
-            geometry_matrix[:, :, 0] = np.nanmean(geometry_matrix[:, :, 0])
-            geometry_matrix[:, :, 1] = np.nanmean(geometry_matrix[:, :, 1])
-            geometry_matrix[:, :, 2] = np.nanmean(geometry_matrix[:, :, 2])
-            # print("Geometry means: ", geometry_matrix[0,0,0], geometry_matrix[0,0,1], geometry_matrix[0,0,2])
+            if prg_widget:
+                prg_widget.gui.lblCaption_r.setText('Reading Mask Image...')
+                QGis_app.processEvents()
+            _, _, _, _, self.mask = self.m.func.read_image(image=self.mask_image, dtype=np.int8)
 
         if self.mask_ndvi:
-            self.ndvi_mask = self.m.proc.NDVI(red=self.mask_ndvi['red'], nir=self.mask_ndvi['nir'], in_matrix=in_matrix,
-                                              thr=self.mask_ndvi['thr'])
+            if prg_widget:
+                prg_widget.gui.lblCaption_r.setText('Applying NDVI Threshold...')
+                QGis_app.processEvents()
+            self.ndvi_mask = self.m.func.NDVI(bands=get_ndvi_wl(sensor=self.sensor_nr), in_matrix=in_matrix,
+                                              thr=self.ndvi_thr)
 
-        whichModel = self.m.proc.which_model(geometry_matrix=geometry_matrix, geo=(self.tts, self.tto, self.psi))
+        whichModel = self.m.func.which_model(geometry_matrix=geometry_matrix,
+                                             geo=(self.all_tts, self.all_tto, self.all_psi))
+
         self.whichModel_unique = np.unique(whichModel)  # find out, which "whichModels" are actually found in the geo_image
-
         whichModel_coords = list()
 
-        # Temp!
-        # for iwhichModel in self.whichModel_unique:
-        #     whichModel_coords.append(np.where((whichModel[:,:,0] == iwhichModel) & (self.mask[:,:,0] > 0) & (self.ndvi_mask > 0))) # add i,j coordinates to list for each whichModel that is not masked
+        all_true = np.full(shape=(nrows, ncols), fill_value=True)
 
-        whichModel_coords.append(np.where((in_matrix[:, :, 0] is not np.nan) & (self.ndvi_mask > 0)))
+        for iwhichModel in self.whichModel_unique:  # Mask depending on constraints
+            whichModel_coords.append(np.where((whichModel[0, :, :] == iwhichModel) &  # present Model
+                                              (self.mask[0, :, :] > 0 if self.mask_image else all_true) &  # not masked
+                                              (self.ndvi_mask > 0 if self.mask_ndvi else all_true) &  # NDVI masked
+                                              (~np.all(in_matrix == self.nodat[0], axis=0))))  # not NoDatVal
+
+        nbands, nrows, ncols = in_matrix.shape
+        self.out_matrix = np.full(shape=(len(self.paras), nrows, ncols), fill_value=self.nodat[2], dtype=np.float)  # Reihenfolge ändern
+        self.out_matrix = self.predict(image=in_matrix, whichModel_coords=whichModel_coords, out_matrix=self.out_matrix,
+                                       prg_widget=prg_widget, QGis_app=QGis_app)
 
 
-        # # Öffne das Parameter-Meta File des ML um nachzusehen, welche Parameter antrainiert wurden -> "para"
-        # with open(self.model_dir + self.ml_model_name + '_paras.lut', 'r') as para_file:
-        #     para = para_file.readline()
-        # para_from_ml = para.split(";")
-        # if para_from_ml[-1] == '':
-        #     del para_from_ml[-1]
-        # self.whichpara_dict = dict(zip(para_from_ml, range(len(para_from_ml))))  # Die Reihenfolge muss bekannt sein
+    def write_prediction(self):
+        self.m.func.write_image(out_matrix=self.out_matrix, image_out=self.ResOut, grid=self.grid,
+                                out_mode=self.out_mode, paras_out=self.paras)
 
-        self.whichparas = self.para_list  # Temp Fernerkundung, Diss, bzw. es bleibt fix
+    def predict(self, image, whichModel_coords, out_matrix, prg_widget, QGis_app):
+        nbands, nrows, ncols = image.shape
 
-        nrows, ncols, nbands = in_matrix.shape
-        out_matrix = np.full(shape=(nrows, ncols, len(self.para_list)), fill_value=-999.0)
-        out_matrix = self.predict(image=in_matrix, whichModel_coords=whichModel_coords, out_matrix=out_matrix)
+        image = image.reshape((nbands, -1))  # collapse rows and cols into 1 dimension
+        image = np.swapaxes(image, 0, 1)     # place predictors into the right position
 
-        # out_matrix = np.expand_dims(out_matrix, axis=1)
-        # print("dims out: ", out_matrix.shape)
-        self.m.proc.write_image(out_matrix=out_matrix, image_out=self.ResOut, whichpara=self.para_list)
+        for ipara, para in enumerate(self.paras):
+            if prg_widget:
+                prg_widget.gui.lblCaption_r.setText('Predicting {} (parameter {:d} of {:d})...'
+                                                    .format(para, ipara+1, len(self.paras)))
+                QGis_app.processEvents()
+            process_dict = joblib.load(self.model_dir + '{}_{}.proc'
+                                       .format(self.mlra_meta[self.algorithm]['file_name'], para))
 
-    def predict(self, image, whichModel_coords, out_matrix):
-        nrows, ncols, nbands = image.shape
-        image = image.reshape((-1, nbands))  # collapse rows and cols into 1 dimension
-
-        for ipara, para in enumerate(self.whichparas):
-            process_dict = joblib.load(self.model_dir + 'ann_mlp_{}.proc'.format(para))
-            image_para = np.copy(image)
+            image_copy = np.copy(image)
 
             if process_dict['log_transform']:
-                image_para[image_para > 0] = np.log(1/image_para[image_para > 0])
-                image_para[image_para == np.inf] = 0
-                # print("Is nan?", np.isnan(image_para).any())  # For debugging
-                # print("Nans:", np.argwhere(np.isnan(image_para)))
+                image_copy[image_copy > 0] = np.log(1 / image_copy[image_copy > 0])
+                image_copy[image_copy == np.inf] = 0
 
             if process_dict['scaler']:
-                image_para = process_dict['scaler'].transform(image_para)
+                image_copy = process_dict['scaler'].transform(image_copy)
 
             if process_dict['pca']:
-                image_para = process_dict['pca'].transform(image_para)
+                image_copy = process_dict['pca'].transform(image_copy)
 
-            nbands_para = image_para.shape[1]  # nr. of bands may have changed (select, pca)
+            nbands_para = image_copy.shape[1]
+            image_copy = image_copy.reshape((nrows, ncols, nbands_para))  # Back into old shape
 
-            # Temp
-            image_para = image_para.reshape((nrows, ncols, nbands_para))  # back into 2D-shape
-
-            n_geo = len(self.tts) * len(self.tto) * len(self.psi)
-
+            n_geo = len(self.all_tts) * len(self.all_tto) * len(self.all_psi)
             mod = list()
             for igeo in range(n_geo):
-                mod.append(joblib.load(self.model_dir + 'ann_mlp_{:d}_{}.ann'.format(igeo, para)))
+                mod.append(joblib.load(self.model_dir + '{}_{:d}_{}.ann'
+                                       .format(self.mlra_meta[self.algorithm]['file_name'], igeo, para)))
 
-            # Temp
             for i_imodel, imodel in enumerate(self.whichModel_unique):
                 if whichModel_coords[i_imodel][0].size == 0:
-                    continue  # after masking, not all 'imodels' are present in the image
-                result = mod[imodel].predict(image_para[whichModel_coords[i_imodel][0], whichModel_coords[i_imodel][1], :])
-                out_matrix[whichModel_coords[i_imodel][0], whichModel_coords[i_imodel][1], ipara] = result / self.m.proc.conv[para][2]
-
-            # result = mod[0].predict(image_para).reshape((nrows, ncols))
-            # out_matrix[:, :, ipara] = result / self.m.proc.conv[para][2]
+                    continue  # after masking, not all 'imodels' are present in the image_copy
+                result = mod[imodel].predict(image_copy[whichModel_coords[i_imodel][0], whichModel_coords[i_imodel][1], :])
+                out_matrix[ipara, whichModel_coords[i_imodel][0], whichModel_coords[i_imodel][1]] = result / self.m.func.conv[para][2]
 
         return out_matrix
 
 
-class MainFunction:
+class ProcessorMainFunction:
     def __init__(self):
+        self.mlra_training = MLRA_Training(self)
         self.func = Functions(self)
-        self.proc = Process(self)
-        self.app = Application(self)
+        self.proc_main = Processor(self)
 
 if __name__ == '__main__':
-    m = MainFunction()
-    para = ['LAI', 'LIDF', 'cm', 'cab'] # Predict
-    m.app.setparams(noise=[1, 4], para=para)
-    m.app.predict_from_dump()
+    m = ProcessorMainFunction()
+    paras = ['LAI', 'LIDF', 'cm', 'cab']  # Predict
+
+    # Test setting
+    model_dir = r"F:\Flugdaten2\20200320/"     # Path to model directory (either for training models or to predict from existing models)
+    algorithm = 'ann'  # 'ann', 'gpr', 'svr', 'rforest'
+    ImgIn = r"F:\Flugdaten2/Cali/Test_Snippet/BA_mosaic_su_cut_test.bsq"      # Input Image für die Predictions
+    int_boost_geo = 100  # Geometrien von 0 bis 9000 erhalten boost_geo = 100 -> 0° - 90°
+    ResOut = r"F:\Flugdaten2/Cali/Test_Snippet/geounique_test.bsq"  # Output of the predicted variables
+    out_mode = 'individual'  # single: all in one file, individual: all in individual files
+    sensor_nr = 2  # 1 = Sentinel, 2 = EnMAP, 3 = Landsat8, 4 = HyMap
+    mask_image = None
+
+    mask_ndvi = True  # Mask values with NDVI > x? Switch True/False
+    ndvi_thr = 0.05
+
+    GeoIn = r"F:\Flugdaten2\Cali/Test_Snippet/BA_mosaic_su_cut_geo_test.bsq"
+    # fixed_geos = [45, 0, 0]  # tts, tto, psi -> fixed values
+    fixed_geos = None
+    spatial_geo = False  # True: use geo per pixel; False: Use mean values of image
+
+    m.proc_main.processor_setup(model_dir=model_dir, algorithm=algorithm, ImgIn=ImgIn, ResOut=ResOut, out_mode=out_mode,
+                                sensor_nr=sensor_nr, mask_ndvi=mask_ndvi, ndvi_thr=ndvi_thr, mask_image=mask_image,
+                                GeoIn=GeoIn, fixed_geos=fixed_geos, spatial_geo=spatial_geo, paras=paras)
+
+    m.proc_main.predict_from_dump()

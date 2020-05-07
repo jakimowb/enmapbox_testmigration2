@@ -17,22 +17,23 @@ pathUI = os.path.join(os.path.dirname(__file__), 'GUI_VIT.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
 pathUI_Prg = os.path.join(os.path.dirname(__file__),'GUI_ProgressBar.ui')
 
-from enmapbox.gui.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUi
 
-class VIT_GUI(QDialog, loadUIFormClass(pathUI)):
+class VIT_GUI(QDialog):
     def __init__(self, parent=None):
         super(VIT_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI, self)
 
-class Nodat_GUI(QDialog, loadUIFormClass(pathUI2)):
+class Nodat_GUI(QDialog):
     def __init__(self, parent=None):
         super(Nodat_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI2, self)
 
-class PRG_GUI(QDialog, loadUIFormClass(pathUI_Prg)):
+class PRG_GUI(QDialog):
     def __init__(self, parent=None):
         super(PRG_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI_Prg, self)
+
         self.allow_cancel = False
 
     def closeEvent(self, event): # window may only be closed, if self.allow_cancel is TRUE (=Cancel Button hit)
@@ -60,7 +61,7 @@ class VIT:
         self.chlIndices = [-1] * 26
         self.carIndices = [-1] * 5
         self.watIndices = [-1] * 8
-        self.dmIndices = [-1] * 9
+        self.dmIndices = [-1] * 10
         self.flIndices = [-1] * 4
         self.nodat = [None, None] # nodat[0] = in, nodat[1] = out
         self.division_factor = 1.0
@@ -127,7 +128,7 @@ class VIT:
                          5: self.gui.box_ndwi, 6: self.gui.box_pwi, 7: self.gui.box_srwi}
 
         self.dict_drymat = {0: self.gui.box_swirvi, 1: self.gui.box_cai, 2: self.gui.box_ndli, 3: self.gui.box_ndni, 4: self.gui.box_bgi,
-                         5: self.gui.box_bri, 6: self.gui.box_rgi, 7: self.gui.box_srpi, 8: self.gui.box_npci}
+                         5: self.gui.box_bri, 6: self.gui.box_rgi, 7: self.gui.box_srpi, 8: self.gui.box_npci, 9: self.gui.box_ndi_test}
 
         self.dict_fluor = {0: self.gui.box_cur, 1: self.gui.box_lic1, 2: self.gui.box_lic2, 3: self.gui.box_lic3}
 
