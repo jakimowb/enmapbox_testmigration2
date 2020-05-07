@@ -47,12 +47,12 @@ class IVVRM_GUI(QDialog):
         self.graphicsView.setBackground(QColor('black'))
 
         self.plotItem = self.graphicsView.getPlotItem()
-        # assert isinstance(self.plotItem, pg.PlotItem)
+        #assert isinstance(self.plotItem, pg.PlotItem)
         self.viewBox = self.plotItem.getViewBox()
-        # assert isinstance(self.viewBox, pg.ViewBox)
+        #assert isinstance(self.viewBox, pg.ViewBox)
         self.viewBoxMenu = self.viewBox.menu
-        # assert isinstance(self.viewBoxMenu, QMenu)
-        # assert isinstance(self.viewBoxMenu, pg.ViewBoxMenu.ViewBoxMenu)
+        #assert isinstance(self.viewBoxMenu, QMenu)
+        #assert isinstance(self.viewBoxMenu, pg.ViewBoxMenu.ViewBoxMenu)
 
         # add color settings to the viewbox context menu
         from qgis.gui import QgsColorButton

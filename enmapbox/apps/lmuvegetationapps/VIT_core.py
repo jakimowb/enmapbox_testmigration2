@@ -49,7 +49,7 @@ class VIT:
                       "PSSRa", "PSSRb", "LCI", "MLO", "ARI", "CRI", "CRI2", "PSSRc", "SIPI", "DSWI", "DWSI5",
                       "LMVI1", "LMVI2",
                       "MSI", "NDWI", "PWI", "SRWI", "SMIRVI", "CAI", "NDLI", "NDNI", "BGI", "BRI", "RGI", "SRPI",
-                      "NPCI", "CUR", "LIC1", "LIC2", "LIC3"]
+                      "NPCI", "NDI", "CUR", "LIC1", "LIC2", "LIC3"]
 
         self.labels = [all_labels[i] for i in range(len(all_labels)) if CollapseIndices[i] == 1]
 
@@ -57,8 +57,8 @@ class VIT:
         # List of wavelengths [nm] used for the indices. Append for new index!
         wl_list = [415, 420, 430, 435, 440, 445, 450, 500, 510, 528, 531, 547, 550, 554, 567, 645, 650, 665, 668, 670, 672, 675,
                    677, 680, 682, 683, 690, 695, 700, 701, 705, 708, 710, 715, 720, 724, 726, 734, 740, 745, 747, 750, 760, 774,
-                   780, 800, 802, 820, 827, 831, 850, 858, 860, 900, 970, 983, 1094, 1205, 1240, 1510, 1600, 1657, 1660,
-                   1680, 2015, 2090, 2106, 2195, 2208, 2210]
+                   780, 800, 802, 820, 827, 831, 850, 858, 860, 900, 970, 983, 1094, 1205, 1240, 1460, 1510, 1600, 1657, 1660,
+                   1680, 2015, 2090, 2106, 2114, 2195, 2208, 2210]
 
         self.loc_b(wl_list=wl_list) # Assign required wavelengths to sensor wavelengths
 
@@ -67,7 +67,8 @@ class VIT:
         ### Reading the spectral image
         dataset = gdal.Open(ImgIn)
         #self.grid = dataset.GetProjection()
-        if dataset is None: raise ValueError("Input Image not found!")
+        if dataset is None:
+            raise ValueError("Input Image not found!")
         nbands = dataset.RasterCount
 
         self.nodat[0] = dataset.GetMetadataItem('data_ignore_value', 'ENVI')
@@ -629,6 +630,10 @@ class VIT:
                 self.prgbar_process(index_no)
             if self.DmIndices[8] == 1:
                 IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[680], self.dict_senswl[430])
+                index_no += 1
+                self.prgbar_process(index_no)
+            if self.DmIndices[9] == 1:
+                IndexOut_matrix[:,:,index_no] = self.norm_diff2(self.dict_senswl[1460], self.dict_senswl[2114])
                 index_no += 1
                 self.prgbar_process(index_no)
 

@@ -1,4 +1,4 @@
-''' % INFORM_PROSPECT45D - The INvertible FOrest Reflectance Model coupled with
+""" % INFORM_PROSPECT45D - The INvertible FOrest Reflectance Model coupled with
 Prospect 4 or 5 or 5b or D
 # %
 [r_forest,r_understorey,r_c_inf,r_leaf,t_leaf,t_s,t_o,co,C,G]= ...
@@ -86,20 +86,8 @@ Basic version of INFORM: Clement Atzberger, 1999
 Implementation of LIBERTY: Sebastian Mader, 2002
 INFORM modifications and validation: Martin Schlerf, 2004
 Coupling INFORM with Prospect4/5: Henning Buddenbaum, 2012
-_____________________________________________________________________________________________________________
-#
-SUBROUTINES
-# %
-M-File                    Function
-sail2.m                   SAIL-PROSPECT-SOIL to compute background and infinite crown reflectance
-sail_t_s.m                SAIL-PROSPECT-SOIL to compute crown transmittance for sun direction
-sail_t_o.m                SAIL-PROSPECT-SOIL to compute crown transmittance for observation direction
-prospect4.m               Leaf reflecance model PROSPECT4 (to compute understorey leaf reflectance)
-prospect5.m, prospect5b.m, dataSpec_P4.m, dataSpec_P5.m, dataSpec_P5b.m
-S13AAF.M                  Integral
-tav.m                     Refraction index
 _________________________________________________________________________
-'''
+"""
 
 import numpy
 from lmuvegetationapps.dataSpec_v import *

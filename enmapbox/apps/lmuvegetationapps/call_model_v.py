@@ -9,6 +9,7 @@ import lmuvegetationapps.INFORM_v as INFORM_v
 import lmuvegetationapps.prospect_v as prospect_v
 from lmuvegetationapps.Spec2Sensor_cl_v import Spec2Sensor
 import warnings
+import time
 warnings.filterwarnings('ignore')
 
 # Model class
@@ -51,7 +52,14 @@ class Call_model:
         self.prospect = prospect_instance.prospect_Cp(self.par["N"], self.par["cab"], self.par["car"], self.par["anth"],
                                                       self.par["cp"], self.par["ccl"], self.par["cbrown"],
                                                       self.par["cw"], self.par["cm"])
+        return self.prospect
 
+    def call_prospectPro(self):
+        prospect_instance = prospect_v.Prospect()
+        self.prospect = prospect_instance.prospect_Pro(self.par["N"], self.par["cab"], self.par["car"],
+                                                      self.par["anth"],
+                                                      self.par["cp"], self.par["cbc"], self.par["cbrown"],
+                                                      self.par["cw"])
         return self.prospect
 
     def call_4sail(self):
@@ -108,13 +116,17 @@ class Call_model:
 
 class Setup_multiple:
 
-    def __init__(self, ns, paras):
+    def __init__(self, ns, paras, depends):
         self.whichlogicals = []
         self.nruns_logic_geo, self.nruns_logic_no_geo, self.nruns_logic_total = (1, 1, 1)
-        self.para_nums = {"N": 0, "cab": 1, "car": 2, "anth": 3, "cbrown": 4, "cw": 5, "cm": 6, "cp": 7, "ccl": 8,
+        # self.para_nums = {"N": 0, "cab": 1, "car": 2, "anth": 3, "cbrown": 4, "cw": 5, "cm": 6, "cp": 7, "ccl": 8,
+        #                   "LAI": 9, "typeLIDF": 10, "LIDF": 11, "hspot": 12, "psoil": 13, "tts": 14, "tto": 15,
+        #                   "psi": 16}  # Outdated! Might cause trouble
+        self.para_nums = {"N": 0, "cab": 1, "car": 2, "anth": 3, "cbrown": 4, "cw": 5, "cm": 6, "cp": 7, "cbc": 8,
                           "LAI": 9, "typeLIDF": 10, "LIDF": 11, "hspot": 12, "psoil": 13, "tts": 14, "tto": 15,
-                          "psi": 16}
+                          "psi": 16, "LAIu": 17, "cd": 18, "sd": 19, "h": 20}
         self.npara = len(self.para_nums)
+        self.depends = depends
         self.paras = paras
         self.ns = int(ns)
         self.error_array = []
@@ -180,6 +192,11 @@ class Setup_multiple:
                                                                                                    para_key],
                                                                                         multiply=multiply,
                                                                                         nsteps=self.paras[para_key][2])
+
+            if self.depends == 1 and para_key == 'car':
+                    self.para_grid[:, self.para_nums[para_key]] = self.car_cab_dependency(
+                        grid=self.para_grid[:, self.para_nums['cab']])
+
         return self.para_grid
 
 
@@ -207,6 +224,33 @@ class Setup_multiple:
 
         return return_list
 
+    def car_cab_dependency(self, grid):
+
+        def truncated_noise(y, lower, upper):
+            while True:
+                y_noise = np.random.laplace(loc=0, scale=spread, size=1) + y
+                if upper > y_noise > lower:
+                    return y_noise
+
+        def refine_noise(y, y_lin_noise, lower, upper):
+            for i in range(len(y_lin_noise)):
+                if upper[i] < y_lin_noise[i] or lower[i] > y_lin_noise[i]:
+                    y_lin_noise[i] = truncated_noise(y[i], lower[i], upper[i])
+            return y_lin_noise
+
+        # constants from ANGERS03 Leaf Optical Data
+        slope = 0.2234
+        intercept = 0.9861
+        spread = 4.6839
+        car_lin = slope * grid + intercept
+        lower_car = slope / spread * 3 * grid
+        upper_car = slope * spread / 3 * grid + 2 * intercept
+
+        car_lin_noise = np.random.laplace(loc=0, scale=spread, size=len(car_lin)) + car_lin
+        car_lin_noise = refine_noise(car_lin, car_lin_noise, lower_car, upper_car)
+        car_lin_noise = refine_noise(car_lin, car_lin_noise, lower_car, upper=np.tile(26, len(grid)))
+
+        return car_lin_noise
 
 class Init_Model:
 
@@ -222,7 +266,7 @@ class Init_Model:
         self.s2s = s2s
         self.geo_mode = None
         self.soil = None
-        self.para_names = ["N", "cab", "car", "anth", "cbrown", "cw", "cm", "cp", "ccl",
+        self.para_names = ["N", "cab", "car", "anth", "cbrown", "cw", "cm", "cp", "cbc",
                           "LAI", "LAIu", "typeLIDF", "LIDF", "hspot", "psoil", "tts", "tto",
                           "psi", "sd", "h", "cd"]
 
@@ -240,8 +284,8 @@ class Init_Model:
 
 
 
-    def initialize_vectorized(self, LUT_dir, LUT_name, ns, max_per_file=2000, soil=None,
-                            prgbar_widget=None, QGis_app=None, **paras):
+    def initialize_vectorized(self, LUT_dir, LUT_name, ns, max_per_file=5000, soil=None,
+                            prgbar_widget=None, QGis_app=None, depends=False, testmode=False, **paras):
 
         self.soil = soil
 
@@ -256,7 +300,7 @@ class Init_Model:
 
         self.max_filelength = max_per_file
         npara = len(self.para_names)
-        setup = Setup_multiple(ns=ns, paras=paras)
+        setup = Setup_multiple(ns=ns, paras=paras, depends=depends)
         para_grid = setup.create_grid()
 
         crun_max = setup.nruns_total
@@ -272,8 +316,8 @@ class Init_Model:
         elif self.geo_mode == "no_geo":
             n_ensembles_geo = 1
 
-        print("n_ensembles_geo: ", n_ensembles_geo)
-        print("max_per_file: ", max_per_file)
+        # print("n_ensembles_geo: ", n_ensembles_geo)
+        # print("max_per_file: ", max_per_file)
 
         if crun_pergeo <= max_per_file:  # exactly one LUT-file per Geo
             # max_per_file = crun_pergeo # lower max_per_file to LUT-members per Geo ## why? Causes trouble for ns < max_per_file
@@ -282,8 +326,8 @@ class Init_Model:
             n_ensembles_split = (
                                             crun_pergeo - 1) // max_per_file + 1  # number of ensembles (=number of LUT-files to create)
 
-        print("max_per_file: ", max_per_file)
-        print("n_ensembles_split: ", n_ensembles_split)
+        # print("max_per_file: ", max_per_file)
+        # print("n_ensembles_split: ", n_ensembles_split)
 
         if not self.s2s == "default":
             self.s2s_I = Spec2Sensor(sensor=self.s2s, nodat=self.nodat)
@@ -291,6 +335,14 @@ class Init_Model:
             nbands = self.s2s_I.n_wl_sensor
         else:
             nbands = len(prospect_v.lambd)
+
+        if testmode == True:
+            start = time.time()
+            _ = self.run_model(paras=dict(zip(self.para_names, para_grid.T))).T
+            # for run in range(crun_max):
+            #     self.run_model(paras=dict(zip(self.para_names, para_grid[run, :])))  # Vek anpassen?
+
+            return time.time() - start
 
         struct_ensemble = 0
         n_struct_ensembles = 1
@@ -371,7 +423,7 @@ class Init_Model:
                         prgbar_widget.gui.cmdCancel.setDisabled(False)
                         raise ValueError("LUT creation cancelled!")
 
-                    prgbar_widget.gui.lblCaption_r.setText('File %s of %s' % (str(run), str(crun_max)))
+                    prgbar_widget.gui.lblCaption_r.setText('Split %s of %s' % (str(split), str(crun_pergeo)))
                     QGis_app.processEvents()
                 else:
                     print(
@@ -388,15 +440,15 @@ class Init_Model:
                 save_array[:npara, :] = para_grid[run : run+nruns, :].T
 
                 rest -= max_per_file
-                np.save("%s_%i_%i_%i" % (LUT_dir + LUT_name, geo_ensemble, struct_ensemble, split), save_array)
+                np.save("{}_{:d}_{:d}".format(LUT_dir + LUT_name, geo_ensemble, split), save_array)
 
         if prgbar_widget:
-            prgbar_widget.gui.lblCaption_r.setText('File %s of %s' % (str(crun_max), str(crun_max)))
+            prgbar_widget.gui.lblCaption_r.setText('File {:d} of {:d}'.format(crun_max, crun_max))
             prgbar_widget.gui.prgBar.setValue(100)
             prgbar_widget.gui.close()
 
 
-    def initialize_multiple(self, LUT_dir, LUT_name, ns, max_per_file=2000, soil=None,
+    def initialize_multiple(self, LUT_dir, LUT_name, ns, max_per_file=5000, soil=None,
                             build_step2=0, prgbar_widget=None, QGis_app=None, **paras):
 
         self.soil = soil
@@ -450,8 +502,8 @@ class Init_Model:
                 elif self.geo_mode == "no_geo":
                     n_ensembles_geo = 1
 
-                print("n_ensembles_geo: ", n_ensembles_geo)
-                print("max_per_file: ", max_per_file)
+                # print("n_ensembles_geo: ", n_ensembles_geo)
+                # print("max_per_file: ", max_per_file)
 
                 if crun_pergeo <= max_per_file: # exactly one LUT-file per Geo
                     # max_per_file = crun_pergeo # lower max_per_file to LUT-members per Geo ## why? Causes trouble for ns < max_per_file
@@ -459,8 +511,8 @@ class Init_Model:
                 else: # second split: several files per Geo
                     n_ensembles_split = (crun_pergeo - 1) // max_per_file + 1  # number of ensembles (=number of LUT-files to create)
 
-                print("max_per_file: ", max_per_file)
-                print("n_ensembles_split: ", n_ensembles_split)
+                # print("max_per_file: ", max_per_file)
+                # print("n_ensembles_split: ", n_ensembles_split)
 
                 if not self.s2s == "default":
                     self.s2s_I = Spec2Sensor(sensor=self.s2s, nodat=self.nodat)
@@ -603,8 +655,10 @@ class Init_Model:
             iModel.call_prospectD()
         elif self.lop == "prospectCp":
             iModel.call_prospectCp()
+        elif self.lop == "prospectPro":
+            iModel.call_prospectPro()
         else:
-            print("Unknown Prospect version. Try 'prospect4', 'prospect5', 'prospect5B' or 'prospectD'")
+            print("Unknown Prospect version. Try 'prospect4', 'prospect5', 'prospect5B' or 'prospectD' or ProspectPro")
             return
 
         if self.canopy_arch=="sail":
@@ -629,48 +683,50 @@ def build_vectorized():
     # tto = [0,  40, 5]
     # psi = [0, 180, 19]
 
-    tts = [45, 45, 1]  # Test EM
-    tto = [0, 0, 1]
-    psi = [0, 0, 1]
+    tts = [30]  # Test EM
+    tto = [0]
+    psi = [0]
 
 
     # Statistically distributed parameter [min, max, (mean, sigma)]
     # N = [1.0, 2.5, 1.5, 0.4] # bislang
-    N = [1.0, 2.0, 1.3, 0.3]
-    cab = [0.0, 80.0, 50.0, 20.0]
+    N = [1.0, 2.0]
+    cab = [0.0, 80.0]
     # car = [0.0, 15.0] # bislang
-    car = [0.0, 15.0, 10.0, 3.0]
+    car = [0.0, 15.0]
     # anth = [0.0, 5.0] # bislang
-    anth = [0.0, 2.5]
+    anth = [0.0, 2.0]
     # cbrown = [0.0, 1.0] # bislang
-    cbrown = [0.0, 1.0, 0.2, 0.1]
-    cw = [0.0, 0.07, 0.035, 0.015]
-    cm = [0.0, 0.01, 0.004, 0.002]
-    # cm = [0.0]
+    cbrown = [0.0]
+    cw = [0.001, 0.02]
+    #cm = [0.0, 0.01, 0.004, 0.002]
+    cm = [0.0]
+    cp = [0.001, 0.0025, 0.0015, 0.0005]
+    cbc = [0.001, 0.01]
 
     # LAI = [0.0, 8.0] # bislang
-    LAI = [0.0, 8.0, 3.0, 2.0]
+    LAI = [0.0, 7.0, 3.0, 2.0]
     # LIDF = [10.0, 85.0, 47.0, 25.0]  # bislang
-    LIDF = [30.0, 70.0, 50.0, 10.0]  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
+    LIDF = [30.0, 70.0]  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
     # LIDF = [4]  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
     typeLIDF = [2] # LIDF = ALIA
     # hspot = [0.0, 0.1] # bislang
     hspot = [0.01, 0.5]
     # psoil = [0.0, 1.0] # bislang
-    psoil = [0.0, 1.0, 0.5, 0.2]
+    psoil = [0.0, 1.0]
 
-    LUT_dir = r"E:\ECST_III\Processor\LUT\LUT25000D_vec_beta/"
-    LUT_name = "LUT_vec"
-    ns = 25000
-    int_boost = 10000
+    LUT_dir = r"E:\Testdaten\Strathmann\LUT/"
+    LUT_name = "LUT_ProspectPro"
+    ns = 5000
+    int_boost = 1
     nodat = -999
 
-    lop = "prospectD"
-    canopy_arch = "sail"
+    lop = "prospectPro"
+    canopy_arch = ""
     # s2s = "HyMap"
-    s2s = "EnMAP"
+    s2s = "default"
     # s2s = "default"
-    soil = None
+    soil = float(psoil[0])*Rsoil1+(1-float(psoil[0]))*Rsoil2
     # with open("E:\ECST_III\Processor\ML\Spectral\WW_Soil_2017.txt", 'r') as soil_file:
     #     soil = soil_file.readlines()
     # soil = [float(i.rstrip()) for i in soil]
@@ -683,8 +739,8 @@ def build_vectorized():
 
     model_I = Init_Model(lop=lop, canopy_arch=canopy_arch, nodat=nodat, int_boost=int_boost, s2s=s2s)
     model_I.initialize_vectorized(LUT_dir=LUT_dir, LUT_name=LUT_name, ns=ns, tts=tts, tto=tto, psi=psi, N=N,
-                                cab=cab, cw=cw, cm=cm, LAI=LAI, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot,
-                                psoil=psoil, car=car, cbrown=cbrown, anth=anth, soil=soil, max_per_file=2000)
+                                cab=cab, cw=cw, cm=cm, cp=cp, cbc=cbc, LAI=LAI, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot,
+                                psoil=psoil, car=car, cbrown=cbrown, anth=anth, soil=soil, max_per_file=5000)
 
 def example_multi_simple():
     npara = 1
@@ -703,7 +759,7 @@ def example_multi_simple():
     cm = [0.004] * npara
 
     cp = [0.001] * npara
-    ccl = [0.002] * npara
+    cbc = [0.002] * npara
 
     LAI = [4.0] * npara
     LIDF = [40.0] * npara  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
@@ -718,8 +774,8 @@ def example_multi_simple():
     h = [20] * npara
     cd = [3] * npara
 
-    lop = "prospectD"
-    canopy_arch = "inform"
+    lop = "prospectPro"
+    canopy_arch = "sail"
     s2s = "default"
     soil = None
     # with open("E:\ECST_III\Processor\ML\Spectral\WW_Soil_2017.txt", 'r') as soil_file:
@@ -729,14 +785,14 @@ def example_multi_simple():
     model_I = Init_Model(lop=lop, canopy_arch=canopy_arch, nodat=nodat, int_boost=int_boost, s2s=s2s)
 
     # Mehrere Einzelruns
-    model_I.initialize_multiple_simple(tts=tts, tto=tto, psi=psi, N=N, cp=cp, ccl=ccl,
+    model_I.initialize_multiple_simple(tts=tts, tto=tto, psi=psi, N=N, cp=cp, cbc=cbc,
                                 cab=cab, cw=cw, cm=cm, LAI=LAI, LAIu=LAIu, LIDF=LIDF, typeLIDF=typeLIDF, hspot=hspot,
                                 psoil=psoil, car=car, cbrown=cbrown, anth=anth, soil=soil, sd=sd, h=h, cd=cd)
 
 
 
 if __name__ == '__main__':
-
+    from lmuvegetationapps.dataSpec import Rsoil1, Rsoil2
     # results = []
     # for skyl in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]:
     #     res = example_single(skyl=skyl)
@@ -747,5 +803,5 @@ if __name__ == '__main__':
     # plt.show()
     #
 
-    # build_vectorized()
-    example_multi_simple()
+    build_vectorized()
+    #example_multi_simple()

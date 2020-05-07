@@ -40,12 +40,8 @@ class TestEnMAPBoxEmpty(EnMAPBoxTestCase):
     def test_empty(self):
         enmapbox = EnMAPBox(load_core_apps=False, load_other_apps=False)
         self.assertIsInstance(enmapbox, EnMAPBox)
-        enmapbox.ui.show()
-
-        testVector = TestObjects.createVectorLayer()
-        enmapbox.addSource(testVector)
-        enmapbox.loadExampleData()
         self.showGui(enmapbox.ui)
+
 
 if __name__ == '__main__':
     import xmlrunner

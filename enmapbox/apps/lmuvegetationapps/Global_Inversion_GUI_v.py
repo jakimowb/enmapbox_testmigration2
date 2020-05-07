@@ -77,7 +77,8 @@ class Global_Inversion:
         self.out_mode = "single"
         self.flags =[[0,0],[0],[0],[0,0]] # to be edited!
 
-        self.geo_mode = "off"
+        self.geo_mode = "file"
+        self.spatial_geo = False
         self.geo_file = None
         self.geo_fixed = [None]*3
 
@@ -110,7 +111,7 @@ class Global_Inversion:
         self.gui.cmdGeoFromFile.clicked.connect(lambda: self.open_file(mode="geo"))
         self.gui.radGeoFromFile.clicked.connect(lambda: self.select_geo(mode="file"))
         self.gui.radGeoFix.clicked.connect(lambda: self.select_geo(mode="fix"))
-        self.gui.radGeoOff.clicked.connect(lambda: self.select_geo(mode="off"))
+        self.gui.chkMeanCalc.clicked.connect(lambda: self.geo_mean_calc())
 
         # Artificial Noise
         self.gui.radNoiseOff.clicked.connect(lambda: self.select_noise(mode=0))
@@ -191,6 +192,8 @@ class Global_Inversion:
             else:
                 self.gui.lblGeoFromFile.setText(result)
                 self.gui.lblNodatGeoImage.setText(str(meta[0]))
+                self.gui.chkMeanCalc.setDisabled(False)
+                self.gui.chkMeanCalc.setChecked(True)
                 self.nodat[1] = meta[0]
         elif mode=="mask":
             result = str(QFileDialog.getOpenFileName(caption='Select Mask Image')[0])
@@ -198,7 +201,7 @@ class Global_Inversion:
             self.mask_image = result
             self.mask_image = self.mask_image.replace("\\", "/")
             meta = self.get_image_meta(image=self.mask_image, image_type="Mask Image")
-            if meta[1] is None: # No Data is unimportant for mask file, but dimensions must exist (image readable)
+            if meta[1] is None:  # No Data is unimportant for mask file, but dimensions must exist (image readable)
                 self.mask_image = None
                 self.gui.lblInputMask.setText("")
                 return
@@ -222,12 +225,6 @@ class Global_Inversion:
         self.gui.txtExclude.setCursorPosition(0)
 
     def select_geo(self, mode):
-        if mode=="off":
-            self.gui.lblGeoFromFile.setDisabled(True)
-            self.gui.cmdGeoFromFile.setDisabled(True)
-            self.gui.txtSZA.setDisabled(True)
-            self.gui.txtOZA.setDisabled(True)
-            self.gui.txtRAA.setDisabled(True)
         if mode=="file":
             self.gui.lblGeoFromFile.setDisabled(False)
             self.gui.cmdGeoFromFile.setDisabled(False)
@@ -241,6 +238,12 @@ class Global_Inversion:
             self.gui.txtOZA.setDisabled(False)
             self.gui.txtRAA.setDisabled(False)
         self.geo_mode = mode
+
+    def geo_mean_calc(self):
+        if self.gui.chkMeanCalc.isChecked():
+            self.spatial_geo = False
+        else:
+            self.spatial_geo = True
 
     def select_noise(self, mode):
         if mode==0:
@@ -288,6 +291,7 @@ class Global_Inversion:
             elif not os.path.isfile(self.geo_file): raise ValueError('Geometry-Input file does not exist')
 
         elif self.geo_mode == "fix":
+            self.gui.chkMeanCalc.setDisabled(True)
             if self.gui.txtSZA.text() == "" or self.gui.txtOZA.text() == "" or self.gui.txtRAA.text() == "":
                 raise ValueError('Geometry-Input via fixed values selected, but angles are incomplete')
             else:
@@ -383,8 +387,8 @@ class Global_Inversion:
             inv.inversion_setup(image=self.image, image_out=self.out_path, LUT_path=self.LUT_path, ctype=self.ctype,
                                 nbfits=self.nbfits, nbfits_type=self.nbfits_type, noisetype=self.noisetype,
                                 noiselevel=self.noiselevel, exclude_bands=self.exclude_bands, geo_image=self.geo_file,
-                                geo_fixed=self.geo_fixed, sensor=self.sensor, mask_image=self.mask_image, out_mode=self.out_mode,
-                                nodat=self.nodat)
+                                geo_fixed=self.geo_fixed, spatial_geo=self.spatial_geo, sensor=self.sensor,
+                                mask_image=self.mask_image, out_mode=self.out_mode, nodat=self.nodat)
         except ValueError as e:
             self.abort(message="Failed to setup inversion: %s" % str(e))
             return

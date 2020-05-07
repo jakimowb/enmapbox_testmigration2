@@ -17,13 +17,13 @@ pathUI = os.path.join(os.path.dirname(__file__), 'GUI_iREIP.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__), 'GUI_Nodat.ui')
 pathUI_prg = os.path.join(os.path.dirname(__file__), 'GUI_ProgressBar.ui')
 
-from enmapbox.gui.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUi
 
 
-class iREIP_GUI(QDialog, loadUIFormClass(pathUI)):
+class iREIP_GUI(QDialog):
     def __init__(self, parent=None):
         super(iREIP_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI, self)
         QApplication.instance().installEventFilter(self)
 
         self.rangeView.setBackground(QColor('black'))
@@ -31,16 +31,17 @@ class iREIP_GUI(QDialog, loadUIFormClass(pathUI)):
         self.secondDerivView.setBackground(QColor('black'))
 
 
-class Nodat_GUI(QDialog, loadUIFormClass(pathUI2)):
+class Nodat_GUI(QDialog):
     def __init__(self, parent=None):
         super(Nodat_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI2, self)
 
 
-class PRG_GUI(QDialog, loadUIFormClass(pathUI_prg)):
+class PRG_GUI(QDialog):
     def __init__(self, parent=None):
         super(PRG_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI_prg, self)
+
         self.allow_cancel = False
 
     def closeEvent(self, event):
@@ -752,6 +753,7 @@ class iREIP_core:
         d1 = np.gradient(smooth_matrix, axis=0)
         d2 = np.gradient(d1, axis=0)
 
+
         for row in range(in_matrix.shape[1]):
             for col in range(in_matrix.shape[2]):
                 if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
@@ -828,7 +830,6 @@ class iREIP_core:
                         self.row = row
                         self.col = col
                         self.ndvi_spec = in_raster[:, row, col]
-                        print(self.ndvi_spec)
                         break
                 else:
                     continue
@@ -928,12 +929,15 @@ class MainUiFunc:
 
 if __name__ == '__main__':
     gui = True
-    if gui == True:
+    if gui:
         from enmapbox.testing import initQgisApplication
-
         app = initQgisApplication()
         m = MainUiFunc()
         m.show()
         sys.exit(app.exec_())
-
+    # else:
+    #     core = iREIP_core(division_factor=10000, max_ndvi_pos=None, ndvi_spec=None, nodat_val=-999)
+    #     matrix = core.read_image("U:\ECST_III\CHIME\HBach/ang20180702t105516_rfl_v2q2/105516_Fields.bsq")
+    #     reip, d1, d2 = core.derivate_3d(matrix)
+    #     print(reip)
 
