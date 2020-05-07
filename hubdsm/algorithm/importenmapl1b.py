@@ -57,6 +57,14 @@ def importEnmapL1B(
         rasterBand.SetOffset(float(offsets[i]))
         rasterBand.FlushCache()
 
+    # fix wrong GeoTransform tuple
+    geoTransform = dsVnir.GetGeoTransform()
+    geoTransform = geoTransform[:-1] + (-abs(geoTransform[-1]), )
+    dsVnir.SetGeoTransform(geoTransform)
+    geoTransform = dsSwir.GetGeoTransform()
+    geoTransform = geoTransform[:-1] + (-abs(geoTransform[-1]), )
+    dsSwir.SetGeoTransform(geoTransform)
+
     return dsVnir, dsSwir
 
 def isEnmapL1BProduct(filenameMetadataXml: str):
