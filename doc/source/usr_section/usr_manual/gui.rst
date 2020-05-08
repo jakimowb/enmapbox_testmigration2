@@ -80,7 +80,7 @@ In the toolbar you can find the most common tasks. See table below for informati
        | different maps
      - Opens the Map Linking Dialog
 
-
+.. todo add vector editing symbols
 
 Data Sources
 ============

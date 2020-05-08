@@ -14,7 +14,7 @@ from hubdsm.core.shape import RasterShape
 
 
 @dataclass
-class GdalRasterDriver(object):
+class GdalDriver(object):
     name: str
     options: List[str] = field(default_factory=list)
 
@@ -23,7 +23,7 @@ class GdalRasterDriver(object):
         assert isinstance(self.options, list)
 
     @classmethod
-    def fromFilename(cls, filename: Optional[str]) -> 'GdalRasterDriver':
+    def fromFilename(cls, filename: Optional[str]) -> 'GdalDriver':
 
         if filename is None or filename == '':
             return MEM_DRIVER
@@ -50,7 +50,7 @@ class GdalRasterDriver(object):
         assert gdalDriver is not None
         return gdalDriver
 
-    def create(
+    def createRaster(
             self, grid: Grid, bands=1, gdt: int = gdal.GDT_Float32, filename: str = None, gco: List[str] = None
     ) -> GdalRaster:
         """Create new GDAL raster."""
@@ -74,21 +74,23 @@ class GdalRasterDriver(object):
         """Create new GDAL raster from array."""
         assert isinstance(array, np.ndarray)
         assert array.ndim == 3
-        gdalDataType = NumericTypeCodeToGDALTypeCode(array.dtype)
+        gdt = NumericTypeCodeToGDALTypeCode(array.dtype)
         shape = RasterShape(*array.shape)
-        gdalRaster = self.createFromShape(shape=shape, gdalDataType=gdalDataType, grid=grid, filename=filename, gco=gco)
+        gdalRaster = self.createFromShape(shape=shape, gdt=gdt, grid=grid, filename=filename, gco=gco)
         gdalRaster.writeArray(array=array, grid=grid)
         return gdalRaster
 
     def createFromShape(
-            self, shape: RasterShape, gdalDataType: int = gdal.GDT_Float32, grid: Grid = None, filename: str = None,
+            self, shape: RasterShape, gdt: int = None, grid: Grid = None, filename: str = None,
             gco: List[str] = None
     ) -> GdalRaster:
         """Create new GDAL raster from array shape."""
         assert isinstance(shape, RasterShape)
         if grid is None:
             grid = Grid.makePseudoGridFromShape(shape=shape.gridShape)
-        gdalRaster = self.create(grid=grid, bands=shape.z, gdt=gdalDataType, filename=filename, gco=gco)
+        if gdt is None:
+            gdt = gdal.GDT_Float32
+        gdalRaster = self.createRaster(grid=grid, bands=shape.z, gdt=gdt, filename=filename, gco=gco)
         return gdalRaster
 
     def delete(self, filename: str):
@@ -126,11 +128,11 @@ class GdalRasterDriver(object):
         return filename
 
 
-MEM_DRIVER = GdalRasterDriver(name='MEM')
-VRT_DRIVER = GdalRasterDriver(name='VRT')
-ENVI_DRIVER = GdalRasterDriver(name='ENVI')
-ENVI_BSQ_DRIVER = GdalRasterDriver(name='ENVI', options=['INTERLEAVE=BSQ'])
-ENVI_BIL_DRIVER = GdalRasterDriver(name='ENVI', options=['INTERLEAVE=BIL'])
-ENVI_BIP_DRIVER = GdalRasterDriver(name='ENVI', options=['INTERLEAVE=BIP'])
-GTIFF_DRIVER = GdalRasterDriver(name='GTiff', options=['INTERLEAVE=BAND'])
-ERDAS_DRIVER = GdalRasterDriver(name='HFA')
+MEM_DRIVER = GdalDriver(name='MEM')
+VRT_DRIVER = GdalDriver(name='VRT')
+ENVI_DRIVER = GdalDriver(name='ENVI')
+ENVI_BSQ_DRIVER = GdalDriver(name='ENVI', options=['INTERLEAVE=BSQ'])
+ENVI_BIL_DRIVER = GdalDriver(name='ENVI', options=['INTERLEAVE=BIL'])
+ENVI_BIP_DRIVER = GdalDriver(name='ENVI', options=['INTERLEAVE=BIP'])
+GTIFF_DRIVER = GdalDriver(name='GTiff', options=['INTERLEAVE=BAND'])
+ERDAS_DRIVER = GdalDriver(name='HFA')

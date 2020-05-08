@@ -5,7 +5,7 @@ import numpy as np
 from enmapboxtestdata import enmap
 from hubdsm.core.error import ProjectionMismatchError
 from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.core.gdalrasterdriver import MEM_DRIVER, GdalRasterDriver
+from hubdsm.core.gdaldriver import MEM_DRIVER, GdalDriver
 
 
 class TestGdalRaster(TestCase):
@@ -14,7 +14,7 @@ class TestGdalRaster(TestCase):
         gdalRaster = GdalRaster.open(enmap)
         self.assertEqual(gdalRaster.filename, enmap)
         self.assertEqual(gdalRaster.filenames[0], enmap)
-        self.assertEqual(gdalRaster.driver, GdalRasterDriver(name='ENVI'))
+        self.assertEqual(gdalRaster.driver, GdalDriver(name='ENVI'))
         gdalRaster = MEM_DRIVER.createFromArray(array=np.array([[[1]]]))
         self.assertEqual(gdalRaster.filenames, [])
 

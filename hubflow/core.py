@@ -615,7 +615,9 @@ class MapCollection(FlowObject):
         equalGrids = True
         for map in self.maps() + masks:
             if isinstance(map, Raster):
-                equalGrids &= map.grid().equal(other=grid, tol=1e-8)
+
+                if map.dataset().shape()[1:] != grid.shape():
+                    equalGrids &= map.grid().equal(other=grid, tol=1e-8)
 
         if equalGrids:
 

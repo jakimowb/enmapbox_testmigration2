@@ -1,13 +1,17 @@
 # from __future__ import annotations
-from dataclasses import dataclass
-from os.path import exists
+from typing import List, Iterator, Sequence, Tuple, Union, Callable
 
-from osgeo import gdal, ogr
+from dataclasses import dataclass
+
+from osgeo import ogr, gdal
 
 from hubdsm.core.extent import Extent
+from hubdsm.core.geometry import Geometry
+from hubdsm.core.grid import Grid
 from hubdsm.core.location import Location
 from hubdsm.core.projection import Projection
 from hubdsm.core.size import Size
+from hubdsm.core.typing import Number
 
 
 @dataclass(frozen=True)
@@ -21,8 +25,19 @@ class OgrLayer(object):
 
     @staticmethod
     def open(filename: str, layerNameOrIndex=None) -> 'OgrLayer':
-        from hubdsm.core.ogrdatasource import OgrDataSource
-        return OgrDataSource.open(filename=filename).layer(nameOrIndex=layerNameOrIndex)
+        from hubdsm.core.ogrvector import OgrVector
+        return OgrVector.open(filename=filename).layer(nameOrIndex=layerNameOrIndex)
+
+    @property
+    def vector(self) -> 'OgrVector':
+        """Return OGR vector."""
+        from hubdsm.core.ogrvector import OgrVector
+        return OgrVector(ogrDataSource=self.ogrDataSource)
+
+    @property
+    def name(self):
+        """Return name."""
+        return self.ogrLayer.GetName()
 
     @property
     def projection(self):
@@ -30,31 +45,113 @@ class OgrLayer(object):
         return Projection(wkt=self.ogrLayer.GetSpatialRef().ExportToWkt())
 
     @property
+    def geometryType(self) -> int:
+        """Return OGR WKB geometry type."""
+        return self.ogrLayer.GetGeomType()
+
+    @property
     def extent(self):
         """Return layer extent."""
         xmin, xmax, ymin, ymax = self.ogrLayer.GetExtent()
         return Extent(ul=Location(x=xmin, y=ymax), size=Size(x=xmax - xmin, y=ymax - ymin))
 
-    # def rasterizeAsArray(
-    #         self, grid: Grid, gdt: int = None, initValue=0, burnValue=1, burnAttribute=None, allTouched=False,
-    #         filterSQL: str = None
-    # ) -> np.ndarray:
-    #     '''Return rasterization as 2d array.'''
-    #     assert isinstance(grid, Grid)
-    #     if gdt is None:
-    #         gdt = gdal.GDT_Float32
-    #     self.ogrLayer.SetAttributeFilter(filterSQL)
-    #     self.ogrLayer.SetSpatialFilter(grid.extent.geometry.ogrGeometry)
-    #     gdalRaster = MEM_DRIVER.create(grid=grid, bands=1, gdt=gdt)
-    #     gdalRaster.band(number=1).fill(value=initValue)
-    #     rasterizeLayerOptions = list()
-    #     if allTouched:
-    #         rasterizeLayerOptions.append('ALL_TOUCHED=TRUE')
-    #     if burnAttribute:
-    #         rasterizeLayerOptions.append('ATTRIBUTE=' + burnAttribute)
-    #     gdal.RasterizeLayer(
-    #         gdalRaster.gdalDataset, [1], self.ogrLayer, burn_values=[burnValue], options=rasterizeLayerOptions
-    #     )
-    #     gdal.RasterizeOptions()
-    #     self.ogrLayer.SetAttributeFilter(None)
-    #     return gdalRaster.band(number=1).readAsArray()
+    def createField(self, name: str, oft: int):
+        """Create field."""
+        field = ogr.FieldDefn(name, oft)
+        self.ogrLayer.CreateField(field)
+
+    def createFeature(self, geometry: Geometry, **kwargs):
+        """Create feature. Define attributes via **kwargs."""
+        feature = ogr.Feature(self.ogrLayer.GetLayerDefn())
+        for key, value in kwargs.items():
+            feature.SetField(key, value)
+        feature.SetGeometry(geometry.ogrGeometry)
+        self.ogrLayer.CreateFeature(feature)
+
+    def features(self, fieldNames: Sequence[str] = None) -> Iterator[Tuple[Geometry, Tuple]]:
+        """Return iterator over feature geometries and field values."""
+        if fieldNames is None:
+            fieldNames = []
+        fieldIndices = [self.ogrLayer.GetLayerDefn().GetFieldIndex(fieldName) for fieldName in fieldNames]
+        feature: ogr.Feature
+        for feature in self.ogrLayer:
+            geometry = Geometry(wkt=feature.geometry().ExportToWkt())
+            values = tuple(feature.GetField(index) for index in fieldIndices)
+            yield geometry, values
+
+    @property
+    def geometries(self) -> Iterator[Geometry]:
+        """Return iterator over feature geometries."""
+        feature: ogr.Feature
+        for feature in self.ogrLayer:
+            yield Geometry(wkt=feature.geometry().ExportToWkt())
+
+    def fieldValues(self, fieldNames: Sequence[str] = None) -> Iterator[Tuple]:
+        """Return iterator over feature field values."""
+        if fieldNames is None:
+            fieldNames = []
+        fieldIndices = [self.ogrLayer.GetLayerDefn().GetFieldIndex(fieldName) for fieldName in fieldNames]
+        feature: ogr.Feature
+        for feature in self.ogrLayer:
+            values = tuple(feature.GetField(index) for index in fieldIndices)
+            yield values
+
+    @property
+    def featureCount(self) -> int:
+        """Return number of features."""
+        return self.ogrLayer.GetFeatureCount()
+
+    @property
+    def fieldCount(self) -> int:
+        """Return number of fields."""
+        return self.ogrLayer.GetLayerDefn().GetFieldCount()
+
+    @property
+    def fieldNames(self) -> List[str]:
+        """Return field names."""
+        names = [self.ogrLayer.GetLayerDefn().GetFieldDefn(i).GetName() for i in range(self.fieldCount)]
+        return names
+
+    @property
+    def fieldTypes(self) -> List[int]:
+        """Return field types."""
+        types = [self.ogrLayer.GetLayerDefn().GetFieldDefn(i).GetType() for i in range(self.fieldCount)]
+        return types
+
+    def fieldType(self, name: str) -> int:
+        """Return field type."""
+        return self.fieldTypes[self.fieldNames.index(name)]
+
+    @property
+    def fieldTypeNames(self):
+        """Return field type names."""
+        typeNames = [self.ogrLayer.GetLayerDefn().GetFieldDefn(i).GetTypeName() for i in range(self.fieldCount)]
+        return typeNames
+
+    def rasterize(
+            self, grid: Grid, gdt: int = None, initValue: Number = 0, burnValue: Union[int, float] = 1,
+            burnAttribute: str = None, allTouched=False, filterSQL: str = None, filename: str = None,
+            gco: List[str] = None
+    ) -> 'GdalRaster':
+        from hubdsm.core.gdaldriver import GdalDriver
+        assert isinstance(grid, Grid)
+        if gdt is None:
+            gdt = gdal.GDT_Float32
+        driver = GdalDriver.fromFilename(filename=filename)
+        filename = driver.prepareCreation(filename=filename)
+        shape = grid.shape.withZ(1)
+        gdalRaster = driver.createFromShape(shape=shape, gdt=gdt, grid=grid, filename=filename, gco=gco)
+        gdalBand = gdalRaster.band(1)
+        gdalBand.fill(value=initValue)
+        gdalBand.rasterize(
+            layer=self, burnValue=burnValue, burnAttribute=burnAttribute, allTouched=allTouched, filterSQL=filterSQL
+        )
+        return gdalRaster
+
+    def fieldCalculator(self, name: str, oft: int, ufunc: Callable):
+        self.createField(name=name, oft=oft)
+        feature: ogr.Feature
+        for feature in self.ogrLayer:
+            value = ufunc(feature=feature)
+            feature.SetField(name, value)
+            self.ogrLayer.SetFeature(feature)

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>895</width>
-    <height>381</height>
+    <width>948</width>
+    <height>376</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -38,6 +38,28 @@
       <string>Sun-Sensor-Target Geometry</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
+      <item row="0" column="2">
+       <widget class="QPushButton" name="cmdGeoFromFile">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>20</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>...</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="0">
        <widget class="QRadioButton" name="radGeoFromFile">
         <property name="sizePolicy">
@@ -58,47 +80,44 @@
         <property name="text">
          <string>Geometry from file</string>
         </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QRadioButton" name="radGeoFix">
-        <property name="minimumSize">
-         <size>
-          <width>100</width>
-          <height>0</height>
-         </size>
+      <item row="0" column="1">
+       <widget class="QLabel" name="lblGeoFromFile">
+        <property name="enabled">
+         <bool>true</bool>
         </property>
-        <property name="whatsThis">
-         <string>Assume sun-sensor-target geometry is equal for every pixel of the input image and specify them in the respective fields</string>
+        <property name="frameShape">
+         <enum>QFrame::Panel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Sunken</enum>
+        </property>
+        <property name="lineWidth">
+         <number>2</number>
+        </property>
+        <property name="midLineWidth">
+         <number>0</number>
         </property>
         <property name="text">
-         <string>Fix geometry</string>
+         <string/>
         </property>
        </widget>
       </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="cmdGeoFromFile">
+      <item row="1" column="1">
+       <widget class="QCheckBox" name="chkMeanCalc">
         <property name="enabled">
          <bool>false</bool>
         </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>20</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
-         <string>...</string>
+         <string>Calculate mean angles</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="1" rowspan="2">
+      <item row="2" column="1" rowspan="3">
        <widget class="QFrame" name="frame">
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
@@ -108,6 +127,9 @@
         </property>
         <layout class="QGridLayout" name="gridLayout_4">
          <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
           <number>0</number>
          </property>
          <item row="1" column="1">
@@ -186,13 +208,6 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="label_5">
-           <property name="text">
-            <string>Observer zenith angle:</string>
-           </property>
-          </widget>
-         </item>
          <item row="2" column="0">
           <widget class="QLabel" name="label_6">
            <property name="text">
@@ -200,17 +215,18 @@
            </property>
           </widget>
          </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>Observer zenith angle:</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </item>
-      <item row="3" column="0">
-       <widget class="QRadioButton" name="radGeoOff">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
+      <item row="2" column="0">
+       <widget class="QRadioButton" name="radGeoFix">
         <property name="minimumSize">
          <size>
           <width>100</width>
@@ -218,35 +234,10 @@
          </size>
         </property>
         <property name="whatsThis">
-         <string>The sun-sensor-target geometry is being ignored and the first available LUT will be picked.</string>
+         <string>Assume sun-sensor-target geometry is equal for every pixel of the input image and specify them in the respective fields</string>
         </property>
         <property name="text">
-         <string>Ignore Geometry</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="lblGeoFromFile">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="frameShape">
-         <enum>QFrame::Panel</enum>
-        </property>
-        <property name="frameShadow">
-         <enum>QFrame::Sunken</enum>
-        </property>
-        <property name="lineWidth">
-         <number>2</number>
-        </property>
-        <property name="midLineWidth">
-         <number>0</number>
-        </property>
-        <property name="text">
-         <string/>
+         <string>Fix geometry</string>
         </property>
        </widget>
       </item>
@@ -410,7 +401,7 @@
       <item>
        <widget class="QRadioButton" name="radFullRange">
         <property name="text">
-         <string>350-2500nm @1nm</string>
+         <string>350-2500nm (1 nm)</string>
         </property>
         <property name="checked">
          <bool>false</bool>
@@ -707,7 +698,7 @@
    <item row="3" column="4">
     <widget class="QGroupBox" name="groupBox_8">
      <property name="title">
-      <string>Execute</string>
+      <string/>
      </property>
      <layout class="QGridLayout" name="gridLayout_8">
       <item row="1" column="2">
@@ -725,7 +716,7 @@
          </size>
         </property>
         <property name="text">
-         <string>Close Application</string>
+         <string>Close</string>
         </property>
        </widget>
       </item>
@@ -1320,11 +1311,9 @@
   <tabstop>radLandsat</tabstop>
   <tabstop>radGeoFromFile</tabstop>
   <tabstop>cmdGeoFromFile</tabstop>
-  <tabstop>radGeoFix</tabstop>
   <tabstop>txtSZA</tabstop>
   <tabstop>txtOZA</tabstop>
   <tabstop>txtRAA</tabstop>
-  <tabstop>radGeoOff</tabstop>
   <tabstop>radNoiseOff</tabstop>
   <tabstop>radNoiseAdd</tabstop>
   <tabstop>radNoiseMulti</tabstop>

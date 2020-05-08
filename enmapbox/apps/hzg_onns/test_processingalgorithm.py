@@ -14,8 +14,8 @@ Processing.initialize()
 
 # run algorithm
 alg = OnnsProcessingAlgorithm()
-io = {alg.P_FILE: r'C:\Users\Hieronym\Documents\Martin\Talks_Travel\2019_02_Berlin_EnMAP_Box\ONNSv08\Baltic_20160720_C2R_subset.nc',
-      alg.P_OUTPUT_FOLDER: r'C:\Users\Hieronym\Documents\Martin\Talks_Travel\2019_02_Berlin_EnMAP_Box\ONNSv08\output\\'}
+io = {alg.P_FILE: r'C:\source\onns_for_enmap-box\hzg_onns_testdata\S3A_OL_2_WFRC8R_20160720T093421_20160720T093621_20171002T063739_0119_006_307______MR1_R_NT_002_sylt.nc',
+      alg.P_OUTPUT_FOLDER: r'C:\_test_onns'}
 
 result = Processing.runAlgorithm(alg, parameters=io)
 

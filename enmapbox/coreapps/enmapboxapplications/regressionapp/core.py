@@ -71,15 +71,6 @@ class RegressionWorkflowApp(QMainWindow):
         if color.name() != '#000000':
             w.setStyleSheet('background-color: {}'.format(color.name()))
 
-    def keyPressEvent(self, event):
-        super().keyPressEvent(event)
-        if event.key() == Qt.Key_F1:
-            self.onAdvancedClicked()
-
-    # def onAdvancedClicked(self, *args):
-    #     for w in self._advancedWidgets:
-    #         w.setVisible(w.isHidden())
-
     def onRasterizationOptionsChanged(self, *args):
         self.uiAttribute_.setCurrentIndex(-1)
         self.clearStrata()

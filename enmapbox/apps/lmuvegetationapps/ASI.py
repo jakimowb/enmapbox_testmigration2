@@ -898,8 +898,9 @@ class ASI_core:
                     full_hull_x = interp1d(interp_range[hull_x_index], window[hull_x_index])
                     contiguous_hull_x = full_hull_x(interp_range)
 
+                    # intercepts between hull and reflectance
                     indices = np.nonzero(np.isin(contiguous_hull_x, window))[0]
-
+                    # check range validity of intercepts
                     item0 = next((self.valid_wl[indices[l]] for l in range(len(indices)) if
                                   500 < self.valid_wl[indices[l]] < 550), None)
                     item1 = next((self.valid_wl[indices[l]] for l in range(len(indices)) if
@@ -910,6 +911,7 @@ class ASI_core:
                                   910 < self.valid_wl[indices[l]] < 950), None)
                     item4 = next((self.valid_wl[indices[l]] for l in range(len(indices)) if
                                   970 < self.valid_wl[indices[l]] < 1105), None)
+                    # substitute preset separators with found intercepts
                     if item0:
                         closest_bands[0] = self.valid_wl.index(item0)
                     if item1 and green_peak != 1:
