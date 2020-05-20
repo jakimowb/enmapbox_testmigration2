@@ -24,25 +24,30 @@ Input Parameters:
 
 * **Inputs**
 
-  * :guilabel:`Endmember Library`:
-  * :guilabel:`Class Attribute`:
-  * :guilabel:`Spectral Image`:
+  * :guilabel:`Endmember Library`: Select spectral library
+  * :guilabel:`Class Attribute`: Specify the attribute which contains class/material information.
+  * :guilabel:`Spectral Image`: Specify spectral image on which unmixing should be applied.
 
 * **Class Selection**
 
-  * :guilabel:`Target Classes` |combo|:
+  * :guilabel:`Target Classes` |combo|: Specify the desired target classes (which are derived from the Class Attribute field specified above).
+    Can be used to select only a subset of target classes from a spectral library.
 
 * **Mixing Parameters**
 
-  * :guilabel:`Number of Synthetic Mixtures per Class`:
-  * :guilabel:`Include Original Library Endmembers` |cb0|:
-  * :guilabel:`Mixing Complexity Likelihoods`:
+  * :guilabel:`Number of Synthetic Mixtures per Class`: Amount of mixtures to be generated per class.
+  * :guilabel:`Include Original Library Endmembers` |cb0|: Whether to include the original spectra in the training library.
+  * :guilabel:`Mixing Complexity Likelihoods`: Defines the likelihood of creating a binary, ternary or fourfold mixture. For example,
+    by specifing the likelihoods as ``0.5``, ``0.5``, ``0``, it is equally likely that binary and ternary mixtures are created, whereas no fourfold mixtures will be generated.
+    Enter decimals between 0.0-1.0 (all three likelihoods need to sum up to 1).
 
-    * 2EM:
-    * 3EM:
-    * 4EM:
-  * :guilabel:`Allow Within-Class Mixtures` |cb0|:
-  * :guilabel:`Class Likelihoods` |combo| *(Proportional | Equalized)*:
+    * 2EM: Likelihood of creating a binary mixture (2 endmembers)
+    * 3EM: Likelihood of creating a ternary mixture (3 endmembers)
+    * 4EM: Likelihood of creating a fourfold mixture (4 endmembers)
+  * :guilabel:`Allow Within-Class Mixtures` |cb0|: Whether to allow mixtures between signatures of the same endmember.
+  * :guilabel:`Class Likelihoods` |combo| *(Proportional | Equalized)*: In case of proportional class likelihoods the number of
+    mixtures of a class in the output library will be proportional to the number of spectra in the input library of that class. In case of equalized,
+    all classes will be represented equally.
 
 * **Regression Algorithm**
 
@@ -54,11 +59,31 @@ Input Parameters:
         Scikit-learn python syntax is used here, which means you can specify model parameters accordingly. Have a look at
         the scikit-learn documentation on the individual parameters, e.g. for the `RandomForestRegressor <https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html>`_
 
-  * :guilabel:`Use Ensemble` |cb0|:
-  * :guilabel:`Ensemble Size`:
+  * :guilabel:`Use Ensemble` |cb0|: If enabled, more than one iteration of mixing, training and prediction will be performed.
+    The results of each iteration will be combined into a final ensemble result (see :guilabel:`Decision Fusion (Ensemble)` on how results should be combined).
+  * :guilabel:`Ensemble Size`: Specify the size of the ensemble (number of iterations).
 
 * **Outputs**
 
+ * :guilabel:`Folder`: Specify an output folder where results will be written to.
+ * :guilabel:`Name`: Basename of the output files
+
+ * |mIconCollapse| :guilabel:`Advanced`
+
+   * :guilabel:`Decision Fusion (Ensemble)` |combo| *(median | mean | iqr | std)*: Select one or multiple options of the kind of
+     decision fusion (how individal predictions of the ensemble will be combined)
+   * :guilabel:`Save` Check the following to save additional outputs ...
+
+     * :guilabel:`Training Samples` |cb0|: Save the training samples
+     * :guilabel:`Predictions` |cb0|: Save the individual predictions of the ensemble
+     * :guilabel:`Models` |cb0|: Save the model files
+   * :guilabel:`Create Class Fraction RGB` |cb0|: Generates a RGB visualisation based on the weighted sum of class colors and corresponding fractions
+   * :guilabel:`Derive Classification from Fraction Map` |cb0|: Save classification from fraction map (class with the highest fraction will be assigned)
+
+
+.. admonition:: Run the regression-based unmixing
+
+   Once all parameters are entered, press the |action| button to start the regression-based unmixing.
 
 |
 
@@ -195,7 +220,7 @@ Input Parameters:
   * |cb0| Cross-validation with n-folds |spin|: Activate this setting to assess the accuracy of the regression by performing cross
     validation. Specify the desired number of folds (default: 3). HTML report will be generated at the specified output path.
 
-.. admonition:: Run the classification workflow
+.. admonition:: Run the regression workflow
 
    Once all parameters are entered, press the |action| button to start the regression workflow.
 
