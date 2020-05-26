@@ -38,6 +38,7 @@ class Load_Txt_File_GUI(QDialog):
         super(Load_Txt_File_GUI, self).__init__(parent)
         loadUi(pathUI3, self)
 
+
 class Select_Wavelengths_GUI(QDialog):
     def __init__(self, parent=None):
         super(Select_Wavelengths_GUI, self).__init__(parent)

@@ -9,7 +9,7 @@ from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt import uic
 from osgeo import gdal
-import lmuvegetationapps.Inverse_mode_cl as inverse
+import lmuvegetationapps.Inverse_mode_cl_v as inverse
 from enmapbox.gui.applications import EnMAPBoxApplication
 from lmuvegetationapps.Spec2Sensor_cl import Spec2Sensor
 
@@ -18,31 +18,33 @@ pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Select_Wavelengths.ui')
 pathUI3 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
 pathUI_prg = os.path.join(os.path.dirname(__file__),'GUI_ProgressBar.ui')
 
-from enmapbox.gui.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUi
 
-class Global_Inversion_GUI(QDialog, loadUIFormClass(pathUI)):
+
+class Global_Inversion_GUI(QDialog):
     
     def __init__(self, parent=None):
         super(Global_Inversion_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI, self)
 
-class Select_Wavelengths_GUI(QDialog, loadUIFormClass(pathUI2)):
+class Select_Wavelengths_GUI(QDialog):
 
     def __init__(self, parent=None):
         super(Select_Wavelengths_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI2, self)
 
-class Nodat_GUI(QDialog, loadUIFormClass(pathUI3)):
+class Nodat_GUI(QDialog):
 
     def __init__(self, parent=None):
         super(Nodat_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI3, self)
 
-class PRG_GUI(QDialog, loadUIFormClass(pathUI_prg)):
+class PRG_GUI(QDialog):
     def __init__(self, parent=None):
         super(PRG_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI_prg, self)
         self.allow_cancel = False
+
 
     def closeEvent(self, event):
         if self.allow_cancel:

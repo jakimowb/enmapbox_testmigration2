@@ -125,12 +125,8 @@ class EnMAPBoxUI(QMainWindow):
 
         self.setWindowTitle('EnMAP-Box 3 ({})'.format(enmapbox.__version__))
 
-
-
     def addDockWidget(self, *args, **kwds):
-
         super(EnMAPBoxUI, self).addDockWidget(*args, **kwds)
-
 
     def menusWithTitle(self, title:str):
         """
@@ -641,7 +637,7 @@ class EnMAPBox(QgisInterface, QObject):
             self.ui.cursorLocationValuePanel.show()
         self.ui.cursorLocationValuePanel.loadCursorLocation(spatialPoint, mapCanvas)
 
-    def mapLayerStore(self)->QgsMapLayerStore:
+    def mapLayerStore(self) -> QgsMapLayerStore:
         """
         Returns the EnMAP-Box internal QgsMapLayerStore
         :return: QgsMapLayerStore

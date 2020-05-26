@@ -7,7 +7,7 @@ from hubdsm.core.geotransform import GeoTransform
 from hubdsm.core.grid import Grid
 from hubdsm.core.location import Location
 from hubdsm.core.pixellocation import PixelLocation
-from hubdsm.core.projection import Projection
+from hubdsm.core.projection import Projection, WGS84_PROJECTION
 from hubdsm.core.resolution import Resolution
 from hubdsm.core.shape import GridShape
 from hubdsm.core.size import Size
@@ -19,7 +19,7 @@ class TestGrid(TestCase):
         grid = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=10, y=20)),
             resolution=Resolution(x=1, y=2),
-            projection=Projection.fromWgs84()
+            projection=WGS84_PROJECTION
         )
         self.assertEqual(grid.withResolution(resolution=Resolution(2, 2)).resolution, Resolution(2, 2))
         self.assertEqual(grid.shape, GridShape(y=10, x=10))
@@ -38,7 +38,7 @@ class TestGrid(TestCase):
         grid = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=10, y=20)),
             resolution=Resolution(x=1, y=1),
-            projection=Projection.fromWgs84()
+            projection=WGS84_PROJECTION
         )
         self.assertTrue(grid.pixelLocation(location=grid.extent.ul), PixelLocation(x=0.0, y=0.0))
         self.assertTrue(grid.pixelLocation(location=grid.extent.lr), PixelLocation(x=10.0, y=20.0))
@@ -47,7 +47,7 @@ class TestGrid(TestCase):
         grid = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=10, y=20)),
             resolution=Resolution(x=1, y=1),
-            projection=Projection.fromWgs84()
+            projection=WGS84_PROJECTION
         )
         self.assertTrue(grid.location(pixelLocation=PixelLocation(x=0.0, y=0.0)), grid.extent.ul)
         self.assertTrue(grid.location(pixelLocation=PixelLocation(x=10.0, y=20.0)), grid.extent.lr)
@@ -56,7 +56,7 @@ class TestGrid(TestCase):
         grid = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=10, y=20)),
             resolution=Resolution(x=1, y=1),
-            projection=Projection.fromWgs84()
+            projection=WGS84_PROJECTION
         )
         self.assertFalse(grid.equal(grid.withExtent(extent=Extent(ul=Location(x=0, y=0), size=Size(x=1, y=1)))))
         self.assertFalse(grid.equal(grid.withResolution(resolution=Resolution(2, 2))))
@@ -66,7 +66,7 @@ class TestGrid(TestCase):
         grid = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=10, y=6)),
             resolution=Resolution(x=2, y=2),
-            projection=Projection.fromWgs84()
+            projection=WGS84_PROJECTION
         )
 
         # test full grid
@@ -103,7 +103,7 @@ class TestGrid(TestCase):
         grid = Grid(
             extent=Extent(ul=Location(x=0, y=0), size=Size(x=5, y=4)),
             resolution=Resolution(x=1, y=1),
-            projection=Projection.fromWgs84()
+            projection=WGS84_PROJECTION
         )
         leads = [g.extent for g in grid.subgrids(shape=GridShape(y=2, x=2))]
         golds = [

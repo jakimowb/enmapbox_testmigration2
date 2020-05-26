@@ -7,7 +7,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin, Cluster
 from sklearn.utils.validation import check_is_fitted
 
 from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.gdalrasterdriver import GdalRasterDriver
+from hubdsm.core.gdaldriver import GdalDriver
 from hubdsm.core.raster import Raster
 
 
@@ -30,8 +30,8 @@ def estimatorPredict(
     if noDataValue is None:
         noDataValue = np.iinfo(numpyDataType).min
 
-    driver = GdalRasterDriver.fromFilename(filename=filename)
-    outGdalRaster = driver.create(grid=raster.grid, bands=bands, gdt=gdalDataType, filename=filename, gco=co)
+    driver = GdalDriver.fromFilename(filename=filename)
+    outGdalRaster = driver.createRaster(grid=raster.grid, bands=bands, gdt=gdalDataType, filename=filename, gco=co)
     subgrids = list(raster.grid.subgrids(shape=po.getShape(default=raster.grid.shape)))
     n = len(subgrids)
     i = 1

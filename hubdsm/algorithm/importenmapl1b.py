@@ -1,4 +1,4 @@
-from os.path import basename
+from os.path import basename, exists
 from typing import Tuple
 
 from osgeo import gdal
@@ -8,6 +8,8 @@ def importEnmapL1B(
         filenameMetadataXml: str, filenameVnir: str = None, filenameSwir: str = None
 ) -> Tuple[gdal.Dataset, gdal.Dataset]:
     '''Return VNIR and SWIR VRT datasets with spectral information (wavelength and FWHM) and data gains/offsets.'''
+
+    assert isEnmapL1BProduct(filenameMetadataXml=filenameMetadataXml)
 
     if filenameVnir is None:
         filenameVnir = filenameMetadataXml.replace('METADATA.XML', 'EnMAP-Box_VNIR.vrt')
@@ -28,14 +30,18 @@ def importEnmapL1B(
     offsets = [item.text for item in root.findall('specific/bandCharacterisation/bandID/OffsetOfBand')]
 
     # create VRTs
-    ds = gdal.Open(filenameMetadataXml.replace('-METADATA.XML', '-SPECTRAL_IMAGE_VNIR.GEOTIFF'))
+    filename = filenameMetadataXml.replace('-METADATA.XML', '-SPECTRAL_IMAGE_VNIR.TIF')
+    assert exists(filename)
+    ds = gdal.Open(filename)
     options = gdal.TranslateOptions(format='VRT')
     dsVnir: gdal.Dataset = gdal.Translate(destName=filenameVnir, srcDS=ds, options=options)
     dsVnir.SetMetadataItem('wavelength', '{'+', '.join(wavelength[:dsVnir.RasterCount]) + '}', 'ENVI')
     dsVnir.SetMetadataItem('wavelength_units', 'nanometers', 'ENVI')
     dsVnir.SetMetadataItem('fwhm', '{'+', '.join(fwhm[:dsVnir.RasterCount]) + '}', 'ENVI')
 
-    ds = gdal.Open(filenameMetadataXml.replace('-METADATA.XML', '-SPECTRAL_IMAGE_SWIR.GEOTIFF'))
+    filename = filenameMetadataXml.replace('-METADATA.XML', '-SPECTRAL_IMAGE_SWIR.TIF')
+    assert exists(filename)
+    ds = gdal.Open(filename)
     options = gdal.TranslateOptions(format='VRT')
     dsSwir: gdal.Dataset = gdal.Translate(destName=filenameSwir, srcDS=ds, options=options)
     dsSwir.SetMetadataItem('wavelength', '{'+', '.join(wavelength[dsVnir.RasterCount:]) + '}', 'ENVI')
@@ -50,6 +56,14 @@ def importEnmapL1B(
         rasterBand.SetScale(float(gains[i]))
         rasterBand.SetOffset(float(offsets[i]))
         rasterBand.FlushCache()
+
+    # fix wrong GeoTransform tuple
+    geoTransform = dsVnir.GetGeoTransform()
+    geoTransform = geoTransform[:-1] + (-abs(geoTransform[-1]), )
+    dsVnir.SetGeoTransform(geoTransform)
+    geoTransform = dsSwir.GetGeoTransform()
+    geoTransform = geoTransform[:-1] + (-abs(geoTransform[-1]), )
+    dsSwir.SetGeoTransform(geoTransform)
 
     return dsVnir, dsSwir
 

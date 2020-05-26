@@ -68,6 +68,7 @@ class GdalBand(object):
             gra = gdal.GRA_NearestNeighbour
 
         if grid is None:
+            grid = self.grid
             array = self.gdalBand.ReadAsArray(resample_alg=gra)
         else:
             assert isinstance(grid, Grid)
@@ -283,7 +284,7 @@ class GdalBand(object):
         return domains if domains is not None else []
 
     def translate(
-            self, grid: Grid = None, filename: str = None, driver: 'GdalRasterDriver' = None, gco: List[str] = None,
+            self, grid: Grid = None, filename: str = None, driver: 'GdalDriver' = None, gco: List[str] = None,
             gra: int = None, **kwargs
     ) -> 'GdalBand':
         '''Return translated raster band.'''

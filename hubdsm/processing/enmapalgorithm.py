@@ -1,7 +1,7 @@
 # from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Union, Any, Dict
+from typing import List, Union, Any, Dict, Iterable
 
 from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 from qgis._core import *
@@ -62,10 +62,15 @@ class EnMAPAlgorithm(QgisAlgorithm):
                 feedback.reportError(line)
             raise Exception('unexpected error')
 
-    def parameter(self, parameters: Dict, name: str, context: QgsProcessingContext):
+    def parameter(self, parameters: Dict, name: str, context: QgsProcessingContext) -> Any:
         pd = self.parameterDefinition(name=name)
-        if isinstance(pd, EnMAPProcessingParameterRasterLayer):
+
+        if isinstance(pd, EnMAPProcessingParameterMapLayer):
+            value = self.parameterAsLayer(parameters, name, context)
+        elif isinstance(pd, EnMAPProcessingParameterRasterLayer):
             value = self.parameterAsRasterLayer(parameters, name, context)
+        elif isinstance(pd, EnMAPProcessingParameterVectorLayer):
+            value = self.parameterAsVectorLayer(parameters, name, context)
         elif isinstance(pd, EnMAPProcessingParameterRasterDestination):
             if isinstance(parameters[name], QgsProcessingOutputLayerDefinition):
                 value = str(self.parameterAsOutputLayer(parameters, name, context))
@@ -75,6 +80,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
                 assert 0, repr(parameters[name])
         else:
             value = parameters[name]
+
         return value
 
     def hasHtmlOutputs(self, *args, **kwargs):
@@ -208,6 +214,17 @@ class EnMAPProcessingParameterMapLayer(QgsProcessingParameterMapLayer):
     ):
         QgsProcessingParameterMapLayer.__init__(
             self, name=name, description=description, defaultValue=defaultValue, optional=optional
+        )
+        self.help = help
+
+
+class EnMAPProcessingParameterVectorLayer(QgsProcessingParameterVectorLayer):
+    def __init__(
+            self, name: str, description: str, types: Iterable[int] = tuple(), defaultValue: Any = None,
+            optional: bool = False, help=Help()
+    ):
+        QgsProcessingParameterVectorLayer.__init__(
+            self, name=name, description=description, types=types, defaultValue=defaultValue, optional=optional
         )
         self.help = help
 

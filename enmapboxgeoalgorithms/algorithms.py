@@ -10,11 +10,15 @@ from enmapboxgeoalgorithms.filters.convolution import parseSpatialKernel, parseS
 from enmapboxgeoalgorithms.filters.morphology import parseMorphology
 from enmapboxgeoalgorithms.filters.other import parseOtherFilter
 from hubdsm.processing.importenmapl1b import ImportEnmapL1B
+from hubdsm.processing.importenmapl1c import ImportEnmapL1C
+from hubdsm.processing.importenmapl2a import ImportEnmapL2A
 from hubdsm.processing.uniquebandvaluecounts import UniqueBandValueCounts
 from hubdsm.processing.savelayerasclassification import SaveLayerAsClassification
 
 ALGORITHMS.append(UniqueBandValueCounts())
 ALGORITHMS.append(ImportEnmapL1B())
+ALGORITHMS.append(ImportEnmapL1C())
+ALGORITHMS.append(ImportEnmapL2A())
 ALGORITHMS.append(SaveLayerAsClassification())
 
 

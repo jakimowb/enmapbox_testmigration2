@@ -5,7 +5,7 @@ from osgeo import gdal
 
 from hubdsm.algorithm.convertraster import convertRaster
 from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.gdalrasterdriver import MEM_DRIVER
+from hubdsm.core.gdaldriver import MEM_DRIVER
 from hubdsm.core.raster import Raster
 from hubdsm.core.shape import GridShape
 
