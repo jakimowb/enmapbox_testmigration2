@@ -38,4 +38,4 @@ class GdalGeoTransform(NamedTuple):
         return Location(x=self.upperLeftX, y=self.upperLeftY)
 
     def resolution(self) -> Resolution:
-        return Resolution(x=self.xResolution, y=-self.yResolution)
+        return Resolution(x=self.xResolution, y=abs(self.yResolution))
