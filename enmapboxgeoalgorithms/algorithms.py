@@ -2,6 +2,7 @@ from shutil import rmtree
 
 from qgis.core import *
 
+from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.subsetrasterbands import SubsetRasterBands
 from hubflow.core import *
 from enmapboxgeoalgorithms.provider import (EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, Help, Link, Cookbook,
@@ -22,6 +23,7 @@ ALGORITHMS.append(ImportEnmapL1C())
 ALGORITHMS.append(ImportEnmapL2A())
 ALGORITHMS.append(SaveLayerAsClassification())
 ALGORITHMS.append(SubsetRasterBands())
+ALGORITHMS.append(AggregateBands())
 
 
 class ClassificationFromFraction(EnMAPAlgorithm):

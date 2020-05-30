@@ -286,6 +286,18 @@ class EnMAPProcessingParameterBoolean(QgsProcessingParameterBoolean):
         self.help = help
 
 
+class EnMAPProcessingParameterEnum(QgsProcessingParameterEnum):
+    def __init__(
+            self, name: str, description: str, options: Iterable[str], allowMultiple: bool = False,
+            defaultValue: Any = None, optional: bool = False, help=Help()
+    ):
+        QgsProcessingParameterEnum.__init__(
+            self, name=name, description=description, options=options, allowMultiple=allowMultiple,
+            defaultValue=defaultValue, optional=optional
+        )
+        self.help = help
+
+
 class EnMAPProcessingParameterRasterDestination(QgsProcessingParameterRasterDestination):
     def __init__(
             self, name: str, description: str, defaultValue: str = None, optional: bool = False,
