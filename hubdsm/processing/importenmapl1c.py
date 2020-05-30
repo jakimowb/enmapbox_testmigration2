@@ -10,7 +10,7 @@ class ImportEnmapL1C(EnMAPAlgorithm):
         return importEnmapL1C.__doc__
 
     def group(self):
-        return Group.IMPORT_DATA.value
+        return Group.ImportData.value
 
     P_FILE = 'file'
     P_OUTRASTER = 'outraster'

@@ -61,7 +61,7 @@ class GdalRaster(object):
             raise ValueError(filenameOrGdalDataset)
 
         assert gdalDataset is not None
-        assert gdalDataset.GetProjection() != ''
+        #assert gdalDataset.GetProjection() != ''
         return GdalRaster(gdalDataset=gdalDataset)
 
     @property
@@ -148,7 +148,7 @@ class GdalRaster(object):
         return domainList
 
     def metadataItem(
-            self, key: str, domain: str, dtype: Union[str, float, int] = None, required=False, default=None):
+            self, key: str, domain: str, dtype=None, required=False, default=None):
         """Return (type-casted) metadata value.
         If metadata item is missing, but not required, return the default value."""
 

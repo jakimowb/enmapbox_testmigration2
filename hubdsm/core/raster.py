@@ -35,9 +35,13 @@ class Raster(object):
         # assert len(self.bandNames) == len(set(self.bandNames)), 'each band name must be unique'
 
     def __getitem__(self, item):
-        selectors = list(range(1, len(self.bands) + 1)).__getitem__(item)
-        if not isinstance(selectors, list):
-            selectors = [selectors]
+        if isinstance(item, (list, tuple)):
+            selectors = [v + 1 for v in item]
+        else:
+            numbers = list(range(1, len(self.bands) + 1))
+            selectors = numbers[item]
+            if not isinstance(selectors, list):
+                selectors = [selectors]
         return self.select(selectors=selectors)
 
     @classmethod
@@ -311,7 +315,7 @@ class Raster(object):
             bandIndex = 0
             for line in lines:
                 if line.endswith('</SourceBand>\n'):
-                    file.write(f'      <SourceBand>{self.bands[bandIndex].number}</SourceBand>\n',)
+                    file.write(f'      <SourceBand>{self.bands[bandIndex].number}</SourceBand>\n', )
                     bandIndex += 1
                 else:
                     file.write(line)

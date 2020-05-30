@@ -205,6 +205,7 @@ class TestRaster(TestCase):
         self.assertTupleEqual(raster.bandNames, ('B1', 'B2', 'B3'))
         self.assertTupleEqual(raster[1].bandNames, ('B2',))
         self.assertTupleEqual(raster[1:].bandNames, ('B2', 'B3'))
+        self.assertTupleEqual(raster[(0, 2)].bandNames, ('B1', 'B3'))
 
     def test_saveAsVrt(self):
         pass
