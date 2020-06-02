@@ -11,9 +11,11 @@ class GdalMetadataValueFormatter(object):
             return str(value)
 
     @classmethod
-    def stringToValue(cls, string, dtype):
+    def stringToValue(cls, string, dtype=None):
         """Returns a representation of string as value of given type."""
 
+        if dtype is None:
+            dtype = str
         string.strip()
         if string.startswith('{') and string.endswith('}'):
             value = cls._stringToList(string, dtype)

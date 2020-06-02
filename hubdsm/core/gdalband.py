@@ -178,14 +178,14 @@ class GdalBand(object):
         for domain, metadataDomain in metadataDict.items():
             self.setMetadataDomain(values=metadataDomain, domain=domain)
 
-    def metadataItem(self, key, domain='', default=None, dtype=str):
+    def metadataItem(self, key, domain='', dtype=None, default=None):
         """Return the metadata item."""
         key = key.replace(' ', '_')
         gdalString = self.gdalBand.GetMetadataItem(key, domain)
         if gdalString is not None:
             value = GdalMetadataValueFormatter.stringToValue(gdalString, dtype=dtype)
         else:
-            value = None
+            value = default
         return value
 
     def metadataDomain(self, domain=''):
@@ -282,6 +282,66 @@ class GdalBand(object):
         """Returns the list of metadata domain names."""
         domains = self.gdalBand.GetMetadataDomainList()
         return domains if domains is not None else []
+
+    @property
+    def wavelength(self) -> Optional[float]:
+        """Return center wavelength in nanometers."""
+        wavelength = self.metadataItem(key='wavelength', domain='ENMAPBOX', dtype=float)
+        if wavelength is None:
+            enviWavelengths = self.raster.metadataItem(key='wavelength', domain='ENVI', dtype=float)
+            if enviWavelengths is None:
+                return None
+            enviWavelength = enviWavelengths[self.number - 1]
+            unit = self.raster.metadataItem(key='wavelength units', domain='ENVI')
+            if unit in ['Micrometers', 'micrometers', 'um']:
+                wavelength = enviWavelength * 1000.
+            else:
+                wavelength = enviWavelength
+        return wavelength
+
+    def setWavelength(self, value: float):
+        """Set center wavelength in nanometers."""
+        assert isinstance(value, float)
+        self.setMetadataItem(key='wavelength', value=value, domain='ENMAPBOX')
+
+    @property
+    def fwhm(self) -> Optional[float]:
+        """Return full width at half maximum in nanometers."""
+        fwhm = self.metadataItem(key='fwhm', domain='ENMAPBOX', dtype=float)
+        if fwhm is None:
+            enviFwhm = self.raster.metadataItem(key='fwhm', domain='ENVI', dtype=float)
+            if enviFwhm is None:
+                return None
+            enviFwhm = enviFwhm[self.number - 1]
+            unit = self.raster.metadataItem(key='wavelength units', domain='ENVI')
+            if unit in ['Micrometers', 'micrometers', 'um']:
+                fwhm = enviFwhm * 1000.
+            else:
+                fwhm = enviFwhm
+        return fwhm
+
+    def setFwhm(self, value: float):
+        """Set full width at half maximum in nanometers."""
+        assert isinstance(value, float)
+        self.setMetadataItem(key='fwhm', value=value, domain='ENMAPBOX')
+
+    @property
+    def isBadBand(self) -> bool:
+        """Return wether band is bad."""
+        isBadBand = self.metadataItem(key='bad band', domain='ENMAPBOX', dtype=int)
+        if isBadBand is None:
+            enviBbl = self.raster.metadataItem(key='bbl', domain='ENVI', dtype=int)
+            if enviBbl is None:
+                return False
+            isBadBand = enviBbl[self.number - 1] == 0
+        else:
+            isBadBand = isBadBand == 1
+        return isBadBand
+
+    def setIsBadBand(self, value):
+        """Set wether band is bad."""
+        assert isinstance(value, bool)
+        self.setMetadataItem(key='bad band', value=int(value), domain='ENMAPBOX')
 
     def translate(
             self, grid: Grid = None, filename: str = None, driver: 'GdalDriver' = None, gco: List[str] = None,

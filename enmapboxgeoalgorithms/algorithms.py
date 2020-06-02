@@ -2,6 +2,8 @@ from shutil import rmtree
 
 from qgis.core import *
 
+from hubdsm.processing.aggregatebands import AggregateBands
+from hubdsm.processing.subsetrasterbands import SubsetRasterBands
 from hubflow.core import *
 from enmapboxgeoalgorithms.provider import (EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, Help, Link, Cookbook,
                                             ALGORITHMS)
@@ -20,6 +22,8 @@ ALGORITHMS.append(ImportEnmapL1B())
 ALGORITHMS.append(ImportEnmapL1C())
 ALGORITHMS.append(ImportEnmapL2A())
 ALGORITHMS.append(SaveLayerAsClassification())
+ALGORITHMS.append(SubsetRasterBands())
+ALGORITHMS.append(AggregateBands())
 
 
 class ClassificationFromFraction(EnMAPAlgorithm):
@@ -1288,58 +1292,6 @@ class RasterUniqueValues(EnMAPAlgorithm):
 
 
 ALGORITHMS.append(RasterUniqueValues())
-
-
-class RasterBandSubsetting(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Subset Raster Bands'
-
-    def description(self):
-        return 'Subset raster bands by the given list of band numbers.'
-
-    def group(self):
-        return self.GROUP_RESAMPLING
-
-    P_BBL = 'badBandsList'
-
-    def defineCharacteristics(self):
-        self.addParameterRaster()
-        self.addParameterStringList(
-            description='Band subset',
-            optional=True,
-            help='List of bands to subset. E.g. 1, 2, -1 will select the first, the second and the last band.'
-        )
-        self.addParameterBoolean(description='Invert list',
-            help='Wether to invert the list of bands. E.g. 1, 2, -1 will selecting all bands but the first, the second and the last.')
-        self.addParameterBoolean(
-            name=self.P_BBL, description='Exclude ENVI Bad Bands List',
-            help='Wether to exclude the ENVI bad bands, defined by the ENVI/BBL metadata item.'
-        )
-        self.addParameterOutputRaster()
-
-    def processAlgorithm_(self):
-        raster = self.getParameterRaster()
-        indices = [int(s) - 1 if int(s) > 0 else int(s) for s in self.getParameterStringList()]
-        bbl = None
-        if self.getParameterBoolean(name=self.P_BBL):
-            bbl = raster.dataset().metadataItem(key='bbl', domain='ENVI', dtype=lambda v: bool(int(v)))
-            if len(indices) == 0:
-                indices = list(range(raster.dataset().zsize()))
-        else:
-            if len(indices) == 0:
-                raise EnMAPAlgorithmParameterValueError('Select bands to subset.')
-
-        if bbl is None:
-            bbl = [True] * raster.dataset().zsize()
-
-        indices = [index for index in indices if bbl[index]]
-        outraster = raster.subsetBands(filename=self.getParameterOutputRaster(),
-            indices=indices,
-            invert=self.getParameterBoolean())
-        return {self.P_OUTPUT_RASTER: outraster.filename()}
-
-
-ALGORITHMS.append(RasterBandSubsetting())
 
 
 class RasterWavebandSubsetting(EnMAPAlgorithm):
