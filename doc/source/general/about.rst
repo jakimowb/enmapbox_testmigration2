@@ -2,14 +2,6 @@
 About
 =====
 
-
-.. image:: ../img/EnMAP-Box_logo_black_text.svg
-    :height: 400px
-    :width: 400px
-    :align: center
-
-|
-
 The EnMAP-Box is a free and open source plug-in for `QGIS <https://www.qgis.org/en/site/#>`_.
 It is designed to process imaging spectroscopy data and
 particularly developed to handle data from the upcoming `EnMAP <http://www.enmap.org/>`_ sensor. The two main goals of
@@ -25,8 +17,31 @@ libraries for Python (e.g. scikit-learn for EO data classification and PyQtGraph
 The plug-in consists of a **(i)** graphical user interface for hyperspectral data visualization and e.g. spectral library management,
 **(ii)** a set of algorithms, and **(iii)** a high-level application programming interface (:ref:`EnMAP API <GUI_GettingStarted>`).
 
-
-
 |
+
+The EnMAP-Box is developed at Humboldt-Universität zu Berlin and Universität Greifswald under contract by the Helmholtz Centre Potsdam GFZ and is
+part of the EnMAP Core Science Team activities. It is funded by the German Aerospace Centre (DLR) - Project Management
+Agency, granted by the Federal Ministry of Economic Affairs and Energy (BMWi; grant no. 50EE1529).
+
+.. csv-table::
+   :header-rows: 0
+
+   |hu|, |ug|, |gfz|, |dlr|, |bmwi|
+
+
+.. |hu| image:: /../../enmapbox/gui/ui/icons/logo_hu-berlin.svg
+   :target: https://www.geographie.hu-berlin.de/en/professorships/eol
+
+.. |ug| image:: /img/logo_ug.png
+   :target: https://geo.uni-greifswald.de/lehrstuehle/geographie/fernerkundung-gi/intro/
+
+.. |gfz| image:: /../../enmapbox/gui/ui/icons/logo_gfz.svg
+   :target: https://www.gfz-potsdam.de/startseite/
+
+.. |dlr| image:: /../../enmapbox/gui/ui/icons/logo_dlr.svg
+   :target: https://www.dlr.de/content/de/artikel/missionen-projekte/enmap-der-deutsche-hyperspektralsatellit-zur-erdbeobachtung.html
+
+.. |bmwi| image:: /img/bmwi.jpg
+
 |
 

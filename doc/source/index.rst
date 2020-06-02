@@ -8,24 +8,29 @@
 EnMAP-Box 3 Documentation
 #########################
 
-**Welcome to the EnMAP-Box 3 Documentation!**
-
 The EnMAP-Box is a python plugin for `QGIS <https://www.qgis.org/en/site/#>`_, designed to process and visualise
-hyperspectral remote sensing data. This documentation will provide you with general information about
-the software and the corresponding satellite mission, a user guide for ordinary users as well as developers and
-step-by-step tutorials which exemplify the software's capabilities.
+hyperspectral remote sensing data.
+
+Key features
+************
+
+* Remote Sensing Extension for QGIS
+* State of the art Machine Learning Algorithms for Classification, Regression and More
+* Advanced Spectral Library Management
+* Python API
+
+.. figure:: img/screenshot_main2.png
+   :width: 75%
+   :align: center
+
 
 Related websites
 ****************
 
-- Environmental Mapping and Analysis Program (EnMAP): `www.enmap.org <http://www.enmap.org/>`_
-- Bitbucket source code repository: `www.bitbucket.org/hu-geomatics/enmap-box <https://bitbucket.org/hu-geomatics/enmap-box>`_
-- Humboldt-University zu Berlin, Geomatics lab: `www.hu-geomatics.de <https://www.geographie.hu-berlin.de/en/professorships/geomatics>`_
-
-.. figure:: img/screenshot_main2.png
-   :width: 100%
-
-|
+- `Environmental Mapping and Analysis Program (EnMAP) <http://www.enmap.org/>`_
+- `Source code repository <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/>`_
+- `Humboldt-University zu Berlin, EO-Lab <https://www.geographie.hu-berlin.de/en/professorships/geomatics>`_
+- `HYPERedu on eo-college <https://eo-college.org/now-online-hyperedu-educational-resources-on-imaging-spectroscopy/>`_
 
 News
 ****
@@ -38,6 +43,16 @@ Andreas Rabe presented the EnMAP-Box at the FOSSGIS 2020 in Freiburg. See the fu
 .. raw:: html
 
    <iframe width="100%" height="380" src="https://www.youtube.com/embed/egaJLUe_eXY" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+|
+
+05-03-2019
+==========
+
+Two Presentations by EnMAP-Box developers Andreas Rabe and Benjamin Jakimow at the QGIS User conference in Coruña
+
+* `Earth observation data processing in QGIS with a python API <https://av.tib.eu/media/40775>`_
+* `EO Time Series Viewer - A plugin to explore Earth Observation Time Series Data in QGIS <https://av.tib.eu/media/40776>`_
 
 |
 |

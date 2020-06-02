@@ -2,6 +2,7 @@
 Ocean Colour analysis with ONNS
 ===============================
 
+
 **Ocean Colour analysis with the OLCI Neural Network Swarm (ONNS)**
 
 Overview
@@ -176,16 +177,16 @@ Andreas Rabe (Humboldt-Universität zu Berlin)
 Funding
 -------
 
-|hzg| |esa| |enmap| |bmwi|
-
 .. |hzg| image:: img/hzg_rgb_mitzusatz_in_e_300dpi.jpg
-   :width: 20%
+   :target: https://hzg.de/institutes_platforms/coastal_research/operational_systems/remote_sensing/index.php.en
 
 .. |esa| image:: img/03_logo_dark_blue.bmp
-   :width: 20%
 
 .. |enmap| image:: img/Enmap_logo.jpg
-   :width: 20%
 
 .. |bmwi| image:: img/BMWi_4C_Gef_en.jpg
-   :width: 20%
+
+.. csv-table::
+
+   |hzg|,|esa|,|enmap|,|bmwi|
+
