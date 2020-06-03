@@ -21,7 +21,7 @@ The plug-in consists of a **(i)** graphical user interface for hyperspectral dat
 
 The EnMAP-Box is developed at Humboldt-Universität zu Berlin and Universität Greifswald under contract by the Helmholtz Centre Potsdam GFZ and is
 part of the EnMAP Core Science Team activities. It is funded by the German Aerospace Centre (DLR) - Project Management
-Agency, granted by the Federal Ministry of Economic Affairs and Energy (BMWi; grant no. 50EE1529).
+Agency, granted by the Federal Ministry of Economic Affairs and Energy (BMWi; grant no. 50EE1923).
 
 .. csv-table::
    :header-rows: 0

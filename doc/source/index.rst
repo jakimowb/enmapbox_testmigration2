@@ -11,12 +11,14 @@ EnMAP-Box 3 Documentation
 The EnMAP-Box is a python plugin for `QGIS <https://www.qgis.org/en/site/#>`_, designed to process and visualise
 hyperspectral remote sensing data.
 
+Get going with the :ref:`Installation <usr_installation>` and the :ref:`Getting Started <getting_started>` chapter!
+
 Key features
 ************
 
-* Remote Sensing Extension for QGIS
-* State of the art Machine Learning Algorithms for Classification, Regression and More
-* Advanced Spectral Library Management
+* Extends QGIS with various remote sensing and spectroscopy functionality
+* State of the art machine learning algorithms for classification, regression and more
+* Advanced spectral library management
 * Python API
 
 .. figure:: img/screenshot_main2.png
@@ -31,6 +33,7 @@ Related websites
 - `Source code repository <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/>`_
 - `Humboldt-University zu Berlin, EO-Lab <https://www.geographie.hu-berlin.de/en/professorships/geomatics>`_
 - `HYPERedu on eo-college <https://eo-college.org/now-online-hyperedu-educational-resources-on-imaging-spectroscopy/>`_
+
 
 News
 ****
