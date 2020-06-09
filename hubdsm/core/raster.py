@@ -35,9 +35,13 @@ class Raster(object):
         # assert len(self.bandNames) == len(set(self.bandNames)), 'each band name must be unique'
 
     def __getitem__(self, item):
-        selectors = list(range(1, len(self.bands) + 1)).__getitem__(item)
-        if not isinstance(selectors, list):
-            selectors = [selectors]
+        if isinstance(item, (list, tuple)):
+            selectors = [v + 1 for v in item]
+        else:
+            numbers = list(range(1, len(self.bands) + 1))
+            selectors = numbers[item]
+            if not isinstance(selectors, list):
+                selectors = [selectors]
         return self.select(selectors=selectors)
 
     @classmethod
@@ -67,19 +71,15 @@ class Raster(object):
         return Raster(name='stack', bands=tuple(bands), grid=grid)
 
     @staticmethod
-    def create(grid: Grid, bands=1, gdt: int = None, filename: str = None, gco: List[str] = None):
-        from hubdsm.core.gdaldriver import GdalDriver
-        driver = GdalDriver.fromFilename(filename=filename)
-        gdalRaster = driver.createRaster(grid=grid, bands=bands, gdt=gdt, filename=filename, gco=gco)
+    def create(grid: Grid, bands=1, gdt: int = None, filename: str = None, gco: List[str] = None) -> 'Raster':
+        gdalRaster = GdalRaster.create(grid=grid, bands=bands, gdt=gdt, filename=filename, gco=gco)
         return Raster.open(gdalRaster)
 
     @staticmethod
     def createFromArray(
             array: np.ndarray, grid: Optional[Grid] = None, filename: str = None, gco: List[str] = None
-    ):
-        from hubdsm.core.gdaldriver import GdalDriver
-        driver = GdalDriver.fromFilename(filename=filename)
-        gdalRaster = driver.createFromArray(array=array, grid=grid, filename=filename, gco=gco)
+    ) -> 'Raster':
+        gdalRaster = GdalRaster.createFromArray(array=array, grid=grid, filename=filename, gco=gco)
         return Raster.open(gdalRaster)
 
     @property
@@ -311,7 +311,7 @@ class Raster(object):
             bandIndex = 0
             for line in lines:
                 if line.endswith('</SourceBand>\n'):
-                    file.write(f'      <SourceBand>{self.bands[bandIndex].number}</SourceBand>\n',)
+                    file.write(f'      <SourceBand>{self.bands[bandIndex].number}</SourceBand>\n', )
                     bandIndex += 1
                 else:
                     file.write(line)

@@ -10,7 +10,7 @@ class ImportEnmapL2A(EnMAPAlgorithm):
         return importEnmapL2A.__doc__
 
     def group(self):
-        return Group.IMPORT_DATA.value
+        return Group.ImportData.value
 
     P_FILE = 'file'
     P_OUTRASTER = 'outraster'

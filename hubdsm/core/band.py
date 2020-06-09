@@ -114,3 +114,39 @@ class Band(object):
     @property
     def flushCache(self):
         return self.gdalBand.flushCache
+
+    @property
+    def wavelength(self):
+        return self.gdalBand.wavelength
+
+    @property
+    def fwhm(self):
+        return self.gdalBand.fwhm
+
+    @property
+    def isBadBand(self):
+        return self.gdalBand.isBadBand
+
+    @property
+    def metadataDict(self):
+        return self.gdalBand.metadataDict
+
+    @property
+    def metadataItem(self):
+        return self.gdalBand.metadataItem
+
+    @property
+    def metadataDomain(self):
+        return self.gdalBand.metadataDomain
+
+    @property
+    def setMetadataDict(self):
+        return self.gdalBand.setMetadataDict
+
+    @property
+    def setMetadataItem(self):
+        return self.gdalBand.setMetadataItem
+
+    @property
+    def setMetadataDomain(self):
+        return self.gdalBand.setMetadataDomain

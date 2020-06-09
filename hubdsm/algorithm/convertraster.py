@@ -1,4 +1,4 @@
-from typing import Union, List, Callable
+from typing import Union, List
 
 import numpy as np
 from osgeo.gdal_array import GDALTypeCodeToNumericTypeCode

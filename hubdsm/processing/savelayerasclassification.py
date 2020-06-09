@@ -27,7 +27,7 @@ class SaveLayerAsClassification(EnMAPAlgorithm):
         return 'Save map layer with "Paletted/Unique values" or "Categorized" renderer as classification with proper class names and colors. In case of a vector layer, the pixel grid has to be specified for rasterization.'
 
     def group(self):
-        return Group.CREATE_RASTER.value
+        return Group.CreateRaster.value
 
     P_MAP = 'map'
     P_GRID = 'grid'

@@ -25,5 +25,6 @@ def uniqueBandValueCounts(band: Band, po=ProcessingOptions()) -> Dict[int, int]:
         for value, count in zip(*np.unique(values, return_counts=True)):
             counts[value] = counts.get(value, 0) + count
     counts = OrderedDict(sorted(counts.items(), key=lambda item: item[0]))
+
     po.callbackFinish(uniqueBandValueCounts.__name__, t0=t0)
     return counts
