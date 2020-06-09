@@ -1,4 +1,29 @@
 # -*- coding: utf-8 -*-
+# noinspection PyPep8Naming
+"""
+***************************************************************************
+    qps/utils.py
+
+    A module for several utilities to be used in other QPS modules
+    ---------------------
+    Beginning            : 2019-01-11
+    Copyright            : (C) 2020 by Benjamin Jakimow
+    Email                : benjamin.jakimow@geo.hu-berlin.de
+***************************************************************************
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+                                                                                                                                                 *
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this software. If not, see <http://www.gnu.org/licenses/>.
+***************************************************************************
+"""
 
 
 import os
@@ -20,12 +45,18 @@ import traceback
 import calendar
 import datetime
 from qgis.core import *
+from qgis.core import QgsField, QgsVectorLayer, QgsRasterLayer, QgsRasterDataProvider, QgsMapLayer, QgsMapLayerStore, \
+    QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsRectangle, QgsPointXY, QgsProject, \
+    QgsMapLayerProxyModel, QgsRasterRenderer, QgsMessageOutput, QgsFeature, QgsTask
 from qgis.gui import *
+from qgis.gui import QgisInterface, QgsDialog, QgsMessageViewer, QgsMapLayerComboBox, QgsMapCanvas
+
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtXml import *
 from qgis.PyQt.QtXml import QDomDocument
 from qgis.PyQt import uic
+from qgis.PyQt.QtWidgets import QPlainTextEdit
 from osgeo import gdal, ogr
 import numpy as np
 from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QDialogButtonBox, QLabel, QGridLayout, QMainWindow
@@ -43,6 +74,7 @@ except:
 
 jp = os.path.join
 dn = os.path.dirname
+
 
 def rm(p):
     """
@@ -121,19 +153,18 @@ QPS_MAPLAYER_STORE = QgsMapLayerStore()
 MAP_LAYER_STORES = [QPS_MAPLAYER_STORE, QgsProject.instance()]
 
 
-def findUpwardPath(basepath, name, isDirectory=True) -> pathlib.Path:
+def findUpwardPath(basepath, name, is_directory:bool=True) -> pathlib.Path:
     """
     Searches for an file or directory in an upward path of the base path
 
     :param basepath:
     :param name:
-    :param isDirectory:
+    :param is_directory:
     :return:
     """
-    tmp = pathlib.Path(basepath)
+    tmp = pathlib.Path(basepath).resolve()
     while tmp != pathlib.Path(tmp.anchor):
-        if (isDirectory and os.path.isdir(tmp / name)) or \
-            os.path.isfile(tmp / name):
+        if (is_directory and os.path.isdir(tmp / name)) or os.path.isfile(tmp / name):
             return tmp / name
         else:
             tmp = tmp.parent
@@ -226,6 +257,8 @@ class UnitLookup(object):
     DATE_UNITS = ['DateTime', 'DOY', 'DecimalYear', 'DecimalYear[366]', 'DecimalYear[365]', 'Y', 'M', 'W', 'D']
     TIME_UNITS = ['h', 'm', 's', 'ms', 'us', 'ns', 'ps', 'fs', 'as']
 
+    UNIT_LOOKUP = {}
+
     @staticmethod
     def metric_units() -> typing.List[str]:
         return list(UnitLookup.METRIC_EXPONENTS.keys())
@@ -246,69 +279,75 @@ class UnitLookup(object):
 
         unit = unit.strip()
 
-        if unit in \
-                UnitLookup.metric_units() + \
-                UnitLookup.date_units() + \
-                UnitLookup.time_units():
-            return unit
+        if unit in UnitLookup.UNIT_LOOKUP.keys():
+            return UnitLookup.UNIT_LOOKUP[unit]
 
-        # metric units
-        if re.search(r'^(Nanomet(er|re)s?)$', unit, re.I):
-            return 'nm'
-        if re.search(r'^(Micromet(er|re)s?|um)$', unit, re.I):
-            return 'μm'
-        if re.search(r'^(Millimet(er|re)s?)$', unit, re.I):
-            return 'mm'
-        if re.search(r'^(Centimet(er|re)s?)$', unit, re.I):
-            return 'cm'
-        if re.search(r'^(Decimet(er|re)s?)$', unit, re.I):
-            return 'dm'
-        if re.search(r'^(Met(er|re)s?)$', unit, re.I):
-            return 'm'
-        if re.search(r'^(Hectomet(er|re)s?)$', unit, re.I):
-            return 'hm'
-        if re.search(r'^(Kilomet(er|re)s?)$', unit, re.I):
-            return 'km'
+        # so far this unit is unknown. Try to find the base unit
+        # store unit string in Lookup table for fast conversion into its base unit
+        # e.g. to convert string like "MiKrOMetErS" to "μm"
+        baseUnit = None
 
+        if unit in UnitLookup.metric_units() + \
+                   UnitLookup.date_units() + \
+                   UnitLookup.time_units():
+            baseUnit = unit
+        elif re.search(r'^(Nanomet(er|re)s?)$', unit, re.I):
+            baseUnit = 'nm'
+        elif re.search(r'^(Micromet(er|re)s?|um|μm)$', unit, re.I):
+            baseUnit = 'μm'
+        elif re.search(r'^(Millimet(er|re)s?)$', unit, re.I):
+            baseUnit = 'mm'
+        elif re.search(r'^(Centimet(er|re)s?)$', unit, re.I):
+            baseUnit = 'cm'
+        elif re.search(r'^(Decimet(er|re)s?)$', unit, re.I):
+            baseUnit = 'dm'
+        elif re.search(r'^(Met(er|re)s?)$', unit, re.I):
+            baseUnit = 'm'
+        elif re.search(r'^(Hectomet(er|re)s?)$', unit, re.I):
+            baseUnit = 'hm'
+        elif re.search(r'^(Kilomet(er|re)s?)$', unit, re.I):
+            baseUnit = 'km'
         # date units
-        if re.search(r'(Date([_\- ]?Time)?([_\- ]?Group)?|DTG)$', unit, re.I):
-            return 'DateTime'
-        if re.search(r'^(doy|Day[-_ ]?Of[-_ ]?Year?)$', unit, re.I):
-            return 'DOY'
-        if re.search(r'decimal[_\- ]?years?$', unit, re.I):
-            return 'DecimalYear'
-        if re.search(r'decimal[_\- ]?years?\[356\]$', unit, re.I):
-            return 'DecimalYear[365]'
-        if re.search(r'decimal[_\- ]?years?\[366\]$', unit, re.I):
-            return 'DecimalYear[366]'
-        if re.search(r'^Years?$', unit, re.I):
-            return 'Y'
-        if re.search(r'^Months?$', unit, re.I):
-            return 'M'
-        if re.search(r'^Weeks?$', unit, re.I):
-            return 'W'
-        if re.search(r'^Days?$', unit, re.I):
-            return 'D'
-        if re.search(r'^Hours?$', unit, re.I):
-            return 'h'
-        if re.search(r'^Minutes?$', unit, re.I):
-            return 'm'
-        if re.search(r'^Seconds?$', unit, re.I):
-            return 's'
-        if re.search(r'^MilliSeconds?$', unit, re.I):
-            return 'ms'
-        if re.search(r'^MicroSeconds?$', unit, re.I):
-            return 'us'
-        if re.search(r'^NanoSeconds?$', unit, re.I):
-            return 'ns'
-        if re.search(r'^Picoseconds?$', unit, re.I):
-            return 'ps'
-        if re.search(r'^Femtoseconds?$', unit, re.I):
-            return 'fs'
-        if re.search(r'^Attoseconds?$', unit, re.I):
-            return 'as'
+        elif re.search(r'(Date([_\- ]?Time)?([_\- ]?Group)?|DTG)$', unit, re.I):
+            baseUnit = 'DateTime'
+        elif re.search(r'^(doy|Day[-_ ]?Of[-_ ]?Year?)$', unit, re.I):
+            baseUnit = 'DOY'
+        elif re.search(r'decimal[_\- ]?years?$', unit, re.I):
+            baseUnit = 'DecimalYear'
+        elif re.search(r'decimal[_\- ]?years?\[356\]$', unit, re.I):
+            baseUnit = 'DecimalYear[365]'
+        elif re.search(r'decimal[_\- ]?years?\[366\]$', unit, re.I):
+            baseUnit = 'DecimalYear[366]'
+        elif re.search(r'^Years?$', unit, re.I):
+            baseUnit = 'Y'
+        elif re.search(r'^Months?$', unit, re.I):
+            baseUnit = 'M'
+        elif re.search(r'^Weeks?$', unit, re.I):
+            baseUnit = 'W'
+        elif re.search(r'^Days?$', unit, re.I):
+            baseUnit = 'D'
+        elif re.search(r'^Hours?$', unit, re.I):
+            baseUnit = 'h'
+        elif re.search(r'^Minutes?$', unit, re.I):
+            baseUnit = 'm'
+        elif re.search(r'^Seconds?$', unit, re.I):
+            baseUnit = 's'
+        elif re.search(r'^MilliSeconds?$', unit, re.I):
+            baseUnit = 'ms'
+        elif re.search(r'^MicroSeconds?$', unit, re.I):
+            baseUnit = 'us'
+        elif re.search(r'^NanoSeconds?$', unit, re.I):
+            baseUnit = 'ns'
+        elif re.search(r'^Picoseconds?$', unit, re.I):
+            baseUnit = 'ps'
+        elif re.search(r'^Femtoseconds?$', unit, re.I):
+            baseUnit = 'fs'
+        elif re.search(r'^Attoseconds?$', unit, re.I):
+            baseUnit = 'as'
 
-        return None
+        if baseUnit:
+            UnitLookup.UNIT_LOOKUP[unit] = baseUnit
+        return baseUnit
 
     @staticmethod
     def isMetricUnit(unit: str) -> bool:
@@ -516,9 +555,6 @@ def gdalFileSize(path) -> int:
         return size
 
 
-        s = ""
-
-
 def qgisLayerTreeLayers() -> list:
     """
     Returns the layers shown in the QGIS LayerTree
@@ -612,7 +648,7 @@ def value2str(value, sep:str=None, delimiter:str=' '):
     return value
 
 
-def setQgsFieldValue(feature:QgsFeature, field, value):
+def setQgsFieldValue(feature: QgsFeature, field, value):
     """
     Wrties the Python value v into a QgsFeature field, taking care of required conversions
     :param feature: QgsFeature
