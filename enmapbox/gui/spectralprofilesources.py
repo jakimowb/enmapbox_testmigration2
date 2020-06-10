@@ -774,8 +774,14 @@ class SpectralProfileBridge(QAbstractTableModel):
         _slw = self.mDstModel.addSpectralLibraryWidget(slw)
         if isinstance(_slw, SpectralLibraryWidget):
             # ensure at that there is least one relation with this SpectralLibraryWidget
-            addRelation = len([r for r in self.bridgeItems()
-                               if r.destination() == _slw]) == 0
+            addRelation = True
+            for r in self.bridgeItems():
+                if r.destination() == _slw:
+                    addRelation = False
+                elif r.destination() is None:
+                    r.setDestination(_slw)
+                    addRelation = False
+
             if addRelation:
                 # use last-used profile source
                 if len(self) > 0:

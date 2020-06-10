@@ -139,7 +139,7 @@ class UnitModel(QAbstractListModel):
 
             self.endInsertRows()
 
-    def data(self, index:QModelIndex, role=None):
+    def data(self, index: QModelIndex, role=None):
         if not index.isValid():
             return None
 
@@ -151,6 +151,7 @@ class UnitModel(QAbstractListModel):
             return self.mToolTips.get(unit, unit)
         if role == Qt.UserRole:
             return unit
+
 
 class XUnitModel(UnitModel):
 
@@ -369,10 +370,11 @@ class SpectralProfilePlotDataItem(PlotDataItem):
         assert isinstance(spectralProfile, SpectralProfile)
         super(SpectralProfilePlotDataItem, self).__init__()
 
-        #self.curve.sigClicked.connect(self.curveClicked)
-        #self.scatter.sigClicked.connect(self.scatterClicked)
+        # self.curve.sigClicked.connect(self.curveClicked)
+        # self.scatter.sigClicked.connect(self.scatterClicked)
         self.mCurveMouseClickNativeFunc = self.curve.mouseClickEvent
         self.curve.mouseClickEvent = self.onCurveMouseClickEvent
+        self.scatter.sigClicked.connect(self.onScatterMouseClicked)
 
         self.mXValueConversionFunction = lambda v, *args: v
         self.mYValueConversionFunction = lambda v, *args: v
@@ -395,9 +397,26 @@ class SpectralProfilePlotDataItem(PlotDataItem):
 
         if ev.accepted:
             idx, x, y, pxDistance = self.closestDataPoint(ev.pos())
-            data = {'idx': idx, 'xValue': x, 'yValue': y, 'pxDistance': pxDistance}
+            data = {'idx': idx,
+                    'xValue': x,
+                    'yValue': y,
+                    'pxDistance': pxDistance,
+                    'pdi': self}
             self.sigProfileClicked.emit(self.id(), data)
 
+    def onScatterMouseClicked(self, pts: pg.ScatterPlotItem):
+
+        if isinstance(pts, pg.ScatterPlotItem):
+            pdi = pts.parentItem()
+            if isinstance(pdi, SpectralProfilePlotDataItem):
+                pt = pts.ptsClicked[0]
+                i = pt.index()
+                data = {'idx': i,
+                        'xValue': pdi.xData[i],
+                        'yValue': pdi.yData[i],
+                        'pxDistance': 0,
+                        'pdi': self}
+                self.sigProfileClicked.emit(self.id(), data)
        #ev.accept()
 
 
@@ -695,14 +714,14 @@ class SpectralViewBox(pg.ViewBox):
         self.mActionShowCursorValues.setChecked(True)
 
     def raiseContextMenu(self, ev):
-        self.mLastColorScheme = self.colorScheme()
+        self.mLastColorScheme = self.profileRenderer()
         super(SpectralViewBox, self).raiseContextMenu(ev)
 
-    def setColorScheme(self, colorScheme: SpectralProfileRenderer):
+    def setProfileRenderer(self, colorScheme: SpectralProfileRenderer):
         assert isinstance(colorScheme, SpectralProfileRenderer)
         self.wColorScheme.setProfileRenderer(colorScheme)
 
-    def colorScheme(self) -> SpectralProfileRenderer:
+    def profileRenderer(self) -> SpectralProfileRenderer:
         """
         Returns the color scheme
         """
@@ -847,6 +866,8 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         self.mUpdateTimer.timeout.connect(self.onPlotUpdateTimeOut)
         self.mUpdateTimer.start()
 
+        self.setProfileRenderer(self.mDefaultProfileRenderer)
+
     def onInfoScatterClicked(self, a, b):
         self.mInfoScatterPoint.setVisible(False)
         self.mInfoScatterPointText = ""
@@ -874,7 +895,8 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
     def setProfileRenderer(self, profileRenderer: SpectralProfileRenderer):
         """Sets and applies the SpectralProfilePlotColorScheme"""
         assert isinstance(profileRenderer, SpectralProfileRenderer)
-        self.speclib().setProfileRenderer(profileRenderer)
+        if isinstance(self.speclib(), SpectralLibrary):
+            self.speclib().setProfileRenderer(profileRenderer)
 
     def onPlotUpdateTimeOut(self, *args):
         try:
@@ -1092,6 +1114,7 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             self.mSpeclib.committedAttributeValuesChanges.connect(self.onCommittedAttributeValuesChanges)
             self.mSpeclib.rendererChanged.connect(self.onProfileRendererChanged)
             self.mSpeclib.sigProfileRendererChanged.connect(self.onProfileRendererChanged)
+            self.setProfileRenderer(self.mSpeclib.profileRenderer())
             # additional security to disconnect
             # self.mSpeclib.willBeDeleted.connect(lambda: self.setSpeclib(None))
 
@@ -1172,7 +1195,7 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         self.mCrosshairLineV.pen.setColor(profileRenderer.infoColor)
 
         # update viewbox context menu and
-        self.viewBox().setColorScheme(profileRenderer)
+        self.viewBox().setProfileRenderer(profileRenderer)
 
         self.updateProfileStyles()
 
@@ -1387,22 +1410,28 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         fids = speclib.selectedFeatureIds()
         if modifiers == Qt.ControlModifier or modifiers == Qt.ShiftModifier:
             if fid in fids:
-                print(f'Remove {fid}')
+                #print(f'Remove {fid}')
                 fids.remove(fid)
             else:
-                print(f'Add {fid}')
+                #print(f'Add {fid}')
                 fids.append(fid)
             speclib.selectByIds(fids)
         else:
+            x = data['xValue']
+            y = data['yValue']
+            b = data['idx'] + 1
+            profile: SpectralProfile = self.speclib().profile(fid)
+            if isinstance(profile, SpectralProfile):
+                self.mInfoScatterPointText = f'FID:{fid} Bnd:{b}' + \
+                                             f'\nx:{x}\ny:{y}\n' + \
+                                             f'{profile.name()}'
 
-            self.mInfoScatterPointText = "Point({}, {})\nBand:{}".format(
-                data['xValue'], data['yValue'], data['idx']+1)
-
-            self.mInfoScatterPoint.setData(x=[data['xValue']],
-                                           y=[data['yValue']],
+            self.mInfoScatterPoint.setData(x=[x],
+                                           y=[y],
                                            symbol='o',
                                            brush=QColor('red'))
             self.mInfoScatterPoint.setVisible(True)
+            self.mInfoScatterPoint.update()
 
     def setYLabel(self, label: str):
         """

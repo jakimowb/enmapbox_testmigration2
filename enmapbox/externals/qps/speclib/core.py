@@ -39,7 +39,7 @@ from qgis.core import \
     QgsAttributeTableConfig, QgsField, QgsFields, QgsCoordinateReferenceSystem, QgsCoordinateTransform, \
     QgsVectorFileWriter, QgsActionManager, QgsFeatureIterator, QgsFeatureRequest, \
     QgsGeometry, QgsPointXY, QgsPoint, QgsMultiPoint, \
-    QgsRaster, QgsDefaultValue, \
+    QgsRaster, QgsDefaultValue, QgsReadWriteContext, \
     QgsCategorizedSymbolRenderer, QgsMapLayerProxyModel, \
     QgsSymbol, QgsNullSymbolRenderer, QgsMarkerSymbol, QgsLineSymbol, QgsFillSymbol, \
     QgsEditorWidgetSetup, QgsAction
@@ -116,7 +116,7 @@ def containsSpeclib(mimeData: QMimeData) -> bool:
     return False
 
 
-FILTERS = 'ENVI Spectral Library (*.sli *.esl);;CSV Table (*.csv);;Geopackage (*.gpkg)'
+FILTERS = 'ENVI Spectral Library (*.sli *.esl);;CSV Table (*.csv);;Geopackage (*.gpkg);;GeoJSON (*.geojson)'
 
 PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
 # CURRENT_SPECTRUM_STYLE = PlotStyle()
@@ -1329,6 +1329,8 @@ class SpectralProfileRenderer(object):
             renderer.stopRender(renderContext)
         else:
             for fid in fids:
+                if fid not in self.mFID2Style.keys():
+                    s = ""
                 profileStyles[fid] = self.mFID2Style.get(fid, self.profileStyle).clone()
 
 
@@ -2116,6 +2118,7 @@ class SpectralLibrary(QgsVectorLayer):
         :param pathSPECLIB:
         :return:
         """
+        warnings.warn('will be removed in future', DeprecationWarning)
         assert isinstance(pathSPECLIB, str)
         if not pathSPECLIB.endswith('.json'):
             pathJSON = os.path.splitext(pathSPECLIB)[0] + '.json'
@@ -2199,7 +2202,7 @@ class SpectralLibrary(QgsVectorLayer):
 
         readers = AbstractSpectralLibraryIO.subClasses()
 
-        for cls in sorted(readers, key=lambda r: r.score(uri)):
+        for cls in sorted(readers, key=lambda r: r.score(uri), reverse=True):
             try:
                 if cls.canRead(uri):
                     sl = cls.readFrom(uri, progressDialog=progressDialog)
@@ -2284,31 +2287,27 @@ class SpectralLibrary(QgsVectorLayer):
         f = self.fields().at(self.fields().lookupField(FIELD_VALUES))
         assert f.type() == QVariant.ByteArray, 'Field {} not of type ByteArray / BLOB'
 
-
-        self.mBeforeCommitFIDs: typing.List[int] = []
-
-        self.beforeCommitChanges.connect(self.onBeforeCommitChanges)
+        #self.beforeCommitChanges.connect(self.onBeforeCommitChanges)
         self.committedFeaturesAdded.connect(self.onCommittedFeaturesAdded)
         self.mProfileRenderer: SpectralProfileRenderer = SpectralProfileRenderer()
         self.mProfileRenderer.setInput(self)
         self.initTableConfig()
         self.initRenderer()
 
-    def onBeforeCommitChanges(self):
-        self.mBeforeCommitFIDs = self.allFeatureIds()
-
-
     def onCommittedFeaturesAdded(self, id, features):
 
         if id != self.id():
             return
-        #fidsNow = self.allFeatureIds()
-        #fidsAdded0 = [fid for fid in fidsNow if fid not in self.mBeforeCommitFIDs]
 
+        newFIDs = [f.id() for f in features]
+        # see qgsvectorlayereditbuffer.cpp
+        oldFIDs = list(reversed(self.editBuffer().addedFeatures().keys()))
         mFID2Style = self.profileRenderer().mFID2Style
-        for oldFID, f in self.editBuffer().addedFeatures().items():
-            if oldFID != f.id() and oldFID in mFID2Style.keys():
-                mFID2Style[f.id()] = mFID2Style.pop(oldFID)
+        updates = dict()
+        for fidOld, fidNew in zip(oldFIDs, newFIDs):
+            if fidOld in mFID2Style.keys():
+                updates[fidNew] = mFID2Style.pop(fidOld)
+        mFID2Style.update(updates)
 
     def setProfileRenderer(self, profileRenderer:SpectralProfileRenderer):
         assert isinstance(profileRenderer, SpectralProfileRenderer)
@@ -2503,6 +2502,10 @@ class SpectralLibrary(QgsVectorLayer):
         assert self.isEditable(), 'SpectralLibrary "{}" is not editable. call startEditing() first'.format(self.name())
 
         keysBefore = set(self.editBuffer().addedFeatures().keys())
+
+        lastTime = datetime.datetime.now()
+        dt = datetime.timedelta(seconds=2)
+
         if isinstance(progressDialog, (QProgressDialog, ProgressHandler)):
             progressDialog.setLabelText('Add {} profiles'.format(len(profiles)))
             progressDialog.setValue(0)
@@ -2511,22 +2514,24 @@ class SpectralLibrary(QgsVectorLayer):
         iSrcList = []
         iDstList = []
 
-        bufferLength = 500
+        bufferLength = 1000
         profileBuffer = []
 
-        oldIDs = self.allFeatureIds()
 
         nAdded = 0
 
-        def flushBuffer():
-            nonlocal self, nAdded, profileBuffer, progressDialog
+        def flushBuffer(triggerProgressBar:bool = False):
+            nonlocal self, nAdded, profileBuffer, progressDialog, lastTime, dt
             if not self.addFeatures(profileBuffer):
                 self.raiseError()
             nAdded += len(profileBuffer)
             profileBuffer.clear()
 
             if isinstance(progressDialog, (QProgressDialog, ProgressHandler)):
-                progressDialog.setValue(nAdded)
+                # update progressbar in intervals of dt
+                if triggerProgressBar or (lastTime + dt) < datetime.datetime.now():
+                    progressDialog.setValue(nAdded)
+                    lastTime = datetime.datetime.now()
 
         for i, pSrc in enumerate(profiles):
             if i == 0:
@@ -2556,7 +2561,10 @@ class SpectralLibrary(QgsVectorLayer):
             if len(profileBuffer) >= bufferLength:
                 flushBuffer()
 
-        flushBuffer()
+        # final buffer call
+        flushBuffer(triggerProgressBar=True)
+
+        # return the edited features
         MAP = self.editBuffer().addedFeatures()
         fids_inserted = [MAP[k].id() for k in reversed(MAP.keys()) if k not in keysBefore]
         return fids_inserted
@@ -2690,31 +2698,45 @@ class SpectralLibrary(QgsVectorLayer):
                 if isinstance(scheme, SpectralProfileRenderer):
                     self.mProfileRenderer = scheme
                     self.mProfileRenderer.setInput(self)
-        return success
+        return success, errorMsg
 
-    def exportProfiles(self, path: str, **kwds) -> list:
+    def exportProfiles(self, *args, **kwds) -> list:
+        warnings.warn('Use SpectralLibrary.write() instead', DeprecationWarning)
+        return self.write(*args, **kwds)
+
+    def write(self, path:str, **kwds) -> typing.List[str]:
         """
-        Exports profiles to a file. This wrapper tries to identify the required SpectralLibraryIO from the file-path suffix.
-        in `path`.
+        Exports profiles to a file.
+        This wrapper tries to identify a fitting AbstractSpectralLibraryIO from the
+        file extension in `path`.
+        To ensure the way how the SpectralLibrary is written into file data, use
+        a AbstractSpectralLibraryIO implementation of choice.
         :param path: str, filepath
         :param kwds: keywords to be used in specific `AbstractSpectralLibraryIO.write(...)` methods.
         :return: list of written files
         """
 
         if path is None:
-            path, filter = QFileDialog.getSaveFileName(parent=kwds.get('parent'), caption='Save Spectral Library',
-                                                       directory='speclib', filter=FILTERS)
+            path, filter = QFileDialog.getSaveFileName(parent=kwds.get('parent'),
+                                                       caption='Save Spectral Library',
+                                                       directory='speclib',
+                                                       filter=FILTERS)
+
+        if isinstance(path, pathlib.Path):
+            path = path.as_posix()
 
         if len(path) > 0:
             ext = os.path.splitext(path)[-1].lower()
-            if ext in ['.sli', '.esl']:
-                from .io.envi import EnviSpectralLibraryIO
-                return EnviSpectralLibraryIO.write(self, path)
+            from .io.csvdata import CSVSpectralLibraryIO
+            from .io.vectorsources import VectorSourceSpectralLibraryIO
+            from .io.envi import EnviSpectralLibraryIO
 
-            if ext in ['.csv']:
-                from .io.csvdata import CSVSpectralLibraryIO
-                from csv import excel_tab
-                return CSVSpectralLibraryIO.write(self, path, dialect=kwds.get('dialect', excel_tab))
+            # todo: implement filter strings in AbstractSpectralLibraryIOs to auto-match file extensions
+            if ext in ['.sli', '.esl']:
+                return EnviSpectralLibraryIO.write(self, path, **kwds)
+
+            elif ext in ['.json', '.geojson', '.geojsonl', '.csv', '.gpkg']:
+                return VectorSourceSpectralLibraryIO.write(self, path, **kwds)
 
         return []
 
@@ -2865,6 +2887,7 @@ class AbstractSpectralLibraryIO(object):
     @staticmethod
     def subClasses():
 
+        from .io.vectorsources import VectorSourceSpectralLibraryIO
         from .io.artmo import ARTMOSpectralLibraryIO
         from .io.asd import ASDSpectralLibraryIO
         from .io.clipboard import ClipboardIO
@@ -2874,6 +2897,7 @@ class AbstractSpectralLibraryIO(object):
         from .io.specchio import SPECCHIOSpectralLibraryIO
 
         subClasses = [
+            VectorSourceSpectralLibraryIO, # this is the prefered way to save/load speclibs
             EnviSpectralLibraryIO,
             ASDSpectralLibraryIO,
             CSVSpectralLibraryIO,
@@ -2882,14 +2906,16 @@ class AbstractSpectralLibraryIO(object):
             SPECCHIOSpectralLibraryIO,
             ClipboardIO,
         ]
+
+        # other sub-classes
         for c in AbstractSpectralLibraryIO.__subclasses__():
             if c not in subClasses:
                 subClasses.append(c)
 
         return subClasses
 
-    @staticmethod
-    def canRead(path: str) -> bool:
+    @classmethod
+    def canRead(cls, path: str) -> bool:
         """
         Returns true if it can read the source defined by path.
         Well behaving implementations use a try-catch block and return False in case of errors.
@@ -2898,8 +2924,8 @@ class AbstractSpectralLibraryIO(object):
         """
         return False
 
-    @staticmethod
-    def readFrom(path: str, progressDialog: typing.Union[QProgressDialog, ProgressHandler] = None) -> SpectralLibrary:
+    @classmethod
+    def readFrom(cls, path: str, progressDialog: typing.Union[QProgressDialog, ProgressHandler] = None) -> SpectralLibrary:
         """
         Returns the SpectralLibrary read from "path"
         :param path: source of Spectral Library
@@ -2908,8 +2934,9 @@ class AbstractSpectralLibraryIO(object):
         """
         return None
 
-    @staticmethod
-    def write(speclib: SpectralLibrary,
+    @classmethod
+    def write(cls,
+              speclib: SpectralLibrary,
               path: str,
               progressDialog: typing.Union[QProgressDialog, ProgressHandler] = None) -> \
             typing.List[str]:
@@ -2923,42 +2950,56 @@ class AbstractSpectralLibraryIO(object):
         assert isinstance(speclib, SpectralLibrary)
         return []
 
-    @staticmethod
-    def score(uri: str) -> int:
+    @classmethod
+    def supportedFileExtensions(cls) -> typing.Dict[str, str]:
         """
-        Returns a score value for the give uri. E.g. 0 for unlikely/unknown, 20 for yes, probably that's the file format
-        the reader can read.
+        Returns a dictionary of file extensions (key) and descriptions (values)
+        that can be read/written by the AbstractSpectralLibraryIO implementation.
+        :return: dict[str,str]
+        """
+        return dict()
+
+
+    @classmethod
+    def filterString(cls) -> str:
+        """
+        Returns a filter string to be used in QFileDialogs
+        :return: str
+        """
+        return ';;'.join([f'{descr} (*{ext})' for ext, descr
+                          in cls.supportedFileExtensions().items()])
+
+    @classmethod
+    def score(cls, uri: str) -> int:
+        uri = str(uri)
+        """
+        Returns a score value for the give uri. E.g. 0 for unlikely/unknown, 20 for yes, probably thats the file format the reader can read.
 
         :param uri: str
         :return: int
         """
+        for ext in cls.supportedFileExtensions().keys():
+            if uri.endswith(ext):
+                return 20
         return 0
 
-    @staticmethod
-    def filterString() -> str:
-        """
-        Returns a Qt file filter string
-        :return:
-        :rtype:
-        """
-
-        return None
-
-    @staticmethod
-    def addImportActions(spectralLibrary: SpectralLibrary, menu: QMenu):
+    @classmethod
+    def addImportActions(cls, spectralLibrary: SpectralLibrary, menu: QMenu):
         """
         Returns a list of QActions or QMenus that can be called to read/import SpectralProfiles from a certain file format into a SpectralLibrary
         :param spectralLibrary: SpectralLibrary to import SpectralProfiles to
         :return: [list-of-QAction-or-QMenus]
         """
+        return []
 
-    @staticmethod
-    def addExportActions(spectralLibrary: SpectralLibrary, menu: QMenu):
+    @classmethod
+    def addExportActions(cls, spectralLibrary: SpectralLibrary, menu: QMenu):
         """
         Returns a list of QActions or QMenus that can be called to write/export SpectralProfiles into certain file format
         :param spectralLibrary: SpectralLibrary to export SpectralProfiles from
         :return: [list-of-QAction-or-QMenus]
         """
+        return []
 
 
 def deleteSelected(layer):
