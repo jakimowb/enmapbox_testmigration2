@@ -64,6 +64,20 @@ class GdalRaster(object):
         #assert gdalDataset.GetProjection() != ''
         return GdalRaster(gdalDataset=gdalDataset)
 
+    @staticmethod
+    def create(grid: Grid, bands=1, gdt: int = None, filename: str = None, gco: List[str] = None) -> 'GdalRaster':
+        from hubdsm.core.gdaldriver import GdalDriver
+        driver = GdalDriver.fromFilename(filename=filename)
+        return driver.createRaster(grid=grid, bands=bands, gdt=gdt, filename=filename, gco=gco)
+
+    @staticmethod
+    def createFromArray(
+            array: np.ndarray, grid: Optional[Grid] = None, filename: str = None, gco: List[str] = None
+    ) -> 'GdalRaster':
+        from hubdsm.core.gdaldriver import GdalDriver
+        driver = GdalDriver.fromFilename(filename=filename)
+        return driver.createFromArray(array=array, grid=grid, filename=filename, gco=gco)
+
     @property
     def filenames(self) -> str:
         """Return filenames list."""

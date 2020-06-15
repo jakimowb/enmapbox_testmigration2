@@ -253,7 +253,6 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
         btnDelSrc.clicked.emit()
         self.assertEqual(len(p.bridge().dataSourceModel()), 2)
 
-
         btnAddDst.clicked.emit()
         btnAddSrc.clicked.emit()
         QApplication.processEvents()
@@ -286,6 +285,7 @@ class SpectralProfileSourceTests(EnMAPBoxTestCase):
         randomRasterPosition()
 
         randomRasterPosition()
+
 
 if __name__ == "__main__":
     import xmlrunner

@@ -371,8 +371,18 @@ class SpectralProfileRelation(object):
         self.mIsActive = isActive
         self.mSamplingMode = samplingMode
         self.mCurrentProfiles = []
+        self.mPlotStyle: PlotStyle = PlotStyle()
 
-    def setScale(self, scale:float):
+    def plotStyle(self) -> PlotStyle:
+        return self.mPlotStyle
+
+    def setPlotStyle(self, plotStyle:PlotStyle):
+        if plotStyle:
+            assert isinstance(plotStyle, PlotStyle)
+
+        self.mPlotStyle = plotStyle
+
+    def setScale(self, scale: float):
         self.mScale = scale
 
     def scale(self) -> float:
@@ -504,6 +514,7 @@ class SpectralProfileBridge(QAbstractTableModel):
         self.cnDst = 'Destination'
         self.cnSampling = 'Sampling'
         self.cnScale = 'Scale'
+        self.cnPlotStyle = 'Style'
 
         self.mTasks = dict()
 
@@ -548,7 +559,7 @@ class SpectralProfileBridge(QAbstractTableModel):
         return self.mSrcModel
 
     def columnNames(self) -> typing.List[str]:
-        return [self.cnSrc, self.cnSampling, self.cnDst, self.cnScale]
+        return [self.cnSrc, self.cnSampling, self.cnDst, self.cnScale, self.cnPlotStyle]
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
 
@@ -610,6 +621,9 @@ class SpectralProfileBridge(QAbstractTableModel):
             if cn == self.cnScale:
                 return float(item.scale())
 
+            if cn == self.cnPlotStyle:
+                return item.plotStyle()
+
         if role == Qt.CheckStateRole:
             if c == 0:
                 return Qt.Checked if item.mIsActive else Qt.Unchecked
@@ -624,6 +638,9 @@ class SpectralProfileBridge(QAbstractTableModel):
             if cn == self.cnSampling:
                 return 'Sampling mode = {}'.format(item.samplingMode().name)
 
+            if cn == self.cnPlotStyle:
+                return 'Profile style'
+
         if role == Qt.UserRole:
             if cn == self.cnSrc:
                 return item.source()
@@ -631,6 +648,8 @@ class SpectralProfileBridge(QAbstractTableModel):
                 return item.destination()
             if cn == self.cnSampling:
                 return item.samplingMode()
+            if cn == self.cnPlotStyle:
+                return item.plotStyle()
 
         return None
 
@@ -671,6 +690,10 @@ class SpectralProfileBridge(QAbstractTableModel):
 
             if cn == self.cnScale:
                 item.setScale(float(value))
+                changed = True
+
+            if cn == self.cnPlotStyle:
+                item.setPlotStyle(value)
                 changed = True
 
         if changed:
@@ -751,8 +774,14 @@ class SpectralProfileBridge(QAbstractTableModel):
         _slw = self.mDstModel.addSpectralLibraryWidget(slw)
         if isinstance(_slw, SpectralLibraryWidget):
             # ensure at that there is least one relation with this SpectralLibraryWidget
-            addRelation = len([r for r in self.bridgeItems()
-                               if r.destination() == _slw]) == 0
+            addRelation = True
+            for r in self.bridgeItems():
+                if r.destination() == _slw:
+                    addRelation = False
+                elif r.destination() is None:
+                    r.setDestination(_slw)
+                    addRelation = False
+
             if addRelation:
                 # use last-used profile source
                 if len(self) > 0:
@@ -832,9 +861,14 @@ class SpectralProfileBridge(QAbstractTableModel):
                 return
 
             currentProfiles = []
+            currentProfileStyles = dict()
+
             for r in self[:]:
                 if isinstance(r, SpectralProfileRelation) and r.destination() == dst:
-                    currentProfiles.extend(r.currentProfiles())
+                    profiles = r.currentProfiles()
+                    currentProfiles.extend(profiles)
+                    for p in profiles:
+                        currentProfileStyles[p] = r.plotStyle()
 
             currentProfiles = [p for p in currentProfiles if isinstance(p, SpectralProfile)]
 
@@ -842,7 +876,7 @@ class SpectralProfileBridge(QAbstractTableModel):
             # see https://bitbucket.org/hu-geomatics/enmap-box/issues/275/use-_-instead-of-as-separators-in-spectra
             for p in currentProfiles:
                 assert isinstance(p, SpectralProfile)
-                p.setName(p.name().replace(' ','_'))
+                p.setName(p.name().replace(' ', '_'))
 
             # ensure unique profile names per Spectral Library
             # e.g. make 'sourceA', 'sourceA' to 'sourceA', 'sourceA2'
@@ -853,7 +887,7 @@ class SpectralProfileBridge(QAbstractTableModel):
                 if dst.currentProfilesMode() == SpectralLibraryWidget.CurrentProfilesMode.normal:
                     # current profiles named can get replaced
                     for p in dst.currentProfiles():
-                        name : str = p.name()
+                        name: str = p.name()
                         if name in uniqueNames:
                             uniqueNames.remove(name)
 
@@ -880,8 +914,7 @@ class SpectralProfileBridge(QAbstractTableModel):
                             p.setName(name)
                             uniqueNames.add(name)
 
-            dst.setCurrentProfiles(currentProfiles)
-
+            dst.setCurrentProfiles(currentProfiles, profileStyles=currentProfileStyles)
 
     def onRemoveTask(self, tid):
         if tid in self.mTasks.keys():
@@ -928,7 +961,6 @@ class SpectralProfileBridge(QAbstractTableModel):
 
         self.mTasks[tid] = qgsTask
 
-
         updatedRelations = []
         if runAsync:
             tm = QgsApplication.taskManager()
@@ -953,13 +985,33 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
     def sortFilterProxyModel(self) -> QSortFilterProxyModel:
         return self.mTableView.model()
 
+    def paint(self, painter: QPainter, option: 'QStyleOptionViewItem', index: QtCore.QModelIndex):
+        cName = self.mTableView.model().headerData(index.column(), Qt.Horizontal)
+        bridge = self.bridge()
+        if cName == bridge.cnPlotStyle:
+            style: PlotStyle = index.data(Qt.UserRole)
+
+            h = self.mTableView.verticalHeader().sectionSize(index.row())
+            w = self.mTableView.horizontalHeader().sectionSize(index.column())
+            if h > 0 and w > 0:
+                px = style.createPixmap(size=QSize(w, h))
+                label = QLabel()
+                label.setPixmap(px)
+                painter.drawPixmap(option.rect, px)
+                #QApplication.style().drawControl(QStyle.CE_CustomBase, label, painter)
+            else:
+                super().paint(painter, option, index)
+        else:
+            super().paint(painter, option, index)
+
+
     def bridge(self) -> SpectralProfileBridge:
         return self.sortFilterProxyModel().sourceModel()
 
     def setItemDelegates(self, tableView:QTableView):
         bridge = self.bridge()
 
-        for c in [bridge.cnSrc, bridge.cnDst, bridge.cnSampling, bridge.cnScale]:
+        for c in [bridge.cnSrc, bridge.cnDst, bridge.cnSampling, bridge.cnScale, bridge.cnPlotStyle]:
             i = bridge.columnNames().index(c)
             tableView.setItemDelegateForColumn(i, self)
 
@@ -998,6 +1050,10 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
                 for mode in SpectralProfileSamplingMode:
                     assert isinstance(mode, SpectralProfileSamplingMode)
                     w.addItem(mode.name, mode)
+            elif cname == bridge.cnPlotStyle:
+                w = PlotStyleButton(parent=parent)
+                w.setPlotStyle(item.plotStyle())
+                w.setToolTip('Set style.')
 
             elif cname == bridge.cnScale:
                 w = QgsDoubleSpinBox(parent=parent)
@@ -1018,7 +1074,6 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
         bridge = self.bridge()
         index = self.sortFilterProxyModel().mapToSource(proxyIndex)
 
-
         if index.isValid() and isinstance(bridge, SpectralProfileBridge):
             cname = bridge.columnNames()[index.column()]
             item = bridge[index.row()]
@@ -1029,7 +1084,6 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
                 idx = editor.model().sourceModelIndex(item.source())
                 if idx.isValid():
                     editor.setCurrentIndex(idx.row())
-
 
             elif cname == bridge.cnDst:
                 assert isinstance(editor, QComboBox)
@@ -1048,7 +1102,9 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
                 assert isinstance(editor, QgsDoubleSpinBox)
                 editor.setValue(item.scale())
 
-
+            elif cname == bridge.cnPlotStyle:
+                assert isinstance(editor, PlotStyleButton)
+                editor.setPlotStyle(item.plotStyle())
 
     def setModelData(self, w, bridge, proxyIndex):
         index = self.sortFilterProxyModel().mapToSource(proxyIndex)
@@ -1071,6 +1127,10 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
             elif cname == bridge.cnScale:
                 assert isinstance(w, QgsDoubleSpinBox)
                 bridge.setData(index, w.value(), Qt.EditRole)
+
+            elif cname == bridge.cnPlotStyle:
+                assert isinstance(w, PlotStyleButton)
+                bridge.setData(index, w.plotStyle(), Qt.EditRole)
             else:
                 raise NotImplementedError()
 
@@ -1078,7 +1138,6 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
 
 
 class SpectralProfileSourcePanel(QgsDockWidget):
-
 
     def __init__(self, *args, **kwds):
         super(SpectralProfileSourcePanel, self).__init__(*args, **kwds)
@@ -1091,6 +1150,8 @@ class SpectralProfileSourcePanel(QgsDockWidget):
         self.mProxyModel = QSortFilterProxyModel()
         self.mProxyModel.setSourceModel(self.mBridge)
         self.tableView.setModel(self.mProxyModel)
+        self.mProxyModel.rowsInserted.connect(self.tableView.resizeColumnsToContents)
+        self.tableView.resizeColumnsToContents()
         self.tableView.selectionModel().selectionChanged.connect(self.onSelectionChanged)
 
         self.mViewDelegate = SpectralProfileBridgeViewDelegate(self.tableView)
@@ -1102,7 +1163,7 @@ class SpectralProfileSourcePanel(QgsDockWidget):
         self.actionAddRelation.triggered.connect(self.createRelation)
         self.actionRemoveRelation.triggered.connect(self.onRemoveRelations)
 
-        self.onSelectionChanged([],[])
+        self.onSelectionChanged([], [])
 
     def setRunAsync(self, b:bool):
         self.bridge().setRunAsync(b)

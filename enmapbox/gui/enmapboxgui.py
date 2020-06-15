@@ -17,6 +17,8 @@
 ***************************************************************************
 """
 import enum, warnings, typing
+from typing import Optional
+
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
@@ -806,11 +808,22 @@ class EnMAPBox(QgisInterface, QObject):
 
         # add more product import actions hereafter
         a = QAction('EnMAP L1B', parent=menu)
-        a.setToolTip('Import EnMAP L1B products')
+        a.setToolTip('Import EnMAP L1B product')
         a.triggered.connect(lambda *args : self.showProcessingAlgorithmDialog('enmapbox:ImportEnMAPL1BProduct'))
         menu.insertAction(separator, a)
 
-    def _mapToolButton(self, action)->QToolButton:
+        a = QAction('EnMAP L1C', parent=menu)
+        a.setToolTip('Import EnMAP L1C product')
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog('enmapbox:ImportEnMAPL1CProduct'))
+        menu.insertAction(separator, a)
+
+        a = QAction('EnMAP L2A', parent=menu)
+        a.setToolTip('Import EnMAP L2A product')
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog('enmapbox:ImportEnMAPL2AProduct'))
+        menu.insertAction(separator, a)
+
+
+    def _mapToolButton(self, action)->Optional[QToolButton]:
         for toolBar in self.ui.findChildren(QToolBar):
             for toolButton in toolBar.findChildren(QToolButton):
                 if toolButton.defaultAction() == action:
