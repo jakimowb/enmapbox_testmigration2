@@ -57,7 +57,6 @@ suggest new entries!
 
 
 
-How can I solve the following error...
 
 .. _faq_no_pip:
 

@@ -11,7 +11,8 @@ EnMAP-Box 3 Documentation
 The EnMAP-Box is a python plugin for `QGIS <https://www.qgis.org/en/site/#>`_, designed to process and visualise
 hyperspectral remote sensing data.
 
-Get going with the :ref:`Installation <usr_installation>` and the :ref:`Getting Started <getting_started>` chapter!
+Get going with the :ref:`Installation <usr_installation>` and the :ref:`Getting Started <getting_started>` chapter and
+have a look at the :ref:`Cookbook <cookbook>` for usage examples!
 
 Key features
 ************
@@ -31,15 +32,14 @@ Related websites
 
 - `Environmental Mapping and Analysis Program (EnMAP) <http://www.enmap.org/>`_
 - `Source code repository <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/>`_
-- `Humboldt-University zu Berlin, EO-Lab <https://www.geographie.hu-berlin.de/en/professorships/geomatics>`_
 - `HYPERedu on eo-college <https://eo-college.org/now-online-hyperedu-educational-resources-on-imaging-spectroscopy/>`_
 
 
 News
 ****
 
-12-03-2020
-==========
+FOSSGIS 2020
+============
 
 Andreas Rabe presented the EnMAP-Box at the FOSSGIS 2020 in Freiburg. See the full live-demo session here (german):
 
@@ -49,8 +49,8 @@ Andreas Rabe presented the EnMAP-Box at the FOSSGIS 2020 in Freiburg. See the fu
 
 |
 
-05-03-2019
-==========
+QGIS User Conference 2019
+=========================
 
 Two Presentations by EnMAP-Box developers Andreas Rabe and Benjamin Jakimow at the QGIS User conference in Coruña
 

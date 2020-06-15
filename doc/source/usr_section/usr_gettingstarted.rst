@@ -12,7 +12,7 @@ Getting Started
     main functionalities:
 
     * Getting to know the Graphical User Interface
-    * Use a EnMAP-Box Application (Classification Workflow)
+    * Use an EnMAP-Box Application (Classification Workflow)
     * Use a Processing Algorithm
 
 
