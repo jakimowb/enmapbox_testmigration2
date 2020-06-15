@@ -207,7 +207,10 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     def getParameterBand(self, name=P_BAND):
         assert name in self._parameters
-        return self._parameters[name]
+        band = self._parameters[name]
+        if band == -1:
+            band = None
+        return band
 
     P_CLASSIFICATION = 'classification'
 

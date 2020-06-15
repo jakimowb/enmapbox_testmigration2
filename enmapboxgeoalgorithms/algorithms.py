@@ -1354,21 +1354,28 @@ class RasterStatistics(EnMAPAlgorithm):
 
     def defineCharacteristics(self):
         self.addParameterRaster()
-        self.addParameterBand()
+        self.addParameterBand(optional=True)
 
     def processAlgorithm_(self):
         raster = self.getParameterRaster()
-        values = raster.statistics(bandIndices=[self.getParameterBand() - 1],
-            calcPercentiles=True, calcHistogram=True, calcMean=True, calcStd=True,
-            percentiles=[25, 50, 75])[0]
+        if self.getParameterBand() is None:
+            indices = list(range(raster.dataset().zsize()))
+        else:
+            indices = [self.getParameterBand() - 1]
+        for index in indices:
+            values = raster.statistics(bandIndices=[index],
+                calcPercentiles=True, calcHistogram=True, calcMean=True, calcStd=True,
+                percentiles=[25, 50, 75])[0]
 
-        self._progressBar.setText('Min: {}'.format(values.min))
-        self._progressBar.setText('Max: {}'.format(values.max))
-        self._progressBar.setText('Mean: {}'.format(values.mean))
-        self._progressBar.setText('StdDev: {}'.format(values.std))
-        self._progressBar.setText('p25: {}'.format(values.percentiles[0].value))
-        self._progressBar.setText('median: {}'.format(values.percentiles[1].value))
-        self._progressBar.setText('p75: {}'.format(values.percentiles[2].value))
+            self._progressBar.setText('Band {}: {}'.format(index+1, raster.dataset().band(index).description()))
+            self._progressBar.setText('Min: {}'.format(values.min))
+            self._progressBar.setText('Max: {}'.format(values.max))
+            self._progressBar.setText('Mean: {}'.format(values.mean))
+            self._progressBar.setText('StdDev: {}'.format(values.std))
+            self._progressBar.setText('p25: {}'.format(values.percentiles[0].value))
+            self._progressBar.setText('median: {}'.format(values.percentiles[1].value))
+            self._progressBar.setText('p75: {}'.format(values.percentiles[2].value))
+            self._progressBar.setText('')
 
         return {}
 
