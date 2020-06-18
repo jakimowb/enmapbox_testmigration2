@@ -147,7 +147,7 @@ class EnMAPBoxImageStatisticsApp(EnMAPBoxApplication):
     def menu(self, appMenu):
         appMenu = self.enmapbox.menu('Tools')
         assert isinstance(appMenu, QMenu)
-        a = appMenu.addAction('ImageStatistics')
+        a = appMenu.addAction('Image Statistics')
         assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
@@ -164,7 +164,7 @@ class EnMAPBoxClassStatisticsApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
         super().__init__(enmapBox, parent=parent)
 
-        self.name = 'Category Counts'
+        self.name = 'Classification Statistics'
         self.version = 'dev'
         self.licence = 'GNU GPL-3'
 
@@ -174,7 +174,7 @@ class EnMAPBoxClassStatisticsApp(EnMAPBoxApplication):
     def menu(self, appMenu):
         appMenu = self.enmapbox.menu('Tools')
         assert isinstance(appMenu, QMenu)
-        a = appMenu.addAction('CategoryCounts')
+        a = appMenu.addAction('Classification Statistics')
         assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
