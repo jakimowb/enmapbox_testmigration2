@@ -59,7 +59,7 @@ In case you already have QGIS installed, you can skip this step.
 2. Install required python packages
 -----------------------------------
 
-The EnMAP-Box requires the following python packages:
+The EnMAP-Box core plugin requires the following python packages:
 
 * `numpy <http://www.numpy.org/>`_
 * `scipy <https://www.scipy.org>`_
@@ -68,6 +68,14 @@ The EnMAP-Box requires the following python packages:
 * `astropy <http://docs.astropy.org>`_ (**optional**, relevant e.g. for certain filtering algorithms)
 
 Follow the platform specific installation instructions below in order to install these packages.
+
+.. note::
+
+   Starting with version 3.6 the EnMAP-Box starts without previously installing the required Python packages.
+   If needed, these can be installed ad-hoc to the user directory using the Package Installer (:menuselection:`Project --> Package Installer`)
+   in order to make the plugin run. However, we still recommend to install the packages as described below!
+
+   .. image:: /img/package_installer.png
 
 
 .. _install-packages-windows:

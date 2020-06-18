@@ -17,13 +17,15 @@ have a look at the :ref:`Cookbook <cookbook>` for usage examples!
 Key features
 ************
 
-* Extends QGIS with various remote sensing and spectroscopy functionality
-* State of the art machine learning algorithms for classification, regression and more
-* Advanced spectral library management
-* Python API
+* Extend your QGIS for remote sensing image analysis
+* Add powerful tools to process and analyse imaging spectroscopy data
+* Integrate machine learning algorithms into your image classification and regression with Random Forests, Support Vector Machines and many more
+* Create and manage spectral libraries with attribute data
+* Develop your own image processing algorithms using a powerful Python API
+
 
 .. figure:: img/screenshot_main2.png
-   :width: 75%
+   :width: 85%
    :align: center
 
 
