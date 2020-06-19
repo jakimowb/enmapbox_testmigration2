@@ -27,11 +27,13 @@ from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui import SpectralLibrary
 
 from qgis.core import *
-from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext
+from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
+    QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
+    QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils
+
 from qgis.gui import *
-from qgis.gui import QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, QgsLayerTreeView, \
-    QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, \
-    QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget, QgsLayerTreeUtils
+from qgis.gui import QgsLayerTreeView, \
+    QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget
 LUT_DOCKTYPES = {'MAP': MapDock,
                  'TEXT': TextDock,
                  'MIME': MimeDataDock,
@@ -623,7 +625,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
             # behavioral
             self.setFlag(QgsLayerTreeModel.AllowNodeReorder, True)
-            self.setFlag(QgsLayerTreeModel.AllowNodeRename, False)
+            self.setFlag(QgsLayerTreeModel.AllowNodeRename, True)
             self.setFlag(QgsLayerTreeModel.AllowNodeChangeVisibility, True)
             self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
             # self.setFlag(QgsLayerTreeModel.ActionHierarchical, False)
@@ -1074,8 +1076,6 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         return result
 
 
-
-#class TreeView(QTreeView):
 class DockTreeView(QgsLayerTreeView):
 
     def __init__(self, parent):
