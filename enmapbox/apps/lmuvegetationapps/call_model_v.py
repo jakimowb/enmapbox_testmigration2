@@ -697,7 +697,7 @@ def build_vectorized():
     # anth = [0.0, 5.0] # bislang
     anth = [0.0, 2.0]
     # cbrown = [0.0, 1.0] # bislang
-    cbrown = [0.0]
+    cbrown = [0.1]
     cw = [0.001, 0.02]
     #cm = [0.0, 0.01, 0.004, 0.002]
     cm = [0.0]
@@ -707,7 +707,7 @@ def build_vectorized():
     # LAI = [0.0, 8.0] # bislang
     LAI = [0.0, 7.0, 3.0, 2.0]
     # LIDF = [10.0, 85.0, 47.0, 25.0]  # bislang
-    LIDF = [30.0, 70.0]  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
+    LIDF = [45]  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
     # LIDF = [4]  # typeLIDF=1: 0: Plano, 1: Erecto, 2: Plagio, 3: Extremo, 4: Spherical, 5: Uniform
     typeLIDF = [2] # LIDF = ALIA
     # hspot = [0.0, 0.1] # bislang
@@ -716,13 +716,13 @@ def build_vectorized():
     psoil = [0.0, 1.0]
 
     LUT_dir = r"E:\Testdaten\Strathmann\LUT/"
-    LUT_name = "LUT_ProspectPro"
+    LUT_name = "LUT_ProSailPro_ALA45"
     ns = 5000
     int_boost = 1
     nodat = -999
 
     lop = "prospectPro"
-    canopy_arch = ""
+    canopy_arch = "sail"
     # s2s = "HyMap"
     s2s = "default"
     # s2s = "default"
