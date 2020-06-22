@@ -91,7 +91,7 @@ class IVVRM_GUI(QDialog):
         else:
             for name in self.plotItem.axes.keys():
                 ax = self.plotItem.getAxis(name)
-                if isinstance(ax, pg.AxisItem):
+                if ax:
                     ax.setPen(QColor(color))
                     ax.setTextPen(QColor(color))
 
@@ -103,7 +103,7 @@ class IVVRM_GUI(QDialog):
         if color != self.btnBackgroundColor.color():
             self.btnBackgroundColor.setColor(color)
         else:
-            self.btnBackgroundColor.setColor(QColor(color))
+            # self.btnBackgroundColor.setColor(QColor(color))
             self.graphicsView.setBackground(QColor(color))
 
     def onHoverEvent(self, *args, **kwds):
