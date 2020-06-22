@@ -6,11 +6,14 @@ Earth Observation Lab, Humboldt-Universität zu Berlin, Germany
 * Benjamin Jakimow <benjamin.jakimow@geo.hu-berlin.de>
 * Franz Schug <franz.schug@geo.hu-berlin.de>
 * Matthias Held <matthias.held@hu-berlin.de>
-* Sebastian van der Linden <sebastian.linden@geo.hu-berlin.de>
 * Akpona Okujeni <akpona.okujeni@geo.hu-berlin.de>
 * Sam Cooper <sam.cooper@geo.hu-berlin.de>
 * Stefan Ernst <stefan.ernst@geo.hu-berlin.de>
-* Fabian Thiel <fabian.thiel@geo.hu-berlin.de>
+
+Earth Observation and Geoinformation Science Lab, University of Greifswald, Germany
+
+* Sebastian van der Linden <sebastian.linden@uni-greifswald.de>
+* Fabian Thiel <fabian.thiel@uni-greifswald.de>
 
 Ludwig-Maximilians-Universität München, Germany
 
