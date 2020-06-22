@@ -24,7 +24,7 @@ Key features
 * Develop your own image processing algorithms using a powerful Python API
 
 
-.. figure:: img/screenshot_main2.png
+.. figure:: img/screenshot_main3.png
    :width: 95%
    :align: center
 
