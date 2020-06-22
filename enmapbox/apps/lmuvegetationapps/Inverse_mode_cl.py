@@ -269,7 +269,7 @@ class RTM_Inversion:
         # colors = [cmap(i) for i in np.linspace(0.0, 0.9, len(in_raster))
         # fig = plt.figure(figsize=(10, 5))
         plt.plot(image_Ref, color='b')
-        plt.show
+        plt.show()
         plt.plot(model_Ref, color='r')
         # plt.plot(all_x + 450 + r_diff, all_y, 'k+')
         # plt.xlabel('Wavelength [nm]')

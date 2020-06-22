@@ -9,24 +9,25 @@ from lmuvegetationapps.PWR_core import PWR_core
 
 pathUI = os.path.join(os.path.dirname(__file__), 'GUI_PWR.ui')
 pathUI2 = os.path.join(os.path.dirname(__file__),'GUI_Nodat.ui')
-pathUI_prg = os.path.join(os.path.dirname(__file__),'GUI_ProgressBar.ui')
+pathUI_prg = os.path.join(os.path.dirname(__file__), 'GUI_ProgressBar.ui')
 
-from enmapbox.gui.utils import loadUIFormClass
+from enmapbox.gui.utils import loadUi
 
-class PWR_GUI(QDialog, loadUIFormClass(pathUI)):
+class PWR_GUI(QDialog):
     def __init__(self, parent=None):
         super(PWR_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI, self)
 
-class Nodat_GUI(QDialog, loadUIFormClass(pathUI2)):
+class Nodat_GUI(QDialog):
     def __init__(self, parent=None):
         super(Nodat_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI2, self)
 
-class PRG_GUI(QDialog, loadUIFormClass(pathUI_prg)):
+
+class PRG_GUI(QDialog):
     def __init__(self, parent=None):
         super(PRG_GUI, self).__init__(parent)
-        self.setupUi(self)
+        loadUi(pathUI_prg, self)
         self.allow_cancel = False
 
     def closeEvent(self, event):

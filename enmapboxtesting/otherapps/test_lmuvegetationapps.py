@@ -31,8 +31,8 @@ if path not in sys.path:
 class test_applications(EnMAPBoxTestCase):
 
     def test_MainUiFunc(self):
-        from lmuvegetationapps.IVVRM_GUI import MainUiFunc
-        import pyqtgraph as pg
+        from lmuvegetationapps.IVVRM_GUI_v import MainUiFunc
+
         m = MainUiFunc()
         self.showGui(m)
 
@@ -50,6 +50,7 @@ class test_applications(EnMAPBoxTestCase):
         #app.start_GUI_IVVRM()
 
         self.showGui(EB.ui)
+
 
 if __name__ == "__main__":
 

@@ -1,3 +1,27 @@
+"""
+***************************************************************************
+    layerconfigwidget/rasterbands.py
+        - A basic python reconstruction of the QGIS App qgslabelingwidget.cpp
+    -----------------------------------------------------------------------
+    begin                : 2020-02-25
+    copyright            : (C) 2020 Benjamin Jakimow
+    email                : benjamin.jakimow@geo.hu-berlin.de
+
+***************************************************************************
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+                                                                                                                                                 *
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this software. If not, see <http://www.gnu.org/licenses/>.
+***************************************************************************
+"""
 import typing, pathlib, enum
 from qgis.core import *
 from qgis.gui import *
@@ -140,7 +164,7 @@ class LabelingConfigWidget(QpsMapLayerConfigWidget):
         settings = labeling.settings()
 
         if settings.isExpression:
-            self.mFieldExpressionWidget.setExpression(settings.getLabelExpression())
+            self.mFieldExpressionWidget.setExpression(settings.getLabelExpression().expression())
         else:
             self.mFieldExpressionWidget.setField(settings.fieldName)
 
@@ -198,5 +222,6 @@ class LabelingConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
 
     def supportLayerPropertiesDialog(self):
         return True
+
     def supportsStyleDock(self):
         return True

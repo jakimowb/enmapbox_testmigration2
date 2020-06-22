@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QMenu, QAction
 from qgis._core import QgsRasterLayer
 
 from enmapbox.gui.applications import EnMAPBoxApplication
+from enmapboxapplications.classstatistics.core import ClassStatistics
 from enmapboxapplications.imagemathapp.core import ImageMathApp
 from enmapboxapplications.imagestatistics.core import ImageStatisticsApp
 from enmapboxapplications.scatterplotapp.core import ScatterPlotApp
@@ -16,6 +17,7 @@ def enmapboxApplicationFactory(enmapBox):
     return [
         EnMAPBoxImageMathApp(enmapBox),
         EnMAPBoxImageStatisticsApp(enmapBox),
+        EnMAPBoxClassStatisticsApp(enmapBox),
         EnMAPBoxScatterPlotApp(enmapBox),
         EnMAPBoxSynthmixApp(enmapBox),
         # EnMAPBoxForceMosaikBuilderApp(enmapBox),
@@ -145,7 +147,7 @@ class EnMAPBoxImageStatisticsApp(EnMAPBoxApplication):
     def menu(self, appMenu):
         appMenu = self.enmapbox.menu('Tools')
         assert isinstance(appMenu, QMenu)
-        a = appMenu.addAction('ImageStatistics')
+        a = appMenu.addAction('Image Statistics')
         assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
@@ -156,6 +158,33 @@ class EnMAPBoxImageStatisticsApp(EnMAPBoxApplication):
 
     def startGUI(self, *args):
         w = ImageStatisticsApp(parent=self.enmapbox.ui)
+        w.show()
+
+class EnMAPBoxClassStatisticsApp(EnMAPBoxApplication):
+    def __init__(self, enmapBox, parent=None):
+        super().__init__(enmapBox, parent=parent)
+
+        self.name = 'Classification Statistics'
+        self.version = 'dev'
+        self.licence = 'GNU GPL-3'
+
+    def icon(self):
+        return QIcon(None)
+
+    def menu(self, appMenu):
+        appMenu = self.enmapbox.menu('Tools')
+        assert isinstance(appMenu, QMenu)
+        a = appMenu.addAction('Classification Statistics')
+        assert isinstance(a, QAction)
+        a.setIcon(self.icon())
+        a.triggered.connect(self.startGUI)
+        return appMenu
+
+    def geoAlgorithms(self):
+        return []
+
+    def startGUI(self, *args):
+        w = ClassStatistics(parent=self.enmapbox.ui)
         w.show()
 
 

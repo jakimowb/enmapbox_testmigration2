@@ -11,7 +11,7 @@
 *                                                                         *
 *   This program is free software; you can redistribute it and/or modify  *
 *   it under the terms of the GNU General Public License as published by  *
-*   the Free Software Foundation; either version 2 of the License, or     *
+*   the Free Software Foundation; either version 3 of the License, or     *
 *   (at your option) any later version.                                   *
 *                                                                         *
 ***************************************************************************
@@ -25,7 +25,15 @@ from enmapbox.externals.qps.utils import *
 from enmapbox.externals.qps.layerproperties import *
 from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui import SpectralLibrary
-import sip
+
+from qgis.core import *
+from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
+    QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
+    QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils
+
+from qgis.gui import *
+from qgis.gui import QgsLayerTreeView, \
+    QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget
 LUT_DOCKTYPES = {'MAP': MapDock,
                  'TEXT': TextDock,
                  'MIME': MimeDataDock,
@@ -481,10 +489,10 @@ class MapDockTreeNode(DockTreeNode):
         if len(lyrs) > 0:
             self.sigAddedLayers.emit(lyrs)
 
-    def onWillRemoveChildren(self, node, idxFrom, idxTo):
+    def onWillRemoveChildren(self, node, idx_from, idx_to):
         self.mRemovedLayerCache.clear()
         to_remove = []
-        for n in node.children()[idxFrom:idxTo + 1]:
+        for n in node.children()[idx_from:idx_to + 1]:
             if type(n) == QgsLayerTreeLayer:
                 to_remove.append(n.layer())
         self.mRemovedLayerCache.extend(to_remove)
@@ -1068,8 +1076,6 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         return result
 
 
-
-#class TreeView(QTreeView):
 class DockTreeView(QgsLayerTreeView):
 
     def __init__(self, parent):
@@ -1080,7 +1086,6 @@ class DockTreeView(QgsLayerTreeView):
         self.header().setResizeMode(QHeaderView.ResizeToContents)
         #self.header().setResizeMode(1, QHeaderView.ResizeToContents)
         self.currentLayerChanged.connect(self.onCurrentLayerChanged)
-
 
     def onCurrentLayerChanged(self, layer: QgsMapLayer):
         for canvas in self.layerTreeModel().mapCanvases():
@@ -1181,12 +1186,9 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 action.setToolTip('Opens the layer attribute table')
                 action.triggered.connect(lambda *args, l=lyr: self.openAttributeTable(l))
 
-
             action = menu.addAction('Layer properties')
             action.setToolTip('Set layer properties')
             action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
-
-
 
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
@@ -1203,7 +1205,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
         return menu
 
-    def onZoomToLayer(self,lyr:QgsMapLayer, canvas:QgsMapCanvas):
+    def onZoomToLayer(self, lyr:QgsMapLayer, canvas:QgsMapCanvas):
 
         assert isinstance(lyr, QgsMapLayer)
         assert isinstance(canvas, QgsMapCanvas)

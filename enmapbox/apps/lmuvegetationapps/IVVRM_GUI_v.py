@@ -91,7 +91,7 @@ class IVVRM_GUI(QDialog):
         else:
             for name in self.plotItem.axes.keys():
                 ax = self.plotItem.getAxis(name)
-                if isinstance(ax, pg.AxisItem):
+                if ax:
                     ax.setPen(QColor(color))
                     ax.setTextPen(QColor(color))
 
@@ -103,7 +103,7 @@ class IVVRM_GUI(QDialog):
         if color != self.btnBackgroundColor.color():
             self.btnBackgroundColor.setColor(color)
         else:
-            self.btnBackgroundColor.setColor(QColor(color))
+            # self.btnBackgroundColor.setColor(QColor(color))
             self.graphicsView.setBackground(QColor(color))
 
     def onHoverEvent(self, *args, **kwds):
@@ -168,8 +168,8 @@ class IVVRM:
         self.gui.lblCar.setText(u'[µg/cm²]')
         self.gui.lblCanth.setText(u'[µg/cm²]')
         self.gui.lblCp.setText(u'[g/cm²]')
-        self.gui.lblCcl.setText(u'[g/cm²]')
         self.gui.lblLAI.setText(u'[m²/m²]')
+        self.gui.lblCbc.setText(u'[g/cm²]')
 
     def initial_values(self):
         self.lop = "prospectD"
@@ -177,17 +177,17 @@ class IVVRM:
         self.colors = [tuple([219, 183, 255]), tuple([51, 204, 51]), tuple([69, 30, 234]), tuple([0, 255, 255]),
                        tuple([255, 255, 0]), tuple([0, 0, 0]), tuple([255, 0, 0]), tuple([255, 255, 255]),
                        tuple([255, 124, 128]), tuple([178, 178, 178]), tuple([144, 204, 154]),
-                       tuple([255, 153, 255]), tuple([25, 41, 70]), tuple([169, 139, 100]),
+                       tuple([255, 153, 255]), tuple([25, 41, 70]), tuple([169, 139, 100]), tuple([50, 255, 50]),
                        tuple([255, 153, 51]), tuple([204, 0, 153]), tuple([172, 86, 38]), tuple([0, 100, 0]),
                        tuple([255, 128, 0]), tuple([153, 76, 0]), tuple([153, 0, 0])]
         self.lineEdits = [self.gui.N_lineEdit, self.gui.Cab_lineEdit, self.gui.Cw_lineEdit, self.gui.Cm_lineEdit,
                           self.gui.LAI_lineEdit, self.gui.lblFake, self.gui.LIDFB_lineEdit, self.gui.hspot_lineEdit,
                           self.gui.psoil_lineEdit, self.gui.SZA_lineEdit, self.gui.OZA_lineEdit, self.gui.rAA_lineEdit,
-                          self.gui.Cp_lineEdit, self.gui.Ccl_lineEdit, self.gui.Car_lineEdit, self.gui.Canth_lineEdit,
+                          self.gui.Cp_lineEdit, self.gui.Cbc_lineEdit, self.gui.Car_lineEdit, self.gui.Canth_lineEdit,
                           self.gui.Cbrown_lineEdit, self.gui.LAIu_lineEdit, self.gui.CD_lineEdit, self.gui.SD_lineEdit,
                           self.gui.TreeH_lineEdit]
         self.para_names = ["N", "cab", "cw", "cm", "LAI", "typeLIDF", "LIDF", "hspot", "psoil", "tts", "tto", "psi",
-                           "cp", "ccl", "car", "anth", "cbrown", "LAIu", "cd", "sd", "h"]
+                           "cp", "cbc", "car", "anth", "cbrown", "LAIu", "cd", "sd", "h"]
         self.lineEdits_dict = dict(zip(self.para_names, self.lineEdits))
         self.colors_dict = dict(zip(self.para_names, self.colors))
         self.penStyle = 1
@@ -209,8 +209,8 @@ class IVVRM:
         self.gui.Cw_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cw_Slide, self.gui.Cw_lineEdit))
         self.gui.Cm_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cm_Slide, self.gui.Cm_lineEdit))
         self.gui.Cp_Slide.valueChanged.connect(lambda: self.any_slider_change(self.gui.Cp_Slide, self.gui.Cp_lineEdit))
-        self.gui.Ccl_Slide.valueChanged.connect(
-            lambda: self.any_slider_change(self.gui.Ccl_Slide, self.gui.Ccl_lineEdit))
+        self.gui.Cbc_Slide.valueChanged.connect(
+            lambda: self.any_slider_change(self.gui.Cbc_Slide, self.gui.Cbc_lineEdit))
         self.gui.Car_Slide.valueChanged.connect(
             lambda: self.any_slider_change(self.gui.Car_Slide, self.gui.Car_lineEdit))
         self.gui.Canth_Slide.valueChanged.connect(
@@ -249,8 +249,8 @@ class IVVRM:
             lambda: self.any_lineEdit_change(self.gui.Cm_lineEdit, self.gui.Cm_Slide))
         self.gui.Cp_lineEdit.returnPressed.connect(
             lambda: self.any_lineEdit_change(self.gui.Cp_lineEdit, self.gui.Cp_Slide))
-        self.gui.Ccl_lineEdit.returnPressed.connect(
-            lambda: self.any_lineEdit_change(self.gui.Ccl_lineEdit, self.gui.Ccl_Slide))
+        self.gui.Cbc_lineEdit.returnPressed.connect(
+            lambda: self.any_lineEdit_change(self.gui.Cbc_lineEdit, self.gui.Cbc_Slide))
         self.gui.Car_lineEdit.returnPressed.connect(
             lambda: self.any_lineEdit_change(self.gui.Car_lineEdit, self.gui.Car_Slide))
         self.gui.Canth_lineEdit.returnPressed.connect(
@@ -362,7 +362,8 @@ class IVVRM:
         self.gui.B_Prospect5.clicked.connect(lambda: self.select_model(lop="prospect5", canopy_arch=self.canopy_arch))
         self.gui.B_Prospect5b.clicked.connect(lambda: self.select_model(lop="prospect5B", canopy_arch=self.canopy_arch))
         self.gui.B_ProspectD.clicked.connect(lambda: self.select_model(lop="prospectD", canopy_arch=self.canopy_arch))
-        self.gui.B_ProspectCp.clicked.connect(lambda: self.select_model(lop="prospectCp", canopy_arch=self.canopy_arch))
+        #self.gui.B_ProspectCp.clicked.connect(lambda: self.select_model(lop="prospectCp", canopy_arch=self.canopy_arch))
+        self.gui.B_ProspectPro.clicked.connect(lambda: self.select_model(lop="prospectPro", canopy_arch=self.canopy_arch))
 
         self.gui.B_LeafModelOnly.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch=None))
         self.gui.B_Sail_2M.clicked.connect(lambda: self.select_model(lop=self.lop, canopy_arch="sail2m"))
@@ -412,15 +413,20 @@ class IVVRM:
             self.gui.Car_lineEdit.setDisabled(False)
             self.gui.Car_Text.setDisabled(False)
 
+            self.gui.Cm_Slide.setDisabled(False)
+            self.gui.Cm_lineEdit.setDisabled(False)
+            self.gui.Cm_Text.setDisabled(False)
+
             self.gui.Cp_Slide.setDisabled(True)
             self.gui.Cp_lineEdit.setDisabled(True)
             self.gui.Cp_Text.setDisabled(True)
 
-            self.gui.Ccl_Slide.setDisabled(True)
-            self.gui.Ccl_lineEdit.setDisabled(True)
-            self.gui.Ccl_Text.setDisabled(True)
+            self.gui.Cbc_Slide.setDisabled(True)
+            self.gui.Cbc_lineEdit.setDisabled(True)
+            self.gui.Cbc_Text.setDisabled(True)
 
-        elif lop == "prospectCp":
+
+        elif lop == "prospectPro":
             self.gui.Canth_Slide.setDisabled(False)
             self.gui.Canth_lineEdit.setDisabled(False)
             self.gui.Canth_Text.setDisabled(False)
@@ -433,13 +439,43 @@ class IVVRM:
             self.gui.Car_lineEdit.setDisabled(False)
             self.gui.Car_Text.setDisabled(False)
 
+            self.gui.Cm_Slide.setDisabled(True)
+            self.gui.Cm_lineEdit.setDisabled(True)
+            self.gui.Cm_Text.setDisabled(True)
+
             self.gui.Cp_Slide.setDisabled(False)
             self.gui.Cp_lineEdit.setDisabled(False)
             self.gui.Cp_Text.setDisabled(False)
 
-            self.gui.Ccl_Slide.setDisabled(False)
-            self.gui.Ccl_lineEdit.setDisabled(False)
-            self.gui.Ccl_Text.setDisabled(False)
+            self.gui.Cbc_Slide.setDisabled(False)
+            self.gui.Cbc_lineEdit.setDisabled(False)
+            self.gui.Cbc_Text.setDisabled(False)
+
+
+        elif lop == "prospectCp":
+            self.gui.Canth_Slide.setDisabled(False)
+            self.gui.Canth_lineEdit.setDisabled(False)
+            self.gui.Canth_Text.setDisabled(False)
+
+            self.gui.Cbrown_Slide.setDisabled(False)
+            self.gui.Cbrown_lineEdit.setDisabled(False)
+            self.gui.Cbrown_Text.setDisabled(False)
+
+            self.gui.Cm_Slide.setDisabled(False)
+            self.gui.Cm_lineEdit.setDisabled(False)
+            self.gui.Cm_Text.setDisabled(False)
+
+            self.gui.Car_Slide.setDisabled(False)
+            self.gui.Car_lineEdit.setDisabled(False)
+            self.gui.Car_Text.setDisabled(False)
+
+            self.gui.Cp_Slide.setDisabled(False)
+            self.gui.Cp_lineEdit.setDisabled(False)
+            self.gui.Cp_Text.setDisabled(False)
+
+            self.gui.Cbc_Slide.setDisabled(True)
+            self.gui.Cbc_lineEdit.setDisabled(True)
+            self.gui.Cbc_Text.setDisabled(True)
 
         elif lop == "prospect5B":
             self.gui.Canth_Slide.setDisabled(True)
@@ -454,18 +490,26 @@ class IVVRM:
             self.gui.Car_lineEdit.setDisabled(False)
             self.gui.Car_Text.setDisabled(False)
 
+            self.gui.Cm_Slide.setDisabled(False)
+            self.gui.Cm_lineEdit.setDisabled(False)
+            self.gui.Cm_Text.setDisabled(False)
+
             self.gui.Cp_Slide.setDisabled(True)
             self.gui.Cp_lineEdit.setDisabled(True)
             self.gui.Cp_Text.setDisabled(True)
 
-            self.gui.Ccl_Slide.setDisabled(True)
-            self.gui.Ccl_lineEdit.setDisabled(True)
-            self.gui.Ccl_Text.setDisabled(True)
+            self.gui.Cbc_Slide.setDisabled(True)
+            self.gui.Cbc_lineEdit.setDisabled(True)
+            self.gui.Cbc_Text.setDisabled(True)
 
         elif lop == "prospect5":
             self.gui.Canth_Slide.setDisabled(True)
             self.gui.Canth_lineEdit.setDisabled(True)
             self.gui.Canth_Text.setDisabled(True)
+
+            self.gui.Cm_Slide.setDisabled(False)
+            self.gui.Cm_lineEdit.setDisabled(False)
+            self.gui.Cm_Text.setDisabled(False)
 
             self.gui.Cbrown_Slide.setDisabled(True)
             self.gui.Cbrown_lineEdit.setDisabled(True)
@@ -479,14 +523,18 @@ class IVVRM:
             self.gui.Cp_lineEdit.setDisabled(True)
             self.gui.Cp_Text.setDisabled(True)
 
-            self.gui.Ccl_Slide.setDisabled(True)
-            self.gui.Ccl_lineEdit.setDisabled(True)
-            self.gui.Ccl_Text.setDisabled(True)
+            self.gui.Cbc_Slide.setDisabled(True)
+            self.gui.Cbc_lineEdit.setDisabled(True)
+            self.gui.Cbc_Text.setDisabled(True)
 
         elif lop == "prospect4":
             self.gui.Canth_Slide.setDisabled(True)
             self.gui.Canth_lineEdit.setDisabled(True)
             self.gui.Canth_Text.setDisabled(True)
+
+            self.gui.Cm_Slide.setDisabled(False)
+            self.gui.Cm_lineEdit.setDisabled(False)
+            self.gui.Cm_Text.setDisabled(False)
 
             self.gui.Cbrown_Slide.setDisabled(True)
             self.gui.Cbrown_lineEdit.setDisabled(True)
@@ -500,9 +548,10 @@ class IVVRM:
             self.gui.Cp_lineEdit.setDisabled(True)
             self.gui.Cp_Text.setDisabled(True)
 
-            self.gui.Ccl_Slide.setDisabled(True)
-            self.gui.Ccl_lineEdit.setDisabled(True)
-            self.gui.Ccl_Text.setDisabled(True)
+
+            self.gui.Cbc_Slide.setDisabled(True)
+            self.gui.Cbc_lineEdit.setDisabled(True)
+            self.gui.Cbc_Text.setDisabled(True)
 
         self.mod_exec()
 
@@ -521,14 +570,15 @@ class IVVRM:
         self.para_dict["tto"] = float(self.gui.OZA_lineEdit.text())  # 10
         self.para_dict["psi"] = float(self.gui.rAA_lineEdit.text())  # 11
         self.para_dict["cp"] = float(self.gui.Cp_lineEdit.text())  # 12
-        self.para_dict["ccl"] = float(self.gui.Ccl_lineEdit.text())  # 13
-        self.para_dict["car"] = float(self.gui.Car_lineEdit.text())  # 14
-        self.para_dict["anth"] = float(self.gui.Canth_lineEdit.text())  # 15
-        self.para_dict["cbrown"] = float(self.gui.Cbrown_lineEdit.text())  # 16
-        self.para_dict["LAIu"] = float(self.gui.LAIu_lineEdit.text())  # 17
-        self.para_dict["cd"] = float(self.gui.CD_lineEdit.text())  # 18
-        self.para_dict["sd"] = float(self.gui.SD_lineEdit.text())  # 19
-        self.para_dict["h"] = float(self.gui.TreeH_lineEdit.text())  # 20
+
+        self.para_dict["car"] = float(self.gui.Car_lineEdit.text())  # 13
+        self.para_dict["anth"] = float(self.gui.Canth_lineEdit.text())  # 14
+        self.para_dict["cbrown"] = float(self.gui.Cbrown_lineEdit.text())  # 15
+        self.para_dict["LAIu"] = float(self.gui.LAIu_lineEdit.text())  # 16
+        self.para_dict["cd"] = float(self.gui.CD_lineEdit.text())  # 17
+        self.para_dict["sd"] = float(self.gui.SD_lineEdit.text())  # 18
+        self.para_dict["h"] = float(self.gui.TreeH_lineEdit.text())  # 19
+        self.para_dict["cbc"] = float(self.gui.Cbc_lineEdit.text()) # 20
 
     def mod_interactive(self):
         self.gui.N_Slide.valueChanged.connect(lambda: self.mod_exec(slider=self.gui.N_Slide, item="N"))
@@ -543,7 +593,7 @@ class IVVRM:
         self.gui.OZA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.OZA_Slide, item="tto"))
         self.gui.rAA_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.rAA_Slide, item="psi"))
         self.gui.Cp_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cp_Slide, item="cp"))
-        self.gui.Ccl_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Ccl_Slide, item="ccl"))
+        self.gui.Cbc_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cbc_Slide, item="cbc"))
         self.gui.Car_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Car_Slide, item="car"))
         self.gui.Canth_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Canth_Slide, item="anth"))
         self.gui.Cbrown_Slide.valueChanged.connect(lambda: self.mod_exec(self.gui.Cbrown_Slide, item="cbrown"))
@@ -604,7 +654,8 @@ class IVVRM:
                                                 LIDF=self.para_dict["LIDF"],
                                                 typeLIDF=self.para_dict["typeLIDF"], hspot=self.para_dict["hspot"],
                                                 psoil=self.para_dict["psoil"],
-                                                cp=self.para_dict["cp"], ccl=self.para_dict["ccl"],
+                                                cp=self.para_dict["cp"],
+                                                cbc=self.para_dict["cbc"],
                                                 car=self.para_dict["car"],
                                                 cbrown=self.para_dict["cbrown"], anth=self.para_dict["anth"],
                                                 soil=self.bg_spec,

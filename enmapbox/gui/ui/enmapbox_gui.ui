@@ -573,10 +573,10 @@
      <normaloff>:/qps/ui/icons/profile.svg</normaloff>:/qps/ui/icons/profile.svg</iconset>
    </property>
    <property name="text">
-    <string>RP</string>
+    <string>Spectral Profiles</string>
    </property>
    <property name="toolTip">
-    <string>Identify pixel profiles to be shown in a Spectral Library.</string>
+    <string>Identify pixel profiles and show them in a Spectral Library.</string>
    </property>
   </action>
   <action name="optionSelectFeaturesRectangle">

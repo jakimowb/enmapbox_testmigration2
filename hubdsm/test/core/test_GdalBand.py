@@ -12,7 +12,7 @@ from hubdsm.core.gdalband import GdalBand
 from hubdsm.core.gdalraster import GdalRaster
 from hubdsm.core.grid import Grid
 from hubdsm.core.location import Location
-from hubdsm.core.gdalrasterdriver import MEM_DRIVER, ENVI_DRIVER
+from hubdsm.core.gdaldriver import MEM_DRIVER, ENVI_DRIVER
 from hubdsm.core.ogrlayer import OgrLayer
 from hubdsm.core.pixellocation import PixelLocation
 from hubdsm.core.projection import Projection
@@ -86,14 +86,102 @@ class TestGdalBand(TestCase):
 
     def test_categories(self):
         gdalBand = MEM_DRIVER.createFromArray(array=np.array([[[1]]], dtype=np.uint8)).band(1)
-        self.assertTrue(len(gdalBand.categories) == 0)
+        self.assertIsNone(gdalBand.categories)
         categories = [Category(id=0, name='Unclassified', color=Color()),
                       Category(id=1, name='a', color=Color(red=255)),
                       Category(id=3, name='b', color=Color(blue=255))]
         gdalBand.setCategories(categories=categories)
         self.assertListEqual(gdalBand.categories, categories)
 
-    def test_rasterizeAndPolygonize(self):
+    def test_wavelength(self):
+        gdalRaster = MEM_DRIVER.createFromArray(array=np.array([[[1]]], dtype=np.uint8))
+        gdalBand = gdalRaster.band(1)
+
+        # return None if not specified
+        self.assertIsNone(gdalBand.wavelength)
+
+        # return raw value if unit is not specified
+        gdalRaster.setMetadataItem(key='wavelength', value=[1., 2.], domain='ENVI')
+        self.assertEqual(gdalBand.wavelength, 1.)
+
+        # return raw value if unit is NOT Micrometers or um
+        gdalRaster.setMetadataItem(key='wavelength units', value='Unknown', domain='ENVI')
+        self.assertEqual(gdalBand.wavelength, 1.)
+
+        # return scaled value if unit is Micrometers or um
+        for unit in ['Micrometers', 'um']:
+            gdalRaster.setMetadataItem(key='wavelength units', value=unit, domain='ENVI')
+            self.assertEqual(gdalBand.wavelength, 1000.)
+
+        # ENMAPBOX band metadata has priority over ENVI raster metadata
+        gdalBand.setMetadataItem(key='wavelength', value=123.456, domain='ENMAPBOX')
+        self.assertEqual(gdalBand.wavelength, 123.456)
+
+    def test_setWavelength(self):
+        gdalRaster = MEM_DRIVER.createFromArray(array=np.array([[[1]]], dtype=np.uint8))
+        gdalBand = gdalRaster.band(1)
+        gdalBand.setWavelength(value=123.456)
+        self.assertEqual(gdalBand.wavelength, 123.456)
+        self.assertEqual(gdalBand.metadataItem(key='wavelength', domain='ENMAPBOX'), '123.456')
+
+    def test_fwhm(self):
+        gdalRaster = MEM_DRIVER.createFromArray(array=np.array([[[1]]], dtype=np.uint8))
+        gdalBand = gdalRaster.band(1)
+
+        # return None if not specified
+        self.assertIsNone(gdalBand.fwhm)
+
+        # return raw value if unit is not specified
+        gdalRaster.setMetadataItem(key='fwhm', value=[1., 2.], domain='ENVI')
+        self.assertEqual(gdalBand.fwhm, 1.)
+
+        # return raw value if unit is NOT Micrometers or um
+        gdalRaster.setMetadataItem(key='wavelength units', value='Unknown', domain='ENVI')
+        self.assertEqual(gdalBand.fwhm, 1.)
+
+        # return scaled value if unit is Micrometers or um
+        for unit in ['Micrometers', 'um']:
+            gdalRaster.setMetadataItem(key='wavelength units', value=unit, domain='ENVI')
+            self.assertEqual(gdalBand.fwhm, 1000.)
+
+        # ENMAPBOX band metadata has priority over ENVI raster metadata
+        gdalBand.setMetadataItem(key='fwhm', value=123.456, domain='ENMAPBOX')
+        self.assertEqual(gdalBand.fwhm, 123.456)
+
+    def test_setFwhm(self):
+        gdalRaster = MEM_DRIVER.createFromArray(array=np.array([[[1]]], dtype=np.uint8))
+        gdalBand = gdalRaster.band(1)
+        gdalBand.setFwhm(value=123.456)
+        self.assertEqual(gdalBand.fwhm, 123.456)
+        self.assertEqual(gdalBand.metadataItem(key='fwhm', domain='ENMAPBOX'), '123.456')
+
+    def test_isBadBand(self):
+        gdalRaster = MEM_DRIVER.createFromArray(array=np.array([[[1]]], dtype=np.uint8))
+        gdalBand = gdalRaster.band(1)
+
+        # return False if not specified
+        self.assertFalse(gdalBand.isBadBand)
+
+        # from ENVI domain (value of 1 for good bands and 0 for bad bands)
+        gdalRaster.setMetadataItem(key='bbl', value=[1, 1, 1], domain='ENVI')
+        self.assertFalse(gdalBand.isBadBand)
+
+        # ENMAPBOX band metadata has priority over ENVI raster metadata (value of 0 for good bands and 1 for bad bands)
+        gdalBand.setMetadataItem(key='bad band', value=0, domain='ENMAPBOX')
+        self.assertFalse(gdalBand.isBadBand)
+
+    def test_setIsBadBand(self):
+        gdalRaster = MEM_DRIVER.createFromArray(array=np.array([[[1]]], dtype=np.uint8))
+        gdalBand = gdalRaster.band(1)
+        gdalBand.setIsBadBand(value=True)
+        self.assertTrue(gdalBand.isBadBand)
+        self.assertEqual(gdalBand.metadataItem(key='bad band', domain='ENMAPBOX'), '1')
+        gdalBand.setIsBadBand(value=False)
+        self.assertFalse(gdalBand.isBadBand)
+        self.assertEqual(gdalBand.metadataItem(key='bad band', domain='ENMAPBOX'), '0')
+
+def test_rasterizeAndPolygonize(self):
+        return
         assert 0
         grid = GdalRaster.open(enmap).grid
         ogrLayer = OgrLayer.open(landcover_polygons)

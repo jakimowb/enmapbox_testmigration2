@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1010</width>
-    <height>885</height>
+    <width>1136</width>
+    <height>883</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -49,7 +49,7 @@
         <item>
          <widget class="QRadioButton" name="SType_None_B">
           <property name="text">
-           <string>Original</string>
+           <string>Original (1 nm)</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -110,6 +110,16 @@
         <bool>false</bool>
        </property>
        <layout class="QGridLayout" name="gridLayout_6">
+        <item row="1" column="2">
+         <widget class="QRadioButton" name="B_ProspectD">
+          <property name="text">
+           <string>Prospect D</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
         <item row="0" column="1">
          <widget class="QRadioButton" name="B_Prospect3">
           <property name="enabled">
@@ -127,13 +137,10 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="2">
-         <widget class="QRadioButton" name="B_ProspectD">
+        <item row="2" column="1">
+         <widget class="QRadioButton" name="B_Prospect5">
           <property name="text">
-           <string>Prospect D</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
+           <string>Prospect 5</string>
           </property>
          </widget>
         </item>
@@ -144,20 +151,13 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="1">
-         <widget class="QRadioButton" name="B_Prospect5">
-          <property name="text">
-           <string>Prospect 5</string>
-          </property>
-         </widget>
-        </item>
         <item row="2" column="2">
-         <widget class="QRadioButton" name="B_ProspectCp">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
+         <widget class="QRadioButton" name="B_ProspectPro">
           <property name="text">
-           <string>Prospect Cp</string>
+           <string>Prospect Pro</string>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -198,7 +198,7 @@
         <item>
          <widget class="QRadioButton" name="B_4Sail">
           <property name="text">
-           <string>4Sail</string>
+           <string>4SAIL</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -211,7 +211,7 @@
            <bool>true</bool>
           </property>
           <property name="text">
-           <string>Inform</string>
+           <string>INFORM</string>
           </property>
          </widget>
         </item>
@@ -389,104 +389,7 @@
          <string>Settings</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_67">
-         <item row="0" column="1">
-          <spacer name="horizontalSpacer_119">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeType">
-            <enum>QSizePolicy::Maximum</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item row="6" column="0">
-          <widget class="QLabel" name="label_33">
-           <property name="text">
-            <string>No Data Value</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="0">
-          <widget class="QLabel" name="label_26">
-           <property name="text">
-            <string>Size of statistical drawings (gauss &amp; uniform):</string>
-           </property>
-          </widget>
-         </item>
-         <item row="5" column="0">
-          <widget class="QLabel" name="label_27">
-           <property name="text">
-            <string>LUT name:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="0">
-          <widget class="QLabel" name="label_28">
-           <property name="text">
-            <string>Select Destination Folder</string>
-           </property>
-          </widget>
-         </item>
-         <item row="7" column="0">
-          <widget class="QLabel" name="label_34">
-           <property name="text">
-            <string>Multiplication Factor for reflectances</string>
-           </property>
-          </widget>
-         </item>
-         <item row="5" column="2">
-          <widget class="QFrame" name="frame_167">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>250</width>
-             <height>20</height>
-            </size>
-           </property>
-           <property name="frameShape">
-            <enum>QFrame::NoFrame</enum>
-           </property>
-           <property name="frameShadow">
-            <enum>QFrame::Plain</enum>
-           </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_114">
-            <property name="spacing">
-             <number>6</number>
-            </property>
-            <property name="sizeConstraint">
-             <enum>QLayout::SetDefaultConstraint</enum>
-            </property>
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QLineEdit" name="txtLUTname">
-              <property name="whatsThis">
-               <string>Specify the name of your LUT</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item row="4" column="2">
+         <item row="3" column="2">
           <widget class="QFrame" name="frame_168">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -517,6 +420,9 @@
              <number>0</number>
             </property>
             <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
              <number>0</number>
             </property>
             <property name="bottomMargin">
@@ -557,78 +463,7 @@
            </layout>
           </widget>
          </item>
-         <item row="0" column="2" colspan="2">
-          <widget class="QFrame" name="frame_29">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>150</width>
-             <height>20</height>
-            </size>
-           </property>
-           <property name="frameShape">
-            <enum>QFrame::NoFrame</enum>
-           </property>
-           <property name="frameShadow">
-            <enum>QFrame::Plain</enum>
-           </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_57">
-            <property name="spacing">
-             <number>6</number>
-            </property>
-            <property name="sizeConstraint">
-             <enum>QLayout::SetDefaultConstraint</enum>
-            </property>
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QSpinBox" name="spinNS">
-              <property name="whatsThis">
-               <string>Sum of variations in the parameters that are statistically distributed</string>
-              </property>
-              <property name="maximum">
-               <number>50000</number>
-              </property>
-              <property name="singleStep">
-               <number>100</number>
-              </property>
-              <property name="value">
-               <number>2000</number>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="horizontalSpacer_120">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Maximum</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>150</width>
-                <height>5</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item row="7" column="2">
+         <item row="6" column="2">
           <widget class="QFrame" name="frame_177">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -666,6 +501,12 @@
             </property>
             <item>
              <widget class="QSpinBox" name="spinIntBoost">
+              <property name="minimumSize">
+               <size>
+                <width>65</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="whatsThis">
                <string>A multiplication factor for the modelled output. By default, reflectances between 0 and 1 are modelled. This is important if the LUT is to be used for sensor data that has a different range for reflectances (e.g. 0 to 10,000)</string>
               </property>
@@ -699,7 +540,7 @@
            </layout>
           </widget>
          </item>
-         <item row="6" column="2">
+         <item row="5" column="2">
           <widget class="QFrame" name="frame_176">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -737,6 +578,12 @@
             </property>
             <item>
              <widget class="QSpinBox" name="spinNoData">
+              <property name="minimumSize">
+               <size>
+                <width>65</width>
+                <height>0</height>
+               </size>
+              </property>
               <property name="whatsThis">
                <string>Select a no data value for your LUT outputs</string>
               </property>
@@ -773,7 +620,37 @@
            </layout>
           </widget>
          </item>
-         <item row="5" column="3">
+         <item row="0" column="1">
+          <spacer name="horizontalSpacer_119">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Maximum</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="label_34">
+           <property name="text">
+            <string>Multiplication Factor for reflectances</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_28">
+           <property name="text">
+            <string>Select Destination Folder</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="4" colspan="2">
           <spacer name="horizontalSpacer">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -786,7 +663,149 @@
            </property>
           </spacer>
          </item>
-         <item row="7" column="3">
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_33">
+           <property name="text">
+            <string>No Data Value</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_26">
+           <property name="text">
+            <string>Size of statistical drawings (gauss &amp; uniform):</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QLabel" name="label_27">
+           <property name="text">
+            <string>LUT name:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QFrame" name="frame_3">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_57">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QSpinBox" name="spinNS">
+              <property name="minimumSize">
+               <size>
+                <width>65</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="whatsThis">
+               <string>Sum of variations in the parameters that are statistically distributed</string>
+              </property>
+              <property name="maximum">
+               <number>50000</number>
+              </property>
+              <property name="singleStep">
+               <number>100</number>
+              </property>
+              <property name="value">
+               <number>2000</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_2">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
+              <property name="text">
+               <string>(max. 5000 members per split)</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="0" column="4">
+          <spacer name="horizontalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="4" column="2">
+          <widget class="QFrame" name="frame_167">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>250</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Plain</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_114">
+            <property name="spacing">
+             <number>6</number>
+            </property>
+            <property name="sizeConstraint">
+             <enum>QLayout::SetDefaultConstraint</enum>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLineEdit" name="txtLUTname">
+              <property name="whatsThis">
+               <string>Specify the name of your LUT</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="6" column="4">
           <widget class="QCheckBox" name="CarCabCheck">
            <property name="text">
             <string>Make Ccx Cab-dependent</string>
@@ -801,9 +820,17 @@
         <property name="title">
          <string>Summary</string>
         </property>
+        <property name="flat">
+         <bool>false</bool>
+        </property>
         <layout class="QGridLayout" name="gridLayout_68">
          <item row="2" column="0">
           <widget class="QPushButton" name="cmdLUTcalc">
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
            <property name="whatsThis">
             <string>Invoke a few model runs to check computer performance and estimate the total computation time</string>
            </property>
@@ -818,7 +845,7 @@
          <item row="0" column="0">
           <widget class="QLabel" name="label_29">
            <property name="text">
-            <string>Total Size of LUT:</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;Total Size of LUT:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
           </widget>
          </item>
@@ -850,14 +877,24 @@
              <height>500</height>
             </size>
            </property>
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
            <property name="frameShape">
-            <enum>QFrame::NoFrame</enum>
+            <enum>QFrame::WinPanel</enum>
            </property>
            <property name="frameShadow">
-            <enum>QFrame::Plain</enum>
+            <enum>QFrame::Sunken</enum>
            </property>
            <property name="digitCount">
-            <number>5</number>
+            <number>6</number>
+           </property>
+           <property name="segmentStyle">
+            <enum>QLCDNumber::Flat</enum>
            </property>
            <property name="intValue" stdset="0">
             <number>0</number>
@@ -866,8 +903,14 @@
          </item>
          <item row="1" column="0" colspan="2">
           <widget class="QLabel" name="label_35">
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Sunken</enum>
+           </property>
            <property name="text">
-            <string>Estimated calc. time:</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;Estimated calc. time:&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
           </widget>
          </item>
@@ -885,14 +928,27 @@
              <height>500</height>
             </size>
            </property>
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
            <property name="frameShape">
-            <enum>QFrame::NoFrame</enum>
+            <enum>QFrame::WinPanel</enum>
            </property>
            <property name="frameShadow">
-            <enum>QFrame::Plain</enum>
+            <enum>QFrame::Sunken</enum>
            </property>
            <property name="digitCount">
             <number>6</number>
+           </property>
+           <property name="mode">
+            <enum>QLCDNumber::Dec</enum>
+           </property>
+           <property name="segmentStyle">
+            <enum>QLCDNumber::Flat</enum>
            </property>
            <property name="intValue" stdset="0">
             <number>0</number>
@@ -939,8 +995,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>971</width>
-           <height>1053</height>
+           <width>1097</width>
+           <height>1159</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout_19">
@@ -979,7 +1035,7 @@
              </font>
             </property>
             <property name="title">
-             <string>Leaf Model Parameters</string>
+             <string>Leaf Model Parameters (PROPSECT)</string>
             </property>
             <property name="flat">
              <bool>true</bool>
@@ -988,32 +1044,877 @@
              <bool>false</bool>
             </property>
             <layout class="QGridLayout" name="gridLayout_36">
-             <item row="8" column="1">
-              <widget class="QLabel" name="lblCanth">
+             <item row="9" column="1">
+              <widget class="QLabel" name="lblCp">
                <property name="maximumSize">
                 <size>
-                 <width>168</width>
+                 <width>186</width>
                  <height>16777215</height>
                 </size>
                </property>
                <property name="text">
-                <string>Anthocyanins (Canth) [mug/cm2] 
-[0.0 - 10.0]</string>
+                <string>Proteins (Cp) [g/cm2] 
+[0.0 - 0.01]</string>
                </property>
               </widget>
              </item>
-             <item row="7" column="1">
-              <widget class="QLabel" name="label_7">
+             <item row="10" column="1">
+              <widget class="QLabel" name="lblCbc">
                <property name="maximumSize">
                 <size>
-                 <width>168</width>
+                 <width>186</width>
                  <height>16777215</height>
                 </size>
                </property>
                <property name="text">
-                <string>Brown Pigments (Cbrown) [-] 
-[0.0 - 1.0]</string>
+                <string>Carbon-based constit. (CBC) [g/cm2] 
+[0.0 - 0.01]</string>
                </property>
+              </widget>
+             </item>
+             <item row="10" column="2">
+              <widget class="QFrame" name="frame">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_4">
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QFrame" name="frame_92">
+                  <property name="frameShape">
+                   <enum>QFrame::NoFrame</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Plain</enum>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_37">
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <item row="1" column="0">
+                    <widget class="QFrame" name="frame_96">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_3">
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QLineEdit" name="txt_fix_cbc">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>0.01</string>
+                        </property>
+                        <property name="placeholderText">
+                         <string>value</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_62">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item row="0" column="0">
+                    <widget class="QRadioButton" name="radio_fix_cbc">
+                     <property name="font">
+                      <font>
+                       <pointsize>7</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Fixed</string>
+                     </property>
+                     <property name="iconSize">
+                      <size>
+                       <width>12</width>
+                       <height>12</height>
+                      </size>
+                     </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
+                     <attribute name="buttonGroup">
+                      <string notr="true">buttonGroup_20</string>
+                     </attribute>
+                    </widget>
+                   </item>
+                   <item row="0" column="6">
+                    <widget class="QRadioButton" name="radio_log_cbc">
+                     <property name="font">
+                      <font>
+                       <pointsize>7</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Logical</string>
+                     </property>
+                     <attribute name="buttonGroup">
+                      <string notr="true">buttonGroup_20</string>
+                     </attribute>
+                    </widget>
+                   </item>
+                   <item row="1" column="6">
+                    <widget class="QFrame" name="frame_94">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_64">
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QLineEdit" name="txt_log_min_cbc">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>min</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_log_max_cbc">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>max</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_log_steps_cbc">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>steps</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item row="0" column="4">
+                    <widget class="QFrame" name="frame_95">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_65">
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QRadioButton" name="radio_gauss_cbc">
+                        <property name="enabled">
+                         <bool>true</bool>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>Statistical: Gauss</string>
+                        </property>
+                        <property name="checked">
+                         <bool>false</bool>
+                        </property>
+                        <attribute name="buttonGroup">
+                         <string notr="true">buttonGroup_20</string>
+                        </attribute>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QRadioButton" name="radio_uni_cbc">
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>Statistical: Uniform</string>
+                        </property>
+                        <attribute name="buttonGroup">
+                         <string notr="true">buttonGroup_20</string>
+                        </attribute>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_61">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>10</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item row="1" column="4">
+                    <widget class="QFrame" name="frame_93">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_20">
+                      <property name="leftMargin">
+                       <number>9</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_min_cbc">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>min</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_max_cbc">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>max</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_mean_cbc">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>mean</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_cbc">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_60">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>50</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="PlotWidget" name="viewCbc">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>46</height>
+                   </size>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::Panel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Sunken</enum>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item row="9" column="2">
+              <widget class="QFrame" name="frame_2">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout">
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QFrame" name="frame_87">
+                  <property name="frameShape">
+                   <enum>QFrame::NoFrame</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Plain</enum>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_35">
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <item row="1" column="0">
+                    <widget class="QFrame" name="frame_91">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_2">
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QLineEdit" name="txt_fix_cp">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>0.001</string>
+                        </property>
+                        <property name="placeholderText">
+                         <string>value</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_55">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QFrame" name="frame_90">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_63">
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QRadioButton" name="radio_gauss_cp">
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>Statistical: Gauss</string>
+                        </property>
+                        <property name="checked">
+                         <bool>false</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                        <attribute name="buttonGroup">
+                         <string notr="true">buttonGroup</string>
+                        </attribute>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QRadioButton" name="radio_uni_cp">
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>Statistical: Uniform</string>
+                        </property>
+                        <property name="checked">
+                         <bool>false</bool>
+                        </property>
+                        <property name="autoExclusive">
+                         <bool>true</bool>
+                        </property>
+                        <attribute name="buttonGroup">
+                         <string notr="true">buttonGroup</string>
+                        </attribute>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_51">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>10</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item row="1" column="3">
+                    <widget class="QFrame" name="frame_89">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_62">
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QLineEdit" name="txt_log_min_cp">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>min</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_log_max_cp">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>max</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_log_steps_cp">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>steps</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QFrame" name="frame_88">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_68">
+                      <property name="leftMargin">
+                       <number>9</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_min_cp">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>min</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_max_cp">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>max</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_mean_cp">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>mean</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_cp">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_47">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>50</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item row="0" column="0">
+                    <widget class="QRadioButton" name="radio_fix_cp">
+                     <property name="font">
+                      <font>
+                       <pointsize>7</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Fixed</string>
+                     </property>
+                     <property name="iconSize">
+                      <size>
+                       <width>12</width>
+                       <height>12</height>
+                      </size>
+                     </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
+                     <property name="autoExclusive">
+                      <bool>true</bool>
+                     </property>
+                     <attribute name="buttonGroup">
+                      <string notr="true">buttonGroup</string>
+                     </attribute>
+                    </widget>
+                   </item>
+                   <item row="0" column="3">
+                    <widget class="QRadioButton" name="radio_log_cp">
+                     <property name="font">
+                      <font>
+                       <pointsize>7</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Logical</string>
+                     </property>
+                     <property name="checked">
+                      <bool>false</bool>
+                     </property>
+                     <property name="autoExclusive">
+                      <bool>true</bool>
+                     </property>
+                     <attribute name="buttonGroup">
+                      <string notr="true">buttonGroup</string>
+                     </attribute>
+                    </widget>
+                   </item>
+                  </layout>
+                  <zorder>frame_90</zorder>
+                  <zorder>frame_88</zorder>
+                  <zorder>frame_89</zorder>
+                  <zorder>frame_91</zorder>
+                  <zorder>radio_fix_cp</zorder>
+                  <zorder>radio_log_cp</zorder>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="PlotWidget" name="viewCp">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>46</height>
+                   </size>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::Panel</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Sunken</enum>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
               </widget>
              </item>
              <item row="1" column="1">
@@ -1064,8 +1965,8 @@
                </property>
               </widget>
              </item>
-             <item row="4" column="1">
-              <widget class="QLabel" name="lblCm">
+             <item row="8" column="1">
+              <widget class="QLabel" name="lblCanth">
                <property name="maximumSize">
                 <size>
                  <width>168</width>
@@ -1073,8 +1974,8 @@
                 </size>
                </property>
                <property name="text">
-                <string>Dry Mater Content (Cm) [g/cm2] 
-[0.0001 - 0.02]</string>
+                <string>Anthocyanins (Canth) [mug/cm2] 
+[0.0 - 10.0]</string>
                </property>
               </widget>
              </item>
@@ -1092,23 +1993,35 @@
                </property>
               </widget>
              </item>
-             <item row="1" column="2">
-              <spacer name="horizontalSpacer_59">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Maximum</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
+             <item row="7" column="1">
+              <widget class="QLabel" name="label_7">
+               <property name="maximumSize">
                 <size>
-                 <width>20</width>
-                 <height>20</height>
+                 <width>168</width>
+                 <height>16777215</height>
                 </size>
                </property>
-              </spacer>
+               <property name="text">
+                <string>Brown Pigments (Cbrown) [-] 
+[0.0 - 1.0]</string>
+               </property>
+              </widget>
              </item>
-             <item row="8" column="3">
+             <item row="4" column="1">
+              <widget class="QLabel" name="lblCm">
+               <property name="maximumSize">
+                <size>
+                 <width>168</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Dry Mater Content (Cm) [g/cm2] 
+[0.0001 - 0.02]</string>
+               </property>
+              </widget>
+             </item>
+             <item row="8" column="2">
               <widget class="QFrame" name="frame_31">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -1149,7 +2062,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_15">
+                     <layout class="QHBoxLayout" name="horizontalLayout_69">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -1159,7 +2072,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_canth">
                         <property name="maximumSize">
                          <size>
@@ -1177,7 +2090,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_canth">
                         <property name="maximumSize">
                          <size>
@@ -1195,25 +2108,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_canth">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_canth">
                         <property name="maximumSize">
                          <size>
@@ -1231,7 +2126,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_canth">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_30">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -1325,70 +2238,6 @@
                      </layout>
                     </widget>
                    </item>
-                   <item row="0" column="1">
-                    <widget class="QFrame" name="frame_35">
-                     <property name="frameShape">
-                      <enum>QFrame::NoFrame</enum>
-                     </property>
-                     <property name="frameShadow">
-                      <enum>QFrame::Plain</enum>
-                     </property>
-                     <layout class="QHBoxLayout" name="horizontalLayout_24">
-                      <property name="topMargin">
-                       <number>0</number>
-                      </property>
-                      <property name="bottomMargin">
-                       <number>0</number>
-                      </property>
-                      <item>
-                       <widget class="QRadioButton" name="radio_gauss_canth">
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>Statistical: Gauss</string>
-                        </property>
-                        <attribute name="buttonGroup">
-                         <string notr="true">buttonGroup_5</string>
-                        </attribute>
-                       </widget>
-                      </item>
-                      <item>
-                       <widget class="QRadioButton" name="radio_uni_canth">
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string>Statistical: Uniform</string>
-                        </property>
-                        <attribute name="buttonGroup">
-                         <string notr="true">buttonGroup_5</string>
-                        </attribute>
-                       </widget>
-                      </item>
-                      <item>
-                       <spacer name="horizontalSpacer_29">
-                        <property name="orientation">
-                         <enum>Qt::Horizontal</enum>
-                        </property>
-                        <property name="sizeType">
-                         <enum>QSizePolicy::Maximum</enum>
-                        </property>
-                        <property name="sizeHint" stdset="0">
-                         <size>
-                          <width>10</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                       </spacer>
-                      </item>
-                     </layout>
-                    </widget>
-                   </item>
                    <item row="1" column="0">
                     <widget class="QFrame" name="frame_33">
                      <property name="frameShape">
@@ -1447,6 +2296,88 @@
                      </layout>
                     </widget>
                    </item>
+                   <item row="0" column="3">
+                    <widget class="QRadioButton" name="radio_log_canth">
+                     <property name="font">
+                      <font>
+                       <pointsize>7</pointsize>
+                      </font>
+                     </property>
+                     <property name="text">
+                      <string>Logical</string>
+                     </property>
+                     <attribute name="buttonGroup">
+                      <string notr="true">buttonGroup_5</string>
+                     </attribute>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QFrame" name="frame_35">
+                     <property name="frameShape">
+                      <enum>QFrame::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Plain</enum>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_24">
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QRadioButton" name="radio_gauss_canth">
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>Statistical: Gauss</string>
+                        </property>
+                        <property name="checked">
+                         <bool>false</bool>
+                        </property>
+                        <attribute name="buttonGroup">
+                         <string notr="true">buttonGroup_5</string>
+                        </attribute>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QRadioButton" name="radio_uni_canth">
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string>Statistical: Uniform</string>
+                        </property>
+                        <attribute name="buttonGroup">
+                         <string notr="true">buttonGroup_5</string>
+                        </attribute>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_29">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>10</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
                    <item row="0" column="0">
                     <widget class="QRadioButton" name="radio_fix_canth">
                      <property name="font">
@@ -1463,20 +2394,8 @@
                        <height>12</height>
                       </size>
                      </property>
-                     <attribute name="buttonGroup">
-                      <string notr="true">buttonGroup_5</string>
-                     </attribute>
-                    </widget>
-                   </item>
-                   <item row="0" column="3">
-                    <widget class="QRadioButton" name="radio_log_canth">
-                     <property name="font">
-                      <font>
-                       <pointsize>7</pointsize>
-                      </font>
-                     </property>
-                     <property name="text">
-                      <string>Logical</string>
+                     <property name="checked">
+                      <bool>true</bool>
                      </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_5</string>
@@ -1484,6 +2403,12 @@
                     </widget>
                    </item>
                   </layout>
+                  <zorder>frame_35</zorder>
+                  <zorder>frame_34</zorder>
+                  <zorder>frame_33</zorder>
+                  <zorder>radio_fix_canth</zorder>
+                  <zorder>radio_log_canth</zorder>
+                  <zorder>frame_36</zorder>
                  </widget>
                 </item>
                 <item>
@@ -1511,7 +2436,7 @@
                </layout>
               </widget>
              </item>
-             <item row="7" column="3">
+             <item row="7" column="2">
               <widget class="QFrame" name="frame_37">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -1552,7 +2477,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_17">
+                     <layout class="QHBoxLayout" name="horizontalLayout_70">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -1562,7 +2487,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_cbr">
                         <property name="maximumSize">
                          <size>
@@ -1580,7 +2505,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_cbr">
                         <property name="maximumSize">
                          <size>
@@ -1598,25 +2523,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_cbr">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_cbr">
                         <property name="maximumSize">
                          <size>
@@ -1634,7 +2541,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_cbr">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_35">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -1866,6 +2791,9 @@
                        <height>12</height>
                       </size>
                      </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_6</string>
                      </attribute>
@@ -1914,7 +2842,7 @@
                </layout>
               </widget>
              </item>
-             <item row="5" column="3">
+             <item row="5" column="2">
               <widget class="QFrame" name="frame_25">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -1977,6 +2905,9 @@
                        <width>12</width>
                        <height>12</height>
                       </size>
+                     </property>
+                     <property name="checked">
+                      <bool>true</bool>
                      </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_4</string>
@@ -2124,7 +3055,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_12">
+                     <layout class="QHBoxLayout" name="horizontalLayout_71">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -2134,77 +3065,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_car">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
-                       <widget class="QLineEdit" name="txt_gauss_mean_car">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>mean</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="4">
-                       <spacer name="horizontalSpacer_25">
-                        <property name="orientation">
-                         <enum>Qt::Horizontal</enum>
-                        </property>
-                        <property name="sizeType">
-                         <enum>QSizePolicy::Maximum</enum>
-                        </property>
-                        <property name="sizeHint" stdset="0">
-                         <size>
-                          <width>50</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                       </spacer>
-                      </item>
-                      <item row="0" column="1">
-                       <widget class="QLineEdit" name="txt_gauss_max_car">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>max</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_car">
                         <property name="maximumSize">
                          <size>
@@ -2222,6 +3083,76 @@
                         </property>
                        </widget>
                       </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_max_car">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>max</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_mean_car">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>mean</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_car">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_25">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>50</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
                      </layout>
                     </widget>
                    </item>
@@ -2233,7 +3164,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QHBoxLayout" name="horizontalLayout_20">
+                     <layout class="QHBoxLayout" name="horizontalLayout_72">
                       <property name="topMargin">
                        <number>0</number>
                       </property>
@@ -2249,6 +3180,9 @@
                         </property>
                         <property name="text">
                          <string>Statistical: Gauss</string>
+                        </property>
+                        <property name="checked">
+                         <bool>false</bool>
                         </property>
                         <attribute name="buttonGroup">
                          <string notr="true">buttonGroup_4</string>
@@ -2317,7 +3251,7 @@
                </layout>
               </widget>
              </item>
-             <item row="4" column="3">
+             <item row="4" column="2">
               <widget class="QFrame" name="frame_19">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -2358,7 +3292,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_10">
+                     <layout class="QHBoxLayout" name="horizontalLayout_73">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -2368,7 +3302,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_cm">
                         <property name="maximumSize">
                          <size>
@@ -2386,7 +3320,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_cm">
                         <property name="maximumSize">
                          <size>
@@ -2404,25 +3338,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_cm">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_cm">
                         <property name="maximumSize">
                          <size>
@@ -2440,7 +3356,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_cm">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_20">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -2672,6 +3606,9 @@
                        <height>12</height>
                       </size>
                      </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_3</string>
                      </attribute>
@@ -2720,7 +3657,7 @@
                </layout>
               </widget>
              </item>
-             <item row="3" column="3">
+             <item row="3" column="2">
               <widget class="QFrame" name="frame_13">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -2761,7 +3698,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_8">
+                     <layout class="QHBoxLayout" name="horizontalLayout_74">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -2771,7 +3708,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_cw">
                         <property name="maximumSize">
                          <size>
@@ -2789,7 +3726,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_cw">
                         <property name="maximumSize">
                          <size>
@@ -2807,25 +3744,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_cw">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_cw">
                         <property name="maximumSize">
                          <size>
@@ -2843,7 +3762,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_cw">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_15">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -3126,7 +4063,7 @@
                </layout>
               </widget>
              </item>
-             <item row="2" column="3">
+             <item row="2" column="2">
               <widget class="QFrame" name="frame_7">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -3300,7 +4237,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_5">
+                     <layout class="QHBoxLayout" name="horizontalLayout_67">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -3310,7 +4247,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_chl">
                         <property name="maximumSize">
                          <size>
@@ -3328,7 +4265,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_chl">
                         <property name="maximumSize">
                          <size>
@@ -3346,25 +4283,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_chl">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_chl">
                         <property name="maximumSize">
                          <size>
@@ -3382,7 +4301,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_chl">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_10">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -3532,7 +4469,7 @@
                </layout>
               </widget>
              </item>
-             <item row="1" column="3">
+             <item row="1" column="2">
               <widget class="QFrame" name="frame_170">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -3581,6 +4518,9 @@
                        <height>12</height>
                       </size>
                      </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_18</string>
                      </attribute>
@@ -3609,7 +4549,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_70">
+                     <layout class="QHBoxLayout" name="horizontalLayout_66">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -3619,7 +4559,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_N">
                         <property name="maximumSize">
                          <size>
@@ -3637,7 +4577,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_N">
                         <property name="maximumSize">
                          <size>
@@ -3655,25 +4595,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_N">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_N">
                         <property name="maximumSize">
                          <size>
@@ -3691,7 +4613,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_N">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_126">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -3960,13 +4900,159 @@
              </font>
             </property>
             <property name="title">
-             <string>Canopy Model Parameters</string>
+             <string>Canopy Model Parameters (4SAIL)</string>
             </property>
             <property name="collapsed" stdset="0">
              <bool>false</bool>
             </property>
             <layout class="QGridLayout" name="gridLayout_18">
-             <item row="5" column="2">
+             <item row="6" column="0">
+              <widget class="QLabel" name="label_14">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>168</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Soil Brightness Faktor (psoil) [-] 
+[0.0 - 1.0]</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="lblLAI">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>178</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>168</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Leaf Area Index (LAI) [m2/m2] 
+[0.01 - 10.0]</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_11">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>168</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Hot Spot Size Parameter [-]
+[0.0 - 1.0]</string>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="0">
+              <widget class="QLabel" name="label_13">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>168</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Relative Azimuth Angle (Psi) [deg] 
+[0.0 - 180.0]</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="0">
+              <widget class="QLabel" name="label_12">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>168</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Sun Zenith Angle (Theta_S) [deg] 
+[0.0 - 89.0]</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_10">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>168</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Obs. Zenith Angle (Theta_O) [deg] 
+[0.0 - 89.0]</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_8">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>168</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Leaf Angle (ALIA) [deg]
+[0.0 - 90.0]</string>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="1">
               <widget class="QFrame" name="frame_73">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -4065,7 +5151,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_31">
+                     <layout class="QHBoxLayout" name="horizontalLayout_80">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -4075,7 +5161,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_raa">
                         <property name="enabled">
                          <bool>false</bool>
@@ -4096,7 +5182,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_raa">
                         <property name="enabled">
                          <bool>false</bool>
@@ -4117,28 +5203,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_raa">
-                        <property name="enabled">
-                         <bool>false</bool>
-                        </property>
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_raa">
                         <property name="enabled">
                          <bool>false</bool>
@@ -4159,7 +5224,28 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_raa">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_54">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -4354,6 +5440,9 @@
                        <height>12</height>
                       </size>
                      </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_12</string>
                      </attribute>
@@ -4387,7 +5476,7 @@
                </layout>
               </widget>
              </item>
-             <item row="0" column="2">
+             <item row="0" column="1">
               <widget class="QFrame" name="frame_49">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -4486,7 +5575,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_23">
+                     <layout class="QHBoxLayout" name="horizontalLayout_84">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -4496,7 +5585,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_lai">
                         <property name="maximumSize">
                          <size>
@@ -4517,7 +5606,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_lai">
                         <property name="maximumSize">
                          <size>
@@ -4538,28 +5627,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_lai">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="text">
-                         <string/>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_lai">
                         <property name="maximumSize">
                          <size>
@@ -4580,7 +5648,28 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_lai">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="text">
+                         <string/>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_38">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -4625,7 +5714,7 @@
                          <string>Statistical: Gauss</string>
                         </property>
                         <property name="checked">
-                         <bool>true</bool>
+                         <bool>false</bool>
                         </property>
                         <attribute name="buttonGroup">
                          <string notr="true">buttonGroup_7</string>
@@ -4772,6 +5861,9 @@
                        <height>12</height>
                       </size>
                      </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_7</string>
                      </attribute>
@@ -4805,7 +5897,7 @@
                </layout>
               </widget>
              </item>
-             <item row="4" column="2">
+             <item row="4" column="1">
               <widget class="QFrame" name="frame_67">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -5049,7 +6141,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_29">
+                     <layout class="QHBoxLayout" name="horizontalLayout_81">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -5059,7 +6151,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_sza">
                         <property name="enabled">
                          <bool>false</bool>
@@ -5080,7 +6172,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_sza">
                         <property name="enabled">
                          <bool>false</bool>
@@ -5101,28 +6193,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_sza">
-                        <property name="enabled">
-                         <bool>false</bool>
-                        </property>
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_sza">
                         <property name="enabled">
                          <bool>false</bool>
@@ -5143,7 +6214,28 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_sza">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_50">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -5177,6 +6269,9 @@
                        <width>12</width>
                        <height>12</height>
                       </size>
+                     </property>
+                     <property name="checked">
+                      <bool>true</bool>
                      </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_11</string>
@@ -5226,169 +6321,7 @@
                </layout>
               </widget>
              </item>
-             <item row="2" column="0">
-              <widget class="QLabel" name="label_11">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>168</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>Hot Spot Size Parameter [-]
-[0.0 - 1.0]</string>
-               </property>
-              </widget>
-             </item>
-             <item row="5" column="0">
-              <widget class="QLabel" name="label_13">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>168</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>Relative Azimuth Angle (Psi) [deg] 
-[0.0 - 180.0]</string>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="0">
-              <widget class="QLabel" name="label_12">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>168</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>Sun Zenith Angle (Theta_S) [deg] 
-[0.0 - 89.0]</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_10">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>168</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>Obs. Zenith Angle (Theta_O) [deg] 
-[0.0 - 89.0]</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="lblLAI">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>168</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>Leaf Area Index (LAI) [m2/m2] 
-[0.01 - 10.0]</string>
-               </property>
-              </widget>
-             </item>
-             <item row="6" column="0">
-              <widget class="QLabel" name="label_14">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>168</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>Soil Brightness Faktor (psoil) [-] 
-[0.0 - 1.0]</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_8">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>168</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>Leaf Angle (ALIA) [deg]
-[0.0 - 90.0]</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <spacer name="horizontalSpacer_8">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Maximum</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item row="2" column="2">
+             <item row="2" column="1">
               <widget class="QFrame" name="frame_43">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -5437,6 +6370,9 @@
                        <height>12</height>
                       </size>
                      </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_9</string>
                      </attribute>
@@ -5465,7 +6401,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_21">
+                     <layout class="QHBoxLayout" name="horizontalLayout_85">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -5475,7 +6411,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_hspot">
                         <property name="maximumSize">
                          <size>
@@ -5493,7 +6429,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_hspot">
                         <property name="maximumSize">
                          <size>
@@ -5511,25 +6447,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_hspot">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_hspot">
                         <property name="maximumSize">
                          <size>
@@ -5547,7 +6465,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_hspot">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_31">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -5791,7 +6727,7 @@
                </layout>
               </widget>
              </item>
-             <item row="6" column="2">
+             <item row="6" column="1">
               <widget class="QFrame" name="frame_79">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -5855,6 +6791,9 @@
                        <height>12</height>
                       </size>
                      </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_13</string>
                      </attribute>
@@ -5868,7 +6807,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_33">
+                     <layout class="QHBoxLayout" name="horizontalLayout_79">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -5878,7 +6817,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_psoil">
                         <property name="maximumSize">
                          <size>
@@ -5896,7 +6835,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_psoil">
                         <property name="maximumSize">
                          <size>
@@ -5914,25 +6853,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_psoil">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_psoil">
                         <property name="maximumSize">
                          <size>
@@ -5950,7 +6871,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_psoil">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_58">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -6194,7 +7133,7 @@
                </layout>
               </widget>
              </item>
-             <item row="3" column="2">
+             <item row="3" column="1">
               <widget class="QFrame" name="frame_61">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -6235,7 +7174,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_27">
+                     <layout class="QHBoxLayout" name="horizontalLayout_82">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -6245,8 +7184,8 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_oza">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_min_oza">
                         <property name="enabled">
                          <bool>false</bool>
                         </property>
@@ -6262,27 +7201,11 @@
                          </font>
                         </property>
                         <property name="placeholderText">
-                         <string>std</string>
+                         <string>min</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
-                       <spacer name="horizontalSpacer_46">
-                        <property name="orientation">
-                         <enum>Qt::Horizontal</enum>
-                        </property>
-                        <property name="sizeType">
-                         <enum>QSizePolicy::Maximum</enum>
-                        </property>
-                        <property name="sizeHint" stdset="0">
-                         <size>
-                          <width>50</width>
-                          <height>20</height>
-                         </size>
-                        </property>
-                       </spacer>
-                      </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_oza">
                         <property name="enabled">
                          <bool>false</bool>
@@ -6303,7 +7226,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_oza">
                         <property name="enabled">
                          <bool>false</bool>
@@ -6324,8 +7247,8 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="0">
-                       <widget class="QLineEdit" name="txt_gauss_min_oza">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_oza">
                         <property name="enabled">
                          <bool>false</bool>
                         </property>
@@ -6341,9 +7264,25 @@
                          </font>
                         </property>
                         <property name="placeholderText">
-                         <string>min</string>
+                         <string>std</string>
                         </property>
                        </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_46">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeType">
+                         <enum>QSizePolicy::Maximum</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>50</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
                       </item>
                      </layout>
                     </widget>
@@ -6582,6 +7521,9 @@
                        <height>12</height>
                       </size>
                      </property>
+                     <property name="checked">
+                      <bool>true</bool>
+                     </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_19</string>
                      </attribute>
@@ -6615,7 +7557,7 @@
                </layout>
               </widget>
              </item>
-             <item row="1" column="2">
+             <item row="1" column="1">
               <widget class="QFrame" name="frame_55">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -6853,7 +7795,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_25">
+                     <layout class="QHBoxLayout" name="horizontalLayout_83">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -6863,7 +7805,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_alia">
                         <property name="maximumSize">
                          <size>
@@ -6881,7 +7823,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_alia">
                         <property name="maximumSize">
                          <size>
@@ -6899,25 +7841,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_alia">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_alia">
                         <property name="maximumSize">
                          <size>
@@ -6935,7 +7859,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_alia">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_42">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -6984,6 +7926,9 @@
                        <width>12</width>
                        <height>12</height>
                       </size>
+                     </property>
+                     <property name="checked">
+                      <bool>true</bool>
                      </property>
                      <attribute name="buttonGroup">
                       <string notr="true">buttonGroup_8</string>
@@ -7047,7 +7992,7 @@
              </font>
             </property>
             <property name="title">
-             <string>Forest Parameters</string>
+             <string>Forest Parameters (INFORM)</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -7068,26 +8013,6 @@
              <bool>false</bool>
             </property>
             <layout class="QGridLayout" name="gridLayout_53" rowstretch="0,0,0,0,0,0">
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_23">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>168</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>Stem Density (SD) 
-[0.0 - 5000.0]</string>
-               </property>
-              </widget>
-             </item>
              <item row="0" column="0">
               <widget class="QLabel" name="lblLAIu">
                <property name="enabled">
@@ -7101,7 +8026,7 @@
                </property>
                <property name="minimumSize">
                 <size>
-                 <width>0</width>
+                 <width>178</width>
                  <height>0</height>
                 </size>
                </property>
@@ -7137,6 +8062,26 @@
                </property>
               </widget>
              </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_23">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>168</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Stem Density (SD) 
+[0.0 - 5000.0]</string>
+               </property>
+              </widget>
+             </item>
              <item row="2" column="0">
               <widget class="QLabel" name="label_24">
                <property name="sizePolicy">
@@ -7157,23 +8102,7 @@
                </property>
               </widget>
              </item>
-             <item row="0" column="1">
-              <spacer name="horizontalSpacer_117">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Maximum</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>45</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item row="1" column="2">
+             <item row="1" column="1">
               <widget class="QFrame" name="frame_134">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -7408,7 +8337,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_61">
+                     <layout class="QHBoxLayout" name="horizontalLayout_77">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -7418,7 +8347,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_sd">
                         <property name="maximumSize">
                          <size>
@@ -7436,7 +8365,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_sd">
                         <property name="maximumSize">
                          <size>
@@ -7454,25 +8383,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_sd">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_sd">
                         <property name="maximumSize">
                          <size>
@@ -7490,7 +8401,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_sd">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_106">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -7573,7 +8502,7 @@
                </layout>
               </widget>
              </item>
-             <item row="5" column="2">
+             <item row="5" column="1">
               <widget class="QFrame" name="frame_161">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -7744,7 +8673,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_65">
+                     <layout class="QHBoxLayout" name="horizontalLayout_75">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -7754,7 +8683,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_cd">
                         <property name="maximumSize">
                          <size>
@@ -7772,7 +8701,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_cd">
                         <property name="maximumSize">
                          <size>
@@ -7790,25 +8719,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_cd">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_cd">
                         <property name="maximumSize">
                          <size>
@@ -7826,7 +8737,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_cd">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_114">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -7973,7 +8902,7 @@
                </layout>
               </widget>
              </item>
-             <item row="2" column="2">
+             <item row="2" column="1">
               <widget class="QFrame" name="frame_155">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -8180,7 +9109,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_63">
+                     <layout class="QHBoxLayout" name="horizontalLayout_76">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -8190,7 +9119,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_h">
                         <property name="maximumSize">
                          <size>
@@ -8208,7 +9137,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_h">
                         <property name="maximumSize">
                          <size>
@@ -8226,25 +9155,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_h">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_h">
                         <property name="maximumSize">
                          <size>
@@ -8262,7 +9173,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_h">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_110">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -8373,7 +9302,7 @@
                </layout>
               </widget>
              </item>
-             <item row="0" column="2">
+             <item row="0" column="1">
               <widget class="QFrame" name="frame_128">
                <property name="frameShape">
                 <enum>QFrame::NoFrame</enum>
@@ -8580,7 +9509,7 @@
                      <property name="frameShadow">
                       <enum>QFrame::Plain</enum>
                      </property>
-                     <layout class="QGridLayout" name="gridLayout_52">
+                     <layout class="QHBoxLayout" name="horizontalLayout_78">
                       <property name="leftMargin">
                        <number>9</number>
                       </property>
@@ -8590,7 +9519,7 @@
                       <property name="bottomMargin">
                        <number>0</number>
                       </property>
-                      <item row="0" column="0">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_min_laiu">
                         <property name="maximumSize">
                          <size>
@@ -8608,7 +9537,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="1">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_max_laiu">
                         <property name="maximumSize">
                          <size>
@@ -8626,25 +9555,7 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="3">
-                       <widget class="QLineEdit" name="txt_gauss_std_laiu">
-                        <property name="maximumSize">
-                         <size>
-                          <width>45</width>
-                          <height>17</height>
-                         </size>
-                        </property>
-                        <property name="font">
-                         <font>
-                          <pointsize>7</pointsize>
-                         </font>
-                        </property>
-                        <property name="placeholderText">
-                         <string>std</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="0" column="2">
+                      <item>
                        <widget class="QLineEdit" name="txt_gauss_mean_laiu">
                         <property name="maximumSize">
                          <size>
@@ -8662,7 +9573,25 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="0" column="4">
+                      <item>
+                       <widget class="QLineEdit" name="txt_gauss_std_laiu">
+                        <property name="maximumSize">
+                         <size>
+                          <width>45</width>
+                          <height>17</height>
+                         </size>
+                        </property>
+                        <property name="font">
+                         <font>
+                          <pointsize>7</pointsize>
+                         </font>
+                        </property>
+                        <property name="placeholderText">
+                         <string>std</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
                        <spacer name="horizontalSpacer_90">
                         <property name="orientation">
                          <enum>Qt::Horizontal</enum>
@@ -8863,7 +9792,6 @@
   <tabstop>B_Prospect4</tabstop>
   <tabstop>B_ProspectD</tabstop>
   <tabstop>B_Prospect5</tabstop>
-  <tabstop>B_ProspectCp</tabstop>
   <tabstop>B_LeafModelOnly</tabstop>
   <tabstop>B_4Sail</tabstop>
   <tabstop>B_Inform</tabstop>
@@ -8874,7 +9802,6 @@
   <tabstop>BackSpec_label</tabstop>
   <tabstop>push_Image</tabstop>
   <tabstop>push_ShowSoilSpec</tabstop>
-  <tabstop>spinNS</tabstop>
   <tabstop>cmdOpenFolder</tabstop>
   <tabstop>txtLUTname</tabstop>
   <tabstop>spinNoData</tabstop>
@@ -9124,23 +10051,25 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="buttonGroup_13"/>
-  <buttongroup name="buttonGroup_19"/>
-  <buttongroup name="buttonGroup_5"/>
-  <buttongroup name="buttonGroup_8"/>
-  <buttongroup name="buttonGroup_2"/>
-  <buttongroup name="buttonGroup_17"/>
-  <buttongroup name="buttonGroup_10"/>
-  <buttongroup name="buttonGroup_6"/>
-  <buttongroup name="buttonGroup_9"/>
-  <buttongroup name="buttonGroup_3"/>
-  <buttongroup name="buttonGroup_12"/>
-  <buttongroup name="buttonGroup_14"/>
-  <buttongroup name="buttonGroup_15"/>
   <buttongroup name="buttonGroup_16"/>
-  <buttongroup name="buttonGroup_18"/>
+  <buttongroup name="buttonGroup_10"/>
+  <buttongroup name="buttonGroup_15"/>
+  <buttongroup name="buttonGroup_13"/>
+  <buttongroup name="buttonGroup"/>
+  <buttongroup name="buttonGroup_3"/>
+  <buttongroup name="buttonGroup_6"/>
   <buttongroup name="buttonGroup_7"/>
+  <buttongroup name="buttonGroup_5"/>
+  <buttongroup name="buttonGroup_19"/>
   <buttongroup name="buttonGroup_4"/>
   <buttongroup name="buttonGroup_11"/>
+  <buttongroup name="buttonGroup_8"/>
+  <buttongroup name="buttonGroup_14"/>
+  <buttongroup name="buttonGroup_17"/>
+  <buttongroup name="buttonGroup_2"/>
+  <buttongroup name="buttonGroup_18"/>
+  <buttongroup name="buttonGroup_20"/>
+  <buttongroup name="buttonGroup_9"/>
+  <buttongroup name="buttonGroup_12"/>
  </buttongroups>
 </ui>

@@ -41,9 +41,7 @@ training for working with the EnMAP-Box.
 2. Requirements
 ---------------
 
-.. TODO Update Version
-
-This practical requires at least version 3.3 of the EnMAP-Box 3.
+This practical requires at least version 3.6 of the EnMAP-Box 3.
 There might be some minor changes for higher versions (e.g., changed menu labels, added parameter options, etc.).
 
 
@@ -428,10 +426,12 @@ The approach can be embedded into an ensemble framework, i.e., steps 1-3 are ite
   * … random mixing fractions between 0 and 1 (0-100%) are randomly assigned to the previously drawn endmembers. The total sum of fractions is always 1 (100%).
   * … endmembers are linearly mixed based on the mixing fractions to create the mixture.
 
-.. image:: tut_img/12_synthmixing3.png
+.. todo delete old images from repo
+
+.. image:: tut_img/12_synthmixing3_v2.png
    :width: 100%
 
-.. image:: tut_img/13_synthmixing4.png
+.. image:: tut_img/13_synthmixing4_v2.png
    :width: 100%
 
 

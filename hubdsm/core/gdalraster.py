@@ -44,10 +44,10 @@ class GdalRaster(object):
         return Grid.fromGeoTransform(geoTransform=self.geoTransform, shape=shape, projection=projection)
 
     @property
-    def driver(self) -> 'GdalRasterDriver':
-        from hubdsm.core.gdalrasterdriver import GdalRasterDriver
+    def driver(self) -> 'GdalDriver':
+        from hubdsm.core.gdaldriver import GdalDriver
         gdalDriver: gdal.Driver = self.gdalDataset.GetDriver()
-        return GdalRasterDriver(name=gdalDriver.ShortName)
+        return GdalDriver(name=gdalDriver.ShortName)
 
     @staticmethod
     def open(filenameOrGdalDataset: Union[str, gdal.Dataset], access: int = gdal.GA_ReadOnly) -> 'GdalRaster':
@@ -61,8 +61,22 @@ class GdalRaster(object):
             raise ValueError(filenameOrGdalDataset)
 
         assert gdalDataset is not None
-        assert gdalDataset.GetProjection() != ''
+        #assert gdalDataset.GetProjection() != ''
         return GdalRaster(gdalDataset=gdalDataset)
+
+    @staticmethod
+    def create(grid: Grid, bands=1, gdt: int = None, filename: str = None, gco: List[str] = None) -> 'GdalRaster':
+        from hubdsm.core.gdaldriver import GdalDriver
+        driver = GdalDriver.fromFilename(filename=filename)
+        return driver.createRaster(grid=grid, bands=bands, gdt=gdt, filename=filename, gco=gco)
+
+    @staticmethod
+    def createFromArray(
+            array: np.ndarray, grid: Optional[Grid] = None, filename: str = None, gco: List[str] = None
+    ) -> 'GdalRaster':
+        from hubdsm.core.gdaldriver import GdalDriver
+        driver = GdalDriver.fromFilename(filename=filename)
+        return driver.createFromArray(array=array, grid=grid, filename=filename, gco=gco)
 
     @property
     def filenames(self) -> str:
@@ -148,7 +162,7 @@ class GdalRaster(object):
         return domainList
 
     def metadataItem(
-            self, key: str, domain: str, dtype: Union[str, float, int] = None, required=False, default=None):
+            self, key: str, domain: str, dtype=None, required=False, default=None):
         """Return (type-casted) metadata value.
         If metadata item is missing, but not required, return the default value."""
 
@@ -198,21 +212,21 @@ class GdalRaster(object):
             self.setMetadataDomain(values=metadataDomain, domain=domain)
 
     def translate(
-            self, grid: Grid = None, filename: str = None, driver: 'GdalRasterDriver' = None, gco: List[str] = None,
+            self, grid: Grid = None, filename: str = None, driver: 'GdalDriver' = None, gco: List[str] = None,
             gra: int = None, **kwargs
     ):
         '''Return translated raster.'''
-        from hubdsm.core.gdalrasterdriver import GdalRasterDriver
+        from hubdsm.core.gdaldriver import GdalDriver
 
         if grid is None:
             grid = self.grid
 
         if driver is None:
-            driver = GdalRasterDriver.fromFilename(filename=filename)
+            driver = GdalDriver.fromFilename(filename=filename)
 
         assert isinstance(grid, Grid)
         assert self.grid.projection == grid.projection
-        assert isinstance(driver, GdalRasterDriver)
+        assert isinstance(driver, GdalDriver)
         if gco is None:
             gco = driver.options
         assert isinstance(gco, list)

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>885</height>
+    <height>882</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,131 +16,136 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QWidget" name="widget" native="true">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <layout class="QFormLayout" name="formLayout">
-         <item row="0" column="0">
-          <widget class="QLabel" name="label">
-           <property name="text">
-            <string>Raster</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QgsMapLayerComboBox" name="uiRaster_">
-           <property name="allowEmptyLayer">
-            <bool>true</bool>
-           </property>
-           <property name="excludedProviders">
-            <stringlist>
-             <string>ogr</string>
-            </stringlist>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="label_2">
-           <property name="text">
-            <string>Mask</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QgsMapLayerComboBox" name="uiMask_">
-           <property name="allowEmptyLayer">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="label_3">
-           <property name="text">
-            <string>Accuracy</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QComboBox" name="uiAccuracy_">
-           <item>
+     <widget class="QgsCollapsibleGroupBox" name="mGroupBox">
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QWidget" name="widget" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <layout class="QFormLayout" name="formLayout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label">
             <property name="text">
-             <string>Estimated (faster)</string>
+             <string>Raster</string>
             </property>
-           </item>
-           <item>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QgsMapLayerComboBox" name="uiRaster_">
+            <property name="allowEmptyLayer">
+             <bool>true</bool>
+            </property>
+            <property name="excludedProviders">
+             <stringlist>
+              <string>ogr</string>
+             </stringlist>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_2">
             <property name="text">
-             <string>Actual (slower)</string>
+             <string>Mask</string>
             </property>
-           </item>
-          </widget>
-         </item>
-         <item row="3" column="0">
-          <widget class="QLabel" name="label_5">
-           <property name="text">
-            <string>Histogram bins</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QComboBox" name="uiBins_">
-           <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;auto&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;Maximum of the 'sturges' and 'fd' estimators. Provides good all around performance.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;fd (Freedman Diaconis Estimator)&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;Robust (resilient to outliers) estimator that takes into account data variability and data size.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;doane&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;An improved version of Sturges' estimator that works better with non-normal datasets.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;scott&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;Less robust estimator that that takes into account data variability and data size.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;rice&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;Estimator does not take variability into account, only data size. Commonly overestimates number of bins required.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;sturges&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;R's default method, only accounts for data size. Only optimal for gaussian data and underestimates number of bins for large non-gaussian datasets.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;sqrt&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;Square root (of data size) estimator, used by Excel and other programs for its speed and simplicity.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-           <property name="currentIndex">
-            <number>1</number>
-           </property>
-           <item>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QgsMapLayerComboBox" name="uiMask_">
+            <property name="allowEmptyLayer">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_3">
             <property name="text">
-             <string>256</string>
+             <string>Accuracy</string>
             </property>
-           </item>
-           <item>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QComboBox" name="uiAccuracy_">
+            <item>
+             <property name="text">
+              <string>Estimated (faster)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Actual (slower)</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_5">
             <property name="text">
-             <string>auto</string>
+             <string>Histogram bins</string>
             </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>fd</string>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QComboBox" name="uiBins_">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;auto&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;Maximum of the 'sturges' and 'fd' estimators. Provides good all around performance.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;fd (Freedman Diaconis Estimator)&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;Robust (resilient to outliers) estimator that takes into account data variability and data size.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;doane&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;An improved version of Sturges' estimator that works better with non-normal datasets.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;scott&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;Less robust estimator that that takes into account data variability and data size.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;rice&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;Estimator does not take variability into account, only data size. Commonly overestimates number of bins required.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;sturges&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;R's default method, only accounts for data size. Only optimal for gaussian data and underestimates number of bins for large non-gaussian datasets.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'Open Sans,sans-serif'; font-size:13px; font-weight:600; color:#333333; vertical-align:top;&quot;&gt;sqrt&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-family:'inherit'; font-size:13px; color:#333333; vertical-align:top;&quot;&gt;Square root (of data size) estimator, used by Excel and other programs for its speed and simplicity.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>doane</string>
+            <property name="currentIndex">
+             <number>1</number>
             </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>scott</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>rice</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>sturges</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>sqrt</string>
-            </property>
-           </item>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-     </layout>
+            <item>
+             <property name="text">
+              <string>256</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>auto</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>fd</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>doane</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>scott</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>rice</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>sturges</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>sqrt</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout"/>
     </item>
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -252,7 +257,7 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>300</height>
+         <height>50</height>
         </size>
        </property>
       </widget>
@@ -260,7 +265,7 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>300</height>
+         <height>50</height>
         </size>
        </property>
       </widget>
@@ -305,13 +310,19 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>QgsCollapsibleGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>qgscollapsiblegroupbox.h</header>
+   <container>1</container>
+  </customwidget>
   <customwidget>
    <class>QgsMapLayerComboBox</class>
    <extends>QComboBox</extends>

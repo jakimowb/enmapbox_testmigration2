@@ -98,8 +98,9 @@ class PIPPackage(object):
         try:
             __import__(self.pyPkgName)
             self.mInstalledVersion = '<installed>'
-        except ModuleNotFoundError:
-            pass
+        except Exception as ex:
+            print(f'Unable to import {self.pyPkgName}:\n {ex}', file=sys.stderr)
+
         self.mInstalledVersion = ''
 
     def updateAvailable(self) -> bool:

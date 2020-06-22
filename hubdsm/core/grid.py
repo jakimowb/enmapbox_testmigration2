@@ -8,7 +8,7 @@ from hubdsm.core.extent import Extent
 from hubdsm.core.geotransform import GeoTransform
 from hubdsm.core.location import Location
 from hubdsm.core.pixellocation import PixelLocation
-from hubdsm.core.projection import Projection
+from hubdsm.core.projection import Projection, WGS84_PROJECTION
 from hubdsm.core.resolution import Resolution
 from hubdsm.core.shape import GridShape
 from hubdsm.core.size import Size
@@ -19,7 +19,7 @@ class Grid(object):
     """Pixel grid."""
     extent: Extent
     resolution: Resolution
-    projection: Projection = Projection.fromWgs84()
+    projection: Projection
 
     def __post_init__(self):
         assert isinstance(self.extent, Extent)
@@ -66,7 +66,7 @@ class Grid(object):
         ul = Location(x=0, y=shape.y * resolution.y)
         size = Size(x=shape.x * resolution.x, y=shape.y * resolution.y)
         extent = Extent(ul=ul, size=size)
-        return Grid(extent=extent, resolution=resolution)
+        return Grid(extent=extent, resolution=resolution, projection=WGS84_PROJECTION)
 
     def pixelLocation(self, location: Location) -> PixelLocation:
         """Return pixel location on the grid."""

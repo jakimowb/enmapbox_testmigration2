@@ -1,6 +1,6 @@
 # from __future__ import annotations
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Union
 
 import numpy as np
 from osgeo import gdal
@@ -8,6 +8,7 @@ from osgeo import gdal
 from hubdsm.core.gdalband import GdalBand
 from hubdsm.core.grid import Grid
 from hubdsm.core.mask import Mask
+from hubdsm.core.table import Table
 
 
 @dataclass
@@ -79,6 +80,21 @@ class Band(object):
 
         return maskArray
 
+    def readAsSample(self, grid: Grid = None, mode: int = None, fieldNames: int = None,
+            graRaster: int = None, graMask: int = None,
+            xPixel: str = None, yPixel: str = None, xMap: str = None, yMap: str = None,
+    ) -> Union[Table, Optional[Table]]:
+
+        from hubdsm.core.raster import Raster
+        if grid is None:
+            grid = self.gdalBand.grid
+
+        raster = Raster(name=self.name, bands=(self,), grid=grid)
+        return raster.readAsSample(
+            grid=grid, mode=mode, fieldNames=fieldNames, graRaster=graRaster, graMask=graMask, xPixel=xPixel,
+            yPixel=yPixel, xMap=xMap, yMap=yMap
+        )
+
     @property
     def rasterize(self):
         return self.gdalBand.rasterize
@@ -98,3 +114,39 @@ class Band(object):
     @property
     def flushCache(self):
         return self.gdalBand.flushCache
+
+    @property
+    def wavelength(self):
+        return self.gdalBand.wavelength
+
+    @property
+    def fwhm(self):
+        return self.gdalBand.fwhm
+
+    @property
+    def isBadBand(self):
+        return self.gdalBand.isBadBand
+
+    @property
+    def metadataDict(self):
+        return self.gdalBand.metadataDict
+
+    @property
+    def metadataItem(self):
+        return self.gdalBand.metadataItem
+
+    @property
+    def metadataDomain(self):
+        return self.gdalBand.metadataDomain
+
+    @property
+    def setMetadataDict(self):
+        return self.gdalBand.setMetadataDict
+
+    @property
+    def setMetadataItem(self):
+        return self.gdalBand.setMetadataItem
+
+    @property
+    def setMetadataDomain(self):
+        return self.gdalBand.setMetadataDomain

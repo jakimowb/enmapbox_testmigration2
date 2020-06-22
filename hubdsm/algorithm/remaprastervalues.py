@@ -4,7 +4,7 @@ import numpy as np
 from osgeo.gdal_array import NumericTypeCodeToGDALTypeCode
 
 from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.gdalrasterdriver import GdalRasterDriver
+from hubdsm.core.gdaldriver import GdalDriver
 from hubdsm.core.raster import Raster
 
 
@@ -23,8 +23,8 @@ def remapRasterValues(
     assert targets.shape == sources.shape
     mapping = {s: t for s,t in zip(sources, targets)}
     gdalDataType = NumericTypeCodeToGDALTypeCode(targets.dtype)
-    driver = GdalRasterDriver.fromFilename(filename=filename)
-    outGdalRaster = driver.create(grid=raster.grid, bands=len(raster.bands), gdt=gdalDataType,
+    driver = GdalDriver.fromFilename(filename=filename)
+    outGdalRaster = driver.createRaster(grid=raster.grid, bands=len(raster.bands), gdt=gdalDataType,
         filename=filename, gco=co
     )
 
@@ -41,10 +41,11 @@ def remapRasterValues(
             po.callbackProgress(i, n)
             i += 1
             array = np.full(shape=subgrid.shape, fill_value=noDataValue, dtype=targets.dtype)
-            sample = band.readAsSample(grid=subgrid)
+            sample, location = band.readAsSample(grid=subgrid, xPixel='xPixel', yPixel='yPixel')
+            values = sample[band.name]
             for old, new in mapping.items():
-                where = sample.values == old
-                array[sample.yLocations[where], sample.xLocations[where]] = new
+                where = values == old
+                array[location.yPixel[where], location.xPixel[where]] = new
             outGdalBand.writeArray(array=array, grid=subgrid)
         outGdalBand.setNoDataValue(value=noDataValue)
 

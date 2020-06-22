@@ -1,6 +1,7 @@
 # from __future__ import annotations
 from enum import IntEnum
-from os.path import basename, abspath
+from os import makedirs
+from os.path import basename, abspath, dirname
 
 from dataclasses import dataclass
 from typing import Tuple, Sequence, Union, Iterator, Optional, List
@@ -9,7 +10,7 @@ import numpy as np
 from osgeo import gdal
 
 from hubdsm.core.band import Band
-from hubdsm.core.gdalrasterdriver import VRT_DRIVER
+from hubdsm.core.gdaldriver import VRT_DRIVER
 from hubdsm.core.mask import Mask
 from hubdsm.core.gdalraster import GdalRaster
 from hubdsm.core.grid import Grid
@@ -34,9 +35,13 @@ class Raster(object):
         # assert len(self.bandNames) == len(set(self.bandNames)), 'each band name must be unique'
 
     def __getitem__(self, item):
-        selectors = list(range(1, len(self.bands) + 1)).__getitem__(item)
-        if not isinstance(selectors, list):
-            selectors = [selectors]
+        if isinstance(item, (list, tuple)):
+            selectors = [v + 1 for v in item]
+        else:
+            numbers = list(range(1, len(self.bands) + 1))
+            selectors = numbers[item]
+            if not isinstance(selectors, list):
+                selectors = [selectors]
         return self.select(selectors=selectors)
 
     @classmethod
@@ -66,19 +71,15 @@ class Raster(object):
         return Raster(name='stack', bands=tuple(bands), grid=grid)
 
     @staticmethod
-    def create(grid: Grid, bands=1, gdt: int = None, filename: str = None, gco: List[str] = None):
-        from hubdsm.core.gdalrasterdriver import GdalRasterDriver
-        driver = GdalRasterDriver.fromFilename(filename=filename)
-        gdalRaster = driver.create(grid=grid, bands=bands, gdt=gdt, filename=filename, gco=gco)
+    def create(grid: Grid, bands=1, gdt: int = None, filename: str = None, gco: List[str] = None) -> 'Raster':
+        gdalRaster = GdalRaster.create(grid=grid, bands=bands, gdt=gdt, filename=filename, gco=gco)
         return Raster.open(gdalRaster)
 
     @staticmethod
     def createFromArray(
             array: np.ndarray, grid: Optional[Grid] = None, filename: str = None, gco: List[str] = None
-    ):
-        from hubdsm.core.gdalrasterdriver import GdalRasterDriver
-        driver = GdalRasterDriver.fromFilename(filename=filename)
-        gdalRaster = driver.createFromArray(array=array, grid=grid, filename=filename, gco=gco)
+    ) -> 'Raster':
+        gdalRaster = GdalRaster.createFromArray(array=array, grid=grid, filename=filename, gco=gco)
         return Raster.open(gdalRaster)
 
     @property
@@ -183,7 +184,7 @@ class Raster(object):
         bandIndices = 1
 
     def readAsSample(
-            self, grid: Grid = None, mode=SampleMode.strict, fieldNames=SampleFieldNames.bandNames,
+            self, grid: Grid = None, mode: int = None, fieldNames: int = None,
             graRaster: int = None, graMask: int = None,
             xPixel: str = None, yPixel: str = None, xMap: str = None, yMap: str = None,
     ) -> Union[Table, Optional[Table]]:
@@ -201,6 +202,8 @@ class Raster(object):
             grid = self.grid
         if mode is None:
             mode = self.SampleMode.strict
+        if fieldNames is None:
+            fieldNames = self.SampleFieldNames.bandNames
 
         if mode is self.SampleMode.strict:
             maskArray = np.full(shape=grid.shape, fill_value=True, dtype=np.bool)
@@ -298,12 +301,17 @@ class Raster(object):
         lines = [line + '\n' for line in gdal.VSIFReadL(1, 100000, file).decode().split('\n')]
         gdal.VSIFCloseL(file)
         gdal.Unlink(tmpfilename)
+
         # - write sources
+        try:
+            makedirs(dirname(filename))
+        except:
+            pass
         with open(filename, 'w') as file:
             bandIndex = 0
             for line in lines:
                 if line.endswith('</SourceBand>\n'):
-                    file.write(f'      <SourceBand>{self.bands[bandIndex].number}</SourceBand>\n',)
+                    file.write(f'      <SourceBand>{self.bands[bandIndex].number}</SourceBand>\n', )
                     bandIndex += 1
                 else:
                     file.write(line)

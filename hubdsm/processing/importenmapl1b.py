@@ -1,6 +1,5 @@
 from hubdsm.algorithm.importenmapl1b import importEnmapL1B
 from hubdsm.processing.enmapalgorithm import *
-from hubdsm.core.raster import Raster
 
 
 class ImportEnmapL1B(EnMAPAlgorithm):
@@ -11,7 +10,7 @@ class ImportEnmapL1B(EnMAPAlgorithm):
         return importEnmapL1B.__doc__
 
     def group(self):
-        return Group.IMPORT_DATA.value
+        return Group.ImportData.value
 
     P_FILE = 'file'
     P_OUTRASTER_VNIR = 'outvnir'
@@ -21,6 +20,7 @@ class ImportEnmapL1B(EnMAPAlgorithm):
         self.addParameter(
             EnMAPProcessingParameterFile(
                 name=self.P_FILE, description='METADATA.XML',
+                fileFilter='*metadata.xml',
                 help=Help(text='Metadata file associated with L1B product.')
             )
         )

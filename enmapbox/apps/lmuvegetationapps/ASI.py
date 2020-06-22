@@ -836,6 +836,8 @@ class ASI_core:
         if len(closest_bands) < 5:
             closest_bands.insert(0, closest_bands[0])
 
+        fixed_end = closest_bands[4]
+
         for row in range(in_matrix.shape[1]):
             for col in range(in_matrix.shape[2]):
                 if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
@@ -898,8 +900,9 @@ class ASI_core:
                     full_hull_x = interp1d(interp_range[hull_x_index], window[hull_x_index])
                     contiguous_hull_x = full_hull_x(interp_range)
 
+                    # intercepts between hull and reflectance
                     indices = np.nonzero(np.isin(contiguous_hull_x, window))[0]
-
+                    # check range validity of intercepts
                     item0 = next((self.valid_wl[indices[l]] for l in range(len(indices)) if
                                   500 < self.valid_wl[indices[l]] < 550), None)
                     item1 = next((self.valid_wl[indices[l]] for l in range(len(indices)) if
@@ -910,6 +913,7 @@ class ASI_core:
                                   910 < self.valid_wl[indices[l]] < 950), None)
                     item4 = next((self.valid_wl[indices[l]] for l in range(len(indices)) if
                                   970 < self.valid_wl[indices[l]] < 1105), None)
+                    # substitute preset separators with found intercepts
                     if item0:
                         closest_bands[0] = self.valid_wl.index(item0)
                     if item1 and green_peak != 1:
@@ -922,6 +926,7 @@ class ASI_core:
                         closest_bands[4] = self.valid_wl.index(item4)
                 else:
                     contiguous_hull_x = np.nan
+
                 k = 0
                 if np.mean(in_matrix[:, row, col]) == self.nodat[0]:
                     res3band[:, row, col] = np.nan
@@ -945,7 +950,7 @@ class ASI_core:
                         if j == 2:
                             absorb_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:i, row, col]) -
                                                                  np.log(1 / contiguous_hull_x[k:i]))  # / np.nansum(contiguous_hull_x[k:i])
-                            hull_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:i, row, col]))
+                            hull_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:fixed_end, row, col]))
                             res3band[j, row, col] = absorb_area[j, row, col] / hull_area[j, row, col]
                         else:
                             cr_absorb_area[j, row, col] = np.nansum((np.log(1/in_matrix[k:i, row, col]) -

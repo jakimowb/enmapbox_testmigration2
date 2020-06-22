@@ -15,7 +15,8 @@ hyperspectral remote sensing data. This documentation will provide you with gene
 the software and the corresponding satellite mission, a user guide for ordinary users as well as developers and
 step-by-step tutorials which exemplify the software's capabilities.
 
-**Related websites**
+Related websites
+****************
 
 - Environmental Mapping and Analysis Program (EnMAP): `www.enmap.org <http://www.enmap.org/>`_
 - Bitbucket source code repository: `www.bitbucket.org/hu-geomatics/enmap-box <https://bitbucket.org/hu-geomatics/enmap-box>`_
@@ -24,12 +25,25 @@ step-by-step tutorials which exemplify the software's capabilities.
 .. figure:: img/screenshot_main2.png
    :width: 100%
 
+|
+
+News
+****
+
+12-03-2020
+==========
+
+Andreas Rabe presented the EnMAP-Box at the FOSSGIS 2020 in Freiburg. See the full live-demo session here (german):
+
+.. raw:: html
+
+   <iframe width="100%" height="380" src="https://www.youtube.com/embed/egaJLUe_eXY" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 |
 |
 
-**This documentation is structured as follows:**
-
+Documentation content
+*********************
 
 .. toctree::
     :maxdepth: 2
@@ -60,10 +74,6 @@ step-by-step tutorials which exemplify the software's capabilities.
     dev_section/dev_guide.rst
     dev_section/api/modules.rst
     dev_section/programming_tutorials/index.rst
-
-
-
-
 
 
 

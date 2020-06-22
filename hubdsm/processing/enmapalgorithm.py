@@ -1,7 +1,7 @@
 # from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Union, Any, Dict
+from typing import List, Union, Any, Dict, Iterable
 
 from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 from qgis._core import *
@@ -62,10 +62,15 @@ class EnMAPAlgorithm(QgisAlgorithm):
                 feedback.reportError(line)
             raise Exception('unexpected error')
 
-    def parameter(self, parameters: Dict, name: str, context: QgsProcessingContext):
+    def parameter(self, parameters: Dict, name: str, context: QgsProcessingContext) -> Any:
         pd = self.parameterDefinition(name=name)
-        if isinstance(pd, EnMAPProcessingParameterRasterLayer):
+
+        if isinstance(pd, EnMAPProcessingParameterMapLayer):
+            value = self.parameterAsLayer(parameters, name, context)
+        elif isinstance(pd, EnMAPProcessingParameterRasterLayer):
             value = self.parameterAsRasterLayer(parameters, name, context)
+        elif isinstance(pd, EnMAPProcessingParameterVectorLayer):
+            value = self.parameterAsVectorLayer(parameters, name, context)
         elif isinstance(pd, EnMAPProcessingParameterRasterDestination):
             if isinstance(parameters[name], QgsProcessingOutputLayerDefinition):
                 value = str(self.parameterAsOutputLayer(parameters, name, context))
@@ -75,6 +80,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
                 assert 0, repr(parameters[name])
         else:
             value = parameters[name]
+
         return value
 
     def hasHtmlOutputs(self, *args, **kwargs):
@@ -118,22 +124,22 @@ class EnMAPAlgorithm(QgisAlgorithm):
 class Group(Enum):
     ACCURACY_ASSESSMENT = 'Accuracy Assessment'
     Auxilliary = 'Auxilliary'
-    CONVOLUTION = 'Convolution, Morphology and Filtering'
-    CREATE_RASTER = 'Create Raster'
-    CREATE_SAMPLE = 'Create Sample'
-    CLASSIFICATION = 'Classification'
-    CLUSTERING = 'Clustering'
-    IMPORT_DATA = 'Import Data'
-    MASKING = 'Masking'
-    OPTIONS = 'Options'
-    PREPROCESSING = 'Pre-Processing'
-    POSTPROCESSING = 'Post-Processing'
-    RESAMPLING = 'Resampling and Subsetting'
-    RANDOM = 'Random'
-    REGRESSION = 'Regression'
-    TEST = 'TEST'
-    TESTDATA = 'Testdata'
-    TRANSFORMATION = 'Transformation'
+    ConvolutionMorphologyAndFiltering = 'Convolution, Morphology and Filtering'
+    CreateRaster = 'Create Raster'
+    CreateSample = 'Create Sample'
+    Classification = 'Classification'
+    Clustering = 'Clustering'
+    ImportData = 'Import Data'
+    Masking = 'Masking'
+    Options = 'Options'
+    Preprocessing = 'Pre-Processing'
+    Postprocessing = 'Post-Processing'
+    ResamplingAndSubsetting = 'Resampling and Subsetting'
+    Random = 'Random'
+    Regression = 'Regression'
+    Test = 'TEST'
+    Testdata = 'Testdata'
+    Transformation = 'Transformation'
 
 
 class Link():
@@ -212,6 +218,17 @@ class EnMAPProcessingParameterMapLayer(QgsProcessingParameterMapLayer):
         self.help = help
 
 
+class EnMAPProcessingParameterVectorLayer(QgsProcessingParameterVectorLayer):
+    def __init__(
+            self, name: str, description: str, types: Iterable[int] = tuple(), defaultValue: Any = None,
+            optional: bool = False, help=Help()
+    ):
+        QgsProcessingParameterVectorLayer.__init__(
+            self, name=name, description=description, types=types, defaultValue=defaultValue, optional=optional
+        )
+        self.help = help
+
+
 class EnMAPProcessingParameterRasterLayer(QgsProcessingParameterRasterLayer):
     def __init__(
             self, name: str, description: str, defaultValue: Any = None, optional: bool = False, help=Help()
@@ -244,6 +261,39 @@ class EnMAPProcessingParameterFile(QgsProcessingParameterFile):
         QgsProcessingParameterFile.__init__(
             self, name=name, description=description, behavior=behavior, extension=extension, defaultValue=defaultValue,
             optional=optional, fileFilter=fileFilter
+        )
+        self.help = help
+
+
+class EnMAPProcessingParameterString(QgsProcessingParameterString):
+    def __init__(
+            self, name: str, description: str, defaultValue: Any = None, multiLine: bool = False,
+            optional: bool = False, help=Help()
+    ):
+        QgsProcessingParameterString.__init__(
+            self, name=name, description=description, defaultValue=defaultValue, multiLine=multiLine, optional=optional
+        )
+        self.help = help
+
+
+class EnMAPProcessingParameterBoolean(QgsProcessingParameterBoolean):
+    def __init__(
+            self, name: str, description: str, defaultValue: Any = None, optional: bool = False, help=Help()
+    ):
+        QgsProcessingParameterBoolean.__init__(
+            self, name=name, description=description, defaultValue=defaultValue, optional=optional
+        )
+        self.help = help
+
+
+class EnMAPProcessingParameterEnum(QgsProcessingParameterEnum):
+    def __init__(
+            self, name: str, description: str, options: Iterable[str], allowMultiple: bool = False,
+            defaultValue: Any = None, optional: bool = False, help=Help()
+    ):
+        QgsProcessingParameterEnum.__init__(
+            self, name=name, description=description, options=options, allowMultiple=allowMultiple,
+            defaultValue=defaultValue, optional=optional
         )
         self.help = help
 

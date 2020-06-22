@@ -1,3 +1,27 @@
+"""
+***************************************************************************
+    layerconfigwidget/core.py - Helpers and emulations for QgsMapLayerConfigWidgets
+    -----------------------------------------------------------------------
+    begin                : <month and year of creation>
+    copyright            : (C) 2020 Benjamin Jakimow
+    email                : benjamin.jakimow@geo.hu-berlin.de
+
+***************************************************************************
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+                                                                                                                                                 *
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this software. If not, see <http://www.gnu.org/licenses/>.
+***************************************************************************
+"""
+
 import typing
 import os
 import pathlib
@@ -156,11 +180,11 @@ class SymbologyConfigWidget(QpsMapLayerConfigWidget):
     """
     Emulates the QGS Layer Property Dialogs "Source" page
     """
-    def __init__(self, layer: QgsMapLayer, canvas: QgsMapCanvas, parent=None):
+    def __init__(self, layer: QgsMapLayer, canvas: QgsMapCanvas, style:QgsStyle=QgsStyle(), parent=None):
         super().__init__(layer, canvas, parent=parent)
         loadUi(configWidgetUi('symbologyconfigwidget.ui'), self)
         self.mSymbologyWidget = None
-
+        self.mStyle: QgsStyle = style
         self.mDefaultRenderer = None
         if isinstance(layer, (QgsRasterLayer, QgsVectorLayer)):
             self.mDefaultRenderer = layer.renderer().clone()
@@ -169,6 +193,9 @@ class SymbologyConfigWidget(QpsMapLayerConfigWidget):
 
     def symbologyWidget(self) -> typing.Union[QgsRendererRasterPropertiesWidget, QgsRendererPropertiesDialog]:
         return self.scrollArea.widget()
+
+    def style(self) -> QgsStyle:
+        return self.mStyle
 
     def menuButtonMenu(self) ->QMenu:
         m = QMenu('Style')
@@ -339,7 +366,7 @@ class SymbologyConfigWidget(QpsMapLayerConfigWidget):
 
         elif isinstance(lyr, QgsVectorLayer):
             if not isinstance(w, QgsRendererPropertiesDialog):
-                w = QgsRendererPropertiesDialog(lyr, QgsStyle(), embedded=True)
+                w = QgsRendererPropertiesDialog(lyr, self.style(), embedded=True)
                 self.setSymbologyWidget(w)
             else:
                 s = ""

@@ -1,10 +1,10 @@
-from typing import Union, List, Callable
+from typing import Union, List
 
 import numpy as np
 from osgeo.gdal_array import GDALTypeCodeToNumericTypeCode
 
 from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.gdalrasterdriver import GdalRasterDriver
+from hubdsm.core.gdaldriver import GdalDriver
 from hubdsm.core.raster import Raster
 
 
@@ -30,8 +30,8 @@ def convertRaster(
 
     numpyDataType = GDALTypeCodeToNumericTypeCode(gdalDataType)
 
-    driver = GdalRasterDriver.fromFilename(filename=filename)
-    outGdalRaster = driver.create(
+    driver = GdalDriver.fromFilename(filename=filename)
+    outGdalRaster = driver.createRaster(
         grid=raster.grid, bands=len(raster.bands), gdt=gdalDataType, filename=filename,
         gco=co
     )

@@ -4,7 +4,7 @@ import numpy as np
 
 from hubdsm.core.band import Band
 from hubdsm.core.mask import Mask
-from hubdsm.core.gdalrasterdriver import MEM_DRIVER
+from hubdsm.core.gdaldriver import MEM_DRIVER
 
 outdir = r'c:\unittests\hubdsm'
 

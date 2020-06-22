@@ -30,7 +30,7 @@ class ProcessingOptions(object):
     shape: GridShape = None
     callbackStart: Callable[[str], datetime] = callbackStartDefault
     callbackProgress: Callable[[int, int, str], None] = callbackProgressDefault
-    callbackFinish: Callable[[str, int, int, str], None] = callbackFinishDefault
+    callbackFinish: Callable[[str, int, int, str], datetime] = callbackFinishDefault
 
     def __post_init__(self):
         assert isinstance(self.shape, (GridShape, type(None)))
