@@ -500,10 +500,10 @@ class SpectralProfileBridge(QAbstractTableModel):
         self.mSrcModel = SpectralProfileSrcListModel()
         self.mDstModel = SpectralProfileDstListModel()
 
-        self.mSrcModel.rowsRemoved.connect(lambda : self.updateListColumn(self.cnSrc))
+        self.mSrcModel.rowsRemoved.connect(lambda: self.updateListColumn(self.cnSrc))
         #self.mSrcModel.rowsInserted.connect(lambda : self.updateListColumn(self.cnSrc))
 
-        self.mDstModel.rowsRemoved.connect(lambda : self.updateListColumn(self.cnDst))
+        self.mDstModel.rowsRemoved.connect(lambda: self.updateListColumn(self.cnDst))
         #self.mDstModel.rowsInserted.connect(lambda : self.updateListColumn(self.cnDst))
 
         self.mBridgeItems = []
@@ -559,7 +559,7 @@ class SpectralProfileBridge(QAbstractTableModel):
         return self.mSrcModel
 
     def columnNames(self) -> typing.List[str]:
-        return [self.cnSrc, self.cnSampling, self.cnDst, self.cnScale, self.cnPlotStyle]
+        return [self.cnSrc, self.cnSampling, self.cnDst, self.cnPlotStyle, self.cnScale]
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
 
@@ -972,7 +972,6 @@ class SpectralProfileBridge(QAbstractTableModel):
         return updatedRelations
 
 
-
 class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
     """
 
@@ -981,6 +980,7 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
         assert isinstance(tableView, QTableView)
         super(SpectralProfileBridgeViewDelegate, self).__init__(parent=parent)
         self.mTableView = tableView
+        #self.mTableView.model().rowsInserted.connect(self.onRowsInserted)
 
     def sortFilterProxyModel(self) -> QSortFilterProxyModel:
         return self.mTableView.model()
@@ -1004,7 +1004,6 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
         else:
             super().paint(painter, option, index)
 
-
     def bridge(self) -> SpectralProfileBridge:
         return self.sortFilterProxyModel().sourceModel()
 
@@ -1015,6 +1014,16 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
             i = bridge.columnNames().index(c)
             tableView.setItemDelegateForColumn(i, self)
 
+        s = ""
+    def onRowsInserted(self,parent, idx0, idx1):
+        nameStyleColumn = self.bridge().cnPlotStyle
+
+        for c in range(self.mTableView.model().columnCount()):
+            cname = self.mTableView.model().headerData(c, Qt.Horizontal, Qt.DisplayRole)
+            if cname == nameStyleColumn:
+                for r in range(idx0, idx1+1):
+                    idx = self.mTableView.model().index(r, c, parent=parent)
+                    self.mTableView.openPersistentEditor(idx)
     def bridgeColumnName(self, index):
         assert index.isValid()
         model = self.bridge()
@@ -1052,6 +1061,7 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
                     w.addItem(mode.name, mode)
             elif cname == bridge.cnPlotStyle:
                 w = PlotStyleButton(parent=parent)
+                w.setMinimumSize(5,5)
                 w.setPlotStyle(item.plotStyle())
                 w.setToolTip('Set style.')
 
@@ -1133,8 +1143,6 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
                 bridge.setData(index, w.plotStyle(), Qt.EditRole)
             else:
                 raise NotImplementedError()
-
-
 
 
 class SpectralProfileSourcePanel(QgsDockWidget):

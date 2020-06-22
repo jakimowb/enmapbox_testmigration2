@@ -45,7 +45,7 @@ class EnMAPBoxPlugin(object):
 
         site.addsitedir(enmapbox.DIR_SITEPACKAGES)
 
-        # run a dependency check
+        # run a minimum dependency check
         self.initialDependencyCheck()
 
         # initialize resources, processing provider etc.

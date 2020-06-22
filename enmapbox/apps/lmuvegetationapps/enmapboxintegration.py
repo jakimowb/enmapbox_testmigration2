@@ -75,19 +75,19 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         return menu
 
     def start_GUI_IVVRM(self, *args):
-        from lmuvegetationapps.IVVRM_GUI import MainUiFunc
+        from lmuvegetationapps.IVVRM_GUI_v import MainUiFunc
         m = MainUiFunc()
         m.show()
         # #the the EnMAP-Box know if you create any new file
         # gui1.sigFileCreated.connect(self.enmapbox.addSource)
 
     def start_GUI_LUT(self, *args):
-        from lmuvegetationapps.LUT_GUI import MainUiFunc
+        from lmuvegetationapps.LUT_GUI_v import MainUiFunc
         m = MainUiFunc()
         m.show()
 
     def start_GUI_Inv(self, *args):
-        from lmuvegetationapps.Global_Inversion_GUI import MainUiFunc
+        from lmuvegetationapps.Global_Inversion_GUI_v import MainUiFunc
         m = MainUiFunc()
         m.show()
 

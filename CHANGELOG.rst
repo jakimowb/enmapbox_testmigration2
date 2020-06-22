@@ -3,18 +3,26 @@ CHANGELOG
 
 Version 3.6
 -----------
+(including hotfixes from 2020-06-22)
 
+* added workaround for failed module imports, e.g. numba on windows (#405)
 * EnMAP-Box plugin can be installed and started without having none-standard python packages installed (#366)
 * Added installer to install missing python packages (#371)
 * Map Canvas Crosshair can now show the pixel boundaries of any raster source known to QGIS
-* Spectral Profile Source panel is properly updated on removal/adding of raster sources or spectral libraries
+* Spectral Profile Source panel
+    * is properly updated on removal/adding of raster sources or spectral libraries
+    * allows to define source-specific profile plot styles (#422, #468)
 * Spectral Library Viewer
     * added color schemes to set plot and profile styles
+    * fixed color scheme issue (# fixed #467 )
     * profile styles can be changed per profile (#268)
     * current/temporary profiles are shown in the attribute table
     * added workaround for #345 (Spectral library create new field: problems with default fields)
     * loading profiles based in vector position is done in a background process (closed #329)
+    * profile data point can be selected to show point specific information, e.g. the band number (#462, #267)
     * closed #252
+* SpectralLibrary
+    * implemented SpectralProfileRenderer to maintain profile-specific plot styles
 * Classification Scheme Widget allows to paste/copy classification schemes from/to the clipboard.
   This can be used to copy classes from other raster or vector layers, or to set the layer renderer
   according to the classification scheme

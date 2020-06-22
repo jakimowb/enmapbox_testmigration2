@@ -133,13 +133,13 @@ class Dock(pgDock, KeepRefs):
         menu = QMenu()
 
         if self.isVisible():
-            a = menu.addAction('Hide Dock')
-            a.triggered.connect(lambda : self.setVisible(False))
+            a = menu.addAction('Hide View')
+            a.triggered.connect(lambda: self.setVisible(False))
         else:
-            a = menu.addAction('Show Dock')
-            a.triggered.connect(lambda : self.setVisible(True))
+            a = menu.addAction('Show View')
+            a.triggered.connect(lambda: self.setVisible(True))
 
-        a = menu.addAction('Close Dock')
+        a = menu.addAction('Close View')
         a.triggered.connect(lambda: self.close())
         return menu
 
