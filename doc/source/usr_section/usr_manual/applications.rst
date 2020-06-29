@@ -102,6 +102,8 @@ You can find the Classification Workflow in the menu bar :menuselection:`Applica
 
    Classification Workflow Application
 
+.. seealso:: Have a look at the :ref:`Getting Started <getting_started>` for a use case example of the Classification Workflow Application.
+
 Input Parameters:
 
 * **Training Inputs**

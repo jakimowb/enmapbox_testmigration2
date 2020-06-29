@@ -143,7 +143,7 @@ class EnMAPBoxUI(QMainWindow):
         pass
 
 
-def getIcon()->QIcon:
+def getIcon() -> QIcon:
     """
     Returns the EnMAP icon
     :return: QIcon
@@ -620,7 +620,7 @@ class EnMAPBox(QgisInterface, QObject):
         import enmapbox.algorithmprovider
         return enmapbox.algorithmprovider.instance()
 
-    def classificationSchemata(self)->list:
+    def classificationSchemata(self) -> list:
         """
         Returns a list of ClassificationSchemes, derived from datasets known to the EnMAP-Box
         :return: [list-of-ClassificationSchemes
@@ -645,12 +645,12 @@ class EnMAPBox(QgisInterface, QObject):
         :return: QgsMapLayerStore
         """
         return QgsProject.instance()
-        #return self.mMapLayerStore
 
-    def mapLayerIds(self)->typing.List[str]:
+
+    def mapLayerIds(self) -> typing.List[str]:
         return self.layerTreeView().layerTreeModel().mapLayerIds()
 
-    def mapLayers(self)->typing.List[QgsMapLayer]:
+    def mapLayers(self) -> typing.List[QgsMapLayer]:
         """
         Returns a list of all EnMAP-Box map layers that are shown in a MapCanvas or the related Layer Tree View
         :return: [list-of-QgsMapLayers]
@@ -689,8 +689,6 @@ class EnMAPBox(QgisInterface, QObject):
 
         except Exception as ex:
             print(ex, file=sys.stderr)
-
-
 
     def addApplication(self, app):
         """
@@ -823,14 +821,14 @@ class EnMAPBox(QgisInterface, QObject):
         menu.insertAction(separator, a)
 
 
-    def _mapToolButton(self, action)->Optional[QToolButton]:
+    def _mapToolButton(self, action) -> Optional[QToolButton]:
         for toolBar in self.ui.findChildren(QToolBar):
             for toolButton in toolBar.findChildren(QToolButton):
                 if toolButton.defaultAction() == action:
                     return toolButton
         return None
 
-    def _mapToolActions(self)->list:
+    def _mapToolActions(self) -> list:
         """
         Returns a list of all QActions that can activate a map tools
         :return: [list-of-QActions]
@@ -873,7 +871,7 @@ class EnMAPBox(QgisInterface, QObject):
                 mapCanvas.setCrosshairPosition(spatialPoint, emitSignal=False)
 
 
-    def spectralProfileBridge(self)->SpectralProfileBridge:
+    def spectralProfileBridge(self) -> SpectralProfileBridge:
         return self.ui.spectralProfileSourcePanel.bridge()
 
     sigDockAdded = pyqtSignal(Dock)
@@ -1266,7 +1264,7 @@ class EnMAPBox(QgisInterface, QObject):
         if bSP:
             self.loadCurrentMapSpectra(spatialPoint, mapCanvas)
 
-    def currentLocation(self)->SpatialPoint:
+    def currentLocation(self) -> SpatialPoint:
         """
         Returns the current location, which is a SpatialPoint last clicked by a user on a map canvas.
         :return: SpatialPoint
@@ -1293,7 +1291,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
         """
 
-    def currentSpectra(self)->list:
+    def currentSpectra(self) -> list:
         """
         Returns the spectra currently selected using the profile tool.
 
@@ -1301,7 +1299,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.spectralProfileBridge().currentProfiles()
 
-    def dataSources(self, sourceType='ALL', onlyUri:bool=True)->list:
+    def dataSources(self, sourceType='ALL', onlyUri:bool=True) -> list:
         """
         Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
         :param sourceType: ['ALL', 'RASTER', 'VECTOR', 'MODEL'],
@@ -1315,7 +1313,7 @@ class EnMAPBox(QgisInterface, QObject):
             sources = [ds.uri() for ds in sources]
         return sources
 
-    def createDock(self, *args, **kwds)->Dock:
+    def createDock(self, *args, **kwds) -> Dock:
         """
         Create and returns a new Dock
         :param args:
@@ -1386,7 +1384,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         self.mDataSourceManager.removeSource(source)
 
-    def menu(self, title)->QMenu:
+    def menu(self, title) -> QMenu:
         """
         Returns the QMenu with name "title"
         :param title: str
@@ -1437,7 +1435,7 @@ class EnMAPBox(QgisInterface, QObject):
 
 
     @staticmethod
-    def icon()->QIcon:
+    def icon() -> QIcon:
         return enmapbox.icon()
 
     def run(self):
@@ -1491,7 +1489,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.mDataSourceManager.close()
         self.ui.close()
 
-    def hiddenLayerGroup(self)->QgsLayerTreeGroup:
+    def hiddenLayerGroup(self) -> QgsLayerTreeGroup:
         """
         Returns the hidden QgsLayerTreeGroup in the QGIS Layer Tree
         :return: QgsLayerTreeGroup
@@ -1533,7 +1531,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.mQgisInterfaceMapCanvas = MapCanvas()
 
 
-    def layerTreeView(self)->QgsLayerTreeView:
+    def layerTreeView(self) -> QgsLayerTreeView:
         """
         Returns the Dock Panel Tree View
         :return: enmapbox.gui.dockmanager.DockTreeView
@@ -1900,7 +1898,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.addDockWidget(area, dockWidget, orientation=orientation)
 
-    def showProcessingAlgorithmDialog(self, algorithmName:typing.Union[str, QgsProcessingAlgorithm])->QWidget:
+    def showProcessingAlgorithmDialog(self, algorithmName:typing.Union[str, QgsProcessingAlgorithm]) -> QWidget:
         """
         :param algorithmName:
         :type algorithmName:
@@ -1934,17 +1932,17 @@ class EnMAPBox(QgisInterface, QObject):
     def addLayerMenu(self):
         pass
 
-    def mainWindow(self)->EnMAPBoxUI:
+    def mainWindow(self) -> EnMAPBoxUI:
         return self.ui
 
-    def messageBar(self)->QgsMessageBar:
+    def messageBar(self) -> QgsMessageBar:
         return self.ui.messageBar
 
     def iconSize(self, dockedToolbar=False):
         #return self.ui.mActionAddDataSource.icon().availableSizes()[0]
         return QSize(16, 16)
 
-    def spectralLibraries(self)->typing.List[SpectralLibrary]:
+    def spectralLibraries(self) -> typing.List[SpectralLibrary]:
         """
         Returns a list of SpectraLibraries that either known as DataSource, added to one of the Maps or visible in a SpectralLibrary Widget).
         :return: [list-of-SpectralLibraries]
@@ -1968,7 +1966,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         return speclibs
 
-    def mapCanvases(self)->typing.List[MapCanvas]:
+    def mapCanvases(self) -> typing.List[MapCanvas]:
         """
         Returns all MapCanvas(QgsMapCanvas) objects known to the EnMAP-Box
         :return: [list-of-MapCanvases]
@@ -1976,7 +1974,7 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.mapcanvas import MapDock
         return [d.mCanvas for d in self.mDockManager.docks() if isinstance(d, MapDock)]
 
-    def mapCanvas(self, virtual=False)->MapCanvas:
+    def mapCanvas(self, virtual=False) -> MapCanvas:
         """
         Returns a single MapCanvas.
         :param virtual: bool, set True to return an invisible QgsMapCanvas that contains all data source layers
@@ -2004,7 +2002,7 @@ class EnMAPBox(QgisInterface, QObject):
             return None
 
 
-    def firstRightStandardMenu(self)->QMenu:
+    def firstRightStandardMenu(self) -> QMenu:
         return self.ui.menuApplications
 
     def registerMainWindowAction(self, action, defaultShortcut):

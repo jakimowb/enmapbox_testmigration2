@@ -115,10 +115,10 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
         b = ResourceBrowser()
 
-        "F:\miniconda3\envs\qgis_stable\Library\qgis\qtplugins;" \
-        "F:\miniconda3\envs\qgis_stable\Library\plugins;" \
-        "F:\miniconda3\envs\qgis_stable\Library\qtplugins;" \
-        "F:\miniconda3\envs\qgis_stable\Library\plugins;"
+        r"F:\miniconda3\envs\qgis_stable\Library\qgis\qtplugins;" \
+        r"F:\miniconda3\envs\qgis_stable\Library\plugins;" \
+        r"F:\miniconda3\envs\qgis_stable\Library\qtplugins;" \
+        r"F:\miniconda3\envs\qgis_stable\Library\plugins;"
 
         self.showGui(b)
         s = ""

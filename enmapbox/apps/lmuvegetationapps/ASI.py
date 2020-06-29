@@ -836,6 +836,8 @@ class ASI_core:
         if len(closest_bands) < 5:
             closest_bands.insert(0, closest_bands[0])
 
+        fixed_end = closest_bands[4]
+
         for row in range(in_matrix.shape[1]):
             for col in range(in_matrix.shape[2]):
                 if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
@@ -924,6 +926,7 @@ class ASI_core:
                         closest_bands[4] = self.valid_wl.index(item4)
                 else:
                     contiguous_hull_x = np.nan
+
                 k = 0
                 if np.mean(in_matrix[:, row, col]) == self.nodat[0]:
                     res3band[:, row, col] = np.nan
@@ -947,7 +950,7 @@ class ASI_core:
                         if j == 2:
                             absorb_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:i, row, col]) -
                                                                  np.log(1 / contiguous_hull_x[k:i]))  # / np.nansum(contiguous_hull_x[k:i])
-                            hull_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:i, row, col]))
+                            hull_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:fixed_end, row, col]))
                             res3band[j, row, col] = absorb_area[j, row, col] / hull_area[j, row, col]
                         else:
                             cr_absorb_area[j, row, col] = np.nansum((np.log(1/in_matrix[k:i, row, col]) -
