@@ -1,3 +1,4 @@
+import subprocess
 from os.path import join, dirname, exists, abspath
 from os import makedirs
 
@@ -21,6 +22,18 @@ def onns(inputfile, outputDirectory, sensor, adapt, ac, osize):
     script = join(dirname(__file__), 'ONNS_v091_20200212_for_EnMAP_Box.py')
     assert exists(script)
     cmd = cmd.format(python=python, script=script, input=inputfile, output=outputDirectory, sensor=sensor, adapt=adapt, ac=ac, osize=osize)
-    print(cmd)
-    import os
-    os.system(cmd)
+
+    try:
+        process = subprocess.run(cmd,
+            check=True,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True)
+        output = str(process.stdout)
+    except subprocess.CalledProcessError as ex:
+        output = ex.stderr
+    except Exception as ex2:
+        output = str(ex2)
+
+    return cmd, output
