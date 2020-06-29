@@ -58,6 +58,7 @@ class AboutDialog(QDialog):
         self.tbLicense.setText(loadTextFile(jp(DIR_REPO, 'LICENSE.txt')))
         self.tbContributors.setText(loadTextFile(jp(DIR_REPO, 'CONTRIBUTORS.rst')))
         self.tbChanges.setText(loadTextFile(jp(DIR_REPO, 'CHANGELOG.rst')))
+
     def setAboutTitle(self, suffix=None):
         item = self.listWidget.currentItem()
 

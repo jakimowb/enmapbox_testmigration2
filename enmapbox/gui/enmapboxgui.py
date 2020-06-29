@@ -772,6 +772,11 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.mActionSaveProject.triggered.connect(lambda: self.saveProject(False))
         self.ui.mActionSaveProjectAs.triggered.connect(lambda: self.saveProject(True))
+
+        # re-enable if there is a proper connection
+        self.ui.mActionSaveProject.setVisible(False)
+        self.ui.mActionSaveProjectAs.setVisible(False)
+
         from enmapbox.gui.mapcanvas import CanvasLinkDialog
         self.ui.mActionMapLinking.triggered.connect(lambda : CanvasLinkDialog.showDialog(parent=self.ui, canvases=self.mapCanvases()))
         from enmapbox.gui.about import AboutDialog
