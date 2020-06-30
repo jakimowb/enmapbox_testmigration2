@@ -1,5 +1,11 @@
 CHANGELOG
 =========
+Version 3.7
+-----------
+
+* GDAL raster metadata can be modified (resolves #181)
+* map canvas preserves scale on window resize (#409)
+
 
 Version 3.6
 -----------
