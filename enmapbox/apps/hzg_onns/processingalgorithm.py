@@ -67,12 +67,15 @@ class OnnsProcessingAlgorithm(QgsProcessingAlgorithm):
         # try to execute the core algorithm
         try:
 
-            onns(inputfile=self.parameterAsFile(parameters, self.P_FILE, context),
+            cmd, output = onns(inputfile=self.parameterAsFile(parameters, self.P_FILE, context),
                  outputDirectory=self.parameterAsFileOutput(parameters, self.P_OUTPUT_FOLDER, context),
                  sensor=self.SENSORS_ALGO[self.parameterAsEnum(parameters, self.P_SENSOR, context)],
                  adapt=self.parameterAsEnum(parameters, self.P_ADAPT, context),
                  ac=self.parameterAsEnum(parameters, self.P_AC, context) + 1,        # note that we deleted the insitu case!!!
                  osize=self.parameterAsEnum(parameters, self.P_OSIZE, context))
+
+            feedback.pushCommandInfo(cmd)
+            feedback.pushDebugInfo(output)
 
             # return all output parameters
             return {self.P_OUTPUT_FOLDER: self.parameterAsFileOutput(parameters, self.P_OUTPUT_FOLDER, context)}
