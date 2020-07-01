@@ -87,7 +87,7 @@ Documentation content
     :maxdepth: 2
     :caption: Developer Section
 
-    dev_section/dev_installation.rst
+    dev_section/dev_installation_detailed.rst
     dev_section/dev_enmapboxrepository
     dev_section/dev_publish_enmapbox.rst
     dev_section/dev_cookbook/dev_cookbook.rst

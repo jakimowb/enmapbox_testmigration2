@@ -140,7 +140,7 @@ The pull request informs us on the changes you like to bring into the EnMAP-Box:
 .. _contribute_pull_request:
 
 6. Create a pull request
-.......................
+........................
 
 
 Open the Bitbucket webpage of your fork and create a pull request.

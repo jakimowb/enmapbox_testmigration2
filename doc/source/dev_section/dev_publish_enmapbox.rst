@@ -4,7 +4,6 @@ Build and publish the EnMAP-Box
 ###############################
 
 
-
 Build the EnMAP-Box Plugin
 ==========================
 
@@ -22,7 +21,7 @@ Calling:
 
 .. code-block:: batch
 
-    python scripts/build_plugin.py
+    python scripts/create_plugin.py
 
 creates or updates:
 
