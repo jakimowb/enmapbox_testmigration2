@@ -581,7 +581,7 @@ class GDALMetadataModelConfigWidget(QpsMapLayerConfigWidget):
                 self.setToolTip('Layer metadata according to the OGR Metadata model')
                 self.setWindowIcon(QIcon(':/qps/ui/icons/edit_ogr_metadata.svg'))
 
-            self.syncToLayer()
+            self.syncToLayer(layer)
 
     def apply(self):
         if self.is_gdal:
@@ -596,7 +596,8 @@ class GDALMetadataModelConfigWidget(QpsMapLayerConfigWidget):
                     ds.FlushCache()
         self.metadataModel.applyToLayer()
 
-    def syncToLayer(self):
+    def syncToLayer(self, *args):
+        super().syncToLayer(*args)
         lyr = self.mapLayer()
         self.metadataModel.setLayer(lyr)
         if self.supportsGDALClassification:

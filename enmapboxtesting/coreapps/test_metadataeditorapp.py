@@ -90,6 +90,7 @@ class TestMDMetadataKeys(EnMAPBoxTestCase):
         QgsProject.instance().addMapLayers(layers)
         self.showGui(d)
 
+
 if __name__ == "__main__":
 
     import xmlrunner

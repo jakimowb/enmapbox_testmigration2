@@ -19,10 +19,10 @@
 ***************************************************************************
 """
 
-
-import sys, os, pathlib
-from enmapbox.gui import *
 from enmapbox.externals.qps.layerconfigwidgets.gdalmetadata import GDALMetadataModelConfigWidget
+from enmapbox.gui import *
+from qgis.core import QgsProject, QgsMapLayer
+from qgis.gui import QgsMapLayerComboBox
 
 class MetadataEditorDialog(QDialog):
     """Constructor."""
@@ -32,8 +32,8 @@ class MetadataEditorDialog(QDialog):
         loadUi(path, self)
         assert isinstance(self.cbSource, QgsMapLayerComboBox)
 
-        self.mdWidget = GDALMetadataModelConfigWidget()
-        assert isinstance(self.mdWidget, GDALMetadataModelConfigWidget)
+        self.mdWidget: GDALMetadataModelConfigWidget = GDALMetadataModelConfigWidget()
+        self.mdWidget.metadataModel.setIsEditable(True)
         self.frame.setLayout(QVBoxLayout())
         self.frame.layout().addWidget(self.mdWidget)
 
@@ -41,6 +41,9 @@ class MetadataEditorDialog(QDialog):
         QgsProject.instance().layersAdded.connect(self.removeDuplicateSources)
         QgsProject.instance().layersRemoved.connect(self.removeDuplicateSources)
         self.removeDuplicateSources()
+        self.mdWidget.setLayer(self.cbSource.currentLayer())
+        self.buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
+        self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.mdWidget.apply)
 
     def removeDuplicateSources(self):
 

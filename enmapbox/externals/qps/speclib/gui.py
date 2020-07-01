@@ -1079,12 +1079,13 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         Sets the SpectralLibrary to be visualized
         :param speclib: SpectralLibrary
         """
-        if speclib == self.speclib():
+        if isinstance(speclib, SpectralLibrary) and speclib == self.speclib():
             return
         self.mUpdateTimer.stop()
 
         # remove old spectra
         self.removeSpectralProfilePDIs(self.mPlotDataItems.keys())
+        self.disconnectSpeclibSignals()
         self.mSpeclib = None
 
         if isinstance(speclib, SpectralLibrary):
@@ -1116,13 +1117,16 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             self.mSpeclib.sigProfileRendererChanged.connect(self.onProfileRendererChanged)
             self.setProfileRenderer(self.mSpeclib.profileRenderer())
             # additional security to disconnect
-            # self.mSpeclib.willBeDeleted.connect(lambda: self.setSpeclib(None))
+            self.mSpeclib.willBeDeleted.connect(self.onWillBeDeleted)
+
+    def onWillBeDeleted(self):
+        self.setSpeclib(None)
 
     def disconnectSpeclibSignals(self):
         """
         Savely disconnects all signals from the linked SpectralLibrary
         """
-        if isinstance(self.mSpeclib, SpectralLibrary):
+        if isinstance(self.mSpeclib, SpectralLibrary) and not sip.isdeleted(self.mSpeclib):
             def disconnect(sig, slot):
                 while True:
                     try:
@@ -1137,6 +1141,7 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             disconnect(self.mSpeclib.committedAttributeValuesChanges, self.onCommittedAttributeValuesChanges)
             disconnect(self.mSpeclib.rendererChanged, self.onProfileRendererChanged)
             disconnect(self.mSpeclib.sigProfileRendererChanged, self.onProfileRendererChanged)
+            disconnect(self.mSpeclib.willBeDeleted, self.onWillBeDeleted)
 
     def speclib(self) -> SpectralLibrary:
         """
@@ -1303,10 +1308,11 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         toBeRemoved = [fid for fid in visualized if fid not in toBeVisualized]
         toBeAdded = [fid for fid in toBeVisualized if fid not in visualized]
 
-        selectedNow = set(self.speclib().selectedFeatureIds())
+        if isinstance(self.speclib(), SpectralLibrary):
+            selectedNow = set(self.speclib().selectedFeatureIds())
+        else:
+            selectedNow = set()
 
-        if selectedNow != self.mSelectedIds:
-            s = ""
         selectionChanged = list(selectedNow.symmetric_difference(self.mSelectedIds))
         self.mSelectedIds = selectedNow
 
@@ -1469,6 +1475,9 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         Order of returned fids is equal to its importance.
         1st position = most important, should be plottet on top of all other profiles
         """
+        if not isinstance(self.speclib(), SpectralLibrary):
+            return []
+
         nMax = len(self.speclib())
         selectedOnly = self.viewBox().mActionShowSelectedProfilesOnly.isChecked()
         selectedIds = self.speclib().selectedFeatureIds()

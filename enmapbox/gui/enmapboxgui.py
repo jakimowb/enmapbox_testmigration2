@@ -1458,22 +1458,12 @@ class EnMAPBox(QgisInterface, QObject):
                                   newSize, QApplication.instance().desktop().availableGeometry())
         self.ui.setGeometry(geom)
 
-
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent):
         assert isinstance(event, QCloseEvent)
-
-
 
         try:
             # remove all hidden layers
             self.mDataSourceManager.clear()
-            QApplication.processEvents()
-
-            #store = self.mapLayerStore()
-            #toRemove = store.mapLayers().values()
-            #toRemoveIDs = [l.id() for l in toRemove]
-            #store.removeMapLayers(toRemove)
-            #QgsProject.instance().removeMapLayers(toRemoveIDs)
             QApplication.processEvents()
         except Exception as ex:
             messageLog(str(ex), Qgis.Critical)
