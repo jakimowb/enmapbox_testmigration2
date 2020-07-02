@@ -11,7 +11,7 @@ Part I: Basics
 1. Hello World
 --------------
 
-Creating a Qt based GUI application is rather uncomplicated. If we start from scratch, we first need to
+Creating a GUI with Qt is simple. If we start from scratch, we first need to
 create a QApplication_ instance::
 
     from PyQt5.QtWidgets import QApplication, QWidget
@@ -19,7 +19,7 @@ create a QApplication_ instance::
     app = QApplication([])
 
 This initializes the Qt framework, allows us to draw widgets on screen and to react on user
-inputs. Now we can create our first widget, make it visible and enter the QApplication_ event loop::
+inputs. Now we can create our first widget and show it::
 
     widget = QWidget()
     widget.setWindowTitle('Hello World')
@@ -40,9 +40,12 @@ inputs. Now we can create our first widget, make it visible and enter the QAppli
         widget.setFixedSize(150, 200) # change width and height
         widget.setVisible(False) # hide the widget
 
+Please note the ``app._exec_()`` line. It tells our QApplication_ instance to enter the event loop.
+This loop regularly checks if there are any user inputs, e.g. mouse movements or keyboard events, and react to.
 
-Now replace ``app._exec_()`` with ``print('Application finished')`` and see what happens after restarting the code.
-The widget might show up for some invisible milliseconds, but disappears because the main application terminates immediately.
+
+Replace ``app._exec_()`` with ``print('Application finished')`` and see what happens. The widget might show up for
+some milliseconds, but disappears as the main application terminates immediately.
 
 
 .. note::
@@ -93,22 +96,22 @@ You now learned to:
 -------------------
 
 
-This tutorial is for remote sensing people, so let's use the
+This tutorial addresses GIS and remote sensing people, so let's use the
 `QGIS API <https://qgis.org/api/>`_ to visualize *real world* spatial data.
 
-Similar to the Qt framework and its QApplication_, we need to initialize the QGIS API first, which is done by creating a QgsApplication_.
-To simplify a couple issues, we use the EnMAP-Box API to do so::
+Similar to the Qt framework and its QApplication_, we need to initialize the QGIS API first by
+creating a QgsApplication_. To simplify a couple issues, we use the EnMAP-Box API to do so::
 
-    from enmapbox.testing import initQgisApplication
-    app = initQgisApplication()
+    from enmapbox.testing import start_app
+    app = start_app()
 
 .. note::
 
     * QgsApplication_ inherits *QApplication_*, so it's not required to create a separated one
 
-    * ``enmapbox.testing.initQgisApplication(...)`` creates a QgsApplication_ instance *and* emulates
-      several aspects of a real QGIS Desktop Application. E.g. it loads different raster drivers and initializing
-      the QGIS Processing Framework.
+    * ``enmapbox.testing.start_app(...)`` creates a QgsApplication_ instance *and* emulates
+      several aspects of a real QGIS Desktop Application. E.g. it loads different raster drivers, initializes
+      the QGIS Processing Framework and create a QGIS Desktop Application mockup.
 
 
 Now we can create a QgsRasterLayer_ that shows a web map service with the google satellite map::
@@ -183,9 +186,9 @@ You now can:
 
 .. code-block:: python
 
-        from enmapbox.testing import initQgisApplication
+        from enmapbox.testing import start_app
 
-        app = initQgisApplication()
+        app = start_app()
 
         assert isinstance(app, QApplication)
         assert isinstance(app, QgsApplication)
@@ -259,7 +262,7 @@ we also import the Qt and QGIS widget libraries::
 ``super(ExampleWidget, self).__init__(parent)`` calls the constructor of ``QWidget`` and initializes all properties
 and functions available for QWidgets_. To visualize this widget call::
 
-        app = initQgisApplication()
+        app = start_app()
 
         myWidget = ExampleWidget()
         myWidget.show()
@@ -358,7 +361,7 @@ Calling code
 
 .. code-block:: python
 
-        app = initQgisApplication()
+        app = start_app()
 
         myWidget = ExampleWidget()
         myWidget.show()
@@ -614,7 +617,7 @@ For this we first create a new form that derives from QWidget_ and save it as `e
 .. figure:: img/example5_exampleform.png
     :width: 75%
 
-    ``programming_tutorial2/tut2_part1_basics/exampleform_reference.ui`` as seen in Qt Designer
+    ``exampleform_reference.ui`` opened in Qt Designer
 
 * the the parent widget's window title to `EnMAPBox Workshop UI`
 
@@ -658,15 +661,16 @@ and makes all Qt objects available that we have specified in the Qt Designer. It
 communicate with other widgets, e.g. a `sigSpectralProfileRequest` which we will need to inform the EnMAP-Box if
 we want to collect Spectral Profiles.::
 
+    from enmapbox.gui.utils import loadUi
     pathUi = os.path.join(os.path.dirname(__file__), 'enmapboxworkshopui.ui')
-    from enmapbox.gui.utils import loadUIFormClass
-    class EnMAPBoxWorkshopUI(QWidget, loadUIFormClass(pathUi)):
+
+    class EnMAPBoxWorkshopUI(QWidget):
 
         sigSpectralProfileRequest = pyqtSignal()
 
         def __init__(self, parent=None):
             super(EnMAPBoxWorkshopUI, self).__init__(parent)
-            self.setupUi(self)
+            loadUi(path, self)
 
             assert isinstance(self.applicationLogo, QLabel)
             assert isinstance(self.btnSelectProfiles, QToolButton)
@@ -678,12 +682,12 @@ we want to collect Spectral Profiles.::
 
 .. tip::
 
-    The function ``enmapbox.gui.utils.loadUIFormClass(...)`` enhances the `loadui` described in http://pyqt.sourceforge.net/Docs/PyQt5/designer.html  by
-    taking care on QGIS and Python specific issues. Don't forget to call ``self.setupUi(self)`` directly after the ``__init__`` constructor.
+    The function ``enmapbox.gui.utils.loadUi(...)`` enhances the `loadui` described in http://pyqt.sourceforge.net/Docs/PyQt5/designer.html  by
+    taking care on QGIS and Python specific issues.
 
 We can now open the `EnMAPBoxWorkshopUI` from python::
 
-    app = initQgisApplication()
+    app = start_app()
 
     w = EnMAPBoxWorkshopUI()
     w.show()
@@ -716,8 +720,8 @@ and extract it into the enmapbox root folder:
 
 The QGIS icons are available after initializing a QgsApplication_ with::
 
-    from enmapboxtesting import initQgisApplication
-    app = initQgisApplication()
+    from enmapboxtesting import start_app
+    app = start_app()
 
 
 To show a QGIS icon, we just need to create a QIcon_ with the icon's resource identifier::
