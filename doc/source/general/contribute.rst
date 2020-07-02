@@ -91,7 +91,7 @@ Clone the forked EnMAP-Box repository *myfork* to your local disk::
     $ git clone git@bitbucket.com/myusername/myfork.git
     $ cd enmapbox
 
-Now install python requirements and run the initial setup for the EnMAP-Box repository, as described in :ref:`dev_installation_detailed`
+Now install python requirements and run the initial setup for the EnMAP-Box repository, as described in :ref:`dev_installation`
 
 Add the EnMAP-Box repository as *upstream* repository::
 

@@ -49,6 +49,12 @@ Additional information on the installation process is provided in the `QGIS Docu
 
 In case you already have QGIS installed, you can skip this step.
 
+.. tip::
+
+    The installation of additional python packages can be cumbersome, in particular on windows and macOS.
+    You might therefore consider to
+    :ref:`install QGIS in a conda/anaconda environment <dev_installation_create_conda_qgis>`.
+
 
 ....
 
@@ -109,13 +115,15 @@ Windows
 |
 4. Install required python packages by entering:
 
-   .. code-block:: batch
+    .. code-block:: batch
 
-      python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
+        python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
-   Now all packages will be installed automatically. After completion, the shell should show something like this:
 
-   .. image:: ../img/shell_install_output.png
+    Now all packages will be installed automatically. After completion, the shell should show something like this:
+
+    .. image:: ../img/shell_install_output.png
+
 
    |
    If the package installation was successful, you can close the shell. The required packages are installed now and
