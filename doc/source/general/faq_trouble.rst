@@ -41,12 +41,6 @@ suggest new entries!
 .. How do I...
 .. -----------
 
-.. ... **install QGIS on Windows without having administrative rights**?
-
-..     yes, it is possible to install and run QGIS withouht any admin rights on windows.
-..      Read :ref:`install_qgis_windows` for more details on this.
-
-
 .. _faq_how_to_cite_enmapbox:
 
 * **How to cite the EnMAP-Box?**
@@ -63,6 +57,13 @@ suggest new entries!
       for EnMAP Data Processing. Remote Sensing 7,
       11249–11266. 10.3390/rs70911249.
 
+
+
+* **How to install QGIS without administrative rights?**
+
+    Yes, it is possible to install and run QGIS (and the EnMAP-Box) without admin rights.
+    You just need to download and install `Conda`_, where you can install QGIS as described
+    :ref:`here <_dev_installation_create_conda_qgis>`.
 
 
 .. _faq_numba:

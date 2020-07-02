@@ -16,6 +16,7 @@
 .. _qgis.core: https://qgis.org/api/group__core.html
 .. _Miniconda: https://docs.conda.io/en/latest/miniconda.html
 .. _miniconda: https://docs.conda.io/en/latest/miniconda.html
+.. _Numba: http://numba.pydata.org/
 .. _Conda: https://docs.conda.io/en/latest/miniconda.html
 .. _conda: https://docs.conda.io/en/latest/miniconda.html
 .. _conda-forge: https://conda-forge.org/
