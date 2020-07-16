@@ -8,10 +8,8 @@ from enmapboxtestdata import landcover_points, enmap
 from hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
 from hubdsm.core.category import Category
 from hubdsm.core.color import Color
-from hubdsm.core.gdaldriver import ENVI_DRIVER, MEM_DRIVER
 from hubdsm.core.raster import Raster
-from hubdsm.processing.importenmapl1b import ImportEnmapL1B
-from hubdsm.processing.savelayerasclassification import SaveLayerAsClassification, saveLayerAsClassification
+from hubdsm.processing.savelayerasclassification import SaveLayerAsClassification
 from hubdsm.test.processing.testcase import TestCase
 
 

@@ -10,7 +10,7 @@ from hubdsm.core.gdaldriver import GdalDriver
 from hubdsm.core.raster import Raster
 
 
-def estimatorPredict(
+def estimatorFit(
         raster: Raster, estimator: Union[ClassifierMixin, RegressorMixin, ClusterMixin], filename: str = None,
         co: List[str] = None, po=ProcessingOptions(), noDataValue=None
 ) -> Raster:

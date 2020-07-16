@@ -5,14 +5,13 @@
     <Removable>1</Removable>
     <Searchable>1</Searchable>
   </flags>
-  <renderer-v2 symbollevels="0" enableorderby="0" type="categorizedSymbol" attr="level_2" forceraster="0">
+  <renderer-v2 symbollevels="0" enableorderby="0" type="categorizedSymbol" attr="level_1_id" forceraster="0">
     <categories>
-      <category render="true" label="impervious" symbol="0" value="impervious"/>
-      <category render="true" label="low vegetation" symbol="1" value="low vegetation"/>
-      <category render="true" label="tree" symbol="2" value="tree"/>
-      <category render="true" label="soil" symbol="3" value="soil"/>
-      <category render="true" label="water" symbol="4" value="water"/>
-      <category render="true" label="" symbol="5" value=""/>
+      <category render="true" label="impervious" symbol="0" value="1"/>
+      <category render="true" label="vegetation" symbol="1" value="2"/>
+      <category render="true" label="soil" symbol="2" value="3"/>
+      <category render="true" label="water" symbol="3" value="4"/>
+      <category render="true" label="" symbol="4" value=""/>
     </categories>
     <symbols>
       <symbol force_rhr="0" type="marker" name="0" alpha="1" clip_to_extent="1">
@@ -76,7 +75,7 @@
       <symbol force_rhr="0" type="marker" name="2" alpha="1" clip_to_extent="1">
         <layer locked="0" class="SimpleMarker" enabled="1" pass="0">
           <prop v="0" k="angle"/>
-          <prop v="38,115,0,255" k="color"/>
+          <prop v="168,112,0,255" k="color"/>
           <prop v="1" k="horizontal_anchor_point"/>
           <prop v="bevel" k="joinstyle"/>
           <prop v="circle" k="name"/>
@@ -105,35 +104,6 @@
       <symbol force_rhr="0" type="marker" name="3" alpha="1" clip_to_extent="1">
         <layer locked="0" class="SimpleMarker" enabled="1" pass="0">
           <prop v="0" k="angle"/>
-          <prop v="168,112,0,255" k="color"/>
-          <prop v="1" k="horizontal_anchor_point"/>
-          <prop v="bevel" k="joinstyle"/>
-          <prop v="circle" k="name"/>
-          <prop v="0,0" k="offset"/>
-          <prop v="3x:0,0,0,0,0,0" k="offset_map_unit_scale"/>
-          <prop v="MM" k="offset_unit"/>
-          <prop v="35,35,35,255" k="outline_color"/>
-          <prop v="solid" k="outline_style"/>
-          <prop v="0" k="outline_width"/>
-          <prop v="3x:0,0,0,0,0,0" k="outline_width_map_unit_scale"/>
-          <prop v="MM" k="outline_width_unit"/>
-          <prop v="diameter" k="scale_method"/>
-          <prop v="2" k="size"/>
-          <prop v="3x:0,0,0,0,0,0" k="size_map_unit_scale"/>
-          <prop v="MM" k="size_unit"/>
-          <prop v="1" k="vertical_anchor_point"/>
-          <data_defined_properties>
-            <Option type="Map">
-              <Option value="" type="QString" name="name"/>
-              <Option name="properties"/>
-              <Option value="collection" type="QString" name="type"/>
-            </Option>
-          </data_defined_properties>
-        </layer>
-      </symbol>
-      <symbol force_rhr="0" type="marker" name="4" alpha="1" clip_to_extent="1">
-        <layer locked="0" class="SimpleMarker" enabled="1" pass="0">
-          <prop v="0" k="angle"/>
           <prop v="0,100,255,255" k="color"/>
           <prop v="1" k="horizontal_anchor_point"/>
           <prop v="bevel" k="joinstyle"/>
@@ -160,7 +130,7 @@
           </data_defined_properties>
         </layer>
       </symbol>
-      <symbol force_rhr="0" type="marker" name="5" alpha="1" clip_to_extent="1">
+      <symbol force_rhr="0" type="marker" name="4" alpha="1" clip_to_extent="1">
         <layer locked="0" class="SimpleMarker" enabled="1" pass="0">
           <prop v="0" k="angle"/>
           <prop v="255,255,255,255" k="color"/>

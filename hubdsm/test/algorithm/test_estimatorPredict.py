@@ -1,12 +1,9 @@
 from unittest import TestCase
 
 import numpy as np
-from osgeo import gdal
 from sklearn.ensemble import RandomForestClassifier
 
 from hubdsm.algorithm.estimatorpredict import estimatorPredict
-from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.gdaldriver import MEM_DRIVER
 from hubdsm.core.raster import Raster
 from hubdsm.core.rastercollection import RasterCollection
 
