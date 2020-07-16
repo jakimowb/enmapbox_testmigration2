@@ -772,6 +772,11 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.mActionSaveProject.triggered.connect(lambda: self.saveProject(False))
         self.ui.mActionSaveProjectAs.triggered.connect(lambda: self.saveProject(True))
+
+        # re-enable if there is a proper connection
+        self.ui.mActionSaveProject.setVisible(False)
+        self.ui.mActionSaveProjectAs.setVisible(False)
+
         from enmapbox.gui.mapcanvas import CanvasLinkDialog
         self.ui.mActionMapLinking.triggered.connect(lambda : CanvasLinkDialog.showDialog(parent=self.ui, canvases=self.mapCanvases()))
         from enmapbox.gui.about import AboutDialog
@@ -1453,22 +1458,12 @@ class EnMAPBox(QgisInterface, QObject):
                                   newSize, QApplication.instance().desktop().availableGeometry())
         self.ui.setGeometry(geom)
 
-
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent):
         assert isinstance(event, QCloseEvent)
-
-
 
         try:
             # remove all hidden layers
             self.mDataSourceManager.clear()
-            QApplication.processEvents()
-
-            #store = self.mapLayerStore()
-            #toRemove = store.mapLayers().values()
-            #toRemoveIDs = [l.id() for l in toRemove]
-            #store.removeMapLayers(toRemove)
-            #QgsProject.instance().removeMapLayers(toRemoveIDs)
             QApplication.processEvents()
         except Exception as ex:
             messageLog(str(ex), Qgis.Critical)

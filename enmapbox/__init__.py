@@ -38,7 +38,7 @@ from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessing
 from qgis.PyQt.QtCore import QSettings, QResource
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal
-__version__ = '3.6' #subsub-version information is added during build process
+__version__ = '3.7' #subsub-version information is added during build process
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'

@@ -4,30 +4,27 @@ Build and publish the EnMAP-Box
 ###############################
 
 
-
 Build the EnMAP-Box Plugin
 ==========================
 
-Building the EnMAP-Box plugin is done by creating a zip file the QGIS Plugin Manager uses to install the EnMAP-Box
-from. This requires that:
-
-1. you have the development specific python packages installed (see :ref:`dev_install_dependencies`)
-
-2. git is available in your shell/command line (see :ref:`_dev_installation_detailed`)
-
-3. you use the EnMAP-Box code from the `EnMAP-Box repository` (see :ref:`dev_install_add_enmapbox_code`) instead fromyour local QGIS installation.
-
+Building the EnMAP-Box plugin is done by creating a zip file which the QGIS Plugin Manager
+can use to install the EnMAP-Box. This requires that you have setup your development environment
+as described in :ref:`the installation for developers <dev_installation>`
 
 Calling:
 
-.. code-block:: batch
+.. code-block:: bat
 
-    python scripts/build_plugin.py
+    python scripts/create_plugin.py
 
-creates or updates:
+creates or updates the folder ``deploy`` with:
 
-* ``deploy/enmapboxplugin/`` which contains the plugin code + additional files
-* ``deploy/enmapboxplugin.3.7.20190214T1125.develop.zip`` - just ``deploy/enmapboxplugin`` as zip file
+* the folder ``enmapboxplugin``. It contains the plugin code and additional files
+* a file named like ``enmapboxplugin.3.7.20190214T1125.develop.zip``. This is the ``enmapboxplugin``` folder compresses
+  as zip file, which can be used by the QGIS Plugin Installer to install the EnMAP-Box.
+
+Using the ``-t`` keyword adds the EnMAP-Box test data, so that you can use and test the EnMAP-Box in QGIS
+with having example data already installed.
 
 .. note::
 
@@ -35,7 +32,7 @@ creates or updates:
 
     This helps to generate, test and differentiate between EnMAP-Box versions of different development steps.
 
-A successful ends with a printout like::
+A successful build ends with a printout like::
 
     ### To update/install the EnMAP-Box, run this command on your QGIS Python shell:
 
@@ -52,9 +49,21 @@ Copy and run it in your QGIS python shell to install the build EnMAP-Box plugin 
 Alternatively, you can install the plugin in QGIS with a few mouse clicks more by:
 
 1. Open the QGIS Plugin Manager
-3. Install from ZIP with the created ZIP file
-4. Restart QGIS to account for activate changes in python code
+2. Install from ZIP with the created ZIP file
+3. Restart QGIS to account for activate changes in python code
 
+Build the EnMAP-Box documentation
+=================================
+
+To create the HTML based documentation on your local system call:
+
+.. code-block:: bat
+
+    cd doc
+    make html
+
+This creates the folder ``doc/build`` with the HTML documentation. To view the documentation,
+just open ``doc/build/html/index.html`` in your webbrowser of choice.
 
 
 Publish the EnMAP-Box
@@ -66,20 +75,8 @@ to http://plugins.qgis.org/plugins/ using an OSGeo account.
 Other versions, e.g. *development snapshots* are named like ``enmapboxplugin.3.3.20190214T1125.develop.zip`` or ``enmapboxplugin.3.3.20190214T1125.my_feature_branch.zip``
 and might be distributed using the repositories download section https://bitbucket.org/hu-geomatics/enmap-box/downloads/.
 
+Updates to the EnMAP-Box documentation (folder ``doc/source``) are detected by readthedocs
+when pushed to the *develop* or *master* branch of the EnMAP-Box repository.
 
-Publish the EnMAP-Box documentation
-===================================
-
-Updates to the EnMAP-Box documentation (folder :code:`doc/source`) are automatically detected by readthedocs if they get pushed either to
-the *develop* or *master* branch.
-
-
-To create the HTML based documentation on your local system call:
-
-    cd doc
-    make html
-
-This creates a folder :code:`doc/build` with the HTML documentation. To visualize it, just open :code:`doc/build/html/index.html`
-in your webbrowser.
 
 

@@ -31,8 +31,8 @@ They are available unittest TestCases in `examples/api_examples.py`
 As we like to start our examples from an IDE like PyCharm_, we first need to start a QgsApplication_.
 It provides the main GUI loop that receives user interactions, like mouse clicks and keyboard entries::
 
-    from enmapbox.testing import initQgisApplication
-    qgsApp = initQgisApplication()
+    from enmapbox.testing import start_app
+    qgsApp = start_app()
 
 
 Now we can start and open the EnMAP-Box and load some example data::

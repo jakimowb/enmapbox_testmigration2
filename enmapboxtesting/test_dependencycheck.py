@@ -104,6 +104,18 @@ class test_dependencycheck(EnMAPBoxTestCase):
        #w.model.installAll()
 
         self.showGui(w)
+    def test_AnimatedIcon(self):
+
+
+        label = QLabel()
+        p = QgsApplication.iconPath("/mIconLoading.gif")
+        #icon = QIcon(p)
+        #pm = icon.pixmap(QSize(50,50))
+        #label.setPixmap(pm)
+        movie = QMovie(p)
+        movie.start()
+        label.setMovie(movie)
+        self.showGui(label)
 
     def test_PIPPackageInfoTask(self):
 

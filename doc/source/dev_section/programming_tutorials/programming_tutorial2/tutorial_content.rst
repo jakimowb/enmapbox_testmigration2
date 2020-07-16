@@ -6,8 +6,8 @@
 Overview
 ========
 
-This tutorial gives an introduction on how to create graphical user interfaces with Qt, QGIS and the EnMAP-Box. It covers the
-following aspects:
+This tutorial shows you how to create graphical user interfaces (GUI) with Qt, QGIS and the EnMAP-Box.
+It covers the following aspects:
 
 #. Basics of GUI programming.
 
@@ -28,12 +28,8 @@ following aspects:
 Prerequisites
 -------------
 
-#. If not already done, clone the workshop repository and include it to your PyCharm project as described :ref:`here <setup_workshop_repository>`
-
-#. The folder `programming_tutorial2/references` contains some scrips with reference code for the following exercises.
-   To be able to start them from PyCharm, mark the folder as sources root ([Alt+1], *Mark Directory as > Sources Root*)
-
-   .. image:: img/pycharm_setup_sourcesroots.png
+Ensure that you have installed the EnMAP-Box repository and setup your PyCharm environment as described our
+:ref:`installation guide for developers <dev_installation>`.
 
 
 .. include:: part1_basics.rst

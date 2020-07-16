@@ -7,9 +7,9 @@ Regression-based unmixing of urban land cover
 =============================================
 
 
-**Authors:** Akpona Okujeni & Sebastian van der Linden
+**Authors:** Akpona Okujeni, Sam Cooper, Andreas Rabe, Benjamin Jakimow, Fabian Thiel, Sebastian van der Linden
 
-**Contributions from:** Sam Cooper, Patrick Hostert, Clemens Jaenicke, Benjamin Jakimow, Andreas Rabe, Fabian Thiel
+**Contributions from:** Clemens Jaenicke, Patrick Hostert
 
 
 **Publication date:** 05/02/2019

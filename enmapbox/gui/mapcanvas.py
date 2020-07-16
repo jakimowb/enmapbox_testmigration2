@@ -973,6 +973,11 @@ class MapCanvas(QgsMapCanvas):
         self.mMapMouseEvent = QgsMapMouseEvent(self,event)
         return super(MapCanvas, self).mouseMoveEvent(event)
 
+    def resizeEvent(self, *args):
+        self.setScaleLocked(True)
+        super().resizeEvent(*args)
+        self.setScaleLocked(False)
+
     def refresh(self, force=False):
 
         self.setRenderFlag(True)

@@ -2,7 +2,6 @@ Programming Tutorials
 #####################
 
 This section provides you with two programming tutorials.
-.. The first introduces you to ...
 
 Please make sure to setup your environment by following the steps in the *Setup* box below before you start with a tutorial.
 
@@ -19,7 +18,7 @@ Please make sure to setup your environment by following the steps in the *Setup*
 .. admonition:: Setup
 
     #. It is assumed that you already followed the
-       :ref:`installation instruction <dev_installation_short>`.
+       :ref:`installation instructions for developers <dev_installation>`.
 
     #. Download the
        `EnMAP-Box Workshop 2019 Repository <https://bitbucket.org/hu-geomatics/enmap-box-workshop2019/get/develop.zip>`_

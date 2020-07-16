@@ -1,4 +1,5 @@
 .. include:: /icon_links.rst
+.. include:: /dev_section/external_links.rst
 
 .. |osgeoicon| image:: ../img/OSGeo4W.ico
    :width: 30px
@@ -40,13 +41,7 @@ suggest new entries!
 .. How do I...
 .. -----------
 
-.. ... **install QGIS on Windows without having administrative rights**?
-
-..     yes, it is possible to install and run QGIS withouht any admin rights on windows.
-..      Read :ref:`install_qgis_windows` for more details on this.
-
-
-.. _faq_how_to_cite_enmapbox
+.. _faq_how_to_cite_enmapbox:
 
 * **How to cite the EnMAP-Box?**
 
@@ -61,6 +56,42 @@ suggest new entries!
       Suess, S., Hostert, P., 2015. The EnMAP-Box—A Toolbox and Application Programming Interface
       for EnMAP Data Processing. Remote Sensing 7,
       11249–11266. 10.3390/rs70911249.
+
+
+
+* **How to install QGIS without administrative rights?**
+
+    Yes, it is possible to install and run QGIS (and the EnMAP-Box) without admin rights.
+    You just need to download and install `Conda`_, where you can install QGIS as described
+    :ref:`here <_dev_installation_create_conda_qgis>`.
+
+
+.. _faq_numba:
+
+* **Installation: error ensomap / numba / TypeError jitdebug**
+
+    EnSoMAP requires `Numba`_, a JIT compiler that translates python code into fast machine code.
+    Unfortunately, Numba is not part of a standard QGIS installation. Installing it afterwards can be tricky,
+    in particular on the standard Windows and macOS QGIS installations.
+
+    If you want to use EnSoMAP and numba, we therefore recommend to use a QGIS that was installed with `Conda`_ instead.
+
+    1.  Install conda and create a conda environment with QGIS
+        :ref:`as described here<dev_installation_create_conda_qgis>`.
+
+    2.  Install Numba
+
+        .. code-block:: batch
+
+            (qgis_stable) $>conda install numba --channel=conda-forge
+
+    3.  Start the conda QGIS by:
+
+        .. code-block:: batch
+
+            (qgis_stable) $>qgis
+
+    4.  If not already done, install the EnMAP-Box to your Conda-QGIS with the QGIS Plugin Manager.
 
 
 .. _faq_no_pip:
@@ -142,7 +173,7 @@ suggest new entries!
     On some systems we experiences problems related to a missing OpenGL support (e.g `Issue #299 <https://bitbucket.org/hu-geomatics/enmap-box/issues/299/image-cube-qt-issues-on-linux>`_)
 
     1. Ensure that you have installed OpenGL drivers that support your graphic card
-    2. Ensure that `PyOpenGL <http://pyopengl.sourceforge.net`_  is installed::
+    2. Ensure that `PyOpenGL <http://pyopengl.sourceforge.net>`_  is installed::
 
         $ python3 -m pip install PyOpenGL
 
@@ -151,7 +182,7 @@ suggest new entries!
       .. code-block:: bash
 
          sudo apt-get install python3-pyqt5.qtopengl
-....
+
 
 * **Error loading the plugin**
 

@@ -14,7 +14,7 @@
 *                                                                         *
 *   This program is free software; you can redistribute it and/or modify  *
 *   it under the terms of the GNU General Public License as published by  *
-*   the Free Software Foundation; either version 2 of the License, or     *
+*   the Free Software Foundation; either version 3 of the License, or     *
 *   (at your option) any later version.                                   *
 *                                                                         *
 ***************************************************************************
@@ -24,6 +24,7 @@ import sys
 import os
 import collections
 import shutil
+import enum
 import time
 import re
 import importlib
@@ -34,8 +35,12 @@ import requests
 from difflib import SequenceMatcher
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.PyQt.QtCore import QUrl
+
 from qgis.gui import *
+from qgis.gui import QgsFileDownloaderDialog
+
 from qgis.core import *
+from qgis.core import QgsTask, QgsApplication, QgsTaskManager, QgsAnimatedIcon
 
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
@@ -94,14 +99,19 @@ class PIPPackage(object):
         self.stdoutMsg: str = ''
 
         self.mLatestVersion = '<unknown>'
-
+        self.mInstalledVersion = ''
+        self.mImportError = ''
         try:
             __import__(self.pyPkgName)
             self.mInstalledVersion = '<installed>'
+        except ModuleNotFoundError as ex1:
+            self.mInstalledVersion = '<not installed>'
+            self.mImportError = f'{ex1}'
+            print(f'Unable to import {self.pyPkgName}:\n {ex1}', file=sys.stderr)
         except Exception as ex:
+            self.mInstalledVersion = '<installed>'
+            self.mImportError = f'{ex}'
             print(f'Unable to import {self.pyPkgName}:\n {ex}', file=sys.stderr)
-
-        self.mInstalledVersion = ''
 
     def updateAvailable(self) -> bool:
         return self.mInstalledVersion < self.mLatestVersion
@@ -190,11 +200,6 @@ class PIPPackage(object):
         :return:
         :rtype:
         """
-        #try:
-        #    __import__(self.pyPkgName)
-        #    return True
-        #except ModuleNotFoundError:
-        #    return False
         spam_spec = importlib.util.find_spec(self.pyPkgName)
         return spam_spec is not None
 
@@ -308,6 +313,13 @@ class PIPPackageInfoTask(QgsTask):
         if self.callback is not None:
             self.callback(result, self)
 
+class InstallationState(enum.Enum):
+
+    Unknown = 'unknown'
+    NotInstalled = '<not installed>'
+    Installed = '<installed>'
+    LoadingError = '<loading error>'
+
 class PIPInstallCommandTask(QgsTask):
 
     sigMessage = pyqtSignal(str, bool)
@@ -316,8 +328,9 @@ class PIPInstallCommandTask(QgsTask):
         super().__init__(description, QgsTask.CanCancel)
         self.packages: typing.List[PIPPackage] = packages
         self.callback = callback
-        self.mUpgrade: bool  = upgrade
+        self.mUpgrade: bool = upgrade
         self.mUser: bool = user
+
     def run(self):
         n = len(self.packages)
         for i, pkg in enumerate(self.packages):
@@ -585,9 +598,6 @@ def installTestData(overwrite_existing=False, ask=True):
 
 class PIPPackageInstallerTableModel(QAbstractTableModel):
 
-    #sigStdOutMessage = pyqtSignal(str)
-    #sigStdErrMessage = pyqtSignal(str)
-
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
 
@@ -604,10 +614,18 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
         self.mWarned = False
         self.mUser = True
 
+        self.mAnimatedIcon = QgsAnimatedIcon(QgsApplication.iconPath("/mIconLoading.gif"), self)
+        #self.mAnimatedIcon.connectFrameChanged(self, 'onFrameChange')
+        #self.mAnimatedIcon.frameChanged.connect(self.onFrameChange)
+
+    @pyqtSlot()
+    def onFrameChange(self):
+
+        s = ""
+
     def setUser(self, b: bool):
         self.mUser = b == True
         self.dataChanged.emit(self.createIndex(0,0), self.createIndex(self.rowCount()-1, self.columnCount()-1))
-
 
     def packageFromPIPName(self, pipName:str) -> PIPPackage:
         for pkg in self:
@@ -680,16 +698,17 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
 
         assert isinstance(pkg, PIPPackage)
         cn = self.mColumnNames[index.column()]
+
         if role == Qt.DisplayRole:
             if cn == self.cnPkg:
                 return pkg.pyPkgName
+
             if cn == self.cnInstalledVersion:
-                if pkg.mInstalledVersion == '':
-                    return '<not installed>'
-                else:
-                    return pkg.mInstalledVersion
+                return pkg.mInstalledVersion
+
             if cn == self.cnLatestVersion:
                 return pkg.mLatestVersion
+
             if cn == self.cnCommand:
                 cmd = pkg.installCommand(user=self.mUser, upgrade=pkg.mInstalledVersion < pkg.mLatestVersion)
                 match = re.search(r'python(\.exe)?.*$', cmd, re.I)
@@ -700,7 +719,7 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
 
         if role == Qt.ForegroundRole:
             if cn == self.cnInstalledVersion:
-                if pkg.mInstalledVersion == '':
+                if pkg.mInstalledVersion == '<not installed>':
                     return QColor('red')
                 elif pkg.mLatestVersion > pkg.mInstalledVersion:
                     return QColor('orange')
@@ -717,11 +736,12 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
                     info += '\nThis command requires having git (https://www.git-scm.com) installed!'
                 return info
 
+        if role == Qt.DecorationRole and index.column() == 0:
+            if pkg.mLatestVersion == '<unknown>':
+                return QIcon(':/images/themes/default/mIconLoading.gif')
+
         if role == Qt.UserRole:
             return pkg
-
-
-
 
     def addPackages(self, packages:typing.List[PIPPackage]):
 
@@ -735,6 +755,13 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
 
     def removePackages(self):
         pass
+
+class TableViewDelegate(QStyledItemDelegate):
+
+    def __init__(self, tableView: QTableView, parent=None):
+        assert isinstance(tableView, QTableView)
+        super().__init__(parent=parent)
+        self.mTableView = tableView
 
 
 class PIPPackageInstallerTableView(QTableView):
@@ -786,6 +813,7 @@ class PIPPackageInstallerTableView(QTableView):
         a.triggered.connect(lambda *args, p=pkgs: self.sigPackageReloadRequest.emit(pkgs))
 
         m.exec_(event.globalPos())
+
 
 class PIPPackageInstaller(QWidget):
 

@@ -2,3 +2,5 @@
 .. _PyDev: https://www.pydev.org
 .. _OSGeo4W: https://www.osgeo.org/projects/osgeo4w
 .. _pip: https://pip.pypa.io/en/stable
+.. _miniconda: https://docs.conda.io/en/latest/miniconda.html
+.. _conda: https://docs.conda.io/en/latest/miniconda.html

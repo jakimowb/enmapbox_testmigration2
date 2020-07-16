@@ -90,7 +90,7 @@ class VTest(EnMAPBoxTestCase):
         pathLargeImage = r'Q:\Processing_BJ\01_Data\level2\X0016_Y0046\20140803_LEVEL2_LND07_BOA.tif'
 
         layers = [self.createImageCube(ns=100, nl=200)]
-        pathes = [pathEnMAP, pathHyMap, pathLargeImage]
+        pathes = [pathEnMAP, pathHyMap]
         for p in pathes:
             if os.path.isfile(p):
                 layers.append(QgsRasterLayer(p, os.path.basename(p)))
