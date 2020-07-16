@@ -187,7 +187,7 @@ class Raster(object):
             self, grid: Grid = None, mode: int = None, fieldNames: int = None,
             graRaster: int = None, graMask: int = None,
             xPixel: str = None, yPixel: str = None, xMap: str = None, yMap: str = None,
-    ) -> Union[Table, Optional[Table]]:
+    ) -> Tuple[Table, Optional[Table]]:
         '''
         Sample raster at masked locations and return tabulated data and (optional) locations.
         Use band names (fieldNames=0 is default) or band indices (fieldNames=1) as field names.

@@ -67,6 +67,9 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
         if isinstance(pd, EnMAPProcessingParameterMapLayer):
             value = self.parameterAsLayer(parameters, name, context)
+        #elif isinstance(pd, EnMAPProcessingParameterClassificationLayer):
+        #    value = self.parameterAsRasterLayer(parameters, name, context)
+        #    if not PrE
         elif isinstance(pd, EnMAPProcessingParameterRasterLayer):
             value = self.parameterAsRasterLayer(parameters, name, context)
         elif isinstance(pd, EnMAPProcessingParameterVectorLayer):
@@ -119,6 +122,20 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     def helpUrl(self, *args, **kwargs):
         return 'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider/overview'
+
+    def checkParameterValues(self, parameters: Dict, context: QgsProcessingContext):
+        ok, msg = super().checkParameterValues(parameters, context)
+        if ok:
+            for parameterDefinition in self.parameterDefinitions():
+                if isinstance(parameterDefinition, EnMAPProcessingParameterPalettedRasterLayer):
+                    name = parameterDefinition.name()
+                    layer = self.parameter(parameters, name, context)
+                    assert isinstance(layer, QgsRasterLayer), layer
+                    if not isinstance(layer.renderer(), QgsPalettedRasterRenderer):
+                        ok, msg = False, 'Raster with Paletted/Unique values renderer required: {name}'
+                        break
+        return ok, msg
+        #QgisAlgorithm.checkParameterValues()
 
 
 class Group(Enum):
@@ -237,6 +254,15 @@ class EnMAPProcessingParameterRasterLayer(QgsProcessingParameterRasterLayer):
             self, name=name, description=description, defaultValue=defaultValue, optional=optional
         )
         self.help = help
+
+
+class EnMAPProcessingParameterPalettedRasterLayer(EnMAPProcessingParameterRasterLayer):
+    def __init__(
+            self, name: str, description: str, defaultValue: Any = None, optional: bool = False, help=Help()
+    ):
+        EnMAPProcessingParameterRasterLayer.__init__(
+            self, name=name, description=description, defaultValue=defaultValue, optional=optional, help = help
+        )
 
 
 class EnMAPProcessingParameterBand(QgsProcessingParameterBand):

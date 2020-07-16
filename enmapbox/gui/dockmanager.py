@@ -16,6 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
+from processing import Processing
 
 from enmapbox.gui import *
 from enmapbox.gui.mapcanvas import *
@@ -34,6 +35,11 @@ from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, Q
 from qgis.gui import *
 from qgis.gui import QgsLayerTreeView, \
     QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget
+
+from hubdsm.core.category import Category  # needed for eval
+from hubdsm.core.color import Color  # needed for eval
+from hubdsm.processing.classificationstatistics import ClassificationStatistics, ClassificationStatisticsPlot
+
 LUT_DOCKTYPES = {'MAP': MapDock,
                  'TEXT': TextDock,
                  'MIME': MimeDataDock,
@@ -1190,6 +1196,13 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             action.setToolTip('Set layer properties')
             action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
 
+            # add some processing algorithm shortcuts
+            #            if isinstance(lyr, QgsRasterLayer):
+            #                if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
+            menu.addSeparator()
+            action = menu.addAction('Classification Statistics')
+            action.triggered.connect(lambda: self.runClassificationStatistics(lyr))
+
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
             from enmapbox.gui.utils import appendItemsToMenu
@@ -1224,9 +1237,16 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             emb.createDock('ATTRIBUTE', layer=layer)
 
     def setLayerStyle(self, layer, canvas):
-
-
         showLayerPropertiesDialog(layer, canvas, modal=True)
+
+    def runClassificationStatistics(self, layer):
+        alg = ClassificationStatistics()
+        io = {alg.P_CLASSIFICATION: layer}
+        result = Processing.runAlgorithm(alg, parameters=io, feedback=QgsProcessingFeedback())
+        categories = eval(result[alg.P_OUTPUT_CATEGORIES])
+        counts = eval(result[alg.P_OUTPUT_COUNTS])
+        widget = ClassificationStatisticsPlot(categories=categories, counts=counts, layer=layer, parent=self.mDockTreeView)
+        widget.show()
 
 
 class DockManager(QObject):

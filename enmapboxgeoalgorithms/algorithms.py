@@ -3,6 +3,7 @@ from shutil import rmtree
 from qgis.core import *
 
 from hubdsm.processing.aggregatebands import AggregateBands
+from hubdsm.processing.classificationstatistics import ClassificationStatistics
 from hubdsm.processing.subsetrasterbands import SubsetRasterBands
 from hubflow.core import *
 from enmapboxgeoalgorithms.provider import (EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, Help, Link, Cookbook,
@@ -24,6 +25,8 @@ ALGORITHMS.append(ImportEnmapL2A())
 ALGORITHMS.append(SaveLayerAsClassification())
 ALGORITHMS.append(SubsetRasterBands())
 ALGORITHMS.append(AggregateBands())
+ALGORITHMS.append(ClassificationStatistics())
+
 
 
 class ClassificationFromFraction(EnMAPAlgorithm):
@@ -1367,7 +1370,7 @@ class RasterStatistics(EnMAPAlgorithm):
                 calcPercentiles=True, calcHistogram=True, calcMean=True, calcStd=True,
                 percentiles=[25, 50, 75])[0]
 
-            self._progressBar.setText('Band {}: {}'.format(index+1, raster.dataset().band(index).description()))
+            self._progressBar.setText('Band {}: {}'.format(index + 1, raster.dataset().band(index).description()))
             self._progressBar.setText('Min: {}'.format(values.min))
             self._progressBar.setText('Max: {}'.format(values.max))
             self._progressBar.setText('Mean: {}'.format(values.mean))
