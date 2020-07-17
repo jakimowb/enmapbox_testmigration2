@@ -5194,7 +5194,9 @@ class Estimator(FlowObject):
 
         try:
             self.sklEstimator().fit(X=X, y=y)
-        except TypeError:
+        except ValueError as error:
+            if error.args[0] == 'y must have at least two dimensions for multi-output regression but has only one.':
+                y = np.atleast_2d(y)
             self.sklEstimator().fit(X=X, Y=y)
 
         self._X = X
