@@ -40,6 +40,7 @@ class MapCanvasTests(EnMAPBoxTestCase):
         m = dock.contextMenu()
         self.assertIsInstance(m, QMenu)
 
+
     def test_mapCanvas(self):
         mapCanvas = MapCanvas()
         lyr = TestObjects.createRasterLayer()
