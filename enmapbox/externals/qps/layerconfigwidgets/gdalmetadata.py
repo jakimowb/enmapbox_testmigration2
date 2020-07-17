@@ -399,7 +399,6 @@ class GDALMetadataModel(QAbstractTableModel):
                                 mo.SetMetadataItem(item.key, item.value, item.domain)
 
                         ds.FlushCache()
-                        del ds
                     if self.mErrorHandler.err_level >= gdal.CE_Warning:
                         raise RuntimeError(self.mErrorHandler.err_level,
                                            self.mErrorHandler.err_no,
