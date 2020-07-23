@@ -53,7 +53,6 @@ class GdalRaster(object):
     def open(filenameOrGdalDataset: Union[str, gdal.Dataset], access: int = gdal.GA_ReadOnly) -> 'GdalRaster':
 
         if isinstance(filenameOrGdalDataset, str):
-            assert exists(filenameOrGdalDataset) or filenameOrGdalDataset.startswith('/vsimem/')
             gdalDataset: gdal.Dataset = gdal.Open(filenameOrGdalDataset, access)
         elif isinstance(filenameOrGdalDataset, gdal.Dataset):
             gdalDataset = filenameOrGdalDataset
@@ -61,7 +60,6 @@ class GdalRaster(object):
             raise ValueError(filenameOrGdalDataset)
 
         assert gdalDataset is not None
-        #assert gdalDataset.GetProjection() != ''
         return GdalRaster(gdalDataset=gdalDataset)
 
     @staticmethod
