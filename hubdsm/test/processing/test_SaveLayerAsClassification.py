@@ -55,11 +55,13 @@ class TestSaveLayerAsClassification(TestCase):
             Category(id=2, name='low vegetation', color=Color(red=152, green=230, blue=0, alpha=255)),
             Category(id=3, name='tree', color=Color(red=38, green=115, blue=0, alpha=255)),
             Category(id=4, name='soil', color=Color(red=168, green=112, blue=0, alpha=255)),
-            Category(id=5, name='water', color=Color(red=0, green=100, blue=255, alpha=255))
+            Category(id=5, name='water', color=Color(red=0, green=100, blue=255, alpha=255)),
+            Category(id=6, name='', color=Color(red=255, green=255, blue=255, alpha=255))
         ]
         counts = OrderedDict([(0, 87942), (1, 19), (2, 11), (3, 10), (4, 9), (5, 9)])
 
         classification = Raster.open(result[alg.P_OUTRASTER])
+        print(classification.categories)
         self.assertListEqual(classification.categories, categories)
         self.assertDictEqual(uniqueBandValueCounts(band=classification.band(1)), counts)
 
@@ -80,7 +82,8 @@ class TestSaveLayerAsClassification(TestCase):
             Category(id=2, name='low vegetation', color=Color(red=152, green=230, blue=0, alpha=255)),
             Category(id=3, name='tree', color=Color(red=38, green=115, blue=0, alpha=255)),
             Category(id=4, name='soil', color=Color(red=168, green=112, blue=0, alpha=255)),
-            Category(id=5, name='water', color=Color(red=0, green=100, blue=255, alpha=255))
+            Category(id=5, name='water', color=Color(red=0, green=100, blue=255, alpha=255)),
+            Category(id=6, name='', color=Color(red=255, green=255, blue=255, alpha=255))
         ]
         counts = OrderedDict([(0, 87942), (1, 19), (2, 11), (3, 10), (4, 9), (5, 9)])
 

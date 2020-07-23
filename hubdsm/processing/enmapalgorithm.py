@@ -67,7 +67,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
         if isinstance(pd, EnMAPProcessingParameterMapLayer):
             value = self.parameterAsLayer(parameters, name, context)
-        #elif isinstance(pd, EnMAPProcessingParameterClassificationLayer):
+        # elif isinstance(pd, EnMAPProcessingParameterClassificationLayer):
         #    value = self.parameterAsRasterLayer(parameters, name, context)
         #    if not PrE
         elif isinstance(pd, EnMAPProcessingParameterRasterLayer):
@@ -128,14 +128,12 @@ class EnMAPAlgorithm(QgisAlgorithm):
         if ok:
             for parameterDefinition in self.parameterDefinitions():
                 if isinstance(parameterDefinition, EnMAPProcessingParameterPalettedRasterLayer):
-                    name = parameterDefinition.name()
-                    layer = self.parameter(parameters, name, context)
+                    layer = self.parameter(parameters, parameterDefinition.description(), context)
                     assert isinstance(layer, QgsRasterLayer), layer
                     if not isinstance(layer.renderer(), QgsPalettedRasterRenderer):
-                        ok, msg = False, 'Raster with Paletted/Unique values renderer required: {name}'
+                        ok, msg = False, f'Raster with Paletted/Unique values renderer required: {parameterDefinition.description()}'
                         break
         return ok, msg
-        #QgisAlgorithm.checkParameterValues()
 
 
 class Group(Enum):
@@ -261,7 +259,7 @@ class EnMAPProcessingParameterPalettedRasterLayer(EnMAPProcessingParameterRaster
             self, name: str, description: str, defaultValue: Any = None, optional: bool = False, help=Help()
     ):
         EnMAPProcessingParameterRasterLayer.__init__(
-            self, name=name, description=description, defaultValue=defaultValue, optional=optional, help = help
+            self, name=name, description=description, defaultValue=defaultValue, optional=optional, help=help
         )
 
 
