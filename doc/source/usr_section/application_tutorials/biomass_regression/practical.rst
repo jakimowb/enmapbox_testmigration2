@@ -150,7 +150,7 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
 =====================
 
 * The EnMAP-Box enables users to work with multiple Map Views, which can be flexibly organized and geospatially linked.
-  Open a new Map View. Note a Data View entry appears corresponding to the new Map View.
+  Open a new Map View by clicking the |viewlist_mapdock| icon. Note a Data View entry appears corresponding to the new Map View.
 
 * Display :file:`enmap_sonoma.bsq` as an RGB composite of your choice in Map #2.
 
@@ -296,7 +296,7 @@ Exercise B: Regression based mapping of aboveground forest biomass
   showing the minimum and maximum biomass values, the number of samples which will be drawn, and the
   total number of samples in each strata in parentheses.
 * Change the :guilabel:`Sample Size` to ``20%`` and click :guilabel:`Apply`. You will now see the number of samples drawn from each
-  strata automatically update to include 10% of the total size of each strata. To set an equalized
+  strata automatically update to include 20% of the total size of each strata. To set an equalized
   sampling scheme, select :guilabel:`Pixel` from the dropdown menu and sample 20 pixels per strata. You can also manually
   define the sample size from each bin if desired. For now, sample 20 pixels for each of 5 strata.
 * Select the option to |cb1| :guilabel:`Save Sample` and define an output file name and location (e.g. :file:`biomassSample.bsq`).
@@ -405,7 +405,7 @@ Exercise C: Introduction to ImageMath
 =========================
 
 * The ImageMath tool in the EnMAP-Box allows users to apply a mathematical operation, python function or user defined function to an image.
-* For this exercise, you will need :file:`biomass_estimation.bsq` and :file:`enmap_sonoma.bsq` from the previous exercises
+* For this exercise, you will need :file:`biomass_estimation.bsq`, :file:`NLCD_sonoma.bsq` and :file:`enmap_sonoma.bsq` from the previous exercises
   open in the :guilabel:`Data Sources` panel.
 * Open the ImageMath application by going to :guilabel:`Applications` then selecting |numpy| :guilabel:`ImageMath`
 * The ImageMath Calculator consists of several panels:
@@ -475,8 +475,9 @@ Exercise C: Introduction to ImageMath
 .. tip::
 
    For spectral images, metadata such as projection information may be missing. If this is the case, such information
-   may be added to the output raster using the ``setMetaData`` command. See the imageMath tutorial for more information.
+   may be added to the output raster using the ``setMetaData`` command. See the imageMath manual for more information.
 
+.. todo add link to imagemath manual and/or cookbook
 
 .. image:: img/Slide15_ImageMathNDVI.PNG
 
@@ -488,6 +489,7 @@ Exercise C: Introduction to ImageMath
 3. Create a forest mask
 =======================
 
+* Open :file:`NLCD_sonoma.bsq` in Map #1.
 * As the biomass map was only trained using forested biomass plots, only limited inference can be made of the
   non-forest biomass estimates. We will therefore apply a forest mask to our biomass map.
 * The forest mask will ignore any pixels that are Deciduous (41), Evergreen (42), or Mixed (43) forest according to the NLCD classification.
@@ -496,7 +498,7 @@ Exercise C: Introduction to ImageMath
 
 .. image:: img/17-NLCD.png
 
-* Open the ImageMath tool and set NLCD_sonoma.bsq as the input file.
+* Open the ImageMath tool and set :file:`NLCD_sonoma.bsq` as the input file.
 * Enter the following code into the code editor:
 
   .. code-block:: python
@@ -523,6 +525,7 @@ Exercise C: Introduction to ImageMath
   7. If it is not
   8. Set that value to 1
 
+* Set ForestMask_sonoma as the output and define the path to your working directory.
 * Run the script by clicking |action|. The resulting mask now has a value of 0 for forested pixels, and 1 for non-forested pixels.
 
 .. image:: img/18-Masking_imgmath.png
@@ -569,7 +572,7 @@ Exercise C: Introduction to ImageMath
 
 * Open an RGB composite of :file:`enmap_sonoma.bsq` in Map #1 and open and link the masked biomass image in a new
   Map window. Refer to Exercise A5 if needed.
-* Open NDVI.bsq in Map #1. Compare patterns of NDVI and estimated AGB.
+* Open :file:`NDVI.bsq` in Map #1. Compare patterns of NDVI and estimated AGB.
 
 .. image:: img/masked_biomass.png
 
