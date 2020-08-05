@@ -24,6 +24,28 @@ Introduction
 1. Background
 -------------
 
+.. image:: /img/hyperedu_logo.png
+   :alt: hyperEDU logo
+   :align: right
+   :width: 30%
+
+This tutorial is part of the HYPERedu online learning platform, an education initiative within the EnMAP mission hosted
+on EO College. HYPERedu provides annotated slide collections and hands-on tutorials using the open-source EnMAP-Box software,
+targeting basic principles, methods as well as applications of imaging spectroscopy.
+
+https://eo-college.org/
+
+A software description unit for the EnMAP-Box and annotated slide collections for the tutorial “Regression-based unmixing
+of urban land cover. “ are provided here:
+
+https://eo-college.org/resource/enmap-box/
+
+https://eo-college.org/resource/regression-based-unmixing-of-urban-land-cover/
+
+
+2. Content
+----------
+
 Land cover fraction mapping based on unmixing is well suited to describe the composition of surface
 types in heterogeneous environments. Especially when using coarser spatial resolution satellite data
 with a high share of mixed pixels, fraction mapping is more useful than a discrete classification. This,
@@ -38,14 +60,14 @@ providing both a theoretical background related to challenges in urban mapping a
 training for working with the EnMAP-Box.
 
 
-2. Requirements
+3. Requirements
 ---------------
 
 This practical requires at least version 3.6 of the EnMAP-Box 3.
 There might be some minor changes for higher versions (e.g., changed menu labels, added parameter options, etc.).
 
 
-3. Further Reading
+4. Further Reading
 ------------------
 
 We recommend [1]_ for a comprehensive overview on imaging spectroscopy of urban environments
