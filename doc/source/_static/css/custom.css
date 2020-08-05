@@ -19,8 +19,9 @@
 
 @import url('https://fonts.googleapis.com/css?family=Open+Sans&display=swap');
 
+
 body {
-  font-family: 'Open Sans', sans-serif;
+  font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
 }
 
 footer {
@@ -28,20 +29,22 @@ footer {
 }
 
 h2, h3, h4, h5, h6 {
-  font-family: 'Oswald', sans-serif;
+  font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
   color: #05989F;
 }
 
 h1 {
-  font-family: 'Oswald', sans-serif;
+  font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
   color: #1F497D;
 }
 
-p.caption {
+.rst-content div.figure p.caption {
   font-family: 'Oswald', sans-serif;
+  /*color: #1F497D;*/
 /*  letter-spacing: 4px; */
 }
 
+/*
 .rst-content .toctree-wrapper p.caption {
   font-family: 'Oswald', sans-serif;
 }
@@ -50,9 +53,15 @@ p.caption {
   color: #1F497D;
 }
 
+*/
+
 .wy-menu-vertical a {
-  font-family: 'Open Sans', sans-serif;
-  color: #696969;
+font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
+}
+
+.wy-menu-vertical header, .wy-menu-vertical p.caption {
+font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
+color: #CD980A;
 }
 
 .wy-side-nav-search {
@@ -66,9 +75,11 @@ p.caption {
   color: rgba(255,255,255,0.7); /*increase version number opacity*/
 }
 
+/*
 .wy-nav-side {
   background: #D9E1DD;
 }
+*/
 
 /*
 .wy-menu-vertical li.current {
