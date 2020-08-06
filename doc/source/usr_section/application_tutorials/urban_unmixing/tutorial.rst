@@ -81,7 +81,7 @@ mixed training data from spectral libraries.
 4. Data
 -------
 
-:download:`You can download the data here (tutorial_unmixing_materials.zip):` https://box.hu-berlin.de/f/01d6196ab1e34956bd5d/?dl=1
+:download:`You can download the data here (tutorial_unmixing_materials.zip):` https://box.hu-berlin.de/f/3c3f7b76d91b4bd2a688/?dl=1
 
 The practical dataset contains an EnMAP-image (simulation) covering an area along the urban gradient of Berlin, Germany,
 a second hyperspectral image at higher spatial resolution (HyMap, 3.6 m), a spectral library and detailed land cover

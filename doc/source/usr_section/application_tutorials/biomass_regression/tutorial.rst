@@ -69,10 +69,10 @@ an overview of remote sensing of forest aboveground biomass.
 .. [3] Lu, D., Chen, Q., Wang, G., Liu, L., Li, G., & Moran, E. (2016). A survey of remote sensing-based aboveground biomass estimation methods in forest ecosystems. International Journal of Digital Earth, 9(1), 63-105.
 
 
-4. Data
+5. Data
 =======
 
-You can download the data for this exercise here:
+:download:`You can download the data for this exercise here:`
 https://box.hu-berlin.de/f/06caeb4017ce420b80e1/?dl=1
 
 The practical dataset contains a hyperspectral image mosaic in Sonoma County, California, USA, as well as a shapefile
