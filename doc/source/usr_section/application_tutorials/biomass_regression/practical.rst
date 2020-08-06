@@ -18,6 +18,27 @@ Introduction
 1. Background
 =============
 
+.. image:: /img/hyperedu_logo.png
+   :alt: hyperEDU logo
+   :align: right
+   :width: 30%
+
+This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/>`_, an education initiative within the EnMAP mission hosted
+on EO College. HYPERedu provides annotated slide collections and hands-on tutorials using the open-source EnMAP-Box software,
+targeting basic principles, methods as well as applications of imaging spectroscopy.
+
+A software description unit for the EnMAP-Box and annotated slide collections for the tutorial “Regression-based mapping of forest aboveground biomass“ are provided here:
+
+* https://eo-college.org/resource/enmap-box/
+
+.. todo:: Link to slides will be provided here once available
+
+
+
+
+2. Content
+==========
+
 Forest aboveground biomass (AGB) is a measure of the living and dead plant material in a given area. As such, it is
 often used for forest management, assessing fire potential, and is an important metric used in modelling carbon and
 nutrient cycles. AGB can be directly measured at a plot level by harvesting and weighing vegetation, but this is both
@@ -30,14 +51,14 @@ EnMAP-Box, as well as hands-on training for implementing regression-based mappin
 
 
 
-2. Requirements
+3. Requirements
 ===============
 
 This practical requires at least version 3.5 of the EnMAP-Box 3. There might be some minor
 changes for higher versions (e.g., changed menu labels, added parameter options, etc.).
 
 
-3. Further reading
+4. Further reading
 ==================
 
 We recommend [1]_ and [2]_ for a comprehensive overview of imaging spectroscopy of terrestrial ecosystems, and [3]_ for
