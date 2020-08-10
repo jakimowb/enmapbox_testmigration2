@@ -1,13 +1,15 @@
 .. include:: /icon_links.rst
 
+.. |br| raw:: html
+
+  <br/>
+
 .. _tutorial_biomass:
 
 Regression-based mapping of forest aboveground biomass
 ######################################################
 
-**Authors:** Sam Cooper, Akpona Okujeni, Andreas Rabe, Benjamin Jakimow, Fabian Thiel & Sebastian van der Linden
-
-**Contributions from:** Patrick Hostert, Clemens Jaenicke
+**Authors:**  Akpona Okujeni, Sam Cooper, Patrick Hostert, Clemens Jaenicke, Benjamin Jakimow, Andreas Rabe, Fabian Thiel & Sebastian van der Linden
 
 **Date: 03/07/2020**
 
@@ -23,16 +25,16 @@ Introduction
    :align: right
    :width: 30%
 
-This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/>`_, an education initiative within the EnMAP mission hosted
+This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/now-online-hyperedu-educational-resources-on-imaging-spectroscopy/>`_,
+an education initiative within the `EnMAP mission <https://www.enmap.org/>`_ hosted
 on EO College. HYPERedu provides annotated slide collections and hands-on tutorials using the open-source EnMAP-Box software,
 targeting basic principles, methods as well as applications of imaging spectroscopy.
 
-A software description unit for the EnMAP-Box and annotated slide collections for the tutorial “Regression-based mapping of forest aboveground biomass“ are provided here:
+Annotated slide collections for the tutorial *Regression-based mapping of forest aboveground biomass* and a software description unit for the EnMAP-Box are provided here:
 
-* https://eo-college.org/resource/enmap-box/
+* `Software description <https://eo-college.org/resource/enmap-box/>`_
 
-.. todo:: Link to slides will be provided here once available
-
+  .. todo:: Link to slides will be provided here once available
 
 
 
@@ -83,11 +85,10 @@ containing point based biomass estimates sampled from an existing LiDAR derived 
    :delim: ;
    :widths: auto
 
-
    Data type; Filename; Description
-   Raster; :file:`enmap_sonoma.bsq`; Simulated spaceborne hyperspectral data from the EnMAP sensor with a spatial resolution of 30m, 195 bands, and 1000x200 pixels (BSQ, ENVI Standard Band Sequential)
-   Raster; :file:`NLCD_sonoma.bsq`; National Land Cover Database 30m classification for the study region (BSQ, ENVI Standard Band Sequential)
-   Vector; :file:`biomass_sonoma.shp`; 3000 biomass reference points sampled from an existing LiDAR derived biomass map [4]_ (SHP, ESRI Shapefile)
+   Raster; :file:`enmap_sonoma.bsq`; Simulated spaceborne hyperspectral data from the |br| EnMAP sensor with a spatial resolution of 30m, 195 bands, |br| and 1000x200 pixels (ENVI Standard Band Sequential ``bsq``)
+   Raster; :file:`NLCD_sonoma.bsq`; National Land Cover Database 30m classification for |br| the study region (ENVI Standard Band Sequential ``bsq``)
+   Vector; :file:`biomass_sonoma.shp`; 3000 biomass reference points sampled from an |br| existing LiDAR derived biomass map [4]_ (ESRI Shapefile ``bsq``)
 
 .. [4] Dubayah, R.O., A. Swatantran, W. Huang, L. Duncanson, H. Tang, K. Johnson, J.O. Dunne, and G.C. Hurtt. 2017. CMS: LiDAR-derived Biomass, Canopy Height and Cover, Sonoma County, California, 2013. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1523
 
