@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1">
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,1,1">
       <property name="topMargin">
        <number>0</number>
       </property>
@@ -28,7 +28,21 @@
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="mUnit">
+       <widget class="QComboBox" name="mUnitUnknown">
+        <item>
+         <property name="text">
+          <string>Pixel</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Percentage</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="mUnitStandard">
         <item>
          <property name="text">
           <string>Pixel</string>
@@ -41,7 +55,56 @@
         </item>
         <item>
          <property name="text">
-          <string>Area</string>
+          <string>Square Meters</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Hectares</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Square Kilometers</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Square Feet</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Square Yards</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Acres</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Square Miles</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="mUnitGeographic">
+        <item>
+         <property name="text">
+          <string>Pixel</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Percentage</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Square Degrees </string>
          </property>
         </item>
        </widget>

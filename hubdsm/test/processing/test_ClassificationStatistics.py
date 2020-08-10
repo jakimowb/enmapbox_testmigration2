@@ -2,9 +2,15 @@ import numpy as np
 from PyQt5.QtGui import QColor
 from qgis._core import QgsRasterLayer, QgsPalettedRasterRenderer
 
-from hubdsm.core.category import Category
-from hubdsm.core.color import Color
+from hubdsm.core.category import Category  # needed for eval
+from hubdsm.core.color import Color  # needed for eval
+from hubdsm.core.extent import Extent
+from hubdsm.core.grid import Grid
+from hubdsm.core.location import Location
+from hubdsm.core.projection import Projection
 from hubdsm.core.raster import Raster
+from hubdsm.core.resolution import Resolution
+from hubdsm.core.size import Size
 from hubdsm.processing.classificationstatistics import ClassificationStatistics, ClassificationStatisticsPlot
 from hubdsm.test.processing.testcase import TestCase
 
@@ -13,7 +19,16 @@ class TestClassificationStatistics(TestCase):
 
     def test(self):
         filename = '/vsimem/c.bsq'
-        raster = Raster.createFromArray(array=np.atleast_3d([0, 1, 1, 2, 3, 10]), filename=filename)
+        res = 100
+        raster = Raster.createFromArray(
+            array=np.atleast_3d([0, 1, 1, 2, 3, 10]),
+            grid=Grid(
+                extent=Extent(ul=Location(0, 0), size=Size(1 * res, 6 * res)),
+                resolution=Resolution(res, res),
+                projection=Projection.fromEpsg(4326),
+            ),
+            filename=filename
+        )
         del raster
 
         layer = QgsRasterLayer(filename)
@@ -24,21 +39,19 @@ class TestClassificationStatistics(TestCase):
         renderer = QgsPalettedRasterRenderer(input=layer.dataProvider(), bandNumber=1, classes=classes)
         layer.setRenderer(renderer=renderer)
 
-        #debug
-        layer = QgsRasterLayer(r"C:\Users\janzandr\Desktop\classification.bsq")
         assert isinstance(layer.renderer(), QgsPalettedRasterRenderer)
         alg = ClassificationStatistics()
         io = {alg.P_CLASSIFICATION: layer}
         result = self.runalg(alg=alg, io=io)
 
-#        self.assertEqual(
-#            "[Category(id=1, name='C1', color=Color(red=255, green=0, blue=0, alpha=255)), Category(id=3, name='C2', color=Color(red=0, green=255, blue=0, alpha=255))]",
-#            result[alg.P_OUTPUT_CATEGORIES]
-#        )
-#        self.assertEqual(
-#            "[2, 1]",
-#            result[alg.P_OUTPUT_COUNTS]
-#        )
+        self.assertEqual(
+            "[Category(id=1, name='C1', color=Color(red=255, green=0, blue=0, alpha=255)), Category(id=3, name='C2', color=Color(red=0, green=255, blue=0, alpha=255))]",
+            result[alg.P_OUTPUT_CATEGORIES]
+        )
+        self.assertEqual(
+            "[2, 1]",
+            result[alg.P_OUTPUT_COUNTS]
+        )
 
         showPlot = True
         if showPlot:

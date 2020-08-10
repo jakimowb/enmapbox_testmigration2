@@ -73,7 +73,9 @@ class PlotWidget(PlotWidget_):
 
 class ClassificationStatisticsPlot(QMainWindow):
     mPlot: PlotWidget
-    mUnit: QComboBox
+    mUnitUnknown: QComboBox
+    mUnitStandard: QComboBox
+    mUnitGeographic: QComboBox
 
     def __init__(self, categories: List[Category], counts: List[int], layer: QgsRasterLayer, parent=None):
         QMainWindow.__init__(self, parent)
@@ -81,6 +83,20 @@ class ClassificationStatisticsPlot(QMainWindow):
         self.categories = categories
         self.counts = counts
         self.layer = layer
+        distanceUnit = layer.crs().mapUnits()
+        areaUnit = QgsUnitTypes.distanceToAreaUnit(distanceUnit)
+        if areaUnit == QgsUnitTypes.AreaUnit.AreaUnknownUnit:
+            self.mUnit = self.mUnitUnknown
+            self.mUnitStandard.hide()
+            self.mUnitGeographic.hide()
+        elif areaUnit == QgsUnitTypes.AreaUnit.AreaSquareDegrees:
+            self.mUnit = self.mUnitGeographic
+            self.mUnitUnknown.hide()
+            self.mUnitStandard.hide()
+        else:
+            self.mUnit = self.mUnitStandard
+            self.mUnitUnknown.hide()
+            self.mUnitGeographic.hide()
         self.mUnit.currentIndexChanged.connect(self.onUnitChanged)
         self.onUnitChanged(index=0)
 
@@ -93,15 +109,18 @@ class ClassificationStatisticsPlot(QMainWindow):
             n = sum(self.counts)
             ys = [count / n * 100 for count in self.counts]
             ylabel = 'Percentage'
-        elif index == 2:
+        else:
+            ylabel = self.mUnit.currentText()
+            fromUnit: QgsUnitTypes.AreaUnit = QgsUnitTypes.distanceToAreaUnit(self.layer.crs().mapUnits())
+            toUnit: QgsUnitTypes.AreaUnit = getattr(QgsUnitTypes.AreaUnit, f"Area{ylabel.replace(' ', '')}")
+
+            factor = QgsUnitTypes.fromUnitToUnitFactor(
+                fromUnit=fromUnit,
+                toUnit=toUnit
+            )
             xsize = self.layer.rasterUnitsPerPixelX()
             ysize = self.layer.rasterUnitsPerPixelY()
-            ys = [count * xsize * ysize for count in self.counts]
-            crs: QgsCoordinateReferenceSystem = self.layer.crs()
-            unit = QgsUnitTypes.toString(crs.mapUnits())
-            ylabel = f'Square {unit.title()}'
-        else:
-            assert 0
+            ys = [count * xsize * ysize * factor for count in self.counts]
 
         self.mPlot.clear()
         for i, (category, y) in enumerate(zip(self.categories, ys)):

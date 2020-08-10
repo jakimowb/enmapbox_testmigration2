@@ -1,15 +1,17 @@
 .. include:: /icon_links.rst
 
+.. |br| raw:: html
+
+  <br/>
+
 .. _tutorial_biomass:
 
 Regression-based mapping of forest aboveground biomass
 ######################################################
 
-**Authors:** Sam Cooper, Akpona Okujeni & Sebastian van der Linden
+**Authors:**  Akpona Okujeni, Sam Cooper, Patrick Hostert, Clemens Jaenicke, Benjamin Jakimow, Andreas Rabe, Fabian Thiel & Sebastian van der Linden
 
-**Contributions from:** Fabian Thiel, Patrick Hostert, Clemens Jaenicke, Benjamin Jakimow, Andreas Rabe
-
-**Date: 05/11/2019**
+**Date: 03/07/2020**
 
 
 Introduction
@@ -18,26 +20,47 @@ Introduction
 1. Background
 =============
 
+.. image:: /img/hyperedu_logo.png
+   :alt: hyperEDU logo
+   :align: right
+   :width: 30%
+
+This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/now-online-hyperedu-educational-resources-on-imaging-spectroscopy/>`_,
+an education initiative within the `EnMAP mission <https://www.enmap.org/>`_ hosted
+on EO College. HYPERedu provides annotated slide collections and hands-on tutorials using the open-source EnMAP-Box software,
+targeting basic principles, methods as well as applications of imaging spectroscopy.
+
+Annotated slide collections for the tutorial *Regression-based mapping of forest aboveground biomass* and a software description unit for the EnMAP-Box are provided here:
+
+* `Software description <https://eo-college.org/resource/enmap-box/>`_
+
+  .. todo:: Link to slides will be provided here once available
+
+
+
+2. Content
+==========
+
 Forest aboveground biomass (AGB) is a measure of the living and dead plant material in a given area. As such, it is
 often used for forest management, assessing fire potential, and is an important metric used in modelling carbon and
 nutrient cycles. AGB can be directly measured at a plot level by harvesting and weighing vegetation, but this is both
 an expensive and highly invasive process. Through the use of statistical modelling and remotely sensed imagery, AGB can
 be mapped across broad, spatially continuous areas using only a small number of directly measured biomass plots.
-
 This practical focuses on regression-based modeling of forest biomass using the EnMAP-Box. A hyperspectral image mosaic
 from the EnMAP sensor (here simulated from AVIRIS imagery) and a corresponding vector dataset containing aboveground
 biomass estimates are used for this tutorial. The aim is to provide an introduction into the functionality of the
 EnMAP-Box, as well as hands-on training for implementing regression-based mapping.
 
 
-2. Requirements
+
+3. Requirements
 ===============
 
-This practical requires at least version 3.5.20191101T1710.master of the EnMAP-Box 3. There might be some minor
+This practical requires at least version 3.5 of the EnMAP-Box 3. There might be some minor
 changes for higher versions (e.g., changed menu labels, added parameter options, etc.).
 
 
-3. Further reading
+4. Further reading
 ==================
 
 We recommend [1]_ and [2]_ for a comprehensive overview of imaging spectroscopy of terrestrial ecosystems, and [3]_ for
@@ -48,11 +71,11 @@ an overview of remote sensing of forest aboveground biomass.
 .. [3] Lu, D., Chen, Q., Wang, G., Liu, L., Li, G., & Moran, E. (2016). A survey of remote sensing-based aboveground biomass estimation methods in forest ecosystems. International Journal of Digital Earth, 9(1), 63-105.
 
 
-4. Data
+5. Data
 =======
 
-You can download the data for this exercise here:
-https://box.hu-berlin.de/f/c3ead66ee0444ec895ff/?dl=1
+:download:`You can download the data for this exercise here:`
+https://box.hu-berlin.de/f/06caeb4017ce420b80e1/?dl=1
 
 The practical dataset contains a hyperspectral image mosaic in Sonoma County, California, USA, as well as a shapefile
 containing point based biomass estimates sampled from an existing LiDAR derived biomass map [4]_.
@@ -62,14 +85,10 @@ containing point based biomass estimates sampled from an existing LiDAR derived 
    :delim: ;
    :widths: auto
 
-
    Data type; Filename; Description
-   Raster; :file:`enmap_sonoma.bsq` [*]_; Simulated spaceborne hyperspectral data from the EnMAP sensor with a spatial resolution of 30m, 195 bands, and 1000x200 pixels.
-   Vector; :file:`biomass_sonoma.shp` [*]_; 3000 biomass reference points sampled from an existing LiDAR derived biomass map [4]_
-
-.. [*] ENVI Standard Band Sequential (BSQ)
-
-.. [*] ESRI shapefile (SHP)
+   Raster; :file:`enmap_sonoma.bsq`; Simulated spaceborne hyperspectral data from the |br| EnMAP sensor with a spatial resolution of 30m, 195 bands, |br| and 1000x200 pixels (ENVI Standard Band Sequential ``bsq``)
+   Raster; :file:`NLCD_sonoma.bsq`; National Land Cover Database 30m classification for |br| the study region (ENVI Standard Band Sequential ``bsq``)
+   Vector; :file:`biomass_sonoma.shp`; 3000 biomass reference points sampled from an |br| existing LiDAR derived biomass map [4]_ (ESRI Shapefile ``bsq``)
 
 .. [4] Dubayah, R.O., A. Swatantran, W. Huang, L. Duncanson, H. Tang, K. Johnson, J.O. Dunne, and G.C. Hurtt. 2017. CMS: LiDAR-derived Biomass, Canopy Height and Cover, Sonoma County, California, 2013. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1523
 
@@ -101,7 +120,7 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
 ============
 
 * To load new datasets into the EnMAP-Box, click the |mActionDataSourceManager| icon and navigate to the file directory
-  containing your data. Select :file:`biomass_sonoma.shp` from the Open data source dialogue and select Open.
+  containing your data. Select :file:`biomass_sonoma.shp` from the Open data source dialogue and select :guilabel:`Open`.
 * Alternatively, the EnMAP-Box offers simple drag & drop capabilities to load data from an external file manager
   (e.g. Windows File Explorer). Open :file:`enmap_sonoma.bsq` by dragging and dropping the file from your file manager
   into the :guilabel:`Data Sources` panel.
@@ -153,7 +172,7 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
 =====================
 
 * The EnMAP-Box enables users to work with multiple Map Views, which can be flexibly organized and geospatially linked.
-  Open a new Map View. Note a Data View entry appears corresponding to the new Map View.
+  Open a new Map View by clicking the |viewlist_mapdock| icon. Note a Data View entry appears corresponding to the new Map View.
 
 * Display :file:`enmap_sonoma.bsq` as an RGB composite of your choice in Map #2.
 
@@ -200,7 +219,7 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
 * By default, vector files are displayed with a single uniform symbol. To change this symbology, right
   click on :file:`biomass_sonoma.shp` in the :guilabel:`Data Views` panel, select :guilabel:`Layer Properties` and navigate to :guilabel:`Symbology`
   in the LayerProperties window. You can now change the symbology in accordance to the QGIS functionality. 
-  Select “Graduated” from the dropdown menu, and select “biomass” in Column and “Color” in Method.
+  Select :guilabel:`Graduated` from the dropdown menu, and select ``biomass`` in :guilabel:`Column` and ``Color`` in :guilabel:`Method`.
   Set the :guilabel:`Color ramp` to run from white to green.
 * Press :guilabel:`Classify` and then :guilabel:`OK` to display the relative biomass values associated with each point.
   Explore the different ways you can display this information using the QGIS symbology functionality.
@@ -255,7 +274,7 @@ Exercise B: Regression based mapping of aboveground forest biomass
 
    * Introduces a regression-based mapping approach for taking point measurements of biomass and generating
      spatial biomass estimates using an input raster of hyperspectral imagery.
-   * Demonstrates the ‘Regression-based mapping’ application of the EnMAP-Box.
+   * Demonstrates the **Regression-based mapping** application of the EnMAP-Box.
    * Conduct an accuracy assessment of our biomass estimates using the EnMAP-Box algorithms.
 
    Duration: 20 min
@@ -293,20 +312,20 @@ Exercise B: Regression based mapping of aboveground forest biomass
 * As our training data is not evenly distributed across the range of observed biomass, we will
   implement an equalized sampling scheme to ensure an appropriate model fit.
 
-.. image:: img/Slide9_BiomassTrainingDist.PNG
+.. image:: img/8-distribution.png
 
 * Change the :guilabel:`Number of Strata` to ``5`` and click :guilabel:`Apply`. You will see five strata appear below,
   showing the minimum and maximum biomass values, the number of samples which will be drawn, and the
   total number of samples in each strata in parentheses.
-* Change the :guilabel:`Sample Size` to ``10%`` and click :guilabel:`Apply`. You will now see the number of samples drawn from each
-  strata automatically update to include 10% of the total size of each strata. To set an equalized
-  sampling scheme, select :guilabel:`Pixel` from the dropdown menu and sample 100 pixels per strata. You can
-  also manually define the sample size if desired. For now, sample 100 pixels for each of 5 strata.
-* Select the option to |cb1| :guilabel:`Save Sample` and define an output file name and location. This saves a raster
-  containing the biomass samples used to train the model, as well as a complementary raster of
+* Change the :guilabel:`Sample Size` to ``20%`` and click :guilabel:`Apply`. You will now see the number of samples drawn from each
+  strata automatically update to include 20% of the total size of each strata. To set an equalized
+  sampling scheme, select :guilabel:`Pixel` from the dropdown menu and sample 20 pixels per strata. You can also manually
+  define the sample size from each bin if desired. For now, sample 20 pixels for each of 5 strata.
+* Select the option to |cb1| :guilabel:`Save Sample` and define an output file name and location (e.g. :file:`biomassSample.bsq`).
+  This saves a raster containing the biomass samples used to train the model, as well as a complementary raster of
   the samples left out of the training. We can later use these complementary samples for validation of the model.
 
-.. image:: img/Slide10_Sampling.PNG
+.. image:: img/9-sampling.png
 
 
 4. Regression Algorithm
@@ -330,7 +349,7 @@ Exercise B: Regression based mapping of aboveground forest biomass
 6. Cross-validation Accuracy Assessment
 =======================================
 
-* If you lack independent validation data, you may selected to run cross-validation of the dataset with a
+* If you lack independent validation data, you may select to run cross-validation of the dataset with a
   desired number of folds. Leave this unchecked.
 
 .. attention::
@@ -343,7 +362,7 @@ Exercise B: Regression based mapping of aboveground forest biomass
 
 * Click on the |action| button to run the application. The outputs appear in the :guilabel:`Data Sources` panel.
 
-.. image:: img/Slide11_FilledRegressionWorkflow.PNG
+.. image:: img/10-regWorkflow.png
 
 
 8. Visualize biomass results
@@ -366,10 +385,10 @@ Exercise B: Regression based mapping of aboveground forest biomass
 9. Validation of biomass maps
 =============================
 
-* When generating the biomass regression model, we withheld a number of samples, :file:`biomassSample_compliment.bsq`,
+* When training the biomass regression model, we withheld a number of samples, :file:`biomassSample_compliment.bsq`,
   which we will now use to validate the biomass predictions. Open and link these withheld samples in a new
   Map View. Compare the biomass values in the withheld samples to the model predicted biomass estimates.
-  We will use these reference values to statistically evaluate our biomass predictions.
+  We will use the reference values in the withheld samples to statistically evaluate our biomass predictions.
 * In the :guilabel:`Processing Toolbox`, go to :menuselection:`EnMAP-Box --> Accuracy Assessment --> Regression Performance`.
   Run the Regression Performance algorithm with the following inputs:
 
@@ -381,22 +400,22 @@ Exercise B: Regression based mapping of aboveground forest biomass
 * After selecting :guilabel:`Run`, an HTML report with scatterplots and statistical measures will open in your
   default browser. Make yourself familiar with the HTML report.
 
-.. image:: img/Slide13_RegressionPerformancePlots.PNG
+.. image:: img/13-performance.png
 
 Learning Activities
 ===================
 
 .. admonition:: Learning Activities
 
-  * **B1**: What general trends do you see in the biomass estimations? How do these
+  * **B1**: What general trends do you see in the biomass estimations? How do they compare to landscape features seen in the EnMAP imagery?
   * **B2**: How do the biomass estimates compare to the withheld samples? How do they compare to the training samples?
-  * **B3**: Discuss the accuracy results, both in terms of the statistical measures, as well as the form of the scatterplot.
+  * **B3**: Discuss the accuracy results, both in terms of the statistical measures, as well as the form of the scatterplot and histograms.
 
 
 |
 
-Exercise C: Creating an NDVI-based tree mask with ImageMath
-***********************************************************
+Exercise C: Introduction to ImageMath
+*************************************
 
 .. admonition:: Description
 
@@ -407,8 +426,8 @@ Exercise C: Creating an NDVI-based tree mask with ImageMath
 1. ImageMath introduction
 =========================
 
-* The ImageMath tool in the EnMAP-Box allows users to apply a mathematical operation, python function, or user defined function an image.
-* For this exercise, you will need :file:`biomass_estimation.bsq` and :file:`enmap_sonoma.bsq` from the previous exercises
+* The ImageMath tool in the EnMAP-Box allows users to apply a mathematical operation, python function or user defined function to an image.
+* For this exercise, you will need :file:`biomass_estimation.bsq`, :file:`NLCD_sonoma.bsq` and :file:`enmap_sonoma.bsq` from the previous exercises
   open in the :guilabel:`Data Sources` panel.
 * Open the ImageMath application by going to :guilabel:`Applications` then selecting |numpy| :guilabel:`ImageMath`
 * The ImageMath Calculator consists of several panels:
@@ -429,6 +448,13 @@ Exercise C: Creating an NDVI-based tree mask with ImageMath
 
 .. |numpy| image:: /../../enmapbox/coreapps/enmapboxapplications/imagemathapp/icons/numpy.png
    :height: 26px
+
+* The ImageMath tool allows for quick implementation of python-like code, treating input raster datasets as numpy n-dimensional arrays.
+* In the following sections, we will utilize standard numpy array processing protocols to analyse our raster image to
+
+  1. calculate NDVI from two bands of our EnMAP imagery
+  2. apply a forest mask to both the NDVI and biomass images
+
 
 2. Calculate NDVI
 =================
@@ -464,9 +490,16 @@ Exercise C: Creating an NDVI-based tree mask with ImageMath
      NDVI = (NIR - RED)/(NIR + RED)
 
   In the :guilabel:`Outputs` panel, define the output variable name as ``NDVI``, and select an output file
-  path and file name (e.g. :file:`C:\Users\USERNAME\Desktop\NDVI.bsq`). Note, if you leave the file name black, the output
+  path and file name (e.g. :file:`C:\\Users\\USERNAME\\Desktop\\NDVI.bsq`). Note, if you leave the file name black, the output
   variable will be saved to memory.
-  Finally, click on the |action| button to run the script.
+* Finally, click on the |action| button to run the script.
+
+.. tip::
+
+   For spectral images, metadata such as projection information may be missing. If this is the case, such information
+   may be added to the output raster using the ``setMetaData`` command. See the imageMath manual for more information.
+
+.. todo add link to imagemath manual and/or cookbook
 
 .. image:: img/Slide15_ImageMathNDVI.PNG
 
@@ -475,62 +508,138 @@ Exercise C: Creating an NDVI-based tree mask with ImageMath
 
 .. image:: img/ndvi_result.png
 
-3. Create and apply a mask
-==========================
+3. Create a forest mask
+=======================
 
-* As the biomass map was only trained using forested biomass plots, only limited inference can be
-  made of the non-forest biomass estimates. We will therefore apply a forest mask to our biomass map.
-  Because non-woody vegetation in our imagery is largely senesced (i.e. not green), we can create a proxy
-  forest mask using a simple NDVI threshold.
-* Open the ImageMath tool and set :file:`NDVI.bsq` and :file:`biomass_estimation.bsq` as the input files.
-* Enter the following code into the Console to create a mask for all pixels with and NDVI below a threshold
-  of 0.7 and apply it to the NDVI image:
+* Open :file:`NLCD_sonoma.bsq` in Map #1.
+* As the biomass map was only trained using forested biomass plots, only limited inference can be made of the
+  non-forest biomass estimates. We will therefore apply a forest mask to our biomass map.
+* The forest mask will ignore any pixels that are Deciduous (41), Evergreen (42), or Mixed (43) forest according to the NLCD classification.
+* Enter the following Open this in Map #1. Below are the NLCD classes and color legend represented in the raster data.
+  We will consider any pixel to be forest which is labelled as Deciduous (41), Evergreen (42), or Mixed (43) forest according to the NLCD classification.
+
+.. image:: img/17-NLCD.png
+
+* Open the ImageMath tool and set :file:`NLCD_sonoma.bsq` as the input file.
+* Enter the following code into the code editor:
 
   .. code-block:: python
 
-     mask = NDVI < 0.7
+     ForestMask_sonoma = NLCD_sonoma
+     forest_classes = [42, 43, 44]
+
+     for x in range(ForestMask_sonoma.shape[1]):
+         for y in range(ForestMask_sonoma.shape[2]):
+             if ForestMask_sonoma[0, x, y] in forest_classes:
+                 ForestMask_sonoma[0, x, y] = 0
+             else:
+                 ForestMask_sonoma[0, x, y] = 1
+
+
+* Line by line, this
+
+  1. Copies the NLCD information to a new object we will manipulate to create the mask
+  2. Creates a list of classes which we consider forest
+  3. Loops through the x dimension of the raster. For each loop, x will be an integer representing the current location in the x dimension.
+  4. Loops through the y dimension of the raster. For each loop, y will be an integer representing the current location in the y dimension. These two loops allow us to look at each element in the array individually. While numpy offers more efficient ways to analyse arrays (See section C4), this is one basic approach.
+  5. Check if the element at the current x and y position is in the forest_classes list
+  6. If it is, set that value to 0
+  7. If it is not
+  8. Set that value to 1
+
+* Set ForestMask_sonoma as the output and define the path to your working directory.
+* Run the script by clicking |action|. The resulting mask now has a value of 0 for forested pixels, and 1 for non-forested pixels.
+
+.. image:: img/18-Masking_imgmath.png
+
+4. Apply a mask
+===============
+
+* Open the ImageMath tool and set :file:`NDVI.bsq`, :file:`biomass_estimation.bsq`, and :file:`ForestMask_sonoma.bsq` as the input files.
+* Enter the following code into the Console to apply the forest mask to the NDVI and biomass images.
+
+  .. code-block:: python
+
+     ForestMask_sonoma = ForestMask_sonoma.astype(bool)
+
      biomassMasked = biomass_estimation
-     biomassMasked[mask] = -99
+     biomassMasked[0,:,:][ForestMask_sonoma] = -99
      setNoDataValue(biomassMasked, -99)
 
-.. image:: img/Slide16_ImageMathBuildMask.PNG
+     NDVI_Masked = NDVI
+     NDVI_Masked[0,:,:][ForestMask_sonoma] = -99
+     setNoDataValue(NDVI_Masked, -99)
 
 * Line by line, this script:
 
-  1. Creates a binary array “mask” of 1 (True) and 0 (False) for each value less than 0.7
-  2. Copies the biomass values to a new array
-  3. Steps through each value in the new array and sets the value to -99 if the masked value is 1 (i.e. if the NDVI is less than 0.7).
-  4. Sets the no data value for the masked array to -99. This helps the EnMAP-Box to automatically display the data correctly.
+  1. First sets the mask to a Boolean data type (i.e. True/False). The mask file contains binary values where 0
+     indicates forest (i.e. non-masked pixels) and 1 indicates non-forest (i.e. pixels to be ignored). In Python, 1
+     also represents True while 0 represents False, and by setting the datatype to ``bool``, we explicitly tell Python
+     to treat these values in this manner.
+  2. Copies the biomass values to a new array.
+  3. Steps through each value in the new array and sets the value to -99 if the mask value is True. In numpy array speak,
+     this line can therefore read: “For each value in ``biomassMasked``, if the corresponding value in ``ForestMask_sonoma`` is True
+     (i.e. non-forest), then set that value to -99”. If mask value is False (i.e. forested), nothing will happen, and the
+     biomass value will remain in the array.
+  4. Sets the no data value for the masked array to -99. This helps the EnMAP-Box to automatically display the data
+     correctly, and since it is not a realistic value for both biomass and NDVI, we can safely ignore it.
+  5. Steps 2-4 are then repeated for NDVI.
 
-* Set ``biomassMasked`` as the output and define the path to your working directory. Run the script by clicking |action|
+* Set ``biomassMasked`` and ``NDVI_Masked`` as the outputs and define the path to your working directory. Run the script by clicking |action|.
 
 
-4. Visualize the masked raster
+
+5. Visualize the masked raster
 ==============================
 
 * Open an RGB composite of :file:`enmap_sonoma.bsq` in Map #1 and open and link the masked biomass image in a new
   Map window. Refer to Exercise A5 if needed.
+* Open :file:`NDVI.bsq` in Map #1. Compare patterns of NDVI and estimated AGB.
 
 .. image:: img/masked_biomass.png
+
+6. Visualize NDVI vs Biomass with the Scatterplot tool
+======================================================
+
+* To investigate the relationship NDVI has with forest AGB, we will make use of the EnMAP-box’s Scatterplot tool.
+  This is one of a number of tools integrated into the EnMAP-Box to help aid with data visualization and assessment.
+
+* Open the Scatterplot tool by going to :guilabel:`Tools` then selecting :guilabel:`Scatterplot`.
+
+    * Select :file:`biomass_Masked.bsq` for :guilabel:`Band X` and :file:`NDVI_Masked.bsq` for :guilabel:`Band Y` from the dropdown menus.
+       * If a selected raster has multiple bands, you would specify the desired band from the dropdown Band menu.
+       * You may also specify the Min and Max values to be displayed for each band, but if left blank these will be calculated automatically.
+
+    * If you wish to apply another mask to both images, you may specify this with the :guilabel:`Mask` option. As we have already masked both images, leave this blank.
+    * Under :guilabel:`Accuracy` you may choose to display ``Estimated`` or ``Actual``. ``Actual`` will display all available data,
+      while ``Estimated`` will only display a random subset. For large raster extents, ``Estimated`` is much faster, and
+      for that reason is the default. Leave :guilabel:`Accuracy` as ``Estimated``.
+    * Next, you may choose how to :guilabel:`Plot` the data: either as binned data or plotting all the data points individually.
+      Leave the default selection as binned data with 100 bins.
+    * Optionally, you may include the ‘Min-max line’, which represents the linear 1:1 relationship between the two
+      variables if they were perfectly correlated, and a ‘Fitted line’, which represents the linear regression line
+      fitted between the actual data from the two variables. Activate the ‘Min-max line’ by checking the box to its left.
+* Run the Scatter Plot tool by clicking |action| in the lower right of the window. You may adjust the color scale by right
+  clicking on the color bar to the right of the plot, and you can change the stretch by adjusting the size and position of the blue box next to it.
+
+.. image:: img/20-scatter.png
 
 Learning Activities
 ===================
 
 .. admonition:: Learning Activities
 
-   * **D1**: Why was it necessary to mask the biomass results?
-   * **D2**: What are the limitations of using NDVI to create the forest mask? Was 0.7 a ‘good’ threshold? Why or why not?
+   * **C1**: Why was it necessary to mask the biomass results?
+   * **C2**: What relationships can you see between NDVI and AGB? Do these relationships hold true if you look at the un-masked AGB and NDVI maps?
+   * **C3**: Given the relationships between NDVI and AGB, do you think NDVI could be used to map AGB? What limitations would you expect from such a model?
+
 
 Additional Exercises
 ********************
 
 .. admonition:: Learning Activities
 
-   * **AE1**: Use the **ImageStatistics** tool in the :guilabel:`Tools` menu to look at the band statistics for the biomass predictions
-     both with and without the tree mask applied.
-   * **AE2**: Use the **Scatterplot** tool in the :guilabel:`Tools` menu to explore the relationship between NDVI and biomass.
-   * **AE3**: Because we randomly subsetted the training data prior to model training, the performance of the model
-     has an element of uncertainty to it. To better understand this, rerun the regression workflow 3-5 times.
-     Then use the **ImageMath** tool to calculate the average estimate and variance. How does running the regression
-     in such an ensemble approach affect the results? What is the spatial pattern of variation in estimates?
-   * **AE4**: Rerun regression (Exercise B) using NDVI as the input rather than the hyperspectral imagery.
+   * **AE1**: Use the **ImageStatistics** tool in the :guilabel:`Tools` menu to look at the band statistics for the biomass predictions both with and without the tree mask applied.
+   * **AE2**: Because we randomly subsetted the training data prior to model training, the performance of the model has an element of uncertainty to it. To better understand this, rerun the regression workflow 3-5 times. Then use the **ImageMath** tool to calculate the average estimate and variance. How does running the regression in such an ensemble approach affect the results? What is the spatial pattern of variation in estimates?
+   * **AE3**: Rerun regression (Exercise B) using NDVI as the input rather than the hyperspectral imagery.
+
