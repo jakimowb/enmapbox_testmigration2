@@ -179,7 +179,7 @@ It was tested successfully on Windows 10, Ubuntu 18 and macOS.
 
     * (macOS) ``<your conda installation>/envs/qgis_stable/QGIS.app/Contents/MacOS/../Resources/python``
 
-    Now the PyQGIS API is available to your Python installation.
+    Right-click on the ``plugins`` subfolder and select :guilabel:`Sources`. Now the PyQGIS API is available to your Python installation.
 
     .. tip::
 
@@ -201,7 +201,7 @@ It was tested successfully on Windows 10, Ubuntu 18 and macOS.
     ======== ===============================================================================
     OS       QGIS_PREFIX_PATH
     ======== ===============================================================================
-    Windows  `<your conda installation>\envs\qgis_stable\Library`
+    Windows  `<your conda installation>\\envs\\qgis_stable\\Library`
     Linux    `<your conda installation>/envs/qgis_stable/Library`
     macOS    `<your conda installation>/envs/qgis_stable/QGIS.app/Contents/Resources`
     ======== ===============================================================================
