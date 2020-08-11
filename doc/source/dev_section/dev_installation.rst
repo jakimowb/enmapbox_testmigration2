@@ -195,20 +195,14 @@ It was tested successfully on Windows 10, Ubuntu 18 and macOS.
 5.  (Windows + macOS) set the QGIS_PREFIX_PATH variable
 
     PyCharm and PyQGIS need the environmental variable ``QGIS_PREFIX_PATH``.
-    You can get it from the conda shell by calling
-
-    .. code-block:: bat
-
-       (qgis_stable) C:\Windows\System32>set QGIS_PREFIX_PATH
-        QGIS_PREFIX_PATH=F:/miniconda3/envs/qgis_stable/Library
-
 
     Typical paths are:
 
     ======== ===============================================================================
     OS       QGIS_PREFIX_PATH
     ======== ===============================================================================
-    Windows  `<your conda installation>/envs/qgis_stable/Library`
+    Windows  `<your conda installation>\envs\qgis_stable\Library`
+    Linux    `<your conda installation>/envs/qgis_stable/Library`
     macOS    `<your conda installation>/envs/qgis_stable/QGIS.app/Contents/Resources`
     ======== ===============================================================================
 
