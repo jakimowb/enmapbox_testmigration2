@@ -1,6 +1,6 @@
 .. include:: external_links.rst
 
-*Last Update: 2020-07-01*
+*Last Update: 2020-08-12*
 
 .. _dev_installation:
 
@@ -179,7 +179,7 @@ It was tested successfully on Windows 10, Ubuntu 18 and macOS.
 
     * (macOS) ``<your conda installation>/envs/qgis_stable/QGIS.app/Contents/MacOS/../Resources/python``
 
-    Now the PyQGIS API is available to your Python installation.
+    Right-click on the ``plugins`` subfolder and select :guilabel:`Sources`. Now the PyQGIS API is available to your Python installation.
 
     .. tip::
 
@@ -195,20 +195,14 @@ It was tested successfully on Windows 10, Ubuntu 18 and macOS.
 5.  (Windows + macOS) set the QGIS_PREFIX_PATH variable
 
     PyCharm and PyQGIS need the environmental variable ``QGIS_PREFIX_PATH``.
-    You can get it from the conda shell by calling
-
-    .. code-block:: bat
-
-       (qgis_stable) C:\Windows\System32>set QGIS_PREFIX_PATH
-        QGIS_PREFIX_PATH=F:/miniconda3/envs/qgis_stable/Library
-
 
     Typical paths are:
 
     ======== ===============================================================================
     OS       QGIS_PREFIX_PATH
     ======== ===============================================================================
-    Windows  `<your conda installation>/envs/qgis_stable/Library`
+    Windows  `<your conda installation>\\envs\\qgis_stable\\Library`
+    Linux    `<your conda installation>/envs/qgis_stable/Library`
     macOS    `<your conda installation>/envs/qgis_stable/QGIS.app/Contents/Resources`
     ======== ===============================================================================
 
@@ -218,6 +212,10 @@ It was tested successfully on Windows 10, Ubuntu 18 and macOS.
 
     .. figure:: img/pycharm_QGIS_PREFIX_PATH.png
 
+    Also define the Environment variables for the Python console. Go to *File > Settings > Build, Execution, Deployment > Console > Python Console*
+    and add *QGIS_PREFIX_PATH* to the Environment variables.
+
+    .. figure:: img/pycharm_qgispath_console.png
 
     You might also like to use the conda environment shell in your Pycharm terminal.
     Open *Tools > Terminal* and set the shell path to

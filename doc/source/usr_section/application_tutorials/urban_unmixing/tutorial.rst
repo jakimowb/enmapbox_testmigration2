@@ -1,5 +1,9 @@
 .. include:: /icon_links.rst
 
+.. |br| raw:: html
+
+  <br/>
+
 .. _tut_urban_unmixing:
 
 =============================================
@@ -7,10 +11,7 @@ Regression-based unmixing of urban land cover
 =============================================
 
 
-**Authors:** Akpona Okujeni, Sam Cooper, Andreas Rabe, Benjamin Jakimow, Fabian Thiel, Sebastian van der Linden
-
-**Contributions from:** Clemens Jaenicke, Patrick Hostert
-
+**Authors:**  Akpona Okujeni, Sam Cooper, Patrick Hostert, Clemens Jaenicke, Benjamin Jakimow, Andreas Rabe, Fabian Thiel & Sebastian van der Linden
 
 **Publication date:** 05/02/2019
 
@@ -29,15 +30,15 @@ Introduction
    :align: right
    :width: 30%
 
-This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/>`_, an education initiative within the EnMAP mission hosted
+This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/now-online-hyperedu-educational-resources-on-imaging-spectroscopy/>`_,
+an education initiative within the `EnMAP mission <https://www.enmap.org/>`_ hosted
 on EO College. HYPERedu provides annotated slide collections and hands-on tutorials using the open-source EnMAP-Box software,
 targeting basic principles, methods as well as applications of imaging spectroscopy.
 
-A software description unit for the EnMAP-Box and annotated slide collections for the tutorial “Regression-based unmixing
-of urban land cover“ are provided here:
+Annotated slide collections for the tutorial *Regression-based unmixing of urban land cover* and a software description unit for the EnMAP-Box are provided here:
 
-* https://eo-college.org/resource/regression-based-unmixing-of-urban-land-cover/
-* https://eo-college.org/resource/enmap-box/
+* `Slide collection <https://eo-college.org/resource/regression-based-unmixing-of-urban-land-cover/>`_
+* `Software description <https://eo-college.org/resource/enmap-box/>`_
 
 
 
@@ -51,7 +52,7 @@ with a high share of mixed pixels, fraction mapping is more useful than a discre
 for example, applies to the use of 30 m resolution imagery from the forthcoming spaceborne imaging
 spectrometer mission EnMAP for urban mapping.
 
-This practical focuses on regression-based unmixing of urban land cover using synthetically mixed
+This tutorial focuses on regression-based unmixing of urban land cover using synthetically mixed
 training data from spectral libraries. Hyperspectral images from the airborne HyMap and the
 spaceborne EnMAP sensor (here simulated from HyMap), a corresponding spectral library, and
 reference land cover information are used for different exercises within this tutorial. These aim at
@@ -62,7 +63,7 @@ training for working with the EnMAP-Box.
 3. Requirements
 ---------------
 
-This practical requires at least version 3.6 of the EnMAP-Box 3.
+This tutorial requires at least version 3.6 of the EnMAP-Box 3.
 There might be some minor changes for higher versions (e.g., changed menu labels, added parameter options, etc.).
 
 
@@ -81,20 +82,31 @@ mixed training data from spectral libraries.
 4. Data
 -------
 
-:download:`You can download the data here (tutorial_unmixing_materials.zip):` https://box.hu-berlin.de/f/01d6196ab1e34956bd5d/?dl=1
+:download:`You can download the data here:`
+https://box.hu-berlin.de/f/3c3f7b76d91b4bd2a688/?dl=1
 
-The practical dataset contains an EnMAP-image (simulation) covering an area along the urban gradient of Berlin, Germany,
+The tutorial dataset contains an EnMAP-image (simulation) covering an area along the urban gradient of Berlin, Germany,
 a second hyperspectral image at higher spatial resolution (HyMap, 3.6 m), a spectral library and detailed land cover
 reference information.
 
-.. image:: tut_img/data_table.PNG
+.. csv-table::
+   :header-rows: 1
+   :delim: ;
+   :widths: auto
 
-The practical dataset is a subset extracted from the Berlin-Urban-Gradient dataset (http://doi.org/10.5880/enmap.2016.008).
+   Data type; Filename; Description
+   Raster; :file:`hymap_berlin.bsq`; Airborne hyperspectral data from the HyMap sensor with |br| a spatial resolution of 3.6m, 111 bands and |br| 346x3200 pixels (ENVI Standard Band Sequential ``bsq``)
+   Raster; :file:`enmap_berlin.bsq`; Spaceborne hyperspectral data from the EnMAP sensor |br| (here simulated from HyMAP) with a spatial resolution |br| of 30m, 177 bands and 220x400 pixels (ENVI Standard Band Sequential ``bsq``)
+   Spectral library; :file:`library_berlin.sli`; Urban spectral library with 75 pure surface materials |br| categorized in a hierarchical class scheme. The Library |br| was developed from the HyMap image and spectrally |br| resampled to the EnMAP sensor (ENVI spectral library ``sli`` |br| with metadata extensions ``csv`` & ``json``)
+   Vector; :file:`landcover_berlin.shp`; Detailed land cover reference information categorized |br| in a hierarchical class scheme (ESRI Shapefile ``shp`` |br| with QGIS layer style file ``qml`` and metadata extension ``json``)
+
+.. .. image:: tut_img/data_table.PNG
+
+The tutorial dataset is a subset extracted from the Berlin-Urban-Gradient dataset [4]_.
 Please cite the dataset as follows:
 
 .. [4] Okujeni, Akpona; van der Linden, Sebastian; Hostert, Patrick (2016): Berlin-Urban-Gradient dataset 2009 -
        An EnMAP Preparatory Flight Campaign (Datasets). V. 1.2. GFZ Data Services. http://doi.org/10.5880/enmap.2016.008
-
 
 |
 
