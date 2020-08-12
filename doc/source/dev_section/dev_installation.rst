@@ -1,6 +1,6 @@
 .. include:: external_links.rst
 
-*Last Update: 2020-07-01*
+*Last Update: 2020-08-12*
 
 .. _dev_installation:
 
@@ -212,6 +212,10 @@ It was tested successfully on Windows 10, Ubuntu 18 and macOS.
 
     .. figure:: img/pycharm_QGIS_PREFIX_PATH.png
 
+    Also define the Environment variables for the Python console. Go to *File > Settings > Build, Execution, Deployment > Console > Python Console*
+    and add *QGIS_PREFIX_PATH* to the Environment variables.
+
+    .. figure:: img/pycharm_qgispath_console.png
 
     You might also like to use the conda environment shell in your Pycharm terminal.
     Open *Tools > Terminal* and set the shell path to

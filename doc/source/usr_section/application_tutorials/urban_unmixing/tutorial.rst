@@ -52,7 +52,7 @@ with a high share of mixed pixels, fraction mapping is more useful than a discre
 for example, applies to the use of 30 m resolution imagery from the forthcoming spaceborne imaging
 spectrometer mission EnMAP for urban mapping.
 
-This practical focuses on regression-based unmixing of urban land cover using synthetically mixed
+This tutorial focuses on regression-based unmixing of urban land cover using synthetically mixed
 training data from spectral libraries. Hyperspectral images from the airborne HyMap and the
 spaceborne EnMAP sensor (here simulated from HyMap), a corresponding spectral library, and
 reference land cover information are used for different exercises within this tutorial. These aim at
@@ -63,7 +63,7 @@ training for working with the EnMAP-Box.
 3. Requirements
 ---------------
 
-This practical requires at least version 3.6 of the EnMAP-Box 3.
+This tutorial requires at least version 3.6 of the EnMAP-Box 3.
 There might be some minor changes for higher versions (e.g., changed menu labels, added parameter options, etc.).
 
 
@@ -85,7 +85,7 @@ mixed training data from spectral libraries.
 :download:`You can download the data here:`
 https://box.hu-berlin.de/f/3c3f7b76d91b4bd2a688/?dl=1
 
-The practical dataset contains an EnMAP-image (simulation) covering an area along the urban gradient of Berlin, Germany,
+The tutorial dataset contains an EnMAP-image (simulation) covering an area along the urban gradient of Berlin, Germany,
 a second hyperspectral image at higher spatial resolution (HyMap, 3.6 m), a spectral library and detailed land cover
 reference information.
 
@@ -102,7 +102,7 @@ reference information.
 
 .. .. image:: tut_img/data_table.PNG
 
-The practical dataset is a subset extracted from the Berlin-Urban-Gradient dataset (http://doi.org/10.5880/enmap.2016.008).
+The tutorial dataset is a subset extracted from the Berlin-Urban-Gradient dataset [4]_.
 Please cite the dataset as follows:
 
 .. [4] Okujeni, Akpona; van der Linden, Sebastian; Hostert, Patrick (2016): Berlin-Urban-Gradient dataset 2009 -

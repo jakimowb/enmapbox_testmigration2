@@ -46,7 +46,7 @@ often used for forest management, assessing fire potential, and is an important 
 nutrient cycles. AGB can be directly measured at a plot level by harvesting and weighing vegetation, but this is both
 an expensive and highly invasive process. Through the use of statistical modelling and remotely sensed imagery, AGB can
 be mapped across broad, spatially continuous areas using only a small number of directly measured biomass plots.
-This practical focuses on regression-based modeling of forest biomass using the EnMAP-Box. A hyperspectral image mosaic
+This tutorial focuses on regression-based modeling of forest biomass using the EnMAP-Box. A hyperspectral image mosaic
 from the EnMAP sensor (here simulated from AVIRIS imagery) and a corresponding vector dataset containing aboveground
 biomass estimates are used for this tutorial. The aim is to provide an introduction into the functionality of the
 EnMAP-Box, as well as hands-on training for implementing regression-based mapping.
@@ -56,7 +56,7 @@ EnMAP-Box, as well as hands-on training for implementing regression-based mappin
 3. Requirements
 ===============
 
-This practical requires at least version 3.5 of the EnMAP-Box 3. There might be some minor
+This tutorial requires at least version 3.5 of the EnMAP-Box 3. There might be some minor
 changes for higher versions (e.g., changed menu labels, added parameter options, etc.).
 
 
@@ -77,7 +77,7 @@ an overview of remote sensing of forest aboveground biomass.
 :download:`You can download the data for this exercise here:`
 https://box.hu-berlin.de/f/06caeb4017ce420b80e1/?dl=1
 
-The practical dataset contains a hyperspectral image mosaic in Sonoma County, California, USA, as well as a shapefile
+The tutorial dataset contains a hyperspectral image mosaic in Sonoma County, California, USA, as well as a shapefile
 containing point based biomass estimates sampled from an existing LiDAR derived biomass map [4]_.
 
 .. csv-table::
@@ -90,7 +90,12 @@ containing point based biomass estimates sampled from an existing LiDAR derived 
    Raster; :file:`NLCD_sonoma.bsq`; National Land Cover Database 30m classification for |br| the study region (ENVI Standard Band Sequential ``bsq``)
    Vector; :file:`biomass_sonoma.shp`; 3000 biomass reference points sampled from an |br| existing LiDAR derived biomass map [4]_ (ESRI Shapefile ``bsq``)
 
+
 .. [4] Dubayah, R.O., A. Swatantran, W. Huang, L. Duncanson, H. Tang, K. Johnson, J.O. Dunne, and G.C. Hurtt. 2017. CMS: LiDAR-derived Biomass, Canopy Height and Cover, Sonoma County, California, 2013. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1523
+
+The tutorial dataset is a subset extracted from the "2013 Simulated EnMAP Mosaics for the San Francisco Bay Area, USA" dataset [5]_. Please cite the dataset as follows:
+
+.. [5] Cooper, Sam; Okujeni, Akpona; Jänicke, Clemens; Segl, Karl; van der Linden, Sebastian; Hostert, Patrick (2020): 2013 Simulated EnMAP Mosaics for the San Francisco Bay Area, USA. GFZ Data Services. https://doi.org/10.5880/enmap.2020.002
 
 |
 
