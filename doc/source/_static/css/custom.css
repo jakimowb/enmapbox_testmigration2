@@ -2,19 +2,16 @@
 .wy-nav-content {
     padding: 1.618em 3.236em;
     height: 100%;
-    max-width: 1000px;
+    max-width: 1500px;
     margin: auto;
     background-color: #ffffff;
 }
-*/
 
-/*
 .wy-nav-content-wrap {
     background-color: white;
 }
 */
 
-/* HyperEDU Style */
 @import url('https://fonts.googleapis.com/css?family=Oswald&display=swap');
 
 @import url('https://fonts.googleapis.com/css?family=Open+Sans&display=swap');
@@ -55,11 +52,12 @@ h4, h5, h6 {
 /*  letter-spacing: 4px; */
 }
 
-/*
+
 .rst-content .toctree-wrapper p.caption {
-  font-family: 'Oswald', sans-serif;
+  font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
 }
 
+/*
 .wy-menu-vertical header {
   color: #1F497D;
 }
