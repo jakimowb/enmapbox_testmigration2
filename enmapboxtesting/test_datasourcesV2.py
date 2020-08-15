@@ -40,7 +40,6 @@ class MyTestCase(EnMAPBoxTestCase):
         #tv.setBrowserModel(m)
         tv.setModel(m)
 
-        QgsBrowserDockWidget()
         sources = []
         def addSource(cls):
             if cls == QgsRasterLayer:
