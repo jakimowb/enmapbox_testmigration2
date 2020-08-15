@@ -16,7 +16,6 @@ def test1():
     classification2 = Classification.fromEnviSpectralLibrary(filename='/vsimem/classification2.bsq',
                                                             library=speclib, attribute='id')
 
-    return
     synthmixRegressionEnsemble(
         filename='/vsimem/syntmix',
         classificationSample=ClassificationSample(raster=raster2, classification=classification2),
