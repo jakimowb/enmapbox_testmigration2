@@ -45,8 +45,12 @@ class VRTBuilderApp(EnMAPBoxApplication):
 
         if self.mIsInstalled:
 
-            from vrtbuilder import VERSION, LICENSE, PATH_ICON
-            self.version = 'Version {}'.format(VERSION)
+            from vrtbuilder import LICENSE, PATH_ICON
+            try:
+                from vrtbuilder import __version__ as VRTBVersion
+            except:
+                from vrtbuilder import VERSION as VRTBVersion
+            self.version = 'Version {}'.format(VRTBVersion)
             self.licence = LICENSE
             self.mIcon = QIcon(PATH_ICON)
         else:
