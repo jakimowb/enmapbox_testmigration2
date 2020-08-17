@@ -50,7 +50,7 @@ You can get support in the following ways:
 
  -  Open an issue with your question, bug report, feature request or other enhancement https://bitbucket.org/hu-geomatics/enmap-box/issues/new
  
- -  Write us an email: [andreas.rabe@geo.hu-berlin.de](mail://andreas.rabe@geo.hu-berlin.de) or [andreas.rabe@geo.hu-berlin.de](mail://benjamin.jakimow@geo.hu-berlin.de)
+ -  Write us an email: [enmapbox@enmap.org](mailto:enmapbox@enmap.org)
 
 
 
