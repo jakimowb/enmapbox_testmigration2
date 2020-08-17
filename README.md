@@ -7,7 +7,7 @@
 The EnMAP-Box is free and open source [QGIS Plugin ](https://www.qgis.org) to visualize and process remote sensing raster data. 
 It is particularly developed to handle imaging spectroscopy data, as from the upcoming EnMAP sensor.
 
-![Screenshot](doc/source/img/screenshot_main2.png)
+![Screenshot](doc/source/img/screenshot_main3.png)
 
 # Highlights:
 
