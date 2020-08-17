@@ -46,7 +46,7 @@ import datetime
 from qgis.core import *
 from qgis.core import QgsField, QgsVectorLayer, QgsRasterLayer, QgsRasterDataProvider, QgsMapLayer, QgsMapLayerStore, \
     QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsRectangle, QgsPointXY, QgsProject, \
-    QgsMapLayerProxyModel, QgsRasterRenderer, QgsMessageOutput, QgsFeature, QgsTask, Qgis
+    QgsMapLayerProxyModel, QgsRasterRenderer, QgsMessageOutput, QgsFeature, QgsTask, Qgis, QgsGeometry
 from qgis.gui import *
 from qgis.gui import QgisInterface, QgsDialog, QgsMessageViewer, QgsMapLayerComboBox, QgsMapCanvas
 
@@ -873,10 +873,14 @@ def qgsVectorLayer(source) -> QgsVectorLayer:
     """
     if isinstance(source, QgsVectorLayer):
         return source
+    if isinstance(source, pathlib.Path):
+        return QgsRasterLayer(source.as_posix())
     if isinstance(source, str):
         return QgsVectorLayer(source)
     if isinstance(source, ogr.DataSource):
         return QgsVectorLayer(source.GetDescription())
+    if isinstance(source, QUrl):
+        return qgsVectorLayer(pathlib.Path(source.toString(QUrl.PreferLocalFile | QUrl.RemoveQuery)).resolve())
 
     raise Exception('Unable to transform {} into QgsVectorLayer'.format(source))
 
@@ -890,13 +894,41 @@ def qgsRasterLayer(source) -> QgsRasterLayer:
     """
     if isinstance(source, QgsRasterLayer):
         return source
+    if isinstance(source, pathlib.Path):
+        return QgsRasterLayer(source.as_posix())
     if isinstance(source, str):
         return QgsRasterLayer(source)
     if isinstance(source, gdal.Dataset):
         return QgsRasterLayer(source.GetDescription())
+    if isinstance(source, QUrl):
+        return qgsRasterLayer(pathlib.Path(source.toString(QUrl.PreferLocalFile | QUrl.RemoveQuery)).resolve())
 
     raise Exception('Unable to transform {} into QgsRasterLayer'.format(source))
 
+
+def qgsMapLayer(value: typing.Any) -> QgsMapLayer:
+    """
+    Tries to convert the input into a QgsMapLayer
+    :param value: any
+    :return: QgsMapLayer or None
+    """
+    if isinstance(value, QgsMapLayer):
+        return value
+    try:
+        lyr = qgsRasterLayer(value)
+        if isinstance(lyr, QgsRasterLayer):
+            return lyr
+    except:
+        pass
+
+    try:
+        lyr = qgsVectorLayer(value)
+        if isinstance(lyr, QgsVectorLayer):
+            return lyr
+    except:
+        pass
+
+    return None
 
 def loadUi(uifile, baseinstance=None, package='', resource_suffix='_rc', remove_resource_references=True,
            loadUiType=False):
@@ -1218,11 +1250,19 @@ def scanResources(path=':') -> typing.Iterator[str]:
 def datetime64(value, dpy: int = None) -> np.datetime64:
     """
     Converts an input value into a numpy.datetime64 value.
-    :param value:
-    :return:
+    :param value: the value to be converted into a numpy.datetime64 value
+    :param dpy: days per year. If `value` is a float, it is considered to be a decimal year value.
+                    By default it is assumed that the year fraction is calculated on 366 year in leap years and 365
+                    in none-leap year. However, dpy can be used to use any other number of days per year to convert
+                    the fraction back into days.
+    :return: numpy.datetime64
     """
     if isinstance(value, np.datetime64):
         return value
+    elif isinstance(value, QDate):
+        return np.datetime64(value.toPyDate())
+    elif isinstance(value, QDateTime):
+        return np.datetime64(value.toPyDateTime())
     elif isinstance(value, (str, datetime.date, datetime.datetime)):
         return np.datetime64(value)
     elif isinstance(value, int):
@@ -1818,6 +1858,12 @@ class SpatialPoint(QgsPointXY):
     """
     Object to keep QgsPoint and QgsCoordinateReferenceSystem together
     """
+    @staticmethod
+    def readXml(node: QDomNode):
+        wkt = node.firstChildElement('SpatialPointCrs').text()
+        crs = QgsCoordinateReferenceSystem(wkt)
+        point = QgsGeometry.fromWkt(node.firstChildElement('SpatialPoint').text()).asPoint()
+        return SpatialPoint(crs, point)
 
     @staticmethod
     def fromMapCanvasCenter(mapCanvas: QgsMapLayer):
@@ -1876,6 +1922,17 @@ class SpatialPoint(QgsPointXY):
             if px.y() < 0 or px.y() >= nl:
                 return None
         return px
+
+    def writeXml(self, node: QDomNode, doc: QDomDocument):
+        node_geom = doc.createElement('SpatialPoint')
+        node_geom.appendChild(doc.createTextNode(self.asWkt()))
+        node_crs = doc.createElement('SpatialPointCrs')
+        if QgsCoordinateReferenceSystem(self.crs().authid()) == self.crs():
+            node_crs.appendChild(doc.createTextNode(self.crs().authid()))
+        else:
+            node_crs.appendChild(doc.createTextNode(self.crs().toWkt()))
+        node.appendChild(node_geom)
+        node.appendChild(node_crs)
 
     def toCrs(self, crs):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
@@ -1993,9 +2050,15 @@ class SpatialExtent(QgsRectangle):
     """
     Object that combines a QgsRectangle and QgsCoordinateReferenceSystem
     """
+    @staticmethod
+    def readXml(node: QDomNode):
+        wkt = node.firstChildElement('SpatialExtentCrs').text()
+        crs = QgsCoordinateReferenceSystem(wkt)
+        rectangle = QgsRectangle.fromWkt(node.firstChildElement('SpatialExtent').text())
+        return SpatialExtent(crs, rectangle)
 
     @staticmethod
-    def fromMapCanvas(mapCanvas, fullExtent=False):
+    def fromMapCanvas(mapCanvas, fullExtent:bool=False):
         assert isinstance(mapCanvas, QgsMapCanvas)
 
         if fullExtent:
@@ -2050,6 +2113,17 @@ class SpatialExtent(QgsRectangle):
 
     def crs(self):
         return self.mCrs
+
+    def writeXml(self, node: QDomNode, doc: QDomDocument):
+        node_geom = doc.createElement('SpatialExtent')
+        node_geom.appendChild(doc.createTextNode(self.asWktPolygon()))
+        node_crs = doc.createElement('SpatialExtentCrs')
+        if QgsCoordinateReferenceSystem(self.crs().authid()) == self.crs():
+            node_crs.appendChild(doc.createTextNode(self.crs().authid()))
+        else:
+            node_crs.appendChild(doc.createTextNode(self.crs().toWkt()))
+        node.appendChild(node_geom)
+        node.appendChild(node_crs)
 
     def toCrs(self, crs):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
@@ -2172,11 +2246,27 @@ class SpatialExtent(QgsRectangle):
     def __copy__(self):
         return SpatialExtent(self.crs(), QgsRectangle(self))
 
-    def __reduce_ex__(self, protocol):
-        return self.__class__, (self.crs().toWkt(),
-                                self.xMinimum(), self.yMinimum(),
-                                self.xMaximum(), self.yMaximum()
-                                ), {}
+    def __reduce__(self):
+
+        return self.__class__, ('',), self.__getstate__()
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop('mCrs')
+        state['_crs_'] = self.crs().toWkt()
+        state['_xmin_'] = self.xMinimum()
+        state['_xmax_'] = self.xMaximum()
+        state['_ymin_'] = self.yMinimum()
+        state['_ymax_'] = self.yMaximum()
+        return state
+
+    def __setstate__(self, state):
+        self.setCrs(QgsCoordinateReferenceSystem(state.pop('_crs_')))
+        self.setXMinimum(state.pop('_xmin_'))
+        self.setXMaximum(state.pop('_xmax_'))
+        self.setYMinimum(state.pop('_ymin_'))
+        self.setYMaximum(state.pop('_ymax_'))
+        self.__dict__.update(state)
 
     def __hash__(self):
         return hash(str(self))
