@@ -505,7 +505,7 @@ class SpecMixPlotWidget(SpectralLibraryPlotWidget):
         self.mPDI_Avg: SpectralProfilePlotDataItem = SpectralProfilePlotDataItem(SpectralProfile())
         self.mPDI_Dev: SpectralProfilePlotDataItem = SpectralProfilePlotDataItem(SpectralProfile())
         self.mPDI_Avg.mProfile.setId(-9999)
-        self.mPDI_Avg.mProfile.setId(-9998)
+        self.mPDI_Dev.mProfile.setId(-9998)
 
         self.mPlotOverlayItems.extend([self.mPDI_Dev, self.mPDI_Avg])
 
