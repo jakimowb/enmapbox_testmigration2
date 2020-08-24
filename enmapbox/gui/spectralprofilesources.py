@@ -1,11 +1,15 @@
-
 import os, sys, typing, collections, enum
 import pickle
 
 from qgis.core import *
+from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsApplication, QgsTask, \
+    QgsTaskManager, QgsRasterDataProvider, QgsRasterRenderer
+
 from qgis.gui import *
+from qgis.gui import QgsMapCanvas, QgsDockWidget, QgsDoubleSpinBox
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
+
 from qgis.PyQt.QtWidgets import *
 import gdal
 from enmapbox.gui import *
@@ -15,29 +19,30 @@ import numpy as np
 
 from ..externals.qps.speclib.core import FIELD_NAME as SPECLIB_FIELD_NAME
 
+
 class SpectralProfileSource(object):
 
     @staticmethod
-    def fromRasterLayer(lyr:QgsRasterLayer):
+    def fromRasterLayer(lyr: QgsRasterLayer):
         return SpectralProfileSource(lyr.source(), lyr.name(), lyr.providerType(), lyr.renderer().clone())
 
     @staticmethod
-    def fromDataSource(dsr:DataSourceRaster):
+    def fromDataSource(dsr: DataSourceRaster):
         return SpectralProfileSource(dsr.uri(), dsr.name(), dsr.provider())
 
-    def __init__(self, uri:str, name:str, provider:str, renderer:QgsRasterRenderer=None):
+    def __init__(self, uri: str, name: str, provider: str, renderer: QgsRasterRenderer = None):
         assert len(uri) > 0
         self.mUri = uri
         self.mName = name
         self.mProvider = provider
-        self.mRenderer:QgsRasterRenderer = None
+        self.mRenderer: QgsRasterRenderer = None
         if isinstance(renderer, QgsRasterRenderer):
             self.mRenderer = renderer.clone()
             self.mRenderer.setInput(None)
 
         self.mLyr = None
 
-    def setName(self, name:str):
+    def setName(self, name: str):
         self.mName = name
 
     def name(self) -> str:
@@ -71,7 +76,7 @@ class SpectralProfileTopLayerSource(SpectralProfileSource):
 
         self.mMapLayerSources = []
 
-    def setMapSources(self, sources:typing.List[SpectralProfileSource]):
+    def setMapSources(self, sources: typing.List[SpectralProfileSource]):
         self.mMapLayerSources.clear()
         self.mMapLayerSources.extend(sources)
 
@@ -89,6 +94,7 @@ class SpectralProfileSrcListModel(QAbstractListModel):
     """
     A list model that list SpectralLibraries
     """
+
     def __init__(self, *args, **kwds):
         super(SpectralProfileSrcListModel, self).__init__(*args, **kwds)
 
@@ -106,7 +112,7 @@ class SpectralProfileSrcListModel(QAbstractListModel):
     def sources(self) -> typing.List[SpectralProfileSource]:
         return self[:]
 
-    def addSource(self, source:SpectralProfileSource) -> SpectralProfileSource:
+    def addSource(self, source: SpectralProfileSource) -> SpectralProfileSource:
         assert isinstance(source, SpectralProfileSource)
         if source not in self.mSources:
             i = len(self)
@@ -123,7 +129,7 @@ class SpectralProfileSrcListModel(QAbstractListModel):
         else:
             return QModelIndex()
 
-    def removeSource(self, source:SpectralProfileSource) -> SpectralProfileSource:
+    def removeSource(self, source: SpectralProfileSource) -> SpectralProfileSource:
         if isinstance(source, str):
             to_remove = [s for s in self.sources() if s.mUri == source]
             result = None
@@ -146,7 +152,7 @@ class SpectralProfileSrcListModel(QAbstractListModel):
     def flags(self, index: QModelIndex):
         if not index.isValid():
             return Qt.NoItemFlags
-        flags = Qt.ItemIsEnabled |  Qt.ItemIsSelectable
+        flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
         return flags
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
@@ -167,7 +173,7 @@ class SpectralProfileSrcListModel(QAbstractListModel):
                 return source.name()
             elif role == Qt.DecorationRole:
                 pass
-                #return QIcon(r':/images/themes/default/mIconRaster.svg')
+                # return QIcon(r':/images/themes/default/mIconRaster.svg')
             elif role == Qt.ToolTipRole:
                 return source.toolTip()
             elif role == Qt.UserRole:
@@ -185,6 +191,7 @@ class SpectralProfileDstListModel(QAbstractListModel):
     """
     A list model that list SpectralLibraries
     """
+
     def __init__(self, *args, **kwds):
         super(SpectralProfileDstListModel, self).__init__(*args, **kwds)
 
@@ -202,7 +209,7 @@ class SpectralProfileDstListModel(QAbstractListModel):
     def spectralLibraryWidgets(self) -> typing.List[SpectralLibraryWidget]:
         return self[:]
 
-    def addSpectralLibraryWidget(self, slw:SpectralLibraryWidget) -> SpectralLibraryWidget:
+    def addSpectralLibraryWidget(self, slw: SpectralLibraryWidget) -> SpectralLibraryWidget:
         assert isinstance(slw, SpectralLibraryWidget)
         i = self.speclibListIndex(slw)
         if i is None:
@@ -213,8 +220,8 @@ class SpectralProfileDstListModel(QAbstractListModel):
             return slw
         return None
 
-    def speclibListIndex(self, speclib:SpectralLibraryWidget) -> int:
-        for i,  sl in enumerate(self):
+    def speclibListIndex(self, speclib: SpectralLibraryWidget) -> int:
+        for i, sl in enumerate(self):
             if sl is speclib:
                 return i
         return None
@@ -226,7 +233,7 @@ class SpectralProfileDstListModel(QAbstractListModel):
             return self.createIndex(i, 0, speclib)
         return QModelIndex()
 
-    def removeSpeclib(self, slw:SpectralLibraryWidget) -> SpectralLibraryWidget:
+    def removeSpeclib(self, slw: SpectralLibraryWidget) -> SpectralLibraryWidget:
         i = self.speclibListIndex(slw)
         if isinstance(i, int):
             self.beginRemoveRows(QModelIndex(), i, i)
@@ -274,16 +281,15 @@ class SpectralProfileDstListModel(QAbstractListModel):
 
         return None
 
+
 class SpectralProfileSamplingMode(enum.Enum):
+    SingleProfile = 1
+    Sample3x3 = 2
+    Sample5x5 = 3
+    Sample3x3Mean = 4
+    Sample5x5Mean = 5
 
-    SingleProfile=1
-    Sample3x3=2
-    Sample5x5=3
-    Sample3x3Mean=4
-    Sample5x5Mean=5
-
-
-    def profilePositions(self, lyr:QgsRasterLayer, spatialPoint:SpatialPoint) -> typing.List[SpatialPoint]:
+    def profilePositions(self, lyr: QgsRasterLayer, spatialPoint: SpatialPoint) -> typing.List[SpatialPoint]:
         """
         Returns the positions to sample from in source CRS
         :param source:
@@ -305,8 +311,8 @@ class SpectralProfileSamplingMode(enum.Enum):
                       SpectralProfileSamplingMode.Sample3x3Mean]:
             v = np.arange(3)
 
-            for x in v*dx + cx - 1*dx:
-                for y in np.flip(v)*dy + cy - 1*dy:
+            for x in v * dx + cx - 1 * dx:
+                for y in np.flip(v) * dy + cy - 1 * dy:
                     postitions.append(SpatialPoint(spatialPoint.crs(), x, y))
 
         elif self in [SpectralProfileSamplingMode.Sample5x5,
@@ -314,13 +320,14 @@ class SpectralProfileSamplingMode(enum.Enum):
 
             v = np.arange(5)
 
-            for x in v*dx + cx - 2*dx:
-                for y in np.flip(v)*dy + cy - 2*dy:
+            for x in v * dx + cx - 2 * dx:
+                for y in np.flip(v) * dy + cy - 2 * dy:
                     postitions.append(SpatialPoint(spatialPoint.crs(), x, y))
 
         return postitions
 
-    def aggregatePositionProfiles(self, positions:typing.List[SpatialPoint], profiles:typing.List[SpectralProfile]) -> typing.List[SpectralProfile]:
+    def aggregatePositionProfiles(self, positions: typing.List[SpatialPoint], profiles: typing.List[SpectralProfile]) -> \
+    typing.List[SpectralProfile]:
         """
         This functions aggregates the Spectral Profiles extracted for the sampled positions
         :param positions:
@@ -356,11 +363,12 @@ class SpectralProfileSamplingMode(enum.Enum):
 
         return profiles
 
+
 class SpectralProfileRelation(object):
 
-    def __init__(self, src:SpectralProfileSource, dst: SpectralLibraryWidget, isActive=True,
+    def __init__(self, src: SpectralProfileSource, dst: SpectralLibraryWidget, isActive=True,
                  samplingMode: SpectralProfileSamplingMode = SpectralProfileSamplingMode.SingleProfile):
-        #assert isinstance(slw, SpectralLibraryWidget)
+        # assert isinstance(slw, SpectralLibraryWidget)
 
         self.mSrc = None
         self.mDst = None
@@ -376,7 +384,7 @@ class SpectralProfileRelation(object):
     def plotStyle(self) -> PlotStyle:
         return self.mPlotStyle
 
-    def setPlotStyle(self, plotStyle:PlotStyle):
+    def setPlotStyle(self, plotStyle: PlotStyle):
         if plotStyle:
             assert isinstance(plotStyle, PlotStyle)
 
@@ -394,10 +402,10 @@ class SpectralProfileRelation(object):
     def destination(self) -> SpectralLibraryWidget:
         return self.mDst
 
-    def setDestination(self, slw:SpectralLibraryWidget):
+    def setDestination(self, slw: SpectralLibraryWidget):
         self.mDst = slw
 
-    def setSource(self, src:SpectralProfileSource):
+    def setSource(self, src: SpectralProfileSource):
         self.mSrc = src
 
     def source(self) -> SpectralProfileSource:
@@ -410,7 +418,7 @@ class SpectralProfileRelation(object):
         assert isinstance(b, bool)
         self.mIsActive = b
 
-    def setSamplingMode(self, mode:SpectralProfileSamplingMode):
+    def setSamplingMode(self, mode: SpectralProfileSamplingMode):
         assert isinstance(mode, SpectralProfileSamplingMode)
         self.mSamplingMode = mode
 
@@ -433,7 +441,6 @@ class SpectralProfileRelation(object):
 
 class SpectralProfileRelationWrapper(SpectralProfileRelation):
 
-
     def __init__(self, r: SpectralProfileRelation):
         super(SpectralProfileRelationWrapper, self).__init__(r.source(), r.destination())
 
@@ -443,13 +450,12 @@ class SpectralProfileRelationWrapper(SpectralProfileRelation):
         self.mIsActive = r.isActive()
         self.mSamplingMode = r.samplingMode()
         self.mScale = r.scale()
-        #self.mSrc = None
+        # self.mSrc = None
 
     def __hash__(self):
         return hash((self.mSrcID, self.mDstID, self.mSamplingMode, self.mScale))
 
-
-    def unwrap(self, relations:typing.List[SpectralProfileRelation]) -> SpectralProfileRelation:
+    def unwrap(self, relations: typing.List[SpectralProfileRelation]) -> SpectralProfileRelation:
         key1 = (self.mSrcID, self.mSamplingMode, self.mDstID, self.mScale)
         for r in relations:
             assert isinstance(r, SpectralProfileRelation)
@@ -460,17 +466,9 @@ class SpectralProfileRelationWrapper(SpectralProfileRelation):
         return None
 
 
-
-
-
-
-
-
 class SpectralProfileSourceSample(object):
 
-
-    def __init__(self, uri:str, name:str, providerType:str, mode:SpectralProfileSamplingMode):
-
+    def __init__(self, uri: str, name: str, providerType: str, mode: SpectralProfileSamplingMode):
         self.mUri = uri
         self.mName = name
         self.mProviderType = providerType
@@ -488,11 +486,8 @@ class SpectralProfileSourceSample(object):
         return (self.mUri, self.mName, self.mProviderType)
 
 
-
 class SpectralProfileBridge(QAbstractTableModel):
-
     sigProgress = pyqtSignal(int)
-
 
     def __init__(self, *args, **kwds):
         super(SpectralProfileBridge, self).__init__(*args, **kwds)
@@ -501,10 +496,10 @@ class SpectralProfileBridge(QAbstractTableModel):
         self.mDstModel = SpectralProfileDstListModel()
 
         self.mSrcModel.rowsRemoved.connect(lambda: self.updateListColumn(self.cnSrc))
-        #self.mSrcModel.rowsInserted.connect(lambda : self.updateListColumn(self.cnSrc))
+        # self.mSrcModel.rowsInserted.connect(lambda : self.updateListColumn(self.cnSrc))
 
         self.mDstModel.rowsRemoved.connect(lambda: self.updateListColumn(self.cnDst))
-        #self.mDstModel.rowsInserted.connect(lambda : self.updateListColumn(self.cnDst))
+        # self.mDstModel.rowsInserted.connect(lambda : self.updateListColumn(self.cnDst))
 
         self.mBridgeItems = []
 
@@ -518,7 +513,7 @@ class SpectralProfileBridge(QAbstractTableModel):
 
         self.mTasks = dict()
 
-    def updateListColumn(self, column:str):
+    def updateListColumn(self, column: str):
         if isinstance(column, int):
             column = self.columnNames()[column]
         assert isinstance(column, str)
@@ -540,9 +535,9 @@ class SpectralProfileBridge(QAbstractTableModel):
                     if relation.destination() not in self.destinations():
                         relation.setDestination(None)
 
-            self.dataChanged.emit(self.createIndex(0, col), self.createIndex(nRows-1, col))
+            self.dataChanged.emit(self.createIndex(0, col), self.createIndex(nRows - 1, col))
 
-    def setRunAsync(self, b:bool):
+    def setRunAsync(self, b: bool):
         assert isinstance(b, bool)
         self.mRunAsync = b
 
@@ -563,7 +558,6 @@ class SpectralProfileBridge(QAbstractTableModel):
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole):
 
-
         if orientation == Qt.Horizontal:
             cn = self.columnNames()[section]
             if role == Qt.DisplayRole:
@@ -574,8 +568,6 @@ class SpectralProfileBridge(QAbstractTableModel):
 
                 if cn == self.cnSrc:
                     return QIcon(r':/images/themes/default/mIconRaster.svg')
-
-
 
         return super(SpectralProfileBridge, self).headerData(section, orientation, role)
 
@@ -664,16 +656,16 @@ class SpectralProfileBridge(QAbstractTableModel):
         cn = self.columnNames()[c]
         changed = False
         if role == Qt.CheckStateRole and c == 0:
-                b = value == Qt.Checked
-                if b != item.isActive():
-                    item.mIsActive = b
+            b = value == Qt.Checked
+            if b != item.isActive():
+                item.mIsActive = b
 
-                    if b is False:
-                        # remove current spectrum from connected speclib?
-                        item.mCurrentProfiles.clear()
-                        self.updateCurrentProfiles(item.destination())
+                if b is False:
+                    # remove current spectrum from connected speclib?
+                    item.mCurrentProfiles.clear()
+                    self.updateCurrentProfiles(item.destination())
 
-                    changed = True
+                changed = True
 
         if role == Qt.EditRole:
             if cn == self.cnSrc and isinstance(value, SpectralProfileSource) or value is None:
@@ -712,7 +704,7 @@ class SpectralProfileBridge(QAbstractTableModel):
     def columnCount(self, parent: QModelIndex = None):
         return len(self.columnNames())
 
-    def addProfileRelation(self, item:SpectralProfileRelation) -> SpectralProfileRelation:
+    def addProfileRelation(self, item: SpectralProfileRelation) -> SpectralProfileRelation:
         assert isinstance(item, SpectralProfileRelation)
 
         if isinstance(item.destination(), SpectralLibraryWidget):
@@ -721,19 +713,15 @@ class SpectralProfileBridge(QAbstractTableModel):
         if isinstance(item.source(), SpectralProfileSource):
             self.addSource(item.source())
 
-
-
         i = len(self)
         self.beginInsertRows(QModelIndex(), i, i)
         self.mBridgeItems.insert(i, item)
         self.endInsertRows()
         return item
 
-
-    def removeProfileRelation(self, item:SpectralProfileRelation) -> SpectralProfileRelation:
+    def removeProfileRelation(self, item: SpectralProfileRelation) -> SpectralProfileRelation:
 
         if item in self.mBridgeItems:
-
             i = self.mBridgeItems.index(item)
             self.beginRemoveRows(QModelIndex(), i, i)
             self.mBridgeItems.remove(item)
@@ -746,13 +734,13 @@ class SpectralProfileBridge(QAbstractTableModel):
     def bridgeItems(self) -> typing.List[SpectralProfileRelation]:
         return self.mBridgeItems[:]
 
-    def addRasterLayer(self, layer:QgsRasterLayer):
+    def addRasterLayer(self, layer: QgsRasterLayer):
         if layer.isValid():
             source = SpectralProfileSource(layer.source(), layer.name(), layer.providerType())
-            layer.nameChanged.connect(lambda *args, lyr=layer, src=source : src.setName(lyr.name()))
+            layer.nameChanged.connect(lambda *args, lyr=layer, src=source: src.setName(lyr.name()))
             self.addSource(source)
 
-    def addSource(self, source:SpectralProfileSource):
+    def addSource(self, source: SpectralProfileSource):
         n = len(self.mSrcModel)
         src = self.mSrcModel.addSource(source)
 
@@ -761,15 +749,14 @@ class SpectralProfileBridge(QAbstractTableModel):
             for r in self.bridgeItems():
                 r.setSource(src)
 
+    def removeSource(self, source: SpectralProfileSource):
 
-    def removeSource(self, source:SpectralProfileSource):
-        
         self.mSrcModel.removeSource(source)
 
     def sources(self) -> typing.List[SpectralProfileSource]:
         return self.mSrcModel[:]
 
-    def addDestination(self, slw:SpectralLibraryWidget):
+    def addDestination(self, slw: SpectralLibraryWidget):
         assert isinstance(slw, SpectralLibraryWidget)
         _slw = self.mDstModel.addSpectralLibraryWidget(slw)
         if isinstance(_slw, SpectralLibraryWidget):
@@ -792,12 +779,13 @@ class SpectralProfileBridge(QAbstractTableModel):
 
                 self.addProfileRelation(item)
 
-    def removeDestination(self, slw:SpectralLibraryWidget):
+    def removeDestination(self, slw: SpectralLibraryWidget):
         assert isinstance(slw, SpectralLibraryWidget)
         self.mDstModel.removeSpeclib(slw)
 
     def activeRelations(self, source=None, destination=None) -> typing.List[SpectralProfileRelation]:
-        relations = [r for r in self.mBridgeItems if isinstance(r, SpectralProfileRelation) and r.isValid() and r.isActive()]
+        relations = [r for r in self.mBridgeItems if
+                     isinstance(r, SpectralProfileRelation) and r.isValid() and r.isActive()]
 
         if source:
             relations = [r for r in relations if r.source() == source]
@@ -837,7 +825,7 @@ class SpectralProfileBridge(QAbstractTableModel):
             for dst in self.destinations():
                 self.updateCurrentProfiles(dst)
 
-            #self.onRemoveTask(task)
+            # self.onRemoveTask(task)
 
         return updatedRelations
 
@@ -853,7 +841,7 @@ class SpectralProfileBridge(QAbstractTableModel):
                 profiles.extend(relation.currentProfiles())
         return profiles
 
-    def updateCurrentProfiles(self, dst:SpectralLibraryWidget):
+    def updateCurrentProfiles(self, dst: SpectralLibraryWidget):
         if isinstance(dst, SpectralLibraryWidget):
 
             # no need to add, as they profiles will get blocked anyway
@@ -920,7 +908,7 @@ class SpectralProfileBridge(QAbstractTableModel):
         if tid in self.mTasks.keys():
             del self.mTasks[tid]
 
-    def loadProfiles(self, spatialPoint:SpatialPoint, mapCanvas:QgsMapCanvas=None, runAsync:bool=None):
+    def loadProfiles(self, spatialPoint: SpatialPoint, mapCanvas: QgsMapCanvas = None, runAsync: bool = None):
         """
         Loads profiles from sources and sends them to their destinations
         :param spatialPoint: SpatialPoint
@@ -935,11 +923,11 @@ class SpectralProfileBridge(QAbstractTableModel):
 
         # what is the top raster layer?
         if isinstance(mapCanvas, QgsMapCanvas):
-            mapRasterLayerSources = [SpectralProfileSource.fromRasterLayer(l) for l in mapCanvas.layers() if isinstance(l, QgsRasterLayer)]
+            mapRasterLayerSources = [SpectralProfileSource.fromRasterLayer(l) for l in mapCanvas.layers() if
+                                     isinstance(l, QgsRasterLayer)]
             for src in self.dataSourceModel():
                 if isinstance(src, SpectralProfileTopLayerSource):
                     src.setMapSources(mapRasterLayerSources)
-
 
         relations = self.activeRelations()
 
@@ -948,9 +936,10 @@ class SpectralProfileBridge(QAbstractTableModel):
 
         wrappedRelations = [SpectralProfileRelationWrapper(r) for r in relations]
 
-        #dump = pickle.dumps((spatialPoint, relations))
+        # dump = pickle.dumps((spatialPoint, relations))
         if runAsync:
-            qgsTask = QgsTask.fromFunction('Load Spectral Profiles', doLoadSpectralProfiles, spatialPoint, wrappedRelations, on_finished=self.onProfilesLoaded)
+            qgsTask = QgsTask.fromFunction('Load Spectral Profiles', doLoadSpectralProfiles, spatialPoint,
+                                           wrappedRelations, on_finished=self.onProfilesLoaded)
         else:
             qgsTask = QgsTaskMock()
 
@@ -967,7 +956,8 @@ class SpectralProfileBridge(QAbstractTableModel):
             assert isinstance(tm, QgsTaskManager)
             tm.addTask(qgsTask)
         else:
-            updatedRelations = self.onProfilesLoaded(None, doLoadSpectralProfiles(qgsTask, spatialPoint, wrappedRelations))
+            updatedRelations = self.onProfilesLoaded(None,
+                                                     doLoadSpectralProfiles(qgsTask, spatialPoint, wrappedRelations))
 
         return updatedRelations
 
@@ -976,11 +966,12 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
     """
 
     """
-    def __init__(self, tableView:QTableView, parent=None):
+
+    def __init__(self, tableView: QTableView, parent=None):
         assert isinstance(tableView, QTableView)
         super(SpectralProfileBridgeViewDelegate, self).__init__(parent=parent)
         self.mTableView = tableView
-        #self.mTableView.model().rowsInserted.connect(self.onRowsInserted)
+        # self.mTableView.model().rowsInserted.connect(self.onRowsInserted)
 
     def sortFilterProxyModel(self) -> QSortFilterProxyModel:
         return self.mTableView.model()
@@ -998,7 +989,7 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
                 label = QLabel()
                 label.setPixmap(px)
                 painter.drawPixmap(option.rect, px)
-                #QApplication.style().drawControl(QStyle.CE_CustomBase, label, painter)
+                # QApplication.style().drawControl(QStyle.CE_CustomBase, label, painter)
             else:
                 super().paint(painter, option, index)
         else:
@@ -1007,7 +998,7 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
     def bridge(self) -> SpectralProfileBridge:
         return self.sortFilterProxyModel().sourceModel()
 
-    def setItemDelegates(self, tableView:QTableView):
+    def setItemDelegates(self, tableView: QTableView):
         bridge = self.bridge()
 
         for c in [bridge.cnSrc, bridge.cnDst, bridge.cnSampling, bridge.cnScale, bridge.cnPlotStyle]:
@@ -1015,15 +1006,17 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
             tableView.setItemDelegateForColumn(i, self)
 
         s = ""
-    def onRowsInserted(self,parent, idx0, idx1):
+
+    def onRowsInserted(self, parent, idx0, idx1):
         nameStyleColumn = self.bridge().cnPlotStyle
 
         for c in range(self.mTableView.model().columnCount()):
             cname = self.mTableView.model().headerData(c, Qt.Horizontal, Qt.DisplayRole)
             if cname == nameStyleColumn:
-                for r in range(idx0, idx1+1):
+                for r in range(idx0, idx1 + 1):
                     idx = self.mTableView.model().index(r, c, parent=parent)
                     self.mTableView.openPersistentEditor(idx)
+
     def bridgeColumnName(self, index):
         assert index.isValid()
         model = self.bridge()
@@ -1061,7 +1054,7 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
                     w.addItem(mode.name, mode)
             elif cname == bridge.cnPlotStyle:
                 w = PlotStyleButton(parent=parent)
-                w.setMinimumSize(5,5)
+                w.setMinimumSize(5, 5)
                 w.setPlotStyle(item.plotStyle())
                 w.setToolTip('Set style.')
 
@@ -1173,10 +1166,10 @@ class SpectralProfileSourcePanel(QgsDockWidget):
 
         self.onSelectionChanged([], [])
 
-    def setRunAsync(self, b:bool):
+    def setRunAsync(self, b: bool):
         self.bridge().setRunAsync(b)
 
-    def onSelectionChanged(self, selected:QItemSelection, deselected:QItemSelection):
+    def onSelectionChanged(self, selected: QItemSelection, deselected: QItemSelection):
         self.actionRemoveRelation.setEnabled(len(self.tableView.selectionModel().selectedRows()) > 0)
 
     def onRemoveRelations(self):
@@ -1187,7 +1180,6 @@ class SpectralProfileSourcePanel(QgsDockWidget):
 
         for item in toRemove:
             self.bridge().removeProfileRelation(item)
-
 
     def createRelation(self) -> SpectralProfileRelation:
         """
@@ -1212,13 +1204,15 @@ class SpectralProfileSourcePanel(QgsDockWidget):
     def bridge(self) -> SpectralProfileBridge:
         return self.mBridge
 
-    def loadCurrentMapSpectra(self, spatialPoint:SpatialPoint, mapCanvas:QgsMapCanvas=None, runAsync:bool=None):
+    def loadCurrentMapSpectra(self, spatialPoint: SpatialPoint, mapCanvas: QgsMapCanvas = None, runAsync: bool = None):
         self.bridge().loadProfiles(spatialPoint, mapCanvas=mapCanvas, runAsync=runAsync)
 
-def doLoadSpectralProfiles(task, spatialPoint, relations:typing.List[SpectralProfileRelationWrapper]) -> typing.Tuple[SpatialPoint, typing.List[SpectralProfileRelationWrapper]]:
+
+def doLoadSpectralProfiles(task, spatialPoint, relations: typing.List[SpectralProfileRelationWrapper]) -> typing.Tuple[
+    SpatialPoint, typing.List[SpectralProfileRelationWrapper]]:
     assert isinstance(task, QgsTask)
 
-    #spatialPoint, sourceSamples = pickle.loads(dump)
+    # spatialPoint, sourceSamples = pickle.loads(dump)
     assert isinstance(spatialPoint, SpatialPoint)
     assert isinstance(relations, list)
 
@@ -1263,7 +1257,7 @@ def doLoadSpectralProfiles(task, spatialPoint, relations:typing.List[SpectralPro
                 assert isinstance(renderer, QgsRasterRenderer)
 
                 # use visible pixels only
-                #sampling_all = [dp.sample(pos2, b+1) for b in range(potentialLayer.bandCount())]
+                # sampling_all = [dp.sample(pos2, b+1) for b in range(potentialLayer.bandCount())]
 
                 for b in renderer.usesBands():
                     value, hasValue = dp.sample(pos2, b)
@@ -1313,7 +1307,7 @@ def doLoadSpectralProfiles(task, spatialPoint, relations:typing.List[SpectralPro
                 for p in profiles:
                     assert isinstance(p, SpectralProfile)
                     p = p.clone()
-                    y = np.asarray(p.yValues())* r.scale()
+                    y = np.asarray(p.yValues()) * r.scale()
                     p.setValues(y=y)
                     scaledProfiles.append(p)
                 profiles = scaledProfiles
@@ -1323,7 +1317,6 @@ def doLoadSpectralProfiles(task, spatialPoint, relations:typing.List[SpectralPro
         if task.isCanceled():
             return None
 
-        task.setProgress(100 * iSrc+1 / nSources)
+        task.setProgress(100 * iSrc + 1 / nSources)
 
     return task, spatialPoint, relations
-
