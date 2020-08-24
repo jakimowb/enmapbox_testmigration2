@@ -48,6 +48,12 @@ class SpecMixTestCase(TestCase):
         w.setModel(m)
         self.showGui(w)
 
+    def test_sliderwidget(self):
+
+        w = SpecMixSliderWidget()
+        w.setMaximum(10)
+        w.setDecimals(2)
+        self.showGui(w)
 
     def test_MainWidget(self):
 
@@ -71,8 +77,7 @@ class SpecMixTestCase(TestCase):
         w.cbSyncWithSelection.setChecked(True)
         slib.selectByIds([0,1,2,3,4])
         W = QWidget()
-
-        W.setLayout(QHBoxLayout())
+        W.setLayout(QVBoxLayout())
         W.layout().addWidget(slw)
         W.layout().addWidget(w)
 
