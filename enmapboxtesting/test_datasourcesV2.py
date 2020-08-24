@@ -20,6 +20,15 @@ from enmapbox.gui.datasourcesV2 import *
 
 class MyTestCase(EnMAPBoxTestCase):
 
+    def printSources(self, sources):
+        srcR = [s for s in sources if isinstance(s, QgsRasterLayer)]
+        srcV = [s for s in sources if isinstance(s, QgsVectorLayer) and not isinstance(s, SpectralLibrary)]
+        srcS = [s for s in sources if isinstance(s, SpectralLibrary)]
+        print(f'{len(sources)} sources')
+        print(f'{len(srcR)} rasters')
+        print(f'{len(srcV)} vectors')
+        print(f'{len(srcS)} speclibs')
+
     def test_Registry(self):
         reg = QgsApplication.dataItemProviderRegistry()
 
@@ -54,8 +63,7 @@ class MyTestCase(EnMAPBoxTestCase):
             assert lyr.isValid()
             QgsProject.instance().addMapLayer(lyr)
             sources.append(lyr)
-            print(sources)
-
+            self.printSources(sources)
 
         def removeSource(cls):
             lyrs = QgsProject.instance().mapLayers().values()
@@ -71,7 +79,7 @@ class MyTestCase(EnMAPBoxTestCase):
                 lyr = lyrs[-1]
                 sources.remove(lyr)
                 QgsProject.instance().removeMapLayer(lyr)
-            print(sources)
+            self.printSources(sources)
 
         btnAddVector = QPushButton('Add Vector')
         btnAddVector.clicked.connect(lambda: addSource(QgsVectorLayer))
@@ -99,13 +107,22 @@ class MyTestCase(EnMAPBoxTestCase):
         w = QWidget()
         w.setWindowTitle('Browser Test')
         w.setLayout(grid)
-
+        w.resize(QSize(400, 400))
         btnAddRaster.clicked.emit()
         w.show()
+
+        btnAddRaster.click()
 
         self.showGui(tv)
         #QApplication.exec_()
 
+    def test_widget(self):
+
+
+        m = QgsBrowserGuiModel()
+        w = QgsBrowserDockWidget('EXAMPLE', m)
+
+        self.showGui(w)
 
     def test_printDataItemProviders(self):
 
