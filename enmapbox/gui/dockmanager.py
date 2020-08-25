@@ -1144,13 +1144,16 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
     def createContextMenu(self):
 
-
-        col = self.mDockTreeView.currentIndex().column()
+        cidx: QModelIndex =self.mDockTreeView.currentIndex()
+        col = cidx.column()
         node = self.mDockTreeView.currentNode()
         if node is None:
             return
         menu = QMenu()
         selectedLayerNodes = list(set(self.mDockTreeView.selectedLayerNodes()))
+        if isinstance(node, (DockTreeNode, QgsLayerTreeLayer)):
+            actionEdit = menu.addAction('Rename')
+            actionEdit.triggered.connect(lambda *args, idx=cidx: self.mDockTreeView.edit(idx))
 
         if type(node) is QgsLayerTreeLayer:
             # get parent dock node -> related map canvas

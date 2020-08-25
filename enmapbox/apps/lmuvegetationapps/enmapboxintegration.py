@@ -21,7 +21,7 @@
 
 import os
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QMenu, QAction
+from qgis.PyQt.QtWidgets import QMenu
 from enmapbox.gui.applications import EnMAPBoxApplication
 from lmuvegetationapps import APP_DIR
 
@@ -33,7 +33,7 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         self.licence = 'BSD-3'
 
     def icon(self):
-        pathIcon = os.path.join(APP_DIR, 'icon.png')
+        pathIcon = os.path.join(APP_DIR, 'Resources/icon.png')
         return QIcon(pathIcon)
 
     def menu(self, appMenu):
@@ -71,43 +71,51 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         g = menu.addAction('interactive Red-Edge Inflection Point (iREIP)')
         g.triggered.connect(self.start_GUI_iREIP)
 
+        h = menu.addAction('Vegetation Processor')
+        h.triggered.connect(self.start_GUI_Processor)
+
         appMenu.addMenu(menu)
         return menu
 
     def start_GUI_IVVRM(self, *args):
-        from lmuvegetationapps.IVVRM_GUI_v import MainUiFunc
+        from lmuvegetationapps.IVVRM.IVVRM_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
         # #the the EnMAP-Box know if you create any new file
         # gui1.sigFileCreated.connect(self.enmapbox.addSource)
 
     def start_GUI_LUT(self, *args):
-        from lmuvegetationapps.LUT_GUI_v import MainUiFunc
+        from lmuvegetationapps.LUT.CreateLUT_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
 
     def start_GUI_Inv(self, *args):
-        from lmuvegetationapps.Global_Inversion_GUI_v import MainUiFunc
+        from lmuvegetationapps.LUT.InvertLUT_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
 
     def start_GUI_VIT(self, *args):
-        from lmuvegetationapps.VIT_GUI import MainUiFunc
+        from lmuvegetationapps.VIT.VIT_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
 
     def start_GUI_PWR(self, *args):
-        from lmuvegetationapps.PWR_GUI import MainUiFunc
+        from lmuvegetationapps.PWR.PWR_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
 
     def start_GUI_ASI(self, *args):
-        from lmuvegetationapps.ASI import MainUiFunc
+        from lmuvegetationapps.ASI.ASI_GUI_core import MainUiFunc
         m = MainUiFunc()
         m.show()
 
     def start_GUI_iREIP(self, *args):
-        from lmuvegetationapps.iREIP import MainUiFunc
+        from lmuvegetationapps.iREIP.iREIP_GUI_core import MainUiFunc
+        m = MainUiFunc()
+        m.show()
+
+    def start_GUI_Processor(self, *args):
+        from lmuvegetationapps.Processor.Processor_Inversion_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
 

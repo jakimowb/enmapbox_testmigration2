@@ -902,7 +902,9 @@ class EnMAPBox(QgisInterface, QObject):
             canvas.mapTools().setVectorLayerTools(self.mVectorLayerTools)
 
             self.setMapTool(self.mMapToolKey, canvases=[canvas])
-            canvas.mapTools().mtCursorLocation.sigLocationRequest[SpatialPoint, QgsMapCanvas].connect(self.setCurrentLocation)
+            canvas.mapTools().mtCursorLocation.sigLocationRequest[QgsCoordinateReferenceSystem, QgsPointXY].connect(
+                lambda crs, pt, c=canvas: self.setCurrentLocation(SpatialPoint(crs, pt), canvas)
+            )
 
             node = self.dockManagerTreeModel().mapDockTreeNode(canvas)
             assert isinstance(node, MapDockTreeNode)
@@ -1162,6 +1164,7 @@ class EnMAPBox(QgisInterface, QObject):
                         break
 
                 dock.addLayers(lyrs)
+                dock.mapCanvas().zoomToFullExtent()
 
 
 

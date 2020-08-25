@@ -75,7 +75,7 @@ an overview of remote sensing of forest aboveground biomass.
 =======
 
 :download:`You can download the data for this exercise here:`
-https://box.hu-berlin.de/f/06caeb4017ce420b80e1/?dl=1
+https://box.hu-berlin.de/f/92babb0d932c473981d1/?dl=1
 
 The tutorial dataset contains a hyperspectral image mosaic in Sonoma County, California, USA, as well as a shapefile
 containing point based biomass estimates sampled from an existing LiDAR derived biomass map [4]_.
@@ -143,8 +143,8 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
   which shows all data currently loaded in a given Map View.
 * By default, the first three bands are assigned to the RGB channels when displaying a new raster dataset.
   To assign a custom RGB combination to a raster image, right click on the dataset in the :guilabel:`Data Views` panel,
-  select :guilabel:`Layer Properties` and navigate to :guilabel:`Style` in the :guilabel:`RasterLayerProperties` window.
-  Set Render type to multibandcolor and select bands to display in the red, green and blue color channels.
+  select :guilabel:`Layer Properties` and navigate to :guilabel:`Symbology`.
+  Set Render type to Multiband color and select bands to display in the red, green and blue color channels.
   Common combinations are listed below.
 
   .. csv-table::
@@ -157,7 +157,7 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
 
 
 * Display :file:`enmap_sonoma.bsq` as true color composite. Under :guilabel:`Min/Max Value Settings`, select the radio button for
-  :guilabel:`Cumulative count cut`, leaving the default stretch at 2-98%. Select :guilabel:`OK`.
+  :guilabel:`Cumulative count cut` and set the stretch to 2-98%. Select :guilabel:`OK`.
 
   .. image:: img/Slide3_RasterSymbology.PNG
 
@@ -246,7 +246,7 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
   data open in the EnMAP-Box, i.e., the biomass reference points. To do this, open a new Spectral Library
   window by selecting the |viewlist_spectrumdock| icon on the toolbar.
 * Next, select **Import profiles from raster + vector sources** from the dropdown menu by the |plus_green| icon in
-  SpectralLibrary #1 and select the appropriate raster and vector sources. A spectral library is
+  SpectralLibrary #1 and select the appropriate raster and vector sources. Activate the option |cb1| :guilabel:`Copy Attributes`. A spectral library is
   automatically built based on the geographic location of each point in the vector file. The associated
   attribute information is displayed in the table on the right.
 * Change the spectral profile colors to reflect the biomass values associated with them.
@@ -367,7 +367,7 @@ Exercise B: Regression based mapping of aboveground forest biomass
 
 * Click on the |action| button to run the application. The outputs appear in the :guilabel:`Data Sources` panel.
 
-.. image:: img/10-regWorkflow.png
+.. image:: img/workflow_newFig.png
 
 
 8. Visualize biomass results
@@ -375,14 +375,14 @@ Exercise B: Regression based mapping of aboveground forest biomass
 
 * The outputs from the Regression Workflow will appear in the Data Sources panel:
 
-  * :file:`biomass_prediction.bsq`: spatially continuous biomass estimation based on the spectral information contained
+  * :file:`biomass_estimation.bsq`: spatially continuous biomass estimation based on the spectral information contained
     within each EnMAP pixel.
   *	:file:`biomassSample.bsq`: biomass information used for training the regression model, rasterized to the EnMAP grid and spatially aligning with pixels from which training spectra were sampled.
   *	:file:`biomassSample_compliment.bsq`: rasterized biomass values of withheld samples.
 
 * Open :file:`enmap_sonoma.bsq` as an RGB composite of your choice (refer to Exercise A3 if needed)
-* Open the :file:`biomass_prediction.bsq` in a new Map View and link to the Map #1 (refer to Exercise A5 if needed).
-  Use the Layer Properties to change the color ramp to white-green.
+* Open the :file:`biomass_estimation.bsq` in a new Map View and link to the Map #1 (refer to Exercise A5 if needed).
+  Use the Layer Properties to change the color ramp to white-green (Singleband pseudocolor).
 
 .. image:: img/biomass_result.png
 
@@ -520,7 +520,7 @@ Exercise C: Introduction to ImageMath
 * As the biomass map was only trained using forested biomass plots, only limited inference can be made of the
   non-forest biomass estimates. We will therefore apply a forest mask to our biomass map.
 * The forest mask will ignore any pixels that are Deciduous (41), Evergreen (42), or Mixed (43) forest according to the NLCD classification.
-* Enter the following Open this in Map #1. Below are the NLCD classes and color legend represented in the raster data.
+* Below are the NLCD classes and color legend represented in the raster data.
   We will consider any pixel to be forest which is labelled as Deciduous (41), Evergreen (42), or Mixed (43) forest according to the NLCD classification.
 
 .. image:: img/17-NLCD.png
@@ -568,11 +568,11 @@ Exercise C: Introduction to ImageMath
      ForestMask_sonoma = ForestMask_sonoma.astype(bool)
 
      biomassMasked = biomass_estimation
-     biomassMasked[0,:,:][ForestMask_sonoma] = -99
+     biomassMasked[ForestMask_sonoma] = -99
      setNoDataValue(biomassMasked, -99)
 
      NDVI_Masked = NDVI
-     NDVI_Masked[0,:,:][ForestMask_sonoma] = -99
+     NDVI_Masked[ForestMask_sonoma] = -99
      setNoDataValue(NDVI_Masked, -99)
 
 * Line by line, this script:
@@ -612,6 +612,7 @@ Exercise C: Introduction to ImageMath
 * Open the Scatterplot tool by going to :guilabel:`Tools` then selecting :guilabel:`Scatterplot`.
 
     * Select :file:`biomass_Masked.bsq` for :guilabel:`Band X` and :file:`NDVI_Masked.bsq` for :guilabel:`Band Y` from the dropdown menus.
+
        * If a selected raster has multiple bands, you would specify the desired band from the dropdown Band menu.
        * You may also specify the Min and Max values to be displayed for each band, but if left blank these will be calculated automatically.
 
