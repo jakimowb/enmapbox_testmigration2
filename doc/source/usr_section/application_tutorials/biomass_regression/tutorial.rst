@@ -568,11 +568,11 @@ Exercise C: Introduction to ImageMath
      ForestMask_sonoma = ForestMask_sonoma.astype(bool)
 
      biomassMasked = biomass_estimation
-     biomassMasked[0,:,:][ForestMask_sonoma] = -99
+     biomassMasked[ForestMask_sonoma] = -99
      setNoDataValue(biomassMasked, -99)
 
      NDVI_Masked = NDVI
-     NDVI_Masked[0,:,:][ForestMask_sonoma] = -99
+     NDVI_Masked[ForestMask_sonoma] = -99
      setNoDataValue(NDVI_Masked, -99)
 
 * Line by line, this script:
@@ -612,6 +612,7 @@ Exercise C: Introduction to ImageMath
 * Open the Scatterplot tool by going to :guilabel:`Tools` then selecting :guilabel:`Scatterplot`.
 
     * Select :file:`biomass_Masked.bsq` for :guilabel:`Band X` and :file:`NDVI_Masked.bsq` for :guilabel:`Band Y` from the dropdown menus.
+
        * If a selected raster has multiple bands, you would specify the desired band from the dropdown Band menu.
        * You may also specify the Min and Max values to be displayed for each band, but if left blank these will be calculated automatically.
 
