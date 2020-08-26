@@ -21,7 +21,6 @@ if __name__ == '__main__':
     try:
         widget = ImageStatisticsApp()
         widget.show()
-        #widget.execute()
     except:
         import traceback
         traceback.print_exc()

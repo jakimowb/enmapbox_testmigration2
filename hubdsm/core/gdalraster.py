@@ -211,6 +211,14 @@ class GdalRaster(object):
         for domain, metadataDomain in metadataDict.items():
             self.setMetadataDomain(values=metadataDomain, domain=domain)
 
+    @property
+    def categories(self):
+        return self.band(1).categories
+
+    @property
+    def setCategories(self):
+        return self.band(1).setCategories
+
     def translate(
             self, grid: Grid = None, filename: str = None, driver: 'GdalDriver' = None, gco: List[str] = None,
             gra: int = None, **kwargs
