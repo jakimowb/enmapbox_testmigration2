@@ -193,6 +193,8 @@ class GdalRaster(object):
         """Set metadata item."""
         if value is None:
             return
+        if key == 'file compression' and domain == 'ENVI':
+            return
         key = key.replace(' ', '_').strip()
         gdalString = GdalMetadataValueFormatter.valueToString(value)
         self.gdalDataset.SetMetadataItem(key, gdalString, domain)
