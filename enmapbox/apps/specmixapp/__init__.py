@@ -24,23 +24,25 @@ import pathlib
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
-
+from enmapbox.gui.applications import EnMAPBoxApplication
+from enmapbox.gui import SpectralLibrary
 APP_DIR = pathlib.Path(__file__).parent
 APP_NAME = 'Spectral Mixer'
 VERSION = '0.1'
 LICENSE = 'GPL-3'
 
-from enmapbox.gui.applications import EnMAPBoxApplication
+
 class SpecMixApp(EnMAPBoxApplication):
     """
     This Class inherits from an EnMAPBoxApplication
     """
+
     def __init__(self, enmapBox, parent=None):
         super().__init__(enmapBox, parent=parent)
 
         # specify the name of this app
         self.name = APP_NAME
-
+        self.mWidgets = []
         # specify a version string
 
         self.version = VERSION
@@ -68,7 +70,7 @@ class SpecMixApp(EnMAPBoxApplication):
         """
 
         # this way you can add your QMenu/QAction to an other menu entry, e.g. 'Tools'
-        appMenu = self.enmapbox.menu('Tools')
+        appMenu = self.enmapbox.menu('Applications')
 
         a = appMenu.addAction(APP_NAME)
 
@@ -79,9 +81,12 @@ class SpecMixApp(EnMAPBoxApplication):
         return None
 
     def startGUI(self):
-        from metadataeditorapp.metadataeditor import MetadataEditorDialog
-        d = MetadataEditorDialog(parent=self.enmapbox.ui)
-        d.show()
+        from specmixapp.specmix import SpecMixWidget
+        w = SpecMixWidget()
+        self.enmapbox.sigSpectralLibraryAdded[SpectralLibrary].connect(w.addSpectralLibraries)
+        self.enmapbox.sigSpectralLibraryRemoved[SpectralLibrary].connect(w.removeSpectralLibraries)
+        w.show()
+        self.mWidgets.append(w)
 
 
 
@@ -94,4 +99,3 @@ def enmapboxApplicationFactory(enmapBox):
     # returns a list of EnMAP-Box Applications. Usually only one is returned,
     # but you might provide as many as you like.
     return [SpecMixApp(enmapBox)]
-

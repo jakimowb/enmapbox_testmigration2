@@ -1,6 +1,7 @@
 import typing
 import math
 import collections
+import enum
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
@@ -9,7 +10,7 @@ from enmapbox.externals.qps.speclib.core import SpectralLibrary, SpectralProfile
 from enmapbox.externals.qps.speclib.gui import SpectralLibraryPlotWidget, SpectralProfilePlotDataItem
 from enmapbox.externals.qps.utils import loadUi
 from enmapbox.gui.spectralprofilesources import SpectralProfileDstListModel
-
+from enmapbox.externals.qps.plotstyling.plotstyling import PlotStyle, PlotStyleButton
 import numpy as np
 from . import APP_DIR
 
@@ -102,10 +103,17 @@ class SpectralLibraryListModel(QAbstractListModel):
         return None
 
 
+class SpecMixMethod(enum.Enum):
+
+    MEAN = 'Mean'
+    WEIGHTED_MEAN = 'Weighted Mean'
+    MEDIAN = 'Median'
+
 
 class SpecMixParameterModel(QAbstractTableModel):
 
     sigProfileLimitChanged = pyqtSignal(int)
+    sigMixingMethodChanged = pyqtSignal(SpecMixMethod)
 
     SL_OFID = 'ofid'
     SL_METRIC = 'metric'
@@ -128,7 +136,6 @@ class SpecMixParameterModel(QAbstractTableModel):
         self.mSpeclib.committedFeaturesRemoved.connect(self.onFeaturesRemoved)
         self.mSpeclib.committedAttributeValuesChanges.connect(self.onAttributeChanged)
 
-
         self.mDefaultWeight: float = 1.0
         self.mProfileLimit: int = 100
 
@@ -142,6 +149,25 @@ class SpecMixParameterModel(QAbstractTableModel):
             'Weights',
             'Normalized Weights (sum = 1.0)'
         ]
+
+        self.mMixingMethod: SpecMixMethod = SpecMixMethod.WEIGHTED_MEAN
+
+    def setMixingMethod(self, method: SpecMixMethod):
+        assert isinstance(method, SpecMixMethod)
+        if method != self.mMixingMethod:
+            self.mMixingMethod = method
+            self.sigMixingMethodChanged.emit(method)
+
+    def mixingMethod(self) -> SpecMixMethod:
+        return self.mMixingMethod
+
+    def clear(self):
+        """
+        Removes all SpectralProfiles
+        """
+        self.mSpeclib.startEditing()
+        self.mSpeclib.deleteFeatures(self.mSpeclib.allFeatureIds())
+        self.mSpeclib.commitChanges()
 
     def onAttributeChanged(self, layer_id: str, changed_attribute_values: typing.Dict[int,
                                                                                       typing.Dict[int, typing.Any]]):
@@ -178,37 +204,53 @@ class SpecMixParameterModel(QAbstractTableModel):
     def calculateMixedProfiles(self) -> typing.Tuple[SpectralProfile, SpectralProfile]:
 
         x_values = None
-        y_values = None
+        y_values = []
+        y_weights = []
         x_units = None
-        n = 0
+
         for row in range(self.rowCount()):
             idx = self.createIndex(row, 0)
             profile: SpectralProfile = self.data(idx, Qt.UserRole)
-            nweight = self.data(self.createIndex(row, 2), Qt.DisplayRole)
+            weight = profile[SpecMixParameterModel.SL_WEIGHT]
             pxdata = np.asarray(profile.xValues())
-            pydata = np.asarray(profile.yValues()) * nweight
+            pydata = np.asarray(profile.yValues())
 
             if x_values is None:
                 x_values = pxdata
-                y_values = pydata
-                n += 1
-            else:
-                if len(pxdata) != len(x_values):
-                    continue
-                y_values += pydata
-                n += 1
+                x_units = profile.xUnit()
+            elif len(pxdata) != len(x_values):
+                continue
+            y_values.append(pydata)
+            y_weights.append(weight)
 
+        n = len(y_values)
         if n == 0:
             return None, None
         else:
-            avg = x_values / n
+            y_values = np.asarray(y_values)
+            if self.mMixingMethod == SpecMixMethod.MEAN:
+                mix = np.mean(y_values, axis=0)
+            elif self.mMixingMethod == SpecMixMethod.WEIGHTED_MEAN:
+                n_weights = np.asarray(y_weights)
+                n_weights = n_weights / n_weights.sum()
+
+                mix = y_values * n_weights.reshape((n, 1))
+                mix = np.sum(mix, axis=0)
+            elif self.mMixingMethod == SpecMixMethod.MEDIAN:
+                mix = np.nanmedian(y_values, axis=0)
+            else:
+                raise NotImplementedError()
+
+            error = y_values - mix
+            root_mean_square_error = np.sqrt(np.mean(error**2, axis=0))
 
             p1 = SpectralProfile()
-            p1.setValues(y=avg, x=x_values, xUnit=x_units)
-            p1.setName('Weighted Average')
+            p1.setValues(y=mix, x=x_values, xUnit=x_units)
+            p1.setName('w. Avg')
 
             p2 = SpectralProfile()
-            p2.setName('Deviations')
+            p2.setValues(y=root_mean_square_error, x=x_values, xUnit=x_units)
+            p2.setName('RMSE')
 
         return p1, p2
 
@@ -279,7 +321,6 @@ class SpecMixParameterModel(QAbstractTableModel):
             self.mSpeclib.addProfiles(clones)
             self.mSpeclib.commitChanges()
             self.updateNormalizedWeights()
-
 
     def removeProfiles(self, ofids: typing.List[int]):
         to_remove = [p.id() for p in self.mSpeclib if p.attribute(SpecMixParameterModel.SL_OFID) in ofids]
@@ -450,6 +491,7 @@ class SpecMixParameterViewDelegate(QStyledItemDelegate):
         assert isinstance(tableView, QTableView)
         super().__init__(parent=parent)
         self.mTableView: SpecMixParameterTableView = tableView
+        self.mTableView.model().rowsInserted.connect(self.onRowsInserted)
 
     def sortFilterProxyModel(self) -> QSortFilterProxyModel:
         return self.mTableView.model()
@@ -472,10 +514,23 @@ class SpecMixParameterViewDelegate(QStyledItemDelegate):
         if index.isValid():
             w = SpecMixSliderWidget(parent)
             w.setDecimals(2)
-            w.setMaximum(10)
-
+            w.setMaximum(100)
+            #w.sigValueChanged.connect(lambda value, idx=index: self.onValueChanged(value, index))
 
         return w
+
+    def onRowsInserted(self, parent, idx0, idx1):
+        cnameW = self.model().cnWeight
+
+        for c in range(self.mTableView.model().columnCount()):
+            cname = self.mTableView.model().headerData(c, Qt.Horizontal, Qt.DisplayRole)
+            if cname == cnameW:
+                for r in range(idx0, idx1 + 1):
+                    idx = self.mTableView.model().index(r, c, parent=parent)
+                    self.mTableView.openPersistentEditor(idx)
+
+    def onValueChanged(self, value: float, index: QModelIndex):
+        self.model().setData(index, value, role=Qt.EditRole)
 
     def setEditorData(self, editor, index: QModelIndex):
 
@@ -494,27 +549,35 @@ class SpecMixParameterViewDelegate(QStyledItemDelegate):
             raise NotImplementedError()
 
 
+
 class SpecMixPlotWidget(SpectralLibraryPlotWidget):
 
     def __init__(self, *args, **kwds):
 
-
         super().__init__(*args, **kwds)
 
-        self.parameter_model : SpecMixParameterModel = None
+        self.parameter_model: SpecMixParameterModel = None
         self.mPDI_Avg: SpectralProfilePlotDataItem = SpectralProfilePlotDataItem(SpectralProfile())
         self.mPDI_Dev: SpectralProfilePlotDataItem = SpectralProfilePlotDataItem(SpectralProfile())
-        self.mPDI_Avg.mProfile.setId(-9999)
-        self.mPDI_Dev.mProfile.setId(-9998)
+        for i, pdi in enumerate([self.mPDI_Avg, self.mPDI_Dev]):
+            self.addItem(pdi)
+            self.mPlotOverlayItems.append(pdi)
+            pdi.setClickable(True)
+            pdi.setVisible(True)
+            pdi.setZValue(-99999)
+            pdi.setMapFunctionX(self.unitConversionFunction(pdi.mInitialUnitX, self.xUnit()))
+            #pdi.mSortByXValues = sort_x_values
+            pdi.applyMapFunctions()
+            pdi.sigProfileClicked.connect(self.onProfileClicked)
 
-        self.mPlotOverlayItems.extend([self.mPDI_Dev, self.mPDI_Avg])
+    def setSourceProfileVisibility(self, is_visible: bool):
+        s = ""
 
-    def profileIDsToVisualize(self):
+    def setAvgStyle(self, plotStyle: PlotStyle):
+        plotStyle.apply(self.mPDI_Avg)
 
-        ids = super().profileIDsToVisualize()
-        ids.insert(0, self.mPDI_Avg.mProfile.id())
-        ids.insert(0, self.mPDI_Dev.mProfile.id())
-        return ids
+    def setDevStyle(self, plotStyle: PlotStyle):
+        plotStyle.apply(self.mPDI_Dev)
 
     def setParameterModel(self, model:SpecMixParameterModel):
 
@@ -532,18 +595,24 @@ class SpecMixPlotWidget(SpectralLibraryPlotWidget):
             # register signals
             self.parameter_model = model
             self.setSpeclib(model.speclib())
-            self.parameter_model.rowsInserted.connect(self.update_mixed_profiles)
-            self.parameter_model.rowsRemoved.connect(self.update_mixed_profiles)
             self.parameter_model.dataChanged.connect(self.update_mixed_profiles)
+            self.parameter_model.modelReset.connect(self.update_mixed_profiles)
+            self.parameter_model.sigMixingMethodChanged.connect(self.update_mixed_profiles)
 
     def update_mixed_profiles(self):
 
         pWAvg, pStdDev = self.parameter_model.calculateMixedProfiles()
-
         if isinstance(pWAvg, SpectralProfile):
-            self.mPDI_Avg.initProfile(pWAvg)
-            self.mPDI_Dev.initProfile(pStdDev)
+            self.mPDI_Avg.resetSpectralProfile(pWAvg)
+            self.mPDI_Avg.setZValue(99999)
+            self.mPDI_Avg.setMapFunctionX(self.unitConversionFunction(self.mPDI_Avg.mInitialUnitX, self.xUnit()))
+            self.mPDI_Dev.resetSpectralProfile(pStdDev)
+            self.mPDI_Dev.setMapFunctionX(self.unitConversionFunction(self.mPDI_Dev.mInitialUnitX, self.xUnit()))
+            self.mPDI_Dev.setZValue(99999)
+            #self.mPDI_Avg.setVisible(True)
 
+
+        self.updateXUnit()
 
 
 class SpecMixWidget(QWidget):
@@ -578,27 +647,52 @@ class SpecMixWidget(QWidget):
 
         self.cbSyncWithSelection.toggled.connect(self.onSyncWithSelectionToggled)
 
+        self.cbMixing: QComboBox
+        self.cbMixing.currentIndexChanged.connect(self.onMixingMethodChanged)
+        for m in SpecMixMethod:
+            self.cbMixing.addItem(m.value, userData=m)
+        self.cbMixing.setCurrentIndex(0)
+
         self.btnAddProfiles.setDefaultAction(self.actionAddSelectedSourceProfiles)
         self.btnRemoveProfiles.setDefaultAction(self.actionRemoveSelectedSourceProfiles)
         self.actionAddSelectedSourceProfiles.triggered.connect(self.addSelectedSourceProfiles)
         self.actionRemoveSelectedSourceProfiles.triggered.connect(self.removeSelectedSourceProfiles)
 
+        self.cbShowSourceProfiles.toggled.connect(self.plotWidget.setSourceProfileVisibility)
         self.cbShowSourceProfiles.setChecked(True)
-        self.cbShowMixedProfiles.setChecked(True)
-        self.cbShowDeviations.setChecked(True)
-
 
         self.plotWidget: SpecMixPlotWidget
         self.plotWidget.setParameterModel(self.mParameterModel)
 
+        self.btnMixedProfileStyle: PlotStyleButton
+        self.btnDeviationProfileStyle: PlotStyleButton
+        self.btnMixedProfileStyle.sigPlotStyleChanged.connect(self.plotWidget.setAvgStyle)
+        self.btnDeviationProfileStyle.sigPlotStyleChanged.connect(self.plotWidget.setDevStyle)
+
+        psMix = self.btnMixedProfileStyle.plotStyle()
+        psMix.setMarkerColor('green')
+        psMix.setLineColor('green')
+        psMix.setLineWidth(1)
+        psDev = self.btnDeviationProfileStyle.plotStyle()
+        psDev.setMarkerColor('red')
+        psDev.setLineColor('red')
+        psDev.setLineWidth(1)
+        self.btnMixedProfileStyle.setPlotStyle(psMix)
+        self.btnDeviationProfileStyle.setPlotStyle(psDev)
+        self.plotWidget.setAvgStyle(psMix)
+        self.plotWidget.setDevStyle(psDev)
+
         self.updateButtons()
+
+    def onMixingMethodChanged(self, index):
+        m = self.cbMixing.currentData(role=Qt.UserRole)
+        if isinstance(m, SpecMixMethod):
+            self.mParameterModel.setMixingMethod(m)
 
     def onSyncWithSelectionToggled(self, b: bool):
         self.updateButtons()
         if b is True:
             self.syncWithSelectedSourceProfiles()
-
-
 
     def addSelectedSourceProfiles(self, *args):
         speclib = self.selectedSpeclib()
@@ -619,6 +713,12 @@ class SpecMixWidget(QWidget):
         lastSpeclib: SpectralLibrary = self.m_profile_source_library
         speclib = self.cbSourceLibrary.currentData(role=Qt.UserRole)
 
+        if lastSpeclib == speclib:
+            return
+
+        if self.manualHandling() == False:
+            self.mParameterModel.clear()
+
         if isinstance(lastSpeclib, SpectralLibrary):
             # unregister signals
             try:
@@ -630,6 +730,8 @@ class SpecMixWidget(QWidget):
             # register signals
             speclib.selectionChanged.connect(self.onSourceSpeclibSelectionChanged)
             self.m_profile_source_library = speclib
+            if self.manualHandling() == False:
+                self.syncWithSelectedSourceProfiles()
         self.updateButtons()
 
     def onSourceSpeclibSelectionChanged(self, selected, deselected, clearAndSelect:bool):
@@ -669,11 +771,15 @@ class SpecMixWidget(QWidget):
                 break
 
     def addSpectralLibraries(self, speclibs):
+
         n = len(self.mSpeclibModel)
         self.mSpeclibModel.addSpectralLibraries(speclibs)
 
         if n == 0 and len(self.mSpeclibModel) > 0:
             self.selectSpeclib(self.mSpeclibModel[0])
+
+    def removeSpectralLibraries(self, speclibs):
+        self.mSpeclibModel.removeSpectralLibraries(speclibs)
 
     def manualHandling(self) -> bool:
         return not self.cbSyncWithSelection.isChecked()

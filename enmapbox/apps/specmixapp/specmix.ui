@@ -73,7 +73,7 @@
              <string>...</string>
             </property>
             <property name="icon">
-             <iconset resource="../../../../../QGIS/images/images.qrc">
+             <iconset>
               <normaloff>:/images/themes/default/mActionAdd.svg</normaloff>:/images/themes/default/mActionAdd.svg</iconset>
             </property>
             <property name="autoRaise">
@@ -87,7 +87,7 @@
              <string>...</string>
             </property>
             <property name="icon">
-             <iconset resource="../../../../../QGIS/images/images.qrc">
+             <iconset>
               <normaloff>:/images/themes/default/mActionRemove.svg</normaloff>:/images/themes/default/mActionRemove.svg</iconset>
             </property>
             <property name="autoRaise">
@@ -137,20 +137,22 @@
         <property name="bottomMargin">
          <number>2</number>
         </property>
-        <item row="1" column="0">
-         <widget class="QCheckBox" name="cbShowSourceProfiles">
-          <property name="text">
-           <string>Source Profiles</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
         <item row="2" column="0">
-         <widget class="QCheckBox" name="cbShowMixedProfiles">
+         <widget class="QComboBox" name="cbMixing"/>
+        </item>
+        <item row="2" column="1">
+         <widget class="PlotStyleButton" name="btnMixedProfileStyle">
+          <property name="maximumSize">
+           <size>
+            <width>100</width>
+            <height>25</height>
+           </size>
+          </property>
           <property name="text">
-           <string>Mixed Profile</string>
+           <string>btnMixedProfileStyle</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -158,12 +160,9 @@
          </widget>
         </item>
         <item row="3" column="0">
-         <widget class="QCheckBox" name="cbShowDeviations">
+         <widget class="QLabel" name="label_4">
           <property name="text">
-           <string>Deviations</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
+           <string>RMSE</string>
           </property>
          </widget>
         </item>
@@ -178,18 +177,21 @@
           <property name="text">
            <string>btnDeviationProfileStyle</string>
           </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
          </widget>
         </item>
-        <item row="2" column="1">
-         <widget class="PlotStyleButton" name="btnMixedProfileStyle">
-          <property name="maximumSize">
-           <size>
-            <width>100</width>
-            <height>25</height>
-           </size>
-          </property>
+        <item row="1" column="0" colspan="2">
+         <widget class="QCheckBox" name="cbShowSourceProfiles">
           <property name="text">
-           <string>btnMixedProfileStyle</string>
+           <string>Source Profiles</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -240,7 +242,7 @@
   </layout>
   <action name="actionAddSelectedSourceProfiles">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionAdd.svg</normaloff>:/images/themes/default/mActionAdd.svg</iconset>
    </property>
    <property name="text">
@@ -252,7 +254,7 @@
   </action>
   <action name="actionRemoveSelectedSourceProfiles">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionRemove.svg</normaloff>:/images/themes/default/mActionRemove.svg</iconset>
    </property>
    <property name="text">
@@ -286,8 +288,6 @@
    <header>specmixapp.specmix</header>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../../../../../QGIS/images/images.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

@@ -75,13 +75,28 @@ class SpecMixTestCase(TestCase):
 
         w.selectSpeclib(slib)
         w.cbSyncWithSelection.setChecked(True)
-        slib.selectByIds([0,1,2,3,4])
-        W = QWidget()
-        W.setLayout(QVBoxLayout())
-        W.layout().addWidget(slw)
-        W.layout().addWidget(w)
+        slib.selectByIds([0, 1, 2, 3, 4])
 
-        self.showGui(W)
+        if True:
+            self.showGui([slw, w])
+        else:
+            W = QWidget()
+            W.setLayout(QVBoxLayout())
+            W.layout().addWidget(slw)
+            W.layout().addWidget(w)
+
+            self.showGui(W)
+
+    def test_EnMAPBoxApplication(self):
+
+        from specmixapp import SpecMixApp
+        from enmapbox import EnMAPBox, initAll
+        initAll()
+        EB = EnMAPBox(load_core_apps=False, load_other_apps=False)
+        app = SpecMixApp(EB)
+        EB.addApplication(app)
+        app.startGUI()
+        self.showGui(EB.ui)
 
 
 if __name__ == '__main__':
