@@ -4157,7 +4157,7 @@ class _ClassificationStatistics(ApplierOperator):
 class _ClassificationReclassify(ApplierOperator):
     def ufunc(self, classification, classDefinition, mapping):
         inclassification = self.flowClassificationArray('inclassification', classification=classification)
-        outclassification = self.full(value=0, bands=1, dtype=np.uint8)
+        outclassification = self.full(value=0, bands=1, dtype=np.uint16)
         for inclass, outclass in mapping.items():
             if inclass in classification.classDefinition().names():
                 inclass = classification.classDefinition().names().index(inclass) + 1
