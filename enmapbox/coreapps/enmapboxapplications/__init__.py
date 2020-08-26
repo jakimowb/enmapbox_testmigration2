@@ -10,6 +10,7 @@ from enmapboxapplications.scatterplotapp.core import ScatterPlotApp
 from enmapboxapplications.synthmixapp.core import SynthmixApp
 from enmapboxapplications.classificationapp.core import ClassificationWorkflowApp
 from enmapboxapplications.regressionapp.core import RegressionWorkflowApp
+from hubdsm.processing.classificationstatistics import ClassificationStatistics
 
 
 def enmapboxApplicationFactory(enmapBox):
@@ -21,8 +22,36 @@ def enmapboxApplicationFactory(enmapBox):
         # EnMAPBoxForceMosaikBuilderApp(enmapBox),
         EnMAPBoxClassificationWorkflowApp(enmapBox),
         EnMAPBoxRegressionWorkflowApp(enmapBox),
-        WmsApp(enmapBox)
+        WmsApp(enmapBox),
+        MenuEntries(enmapBox)
     ]
+
+
+class MenuEntries(EnMAPBoxApplication):
+    A_CLASSIFICATION_STATISTICS = 'Classification Statistics'
+
+    def __init__(self, enmapBox, parent=None):
+        super().__init__(enmapBox, parent=parent)
+
+        self.name = 'Menu Entries'
+        self.version = 'dev'
+        self.licence = 'GNU GPL-3'
+
+    def menu(self, appMenu):
+        toolsMenu = self.enmapbox.menu('Tools')
+        a = toolsMenu.addAction(self.A_CLASSIFICATION_STATISTICS)
+        a.triggered.connect(self.actionTriggered)
+        return toolsMenu
+
+    def geoAlgorithms(self):
+        return []
+
+    def actionTriggered(self, *args):
+        name = self.sender().text()
+        if name == self.A_CLASSIFICATION_STATISTICS:
+            self.enmapbox.showProcessingAlgorithmDialog(ClassificationStatistics())
+        else:
+            raise ValueError(name)
 
 
 class WmsApp(EnMAPBoxApplication):
