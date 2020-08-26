@@ -1195,16 +1195,19 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 action.setToolTip('Opens the layer attribute table')
                 action.triggered.connect(lambda *args, l=lyr: self.openAttributeTable(l))
 
+            # add some processing algorithm shortcuts
+            menu.addSeparator()
+            if isinstance(lyr, QgsRasterLayer):
+                action = menu.addAction('Image Statistics')
+                action.triggered.connect(lambda: self.runImageStatistics(lyr))
+                if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
+                    action = menu.addAction('Classification Statistics')
+                    action.triggered.connect(lambda: self.runClassificationStatistics(lyr))
+
+            menu.addSeparator()
             action = menu.addAction('Layer properties')
             action.setToolTip('Set layer properties')
             action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
-
-            # add some processing algorithm shortcuts
-            #            if isinstance(lyr, QgsRasterLayer):
-            #                if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
-            menu.addSeparator()
-            action = menu.addAction('Classification Statistics')
-            action.triggered.connect(lambda: self.runClassificationStatistics(lyr))
 
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
@@ -1241,6 +1244,13 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
     def setLayerStyle(self, layer, canvas):
         showLayerPropertiesDialog(layer, canvas, modal=True)
+
+    def runImageStatistics(self, layer):
+        from enmapboxapplications import ImageStatisticsApp
+        widget = ImageStatisticsApp(parent=self.mDockTreeView)
+        widget.uiRaster().setLayer(layer)
+        widget.show()
+        widget.uiExecute().clicked.emit()
 
     def runClassificationStatistics(self, layer):
         alg = ClassificationStatistics()
