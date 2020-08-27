@@ -2668,7 +2668,7 @@ def openRasterDataset(filename, eAccess=gdal.GA_ReadOnly):
     '''
 
     assert isinstance(filename, str), type(filename)
-    if not filename.startswith('/vsimem/') and not exists(filename):
+    if not filename.startswith('/vsimem') and not exists(filename):
         raise errors.FileNotExistError(filename)
 
     try:
