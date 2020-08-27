@@ -50,7 +50,7 @@
          <x>0</x>
          <y>0</y>
          <width>1016</width>
-         <height>702</height>
+         <height>740</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,1,0,0">
@@ -78,112 +78,177 @@
            <string>Training Inputs</string>
           </property>
           <layout class="QFormLayout" name="formLayout_6">
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_14">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_6">
              <property name="text">
-              <string>Reference</string>
-             </property>
-             <property name="textFormat">
-              <enum>Qt::AutoText</enum>
+              <string>Type</string>
              </property>
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="QgsMapLayerComboBox" name="uiRaster_">
-             <property name="currentIndex">
-              <number>-1</number>
-             </property>
-             <property name="allowEmptyLayer">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="2,0,1,0,0">
+            <layout class="QHBoxLayout" name="horizontalLayout_6">
              <item>
-              <widget class="QgsMapLayerComboBox" name="uiClassification_">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="currentIndex">
-                <number>-1</number>
-               </property>
-               <property name="allowEmptyLayer">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="uiAttributeLabel_">
-               <property name="text">
-                <string>Attribute</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QgsFieldComboBox" name="uiAttribute_">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="currentIndex">
-                <number>0</number>
-               </property>
-               <property name="allowEmptyFieldName">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QSpinBox" name="uiOversampling_">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="suffix">
-                <string> Oversampling</string>
-               </property>
-               <property name="prefix">
-                <string>x</string>
-               </property>
-               <property name="minimum">
-                <number>1</number>
-               </property>
-               <property name="maximum">
-                <number>10</number>
-               </property>
-               <property name="value">
-                <number>5</number>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QSpinBox" name="uiPurity_">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="suffix">
-                <string>% Purity</string>
-               </property>
-               <property name="minimum">
-                <number>0</number>
-               </property>
-               <property name="maximum">
-                <number>100</number>
-               </property>
-               <property name="singleStep">
-                <number>5</number>
-               </property>
-               <property name="value">
-                <number>75</number>
-               </property>
+              <widget class="QComboBox" name="comboBox">
+               <item>
+                <property name="text">
+                 <string>Raster / Classification</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>Raster / Vector Classification</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>labeled Library</string>
+                </property>
+               </item>
               </widget>
              </item>
             </layout>
            </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_5">
-             <property name="text">
-              <string>Raster</string>
+           <item row="1" column="1">
+            <widget class="QStackedWidget" name="stackedWidget">
+             <property name="currentIndex">
+              <number>2</number>
              </property>
+             <widget class="QWidget" name="raster">
+              <layout class="QFormLayout" name="formLayout_4">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_5">
+                 <property name="text">
+                  <string>Raster</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QgsMapLayerComboBox" name="uiType0Raster_">
+                 <property name="currentIndex">
+                  <number>-1</number>
+                 </property>
+                 <property name="allowEmptyLayer">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_17">
+                 <property name="text">
+                  <string>Classification</string>
+                 </property>
+                 <property name="textFormat">
+                  <enum>Qt::AutoText</enum>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QgsMapLayerComboBox" name="uiType0Classification_">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="currentIndex">
+                  <number>-1</number>
+                 </property>
+                 <property name="allowEmptyLayer">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+             <widget class="QWidget" name="vector">
+              <layout class="QFormLayout" name="formLayout_7">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_9">
+                 <property name="text">
+                  <string>Raster</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QgsMapLayerComboBox" name="uiType1Raster_">
+                 <property name="currentIndex">
+                  <number>-1</number>
+                 </property>
+                 <property name="allowEmptyLayer">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_19">
+                 <property name="text">
+                  <string>Vector Classification</string>
+                 </property>
+                 <property name="textFormat">
+                  <enum>Qt::AutoText</enum>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QgsMapLayerComboBox" name="uiType1Vector_">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="currentIndex">
+                  <number>-1</number>
+                 </property>
+                 <property name="allowEmptyLayer">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+             <widget class="QWidget" name="library">
+              <layout class="QFormLayout" name="formLayout_8">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_12">
+                 <property name="text">
+                  <string>Library</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="2,0,1">
+                 <item>
+                  <widget class="QgsMapLayerComboBox" name="uiType2Library_">
+                   <property name="enabled">
+                    <bool>true</bool>
+                   </property>
+                   <property name="currentIndex">
+                    <number>-1</number>
+                   </property>
+                   <property name="allowEmptyLayer">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="uiAttributeLabel_1">
+                   <property name="text">
+                    <string>Class Attribute</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QgsFieldComboBox" name="uiType2Attribute_">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="currentIndex">
+                    <number>0</number>
+                   </property>
+                   <property name="allowEmptyFieldName">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
             </widget>
            </item>
           </layout>
@@ -867,34 +932,18 @@ p, li { white-space: pre-wrap; }
  <resources/>
  <connections>
   <connection>
-   <sender>uiClassification_</sender>
-   <signal>layerChanged(QgsMapLayer*)</signal>
-   <receiver>uiAttribute_</receiver>
-   <slot>setLayer(QgsMapLayer*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>291</x>
-     <y>100</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>835</x>
-     <y>100</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>checkBox_4</sender>
    <signal>toggled(bool)</signal>
    <receiver>uiClassificationFilename_</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>102</x>
-     <y>695</y>
+     <x>105</x>
+     <y>667</y>
     </hint>
     <hint type="destinationlabel">
-     <x>161</x>
-     <y>680</y>
+     <x>311</x>
+     <y>672</y>
     </hint>
    </hints>
   </connection>
@@ -905,12 +954,12 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>123</x>
-     <y>780</y>
+     <x>143</x>
+     <y>758</y>
     </hint>
     <hint type="destinationlabel">
-     <x>215</x>
-     <y>788</y>
+     <x>222</x>
+     <y>760</y>
     </hint>
    </hints>
   </connection>
@@ -921,12 +970,12 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>83</x>
-     <y>785</y>
+     <x>103</x>
+     <y>758</y>
     </hint>
     <hint type="destinationlabel">
-     <x>460</x>
-     <y>774</y>
+     <x>688</x>
+     <y>761</y>
     </hint>
    </hints>
   </connection>
@@ -937,28 +986,28 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>69</x>
-     <y>611</y>
+     <x>90</x>
+     <y>536</y>
     </hint>
     <hint type="destinationlabel">
-     <x>298</x>
-     <y>614</y>
+     <x>403</x>
+     <y>539</y>
     </hint>
    </hints>
   </connection>
   <connection>
-   <sender>uiRaster_</sender>
+   <sender>uiType0Raster_</sender>
    <signal>layerChanged(QgsMapLayer*)</signal>
    <receiver>uiRaster2_</receiver>
    <slot>setLayer(QgsMapLayer*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>188</x>
-     <y>73</y>
+     <x>315</x>
+     <y>111</y>
     </hint>
     <hint type="destinationlabel">
-     <x>174</x>
-     <y>655</y>
+     <x>324</x>
+     <y>599</y>
     </hint>
    </hints>
   </connection>
@@ -969,12 +1018,12 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>102</x>
-     <y>292</y>
+     <x>104</x>
+     <y>331</y>
     </hint>
     <hint type="destinationlabel">
-     <x>322</x>
-     <y>298</y>
+     <x>432</x>
+     <y>336</y>
     </hint>
    </hints>
   </connection>
@@ -985,12 +1034,12 @@ p, li { white-space: pre-wrap; }
    <slot>setCurrentIndex(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>145</x>
-     <y>160</y>
+     <x>149</x>
+     <y>209</y>
     </hint>
     <hint type="destinationlabel">
-     <x>252</x>
-     <y>160</y>
+     <x>256</x>
+     <y>209</y>
     </hint>
    </hints>
   </connection>
@@ -1001,12 +1050,12 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>62</x>
-     <y>717</y>
+     <x>83</x>
+     <y>697</y>
     </hint>
     <hint type="destinationlabel">
-     <x>109</x>
-     <y>717</y>
+     <x>143</x>
+     <y>697</y>
     </hint>
    </hints>
   </connection>
@@ -1017,12 +1066,28 @@ p, li { white-space: pre-wrap; }
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>32</x>
-     <y>718</y>
+     <x>53</x>
+     <y>697</y>
     </hint>
     <hint type="destinationlabel">
-     <x>227</x>
-     <y>721</y>
+     <x>377</x>
+     <y>700</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBox</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>stackedWidget</receiver>
+   <slot>setCurrentIndex(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>102</x>
+     <y>63</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1007</x>
+     <y>88</y>
     </hint>
    </hints>
   </connection>
