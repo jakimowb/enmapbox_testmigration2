@@ -67,7 +67,7 @@ class EnMAPBoxApplication(QObject):
 
     def __init__(self, enmapBox, parent=None):
         super(EnMAPBoxApplication, self).__init__(parent)
-        self.enmapbox = enmapBox
+        self.enmapbox: EnMAPBox = enmapBox
         self.qgis = enmapBox.iface
 
         #required attributes. Must be different to None
@@ -430,7 +430,7 @@ class ApplicationRegistry(QObject):
         appWrapper = self.mAppWrapper.pop(appId)
         assert isinstance(appWrapper, ApplicationWrapper)
 
-        #remove menu item
+        # remove menu item
         for item in appWrapper.menuItems:
 
             parent = item.parent()

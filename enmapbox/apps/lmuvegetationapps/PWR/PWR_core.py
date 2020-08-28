@@ -180,9 +180,9 @@ class PWR_core:
         return NDVI
     
     #@jit(nopython=True)
-    def execute_PWR(self, prg_widget=None, QGis_app=None):
+    def execute_PWR(self, prg_widget=None, qgis_app=None):
         self.prg = prg_widget
-        self.QGis_app = QGis_app
+        self.qgis_app = qgis_app
         res_raster = np.zeros([1, self.nrows, self.ncols])  # result raster of minimized d-values
         d = 0.0  # initial d-value for minimization algorithm
         for row in range(self.nrows):
@@ -237,4 +237,4 @@ class PWR_core:
             self.prg.gui.prgBar.setValue(pixel_no*100 // self.pixel_total)  # progress value is index-orientated
             self.prg.gui.lblCaption_l.setText("Calculating Water Content")
             self.prg.gui.lblCaption_r.setText("pixel %i of %i" % (pixel_no, self.pixel_total))
-            self.QGis_app.processEvents()  # mach ma neu
+            self.qgis_app.processEvents()  # mach ma neu

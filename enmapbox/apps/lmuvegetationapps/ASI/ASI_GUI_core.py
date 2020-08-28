@@ -354,7 +354,7 @@ class ASI:
                 self.main.prg_widget.gui.prgBar.setValue(0)
                 self.main.prg_widget.gui.setModal(True)
                 self.main.prg_widget.gui.show()
-                self.main.QGis_app.processEvents()
+                self.main.qgis_app.processEvents()
 
                 try:
                     self.core = ASI_core(nodat_val=self.nodat, division_factor=self.division_factor,
@@ -376,7 +376,7 @@ class ASI:
                     return
                 self.max_ndvi_pos, self.ndvi_spec = self.core.findHighestNDVIindex(
                     in_raster=self.core.in_raster,
-                    prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+                    prg_widget=self.main.prg_widget, qgis_app=self.main.qgis_app)
                 #QMessageBox.critical(self.gui, 'error', "An unspecific error occured.")
                 self.main.prg_widget.gui.allow_cancel = True
                 self.main.prg_widget.gui.close()
@@ -412,7 +412,7 @@ class ASI:
             self.main.prg_widget.gui.prgBar.setValue(0)
             self.main.prg_widget.gui.setModal(True)
             self.main.prg_widget.gui.show()
-            self.main.QGis_app.processEvents()
+            self.main.qgis_app.processEvents()
             try:
                 iASI = ASI_core(nodat_val=self.nodat, division_factor=self.division_factor,
                                 max_ndvi_pos=self.max_ndvi_pos, ndvi_spec=self.ndvi_spec)
@@ -460,7 +460,7 @@ class ASI:
             #try:  # give it a shot
             result, crs, res3band = iASI.execute_ASI(in_raster=iASI.in_raster,
                                                           prg_widget=self.main.prg_widget,
-                                                          QGis_app=self.main.QGis_app)
+                                                          qgis_app=self.main.qgis_app)
             # except:
             #     QMessageBox.critical(self.gui, 'error', "Calculation cancelled.")
             #     self.main.prg_widget.gui.allow_cancel = True
@@ -468,17 +468,17 @@ class ASI:
             #     return
             if not self.calc_3band_flag:
                 self.main.prg_widget.gui.lblCaption_r.setText("Writing Integral Output-File")
-                self.main.QGis_app.processEvents()
+                self.main.qgis_app.processEvents()
                 iASI.write_integral_image(result=result)
 
             if self.calc_crs_flag:
                 self.main.prg_widget.gui.lblCaption_r.setText("Writing CRS Output-File")
-                self.main.QGis_app.processEvents()
+                self.main.qgis_app.processEvents()
                 iASI.write_crs_image(crs=crs)
 
             if self.calc_3band_flag:
                 self.main.prg_widget.gui.lblCaption_r.setText("Writing 3-Band SIR-File")
-                self.main.QGis_app.processEvents()
+                self.main.qgis_app.processEvents()
                 iASI.write_3band_image(res3band=res3band)
 
             self.main.prg_widget.gui.allow_cancel = True
@@ -857,7 +857,7 @@ class ASI_core:
 
     def segmented_convex_hull_3d_3band(self, in_matrix, limits, lookahead=None, delta=None):
 
-        self.prg.gui.lblCaption_l.setText("Separating Ccx, Cab, and H2o integral ranges...")
+        self.prg.gui.lblCaption_l.setText("Separating Ccx, Cab, and H2O integral ranges...")
 
         low, up = limits
         if not low >= 350 and not up <= 2500:
@@ -1028,9 +1028,9 @@ class ASI_core:
         res3band[~np.isfinite(res3band)] = self.nodat[1]
         return res3band
 
-    def execute_ASI(self, in_raster, prg_widget=None, QGis_app=None):
+    def execute_ASI(self, in_raster, prg_widget=None, qgis_app=None):
         self.prg = prg_widget
-        self.QGis_app = QGis_app
+        self.qgis_app = qgis_app
         res, crs, res3band = None, None, None
 
         if self.calc_3band_flag:
@@ -1050,10 +1050,10 @@ class ASI_core:
 
         return res, crs, res3band
 
-    def findHighestNDVIindex(self, in_raster, prg_widget=None, QGis_app=None):  # acc. to hNDVI Oppelt(2002)
+    def findHighestNDVIindex(self, in_raster, prg_widget=None, qgis_app=None):  # acc. to hNDVI Oppelt(2002)
 
         self.prg = prg_widget
-        self.QGis_app = QGis_app
+        self.qgis_app = qgis_app
 
         NDVI_closest = [self.find_closest_wl(lambd=827), self.find_closest_wl(lambd=668)]
         self.NDVI_bands = [i for i, x in enumerate(self.wl) if x in NDVI_closest]
@@ -1094,7 +1094,7 @@ class ASI_core:
                 raise ValueError("Calculation cancelled")
             self.prg.gui.prgBar.setValue(pixel_no*100 // self.pixel_total)  # progress value is index-orientated
             self.prg.gui.lblCaption_r.setText("pixel %i of %i" % (pixel_no, self.pixel_total))
-            self.QGis_app.processEvents()
+            self.qgis_app.processEvents()
 
 
 class Nodat:
@@ -1146,7 +1146,7 @@ class PRG:
 
 class MainUiFunc:
     def __init__(self):
-        self.QGis_app = QApplication.instance()
+        self.qgis_app = QApplication.instance()
         self.asi = ASI(self)
         self.asi_core = ASI_core(nodat_val=None, division_factor=None, max_ndvi_pos=None,
                                  ndvi_spec=None)

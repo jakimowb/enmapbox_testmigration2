@@ -149,7 +149,7 @@ class PWR:
         self.main.prg_widget.gui.prgBar.setValue(0)
         self.main.prg_widget.gui.setModal(True)
         self.main.prg_widget.gui.show()
-        self.main.QGis_app.processEvents()
+        self.main.qgis_app.processEvents()
 
         try:
             iPWR = PWR_core(nodat_val=self.nodat, division_factor=self.division_factor)
@@ -165,7 +165,7 @@ class PWR:
             return
 
         try:  # give it a shot
-            result = iPWR.execute_PWR(prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+            result = iPWR.execute_PWR(prg_widget=self.main.prg_widget, qgis_app=self.main.qgis_app)
 
         except:
             QMessageBox.critical(self.gui, 'error', "Calculation cancelled.")
@@ -174,7 +174,7 @@ class PWR:
             return
 
         self.main.prg_widget.gui.lblCaption_r.setText("Writing Output-File")
-        self.main.QGis_app.processEvents()
+        self.main.qgis_app.processEvents()
 
         iPWR.write_image(result=result)
         # try:
@@ -243,7 +243,7 @@ class PRG:
 
 class MainUiFunc:
     def __init__(self):
-        self.QGis_app = QApplication.instance()
+        self.qgis_app = QApplication.instance()
         self.pwr = PWR(self)
         self.nodat_widget = Nodat(self)
         self.prg_widget = PRG(self)
