@@ -89,13 +89,14 @@ class RegressionWorkflowApp(QMainWindow):
         layer = self.uiRegression_.currentLayer()
         isVector = isinstance(layer, QgsVectorLayer)
 
-        try:
-            openVectorDataset(filename=layer.source())
-        except Exception as error:
-            self.log('GDAL Error:{}'.format(str(error)))
-            self.uiAttribute_.setCurrentIndex(-1)
-            self.uiRegression_.setLayer(None)
-            return
+        if isVector:
+            try:
+                openVectorDataset(filename=layer.source())
+            except Exception as error:
+                self.log('GDAL Error:{}'.format(str(error)))
+                self.uiAttribute_.setCurrentIndex(-1)
+                self.uiRegression_.setLayer(None)
+                return
 
         self.uiAttribute_.setEnabled(isVector)
         self.uiAttribute_.setVisible(isVector)

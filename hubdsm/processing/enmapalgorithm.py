@@ -67,9 +67,6 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
         if isinstance(pd, EnMAPProcessingParameterMapLayer):
             value = self.parameterAsLayer(parameters, name, context)
-        # elif isinstance(pd, EnMAPProcessingParameterClassificationLayer):
-        #    value = self.parameterAsRasterLayer(parameters, name, context)
-        #    if not PrE
         elif isinstance(pd, EnMAPProcessingParameterRasterLayer):
             value = self.parameterAsRasterLayer(parameters, name, context)
         elif isinstance(pd, EnMAPProcessingParameterVectorLayer):
@@ -83,7 +80,6 @@ class EnMAPAlgorithm(QgisAlgorithm):
                 assert 0, repr(parameters[name])
         else:
             value = parameters[name]
-
         return value
 
     def hasHtmlOutputs(self, *args, **kwargs):

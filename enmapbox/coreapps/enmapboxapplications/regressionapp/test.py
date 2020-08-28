@@ -16,6 +16,8 @@ if __name__ == '__main__':
 
     enmapBox.addSource(source=r'C:\Work\data\sam_cooper\enmap_subset.bsq')
     enmapBox.addSource(source=r'C:\Work\data\sam_cooper\biomass_training.shp')
+    enmapBox.addSource(source=r"C:\Users\janzandr\Desktop\fraction.bsq")
+
 
     try:
         widget = RegressionWorkflowApp()

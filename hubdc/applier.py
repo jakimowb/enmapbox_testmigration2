@@ -236,6 +236,10 @@ class ApplierInputRaster(ApplierIO):
         """Return category names for band given by ``index``."""
         return self.dataset().band(index=index).categoryNames()
 
+    def descriptions(self):
+        """Return band descriptions."""
+        return [band.description() for band in self.dataset().bands()]
+
 
 class ApplierInputVector(ApplierIO):
     '''Class for handling the vector dataset given by it's ``filename`` and ``layerNameOrIndex``.'''
