@@ -1,30 +1,33 @@
 # -*- coding: utf-8 -*-
 
+# This script handles the GUI for inverting images with pre-trained Machine Learning models. At the time being, only
+# ANNs are implemented, but the structure is flexible so that new algorithms can always be added. Make sure to
+# add a model selection frame to the GUI in QtDesigner then.
+
 import sys
 # ensure to call QGIS before PyQtGraph
 from qgis.PyQt.QtWidgets import *
 import lmuvegetationapps.Processor.Processor_Inversion_core as processor
 from lmuvegetationapps import APP_DIR
 from hubflow.core import *
+from enmapbox.gui.utils import loadUi
 
 pathUI_processor = os.path.join(APP_DIR, 'Resources/UserInterfaces/Processor_Inversion.ui')
 pathUI_nodat = os.path.join(APP_DIR, 'Resources/UserInterfaces/Nodat.ui')
 pathUI_prgbar = os.path.join(APP_DIR, 'Resources/UserInterfaces/ProgressBar.ui')
 
-from enmapbox.gui.utils import loadUi
 
-
-class ANN_Inversion_GUI(QDialog):
+class MLInversionGUI(QDialog):
     
     def __init__(self, parent=None):
-        super(ANN_Inversion_GUI, self).__init__(parent)
+        super(MLInversionGUI, self).__init__(parent)
         loadUi(pathUI_processor, self)
 
 
-class Nodat_GUI(QDialog):
+class NodatGUI(QDialog):
 
     def __init__(self, parent=None):
-        super(Nodat_GUI, self).__init__(parent)
+        super(NodatGUI, self).__init__(parent)
         loadUi(pathUI_nodat, self)
 
 
@@ -34,49 +37,47 @@ class PRG_GUI(QDialog):
         loadUi(pathUI_prgbar, self)
         self.allow_cancel = False
 
-
     def closeEvent(self, event):
         if self.allow_cancel:
             event.accept()
         else:
             event.ignore()
 
-class ANN_Inversion:
+
+# class MachineLearningInversion (MLInversion)
+# This is the GUI class for setting up and performing an inversion of machine learning models
+class MLInversion:
 
     def __init__(self, main):
         self.main = main
-        self.gui = ANN_Inversion_GUI()
+        self.gui = MLInversionGUI()
         self.initial_values()
         self.connections()
 
     def initial_values(self):
         self.nodat = [-999] * 3
-        self.n_wl = None
-        self.image = None
-        self.mask_image = None
-        self.mask_ndvi = False
-        self.ndvi_thr = 0.37
-        self.spatial_geo = False
-        self.out_image = None
-        self.out_mode = 'single'
-        self.flags =[[0,0],[0],[0],[0,0]]  # to be edited!
+        self.image = None  # Spectral Image to be inverted
+        self.mask_image = None  # Boolean mask image (0 and 1) to set pixels to add or remove from the inversion
+        self.mask_ndvi = False  # Boolean: True, only invert pixels with NDVI > self.ndvi_thr; False: invert all pixels
+        self.ndvi_thr = -0.9
+        self.ndvi_bands = [None, None]
+        # should each pixel be inverted according to its geometry (True) or calculate the average for all pixels (False)
+        self.spatial_geo = False  #
+        self.out_image = None  # File for output results
+        self.out_mode = 'single'  # 'single' all PROSAIL parameters in one file as bands, 'individual' one file per para
 
-        self.geo_mode = "file"
-        self.geo_file = None
-        self.geo_fixed = [None]*3
+        self.geo_mode = "file"  # Is the geometry (SZA, OZA, rAA) suplied through 'file' or are they 'fix'
+        self.geo_file = None  # if geo_mode == 'file', which is the path?
+        self.geo_fixed = [None]*3  # if geo_mode == 'fix', which are the three geometry angles?
 
-        self.conversion_factor = None
-        self.NDVI_th = -0.9
-
-        self.sensor = 2  # 0 = ASD, 1 = Sentinel2, 2 = EnMAP, 3 = Landsat, 4 = HyMap
-        self.wl = None
+        self.conversion_factor = None  # convert spectral image (boost) to reach the same scale as the machines
 
     def connections(self):
         # Model Selection
         self.gui.cmdModel.clicked.connect(lambda: self.open_file(mode="model"))
-        self.gui.cmdNewModel.clicked.connect(lambda: self.open_train_gui())
-        # Train new Model connect here
 
+        # Switch to "Train new Model"
+        self.gui.cmdNewModel.clicked.connect(lambda: self.open_train_gui())
 
         # Input Images
         self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="image"))
@@ -102,17 +103,18 @@ class ANN_Inversion:
         self.gui.cmdClose.clicked.connect(lambda: self.gui.close())
 
     def open_file(self, mode):
-        if mode == "image":
+        if mode == "image":  # open file is a spectral image
             result = str(QFileDialog.getOpenFileName(caption='Select Input Image')[0])
-            if not result: return
+            if not result:
+                return
             self.image = result
             self.image = self.image.replace("\\", "/")
             try:
-                meta = self.get_image_meta(image=self.image, image_type="Input Image")
+                meta = self.get_image_meta(image=self.image, image_type="Input Image")  # get metadata of image
             except ValueError as e:
                 self.abort(message=str(e))
                 return
-            if None in meta:
+            if None in meta[:-1]:  # something went wrong, go back to default (last item is NDVI which is optional)
                 self.image = None
                 self.nodat[0] = None
                 self.gui.lblInputImage.setText("")
@@ -122,13 +124,15 @@ class ANN_Inversion:
                 self.gui.lblNodatImage.setText(str(meta[0]))
                 self.nodat[0] = meta[0]
 
-        elif mode == "output":
+        elif mode == "output":  # open file for output raster
             result = QFileDialog.getSaveFileName(caption='Specify Output-file(s)', filter="ENVI Image (*.bsq)")[0]
-            if not result: return
+            if not result:
+                return
             self.out_image = result
             self.out_image = self.out_image.replace("\\", "/")
             self.gui.txtOutputImage.setText(result)
-        elif mode == "geo":
+
+        elif mode == "geo":  # open file is a geometry file
             result = str(QFileDialog.getOpenFileName(caption='Select Geometry Image')[0])
             if not result:
                 return
@@ -146,35 +150,39 @@ class ANN_Inversion:
                 self.gui.chkMeanCalc.setDisabled(False)
                 self.gui.chkMeanCalc.setChecked(True)
                 self.nodat[1] = meta[0]
-        elif mode == "mask":
+
+        elif mode == "mask":  # open file of type mask image (0 and 1)
             result = str(QFileDialog.getOpenFileName(caption='Select Mask Image')[0])
             if not result:
                 return
             self.mask_image = result
             self.mask_image = self.mask_image.replace("\\", "/")
             meta = self.get_image_meta(image=self.mask_image, image_type="Mask Image")
-            if meta[1] is None: # No Data is unimportant for mask file, but dimensions must exist (image readable)
+            if meta[1] is None:  # No Data is unimportant for mask file, but dimensions must exist (image readable)
                 self.mask_image = None
                 self.gui.lblInputMask.setText("")
                 return
             else:
                 self.gui.lblInputMask.setText(result)
-        elif mode == "model":
-            result = str(QFileDialog.getOpenFileName(caption='Select Machine Learning Model', filter="Processor META File (*.meta)")[0])
+
+        elif mode == "model":  # Select algorithm for inversion my picking its Meta-file (*.meta)
+            result = str(QFileDialog.getOpenFileName(caption='Select Machine Learning Model',
+                                                     filter="Processor META File (*.meta)")[0])
             if not result:
                 return
-            meta_dict = self.get_processor_meta(file=result)
+            meta_dict = self._get_processor_meta(file=result)
             if not meta_dict:
                 return
             self.model_meta_file = result
             self.model_name = os.path.splitext(os.path.basename(result))[0]
+            # The name of the meta-file == name of the model
             self.gui.lblModel.setText(os.path.splitdrive(result)[0] + "\\...\\" + self.model_name + ".meta")
 
-
-    def select_outputmode(self, mode):
+    def select_outputmode(self, mode):  # 'single' vs. 'individual'
         self.out_mode = mode
 
     def select_geo(self, mode):
+        # sets objects in the GUI according to the Geo-mode: is geometry read from file or fixed manually?
         if mode == "file":
             self.gui.lblGeoFromFile.setDisabled(False)
             self.gui.cmdGeoFromFile.setDisabled(False)
@@ -190,6 +198,7 @@ class ANN_Inversion:
         self.geo_mode = mode
 
     def ndvi_thresh(self):
+        # Select threshold of NDVI
         if self.gui.grpNDVI.isChecked():
             self.gui.SpinNDVI.setDisabled(False)
             self.mask_ndvi = True
@@ -198,14 +207,13 @@ class ANN_Inversion:
             self.mask_ndvi = False
 
     def ndvi_th_change(self):
-        self.NDVI_th = self.gui.SpinNDVI.value()
+        self.ndvi_thr = self.gui.SpinNDVI.value()
 
     def geo_mean_calc(self):
         if self.gui.chkMeanCalc.isChecked():
             self.spatial_geo = False
         else:
             self.spatial_geo = True
-
 
     def abort(self, message):
         QMessageBox.critical(self.gui, "Error", message)
@@ -227,9 +235,10 @@ class ANN_Inversion:
         if self.out_image is None:
             raise ValueError('Output file missing')
         else:
+            # if user typed a file extension for the binary raster file, nothing happens; otherwise .bsq is added
             try:
                 os.path.splitext(self.out_image)[1]
-            except:
+            except IndexError:
                 self.out_image += ".bsq"
 
         # Geometry file:
@@ -253,7 +262,9 @@ class ANN_Inversion:
                 raise ValueError('rAA out of range [0-180]')
             else:
                 try:
-                    self.geo_fixed = [float(self.gui.txtSZA.text()), float(self.gui.txtOZA.text()), float(self.gui.txtRAA.text())]
+                    self.geo_fixed = [float(self.gui.txtSZA.text()),
+                                      float(self.gui.txtOZA.text()),
+                                      float(self.gui.txtRAA.text())]
                 except ValueError:
                     raise ValueError('Cannot interpret Geometry angles as numbers')
 
@@ -265,13 +276,14 @@ class ANN_Inversion:
         if self.gui.txtNodatOutput.text() == "":
             raise ValueError('Please specify no data value for output')
         else:
+            # Set the NodataValue for the mask
             try:
                 self.nodat[2] = int(self.gui.txtNodatOutput.text())
-            except:
+            except ValueError:
                 raise ValueError('%s is not a valid no data value for output' % self.gui.txtNodatOutput.text())
 
-        # Parameters
-        self.paras = []
+        # Parameters to invert
+        self.paras = list()
         if self.gui.checkLAI.isChecked():
             self.paras.append("LAI")
         if self.gui.checkALIA.isChecked():
@@ -284,6 +296,7 @@ class ANN_Inversion:
             raise ValueError("At least one parameter needs to be selected!")
 
     def get_image_meta(self, image, image_type):
+        # extracts meta information from the spectral image
         dataset = openRasterDataset(image)
         if dataset is None:
             raise ValueError(
@@ -294,33 +307,72 @@ class ANN_Inversion:
             nrows = int(metadict['ENVI']['lines'])
             ncols = int(metadict['ENVI']['samples'])
             nbands = int(metadict['ENVI']['bands'])
-            # if nbands < 2:
-            #     raise ValueError("Input is not a multi-band image")
-            try:
+
+            try:  # try and get no data value and convert it to integer
                 nodata = int(metadict['ENVI']['data ignore value'])
-                return nodata, nbands, nrows, ncols
-            except:
+            except (AttributeError, ValueError):
+                # no dat not found or cannot be interpreted as intereg! No worries, the user can add it manually!
                 self.main.nodat_widget.init(image_type=image_type, image=image)
                 self.main.nodat_widget.gui.setModal(True)  # parent window is blocked
-                self.main.nodat_widget.gui.exec_()  # unlike .show(), .exec_() waits with execution of the code, until the app is closed
-                return self.main.nodat_widget.nodat, nbands, nrows, ncols
+                self.main.nodat_widget.gui.exec_()  # unlike .show(), .exec_() waits with execution of the code,
+                                                    # until the app is closed
+                nodata = self.main.nodat_widget.nodat
 
-    def get_processor_meta(self, file):
+            # When opening a spectral input image, wavelengths must be extracted from the header to find out the
+            # NDVI bands for masking pixels with NDVI < threshold
+            if image_type == "Input Image":
+                try:
+                    wavelengths = metadict['ENVI']['wavelength']
+                    wl_units = metadict['ENVI']['wavelength units']
+                    if wl_units.lower() in ['nanometers', 'nm', 'nanometer']:  # any of these is accepted
+                        wave_convert = 1  # factor is 1, as the method expects nm anyway
+                    elif wl_units.lower() in ['micrometers', 'µm', 'micrometer']:
+                        wave_convert = 1000  # factor is 1000 to obtain nm
+                    else:
+                        raise ValueError
+                    wavelengths = np.asarray([float(wl * wave_convert) for wl in wavelengths])
+                    self.ndvi_bands[0] = np.argmin(np.abs(wavelengths - 677))  # find band that is closest to "red"
+                    self.ndvi_bands[1] = np.argmin(np.abs(wavelengths - 837))  # find band that is closest to "nir"
+                    self.gui.grpNDVI.setEnabled(True)  # make NDVI section available
+                    self.gui.SpinNDVI.setEnabled(True)  # make NDVI threshold SpinBox available
+                    # reset the objects/values to the current ones
+                    self.ndvi_thresh()
+                    self.ndvi_th_change()
+
+                # wavelength or wavelength unit are not found as item in the header or they cannot be read properly
+                except (KeyError, ValueError):
+                    # Pop up a warning and disable NDVI spins
+                    QMessageBox.warning(self.gui, "Warning", '{}: file has missing or corrupt wavelengths and '
+                                                             'wavelength unit in header. NDVI-masking is disabled!'
+                                                             .format(image))
+                    self.gui.grpNDVI.setChecked(False)  # disable the option to select NDVI
+                    self.gui.grpNDVI.setDisabled(True)
+                    self.gui.SpinNDVI.setDisabled(True)  # disable the option to set NDVI threshold
+                    # reset the objects/values to the current ones
+                    self.ndvi_thresh()
+                    self.ndvi_th_change()
+                    self.mask_ndvi = False
+                    self.ndvi_bands = [None, None]
+
+            return nodata, nbands, nrows, ncols
+
+    @staticmethod
+    def _get_processor_meta(file):
+        # reads the ML meta file and extracts the values
         try:
             with open(file, 'r') as meta_file:
                 content = meta_file.readlines()
                 content = [item.rstrip("\n") for item in content]
+            # Super fancy! This splits the keys and values in the meta file and extracts the values separated by ";"
             keys, values = list(), list()
             [[x.append(y) for x, y in zip([keys, values], line.split(sep="=", maxsplit=1))] for line in content]
             values = [value.split(';') if ';' in value else value for value in values]
-            meta_dict = dict(zip(keys, values))
+            meta_dict = dict(zip(keys, values)) # dictionary for they keys and values of the ML-meta file
             return meta_dict
         except:
             return False
 
-
     def run_inversion(self):
-
         try:
             self.check_and_assign()
         except ValueError as e:
@@ -328,31 +380,33 @@ class ANN_Inversion:
             return
 
         self.prg_widget = self.main.prg_widget
-        self.prg_widget.gui.lblCaption_l.setText("ANN Inversion")
+        self.prg_widget.gui.lblCaption_l.setText("ML Inversion")
         self.prg_widget.gui.lblCaption_r.setText("Setting up inversion...")
         self.main.prg_widget.gui.prgBar.setValue(0)
         self.main.prg_widget.gui.setModal(True)
         self.prg_widget.gui.show()
 
-        self.main.QGis_app.processEvents()
+        self.main.qgis_app.processEvents()
 
-        proc = processor.ProcessorMainFunction()
+        proc = processor.ProcessorMainFunction()  # instance of the ProcessorMainFunction class
 
         try:
-            proc.predict_main.prediction_setup(model_meta=self.model_meta_file, algorithm='ann', ImgIn=self.image,
-                                              ResOut=self.out_image, out_mode=self.out_mode,
-                                              sensor_nr=2, mask_ndvi=self.mask_ndvi, ndvi_thr=self.NDVI_th,
-                                              mask_image=self.mask_image, GeoIn=self.geo_file, fixed_geos=self.geo_fixed,
-                                              spatial_geo=self.spatial_geo, paras=self.paras)
+            # Setup the inversion process
+            proc.predict_main.prediction_setup(model_meta=self.model_meta_file, algorithm='ann', img_in=self.image,
+                                               res_out=self.out_image, out_mode=self.out_mode,
+                                               mask_ndvi=self.mask_ndvi, ndvi_thr=self.ndvi_thr,
+                                               ndvi_bands=self.ndvi_bands, mask_image=self.mask_image,
+                                               geo_in=self.geo_file, fixed_geos=self.geo_fixed,
+                                               spatial_geo=self.spatial_geo, paras=self.paras)
         except ValueError as e:
             self.abort(message="Failed to setup inversion: {}".format(str(e)))
             return
 
-        # Temp: Do not escape
-        proc.predict_main.predict_from_dump(prg_widget=self.prg_widget, QGis_app=self.main.QGis_app)
+        proc.predict_main.predict_from_dump(prg_widget=self.prg_widget, qgis_app=self.main.qgis_app)
 
         try:
-            proc.predict_main.predict_from_dump(prg_widget=self.prg_widget, QGis_app=self.main.QGis_app)
+            # call the prediction method
+            proc.predict_main.predict_from_dump(prg_widget=self.prg_widget, qgis_app=self.main.qgis_app)
         except ValueError as e:
             if str(e) == "Inversion canceled":
                 self.abort(message=str(e))
@@ -364,9 +418,10 @@ class ANN_Inversion:
             return
 
         self.prg_widget.gui.lblCaption_r.setText('Prediction Finished! Writing Output...')
-        self.main.QGis_app.processEvents()
+        self.main.qgis_app.processEvents()
 
         try:
+            # Write the results to (a) file(s)
             proc.predict_main.write_prediction()
         except ValueError as e:
             self.abort(message="An error occurred while trying to write output-image: {}".format(str(e)))
@@ -379,15 +434,18 @@ class ANN_Inversion:
         self.gui.close()
 
     def open_train_gui(self):
+        # Open the GUI for training new models
         from lmuvegetationapps.Processor.Processor_Training_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
         self.gui.close()
 
+
+# Popup-GUI to specify Nodat-values manually
 class Nodat:
     def __init__(self, main):
         self.main = main
-        self.gui = Nodat_GUI()
+        self.gui = NodatGUI()
         self.connections()
         self.image = None
 
@@ -400,22 +458,24 @@ class Nodat:
 
     def connections(self):
         self.gui.cmdCancel.clicked.connect(lambda: self.gui.close())
-        self.gui.cmdOK.clicked.connect(lambda: self.OK())
+        self.gui.cmdOK.clicked.connect(lambda: self.ok())
 
-    def OK(self):
+    def ok(self):
         if self.gui.txtNodat.text() == "":
             QMessageBox.critical(self.gui, "No Data", "A no data value must be supplied for this image!")
             return
         else:
             try:
                 nodat = int(self.gui.txtNodat.text())
-            except:
+            except ValueError:
                 QMessageBox.critical(self.gui, "No number", "'%s' is not a valid number" % self.gui.txtNodat.text())
                 self.gui.txtNodat.setText("")
                 return
         self.nodat = nodat
         self.gui.close()
 
+
+# class PRG handles the GUI of the ProgressBar
 class PRG:
     def __init__(self, main):
         self.main = main
@@ -431,15 +491,18 @@ class PRG:
         self.gui.cmdCancel.setDisabled(True)
         self.gui.lblCancel.setText("-1")
 
+
+# class MainUiFunc is the interface between all sub-GUIs, so they can communicate between each other
 class MainUiFunc:
     def __init__(self):
-        self.QGis_app = QApplication.instance()
-        self.ann_inversion = ANN_Inversion(self)
+        self.qgis_app = QApplication.instance()
+        self.ann_inversion = MLInversion(self)
         self.nodat_widget = Nodat(self)
         self.prg_widget = PRG(self)
 
     def show(self):
         self.ann_inversion.gui.show()
+
 
 if __name__ == '__main__':
     from enmapbox.testing import initQgisApplication

@@ -1471,7 +1471,6 @@ class DockManager(QObject):
             if isinstance(speclib, SpectralLibrary):
                 kwds['name'] = speclib.name()
             dock = SpectralLibraryDock(*args, **kwds)
-            dock.mSpeclibWidget.setMapInteraction(False)
             dock.speclib().willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
 
         elif cls == AttributeTableDock:

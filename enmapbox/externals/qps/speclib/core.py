@@ -1175,16 +1175,13 @@ class SpectralProfileRenderer(object):
         self.temporaryProfileStyle: PlotStyle
         self.temporaryProfileStyle = cs
 
-        self.infoColor: QColor
-        self.infoColor = ic
+        self.infoColor: QColor = ic
 
-        self.selectionColor: QColor
-        self.selectionColor = sc
-        self.useRendererColors: bool
-        self.useRendererColors = useRendererColors
+        self.selectionColor: QColor = sc
+        self.useRendererColors: bool = useRendererColors
 
-        self.mFID2Style: dict = dict()
-        self.mTemporaryFIDs: set = set()
+        self.mFID2Style: typing.Dict[int, PlotStyle] = dict()
+        self.mTemporaryFIDs: typing.Set[int] = set()
         self.mInputSource: QgsVectorLayer = None
 
     def reset(self):
@@ -1308,13 +1305,13 @@ class SpectralProfileRenderer(object):
             renderContext = QgsRenderContext()
             renderContext.setExtent(self.mInputSource.extent())
             renderer = self.mInputSource.renderer().clone()
-            renderer.setInput(self.mInputSource.dataSource())
+            #renderer.setInput(self.mInputSource.dataSource())
             renderer.startRender(renderContext, self.mInputSource.fields())
             features = self.mInputSource.getFeatures(fids)
 
             for i, feature in enumerate(features):
-                fid = feature.fid
-                style = self.mFID2Style.get(fid, self.mDefaultPlotStyle).clone()
+                fid = feature.id()
+                style = self.mFID2Style.get(fid, self.profileStyle).clone()
                 symbol = renderer.symbolForFeature(feature, renderContext)
                 if not isinstance(symbol, QgsSymbol):
                     symbol = renderer.sourceSymbol()
@@ -2101,12 +2098,13 @@ class SpectralLibrary(QgsVectorLayer):
                 else:
                     raise rt
 
-        lyrOptions = QgsVectorLayer.LayerOptions(loadDefaultStyle=False, readExtentFromXml=False)
-        super(SpectralLibrary, self).__init__(uri, name, 'ogr', lyrOptions)
+        layer_options = QgsVectorLayer.LayerOptions(loadDefaultStyle=False, readExtentFromXml=False)
+        super(SpectralLibrary, self).__init__(uri, name, 'ogr', layer_options)
+
         # consistency check
-        fieldNames = self.fields().names()
-        assert FIELD_NAME in fieldNames
-        assert FIELD_VALUES in fieldNames
+        field_names = self.fields().names()
+        assert FIELD_NAME in field_names
+        assert FIELD_VALUES in field_names
         f = self.fields().at(self.fields().lookupField(FIELD_NAME))
         assert f.type() == QVariant.String, 'Field {} not of type String / VARCHAR'
         f = self.fields().at(self.fields().lookupField(FIELD_VALUES))
