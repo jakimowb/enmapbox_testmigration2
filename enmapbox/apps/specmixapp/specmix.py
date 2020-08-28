@@ -12,7 +12,7 @@ from enmapbox.externals.qps.utils import loadUi
 from enmapbox.gui.spectralprofilesources import SpectralProfileDstListModel
 from enmapbox.externals.qps.plotstyling.plotstyling import PlotStyle, PlotStyleButton
 import numpy as np
-from . import APP_DIR
+from . import APP_DIR, APP_NAME
 
 
 class SpectralLibraryListModel(QAbstractListModel):
@@ -611,7 +611,6 @@ class SpecMixPlotWidget(SpectralLibraryPlotWidget):
             self.mPDI_Dev.setZValue(99999)
             #self.mPDI_Avg.setVisible(True)
 
-
         self.updateXUnit()
 
 
@@ -620,9 +619,8 @@ class SpecMixWidget(QWidget):
     def __init__(self, *args, **kwds):
 
         super().__init__(*args, **kwds)
-
         loadUi(APP_DIR / 'specmix.ui', self)
-
+        self.setWindowTitle(APP_NAME)
         self.mSpeclibModel: SpectralLibraryListModel = SpectralLibraryListModel()
         self.cbSourceLibrary: QComboBox
         self.cbSourceLibrary.setModel(self.mSpeclibModel)

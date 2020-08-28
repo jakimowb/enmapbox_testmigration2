@@ -268,7 +268,7 @@ class SpectralProfileDstListModel(QAbstractListModel):
         if isinstance(slw, SpectralLibraryWidget):
 
             if role == Qt.DisplayRole:
-                return slw.windowTitle()
+                return slw.speclib().name()
 
             elif role == Qt.ToolTipRole:
                 return slw.windowTitle()
@@ -604,7 +604,7 @@ class SpectralProfileBridge(QAbstractTableModel):
                 return item.mSamplingMode.name
 
             if cn == self.cnDst and isinstance(dst, SpectralLibraryWidget):
-                return dst.windowTitle()
+                return dst.speclib().name()
 
             if cn == self.cnScale:
                 return float(item.scale())
