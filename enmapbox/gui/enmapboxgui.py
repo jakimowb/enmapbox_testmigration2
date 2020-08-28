@@ -218,12 +218,12 @@ class EnMAPBox(QgisInterface, QObject):
     MAPTOOLACTION = 'enmapbox/maptoolkey'
 
     sigDataSourceAdded = pyqtSignal([str], [DataSource])
-    sigSpectralLibraryAdded = pyqtSignal([str], [DataSourceSpectralLibrary])
+    sigSpectralLibraryAdded = pyqtSignal([str], [DataSourceSpectralLibrary], [SpectralLibrary])
     sigRasterSourceAdded = pyqtSignal([str], [DataSourceRaster])
     sigVectorSourceAdded = pyqtSignal([str], [DataSourceVector])
 
     sigDataSourceRemoved = pyqtSignal([str], [DataSource])
-    sigSpectralLibraryRemoved = pyqtSignal([str], [DataSourceSpectralLibrary])
+    sigSpectralLibraryRemoved = pyqtSignal([str], [DataSourceSpectralLibrary], [SpectralLibrary])
     sigRasterSourceRemoved = pyqtSignal([str], [DataSourceRaster])
     sigVectorSourceRemoved = pyqtSignal([str], [DataSourceVector])
 
@@ -1197,6 +1197,7 @@ class EnMAPBox(QgisInterface, QObject):
                 self.dockManager().removeDock(d)
 
             self.sigSpectralLibraryRemoved[str].emit(dataSource.uri())
+            self.sigSpectralLibraryRemoved[SpectralLibrary].emit(dataSource.speclib())
             self.sigSpectralLibraryRemoved[DataSourceSpectralLibrary].emit(dataSource)
 
         if isinstance(dataSource, DataSourceVector):
@@ -1227,6 +1228,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         if isinstance(dataSource, DataSourceSpectralLibrary):
             self.sigSpectralLibraryAdded[str].emit(dataSource.uri())
+            self.sigSpectralLibraryAdded[SpectralLibrary].emit(dataSource.speclib())
             self.sigSpectralLibraryAdded[DataSourceSpectralLibrary].emit(dataSource)
 
         if isinstance(dataSource, DataSourceSpatial):
