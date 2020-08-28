@@ -844,10 +844,6 @@ class SpectralProfileBridge(QAbstractTableModel):
     def updateCurrentProfiles(self, dst: SpectralLibraryWidget):
         if isinstance(dst, SpectralLibraryWidget):
 
-            # no need to add, as they profiles will get blocked anyway
-            if dst.currentProfilesMode() == SpectralLibraryWidget.CurrentProfilesMode.block:
-                return
-
             currentProfiles = []
             currentProfileStyles = dict()
 
@@ -872,7 +868,7 @@ class SpectralProfileBridge(QAbstractTableModel):
             if self.mEnsureUniqueProfileNames:
                 uniqueNames = dst.speclib().uniqueValues(dst.speclib().fields().indexOf(SPECLIB_FIELD_NAME))
 
-                if dst.currentProfilesMode() == SpectralLibraryWidget.CurrentProfilesMode.normal:
+                if not dst.optionAddCurrentProfilesAutomatically.isChecked():
                     # current profiles named can get replaced
                     for p in dst.currentProfiles():
                         name: str = p.name()

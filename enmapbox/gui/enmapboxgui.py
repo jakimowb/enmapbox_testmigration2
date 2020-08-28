@@ -24,6 +24,11 @@ from qgis import utils as qgsUtils
 import qgis.utils
 from qgis.core import *
 from qgis.gui import *
+from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, \
+    QgsProcessingAlgorithm, QgsApplication, Qgis, QgsCoordinateReferenceSystem, QgsWkbTypes, \
+    QgsMapLayerStore, QgsPointXY, QgsLayerTreeGroup, QgsLayerTree, QgsLayerTreeLayer
+from qgis.gui import QgsMapCanvas,  QgsLayerTreeView, \
+    QgisInterface, QgsMessageBar, QgsMessageViewer, QgsMessageBarItem, QgsMapLayerConfigWidgetFactory
 from enmapbox import messageLog, debugLog
 from enmapbox.gui import *
 from enmapbox.gui.docks import *
@@ -389,7 +394,7 @@ class EnMAPBox(QgisInterface, QObject):
             btn.triggered.connect(self.showPackageInstaller)
             btn.triggered.connect(btn.deleteLater)
             self.__btn = btn
-            item = QgsMessageBarItem(title, '', btn, Qgis.Critical, 200)
+            item = QgsMessageBarItem(title, '', btn, Qgis.Warning, 200)
             self.messageBar().pushItem(item)
 
         # finally, let this be the EnMAP-Box Singleton
@@ -1069,7 +1074,7 @@ class EnMAPBox(QgisInterface, QObject):
                 elif isinstance(v, str):
                     info.append('<code>{}</code>'.format(v.replace('\n', '<br />\n')))
                 info.append('</p>')
-            self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Critical, html=True)
+            self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Warning, html=True)
         s = ""
 
     def exit(self):
