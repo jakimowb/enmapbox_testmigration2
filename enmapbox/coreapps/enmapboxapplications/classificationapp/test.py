@@ -13,6 +13,7 @@ if __name__ == '__main__':
     enmapBox = EnMAPBox(load_other_apps=False, load_core_apps=False)
     enmapBox.run()
     enmapBox.openExampleData(mapWindows=0)
+    enmapBox.addSource(r'C:\Users\janzandr\Desktop\classification.bsq')
 
 
     #for source in [enmap, hires, landcover_polygons, landcover_points, library]:
