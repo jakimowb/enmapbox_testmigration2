@@ -32,21 +32,21 @@
         <item row="0" column="1">
          <widget class="QComboBox" name="cbSourceLibrary"/>
         </item>
-        <item row="1" column="0">
+        <item row="2" column="0">
          <widget class="QCheckBox" name="cbSyncWithSelection">
           <property name="text">
            <string>Sync. Selection</string>
           </property>
          </widget>
         </item>
-        <item row="3" column="0">
+        <item row="4" column="0">
          <widget class="QLabel" name="label_2">
           <property name="text">
            <string>Max. source spectra</string>
           </property>
          </widget>
         </item>
-        <item row="3" column="1">
+        <item row="4" column="1">
          <widget class="QSpinBox" name="sbProfileLimit">
           <property name="toolTip">
            <string>Max. number of source profiles that are handled for the mixing model</string>
@@ -59,7 +59,7 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="1">
+        <item row="2" column="1">
          <layout class="QHBoxLayout" name="horizontalLayout_2">
           <property name="spacing">
            <number>2</number>
@@ -109,6 +109,18 @@
            </spacer>
           </item>
          </layout>
+        </item>
+        <item row="1" column="0" colspan="2">
+         <widget class="QLabel" name="tbSourceSelectionInfo">
+          <property name="font">
+           <font>
+            <italic>true</italic>
+           </font>
+          </property>
+          <property name="text">
+           <string>&lt;info selected source profiles&gt;</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>

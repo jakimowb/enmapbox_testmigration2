@@ -786,15 +786,28 @@ class SpecMixWidget(QWidget):
 
     def updateButtons(self, *args):
 
+        info = ''
+
         if isinstance(self.selectedSpeclib(), SpectralLibrary):
             self.cbSyncWithSelection.setEnabled(True)
             is_manual = self.manualHandling()
 
-            has_selectedSpeclibProfiles = self.selectedSpeclib().selectedFeatureCount() > 0
+            n_selected_sources = self.selectedSpeclib().selectedFeatureCount()
+            has_selectedSpeclibProfiles = n_selected_sources > 0
             has_selectedSourceProfiles = len(self.tableView.selectionModel().selectedRows()) > 0
             self.actionAddSelectedSourceProfiles.setEnabled(is_manual and has_selectedSpeclibProfiles)
             self.actionRemoveSelectedSourceProfiles.setEnabled(is_manual and has_selectedSourceProfiles)
+
+            if n_selected_sources == 0:
+                info = 'No source profiles selected'
+
+            else:
+                info = f'{n_selected_sources} selected source profiles'
+
         else:
             self.cbSyncWithSelection.setEnabled(False)
             self.actionAddSelectedSourceProfiles.setEnabled(False)
             self.actionRemoveSelectedSourceProfiles.setEnabled(False)
+            info = 'Missing source library'
+
+        self.tbSourceSelectionInfo.setText(info)
