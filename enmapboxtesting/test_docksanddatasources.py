@@ -134,7 +134,6 @@ class testDataSources(EnMAPBoxTestCase):
         s = ""
 
 
-
     def test_DockPanelUI(self):
 
         w = DockPanelUI()
@@ -145,15 +144,8 @@ class testDataSources(EnMAPBoxTestCase):
         w.show()
         DM.createDock('MAP')
         DM.createDock('SPECLIB')
-
+        #DM.createDock('WEBVIEW')
         self.showGui(w)
-
-
-    def test_dockLabel(self):
-        from pyqtgraph.dockarea.Dock import Dock as pgDock
-        dock = pgDock('Test')
-
-        l  =DockLabel(dock, 'testlabel')
 
 
     def test_pgDock(self):

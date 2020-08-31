@@ -147,19 +147,32 @@ class Applier(hubdc.applier.Applier):
 class ApplierOperator(hubdc.applier.ApplierOperator):
     def flowRasterArray(self, name, raster, indices=None, overlap=0):
 
+        if indices is not None:
+            assert isinstance(indices, list)
+
         if isinstance(raster, Regression):
             array = self.flowRegressionArray(name=name, regression=raster, overlap=overlap)
+            if indices is not None:
+                array = array[indices]
         elif isinstance(raster, Classification):
             array = self.flowClassificationArray(name=name, classification=raster, overlap=overlap)
         elif isinstance(input, Fraction):
             array = self.flowFractionArray(name=name, fraction=raster, overlap=overlap)
+            if indices is not None:
+                array = array[indices]
         elif isinstance(raster, Mask):
             array = self.flowMaskArray(name=name, mask=raster, overlap=overlap)
+            if indices is not None:
+                array = array[indices]
         elif isinstance(raster, Raster):
             raster = self.inputRaster.raster(key=name)
             array = raster.array(indices=indices, overlap=overlap)
         else:
             raise errors.TypeError(raster)
+
+        if indices is not None:
+            assert len(array) == len(indices)
+
         return array
 
     def flowVectorArray(self, name, vector, overlap=0):
@@ -4144,7 +4157,7 @@ class _ClassificationStatistics(ApplierOperator):
 class _ClassificationReclassify(ApplierOperator):
     def ufunc(self, classification, classDefinition, mapping):
         inclassification = self.flowClassificationArray('inclassification', classification=classification)
-        outclassification = self.full(value=0, bands=1, dtype=np.uint8)
+        outclassification = self.full(value=0, bands=1, dtype=np.uint16)
         for inclass, outclass in mapping.items():
             if inclass in classification.classDefinition().names():
                 inclass = classification.classDefinition().names().index(inclass) + 1

@@ -4,7 +4,14 @@ from qgis.core import *
 
 from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.classificationstatistics import ClassificationStatistics
+from hubdsm.processing.saveasenvi import SaveAsEnvi
 from hubdsm.processing.subsetrasterbands import SubsetRasterBands
+from hubdsm.processing.importenmapl1b import ImportEnmapL1B
+from hubdsm.processing.importenmapl1c import ImportEnmapL1C
+from hubdsm.processing.importenmapl2a import ImportEnmapL2A
+from hubdsm.processing.uniquebandvaluecounts import UniqueBandValueCounts
+from hubdsm.processing.savelayerasclassification import SaveLayerAsClassification
+
 from hubflow.core import *
 from enmapboxgeoalgorithms.provider import (EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, Help, Link, Cookbook,
                                             ALGORITHMS)
@@ -12,11 +19,6 @@ from enmapboxgeoalgorithms.estimators import parseClassifiers, parseClusterers, 
 from enmapboxgeoalgorithms.filters.convolution import parseSpatialKernel, parseSpectralKernel
 from enmapboxgeoalgorithms.filters.morphology import parseMorphology
 from enmapboxgeoalgorithms.filters.other import parseOtherFilter
-from hubdsm.processing.importenmapl1b import ImportEnmapL1B
-from hubdsm.processing.importenmapl1c import ImportEnmapL1C
-from hubdsm.processing.importenmapl2a import ImportEnmapL2A
-from hubdsm.processing.uniquebandvaluecounts import UniqueBandValueCounts
-from hubdsm.processing.savelayerasclassification import SaveLayerAsClassification
 
 ALGORITHMS.append(UniqueBandValueCounts())
 ALGORITHMS.append(ImportEnmapL1B())
@@ -26,7 +28,7 @@ ALGORITHMS.append(SaveLayerAsClassification())
 ALGORITHMS.append(SubsetRasterBands())
 ALGORITHMS.append(AggregateBands())
 ALGORITHMS.append(ClassificationStatistics())
-
+ALGORITHMS.append(SaveAsEnvi())
 
 
 class ClassificationFromFraction(EnMAPAlgorithm):

@@ -43,7 +43,7 @@ def routinesDictionary():
                                                 dragInsert='.'+attributeName))
 
     d = OrderedDict()
-    insertRoutine(d, 'Dataset interaction', 'noDataValue setNoDataValue metadata setMetadata'.split(), packageName=None)
+    insertRoutine(d, 'Dataset interaction', 'noDataValue setNoDataValue metadata setMetadata descriptions setDescriptions categoryNames setCategoryNames categoryColors setCategoryColors'.split(), packageName=None)
 
     d['The N-dimensional array (ndarray)'] = OrderedDict()
     insertNdarrayAttributes(d['The N-dimensional array (ndarray)'], 'Array attributes', 'shape ndim size dtype T flat'.split())

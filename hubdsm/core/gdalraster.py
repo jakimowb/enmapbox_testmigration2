@@ -193,6 +193,8 @@ class GdalRaster(object):
         """Set metadata item."""
         if value is None:
             return
+        if key == 'file compression' and domain == 'ENVI':
+            return
         key = key.replace(' ', '_').strip()
         gdalString = GdalMetadataValueFormatter.valueToString(value)
         self.gdalDataset.SetMetadataItem(key, gdalString, domain)
@@ -208,6 +210,14 @@ class GdalRaster(object):
         assert isinstance(metadataDict, dict)
         for domain, metadataDomain in metadataDict.items():
             self.setMetadataDomain(values=metadataDomain, domain=domain)
+
+    @property
+    def categories(self):
+        return self.band(1).categories
+
+    @property
+    def setCategories(self):
+        return self.band(1).setCategories
 
     def translate(
             self, grid: Grid = None, filename: str = None, driver: 'GdalDriver' = None, gco: List[str] = None,
