@@ -10,8 +10,8 @@ if __name__ == '__main__':
     #qgsApp = QgsApplication([], True)
     #qgsApp.initQgis()
 
-    import qgisresources.images
-    qgisresources.images.qInitResources()
+#    import qgisresources.images
+#    qgisresources.images.qInitResources()
 
 
     enmapBox = EnMAPBox(qgis.utils.iface)

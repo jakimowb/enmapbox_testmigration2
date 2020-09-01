@@ -138,12 +138,12 @@ Windows
 
 
 
-5. **Optionally**, also install astropy using pip in the OSGeo4W Shell:
+.. 5. **Optionally**, also install astropy using pip in the OSGeo4W Shell:
 
 
-   .. code-block:: batch
+..    .. code-block:: batch
 
-      python3 -m pip install astropy
+..      python3 -m pip install astropy
 
 
 

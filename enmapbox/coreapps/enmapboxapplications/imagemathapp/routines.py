@@ -6,6 +6,10 @@ inputRasterByArray = dict()
 outputRasterByArray = dict()
 outputNoDataValueByArray = dict()
 outputMetadataByArray = dict()
+outputDescriptionsByArray = dict()
+outputCategoryNamesByArray = dict()
+outputCategoryColorsByArray = dict()
+
 
 def noDataValue(array):
     '''noDataValue(array)
@@ -18,6 +22,7 @@ def noDataValue(array):
     -9999
     '''
     return inputRasterByArray[id(array)].noDataValue()
+
 
 def metadata(array):
     '''metadata(array)
@@ -48,6 +53,50 @@ def metadata(array):
 
     return inputRasterByArray[id(array)].metadataDict()
 
+
+def descriptions(array):
+    '''descriptions(array)
+
+    Returns the band descriptions (aka. band names) list of the input GDAL raster dataset that is associated with the given `array`.
+
+    Examples
+    --------
+    >>> descriptions(image)
+    ['band 8', ' band 9', ' band 10', ' band 11', ' band 12', ' band 13', ' band 14', ' band 15', ' band 16', ' band 17', ' band 18', ' band 19', ' band 20', ' band 21', ' band 22', ' band 23', ' band 24', ' band 25', ' band 26', ' band 27', ' band 28', ' band 29', ' band 30', ' band 31', ' band 32', ' band 33', ' band 34', ' band 35', ' band 36', ' band 37', ' band 38', ' band 39', ' band 40', ' band 41', ' band 42', ' band 43', ' band 44', ' band 45', ' band 46', ' band 47', ' band 48', ' band 49', ' band 50', ' band 51', ' band 52', ' band 53', ' band 54', ' band 55', ' band 56', ' band 57', ' band 58', ' band 59', ' band 60', ' band 61', ' band 62', ' band 63', ' band 64', ' band 65', ' band 66', ' band 67', ' band 68', ' band 69', ' band 70', ' band 71', ' band 72', ' band 73', ' band 74', ' band 75', ' band 76', ' band 77', ' band 91', ' band 92', ' band 93', ' band 94', ' band 95', ' band 96', ' band 97', ' band 98', ' band 99', ' band 100', ' band 101', ' band 102', ' band 103', ' band 104', ' band 105', ' band 106', ' band 107', ' band 108', ' band 109', ' band 110', ' band 111', ' band 112', ' band 113', ' band 114', ' band 115', ' band 116', ' band 117', ' band 118', ' band 119', ' band 120', ' band 121', ' band 122', ' band 123', ' band 124', ' band 125', ' band 126', ' band 127', ' band 144', ' band 145', ' band 146', ' band 147', ' band 148', ' band 149', ' band 150', ' band 151', ' band 152', ' band 153', ' band 154', ' band 155', ' band 156', ' band 157', ' band 158', ' band 159', ' band 160', ' band 161', ' band 162', ' band 163', ' band 164', ' band 165', ' band 166', ' band 167', ' band 168', ' band 195', ' band 196', ' band 197', ' band 198', ' band 199', ' band 200', ' band 201', ' band 202', ' band 203', ' band 204', ' band 205', ' band 206', ' band 207', ' band 208', ' band 209', ' band 210', ' band 211', ' band 212', ' band 213', ' band 214', ' band 215', ' band 216', ' band 217', ' band 218', ' band 219', ' band 220', ' band 221', ' band 222', ' band 223', ' band 224', ' band 225', ' band 226', ' band 227', ' band 228', ' band 229', ' band 230', ' band 231', ' band 232', ' band 233', ' band 234', ' band 235', ' band 236', ' band 237', ' band 238', ' band 239']
+    '''
+
+    return inputRasterByArray[id(array)].descriptions()
+
+
+def categoryNames(array):
+    '''categoryNames(array)
+
+    Returns the category names (aka. class names) list of the input GDAL raster dataset that is associated with the given `array`.
+
+    Examples
+    --------
+    >>> categoryNames(image)
+    ['unclassified', 'class 1', 'class 2', 'class 3']
+    '''
+
+    return inputRasterByArray[id(array)].categoryNames(0)
+
+
+def categoryColors(array):
+    '''categoryColors(array)
+
+    Returns the category colors (aka. class lookup) RGBA-tuple list of the input GDAL raster dataset that is associated with the given `array`.
+
+    Examples
+    --------
+    >>> categoryColors(image)
+    [(0, 0, 0, 255), (230, 0, 0, 255), (152, 230, 0, 255), (38, 115, 0, 255)]
+    '''
+
+    return inputRasterByArray[id(array)].categoryColors(0)
+
+
+
 def setNoDataValue(array, noDataValue):
     '''setNoDataValue(array, noDataValue)
 
@@ -64,6 +113,7 @@ def setNoDataValue(array, noDataValue):
     '''
 
     outputNoDataValueByArray[id(array)] = noDataValue
+
 
 def setMetadata(array, metadata):
     '''setMetadata(array, metadata):
@@ -83,3 +133,59 @@ def setMetadata(array, metadata):
 
     outputMetadataByArray[id(array)] = metadata
 
+
+def setDescriptions(array, descriptions):
+    '''setDescriptions(array, descriptions):
+
+    Sets the band `descriptions` list of the output GDAL raster dataset that is associated with the given `array`.
+
+    Parameters
+    ----------
+    array : numpy array
+    descriptions : list of strings, one for each band
+
+    Examples
+    --------
+    >>> descriptions = ['band 1', 'band 2', 'band 3']
+    >>> setMetadata(image, descriptions)
+    '''
+
+    outputDescriptionsByArray[id(array)] = descriptions
+
+
+def setCategoryNames(array, categoryNames):
+    '''setCategoryNames(array, categoryNames):
+
+    Sets the `categoryNames` list of the output GDAL raster dataset that is associated with the given `array`.
+
+    Parameters
+    ----------
+    array : numpy array
+    categoryNames : list of strings, one for each category
+
+    Examples
+    --------
+    >>> categoryNames = ['unclassified', 'class 1', 'class 2', 'class 3']
+    >>> setCategoryNames(image, categoryNames)
+    '''
+
+    outputCategoryNamesByArray[id(array)] = categoryNames
+
+
+def setCategoryColors(array, categoryColors):
+    '''setCategoryColors(array, categoryColors):
+
+    Sets the `categoryColors` list of the output GDAL raster dataset that is associated with the given `array`.
+
+    Parameters
+    ----------
+    array : numpy array
+    categoryColors : list of RGBA color tuples, one for each category
+
+    Examples
+    --------
+    >>> categoryColors = [(0, 0, 0, 255), (230, 0, 0, 255), (152, 230, 0, 255), (38, 115, 0, 255)]
+    >>> setCategoryColors(image, categoryColors)
+    '''
+
+    outputCategoryColorsByArray[id(array)] = categoryColors

@@ -12,11 +12,12 @@ import os
 from scipy.interpolate import *
 from scipy.signal import savgol_filter
 
+from enmapbox.gui.utils import loadUi
+
 pathUI_ireip = os.path.join(APP_DIR, 'Resources/UserInterfaces/iREIP.ui')
 pathUI_nodat = os.path.join(APP_DIR, 'Resources/UserInterfaces/Nodat.ui')
 pathUI_prg = os.path.join(APP_DIR, 'Resources/UserInterfaces/ProgressBar.ui')
 
-from enmapbox.gui.utils import loadUi
 
 class iREIP_GUI(QDialog):
     def __init__(self, parent=None):
@@ -36,7 +37,7 @@ class iREIP_GUI(QDialog):
         from qgis.gui import QgsColorButton
         self.btnBackgroundColor = QgsColorButton()
 
-        self.btnBackgroundColor.colorChanged.connect(self.setBackgroundColor)
+        self.btnBackgroundColor.colorChanged.connect(self.set_background_color)
         self.btnAxisColor = QgsColorButton()
         # self.btnAxisColor.colorChanged.connect([self.setAxisColor(canvas, QColor('white')) for canvas in self.plotItems])
 
@@ -45,17 +46,17 @@ class iREIP_GUI(QDialog):
         self.secondDerivView.setBackground(QColor('black'))
 
         # set default colors
-        [self.setAxisColor(canvas, QColor('white')) for canvas in self.plotItems]
-        self.setBackgroundColor(QColor('black'))
+        [self.set_axis_color(canvas, QColor('white')) for canvas in self.plotItems]
+        self.set_background_color(QColor('black'))
 
-    def setAxisColor(self, canvas, color: QColor):
+    def set_axis_color(self, canvas, color: QColor):
         for name in canvas.axes.keys():
             ax = canvas.getAxis(name)
             if ax:
                 ax.setPen(QColor(color))
                 ax.setTextPen(QColor(color))
 
-    def setBackgroundColor(self, color: QColor):
+    def set_background_color(self, color: QColor):
         if not isinstance(color, QColor):
             color = QColor(color)
         assert isinstance(color, QColor)
@@ -114,7 +115,6 @@ class iREIP:
         self.nodat = [-999] * 2
         self.division_factor = 1.0
         self.calc_deriv_flag = [False, False]  # First, Second Derivative [First, Second]
-
 
     def connections(self):
         self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="image"))
@@ -279,7 +279,6 @@ class iREIP:
             elif self.image is not None:
                 self.init_ireip(mode='init')
                 self.plot_example(self.max_ndvi_pos)
-
 
     def division_factor_changed(self):
         if self.image is None:
@@ -454,12 +453,12 @@ class iREIP:
                 QMessageBox.critical(self.gui, "No image loaded",
                                      "Please load an image to continue!")
                 return
-            try:
-                self.out_path = str(self.gui.txtOutputImage.text())
-            except:
+            if str(self.gui.txtOutputImage.text()) == "":
                 QMessageBox.warning(self.gui, "No output file selected",
                                     "Please select an output file for your image!")
                 return
+            else:
+                self.out_path = str(self.gui.txtOutputImage.text())
 
             # show progressbar - window
             self.main.prg_widget.gui.lblCancel.setText("")
@@ -473,11 +472,11 @@ class iREIP:
 
             try:
                 self.iiREIP = iREIP_core(nodat_val=self.nodat, division_factor=self.division_factor,
-                                   max_ndvi_pos=self.max_ndvi_pos, ndvi_spec=self.ndvi_spec)
+                                         max_ndvi_pos=self.max_ndvi_pos, ndvi_spec=self.ndvi_spec)
                 self.iiREIP.initialize_iREIP(input=self.image, output=self.out_path,
-                                       limits=self.limits,
-                                       deriv=self.calc_deriv_flag, useSavgolay=self.useSavgolay,
-                                       neighbors=self.neighbors, mode='run')
+                                             limits=self.limits,
+                                             deriv=self.calc_deriv_flag, useSavgolay=self.useSavgolay,
+                                             neighbors=self.neighbors, mode='run')
 
             except MemoryError:
                 QMessageBox.critical(self.gui, 'error', "File too large to read")
