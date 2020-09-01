@@ -218,12 +218,12 @@ class EnMAPBox(QgisInterface, QObject):
     MAPTOOLACTION = 'enmapbox/maptoolkey'
 
     sigDataSourceAdded = pyqtSignal([str], [DataSource])
-    sigSpectralLibraryAdded = pyqtSignal([str], [DataSourceSpectralLibrary], [SpectralLibrary])
+    sigSpectralLibraryAdded = pyqtSignal([str], [SpectralLibrary], [DataSourceSpectralLibrary])
     sigRasterSourceAdded = pyqtSignal([str], [DataSourceRaster])
     sigVectorSourceAdded = pyqtSignal([str], [DataSourceVector])
 
     sigDataSourceRemoved = pyqtSignal([str], [DataSource])
-    sigSpectralLibraryRemoved = pyqtSignal([str], [DataSourceSpectralLibrary], [SpectralLibrary])
+    sigSpectralLibraryRemoved = pyqtSignal([str], [SpectralLibrary], [DataSourceSpectralLibrary])
     sigRasterSourceRemoved = pyqtSignal([str], [DataSourceRaster])
     sigVectorSourceRemoved = pyqtSignal([str], [DataSourceVector])
 
