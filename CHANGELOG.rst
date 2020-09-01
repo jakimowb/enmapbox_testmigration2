@@ -5,7 +5,7 @@ Version 3.7
 
 * GDAL raster metadata can be modified (resolves #181)
 * map canvas preserves scale on window resize (#409)
-
+* Reclassify Tool: can save and reload the class mapping, fixed (#501)
 
 Version 3.6
 -----------
