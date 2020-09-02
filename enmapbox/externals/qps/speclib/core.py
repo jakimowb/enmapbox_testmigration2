@@ -42,7 +42,7 @@ from qgis.core import \
     QgsRaster, QgsDefaultValue, QgsReadWriteContext, \
     QgsCategorizedSymbolRenderer, QgsMapLayerProxyModel, \
     QgsSymbol, QgsNullSymbolRenderer, QgsMarkerSymbol, QgsLineSymbol, QgsFillSymbol, \
-    QgsEditorWidgetSetup, QgsAction, QgsTask
+    QgsEditorWidgetSetup, QgsAction, QgsTask, QgsMessageLog
 
 from qgis.gui import \
     QgsGui, QgsMapCanvas, QgsDualView, QgisInterface, QgsEditorConfigWidget, \
@@ -108,6 +108,17 @@ def log(msg: str):
 
 
 def containsSpeclib(mimeData: QMimeData) -> bool:
+    """
+    Short, fast test if a QMimeData object might contain a SpectralLibrary.
+    Might be wrong, but should be fast enough to be used in drag and drop operations
+    :param mimeData:
+    :type mimeData:
+    :return:
+    :rtype:
+    """
+    if mimeData.hasUrls():
+        return True
+
     for f in [MIMEDATA_SPECLIB, MIMEDATA_SPECLIB_LINK]:
         if f in mimeData.formats():
             return True
@@ -2028,6 +2039,15 @@ class SpectralLibrary(QgsVectorLayer):
                 print(ex)
                 return None
 
+        if isinstance(uri, str) and uri.endswith('.sli'):
+            from .io.envi import EnviSpectralLibraryIO
+            if EnviSpectralLibraryIO.canRead(uri):
+                sl = EnviSpectralLibraryIO.readFrom(uri, progressDialog=progressDialog)
+                if isinstance(sl, SpectralLibrary):
+                    if sl.name() in [DEFAULT_NAME, '']:
+                        sl.setName(os.path.basename(uri))
+                    return sl
+
         readers = AbstractSpectralLibraryIO.subClasses()
 
         for cls in sorted(readers, key=lambda r: r.score(uri), reverse=True):
@@ -2035,7 +2055,6 @@ class SpectralLibrary(QgsVectorLayer):
                 if cls.canRead(uri):
                     sl = cls.readFrom(uri, progressDialog=progressDialog)
                     if isinstance(sl, SpectralLibrary):
-
                         if sl.name() in [DEFAULT_NAME, '']:
                             sl.setName(os.path.basename(uri))
                         return sl

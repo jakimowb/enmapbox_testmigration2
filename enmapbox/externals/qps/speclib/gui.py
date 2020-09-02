@@ -791,6 +791,7 @@ class SpectralViewBox(pg.ViewBox):
 SpectralLibraryPlotStats = collections.namedtuple('SpectralLibraryPlotStats',
                                                   ['total', 'visible', 'max_visible', 'value_error', 'selected'])
 
+
 class SpectralLibraryPlotWidget(pg.PlotWidget):
     """
     A widget to PlotWidget SpectralProfiles
@@ -890,6 +891,8 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         self.mUpdateTimer.start()
 
         self.setProfileRenderer(self.mDefaultProfileRenderer)
+        self.setAcceptDrops(True)
+        #self.setDragMode(QGraphicsView.ScrollHandDrag)
 
     def onInfoScatterClicked(self, a, b):
         self.mInfoScatterPoint.setVisible(False)
@@ -1584,14 +1587,32 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
                 toVisualize += sorted(priority3[0:nMissing])
             return toVisualize
 
-    def dragEnterEvent(self, event):
-        assert isinstance(event, QDragEnterEvent)
-        if MIMEDATA_SPECLIB_LINK in event.mimeData().formats():
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if containsSpeclib(event.mimeData()):
             event.accept()
+        else:
+            super().dragEnterEvent(event)
 
-    def dragMoveEvent(self, event):
-        if MIMEDATA_SPECLIB_LINK in event.mimeData().formats():
+    def dragMoveEvent(self, event: QDragMoveEvent):
+        if not containsSpeclib(event.mimeData()):
+            super().dragMoveEvent(event)
+
+    def dropEvent(self, event: QDropEvent):
+        assert isinstance(event, QDropEvent)
+        mimeData = event.mimeData()
+        if containsSpeclib(mimeData) and isinstance(self.speclib(), SpectralLibrary):
+            speclib = SpectralLibrary.readFromMimeData(mimeData)
+            print(f'DROP SPECLIB {speclib}')
+            if isinstance(speclib, SpectralLibrary) and len(speclib) > 0:
+
+                b = self.speclib().isEditable()
+                self.speclib().startEditing()
+                self.speclib().addSpeclib(speclib)
+                if not b:
+                    self.speclib().commitChanges()
             event.accept()
+        else:
+            super().dropEvent(event)
 
 
 class SpectralProfileValueTableModel(QAbstractTableModel):
@@ -2201,7 +2222,6 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.centerBottomLayout.insertWidget(self.centerBottomLayout.indexOf(self.mAttributeViewButton),
                                              self.btnShowProperties)
 
-
         self.mPlotWidget: SpectralLibraryPlotWidget = SpectralLibraryPlotWidget()
         assert isinstance(self.mPlotWidget, SpectralLibraryPlotWidget)
         self.mPlotWidget.setDualView(self.mMainView)
@@ -2215,6 +2235,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.widgetRight.setLayout(l)
         self.widgetRight.setVisible(True)
 
+        self.setAcceptDrops(True)
 
     def tableView(self) -> QgsAttributeTableView:
         return self.mMainView.tableView()
@@ -2428,21 +2449,10 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.optionAddCurrentProfilesAutomatically.setChecked(b)
 
     def dropEvent(self, event):
-        assert isinstance(event, QDropEvent)
-        # log('dropEvent')
-        mimeData = event.mimeData()
+        self.plotWidget().dropEvent(event)
 
-        speclib = SpectralLibrary.readFromMimeData(mimeData)
-        if isinstance(speclib, SpectralLibrary) and len(speclib) > 0:
-            event.setAccepted(True)
-            self.addSpeclib(speclib)
-
-
-
-
-
-
-
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        self.plotWidget().dragEnterEvent(event)
 
     def onImportSpeclib(self):
         """
@@ -2466,13 +2476,6 @@ class SpectralLibraryWidget(AttributeTableWidget):
         files = self.mSpeclib.write(None)
         if len(files) > 0:
             self.sigFilesCreated.emit(files)
-
-    def dragEnterEvent(self, dragEnterEvent: QDragEnterEvent):
-
-        mimeData = dragEnterEvent.mimeData()
-        assert isinstance(mimeData, QMimeData)
-        if containsSpeclib(mimeData):
-            dragEnterEvent.accept()
 
     def clearSpectralLibrary(self):
         """
