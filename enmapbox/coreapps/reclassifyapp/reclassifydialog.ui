@@ -27,8 +27,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>728</width>
-        <height>587</height>
+        <width>732</width>
+        <height>597</height>
        </rect>
       </property>
       <property name="sizePolicy">
@@ -123,7 +123,7 @@
              <string>...</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../../../../QGIS/images/images.qrc">
               <normaloff>:/images/themes/default/mActionAddRasterLayer.svg</normaloff>:/images/themes/default/mActionAddRasterLayer.svg</iconset>
             </property>
            </widget>
@@ -218,7 +218,7 @@
          <property name="title">
           <string>Class Mapping</string>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_4">
+         <layout class="QHBoxLayout" name="horizontalLayout">
           <property name="spacing">
            <number>2</number>
           </property>
@@ -235,7 +235,58 @@
            <number>2</number>
           </property>
           <item>
-           <widget class="QTableView" name="tableView">
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <property name="spacing">
+             <number>2</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QToolButton" name="btnLoadClassMapping">
+              <property name="text">
+               <string>...</string>
+              </property>
+              <property name="icon">
+               <iconset resource="../../../../../QGIS/images/images.qrc">
+                <normaloff>:/images/themes/default/mActionFileOpen.svg</normaloff>:/images/themes/default/mActionFileOpen.svg</iconset>
+              </property>
+              <property name="autoRaise">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="btnSaveClassMapping">
+              <property name="text">
+               <string>...</string>
+              </property>
+              <property name="icon">
+               <iconset resource="../../enmapboxresources.qrc">
+                <normaloff>:/enmapbox/gui/ui/icons/mActionFileSaveAs.svg</normaloff>:/enmapbox/gui/ui/icons/mActionFileSaveAs.svg</iconset>
+              </property>
+              <property name="autoRaise">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="ReclassifyTableView" name="tableView">
             <property name="alternatingRowColors">
              <bool>true</bool>
             </property>
@@ -274,11 +325,35 @@
   </layout>
   <action name="actionAddRasterSource">
    <property name="icon">
-    <iconset>
+    <iconset resource="../../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionAddRasterLayer.svg</normaloff>:/images/themes/default/mActionAddRasterLayer.svg</iconset>
    </property>
    <property name="text">
     <string>Add a raster image</string>
+   </property>
+  </action>
+  <action name="actionLoadClassMapping">
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionFileOpen.svg</normaloff>:/images/themes/default/mActionFileOpen.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Load Class Mapping</string>
+   </property>
+   <property name="toolTip">
+    <string>Loads the class mapping from a CSV file</string>
+   </property>
+  </action>
+  <action name="actionSaveClassMapping">
+   <property name="icon">
+    <iconset resource="../../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionFileSaveAs.svg</normaloff>:/images/themes/default/mActionFileSaveAs.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Save Class Mapping</string>
+   </property>
+   <property name="toolTip">
+    <string>Write the class mapping into an CSV file</string>
    </property>
   </action>
  </widget>
@@ -310,6 +385,11 @@
    <class>ClassificationMapLayerComboBox</class>
    <extends>QComboBox</extends>
    <header>qps.classification.classificationscheme</header>
+  </customwidget>
+  <customwidget>
+   <class>ReclassifyTableView</class>
+   <extends>QTableView</extends>
+   <header>reclassifyapp.reclassify</header>
   </customwidget>
  </customwidgets>
  <resources>
