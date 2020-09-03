@@ -1,9 +1,5 @@
 .. include:: /icon_links.rst
 
-.. |br| raw:: html
-
-  <br/>
-
 .. _tutorial_biomass:
 
 Regression-based mapping of forest aboveground biomass
@@ -86,9 +82,9 @@ containing point based biomass estimates sampled from an existing LiDAR derived 
    :widths: auto
 
    Data type; Filename; Description
-   Raster; :file:`enmap_sonoma.bsq`; Simulated spaceborne hyperspectral data from the |br| EnMAP sensor with a spatial resolution of 30m, 195 bands, |br| and 1000x200 pixels (ENVI Standard Band Sequential ``bsq``)
-   Raster; :file:`NLCD_sonoma.bsq`; National Land Cover Database 30m classification for |br| the study region (ENVI Standard Band Sequential ``bsq``)
-   Vector; :file:`biomass_sonoma.shp`; 3000 biomass reference points sampled from an |br| existing LiDAR derived biomass map [4]_ (ESRI Shapefile ``bsq``)
+   Raster; :file:`enmap_sonoma.bsq`; Simulated spaceborne hyperspectral data from the EnMAP sensor with a spatial resolution of 30m, 195 bands, and 1000x200 pixels (ENVI Standard Band Sequential ``bsq``)
+   Raster; :file:`NLCD_sonoma.bsq`; National Land Cover Database 30m classification for the study region (ENVI Standard Band Sequential ``bsq``)
+   Vector; :file:`biomass_sonoma.shp`; 3000 biomass reference points sampled from an existing LiDAR derived biomass map [4]_ (ESRI Shapefile ``bsq``)
 
 
 .. [4] Dubayah, R.O., A. Swatantran, W. Huang, L. Duncanson, H. Tang, K. Johnson, J.O. Dunne, and G.C. Hurtt. 2017. CMS: LiDAR-derived Biomass, Canopy Height and Cover, Sonoma County, California, 2013. ORNL DAAC, Oak Ridge, Tennessee, USA. https://doi.org/10.3334/ORNLDAAC/1523
