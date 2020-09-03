@@ -22,8 +22,8 @@ class QgsVectorClassificationScheme(NamedTuple):
                 idByName = dict()
                 for i, c in enumerate(renderer.categories(), 1):
                     assert isinstance(c, QgsRendererCategory)
-                    #if c.value() == '':
-                    #    continue
+                    if c.value() == '':
+                        continue
                     s = c.symbol()
                     assert isinstance(s, QgsSymbol)
                     qcolor: QColor = s.color()

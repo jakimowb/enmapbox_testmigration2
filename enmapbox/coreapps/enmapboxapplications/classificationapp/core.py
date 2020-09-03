@@ -3,50 +3,70 @@ import tempfile
 import traceback
 
 from PyQt5.uic import loadUi
+from qgis._core import QgsPalettedRasterRenderer
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+from enmapbox.externals.qps.speclib.core import SpectralLibrary
+from hubdsm.core.gdalraster import GdalRaster
+from hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
+from hubdsm.processing.savelayerasclassification import saveLayerAsClassification
 from hubflow.core import *
 from enmapboxapplications.classificationapp.script import classificationWorkflow, ProgressBar
-
 
 pathUi = join(dirname(__file__), 'ui')
 
 
 class ClassificationWorkflowApp(QMainWindow):
+    uiTrainingType_: QComboBox
+    uiType0Raster_: QgsMapLayerComboBox
+    uiType0Classification_: QgsMapLayerComboBox
+    uiType1Raster_: QgsMapLayerComboBox
+    uiType1VectorClassification_: QgsMapLayerComboBox
+    uiType2Library_: QgsMapLayerComboBox
 
     def __init__(self, parent=None):
-
         QMainWindow.__init__(self, parent)
         loadUi(join(pathUi, 'main.ui'), self)
-        #self.setupUi(self)
         self.uiInfo_ = QLabel()
         self.statusBar().addWidget(self.uiInfo_, 1)
 
         self.initMaps()
         self.initClassifier()
         self.initOutputs()
-        self.uiRaster_.layerChanged.connect(self.onRasterLayerChanged)
-        self.uiClassification_.layerChanged.connect(self.onClassificationLayerChanged)
-        self.uiExecute_.clicked.connect(self.execute)
-        self.uiAttribute_.fieldChanged.connect(self.initClasses)
-        self.uiAttribute_.hide()
-        self.uiAttributeLabel_.hide()
-        self.uiOversampling_.valueChanged.connect(self.onRasterizationOptionsChanged)
-        self.uiPurity_.valueChanged.connect(self.onRasterizationOptionsChanged)
-        self.uiAdvanced_.clicked.connect(self.onAdvancedClicked)
-        self.uiAdvanced_.hide() # advanced button not wanted :-(, use F1 key instead :-)
+
+        self.uiTrainingType_.currentIndexChanged.connect(self.clearTrainingData)
+        self.uiType0Raster_.layerChanged.connect(self.initClasses)
+        self.uiType0Classification_.layerChanged.connect(self.initClasses)
+        self.uiType1Raster_.layerChanged.connect(self.initClasses)
+        self.uiType1VectorClassification_.layerChanged.connect(self.initClasses)
+        self.uiType2Library_.layerChanged.connect(self.initClasses)
+
         self.uiSampleSizePercent_.valueChanged.connect(self.updateSpinboxes)
         self.uiSampleSizePixel_.valueChanged.connect(self.updateSpinboxes)
         self.uiApply_.clicked.connect(self.updateSpinboxes)
-        self.uiStacked_.setEnabled(False)
-        self.spinboxes = None
-        self._advancedWidgets = [self.uiOversampling_, self.uiPurity_]
-        self.onAdvancedClicked()
 
+        self.uiExecute_.clicked.connect(self.execute)
+
+        self.spinboxes = None
+
+    def clearTrainingData(self):
+        self.uiType0Raster_.setLayer(None)
+        self.uiType0Classification_.setLayer(None)
+        self.uiType1Raster_.setLayer(None)
+        self.uiType1VectorClassification_.setLayer(None)
+        self.uiType2Library_.setLayer(None)
+
+    def initMaps(self):
+        self.uiType0Raster_.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.uiType0Classification_.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.uiType1Raster_.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.uiType1VectorClassification_.setFilters(QgsMapLayerProxyModel.VectorLayer)
+        self.uiType2Library_.setFilters(QgsMapLayerProxyModel.VectorLayer)
+        self.uiRaster2_.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
     def progressBar(self):
         return ProgressBar(bar=self.uiProgressBar())
@@ -54,11 +74,6 @@ class ClassificationWorkflowApp(QMainWindow):
     def log(self, text):
         self.uiInfo_.setText(str(text))
         QCoreApplication.processEvents()
-
-    def uiAttributeLabel(self):
-        obj = self.uiAttributeLabel_ #inspect.getcurrentframe()
-        assert isinstance(obj, QLabel)
-        return obj
 
     def uiProgressBar(self):
         obj = self.uiProgressBar_
@@ -76,41 +91,6 @@ class ClassificationWorkflowApp(QMainWindow):
         if event.key() == Qt.Key_F1:
             self.onAdvancedClicked()
 
-    def onAdvancedClicked(self, *args):
-        for w in self._advancedWidgets:
-            w.setVisible(w.isHidden())
-
-    def onRasterizationOptionsChanged(self, *args):
-        self.uiAttribute_.setCurrentIndex(-1)
-        self.initClasses()
-
-    def onRasterLayerChanged(self, *args):
-        self.uiClassification_.setLayer(None)
-        self.uiClassification_.setEnabled(self.uiRaster_.currentLayer() is not None)
-        self.uiAttribute_.hide()
-        self.uiAttributeLabel_.hide()
-        self.uiAttribute_.setCurrentIndex(-1)
-        self.initClasses()
-
-    def onClassificationLayerChanged(self, *args):
-        layer = self.uiClassification_.currentLayer()
-        isVector = isinstance(layer, QgsVectorLayer)
-
-        try:
-            openVectorDataset(filename=layer.source())
-        except Exception as error:
-            self.log('GDAL Error:{}'.format(str(error)))
-            self.uiAttribute_.setCurrentIndex(-1)
-            self.uiClassification_.setLayer(None)
-            return
-
-        self.uiAttribute_.setEnabled(isVector)
-        self.uiAttribute_.setVisible(isVector)
-        self.uiAttributeLabel().setVisible(isVector)
-
-        self.uiOversampling_.setEnabled(isVector)
-        self.uiPurity_.setEnabled(isVector)
-
     def updateSpinboxes(self, *args):
         self.log('')
 
@@ -125,11 +105,13 @@ class ClassificationWorkflowApp(QMainWindow):
             else:
                 spinbox.setValue(int(value))
 
-    def rasterizationFilename(self):
-        return '/vsimem/classification_workflow/rasterizedClassification.bsq'
+    def filenameTmpClassification(self):
+        return '/vsimem/classification_workflow/classification.bsq'
+
+    def filenameTmpRaster(self):
+        return '/vsimem/classification_workflow/raster.bsq'
 
     def initClasses(self, *args):
-
         self.log('')
         self.spinboxes = None
         self.uiStacked_.setEnabled(False)
@@ -139,72 +121,170 @@ class ClassificationWorkflowApp(QMainWindow):
         layout = QHBoxLayout(self.widget_)
         self.updateTotalSamples()
 
-        layer = self.uiClassification_.currentLayer()
-        if layer is None:
-            return
-        elif isinstance(layer, QgsVectorLayer):
-            self.uiAttribute_.setEnabled(True)
-            name = self.uiAttribute_.currentField()
-            if name == '': # no field selected yet
+        if self.uiTrainingType_.currentIndex() == 0: # raster
+            rasterLayer: QgsRasterLayer = self.uiType0Raster_.currentLayer()
+            classificationLayer: QgsRasterLayer = self.uiType0Classification_.currentLayer()
+            if rasterLayer is None or classificationLayer is None:
                 return
 
-            filename = layer.source()
-            ds = openVectorDataset(filename=filename)
-
-            if ds.ogrDataSource().GetDriver().LongName == 'GeoPackage' and name == 'fid':
-                self.log('Using GeoPackage fid as class attribute is not supported.')
-                self.uiAttribute_.setCurrentIndex(-1)
+            if not isinstance(classificationLayer.renderer(), QgsPalettedRasterRenderer):
+                self.log('Selected layer is not a valid classification (requires Paletted/Unique values renderer).')
+                self.uiType0Classification_.setLayer(None)
                 return
 
+            saveLayerAsClassification(
+                qgsMapLayer=classificationLayer,
+                filename=self.filenameTmpClassification()
+            )
 
-            if 'Point' in ds.geometryTypeName():
-                oversampling = 1
-            else:
-                oversampling = self.uiOversampling_.value()
-
-
-            raster = Raster(filename=self.uiRaster_.currentLayer().source())
-
-            tmpfilename = '/vsimem/classificationapp/reprojected.gpkg'
-            if not ds.projection().equal(raster.grid().projection()):
-                self.log('Projection mismatch between Raster and Reference.')
+            classification = Classification(filename=self.filenameTmpClassification())
+        elif self.uiTrainingType_.currentIndex() == 1: # vector
+            rasterLayer: QgsRasterLayer = self.uiType1Raster_.currentLayer()
+            vectorClassificationLayer: QgsVectorLayer = self.uiType1VectorClassification_.currentLayer()
+            if rasterLayer is None or vectorClassificationLayer is None:
+                return
+            if not isinstance(vectorClassificationLayer.renderer(), QgsCategorizedSymbolRenderer):
+                self.uiType1VectorClassification_.setLayer(None)
+                self.log('Selected layer is not a valid vector classification (requires Categorized renderer).')
                 return
 
-                # reproject vector
-                ds.reproject(projection=raster.grid().projection(), filename=tmpfilename, driver=GeoPackageDriver())
-                filename = tmpfilename
+            raster = Raster(filename=self.uiType1Raster_.currentLayer().source())
 
-            vectorClassification = VectorClassification(filename=filename, classAttribute=name,
-                                                        minDominantCoverage=self.uiPurity_.value() / 100.,
-                                                        oversampling=oversampling)
+            if not raster.dataset().projection().equal(
+                    Vector(filename=vectorClassificationLayer.source()).dataset().projection()
+            ):
+                self.log('Projection mismatch between Raster and Vector Classification.')
+                return
 
-            self.log('Rasterize reference on raster grid with x{} resolution oversampling and select pixel with at leased {}% purity'.format(self.uiOversampling_.value(), self.uiPurity_.value()))
-            classification = Classification.fromClassification(filename=self.rasterizationFilename(),
-                                                               classification=vectorClassification, grid=raster.grid(),
-                                                               **ApplierOptions(emitFileCreated=False, progressBar=self.progressBar()))
-
-            try:
-                gdal.Unlink(tmpfilename)
-            except:
-                pass
-
+            self.log('Rasterize vector classification on raster grid')
+            saveLayerAsClassification(
+                qgsMapLayer=vectorClassificationLayer,
+                grid=GdalRaster.open(raster.filename()).grid,
+                filename=self.filenameTmpClassification()
+            )
             self.log('')
+
+            classification = Classification(filename=self.filenameTmpClassification())
             self.progressBar().setPercentage(0)
 
-        elif isinstance(layer, QgsRasterLayer):
-            self.uiAttribute_.setEnabled(False)
-            filename = layer.source()
-            raster = Raster(filename=filename)
-            isClassification = raster.dataset().zsize() == 1
-
-            if isClassification:
-                classification = Classification(filename=filename)
-            else:
-                self.log('Selected layer is not a valid classification.')
-                self.uiClassification_.setLayer(None)
+        elif self.uiTrainingType_.currentIndex() == 2: # speclib
+            libraryLayer: QgsVectorLayer = self.uiType2Library_.currentLayer()
+            if libraryLayer is None:
                 return
+
+            try:
+                libraryLayer = SpectralLibrary(name=libraryLayer.name(), uri=libraryLayer.source())
+            except:
+                self.uiType2Library_.setLayer(None)
+                self.log('Selected layer is not a valid library.')
+                return
+
+            assert isinstance(libraryLayer, SpectralLibrary)
+
+            if not isinstance(libraryLayer.renderer(), QgsCategorizedSymbolRenderer):
+                self.uiType2Library_.setLayer(None)
+                self.log('Selected layer is not a valid library classification (requires Categorized renderer).')
+                return
+
+            qgsVectorClassificationScheme = QgsVectorClassificationScheme.fromQgsVectorLayer(
+                qgsVectorLayer=libraryLayer
+            )
+
+            # make pseudo raster
+            X = list()
+            y = list()
+            fieldIndex = None
+            for profile in libraryLayer:
+                if fieldIndex is None:
+                    fieldIndex = profile.fieldNames().index(qgsVectorClassificationScheme.classAttribute)
+                label = profile.attribute(fieldIndex)
+                if label not in qgsVectorClassificationScheme.categories:
+                    continue
+                category = qgsVectorClassificationScheme.categories[label]
+                y.append(category.id)
+                X.append(profile.values()['y'])
+            X = np.array(X, dtype=np.float64)
+            y = np.array(y)
+            raster = Raster.fromArray(
+                array=np.atleast_3d(X.T),
+                filename=self.filenameTmpRaster()
+            )
+            classification = GdalRaster.createFromArray(
+                array=np.atleast_3d(y),
+                filename=self.filenameTmpClassification()
+            )
+            classification.setCategories(list(qgsVectorClassificationScheme.categories.values()))
+            del classification
+            classification = Classification(self.filenameTmpClassification())
         else:
             assert 0
+
+
+        '''
+                elif isinstance(layer, QgsVectorLayer):
+                    self.uiAttribute_.setEnabled(True)
+                    name = self.uiAttribute_.currentField()
+                    if name == '':  # no field selected yet
+                        return
+        
+                    filename = layer.source()
+                    ds = openVectorDataset(filename=filename)
+        
+                    if ds.ogrDataSource().GetDriver().LongName == 'GeoPackage' and name == 'fid':
+                        self.log('Using GeoPackage fid as class attribute is not supported.')
+                        self.uiAttribute_.setCurrentIndex(-1)
+                        return
+        
+                    if 'Point' in ds.geometryTypeName():
+                        oversampling = 1
+                    else:
+                        oversampling = self.uiOversampling_.value()
+        
+                    raster = Raster(filename=self.uiRaster_.currentLayer().source())
+        
+                    tmpfilename = '/vsimem/classificationapp/reprojected.gpkg'
+                    if not ds.projection().equal(raster.grid().projection()):
+                        self.log('Projection mismatch between Raster and Reference.')
+                        return
+        
+                        # reproject vector
+                        ds.reproject(projection=raster.grid().projection(), filename=tmpfilename, driver=GeoPackageDriver())
+                        filename = tmpfilename
+        
+                    vectorClassification = VectorClassification(filename=filename, classAttribute=name,
+                        minDominantCoverage=self.uiPurity_.value() / 100.,
+                        oversampling=oversampling)
+        
+                    self.log(
+                        'Rasterize reference on raster grid with x{} resolution oversampling and select pixel with at leased {}% purity'.format(
+                            self.uiOversampling_.value(), self.uiPurity_.value()))
+                    classification = Classification.fromClassification(filename=self.rasterizationFilename(),
+                        classification=vectorClassification, grid=raster.grid(),
+                        **ApplierOptions(emitFileCreated=False, progressBar=self.progressBar()))
+        
+                    try:
+                        gdal.Unlink(tmpfilename)
+                    except:
+                        pass
+        
+                    self.log('')
+                    self.progressBar().setPercentage(0)
+        
+                elif isinstance(layer, QgsRasterLayer):
+                    self.uiAttribute_.setEnabled(False)
+                    filename = layer.source()
+                    raster = Raster(filename=filename)
+                    isClassification = raster.dataset().zsize() == 1
+        
+                    if isClassification:
+                        classification = Classification(filename=filename)
+                    else:
+                        self.log('Selected layer is not a valid classification.')
+                        self.uiClassification_.setLayer(None)
+                        return
+                else:
+                    assert 0
+        '''
 
         counts = classification.statistics()
         self.counts = counts
@@ -217,8 +297,9 @@ class ClassificationWorkflowApp(QMainWindow):
 
             layout1 = QVBoxLayout()
             layout2 = QHBoxLayout()
-            color = QToolButton ()
-            color.setStyleSheet('background-color: {}'.format(classification.classDefinition().color(i+1)._qColor.name()))
+            color = QToolButton()
+            color.setStyleSheet(
+                'background-color: {}'.format(classification.classDefinition().color(i + 1)._qColor.name()))
             color.setMaximumWidth(25)
             color.setMaximumHeight(18)
 
@@ -232,13 +313,13 @@ class ClassificationWorkflowApp(QMainWindow):
             fm = name.fontMetrics()
             w = fm.boundingRect(text).width()
             name.resize(w, name.height())
-            name.setMinimumWidth(w+10)
+            name.setMinimumWidth(w + 10)
             layout2.addWidget(name)
             # layout2.addWidget(QLabel('({} px)  '.format(counts[i])))
             self.names.append(name)
             layout1.addLayout(layout2)
 
-            #layout3 = QHBoxLayout()
+            # layout3 = QHBoxLayout()
             spinbox = QSpinBox()
             spinbox.setRange(0, counts[i])
             spinbox.setSingleStep(1)
@@ -247,16 +328,15 @@ class ClassificationWorkflowApp(QMainWindow):
             spinbox.valueChanged.connect(self.updateTotalSamples)
             self.spinboxes.append(spinbox)
             layout1.addWidget(spinbox)
-            #layout3.addWidget(QLabel('({} px)  '.format(counts[i])))
-            #layout1.addLayout(layout3)
-
+            # layout3.addWidget(QLabel('({} px)  '.format(counts[i])))
+            # layout1.addLayout(layout3)
 
             layout.addLayout(layout1)
 
             self.updateTotalSamples()
 
         # self.widget_.adjustSize()
-        #self.adjustSize()
+        # self.adjustSize()
 
         self.uiStacked_.setEnabled(True)
 
@@ -267,32 +347,26 @@ class ClassificationWorkflowApp(QMainWindow):
                 total += int(spinbox.value())
         self.uiTotalSampleSize_.setText('Total sample size = {}'.format(total))
 
-    def initMaps(self):
-        assert isinstance(self.uiAttribute_, QgsFieldComboBox)
-        self.uiRaster_.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.uiRaster2_.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.uiClassification_.layerChanged.connect(self.initClasses)
-        self.uiAttribute_.setFilters(QgsFieldProxyModel.Numeric)  # All, Date, Double, Int, LongLong, Numeric, String, Time
+
+
 
     def initClassifier(self):
         from enmapboxgeoalgorithms.algorithms import ALGORITHMS, ClassifierFit
         self.classifiers = [alg for alg in ALGORITHMS if isinstance(alg, ClassifierFit)]
         self.classifierNames = [alg.name()[3:] for alg in self.classifiers]
         self.uiClassifier_.addItems(self.classifierNames)
-        self.uiClassifier_.currentIndexChanged.connect(lambda index: self.uiCode_.setText(self.classifiers[index].code()))
+        self.uiClassifier_.currentIndexChanged.connect(
+            lambda index: self.uiCode_.setText(self.classifiers[index].code()))
         self.uiClassifier_.setCurrentIndex(self.classifierNames.index('RandomForestClassifier'))
 
     def initOutputs(self):
         outdir = tempfile.gettempdir()
         self.uiSampledClassificationFilename_.setStorageMode(QgsFileWidget.SaveFile)
-#        self.uiSampledClassificationComplementFilename_.setStorageMode(QgsFileWidget.SaveFile)
         self.uiModelFilename_.setStorageMode(QgsFileWidget.SaveFile)
         self.uiClassificationFilename_.setStorageMode(QgsFileWidget.SaveFile)
         self.uiProbabilityFilename_.setStorageMode(QgsFileWidget.SaveFile)
         self.uiReportFilename_.setStorageMode(QgsFileWidget.SaveFile)
-
         self.uiSampledClassificationFilename_.setFilePath(join(outdir, 'sample.bsq'))
-#        self.uiSampledClassificationComplementFilename_.setFilePath(join(outdir, 'complement.bsq'))
         self.uiModelFilename_.setFilePath(join(outdir, 'classifier.pkl'))
         self.uiClassificationFilename_.setFilePath(join(outdir, 'classification.bsq'))
         self.uiProbabilityFilename_.setFilePath(join(outdir, 'probability.bsq'))
@@ -303,29 +377,45 @@ class ClassificationWorkflowApp(QMainWindow):
 
         try:
             saveSampledClassification = self.uiSampledClassificationFilename_.isEnabled()
-            saveSampledClassificationComplement = saveSampledClassification #self.uiSampledClassificationComplementFilename_.isEnabled()
+            saveSampledClassificationComplement = saveSampledClassification  # self.uiSampledClassificationComplementFilename_.isEnabled()
             saveModel = self.uiModelFilename_.isEnabled()
             saveClassification = self.uiClassificationFilename_.isEnabled()
             saveProbability = self.uiProbabilityFilename_.isEnabled()
             saveRGB = self.uiRGB_.isEnabled()
             saveReport = self.uiReportFilename_.isEnabled()
             filenameSampledClassification = self.uiSampledClassificationFilename_.filePath()
-            filenameSampledClassificationComplement = '{}_complement{}'.format(*splitext(filenameSampledClassification)) #self.uiSampledClassificationComplementFilename_.filePath()
+            filenameSampledClassificationComplement = '{}_complement{}'.format(
+                *splitext(filenameSampledClassification)
+            )
             filenameModel = self.uiModelFilename_.filePath()
             filenameClassification = self.uiClassificationFilename_.filePath()
             filenameProbability = self.uiProbabilityFilename_.filePath()
             filenameReport = self.uiReportFilename_.filePath()
 
-            qgsRaster = self.uiRaster_.currentLayer()
-            if qgsRaster is None:
-                self.log('Error: no raster selected')
-                return
-            raster = Raster(filename=qgsRaster.source())
-
-            qgsClassification = self.uiClassification_.currentLayer()
-            if qgsClassification is None:
-                self.log('Error: no reference selected')
-                return
+            if self.uiTrainingType_.currentIndex() == 0: # raster
+                qgsRaster = self.uiType0Raster_.currentLayer()
+                qgsClassification = self.uiType0Classification_.currentLayer()
+                if qgsRaster is None:
+                    self.log('Error: no raster selected')
+                    return
+                if qgsClassification is None:
+                    self.log('Error: no classification selected')
+                    return
+                raster = Raster(filename=qgsRaster.source())
+            elif self.uiTrainingType_.currentIndex() == 1:  # vector
+                qgsRaster = self.uiType1Raster_.currentLayer()
+                qgsClassification = self.uiType1VectorClassification_.currentLayer()
+                if qgsRaster is None:
+                    self.log('Error: no raster selected')
+                    return
+                if qgsClassification is None:
+                    self.log('Error: no classification selected')
+                    return
+                raster = Raster(filename=qgsRaster.source())
+            elif self.uiTrainingType_.currentIndex() == 2:  # speclib
+                raster = Raster(filename=self.filenameTmpRaster())
+            else:
+                assert 0
 
             colors = list()
             for w in self.colors:
@@ -338,15 +428,10 @@ class ClassificationWorkflowApp(QMainWindow):
 
             classDefinition = ClassDefinition(names=names, colors=colors)
 
-            if isinstance(qgsClassification, QgsRasterLayer):
-                classification = Classification(filename=qgsClassification.source(), classDefinition=classDefinition)
-                if not raster.grid().equal(other=classification.grid()):
-                    self.log('Error: raster and reference grids do not match')
-                    return
-            elif isinstance(qgsClassification, QgsVectorLayer):
-                classification = Classification(filename=self.rasterizationFilename(), classDefinition=classDefinition)
-            else:
-                assert 0
+            classification = Classification(filename=self.filenameTmpClassification(), classDefinition=classDefinition)
+            if not raster.grid().equal(other=classification.grid()):
+                self.log('Error: raster and reference grids do not match')
+                return
 
             sample = ClassificationSample(raster=raster, classification=classification)
 
@@ -370,7 +455,7 @@ class ClassificationWorkflowApp(QMainWindow):
                 assert 0
 
             n = [spinbox.value() for spinbox in self.spinboxes]
-            if np.sum(n) == np.sum(self.counts): # perform no random sampling if all samples are used
+            if np.sum(n) == np.sum(self.counts):  # perform no random sampling if all samples are used
                 n = None
 
             cv = self.uiNFold_.value()
@@ -384,27 +469,26 @@ class ClassificationWorkflowApp(QMainWindow):
             self.uiExecute_.setEnabled(False)
 
             classificationWorkflow(sample=sample,
-                                   classifier=classifier,
-                                   raster=raster2,
-                                   mask=mask2,
-                                   n=n,
-                                   cv=cv,
-                                   saveSampledClassification=saveSampledClassification,
-                                   saveSampledClassificationComplement=saveSampledClassificationComplement,
-                                   saveModel=saveModel,
-                                   saveClassification=saveClassification,
-                                   saveProbability=saveProbability,
-                                   saveRGB=saveRGB,
-                                   saveReport=saveReport,
-                                   filenameSampledClassification=filenameSampledClassification,
-                                   filenameSampledClassificationComplement=filenameSampledClassificationComplement,
-                                   filenameModel=filenameModel,
-                                   filenameClassification=filenameClassification,
-                                   filenameProbability=filenameProbability,
-                                   filenameReport=filenameReport,
-                                   ui=self)
+                classifier=classifier,
+                raster=raster2,
+                mask=mask2,
+                n=n,
+                cv=cv,
+                saveSampledClassification=saveSampledClassification,
+                saveSampledClassificationComplement=saveSampledClassificationComplement,
+                saveModel=saveModel,
+                saveClassification=saveClassification,
+                saveProbability=saveProbability,
+                saveRGB=saveRGB,
+                saveReport=saveReport,
+                filenameSampledClassification=filenameSampledClassification,
+                filenameSampledClassificationComplement=filenameSampledClassificationComplement,
+                filenameModel=filenameModel,
+                filenameClassification=filenameClassification,
+                filenameProbability=filenameProbability,
+                filenameReport=filenameReport,
+                ui=self)
             self.log('Done!')
-            self.uiAttributeLabel()
             self.progressBar().setPercentage(0)
             self.uiExecute_.setEnabled(True)
 
@@ -413,4 +497,3 @@ class ClassificationWorkflowApp(QMainWindow):
             traceback.print_exc()
             self.log('Error: {}'.format(str(error)))
             self.uiExecute_.setEnabled(True)
-
