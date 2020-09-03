@@ -14,7 +14,7 @@ if __name__ == '__main__':
     enmapBox.run()
     enmapBox.openExampleData(mapWindows=0)
     enmapBox.addSource(r'C:\Users\janzandr\Desktop\classification.bsq')
-
+    enmapBox.addSource(r'C:\Users\janzandr\Desktop\speclib.gpkg')
 
     #for source in [enmap, hires, landcover_polygons, landcover_points, library]:
     #    enmapBox.addSource(source=source)

@@ -105,8 +105,11 @@ class ClassificationWorkflowApp(QMainWindow):
             else:
                 spinbox.setValue(int(value))
 
-    def classificationTmpFilename(self):
+    def filenameTmpClassification(self):
         return '/vsimem/classification_workflow/classification.bsq'
+
+    def filenameTmpRaster(self):
+        return '/vsimem/classification_workflow/raster.bsq'
 
     def initClasses(self, *args):
         self.log('')
@@ -131,10 +134,10 @@ class ClassificationWorkflowApp(QMainWindow):
 
             saveLayerAsClassification(
                 qgsMapLayer=classificationLayer,
-                filename=self.classificationTmpFilename()
+                filename=self.filenameTmpClassification()
             )
 
-            classification = Classification(filename=self.classificationTmpFilename())
+            classification = Classification(filename=self.filenameTmpClassification())
         elif self.uiTrainingType_.currentIndex() == 1: # vector
             rasterLayer: QgsRasterLayer = self.uiType1Raster_.currentLayer()
             vectorClassificationLayer: QgsVectorLayer = self.uiType1VectorClassification_.currentLayer()
@@ -157,11 +160,11 @@ class ClassificationWorkflowApp(QMainWindow):
             saveLayerAsClassification(
                 qgsMapLayer=vectorClassificationLayer,
                 grid=GdalRaster.open(raster.filename()).grid,
-                filename=self.classificationTmpFilename()
+                filename=self.filenameTmpClassification()
             )
             self.log('')
 
-            classification = Classification(filename=self.classificationTmpFilename())
+            classification = Classification(filename=self.filenameTmpClassification())
             self.progressBar().setPercentage(0)
 
         elif self.uiTrainingType_.currentIndex() == 2: # speclib
@@ -176,6 +179,8 @@ class ClassificationWorkflowApp(QMainWindow):
                 self.log('Selected layer is not a valid library.')
                 return
 
+            assert isinstance(libraryLayer, SpectralLibrary)
+
             if not isinstance(libraryLayer.renderer(), QgsCategorizedSymbolRenderer):
                 self.uiType2Library_.setLayer(None)
                 self.log('Selected layer is not a valid library classification (requires Categorized renderer).')
@@ -189,25 +194,28 @@ class ClassificationWorkflowApp(QMainWindow):
             X = list()
             y = list()
             fieldIndex = None
-            for profile in slib:
+            for profile in libraryLayer:
                 if fieldIndex is None:
-                    fieldIndex = profile.fieldNames().index('level_2_id')
+                    fieldIndex = profile.fieldNames().index(qgsVectorClassificationScheme.classAttribute)
+                label = profile.attribute(fieldIndex)
+                if label not in qgsVectorClassificationScheme.categories:
+                    continue
+                category = qgsVectorClassificationScheme.categories[label]
+                y.append(category.id)
                 X.append(profile.values()['y'])
-                y.append(profile.attribute(fieldIndex))
             X = np.array(X, dtype=np.float64)
             y = np.array(y)
             raster = Raster.fromArray(
                 array=np.atleast_3d(X.T),
-                filename='c:/vsimem/X.bsq'
+                filename=self.filenameTmpRaster()
             )
             classification = GdalRaster.createFromArray(
                 array=np.atleast_3d(y),
-                filename='c:/vsimem/y.bsq'
+                filename=self.filenameTmpClassification()
             )
             classification.setCategories(list(qgsVectorClassificationScheme.categories.values()))
             del classification
-            classification = Classification('c:/vsimem/y.bsq')
-
+            classification = Classification(self.filenameTmpClassification())
         else:
             assert 0
 
@@ -405,7 +413,7 @@ class ClassificationWorkflowApp(QMainWindow):
                     return
                 raster = Raster(filename=qgsRaster.source())
             elif self.uiTrainingType_.currentIndex() == 2:  # speclib
-                assert 0
+                raster = Raster(filename=self.filenameTmpRaster())
             else:
                 assert 0
 
@@ -420,7 +428,7 @@ class ClassificationWorkflowApp(QMainWindow):
 
             classDefinition = ClassDefinition(names=names, colors=colors)
 
-            classification = Classification(filename=self.classificationTmpFilename(), classDefinition=classDefinition)
+            classification = Classification(filename=self.filenameTmpClassification(), classDefinition=classDefinition)
             if not raster.grid().equal(other=classification.grid()):
                 self.log('Error: raster and reference grids do not match')
                 return
