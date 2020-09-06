@@ -48,6 +48,8 @@ from . import APP_DIR
 
 SETTINGS_KEY = 'ENMAPBOX_RECLASSIFY_APP'
 SAVE_DIR_KEY = SETTINGS_KEY + '/SAVE_DIR'
+KEY_DST_RASTER = SETTINGS_KEY + 'DST_RASTER'
+
 
 def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
     assert isinstance(classificationScheme, ClassificationScheme)
@@ -66,14 +68,14 @@ def setClassInfo(targetDataset, classificationScheme, bandIndex=0):
 
     assert isinstance(ds, gdal.Dataset)
     assert bandIndex >= 0 and ds.RasterCount > bandIndex
-    band = ds.GetRasterBand(bandIndex+2)
+    band = ds.GetRasterBand(bandIndex + 2)
     assert isinstance(band, gdal.Band)
     band.SetCategoryNames(classNames)
     band.SetColorTable(ct)
 
 
-def reclassify(pathSrc:str, pathDst:str, dstClassScheme:ClassificationScheme, labelLookup:dict,
-               drvDst = None,
+def reclassify(pathSrc: str, pathDst: str, dstClassScheme: ClassificationScheme, labelLookup: dict,
+               drvDst=None,
                bandIndices=0, tileSize=None, co=None):
     """
     Internal wrapper to reclassify raster images based on hub-flow API.
@@ -87,28 +89,44 @@ def reclassify(pathSrc:str, pathDst:str, dstClassScheme:ClassificationScheme, la
     :param co: - not used -
     :return: gdal.Dataset of written re-classified image
     """
-    #assert os.path.isfile(pathSrc)
+    # assert os.path.isfile(pathSrc)
     assert isinstance(dstClassScheme, ClassificationScheme)
     assert isinstance(labelLookup, dict)
 
+    # hubflow requires to handle the `unclassified` class (label = 0, always first position) separately
+
+    hfNames = []
+    hfColors = []
+
+    hfNoDataName = None
+    hfNoDataColor = None
+
+    MAP2HUBFLOW = dict()
+    for c in dstClassScheme:
+        MAP2HUBFLOW[c.label()] = c
+    for l in range(0, max(list(MAP2HUBFLOW.keys()))):
+        if l not in MAP2HUBFLOW.keys():
+            MAP2HUBFLOW[l] = ClassInfo(label=l, name='Unclassified', color='black')
+
+    names = []
+    colors = []
+    for l in sorted(list(MAP2HUBFLOW.keys())):
+        classInfo: ClassInfo = MAP2HUBFLOW[l]
+        names.append(classInfo.name())
+        colors.append(classInfo.color())
+
+    if len(names) == 0:
+        return
 
     import hubflow.core
     classification = hubflow.core.Classification(pathSrc)
 
-    names = dstClassScheme.classNames()
-    colors = dstClassScheme.classColors()
-
-    if len(names) == 0:
-        # nothing to reclassify
-        return None
-
-    # hubflow requires to handle the `unclassified` class (label = 0, always first position) separately
     newDef = hubflow.core.ClassDefinition(names=names[1:], colors=[c.name() for c in colors[1:]])
     newDef.setNoDataNameAndColor(names[0], colors[0])
 
     classification.reclassify(filename=pathDst,
-                          classDefinition=newDef,
-                          mapping=labelLookup)
+                              classDefinition=newDef,
+                              mapping=labelLookup)
 
     return gdal.Open(pathDst)
 
@@ -130,7 +148,6 @@ class ReclassifyTableModel(QAbstractTableModel):
 
     def writeCSV(self, path: pathlib.Path):
         if path is None:
-
 
             filter = "CSV Files (*.csv *.txt);;" \
                      "All Files (*)"
@@ -212,7 +229,6 @@ class ReclassifyTableModel(QAbstractTableModel):
                     idx1 = self.createIndex(idx.row(), self.columnCount())
                     self.dataChanged.emit(idx0, idx1)
 
-
     def matchClassNames(self):
         LUT = dict()
 
@@ -235,7 +251,7 @@ class ReclassifyTableModel(QAbstractTableModel):
 
     def setDestination(self, cs: ClassificationScheme):
         assert isinstance(cs, ClassificationScheme)
-        #cs = cs.clone()
+
         self.beginResetModel()
         if isinstance(self.mDst, ClassificationScheme):
             try:
@@ -280,13 +296,13 @@ class ReclassifyTableModel(QAbstractTableModel):
     def onSourceDataChanged(self, idx0, idx1, roles):
 
         a = self.index(idx0.row(), 0)
-        b = self.index(idx1.row(), 0 )
+        b = self.index(idx1.row(), 0)
 
-        self.dataChanged.emit(a,b, roles)
+        self.dataChanged.emit(a, b, roles)
 
     def onDestinationDataChanged(self, a, b, roles):
         a = self.index(0, 1)
-        b = self.index(self.rowCount()-1, 1)
+        b = self.index(self.rowCount() - 1, 1)
         self.dataChanged.emit(a, b, roles)
 
     def onSourceClassesRemoved(self):
@@ -303,7 +319,6 @@ class ReclassifyTableModel(QAbstractTableModel):
         for s in to_remove:
             self.mMapping.pop(s)
         pass
-
 
     def source(self) -> ClassificationScheme:
         return self.mSrc
@@ -341,7 +356,7 @@ class ReclassifyTableModel(QAbstractTableModel):
             flags |= Qt.ItemIsEditable
         return flags
 
-    def data(self, index:QModelIndex, role=None):
+    def data(self, index: QModelIndex, role=None):
 
         if not index.isValid():
             return None
@@ -356,7 +371,9 @@ class ReclassifyTableModel(QAbstractTableModel):
             if role == Qt.DisplayRole:
                 return c.name()
             elif role == Qt.ToolTipRole:
-                return 'Source class: {}'.format(c.name())
+                return f'Source class "{c.name()}"  ' \
+                       f'Pixel value: {c.label()}'
+
             elif role == Qt.DecorationRole:
                 return c.icon()
 
@@ -367,7 +384,9 @@ class ReclassifyTableModel(QAbstractTableModel):
                 if role == Qt.DisplayRole:
                     return dstClass.name()
                 elif role == Qt.ToolTipRole:
-                    return 'Destination class: {}'.format(dstClass.name())
+                    return f'Destination class "{dstClass.name()}"  ' \
+                           f'Pixel value: {dstClass.label()}'
+
                 elif role == Qt.DecorationRole:
                     return dstClass.icon()
 
@@ -397,8 +416,7 @@ class ReclassifyTableView(QTableView):
         super().__init__(*args, **kwds)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
-
-        model : ReclassifyTableModel = self.model().sourceModel()
+        model: ReclassifyTableModel = self.model().sourceModel()
         m = QMenu()
         a = m.addAction('Load Class Mapping')
         a.triggered.connect(lambda *args: model.readCSV(None))
@@ -410,11 +428,13 @@ class ReclassifyTableView(QTableView):
         a.triggered.connect(model.resetMapping)
         m.exec_(event.globalPos())
 
+
 class ReclassifyTableViewDelegate(QStyledItemDelegate):
     """
 
     """
-    def __init__(self, tableView:QTableView, parent=None):
+
+    def __init__(self, tableView: QTableView, parent=None):
         assert isinstance(tableView, QTableView)
         super(ReclassifyTableViewDelegate, self).__init__(parent=parent)
         self.mTableView = tableView
@@ -425,7 +445,7 @@ class ReclassifyTableViewDelegate(QStyledItemDelegate):
     def reclassifyModel(self) -> ReclassifyTableModel:
         return self.sortFilterProxyModel().sourceModel()
 
-    def setItemDelegates(self, tableView:QTableView):
+    def setItemDelegates(self, tableView: QTableView):
         model = self.reclassifyModel()
         tableView.setItemDelegateForColumn(1, self)
 
@@ -468,8 +488,10 @@ class ReclassifyTableViewDelegate(QStyledItemDelegate):
             if index.column() == 1 and isinstance(w, ClassificationSchemeComboBox):
                 tModel.setData(index, w.currentClassInfo(), Qt.EditRole)
 
+
 class ReclassifyDialog(QDialog):
     """Constructor."""
+
     def __init__(self, parent=None):
         super(ReclassifyDialog, self).__init__(parent, Qt.Window)
         path = pathlib.Path(__file__).parent / 'reclassifydialog.ui'
@@ -496,7 +518,9 @@ class ReclassifyDialog(QDialog):
         assert isinstance(self.dstFileWidget, QgsFileWidget)
         self.dstFileWidget.setStorageMode(QgsFileWidget.SaveFile)
         self.dstFileWidget.setConfirmOverwrite(True)
-
+        dst_path = enmapboxSettings().value(KEY_DST_RASTER, None)
+        if isinstance(dst_path, str):
+            self.dstFileWidget.setFilePath(dst_path)
 
         assert isinstance(self.widgetOutputOptions, QgsRasterFormatSaveOptionsWidget)
         self.widgetOutputOptions.setType(QgsRasterFormatSaveOptionsWidget.Full)
@@ -504,14 +528,13 @@ class ReclassifyDialog(QDialog):
         self.widgetOutputOptions.setFormat('GTIFF')
         self.widgetOutputOptions.setRasterFileName('reclassifified.tif')
         self.dstFileWidget.fileChanged.connect(self.widgetOutputOptions.setRasterFileName)
-
-        #self.dstClassificationSchemeWidget.classificationScheme().sigClassesAdded.connect(self.refreshTransformationTable)
-        #self.dstClassificationSchemeWidget.classificationScheme().sigClassesRemoved.connect(self.refreshTransformationTable)
+        self.dstFileWidget.fileChanged.connect(self.onDestinationRasterChanged)
+        # self.dstClassificationSchemeWidget.classificationScheme().sigClassesAdded.connect(self.refreshTransformationTable)
+        # self.dstClassificationSchemeWidget.classificationScheme().sigClassesRemoved.connect(self.refreshTransformationTable)
         self.mDstClassSchemeInitialized = False
 
         self.mapLayerComboBox.layerChanged.connect(self.onSourceRasterChanged)
         self.mapLayerComboBox.currentIndexChanged.connect(self.validate)
-
 
         self.btnSelectSrcfile.setDefaultAction(self.actionAddRasterSource)
         self.dstFileWidget.fileChanged.connect(self.validate)
@@ -523,12 +546,18 @@ class ReclassifyDialog(QDialog):
             if len(file) > 0:
                 self.setSrcRasterLayer(file)
 
-        self.actionLoadClassMapping.triggered.connect(lambda : self.mModel.readCSV(None))
-        self.actionSaveClassMapping.triggered.connect(lambda : self.mModel.writeCSV(None))
+        self.actionLoadClassMapping.triggered.connect(lambda: self.mModel.readCSV(None))
+        self.actionSaveClassMapping.triggered.connect(lambda: self.mModel.writeCSV(None))
         self.btnLoadClassMapping.setDefaultAction(self.actionLoadClassMapping)
         self.btnSaveClassMapping.setDefaultAction(self.actionSaveClassMapping)
         self.actionAddRasterSource.triggered.connect(onAddRaster)
         self.onSourceRasterChanged()
+
+    def onDestinationRasterChanged(self):
+
+        dst_path = self.dstFileWidget.filePath()
+        if isinstance(dst_path, str):
+            enmapboxSettings().setValue(KEY_DST_RASTER, dst_path)
 
     def onSourceRasterChanged(self):
         lyr = self.mapLayerComboBox.currentLayer()
@@ -538,13 +567,13 @@ class ReclassifyDialog(QDialog):
             if isinstance(cs, ClassificationScheme) and len(cs) > 0:
                 cs_final = cs
                 if not self.mDstClassSchemeInitialized:
-                    self.setDstClassificationScheme(cs)
+                    self.setDstClassificationScheme(cs.clone())
                     self.mDstClassSchemeInitialized = True
 
         self.mModel.setSource(cs_final)
         self.validate()
 
-    def setDstClassificationPath(self, path:str):
+    def setDstClassificationPath(self, path: str):
         """
         Sets the output path.
         :param path:
@@ -553,7 +582,7 @@ class ReclassifyDialog(QDialog):
         assert isinstance(self.dstFileWidget, QgsFileWidget)
         self.dstFileWidget.setFilePath(path)
 
-    def setDstClassificationScheme(self, classScheme:ClassificationScheme):
+    def setDstClassificationScheme(self, classScheme: ClassificationScheme):
         """
         Sets the destination ClassificationScheme
         :param classScheme: path of classification file or ClassificationScheme
@@ -592,9 +621,7 @@ class ReclassifyDialog(QDialog):
         else:
             return None
 
-
-
-    def selectSource(self, src:str):
+    def selectSource(self, src: str):
         """
         Selects the raster
         :param src:
@@ -638,21 +665,18 @@ class ReclassifyDialog(QDialog):
 
         return box
 
-
-
     def validate(self):
         """
         Validates GUI inputs and enabled/disabled buttons accordingly.
         """
         isOk = True
-        isOk &= len(self.mapLayerComboBox.currentText()) > 0
+        isOk &= isinstance(self.mapLayerComboBox.currentLayer(), QgsRasterLayer)
         isOk &= len(self.dstClassificationSchemeWidget.classificationScheme()) > 0
         isOk &= len(self.dstFileWidget.filePath()) > 0
         isOk &= self.mModel.rowCount() > 0
 
         btnAccept = self.buttonBox.button(QDialogButtonBox.Ok)
         btnAccept.setEnabled(isOk)
-
 
     def reclassificationSettings(self) -> dict:
         """
@@ -684,28 +708,24 @@ class ReclassifyTool(EnMAPBoxApplication):
         """
         appMenu = self.enmapbox.menu('Tools')
 
-        #add a QAction that starts your GUI
+        # add a QAction that starts your GUI
         a = appMenu.addAction('Reclassify')
         assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
         return a
 
-
     def startGUI(self, *args):
         uiDialog = ReclassifyDialog(self.enmapbox.ui)
         uiDialog.show()
-        uiDialog.accepted.connect(lambda : self.runReclassification(**uiDialog.reclassificationSettings()))
+        uiDialog.accepted.connect(lambda: self.runReclassification(**uiDialog.reclassificationSettings()))
 
     def runReclassification(self, **settings):
-        #return {'pathSrc': pathSrc, 'pathDst': pathDst, 'LUT': LUT,
+        # return {'pathSrc': pathSrc, 'pathDst': pathDst, 'LUT': LUT,
         #        'classNames': dstScheme.classNames(), 'classColors': dstScheme.classColors()}
-        if len(settings) > 0 :
+        if len(settings) > 0:
             from reclassifyapp import reclassify
             reclassify.reclassify(settings['pathSrc'],
                                   settings['pathDst'],
                                   settings['dstClassScheme'],
                                   settings['labelLookup'])
-
-
-

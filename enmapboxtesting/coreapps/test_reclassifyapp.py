@@ -150,6 +150,7 @@ class TestReclassify(EnMAPBoxTestCase):
 
     def test_dialog(self):
 
+        #
         lyr = TestObjects.createRasterLayer(nb=10)
         self.assertIsInstance(lyr, QgsRasterLayer)
 
@@ -205,6 +206,31 @@ class TestReclassify(EnMAPBoxTestCase):
         self.assertEqual(dstCS, cs3, msg='Expected:\n{}\nbut got:\n{}'.format(dstCS.toString(), cs3.toString()))
 
         self.showGui(dialog)
+
+    def test_hubflow(self):
+
+        pathSrc = r'D:\Temp\ChangeMap.bsq'
+        pathDst = r'D:\Temp\Reclassified.bsq'
+
+
+        d = ReclassifyDialog()
+        d.setDstRaster(pathDst)
+
+        srcLyr = QgsRasterLayer(pathSrc, 'SrcLayer')
+
+        d.setSrcRasterLayer(srcLyr)
+
+        def onAccepted():
+            settings = d.reclassificationSettings()
+            LUT = settings['labelLookup']
+            i = 0
+            for k, v in LUT.items():
+                print(f'{i}: {k} -> {v}')
+                i += 1
+            s = ""
+        d.accepted.connect(onAccepted)
+
+        self.showGui(d)
 
 
 if __name__ == "__main__":
