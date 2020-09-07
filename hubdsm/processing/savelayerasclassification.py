@@ -70,33 +70,23 @@ class SaveLayerAsClassification(EnMAPAlgorithm):
 
 
 def saveLayerAsClassification(
-        qgsMapLayer: QgsMapLayer, grid: Grid, filename: str = None, allTouched: bool = False, filterSQL: str = None,
-        gco: GdalCreationOptions = None
+        qgsMapLayer: QgsMapLayer, grid: Grid = None, filename: str = None, allTouched: bool = False,
+        filterSQL: str = None, gco: GdalCreationOptions = None
 ) -> Raster:
     assert isinstance(qgsMapLayer, QgsMapLayer), str(qgsMapLayer)
-    assert isinstance(grid, (Grid, type(None)))
-
     driver = GdalDriver.fromFilename(filename=filename)
 
     if isinstance(qgsMapLayer, QgsRasterLayer):
         if isinstance(qgsMapLayer.renderer(), QgsPalettedRasterRenderer):
             renderer: QgsPalettedRasterRenderer = qgsMapLayer.renderer()
             raster = Raster.open(qgsMapLayer.source()).select(selectors=[renderer.band()])
-            categories = list()
-            for c in renderer.classes():
-                assert isinstance(c, QgsPalettedRasterRenderer.Class)
-                qcolor: QColor = c.color
-                category = Category(
-                    id=c.value,
-                    name=c.label,
-                    color=Color(red=qcolor.red(), green=qcolor.green(), blue=qcolor.blue())
-                )
-                categories.append(category)
-            gdalBand = raster.band(1).gdalBand.translate(filename=filename, driver=driver)
+            categories = Category.fromQgsPalettedRasterRenderer(renderer=qgsMapLayer.renderer())
+            gdalBand = raster.band(1).gdalBand.translate(grid=grid, filename=filename, driver=driver)
             classification = Raster.open(gdalBand.raster)
         else:
             raise ValueError('not a "Paletted/Unique values" renderer')
     elif isinstance(qgsMapLayer, QgsVectorLayer):
+        assert isinstance(grid, Grid)
         if isinstance(qgsMapLayer.renderer(), QgsCategorizedSymbolRenderer):
             renderer: QgsCategorizedSymbolRenderer = qgsMapLayer.renderer()
             categories = list()
@@ -116,7 +106,8 @@ def saveLayerAsClassification(
                     name=c.label(),
                     color=Color(red=qcolor.red(), green=qcolor.green(), blue=qcolor.blue())
                 )
-                categories.append(category)
+                if category.name != '':
+                    categories.append(category)
 
             ogrLayer = OgrLayer.open(qgsMapLayer.source())
             isClassAttributeString = ogrLayer.fieldType(name=renderer.classAttribute()) in [
@@ -139,7 +130,7 @@ def saveLayerAsClassification(
                 burnAttribute = renderer.classAttribute()
 
             gdalRaster = burnLayer.rasterize(
-                grid=grid, gdt=gdal.GDT_UInt16, initValue=0, burnAttribute=burnAttribute, allTouched=False,
+                grid=grid, gdt=gdal.GDT_UInt16, initValue=0, burnAttribute=burnAttribute, allTouched=allTouched,
                 filterSQL=filterSQL, filename=filename, gco=gco)
             classification = Raster.open(gdalRaster)
         else:

@@ -18,6 +18,7 @@ hubdc/test/output_core
 site-packages/qps/qpsresources.py
 enmapbox/externals/qps/qpsresources.py
 site-packages/vrtbuilder/ui/resources.py
+enmapbox/externals/qps/enmap.tif
 enmapbox/coreapps/enmapboxapplications/ressources.py
 enmapbox/gui/ui/resources.py
 enmapbox/resources.py
