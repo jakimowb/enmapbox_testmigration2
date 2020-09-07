@@ -3651,8 +3651,9 @@ class ClassDefinition(FlowObject):
             try:
                 classDefinition = ClassDefinition.fromGDALMeta(raster=raster)
             except:
-                statistics = Raster(filename=raster.filename()).statistics()
-                classDefinition = ClassDefinition(classes=int(statistics[0].max))
+                # statistics = Raster(filename=raster.filename()).statistics()
+                classes = int(Raster(filename=raster.filename()).dataset().band(0).readAsArray().max())
+                classDefinition = ClassDefinition(classes=classes)
         return classDefinition
 
     @staticmethod
