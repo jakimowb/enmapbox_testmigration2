@@ -95,8 +95,21 @@ class TestReclassify(EnMAPBoxTestCase):
             ds = gdal.Open(pathDst)
             #files = ds.GetFileList()
             band = ds.GetRasterBand(1)
-            self.assertIsInstance(band.GetCategoryNames(), list, msg='Failed to set any category names to "{}"'.format(pathDst))
-            self.assertEqual(newNames, band.GetCategoryNames(), msg='Failed to set all category names to "{}"'.format(pathDst))
+            ds.GetFileList()
+            classnames = band.GetCategoryNames()
+            if not isinstance(classnames, list):
+                ct = band.GetColorTable()
+                if isinstance(ct, gdal.ColorTable):
+                    n = ct.GetCount()
+                    if n > 0:
+                        classnames2 = band.GetCategoryNames()
+                        print(f'Before getColorTable {classnames}')
+                        print(f'After getColorTable {classnames2}')
+                        if classnames != classnames2:
+                            classnames = classnames2
+                s = ""
+            self.assertIsInstance(classnames, list, msg='Failed to set any category names to "{}"'.format(pathDst))
+            self.assertEqual(newNames, classnames, msg='Failed to set all category names to "{}"'.format(pathDst))
             print('Success: created {}'.format(pathDst))
             del ds
 
@@ -124,6 +137,8 @@ class TestReclassify(EnMAPBoxTestCase):
         csDst2 = ClassificationScheme.fromRasterImage(dsDst)
         self.assertIsInstance(csDst2, ClassificationScheme)
         self.assertEqual(csDst,csDst2 )
+
+
 
     def test_transformation_table(self):
 
@@ -206,32 +221,6 @@ class TestReclassify(EnMAPBoxTestCase):
         self.assertEqual(dstCS, cs3, msg='Expected:\n{}\nbut got:\n{}'.format(dstCS.toString(), cs3.toString()))
 
         self.showGui(dialog)
-
-    def test_hubflow(self):
-
-        pathSrc = r'D:\Temp\ChangeMap.bsq'
-        pathDst = r'D:\Temp\Reclassified.bsq'
-
-
-        d = ReclassifyDialog()
-        d.setDstRaster(pathDst)
-
-        srcLyr = QgsRasterLayer(pathSrc, 'SrcLayer')
-
-        d.setSrcRasterLayer(srcLyr)
-
-        def onAccepted():
-            settings = d.reclassificationSettings()
-            LUT = settings['labelLookup']
-            i = 0
-            for k, v in LUT.items():
-                print(f'{i}: {k} -> {v}')
-                i += 1
-            s = ""
-        d.accepted.connect(onAccepted)
-
-        self.showGui(d)
-
 
 if __name__ == "__main__":
 

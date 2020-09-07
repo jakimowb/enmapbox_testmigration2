@@ -123,7 +123,9 @@ def reclassify(pathSrc: str, pathDst: str, dstClassScheme: ClassificationScheme,
     classification.reclassify(filename=pathDst,
                               classDefinition=newDef,
                               mapping=labelLookup.copy())
-
+    ds = gdal.Open(pathDst)
+    if isinstance(ds, gdal.Dataset):
+        ds.GetFileList() # resolve issue 410 (or similar)
     return gdal.Open(pathDst)
 
 
