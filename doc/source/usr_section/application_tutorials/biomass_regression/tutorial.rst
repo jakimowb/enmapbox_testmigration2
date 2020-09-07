@@ -75,7 +75,7 @@ an overview of remote sensing of forest aboveground biomass.
 =======
 
 :download:`You can download the data for this exercise here:`
-https://box.hu-berlin.de/f/92babb0d932c473981d1/?dl=1
+https://box.hu-berlin.de/f/997b6737226e4e7bbcef/?dl=1
 
 The tutorial dataset contains a hyperspectral image mosaic in Sonoma County, California, USA, as well as a shapefile
 containing point based biomass estimates sampled from an existing LiDAR derived biomass map [4]_.
