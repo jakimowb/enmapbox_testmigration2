@@ -123,10 +123,19 @@ def reclassify(pathSrc: str, pathDst: str, dstClassScheme: ClassificationScheme,
     classification.reclassify(filename=pathDst,
                               classDefinition=newDef,
                               mapping=labelLookup.copy())
+    pathQml = os.path.splitext(pathDst)[0] + '.qml'
+    loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
+    lyr = QgsRasterLayer(pathDst, options=loptions)
+    renderer = dstClassScheme.rasterRenderer()
+    renderer.setInput(lyr.dataProvider())
+    lyr.setRenderer(renderer)
+    lyr.saveNamedStyle(pathQml)
     ds = gdal.Open(pathDst)
     if isinstance(ds, gdal.Dataset):
         ds.GetFileList() # resolve issue 410 (or similar)
-    return gdal.Open(pathDst)
+
+
+    return ds
 
 
 class ReclassifyTableModel(QAbstractTableModel):
