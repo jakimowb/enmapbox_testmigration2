@@ -3567,9 +3567,15 @@ class ClassDefinition(FlowObject):
         '''
 
         if ids is not None:
+            if classes is None:
+                classes = max(ids)
             assert isinstance(classes, int)
-            names = [names[ids.index(i)] if i in ids else 'Unclassified' for i in range(1, classes+1)]
-            colors = [colors[ids.index(i)] if i in ids else Color('#000000') for i in range(1, classes+1)]
+            if names is not None:
+                assert len(ids) == len(names)
+                names = [names[ids.index(i)] if i in ids else 'Unclassified' for i in range(1, classes+1)]
+            if colors is not None:
+                assert len(ids) == len(colors)
+                colors = [colors[ids.index(i)] if i in ids else Color('#000000') for i in range(1, classes+1)]
 
         if classes is not None:
             pass
