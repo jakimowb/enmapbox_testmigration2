@@ -638,10 +638,13 @@ class Grid(QWidget):
 
         projection = hubdc.core.Projection(wkt=layer.crs().toWkt())
         qgsExtent = layer.extent()
-        extent = hubdc.core.Extent(xmin=qgsExtent.xMinimum(),
-                                   xmax=qgsExtent.xMaximum(),
-                                   ymin=qgsExtent.yMinimum(),
-                                   ymax=qgsExtent.yMaximum())
+        extent = hubdc.core.Extent(
+            xmin=qgsExtent.xMinimum(),
+            xmax=qgsExtent.xMaximum(),
+            ymin=qgsExtent.yMinimum(),
+            ymax=qgsExtent.yMaximum(),
+            projection=projection
+        )
 
         self.uiProjection().setValue(projection=projection)
         self.uiExtent().setValue(mode=Extent.USER, extent=extent)
