@@ -9,7 +9,6 @@ from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapbox import DIR_ENMAPBOX
 site.addsitedir(pathlib.Path(DIR_ENMAPBOX) / 'coreapps')
 from reclassifyapp.reclassify import *
-from reclassifyapp.reclassifydialog import *
 from enmapbox.gui import ClassificationScheme
 from enmapbox.gui.utils import *
 
@@ -101,18 +100,6 @@ class TestReclassify(EnMAPBoxTestCase):
             print('Success: created {}'.format(pathDst))
             del ds
 
-    def test_hubflowrasterdriverguess(self):
-
-        self.assertIsInstance(guessRasterDriver('foo.bsq'), hubflow.core.EnviDriver)
-        self.assertIsInstance(guessRasterDriver('foo.bip'), hubflow.core.EnviDriver)
-        self.assertIsInstance(guessRasterDriver('foo.bil'), hubflow.core.EnviDriver)
-        self.assertIsInstance(guessRasterDriver('foo.vrt'), hubflow.core.VrtDriver)
-        self.assertIsInstance(guessRasterDriver('foo.tif'), hubflow.core.GTiffDriver)
-        self.assertIsInstance(guessRasterDriver('foo.tiff'), hubflow.core.GTiffDriver)
-        self.assertIsInstance(guessRasterDriver('foo.gtiff'), hubflow.core.GTiffDriver)
-
-
-
     def test_reclassify(self):
 
         csDst = ClassificationScheme.create(2)
@@ -140,7 +127,7 @@ class TestReclassify(EnMAPBoxTestCase):
 
     def test_transformation_table(self):
 
-        tv = QTableView()
+        tv = ReclassifyTableView()
         model = ReclassifyTableModel()
         pm = QSortFilterProxyModel()
         pm.setSourceModel(model)
@@ -149,12 +136,21 @@ class TestReclassify(EnMAPBoxTestCase):
         viewDelegate = ReclassifyTableViewDelegate(tv)
         viewDelegate.setItemDelegates(tv)
         model.setSource(ClassificationScheme.create(2))
-        model.setDestination(ClassificationScheme.create(256))
+        model.setDestination(ClassificationScheme.create(25))
+
+        test_dir = self.tempDir('reclassify', cleanup=True)
+        os.makedirs(test_dir, exist_ok=True)
+        pathCsv = test_dir / 'classmapping.csv'
+        model.writeCSV(pathCsv)
+
+        model.readCSV(pathCsv)
+
         self.showGui(tv)
 
 
     def test_dialog(self):
 
+        #
         lyr = TestObjects.createRasterLayer(nb=10)
         self.assertIsInstance(lyr, QgsRasterLayer)
 
@@ -172,7 +168,6 @@ class TestReclassify(EnMAPBoxTestCase):
                   TestObjects.createVectorLayer()]
         QgsProject.instance().addMapLayers(layers)
 
-        from reclassifyapp.reclassifydialog import ReclassifyDialog
         dialog = ReclassifyDialog()
         self.assertIsInstance(dialog, ReclassifyDialog)
 
@@ -211,6 +206,31 @@ class TestReclassify(EnMAPBoxTestCase):
         self.assertEqual(dstCS, cs3, msg='Expected:\n{}\nbut got:\n{}'.format(dstCS.toString(), cs3.toString()))
 
         self.showGui(dialog)
+
+    def test_hubflow(self):
+
+        pathSrc = r'D:\Temp\ChangeMap.bsq'
+        pathDst = r'D:\Temp\Reclassified.bsq'
+
+
+        d = ReclassifyDialog()
+        d.setDstRaster(pathDst)
+
+        srcLyr = QgsRasterLayer(pathSrc, 'SrcLayer')
+
+        d.setSrcRasterLayer(srcLyr)
+
+        def onAccepted():
+            settings = d.reclassificationSettings()
+            LUT = settings['labelLookup']
+            i = 0
+            for k, v in LUT.items():
+                print(f'{i}: {k} -> {v}')
+                i += 1
+            s = ""
+        d.accepted.connect(onAccepted)
+
+        self.showGui(d)
 
 
 if __name__ == "__main__":

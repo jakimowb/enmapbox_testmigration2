@@ -367,7 +367,7 @@ class MLInversion:
             keys, values = list(), list()
             [[x.append(y) for x, y in zip([keys, values], line.split(sep="=", maxsplit=1))] for line in content]
             values = [value.split(';') if ';' in value else value for value in values]
-            meta_dict = dict(zip(keys, values)) # dictionary for they keys and values of the ML-meta file
+            meta_dict = dict(zip(keys, values))  # dictionary for they keys and values of the ML-meta file
             return meta_dict
         except:
             return False
@@ -401,8 +401,6 @@ class MLInversion:
         except ValueError as e:
             self.abort(message="Failed to setup inversion: {}".format(str(e)))
             return
-
-        proc.predict_main.predict_from_dump(prg_widget=self.prg_widget, qgis_app=self.main.qgis_app)
 
         try:
             # call the prediction method

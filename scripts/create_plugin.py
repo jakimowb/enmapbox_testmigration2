@@ -47,7 +47,10 @@ CHECK_COMMITS = False
 MD = QGISMetadataFileWriter()
 MD.mName = 'EnMAP-Box 3'
 MD.mDescription = 'Imaging Spectroscopy and Remote Sensing for QGIS'
-MD.mTags = ['Raster']
+MD.mTags = ['raster', 'analysis', 'imaging spectroscopy',
+            'landsat', 'sentinel','enmapb', 'land cover', 'landscape', 'classification', 'remote sensing',
+            'mask', 'accuracy', 'clip', 'spectral signature', 'supervised classification', 'sentinel', 'clustering',
+            'machine learning']
 MD.mCategory = 'Analysis'
 MD.mAuthor = 'Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden'
 MD.mIcon = 'enmapbox/gui/ui/icons/enmapbox.png'

@@ -42,7 +42,7 @@ class Functions:
         self.conv = {
             "N": ["N", [1.0, 2.2], 1],
             "cab": ["chlorophyll", [10, 80], 1],
-            "cw": ["EWT_S", [0.01, 0.007], 1000],
+            "cw": ["EWT_S", [0.001, 0.07], 1000],
             "cm": ["LMA", [0.0025, 0.006], 1000],
             "LAI": ["greenLAI", [0.0, 8.0], 1],
             "typeLIDF": ["typeLIDF", [1.0, 2.0], 1],
@@ -77,7 +77,8 @@ class Functions:
 
         return nrows, ncols, nbands, grid, in_matrix  # return a tuple back to the last function (type "dtype")
 
-    def write_image(self, out_matrix, image_out, grid, paras_out, nodat, out_mode):
+    @staticmethod
+    def write_image(out_matrix, image_out, grid, paras_out, nodat, out_mode):
         # Method for writing output to binary raster file
         if out_mode == 'single':  # write one single file with multiple bands
             output = RasterDataset.fromArray(array=out_matrix, filename=image_out, grid=grid,
@@ -153,7 +154,7 @@ class ProcessorTraining:
         # these are the four PROSAIL parameters to be estimated. Mind the order!
         self.para_list = ['LAI', 'LIDF', 'cab', 'cm']
 
-        # Parameterization (everything but ANN is deprecated)
+        # Parameterization (everything except ANN is deprecated)
 
         # Activation function     Solver      alpha (penalty) max. nr. of iterations
         self.ann_activation, self.ann_solver, self.ann_alpha, self.ann_max_iter = (None, None, None, None)
@@ -386,7 +387,6 @@ class ProcessorTraining:
             # make a dictionary from the hyperparams
             self.ml_params = {'activation': self.ann_activation, 'solver': self.ann_solver,
                               'alpha': self.ann_alpha, 'max_iter': self.ann_max_iter}
-            self.ml_model_name = 'ann_mlp'  # this is part of the file name later
             self.ml_model_ext = '.ann'  # extension of the models to recognize it as a neural network model
             self.ml_model = self.m.mlra_training._ann  # construct the model and pass it to self.ml_model
 
@@ -565,7 +565,7 @@ class ProcessorPrediction:
                 image_copy = process_dict['pca'].transform(image_copy)
 
             nbands_para = image_copy.shape[1]
-            # Now put the image back into the old 2D-shape
+            # Now put the image back into the old 3D-shape
             image_copy = image_copy.reshape((nrows, ncols, nbands_para))
 
             n_geo = len(self.all_tts) * len(self.all_tto) * len(self.all_psi)
