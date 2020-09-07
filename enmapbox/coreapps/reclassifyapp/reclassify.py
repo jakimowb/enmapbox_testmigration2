@@ -538,7 +538,7 @@ class ReclassifyDialog(QDialog):
         self.widgetOutputOptions.setProvider('gdal')
         self.widgetOutputOptions.setFormat('GTIFF')
         self.widgetOutputOptions.setRasterFileName('reclassifified.tif')
-        self.widgetOutputOptions.setVisible(False) # hide, as long it is not connected
+        self.gbOutputOptions.setVisible(False) # hide, as long it is not connected
         self.dstFileWidget.fileChanged.connect(self.widgetOutputOptions.setRasterFileName)
         self.dstFileWidget.fileChanged.connect(self.onDestinationRasterChanged)
         # self.dstClassificationSchemeWidget.classificationScheme().sigClassesAdded.connect(self.refreshTransformationTable)
