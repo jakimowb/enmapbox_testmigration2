@@ -95,25 +95,21 @@ def reclassify(pathSrc: str, pathDst: str, dstClassScheme: ClassificationScheme,
 
     # hubflow requires to handle the `unclassified` class (label = 0, always first position) separately
 
-    hfNames = []
-    hfColors = []
-
-    hfNoDataName = None
-    hfNoDataColor = None
 
     MAP2HUBFLOW = dict()
     for c in dstClassScheme:
         MAP2HUBFLOW[c.label()] = c
-    for l in range(0, max(list(MAP2HUBFLOW.keys()))):
-        if l not in MAP2HUBFLOW.keys():
-            MAP2HUBFLOW[l] = ClassInfo(label=l, name='Unclassified', color='black')
+    if 0 not in MAP2HUBFLOW.keys():
+        MAP2HUBFLOW[0] = ClassInfo(label=0, name='Unclassified', color='black')
 
     names = []
     colors = []
+    labels = []
     for l in sorted(list(MAP2HUBFLOW.keys())):
         classInfo: ClassInfo = MAP2HUBFLOW[l]
         names.append(classInfo.name())
-        colors.append(classInfo.color())
+        colors.append(classInfo.color().name())
+        labels.append(l)
 
     if len(names) == 0:
         return
@@ -121,24 +117,12 @@ def reclassify(pathSrc: str, pathDst: str, dstClassScheme: ClassificationScheme,
     import hubflow.core
     classification = hubflow.core.Classification(pathSrc)
 
-    debug = True
-    if debug:
-        ds: gdal.Dataset = gdal.Open(pathSrc)
-        print(f'Reclassify Input: {ds.GetDescription()}'
-              f'{ds.RasterCount}x{ds.RasterYSize}x{ds.RasterXSize}')
-        del ds
-    newDef = hubflow.core.ClassDefinition(names=names[1:], colors=[c.name() for c in colors[1:]])
+    newDef = hubflow.core.ClassDefinition(names=names[1:], colors=colors[1:], ids=labels[1:])
     newDef.setNoDataNameAndColor(names[0], colors[0])
 
     classification.reclassify(filename=pathDst,
                               classDefinition=newDef,
-                              mapping=labelLookup)
-    if debug:
-        ds: gdal.Dataset = gdal.Open(pathSrc)
-        print(f'Reclassify Output: {pathDst}'
-              f'{ds.RasterCount}x{ds.RasterYSize}x{ds.RasterXSize}')
-
-        del ds
+                              mapping=labelLookup.copy())
 
     return gdal.Open(pathDst)
 
@@ -368,6 +352,13 @@ class ReclassifyTableModel(QAbstractTableModel):
             flags |= Qt.ItemIsEditable
         return flags
 
+    def classDisplayName(self, c: ClassInfo) -> str:
+        return f'{c.label()} "{c.name()}"'
+
+    def classToolTip(self, c: ClassInfo) -> str:
+        return f'Value: {c.label()}\n' \
+               f'Name: "{c.name()}"'
+
     def data(self, index: QModelIndex, role=None):
 
         if not index.isValid():
@@ -381,11 +372,9 @@ class ReclassifyTableModel(QAbstractTableModel):
             c = self.mSrc[row]
             assert isinstance(c, ClassInfo)
             if role == Qt.DisplayRole:
-                return c.name()
+                return self.classDisplayName(c)
             elif role == Qt.ToolTipRole:
-                return f'Source class "{c.name()}"  ' \
-                       f'Pixel value: {c.label()}'
-
+                return f'Source Class\n' + self.classToolTip(c)
             elif role == Qt.DecorationRole:
                 return c.icon()
 
@@ -394,10 +383,9 @@ class ReclassifyTableModel(QAbstractTableModel):
             dstClass: ClassInfo = self.mMapping.get(srcClass, None)
             if isinstance(dstClass, ClassInfo):
                 if role == Qt.DisplayRole:
-                    return dstClass.name()
+                    return self.classDisplayName(dstClass)
                 elif role == Qt.ToolTipRole:
-                    return f'Destination class "{dstClass.name()}"  ' \
-                           f'Pixel value: {dstClass.label()}'
+                    return f'Destination Class\n' + self.classToolTip(dstClass)
 
                 elif role == Qt.DecorationRole:
                     return dstClass.icon()
@@ -539,10 +527,12 @@ class ReclassifyDialog(QDialog):
         self.widgetOutputOptions.setProvider('gdal')
         self.widgetOutputOptions.setFormat('GTIFF')
         self.widgetOutputOptions.setRasterFileName('reclassifified.tif')
+        self.widgetOutputOptions.setVisible(False) # hide, as long it is not connected
         self.dstFileWidget.fileChanged.connect(self.widgetOutputOptions.setRasterFileName)
         self.dstFileWidget.fileChanged.connect(self.onDestinationRasterChanged)
         # self.dstClassificationSchemeWidget.classificationScheme().sigClassesAdded.connect(self.refreshTransformationTable)
         # self.dstClassificationSchemeWidget.classificationScheme().sigClassesRemoved.connect(self.refreshTransformationTable)
+
         self.mDstClassSchemeInitialized = False
 
         self.mapLayerComboBox.layerChanged.connect(self.onSourceRasterChanged)
