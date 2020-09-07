@@ -11,11 +11,12 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.Qsci import *
-#from PyQt5.QtWebKitWidgets import QWebView
-#from PyQt5.QtWebKit import QWebSettings
-#from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
+# from PyQt5.QtWebKitWidgets import QWebView
+# from PyQt5.QtWebKit import QWebSettings
+# from PyQt5.QtWebEngineWidgets import QWebEngineView as QWebView
 
-from .calculator import Calulator, CodeExecutionError, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierOptions, ApplierControls
+from .calculator import (Calulator, CodeExecutionError, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster,
+                         ApplierOptions, ApplierControls)
 import hubdc.core
 import hubdc.progressbar
 import hubdc.hubdcerrors
@@ -80,9 +81,11 @@ class Identifier(ValidatedQLineEdit):
 
         for i, c in enumerate(text):
             if i == 0:
-                if c in letters: continue
+                if c in letters:
+                    continue
             else:
-                if c in letters + digits: continue
+                if c in letters + digits:
+                    continue
             return False
         return True
 
@@ -99,6 +102,7 @@ class Float(ValidatedQLineEdit):
         except:
             return False
 
+
 class Input(QWidget):
     sigLayerChanged = pyqtSignal(QgsMapLayer)
     sigNameChanged = pyqtSignal(str)
@@ -109,7 +113,7 @@ class Input(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         loadUi(join(pathUi, 'input.ui'), self)
-        #self.setupUi(self)
+        # self.setupUi(self)
         self.nameByLayer = True
 
         self.uiImportArray.hide()
@@ -137,9 +141,9 @@ class Input(QWidget):
         self.sigLayerChanged.connect(self.setNameByLayer)
         self.sigLayerChanged.connect(self.showOptions)
         self.uiImportArray.clicked.connect(self.sigImportArray)
-#        self.uiImportArray2.clicked.connect(self.sigImportArray)
-#        self.uiImportMetadata.clicked.connect(self.sigImportMetadata)
-#        self.uiImportNoDataValue.clicked.connect(self.sigImportNoDataValue)
+        #        self.uiImportArray2.clicked.connect(self.sigImportArray)
+        #        self.uiImportMetadata.clicked.connect(self.sigImportMetadata)
+        #        self.uiImportNoDataValue.clicked.connect(self.sigImportNoDataValue)
 
         self.showOptions(layer=self.layer())
 
@@ -158,9 +162,11 @@ class Input(QWidget):
             identifier = list(name)
             for i, c in enumerate(name):
                 if i == 0:
-                    if c in letters: continue
+                    if c in letters:
+                        continue
                 else:
-                    if c in letters + digits: continue
+                    if c in letters + digits:
+                        continue
                 identifier[i] = '_'
             identifier = ''.join(identifier)
             self.uiName.setText(identifier)
@@ -224,13 +230,14 @@ class Input(QWidget):
 
         if index is None:
             raise Exception('layer not found')
-            #QgsProject.instance().addMapLayer(layer)
-            #self.uiLayer.setCurrentIndex(i)
+            # QgsProject.instance().addMapLayer(layer)
+            # self.uiLayer.setCurrentIndex(i)
 
         self.uiLayer.setLayer(layer)
 
     def setName(self, name):
         self.uiName.setText(name)
+
 
 class OutputFilename(QgsFileWidget):
     def __init__(self, parent=None):
@@ -258,6 +265,7 @@ class OutputFilename(QgsFileWidget):
 
         return filename
 
+
 class Output(QWidget):
     sigFilenameChanged = pyqtSignal(str)
     sigNameChanged = pyqtSignal(str)
@@ -268,7 +276,7 @@ class Output(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         loadUi(join(pathUi, 'output.ui'), self)
-        #self.setupUi(self)
+        # self.setupUi(self)
 
         self.uiSetArray.hide()
 
@@ -284,8 +292,8 @@ class Output(QWidget):
         self.sigFilenameChanged.connect(self.setNameByFilename)
 
         self.uiSetArray.clicked.connect(self.sigSetArray)
-        #self.uiSetMetadata.clicked.connect(self.sigSetMetadata)
-        #self.uiSetNoDataValue.clicked.connect(self.sigSetNoDataValue)
+        # self.uiSetMetadata.clicked.connect(self.sigSetMetadata)
+        # self.uiSetNoDataValue.clicked.connect(self.sigSetNoDataValue)
 
     def uiFilename(self):
         assert isinstance(self.uiFilename_, OutputFilename)
@@ -329,15 +337,18 @@ class Output(QWidget):
             identifier = list(name)
             for i, c in enumerate(name):
                 if i == 0:
-                    if c in letters: continue
+                    if c in letters:
+                        continue
                 else:
-                    if c in letters + digits: continue
+                    if c in letters + digits:
+                        continue
                 identifier[i] = '_'
             identifier = ''.join(identifier)
             self.uiName().setText(identifier)
 
     def turnNameByFilenameOff(self):
         self.nameByFilename = False
+
 
 class RemovableItem(QWidget):
     sigCreated = pyqtSignal()
@@ -352,7 +363,7 @@ class RemovableItem(QWidget):
     def __init__(self, type, parent=None):
         super().__init__(parent)
         loadUi(join(pathUi, 'removableItem.ui'), self)
-        #self.setupUi(self)
+        # self.setupUi(self)
         self.type = type
         self.uiItem = None
         self.uiSpacer = self.uiLayout.itemAt(self.uiLayout.count() - 1)
@@ -398,8 +409,8 @@ class RemovableItem(QWidget):
         else:
             return None
 
-class ItemList(QWidget):
 
+class ItemList(QWidget):
     TYPE = None
     sigImportArray = None
     sigImportMetadata = None
@@ -411,7 +422,7 @@ class ItemList(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         loadUi(join(pathUi, 'itemList.ui'), self)
-        #self.setupUi(self)
+        # self.setupUi(self)
         assert self.TYPE is not None
         self.addItem()
 
@@ -446,7 +457,8 @@ class ItemList(QWidget):
         values = list()
         for index in range(self.uiLayout.count()):
             item = self.uiLayout.itemAt(index).widget()
-            if item is None: continue
+            if item is None:
+                continue
             value = item.value()
             if value is None:
                 continue
@@ -472,14 +484,13 @@ class Projection(QgsProjectionSelectionWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setNotSetText('automatic')  #.setLayerCrs(crs=enmap.crs())
+        self.setNotSetText('automatic')  # .setLayerCrs(crs=enmap.crs())
         self.setOptionVisible(QgsProjectionSelectionWidget.CrsNotSet, True)
         self.setOptionVisible(QgsProjectionSelectionWidget.LayerCrs, True)
         self.setOptionVisible(QgsProjectionSelectionWidget.ProjectCrs, False)
         self.setOptionVisible(QgsProjectionSelectionWidget.CurrentCrs, False)
         self.setOptionVisible(QgsProjectionSelectionWidget.DefaultCrs, False)
         self.setOptionVisible(QgsProjectionSelectionWidget.RecentCrs, False)
-
 
     def setValue(self, projection=None):
         if projection is None:
@@ -497,8 +508,8 @@ class Projection(QgsProjectionSelectionWidget):
             projection = hubdc.core.Projection(wkt=wkt)
         return projection
 
-class Extent(QWidget):
 
+class Extent(QWidget):
     INTERSECTION = 'intersection'
     UNION = 'union'
     USER = 'user'
@@ -507,15 +518,15 @@ class Extent(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         loadUi(join(pathUi, 'extent.ui'), self)
-        #self.setupUi(self)
+        # self.setupUi(self)
 
         self.uiMode.currentIndexChanged.connect(self.onCurrentIndexChanged)
         self.uiMode.currentIndexChanged.emit(0)
 
-        #self.uiUserInput.hide()
+        # self.uiUserInput.hide()
 
     def onCurrentIndexChanged(self, index):
-        if self.uiMode.count()-1 == index:
+        if self.uiMode.count() - 1 == index:
             self.uiUserInput.show()
         else:
             self.uiUserInput.hide()
@@ -532,9 +543,9 @@ class Extent(QWidget):
         mode = self.mode()
         if mode == self.USER:
             extent = hubdc.core.Extent(xmin=float(self.uiXmin.text()),
-                                       xmax=float(self.uiXmax.text()),
-                                       ymin=float(self.uiYmin.text()),
-                                       ymax=float(self.uiYmax.text()))
+                xmax=float(self.uiXmax.text()),
+                ymin=float(self.uiYmin.text()),
+                ymax=float(self.uiYmax.text()))
         else:
             extent = None
         return mode, extent
@@ -551,7 +562,6 @@ class Extent(QWidget):
 
 
 class Resolution(QWidget):
-
     COARSEST = 'coarsest'
     FINEST = 'finest'
     USER = 'user'
@@ -560,12 +570,12 @@ class Resolution(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         loadUi(join(pathUi, 'resolution.ui'), self)
-        #self.setupUi(self)
+        # self.setupUi(self)
         self.uiMode.currentIndexChanged.connect(self.onCurrentIndexChanged)
         self.uiMode.currentIndexChanged.emit(0)
 
     def onCurrentIndexChanged(self, index):
-        if self.uiMode.count()-1 == index:
+        if self.uiMode.count() - 1 == index:
             self.uiUserInput.show()
         else:
             self.uiUserInput.hide()
@@ -581,7 +591,7 @@ class Resolution(QWidget):
         mode = self.mode()
         if mode == self.USER:
             resolution = hubdc.core.Resolution(x=float(self.uiResolution.text()),
-                                               y=float(self.uiResolution.text()))
+                y=float(self.uiResolution.text()))
         else:
             resolution = None
         return mode, resolution
@@ -601,7 +611,7 @@ class Grid(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         loadUi(join(pathUi, 'grid.ui'), self)
-        #self.setupUi(self)
+        # self.setupUi(self)
 
         self.uiLayer().setCurrentIndex(0)
         self.uiLayer().layerChanged.connect(self.setValueByLayer)
@@ -622,8 +632,8 @@ class Grid(QWidget):
         assert isinstance(self.uiLayer_, QgsMapLayerComboBox)
         return self.uiLayer_
 
-#    def setValue(self, mode, extent=None):
-#        self.uiExtent().setValue(mode=mode, extent=extent)
+    #    def setValue(self, mode, extent=None):
+    #        self.uiExtent().setValue(mode=mode, extent=extent)
 
     def setValueByLayer(self, layer):
         if layer is None:
@@ -658,6 +668,7 @@ class Grid(QWidget):
         resolution = self.uiResolution().value()
         return projection, extent, resolution
 
+
 class CodeEdit(QsciScintilla):
     def __init__(self, parent=None):
         QsciScintilla.__init__(self, parent)
@@ -667,7 +678,7 @@ class CodeEdit(QsciScintilla):
         font = QFont()
         font.setFamily('Courier')
         font.setFixedPitch(True)
-        #font.setPointSize(10)
+        # font.setPointSize(10)
         font.setPixelSize(8)
 
         self.setFont(font)
@@ -683,6 +694,7 @@ class CodeEdit(QsciScintilla):
     def replaceSelectedTextAndFocus(self, text):
         self.replaceSelectedText(text)
         self.setFocus()
+
 
 class ProgressBar(hubdc.progressbar.CUIProgressBar):
 
@@ -700,12 +712,14 @@ class ProgressBar(hubdc.progressbar.CUIProgressBar):
     def setPercentage(self, percentage):
         self.bar.setValue(int(percentage))
 
+
 class WebLog(QTextBrowser):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._currentText = ''
         self.setOpenExternalLinks(True)
-#        self.settings().setFontFamily(QWebSettings.FixedFont)
+
+    #        self.settings().setFontFamily(QWebSettings.FixedFont)
 
     def setText(self, text):
         html = '<font face="Arial">{}</font>'.format(text.replace('\n', '<br>'))
@@ -713,16 +727,14 @@ class WebLog(QTextBrowser):
         self._currentText = text
 
     def appendText(self, text):
-        newText = self._currentText+'\n'+text
+        newText = self._currentText + '\n' + text
         self.setText(text=newText)
 
 
 class Routines(QTreeWidget):
-
     sigHTMLSelected = pyqtSignal(str)
     sigURLSelected = pyqtSignal(QUrl)
     sigRoutineDoubleClicked = pyqtSignal(str)
-
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -730,8 +742,8 @@ class Routines(QTreeWidget):
         d = routinesDictionary()
         createTree(d, self)
 
-#        self.uiFunctions.selectionModel().selectionChanged.connect(self.handleFunctionSelection)
-#        self.uiFunctions.itemDoubleClicked.connect(self.handleFunctionDoubleClicked)
+        #        self.uiFunctions.selectionModel().selectionChanged.connect(self.handleFunctionSelection)
+        #        self.uiFunctions.itemDoubleClicked.connect(self.handleFunctionDoubleClicked)
         self.selectionModel().selectionChanged.connect(self.handleFunctionSelection)
         self.itemDoubleClicked.connect(self.handleFunctionDoubleClicked)
 
@@ -740,14 +752,14 @@ class Routines(QTreeWidget):
         for index in selected.indexes():
             item = self.itemFromIndex(index)
             if isinstance(item, NumpyItem):
-                html = r'<pre><code>'+item.doc+'</code></pre>'.replace('\n', '<br>')
+                html = r'<pre><code>' + item.doc + '</code></pre>'.replace('\n', '<br>')
                 self.sigHTMLSelected.emit(html)
             elif isinstance(item, WebItem):
                 self.sigURLSelected.emit(QUrl(item.url))
             else:
                 self.sigHTMLSelected.emit('')
 
-    def handleFunctionDoubleClicked(self,  item, column):
+    def handleFunctionDoubleClicked(self, item, column):
         from enmapboxapplications.imagemathapp.routines2 import NumpyItem, WebItem
         if isinstance(item, NumpyItem):
             text = item.doubleClickInsert
@@ -759,16 +771,15 @@ class ImageMathApp(QMainWindow):
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
         loadUi(join(pathUi, 'main.ui'), self)
-        #self.setupUi(self)
+        # self.setupUi(self)
         self.uiExecute().clicked.connect(self.execute)
 
-        #assert isinstance(self.uiLog2_,  QWebView)
+        # assert isinstance(self.uiLog2_,  QWebView)
         self.uiLog().setText('')
 
         self.uiRoutines().sigHTMLSelected.connect(self.uiLog().setHtml)
         self.uiRoutines().sigURLSelected.connect(lambda qUrl: self.uiLog().setHtml(qUrl.url()))
         self.uiRoutines().sigRoutineDoubleClicked.connect(self.uiCode().replaceSelectedTextAndFocus)
-
 
     def uiInputs(self):
         assert isinstance(self.uiInputs_, InputList)
@@ -874,7 +885,6 @@ class ImageMathApp(QMainWindow):
             else:
                 assert 0
 
-
             options = dict()
             inputKeys = list()
             for item in inputs:
@@ -900,17 +910,18 @@ class ImageMathApp(QMainWindow):
             outputKeys = list()
             for item in outputs:
                 calculator.outputRaster.setRaster(key=item['name'],
-                                                  value=ApplierOutputRaster(filename=item['filename']))
+                    value=ApplierOutputRaster(filename=item['filename']))
                 outputKeys.append(item['name'])
 
             keys = numpy.array(inputKeys + outputKeys)
             for key in keys:
                 if numpy.sum(key == keys) > 1:
-                    self.uiLog().setText('duplicated identifier: '+key)
+                    self.uiLog().setText('duplicated identifier: ' + key)
                     return
 
             try:
-                calculator.applyCode(code=code, options=options, overlap=self.uiBlockOverlap.value(), outputKeys=outputKeys)
+                calculator.applyCode(code=code, options=options, overlap=self.uiBlockOverlap.value(),
+                    outputKeys=outputKeys)
 
             except hubdc.hubdcerrors.MissingApplierProjectionError:
                 self.uiLog().setText(redHTML(
@@ -929,7 +940,7 @@ class ImageMathApp(QMainWindow):
 
 
             except CodeExecutionError as error:
-                #html = '<p style="color:red;">{}</p>'.format(str(error)).replace('\n', '<br>')
+                # html = '<p style="color:red;">{}</p>'.format(str(error)).replace('\n', '<br>')
                 self.uiLog().setText(redHTML(str(error)))
 
         except:
@@ -937,7 +948,6 @@ class ImageMathApp(QMainWindow):
 
             html = '<p style="color:red;">{}</p>'.format(traceback.format_exc()).replace('\n', '<br>')
             self.uiLog().setText(html)
-
 
     def onImportArray(self):
         item = self.sender().uiItem
@@ -950,7 +960,6 @@ class ImageMathApp(QMainWindow):
         assert isinstance(item, Input)
         text = 'metadata({})'.format(item.name())
         self.uiCode().replaceSelectedTextAndFocus(text)
-
 
     def onImportNoDataValue(self):
         item = self.sender().uiItem
