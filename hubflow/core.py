@@ -3549,7 +3549,7 @@ class AttributeDefinitionEditor(object):
 class ClassDefinition(FlowObject):
     '''Class for managing class definitions.'''
 
-    def __init__(self, classes=None, names=None, colors=None):
+    def __init__(self, classes=None, names=None, colors=None, ids=None):
         '''
         Create new instance.
 
@@ -3565,6 +3565,11 @@ class ClassDefinition(FlowObject):
         >>> ClassDefinition(names=['a', 'b', 'c'], colors=['red', 'green', 'blue'])
         ClassDefinition(classes=3, names=['a', 'b', 'c'], colors=[Color('red'), Color('green'), Color('blue')])
         '''
+
+        if ids is not None:
+            assert isinstance(classes, int)
+            names = [names[ids.index(i)] if i in ids else 'Unclassified' for i in range(1, classes+1)]
+            colors = [colors[ids.index(i)] if i in ids else Color('#000000') for i in range(1, classes+1)]
 
         if classes is not None:
             pass
