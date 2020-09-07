@@ -121,12 +121,24 @@ def reclassify(pathSrc: str, pathDst: str, dstClassScheme: ClassificationScheme,
     import hubflow.core
     classification = hubflow.core.Classification(pathSrc)
 
+    debug = True
+    if debug:
+        ds: gdal.Dataset = gdal.Open(pathSrc)
+        print(f'Reclassify Input: {ds.GetDescription()}'
+              f'{ds.RasterCount}x{ds.RasterYSize}x{ds.RasterXSize}')
+        del ds
     newDef = hubflow.core.ClassDefinition(names=names[1:], colors=[c.name() for c in colors[1:]])
     newDef.setNoDataNameAndColor(names[0], colors[0])
 
     classification.reclassify(filename=pathDst,
                               classDefinition=newDef,
                               mapping=labelLookup)
+    if debug:
+        ds: gdal.Dataset = gdal.Open(pathSrc)
+        print(f'Reclassify Output: {pathDst}'
+              f'{ds.RasterCount}x{ds.RasterYSize}x{ds.RasterXSize}')
+
+        del ds
 
     return gdal.Open(pathDst)
 
@@ -696,6 +708,7 @@ class ReclassifyTool(EnMAPBoxApplication):
         self.name = 'Reclassify Tool'
         self.version = 'Version 0.1'
         self.licence = 'GPL-3'
+        self.m_dialogs = []
 
     def icon(self):
         pathIcon = os.path.join(APP_DIR, 'icon.png')
@@ -719,13 +732,18 @@ class ReclassifyTool(EnMAPBoxApplication):
         uiDialog = ReclassifyDialog(self.enmapbox.ui)
         uiDialog.show()
         uiDialog.accepted.connect(lambda: self.runReclassification(**uiDialog.reclassificationSettings()))
+        self.m_dialogs.append(uiDialog)
 
     def runReclassification(self, **settings):
         # return {'pathSrc': pathSrc, 'pathDst': pathDst, 'LUT': LUT,
         #        'classNames': dstScheme.classNames(), 'classColors': dstScheme.classColors()}
+
+        d = self.sender()
         if len(settings) > 0:
             from reclassifyapp import reclassify
             reclassify.reclassify(settings['pathSrc'],
                                   settings['pathDst'],
                                   settings['dstClassScheme'],
                                   settings['labelLookup'])
+        if d in self.m_dialogs:
+            self.m_dialogs.remove(d)
