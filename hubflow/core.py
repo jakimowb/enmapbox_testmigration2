@@ -3549,7 +3549,7 @@ class AttributeDefinitionEditor(object):
 class ClassDefinition(FlowObject):
     '''Class for managing class definitions.'''
 
-    def __init__(self, classes=None, names=None, colors=None):
+    def __init__(self, classes=None, names=None, colors=None, ids=None):
         '''
         Create new instance.
 
@@ -3565,6 +3565,17 @@ class ClassDefinition(FlowObject):
         >>> ClassDefinition(names=['a', 'b', 'c'], colors=['red', 'green', 'blue'])
         ClassDefinition(classes=3, names=['a', 'b', 'c'], colors=[Color('red'), Color('green'), Color('blue')])
         '''
+
+        if ids is not None:
+            if classes is None:
+                classes = max(ids)
+            assert isinstance(classes, int)
+            if names is not None:
+                assert len(ids) == len(names)
+                names = [names[ids.index(i)] if i in ids else 'Unclassified' for i in range(1, classes+1)]
+            if colors is not None:
+                assert len(ids) == len(colors)
+                colors = [colors[ids.index(i)] if i in ids else Color('#000000') for i in range(1, classes+1)]
 
         if classes is not None:
             pass
@@ -3651,8 +3662,9 @@ class ClassDefinition(FlowObject):
             try:
                 classDefinition = ClassDefinition.fromGDALMeta(raster=raster)
             except:
-                statistics = Raster(filename=raster.filename()).statistics()
-                classDefinition = ClassDefinition(classes=int(statistics[0].max))
+                # statistics = Raster(filename=raster.filename()).statistics()
+                classes = int(Raster(filename=raster.filename()).dataset().band(0).readAsArray().max())
+                classDefinition = ClassDefinition(classes=classes)
         return classDefinition
 
     @staticmethod
