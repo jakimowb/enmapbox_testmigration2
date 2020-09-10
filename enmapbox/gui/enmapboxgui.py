@@ -46,8 +46,6 @@ SETTINGS = enmapbox.enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
 HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
-HIDDEN_ENMAPBOX_LAYER_STATE = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_STATE'
-
 
 class EnMAPBoxDocks(enum.Enum):
     MapDock = 'MAP'
@@ -207,15 +205,19 @@ class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
             self.mCanvas.windowTitleChanged.connect(self.updateLayerTitle)
         self.updateLayerTitle()
 
-class HiddenLayerTreeGroup(QgsLayerTreeGroup):
+
+class EnMAPBoxHiddenLayerTreeGroup(QgsLayerTreeGroup):
 
     def __init__(self, name: str = HIDDEN_ENMAPBOX_LAYER_GROUP):
 
         super().__init__(name=name, checked=False)
 
+    def clone(self):
+        grp = EnMAPBoxHiddenLayerTreeGroup(name=self.name())
+        return grp
+
     def writeXml(self, *arg, **kwds):
         # do not write anything!
-        print('Do not write XML')
         pass
 
 
@@ -930,7 +932,13 @@ class EnMAPBox(QgisInterface, QObject):
         if isinstance(dock, AttributeTableDock):
             dock.attributeTableWidget.setVectorLayerTools(self.mVectorLayerTools)
 
+        if isinstance(dock, SpectralLibraryDock):
+            dock.speclibWidget().setVectorLayerTools(self.mVectorLayerTools)
+
         self.sigDockAdded.emit(dock)
+
+    def vectorLayerTools(self) -> QgsVectorLayerTools:
+        return self.mVectorLayerTools
 
     def onDockRemoved(self, dock):
         if isinstance(dock, MapDock):
@@ -1499,11 +1507,11 @@ class EnMAPBox(QgisInterface, QObject):
         root: QgsLayerTreeGroup = ltv.model().rootGroup()
         grp = root.findGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
 
-        if not isinstance(grp, HiddenLayerTreeGroup):
-            assert not isinstance(self._layerTreeGroup, QgsLayerTreeGroup)
+        if not isinstance(grp, EnMAPBoxHiddenLayerTreeGroup):
+            # assert not isinstance(self._layerTreeGroup, QgsLayerTreeGroup)
             enmapbox.debugLog('CREATE HIDDEN LAYER GROUP')
             #print('CREATE HIDDEN LAYER GROUP')
-            grp: HiddenLayerTreeGroup = HiddenLayerTreeGroup()
+            grp: EnMAPBoxHiddenLayerTreeGroup = EnMAPBoxHiddenLayerTreeGroup()
             root.addChildNode(grp)
             self._layerTreeGroup = grp
 
