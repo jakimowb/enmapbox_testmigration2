@@ -219,73 +219,6 @@ class ClassificationWorkflowApp(QMainWindow):
         else:
             assert 0
 
-
-        '''
-                elif isinstance(layer, QgsVectorLayer):
-                    self.uiAttribute_.setEnabled(True)
-                    name = self.uiAttribute_.currentField()
-                    if name == '':  # no field selected yet
-                        return
-        
-                    filename = layer.source()
-                    ds = openVectorDataset(filename=filename)
-        
-                    if ds.ogrDataSource().GetDriver().LongName == 'GeoPackage' and name == 'fid':
-                        self.log('Using GeoPackage fid as class attribute is not supported.')
-                        self.uiAttribute_.setCurrentIndex(-1)
-                        return
-        
-                    if 'Point' in ds.geometryTypeName():
-                        oversampling = 1
-                    else:
-                        oversampling = self.uiOversampling_.value()
-        
-                    raster = Raster(filename=self.uiRaster_.currentLayer().source())
-        
-                    tmpfilename = '/vsimem/classificationapp/reprojected.gpkg'
-                    if not ds.projection().equal(raster.grid().projection()):
-                        self.log('Projection mismatch between Raster and Reference.')
-                        return
-        
-                        # reproject vector
-                        ds.reproject(projection=raster.grid().projection(), filename=tmpfilename, driver=GeoPackageDriver())
-                        filename = tmpfilename
-        
-                    vectorClassification = VectorClassification(filename=filename, classAttribute=name,
-                        minDominantCoverage=self.uiPurity_.value() / 100.,
-                        oversampling=oversampling)
-        
-                    self.log(
-                        'Rasterize reference on raster grid with x{} resolution oversampling and select pixel with at leased {}% purity'.format(
-                            self.uiOversampling_.value(), self.uiPurity_.value()))
-                    classification = Classification.fromClassification(filename=self.rasterizationFilename(),
-                        classification=vectorClassification, grid=raster.grid(),
-                        **ApplierOptions(emitFileCreated=False, progressBar=self.progressBar()))
-        
-                    try:
-                        gdal.Unlink(tmpfilename)
-                    except:
-                        pass
-        
-                    self.log('')
-                    self.progressBar().setPercentage(0)
-        
-                elif isinstance(layer, QgsRasterLayer):
-                    self.uiAttribute_.setEnabled(False)
-                    filename = layer.source()
-                    raster = Raster(filename=filename)
-                    isClassification = raster.dataset().zsize() == 1
-        
-                    if isClassification:
-                        classification = Classification(filename=filename)
-                    else:
-                        self.log('Selected layer is not a valid classification.')
-                        self.uiClassification_.setLayer(None)
-                        return
-                else:
-                    assert 0
-        '''
-
         counts = classification.statistics()
         self.counts = counts
 
@@ -429,9 +362,10 @@ class ClassificationWorkflowApp(QMainWindow):
             classDefinition = ClassDefinition(names=names, colors=colors)
 
             classification = Classification(filename=self.filenameTmpClassification(), classDefinition=classDefinition)
-            if not raster.grid().equal(other=classification.grid()):
-                self.log('Error: raster and reference grids do not match')
-                return
+
+            #if not raster.grid().equal(other=classification.grid()):
+            #    self.log('Error: raster and reference grids do not match')
+            #    return
 
             sample = ClassificationSample(raster=raster, classification=classification)
 
