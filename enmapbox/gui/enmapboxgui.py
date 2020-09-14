@@ -211,6 +211,17 @@ class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
             self.mCanvas.windowTitleChanged.connect(self.updateLayerTitle)
         self.updateLayerTitle()
 
+class HiddenLayerTreeGroup(QgsLayerTreeGroup):
+
+    def __init__(self, name: str = HIDDEN_ENMAPBOX_LAYER_GROUP):
+
+        super().__init__(name=name, checked=False)
+
+    def writeXml(self, *arg, **kwds):
+        # do not write anything!
+        print('Do not write XML')
+        pass
+
 
 class EnMAPBox(QgisInterface, QObject):
     _instance = None
@@ -1494,14 +1505,15 @@ class EnMAPBox(QgisInterface, QObject):
 
         ltv = qgis.utils.iface.layerTreeView()
         assert isinstance(ltv, QgsLayerTreeView)
-        root = ltv.model().rootGroup()
+        root: QgsLayerTreeGroup = ltv.model().rootGroup()
         grp = root.findGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
 
-        if not isinstance(grp, QgsLayerTreeGroup):
+        if not isinstance(grp, HiddenLayerTreeGroup):
             assert not isinstance(self._layerTreeGroup, QgsLayerTreeGroup)
-            enmapbox.debugLog('CREATE HIDDEN_ENMAPBOX_LAYER_GROUP')
-            grp = root.addGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
-            grp.setCustomProperty('embedded', 1)
+            enmapbox.debugLog('CREATE HIDDEN LAYER GROUP')
+            #print('CREATE HIDDEN LAYER GROUP')
+            grp: HiddenLayerTreeGroup = HiddenLayerTreeGroup()
+            root.addChildNode(grp)
             self._layerTreeGroup = grp
 
         ltv = qgis.utils.iface.layerTreeView()
