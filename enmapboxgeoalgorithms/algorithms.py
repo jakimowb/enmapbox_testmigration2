@@ -4,6 +4,7 @@ from qgis.core import *
 
 from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.classificationstatistics import ClassificationStatistics
+from hubdsm.processing.importprismal2d import ImportPrismaL2D
 from hubdsm.processing.saveasenvi import SaveAsEnvi
 from hubdsm.processing.subsetrasterbands import SubsetRasterBands
 from hubdsm.processing.importenmapl1b import ImportEnmapL1B
@@ -24,6 +25,7 @@ ALGORITHMS.append(UniqueBandValueCounts())
 ALGORITHMS.append(ImportEnmapL1B())
 ALGORITHMS.append(ImportEnmapL1C())
 ALGORITHMS.append(ImportEnmapL2A())
+ALGORITHMS.append(ImportPrismaL2D())
 ALGORITHMS.append(SaveLayerAsClassification())
 ALGORITHMS.append(SubsetRasterBands())
 ALGORITHMS.append(AggregateBands())
