@@ -37,6 +37,10 @@ from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
 from enmapbox.dependencycheck import requiredPackages, missingPackageInfo
+from hubdsm.processing.importenmapl1b import ImportEnmapL1B
+from hubdsm.processing.importenmapl1c import ImportEnmapL1C
+from hubdsm.processing.importenmapl2a import ImportEnmapL2A
+from hubdsm.processing.importprismal2d import ImportPrismaL2D
 from ..externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from ..externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
@@ -206,6 +210,17 @@ class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
         if isinstance(self.mCanvas, QgsMapCanvas):
             self.mCanvas.windowTitleChanged.connect(self.updateLayerTitle)
         self.updateLayerTitle()
+
+class HiddenLayerTreeGroup(QgsLayerTreeGroup):
+
+    def __init__(self, name: str = HIDDEN_ENMAPBOX_LAYER_GROUP):
+
+        super().__init__(name=name, checked=False)
+
+    def writeXml(self, *arg, **kwds):
+        # do not write anything!
+        print('Do not write XML')
+        pass
 
 
 class EnMAPBox(QgisInterface, QObject):
@@ -819,17 +834,22 @@ class EnMAPBox(QgisInterface, QObject):
         # add more product import actions hereafter
         a = QAction('EnMAP L1B', parent=menu)
         a.setToolTip('Import EnMAP L1B product')
-        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog('enmapbox:ImportEnMAPL1BProduct'))
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportEnmapL1B()))
         menu.insertAction(separator, a)
 
         a = QAction('EnMAP L1C', parent=menu)
         a.setToolTip('Import EnMAP L1C product')
-        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog('enmapbox:ImportEnMAPL1CProduct'))
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportEnmapL1C()))
         menu.insertAction(separator, a)
 
         a = QAction('EnMAP L2A', parent=menu)
         a.setToolTip('Import EnMAP L2A product')
-        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog('enmapbox:ImportEnMAPL2AProduct'))
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportEnmapL2A()))
+        menu.insertAction(separator, a)
+
+        a = QAction('PRISMA L2D', parent=menu)
+        a.setToolTip('Import PRISMA L2D product')
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportPrismaL2D()))
         menu.insertAction(separator, a)
 
     def _mapToolButton(self, action) -> Optional[QToolButton]:
@@ -1485,14 +1505,15 @@ class EnMAPBox(QgisInterface, QObject):
 
         ltv = qgis.utils.iface.layerTreeView()
         assert isinstance(ltv, QgsLayerTreeView)
-        root = ltv.model().rootGroup()
+        root: QgsLayerTreeGroup = ltv.model().rootGroup()
         grp = root.findGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
 
-        if not isinstance(grp, QgsLayerTreeGroup):
+        if not isinstance(grp, HiddenLayerTreeGroup):
             assert not isinstance(self._layerTreeGroup, QgsLayerTreeGroup)
-            enmapbox.debugLog('CREATE HIDDEN_ENMAPBOX_LAYER_GROUP')
-            grp = root.addGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
-            grp.setCustomProperty('embedded', 1)
+            enmapbox.debugLog('CREATE HIDDEN LAYER GROUP')
+            #print('CREATE HIDDEN LAYER GROUP')
+            grp: HiddenLayerTreeGroup = HiddenLayerTreeGroup()
+            root.addChildNode(grp)
             self._layerTreeGroup = grp
 
         ltv = qgis.utils.iface.layerTreeView()
