@@ -30,10 +30,11 @@ class TestSaveAsEnvi(TestCase):
         for gdalBand, name in zip(gdalRaster.bands, ['b1', 'b2', 'b3']):
             gdalBand.setDescription(name)
 
-        gdalRaster2 = saveAsEnvi(gdalRaster=gdalRaster, filename='c:/vsimem/raster.bsq')
+        gdalRaster2 = saveAsEnvi(gdalRaster=gdalRaster, filename='c:/vsimem/raster.xyz')
         self.assertTrue(np.all(array == gdalRaster2.readAsArray()))
         self.assertListEqual([1, 2, 3], gdalRaster2.metadataItem(key='wavelength', domain='ENVI', dtype=int))
         self.assertEqual('nanometers', gdalRaster2.metadataItem(key='wavelength units', domain='ENVI'))
+        self.assertEqual('bsq', gdalRaster2.metadataItem(key='interleave', domain='ENVI'))
         self.assertEqual('hello', gdalRaster2.metadataItem(key='myKey', domain='ENVI'))
         self.assertEqual(-9999, gdalRaster2.band(1).noDataValue)
         self.assertListEqual(categories, gdalRaster2.categories)
