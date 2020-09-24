@@ -26,6 +26,10 @@ class OgrLayer(object):
     @staticmethod
     def open(filename: str, layerNameOrIndex=None) -> 'OgrLayer':
         from hubdsm.core.ogrvector import OgrVector
+        if layerNameOrIndex is None:
+            if '|' in filename:
+                filename, tmp = filename.split('|')
+                _, layerNameOrIndex = tmp.split('=')
         return OgrVector.open(filename=filename).layer(nameOrIndex=layerNameOrIndex)
 
     @property

@@ -1,3 +1,6 @@
+from os import DirEntry, scandir
+from os.path import dirname, join
+
 import numpy
 from collections import OrderedDict
 from PyQt5.QtCore import *
@@ -120,6 +123,16 @@ def routinesDictionary():
                                  WebItem(name='NumPy user guide', url=r'http://www.numpy.org/devdocs/user/quickstart.html'),
                                  WebItem(name='SciPy documentation', url=r'http://scipy.github.io/devdocs')]
 
+    d['Code snippets'] = list()
+    snippetsFolder = join(dirname(__file__), 'snippets')
+    entry: DirEntry
+
+    for entry in scandir(snippetsFolder):
+        if entry.name.endswith('.py'):
+            with open(entry.path) as file:
+                code = file.read()
+            d['Code snippets'].append(SnippetItem(name=entry.name, code=code, filename=entry.path))
+
     return d
 
 def createTree(d, tree):
@@ -156,7 +169,11 @@ class WebItem(QTreeWidgetItem):
         self.url = url
         self.setText(0, name)
 
-#self.uiDoc.setUrl(QUrl('https://docs.scipy.org/doc/numpy-dev/reference'))
+class SnippetItem(NumpyItem):
 
-#print(routinesDictionary())
-#createTree(d, self.uiFunctions)
+    def __init__(self, name, code, filename):
+        NumpyItem.__init__(
+            self, name=name, doc=f'source: {filename}\n\n{code}',
+            doubleClickInsert=code,
+            dragInsert=code
+        )

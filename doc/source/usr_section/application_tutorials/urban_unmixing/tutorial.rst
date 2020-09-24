@@ -1,9 +1,5 @@
 .. include:: /icon_links.rst
 
-.. |br| raw:: html
-
-  <br/>
-
 .. _tut_urban_unmixing:
 
 =============================================
@@ -95,10 +91,10 @@ reference information.
    :widths: auto
 
    Data type; Filename; Description
-   Raster; :file:`hymap_berlin.bsq`; Airborne hyperspectral data from the HyMap sensor with |br| a spatial resolution of 3.6m, 111 bands and |br| 346x3200 pixels (ENVI Standard Band Sequential ``bsq``)
-   Raster; :file:`enmap_berlin.bsq`; Spaceborne hyperspectral data from the EnMAP sensor |br| (here simulated from HyMAP) with a spatial resolution |br| of 30m, 177 bands and 220x400 pixels (ENVI Standard Band Sequential ``bsq``)
-   Spectral library; :file:`library_berlin.sli`; Urban spectral library with 75 pure surface materials |br| categorized in a hierarchical class scheme. The Library |br| was developed from the HyMap image and spectrally |br| resampled to the EnMAP sensor (ENVI spectral library ``sli`` |br| with metadata extensions ``csv`` & ``json``)
-   Vector; :file:`landcover_berlin.shp`; Detailed land cover reference information categorized |br| in a hierarchical class scheme (ESRI Shapefile ``shp`` |br| with QGIS layer style file ``qml`` and metadata extension ``json``)
+   Raster; :file:`hymap_berlin.bsq`; Airborne hyperspectral data from the HyMap sensor with a spatial resolution of 3.6m, 111 bands and 346x3200 pixels (ENVI Standard Band Sequential ``bsq``)
+   Raster; :file:`enmap_berlin.bsq`; Spaceborne hyperspectral data from the EnMAP sensor (here simulated from HyMAP) with a spatial resolution of 30m, 177 bands and 220x400 pixels (ENVI Standard Band Sequential ``bsq``)
+   Spectral library; :file:`library_berlin.sli`; Urban spectral library with 75 pure surface materials categorized in a hierarchical class scheme. The Library was developed from the HyMap image and spectrally resampled to the EnMAP sensor (ENVI spectral library ``sli`` with metadata extensions ``csv`` & ``json``)
+   Vector; :file:`landcover_berlin.shp`; Detailed land cover reference information categorized in a hierarchical class scheme (ESRI Shapefile ``shp`` with QGIS layer style file ``qml`` and metadata extension ``json``)
 
 .. .. image:: tut_img/data_table.PNG
 

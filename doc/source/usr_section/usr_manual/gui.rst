@@ -24,60 +24,45 @@ In the toolbar you can find the most common tasks. See table below for informati
      - Description
    * - |mActionDataSourceManager|
      - Adds a data source
-     - | Here you can add data from different sources,
-       | e.g. raster and vector
+     - Here you can add data from different sources, e.g. raster and vector
    * - |viewlist_mapdock|
      - Open a map window
      - Opens a new Map Window
    * - |viewlist_spectrumdock|
-     - | Open a spectral
-       | library window
+     - Open a spectral library window
      - Opens a new spectral library window
    * - |viewlist_textview|
      - Open a text window
-     - | Opens a new text window, you can for example
-       | use it to store metadata, take notes etc.
+     - Opens a new text window, you can for example use it to store metadata, take notes etc.
    * - |mActionPan|
      - Pan Map
-     - | Moves the map. Can also be
-       | achieved by holding the mouse wheel
+     - Moves the map. Can also be achieved by holding the mouse wheel
    * - |mActionZoomIn|
      - Zoom In
-     - | Increases the zoom level. You can also scroll
-       | the mouse wheel forward.
+     - Increases the zoom level. You can also scroll the mouse wheel forward.
    * - |mActionZoomOut|
      - Zoom Out
-     - | Decreases the zoom level. You can also scroll
-       | the mouse wheel backwards.
+     - Decreases the zoom level. You can also scroll the mouse wheel backwards.
    * - |mActionZoomActual|
-     - | Zoom to native
-       | resolution
+     - Zoom to native resolution
      - Zoom to the native resolution
    * - |mActionZoomFullExtent|
      - Zoom to full extent
-     - | Changes the zoom level so that the image
-       | is displayed in full extent
+     - Changes the zoom level so that the image is displayed in full extent
    * - |select_location|
      - Identify
-     - | Identify loactions on the map where you click.
-       | Use the three options on the right to specify
-       | what to identify
+     - Identify loactions on the map where you click. Use the three options on the right to specify what to identify
    * - |mActionIdentify|
      - Identify cursor location value
-     - | Cursor Location Values. Shows pixel values of
-       | all layers at the selected position.
+     - Cursor Location Values. Shows pixel values of all layers at the selected position.
    * - |profile|
-     - | Select pixel profiles
-       | from map
-     - | Opens spectral library window (if not opened yet) and
-       | plots the spectral profile of the selected pixel
+     - Select pixel profiles from map
+     - Opens spectral library window (if not opened yet) and plots the spectral profile of the selected pixel
    * - |pan_center|
      - Center map on clicked location
-     - | This tool will move the center of the map
-       | view to the pixel you click on
+     - This tool will move the center of the map view to the pixel you click on
    * - |link_basic|
-     - | Specify the linking between
-       | different maps
+     - Specify the linking between different maps
      - Opens the Map Linking Dialog
 
 .. todo add vector editing symbols
@@ -132,18 +117,14 @@ corresponding metadata are available:
 
    * - Button
      - Description
-   * - |mActionAdd|
-     - | This button lets you add data from different sources,
-       | e.g. raster and vector.
-       | Same function as |add_datasource|.
+   * - |mActionDataSourceManager|
+     - This button lets you add data from different sources, e.g. raster and vector. Same function as |add_datasource|.
    * - |mActionRemove|
-     - | Remove layers from the Data Sources panel. First
-       | select one or more and then click the remove button.
+     - Remove layers from the Data Sources panel. First select one or more and then click the remove button.
    * - |mActionCollapseTree|
-     - | Collapses the whole menu tree, so that only
-       | layer type groups are shown.
+     - Collapses the whole menu tree, so that only layer type groups are shown.
    * - |mActionExpandTree|
-     - | Expands menu tree to show all branches.
+     - Expands menu tree to show all branches.
    * - |qgis_icon|
      - Synchronizes Data Sources with QGIS.
 
@@ -170,10 +151,9 @@ You may change the name of a Window by double-clicking onto the name in the list
    * - Button
      - Description
    * - |mActionCollapseTree|
-     - | Collapses the whole menu tree, so that only
-       | layer type groups are shown.
+     - Collapses the whole menu tree, so that only layer type groups are shown.
    * - |mActionExpandTree|
-     - | Expands menu tree to show all branches.
+     - Expands menu tree to show all branches.
 
 .. figure:: ../../img/example_data_views.png
    :width: 100%
