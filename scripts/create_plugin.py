@@ -88,11 +88,16 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
         import git
         REPO = git.Repo(DIR_REPO)
         currentBranch = REPO.active_branch.name
+        lastCommitSha = REPO.active_branch.commit.hexsha
+        lastCommitDate = REPO.active_branch.commit.authored_datetime
+        timestamp = re.split(r'[.+]', lastCommitDate.isoformat())[0]
+
     except Exception as ex:
         currentBranch = 'TEST'
-        print('Unable to find git repo. Set currentBranch to "{}"'.format(currentBranch))
+        print(f'Unable to find git repo. Set currentBranch to "{currentBranch}"',
+              file=sys.stderr)
 
-    timestamp = datetime.datetime.now().isoformat().split('.')[0]
+        timestamp = re.split(r'[.+]', datetime.datetime.now().isoformat())[0]
 
     BUILD_NAME = '{}.{}.{}'.format(__version__, timestamp, currentBranch)
     BUILD_NAME = re.sub(r'[:-]', '', BUILD_NAME)
