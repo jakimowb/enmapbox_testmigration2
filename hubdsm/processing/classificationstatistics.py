@@ -1,7 +1,7 @@
 from os.path import dirname, join
 
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QMainWindow, QComboBox
+from PyQt5.QtWidgets import QMainWindow, QComboBox, QPlainTextEdit
 from PyQt5.uic import loadUi
 
 from hubdsm.core.size import Size
@@ -76,6 +76,7 @@ class ClassificationStatisticsPlot(QMainWindow):
     mUnitUnknown: QComboBox
     mUnitStandard: QComboBox
     mUnitGeographic: QComboBox
+    mLegend: QPlainTextEdit
 
     def __init__(self, categories: List[Category], counts: List[int], layer: QgsRasterLayer, parent=None):
         QMainWindow.__init__(self, parent)
@@ -128,8 +129,12 @@ class ClassificationStatisticsPlot(QMainWindow):
             plot = self.mPlot.plot(x=[i + 0.1, i + 0.9], y=[y], stepMode=True, fillLevel=0, brush=color)
             plot.setPen(color=QColor(0, 0, 0), width=1)
         axis: AxisItem = self.mPlot.getAxis('bottom')
+        axis.setLabel(text='Class ID', units=None, unitPrefix=None)
         axis.setTicks(
-            [[(i + 0.5, category.name)
+            [[(i + 0.5, category.id)
               for i, category in enumerate(self.categories)]])
         axis: AxisItem = self.mPlot.getAxis('left')
         axis.setLabel(text=ylabel, units=None, unitPrefix=None)
+
+        self.mLegend.setPlainText('\n'.join([f'{c.id}: {c.name}' for c in self.categories]))
+        # insert legend: use category.name

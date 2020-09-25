@@ -14,7 +14,7 @@
    <string>Classification Statistics</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,2,1">
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,1,1">
       <property name="topMargin">
@@ -121,10 +121,34 @@
       </property>
      </widget>
     </item>
+    <item>
+     <widget class="QgsCollapsibleGroupBox" name="mGroupBox">
+      <property name="title">
+       <string>Class Legend</string>
+      </property>
+      <property name="collapsed">
+       <bool>false</bool>
+      </property>
+      <property name="saveCollapsedState">
+       <bool>false</bool>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QPlainTextEdit" name="mLegend"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
    </layout>
   </widget>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>QgsCollapsibleGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>qgscollapsiblegroupbox.h</header>
+   <container>1</container>
+  </customwidget>
   <customwidget>
    <class>PlotWidget</class>
    <extends>QGraphicsView</extends>
