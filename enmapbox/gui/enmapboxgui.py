@@ -315,6 +315,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.mDataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
         # QgsProject.instance().layersAdded.connect(self.addMapLayers)
         QgsProject.instance().layersWillBeRemoved.connect(self.onLayersWillBeRemoved)
+        QgsProject.instance().writeProject.connect(self.onWriteProject)
+        QgsProject.instance().readProject.connect(self.onReadProject)
 
         # needed to keep a reference on created LayerTreeNodes
         self._layerTreeNodes = []
@@ -419,8 +421,11 @@ class EnMAPBox(QgisInterface, QObject):
         debugLog('call QApplication.processEvents()')
         QApplication.processEvents()
 
-        debugLog('add QProject.instance()')
-        self.addProject(QgsProject.instance())
+        #debugLog('add QProject.instance()')
+        #self.addProject(QgsProject.instance())
+
+        debugLog('Load settings from QgsProject.instance()')
+        self.onReloadProject()
 
     def addMessageBarTextBoxItem(self, title: str, text: str,
             level: Qgis.MessageLevel = Qgis.Info,
@@ -511,6 +516,55 @@ class EnMAPBox(QgisInterface, QObject):
         if len(unknown) > 0:
             self.dataSourceManager().addSources(unknown)
         self.syncHiddenLayers()
+
+
+    def onReloadProject(self, *args):
+
+        proj: QgsProject = QgsProject.instance()
+        path = proj.fileName()
+        if os.path.isfile(path):
+            archive = None
+            if QgsZipUtils.isZipFile(path):
+                archive = QgsProjectArchive()
+                archive.unzip(path)
+                path = archive.projectFile()
+
+            file = QFile(path)
+
+            doc = QDomDocument('qgis')
+            doc.setContent(file)
+            self.onReadProject(doc)
+
+            if isinstance(archive, QgsProjectArchive):
+                archive.clearProjectFile()
+
+    def onWriteProject(self, dom: QDomDocument):
+
+        node = dom.createElement('ENMAPBOX')
+        root = dom.documentElement()
+
+        # save time series
+        self.timeSeries().writeXml(node, dom)
+
+        # save map views
+        self.mapWidget().writeXml(node, dom)
+        root.appendChild(node)
+
+    def onReadProject(self, doc: QDomDocument) -> bool:
+        """
+        Reads images and visualization settings from a QgsProject QDomDocument
+        :param doc: QDomDocument
+        :return: bool
+        """
+        if not isinstance(doc, QDomDocument):
+            return False
+
+        root = doc.documentElement()
+        node = root.firstChildElement('ENMAPBOX')
+        if node.nodeName() == 'ENMAPBOX':
+           pass
+
+        return True
 
     def onLayersWillBeRemoved(self, layerIDs):
         """
@@ -1592,7 +1646,7 @@ class EnMAPBox(QgisInterface, QObject):
             scope = 'HU-Berlin'
             key = 'EnMAP-Box'
 
-            s = ""
+            self.onReloadProject()
 
     def actionAddRasterLayer(self):
         return self.ui.mActionAddDataSource
