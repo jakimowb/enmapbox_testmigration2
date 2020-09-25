@@ -21,17 +21,17 @@ warnings.filterwarnings('ignore')  # ignore warnings, like ZeroDivision
 import csv
 from enmapbox.gui.utils import loadUi
 
-pathUI_Load = os.path.join(APP_DIR, 'Resources/UserInterfaces/IVVRM_Start.ui')
+#pathUI_Load = os.path.join(APP_DIR, 'Resources/UserInterfaces/IVVRM_Start.ui')
 pathUI_IVVRM = os.path.join(APP_DIR, 'Resources/UserInterfaces/IVVRM_main.ui')
 pathUI_loadtxt = os.path.join(APP_DIR, 'Resources/UserInterfaces/LoadTxtFile.ui')
 pathUI_wavelengths = os.path.join(APP_DIR, 'Resources/UserInterfaces/Select_Wavelengths.ui')
 pathUI_sensor = os.path.join(APP_DIR, 'Resources/UserInterfaces/GUI_SensorEditor.ui')
 
 
-class IVVRM_Start_GUI(QWidget):
-    def __init__(self, parent=None):
-        super(IVVRM_Start_GUI, self).__init__(parent)
-        loadUi(pathUI_Load, self)
+# class IVVRM_Start_GUI(QWidget):
+#     def __init__(self, parent=None):
+#         super(IVVRM_Start_GUI, self).__init__(parent)
+#         loadUi(pathUI_Load, self)
 
 
 class IVVRM_GUI(QDialog):
@@ -127,23 +127,23 @@ class SensorEditorGUI(QDialog):
 
 
 # class StartIVVRM pops up the welcome window with the PROSAIL image and a Start-button
-class StartIVVRM:
-    def __init__(self, main):
-        self.main = main
-        self.gui = IVVRM_Start_GUI()
-        self.initial_values()
-        self.connections()
-
-    def initial_values(self):
-        self.gui.setWindowTitle('IVVRM')
-
-    def connections(self):
-        self.gui.startButton.clicked.connect(lambda: self.run_IVVRM())
-
-    def run_IVVRM(self):
-        self.main.ivvrm.gui.show()
-        self.main.ivvrm.plotting()
-        self.gui.close()
+# class StartIVVRM:
+#     def __init__(self, main):
+#         self.main = main
+#         self.gui = IVVRM_Start_GUI()
+#         self.initial_values()
+#         self.connections()
+#
+#     def initial_values(self):
+#         self.gui.setWindowTitle('IVVRM')
+#
+#     def connections(self):
+#         self.gui.startButton.clicked.connect(lambda: self.run_IVVRM())
+#
+#     def run_IVVRM(self):
+#         self.main.ivvrm.gui.show()
+#         self.main.ivvrm.plotting()
+#         self.gui.close()
 
 
 # class IVVRM is the main class of the IVVRM GUI to control the application
@@ -383,7 +383,7 @@ class IVVRM:
 
     def makePen(self, sensor):
         # Different pen styles (solid, dashed, dotted, ...) are used for sensor types
-        print("Sensor is: ", sensor)
+        #print("Sensor is: ", sensor)
         if sensor == "default":
             self.penStyle = 1
         elif sensor == "EnMAP":
@@ -442,6 +442,7 @@ class IVVRM:
         elif canopy_arch == "inform":
             self.canopy_arch = canopy_arch
             self.gui.LAI_Text.setText("Single Tree Leaf Area Index (LAI)")
+            self.gui.LAI_lineEdit.setText("7")
             self.gui.CanopyMP_Box.setDisabled(False)
             self.gui.ForestMP_Box.setDisabled(False)
             self.select_background(bg_type=self.bg_type)
@@ -449,6 +450,7 @@ class IVVRM:
         else:
             self.canopy_arch = canopy_arch
             self.gui.LAI_Text.setText("Leaf Area Index (LAI)")
+            self.gui.LAI_lineEdit.setText("3")
             self.gui.CanopyMP_Box.setDisabled(False)
             self.gui.ForestMP_Box.setDisabled(True)
             self.select_background(bg_type=self.bg_type)
@@ -1352,13 +1354,13 @@ class MainUiFunc:
     def __init__(self):
         self.QGis_app = QApplication.instance()  # the QGIS-Application is made accessible within the code
         self.ivvrm = IVVRM(self)
-        self.ivvrm_exec = StartIVVRM(self)
+        # self.ivvrm_exec = StartIVVRM(self)
         self.loadtxtfile = LoadTxtFile(self)
         self.sensoreditor = SensorEditor(self)
         self.select_wavelengths = SelectWavelengths(self)
 
     def show(self):
-        self.ivvrm_exec.gui.show()
+        self.ivvrm.gui.show()
 
 
 if __name__ == '__main__':
