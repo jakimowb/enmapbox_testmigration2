@@ -37,6 +37,10 @@ from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
 from enmapbox.dependencycheck import requiredPackages, missingPackageInfo
+from hubdsm.processing.importenmapl1b import ImportEnmapL1B
+from hubdsm.processing.importenmapl1c import ImportEnmapL1C
+from hubdsm.processing.importenmapl2a import ImportEnmapL2A
+from hubdsm.processing.importprismal2d import ImportPrismaL2D
 from ..externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from ..externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
@@ -886,17 +890,22 @@ class EnMAPBox(QgisInterface, QObject):
         # add more product import actions hereafter
         a = QAction('EnMAP L1B', parent=menu)
         a.setToolTip('Import EnMAP L1B product')
-        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog('enmapbox:ImportEnMAPL1BProduct'))
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportEnmapL1B()))
         menu.insertAction(separator, a)
 
         a = QAction('EnMAP L1C', parent=menu)
         a.setToolTip('Import EnMAP L1C product')
-        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog('enmapbox:ImportEnMAPL1CProduct'))
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportEnmapL1C()))
         menu.insertAction(separator, a)
 
         a = QAction('EnMAP L2A', parent=menu)
         a.setToolTip('Import EnMAP L2A product')
-        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog('enmapbox:ImportEnMAPL2AProduct'))
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportEnmapL2A()))
+        menu.insertAction(separator, a)
+
+        a = QAction('PRISMA L2D', parent=menu)
+        a.setToolTip('Import PRISMA L2D product')
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportPrismaL2D()))
         menu.insertAction(separator, a)
 
     def _mapToolButton(self, action) -> Optional[QToolButton]:

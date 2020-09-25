@@ -1,15 +1,14 @@
-from os.path import basename, exists
+from os.path import basename
 
 import numpy as np
 
 from osgeo import gdal
-from qgis._core import QgsRasterLayer, QgsRectangle, QgsCoordinateReferenceSystem
 
 from hubdsm.core.extent import Extent
+from hubdsm.core.gdalraster import GdalRaster
 from hubdsm.core.grid import Grid
 from hubdsm.core.location import Location
 from hubdsm.core.projection import Projection
-from hubdsm.core.raster import Raster
 from hubdsm.core.resolution import Resolution
 from hubdsm.core.size import Size
 
@@ -31,54 +30,46 @@ def importPrismaL2D(filenameHe5: str, filenameSpectral: str = None) -> gdal.Data
     filenameVnir = ds.GetSubDatasets()[2][0]
     assert filenameVnir.endswith('VNIR_Cube')
 
-    arrayVnir = gdal.Open(filenameVnir).ReadAsArray()
-    arraySwir = gdal.Open(filenameSwir).ReadAsArray()
-    array = np.vstack((np.transpose(arrayVnir, [1, 0, 2]), np.transpose(arraySwir, [1, 0, 2])))
-    xmin = float(meta['Product_ULcorner_easting'])
-    ymax = float(meta['Product_ULcorner_northing'])
-    xmax = float(meta['Product_LRcorner_easting'])
-    ymin = float(meta['Product_LRcorner_northing'])
-    size = Size(x=xmax - xmin, y=ymax - ymin)
-    resolution = Resolution(x=size.x / array.shape[2], y=size.y / array.shape[1])
+    # read, transpose and scale data
+    offsetVnir = np.float32(meta['L2ScaleVnirMin'])
+    gainVnir = np.float32((float(meta['L2ScaleVnirMax']) - float(meta['L2ScaleVnirMin'])) / 65535)
+    selectedVnir = np.array(meta['CNM_VNIR_SELECT'].split(), dtype=np.uint8) == 1
+    arrayVnir = offsetVnir + np.transpose(gdal.Open(filenameVnir).ReadAsArray(), [1, 0, 2])[selectedVnir][::-1] * gainVnir
+    offsetSwir = np.float32(meta['L2ScaleSwirMin'])
+    gainSwir = np.float32((float(meta['L2ScaleSwirMax']) - float(meta['L2ScaleSwirMin'])) / 65535)
+    selectedSwir = np.array(meta['CNM_SWIR_SELECT'].split(), dtype=np.uint8) == 1
+    arraySwir = offsetSwir + np.transpose(gdal.Open(filenameSwir).ReadAsArray(), [1, 0, 2])[selectedSwir][::-1] * gainSwir
+    array = np.vstack([arrayVnir, arraySwir])
+
+    # prepare spatial extent
+    xmin = float(meta['Product_ULcorner_easting']) - 15
+    ymax = float(meta['Product_ULcorner_northing']) + 15
+    xmax = float(meta['Product_LRcorner_easting']) + 15
+    ymin = float(meta['Product_LRcorner_northing']) - 15
+    resolution = Resolution(x=30, y=30)
+    size = Size(x=resolution.x * array.shape[2], y=resolution.y * array.shape[1])
     grid = Grid(
         extent=Extent(ul=Location(x=xmin, y=ymax), size=size),
         resolution=resolution,
         projection=Projection.fromEpsg(int(meta['Epsg_Code']))
     )
 
-    Raster.createFromArray(array=array, grid=grid, filename=filenameSpectral)
+    # write data
+    gdalRaster = GdalRaster.createFromArray(array=array, grid=grid, filename=filenameSpectral)
 
-    #    r = Raster.open(filenameLatitude)
-
-    assert 0
-    # r'HDF5:"C:\Users\janzandr\Downloads\PRS_L2C_STD_20200209102459_20200209102503_0001\PRS_L2C_STD_20200209102459_20200209102503_0001.he5"://HDFEOS/SWATHS/PRS_L2C_AEX/Geolocation_Fields/Latitude'
-
-    # read metadata
-    import xml.etree.ElementTree as ET
-    root = ET.parse(filenameMetadataXml).getroot()
-
-    wavelength = [item.text for item in root.findall('specific/bandCharacterisation/bandID/wavelengthCenterOfBand')]
-    fwhm = [item.text for item in root.findall('specific/bandCharacterisation/bandID/FWHMOfBand')]
-    gains = [item.text for item in root.findall('specific/bandCharacterisation/bandID/GainOfBand')]
-    offsets = [item.text for item in root.findall('specific/bandCharacterisation/bandID/OffsetOfBand')]
-
-    # create VRTs
-    filename = filenameMetadataXml.replace('-METADATA.XML', '-SPECTRAL_IMAGE.TIF')
-    assert exists(filename)
-    ds = gdal.Open(filename)
-    options = gdal.TranslateOptions(format='VRT')
-    ds: gdal.Dataset = gdal.Translate(destName=filenameSpectral, srcDS=ds, options=options)
-    ds.SetMetadataItem('wavelength', '{' + ', '.join(wavelength[:ds.RasterCount]) + '}', 'ENVI')
-    ds.SetMetadataItem('wavelength_units', 'nanometers', 'ENVI')
-    ds.SetMetadataItem('fwhm', '{' + ', '.join(fwhm[:ds.RasterCount]) + '}', 'ENVI')
-
-    rasterBands = [ds.GetRasterBand(i + 1) for i in range(ds.RasterCount)]
-    rasterBand: gdal.Band
-    for i, rasterBand in enumerate(rasterBands):
-        rasterBand.SetScale(float(gains[i]))
-        rasterBand.SetOffset(float(offsets[i]))
-        rasterBand.FlushCache()
-    return ds
+    # set metadata
+    wavelengthVnir = list(reversed([v for v, flag in zip(meta['List_Cw_Vnir'].split(), selectedVnir) if flag]))
+    wavelengthSwir = list(reversed([v for v, flag in zip(meta['List_Cw_Swir'].split(), selectedSwir) if flag]))
+    wavelength = wavelengthVnir + wavelengthSwir
+    fwhmVnir = list(reversed([v for v, flag in zip(meta['List_Fwhm_Vnir'].split(), selectedVnir) if flag]))
+    fwhmSwir = list(reversed([v for v, flag in zip(meta['List_Fwhm_Swir'].split(), selectedSwir) if flag]))
+    fwhm = fwhmVnir + fwhmSwir
+    assert len(wavelength) == len(array)
+    assert len(fwhm) == len(array)
+    gdalRaster.setMetadataItem(key='wavelength', value=wavelength, domain='ENVI')
+    gdalRaster.setMetadataItem(key='fwhm', value=fwhm, domain='ENVI')
+    gdalRaster.setMetadataItem(key='wavelength_units', value='nanometers', domain='ENVI')
+    return gdalRaster.gdalDataset
 
 
 def isPrismaL2DProduct(filenameHe5: str):

@@ -93,10 +93,12 @@ The GUI provides users with the possibility for basic data input and parameter s
 
    Figure 6 Illustration of the GUI with the most important user inputs explained.
 
-Table 1 EnGeoMAP Data Product Specifications:
 
+.. csv-table:: Table 1 EnGeoMAP Data Product Specifications
+   :header-rows: 1
+   :file: img/table1.csv
 
-.. figure:: img/table1.jpg
+.. .. figure:: img/table1.jpg
 
 4. The Results
 --------------

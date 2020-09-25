@@ -5,17 +5,20 @@ import numpy as np
 from osgeo.gdal_array import GDALTypeCodeToNumericTypeCode
 
 from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.gdaldriver import GdalDriver, ENVI_DRIVER
+from hubdsm.core.gdaldriver import GdalDriver, ENVI_DRIVER, ENVI_BSQ_DRIVER, ENVI_BIL_DRIVER, ENVI_BIP_DRIVER
 from hubdsm.core.gdalraster import GdalRaster
 from hubdsm.core.raster import Raster
 
 
-def saveAsEnvi(gdalRaster: GdalRaster, filename: str = None, co: List[str] = None) -> GdalRaster:
+def saveAsEnvi(gdalRaster: GdalRaster, filename: str = None) -> GdalRaster:
     '''
     Save raster as ENVI raster. Takes care that all metadata is correctly stored inside the ENVI header and that the raster can be opened inside the ENVI Software.
     '''
     assert isinstance(gdalRaster, GdalRaster)
-    outGdalRaster = gdalRaster.translate(filename=filename, driver=ENVI_DRIVER, gco=co)
+    driver = GdalDriver.fromFilename(filename=filename)
+    if driver not in [ENVI_BSQ_DRIVER, ENVI_BIL_DRIVER, ENVI_BIP_DRIVER]:
+        driver = ENVI_BSQ_DRIVER
+    outGdalRaster = gdalRaster.translate(filename=filename, driver=driver)
 
     # set ENVI metadata
     outGdalRaster.setMetadataDomain(values=gdalRaster.metadataDomain(domain='ENVI'), domain='ENVI')
