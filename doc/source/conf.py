@@ -55,14 +55,6 @@ if False:
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
-    print('Fetch GIT_LFS files')
-    import git_lfs
-    REPO_ROOT = pathlib.Path(__file__).parents[2].absolute()
-    print(f'REPO ROOT={REPO_ROOT}')
-    git_lfs.fetch(REPO_ROOT.as_posix())
-
-    """
-    
     if not os.path.exists('./git-lfs'):
         print('## Install git-lfs on read the docs')
         lfs_zip = r'git-lfs-linux-amd64-v2.12.0.tar.gz'
@@ -73,7 +65,13 @@ if on_rtd:
     os.system('./git-lfs fetch')  # download content from remote
     os.system('./git-lfs checkout')  # make local files to have the real content on them
     print('## git-lfs checkout finished')
-    """
+
+    print('Fetch GIT_LFS files')
+    import git_lfs
+    REPO_ROOT = pathlib.Path(__file__).parents[2].absolute()
+    print(f'REPO ROOT={REPO_ROOT}')
+    git_lfs.fetch(REPO_ROOT.as_posix())
+
 
 if not on_rtd:
     os.environ['READTHEDOCS'] = 'True'
