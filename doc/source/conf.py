@@ -53,14 +53,19 @@ if False:
 
         sys.modules[l] = mock.NonCallableMagicMock()
 
+REPO_ROOT = pathlib.Path(__file__).parents[2].absolute()
+print(f'REPO ROOT={REPO_ROOT}')
+git_lfs.fetch(REPO_ROOT.as_posix())
+
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
-    if not os.path.exists('./git-lfs'):
-        print('## Install git-lfs on read the docs')
-        lfs_zip = r'git-lfs-linux-amd64-v2.12.0.tar.gz'
-        os.system(f'wget https://github.com/git-lfs/git-lfs/releases/download/v2.12.0/{lfs_zip}')
-        os.system(f'tar xvfz {lfs_zip}')
-        print('## git-lfs installation finished')
+
+    print('## Install git-lfs on read the docs')
+    lfs_zip = r'git-lfs-linux-amd64-v2.12.0.tar.gz'
+    os.system(f'wget https://github.com/git-lfs/git-lfs/releases/download/v2.12.0/{lfs_zip}')
+    os.system(f'tar xvfz {lfs_zip}')
+    print('## git-lfs installation finished')
+    #os.system(f'PATH="./gitlfs:$PATH"')
     os.system('./git-lfs install')  # make lfs available in current repository
     os.system('./git-lfs fetch')  # download content from remote
     os.system('./git-lfs checkout')  # make local files to have the real content on them
@@ -68,9 +73,7 @@ if on_rtd:
 
     print('Fetch GIT_LFS files')
     import git_lfs
-    REPO_ROOT = pathlib.Path(__file__).parents[2].absolute()
-    print(f'REPO ROOT={REPO_ROOT}')
-    git_lfs.fetch(REPO_ROOT.as_posix())
+
 
 
 if not on_rtd:
