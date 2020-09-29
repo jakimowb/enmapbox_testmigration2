@@ -55,7 +55,7 @@ if False:
 
 REPO_ROOT = pathlib.Path(__file__).parents[2].absolute()
 print(f'REPO ROOT={REPO_ROOT}')
-git_lfs.fetch(REPO_ROOT.as_posix())
+
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
@@ -73,6 +73,7 @@ if on_rtd:
 
     print('Fetch GIT_LFS files')
     import git_lfs
+    git_lfs.fetch(REPO_ROOT.as_posix())
 
 
 
