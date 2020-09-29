@@ -233,9 +233,6 @@ Each source code contribution to the central repository should include a referen
 
 An example from the source code can be found here: `enmapbox/__init__.py <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/enmapbox/__init__.py>`_
 
-.. note::
-    Todo: add PyCharm code template
-
 Images and other multimedia content from the EnMAP-Box documentation, i.e files within the EnMAP-Box repositories :code:`doc/source` folder,
 are published under the terms of the `CC0 license <https://creativecommons.org/publicdomain/zero/1.0/legalcode>`_.
 

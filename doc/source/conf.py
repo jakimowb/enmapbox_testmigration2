@@ -36,6 +36,9 @@ if True:
     for mod_name in MOCK_MODULES:
         sys.modules[mod_name] = mock.Mock()
 
+# Install and execute git-lfs
+
+
 if False:
     pathMockedNames = os.path.join(os.path.dirname(__file__),'mockednameslist.txt')
     print('Read mocked names list')
@@ -48,6 +51,15 @@ if False:
 
 if not 'READTHEDOCS' in os.environ.keys():
     os.environ['READTHEDOCS'] = 'True'
+else:
+
+    if not os.path.exists('./git-lfs'):
+        lfs_zip = r'git-lfs-linux-amd64-v2.12.0.tar.gz'
+        os.system(f'wget https://github.com/git-lfs/git-lfs/releases/download/v2.12.0/{lfs_zip}')
+        os.system(f'tar xvfz {lfs_zip}')
+        os.system('./git-lfs install')  # make lfs available in current repository
+        os.system('./git-lfs fetch')  # download content from remote
+        os.system('./git-lfs checkout')  # make local files to have the real content on them
 
 autodoc_mock_imports = ['vrtbuilder',
                 'gdal','sklearn','numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate',
