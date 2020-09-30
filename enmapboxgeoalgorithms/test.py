@@ -577,6 +577,14 @@ class SensorDefinition(TestCase):
               alg.P_OUTPUT_RASTER: join(outdir, 'SensorDefinitionResampleRasterOption1.bsq')}
         runalg(alg=alg, io=io)
 
+    def test_SensorDefinitionResampleRasterToResponseFunctionLibrary(self):
+        alg = SensorDefinitionResampleRasterToResponseFunctionLibrary()
+        io = {alg.P_RASTER: enmap,
+              alg.P_TARGET_LIBRARY: QgsVectorLayer(r'C:\Users\janzandr\Downloads\_srf\tm7.gpkg'),
+              alg.P_ENUM: 1,
+              alg.P_OUTPUT_RASTER: join(outdir, 'SensorDefinitionResampleRasterRFL.bsq')}
+        runalg(alg=alg, io=io)
+
 
 class TestTransformer(TestCase):
     def test_TransformerFitTransformInverseTransform(self):

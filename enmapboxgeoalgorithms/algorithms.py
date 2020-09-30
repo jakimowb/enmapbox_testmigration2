@@ -1,7 +1,9 @@
 from shutil import rmtree
+from tempfile import gettempdir
 
 from qgis.core import *
 
+from enmapbox.externals.qps.speclib import EnviSpectralLibraryIO
 from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.classificationstatistics import ClassificationStatistics
 from hubdsm.processing.importprismal2d import ImportPrismaL2D
@@ -1839,6 +1841,127 @@ class SensorDefinitionResampleRaster(EnMAPAlgorithm):
 
 
 ALGORITHMS.append(SensorDefinitionResampleRaster())
+
+
+class SensorDefinitionResampleRasterToSensor(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Spectral Resampling to Sensor'
+
+    def group(self):
+        return self.GROUP_RESAMPLING
+
+    def description(self):
+        return 'Spectrally resample a raster to a sensor.'
+
+    SENSOR_NAMES = SensorDefinition.predefinedSensorNames()
+    P_TARGET_SENSOR = 'targetSensor'
+
+    def defineCharacteristics(self):
+        self.addParameterRaster(help='Raster to be resampled.')
+        self.addParameterEnum(
+            name=self.P_TARGET_SENSOR, description='Sensor', options=self.SENSOR_NAMES, help='Predefined target sensor'
+        )
+        self.resampleAlgNames = ['Linear Interpolation', 'Response Function Convolution']
+        self.resampleAlgOptions = [SensorDefinition.RESAMPLE_LINEAR, SensorDefinition.RESAMPLE_RESPONSE]
+        self.addParameterEnum(description='Resampling Algorithm', options=self.resampleAlgNames, defaultValue=1)
+        self.addParameterOutputRaster()
+
+    def processAlgorithm_(self):
+        raster = self.getParameterRaster()
+        sensor = SensorDefinition.fromPredefined(
+            name=self.SENSOR_NAMES[self.getParameterEnum(name=self.P_TARGET_SENSOR)]
+        )
+        self._progressBar.setText(repr(sensor))
+        filename = self.getParameterOutputRaster()
+        resampleAlg = self.resampleAlgOptions[self.getParameterEnum()]
+        sensor.resampleRaster(filename=filename, raster=raster, resampleAlg=resampleAlg, progressBar=self._progressBar)
+        return {self.P_OUTPUT_RASTER: filename}
+
+
+ALGORITHMS.append(SensorDefinitionResampleRasterToSensor())
+
+
+class SensorDefinitionResampleRasterToRaster(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Spectral Resampling to Raster'
+
+    def group(self):
+        return self.GROUP_RESAMPLING
+
+    def description(self):
+        return 'Spectrally resample a raster to a raster.'
+
+    P_TARGET_RASTER = 'targetRaster'
+
+    def defineCharacteristics(self):
+        self.addParameterRaster(help='Select raster to be resampled.')
+        self.addParameterRaster(
+            name=self.P_TARGET_RASTER, description='Target Raster',
+            help='Raster with defined wavelength and (optional) fwhm'
+        )
+        self.resampleAlgNames = ['Linear Interpolation', 'FWHM-based Convolution (if possible)']
+        self.resampleAlgOptions = [SensorDefinition.RESAMPLE_LINEAR, SensorDefinition.RESAMPLE_RESPONSE]
+        self.addParameterEnum(description='Resampling Algorithm', options=self.resampleAlgNames, defaultValue=1)
+        self.addParameterOutputRaster()
+
+    def processAlgorithm_(self):
+        raster = self.getParameterRaster()
+        targetRaster = self.getParameterRaster(name=self.P_TARGET_RASTER)
+        sensor = SensorDefinition.fromRaster(raster=targetRaster)
+        self._progressBar.setText(repr(sensor))
+        filename = self.getParameterOutputRaster()
+        resampleAlg = self.resampleAlgOptions[self.getParameterEnum()]
+        if self.getParameterEnum() == 1:
+            if targetRaster.dataset().metadataItem(key='fwhm', domain='ENVI') is None:
+                resampleAlg = self.resampleAlgOptions[0]  # use linear if FWHM is not available
+        sensor.resampleRaster(filename=filename, raster=raster, resampleAlg=resampleAlg, progressBar=self._progressBar)
+        return {self.P_OUTPUT_RASTER: filename}
+
+
+ALGORITHMS.append(SensorDefinitionResampleRasterToRaster())
+
+
+class SensorDefinitionResampleRasterToResponseFunctionLibrary(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Spectral Resampling to Response Function Library'
+
+    def group(self):
+        return self.GROUP_RESAMPLING
+
+    def description(self):
+        return 'Spectrally resample a raster using a response function library.'
+
+    P_TARGET_LIBRARY = 'targetLibrary'
+
+    def defineCharacteristics(self):
+        self.addParameterRaster(help='Select raster to be resampled.')
+        self.addParameterVector(
+            name=self.P_TARGET_LIBRARY,
+            description='Response Function Library.',
+            help='Library with bandwise response function profiles.'
+        )
+        self.resampleAlgNames = ['Linear Interpolation', 'Response Function Convolution']
+        self.resampleAlgOptions = [SensorDefinition.RESAMPLE_LINEAR, SensorDefinition.RESAMPLE_RESPONSE]
+        self.addParameterEnum(description='Resampling Algorithm', options=self.resampleAlgNames, defaultValue=1)
+        self.addParameterOutputRaster()
+
+    def processAlgorithm_(self):
+        raster = self.getParameterRaster()
+        targetLibrary = self.getParameterVectorLibrary(name=self.P_TARGET_LIBRARY)
+        tmpfilename = join(gettempdir(), 'responseFunctionLibrary.sli')
+        tmpfilenames = EnviSpectralLibraryIO.write(speclib=targetLibrary, path=tmpfilename)
+        targetEnviLibrary = EnviSpectralLibrary(filename=tmpfilename)
+        sensor = SensorDefinition.fromEnviSpectralLibrary(library=targetEnviLibrary, isResponseFunction=True)
+        for tmpfilename in tmpfilenames:
+            remove(tmpfilename)
+        self._progressBar.setText(repr(sensor))
+        filename = self.getParameterOutputRaster()
+        resampleAlg = self.resampleAlgOptions[self.getParameterEnum()]
+        sensor.resampleRaster(filename=filename, raster=raster, resampleAlg=resampleAlg, progressBar=self._progressBar)
+        return {self.P_OUTPUT_RASTER: filename}
+
+
+ALGORITHMS.append(SensorDefinitionResampleRasterToResponseFunctionLibrary())
 
 
 class TransformerFit(EstimatorFit):

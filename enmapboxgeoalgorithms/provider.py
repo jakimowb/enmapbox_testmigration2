@@ -1,5 +1,7 @@
 import sys
 from qgis.core import *
+
+from enmapbox.externals.qps.speclib.core import SpectralLibrary
 from hubflow.core import *
 import hubdc.progressbar
 from enmapboxgeoalgorithms import ENMAPBOXGEOALGORITHMS_VERSION
@@ -321,6 +323,29 @@ class EnMAPAlgorithm(QgisAlgorithm):
         elif isinstance(qgsVectorLayer, QgsVectorLayer):
             filename = qgsVectorLayer.source()
             return Vector(filename=filename, **kwargs)
+        else:
+            assert 0, repr(qgsVectorLayer)
+
+    P_VECTOR_LIBRARY = 'vectorLibrary'
+
+    def addParameterVectorLibrary(self, name=P_VECTOR_LIBRARY, description='Library', defaultValue=None, optional=False,
+                           help=None):
+        if help is None:
+            help = 'Specify input library.'
+
+        self.addParameter_(QgsProcessingParameterVectorLayer(name=name, description=description,
+                                                             defaultValue=defaultValue, optional=optional),
+                           help=help)
+
+    def getParameterVectorLibrary(self, name=P_VECTOR_LIBRARY, **kwargs):
+        assert name in self._parameters
+        qgsVectorLayer = self.parameterAsVectorLayer(self._parameters, name, self._context)
+
+        if qgsVectorLayer is None:
+            return None
+        elif isinstance(qgsVectorLayer, QgsVectorLayer):
+            filename = qgsVectorLayer.source()
+            return SpectralLibrary(uri=filename)
         else:
             assert 0, repr(qgsVectorLayer)
 
