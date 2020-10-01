@@ -1854,12 +1854,14 @@ class SensorDefinitionResampleRasterToSensor(EnMAPAlgorithm):
         return 'Spectrally resample a raster to a sensor.'
 
     SENSOR_NAMES = SensorDefinition.predefinedSensorNames()
+    SENSOR_NAMES_DISPLAYED = [name.replace('_', ' ') for name in SENSOR_NAMES]
     P_TARGET_SENSOR = 'targetSensor'
 
     def defineCharacteristics(self):
         self.addParameterRaster(help='Raster to be resampled.')
         self.addParameterEnum(
-            name=self.P_TARGET_SENSOR, description='Sensor', options=self.SENSOR_NAMES, help='Predefined target sensor'
+            name=self.P_TARGET_SENSOR, description='Sensor', options=self.SENSOR_NAMES_DISPLAYED,
+            help='Predefined target sensor'
         )
         self.resampleAlgNames = ['Linear Interpolation', 'Response Function Convolution']
         self.resampleAlgOptions = [SensorDefinition.RESAMPLE_LINEAR, SensorDefinition.RESAMPLE_RESPONSE]
