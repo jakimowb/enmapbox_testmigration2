@@ -206,7 +206,7 @@ def createCHANGELOG(dirPlugin):
 
     os.makedirs(os.path.dirname(pathCL), exist_ok=True)
     assert os.path.isfile(pathMD)
-    import sphinx.transforms
+#    import sphinx.transforms
     import docutils.core
 
     overrides = {'stylesheet':None,

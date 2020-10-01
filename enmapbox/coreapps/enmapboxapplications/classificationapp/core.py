@@ -11,6 +11,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from enmapbox.externals.qps.speclib.core import SpectralLibrary
+from hubdsm.core.color import Color as HubdsmColor
 from hubdsm.core.gdalraster import GdalRaster
 from hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
 from hubdsm.processing.savelayerasclassification import saveLayerAsClassification
@@ -26,6 +27,7 @@ class ClassificationWorkflowApp(QMainWindow):
     uiType0Classification_: QgsMapLayerComboBox
     uiType1Raster_: QgsMapLayerComboBox
     uiType1VectorClassification_: QgsMapLayerComboBox
+    uiType1Dialog_: QToolButton
     uiType2Library_: QgsMapLayerComboBox
 
     def __init__(self, parent=None):
@@ -41,6 +43,7 @@ class ClassificationWorkflowApp(QMainWindow):
         self.uiTrainingType_.currentIndexChanged.connect(self.clearTrainingData)
         self.uiType0Raster_.layerChanged.connect(self.initClasses)
         self.uiType0Classification_.layerChanged.connect(self.initClasses)
+        self.uiType1Dialog_.clicked.connect(self.openType1Dialog)
         self.uiType1Raster_.layerChanged.connect(self.initClasses)
         self.uiType1VectorClassification_.layerChanged.connect(self.initClasses)
         self.uiType2Library_.layerChanged.connect(self.initClasses)
@@ -52,6 +55,13 @@ class ClassificationWorkflowApp(QMainWindow):
         self.uiExecute_.clicked.connect(self.execute)
 
         self.spinboxes = None
+
+    def openType1Dialog(self):
+        layer = self.uiType1VectorClassification_.currentLayer()
+        if layer is not None:
+            CategoryFieldSelectionDialog.openLayerPropertiesDialog(layer=layer, parent=self)
+        self.uiType1VectorClassification_.setLayer(layer=None)
+        self.uiType1VectorClassification_.setLayer(layer=layer)
 
     def clearTrainingData(self):
         self.uiType0Raster_.setLayer(None)
@@ -143,10 +153,34 @@ class ClassificationWorkflowApp(QMainWindow):
             vectorClassificationLayer: QgsVectorLayer = self.uiType1VectorClassification_.currentLayer()
             if rasterLayer is None or vectorClassificationLayer is None:
                 return
+
             if not isinstance(vectorClassificationLayer.renderer(), QgsCategorizedSymbolRenderer):
-                self.uiType1VectorClassification_.setLayer(None)
-                self.log('Selected layer is not a valid vector classification (requires Categorized renderer).')
-                return
+
+                dlg = CategoryFieldSelectionDialog(layer=vectorClassificationLayer, parent=self)
+                if dlg.exec_():
+                    fieldName = dlg.field.currentField()
+                    fields: QgsFields = vectorClassificationLayer.fields()
+                    fieldIndex = fields.indexFromName(fieldName)
+                    uniqueValues = vectorClassificationLayer.uniqueValues(fieldIndex)
+                    categories = list()
+                    for value in uniqueValues:
+                        name = str(value)
+                        color = HubdsmColor.fromRandom()
+                        color = QColor(color.red, color.green, color.blue).name()
+                        symbol = QgsMarkerSymbol.createSimple(
+                        {'color': color, 'size': '2', 'outline_color': 'black'})
+                        categories.append(QgsRendererCategory(value, symbol, name, True))
+                    renderer = QgsCategorizedSymbolRenderer(fieldName, categories)
+                    vectorClassificationLayer.setRenderer(renderer)
+
+                    if dlg.checkBox.isChecked():
+                        CategoryFieldSelectionDialog.openLayerPropertiesDialog(
+                            layer=vectorClassificationLayer, parent=self
+                        )
+
+                else:
+                    self.uiType1VectorClassification_.setLayer(None)
+                    return
 
             raster = Raster(filename=self.uiType1Raster_.currentLayer().source())
 
@@ -431,3 +465,40 @@ class ClassificationWorkflowApp(QMainWindow):
             traceback.print_exc()
             self.log('Error: {}'.format(str(error)))
             self.uiExecute_.setEnabled(True)
+
+
+class CategoryFieldSelectionDialog(QDialog):
+
+    def __init__(self, layer: QgsVectorLayer, *args, **kwargs):
+        super(CategoryFieldSelectionDialog, self).__init__(*args, **kwargs)
+        self.setWindowTitle('Invalid Vector Classification')
+        self.layer = layer
+
+        QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+        self.field = QgsFieldComboBox()
+        self.field.setLayer(layer=layer)
+        self.field.setCurrentIndex(0)
+        self.field.setAllowEmptyFieldName(False)
+        self.checkBox = QCheckBox('Open layer styling dialog for changing class names and colors?')
+        self.checkBox.setChecked(True)
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(QLabel('Selected layer is not a well defined vector classification.'))
+        self.layout.addWidget(QLabel('This can be fixed by changing the layer styling to categorized rendering.'))
+        self.layout.addWidget(QLabel(''))
+        self.layout.addWidget(QLabel('Please select a value field used for categorization.'))
+        self.layout.addWidget(self.field)
+        self.layout.addWidget(self.checkBox)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
+        self.resize(300, 50)
+
+    @staticmethod
+    def openLayerPropertiesDialog(layer: QgsVectorLayer, parent: QWidget):
+        from enmapbox.externals.qps.layerproperties import LayerPropertiesDialog
+        dialog = LayerPropertiesDialog(layer, parent=parent)
+        dialog.mOptionsListWidget.setCurrentRow(2)
+        dialog.setModal(True)
+        dialog.exec_()
