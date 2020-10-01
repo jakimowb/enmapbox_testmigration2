@@ -69,9 +69,8 @@ initQgisApplication = start_app
 
 class EnMAPBoxTestCase(TestCase):
     @classmethod
-    def setUpClass(cls):
-
-        super().setUpClass()
+    def setUpClass(cls, resources=[]):
+        super().setUpClass(resources=resources)
         import enmapbox
         enmapbox.initAll()
 
