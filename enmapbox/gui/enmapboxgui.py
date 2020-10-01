@@ -396,6 +396,9 @@ class EnMAPBox(QgisInterface, QObject):
         debugLog('Run dependency checks...')
 
         from ..dependencycheck import requiredPackages
+
+        n_warnings = 3
+
         if len([p for p in requiredPackages() if not p.isInstalled()]) > 0:
 
             # taken from qgsmessagebar.cpp
@@ -1385,6 +1388,12 @@ class EnMAPBox(QgisInterface, QObject):
         :return: [list-of-spectra]
         """
         return self.spectralProfileBridge().currentProfiles()
+
+    def version(self) -> str:
+        """
+        Returns the version string
+        """
+        return enmapbox.__version__
 
     def dataSources(self, sourceType='ALL', onlyUri: bool = True) -> list:
         """

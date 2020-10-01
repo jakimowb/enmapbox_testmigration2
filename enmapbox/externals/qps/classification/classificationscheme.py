@@ -77,7 +77,6 @@ def hasClassification(pathOrDataset):
     :return: True | False
     """
     ds = None
-    from qps.utils import gdalDataset
     try:
         if isinstance(pathOrDataset, gdal.Dataset):
             ds = pathOrDataset
@@ -588,9 +587,9 @@ class ClassificationScheme(QAbstractTableModel):
         classes = []
         for classInfo in self:
             qgsClass = QgsPalettedRasterRenderer.Class(
-                classInfo.label(),
-                classInfo.color(),
-                classInfo.name())
+                int(classInfo.label()),
+                color=classInfo.color(),
+                label=classInfo.name())
             classes.append(qgsClass)
         renderer = QgsPalettedRasterRenderer(None, band, classes)
         return renderer
@@ -1222,6 +1221,7 @@ class ClassificationScheme(QAbstractTableModel):
         # read CSV data
         reader = csv.DictReader(lines[i:], delimiter=delimiter)
 
+        iLabel = None
         iName = None
         iColor = None
         for i, name in enumerate(reader.fieldnames):
@@ -1229,6 +1229,8 @@ class ClassificationScheme(QAbstractTableModel):
                 iName = i
             if iColor is None and re.search(r'color', name, re.I):
                 iColor = i
+            if iLabel is None and re.search(r'label', name, re.I):
+                iLabel = i
         rows = [row for row in reader]
 
         nc = len(rows)
@@ -1239,6 +1241,8 @@ class ClassificationScheme(QAbstractTableModel):
         for i, row in enumerate(rows):
             c = cs[i]
             assert isinstance(c, ClassInfo)
+            if iLabel is not None:
+                c.setLabel(int(row[fieldnames[iLabel]]))
             if iName is not None:
                 c.setName(row[fieldnames[iName]])
             if iColor is not None:
