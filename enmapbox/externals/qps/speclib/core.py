@@ -1230,7 +1230,7 @@ class SpectralProfileRenderer(object):
     @staticmethod
     def readXml(node: QDomElement, *args):
         """
-        Reads the PlotStyle from a QDomElement (XML node)
+        Reads the SpectralProfileRenderer from a QDomElement (XML node)
         :param self:
         :param node:
         :param args:
@@ -1241,6 +1241,8 @@ class SpectralProfileRenderer(object):
             node = node.firstChildElement(XMLNODE_PROFILE_RENDERER)
         if node.isNull():
             return None
+
+        default: SpectralProfileRenderer = SpectralProfileRenderer.default()
 
         renderer = SpectralProfileRenderer()
         renderer.backgroundColor = QColor(node.attribute('bg', renderer.backgroundColor.name()))
@@ -1255,6 +1257,8 @@ class SpectralProfileRenderer(object):
 
         nodeDefaultStyle = node.firstChildElement('default_style')
         renderer.profileStyle = PlotStyle.readXml(nodeDefaultStyle)
+        if not isinstance(renderer.profileStyle, PlotStyle):
+            renderer.profileStyle = default.profileStyle
 
         customStyleNodes = node.firstChildElement('custom_styles').childNodes()
         for i in range(customStyleNodes.count()):
@@ -1392,7 +1396,8 @@ class SpectralProfileRenderer(object):
         return profileStyles
 
     def clone(self):
-        return copy.deepcopy(self)
+        renderer = copy.deepcopy(self)
+        return renderer
 
     def saveToUserSettings(self):
         """
@@ -2082,7 +2087,7 @@ class SpectralLibrary(QgsVectorLayer):
 
         if isinstance(uri, str) and uri.endswith('.gpkg'):
             try:
-                return SpectralLibrary(uri=uri)
+                return SpectralLibrary(path=uri)
             except Exception as ex:
                 print(ex)
                 return None
@@ -2121,22 +2126,37 @@ class SpectralLibrary(QgsVectorLayer):
     sigProfileRendererChanged = pyqtSignal(SpectralProfileRenderer)
 
     def __init__(self,
-                 name: str = DEFAULT_NAME,
-                 uri: str = None):
+                 path: str = None,
+                 baseName: str = DEFAULT_NAME,
+                 options: QgsVectorLayer.LayerOptions = None,
+                 uri: str = None, # deprectated
+                 name: str = None # deprectated
+                 ):
 
-        if isinstance(uri, pathlib.Path):
-            uri = uri.as_posix()
-        elif uri is None:
+        if isinstance(uri, str):
+            warnings.warn('Use "path" instead "uri', DeprecationWarning)
+            if path is None:
+                path = uri
+
+        if isinstance(name, str):
+            warnings.warn('Use "baseName" instead "name', DeprecationWarning)
+            if baseName is DEFAULT_NAME:
+                baseName = name
+
+        if isinstance(path, pathlib.Path):
+            path = path.as_posix()
+
+        if path is None:
             # create a new, empty backend
             existing_vsi_files = vsiSpeclibs()
             assert isinstance(existing_vsi_files, list)
             i = 0
-            uri = pathlib.PurePosixPath(VSI_DIR) / '{}.gpkg'.format(name)
-            uri = uri.as_posix().replace('\\', '/')
-            while uri in existing_vsi_files:
+            path = pathlib.PurePosixPath(VSI_DIR) / '{}.gpkg'.format(baseName)
+            path = path.as_posix().replace('\\', '/')
+            while path in existing_vsi_files:
                 i += 1
-                uri = pathlib.PurePosixPath(VSI_DIR) / '{}{:03}.gpkg'.format(name, i)
-                uri = uri.as_posix().replace('\\', '/')
+                path = pathlib.PurePosixPath(VSI_DIR) / '{}{:03}.gpkg'.format(baseName, i)
+                path = path.as_posix().replace('\\', '/')
 
             drv = ogr.GetDriverByName('GPKG')
             missingGPKGInfo = \
@@ -2146,7 +2166,7 @@ class SpectralLibrary(QgsVectorLayer):
             assert isinstance(drv, ogr.Driver), missingGPKGInfo
 
             co = ['VERSION=AUTO']
-            dsSrc = drv.CreateDataSource(uri, options=co)
+            dsSrc = drv.CreateDataSource(path, options=co)
             assert isinstance(dsSrc, ogr.DataSource)
             srs = osr.SpatialReference()
             srs.ImportFromEPSG(SPECLIB_EPSG_CODE)
@@ -2155,7 +2175,7 @@ class SpectralLibrary(QgsVectorLayer):
                   # 'FID=fid'
                   ]
 
-            lyr = dsSrc.CreateLayer(name, srs=srs, geom_type=ogr.wkbPoint, options=co)
+            lyr = dsSrc.CreateLayer(baseName, srs=srs, geom_type=ogr.wkbPoint, options=co)
 
             assert isinstance(lyr, ogr.Layer)
             ldefn = lyr.GetLayerDefn()
@@ -2171,8 +2191,9 @@ class SpectralLibrary(QgsVectorLayer):
                 else:
                     raise rt
 
-        layer_options = QgsVectorLayer.LayerOptions(loadDefaultStyle=False, readExtentFromXml=False)
-        super(SpectralLibrary, self).__init__(uri, name, 'ogr', layer_options)
+        assert isinstance(path, str)
+        options = QgsVectorLayer.LayerOptions(loadDefaultStyle=False, readExtentFromXml=False)
+        super(SpectralLibrary, self).__init__(path, baseName, 'ogr', options)
 
         # consistency check
         field_names = self.fields().names()
@@ -2188,7 +2209,7 @@ class SpectralLibrary(QgsVectorLayer):
         self.mProfileRenderer: SpectralProfileRenderer = SpectralProfileRenderer()
         self.mProfileRenderer.setInput(self)
         self.initTableConfig()
-        self.initRenderer()
+        self.initProfileRenderer()
 
     def onCommittedFeaturesAdded(self, id, features):
 
@@ -2217,7 +2238,7 @@ class SpectralLibrary(QgsVectorLayer):
     def profileRenderer(self) -> SpectralProfileRenderer:
         return self.mProfileRenderer
 
-    def initRenderer(self):
+    def initProfileRenderer(self):
         """
         Initializes the default QgsFeatureRenderer
         """
@@ -2576,10 +2597,10 @@ class SpectralLibrary(QgsVectorLayer):
         msg = super(SpectralLibrary, self).exportNamedStyle(doc, context=context, categories=categories)
         if msg == '':
             qgsNode = doc.documentElement().toElement()
-            speclibNode = doc.createElement(XMLNODE_PROFILE_RENDERER)
+            #speclibNode = doc.createElement(XMLNODE_PROFILE_RENDERER)
             if isinstance(self.mProfileRenderer, SpectralProfileRenderer):
-                self.mProfileRenderer.writeXml(speclibNode, doc)
-            qgsNode.appendChild(speclibNode)
+                self.mProfileRenderer.writeXml(qgsNode, doc)
+            #qgsNode.appendChild(speclibNode)
 
         return msg
 
@@ -2798,7 +2819,7 @@ class SpectralLibraryConsistencyCheckTask(QgsTask):
     def run(self):
         try:
             t0 = datetime.datetime.now()
-            speclib = SpectralLibrary(uri=self.mPathSpeclib)
+            speclib = SpectralLibrary(path=self.mPathSpeclib)
             n = len(speclib)
             MISSING_FIELD_VALUE = dict()
             for i, profile in enumerate(speclib):

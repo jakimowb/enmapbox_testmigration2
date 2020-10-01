@@ -350,7 +350,7 @@ class DockLabel(pgDockLabel):
             floatButton = QToolButton(self)
             #testButton.clicked.connect(self.sigNormalClicked)
             floatButton.setToolTip('Float window')
-            floatButton.clicked.connect(lambda : self.dock.float())
+            floatButton.clicked.connect(lambda *args: self.dock.float())
             floatButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarNormalButton))
             self.mButtons.append(floatButton)
 

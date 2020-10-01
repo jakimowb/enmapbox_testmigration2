@@ -18,12 +18,13 @@
 """
 
 import os, sys, re, shutil, zipfile, datetime, pathlib
+
 os.environ['READTHEDOCS'] = 'True'
 
 DIR_ENMAPBOX_REPO = pathlib.Path(__file__).parents[1].as_posix()
 if not DIR_ENMAPBOX_REPO in sys.path:
     sys.path.append(DIR_ENMAPBOX_REPO)
-
+sys.path.append(pathlib.Path(__file__).parent.as_posix())
 from enmapbox import DIR_REPO
 from enmapbox.externals.qps.make import updateexternals
 from enmapbox.externals.qps.make.updateexternals import RemoteInfo
@@ -112,6 +113,10 @@ def updateRemotes(remoteLocations):
         remoteLocations = [remoteLocations]
     updateexternals.updateRemoteLocations(remoteLocations)
 
+    if 'qps' in remoteLocations:
+        from scripts.compile_resourcefiles import compileEnMAPBoxResources
+        compileEnMAPBoxResources()
+
 if __name__ == "__main__":
 
     import getopt
@@ -130,4 +135,7 @@ if __name__ == "__main__":
                      'enmap-box-lmu-vegetation-apps',
                     ]
     updateRemotes(to_update)
+
+
+
     exit(0)
