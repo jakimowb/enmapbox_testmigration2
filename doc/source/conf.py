@@ -16,7 +16,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os, re, datetime
+import os
+import datetime
+import pathlib
 import sys
 import mock
 import numpy as np
@@ -36,6 +38,11 @@ if True:
     for mod_name in MOCK_MODULES:
         sys.modules[mod_name] = mock.Mock()
 
+# Install and execute git-lfs
+sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../../'))
+
 if False:
     pathMockedNames = os.path.join(os.path.dirname(__file__),'mockednameslist.txt')
     print('Read mocked names list')
@@ -46,8 +53,33 @@ if False:
 
         sys.modules[l] = mock.NonCallableMagicMock()
 
-if not 'READTHEDOCS' in os.environ.keys():
+REPO_ROOT = pathlib.Path(__file__).parents[2].absolute()
+print(f'REPO ROOT={REPO_ROOT}')
+
+
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if on_rtd:
+
+    print('## Install git-lfs on read the docs')
+    lfs_zip = r'git-lfs-linux-amd64-v2.12.0.tar.gz'
+    os.system(f'wget https://github.com/git-lfs/git-lfs/releases/download/v2.12.0/{lfs_zip}')
+    os.system(f'tar xvfz {lfs_zip}')
+    print('## git-lfs installation finished')
+    #os.system(f'PATH="./gitlfs:$PATH"')
+    os.system('./git-lfs install')  # make lfs available in current repository
+    os.system('./git-lfs fetch')  # download content from remote
+    os.system('./git-lfs checkout')  # make local files to have the real content on them
+    print('## git-lfs checkout finished')
+
+    print('Fetch GIT_LFS files')
+    import git_lfs
+    git_lfs.fetch(REPO_ROOT.as_posix())
+
+
+
+if not on_rtd:
     os.environ['READTHEDOCS'] = 'True'
+
 
 autodoc_mock_imports = ['vrtbuilder',
                 'gdal','sklearn','numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate',
@@ -56,9 +88,7 @@ autodoc_mock_imports = ['vrtbuilder',
 ]
 autodoc_warningiserror = False
 
-sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../../'))
+
 
 import os, sys, re
 from PyQt5.QtGui import QImage

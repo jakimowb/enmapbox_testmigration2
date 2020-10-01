@@ -710,6 +710,35 @@ class SpectralProfile(QgsFeature):
         if isinstance(values, dict):
             self.setValues(**values)
 
+    def __add__(self, other):
+        return self._math_('__add__', other)
+
+    def __sub__(self, other):
+        return self._math_('__sub__', other)
+
+    def __truediv__(self, other):
+        return self._math_('__truediv__', other)
+
+    def __div__(self, other):
+        return self._math_('__div__', other)
+
+    def __abs__(self, other):
+        return self._math_('__abs__', other)
+
+    def __mul__(self, other):
+        return self._math_('__mul__', other)
+
+    def _math_(self, op, other):
+        sp = self.clone()
+        if isinstance(other, (int, float, np.int, np.float)):
+            yvals = [getattr(v, op)(other) for v in self.yValues()]
+
+        elif isinstance(other, SpectralProfile):
+            yvals = [getattr(v, op)(v2) for v, v2 in zip(self.yValues(), other.yValues())]
+
+        sp.setValues(self.xValues(), yvals)
+        return sp
+
     def fieldNames(self) -> typing.List[str]:
         """
         Returns all field names
@@ -1118,7 +1147,7 @@ class SpectralProfileRenderer(object):
             name='Dark',
             fg=QColor('white'),
             bg=QColor('black'),
-            ic=QColor('yellow'),
+            ic=QColor('white'),
             sc=QColor('yellow'),
             ps=ps, cs=cs, useRendererColors=False)
 
@@ -1134,7 +1163,7 @@ class SpectralProfileRenderer(object):
             name='Bright',
             fg=QColor('black'),
             bg=QColor('white'),
-            ic=QColor('red'),
+            ic=QColor('black'),
             sc=QColor('red'),
             ps=ps, cs=cs, useRendererColors=False)
 
@@ -1144,7 +1173,7 @@ class SpectralProfileRenderer(object):
                  bg: QColor = QColor('black'),
                  ps: PlotStyle = None,
                  cs: PlotStyle = None,
-                 ic: QColor = QColor('yellow'),
+                 ic: QColor = QColor('white'),
                  sc: QColor = QColor('yellow'),
                  useRendererColors: bool = True):
         """
@@ -1260,9 +1289,10 @@ class SpectralProfileRenderer(object):
         nodeName.appendChild(doc.createTextNode(self.name))
         profileRendererNode.appendChild(nodeName)
 
-        nodeDefaultStyle = doc.createElement('default_style')
-        self.profileStyle.writeXml(nodeDefaultStyle, doc)
-        profileRendererNode.appendChild(nodeDefaultStyle)
+        if isinstance(self.profileStyle, PlotStyle):
+            nodeDefaultStyle = doc.createElement('default_style')
+            self.profileStyle.writeXml(nodeDefaultStyle, doc)
+            profileRendererNode.appendChild(nodeDefaultStyle)
 
         nodeCustomStyles = doc.createElement('custom_styles')
 
@@ -1380,13 +1410,31 @@ class SpectralProfileRenderer(object):
         settings.setValue(SpectralLibrarySettingsKey.SELECTION_COLOR.name, self.selectionColor)
         settings.setValue(SpectralLibrarySettingsKey.USE_VECTOR_RENDER_COLORS.name, self.useRendererColors)
 
+    def printDifferences(self, renderer):
+        assert isinstance(renderer, SpectralProfileRenderer)
+        keys = [k for k in self.__dict__.keys()
+                if not k.startswith('_') and
+                k not in ['name', 'mInputSource']]
+
+        differences = []
+        for k in keys:
+            if self.__dict__[k] != renderer.__dict__[k]:
+                differences.append(f'{k}: {self.__dict__[k]} != {renderer.__dict__[k]}')
+        if len(differences) == 0:
+            print(f'# no differences')
+        else:
+            print(f'# {len(differences)} differences:')
+            for d in differences:
+                print(d)
+        return True
+
     def __eq__(self, other):
         if not isinstance(other, SpectralProfileRenderer):
             return False
         else:
             keys = [k for k in self.__dict__.keys()
                     if not k.startswith('_') and
-                    k not in ['name']]
+                    k not in ['name', 'mInputSource']]
 
             for k in keys:
                 if self.__dict__[k] != other.__dict__[k]:
@@ -2529,7 +2577,8 @@ class SpectralLibrary(QgsVectorLayer):
         if msg == '':
             qgsNode = doc.documentElement().toElement()
             speclibNode = doc.createElement(XMLNODE_PROFILE_RENDERER)
-            self.mProfileRenderer.writeXml(speclibNode, doc)
+            if isinstance(self.mProfileRenderer, SpectralProfileRenderer):
+                self.mProfileRenderer.writeXml(speclibNode, doc)
             qgsNode.appendChild(speclibNode)
 
         return msg

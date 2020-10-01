@@ -233,11 +233,8 @@ Each source code contribution to the central repository should include a referen
 
 An example from the source code can be found here: `enmapbox/__init__.py <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/enmapbox/__init__.py>`_
 
-.. note::
-    Todo: add PyCharm code template
-
 Images and other multimedia content from the EnMAP-Box documentation, i.e files within the EnMAP-Box repositories :code:`doc/source` folder,
-are published without copyright under the terms of the `CC0 license <https://creativecommons.org/publicdomain/zero/1.0/legalcode>`_.
+are published under the terms of the `CC0 license <https://creativecommons.org/publicdomain/zero/1.0/legalcode>`_.
 
 
 
@@ -246,7 +243,9 @@ are published without copyright under the terms of the `CC0 license <https://cre
 Contributor License Agreements (CLA)
 ------------------------------------
 
-The purpose of CLAs are to clearly define the terms under which intellectual property has been contributed to the EnMap-Box and thereby allow us to defend the project should there be a legal dispute regarding the software at some future time.
+The purpose of CLAs are to clearly define the terms under which intellectual property has been contributed to the
+EnMap-Box and thereby allow us to defend the project should there be a legal dispute regarding the software at some
+future time.
 
 .. _contribute_ICLA:
 
@@ -257,7 +256,7 @@ The EnMap-Box Consortium desires that all maintainers and contributors of ideas,
 EnMAP-Box project complete, sign, and submit an ICLA.
 
 A signed ICLA is required to be on file before an individual is given commit rights to the EnMap-Box repository.
-The ICLA form for filling and signing is available at https://www.apache.org/licenses/icla.pdf.
+The ICLA form for filling and signing is available `here <../_static/docs/20200820_individual-contributor-license-agreement_GPL3.0_EnMAP_v.1.0.pdf>`_.
 
 The ICLA is not tied to any employer, so it is recommended to use one's personal information, e.g. for email address in
 the contact details, rather than an email address provided by an employer.
@@ -275,8 +274,8 @@ Note that a CCLA does not remove the need for every developer to sign their own 
 covers both contributions which are owned and those that are not owned by the corporation signing the CCLA.
 
 The CCLA legally binds the corporation, so it must be signed by a person with authority to enter into legal
-contracts on behalf of the corporation. The CCLA form for filling and signing is available at
-http://www.apache.org/licenses/cla-corporate.pdf.
+contracts on behalf of the corporation. The CCLA form for filling and signing is available
+`here <../_static/docs/20200820_corporate-contributor-license-agreement_GPL3.0_contributoragreements_v.1.0.pdf>`_.
 
 
 .. _contribute_submit_CLAs:

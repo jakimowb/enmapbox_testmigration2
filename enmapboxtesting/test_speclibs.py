@@ -51,6 +51,24 @@ class testClassUtils(EnMAPBoxTestCase):
         s = ""
 
 
+    def test_issue515(self):
+
+        from enmapbox.gui import SpectralLibrary
+
+        from enmapbox.externals.qps.speclib import EnviSpectralLibraryIO
+        from enmapbox.externals.qps.speclib.core import SpectralLibrary
+
+        path = r'C:\Users\geo_beja\Downloads\tm7.gpkg'
+        pathDst = r'C:\Users\geo_beja\Downloads\destination.sli'
+        if os.path.isfile(path):
+            speclib = SpectralLibrary(uri=path)
+            self.assertTrue(len(speclib) > 0)
+            results = EnviSpectralLibraryIO.write(speclib=speclib, path=pathDst)
+            self.assertTrue(len(results) > 0)
+            for path in results:
+                self.assertTrue(EnviSpectralLibraryIO.canRead(path))
+
+
 
 
 if __name__ == "__main__":

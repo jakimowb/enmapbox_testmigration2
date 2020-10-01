@@ -50,8 +50,6 @@ SETTINGS = enmapbox.enmapboxSettings()
 HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
 HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
-HIDDEN_ENMAPBOX_LAYER_STATE = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_STATE'
-
 
 class EnMAPBoxDocks(enum.Enum):
     MapDock = 'MAP'
@@ -211,15 +209,19 @@ class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
             self.mCanvas.windowTitleChanged.connect(self.updateLayerTitle)
         self.updateLayerTitle()
 
-class HiddenLayerTreeGroup(QgsLayerTreeGroup):
+
+class EnMAPBoxHiddenLayerTreeGroup(QgsLayerTreeGroup):
 
     def __init__(self, name: str = HIDDEN_ENMAPBOX_LAYER_GROUP):
 
         super().__init__(name=name, checked=False)
 
+    def clone(self):
+        grp = EnMAPBoxHiddenLayerTreeGroup(name=self.name())
+        return grp
+
     def writeXml(self, *arg, **kwds):
         # do not write anything!
-        print('Do not write XML')
         pass
 
 
@@ -317,6 +319,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.mDataSourceManager.sigDataSourceAdded.connect(self.onDataSourceAdded)
         # QgsProject.instance().layersAdded.connect(self.addMapLayers)
         QgsProject.instance().layersWillBeRemoved.connect(self.onLayersWillBeRemoved)
+        QgsProject.instance().writeProject.connect(self.onWriteProject)
+        QgsProject.instance().readProject.connect(self.onReadProject)
 
         # needed to keep a reference on created LayerTreeNodes
         self._layerTreeNodes = []
@@ -421,8 +425,11 @@ class EnMAPBox(QgisInterface, QObject):
         debugLog('call QApplication.processEvents()')
         QApplication.processEvents()
 
-        debugLog('add QProject.instance()')
-        self.addProject(QgsProject.instance())
+        #debugLog('add QProject.instance()')
+        #self.addProject(QgsProject.instance())
+
+        debugLog('Load settings from QgsProject.instance()')
+        self.onReloadProject()
 
     def addMessageBarTextBoxItem(self, title: str, text: str,
             level: Qgis.MessageLevel = Qgis.Info,
@@ -513,6 +520,55 @@ class EnMAPBox(QgisInterface, QObject):
         if len(unknown) > 0:
             self.dataSourceManager().addSources(unknown)
         self.syncHiddenLayers()
+
+
+    def onReloadProject(self, *args):
+
+        proj: QgsProject = QgsProject.instance()
+        path = proj.fileName()
+        if os.path.isfile(path):
+            archive = None
+            if QgsZipUtils.isZipFile(path):
+                archive = QgsProjectArchive()
+                archive.unzip(path)
+                path = archive.projectFile()
+
+            file = QFile(path)
+
+            doc = QDomDocument('qgis')
+            doc.setContent(file)
+            self.onReadProject(doc)
+
+            if isinstance(archive, QgsProjectArchive):
+                archive.clearProjectFile()
+
+    def onWriteProject(self, dom: QDomDocument):
+
+        node = dom.createElement('ENMAPBOX')
+        root = dom.documentElement()
+
+        # save time series
+        self.timeSeries().writeXml(node, dom)
+
+        # save map views
+        self.mapWidget().writeXml(node, dom)
+        root.appendChild(node)
+
+    def onReadProject(self, doc: QDomDocument) -> bool:
+        """
+        Reads images and visualization settings from a QgsProject QDomDocument
+        :param doc: QDomDocument
+        :return: bool
+        """
+        if not isinstance(doc, QDomDocument):
+            return False
+
+        root = doc.documentElement()
+        node = root.firstChildElement('ENMAPBOX')
+        if node.nodeName() == 'ENMAPBOX':
+           pass
+
+        return True
 
     def onLayersWillBeRemoved(self, layerIDs):
         """
@@ -939,7 +995,13 @@ class EnMAPBox(QgisInterface, QObject):
         if isinstance(dock, AttributeTableDock):
             dock.attributeTableWidget.setVectorLayerTools(self.mVectorLayerTools)
 
+        if isinstance(dock, SpectralLibraryDock):
+            dock.speclibWidget().setVectorLayerTools(self.mVectorLayerTools)
+
         self.sigDockAdded.emit(dock)
+
+    def vectorLayerTools(self) -> QgsVectorLayerTools:
+        return self.mVectorLayerTools
 
     def onDockRemoved(self, dock):
         if isinstance(dock, MapDock):
@@ -1508,11 +1570,11 @@ class EnMAPBox(QgisInterface, QObject):
         root: QgsLayerTreeGroup = ltv.model().rootGroup()
         grp = root.findGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
 
-        if not isinstance(grp, HiddenLayerTreeGroup):
-            assert not isinstance(self._layerTreeGroup, QgsLayerTreeGroup)
+        if not isinstance(grp, EnMAPBoxHiddenLayerTreeGroup):
+            # assert not isinstance(self._layerTreeGroup, QgsLayerTreeGroup)
             enmapbox.debugLog('CREATE HIDDEN LAYER GROUP')
             #print('CREATE HIDDEN LAYER GROUP')
-            grp: HiddenLayerTreeGroup = HiddenLayerTreeGroup()
+            grp: EnMAPBoxHiddenLayerTreeGroup = EnMAPBoxHiddenLayerTreeGroup()
             root.addChildNode(grp)
             self._layerTreeGroup = grp
 
@@ -1593,7 +1655,7 @@ class EnMAPBox(QgisInterface, QObject):
             scope = 'HU-Berlin'
             key = 'EnMAP-Box'
 
-            s = ""
+            self.onReloadProject()
 
     def actionAddRasterLayer(self):
         return self.ui.mActionAddDataSource

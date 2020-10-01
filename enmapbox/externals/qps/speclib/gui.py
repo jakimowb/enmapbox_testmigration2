@@ -24,14 +24,16 @@
 ***************************************************************************
 """
 import sip
+import textwrap
 from .core import *
 import collections
 from ..externals.pyqtgraph import PlotItem, PlotWindow, PlotCurveItem
 from ..externals.pyqtgraph.functions import mkPen
 from ..externals import pyqtgraph as pg
+from ..externals.pyqtgraph.graphicsItems.ViewBox.ViewBoxMenu import ViewBoxMenu
 from ..externals.pyqtgraph.graphicsItems.PlotDataItem import PlotDataItem
 from ..layerproperties import AttributeTableWidget
-
+from ..unitmodel import UnitModel, BAND_INDEX, XUnitModel, UnitConverterFunctionModel
 
 from ..models import Option, OptionListModel
 from ..plotstyling.plotstyling import PlotStyleWidget, PlotStyle, PlotStyleDialog
@@ -46,134 +48,8 @@ from qgis.gui import \
     QgsActionMenu, QgsEditorWidgetFactory, QgsStatusBar, \
     QgsDualView, QgsGui, QgisInterface, QgsMapCanvas, QgsDockWidget, QgsEditorConfigWidget
 
-BAND_INDEX = 'Band Index'
+
 SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY: None
-
-
-class UnitConverterFunctionModel(object):
-
-    def __init__(self):
-
-        # look-up table with functions to conver from unit1 to unit2, with unit1 != unit2 and
-        # unit1 != None and unit2 != None
-        self.mLUT = dict()
-
-        self.func_return_band_index = lambda v, *args: np.arange(len(v))
-        self.func_return_none = lambda v, *args: None
-        self.func_return_same = lambda v, *args: v
-        self.func_return_decimalyear = lambda v, *args: UnitLookup.convertDateUnit(v, 'DecimalYear')
-
-        # metric units
-        for u1, e1 in METRIC_EXPONENTS.items():
-            for u2, e2 in METRIC_EXPONENTS.items():
-                key = (u1, u2)
-                if key not in self.mLUT.keys():
-                    if u1 != u2:
-                        self.mLUT[key] = lambda v, *args, k1=u1, k2=u2: UnitLookup.convertMetricUnit(v, k1, k2)
-
-        # time units
-        # convert between DecimalYear and DateTime stamp
-        self.mLUT[('DecimalYear', 'DateTime')] = lambda v, *args: datetime64(v)
-        self.mLUT[('DateTime', 'DecimalYear')] = lambda v, *args: UnitLookup.convertDateUnit(v, 'DecimalYear')
-
-        # convert to DOY (reversed operation is not possible)
-        self.mLUT[('DecimalYear', 'DOY')] = lambda v, *args: UnitLookup.convertDateUnit(v, 'DOY')
-        self.mLUT[('DateTime', 'DOY')] = lambda v, *args: UnitLookup.convertDateUnit(v, 'DOY')
-
-    def convertFunction(self, unitSrc: str, unitDst: str):
-        if unitDst == BAND_INDEX:
-            return self.func_return_band_index
-        unitSrc = UnitLookup.baseUnit(unitSrc)
-        unitDst = UnitLookup.baseUnit(unitDst)
-        if unitSrc is None or unitDst is None:
-            return self.func_return_none
-        if unitSrc == unitDst:
-            return self.func_return_same
-        key = (unitSrc, unitDst)
-        if key not in self.mLUT.keys():
-            s = ""
-        return self.mLUT.get((unitSrc, unitDst), self.func_return_none)
-
-
-class UnitModel(QAbstractListModel):
-
-    def __init__(self, *args, **kwds):
-        super().__init__(*args, **kwds)
-
-        self.mUnits = []
-        self.mDescription = dict()
-        self.mToolTips = dict()
-
-    def rowCount(self, parent=None, *args, **kwargs):
-        return len(self.mUnits)
-
-    def findUnit(self, value: str) -> str:
-        """
-        Returns a matching unit string, e.g. nm for Nanometers
-        :param value:
-        :return:
-        """
-        if not isinstance(value, str):
-            return None
-
-        if value in self.mUnits:
-            return value
-
-        value = value.lower()
-        for u, v in self.mDescription.items():
-            if v.lower() == value:
-                return u
-
-        for u, v in self.mToolTips.items():
-            if v.lower() == value:
-                return u
-
-    def addUnit(self, unit: str, description: str = None, tooltip: str = None):
-
-        if unit not in self.mUnits:
-
-            r = len(self.mUnits)
-            self.beginInsertRows(QModelIndex(), r, r)
-            self.mUnits.append(unit)
-            if isinstance(description, str):
-                self.mDescription[unit] = description
-            if isinstance(tooltip, str):
-                self.mToolTips[unit] = tooltip
-
-            self.endInsertRows()
-
-    def data(self, index: QModelIndex, role=None):
-        if not index.isValid():
-            return None
-
-        unit = self.mUnits[index.row()]
-
-        if role == Qt.DisplayRole:
-            return self.mDescription.get(unit, unit)
-        if role == Qt.ToolTipRole:
-            return self.mToolTips.get(unit, unit)
-        if role == Qt.UserRole:
-            return unit
-
-
-class XUnitModel(UnitModel):
-
-    def __init__(self, *args, **kwds):
-        super().__init__(*args, **kwds)
-
-        self.addUnit(BAND_INDEX, description=BAND_INDEX)
-        for u in ['Nanometers',
-                  'Micrometers',
-                  'Millimeters',
-                  'Meters',
-                  'Kilometers']:
-            baseUnit = UnitLookup.baseUnit(u)
-            assert isinstance(baseUnit, str), u
-            self.addUnit(baseUnit, description='{} [{}]'.format(u, baseUnit))
-
-        self.addUnit('DateTime', description='Date')
-        self.addUnit('DecimalYear', description='Date [Decimal Year]')
-        self.addUnit('DOY', description='Day of Year [DOY]')
 
 
 class SpectralXAxis(pg.AxisItem):
@@ -252,12 +128,7 @@ class SpectralLibraryPlotItem(pg.PlotItem):
 
             for item in items:
                 self.itemMeta[item] = kargs.get('params', {})
-            # item.setMeta(params)
             self.curves.extend(items)
-            # self.addItem(c)
-
-        # if hasattr(item, 'setLogMode'):
-        #    item.setLogMode(self.ctrl.logXCheck.isChecked(), self.ctrl.logYCheck.isChecked())
 
         if isinstance(refItem, PlotDataItem):
             ## configure curve for this plot
@@ -278,23 +149,16 @@ class SpectralLibraryPlotItem(pg.PlotItem):
             if self.ctrl.averageGroup.isChecked() and 'skipAverage' not in kargs:
                 self.addAvgCurve(item)
 
-            # c.connect(c, QtCore.SIGNAL('plotChanged'), self.plotChanged)
-            # item.sigPlotChanged.connect(self.plotChanged)
-            # self.plotChanged()
-        # name = kargs.get('name', getattr(item, 'opts', {}).get('name', None))
-        # if name is not None and hasattr(self, 'legend') and self.legend is not None:
-        #    self.legend.addItem(item, name=name)
 
-
-class SpectralLibraryPlotColorSchemeWidget(QWidget):
+class SpectralProfileRendererWidget(QWidget):
     sigProfileRendererChanged = pyqtSignal(SpectralProfileRenderer)
 
     def __init__(self, *args, **kwds):
-        super(SpectralLibraryPlotColorSchemeWidget, self).__init__(*args, **kwds)
-        path_ui = speclibUiPath('spectrallibraryplotcolorschemewidget.ui')
+        super().__init__(*args, **kwds)
+        path_ui = speclibUiPath('spectralprofilerendererwidget.ui')
         loadUi(path_ui, self)
 
-        self.mBlocked = False
+        self.mBlocked: bool = False
 
         self.mLastRenderer: SpectralProfileRenderer = None
 
@@ -302,7 +166,9 @@ class SpectralLibraryPlotColorSchemeWidget(QWidget):
         self.btnColorForeground.colorChanged.connect(self.onProfileRendererChanged)
         self.btnColorInfo.colorChanged.connect(self.onProfileRendererChanged)
         self.btnColorSelection.colorChanged.connect(self.onProfileRendererChanged)
-        self.cbUseRendererColors.clicked.connect(self.onCbUseRendererColorsClicked)
+
+        self.optionUseColorsFromVectorRenderer.toggled.connect(self.onUseColorsFromVectorRendererChanged)
+        self.btnUseColorsFromVectorRenderer.setDefaultAction(self.optionUseColorsFromVectorRenderer)
 
         self.wDefaultProfileStyle.setPreviewVisible(False)
         self.wDefaultProfileStyle.cbIsVisible.setVisible(False)
@@ -310,14 +176,25 @@ class SpectralLibraryPlotColorSchemeWidget(QWidget):
         self.wDefaultProfileStyle.setMinimumSize(self.wDefaultProfileStyle.sizeHint())
         self.btnReset.setDisabled(True)
         self.btnReset.clicked.connect(lambda: self.setProfileRenderer(self.mLastRenderer))
-        self.btnColorSchemeBright.clicked.connect(lambda: self.setProfileRenderer(SpectralProfileRenderer.bright()))
-        self.btnColorSchemeDark.clicked.connect(lambda: self.setProfileRenderer(SpectralProfileRenderer.dark()))
 
-    def onCbUseRendererColorsClicked(self, checked: bool):
+        self.btnColorSchemeBright.setDefaultAction(self.actionActivateBrightTheme)
+        self.btnColorSchemeDark.setDefaultAction(self.actionActivateDarkTheme)
+        self.actionActivateBrightTheme.triggered.connect(lambda: self.setRendererTheme(SpectralProfileRenderer.bright()))
+        self.actionActivateDarkTheme.triggered.connect(lambda: self.setRendererTheme(SpectralProfileRenderer.dark()))
+
+    def onUseColorsFromVectorRendererChanged(self, checked: bool):
         self.onProfileRendererChanged()
-        w = self.wDefaultProfileStyle
+        w: PlotStyleWidget = self.wDefaultProfileStyle
         assert isinstance(w, PlotStyleWidget)
         w.btnLinePenColor.setDisabled(checked)
+        w.btnMarkerBrushColor.setDisabled(checked)
+        w.btnMarkerPenColor.setDisabled(checked)
+
+    def setRendererTheme(self, profileRenderer: SpectralProfileRenderer):
+        profileRenderer = profileRenderer.clone()
+        # do not overwrite the following settings:
+        profileRenderer.useRendererColors = self.optionUseColorsFromVectorRenderer.isChecked()
+        self.setProfileRenderer(profileRenderer)
 
     def setProfileRenderer(self, profileRenderer: SpectralProfileRenderer):
         assert isinstance(profileRenderer, SpectralProfileRenderer)
@@ -335,8 +212,7 @@ class SpectralLibraryPlotColorSchemeWidget(QWidget):
         self.btnColorInfo.setColor(profileRenderer.infoColor)
         self.btnColorSelection.setColor(profileRenderer.selectionColor)
         self.wDefaultProfileStyle.setPlotStyle(profileRenderer.profileStyle)
-        self.cbUseRendererColors.setChecked(profileRenderer.useRendererColors)
-
+        self.optionUseColorsFromVectorRenderer.setChecked(profileRenderer.useRendererColors)
         self.mBlocked = False
         if changed:
             self.sigProfileRendererChanged.emit(self.spectralProfileRenderer())
@@ -357,7 +233,7 @@ class SpectralLibraryPlotColorSchemeWidget(QWidget):
         cs.profileStyle = self.wDefaultProfileStyle.plotStyle()
         if isinstance(self.mLastRenderer, SpectralProfileRenderer):
             cs.temporaryProfileStyle = self.mLastRenderer.temporaryProfileStyle.clone()
-        cs.useRendererColors = self.cbUseRendererColors.isChecked()
+        cs.useRendererColors = self.optionUseColorsFromVectorRenderer.isChecked()
         return cs
 
 
@@ -636,132 +512,185 @@ class SpectralProfilePlotDataItem(PlotDataItem):
         return self.menu
 
 
+class XAxisWidgetAction(QWidgetAction):
+
+    sigUnitChanged = pyqtSignal(str)
+
+    def __init__(self, parent, **kwds):
+        super().__init__(parent)
+
+        self.mUnitModel: XUnitModel = XUnitModel()
+        self.mUnit: str = BAND_INDEX
+
+    def unitModel(self) -> XUnitModel:
+        return self.mUnitModel
+
+    def setUnit(self, unit: str):
+        unit = self.mUnitModel.findUnit(unit)
+
+        if isinstance(unit, str) and self.mUnit != unit:
+            self.mUnit = unit
+            self.sigUnitChanged.emit(unit)
+
+    def unit(self) -> str:
+        return self.mUnit
+
+    def unitData(self, unit: str, role=Qt.DisplayRole) -> str:
+        return self.mUnitModel.unitData(unit, role)
+
+    def createUnitComboBox(self) -> QComboBox:
+        unitComboBox = QComboBox()
+        unitComboBox.setModel(self.mUnitModel)
+        unitComboBox.setCurrentIndex(self.mUnitModel.unitIndex(self.unit()).row())
+        unitComboBox.currentIndexChanged.connect(
+            lambda: self.setUnit(unitComboBox.currentData(Qt.UserRole))
+        )
+
+        self.sigUnitChanged.connect(lambda unit, cb=unitComboBox: cb.setCurrentIndex(self.mUnitModel.unitIndex(unit).row()))
+        return unitComboBox
+
+    def createWidget(self, parent: QWidget) -> QWidget:
+        # define the widget to set X-Axis options
+        frame = QFrame(parent)
+        l = QGridLayout()
+        frame.setLayout(l)
+
+        mCBXAxisUnit = self.createUnitComboBox()
+
+        l.addWidget(QLabel('Unit'), 2, 0)
+        l.addWidget(mCBXAxisUnit, 2, 1)
+        l.setMargin(0)
+        l.setSpacing(6)
+        frame.setMinimumSize(l.sizeHint())
+        return frame
+
+
+class SpectralProfileRendererWidgetAction(QWidgetAction):
+
+    sigProfileRendererChanged = pyqtSignal(SpectralProfileRenderer)
+
+    def __init__(self, parent, **kwds):
+        super().__init__(parent)
+        self.mProfileRenderer: SpectralProfileRenderer = SpectralProfileRenderer.default()
+
+    def setProfileRenderer(self, profileRenderer: SpectralProfileRenderer):
+        if self.mProfileRenderer != profileRenderer:
+            # print(self.mProfileRenderer.printDifferences(profileRenderer))
+            self.mProfileRenderer = profileRenderer
+            self.sigProfileRendererChanged.emit(profileRenderer)
+
+    def profileRenderer(self) -> SpectralProfileRenderer:
+        return self.mProfileRenderer
+
+    def createWidget(self, parent: QWidget) -> SpectralProfileRendererWidget:
+
+        w = SpectralProfileRendererWidget(parent)
+        w.setProfileRenderer(self.profileRenderer())
+        w.sigProfileRendererChanged.connect(self.setProfileRenderer)
+        self.sigProfileRendererChanged.connect(w.setProfileRenderer)
+        return w
+
+
+class MaxNumberOfProfilesWidgetAction(QWidgetAction):
+
+    sigMaxNumberOfProfilesChanged = pyqtSignal(int)
+
+    def __init__(self, parent, **kwds):
+        super().__init__(parent)
+        self.mNProfiles = 64
+
+    def createWidget(self, parent: QWidget):
+        l = QGridLayout()
+        self.sbMaxProfiles = QSpinBox()
+        self.sbMaxProfiles.setToolTip('Maximum number of profiles to plot.')
+        self.sbMaxProfiles.setRange(0, np.iinfo(np.int16).max)
+        self.sbMaxProfiles.setValue(self.maxProfiles())
+        self.sbMaxProfiles.valueChanged[int].connect(self.setMaxProfiles)
+
+        l.addWidget(QLabel('Max. Profiles'), 0, 0)
+        l.addWidget(self.sbMaxProfiles, 0, 1)
+        frame = QFrame(parent)
+        frame.setLayout(l)
+        return frame
+
+    def setMaxProfiles(self, n: int):
+        assert isinstance(n, int) and n >= 0
+        if n != self.mNProfiles:
+            self.mNProfiles = n
+            self.sigMaxNumberOfProfilesChanged.emit(n)
+
+    def maxProfiles(self) -> int:
+        return self.mNProfiles
+
+
+class SpectralViewBoxMenu(ViewBoxMenu):
+    """
+    The QMenu that is shown over the profile plot
+    """
+    def __init__(self, *args, **kwds):
+
+        super().__init__(*args, **kwds)
+
+
 class SpectralViewBox(pg.ViewBox):
     """
-    Subclass of ViewBox
+    Subclass of PyQgtGraph ViewBox
+
     """
-    sigProfileRendererChanged = pyqtSignal(SpectralProfileRenderer)
-    sigMaxNumberOfProfilesChanged = pyqtSignal(int)
 
     def __init__(self, parent=None):
         """
         Constructor of the CustomViewBox
         """
-        super(SpectralViewBox, self).__init__(parent)
-        # self.menu = None # Override pyqtgraph ViewBoxMenu
-        # self.menu = self.getMenu() # Create the menu
-        # self.menu = None
+        super().__init__(parent, enableMenu=False)
 
-        xAction = [a for a in self.menu.actions() if a.text() == 'X Axis'][0]
-        yAction = [a for a in self.menu.actions() if a.text() == 'Y Axis'][0]
+        self.mCurrentCursorPosition: typing.Tuple[int, int] = (0, 0)
+        # define actions
+        self.mActionMaxNumberOfProfiles: MaxNumberOfProfilesWidgetAction = MaxNumberOfProfilesWidgetAction(None)
+        self.mActionSpectralProfileRendering: SpectralProfileRendererWidgetAction = SpectralProfileRendererWidgetAction(None)
+        self.mActionSpectralProfileRendering.setDefaultWidget(self.mActionSpectralProfileRendering.createWidget(None))
+        self.mOptionUseVectorSymbology: QAction = self.mActionSpectralProfileRendering.defaultWidget().optionUseColorsFromVectorRenderer
+        self.mActionXAxis: XAxisWidgetAction = XAxisWidgetAction(None)
 
-        self.cbXAxisUnits = QComboBox(parent)
-
-        # profile settings
-        menuProfiles = self.menu.addMenu('Profiles')
-        l = QGridLayout()
-        self.sbMaxProfiles = QSpinBox(parent)
-        self.sbMaxProfiles.setToolTip('Maximum number of profiles to plot.')
-        self.sbMaxProfiles.setRange(0, np.iinfo(np.int16).max)
-        self.sbMaxProfiles.setValue(64)
-        self.sbMaxProfiles.valueChanged[int].connect(self.sigMaxNumberOfProfilesChanged)
-        l.addWidget(QLabel('Max.'), 0, 0)
-        l.addWidget(self.sbMaxProfiles, 0, 1)
-        frame = QFrame()
-        frame.setLayout(l)
-        wa = QWidgetAction(menuProfiles)
-        wa.setDefaultWidget(frame)
-        menuProfiles.addAction(wa)
-        self.mActionShowSelectedProfilesOnly = menuProfiles.addAction('Selected Only')
+        self.mActionShowSelectedProfilesOnly: QAction = QAction('Show Selected Profiles Only', None)
+        self.mActionShowSelectedProfilesOnly.setToolTip('Activate to show selected profiles only, '
+                                                        'e.g. those selected in the attribute table')
         self.mActionShowSelectedProfilesOnly.setCheckable(True)
 
-        # color settings
-        menuColors = self.menu.addMenu('Colors')
-        wa = QWidgetAction(menuColors)
-        self.wColorScheme = SpectralLibraryPlotColorSchemeWidget(parent)
-        self.wColorScheme.sigProfileRendererChanged.connect(self.sigProfileRendererChanged.emit)
-        wa.setDefaultWidget(self.wColorScheme)
-        menuColors.addAction(wa)
-
-        menuXAxis = self.menu.addMenu('X Axis')
-
-        # define the widget to set X-Axis options
-        frame = QFrame()
-        l = QGridLayout()
-        frame.setLayout(l)
-        self.rbXManualRange = QRadioButton('Manual')
-        self.rbXAutoRange = QRadioButton('Auto')
-        self.rbXAutoRange.setChecked(True)
-
-        l.addWidget(self.rbXManualRange, 0, 0)
-        l.addWidget(self.rbXAutoRange, 1, 0)
-
-        self.mCBXAxisUnit = QComboBox()
-        self.mCBXAxisUnitModel: XUnitModel = XUnitModel()
-        self.mCBXAxisUnit.setModel(self.mCBXAxisUnitModel)
-        # self.mCBXAxisUnit.currentIndexChanged.connect(
-        #    lambda: self.sigXUnitChanged.emit(self.mCBXAxisUnit.currentData(Qt.UserRole)))
-
-        l.addWidget(QLabel('Unit'), 2, 0)
-        l.addWidget(self.mCBXAxisUnit, 2, 1)
-
-        self.mXAxisUnit = 'index'
-
-        l.setMargin(1)
-        l.setSpacing(1)
-        frame.setMinimumSize(l.sizeHint())
-        wa = QWidgetAction(menuXAxis)
-        wa.setDefaultWidget(frame)
-        menuXAxis.addAction(wa)
-
-        self.menu.insertMenu(xAction, menuXAxis)
-        self.menu.removeAction(xAction)
-
-        self.mActionShowCrosshair = self.menu.addAction('Show Crosshair')
+        self.mActionShowCrosshair: QAction = QAction('Show Crosshair', None)
+        self.mActionShowCrosshair.setToolTip('Activate to show a crosshair')
         self.mActionShowCrosshair.setCheckable(True)
         self.mActionShowCrosshair.setChecked(True)
 
-        self.mActionShowCursorValues = self.menu.addAction('Show Mouse values')
+        self.mActionShowCursorValues: QAction = QAction('Show Mouse values', None)
+        self.mActionShowCursorValues.setToolTip('Activate to show the values related to the cursor position.')
         self.mActionShowCursorValues.setCheckable(True)
         self.mActionShowCursorValues.setChecked(True)
 
+        # create menu
+        menu = SpectralViewBoxMenu(self)
+
+        widgetXAxis: QWidget = menu.widgetGroups[0]
+        widgetYAxis: QWidget = menu.widgetGroups[1]
+        cbXUnit = self.mActionXAxis.createUnitComboBox()
+        grid: QGridLayout = widgetXAxis.layout()
+        grid.addWidget(QLabel('Unit:'), 0, 0, 1, 1)
+        grid.addWidget(cbXUnit, 0, 2, 1, 2)
+
+        menuProfileRendering = menu.addMenu('Colors')
+        menuProfileRendering.addAction(self.mActionSpectralProfileRendering)
+
+        menuOtherSettings = menu.addMenu('Others')
+        menuOtherSettings.addAction(self.mActionMaxNumberOfProfiles)
+        menuOtherSettings.addAction(self.mActionShowSelectedProfilesOnly)
+        menuOtherSettings.addAction(self.mActionShowCrosshair)
+        menuOtherSettings.addAction(self.mActionShowCursorValues)
+
+        self.menu: SpectralViewBoxMenu = menu
+        self.state['enableMenu'] = True
+
     def raiseContextMenu(self, ev):
-        self.mLastColorScheme = self.profileRenderer()
         super(SpectralViewBox, self).raiseContextMenu(ev)
-
-    def setProfileRenderer(self, profileRenderer: SpectralProfileRenderer):
-        assert isinstance(profileRenderer, SpectralProfileRenderer)
-
-        self.wColorScheme.setProfileRenderer(profileRenderer)
-
-    def profileRenderer(self) -> SpectralProfileRenderer:
-        """
-        Returns the color scheme
-        """
-        return self.wColorScheme.spectralProfileRenderer()
-
-    def setXAxisUnit(self, unit: str):
-        """
-        Sets the X axis unit.
-        :param unit: str, metric unit like `nm` or `Nanometers`.
-        """
-        i = self.mCBXAxisUnit.findText(unit)
-        if i == -1:
-            units = self.mCBXAxisUnit.model().mUnits
-            baseUnit = UnitLookup.baseUnit(unit)
-            if baseUnit in units:
-                i = units.index(baseUnit)
-        if i == -1:
-            i = 0
-        if i != self.mCBXAxisUnit.currentIndex():
-            self.mCBXAxisUnit.setCurrentIndex(i)
-
-    def xAxisUnit(self) -> str:
-        """
-        Returns unit of X-Axis values
-        :return: str
-        """
-        return self.mCBXAxisUnit.currentData(Qt.UserRole)
 
     def addItems(self, pdis: list, ignoreBounds=False):
         """
@@ -782,9 +711,7 @@ class SpectralViewBox(pg.ViewBox):
         # self.updateAutoRange()
 
     def updateCurrentPosition(self, x, y):
-        self.mCurrentPosition = (x, y)
-        pass
-
+        self.mCurrentCursorPosition = (x, y)
 
 
 
@@ -805,28 +732,21 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             , viewBox=mViewBox
         )
 
-        super(SpectralLibraryPlotWidget, self).__init__(parent, plotItem=plotItem)
+        super().__init__(parent, plotItem=plotItem)
 
         self.mSelectedIds = set()
         self.mXAxisUnitInitialized: bool = False
-        self.mViewBox = mViewBox
+        self.mViewBox: SpectralViewBox = mViewBox
         self.setMaxProfiles(64)
-        self.mViewBox.sigProfileRendererChanged.connect(self.setProfileRenderer)
-        self.mViewBox.sigMaxNumberOfProfilesChanged.connect(self.setMaxProfiles)
         self.mDualView = None
+
+        self.mMaxInfoLength: int = 30
 
         # self.centralWidget.setParent(None)
         # self.centralWidget = None
         self.setCentralWidget(plotItem)
 
         self.plotItem: SpectralLibraryPlotItem
-        # self.plotItem = plotItem
-        # for m in ['addItem', 'removeItem', 'autoRange', 'clear', 'setXRange',
-        #          'setYRange', 'setRange', 'setAspectLocked', 'setMouseEnabled',
-        #          'setXLink', 'setYLink', 'enableAutoRange', 'disableAutoRange',
-        #          'setLimits', 'register', 'unregister', 'viewRect']:
-        #    setattr(self, m, getattr(self.plotItem, m))
-        # QtCore.QObject.connect(self.plotItem, QtCore.SIGNAL('viewChanged'), self.viewChanged)
         self.plotItem.sigRangeChanged.connect(self.viewRangeChanged)
 
         pi = self.getPlotItem()
@@ -859,7 +779,10 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         self.mInfoScatterPoint = pg.ScatterPlotItem()
         self.mInfoScatterPoint.sigClicked.connect(self.onInfoScatterClicked)
         self.mInfoScatterPoint.setZValue(9999999)
-        self.mInfoScatterPointText = ""
+        self.mInfoScatterPoint.setBrush(QColor('red'))
+
+        self.mInfoScatterPointHtml: str = ""
+
         self.mCrosshairLineH.pen.setWidth(2)
         self.mCrosshairLineV.pen.setWidth(2)
         self.mCrosshairLineH.setZValue(9999999)
@@ -873,12 +796,13 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         pi.addItem(self.mCrosshairLineH, ignoreBounds=True)
         pi.addItem(self.mInfoScatterPoint)
         self.proxy2D = pg.SignalProxy(self.scene().sigMouseMoved, rateLimit=100, slot=self.onMouseMoved2D)
+        #self.proxy2D2 = pg.SignalProxy(self.scene().sigMouseClicked, rateLimit=100, slot=self.onMouseClicked)
 
         # set default axis unit
         self.updateXUnit()
         self.setYLabel('Y (Spectral Value)')
 
-        self.mViewBox.mCBXAxisUnit.currentIndexChanged.connect(self.updateXUnit)
+        self.actionXAxis().sigUnitChanged.connect(self.updateXUnit)
         self.mSPECIFIC_PROFILE_STYLES: typing.Dict[int, PlotStyle] = dict()
         self.mTEMPORARY_HIGHLIGHTED: typing.Set[int] = set()
         self.mDefaultProfileRenderer: SpectralProfileRenderer
@@ -890,13 +814,15 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         self.mUpdateTimer.timeout.connect(self.updatePlot)
         self.mUpdateTimer.start()
 
+        self.actionSpectralProfileRendering().sigProfileRendererChanged.connect(self.setProfileRenderer)
+        self.actionProfileSettings().sigMaxNumberOfProfilesChanged.connect(self.updatePlot)
+
         self.setProfileRenderer(self.mDefaultProfileRenderer)
         self.setAcceptDrops(True)
-        #self.setDragMode(QGraphicsView.ScrollHandDrag)
 
     def onInfoScatterClicked(self, a, b):
         self.mInfoScatterPoint.setVisible(False)
-        self.mInfoScatterPointText = ""
+        self.mInfoScatterPointHtml = ""
 
     def setUpdateInterval(self, msec: int):
         """
@@ -925,7 +851,6 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             profileRenderer = copy.copy(profileRenderer)
             profileRenderer.setInput(self.speclib())
             self.speclib().setProfileRenderer(profileRenderer)
-            s = ""
 
     def updatePlot(self, *args):
         try:
@@ -953,6 +878,24 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         if ev.exit:
             self.mouseHovering = False
 
+    def updatePositionInfo(self):
+        x, y = self.viewBox().mCurrentCursorPosition
+        positionInfoHtml = '<html><body>'
+        if self.mXAxis.mUnit == 'DateTime':
+            positionInfoHtml += 'x:{}\ny:{:0.5f}'.format(datetime64(x), y)
+        elif self.mXAxis.mUnit == 'DOY':
+            positionInfoHtml += 'x:{}\ny:{:0.5f}'.format(int(x), y)
+        else:
+            positionInfoHtml += 'x:{:0.5f}\ny:{:0.5f}'.format(x, y)
+
+        positionInfoHtml += '<br/>' + self.mInfoScatterPointHtml
+        positionInfoHtml += '</body></html>'
+        self.mInfoLabelCursor.setHtml(positionInfoHtml)
+
+    def onMouseClicked(self, event):
+        #print(event[0].accepted)
+        s = ""
+
     def onMouseMoved2D(self, evt):
         pos = evt[0]  ## using signal proxy turns original arguments into a tuple
 
@@ -965,31 +908,21 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             x = mousePoint.x()
             y = mousePoint.y()
 
+            vb.updateCurrentPosition(x, y)
+
             nearest_item = None
             nearest_index = -1
             nearest_distance = sys.float_info.max
             sx, sy = self.mInfoScatterPoint.getData()
 
-            if self.mXAxis.mUnit == 'DateTime':
-                positionInfo = 'x:{}\ny:{:0.5f}'.format(datetime64(x), y)
-
-            elif self.mXAxis.mUnit == 'DOY':
-                positionInfo = 'x:{}\ny:{:0.5f}'.format(int(x), y)
-            else:
-                positionInfo = 'x:{:0.5f}\ny:{:0.5f}'.format(x, y)
-
-            positionInfo += '\n' + self.mInfoScatterPointText
-
-            vb.updateCurrentPosition(x, y)
-
-            self.mInfoLabelCursor.setText(positionInfo)
+            self.updatePositionInfo()
 
             s = self.size()
             pos = QPointF(s.width(), 0)
-            self.mInfoLabelCursor.setVisible(vb.mActionShowCursorValues.isChecked())
+            self.mInfoLabelCursor.setVisible(self.actionShowCursorValues().isChecked())
             self.mInfoLabelCursor.setPos(pos)
 
-            b = vb.mActionShowCrosshair.isChecked()
+            b = self.actionShowCrosshair().isChecked()
             self.mCrosshairLineH.setVisible(b)
             self.mCrosshairLineV.setVisible(b)
             self.mCrosshairLineV.setPos(mousePoint.x())
@@ -999,6 +932,27 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             self.mCrosshairLineH.setVisible(False)
             self.mCrosshairLineV.setVisible(False)
             self.mInfoLabelCursor.setVisible(False)
+
+    def actionSpectralProfileRendering(self) -> SpectralProfileRendererWidgetAction:
+        return self.viewBox().mActionSpectralProfileRendering
+
+    def optionUseVectorSymbology(self) -> QAction:
+        return self.viewBox().mOptionUseVectorSymbology
+
+    def actionProfileSettings(self) -> MaxNumberOfProfilesWidgetAction:
+        return self.viewBox().mActionMaxNumberOfProfiles
+
+    def actionXAxis(self) -> XAxisWidgetAction:
+        return self.viewBox().mActionXAxis
+
+    def actionShowCursorValues(self) -> QAction:
+        return self.viewBox().mActionShowCursorValues
+
+    def actionShowCrosshair(self) -> QAction:
+        return self.viewBox().mActionShowCrosshair
+
+    def actionShowSelectedProfilesOnly(self) -> QAction:
+        return self.viewBox().mActionShowSelectedProfilesOnly
 
     def setPlotOverlayItems(self, items):
         """
@@ -1099,11 +1053,10 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         :param n: maximum number of profiles visualized
         :type n: int
         """
-        assert n >= 0
-        self.mViewBox.sbMaxProfiles.setValue(n)
+        self.actionProfileSettings().setMaxProfiles(n)
 
     def maxProfiles(self) -> int:
-        return self.mViewBox.sbMaxProfiles.value()
+        return self.actionProfileSettings().maxProfiles()
 
     def setSpeclib(self, speclib: SpectralLibrary):
         """
@@ -1211,6 +1164,7 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         Updates all SpectralProfilePlotDataItems
         """
         profileRenderer: SpectralProfileRenderer = self.profileRenderer()
+        self.actionSpectralProfileRendering().setProfileRenderer(profileRenderer)
         # set Background color
         self.setBackground(profileRenderer.backgroundColor)
 
@@ -1232,7 +1186,7 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         self.mCrosshairLineV.pen.setColor(profileRenderer.infoColor)
 
         # update viewbox context menu and
-        self.viewBox().setProfileRenderer(profileRenderer)
+        self.actionSpectralProfileRendering().setProfileRenderer(profileRenderer)
 
         self.updateProfileStyles()
 
@@ -1281,14 +1235,17 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         :param unit: str, e.g. `nanometers`
         """
         # unit = UnitLookup.baseUnit(unit)
-        self.mViewBox.setXAxisUnit(unit)
+        self.actionXAxis().setUnit(unit)
 
     def xUnit(self) -> str:
         """
         Returns the unit to be shown on x-axis
         :return: str
         """
-        return self.mViewBox.xAxisUnit()
+        return self.actionXAxis().unit()
+
+    def xAxisUnitModel(self) -> XUnitModel:
+        return self.actionXAxis().unitModel()
 
     def allPlotDataItems(self) -> typing.List[PlotDataItem]:
         """
@@ -1305,8 +1262,10 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
         return [pdi for pdi in self.allPlotDataItems() if isinstance(pdi, SpectralProfilePlotDataItem)]
 
     def updateXUnit(self):
-        unit = self.mViewBox.mCBXAxisUnit.currentData(Qt.UserRole)
-        label = self.mViewBox.mCBXAxisUnit.currentData(Qt.DisplayRole)
+
+
+        unit = self.xUnit()
+        label = self.xAxisUnitModel().unitData(unit, role=Qt.DisplayRole)
 
         # update axis label
         if unit in UnitLookup.metric_units():
@@ -1427,8 +1386,6 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             pdi.setZValue(z)
             pdi.updateItems()
 
-
-
     def onProfileClicked(self, fid: int, data: dict):
         """
         Slot to react to mouse-clicks on SpectralProfilePlotDataItems
@@ -1446,16 +1403,20 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             if isinstance(pdi, SpectralProfilePlotDataItem):
                 profile: SpectralProfile = pdi.spectralProfile()
                 if isinstance(profile, SpectralProfile):
-                    self.mInfoScatterPointText = f'FID:{fid} Bnd:{b}' + \
-                                                 f'\nx:{x}\ny:{y}\n' + \
-                                                 f'{profile.name()}'
-
+                    ptColor: QColor = self.mInfoScatterPoint.opts['brush'].color()
+                    self.mInfoScatterPointHtml = f'<span style="color:{ptColor.name()}">' + \
+                                                 f'FID:{fid} Bnd:{b}<br/>' + \
+                                                 f'x:{x}\ny:{y}<br/>' + \
+                                                 textwrap.shorten(profile.name(),
+                                                                  width=self.mMaxInfoLength,
+                                                                  placeholder='...') + \
+                                                 f'</span>'
+            else:
+                s = ""
             self.mInfoScatterPoint.setData(x=[x],
                                            y=[y],
-                                           symbol='o',
-                                           brush=QColor('red'))
+                                           symbol='o')
             self.mInfoScatterPoint.setVisible(True)
-            self.mInfoScatterPoint.update()
 
         else:
 
@@ -1473,6 +1434,7 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
 
                 speclib.selectByIds(fids)
 
+        self.updatePositionInfo()
 
     def setYLabel(self, label: str):
         """
@@ -1533,7 +1495,7 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
             return []
 
         nMax = len(self.speclib())
-        selectedOnly = self.viewBox().mActionShowSelectedProfilesOnly.isChecked()
+        selectedOnly = self.actionShowSelectedProfilesOnly().isChecked()
         selectedIds = self.speclib().selectedFeatureIds()
 
         allIDs = self.speclib().allFeatureIds()
@@ -2150,7 +2112,21 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.tableView().willShowContextMenu.connect(self.onWillShowContextMenuAttributeTable)
         self.mMainView.showContextMenuExternally.connect(self.onShowContextMenuAttributeEditor)
 
+        self.mPlotWidget: SpectralLibraryPlotWidget = SpectralLibraryPlotWidget()
+        assert isinstance(self.mPlotWidget, SpectralLibraryPlotWidget)
+        self.mPlotWidget.setDualView(self.mMainView)
+        self.mStatusLabel.setPlotWidget(self.mPlotWidget)
+        self.mPlotWidget.mUpdateTimer.timeout.connect(self.mStatusLabel.update)
+
+        l = QVBoxLayout()
+        l.addWidget(self.mPlotWidget)
+        l.setContentsMargins(0, 0, 0, 0)
+        l.setSpacing(0)
+        self.widgetRight.setLayout(l)
+        self.widgetRight.setVisible(True)
+
         # define Actions and Options
+
         self.actionSelectProfilesFromMap = QAction(r'Select Profiles from Map')
         self.actionSelectProfilesFromMap.setToolTip(r'Select new profile from map')
         self.actionSelectProfilesFromMap.setIcon(QIcon(':/qps/ui/icons/profile_identify.svg'))
@@ -2208,6 +2184,12 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.tbSpeclibAction.addAction(self.actionAddProfiles)
         self.tbSpeclibAction.addAction(self.actionImportSpeclib)
         self.tbSpeclibAction.addAction(self.actionExportSpeclib)
+
+        self.tbSpeclibAction.addSeparator()
+        self.cbXAxisUnit = self.plotWidget().actionXAxis().createUnitComboBox()
+        self.tbSpeclibAction.addWidget(self.cbXAxisUnit)
+        self.tbSpeclibAction.addAction(self.plotWidget().optionUseVectorSymbology())
+
         self.insertToolBar(self.mToolbar, self.tbSpeclibAction)
 
         self.actionShowProperties = QAction('Show Spectral Library Poperties')
@@ -2221,19 +2203,6 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
         self.centerBottomLayout.insertWidget(self.centerBottomLayout.indexOf(self.mAttributeViewButton),
                                              self.btnShowProperties)
-
-        self.mPlotWidget: SpectralLibraryPlotWidget = SpectralLibraryPlotWidget()
-        assert isinstance(self.mPlotWidget, SpectralLibraryPlotWidget)
-        self.mPlotWidget.setDualView(self.mMainView)
-        self.mStatusLabel.setPlotWidget(self.mPlotWidget)
-        self.mPlotWidget.mUpdateTimer.timeout.connect(self.mStatusLabel.update)
-
-        l = QVBoxLayout()
-        l.addWidget(self.mPlotWidget)
-        l.setContentsMargins(0, 0, 0, 0)
-        l.setSpacing(0)
-        self.widgetRight.setLayout(l)
-        self.widgetRight.setVisible(True)
 
         self.setAcceptDrops(True)
 
@@ -2320,7 +2289,6 @@ class SpectralLibraryWidget(AttributeTableWidget):
         for iface in self.mSpeclibIOInterfaces:
             assert isinstance(iface, AbstractSpectralLibraryIO)
             iface.addExportActions(self.speclib(), menu)
-
 
     def plotWidget(self) -> SpectralLibraryPlotWidget:
         return self.mPlotWidget

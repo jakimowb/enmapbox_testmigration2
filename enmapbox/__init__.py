@@ -99,7 +99,7 @@ def icon() -> QIcon:
 
 def debugLog(msg: str):
     if DEBUG:
-        print('DEBUG:'+msg, flush=True)
+        print('DEBUG:' + msg, flush=True)
 
 def messageLog(msg, level=Qgis.Info):
     """

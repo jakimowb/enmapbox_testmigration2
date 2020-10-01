@@ -138,7 +138,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         log = QgsApplication.instance().messageLog()
 
         from enmapbox import messageLog
-        messageLog('EnMAPBox TEST STARTED', Qgis.Info)
+        #messageLog('EnMAPBox TEST STARTED', Qgis.Info)
         s = ""
 
         self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
@@ -153,8 +153,12 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertTrue(len(QgsProject.instance().mapLayers()) > 0)
         canvases = EMB.mapCanvases()
         self.assertTrue(canvases[-1] == EMB.currentMapCanvas())
+
         import qgis.utils
+        QgsProject.instance()
+        qgis.utils.iface.actionSaveProject().trigger()
         self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
+
 
     def test_Qgis(self):
 

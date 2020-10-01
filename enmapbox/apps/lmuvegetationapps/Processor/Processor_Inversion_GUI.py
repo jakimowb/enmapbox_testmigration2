@@ -72,6 +72,15 @@ class MLInversion:
 
         self.conversion_factor = None  # convert spectral image (boost) to reach the same scale as the machines
 
+        # Initial Model is set to EnMAP as default
+        self.model_meta_file = os.path.join(APP_DIR, 'Resources/Processor/EnMAP.meta')
+        meta_dict = self._get_processor_meta(file=self.model_meta_file)
+        if not meta_dict:
+            return
+        self.model_name = os.path.splitext(os.path.basename(self.model_meta_file))[0]
+        # The name of the meta-file == name of the model
+        self.gui.lblModel.setText(os.path.splitdrive(self.model_meta_file)[0] + "\\...\\" + self.model_name + ".meta")
+
     def connections(self):
         # Model Selection
         self.gui.cmdModel.clicked.connect(lambda: self.open_file(mode="model"))

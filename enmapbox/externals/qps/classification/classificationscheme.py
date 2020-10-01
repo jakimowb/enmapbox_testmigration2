@@ -1124,16 +1124,20 @@ class ClassificationScheme(QAbstractTableModel):
         :return: ClassificationScheme, None if classes are undefined.
         """
         assert isinstance(band, gdal.Band)
-        cat = band.GetCategoryNames()
         ct = band.GetColorTable()
-        if cat is None or len(cat) == 0:
+        cat = band.GetCategoryNames()
+        if not isinstance(cat, list) or len(cat) == 0:
             return None
         scheme = ClassificationScheme()
         classes = []
         for i, catName in enumerate(cat):
             classInfo: ClassInfo = ClassInfo(name=catName, label=i)
+            NULL = QVariant()
             if ct is not None:
-                classInfo.setColor(QColor(*ct.GetColorEntry(i)))
+                gdal_color = ct.GetColorEntry(i)
+                if gdal_color in [None, NULL]:
+                    gdal_color = (0, 0, 0, 0)
+                classInfo.setColor(QColor(*gdal_color))
             classes.append(classInfo)
 
         if len(classes) == 0:
@@ -1878,11 +1882,77 @@ class ClassificationSchemeEditorConfigWidget(QgsEditorConfigWidget):
     def __init__(self, vl: QgsVectorLayer, fieldIdx: int, parent: QWidget):
         super(ClassificationSchemeEditorConfigWidget, self).__init__(vl, fieldIdx, parent)
         # self.setupUi(self)
+        assert isinstance(vl, QgsVectorLayer)
         self.mSchemeWidget = ClassificationSchemeWidget(parent=self)
-        self.mSchemeWidget.sigValuesChanged.connect(self.changed)
+        self.mSchemeWidget.classificationScheme().sigClassesAdded.connect(self.onClassesAdded)
+        self.mSchemeWidget.classificationScheme().sigClassesRemoved.connect(self.onClassesRemoved)
+
+        self.mActionImport = QAction('Import from layer')
+        self.mActionImport.setIcon(QIcon(':/qps/ui/icons/import_symbology.svg'))
+        self.mActionImport.triggered.connect(self.onImportFromLayer)
+
+        self.mActionExport = QAction('Set to layer')
+        self.mActionExport.triggered.connect(self.onExportToLayer)
+        self.mActionExport.setIcon(QIcon(':/qps/ui/icons/export_symbology.svg'))
+
+        self.btnImport = QToolButton(parent=self.mSchemeWidget)
+        self.btnExport = QToolButton(parent=self.mSchemeWidget)
+        self.btnImport.setDefaultAction(self.mActionImport)
+        self.btnExport.setDefaultAction(self.mActionExport)
+        self.btnImport.setAutoRaise(True)
+        self.btnExport.setAutoRaise(True)
+
+        l: QVBoxLayout = self.mSchemeWidget.btnBarLayout
+        l.addWidget(self.btnImport)
+        l.addWidget(self.btnExport)
+
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(self.mSchemeWidget)
+        vl.rendererChanged.connect(self.updateButtons)
         self.mLastConfig = {}
+
+    def onImportFromLayer(self):
+
+        lyr: QgsVectorLayer = self.layer()
+
+        if isinstance(lyr, QgsVectorLayer):
+            r = lyr.renderer()
+            if isinstance(r, QgsCategorizedSymbolRenderer):
+                cs = ClassificationScheme.fromFeatureRenderer(r)
+                if len(cs) > 0:
+                    self.classificationScheme().clear()
+                    self.classificationScheme().insertClasses(cs[:])
+
+    def onExportToLayer(self):
+        cs = self.classificationScheme()
+        if isinstance(cs, ClassificationScheme) and len(cs) > 0:
+            renderer = cs.featureRenderer()
+            renderer.setClassAttribute(self.layer().fields().at(self.field()).name())
+
+            self.layer().setRenderer(renderer)
+
+    def onClassesAdded(self):
+        self.updateButtons()
+
+    def onClassesRemoved(self):
+        self.updateButtons()
+
+    def classificationScheme(self) -> ClassificationScheme:
+        return self.mSchemeWidget.classificationScheme()
+
+    def updateButtons(self):
+
+        self.mActionExport.setEnabled(len(self.classificationScheme()) > 0)
+        lyr: QgsVectorLayer = self.layer()
+
+        has_classes = False
+        if isinstance(lyr, QgsVectorLayer):
+            r = lyr.renderer()
+            if isinstance(r, QgsCategorizedSymbolRenderer):
+                has_classes = r.classAttribute() in self.layer().fields().names()
+
+        self.mActionImport.setEnabled(has_classes)
+
 
     def config(self, *args, **kwargs) -> dict:
         return classSchemeToConfig(self.mSchemeWidget.classificationScheme())
