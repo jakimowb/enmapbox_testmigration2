@@ -658,17 +658,34 @@ class EnMAPBox(QgisInterface, QObject):
     def removeMapLayer(self, layer: QgsMapLayer, remove_from_project: bool = True):
         self.removeMapLayers([layer], remove_from_project=remove_from_project)
 
+    def findGroupLayerIds(self, root: QgsLayerTreeGroup = None, exclude: typing.List[QgsLayerTreeGroup]=[]):
+        if root is None:
+            ltv = qgis.utils.iface.layerTreeView()
+            assert isinstance(ltv, QgsLayerTreeView)
+            root: QgsLayerTreeGroup = ltv.model().rootGroup()
+
+
     def removeMapLayers(self, layers: typing.List[QgsMapLayer], remove_from_project=True):
         """
         Removes layers from the EnMAP-Box
         """
+        grp = self.hiddenLayerGroup()
+        enmapboxLayerIdsBefore = grp.findLayerIds()
+
+        removedIds = [l.id() for l in layers]
+
         layersDS = self.dataSourceManager().mapLayers()
         layersTM = self.dockManagerTreeModel().mapLayers()
         layers = [l for l in layers if isinstance(l, QgsMapLayer) and l in layersDS + layersTM]
         self.syncHiddenLayers()
 
+        ltv = qgis.utils.iface.layerTreeView()
+        assert isinstance(ltv, QgsLayerTreeView)
+        root: QgsLayerTreeGroup = ltv.model().rootGroup()
+        remainingQgisLayerIDs = root.findLayerIds()
         if remove_from_project:
-            QgsProject.instance().removeMapLayers([l.id() for l in layers])
+
+            QgsProject.instance().removeMapLayers([lid for lid in removedIds if lid not in remainingQgisLayerIDs])
 
     def updateCurrentLayerActions(self, *args):
         """
@@ -1332,7 +1349,6 @@ class EnMAPBox(QgisInterface, QObject):
         # finally, remove related map layers
         if isinstance(dataSource, DataSourceSpatial):
             self.removeMapLayer(dataSource.mapLayer())
-            QgsProject.instance().removeMapLayer(dataSource.mapLayerId())
         self.syncHiddenLayers()
 
     def onDataSourceAdded(self, dataSource: DataSource):
