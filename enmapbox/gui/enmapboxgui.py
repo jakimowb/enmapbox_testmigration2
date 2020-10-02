@@ -46,10 +46,11 @@ from ..externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
 from enmapbox.gui.spectralprofilesources import SpectralProfileSourcePanel, SpectralProfileBridge, SpectralProfileSource
 
-SETTINGS = enmapbox.enmapboxSettings()
-HIDE_SPLASHSCREEN = SETTINGS.value('EMB_SPLASHSCREEN', False)
 
 HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
+
+MAX_MISSING_DEPENDENCY_WARNINGS = 3
+KEY_MISSING_DEPENDENCY_VERSION = 'MISSING_PACKAGE_WARNING_VERSION'
 
 class EnMAPBoxDocks(enum.Enum):
     MapDock = 'MAP'
@@ -269,8 +270,10 @@ class EnMAPBox(QgisInterface, QObject):
             load_other_apps: bool = True):
         assert EnMAPBox.instance() is None, 'EnMAPBox already started. Call EnMAPBox.instance() to get a handle to.'
 
+        settings = self.settings()
+
         splash = EnMAPBoxSplashScreen(parent=None)
-        if not HIDE_SPLASHSCREEN:
+        if not str(settings.value('EMB_SPLASHSCREEN', True)).lower() in ['0','false']:
             splash.show()
 
         splash.showMessage('Load UI')
@@ -397,27 +400,37 @@ class EnMAPBox(QgisInterface, QObject):
 
         from ..dependencycheck import requiredPackages
 
-        n_warnings = 3
+        KEY_CNT = 'MISSING_PACKAGE_WARNING_COUNT'
+        if settings.value(KEY_MISSING_DEPENDENCY_VERSION, None) != self.version():
+            # re-count with each new version
+            settings.setValue(KEY_MISSING_DEPENDENCY_VERSION, self.version())
+            settings.setValue(KEY_CNT, 0)
 
         if len([p for p in requiredPackages() if not p.isInstalled()]) > 0:
 
-            # taken from qgsmessagebar.cpp
-            # void QgsMessageBar::pushMessage( const QString &title, const QString &text, const QString &showMore, Qgis::MessageLevel level, int duration )
+            n_warnings: int = int(settings.value(KEY_CNT, 0))
+            if n_warnings < MAX_MISSING_DEPENDENCY_WARNINGS:
 
-            title = 'Missing Python Package(s)!'
+                # taken from qgsmessagebar.cpp
+                # void QgsMessageBar::pushMessage( const QString &title, const QString &text, const QString &showMore, Qgis::MessageLevel level, int duration )
 
-            a = QAction('Install missing')
-            btn = QToolButton()
-            btn.setStyleSheet("background-color: rgba(255, 255, 255, 0); color: black; text-decoration: underline;")
-            btn.setCursor(Qt.PointingHandCursor)
-            btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
-            btn.addAction(a)
-            btn.setDefaultAction(a)
-            btn.triggered.connect(self.showPackageInstaller)
-            btn.triggered.connect(btn.deleteLater)
-            self.__btn = btn
-            item = QgsMessageBarItem(title, '', btn, Qgis.Warning, 200)
-            self.messageBar().pushItem(item)
+                title = 'Missing Python Package(s)!'
+
+                a = QAction('Install missing')
+                btn = QToolButton()
+                btn.setStyleSheet("background-color: rgba(255, 255, 255, 0); color: black; text-decoration: underline;")
+                btn.setCursor(Qt.PointingHandCursor)
+                btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
+                btn.addAction(a)
+                btn.setDefaultAction(a)
+                btn.triggered.connect(self.showPackageInstaller)
+                btn.triggered.connect(btn.deleteLater)
+                self.__btn = btn
+                item = QgsMessageBarItem(title, '', btn, Qgis.Warning, 200)
+                self.messageBar().pushItem(item)
+
+                n_warnings += 1
+                settings.setValue(KEY_CNT, n_warnings)
 
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
@@ -1146,21 +1159,47 @@ class EnMAPBox(QgisInterface, QObject):
 
         errorApps = [app for app, v in self.applicationRegistry.mAppInitializationMessages.items()
                      if v is not True]
+        settings = self.settings()
+
+        KEY_COUNTS = 'APP_ERROR_COUNTS'
+        if settings.value(KEY_MISSING_DEPENDENCY_VERSION, None) != self.version():
+            settings.setValue(KEY_COUNTS, {})
+
+        counts = settings.value(KEY_COUNTS, {})
 
         if len(errorApps) > 0:
             title = 'EnMAPBoxApplication error(s)'
             info = [title + ':']
+            to_remove = [app for app in counts.keys() if app not in errorApps]
+            for app in to_remove:
+                counts.pop(app)
+
             for app in errorApps:
+
                 v = self.applicationRegistry.mAppInitializationMessages[app]
-                info.append(r'</br><b>{}:</b>'.format(app))
-                info.append('<p>')
-                if v == False:
-                    info.append(r'"{}" did not return any EnMAPBoxApplication\n'.format(v))
-                elif isinstance(v, str):
-                    info.append('<code>{}</code>'.format(v.replace('\n', '<br />\n')))
-                info.append('</p>')
+
+                n_counts = counts.get(app, 0)
+                if n_counts < MAX_MISSING_DEPENDENCY_WARNINGS:
+
+                    info.append(r'</br><b>{}:</b>'.format(app))
+                    info.append('<p>')
+                    if v == False:
+                        info.append(r'"{}" did not return any EnMAPBoxApplication\n'.format(v))
+                    elif isinstance(v, str):
+                        info.append('<code>{}</code>'.format(v.replace('\n', '<br />\n')))
+                    info.append('</p>')
+                    counts[app] = n_counts +1
+
             self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Warning, html=True)
-        s = ""
+
+        settings.setValue(KEY_COUNTS, counts)
+
+    def settings(self) -> QSettings:
+        """
+        Returns the EnMAP-Box user settings
+        """
+        from enmapbox import enmapboxSettings
+        return enmapboxSettings()
 
     def exit(self):
         """Closes the EnMAP-Box"""

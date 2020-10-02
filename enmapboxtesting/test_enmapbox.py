@@ -135,11 +135,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(EMB, EnMAPBox.instance())
-        log = QgsApplication.instance().messageLog()
-
-        from enmapbox import messageLog
-        #messageLog('EnMAPBox TEST STARTED', Qgis.Info)
-        s = ""
 
         self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
 
