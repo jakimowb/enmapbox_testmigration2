@@ -6,10 +6,10 @@ import xmlrunner
 from osgeo import gdal, ogr, osr
 from qgis.core import *
 from qgis.core import QgsApplication, QgsDataItemProvider, QgsDataCollectionItem, QgsDataItem, \
-    QgsRasterLayer, QgsVectorLayer
+    QgsRasterLayer, QgsVectorLayer, QgsProject
 
 from qgis.gui import *
-from qgis.gui import QgsBrowserGuiModel
+from qgis.gui import QgsBrowserGuiModel, QgsBrowserTreeView, QgsBrowserDockWidget
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *

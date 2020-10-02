@@ -635,13 +635,11 @@ class standardDataSources(EnMAPBoxTestCase):
         Tests to load serialized hubflow objects
         """
 
-        from enmapbox.gui.utils import jp, mkdir
         from enmapbox import DIR_REPO
         from enmapbox.gui.datasources import HubFlowDataSource
 
-        dirTmp = jp(DIR_REPO, 'tmp')
-        mkdir(dirTmp)
 
+        dirTmp = self.createTestOutputDirectory() / 'hubflowtypetest'
         from hubflow.testdata import outdir
         print(outdir)
 

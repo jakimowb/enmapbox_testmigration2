@@ -18,7 +18,6 @@ import unittest, shutil, tempfile, pathlib, gc
 from collections import namedtuple
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 
-
 from enmapbox import EnMAPBox, DIR_ENMAPBOX, DIR_REPO
 import enmapbox.gui
 from enmapbox.gui.applications import *
@@ -47,8 +46,8 @@ class test_applications(EnMAPBoxTestCase):
         :return: (path folder, filelist_abs, filelist_rel)
         """
 
-        TESTDATA = namedtuple('TestData', ['validAppDirs','invalidAppDirs','appDirs', 'pathListingAbs','pathListingRel'])
-
+        TESTDATA = namedtuple('TestData',
+                              ['validAppDirs', 'invalidAppDirs', 'appDirs', 'pathListingAbs', 'pathListingRel'])
 
         if os.path.isdir(DIR_TMP):
             shutil.rmtree(DIR_TMP)
@@ -57,18 +56,17 @@ class test_applications(EnMAPBoxTestCase):
         TESTDATA.invalidAppDirs = []
         TESTDATA.validAppDirs = []
 
-        #1. valid app 1
+        # 1. valid app 1
         pAppDir = os.path.join(DIR_REPO, *['examples', 'minimumexample'])
 
         TESTDATA.validAppDirs.append(pAppDir)
 
-
-        #2. no app 1: empty directory
+        # 2. no app 1: empty directory
         pAppDir = os.path.join(DIR_TMP, 'NoApp1')
         os.makedirs(pAppDir)
         TESTDATA.invalidAppDirs.append(pAppDir)
 
-        #3. no app 2: __init__ without factory
+        # 3. no app 2: __init__ without factory
 
         pAppDir = os.path.join(DIR_TMP, 'NoApp2')
         os.makedirs(pAppDir)
@@ -82,22 +80,18 @@ class test_applications(EnMAPBoxTestCase):
         TESTDATA.pathListingAbs = os.path.join(DIR_TMP, 'application_abs.txt')
         f = open(TESTDATA.pathListingAbs, 'w')
         for p in TESTDATA.invalidAppDirs + TESTDATA.validAppDirs:
-            f.write(p+'\n')
+            f.write(p + '\n')
         f.flush()
         f.close()
 
         TESTDATA.pathListingRel = os.path.join(DIR_TMP, 'application_rel.txt')
         f = open(TESTDATA.pathListingRel, 'w')
         for p in TESTDATA.invalidAppDirs + TESTDATA.validAppDirs:
-            f.write(os.path.relpath(p, DIR_TMP)+'\n')
+            f.write(os.path.relpath(p, DIR_TMP) + '\n')
         f.flush()
         f.close()
 
-
-
-
         return TESTDATA
-
 
     def test_application(self):
         EB = EnMAPBox()
@@ -110,7 +104,7 @@ class test_applications(EnMAPBoxTestCase):
         self.assertIsInstance(emptyApp.processingAlgorithms(), list)
         self.assertEqual(len(emptyApp.processingAlgorithms()), 0)
         self.assertEqual(emptyApp.menu(QMenu), None)
-        
+
         testApp = TestObjects.enmapboxApplication()
 
         isOk, errors = EnMAPBoxApplication.checkRequirements(testApp)
@@ -121,7 +115,6 @@ class test_applications(EnMAPBoxTestCase):
         self.assertTrue(len(testApp.processingAlgorithms()) > 0)
         self.assertIsInstance(testApp.menu(QMenu()), QMenu)
 
-
     def test_applicationRegistry(self):
         TESTDATA = self.createTestData()
 
@@ -131,7 +124,7 @@ class test_applications(EnMAPBoxTestCase):
         testApp = TestObjects.enmapboxApplication()
         self.assertIsInstance(reg.applications(), list)
         self.assertTrue(len(reg.applications()) == 0)
-        
+
         app = TestObjects.enmapboxApplication()
         self.assertIsInstance(app, EnMAPBoxApplication)
         reg.addApplication(app)
@@ -143,7 +136,8 @@ class test_applications(EnMAPBoxTestCase):
 
         app2 = TestObjects.enmapboxApplication()
         reg.addApplication(app2)
-        self.assertTrue(len(reg.applications()) == 1, msg='Applications with same name are not allowed to be added twice')
+        self.assertTrue(len(reg.applications()) == 1,
+                        msg='Applications with same name are not allowed to be added twice')
 
         app2.name = 'TestApp2'
         reg.addApplication(app2)
@@ -152,7 +146,7 @@ class test_applications(EnMAPBoxTestCase):
         reg.removeApplication(app2)
         self.assertTrue(len(reg.applications()) == 1, msg='Unable to remove application')
 
-        #load a folder
+        # load a folder
         reg = ApplicationRegistry(EB)
         for d in TESTDATA.validAppDirs:
             self.assertTrue(reg.addApplicationFolder(d), msg='added {} returned False'.format(d))
@@ -166,7 +160,6 @@ class test_applications(EnMAPBoxTestCase):
         reg = ApplicationRegistry(EB)
         reg.addApplicationListing(TESTDATA.pathListingAbs)
         self.assertEqual(len(reg), len(TESTDATA.validAppDirs))
-
 
         reg = ApplicationRegistry(EB)
         reg.addApplicationListing(TESTDATA.pathListingRel)
@@ -187,11 +180,10 @@ class test_applications(EnMAPBoxTestCase):
 
     def test_IVVM(self):
 
-        from lmuvegetationapps.IVVRM_GUI import MainUiFunc
+        from lmuvegetationapps.IVVRM.IVVRM_GUI import MainUiFunc
         m = MainUiFunc()
 
         self.showGui(m)
-
 
     def test_deployed_apps(self):
 
@@ -213,8 +205,6 @@ class test_applications(EnMAPBoxTestCase):
             if d.is_dir():
                 externalAppDirs.append(d.path)
 
-
-
         print('Load APP(s) from {}...'.format(pathExternalApps))
         for d in coreAppDirs + externalAppDirs:
             n1 = len(reg)
@@ -233,7 +223,6 @@ class test_applications(EnMAPBoxTestCase):
 
     def test_enmapbox_start(self):
 
-
         timer = QTimer()
         timer.timeout.connect(self.closeBlockingDialogs)
         timer.start(1000)
@@ -242,7 +231,6 @@ class test_applications(EnMAPBoxTestCase):
 
         titles = [m.title() for m in EB.ui.menuBar().children() if isinstance(m, QMenu)]
         print('Menu titles: {}'.format(','.join(titles)))
-
 
         # calls all QMenu actions
         def triggerActions(menuItem, prefix=''):
@@ -256,7 +244,6 @@ class test_applications(EnMAPBoxTestCase):
                     QApplication.processEvents()
 
         for title in ['Tools', 'Applications']:
-
             print('## TEST QMenu "{}"'.format(title))
 
             triggerActions(EB.menu(title))

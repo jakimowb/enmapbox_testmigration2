@@ -11,7 +11,7 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 
 from qgis.PyQt.QtWidgets import *
-import gdal
+
 from enmapbox.gui import *
 from enmapbox.gui.utils import enmapboxUiPath
 from enmapbox.gui.datasources import DataSourceRaster
