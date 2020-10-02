@@ -12,8 +12,7 @@ byte order = 0
 band names = {
 Band 1}
 spectra names = {
- Sentinel-2A - Band B1, Sentinel-2A - Band B2, Sentinel-2A - Band B3, Sentinel-2A - Band B8, 
- Sentinel-2A - Band B9, Sentinel-2A - Band B10}
+ Blue, Green, Red, NIR, SWIR-1, SWIR-2}
 wavelength = {
  300.0, 301.0, 302.0, 303.0, 304.0, 305.0, 306.0, 307.0, 308.0, 309.0, 310.0, 
  311.0, 312.0, 313.0, 314.0, 315.0, 316.0, 317.0, 318.0, 319.0, 320.0, 321.0, 

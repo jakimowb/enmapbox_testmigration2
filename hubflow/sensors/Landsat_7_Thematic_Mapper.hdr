@@ -1,6 +1,4 @@
 ENVI
-description = {
-SpectralLibrary #1}
 samples = 2002
 lines   = 7
 bands   = 1
@@ -12,7 +10,7 @@ byte order = 0
 band names = {
 Band 1}
 spectra names = {
- TM7 Band 1, TM7 Band 2, TM7 Band 3, TM7 Band 4, TM7 Band 5, TM7 Band 7, TM7 Band 8
+ Blue, Green, Red, NIR, SWIR-1, SWIR-2, Pan
  }
 wavelength = {
  0.41, 0.411, 0.412, 0.413, 0.414, 0.415, 0.416, 0.417, 0.418, 0.419, 0.42, 

@@ -1,6 +1,4 @@
 ENVI
-description = {
-SpectralLibrary #1}
 samples = 2301
 lines   = 13
 bands   = 1
