@@ -34,7 +34,7 @@ from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, Q
 
 from qgis.gui import *
 from qgis.gui import QgsLayerTreeView, \
-    QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget
+    QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget, QgsMessageBar
 
 from hubdsm.core.category import Category  # needed for eval
 from hubdsm.core.color import Color  # needed for eval
@@ -1278,6 +1278,10 @@ class DockManager(QObject):
         self.mCurrentDockArea = None
         self.mDocks = list()
         self.mDataSourceManager = None
+        self.mMessageBar: QgsMessageBar = None
+
+    def setMessageBar(self, messageBar: QgsMessageBar):
+        self.mMessageBar = messageBar
 
     def connectDataSourceManager(self, dataSourceManager:DataSourceManager):
         assert isinstance(dataSourceManager, DataSourceManager)
@@ -1286,7 +1290,6 @@ class DockManager(QObject):
 
     def dataSourceManager(self)->DataSourceManager:
         return self.mDataSourceManager
-
 
     def mapDocks(self)->typing.List[SpectralLibraryDock]:
         return [d for d in self if isinstance(d, MapDock)]
@@ -1472,13 +1475,16 @@ class DockManager(QObject):
                 kwds['name'] = speclib.name()
             dock = SpectralLibraryDock(*args, **kwds)
             dock.speclib().willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
+            if isinstance(self.mMessageBar, QgsMessageBar):
+                dock.mSpeclibWidget.setMainMessageBar(self.mMessageBar)
 
         elif cls == AttributeTableDock:
             layer = kwds.pop('layer')
             assert isinstance(layer, QgsVectorLayer), 'QgsVectorLayer "layer" is not defined'
             dock = AttributeTableDock(layer, *args, **kwds)
             layer.willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
-
+            if isinstance(self.mMessageBar, QgsMessageBar):
+                dock.attributeTableWidget.setMainMessageBar(self.mMessageBar)
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
 

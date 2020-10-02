@@ -330,6 +330,7 @@ class EnMAPBox(QgisInterface, QObject):
         self._layerTreeGroup: QgsLayerTreeGroup = None
 
         self.mDockManager = DockManager()
+        self.mDockManager.setMessageBar(self.messageBar())
         self.mDockManager.connectDataSourceManager(self.mDataSourceManager)
         self.mDockManager.connectDockArea(self.ui.dockArea)
         self.ui.dataSourcePanel.connectDataSourceManager(self.mDataSourceManager)
