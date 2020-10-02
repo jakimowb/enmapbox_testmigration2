@@ -1,0 +1,31 @@
+Gruppe,Basename,Gewicht,Beschreibung
+3,group300015,35,Esche LAI 5
+3,group300020,25,Erle LAI 5
+3,group300025,5,offener Boden
+3,group300002,30,Brennessel LAI 3
+3,group300028,2.5,Totholz trocken
+3,group300031,2.5,trockene Veg.
+3,group300026,2.5,Totholz morsch
+3,group300029,2.5,Laub
+4,group400003,18,
+4,group400012,12,
+4,group400017,42,
+4,group400022,6,
+4,group400031,10,
+4,group400034,10,
+4,group400040,2,
+2,group200002,30,Brennnessel (3 Blattschichten)
+2,group200009,55,Esche (5 Blattschichten)
+2,group200038,7,Rinde (Esche)
+2,group200034,2,offener Boden (feucht)
+2,group200027,4,abgestorbenes Gras
+2,group200029,2,Totholz
+1,group100018,2,
+1,group100021,19,
+1,group100016,34,
+1,group100013,3,
+1,group100042,1,
+1,group100044,1,
+1,group100031,10,
+1,group100040,6,
+1,group100003,27,
