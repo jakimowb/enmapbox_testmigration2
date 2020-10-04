@@ -663,15 +663,18 @@ class standardDataSources(EnMAPBoxTestCase):
 
     def test_issue_478(self):
         # https://bitbucket.org/hu-geomatics/enmap-box/issues/478/visualization-of-single-band-fails
+        # test if sources can be opened in a new map
         EB = EnMAPBox(load_core_apps=False, load_other_apps=False)
         from enmapboxtestdata import enmap
+        from enmapbox.testing import TestObjects
         from enmapbox.gui.datasourcemanager import DataSourceTreeView, DataSourceManagerTreeModel
         EB.addSource(enmap)
-
+        wms = TestObjects.uriWMS()
+        EB.addSource(wms)
         tv = EB.dataSourceTreeView()
         self.assertIsInstance(tv, DataSourceTreeView)
-        src = EB.dataSourceManager().sources('RASTER')[0]
-        tv.openInMap(src, rgb=[0])
+        for src in EB.dataSourceManager().sources('RASTER'):
+            tv.openInMap(src, rgb=[0])
 
         self.showGui(EB.ui)
 

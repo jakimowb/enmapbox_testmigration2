@@ -23,7 +23,7 @@ import inspect, pickle, json
 from qgis.core import \
     QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsCoordinateReferenceSystem, \
     QgsRasterRenderer, QgsProject, QgsUnitTypes, QgsWkbTypes, \
-    QgsLayerTreeGroup, QgsLayerTreeLayer
+    QgsLayerTreeGroup, QgsLayerTreeLayer, QgsRasterDataProvider, Qgis
 from qgis.gui import \
     QgisInterface, QgsMapCanvas
 
@@ -1249,7 +1249,9 @@ class DataSourceTreeView(TreeView):
         lyr = dataSource.createUnregisteredMapLayer()
 
         from enmapbox.gui.utils import bandClosestToWavelength, defaultBands
-        if isinstance(lyr, QgsRasterLayer):
+        if isinstance(lyr, QgsRasterLayer) \
+                and isinstance(lyr.dataProvider(), QgsRasterDataProvider) \
+                and lyr.dataProvider().name() == 'gdal':
             r = lyr.renderer()
             if isinstance(r, QgsRasterRenderer):
                 bandIndices: typing.List[int] = None

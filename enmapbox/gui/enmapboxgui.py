@@ -369,6 +369,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.mVectorLayerTools.sigZoomRequest.connect(self.zoomToExtent)
         self.mVectorLayerTools.sigPanRequest.connect(self.panToPoint)
 
+
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
         # load EnMAP-Box applications
@@ -2221,7 +2222,8 @@ class EnMAPBox(QgisInterface, QObject):
         canvas = self.currentMapCanvas()
 
         if isinstance(lyr, QgsVectorLayer) and lyr.selectedFeatureCount() > 0 and isinstance(canvas, QgsMapCanvas):
-            s = ""
+            #todo: implement zoom to selected
+            pass
 
         pass
 
