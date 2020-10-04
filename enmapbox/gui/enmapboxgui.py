@@ -2234,6 +2234,7 @@ class EnMAPBox(QgisInterface, QObject):
             ext = extent.toCrs(canvas.mapSettings().destinationCrs())
             if isinstance(ext, SpatialExtent):
                 canvas.setExtent(ext)
+                canvas.refresh()
 
     def panToPoint(self, point: SpatialPoint):
         """
@@ -2244,6 +2245,7 @@ class EnMAPBox(QgisInterface, QObject):
             p = point.toCrs(canvas.mapSettings().destinationCrs())
             if isinstance(p, SpatialPoint):
                 canvas.setCenter(p)
+                canvas.refresh()
 
     def panToSelected(self):
         """
