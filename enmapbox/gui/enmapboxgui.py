@@ -1451,6 +1451,9 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return enmapbox.__version__
 
+    def dataSourceTreeView(self) -> QTreeView:
+        return self.ui.dataSourcePanel.dataSourceTreeView
+
     def dataSources(self, sourceType='ALL', onlyUri: bool = True) -> list:
         """
         Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
@@ -1670,7 +1673,7 @@ class EnMAPBox(QgisInterface, QObject):
         Returns the Dock Panel Tree View
         :return: enmapbox.gui.dockmanager.DockTreeView
         """
-        return self.ui.dockPanel.dockTreeView
+        return self.dockTreeView()
 
     ### SIGNALS from QgisInterface ####
 

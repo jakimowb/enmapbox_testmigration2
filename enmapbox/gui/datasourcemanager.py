@@ -19,6 +19,15 @@
 
 import inspect, pickle, json
 
+
+from qgis.core import \
+    QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsCoordinateReferenceSystem, \
+    QgsRasterRenderer, QgsProject, QgsUnitTypes, QgsWkbTypes, \
+    QgsLayerTreeGroup, QgsLayerTreeLayer
+from qgis.gui import \
+    QgisInterface, QgsMapCanvas
+
+
 from enmapbox import DIR_TESTDATA, messageLog
 from enmapbox.gui import ClassificationScheme, TreeNode, TreeView
 from enmapbox.gui.utils import *
@@ -1098,16 +1107,19 @@ class DataSourceTreeView(TreeView):
             a = m.addAction('Remove')
             assert isinstance(a, QAction)
             a.setToolTip('Removes all datasources from this node')
-            a.triggered.connect(lambda: model.dataSourceManager.removeSources(node.dataSources()))
+            a.triggered.connect(lambda *args, node=node, model=model:
+                                model.dataSourceManager.removeSources(node.dataSources()))
 
         if isinstance(node, DataSourceTreeNode):
             src = node.mDataSource
 
             if isinstance(src, DataSource):
                 a = m.addAction('Remove')
-                a.triggered.connect(lambda: model.dataSourceManager.removeSources(dataSources))
+                a.triggered.connect(lambda *args, dataSources=dataSources:
+                                    model.dataSourceManager.removeSources(dataSources))
                 a = m.addAction('Copy URI / path')
-                a.triggered.connect(lambda: QApplication.clipboard().setText('\n'.join(srcURIs)))
+                a.triggered.connect(lambda *args, srcURIs=srcURIs:
+                                    QApplication.clipboard().setText('\n'.join(srcURIs)))
                 # a = m.addAction('Rename')
                 # a.setEnabled(False)
                 # todo: implement rename function
@@ -1120,23 +1132,26 @@ class DataSourceTreeView(TreeView):
             def appendRasterActions(sub: QMenu, src: DataSourceRaster, mapDock: MapDock):
                 assert isinstance(src, DataSourceRaster)
                 a = sub.addAction('Default Colors')
-                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='DEFAULT'))
+                a.triggered.connect(lambda *args, src=src, mapDock=mapDock:
+                                    self.openInMap(src, mapCanvas=mapDock, rgb='DEFAULT'))
 
                 b = src.mWaveLengthUnits is not None
 
                 a = sub.addAction('True Color')
                 a.setToolTip('Red-Green-Blue true colors')
-                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='R,G,B'))
+                a.triggered.connect(lambda *args, src=src, mapDock=mapDock:
+                                    self.openInMap(src, mapCanvas=mapDock, rgb='R,G,B'))
                 a.setEnabled(b)
-
                 a = sub.addAction('CIR')
                 a.setToolTip('nIR Red Green')
-                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='NIR,R,G'))
+                a.triggered.connect(lambda *args, src=src, mapDock=mapDock:
+                                    self.openInMap(src, mapCanvas=mapDock, rgb='NIR,R,G'))
                 a.setEnabled(b)
 
                 a = sub.addAction('SWIR')
                 a.setToolTip('nIR swIR Red')
-                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=mapDock, rgb='NIR,SWIR,R'))
+                a.triggered.connect(lambda *args, src=src, mapDock=mapDock:
+                                    self.openInMap(src, mapCanvas=mapDock, rgb='NIR,SWIR,R'))
                 a.setEnabled(b)
 
             if isinstance(src, DataSourceRaster):
@@ -1173,24 +1188,24 @@ class DataSourceTreeView(TreeView):
 
                 a = m.addAction('Open in QGIS')
                 if isinstance(qgisIFACE, QgisInterface):
-                    a.triggered.connect(lambda: self.openInMap(src, mapCanvas=qgisIFACE.mapCanvas()))
+                    a.triggered.connect(lambda *args, src=src: self.openInMap(src, mapCanvas=qgisIFACE.mapCanvas()))
                 else:
                     a.setEnabled(False)
 
             if isinstance(src, DataSourceSpectralLibrary):
                 a = m.addAction('Open Editor')
-                a.triggered.connect(lambda: self.onOpenSpeclib(src.speclib()))
+                a.triggered.connect(lambda *args, src=src: self.onOpenSpeclib(src.speclib()))
 
         if isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
             a.setEnabled(False)
 
             a = m.addAction('Open in new map')
-            a.triggered.connect(lambda: self.openInMap(node.mDataSource, rgb=[node.mBandIndex]))
+            a.triggered.connect(lambda *args, node=node: self.openInMap(node.mDataSource, rgb=[node.mBandIndex]))
 
         if col == 1 and node.value() != None:
             a = m.addAction('Copy')
-            a.triggered.connect(lambda: QApplication.clipboard().setText(str(node.value())))
+            a.triggered.connect(lambda *args, node=node: QApplication.clipboard().setText(str(node.value())))
 
         if isinstance(node, TreeNode):
             m2 = node.contextMenu()
@@ -1206,7 +1221,7 @@ class DataSourceTreeView(TreeView):
 
         m.exec_(self.viewport().mapToGlobal(event.pos()))
 
-    def openInMap(self, dataSource: DataSourceSpatial, mapCanvas=None, rgb=None, sampleSize=256):
+    def openInMap(self, dataSource: DataSourceSpatial, mapCanvas: QgsMapCanvas = None, rgb=None, sampleSize: int =256):
         """
         Add a DataSourceSpatial as QgsMapLayer to a mapCanvas.
         :param mapCanvas: QgsMapCanvas. Creates a new MapDock if set to none.
@@ -1224,7 +1239,7 @@ class DataSourceTreeView(TreeView):
                 return None
             dock = emb.createDock('MAP')
             assert isinstance(dock, MapDock)
-            mapCanvas = dock.mCanvas
+            mapCanvas = dock.mapCanvas()
 
         if isinstance(mapCanvas, MapDock):
             mapCanvas = mapCanvas.mapCanvas()
@@ -1237,29 +1252,30 @@ class DataSourceTreeView(TreeView):
         if isinstance(lyr, QgsRasterLayer):
             r = lyr.renderer()
             if isinstance(r, QgsRasterRenderer):
-                ds = gdal.Open(lyr.source())
+                bandIndices: typing.List[int] = None
                 if isinstance(rgb, str):
                     if re.search('DEFAULT', rgb):
-                        r = defaultRasterRenderer(lyr, sampleSize=sampleSize)
-                        rgb = defaultBands(ds)
+                        bandIndices = defaultBands(lyr)
                     else:
-                        rgb = [bandClosestToWavelength(ds, s) for s in rgb.split(',')]
-                        r = defaultRasterRenderer(lyr, bandIndices=rgb, sampleSize=sampleSize)
-                lyr.setRenderer(r)
+                        bandIndices = [bandClosestToWavelength(lyr, s) for s in rgb.split(',')]
 
+                elif isinstance(rgb, list):
+                    bandIndices = rgb
+
+                if isinstance(bandIndices, list):
+                    r = defaultRasterRenderer(lyr, bandIndices=bandIndices, sampleSize=sampleSize)
+                    r.setInput(lyr.dataProvider())
+                    lyr.setRenderer(r)
 
         elif isinstance(lyr, QgsVectorLayer):
 
             pass
 
-        qgisIFACE = qgisAppQgisInterface()
-        if isinstance(qgisIFACE, QgisInterface) and mapCanvas in qgisIFACE.mapCanvases():
-            QgsProject.instance().addMapLayer(lyr)
-
         allLayers = mapCanvas.layers()
         allLayers.append(lyr)
 
         mapCanvas.setLayers(allLayers)
+        s = ""
 
     def onSaveAs(self, dataSource):
 

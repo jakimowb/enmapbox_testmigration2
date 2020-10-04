@@ -15,6 +15,7 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 
 import os, unittest, tempfile, pathlib
+from gc import __loader__
 
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 
@@ -660,6 +661,19 @@ class standardDataSources(EnMAPBoxTestCase):
                 #self.assertEqual(obj1, obj2)
                 #self.assertEqual(obj1, obj3)
 
+    def test_issue_478(self):
+        # https://bitbucket.org/hu-geomatics/enmap-box/issues/478/visualization-of-single-band-fails
+        EB = EnMAPBox(load_core_apps=False, load_other_apps=False)
+        from enmapboxtestdata import enmap
+        from enmapbox.gui.datasourcemanager import DataSourceTreeView, DataSourceManagerTreeModel
+        EB.addSource(enmap)
+
+        tv = EB.dataSourceTreeView()
+        self.assertIsInstance(tv, DataSourceTreeView)
+        src = EB.dataSourceManager().sources('RASTER')[0]
+        tv.openInMap(src, rgb=[0])
+
+        self.showGui(EB.ui)
 
 if __name__ == "__main__":
     import xmlrunner

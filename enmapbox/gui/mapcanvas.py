@@ -1476,7 +1476,7 @@ class MapDock(Dock):
         super(MapDock, self).__init__(*args, **kwds)
         self.mBaseName = self.title()
 
-        self.mCanvas = MapCanvas(self)
+        self.mCanvas: MapCanvas = MapCanvas(self)
         self.mCanvas.setWindowTitle(self.title())
         self.mCanvas.sigNameChanged.connect(self.setTitle)
 
@@ -1496,6 +1496,9 @@ class MapDock(Dock):
             lyrs = [ds.createUnregisteredMapLayer() for ds in dataSources]
             if len(lyrs) > 0:
                 self.mCanvas.setLayers(lyrs)
+
+    def mapCanvas(self) -> MapCanvas:
+        return self.mCanvas
 
     def contextMenu(self)->QMenu:
         """
