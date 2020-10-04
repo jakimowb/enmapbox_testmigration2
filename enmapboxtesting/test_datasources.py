@@ -11,23 +11,23 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
+import tempfile
+import unittest
+import time
+from qgis.core import *
+from qgis.gui import *
+from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsRasterRenderer
+from qgis.gui import QgsMapCanvas
 
-
-
-import os, unittest, tempfile, pathlib
-from gc import __loader__
-
-from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-
-
-from enmapbox.gui.utils import *
-from enmapbox.gui.datasourcemanager import *
 from enmapbox import EnMAPBox
+from enmapbox.gui.datasourcemanager import *
+from enmapbox.gui.utils import *
+from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapboxtestdata import enmap, hires, landcover_polygons, library
+from enmapbox.gui.datasources import *
 
 
 class standardDataSources(EnMAPBoxTestCase):
-
 
     def setUp(self):
         eb = EnMAPBox.instance()
@@ -35,12 +35,10 @@ class standardDataSources(EnMAPBoxTestCase):
             eb.close()
         QApplication.processEvents()
 
-
         self.wmsUri = r'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0'
         self.wmsUri = 'referer=OpenStreetMap%20contributors,%20under%20ODbL&type=xyz&url=http://tiles.wmflabs.org/hikebike/%7Bz%7D/%7Bx%7D/%7By%7D.png&zmax=17&zmin=1'
         self.wfsUri = r'restrictToRequestBBOX=''1'' srsname=''EPSG:25833'' typename=''fis:re_postleit'' url=''http://fbinter.stadt-berlin.de/fb/wfs/geometry/senstadt/re_postleit'' version=''auto'''
         pass
-
 
     def tearDown(self):
         eb = EnMAPBox.instance()
@@ -50,11 +48,9 @@ class standardDataSources(EnMAPBoxTestCase):
 
     def test_rasterVersioning(self):
 
-
         p = r'N:\thielfab\nb_ml\full_growing_season\metrics\fraction\mosaic\NEWFILE_MLP.vrt'
 
         if os.path.isfile(p):
-
             ds1 = DataSourceFactory.create(p)[0]
             self.assertIsInstance(ds1, DataSourceRaster)
 
@@ -70,16 +66,14 @@ class standardDataSources(EnMAPBoxTestCase):
             self.assertFalse(ds1.isNewVersionOf(ds2))
             self.assertFalse(ds2.isNewVersionOf(ds1))
 
-
-
     def test_rasters(self):
         for uri in [None, type(None), landcover_polygons]:
             self.assertTrue(rasterProvider(uri) == None)
 
-        #self.assertTrue(None == rasterProvider(self.wfsUri))
+        # self.assertTrue(None == rasterProvider(self.wfsUri))
         self.assertTrue(DataSourceFactory.isRasterSource(enmap))
-        #self.assertTrue(rasterProvider(self.wmsUri) == 'wms')
-        #self.assertTrue(DataSourceFactory.isRasterSource(self.wmsUri))
+        # self.assertTrue(rasterProvider(self.wmsUri) == 'wms')
+        # self.assertTrue(DataSourceFactory.isRasterSource(self.wmsUri))
 
         for uri in [enmap]:
             ds = DataSourceFactory.create(uri)
@@ -91,7 +85,6 @@ class standardDataSources(EnMAPBoxTestCase):
                 self.assertIsInstance(source.mProvider, str)
                 self.assertIsInstance(source.icon(), QIcon)
 
-
     def test_subdatasets(self):
         path = r'H:\Processing_BJ\01_Data\Sentinel2\T21LWL\S2B_MSIL1C_20191208T140049_N0208_R067_T21LWL_20191208T153903.SAFE\MTD_MSIL1C.xml'
         dsm = DataSourceManager()
@@ -102,7 +95,6 @@ class standardDataSources(EnMAPBoxTestCase):
             subs = ds.GetSubDatasets()
             import datetime
             for (name, descr) in subs:
-
                 t0 = datetime.datetime.now()
                 lyr = QgsRasterLayer(name)
                 self.assertTrue(lyr.isValid())
@@ -116,19 +108,19 @@ class standardDataSources(EnMAPBoxTestCase):
                 self.assertTrue(len(ds) == 1)
                 self.assertIsInstance(ds[0], DataSourceRaster)
 
-    def createTestSources(self)->list:
+    def createTestSources(self) -> list:
 
-        #return [library, self.wfsUri, self.wmsUri, enmap, landcover_polygons]
+        # return [library, self.wfsUri, self.wmsUri, enmap, landcover_polygons]
         return [library, enmap, landcover_polygons]
 
-    def createOGCSources(self)->list:
+    def createOGCSources(self) -> list:
         # todo: add WCS
 
         return [self.wfsUri, self.wmsUri]
 
-    def createTestSourceLayers(self)->list:
+    def createTestSourceLayers(self) -> list:
 
-        #return [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons), SpectralLibrary.readFrom(library)]
+        # return [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons), SpectralLibrary.readFrom(library)]
         return [TestObjects.createRasterLayer(),
                 TestObjects.createVectorLayer(ogr.wkbPoint),
                 TestObjects.createVectorLayer(ogr.wkbPolygon),
@@ -153,14 +145,12 @@ class standardDataSources(EnMAPBoxTestCase):
             TV.header().setResizeMode(QHeaderView.ResizeToContents)
             TV.setModel(TM)
             TV.show()
-            TV.resize(QSize(400,250))
+            TV.resize(QSize(400, 250))
 
             DSM.addSource(classifier)
             self.assertTrue(1 > 0)
 
-            if SHOW_GUI:
-                QGIS_APP.exec_()
-
+            self.showGui(TV)
 
     def test_testSources(self):
 
@@ -211,8 +201,6 @@ class standardDataSources(EnMAPBoxTestCase):
             self.assertTrue(len(ds) > 0, msg='not datasource returned for {}'.format(file))
             self.assertIsInstance(ds[0], DataSourceSpectralLibrary)
 
-
-
     def test_layerSourceUpdate(self):
 
         path = '/vsimem/image.bsq'
@@ -237,22 +225,6 @@ class standardDataSources(EnMAPBoxTestCase):
         self.assertEqual(lyr.height(), 500)
 
         # del lyr
-        if False:
-            TestObjects.createRasterDataset(nb=2, nl=1000, path=path)
-            lyr.reload()
-
-            r = lyr.renderer()
-            self.assertIsInstance(r, QgsRasterRenderer)
-            r.setInput(lyr.dataProvider())
-            r.setGreenBand(2)
-            lyr.reload()
-            c.waitWhileRendering()
-            self.assertEqual(lyr.bandCount(), 2)
-            self.assertEqual(lyr.height(), 1000)
-
-            if SHOW_GUI:
-                c.show()
-                QGIS_APP.exec_()
 
 
     def test_datasourceversions(self):
@@ -261,9 +233,7 @@ class standardDataSources(EnMAPBoxTestCase):
         path = '/vsimem/image.bsq'
         TestObjects.createRasterDataset(nb=2, nl=500, path=path)
 
-
         src1 = DataSourceFactory.create(path)[0]
-
 
         self.assertIsInstance(src1, DataSourceRaster)
         self.assertEqual(src1.nBands(), 2)
@@ -279,9 +249,8 @@ class standardDataSources(EnMAPBoxTestCase):
         self.assertEqual(src2.nBands(), 30)
         self.assertEqual(src2.nLines(), 1000)
         self.assertTrue(src1.modificationTime() < src2.modificationTime())
-        #self.assertTrue(src2.isNewVersionOf(src1))
-        #self.assertFalse(src3.isNewVersionOf(src2))
-
+        # self.assertTrue(src2.isNewVersionOf(src1))
+        # self.assertFalse(src3.isNewVersionOf(src2))
 
         DSM = DataSourceManager()
 
@@ -295,14 +264,13 @@ class standardDataSources(EnMAPBoxTestCase):
         self.assertEqual(len(DSM), 1)
         self.assertEqual(DSM.sources()[0], src2)
 
-
     def test_datasourcemanager_equalsources(self):
 
         p1 = str(pathlib.Path(hires))
         p2 = pathlib.Path(hires).as_posix()
 
         dsm = DataSourceManager()
-        dsm.addSources([p1,p2])
+        dsm.addSources([p1, p2])
         self.assertTrue(len(dsm) == 1)
 
         dsm = DataSourceManager()
@@ -330,7 +298,6 @@ class standardDataSources(EnMAPBoxTestCase):
         self.assertEqual(len(dsm.sources('VECTOR')), 2)
         self.assertEqual(len(dsm.sources('SPECLIB')), 1)
 
-
         self.assertTrue(len(reg.mapLayers()) == 0)
         lyrs = self.createTestSourceLayers()
         dsm = DataSourceManager()
@@ -339,7 +306,7 @@ class standardDataSources(EnMAPBoxTestCase):
             ds = dsm.addSource(l)
             self.assertTrue(len(ds) == 1)
             self.assertIsInstance(ds[0], DataSource)
-            self.assertTrue(len(dsm) == i+1)
+            self.assertTrue(len(dsm) == i + 1)
         dsm.addSources(lyrs)
         self.assertTrue(len(dsm) == len(lyrs))
 
@@ -374,7 +341,7 @@ class standardDataSources(EnMAPBoxTestCase):
         self.assertFalse(sip.isdeleted(lyr))
         QgsProject.instance().removeMapLayer(lyr)
         self.assertTrue(sip.isdeleted(lyr))
-        #self.assertTrue(len(dsm) == 0)
+        # self.assertTrue(len(dsm) == 0)
 
     def test_datasourcmanagertreemodel(self):
         reg = QgsProject.instance()
@@ -390,20 +357,19 @@ class standardDataSources(EnMAPBoxTestCase):
             dsm.addSource(uri)
 
         self.assertEqual(len(dsm), len(uriList))
-        self.assertEqual(TM.rowCount(None), 3, msg='More than 3 RasterSource type nodes. Should be raster, vector, speclibs = 3 only.')
+        self.assertEqual(TM.rowCount(None), 3,
+                         msg='More than 3 RasterSource type nodes. Should be raster, vector, speclibs = 3 only.')
 
         for grpNode in TM.rootNode().children():
             self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
             for dsNode in grpNode.childNodes():
                 self.assertIsInstance(dsNode, DataSourceTreeNode)
 
-
         rasterGroupNode = [n for n in TM.rootNode() if 'Raster' in n.name()][0]
         n = len(rasterGroupNode.childNodes())
         dsm.addSources([enmap])
 
         self.assertEqual(n, len(rasterGroupNode.childNodes()))
-
 
     def test_enmapbox(self):
 
@@ -417,12 +383,9 @@ class standardDataSources(EnMAPBoxTestCase):
             print('Test "{}"'.format(uri))
             ds = EB.addSource(uri)
 
-
-
-    def createTestSources(self)->list:
+    def createTestSources(self) -> list:
 
         return [library, enmap, landcover_polygons]
-
 
     def test_testSources(self):
 
@@ -431,7 +394,6 @@ class standardDataSources(EnMAPBoxTestCase):
         raster = QgsRasterLayer(enmap)
         self.assertIsInstance(raster, QgsRasterLayer)
         reg.addMapLayer(raster, False)
-
 
         sl = SpectralLibrary.readFrom(library)
         self.assertIsInstance(sl, SpectralLibrary)
@@ -448,7 +410,6 @@ class standardDataSources(EnMAPBoxTestCase):
 
                 node = CreateNodeFromDataSource(dataSource)
                 self.assertIsInstance(node, DataSourceTreeNode)
-
 
     def test_registryresponse(self):
 
@@ -472,20 +433,17 @@ class standardDataSources(EnMAPBoxTestCase):
 
     def test_datasourceTreeManagerModel(self):
 
-
-
-
         dsm = DataSourceManager()
         M = DataSourceManagerTreeModel(None, dsm)
         self.assertIsInstance(M, DataSourceManagerTreeModel)
 
         self.assertEqual(M.rowCount(None), 0)
 
-        #add 2 rasters
+        # add 2 rasters
         dsm.addSources([enmap, hires])
         self.assertEqual(M.rowCount(None), 1)
 
-        #add
+        # add
         dsm.addSource(landcover_polygons)
         self.assertEqual(M.rowCount(None), 2)
 
@@ -493,7 +451,6 @@ class standardDataSources(EnMAPBoxTestCase):
         self.assertEqual(M.rowCount(None), 3)
 
         from enmapbox.gui.mapcanvas import MapCanvas
-
 
         for i, grpNode in enumerate(M.rootNode().childNodes()):
             self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
@@ -516,15 +473,13 @@ class standardDataSources(EnMAPBoxTestCase):
                 mimeData = M.mimeData([nodeIndex])
                 self.assertIsInstance(mimeData, QMimeData)
 
-
                 from enmapbox.gui.mimedata import extractMapLayers
                 l = extractMapLayers(mimeData)
                 self.assertIsInstance(l, list)
                 self.assertTrue(len(l) == 1)
                 self.assertIsInstance(l[0], QgsMapLayer)
 
-
-                def createDropEvent(mimeData:QMimeData)->QDropEvent:
+                def createDropEvent(mimeData: QMimeData) -> QDropEvent:
                     return QDropEvent(QPointF(0, 0), Qt.CopyAction, mimeData, Qt.LeftButton, Qt.NoModifier, QEvent.Drop)
 
                 formats = mimeData.formats()
@@ -546,7 +501,7 @@ class standardDataSources(EnMAPBoxTestCase):
                         n = len(mapCanvas.layers())
                         mapCanvas.dropEvent(createDropEvent(bandMime))
                         QApplication.processEvents()
-                        self.assertEqual(len(mapCanvas.layers()), n+1)
+                        self.assertEqual(len(mapCanvas.layers()), n + 1)
                         break
 
                 if isinstance(dNode, VectorDataSourceTreeNode):
@@ -561,7 +516,7 @@ class standardDataSources(EnMAPBoxTestCase):
                     n = len(mapCanvas.layers())
                     mapCanvas.dropEvent(createDropEvent(mimeData))
                     QApplication.processEvents()
-                    self.assertEqual(len(mapCanvas.layers()), n+1)
+                    self.assertEqual(len(mapCanvas.layers()), n + 1)
 
                 if isinstance(dNode, HubFlowObjectTreeNode):
                     pass
@@ -584,15 +539,13 @@ class standardDataSources(EnMAPBoxTestCase):
                     if n > 3:
                         break
 
-
-
     def test_hubflowsources(self):
 
         from hubflow.testdata import enmapClassification, vector, enmap
         from hubflow.core import FlowObject
         hubFlowObjects = [vector(), enmap(), enmapClassification()]
-        #hubFlowObjects = [vector()]
-        #hubFlowObjects = [enmapClassification()]
+        # hubFlowObjects = [vector()]
+        # hubFlowObjects = [enmapClassification()]
 
         for obj in hubFlowObjects:
             isObj, o = DataSourceFactory.isHubFlowObj(obj)
@@ -624,7 +577,7 @@ class standardDataSources(EnMAPBoxTestCase):
         TV.header().setResizeMode(QHeaderView.ResizeToContents)
         TV.setModel(TM)
         TV.show()
-        TV.resize(QSize(400,250))
+        TV.resize(QSize(400, 250))
 
         DSM.addSources(hubFlowObjects)
         self.assertTrue(len(DSM) == len(hubFlowObjects))
@@ -636,9 +589,7 @@ class standardDataSources(EnMAPBoxTestCase):
         Tests to load serialized hubflow objects
         """
 
-        from enmapbox import DIR_REPO
         from enmapbox.gui.datasources import HubFlowDataSource
-
 
         dirTmp = self.createTestOutputDirectory() / 'hubflowtypetest'
         from hubflow.testdata import outdir
@@ -658,8 +609,8 @@ class standardDataSources(EnMAPBoxTestCase):
                 obj2 = ds[0].flowObject()
                 self.assertIsInstance(obj2, hubflow.core.FlowObject)
                 self.assertIsInstance(obj3, hubflow.core.FlowObject)
-                #self.assertEqual(obj1, obj2)
-                #self.assertEqual(obj1, obj3)
+                # self.assertEqual(obj1, obj2)
+                # self.assertEqual(obj1, obj3)
 
     def test_issue478(self):
         # https://bitbucket.org/hu-geomatics/enmap-box/issues/478/visualization-of-single-band-fails
@@ -667,7 +618,7 @@ class standardDataSources(EnMAPBoxTestCase):
         EB = EnMAPBox(load_core_apps=False, load_other_apps=False)
         from enmapboxtestdata import enmap
         from enmapbox.testing import TestObjects
-        from enmapbox.gui.datasourcemanager import DataSourceTreeView, DataSourceManagerTreeModel
+        from enmapbox.gui.datasourcemanager import DataSourceTreeView
         EB.addSource(enmap)
         wms = TestObjects.uriWMS()
         EB.addSource(wms)
@@ -682,7 +633,5 @@ class standardDataSources(EnMAPBoxTestCase):
 
 if __name__ == "__main__":
     import xmlrunner
+
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
-

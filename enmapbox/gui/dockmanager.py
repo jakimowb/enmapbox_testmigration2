@@ -36,7 +36,10 @@ from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, Q
 from qgis.gui import QgsLayerTreeView, \
     QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget, QgsMessageBar
 
-from enmapbox.gui import SpectralLibrary, SpectralLibraryWidget, SpatialExtent, SpatialPoint, findParent, loadUi
+from enmapbox.gui import \
+    SpectralLibrary, SpectralLibraryWidget, SpatialExtent, SpatialPoint, \
+    findParent, loadUi, showLayerPropertiesDialog
+
 from enmapbox.gui.utils import enmapboxUiPath
 from enmapbox.gui.mapcanvas import \
     CanvasLink, MapCanvas, MapDock, \
