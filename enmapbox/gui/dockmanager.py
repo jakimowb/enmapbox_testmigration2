@@ -16,25 +16,40 @@
 *                                                                         *
 ***************************************************************************
 """
+import os
+import re
+import uuid
+import typing
+import warnings
 from processing import Processing
-
-from enmapbox.gui import *
-from enmapbox.gui.mapcanvas import *
-from enmapbox.gui.mimedata import *
-from enmapbox.gui.docks import *
-from enmapbox.externals.qps.utils import *
-from enmapbox.externals.qps.layerproperties import *
-from enmapbox.gui.datasourcemanager import DataSourceManager
-from enmapbox.gui import SpectralLibrary
-
+from qgis.PyQt.Qt import Qt
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtXml import QDomDocument
 from qgis.core import *
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
     QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
-    QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils
+    QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils, \
+    QgsPalettedRasterRenderer, QgsProcessingFeedback
 
-from qgis.gui import *
 from qgis.gui import QgsLayerTreeView, \
     QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget, QgsMessageBar
+
+from enmapbox.gui import SpectralLibrary, SpectralLibraryWidget, SpatialExtent, SpatialPoint, findParent, loadUi
+from enmapbox.gui.utils import enmapboxUiPath
+from enmapbox.gui.mapcanvas import \
+    CanvasLink, MapCanvas, MapDock, \
+    LINK_ON_CENTER, LINK_ON_CENTER_SCALE, LINK_ON_SCALE
+from enmapbox.gui.mimedata import \
+    MDF_QGIS_LAYERTREEMODELDATA, MDF_ENMAPBOX_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE, \
+    MDF_TEXT_HTML, MDF_URILIST, MDF_TEXT_PLAIN, MDF_QGIS_LAYER_STYLE, \
+    extractMapLayers, containsMapLayers, textToByteArray, extractSpectralLibraries
+from enmapbox.gui.docks import Dock, DockArea, \
+    AttributeTableDock, SpectralLibraryDock, TextDock, MimeDataDock, WebViewDock
+from enmapbox.gui.datasources import DataSource
+from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
+from enmapbox.gui.datasourcemanager import DataSourceManager
 
 from hubdsm.core.category import Category  # needed for eval
 from hubdsm.core.color import Color  # needed for eval
@@ -308,113 +323,6 @@ class AttributeTableDockTreeNode(DockTreeNode):
         # self.fileNode = LayerTreeNode(self, 'File')
         # dock.mTextDockWidget.sigSourceChanged.connect(self.setLinkedFile)
         # self.setLinkedFile(dock.mTextDockWidget.mFile)
-
-
-class CanvasLinkTreeNode(TreeNode):
-    def __init__(self, parent, canvasLink, name, **kwds):
-        assert isinstance(canvasLink, CanvasLink)
-        kwds['icon'] = canvasLink.icon()
-        super(CanvasLinkTreeNode, self).__init__(parent, name, **kwds)
-        self.canvasLink = canvasLink
-
-    def contextMenu(self):
-        m = QMenu()
-
-        # parent canvas
-        canvas = self.parent().canvas
-        otherCanvas = self.canvasLink.theOtherCanvas(canvas)
-        a = m.addAction('Remove')
-        a.setToolTip('Remove link to {}.'.format(otherCanvas.name()))
-        a.triggered.connect(self.canvasLink.removeMe)
-        return m
-
-
-class CanvasLinkTreeNodeGroup(TreeNode):
-    """
-    A node to show links between difference canvases
-    """
-
-    def __init__(self, parent, canvas: MapCanvas):
-        assert isinstance(canvas, MapCanvas)
-        super(CanvasLinkTreeNodeGroup, self).__init__(parent, 'Spatial Links',
-                                                      icon=QIcon(":/enmapbox/gui/ui/icons/link_basic.svg"))
-
-        self.canvas = canvas
-        self.canvas.sigCanvasLinkAdded.connect(self.addCanvasLink)
-        self.canvas.sigCanvasLinkRemoved.connect(self.removeCanvasLink)
-
-    def addCanvasLink(self, canvasLink: CanvasLink):
-        assert isinstance(canvasLink, CanvasLink)
-        from enmapbox.gui.utils import findParent
-        theOtherCanvas = canvasLink.theOtherCanvas(self.canvas)
-        theOtherDock = findParent(theOtherCanvas, Dock, checkInstance=True)
-        linkNode = CanvasLinkTreeNode(self, canvasLink, '<no name>', icon=canvasLink.icon())
-        if isinstance(theOtherDock, Dock):
-            name = theOtherDock.title()
-            theOtherDock.sigTitleChanged.connect(linkNode.setName)
-        else:
-            name = '{}'.format(theOtherCanvas)
-        linkNode.setName(name)
-
-    def removeCanvasLink(self, canvasLink):
-        assert isinstance(canvasLink, CanvasLink)
-        theOtherCanvas = canvasLink.theOtherCanvas(self.canvas)
-        toRemove = [c for c in self.children() if isinstance(c, CanvasLinkTreeNode) and c.canvasLink == canvasLink]
-        for node in toRemove:
-            if node.canvasLink in node.canvasLink.canvases:
-                # need to be deleted from other listeners first
-                node.canvasLink.removeMe()
-            else:
-                self.removeChildNode(node)
-
-    def contextMenu(self):
-        m = QMenu()
-        from enmapbox import EnMAPBox
-
-        otherMaps = collections.OrderedDict()
-        for mapDock in EnMAPBox.instance().dockManager().docks('MAP'):
-            assert isinstance(mapDock, MapDock)
-            if mapDock.mapCanvas() == self.canvas:
-                continue
-            otherMaps[mapDock.title()] = mapDock.mapCanvas()
-
-        sub = m.addMenu('Link to all other maps')
-        a = sub.addAction('on center + scale')
-        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
-                            [CanvasLink.linkMapCanvases(c1, c2, LINK_ON_CENTER_SCALE) for c2 in canvases])
-
-        a = sub.addAction('on center')
-        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
-                            [CanvasLink.linkMapCanvases(c1, c2, LINK_ON_CENTER) for c2 in canvases])
-
-        a = sub.addAction('on scale')
-        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
-                            [CanvasLink.linkMapCanvases(c1, c2, LINK_ON_SCALE) for c2 in canvases])
-
-        a = sub.addAction('unlink')
-        a.triggered.connect(lambda _, c1=self.canvas, canvases=otherMaps.values():
-                            [CanvasLink.linkMapCanvases(c1, c2, UNLINK) for c2 in canvases])
-
-        for name, targetCanvas in otherMaps.items():
-            assert isinstance(targetCanvas, MapCanvas)
-            sub = m.addMenu('Link to "{}"'.format(name))
-            a = sub.addAction('on center + scale')
-            a.triggered.connect(
-                lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1, c2, LINK_ON_CENTER_SCALE))
-
-            a = sub.addAction('on center')
-            a.triggered.connect(
-                lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1, c2, LINK_ON_CENTER))
-
-            a = sub.addAction('on scale')
-            a.triggered.connect(
-                lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1, c2, LINK_ON_SCALE))
-
-            a = sub.addAction('unlink')
-            a.triggered.connect(
-                lambda _, c1=self.canvas, c2=targetCanvas: CanvasLink.linkMapCanvases(c1, c2, UNLINK))
-
-        return m
 
 
 class SpeclibDockTreeNode(DockTreeNode):
@@ -1195,7 +1103,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
             from enmapbox.gui.utils import appendItemsToMenu
-            return node.dock.contextMenu()
+            return node.dock.contextMenu(menu=menu)
 
         elif isinstance(node, LayerTreeNode):
             if col == 0:
@@ -1307,7 +1215,6 @@ class DockManager(QObject):
                 event.setDropAction(Qt.CopyAction)
                 event.accept()
                 return
-
 
         elif isinstance(event, QDragMoveEvent):
             event.accept()

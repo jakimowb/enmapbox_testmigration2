@@ -17,8 +17,17 @@
 ***************************************************************************
 """
 
-import inspect, pickle, json
-
+import inspect
+import pickle
+import os
+import typing
+import re
+import sys
+import collections
+import numpy as np
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
 from qgis.core import \
     QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsCoordinateReferenceSystem, \
     QgsRasterRenderer, QgsProject, QgsUnitTypes, QgsWkbTypes, \
@@ -27,11 +36,18 @@ from qgis.gui import \
     QgisInterface, QgsMapCanvas
 
 from enmapbox import DIR_TESTDATA, messageLog
-from enmapbox.gui import ClassificationScheme, TreeNode, TreeView
-from enmapbox.gui.utils import *
-from enmapbox.gui.mimedata import *
+from enmapbox.gui import \
+    ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, \
+    qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, KeepRefs, \
+    SpatialExtent, SpatialPoint, fileSizeString, file_search, defaultBands, defaultRasterRenderer, loadUi
+from enmapbox.gui.utils import enmapboxUiPath
+from enmapbox.gui.mimedata import \
+    MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
+    QGIS_URILIST_MIMETYPE, MDF_URILIST, extractMapLayers
 from enmapbox.gui.mapcanvas import MapDock
-from enmapbox.gui.datasources import *
+from enmapbox.gui.datasources import \
+    DataSourceFactory, DataSource, DataSourceFile, DataSourceVector, DataSourceRaster, \
+    DataSourceSpatial, DataSourceSpectralLibrary, HubFlowDataSource
 
 HUBFLOW = True
 HUBFLOW_MAX_VALUES = 1024

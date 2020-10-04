@@ -20,7 +20,8 @@
 
 from ..externals.qps.utils import *
 
-def enmapboxUiPath(name:str)->pathlib.Path:
+
+def enmapboxUiPath(name: str) -> pathlib.Path:
     """
     Translate a base name `name` into the absolute path of an ui-file
     :param name: str
@@ -34,7 +35,7 @@ def enmapboxUiPath(name:str)->pathlib.Path:
     return path
 
 
-def guessDataProvider(src:str)->str:
+def guessDataProvider(src: str) -> str:
     """
     Get an uri and guesses the QgsDataProvider for
     :param uri: str
@@ -42,7 +43,7 @@ def guessDataProvider(src:str)->str:
     """
     # GDAL / GDAL-subdataset
     if re.search(r'\.(bsq|tiff?|jp2|jp2000|j2k|png)', src, re.I) or \
-       re.search(r'^.+:.+:.+', src, re.I):
+            re.search(r'^.+:.+:.+', src, re.I):
         return 'gdal'
 
     # probably a spectral library
@@ -57,4 +58,3 @@ def guessDataProvider(src:str)->str:
     elif re.search(r'url=https?.*wfs', src, re.I):
         return 'WFS'
     return None
-

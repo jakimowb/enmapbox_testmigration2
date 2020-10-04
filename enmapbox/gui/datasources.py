@@ -16,14 +16,21 @@
 *                                                                         *
 ***************************************************************************
 """
-import collections, uuid, pathlib, typing, time
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from enmapbox.gui import *
-from enmapbox.gui import subLayerDefinitions, openRasterLayerSilent
+import uuid
+
+from osgeo import gdal, ogr
+
+from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer, \
+    QgsSettings, QgsWkbTypes, Qgis, \
+    QgsProviderRegistry, QgsRasterDataProvider, QgsVectorDataProvider, \
+    QgsLayerTreeLayer, QgsMimeDataUtils
+from qgis.gui import QgsSublayersDialog
+
+from enmapbox.gui import subLayerDefinitions, openRasterLayerSilent, \
+    SpectralLibrary, ClassificationScheme, AbstractSpectralLibraryIO
 from enmapbox.gui.utils import *
 from ..externals.qps.layerproperties import defaultRasterRenderer
-from osgeo import gdal, ogr
+
 
 def rasterProvider(uri:str) -> str:
     """

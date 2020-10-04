@@ -1,6 +1,7 @@
-import os, sys, typing, collections, enum
-import pickle
-
+import sys
+import typing
+import enum
+import re
 from qgis.core import *
 from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsApplication, QgsTask, \
     QgsTaskManager, QgsRasterDataProvider, QgsRasterRenderer
@@ -12,8 +13,9 @@ from qgis.PyQt.QtGui import *
 
 from qgis.PyQt.QtWidgets import *
 
-from enmapbox.gui import *
-from enmapbox.gui.utils import enmapboxUiPath
+
+from enmapbox.gui import PlotStyle, SpectralProfile, SpectralLibraryWidget, PlotStyleButton, QgsTaskMock, loadUi
+from enmapbox.gui.utils import enmapboxUiPath, SpatialPoint, SpatialExtent
 from enmapbox.gui.datasources import DataSourceRaster
 import numpy as np
 

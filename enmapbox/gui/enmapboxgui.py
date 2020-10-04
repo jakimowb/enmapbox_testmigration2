@@ -26,11 +26,14 @@ from qgis.core import *
 from qgis.gui import *
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, \
     QgsProcessingAlgorithm, QgsApplication, Qgis, QgsCoordinateReferenceSystem, QgsWkbTypes, \
-    QgsMapLayerStore, QgsPointXY, QgsLayerTreeGroup, QgsLayerTree, QgsLayerTreeLayer
+    QgsMapLayerStore, QgsPointXY, QgsLayerTreeGroup, QgsLayerTree, QgsLayerTreeLayer, QgsVectorLayerTools, \
+    QgsZipUtils, QgsProjectArchive
+
 from qgis.gui import QgsMapCanvas,  QgsLayerTreeView, \
-    QgisInterface, QgsMessageBar, QgsMessageViewer, QgsMessageBarItem, QgsMapLayerConfigWidgetFactory
+    QgisInterface, QgsMessageBar, QgsMessageViewer, QgsMessageBarItem, QgsMapLayerConfigWidgetFactory, \
+    QgsMapLayerConfigWidgetFactory
+
 from enmapbox import messageLog, debugLog
-from enmapbox.gui import *
 from enmapbox.gui.docks import *
 from enmapbox.gui.dockmanager import DockManagerTreeModel, MapDockTreeNode
 from enmapbox.gui.datasources import *
@@ -538,7 +541,6 @@ class EnMAPBox(QgisInterface, QObject):
         if len(unknown) > 0:
             self.dataSourceManager().addSources(unknown)
         self.syncHiddenLayers()
-
 
     def onReloadProject(self, *args):
 

@@ -38,7 +38,8 @@ from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessing
 from qgis.PyQt.QtCore import QSettings, QResource
 from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal
-__version__ = '3.7' #subsub-version information is added during build process
+
+__version__ = '3.7'  # subsub-version information is added during build process
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
@@ -67,13 +68,13 @@ _ENMAPBOX_PROCESSING_PROVIDER: QgsProcessingProvider = None
 gdal.SetConfigOption('GDAL_VRT_ENABLE_PYTHON', 'YES')
 
 
-
 def enmapboxSettings() -> QSettings:
     """
     Returns the QSettings object for EnMAP-Box Settings
     :return: QSettings
     """
     return QSettings('HU-Berlin', ENMAP_BOX_KEY)
+
 
 settings = enmapboxSettings()
 DEBUG = settings.value('EMB_DEBUG', False)
@@ -88,6 +89,7 @@ except:
     site.addsitedir(pSrc)
     import pyqtgraph
 
+
 def icon() -> QIcon:
     """
     Returns the EnMAP icon.
@@ -100,6 +102,7 @@ def icon() -> QIcon:
 def debugLog(msg: str):
     if DEBUG:
         print('DEBUG:' + msg, flush=True)
+
 
 def messageLog(msg, level=Qgis.Info):
     """
@@ -149,7 +152,8 @@ def initEditorWidgets():
     registerEditorWidgets()
 
     debugLog('finished initEditorWidgets')
-        
+
+
 def collectEnMAPBoxAlgorithms() -> typing.List[QgsProcessingAlgorithm]:
     """
     Safely collects all QgsProcessingalgorithms from enmapboxgeoalgorithms.algorithms
@@ -169,10 +173,11 @@ def collectEnMAPBoxAlgorithms() -> typing.List[QgsProcessingAlgorithm]:
     except Exception as ex:
         traceback.print_stack()
         info = 'Unable to load enmapboxgeoalgorithms.algorithms'
-        info += '\n'+str(ex)
+        info += '\n' + str(ex)
         print(info, file=sys.stderr)
 
     return algs
+
 
 def initEnMAPBoxProcessingProvider():
     """
@@ -205,7 +210,7 @@ def initEnMAPBoxProcessingProvider():
             info.append(p)
         messageLog(info, Qgis.Warning)
         print('\n'.join(info), file=sys.stderr)
-    
+
     debugLog('started initEnMAPBoxProcessingProvider')
 
 
@@ -244,19 +249,8 @@ def initAll(processing=True):
     initMapLayerConfigWidgetFactories()
 
 
-
 EnMAPBox = None
 EnMAPBoxApplication = None
-
-# skip imports when on RTD, as we can not install the full QGIS environment as required
-# https://docs.readthedocs.io/en/stable/builds.html
-if not os.environ.get('READTHEDOCS') in ['True', 'TRUE', True]:
-
-    from enmapbox.gui.enmapboxgui import EnMAPBox
-    EnMAPBox = EnMAPBox
-
-    from enmapbox.gui.applications import EnMAPBoxApplication
-    EnMAPBoxApplication = EnMAPBoxApplication
 
 
 def tr(text: str) -> str:
@@ -266,6 +260,7 @@ def tr(text: str) -> str:
     :return: str
     """
     return text
+
 
 class Qgis(object):
     """Collection of some static methodes to programmatically interact with QGIS inside the QGIS console."""
@@ -322,6 +317,7 @@ class Qgis(object):
         else:
             raise TypeError()
 
+
 def run():
     """
     Call to start the EnMAP-Box
@@ -330,3 +326,12 @@ def run():
     import enmapbox.__main__
     enmapbox.__main__.run()
 
+
+# skip imports when on RTD, as we can not install the full QGIS environment as required
+# https://docs.readthedocs.io/en/stable/builds.html
+if not os.environ.get('READTHEDOCS') in ['True', 'TRUE', True]:
+    from enmapbox.gui.enmapboxgui import EnMAPBox
+    EnMAPBox = EnMAPBox
+
+    from enmapbox.gui.applications import EnMAPBoxApplication
+    EnMAPBoxApplication = EnMAPBoxApplication

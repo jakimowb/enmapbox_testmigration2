@@ -661,7 +661,7 @@ class standardDataSources(EnMAPBoxTestCase):
                 #self.assertEqual(obj1, obj2)
                 #self.assertEqual(obj1, obj3)
 
-    def test_issue_478(self):
+    def test_issue478(self):
         # https://bitbucket.org/hu-geomatics/enmap-box/issues/478/visualization-of-single-band-fails
         # test if sources can be opened in a new map
         EB = EnMAPBox(load_core_apps=False, load_other_apps=False)
@@ -675,8 +675,10 @@ class standardDataSources(EnMAPBoxTestCase):
         self.assertIsInstance(tv, DataSourceTreeView)
         for src in EB.dataSourceManager().sources('RASTER'):
             tv.openInMap(src, rgb=[0])
+            self.assertIsInstance(tv, QTreeView)
 
         self.showGui(EB.ui)
+
 
 if __name__ == "__main__":
     import xmlrunner
