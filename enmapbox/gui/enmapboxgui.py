@@ -27,11 +27,13 @@ import qgis.utils
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, \
     QgsProcessingAlgorithm, QgsApplication, Qgis, QgsCoordinateReferenceSystem, QgsWkbTypes, \
     QgsMapLayerStore, QgsPointXY, QgsLayerTreeGroup, QgsLayerTree, QgsLayerTreeLayer, QgsVectorLayerTools, \
-    QgsZipUtils, QgsProjectArchive
+    QgsZipUtils, QgsProjectArchive, QgsSettings, \
+    QgsStyle, QgsSymbolLegendNode, QgsSymbol
 
 from qgis.gui import QgsMapCanvas, QgsLayerTreeView, \
     QgisInterface, QgsMessageBar, QgsMessageViewer, QgsMessageBarItem, QgsMapLayerConfigWidgetFactory, \
-    QgsMapLayerConfigWidgetFactory
+    QgsMapLayerConfigWidgetFactory, QgsAttributeTableFilterModel, QgsSymbolSelectorDialog, \
+    QgsSymbolWidgetContext
 
 from enmapbox import messageLog, debugLog
 from enmapbox.gui.docks import *
@@ -340,6 +342,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.dockPanel.connectDockManager(self.mDockManager)
         self.ui.dockPanel.dockTreeView.currentLayerChanged.connect(self.updateCurrentLayerActions)
+        self.ui.dockPanel.dockTreeView.doubleClicked.connect(self.onDockTreeViewDoubleClicked)
 
         root = self.dockManagerTreeModel().rootGroup()
         assert isinstance(root, QgsLayerTree)
@@ -488,8 +491,63 @@ class EnMAPBox(QgisInterface, QObject):
         self.mMessageBarItems.append(item)
         self.messageBar().pushItem(item)
 
-    def showAttributeTable(self, lyr: QgsVectorLayer, filerExpression: str = ""):
-        pass
+    def onDockTreeViewDoubleClicked(self, index: QModelIndex):
+        """
+        Reacts on double click events
+        :param index:
+        :type index:
+        :return:
+        :rtype:
+        """
+        # reimplementation of void QgisApp::layerTreeViewDoubleClicked( const QModelIndex &index )
+
+        settings = QgsSettings()
+        mode = int(settings.value('qgis/legendDoubleClickAction', '0'))
+
+        debugLog(f'Current MapCanvas: {self.currentMapCanvas().name()}')
+        debugLog(f'Current MapLayer: {self.currentLayer()}')
+
+        if mode == 0:
+            # open layer properties
+
+            node = self.dockTreeView().currentLegendNode()
+            if isinstance(node, QgsSymbolLegendNode):
+                originalSymbol = node.symbol()
+                if not isinstance(originalSymbol, QgsSymbol):
+                    return
+                symbol = originalSymbol.clone()
+                lyr = node.layerNode().layer()
+                dlg = QgsSymbolSelectorDialog(symbol, QgsStyle.defaultStyle(), lyr, self.ui)
+
+
+                context = QgsSymbolWidgetContext()
+                context.setMapCanvas(self.currentMapCanvas())
+                context.setMessageBar(self.messageBar())
+                dlg.setContext(context)
+                if dlg.exec():
+                    node.setSymbol(symbol)
+                return
+            else:
+                self.showLayerProperties(self.currentLayer())
+            pass
+        elif mode == 1:
+            # open attribute table
+            filterMode = settings.enumValue('qgis/attributeTableBehavior', QgsAttributeTableFilterModel.ShowAll)
+            self.showAttributeTable(self.currentLayer(), filterMode = filterMode)
+            pass
+        elif mode == 2:
+            # open layer styling dock
+            pass
+
+    def showAttributeTable(self, lyr: QgsVectorLayer,
+                           filerExpression: str = "",
+                           filterMode: QgsAttributeTableFilterModel.FilterMode = None):
+
+        if lyr is None:
+            lyr = self.currentLayer()
+        if isinstance(lyr, QgsVectorLayer):
+            dock = self.createDock(AttributeTableDock, lyr)
+
 
     def showPackageInstaller(self):
         """
@@ -1563,6 +1621,9 @@ class EnMAPBox(QgisInterface, QObject):
         :param mapLayer:
         :return:
         """
+        if mapLayer is None:
+            mapLayer = self.currentLayer()
+
         if isinstance(mapLayer, (QgsVectorLayer, QgsRasterLayer)):
 
             # 1. find the map canvas
@@ -1670,7 +1731,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.mQgisInterfaceLayerSet = dict()
         self.mQgisInterfaceMapCanvas = MapCanvas()
 
-    def layerTreeView(self) -> QgsLayerTreeView:
+    def layerTreeView(self) -> enmapbox.gui.dockmanager.DockTreeView:
         """
         Returns the Dock Panel Tree View
         :return: enmapbox.gui.dockmanager.DockTreeView
@@ -2107,8 +2168,7 @@ class EnMAPBox(QgisInterface, QObject):
         Returns all MapCanvas(QgsMapCanvas) objects known to the EnMAP-Box
         :return: [list-of-MapCanvases]
         """
-        from enmapbox.gui.mapcanvas import MapDock
-        return [d.mCanvas for d in self.mDockManager.docks() if isinstance(d, MapDock)]
+        return self.dockTreeView().mapCanvases()
 
     def mapCanvas(self, virtual=False) -> MapCanvas:
         """
@@ -2312,13 +2372,7 @@ class EnMAPBox(QgisInterface, QObject):
         Returns the active map canvas, i.e. the MapCanvas that was clicked last.
         :return: MapCanvas
         """
-
-        from enmapbox.gui.mapcanvas import KEY_LAST_CLICKED
-        canvases = sorted(self.mapCanvases(), key=lambda c: c.property(KEY_LAST_CLICKED))
-        if len(canvases) > 0:
-            return canvases[-1]
-        else:
-            return None
+        return self.dockTreeView().currentMapCanvas()
 
     def setCurrentMapCanvas(self, mapCanvas: MapCanvas) -> bool:
         """
@@ -2326,13 +2380,7 @@ class EnMAPBox(QgisInterface, QObject):
         :param mapCanvas: MapCanvas
         :return: bool, True, if mapCanvas exists in the EnMAP-Box, False otherwise
         """
-        canvases = self.mapCanvases()
-        from enmapbox.gui.mapcanvas import KEY_LAST_CLICKED
-        if mapCanvas in canvases:
-            mapCanvas.setProperty(KEY_LAST_CLICKED, time.time())
-            return True
-        else:
-            return False
+        return self.dockTreeView().setCurrentMapCanvas(mapCanvas)
 
     def setActiveLayer(self, mapLayer: QgsMapLayer) -> bool:
         return self.setCurrentLayeer(mapLayer)
@@ -2344,19 +2392,7 @@ class EnMAPBox(QgisInterface, QObject):
         :return: bool. True, if mapLayer exists, False otherwise.
         """
 
-        self.ui.dockPanel.dockTreeView.setCurrentLayer(mapLayer)
-
-        canvas = self.currentMapCanvas()
-        if isinstance(canvas, MapCanvas) and mapLayer in canvas.layers():
-            canvas.setCurrentLayer(mapLayer)
-
-        for canvas in self.mapCanvases():
-            if mapLayer in canvas.layers():
-                self.setCurrentMapCanvas(canvas)
-                canvas.setCurrentLayer(mapLayer)
-
-        self.updateCurrentLayerActions()
-
+        self.dockTreeView().setCurrentLayer(mapLayer)
         return isinstance(mapLayer, QgsMapLayer)
 
     def currentLayer(self) -> QgsMapLayer:

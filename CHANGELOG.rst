@@ -3,6 +3,9 @@ CHANGELOG
 Version 3.7
 -----------
 
+* LayerTreeView: enhanced context menus,
+  double click on map layer opens Properties Dialog,
+  double click on a vector layers' legend item opens a Symbol dialog
 * GDAL raster metadata can be modified (resolves #181)
 * map canvas preserves scale on window resize (#409)
 * Reclassify Tool: can save and reload the class mapping, fixed (#501)

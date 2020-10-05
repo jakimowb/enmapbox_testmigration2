@@ -21,28 +21,30 @@ import re
 import uuid
 import typing
 import warnings
+import time
 from processing import Processing
 from qgis.PyQt.Qt import Qt
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtXml import QDomDocument
+from qgis.PyQt.QtXml import QDomDocument, QDomElement
 from qgis.core import *
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
     QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
     QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils, \
-    QgsPalettedRasterRenderer, QgsProcessingFeedback
+    QgsPalettedRasterRenderer, QgsProcessingFeedback, QgsSettings
 
 from qgis.gui import QgsLayerTreeView, \
     QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget, QgsMessageBar
 
+from enmapbox import debugLog
 from enmapbox.gui import \
     SpectralLibrary, SpectralLibraryWidget, SpatialExtent, SpatialPoint, \
     findParent, loadUi, showLayerPropertiesDialog
 
 from enmapbox.gui.utils import enmapboxUiPath
 from enmapbox.gui.mapcanvas import \
-    CanvasLink, MapCanvas, MapDock, \
+    CanvasLink, MapCanvas, MapDock, KEY_LAST_CLICKED, \
     LINK_ON_CENTER, LINK_ON_CENTER_SCALE, LINK_ON_SCALE
 from enmapbox.gui.mimedata import \
     MDF_QGIS_LAYERTREEMODELDATA, MDF_ENMAPBOX_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE, \
@@ -53,7 +55,7 @@ from enmapbox.gui.docks import Dock, DockArea, \
 from enmapbox.gui.datasources import DataSource
 from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
 from enmapbox.gui.datasourcemanager import DataSourceManager
-
+from enmapbox.gui.utils import getDOMAttributes
 from hubdsm.core.category import Category  # needed for eval
 from hubdsm.core.color import Color  # needed for eval
 from hubdsm.processing.classificationstatistics import ClassificationStatistics, ClassificationStatisticsPlot
@@ -539,6 +541,8 @@ class DockManagerTreeModel(QgsLayerTreeModel):
             self.setFlag(QgsLayerTreeModel.AllowLegendChangeState, True)
             # self.setFlag(QgsLayerTreeModel.ActionHierarchical, False)
 
+            self.setAutoCollapseLegendNodes(10)
+
         self.mDockManager = dockManager
 
         for dock in dockManager:
@@ -563,8 +567,6 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
     def supportedDropActions(self) -> Qt.DropActions:
         """
-
-        :return:
         """
         return Qt.CopyAction | Qt.MoveAction
 
@@ -877,6 +879,8 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
         elif type(node) in [QgsLayerTreeLayer, QgsLayerTreeGroup, QgsLayerTree]:
             # print(('QGSNODE', node, column, role))
+            if role == Qt.EditRole:
+                s = ""
 
             if isinstance(node, QgsLayerTree) and column > 0:
                 return None
@@ -884,6 +888,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
             if column == 1:
                 if role in [Qt.DisplayRole, Qt.EditRole]:
                     return node.name()
+
 
             return super(DockManagerTreeModel, self).data(index, role)
         elif isinstance(node, LayerTreeNode):
@@ -986,12 +991,58 @@ class DockTreeView(QgsLayerTreeView):
         self.header().setResizeMode(QHeaderView.ResizeToContents)
         # self.header().setResizeMode(1, QHeaderView.ResizeToContents)
         self.currentLayerChanged.connect(self.onCurrentLayerChanged)
+        self.setEditTriggers(QAbstractItemView.EditKeyPressed)
+
+    def findParentMapDockTreeNode(self, node: QgsLayerTreeNode) -> MapDockTreeNode:
+        while isinstance(node, QgsLayerTreeNode) and not isinstance(node, MapDockTreeNode):
+            node = node.parent()
+        if isinstance(node, MapDockTreeNode):
+            return node
+        else:
+            return None
 
     def onCurrentLayerChanged(self, layer: QgsMapLayer):
+        debugLog('DockTreeView:onCurrentLayerChanged')
+        # find QgsLayerTreeNodes connects to this layer
+        currentLayerNode = self.currentNode()
+        if not (isinstance(currentLayerNode, QgsLayerTreeLayer) and currentLayerNode.layerId() == layer.id()):
+            # find the QgsLayerTreeNode
+            currentLayerNode = self.model().rootNode.findLayer(layer)
+
+        map_node = self.findParentMapDockTreeNode(currentLayerNode)
+        if isinstance(map_node, MapDockTreeNode):
+            self.setCurrentMapCanvas(map_node.mapCanvas())
+
         for canvas in self.layerTreeModel().mapCanvases():
             assert isinstance(canvas, MapCanvas)
             if layer in canvas.layers():
                 canvas.setCurrentLayer(layer)
+
+        debugLog(f'DockTreeView current layer : {self.currentLayer()}')
+        debugLog(f'DockTreeView current canvas: {self.currentMapCanvas()}')
+
+    def setCurrentMapCanvas(self, canvas: QgsMapCanvas):
+
+        if canvas in self.mapCanvases():
+            canvas.setProperty(KEY_LAST_CLICKED, time.time())
+            return True
+        else:
+            return False
+
+    def currentMapCanvas(self) -> MapCanvas:
+        """
+        Returns the current MapCanvas, i.e. the MapCanvas that was clicked last
+        :return:
+        :rtype:
+        """
+        canvases = sorted(self.mapCanvases(), key=lambda c: c.property(KEY_LAST_CLICKED))
+        if len(canvases) > 0:
+            return canvases[-1]
+        else:
+            return None
+
+    def mapCanvases(self) -> typing.List[MapCanvas]:
+        return self.model().mapCanvases()
 
     def layerTreeModel(self) -> DockManagerTreeModel:
         return self.model()
@@ -1290,7 +1341,8 @@ class DockManager(QObject):
         if dockType is None:
             return self.mDocks[:]
         else:
-            return [d for d in self.mDocks if isinstance(d, dockType)]
+            # handle wrapper types, e.g. when calling .dock(MapDock)
+            return [d for d in self.mDocks if dockType.__name__ == d.__class__.__name__]
 
     def getDockWithUUID(self, uuid_):
         if isinstance(uuid_, str):
@@ -1440,10 +1492,10 @@ class DockPanelUI(QgsDockWidget):
         """
         assert isinstance(dockManager, DockManager)
         self.dockManager = dockManager
-        self.model = DockManagerTreeModel(self.dockManager)
+        self.model: DockManagerTreeModel = DockManagerTreeModel(self.dockManager)
         self.dockTreeView.setModel(self.model)
         assert self.model == self.dockTreeView.model()
-        self.menuProvider = DockManagerLayerTreeModelMenuProvider(self.dockTreeView)
+        self.menuProvider: DockManagerLayerTreeModelMenuProvider = DockManagerLayerTreeModelMenuProvider(self.dockTreeView)
         self.dockTreeView.setMenuProvider(self.menuProvider)
 
         s = ""
