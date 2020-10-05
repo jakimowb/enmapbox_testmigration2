@@ -16,20 +16,20 @@
 *                                                                         *
 ***************************************************************************
 """
-import enum, warnings, typing
+
+
 from typing import Optional
 
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
-from qgis.core import *
-from qgis.gui import *
+
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, \
     QgsProcessingAlgorithm, QgsApplication, Qgis, QgsCoordinateReferenceSystem, QgsWkbTypes, \
     QgsMapLayerStore, QgsPointXY, QgsLayerTreeGroup, QgsLayerTree, QgsLayerTreeLayer, QgsVectorLayerTools, \
     QgsZipUtils, QgsProjectArchive
 
-from qgis.gui import QgsMapCanvas,  QgsLayerTreeView, \
+from qgis.gui import QgsMapCanvas, QgsLayerTreeView, \
     QgisInterface, QgsMessageBar, QgsMessageViewer, QgsMessageBarItem, QgsMapLayerConfigWidgetFactory, \
     QgsMapLayerConfigWidgetFactory
 
@@ -44,16 +44,17 @@ from hubdsm.processing.importenmapl1b import ImportEnmapL1B
 from hubdsm.processing.importenmapl1c import ImportEnmapL1C
 from hubdsm.processing.importenmapl2a import ImportEnmapL2A
 from hubdsm.processing.importprismal2d import ImportPrismaL2D
-from ..externals.qps.cursorlocationvalue import CursorLocationInfoDock
-from ..externals.qps.layerproperties import showLayerPropertiesDialog
+from enmapbox.externals.qps.cursorlocationvalue import CursorLocationInfoDock
+from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog
+from enmapbox.externals.qps.maptools import QgsMapToolSelectionHandler
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
 from enmapbox.gui.spectralprofilesources import SpectralProfileSourcePanel, SpectralProfileBridge, SpectralProfileSource
-
 
 HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
 
 MAX_MISSING_DEPENDENCY_WARNINGS = 3
 KEY_MISSING_DEPENDENCY_VERSION = 'MISSING_PACKAGE_WARNING_VERSION'
+
 
 class EnMAPBoxDocks(enum.Enum):
     MapDock = 'MAP'
@@ -217,7 +218,6 @@ class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
 class EnMAPBoxHiddenLayerTreeGroup(QgsLayerTreeGroup):
 
     def __init__(self, name: str = HIDDEN_ENMAPBOX_LAYER_GROUP):
-
         super().__init__(name=name, checked=False)
 
     def clone(self):
@@ -256,7 +256,7 @@ class EnMAPBox(QgisInterface, QObject):
     sigClosed = pyqtSignal()
 
     sigCurrentLocationChanged = pyqtSignal([SpatialPoint],
-        [SpatialPoint, QgsMapCanvas])
+                                           [SpatialPoint, QgsMapCanvas])
 
     sigCurrentSpectraChanged = pyqtSignal(list)
 
@@ -268,15 +268,15 @@ class EnMAPBox(QgisInterface, QObject):
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
 
     def __init__(self,
-            iface: QgisInterface = None,
-            load_core_apps: bool = True,
-            load_other_apps: bool = True):
+                 iface: QgisInterface = None,
+                 load_core_apps: bool = True,
+                 load_other_apps: bool = True):
         assert EnMAPBox.instance() is None, 'EnMAPBox already started. Call EnMAPBox.instance() to get a handle to.'
 
         settings = self.settings()
 
         splash = EnMAPBoxSplashScreen(parent=None)
-        if not str(settings.value('EMB_SPLASHSCREEN', True)).lower() in ['0','false']:
+        if not str(settings.value('EMB_SPLASHSCREEN', True)).lower() in ['0', 'false']:
             splash.show()
 
         splash.showMessage('Load UI')
@@ -366,12 +366,11 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.externals.qps.vectorlayertools import VectorLayerTools
         self.mVectorLayerTools = VectorLayerTools()
         self.mVectorLayerTools.sigMessage.connect(lambda title, text, level:
-        self.messageBar().pushItem(QgsMessageBarItem(title, text, level)))
+                                                  self.messageBar().pushItem(QgsMessageBarItem(title, text, level)))
         self.mVectorLayerTools.sigFreezeCanvases.connect(self.freezeCanvases)
         self.mVectorLayerTools.sigEditingStarted.connect(self.updateCurrentLayerActions)
         self.mVectorLayerTools.sigZoomRequest.connect(self.zoomToExtent)
         self.mVectorLayerTools.sigPanRequest.connect(self.panToPoint)
-
 
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
@@ -415,7 +414,6 @@ class EnMAPBox(QgisInterface, QObject):
 
             n_warnings: int = int(settings.value(KEY_CNT, 0))
             if n_warnings < MAX_MISSING_DEPENDENCY_WARNINGS:
-
                 # taken from qgsmessagebar.cpp
                 # void QgsMessageBar::pushMessage( const QString &title, const QString &text, const QString &showMore, Qgis::MessageLevel level, int duration )
 
@@ -446,16 +444,16 @@ class EnMAPBox(QgisInterface, QObject):
         debugLog('call QApplication.processEvents()')
         QApplication.processEvents()
 
-        #debugLog('add QProject.instance()')
-        #self.addProject(QgsProject.instance())
+        # debugLog('add QProject.instance()')
+        # self.addProject(QgsProject.instance())
 
         debugLog('Load settings from QgsProject.instance()')
         self.onReloadProject()
 
     def addMessageBarTextBoxItem(self, title: str, text: str,
-            level: Qgis.MessageLevel = Qgis.Info,
-            buttonTitle='Show more',
-            html=False):
+                                 level: Qgis.MessageLevel = Qgis.Info,
+                                 buttonTitle='Show more',
+                                 html=False):
         """
         Adds a message to the message bar that can be shown in detail using a text browser.
         :param title:
@@ -586,7 +584,7 @@ class EnMAPBox(QgisInterface, QObject):
         root = doc.documentElement()
         node = root.firstChildElement('ENMAPBOX')
         if node.nodeName() == 'ENMAPBOX':
-           pass
+            pass
 
         return True
 
@@ -661,12 +659,11 @@ class EnMAPBox(QgisInterface, QObject):
     def removeMapLayer(self, layer: QgsMapLayer, remove_from_project: bool = True):
         self.removeMapLayers([layer], remove_from_project=remove_from_project)
 
-    def findGroupLayerIds(self, root: QgsLayerTreeGroup = None, exclude: typing.List[QgsLayerTreeGroup]=[]):
+    def findGroupLayerIds(self, root: QgsLayerTreeGroup = None, exclude: typing.List[QgsLayerTreeGroup] = []):
         if root is None:
             ltv = qgis.utils.iface.layerTreeView()
             assert isinstance(ltv, QgsLayerTreeView)
             root: QgsLayerTreeGroup = ltv.model().rootGroup()
-
 
     def removeMapLayers(self, layers: typing.List[QgsMapLayer], remove_from_project=True):
         """
@@ -687,7 +684,6 @@ class EnMAPBox(QgisInterface, QObject):
         root: QgsLayerTreeGroup = ltv.model().rootGroup()
         remainingQgisLayerIDs = root.findLayerIds()
         if remove_from_project:
-
             QgsProject.instance().removeMapLayers([lid for lid in removedIds if lid not in remainingQgisLayerIDs])
 
     def updateCurrentLayerActions(self, *args):
@@ -912,7 +908,7 @@ class EnMAPBox(QgisInterface, QObject):
             for toolButton in toolBar.findChildren(QToolButton):
                 assert isinstance(toolButton, QToolButton)
                 if isinstance(toolButton.defaultAction(), QAction) and isinstance(toolButton.defaultAction().menu(),
-                        QMenu):
+                                                                                  QMenu):
                     toolButton.setPopupMode(QToolButton.MenuButtonPopup)
 
     def initActionsAddProduct(self):
@@ -1132,8 +1128,8 @@ class EnMAPBox(QgisInterface, QObject):
         return results
 
     def initEnMAPBoxApplications(self,
-            load_core_apps: bool = True,
-            load_other_apps: bool = True):
+                                 load_core_apps: bool = True,
+                                 load_other_apps: bool = True):
         """
         Initialized EnMAPBoxApplications
         """
@@ -1209,7 +1205,7 @@ class EnMAPBox(QgisInterface, QObject):
                     elif isinstance(v, str):
                         info.append('<code>{}</code>'.format(v.replace('\n', '<br />\n')))
                     info.append('</p>')
-                    counts[app] = n_counts +1
+                    counts[app] = n_counts + 1
 
             self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Warning, html=True)
 
@@ -1307,7 +1303,7 @@ class EnMAPBox(QgisInterface, QObject):
                 crs_is_set = False
                 for lyr in lyrs:
                     if isinstance(lyr, QgsRasterLayer) and isinstance(lyr.crs(),
-                            QgsCoordinateReferenceSystem) and not lyr.crs().isGeographic():
+                                                                      QgsCoordinateReferenceSystem) and not lyr.crs().isGeographic():
                         dock.mapCanvas().setDestinationCrs(lyr.crs())
                         crs_is_set = True
                         break
@@ -1603,7 +1599,7 @@ class EnMAPBox(QgisInterface, QObject):
         newSize = QSize(int(f * rect.width()), int(f * rect.height()))
 
         geom = QStyle.alignedRect(Qt.LeftToRight, Qt.AlignCenter,
-            newSize, QApplication.instance().desktop().availableGeometry())
+                                  newSize, QApplication.instance().desktop().availableGeometry())
         self.ui.setGeometry(geom)
 
     def closeEvent(self, event: QCloseEvent):
@@ -1619,9 +1615,12 @@ class EnMAPBox(QgisInterface, QObject):
         EnMAPBox._instance = None
         self.sigClosed.emit()
 
-        import gc
-        gc.collect()
-
+        try:
+            import gc
+            gc.collect()
+        except Exception as ex:
+            print(f'Errors when closing the EnMAP-Box: {ex}', file=sys.stderr)
+            pass
         EnMAPBox._instance = None
         event.accept()
 
@@ -1644,7 +1643,7 @@ class EnMAPBox(QgisInterface, QObject):
         if not isinstance(grp, EnMAPBoxHiddenLayerTreeGroup):
             # assert not isinstance(self._layerTreeGroup, QgsLayerTreeGroup)
             enmapbox.debugLog('CREATE HIDDEN LAYER GROUP')
-            #print('CREATE HIDDEN LAYER GROUP')
+            # print('CREATE HIDDEN LAYER GROUP')
             grp: EnMAPBoxHiddenLayerTreeGroup = EnMAPBoxHiddenLayerTreeGroup()
             root.addChildNode(grp)
             self._layerTreeGroup = grp
@@ -2224,7 +2223,7 @@ class EnMAPBox(QgisInterface, QObject):
         canvas = self.currentMapCanvas()
 
         if isinstance(lyr, QgsVectorLayer) and lyr.selectedFeatureCount() > 0 and isinstance(canvas, QgsMapCanvas):
-            #todo: implement zoom to selected
+            # todo: implement zoom to selected
             pass
 
         pass
@@ -2259,7 +2258,6 @@ class EnMAPBox(QgisInterface, QObject):
         canvas = self.currentMapCanvas()
         lyr = self.currentLayer()
         if isinstance(lyr, QgsVectorLayer) and isinstance(canvas, QgsMapCanvas):
-
             s = ""
 
     # ---------------- API Mock for QgsInterface follows -------------------
