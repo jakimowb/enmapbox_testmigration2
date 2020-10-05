@@ -8,8 +8,7 @@ import numpy as np
 from scipy import interpolate, stats
 from hubdc.core import *
 
-# 1
-def DASF_retrieval(inputFile, outputName, secondoutputName):
+def DASF_retrieval(inputFile, outputName, secondoutputName, thirdoutputName):
 
 	# ...
 	# This function derives the directional area scattering factor or DASF function for vegetation canopy with dark background
@@ -93,10 +92,14 @@ def DASF_retrieval(inputFile, outputName, secondoutputName):
 # Step 4 - Ratio estimation of the DASF
 	DASF = intercept / (1-slope)
 
-# Step 4 - Optional retrieval of R² as retrieval quality indicator
+# Step 5 - Optional retrieval of R² as retrieval quality indicator
 	R2 = r_value**2
 	retrieval_quality = np.stack((R2,p_value), axis = 0)
+
+# Step 6 - Applying DASF correction
+	CSC = BRFs/DASF
 
 # Print output raster from array
 	RasterDataset.fromArray(array=DASF, grid=GridData, filename=outputName, driver=GTiffDriver())
 	RasterDataset.fromArray(array=retrieval_quality, grid=GridData, filename=secondoutputName, driver=GTiffDriver())
+	RasterDataset.fromArray(array=CSC, grid=GridData, filename=thirdoutputName, driver=GTiffDriver())

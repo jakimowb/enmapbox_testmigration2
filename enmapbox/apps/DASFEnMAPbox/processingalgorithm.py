@@ -8,12 +8,13 @@ class DASFretrievalAlgorithm(QgsProcessingAlgorithm):
     P_INPUT = 'Input Raster'
     P_OUTPUT = 'DASF Output Raster'
     P_Retrieval_Quality = 'DASF retrieval quality Output Raster'
+    P_CSC = 'CSC Output Raster'
 # 2
     def group(self):
-        return 'Workshop'
+        return 'Vegetation'
 
     def groupId(self):
-        return 'workshop' # internal id
+        return 'vegetation' # internal id
 
     def displayName(self):
         return 'DASF retrieval'
@@ -28,6 +29,8 @@ class DASFretrievalAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterRasterDestination(name=self.P_OUTPUT, description='DASF Output Raster'))
         self.addParameter(QgsProcessingParameterRasterDestination(name=self.P_Retrieval_Quality,
                                                                   description='DASF retrieval quality Output Raster'))
+        self.addParameter(QgsProcessingParameterRasterDestination(name=self.P_CSC,
+                                                                  description='CSC Output Raster'))
 # 4
     def processAlgorithm(self, parameters, context, feedback):
         assert isinstance(feedback, QgsProcessingFeedback)
@@ -39,12 +42,14 @@ class DASFretrievalAlgorithm(QgsProcessingAlgorithm):
             DASF_retrieval(
                 inputFile=self.parameterAsRasterLayer(parameters, self.P_INPUT, context).source(),
                 outputName=self.parameterAsOutputLayer(parameters, self.P_OUTPUT, context),
-                secondoutputName=self.parameterAsOutputLayer(parameters, self.P_Retrieval_Quality, context)
+                secondoutputName=self.parameterAsOutputLayer(parameters, self.P_Retrieval_Quality, context),
+                thirdoutputName= self.parameterAsOutputLayer(parameters, self.P_CSC, context)
             )
 
             # return all output parameters
             return {self.P_OUTPUT: self.parameterAsOutputLayer(parameters, self.P_OUTPUT, context)}
-            return {self.P_Retrieval_Quality: self.parameterAsOutputLayer(parameters, self.P_OUTPUT, context)}
+            return {self.P_Retrieval_Quality: self.parameterAsOutputLayer(parameters, self.P_Retrieval_Quality, context)}
+            return {self.P_CSC: self.parameterAsOutputLayer(parameters, self.P_CSC, context)}
 
         # handle any uncatched exceptions
         except:
@@ -60,16 +65,19 @@ class DASFretrievalAlgorithm(QgsProcessingAlgorithm):
         html = '' \
        '<p>This tool derives the DASF (directional area scattering factor) function for vegetation canopy with dark' \
         'background or sufficiently dense vegetation where the impact of canopy background is negligible.</p>' \
-       '<a href="https://www.pnas.org/content/110/3/E185">Knyazikhin et al. 2013</a>' \
-       '<h3>Input raster</h3>' \
-       '<p>Hyperspectral raster image.</p>' \
-       '<h3>DASF output raster</h3>' \
-       '<p>Enter a name to your DASF output raster.</p>' \
-       '<h3>Retrieval quality output raster</h3>' \
-       '<p>Enter a name to the second output raster. This tool returns a two layers raster file for which:' \
-       '<p>Band 1 = R squared</p>' \
-       '<p>Band 2 = P value</p>' \
-       '<p>allowing you to access the quality of the DASF retrieval for each pixel.</p>'
+        '<a href="https://www.pnas.org/content/110/3/E185">Knyazikhin et al. 2013</a>' \
+        '<h3>Input raster</h3>' \
+        '<p>Hyperspectral raster image.</p>' \
+        '<h3>DASF output raster</h3>' \
+        '<p>Enter a name to your DASF output raster.</p>' \
+        '<h3>Retrieval quality output raster</h3>' \
+        '<p>Enter a name to the second output raster. This tool returns a two layers raster file for which:' \
+        '<p>Band 1 = R squared</p>' \
+        '<p>Band 2 = P value</p>' \
+        '<p>allowing you to access the quality of the DASF retrieval for each pixel.</p>'\
+        '<h3>CSC output raster</h3>' \
+        '<p>Enter a name to your CSC out raster.</p>' \
+
 
         return html
 # 6

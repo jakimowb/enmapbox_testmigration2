@@ -16,7 +16,8 @@ Processing.initialize()
 alg = DASFretrievalAlgorithm()
 io = {alg.P_INPUT: "C:\\Users\\Marion\\Desktop\\EnMAP_box\\MyTool\\KROOF03_Viertel_RFC_geo_1m_subset710_790.bsq",
       alg.P_OUTPUT: join(dirname(__file__), 'DASF.bsq'),
-      alg.P_Retrieval_Quality: join(dirname(__file__), 'DASF_retrievalQuality.bsq')}
+      alg.P_Retrieval_Quality: join(dirname(__file__), 'DASF_retrievalQuality.bsq'),
+      alg.P_CSC: join(dirname(__file__), 'CSC.bsq')}
 result = Processing.runAlgorithm(alg, parameters=io)
 
 print(result)
