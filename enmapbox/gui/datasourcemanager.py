@@ -24,6 +24,7 @@ import typing
 import re
 import sys
 import collections
+import uuid
 import numpy as np
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
