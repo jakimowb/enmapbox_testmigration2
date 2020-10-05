@@ -13,4 +13,4 @@ class DASFretrievalApp(EnMAPBoxApplication):
         self.licence = 'GNU GPL-3'
 
     def processingAlgorithms(self):
-        return [12DASFretrievalAlgorithm()]
+        return [DASFretrievalAlgorithm()]
