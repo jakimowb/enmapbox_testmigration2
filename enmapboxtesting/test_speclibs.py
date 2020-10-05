@@ -12,9 +12,11 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, pickle, time
-from qgis import *
-from qgis.core import *
+import unittest
+import xmlrunner
+import time
+
+from qgis.core import QgsVectorLayer, QgsRasterLayer
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -47,9 +49,7 @@ class testClassUtils(EnMAPBoxTestCase):
         dt = time.time() - t0
         print('Time to add {} profiles: {}sec'.format(n, dt))
 
-
         s = ""
-
 
     def test_issue515(self):
 
@@ -69,12 +69,5 @@ class testClassUtils(EnMAPBoxTestCase):
                 self.assertTrue(EnviSpectralLibraryIO.canRead(path))
 
 
-
-
 if __name__ == "__main__":
-
-    import xmlrunner
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
-

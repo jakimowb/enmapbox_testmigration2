@@ -19,12 +19,11 @@
 
 
 import unittest
-from unittest import TestCase
+import xmlrunner
 from qgis import *
-from qgis.core import *
+from qgis.core import QgsProject
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-
 
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.gui.utils import *
@@ -49,12 +48,10 @@ class TestEnMAPBoxPlugin(EnMAPBoxTestCase):
 
     def test_enmapbox_settings(self):
 
-
         box = EnMAPBox()
         box.loadExampleData()
         dataSources = box.dataSources()
         n_maps = len(box.mapCanvases())
-
 
         proj = QgsProject.instance()
         self.assertIsInstance(proj, QgsProject)
@@ -84,10 +81,6 @@ class TestEnMAPBoxPlugin(EnMAPBoxTestCase):
 
         box = EnMAPBox()
 
-#       box.onWriteProject()
-   #    box.actionSaveProject().trigger()
 
 if __name__ == '__main__':
-
-    import xmlrunner
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

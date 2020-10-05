@@ -1,9 +1,11 @@
 """
 This is a template to create an EnMAP-Box test
 """
-from qgis.core import *
-from qgis.PyQt.QtWidgets import QApplication
 import unittest
+import xmlrunner
+
+from qgis.PyQt.QtWidgets import QApplication
+from qgis.core import QgsApplication, QgsRasterLayer, QgsVectorLayer
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 from enmapbox import EnMAPBox
 
@@ -48,7 +50,6 @@ class EnMAPBoxTestCaseExample(EnMAPBoxTestCase):
         self.assertTrue(vectorLayer.isValid())
 
 
-
 if __name__ == '__main__':
-    import xmlrunner
+
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

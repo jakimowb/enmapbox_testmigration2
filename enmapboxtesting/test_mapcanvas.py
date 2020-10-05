@@ -12,9 +12,10 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
+import xmlrunner
 from qgis import *
 from qgis.gui import *
-from qgis.core import *
+from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsPointXY, QgsProject
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
@@ -164,7 +165,7 @@ class MapCanvasTests(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-    import xmlrunner
+
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
 
 

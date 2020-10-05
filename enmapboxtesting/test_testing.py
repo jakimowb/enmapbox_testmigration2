@@ -11,14 +11,17 @@
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 
 import unittest
+import xmlrunner
 from qgis import *
-from qgis.core import *
+from qgis.core import QgsProcessingAlgorithm, QgsApplication
+from qgis.gui import QgisInterface
 from qgis.gui import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 from osgeo import gdal, ogr, osr
+
 
 class Tests(EnMAPBoxTestCase):
 
@@ -29,8 +32,8 @@ class Tests(EnMAPBoxTestCase):
         if isinstance(emb, EnMAPBox):
             emb.close()
 
-
         QApplication.processEvents()
+
     def test_inMemoryImage(self):
         self.assertIsInstance(TestObjects.createRasterDataset(), gdal.Dataset)
 
@@ -42,7 +45,6 @@ class Tests(EnMAPBoxTestCase):
         self.assertTrue(ds.GetLayerByIndex(0).GetFeatureCount() > 0)
 
     def test_enmapboxApplication(self):
-
 
         from enmapbox import EnMAPBoxApplication, EnMAPBox
 
@@ -67,10 +69,5 @@ class Tests(EnMAPBoxTestCase):
         self.assertIsInstance(qgis.utils.iface, QgisInterface)
 
 
-
 if __name__ == "__main__":
-    import xmlrunner
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
-

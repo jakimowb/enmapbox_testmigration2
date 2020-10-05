@@ -11,7 +11,9 @@
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 
 import unittest
+import xmlrunner
 from qgis import *
+from qgis.core import QgsRasterLayer, QgsProject
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from enmapbox.testing import EnMAPBoxTestCase
@@ -23,9 +25,7 @@ from enmapbox.gui import CrosshairDialog
 class CrosshairTests(EnMAPBoxTestCase):
 
     def test_crosshair(self):
-        import site, sys
         # add site-packages to sys.path as done by enmapboxplugin.py
-
 
         lyr = QgsRasterLayer(enmap)
         QgsProject.instance().addMapLayer(lyr)
@@ -42,14 +42,11 @@ class CrosshairTests(EnMAPBoxTestCase):
         QgsProject.instance().addMapLayer(lyr)
         QgsProject.instance().removeMapLayer(lyr)
         del lyr
-        self.assertTrue(refCanvas.mCrosshairItem.rasterGridLayer() == None)
+        self.assertTrue(refCanvas.mCrosshairItem.rasterGridLayer() is None)
 
         menu = refCanvas.contextMenu(SpatialPoint.fromMapCanvasCenter(refCanvas))
         self.showGui([refCanvas, menu])
 
+
 if __name__ == "__main__":
-    import xmlrunner
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
-

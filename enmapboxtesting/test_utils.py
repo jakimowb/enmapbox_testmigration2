@@ -12,9 +12,11 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, pickle
+import unittest
+import pickle
+import xmlrunner
 from qgis import *
-from qgis.core import *
+from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsPointXY
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -121,8 +123,6 @@ class testClassUtils(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-
-    import xmlrunner
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
 
 

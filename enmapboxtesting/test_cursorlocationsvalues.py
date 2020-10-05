@@ -13,6 +13,7 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
+import xmlrunner
 from qgis import *
 from qgis.gui import *
 
@@ -63,6 +64,4 @@ class CursorLocationTest(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-    import xmlrunner
-
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

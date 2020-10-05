@@ -1,23 +1,22 @@
-
 import unittest
+import xmlrunner
 from osgeo import gdal, gdal_array, osr
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtWidgets import *
-from qgis.core import *
-from qgis.gui import *
+
+from qgis.core import QgsRasterLayer, QgsProject, QgsRasterRenderer, QgsRectangle
+
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 
 from imagecubeapp.imagecube import *
+
+
 class VTest(EnMAPBoxTestCase):
 
-    def createImageCube(self, nb=10, ns=20, nl=30, crs='EPSG.32633')->QgsRasterLayer:
-
+    def createImageCube(self, nb=10, ns=20, nl=30, crs='EPSG.32633') -> QgsRasterLayer:
 
         path = '/vsimem/imagecube.tiff'
 
-        array = np.fromfunction(lambda i,j,k: i+j+k, (nb, nl, ns), dtype=np.uint32)
-        #array = array * 10
+        array = np.fromfunction(lambda i, j, k: i + j + k, (nb, nl, ns), dtype=np.uint32)
+        # array = array * 10
         drv = gdal.GetDriverByName('GTiff')
         assert isinstance(drv, gdal.Driver)
         eType = gdal_array.NumericTypeCodeToGDALTypeCode(array.dtype)
@@ -31,8 +30,8 @@ class VTest(EnMAPBoxTestCase):
 
         assert isinstance(ds, gdal.Dataset)
         for b in range(nb):
-            band = ds.GetRasterBand(b+1)
-            band.WriteArray(array[b,:,:])
+            band = ds.GetRasterBand(b + 1)
+            band.WriteArray(array[b, :, :])
 
         ds.FlushCache()
 
@@ -42,7 +41,6 @@ class VTest(EnMAPBoxTestCase):
         assert lyr.isValid()
         return lyr
 
-
     def test_samplingGrid(self):
 
         from enmapboxtestdata import enmap as pathEnMAP
@@ -50,15 +48,15 @@ class VTest(EnMAPBoxTestCase):
 
         ext1 = lyr.extent()
         ns, nl = lyr.width(), lyr.height()
-        cache = 1024**4
+        cache = 1024 ** 4
         nnl, nns = samplingGrid(lyr, ext1, ncb=3, max_size=cache)
         self.assertIsInstance(nnl, int)
         self.assertIsInstance(nns, int)
         self.assertTrue(nnl >= 0 and nns >= 0)
         self.assertTrue(nnl == nl and nns == ns)
 
-        #reduce cache
-        nnl, nns = samplingGrid(lyr, ext1, ncb=3, max_size=1024*2)
+        # reduce cache
+        nnl, nns = samplingGrid(lyr, ext1, ncb=3, max_size=1024 * 2)
         self.assertTrue(nnl < nl and nns < ns)
 
         f1 = ext1.width() / ext1.height()
@@ -81,7 +79,6 @@ class VTest(EnMAPBoxTestCase):
 
         W = ImageCubeWidget()
         W.show()
-
 
         from enmapboxtestdata import enmap as pathEnMAP
         from enmapboxtestdata import hires as pathHyMap
@@ -110,9 +107,9 @@ class VTest(EnMAPBoxTestCase):
             W.setY(y)
             W.setZ(z)
 
-            #W.setZSCale(2)
-            #self.assertEqual(W.zScale(), 2)
-            #W.setZSCale(2)
+            # W.setZSCale(2)
+            # self.assertEqual(W.zScale(), 2)
+            # W.setZSCale(2)
             self.assertEqual(W.x(), x)
             self.assertEqual(W.y(), y)
             self.assertEqual(W.z(), z)
@@ -127,16 +124,14 @@ class VTest(EnMAPBoxTestCase):
             self.assertIsInstance(W.sliceRenderer(), QgsRasterRenderer)
             self.assertIsInstance(W.topPlaneRenderer(), QgsRasterRenderer)
 
-
             ext1 = lyr.extent()
             self.assertEqual(ext1, W.extent())
             self.assertEqual(lyr.crs(), W.crs())
             ext2 = QgsRectangle(ext1)
-            ext2.setXMinimum(ext2.xMinimum()-5)
+            ext2.setXMinimum(ext2.xMinimum() - 5)
 
             W.setExtent(ext2)
             self.assertEqual(W.extent(), ext2)
-
 
         if True:
             W.setRasterLayer(layers[0])
@@ -149,7 +144,6 @@ class VTest(EnMAPBoxTestCase):
         W = ImageCubeWidget()
         W.show()
 
-
         from enmapboxtestdata import enmap as pathEnMAP
         from enmapboxtestdata import hires as pathHyMap
 
@@ -157,7 +151,7 @@ class VTest(EnMAPBoxTestCase):
         pathLargeImage = r'Q:\Processing_BJ\01_Data\level2\X0016_Y0046\20140803_LEVEL2_LND07_BOA.tif'
 
         layers = [self.createImageCube(nb=177, ns=200, nl=400)]
-        #layers = []
+        # layers = []
         pathes = [pathEnMAP, pathHyMap, pathLargeImage]
         for p in pathes:
             if os.path.isfile(p):
@@ -169,7 +163,6 @@ class VTest(EnMAPBoxTestCase):
         W.cbShowSliceX.setChecked(False)
         W.cbShowSliceY.setChecked(True)
         W.cbShowSliceZ.setChecked(False)
-
 
         lyr = layers[0]
         self.assertIsInstance(lyr, QgsRasterLayer)
@@ -188,22 +181,19 @@ class VTest(EnMAPBoxTestCase):
         w = ext1.width()
         h = ext1.height()
 
-
         if True:
             cut = 0.1
-            x0 = ext1.xMinimum() + w*cut
-            x1 = ext1.xMaximum() - 2*w*cut
-            y0 = ext1.yMinimum() + h*cut
-            y1 = ext1.yMaximum() - 2*h*cut
-            ext2 = QgsRectangle(x0,y0,x1,y1)
+            x0 = ext1.xMinimum() + w * cut
+            x1 = ext1.xMaximum() - 2 * w * cut
+            y0 = ext1.yMinimum() + h * cut
+            y1 = ext1.yMaximum() - 2 * h * cut
+            ext2 = QgsRectangle(x0, y0, x1, y1)
             W.setExtent(ext2)
         W.startDataLoading()
 
-
         self.showGui(W)
+
 
 if __name__ == "__main__":
 
-    import xmlrunner
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-

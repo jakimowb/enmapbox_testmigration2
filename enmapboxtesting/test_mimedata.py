@@ -12,12 +12,13 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, pathlib, os
+import unittest
+import xmlrunner
+import pathlib
 from qgis import *
 from qgis.gui import *
 
-from qgis.core import *
-from qgis.core import *
+from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsProject
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
@@ -189,8 +190,5 @@ class MimeDataTests(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-    import xmlrunner
+
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
-

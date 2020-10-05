@@ -11,8 +11,9 @@
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 
 import unittest
+import xmlrunner
 from qgis.gui import *
-from qgis.core import *
+from qgis.core import QgsProject
 import qgis.utils
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -98,7 +99,7 @@ class Tests(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-    import xmlrunner
+
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
 
 

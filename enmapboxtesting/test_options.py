@@ -19,12 +19,12 @@
 
 
 import unittest
+import xmlrunner
 from unittest import TestCase
 from qgis import *
 from qgis.core import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-
 
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.gui.utils import *
@@ -32,14 +32,10 @@ from enmapbox.gui.widgets.models import *
 from enmapboxtestdata import *
 
 
-
 class TestEnMAPBoxPlugin(EnMAPBoxTestCase):
 
     def test_optionmodel(self):
-
-
         m = OptionListModel()
-
 
         cb = QComboBox()
         cb.setModel(m)
@@ -49,9 +45,10 @@ class TestEnMAPBoxPlugin(EnMAPBoxTestCase):
         options = [Option(source, os.path.basename(source)) for source in sources]
         m.addOptions(options)
 
-        #m.removeOptions(options)
+        # m.removeOptions(options)
         self.showGui(cb)
 
+
 if __name__ == '__main__':
-    import xmlrunner
+
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

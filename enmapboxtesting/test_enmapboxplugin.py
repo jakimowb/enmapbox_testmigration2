@@ -19,9 +19,10 @@
 
 
 import unittest
+import xmlrunner
 from unittest import TestCase
 from qgis import *
-from qgis.core import *
+from qgis.core import QgsProcessingAlgorithm, QgsProject
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
@@ -111,5 +112,4 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
 
 if __name__ == '__main__':
 
-    import xmlrunner
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

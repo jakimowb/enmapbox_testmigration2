@@ -137,4 +137,4 @@ class MyTestCase(EnMAPBoxTestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

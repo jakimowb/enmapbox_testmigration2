@@ -1,8 +1,10 @@
+import unittest
+import xmlrunner
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapbox.externals.qps.vectorlayertools import VectorLayerTools
 
-class TestCasesVectorLayerTools(EnMAPBoxTestCase):
 
+class TestCasesVectorLayerTools(EnMAPBoxTestCase):
 
     def test_VectorLayerTools(self):
         lyr0 = TestObjects.createVectorLayer()
@@ -12,7 +14,7 @@ class TestCasesVectorLayerTools(EnMAPBoxTestCase):
         tools = VectorLayerTools()
 
         tools.startEditing(lyr)
-        #tools.addFeature(lyr, None, f0.geometry(), f0)
+        # tools.addFeature(lyr, None, f0.geometry(), f0)
         tools.stopEditing(lyr, True)
         tools.stopEditing(lyr, False)
         tools.commitError(lyr)
@@ -20,5 +22,5 @@ class TestCasesVectorLayerTools(EnMAPBoxTestCase):
         tools.commitError(lyr)
 
 
-
-
+if __name__ == "__main__":
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

@@ -13,12 +13,12 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, shutil
+import unittest
+import xmlrunner
 import uuid
-from collections import namedtuple
-from enmapbox.testing import EnMAPBoxTestCase, TestObjects
+from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.dependencycheck import *
-
+from qgis.core import QgsApplication
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 

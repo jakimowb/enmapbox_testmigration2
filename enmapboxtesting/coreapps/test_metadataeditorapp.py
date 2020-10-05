@@ -19,11 +19,15 @@
 ***************************************************************************
 """
 
-import unittest, time, pathlib, site
-
+import pathlib
+import site
+import unittest
+import xmlrunner
+from enmapbox import DIR_ENMAPBOX
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapboxtestdata import landcover_polygons, enmap
-from enmapbox import DIR_ENMAPBOX
+from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsProject
+
 p = pathlib.Path(DIR_ENMAPBOX) / 'coreapps'
 assert p.is_dir()
 site.addsitedir(p)
@@ -93,6 +97,5 @@ class TestMDMetadataKeys(EnMAPBoxTestCase):
 
 if __name__ == "__main__":
 
-    import xmlrunner
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
 

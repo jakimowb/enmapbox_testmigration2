@@ -14,6 +14,7 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 import tempfile
 import unittest
 import time
+import xmlrunner
 from qgis.core import *
 from qgis.gui import *
 from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsRasterRenderer
@@ -632,6 +633,5 @@ class standardDataSources(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-    import xmlrunner
 
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

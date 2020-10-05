@@ -1,7 +1,10 @@
-import unittest, sys
+import unittest
+import xmlrunner
+import sys
 from enmapbox.testing import TestCase, TestObjects
-from qgis.core import *
-from qgis.gui import *
+from qgis.core import QgsApplication, QgsProcessingRegistry, QgsProcessingAlgorithm, QgsProcessingProvider
+
+
 
 class ProcessingProviderTests(TestCase):
 
@@ -69,8 +72,7 @@ class ProcessingProviderTests(TestCase):
         self.assertEqual(n1, n3)
         s = ""
 
+
 if __name__ == "__main__":
-    import xmlrunner
+
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-

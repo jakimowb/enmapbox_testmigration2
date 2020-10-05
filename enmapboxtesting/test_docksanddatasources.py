@@ -12,16 +12,18 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, tempfile
+import unittest
+import tempfile
+import xmlrunner
 from qgis import *
+from qgis.core import QgsApplication, QgsProject, QgsRasterLayer, QgsVectorLayer, QgsLayerTreeLayer
+from qgis.gui import QgsLayerTreeView, QgsMapCanvas
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
 
-
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
-
-
+from enmapbox.gui import SpectralProfile
 from enmapboxtestdata import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.datasourcemanager import *
@@ -35,8 +37,10 @@ class testDataSources(EnMAPBoxTestCase):
 
         global signalArgs
         signalArgs = []
+
         def onSignal(dataSource):
             signalArgs.append(dataSource)
+
         DSM = DataSourceManager()
         self.assertIsInstance(DSM, DataSourceManager)
         DSM.sigDataSourceAdded.connect(onSignal)
@@ -133,7 +137,6 @@ class testDataSources(EnMAPBoxTestCase):
 
         s = ""
 
-
     def test_DockPanelUI(self):
 
         w = DockPanelUI()
@@ -144,12 +147,10 @@ class testDataSources(EnMAPBoxTestCase):
         w.show()
         DM.createDock('MAP')
         DM.createDock('SPECLIB')
-        #DM.createDock('WEBVIEW')
+        # DM.createDock('WEBVIEW')
         self.showGui(w)
 
-
     def test_pgDock(self):
-
 
         da = DockArea()
         from pyqtgraph.dockarea.Dock import Dock as pgDock
@@ -158,14 +159,12 @@ class testDataSources(EnMAPBoxTestCase):
         da.show()
         self.showGui(da)
 
-
     def test_MimeDataDock(self):
         da = DockArea()
         dock = MimeDataDock()
         da.addDock(dock)
         da.show()
         self.showGui(da)
-
 
     def test_TextDock(self):
         da = DockArea()
@@ -184,13 +183,10 @@ class testDataSources(EnMAPBoxTestCase):
         tw.mFile = pathTxt
         tw.save()
 
-
-        checkTxt = None
         with open(pathTxt, encoding='utf-8') as f:
             checkTxt = f.read()
         self.assertEqual(checkTxt, testText)
         tw.mFile = None
-
 
         tw.setText('')
         self.assertEqual(tw.text(), '')
@@ -201,12 +197,11 @@ class testDataSources(EnMAPBoxTestCase):
         da.show()
         self.showGui(da)
 
-
     def test_SpeclibDock(self):
         da = DockArea()
         profile = SpectralProfile()
         profile.setName('Test')
-        profile.setValues(x=[1,2,3,4,5], y=[2,1,2,3,2])
+        profile.setValues(x=[1, 2, 3, 4, 5], y=[2, 1, 2, 3, 2])
         dock = SpectralLibraryDock()
         dock.speclib().startEditing()
         dock.speclib().addProfiles([profile])
@@ -221,9 +216,8 @@ class testDataSources(EnMAPBoxTestCase):
         da.addDock(dock)
         self.showGui(da)
 
+
 if __name__ == "__main__":
     import xmlrunner
+
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
-

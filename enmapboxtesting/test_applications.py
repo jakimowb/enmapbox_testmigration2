@@ -7,19 +7,17 @@
      (at your option) any later version.
 
 """
-import enmapbox, os
 import xmlrunner
 
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, shutil, tempfile, pathlib, gc
+import unittest
 from collections import namedtuple
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
-
+from qgis.core import QgsApplication
 from enmapbox import EnMAPBox, DIR_ENMAPBOX, DIR_REPO
-import enmapbox.gui
 from enmapbox.gui.applications import *
 
 DIR_TMP = os.path.join(DIR_REPO, *['tmp', 'tmp_enmapboxApplicationTests'])
@@ -176,7 +174,7 @@ class test_applications(EnMAPBoxTestCase):
         self.assertTrue(len(reg) > 0, msg='Failed to add example EnMAPBoxApplication from {}'.format(rootFolder))
 
         print('finished')
-        s = ""
+
 
     def test_IVVM(self):
 
@@ -254,4 +252,3 @@ class test_applications(EnMAPBoxTestCase):
 
 if __name__ == "__main__":
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-    print('Tests done', flush=True)

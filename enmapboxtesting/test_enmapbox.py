@@ -18,9 +18,11 @@
 # noinspection PyPep8Naming
 
 
-import unittest, os
-from qgis.core import *
-from qgis.gui import *
+import unittest
+import xmlrunner
+from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, \
+    QgsLayerTree, QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterDefinition
+from qgis.gui import QgisInterface
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QResource
@@ -47,12 +49,13 @@ class MyOutputRaster(QgsProcessingParameterDefinition):
 
         return 'bsq'
 
+
 class MyGeoAlgorithmus(QgsProcessingAlgorithm):
 
     def defineCharacteristics(self):
         self.name = 'TestAlgorithm'
         self.group = 'TestGroup'
-        #self.addParameter(ParameterRaster('infile', 'Test Input Image'))
+        # self.addParameter(ParameterRaster('infile', 'Test Input Image'))
         self.addOutput(QgsProcessingParameterRasterLayer('outfile1', 'Test Output Image'))
         self.addOutput(MyOutputRaster('outfile2', 'Test MyOutput Image'))
 
@@ -61,18 +64,18 @@ class MyGeoAlgorithmus(QgsProcessingAlgorithm):
         infile = self.getParameterValue('infile')
         outfile = self.getOutputValue('outfile')
         outfile2 = self.getOutputValue('outfile2')
-        s  =""
+        s = ""
         # define
         # todo:
-
 
     def help(self):
         return True, '<todo: describe test>'
 
 
-
 # mini test
 from enmapbox.gui.applications import EnMAPBoxApplication
+
+
 class TestEnMAPBoxApp(EnMAPBoxApplication):
 
     def __init__(self, enmapbBox):
@@ -83,7 +86,6 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
         self.licence = 'None'
 
     def menu(self, appMenu):
-
         assert isinstance(appMenu, QMenu)
         a = appMenu.addAction('Call dummy action')
         a.triggered.connect(self.dummySlot)
@@ -93,6 +95,7 @@ class TestEnMAPBoxApp(EnMAPBoxApplication):
 
     def dummySlot(self, *arg, **kwds):
         print('Dummy Slot called.')
+
 
 class TestEnMAPBox(EnMAPBoxTestCase):
 
@@ -105,7 +108,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         assert EnMAPBox.instance() is None
 
         QgsProject.instance().removeAllMapLayers()
-
 
         super().tearDown()
 
@@ -154,7 +156,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         qgis.utils.iface.actionSaveProject().trigger()
         self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
 
-
     def test_Qgis(self):
 
         from enmapbox import Qgis
@@ -164,8 +165,8 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         layers = []
         layers.append(QgsRasterLayer(enmap))
         layers.append(QgsVectorLayer(landcover_polygons))
-        #layers.append(QgsRasterLayer(WMS_OSM, 'osm', 'wms'))
-        #layers.append(QgsVectorLayer(WFS_Berlin, 'wfs', 'WFS'))
+        # layers.append(QgsRasterLayer(WMS_OSM, 'osm', 'wms'))
+        # layers.append(QgsVectorLayer(WFS_Berlin, 'wfs', 'WFS'))
 
         for lyr in layers:
             self.assertIsInstance(lyr, QgsMapLayer)
@@ -249,14 +250,12 @@ class TestEnMAPBox(EnMAPBoxTestCase):
             self.assertEqual(n1, len(E.dataSources()))
 
         # remove a datasource
-        #E.removeSource(ds1)
-        #self.assertEqual(n1 - 1, len(E.dataSources()))
-        #QgsProject.instance().removeMapLayer(ds1.mapLayer())
-        #self.assertEqual(n1-1, len(E.dataSources()))
+        # E.removeSource(ds1)
+        # self.assertEqual(n1 - 1, len(E.dataSources()))
+        # QgsProject.instance().removeMapLayer(ds1.mapLayer())
+        # self.assertEqual(n1-1, len(E.dataSources()))
 
         self.showGui([E.ui, qgis.utils.iface.ui])
-
-
 
     def test_addSources(self):
         E = EnMAPBox()
@@ -279,8 +278,8 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertIsInstance(canvases, list)
         self.assertTrue(len(canvases) == 0)
 
-        #E.loadExampleData()
-        #self.assertTrue(len(E.mapCanvases()) == 1)
+        # E.loadExampleData()
+        # self.assertTrue(len(E.mapCanvases()) == 1)
 
         E.createDock('MAP')
         self.assertTrue(len(E.mapCanvases()) == 1)
@@ -298,7 +297,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
     def test_loadAndUnloadData(self):
         E = EnMAPBox()
-        mapDock = E.createDock('MAP') # empty map
+        mapDock = E.createDock('MAP')  # empty map
         self.assertIsInstance(mapDock, MapDock)
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
 
@@ -308,7 +307,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         E.loadExampleData()
         self.assertTrue(len(E.dataSources()) > 0)
         ns = len(E.dataSources('SPATIAL'))
-        self.assertTrue(len(QgsProject.instance().mapLayers())  > 0)
+        self.assertTrue(len(QgsProject.instance().mapLayers()) > 0)
 
         # add layer to map
         mapDock.addLayers([TestObjects.createRasterLayer()])
@@ -326,7 +325,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         sources = EMB.dataSources('RASTER')
 
         self.assertIsInstance(sources, list)
-        self.assertTrue(len(sources) > 0 )
+        self.assertTrue(len(sources) > 0)
         layers = [QgsRasterLayer(p) for p in sources]
         self.assertTrue(len(layers) > 0)
         mapDock.mapCanvas().setLayers(layers)
@@ -338,12 +337,11 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertTrue(len(slw.speclib()) == 0)
         center = SpatialPoint.fromMapCanvasCenter(mapDock.mapCanvas())
 
-
         profiles = SpectralProfile.fromMapCanvas(mapDock.mapCanvas(), center)
         for p in profiles:
             self.assertIsInstance(p, SpectralProfile)
 
 
 if __name__ == '__main__':
-    import xmlrunner
+
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
