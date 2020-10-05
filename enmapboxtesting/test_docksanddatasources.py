@@ -24,6 +24,7 @@ from qgis.PyQt.QtWidgets import *
 
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 from enmapbox.gui import SpectralProfile
+from enmapbox import EnMAPBox
 from enmapboxtestdata import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.datasourcemanager import *
@@ -215,6 +216,25 @@ class testDataSources(EnMAPBoxTestCase):
         da.addDock(dock)
         self.showGui(da)
 
+    def test_dockTreeViewDoubleClicks(self):
+        from enmapboxtestdata import enmap, landcover_polygons
+        eb = EnMAPBox(load_core_apps=False, load_other_apps=False)
+
+        lyrR = QgsRasterLayer(enmap)
+        lyrV = QgsVectorLayer(landcover_polygons)
+
+        mapDock1 = eb.createDock('MAP')
+        self.assertIsInstance(mapDock1, MapDock)
+        mapDock1.mapCanvas().setLayers([lyrR, lyrV])
+        tv = eb.dockTreeView()
+        mapDock2 = eb.createDock('MAP')
+        self.assertIsInstance(mapDock2, MapDock)
+        eb.setCurrentMapCanvas(mapDock2.mapCanvas())
+        mapDocks = eb.dockManager().docks(MapDock)
+
+        self.assertIsInstance(tv, DockTreeView)
+
+        self.showGui(eb.ui)
 
 if __name__ == "__main__":
 

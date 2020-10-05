@@ -77,7 +77,7 @@ def enmapboxSettings() -> QSettings:
 
 
 settings = enmapboxSettings()
-DEBUG = settings.value('EMB_DEBUG', False)
+DEBUG = settings.value('EMB_DEBUG', False) or str(os.environ.get('DEBUG', False)).lower() in ['1', 'true']
 site.addsitedir(DIR_SITEPACKAGES)
 
 # test PyQtGraph
