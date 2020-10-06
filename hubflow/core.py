@@ -5,6 +5,7 @@ import random, pickle
 from collections import namedtuple
 from os import remove
 from os.path import basename, join
+from pathlib import Path
 from time import sleep
 from typing import Iterable
 from warnings import warn
@@ -789,7 +790,7 @@ class Raster(Map):
 
     def __init__(self, filename: str, eAccess=gdal.GA_ReadOnly):
         '''Create instance from the raster located at the given ``filename``.'''
-        assert isinstance(filename, str)
+        assert isinstance(filename, (str, Path))
         self._filename = filename
         self._rasterDataset = None
         self._eAccess = eAccess
