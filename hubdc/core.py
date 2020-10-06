@@ -1406,8 +1406,13 @@ class RasterDataset(object):
 
     def metadataItem(self, key, domain='', dtype=str, required=False, default=None):
         '''Returns the value (casted to a specific ``dtype``) of a metadata item.'''
-        key = key.replace(' ', '_')
+
+        # try key as is
         gdalString = self._gdalDataset.GetMetadataItem(key, domain)
+        if gdalString is None:
+            # try key with replaced ' '
+            key = key.replace(' ', '_')
+            gdalString = self._gdalDataset.GetMetadataItem(key, domain)
         if gdalString is None:
             if required:
                 raise errors.MissingMetadataItemError(key=key, domain=domain)
