@@ -1440,10 +1440,11 @@ class Raster(Map):
 
         wavelength = self.dataset().metadataItem(key='wavelength', domain='ENVI', dtype=float, required=True)
         unit = self.dataset().metadataItem(key='wavelength units', domain='ENVI', required=True)
-        assert unit.lower() in ['nanometers', 'micrometers']
+        assert unit.lower() in ['nanometers', 'nm', 'micrometers', 'um']
         wavelength = [float(v) for v in wavelength]
-        if unit.lower() == 'micrometers':
+        if unit.lower() in ['micrometers', 'um']:
             wavelength = [v * 1000 for v in wavelength]
+
         return wavelength
 
     #    def metadataDict(self):
@@ -1466,9 +1467,9 @@ class Raster(Map):
             fwhm = [None] * self.dataset().zsize()
         else:
             unit = self.dataset().metadataItem(key='wavelength units', domain='ENVI', required=True)
-            assert unit.lower() in ['nanometers', 'micrometers']
+            assert unit.lower() in ['nanometers', 'nm', 'micrometers', 'um']
             fwhm = [float(v) for v in fwhm]
-            if unit.lower() == 'micrometers':
+            if unit.lower() in ['micrometers', 'um']:
                 fwhm = [v * 1000 for v in fwhm]
 
         return fwhm
