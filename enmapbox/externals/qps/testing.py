@@ -129,7 +129,8 @@ def start_app(cleanup=True, options=StartOptions.Minimized, resources: list = []
                 qgsApp.addLibraryPath(candidate.as_posix())
 
     assert QgsProviderRegistry.instance().libraryDirectory().exists(), \
-        'Directory: {} does not exist'.format(QgsProviderRegistry.instance().libraryDirectory().path())
+        'Directory: {} does not exist. Please check if QGIS_PREFIX_PATH correct'.format(
+            QgsProviderRegistry.instance().libraryDirectory().path())
 
     # initiate a PythonRunner instance if None exists
     if StartOptions.PythonRunner in options and not QgsPythonRunner.isValid():
@@ -518,9 +519,16 @@ class TestObjects():
         coredata, wl, wlu, gt, wkt = TestObjects.coreData()
         cnb, cnl, cns = coredata.shape
         assert n > 0
+        if not isinstance(n_bands, list):
+            n_bands = [n_bands]
         assert isinstance(n_bands, list)
-        for nb in n_bands:
-            assert nb == -1 or nb > 0 and nb <= cnb
+        for i in range(len(n_bands)):
+            nb = n_bands[i]
+            if nb == -1:
+                n_bands[i] = cnb
+            else:
+                assert 0 < nb <= cnb, f'Number of bands need to be in range 0 < nb <= {cnb}.'
+
         n_bands = [nb if nb > 0 else cnb for nb in n_bands]
 
         for nb in n_bands:
@@ -564,6 +572,8 @@ class TestObjects():
                               wlu: str = None):
         """
         Creates an Spectral Library
+        :param n_bands:
+        :type n_bands:
         :param wlu:
         :type wlu:
         :param n: total number of profiles
