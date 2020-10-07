@@ -33,7 +33,7 @@ class Scripts(TestCase):
 
         speclib = SpectralLibrary()
         speclib.startEditing()
-
+        all_source_profiles = []
         for gruppe in gruppen:
             print(f'Mische Gruppe {gruppe}')
             i_grp = np.where(rezept.gruppe == gruppe)[0]
@@ -42,13 +42,12 @@ class Scripts(TestCase):
             nweights = weights / weights.sum()
             description = rezept.beschreibung[i_grp]
             asd_files = [p for p in asd_files_ref if os.path.basename(p) in basenames]
-            profiles = ASDSpectralLibraryIO.readFrom(asd_files)
+            profiles = ASDSpectralLibraryIO.readFrom(asd_files)[:]
             assert len(profiles) == len(asd_files)
             for p, d in zip(profiles, description):
                 if d != '':
                     p.setName(f'{p.name()} {d}')
-
-            #speclib.addProfiles(profiles)
+            all_source_profiles.extend(profiles)
 
             mixed_profile = sum([p*w for p, w in zip(profiles, nweights)])
             assert isinstance(mixed_profile, SpectralProfile)
@@ -56,10 +55,6 @@ class Scripts(TestCase):
             speclib.addProfiles(mixed_profile)
 
         speclib.commitChanges()
-
-
-        speclib.write(pathMixResultGPKG)
-        speclib.write(pathMixResultCSV)
 
         dirTmpImages = dirRoot / 'tmpImages'
         os.makedirs(dirTmpImages, exist_ok=True)
@@ -89,11 +84,10 @@ class Scripts(TestCase):
             # resample to Sentinel-2
             pathDst = dirTmpImages / f'{os.path.splitext(pathSrc.name)[0]}2sentinel.tif'
             raster = Raster(pathSrc.as_posix())
-            sensor.resampleRaster(pathDst.as_posix(), raster, warpOptions=['SRC_METHOD=NO_GEOTRANSFORM'])
+            sensor.resampleRaster(pathDst.as_posix(), raster)
             resampledImages.append(pathDst)
 
-        speclibS2 = SpectralLibrary()
-        speclibS2.startEditing()
+
         for img in resampledImages:
             ds: gdal.Dataset = gdal.Open(img.as_posix())
             positions = []
@@ -101,11 +95,24 @@ class Scripts(TestCase):
                 for y in range(ds.RasterYSize):
                     positions.append(QPoint(x, y))
             sl: SpectralLibrary = SpectralLibrary.readFromRasterPositions(img, positions)
-            assert len(sl) > 0
-            speclibS2.addSpeclib(sl)
-        speclibS2.commitChanges()
+            assert len(sl) == len(gruppen)
+            resampledProfiles = []
+            for i, pResampled in enumerate(sl):
+                assert isinstance(pResampled, SpectralProfile)
+                pMixed = speclib[i]
+                pResampled.setName(pMixed.name() + ' Sentinel 2')
+                resampledProfiles.append(pResampled)
 
-        pathMixResultS2GPKG = dirRoot / 'mischungsergebnisseS2.gpkg'
-        pathMixResultS2CSV = dirRoot / 'mischungsergebnisseS2.csv'
-        speclibS2.write(pathMixResultS2GPKG)
-        speclibS2.write(pathMixResultS2CSV)
+            s = ""
+        assert speclib.startEditing()
+        speclib.addProfiles(resampledProfiles)
+        speclib.addProfiles(all_source_profiles)
+        assert speclib.commitChanges()
+        speclib.write(pathMixResultGPKG)
+        speclib.write(pathMixResultCSV)
+
+        speclib = SpectralLibrary(pathMixResultGPKG)
+        w = speclib.plot()
+
+        self.showGui(w)
+
