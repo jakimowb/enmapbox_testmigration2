@@ -5,6 +5,7 @@ import random, pickle
 from collections import namedtuple
 from os import remove
 from os.path import basename, join
+from pathlib import Path
 from time import sleep
 from typing import Iterable
 from warnings import warn
@@ -789,7 +790,7 @@ class Raster(Map):
 
     def __init__(self, filename: str, eAccess=gdal.GA_ReadOnly):
         '''Create instance from the raster located at the given ``filename``.'''
-        assert isinstance(filename, str)
+        assert isinstance(filename, (str, Path))
         self._filename = filename
         self._rasterDataset = None
         self._eAccess = eAccess
@@ -1440,10 +1441,11 @@ class Raster(Map):
 
         wavelength = self.dataset().metadataItem(key='wavelength', domain='ENVI', dtype=float, required=True)
         unit = self.dataset().metadataItem(key='wavelength units', domain='ENVI', required=True)
-        assert unit.lower() in ['nanometers', 'micrometers']
+        assert unit.lower() in ['nanometers', 'nm', 'micrometers', 'um']
         wavelength = [float(v) for v in wavelength]
-        if unit.lower() == 'micrometers':
+        if unit.lower() in ['micrometers', 'um']:
             wavelength = [v * 1000 for v in wavelength]
+
         return wavelength
 
     #    def metadataDict(self):
@@ -1466,9 +1468,9 @@ class Raster(Map):
             fwhm = [None] * self.dataset().zsize()
         else:
             unit = self.dataset().metadataItem(key='wavelength units', domain='ENVI', required=True)
-            assert unit.lower() in ['nanometers', 'micrometers']
+            assert unit.lower() in ['nanometers', 'nm', 'micrometers', 'um']
             fwhm = [float(v) for v in fwhm]
-            if unit.lower() == 'micrometers':
+            if unit.lower() in ['micrometers', 'um']:
                 fwhm = [v * 1000 for v in fwhm]
 
         return fwhm

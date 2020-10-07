@@ -1051,7 +1051,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
         return self.shortHelpString()
 
     def helpUrl(self, *args, **kwargs):
-        return 'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider/overview'
+        return 'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_manual/processing_algorithms/processing_algorithms.html'
 
 class ProgressBar(hubdc.progressbar.ProgressBar):
     def __init__(self, feedback):
