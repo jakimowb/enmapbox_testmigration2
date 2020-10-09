@@ -32,14 +32,20 @@ def importPrismaL2D(filenameHe5: str, filenameSpectral: str = None) -> gdal.Data
 
     # read, transpose and scale data
     offsetVnir = np.float32(meta['L2ScaleVnirMin'])
-    gainVnir = np.float32((float(meta['L2ScaleVnirMax']) - float(meta['L2ScaleVnirMin'])) / 65535)
+    gainVnir = np.float32((float(meta['L2ScaleVnirMax']) - float(meta['L2ScaleVnirMin'])) / 65535 * 10000)
     selectedVnir = np.array(meta['CNM_VNIR_SELECT'].split(), dtype=np.uint8) == 1
     arrayVnir = offsetVnir + np.transpose(gdal.Open(filenameVnir).ReadAsArray(), [1, 0, 2])[selectedVnir][::-1] * gainVnir
+    arrayVnir = arrayVnir.astype(np.int16)
     offsetSwir = np.float32(meta['L2ScaleSwirMin'])
-    gainSwir = np.float32((float(meta['L2ScaleSwirMax']) - float(meta['L2ScaleSwirMin'])) / 65535)
+    gainSwir = np.float32((float(meta['L2ScaleSwirMax']) - float(meta['L2ScaleSwirMin'])) / 65535 * 10000)
     selectedSwir = np.array(meta['CNM_SWIR_SELECT'].split(), dtype=np.uint8) == 1
     arraySwir = offsetSwir + np.transpose(gdal.Open(filenameSwir).ReadAsArray(), [1, 0, 2])[selectedSwir][::-1] * gainSwir
+    arraySwir = arraySwir.astype(np.int16)
     array = np.vstack([arrayVnir, arraySwir])
+
+    # mask nodata
+    mask = np.all(array == 0, axis=0)
+    array[:, mask] = -9999
 
     # prepare spatial extent
     xmin = float(meta['Product_ULcorner_easting']) - 15
@@ -69,6 +75,7 @@ def importPrismaL2D(filenameHe5: str, filenameSpectral: str = None) -> gdal.Data
     gdalRaster.setMetadataItem(key='wavelength', value=wavelength, domain='ENVI')
     gdalRaster.setMetadataItem(key='fwhm', value=fwhm, domain='ENVI')
     gdalRaster.setMetadataItem(key='wavelength_units', value='nanometers', domain='ENVI')
+    gdalRaster.setNoDataValue(-9999)
     return gdalRaster.gdalDataset
 
 
