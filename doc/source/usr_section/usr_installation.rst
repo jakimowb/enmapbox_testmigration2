@@ -1,3 +1,4 @@
+.. include:: /icon_links.rst
 
 .. _usr_installation:
 
@@ -207,7 +208,17 @@ Install from QGIS plugin repository
    Select it and click :guilabel:`Install plugin` (or :guilabel:`Upgrade` in case you update to a new version)
 #. Start the EnMAP-Box via the |icon| icon or from the menubar :menuselection:`Raster --> EnMAP-Box`
 
+.. admonition:: Experimental version
 
+   It is also possible to install the most recent develop version of the EnMAP-Box. To do so, make sure that the option
+   |cb1| **Show also experimental plugins** is activated in the plugin manager settings. Once activated, there is an additional button
+   :guilabel:`Install Experimental Plugin` in the plugin manager.
+
+   .. image:: /img/experimental_install.png
+
+   .. warning::
+
+      As the *experimental* tag suggests, this version comes with the newest features and developments, but might also be prone to bugs and crashes.
 
 
 Install older version

@@ -149,21 +149,13 @@ suggest new entries!
 
         python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
-  If the method above did not work for some reason, try installing the packages one by one:
+  If the method above did not work for some reason, try installing the packages listed in the :file:`requirements.txt` line by line, e.g.
+  ``python3 -m pip install numpy`` and so on.
 
-      .. code-block:: bash
+  .. literalinclude:: /../../requirements.txt
+     :caption: requirements.txt
 
-          python3 -m pip install numpy
-          python3 -m pip install scipy
-          python3 -m pip install scikit-learn
-          python3 -m pip install matplotlib
 
-      *and optionally*:
-
-      .. code-block:: sh
-
-          python3 -m pip install astropy
-          python3 -m pip install PyOpenGL
 
 ....
 
