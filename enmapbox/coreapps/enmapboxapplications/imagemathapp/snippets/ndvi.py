@@ -1,6 +1,6 @@
 # select RED and NIR bands
-#red = raster[...]
-#nir = raster[...]
+red = ...
+nir = ...
 
 # calculate NDVI
 ndvi = (nir - red) / (nir + red)
