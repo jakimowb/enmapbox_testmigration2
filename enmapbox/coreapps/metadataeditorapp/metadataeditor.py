@@ -20,7 +20,7 @@
 """
 import pathlib
 from qgis.PyQt.QtWidgets import QVBoxLayout, QDialogButtonBox, QDialog
-from qgis.PyQt.Qt import Qt
+from qgis.PyQt.QtCore import Qt
 from enmapbox.externals.qps.layerconfigwidgets.gdalmetadata import GDALMetadataModelConfigWidget
 from enmapbox.gui.utils import loadUi
 from qgis.core import QgsProject, QgsMapLayer
