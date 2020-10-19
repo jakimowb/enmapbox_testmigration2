@@ -263,7 +263,7 @@ def tr(text: str) -> str:
 
 
 class Qgis(object):
-    """Collection of some static methodes to programmatically interact with QGIS inside the QGIS console."""
+    """Collection of some static methods to programmatically interact with QGIS inside the QGIS console."""
 
     @classmethod
     def activeRaster(cls):

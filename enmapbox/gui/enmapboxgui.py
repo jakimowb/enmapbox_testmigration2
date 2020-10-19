@@ -720,8 +720,6 @@ class EnMAPBox(QgisInterface, QObject):
             if currentGroupNode == grp:
                 qgis.utils.iface.layerTreeView().setCurrentIndex(QModelIndex())
 
-
-
     def removeMapLayer(self, layer: QgsMapLayer, remove_from_project: bool = True):
         self.removeMapLayers([layer], remove_from_project=remove_from_project)
 
@@ -1353,7 +1351,7 @@ class EnMAPBox(QgisInterface, QObject):
             added = self.addSources(files)
 
             for n in range(mapWindows):
-                dock = self.createDock('MAP')
+                dock: MapDock = self.createDock('MAP')
                 assert isinstance(dock, MapDock)
                 lyrs = []
                 for src in added:
@@ -1363,19 +1361,24 @@ class EnMAPBox(QgisInterface, QObject):
                             r = defaultRasterRenderer(lyr)
                             r.setInput(lyr.dataProvider())
                             lyr.setRenderer(r)
-                        lyrs.append(lyr)
+                            lyrs.append(lyr)
+                        elif isinstance(lyr, QgsVectorLayer):
+                            lyr.updateExtents()
+
+                            ext = lyr.extent()
+                            if not ext.isNull() and ext.width() > 0:
+                                lyrs.append(lyr)
 
                 # choose first none-geographic raster CRS as map CRS
-                crs_is_set = False
                 for lyr in lyrs:
                     if isinstance(lyr, QgsRasterLayer) and isinstance(lyr.crs(),
                                                                       QgsCoordinateReferenceSystem) and not lyr.crs().isGeographic():
                         dock.mapCanvas().setDestinationCrs(lyr.crs())
-                        crs_is_set = True
+
                         break
 
                 dock.addLayers(lyrs)
-                dock.mapCanvas().zoomToFullExtent()
+                QTimer.singleShot(2000, lambda *args, mc=dock.mapCanvas(): mc.zoomToFullExtent())
 
     def onDataSourceRemoved(self, dataSource: DataSource):
         """
