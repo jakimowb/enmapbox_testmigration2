@@ -23,6 +23,8 @@ from qgis.PyQt.QtWidgets import QVBoxLayout, QDialogButtonBox, QDialog
 from qgis.PyQt.QtCore import Qt
 from enmapbox.externals.qps.layerconfigwidgets.gdalmetadata import GDALMetadataModelConfigWidget
 from enmapbox.gui.utils import loadUi
+from enmapbox.gui.enmapboxgui import EnMAPBox, DataSourceSpatial
+
 from qgis.core import QgsProject, QgsMapLayer
 from qgis.gui import QgsMapLayerComboBox
 
@@ -52,7 +54,15 @@ class MetadataEditorDialog(QDialog):
 
         sources = []
         excluded = []
-        for layer in QgsProject.instance().mapLayers().values():
+
+        existingLayers = QgsProject.instance().mapLayers().values()
+        emb = EnMAPBox.instance()
+
+        if isinstance(emb, EnMAPBox):
+            dataSourceLayers = [source.mapLayer() for source in emb.dataSourceManager().sources(DataSourceSpatial)]
+            existingLayers = sorted(existingLayers, key=lambda lyr: lyr in dataSourceLayers)
+
+        for layer in existingLayers:
             if isinstance(layer, QgsMapLayer) and layer.isValid() and layer.source() not in sources:
                 sources.append(layer.source())
             else:
