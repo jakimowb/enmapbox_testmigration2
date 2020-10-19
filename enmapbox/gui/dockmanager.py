@@ -341,6 +341,7 @@ class SpeclibDockTreeNode(DockTreeNode):
         assert isinstance(self.speclibWidget, SpectralLibraryWidget)
 
         self.profilesNode = LayerTreeNode(self, 'Profiles', value=0)
+        self.profilesNode.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
 
         speclib = self.speclibWidget.speclib()
         if isinstance(speclib, SpectralLibrary):
@@ -353,7 +354,8 @@ class SpeclibDockTreeNode(DockTreeNode):
         if isinstance(self.speclibWidget, SpectralLibraryWidget):
             speclib = self.speclibWidget.speclib()
             if isinstance(speclib, SpectralLibrary):
-                self.profilesNode.setValue(len(speclib))
+                #self.profilesNode.setValue(len(speclib))
+                self.profilesNode.setName(f'{len(speclib)} Profiles')
 
 
 class MapDockTreeNode(DockTreeNode):
@@ -1073,6 +1075,7 @@ class DockTreeView(QgsLayerTreeView):
                 span = node.value() == None or '{}'.format(node.value()).strip() == ''
             elif type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
                 span = True
+
             self.setFirstColumnSpanned(idxNode.row(), idxParent, span)
             # for child in node.children():
             #    self.setColumnSpan(child)

@@ -660,6 +660,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.removeMapLayers(layers, remove_from_project=False)
 
     def syncHiddenLayers(self):
+
+
         grp = self.hiddenLayerGroup()
         if isinstance(grp, QgsLayerTreeGroup):
             knownInQGIS = [l.layerId() for l in grp.findLayers() if isinstance(l.layer(), QgsMapLayer)]
@@ -713,6 +715,12 @@ class EnMAPBox(QgisInterface, QObject):
             for node in grp.children():
                 if isinstance(node, EnMAPBoxLayerTreeLayer):
                     node.setCanvas(L2C.get(node.layerId(), None))
+
+            currentGroupNode = qgis.utils.iface.layerTreeView().currentGroupNode()
+            if currentGroupNode == grp:
+                qgis.utils.iface.layerTreeView().setCurrentIndex(QModelIndex())
+
+
 
     def removeMapLayer(self, layer: QgsMapLayer, remove_from_project: bool = True):
         self.removeMapLayers([layer], remove_from_project=remove_from_project)
