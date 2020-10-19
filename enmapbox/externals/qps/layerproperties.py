@@ -125,6 +125,21 @@ MDF_QGIS_LAYER_STYLE = 'application/qgis.style'
 MDF_TEXT_PLAIN = 'text/plain'
 
 
+class FieldListModel(QAbstractListModel):
+
+    def __init__(self, *args, layer:QgsVectorLayer=None, **kwds):
+
+        super().__init__(*args, **kwds)
+
+    def setLayer(self, layer:QgsVectorLayer):
+
+        self.mLayer = layer
+
+    def flags(self, index:QModelIndex):
+        pass
+
+
+
 class AddAttributeDialog(QDialog):
     """
     A dialog to set up a new QgsField.
@@ -159,6 +174,7 @@ class AddAttributeDialog(QDialog):
             assert isinstance(ntype, QgsVectorDataProvider.NativeType)
             o = Option(ntype, name=ntype.mTypeName, toolTip=ntype.mTypeDesc)
             self.typeModel.addOption(o)
+
         self.cbType.setModel(self.typeModel)
         self.cbType.currentIndexChanged.connect(self.onTypeChanged)
         l.addWidget(QLabel('Type'), 2, 0)
@@ -800,6 +816,7 @@ class LayerPropertiesDialog(QgsOptionsDialogBase):
         assert isinstance(self.mOptionsStackedWidget, QStackedWidget)
         assert isinstance(lyr, QgsMapLayer)
         self.btnConfigWidgetMenu: QPushButton = QPushButton('<menu>')
+        self.btnConfigWidgetMenu.setVisible(False)
         assert isinstance(self.btnConfigWidgetMenu, QPushButton)
         self.mOptionsListWidget.currentRowChanged.connect(self.onPageChanged)
         self.mLayer: QgsMapLayer = lyr
@@ -854,7 +871,7 @@ class LayerPropertiesDialog(QgsOptionsDialogBase):
         menu = None
 
         if isinstance(page, QgsMapLayerConfigWidget):
-            # comes with QIS 3.12
+            # comes with QGIS 3.12
 
             if hasattr(page, 'menuButtonMenu'):
                 menu = page.menuButtonMenu()
