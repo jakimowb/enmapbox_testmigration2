@@ -1,6 +1,18 @@
 # -*- coding: utf-8 -*-
+'''
+SAIL.py executes the SAIL model
 
-# SAIL.py executes the SAIL model
+References:
+Verhoef W., Xiao Q., Jia L., & Su Z. (2007):
+Unified optical-thermal four-stream radiative transfer theory for homogeneous vegetation canopies.
+IEEE Transactions on Geoscience and Remote Sensing, 45, 1808-1822. Article.
+
+Verhoef W., & Bach H. (2003), Simulation of hyperspectral and directional radiance images using coupled biophysical
+and atmospheric radiative transfer models. Remote Sensing of Environment, 87, 23-41. Article.
+
+Verhoef W. (1984), Light scattering by leaf layers with application to canopy reflectance modeling: the SAIL model.
+Remote Sensing of Environment, 16, 125-141. Article.
+'''
 
 from lmuvegetationapps.Resources.PROSAIL.dataSpec import *
 from lmuvegetationapps.Resources.PROSAIL.SAILdata import *

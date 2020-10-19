@@ -1,6 +1,19 @@
 # -*- coding: utf-8 -*-
-### Contains supplementary data to save computation time
 
+'''
+Contains supplementary data to save computation time
+
+References:
+Verhoef W., Xiao Q., Jia L., & Su Z. (2007):
+Unified optical-thermal four-stream radiative transfer theory for homogeneous vegetation canopies.
+IEEE Transactions on Geoscience and Remote Sensing, 45, 1808-1822. Article.
+
+Verhoef W., & Bach H. (2003): Simulation of hyperspectral and directional radiance images using coupled biophysical and
+atmospheric radiative transfer models. Remote Sensing of Environment, 87, 23-41. Article.
+
+Verhoef W. (1984), Light scattering by leaf layers with application to canopy reflectance modeling: the SAIL model.
+Remote Sensing of Environment, 16, 125-141. Article.
+'''
 import numpy as np
 
 beta_dict = np.array([[0.015192247821401716, 0.04511513125626976, 0.07366721933874043, 0.09998095795183792, 0.12325683701156054, 0.14278760558390557, 0.1579798610972386, 0.16837196070089022, 0.034475081609994906, 0.034644632694447175, 0.03477199446646273, 0.03485697201080851, 0.03489949845644191],

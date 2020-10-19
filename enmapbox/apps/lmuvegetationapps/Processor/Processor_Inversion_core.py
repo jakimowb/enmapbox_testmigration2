@@ -1,11 +1,36 @@
 # -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    Processor_Inversion_core.py - LMU Agri Apps - Artificial Neural Network based spectroscopic image inversion of
+    PROSAIL parameters - CORE
+    -----------------------------------------------------------------------
+    begin                : 09/2020
+    copyright            : (C) 2020 Martin Danner; Matthias Wocher
+    email                : m.wocher@lmu.de
 
-# This script uses pre-trained Machine Learning (ML) algorithms to predict / estimate PROSAIL parameters
-# from spectral images. At the time being, the "processor" will only rely on Artificial Neural Networks
-# (Multi-Layer-Perceptron-Regression; MLPR), because they yield good results, are fast, take little memory and are
-# easier to handle than SVR or GPR. The basic idea is that algorithms are already distributed through the EnMAP-box,
-# but new algorithms can always be created manually by updating the values in this script. While this _core module
-# can do both training and prediction, the GUIs are split into different scripts.
+***************************************************************************
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+                                                                                                                                                 *
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this software. If not, see <http://www.gnu.org/licenses/>.
+***************************************************************************
+
+This script uses pre-trained Machine Learning (ML) algorithms to predict / estimate PROSAIL parameters
+from spectral images. At the time being, the "processor" will only rely on Artificial Neural Networks
+(Multi-Layer-Perceptron-Regression; MLPR), because they yield good results, are fast, take little memory and are
+easier to handle than SVR or GPR. The basic idea is that algorithms are already distributed through the EnMAP-box,
+but new algorithms can always be created manually by updating the values in this script. While this _core module
+can do both training and prediction, the GUIs are split into different scripts.
+
+"""
 
 from hubflow.core import *
 import numpy as np
@@ -13,7 +38,6 @@ from sklearn.decomposition import PCA
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 import joblib
-
 
 # Class MLRATraining will only be used for training new models, not for predictions!
 class MLRATraining:

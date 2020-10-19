@@ -1,8 +1,33 @@
 # -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    Processor_Inversion_core.py - LMU Agri Apps - Artificial Neural Network based spectroscopic image inversion of
+    PROSAIL parameters - GUI
+    -----------------------------------------------------------------------
+    begin                : 09/2020
+    copyright            : (C) 2020 Martin Danner; Matthias Wocher
+    email                : m.wocher@lmu.de
 
-# This script handles the GUI for inverting images with pre-trained Machine Learning models. At the time being, only
-# ANNs are implemented, but the structure is flexible so that new algorithms can always be added. Make sure to
-# add a model selection frame to the GUI in QtDesigner then.
+***************************************************************************
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+                                                                                                                                                 *
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this software. If not, see <http://www.gnu.org/licenses/>.
+***************************************************************************
+
+This script handles the GUI for inverting images with pre-trained Machine Learning models. At the time being, only
+ANNs are implemented, but the structure is flexible so that new algorithms can always be added. Make sure to
+add a model selection frame to the GUI in QtDesigner then.
+
+"""
 
 import sys
 # ensure to call QGIS before PyQtGraph

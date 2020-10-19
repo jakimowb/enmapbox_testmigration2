@@ -1,4 +1,34 @@
 # -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    ASI_GUI_core.py - LMU Agri Apps - Analyze Spectral Integral Tool
+    -----------------------------------------------------------------------
+    begin                : 08/2020
+    copyright            : (C) 2020 Matthias Wocher
+    email                : m.wocher@lmu.de
+
+***************************************************************************
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+                                                                                                                                                 *
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this software. If not, see <http://www.gnu.org/licenses/>.
+***************************************************************************
+
+Reference (How to Cite):
+Wocher, M., Berger, K., Danner, M., Mauser, W., & Hank, T. (2020). RTM-based dynamic absorption integrals for the
+retrieval of biochemical vegetation traits. International Journal of Applied Earth Observation and Geoinformation,
+93, 102219
+https://doi.org/10.1016/j.jag.2020.102219
+"""
+
 from hubflow.core import *
 import numpy as np
 from qgis.PyQt.QtWidgets import *

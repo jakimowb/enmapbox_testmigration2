@@ -1,24 +1,50 @@
 # -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    Processor_Inversion_core.py - LMU Agri Apps - Artificial Neural Network based spectroscopic image inversion of
+    PROSAIL parameters - GUI
+    -----------------------------------------------------------------------
+    begin                : 09/2020
+    copyright            : (C) 2020 Martin Danner; Matthias Wocher
+    email                : m.wocher@lmu.de
 
-# This module handles the conversion between sensors, mostly in terms of spectral downsampling to the characteristics
-# of the "target sensor". It was originally designed to obtain pseudo-EnMAP spectra from ASD FieldSpec reflectances
-# -> 400-2500nm @ 1nm ==> 242 EnMAP bands; without altering the spatial resolution or performing any other radiometric
-# processing.
-#
-# There are two classes: one performs the conversion when the spectral response function (SRF) is already there in
-# the form of numpy files with .srf extension. These .srf-files can only be read by THIS module, they are not
-# standardized in any form! They are just binary files containing the weights associated with wavelengths for all
-# bands of the target sensor.
-# The other class is designed to create these .srf-files from text-based information about weights and wavelengths
-# in a certain structure which was introduced by Karl Segl for dealing with the EnMAP-end-to-end-simulator (EeteS).
-#
-# The general concept of a spectral response function is that each band of the target sensor carries information not
-# only about its central wavelength but also about adjacent wavelengths. For example, EnMAP band 17 @ 503 nm is made up
-# from wavelengths 492 nm with weight 0.0001, 493 nm with weight 0.0003, 494 nm with weight 0.0014, ... 502 nm with
-# weight 0.922, 503 nm with weight 1.0, 504 nm with weight 0.922, ... 514 nm with weight 0.0001. Each band of the target
-# sensor has its own text file which needs to have two columns: wavelengths and weights. Additionally, the central
-# wavelengths of the target sensors need to be known, as they cannot be extracted from the weights right away. It can
-# be single column (wavelengths) or two columns (wavelengths & FWHM).
+***************************************************************************
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+                                                                                                                                                 *
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this software. If not, see <http://www.gnu.org/licenses/>.
+***************************************************************************
+
+This module handles the conversion between sensors, mostly in terms of spectral downsampling to the characteristics
+of the "target sensor". It was originally designed to obtain pseudo-EnMAP spectra from ASD FieldSpec reflectances
+-> 400-2500nm @ 1nm ==> 242 EnMAP bands; without altering the spatial resolution or performing any other radiometric
+processing.
+
+There are two classes: one performs the conversion when the spectral response function (SRF) is already there in
+the form of numpy files with .srf extension. These .srf-files can only be read by THIS module, they are not
+standardized in any form! They are just binary files containing the weights associated with wavelengths for all
+bands of the target sensor.
+The other class is designed to create these .srf-files from text-based information about weights and wavelengths
+in a certain structure which was introduced by Karl Segl for dealing with the EnMAP-end-to-end-simulator (EeteS).
+
+The general concept of a spectral response function is that each band of the target sensor carries information not
+only about its central wavelength but also about adjacent wavelengths. For example, EnMAP band 17 @ 503 nm is made up
+from wavelengths 492 nm with weight 0.0001, 493 nm with weight 0.0003, 494 nm with weight 0.0014, ... 502 nm with
+weight 0.922, 503 nm with weight 1.0, 504 nm with weight 0.922, ... 514 nm with weight 0.0001. Each band of the target
+sensor has its own text file which needs to have two columns: wavelengths and weights. Additionally, the central
+wavelengths of the target sensors need to be known, as they cannot be extracted from the weights right away. It can
+be single column (wavelengths) or two columns (wavelengths & FWHM).
+"""
+
+
 
 import numpy as np
 import csv
