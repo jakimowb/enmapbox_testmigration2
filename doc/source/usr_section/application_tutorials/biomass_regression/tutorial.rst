@@ -28,9 +28,8 @@ targeting basic principles, methods as well as applications of imaging spectrosc
 
 Annotated slide collections for the tutorial *Regression-based mapping of forest aboveground biomass* and a software description unit for the EnMAP-Box are provided here:
 
+* `Slide collection <https://eo-college.org/resource/regression-based-mapping-of-forest-aboveground-biomass/>`_
 * `Software description <https://eo-college.org/resource/enmap-box/>`_
-
-  .. todo:: Link to slides will be provided here once available
 
 
 

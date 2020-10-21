@@ -93,7 +93,8 @@ In this section we will use the EnMAP-Box application **Classification Workflow*
 image using a point vector dataset with the classes *impervious, low vegetation, tree, soil, water* and a random forest classifier.
 
 * Go to :menuselection:`Applications --> Classification Workflow` to open the Classification Workflow application.
-* At the top, choose :file:`enmap_berlin.bsq` as :guilabel:`Raster` and :file:`landcover_berlin_point.shp` as :guilabel:`Reference`.
+* In the :guilabel:`Type` dropdown menu select ``Raster / Vector Classification``.
+* Choose :file:`enmap_berlin.bsq` as :guilabel:`Raster` and :file:`landcover_berlin_point.shp` as :guilabel:`Reference`.
   Select ``level_2_id`` as :guilabel:`Attribute`. After selection of the attribute the class names and colors become visible in the :guilabel:`Sampling` submenu.
 
   .. image:: ../img/classwf1.png
