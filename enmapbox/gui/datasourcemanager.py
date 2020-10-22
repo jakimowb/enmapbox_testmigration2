@@ -1105,29 +1105,29 @@ class DataSourceTreeView(TreeView):
                 pass
                 # a = m.addAction('Save as..')
 
-            def appendRasterActions(sub: QMenu, src: DataSourceRaster, mapDock: MapDock):
+            def appendRasterActions(sub: QMenu, src: DataSourceRaster, target):
                 assert isinstance(src, DataSourceRaster)
                 a = sub.addAction('Default Colors')
-                a.triggered.connect(lambda *args, src=src, mapDock=mapDock:
-                                    self.openInMap(src, mapCanvas=mapDock, rgb='DEFAULT'))
+                a.triggered.connect(lambda *args, s=src, t=target:
+                                    self.openInMap(s, t, rgb='DEFAULT'))
 
                 b = src.mWaveLengthUnits is not None
 
                 a = sub.addAction('True Color')
                 a.setToolTip('Red-Green-Blue true colors')
-                a.triggered.connect(lambda *args, src=src, mapDock=mapDock:
-                                    self.openInMap(src, mapCanvas=mapDock, rgb='R,G,B'))
+                a.triggered.connect(lambda *args, s=src, t=target:
+                                    self.openInMap(s, t, rgb='R,G,B'))
                 a.setEnabled(b)
                 a = sub.addAction('CIR')
                 a.setToolTip('nIR Red Green')
-                a.triggered.connect(lambda *args, src=src, mapDock=mapDock:
-                                    self.openInMap(src, mapCanvas=mapDock, rgb='NIR,R,G'))
+                a.triggered.connect(lambda *args, s=src, t=target:
+                                    self.openInMap(s, t, rgb='NIR,R,G'))
                 a.setEnabled(b)
 
                 a = sub.addAction('SWIR')
                 a.setToolTip('nIR swIR Red')
-                a.triggered.connect(lambda *args, src=src, mapDock=mapDock:
-                                    self.openInMap(src, mapCanvas=mapDock, rgb='NIR,SWIR,R'))
+                a.triggered.connect(lambda *args, s=src, t=target:
+                                    self.openInMap(s, t, rgb='NIR,SWIR,R'))
                 a.setEnabled(b)
 
             if isinstance(src, DataSourceRaster):
@@ -1144,13 +1144,13 @@ class DataSourceTreeView(TreeView):
                     sub.setEnabled(False)
                 sub = m.addMenu('Open in QGIS')
                 if isinstance(qgis.utils.iface, QgisInterface):
-                    appendRasterActions(sub, src, qgis.utils.iface.mapCanvas())
+                    appendRasterActions(sub, src, QgsProject.instance())
                 else:
                     sub.setEnabled(False)
 
             if isinstance(src, DataSourceVector):
                 a = m.addAction('Open in new map')
-                a.triggered.connect(lambda: self.openInMap(src, mapCanvas=None))
+                a.triggered.connect(lambda *args, s=src: self.openInMap(s, None))
 
                 sub = m.addMenu('Open in existing map...')
                 if len(mapDocks) > 0:
@@ -1158,32 +1158,32 @@ class DataSourceTreeView(TreeView):
                         assert isinstance(mapDock, MapDock)
                         a = sub.addAction(mapDock.title())
                         a.triggered.connect(
-                            lambda checked, src=src, mapDock=mapDock:
-                            self.openInMap(src, mapCanvas=mapDock))
+                            lambda checked, s=src, d=mapDock:
+                            self.openInMap(s, d))
                 else:
                     sub.setEnabled(False)
 
                 a = m.addAction('Open in QGIS')
                 if isinstance(qgis.utils.iface, QgisInterface):
-                    a.triggered.connect(lambda *args, src=src:
-                                        self.openInMap(src, mapCanvas=qgis.utils.iface.mapCanvas()))
+                    a.triggered.connect(lambda *args, s=src:
+                                        self.openInMap(s, QgsProject.instance()))
                 else:
                     a.setEnabled(False)
 
             if isinstance(src, DataSourceSpectralLibrary):
                 a = m.addAction('Open Editor')
-                a.triggered.connect(lambda *args, src=src: self.onOpenSpeclib(src.speclib()))
+                a.triggered.connect(lambda *args, s=src: self.onOpenSpeclib(s.speclib()))
 
         if isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
             a.setEnabled(False)
 
             a = m.addAction('Open in new map')
-            a.triggered.connect(lambda *args, node=node: self.openInMap(node.mDataSource, rgb=[node.mBandIndex]))
+            a.triggered.connect(lambda *args, n=node: self.openInMap(n.mDataSource, rgb=[n.mBandIndex]))
 
         if col == 1 and node.value() != None:
             a = m.addAction('Copy')
-            a.triggered.connect(lambda *args, node=node: QApplication.clipboard().setText(str(node.value())))
+            a.triggered.connect(lambda *args, n=node: QApplication.clipboard().setText(str(n.value())))
 
         if isinstance(node, TreeNode):
             m2 = node.contextMenu()
@@ -1199,10 +1199,14 @@ class DataSourceTreeView(TreeView):
 
         m.exec_(self.viewport().mapToGlobal(event.pos()))
 
-    def openInMap(self, dataSource: DataSourceSpatial, mapCanvas: QgsMapCanvas = None, rgb=None, sampleSize: int = 256):
+    def openInMap(self, dataSource: DataSourceSpatial,
+                  target: typing.Union[QgsMapCanvas, QgsProject, MapDock] = None,
+                  rgb=None,
+                  sampleSize: int = 256):
         """
         Add a DataSourceSpatial as QgsMapLayer to a mapCanvas.
-        :param mapCanvas: QgsMapCanvas. Creates a new MapDock if set to none.
+        :param target:
+        :param sampleSize:
         :param dataSource: DataSourceSpatial
         :param rgb:
         """
@@ -1210,19 +1214,19 @@ class DataSourceTreeView(TreeView):
         if not isinstance(dataSource, DataSourceSpatial):
             return
 
-        if mapCanvas is None:
+        if target is None:
             from enmapbox.gui.enmapboxgui import EnMAPBox
             emb = EnMAPBox.instance()
             if not isinstance(emb, EnMAPBox):
                 return None
             dock = emb.createDock('MAP')
             assert isinstance(dock, MapDock)
-            mapCanvas = dock.mapCanvas()
+            target = dock.mapCanvas()
 
-        if isinstance(mapCanvas, MapDock):
-            mapCanvas = mapCanvas.mapCanvas()
+        if isinstance(target, MapDock):
+            target = target.mapCanvas()
 
-        assert isinstance(mapCanvas, QgsMapCanvas)
+        assert isinstance(target, (QgsMapCanvas, QgsProject))
 
         lyr = dataSource.createUnregisteredMapLayer()
 
@@ -1251,11 +1255,12 @@ class DataSourceTreeView(TreeView):
 
             pass
 
-        allLayers = mapCanvas.layers()
-        allLayers.append(lyr)
-
-        mapCanvas.setLayers(allLayers)
-        s = ""
+        if isinstance(target, QgsMapCanvas):
+            allLayers = target.layers()
+            allLayers.append(lyr)
+            target.setLayers(allLayers)
+        elif isinstance(target, QgsProject):
+            target.addMapLayer(lyr)
 
     def onSaveAs(self, dataSource):
 
