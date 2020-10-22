@@ -35,11 +35,6 @@ class TestEnMAPBoxEmpty(EnMAPBoxTestCase):
             print(p)
         self.assertTrue(len(results) > 0)
 
-    def test_empty(self):
-        enmapbox = EnMAPBox(load_core_apps=True, load_other_apps=True)
-        self.assertIsInstance(enmapbox, EnMAPBox)
-        self.showGui(enmapbox.ui)
-
 
 if __name__ == '__main__':
 
