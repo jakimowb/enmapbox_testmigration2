@@ -207,7 +207,9 @@ class ClassificationWorkflowApp(QMainWindow):
                 return
 
             try:
+                renderer = libraryLayer.renderer().clone()
                 libraryLayer = SpectralLibrary(name=libraryLayer.name(), uri=libraryLayer.source())
+                libraryLayer.setRenderer(renderer)
             except:
                 self.uiType2Library_.setLayer(None)
                 self.log('Selected layer is not a valid library.')
