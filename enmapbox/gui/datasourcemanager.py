@@ -35,7 +35,7 @@ from qgis.core import \
     QgsLayerTreeGroup, QgsLayerTreeLayer, QgsRasterDataProvider, Qgis
 from qgis.gui import \
     QgisInterface, QgsMapCanvas
-
+import qgis.utils
 from enmapbox import DIR_TESTDATA, messageLog
 from enmapbox.gui import \
     ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, \
@@ -1069,7 +1069,6 @@ class DataSourceTreeView(TreeView):
         dataSources = list(set([n.mDataSource for n in selectedNodes if isinstance(n, DataSourceTreeNode)]))
         srcURIs = list(set([s.uri() for s in dataSources]))
 
-        qgisIFACE = qgisAppQgisInterface()
 
         from enmapbox.gui.enmapboxgui import EnMAPBox
         enmapbox = EnMAPBox.instance()
@@ -1144,8 +1143,8 @@ class DataSourceTreeView(TreeView):
                 else:
                     sub.setEnabled(False)
                 sub = m.addMenu('Open in QGIS')
-                if isinstance(qgisIFACE, QgisInterface):
-                    appendRasterActions(sub, src, qgisIFACE.mapCanvas())
+                if isinstance(qgis.utils.iface, QgisInterface):
+                    appendRasterActions(sub, src, qgis.utils.iface.mapCanvas())
                 else:
                     sub.setEnabled(False)
 
@@ -1159,13 +1158,15 @@ class DataSourceTreeView(TreeView):
                         assert isinstance(mapDock, MapDock)
                         a = sub.addAction(mapDock.title())
                         a.triggered.connect(
-                            lambda checked, src=src, mapDock=mapDock: self.openInMap(src, mapCanvas=mapDock))
+                            lambda checked, src=src, mapDock=mapDock:
+                            self.openInMap(src, mapCanvas=mapDock))
                 else:
                     sub.setEnabled(False)
 
                 a = m.addAction('Open in QGIS')
-                if isinstance(qgisIFACE, QgisInterface):
-                    a.triggered.connect(lambda *args, src=src: self.openInMap(src, mapCanvas=qgisIFACE.mapCanvas()))
+                if isinstance(qgis.utils.iface, QgisInterface):
+                    a.triggered.connect(lambda *args, src=src:
+                                        self.openInMap(src, mapCanvas=qgis.utils.iface.mapCanvas()))
                 else:
                     a.setEnabled(False)
 

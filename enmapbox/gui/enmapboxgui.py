@@ -982,13 +982,16 @@ class EnMAPBox(QgisInterface, QObject):
 
         # finally, fix the popup mode of menus
         for toolBar in self.ui.findChildren(QToolBar):
+            toolBar: QToolBar
             for toolButton in toolBar.findChildren(QToolButton):
                 assert isinstance(toolButton, QToolButton)
                 if isinstance(toolButton.defaultAction(), QAction) and isinstance(toolButton.defaultAction().menu(),
                                                                                   QMenu):
                     toolButton.setPopupMode(QToolButton.MenuButtonPopup)
+
             # add toolbar to menu
-            self.ui.menuToolBars.addAction(toolBar.toggleViewAction())
+            if len(toolBar.windowTitle()) > 0:
+                self.ui.menuToolBars.addAction(toolBar.toggleViewAction())
 
     def initActionsAddProduct(self):
         """
