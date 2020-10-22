@@ -389,9 +389,12 @@ class EnMAPBox(QgisInterface, QObject):
         m.addSeparator()
         m = m.addMenu('Developers')
         m.addAction(self.ui.mActionAddMimeView)
-        a = m.addAction('Resource Browser')
-        a.setToolTip('Opens a Browser to inspect the Qt Resource system')
-        a.triggered.connect(self.showResourceBrowser)
+
+        self.ui.actionShowResourceBrowser.triggered.connect(self.showResourceBrowser)
+        m.addAction(self.ui.actionShowResourceBrowser)
+
+        self.ui.optionShowHiddenLayersNode.toggled.connect(self.showHiddenLayersNode)
+        m.addAction(self.ui.optionShowHiddenLayersNode)
 
         debugLog('Set ui visible...')
         self.ui.setVisible(True)
@@ -559,7 +562,17 @@ class EnMAPBox(QgisInterface, QObject):
         w.addPackages(requiredPackages())
         w.show()
 
-    def showResourceBrowser(self):
+    def showHiddenLayersNode(self, visibility:bool):
+
+        b = self.ui.optionShowHiddenLayersNode.isChecked()
+        if visibility != b:
+            self.ui.optionShowHiddenLayersNode.setChecked(visibility)
+        else:
+            # call to change
+            n = self.hiddenLayerGroup()
+
+
+    def showResourceBrowser(self, *args):
         """
         Opens a browser widget that lists all Qt Resources
         """
@@ -974,6 +987,8 @@ class EnMAPBox(QgisInterface, QObject):
                 if isinstance(toolButton.defaultAction(), QAction) and isinstance(toolButton.defaultAction().menu(),
                                                                                   QMenu):
                     toolButton.setPopupMode(QToolButton.MenuButtonPopup)
+            # add toolbar to menu
+            self.ui.menuToolBars.addAction(toolBar.toggleViewAction())
 
     def initActionsAddProduct(self):
         """
@@ -1724,7 +1739,7 @@ class EnMAPBox(QgisInterface, QObject):
         index = ltv.model().node2index(grp)
         grp.setItemVisibilityChecked(False)
 
-        hide = str(os.environ.get('DEBUG')).lower() not in ['1', 'true']
+        hide: bool = self.ui.optionShowHiddenLayersNode.isChecked() is False
         grp.setCustomProperty('nodeHidden', 'true' if hide else 'false')
         ltv.setRowHidden(index.row(), index.parent(), hide)
 
