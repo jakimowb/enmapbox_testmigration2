@@ -738,7 +738,7 @@ class DataSourceSpectralLibrary(DataSourceVector):
 
     def createUnregisteredMapLayer(self) -> SpectralLibrary:
 
-        return SpectralLibrary(path=self.mLayer.source())
+        return SpectralLibrary(path=self.mLayer.source(), baseName=self.name())
 
     def updateMetadata(self, *args, **kwds):
 

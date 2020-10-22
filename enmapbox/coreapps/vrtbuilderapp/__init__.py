@@ -20,14 +20,19 @@
 ***************************************************************************
 """
 
-import os, importlib
-APP_DIR = os.path.dirname(__file__)
-from qgis.PyQt.QtWidgets import QMessageBox
+import importlib
+import typing
+import os
+from qgis.PyQt.QtWidgets import QMessageBox, QMainWindow
 from qgis.PyQt.QtGui import QIcon
+from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapTool
 import qgis.utils
 from enmapbox.gui.applications import EnMAPBoxApplication
+from enmapbox.gui.enmapboxgui import EnMAPBox
 
-def qgisPluginInstalled()->bool:
+APP_DIR = os.path.dirname(__file__)
+
+def vrtBuilderPluginInstalled() -> bool:
     """
     Returns True if the Virtual Raster Builder QGIS Plugin is installed
     :return: bool
@@ -35,21 +40,25 @@ def qgisPluginInstalled()->bool:
     qgis.utils.updateAvailablePlugins()
     return importlib.util.find_spec('vrtbuilder') is not None
 
+
+if vrtBuilderPluginInstalled():
+    from vrtbuilder.widgets import VRTBuilderWidget, VRTBuilderMapTools
+    from vrtbuilder import LICENSE, PATH_ICON
+    try:
+        from vrtbuilder import __version__ as VRTBVersion
+    except:
+        from vrtbuilder import VERSION as VRTBVersion
+
+
 class VRTBuilderApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
         super(VRTBuilderApp, self).__init__(enmapBox, parent=parent)
         self.name = 'Virtual Raster Builder'
 
-        self.mIsInstalled = qgisPluginInstalled()
-        self.mapTools = []
+        self.mIsInstalled = vrtBuilderPluginInstalled()
+        self.mInstance = None
 
         if self.mIsInstalled:
-
-            from vrtbuilder import LICENSE, PATH_ICON
-            try:
-                from vrtbuilder import __version__ as VRTBVersion
-            except:
-                from vrtbuilder import VERSION as VRTBVersion
             self.version = 'Version {}'.format(VRTBVersion)
             self.licence = LICENSE
             self.mIcon = QIcon(PATH_ICON)
@@ -58,9 +67,7 @@ class VRTBuilderApp(EnMAPBoxApplication):
             self.licence = 'Unknown'
             self.mIcon = QIcon()
 
-
-
-    def icon(self)->QIcon:
+    def icon(self) -> QIcon:
         return QIcon(self.mIcon)
 
     def menu(self, appMenu):
@@ -74,10 +81,9 @@ class VRTBuilderApp(EnMAPBoxApplication):
         a.triggered.connect(self.startGUI)
         return None
 
-    def startGUI(self, *args):
+    def startGUI(self, *args) -> QMainWindow:
 
-        if qgisPluginInstalled():
-            from vrtbuilder.widgets import VRTBuilderWidget
+        if vrtBuilderPluginInstalled():
 
             w = VRTBuilderWidget()
             # show EnMAP-Box raster sources in VRTBuilder
@@ -88,27 +94,35 @@ class VRTBuilderApp(EnMAPBoxApplication):
 
             # add created virtual raster to EnMAP-Box
             w.sigRasterCreated.connect(self.enmapbox.addSource)
-            w.actionSelectSpatialExtent.triggered.connect(lambda: self.onSelectSpatialExtent(w))
+
+            w.sigAboutCreateCurrentMapTools.connect(self.onSetWidgetMapTool)
+
             w.show()
+            return w
         else:
-            QMessageBox.information(None, 'Missing QGIS Plugin', 'Please install and activate the Virtual Raster Builder QGIS Plugin.')
+            QMessageBox.information(None, 'Missing QGIS Plugin',
+                                    'Please install and activate the Virtual Raster Builder QGIS Plugin.')
+            return None
 
+    def onSetWidgetMapTool(self):
+        w = self.sender()
 
+        if not self.mIsInstalled:
+            return
+        from vrtbuilder.widgets import VRTBuilderWidget, SpatialExtentMapTool
+        assert isinstance(w, VRTBuilderWidget)
+        canvases = []
 
-    def onSelectSpatialExtent(self, w):
+        if isinstance(self.enmapbox, EnMAPBox):
+            canvases.extend(self.enmapbox.mapCanvases())
 
-        if self.mIsInstalled:
-            from vrtbuilder.widgets import VRTBuilderWidget
-            assert isinstance(w, VRTBuilderWidget)
-            from enmapbox.gui.enmapboxgui import EnMAPBox
-            from vrtbuilder.widgets import MapToolSpatialExtent
-            del self.mapTools[:]
-            if isinstance(self.enmapbox, EnMAPBox):
-                for mapCanvas in self.enmapbox.mapCanvases():
-                    t = MapToolSpatialExtent(mapCanvas)
-                    t.sigSpatialExtentSelected.connect(w.setBounds)
-                    mapCanvas.setMapTool(t)
-                    self.mapTools.append(t)
+        if isinstance(qgis.utils.iface, QgisInterface):
+            canvases.extend(qgis.utils.iface.mapCanvases())
+
+        canvases = set(canvases)
+        for mapCanvas in canvases:
+            assert isinstance(mapCanvas, QgsMapCanvas)
+            w.createCurrentMapTool(mapCanvas)
 
 
 def enmapboxApplicationFactory(enmapBox):
@@ -118,4 +132,3 @@ def enmapboxApplicationFactory(enmapBox):
     :return: EnMAPBoxApplication | [list-of-EnMAPBoxApplications]
     """
     return [VRTBuilderApp(enmapBox)]
-

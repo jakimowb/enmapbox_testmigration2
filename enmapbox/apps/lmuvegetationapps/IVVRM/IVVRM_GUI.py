@@ -1,4 +1,27 @@
 # -*- coding: utf-8 -*-
+"""
+***************************************************************************
+    IVVRM_GUI.py - LMU Agri Apps - Interactive Visualization of Vegetation Reflectance Models (IVVRM)
+    -----------------------------------------------------------------------
+    begin                : 01/2018
+    copyright            : (C) 2018 Martin Danner; Matthias Wocher
+    email                : m.wocher@lmu.de
+
+***************************************************************************
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+                                                                                                                                                 *
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this software. If not, see <http://www.gnu.org/licenses/>.
+***************************************************************************
+"""
 
 import sys
 import os
@@ -768,7 +791,7 @@ class IVVRM:
 
     def clear_plot(self, rescale=False, clear_plots=False):
         if rescale:
-            self.gui.graphicsView.setYRange(0, 0.6, padding=0)
+            self.gui.graphicsView.setYRange(0, 1, padding=0)
             self.gui.graphicsView.setXRange(350, 2550, padding=0)
 
         if clear_plots:

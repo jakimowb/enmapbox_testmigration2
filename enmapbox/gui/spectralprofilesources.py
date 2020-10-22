@@ -13,8 +13,8 @@ from qgis.PyQt.QtGui import *
 
 from qgis.PyQt.QtWidgets import *
 
-
-from enmapbox.gui import PlotStyle, SpectralProfile, SpectralLibraryWidget, PlotStyleButton, QgsTaskMock, loadUi
+from enmapbox.externals.qps.plotstyling.plotstyling import PlotStyle, MarkerSymbol
+from enmapbox.gui import SpectralProfile, SpectralLibraryWidget, PlotStyleButton, QgsTaskMock, loadUi
 from enmapbox.gui.utils import enmapboxUiPath, SpatialPoint, SpatialExtent
 from enmapbox.gui.datasources import DataSourceRaster
 import numpy as np
@@ -382,6 +382,9 @@ class SpectralProfileRelation(object):
         self.mSamplingMode = samplingMode
         self.mCurrentProfiles = []
         self.mPlotStyle: PlotStyle = PlotStyle()
+        self.mPlotStyle.setMarkerSymbol(MarkerSymbol.No_Symbol)
+        self.mPlotStyle.linePen.setStyle(Qt.SolidLine)
+        self.mPlotStyle.linePen.setColor(QColor(self.mPlotStyle.markerBrush.color()))
 
     def plotStyle(self) -> PlotStyle:
         return self.mPlotStyle
@@ -969,7 +972,6 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
         assert isinstance(tableView, QTableView)
         super(SpectralProfileBridgeViewDelegate, self).__init__(parent=parent)
         self.mTableView = tableView
-        # self.mTableView.model().rowsInserted.connect(self.onRowsInserted)
 
     def sortFilterProxyModel(self) -> QSortFilterProxyModel:
         return self.mTableView.model()
@@ -984,10 +986,7 @@ class SpectralProfileBridgeViewDelegate(QStyledItemDelegate):
             w = self.mTableView.horizontalHeader().sectionSize(index.column())
             if h > 0 and w > 0:
                 px = style.createPixmap(size=QSize(w, h))
-                label = QLabel()
-                label.setPixmap(px)
                 painter.drawPixmap(option.rect, px)
-                # QApplication.style().drawControl(QStyle.CE_CustomBase, label, painter)
             else:
                 super().paint(painter, option, index)
         else:

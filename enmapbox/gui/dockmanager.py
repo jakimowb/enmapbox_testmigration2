@@ -23,12 +23,11 @@ import typing
 import warnings
 import time
 from processing import Processing
-from qgis.PyQt.Qt import Qt
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import QWidget, QHeaderView, QMenu, QAbstractItemView, QApplication
+from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent
+
+from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
-from qgis.core import *
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
     QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
     QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils, \
@@ -342,6 +341,7 @@ class SpeclibDockTreeNode(DockTreeNode):
         assert isinstance(self.speclibWidget, SpectralLibraryWidget)
 
         self.profilesNode = LayerTreeNode(self, 'Profiles', value=0)
+        self.profilesNode.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
 
         speclib = self.speclibWidget.speclib()
         if isinstance(speclib, SpectralLibrary):
@@ -354,7 +354,8 @@ class SpeclibDockTreeNode(DockTreeNode):
         if isinstance(self.speclibWidget, SpectralLibraryWidget):
             speclib = self.speclibWidget.speclib()
             if isinstance(speclib, SpectralLibrary):
-                self.profilesNode.setValue(len(speclib))
+                #self.profilesNode.setValue(len(speclib))
+                self.profilesNode.setName(f'{len(speclib)} Profiles')
 
 
 class MapDockTreeNode(DockTreeNode):
@@ -1074,6 +1075,7 @@ class DockTreeView(QgsLayerTreeView):
                 span = node.value() == None or '{}'.format(node.value()).strip() == ''
             elif type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
                 span = True
+
             self.setFirstColumnSpanned(idxNode.row(), idxParent, span)
             # for child in node.children():
             #    self.setColumnSpan(child)

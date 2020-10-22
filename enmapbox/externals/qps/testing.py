@@ -326,19 +326,22 @@ class QgisMockup(QgisInterface):
         m = self.ui.menuBar().addAction('Add Vector')
         m = self.ui.menuBar().addAction('Add Raster')
 
-    def mapCanvas(self):
+    def mapCanvas(self) -> QgsMapCanvas:
         return self.mCanvas
+
+    def mapCanvases(self) -> typing.List[QgsMapCanvas]:
+        return [self.mCanvas]
 
     def mapNavToolToolBar(self) -> QToolBar:
         return self.mMapNavToolBar
 
-    def messageBar(self, *args, **kwargs):
+    def messageBar(self, *args, **kwargs) -> QgsMessageBar:
         return self.mMessageBar
 
-    def rasterMenu(self):
+    def rasterMenu(self) -> QMenu:
         return self.mRasterMenu
 
-    def vectorMenu(self):
+    def vectorMenu(self) -> QMenu:
         return self.mVectorMenu
 
     def viewMenu(self) -> QMenu:
@@ -552,7 +555,7 @@ class TestObjects():
         for (data, wl, data_wlu) in TestObjects.spectralProfileData(n, n_bands=n_bands):
             if wlu is None:
                 wlu = data_wlu
-            if wlu != data_wlu:
+            elif wlu != data_wlu:
                 wl = UnitLookup.convertMetricUnit(wl, data_wlu, wlu)
 
             profile = SpectralProfile(fields=fields)
@@ -727,7 +730,9 @@ class TestObjects():
                 wl = core_wl[:nb].tolist()
             assert len(wl) == nb
 
-            if wlu != core_wlu:
+            if wlu is None:
+                wlu = core_wlu
+            elif wlu != core_wlu:
                 wl = UnitLookup.convertMetricUnit(wl, core_wlu, wlu)
 
             domain = None

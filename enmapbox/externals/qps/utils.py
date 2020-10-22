@@ -59,6 +59,10 @@ from qgis.PyQt.QtWidgets import *
 from osgeo import gdal, ogr, osr, gdal_array
 import numpy as np
 from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QDialogButtonBox, QLabel, QGridLayout, QMainWindow
+try:
+    from .. import qps
+except:
+    import qps
 from . import DIR_UI_FILES
 
 # dictionary to store form classes and avoid multiple calls to read <myui>.i
@@ -66,10 +70,7 @@ QGIS_RESOURCE_WARNINGS = set()
 
 REMOVE_setShortcutVisibleInContextMenu = hasattr(QAction, 'setShortcutVisibleInContextMenu')
 
-try:
-    from .. import qps
-except:
-    import qps
+
 
 jp = os.path.join
 dn = os.path.dirname
@@ -129,6 +130,7 @@ def cleanDir(d):
     for root, dirs, files in os.walk(d):
         for p in dirs + files: rm(jp(root, p))
         break
+
 
 # a QPS internal map layer store
 QPS_MAPLAYER_STORE = QgsMapLayerStore()
@@ -455,7 +457,6 @@ LUT_WAVELENGTH = dict({'B': 480,
                        'SWIR2': 2150
                        })
 
-
 NEXT_COLOR_HUE_DELTA_CON = 10
 NEXT_COLOR_HUE_DELTA_CAT = 100
 
@@ -577,6 +578,8 @@ def createQgsField(name: str, exampleValue: typing.Any, comment: str = None) -> 
         return QgsField(name, QVariant.String, 'varchar', comment=comment)
     elif isinstance(exampleValue, np.datetime64):
         return QgsField(name, QVariant.String, 'varchar', comment=comment)
+    elif isinstance(exampleValue, (bytes, QByteArray)):
+        return QgsField(name, QVariant.ByteArray, 'Binary', comment=comment)
     elif isinstance(exampleValue, list):
         assert len(exampleValue) > 0, 'need at least one value in provided list'
         v = exampleValue[0]
@@ -681,9 +684,11 @@ def gdalDataset(dataset: typing.Union[str,
                                       pathlib.Path,
                                       QgsRasterLayer,
                                       QgsRasterDataProvider,
-                                      gdal.Dataset], eAccess=gdal.GA_ReadOnly) -> gdal.Dataset:
+                                      gdal.Dataset],
+                eAccess:int = gdal.GA_ReadOnly) -> gdal.Dataset:
     """
     Returns a gdal.Dataset object instance
+    :param dataset:
     :param pathOrDataset: path | gdal.Dataset | QgsRasterLayer | QgsRasterDataProvider
     :return: gdal.Dataset
     """
@@ -920,6 +925,7 @@ def qgsMapLayer(value: typing.Any) -> QgsMapLayer:
         pass
 
     return None
+
 
 def loadUi(uifile, baseinstance=None, package='', resource_suffix='_rc', remove_resource_references=True,
            loadUiType=False):
@@ -1393,9 +1399,9 @@ def defaultBands(dataset) -> list:
     elif isinstance(dataset, QgsRasterDataProvider):
         return defaultBands(dataset.dataSourceUri())
     elif isinstance(dataset, QgsRasterLayer) and \
-         isinstance(dataset.dataProvider(), QgsRasterDataProvider) and \
-         dataset.dataProvider().name() == 'gdal':
-            return defaultBands(dataset.source())
+            isinstance(dataset.dataProvider(), QgsRasterDataProvider) and \
+            dataset.dataProvider().name() == 'gdal':
+        return defaultBands(dataset.source())
     elif isinstance(dataset, gdal.Dataset):
 
         # check ENVI style metadata default band definition
@@ -1518,7 +1524,7 @@ def parseFWHM(dataset) -> typing.Tuple[np.ndarray]:
         # search band by band
         values = []
         for b in range(dataset.RasterCount):
-            band: gdal.Band = dataset.GetRasterBand(b+1)
+            band: gdal.Band = dataset.GetRasterBand(b + 1)
             for key, domain in key_positions:
                 value = dataset.GetMetadataItem(key, domain)
                 if value not in ['', None]:
@@ -1527,6 +1533,7 @@ def parseFWHM(dataset) -> typing.Tuple[np.ndarray]:
         if len(values) == dataset.RasterCount:
             return np.asarray(values)
     return None
+
 
 def parseWavelength(dataset) -> typing.Tuple[np.ndarray, str]:
     """
@@ -1545,19 +1552,14 @@ def parseWavelength(dataset) -> typing.Tuple[np.ndarray, str]:
     def checkWavelengthUnit(key: str, value: str) -> str:
         wlu = None
         value = value.strip()
-        if re.search(r'wavelength.units?', key, re.I):
+        if re.search(r'wavelength[ _]?units?', key, re.I):
             # metric length units
-            if re.search(r'^(Micrometers?|um|μm)$', values, re.I):
-                wlu = 'μm'  # fix with python 3 UTF
-            elif re.search(r'^(Nanometers?|nm)$', values, re.I):
-                wlu = 'nm'
-            elif re.search(r'^(Millimeters?|mm)$', values, re.I):
-                wlu = 'nm'
-            elif re.search(r'^(Centimeters?|cm)$', values, re.I):
-                wlu = 'nm'
-            elif re.search(r'^(Meters?|m)$', values, re.I):
-                wlu = 'nm'
-            elif re.search(r'^Wavenumber$', values, re.I):
+            wlu = UnitLookup.baseUnit(value)
+
+            if wlu is not None:
+                return wlu
+
+            if re.search(r'^Wavenumber$', values, re.I):
                 wlu = '-'
             elif re.search(r'^GHz$', values, re.I):
                 wlu = 'GHz'
@@ -1895,6 +1897,7 @@ class SpatialPoint(QgsPointXY):
     """
     Object to keep QgsPoint and QgsCoordinateReferenceSystem together
     """
+
     @staticmethod
     def readXml(node: QDomNode):
         wkt = node.firstChildElement('SpatialPointCrs').text()
@@ -2087,6 +2090,7 @@ class SpatialExtent(QgsRectangle):
     """
     Object that combines a QgsRectangle and QgsCoordinateReferenceSystem
     """
+
     @staticmethod
     def readXml(node: QDomNode):
         wkt = node.firstChildElement('SpatialExtentCrs').text()
@@ -2095,7 +2099,7 @@ class SpatialExtent(QgsRectangle):
         return SpatialExtent(crs, rectangle)
 
     @staticmethod
-    def fromMapCanvas(mapCanvas, fullExtent:bool=False):
+    def fromMapCanvas(mapCanvas, fullExtent: bool = False):
         assert isinstance(mapCanvas, QgsMapCanvas)
 
         if fullExtent:
@@ -2340,6 +2344,7 @@ def setToolButtonDefaultActionMenu(toolButton: QToolButton, actions: list):
 
     menu.triggered.connect(toolButton.setDefaultAction)
     toolButton.setMenu(menu)
+
 
 class SelectMapLayersDialog(QgsDialog):
     class LayerDescription(object):

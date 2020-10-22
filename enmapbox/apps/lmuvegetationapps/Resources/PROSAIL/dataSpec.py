@@ -1,9 +1,25 @@
 # -*- coding: utf-8 -*-
+'''
+dataSpec.py contains parameters and pre-calculated values for all Prospect versions
+calling these parameters is quicker than calculating them for each run of Prospect
+Be careful to change values for the exact Prospect version!
 
-# dataSpec.py contains parameters and pre-calculated values for all Prospect versions
-# calling these parameters is quicker than calculating them for each run of Prospect
-# Be careful to change values for the exact Prospect version!
+References:
+Féret J.B., Berger K., de Boissieu F., Malenovský Z. (2020):
+PROSPECT-PRO for estimating content of nitrogen-containing leaf proteins and other carbon-based constituents
 
+Féret J.B., Gitelson A.A., Noble S.D., & Jacquemoud S. (2017):
+PROSPECT-D: towards modeling leaf optical properties through a complete lifecycle,
+Remote Sensing of Environment, 193:204-215. Article.
+
+Féret J.B., François C., Asner G.P., Gitelson A.A., Martin R.E., Bidel L.P.R., Ustin S.L.,
+le Maire G., & Jacquemoud S. (2008):
+PROSPECT-4 and 5: advances in the leaf optical properties model separating photosynthetic pigments.
+Remote Sensing of Environment, 112, 3030-3043. Article.
+
+Jacquemoud S., & Baret F. (1990), PROSPECT: a model of leaf optical properties spectra.
+Remote Sensing of Environment, 34, 75-91. Article.
+'''
 import numpy as np
 
 # Lambda:
