@@ -147,7 +147,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
     def test_instance_coreapps_and_data(self):
 
-        EMB = EnMAPBox(load_other_apps=False)
+        EMB = EnMAPBox(load_core_apps=True, load_other_apps=False)
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(EMB, EnMAPBox.instance())
