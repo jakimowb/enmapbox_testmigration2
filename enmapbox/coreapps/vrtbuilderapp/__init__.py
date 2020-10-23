@@ -87,7 +87,7 @@ class VRTBuilderApp(EnMAPBoxApplication):
 
         if vrtBuilderPluginInstalled():
 
-            if MIN_VERSION < VRTBVersion:
+            if MIN_VERSION > VRTBVersion:
                 QMessageBox.information(None, 'Outdated Version',
                                         'Please update the Virtual Raster Builder QGIS Plugin.')
                 return None
