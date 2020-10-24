@@ -8,15 +8,10 @@ import pathlib
 import pickle
 import sys
 import time
-
+import typing
 import numpy as np
 from OpenGL.GL import *
 
-import enmapbox.externals.qps.externals.pyqtgraph.opengl as gl
-from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLGraphicsItem import GLGraphicsItem, GLOptions
-from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLViewWidget import GLViewWidget
-from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
-from enmapbox.gui.utils import loadUi, SpatialExtent
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import QColor, QVector3D, QMatrix4x4
 from qgis.PyQt.QtWidgets import QMainWindow, QApplication, QCheckBox, QLineEdit
@@ -24,7 +19,16 @@ from qgis.core import QgsRasterLayer, Qgis, QgsRasterRenderer, QgsRectangle, Qgs
     QgsTaskManager, QgsApplication, QgsSingleBandGrayRenderer, QgsMultiBandColorRenderer, \
     QgsContrastEnhancement, QgsSingleBandPseudoColorRenderer, QgsRasterMinMaxOrigin, QgsProject, \
     QgsTask, QgsMapLayerProxyModel, QgsRasterBlock, QgsRasterBlockFeedback, QgsSingleBandColorDataRenderer
-from qgis.gui import QgsMapCanvas
+from qgis.gui import QgsMapCanvas, QgsMapLayerComboBox
+
+
+from enmapbox.gui import SliderSpinBox, DoubleSliderSpinBox, SpatialExtentMapTool
+import enmapbox.externals.qps.externals.pyqtgraph.opengl as gl
+from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLGraphicsItem import GLGraphicsItem, GLOptions
+from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLViewWidget import GLViewWidget
+from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
+from enmapbox.gui.utils import loadUi, SpatialExtent
+
 
 KEY_GL_ITEM_GROUP = 'CUBEVIEW/GL_ITEM_GROUP'
 KEY_DEFAULT_TRANSFORM = 'CUBEVIEW/DEFAULT_TRANSFORM'
@@ -40,6 +44,7 @@ QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.byte,
                          Qgis.ARGB32: np.uint32,
                          Qgis.ARGB32_Premultiplied: np.uint32}
 
+from . import NAME, VERSION
 
 class TaskMock(QgsTask):
     def __init__(self):
@@ -96,12 +101,12 @@ class ImageCubeGLWidget(GLViewWidget):
 
     def paintGL(self, *args, **kwds):
 
-        # from OpenGL.GL import glEnable, glDisable, GL_DEPTH_TEST
-        # glEnable(GL_DEPTH_TEST)
+        from OpenGL.GL import glEnable, glDisable, GL_DEPTH_TEST
+        glEnable(GL_DEPTH_TEST)
 
         GLViewWidget.paintGL(self, *args, **kwds)
 
-        # glDisable(GL_DEPTH_TEST)
+        glDisable(GL_DEPTH_TEST)
         for (pos, text, color) in self.mTextLabels:
             self.qglColor(color)
             assert isinstance(pos, QVector3D)
@@ -121,6 +126,7 @@ class ImageCubeGLWidget(GLViewWidget):
 
 def samplingGrid(layer: QgsRasterLayer, extent: QgsRectangle, ncb: int = 1, max_size: int = 2 * 2 ** 20) -> tuple:
     """
+    :param layer:
     :param extent: QgsRectangles extent to show from image
     :param nl: original image number of lines
     :param ns: original image number of samples
@@ -407,7 +413,7 @@ class ImageCubeRenderJob(object):
 
 
 class ImageCubeWidget(QMainWindow):
-    sigExtentRequested = pyqtSignal()
+    sigExtentRequested = pyqtSignal(QMainWindow)
 
     def __init__(self, *args, **kwds):
 
@@ -417,13 +423,13 @@ class ImageCubeWidget(QMainWindow):
         self.setWindowTitle('Image Cube')
         self.mCanvas = QgsMapCanvas()
         self.mCanvas.setVisible(False)
-
+        self.mMapTools: typing.List[SpatialExtentMapTool] = []
         self.mSliceRenderer = None
         self.mTopPlaneRenderer = None
 
         self.mBandScaleFactor = 1
 
-        self.mSpatialExtent = None
+        self.mSpatialExtent = SpatialExtent(QgsCoordinateReferenceSystem())
 
         self.mMaxSizeTopPlane = 10 * 2 ** 20  # MByte
         self.mMaxSizeCube = 20 * 2 ** 20  # MByte
@@ -447,6 +453,7 @@ class ImageCubeWidget(QMainWindow):
         self.mCubeSliceDensity = 2
         self.mSliceSliceDensity = 2
 
+        self.mMapLayerComboBox: QgsMapLayerComboBox
         self.mMapLayerComboBox.setAllowEmptyLayer(True)
         self.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mMapLayerComboBox.layerChanged.connect(self.onLayerChanged)
@@ -463,16 +470,24 @@ class ImageCubeWidget(QMainWindow):
         self.actionSetRendererTopPlane.triggered.connect(self.onSetTopPlaneRenderer)
         self.actionSetRendererSlices.triggered.connect(self.onSetSliceRenderer)
         self.actionResetGLView.triggered.connect(self.resetCameraPosition)
-        self.actionSetExtent.triggered.connect(self.sigExtentRequested.emit)
-        self.sliderX.valueChanged.connect(lambda: self.drawSlice(GLItem.SliceX))
-        self.sliderY.valueChanged.connect(lambda: self.drawSlice(GLItem.SliceY))
-        self.sliderZ.valueChanged.connect(lambda: self.drawSlice(GLItem.SliceZ))
+        self.actionSetExtent.triggered.connect(self.onExtentRequested)
 
-        self.doubleSpinBoxZScale.setMinimum(0.2)
-        self.doubleSpinBoxZScale.setMaximum(99998)
-        self.doubleSpinBoxZScale.setSingleStep(0.2)
+        self.spinBoxX: SliderSpinBox
+        self.spinBoxY: SliderSpinBox
+        self.spinBoxZ: SliderSpinBox
+        for sb in [self.spinBoxX, self.spinBoxY, self.spinBoxZ]:
+            sb.setMinimum(1)
+            sb.spinbox.setMinimumWidth(50)
+        self.spinBoxX.sigValueChanged.connect(lambda: self.drawSlice(GLItem.SliceX))
+        self.spinBoxY.sigValueChanged.connect(lambda: self.drawSlice(GLItem.SliceY))
+        self.spinBoxZ.sigValueChanged.connect(lambda: self.drawSlice(GLItem.SliceZ))
+
+        self.doubleSpinBoxZScale: DoubleSliderSpinBox
+        self.doubleSpinBoxZScale.setMinimum(0.1)
+        self.doubleSpinBoxZScale.setMaximum(10)
+        self.doubleSpinBoxZScale.setSingleStep(0.1)
         self.doubleSpinBoxZScale.setValue(1)
-        self.doubleSpinBoxZScale.valueChanged.connect(self.onZScaleChanged)
+        self.doubleSpinBoxZScale.sigValueChanged.connect(self.onZScaleChanged)
 
         # register GLITem visibility checkboxes
 
@@ -513,6 +528,7 @@ class ImageCubeWidget(QMainWindow):
         for k in ['distance', 'elevation', 'azimuth']:
             self.mDefaultCAM[k] = w.opts[k]
 
+        self.onLayerChanged(self.mMapLayerComboBox.currentLayer())
         # hide slices
         # .setSlicesVisibility(False)
 
@@ -620,6 +636,18 @@ class ImageCubeWidget(QMainWindow):
     def topPlaneRenderer(self) -> QgsRasterRenderer:
         return self.mTopPlaneRenderer
 
+    def onExtentRequested(self):
+        self.mMapTools.clear()
+        self.sigExtentRequested.emit(self)
+
+    def createExtentRequestMapTool(self, canvas: QgsMapCanvas):
+        assert isinstance(canvas, QgsMapCanvas)
+
+        mt = SpatialExtentMapTool(canvas)
+        mt.sigSpatialExtentSelected.connect(lambda crs, ext: self.setSpatialExtent(SpatialExtent(crs, ext)))
+        canvas.setMapTool(mt)
+        self.mMapTools.append(mt)
+
     def onExtentChanged(self):
         self.startDataLoading()
 
@@ -680,7 +708,7 @@ class ImageCubeWidget(QMainWindow):
         return self.mSpatialExtent
 
     def setSpatialExtent(self, spatialExtent: SpatialExtent):
-        self.mSpatialExtent = spatialExtent
+        self.mSpatialExtent: SpatialExtent = spatialExtent
         assert isinstance(self.tbExtent, QLineEdit)
         info = '{},{}:{},{}:{}'.format(
             spatialExtent.xMinimum(), spatialExtent.yMaximum(),
@@ -819,25 +847,25 @@ class ImageCubeWidget(QMainWindow):
         return c
 
     def setX(self, x: int):
-        assert 0 < x <= self.sliderX.maximum()
-        self.sliderX.setValue(x)
+        assert 0 < x <= self.spinBoxX.maximum()
+        self.spinBoxX.setValue(x)
 
     def x(self) -> int:
-        return self.sliderX.value()
+        return self.spinBoxX.value()
 
     def setY(self, y: int):
-        assert 0 < y <= self.sliderY.maximum()
-        self.sliderY.setValue(y)
+        assert 0 < y <= self.spinBoxY.maximum()
+        self.spinBoxY.setValue(y)
 
     def y(self) -> int:
-        return self.sliderY.value()
+        return self.spinBoxY.value()
 
     def z(self) -> int:
-        return self.sliderZ.value()
+        return self.spinBoxZ.value()
 
     def setZ(self, z: int):
-        assert z > 0 and z <= self.sliderZ.maximum()
-        self.sliderZ.setValue(z)
+        assert 0 < z <= self.spinBoxZ.maximum()
+        self.spinBoxZ.setValue(z)
 
     def setRGBATopPlane(self, rgba: np.ndarray, extent: QgsRectangle):
         assert isinstance(rgba, np.ndarray)
@@ -940,17 +968,13 @@ class ImageCubeWidget(QMainWindow):
             rangeX = [int(ox + 1), int(ox + nns * sx)]
             rangeY = [int(oy + 1), int(oy + nnl * sy)]
             rangeZ = [int(ob + 1), int(ob + nnb * sb)]
-            self.sliderX.setRange(*rangeX)
-            self.sliderY.setRange(*rangeY)
-            self.sliderZ.setRange(*rangeZ)
-
-            self.sliderX.setPageStep(int(nns * 0.1))
-            self.sliderY.setPageStep(int(nnl * 0.1))
-            self.sliderZ.setPageStep(int(nnb * 0.1))
-
             self.spinBoxX.setRange(*rangeX)
             self.spinBoxY.setRange(*rangeY)
             self.spinBoxZ.setRange(*rangeZ)
+
+            self.spinBoxX.slider.setPageStep(int(nns * 0.1))
+            self.spinBoxY.slider.setPageStep(int(nnl * 0.1))
+            self.spinBoxZ.slider.setPageStep(int(nnb * 0.1))
 
         if True:
             # show subset extent range plot item
@@ -1197,7 +1221,7 @@ class ImageCubeWidget(QMainWindow):
         self.mRGBATopPlane = None
         self.print('LAYER CHANGED CLEANUP')
         if b:
-
+            self.setWindowTitle(f'{NAME} {VERSION} - {lyr.name()}')
             nb = lyr.bandCount()
             ns = lyr.width()
             nl = lyr.height()
@@ -1213,18 +1237,11 @@ class ImageCubeWidget(QMainWindow):
             y = self.y()
             z = self.z()
 
-            self.sliderX.setRange(1, ns)
-            self.sliderY.setRange(1, nl)
-            self.sliderZ.setRange(1, nb)
-            self.sliderX.setPageStep(int(ns * 0.1))
-            self.sliderY.setPageStep(int(nl * 0.1))
-            self.sliderZ.setPageStep(int(nb * 0.1))
-
             self.spinBoxX.setRange(1, ns)
             self.spinBoxY.setRange(1, nl)
             self.spinBoxZ.setRange(1, nb)
 
-            self.setX(min(z, ns))
+            self.setX(min(x, ns))
             self.setY(min(y, nl))
             self.setZ(min(z, nb))
 
@@ -1294,16 +1311,14 @@ class ImageCubeWidget(QMainWindow):
 
         else:
             self.mCanvas.setLayers([])
-            self.sliderX.setRange(1, 1)
-            self.sliderY.setRange(1, 1)
-            self.sliderZ.setRange(1, 1)
-
             self.spinBoxX.setRange(1, 1)
             self.spinBoxY.setRange(1, 1)
             self.spinBoxZ.setRange(1, 1)
 
             b = False
             self.mBandScaleFactor = 1
+
+            self.setWindowTitle(f'{NAME} {VERSION} - <no raster layer selected>')
 
         for w in [self.gbRendering, self.gbPlotting, self.gbOpenGLOptions]:
             w.setEnabled(b)
