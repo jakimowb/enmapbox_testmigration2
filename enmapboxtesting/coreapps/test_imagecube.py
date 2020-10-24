@@ -80,9 +80,6 @@ class VTest(EnMAPBoxTestCase):
         W = ImageCubeWidget()
         W.show()
 
-        pathLargeImage = r'R:\temp\temp_bj\Cerrado\cerrado_evi.vrt'
-        pathLargeImage = r'Q:\Processing_BJ\01_Data\level2\X0016_Y0046\20140803_LEVEL2_LND07_BOA.tif'
-
         layers = [self.createImageCube(ns=100, nl=200)]
         pathes = [pathEnMAP, pathHyMap]
         for p in pathes:
