@@ -19,7 +19,7 @@ class ImageCubeApplication(EnMAPBoxApplication):
         self.version = VERSION
         self.licence = 'GNU GPL-3'
         self.mErrorMessage = None
-        self.mImageCubeWidget: QWidget = None
+        #self.mImageCubeWidget: QWidget = None
         self.mIcon = enmapBox.icon()
         self.mActionStartGUI = QAction(self.name)
         self.mActionStartGUI.setIcon(self.icon())
@@ -49,12 +49,11 @@ class ImageCubeApplication(EnMAPBoxApplication):
 
         if self.openglAvailable():
             from imagecubeapp.imagecube import ImageCubeWidget
-            if not isinstance(self.mImageCubeWidget, ImageCubeWidget):
-                self.mImageCubeWidget = ImageCubeWidget()
-                self.mImageCubeWidget.setWindowTitle(self.name)
-                self.mImageCubeWidget.setWindowIcon(self.icon())
-
-            self.mImageCubeWidget.show()
+            #if not isinstance(self.mImageCubeWidget, ImageCubeWidget):
+            mImageCubeWidget = ImageCubeWidget()
+            mImageCubeWidget.setWindowTitle(self.name)
+            mImageCubeWidget.setWindowIcon(self.icon())
+            mImageCubeWidget.show()
         else:
             text = ['Unable to start ' + NAME]
             text.append('OpenGL / PyQt5.QtOpenGL not available')
