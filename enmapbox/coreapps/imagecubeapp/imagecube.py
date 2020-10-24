@@ -16,11 +16,10 @@ from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import QColor, QVector3D, QMatrix4x4
 from qgis.PyQt.QtWidgets import QMainWindow, QApplication, QCheckBox, QLineEdit
 from qgis.core import QgsRasterLayer, Qgis, QgsRasterRenderer, QgsRectangle, QgsCoordinateReferenceSystem, \
-    QgsTaskManager, QgsApplication, QgsSingleBandGrayRenderer, QgsMultiBandColorRenderer, \
+    QgsTaskManager, QgsApplication, QgsSingleBandGrayRenderer, QgsMultiBandColorRenderer, QgsPalettedRasterRenderer, \
     QgsContrastEnhancement, QgsSingleBandPseudoColorRenderer, QgsRasterMinMaxOrigin, QgsProject, \
     QgsTask, QgsMapLayerProxyModel, QgsRasterBlock, QgsRasterBlockFeedback, QgsSingleBandColorDataRenderer
 from qgis.gui import QgsMapCanvas, QgsMapLayerComboBox
-
 
 from enmapbox.gui import SliderSpinBox, DoubleSliderSpinBox, SpatialExtentMapTool
 import enmapbox.externals.qps.externals.pyqtgraph.opengl as gl
@@ -28,7 +27,6 @@ from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLGraphicsItem import GLG
 from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLViewWidget import GLViewWidget
 from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
 from enmapbox.gui.utils import loadUi, SpatialExtent
-
 
 KEY_GL_ITEM_GROUP = 'CUBEVIEW/GL_ITEM_GROUP'
 KEY_DEFAULT_TRANSFORM = 'CUBEVIEW/DEFAULT_TRANSFORM'
@@ -45,6 +43,7 @@ QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.byte,
                          Qgis.ARGB32_Premultiplied: np.uint32}
 
 from . import NAME, VERSION
+
 
 class TaskMock(QgsTask):
     def __init__(self):
@@ -227,6 +226,17 @@ def renderImageData(task: QgsTask, dump):
                 setBand = lambda *args: None
             elif isinstance(renderer, QgsMultiBandColorRenderer):
                 setBand = lambda *args: None
+            elif isinstance(renderer, QgsPalettedRasterRenderer):
+
+                def onSetBand(b: int):
+                    nonlocal renderer
+                    nonlocal lyr
+                    renderer = QgsPalettedRasterRenderer(lyr.dataProvider(), b, renderer.classes())
+                    lyr.setRenderer(renderer)
+                setBand = onSetBand
+
+            else:
+                raise NotImplementedError()
 
             # x, y, z, RGBA
             rgba = np.empty((h, w, nb, 4), dtype=np.uint8)
@@ -424,8 +434,8 @@ class ImageCubeWidget(QMainWindow):
         self.mCanvas = QgsMapCanvas()
         self.mCanvas.setVisible(False)
         self.mMapTools: typing.List[SpatialExtentMapTool] = []
-        self.mSliceRenderer = None
-        self.mTopPlaneRenderer = None
+        self.mSliceRenderer: QgsRasterRenderer = None
+        self.mTopPlaneRenderer: QgsRasterRenderer = None
 
         self.mBandScaleFactor = 1
 
@@ -466,7 +476,7 @@ class ImageCubeWidget(QMainWindow):
         self.btnSetExtent.setDefaultAction(self.actionSetExtent)
 
         self.actionValidate.triggered.connect(self.onValidate)
-        self.actionLoadData.triggered.connect(self.startDataLoading)
+        self.actionLoadData.triggered.connect(lambda *args: self.startDataLoading(top=True, cube=True))
         self.actionSetRendererTopPlane.triggered.connect(self.onSetTopPlaneRenderer)
         self.actionSetRendererSlices.triggered.connect(self.onSetSliceRenderer)
         self.actionResetGLView.triggered.connect(self.resetCameraPosition)
@@ -648,9 +658,6 @@ class ImageCubeWidget(QMainWindow):
         canvas.setMapTool(mt)
         self.mMapTools.append(mt)
 
-    def onExtentChanged(self):
-        self.startDataLoading()
-
     def onSetSliceRenderer(self):
 
         lyr = self.rasterLayer()
@@ -660,7 +667,6 @@ class ImageCubeWidget(QMainWindow):
             if isinstance(r, QgsRasterRenderer):
                 lyr2.setRenderer(r)
             showLayerPropertiesDialog(lyr2, None)
-            s = ""
 
             self.setSliceRenderer(lyr2.renderer())
 
@@ -683,14 +689,16 @@ class ImageCubeWidget(QMainWindow):
     def setSliceRenderer(self, renderer: QgsRasterRenderer):
         assert isinstance(renderer, QgsRasterRenderer)
         self.mSliceRenderer = renderer.clone()
+        self.startDataLoading(cube=True)
 
     def setTopPlaneRenderer(self, renderer: QgsRasterRenderer):
         assert isinstance(renderer, QgsRasterRenderer)
         self.mTopPlaneRenderer = renderer.clone()
+        self.startDataLoading(top=True)
 
     def reloadData(self):
         self.mLastJobs.clear()
-        self.startDataLoading()
+        self.startDataLoading(top=True, cube=True)
 
     def setExtent(self, extent: QgsRectangle):
         self.setSpatialExtent(SpatialExtent(self.crs(), extent))
@@ -717,27 +725,36 @@ class ImageCubeWidget(QMainWindow):
 
         self.tbExtent.setText(info)
         self.tbExtent.setToolTip(info)
+        self.reloadData()
 
     def print(self, msg: str, file=sys.stdout):
         if self.debug():
             print(msg, file=file)
 
-    def startDataLoading(self):
+    def startDataLoading(self, cube: bool = False, top: bool = False):
 
         lyr = self.rasterLayer()
         if not isinstance(lyr, QgsRasterLayer):
             return
+        if top and not isinstance(self.topPlaneRenderer(), QgsRasterRenderer):
+            return
+        if cube and not isinstance(self.sliceRenderer(), QgsRasterRenderer):
+            return
+
         ext = self.spatialExtent().toCrs(lyr.crs())
 
-        jobTop = ImageCubeRenderJob(GLItem.TopPlane, lyr, self.topPlaneRenderer())
-        jobTop.setExtent(ext)
-        jobTop.setMaxBytes(self.mMaxSizeTopPlane)
+        jobList = []
+        if top:
+            jobTop = ImageCubeRenderJob(GLItem.TopPlane, lyr, self.topPlaneRenderer())
+            jobTop.setExtent(ext)
+            jobTop.setMaxBytes(self.mMaxSizeTopPlane)
+            jobList.append(jobTop)
 
-        jobCube = ImageCubeRenderJob(GLItem.Cube, lyr, self.sliceRenderer())
-        jobCube.setMaxBytes(self.mMaxSizeCube)
-        jobCube.setExtent(ext)
-
-        jobList = [jobCube, jobTop]
+        if cube:
+            jobCube = ImageCubeRenderJob(GLItem.Cube, lyr, self.sliceRenderer())
+            jobCube.setMaxBytes(self.mMaxSizeCube)
+            jobCube.setExtent(ext)
+            jobList.append(jobCube)
 
         toDo = []
         for job in jobList:
@@ -1302,7 +1319,6 @@ class ImageCubeWidget(QMainWindow):
 
             self.resetCameraPosition()
 
-            self.onExtentChanged()
             # for i in w.items:
             #    w.removeItem(i)
 
@@ -1323,7 +1339,8 @@ class ImageCubeWidget(QMainWindow):
         for w in [self.gbRendering, self.gbPlotting, self.gbOpenGLOptions]:
             w.setEnabled(b)
 
-        self.onValidate()
+        if self.onValidate():
+            self.reloadData()
 
     def setRasterLayer(self, lyr: QgsRasterLayer):
 
