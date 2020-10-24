@@ -133,6 +133,11 @@ class VTest(EnMAPBoxTestCase):
 
         self.showGui(W)
 
+    def test_noLayers(self):
+
+        w = ImageCubeWidget()
+        self.showGui(w)
+
     def test_extent(self):
 
         W = ImageCubeWidget()
