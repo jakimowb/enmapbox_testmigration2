@@ -2,13 +2,11 @@ import os
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
+from enmapbox import EnMAPBoxApplication, EnMAPBox
 
 NAME = 'Image Cube'
-VERSION = '0.1'
-
+VERSION = '0.2'
 APP_DIR = os.path.dirname(__file__)
-
-from enmapbox import EnMAPBoxApplication, EnMAPBox
 
 
 class ImageCubeApplication(EnMAPBoxApplication):
@@ -21,7 +19,7 @@ class ImageCubeApplication(EnMAPBoxApplication):
         self.version = VERSION
         self.licence = 'GNU GPL-3'
         self.mErrorMessage = None
-        self.mImageCubeWidget = None
+        self.mImageCubeWidget: QWidget = None
         self.mIcon = enmapBox.icon()
         self.mActionStartGUI = QAction(self.name)
         self.mActionStartGUI.setIcon(self.icon())
@@ -58,7 +56,7 @@ class ImageCubeApplication(EnMAPBoxApplication):
 
             self.mImageCubeWidget.show()
         else:
-            text = ['Unable to start '+ NAME]
+            text = ['Unable to start ' + NAME]
             text.append('OpenGL / PyQt5.QtOpenGL not available')
             if isinstance(self.mErrorMessage, Exception):
                 text.append(str(self.mErrorMessage))
@@ -66,11 +64,10 @@ class ImageCubeApplication(EnMAPBoxApplication):
             QMessageBox.information(None, 'Missing Package', text)
 
 
-def enmapboxApplicationFactory(enmapBox: EnMAPBox)->list:
+def enmapboxApplicationFactory(enmapBox: EnMAPBox) -> list:
     """
     Returns a list of EnMAPBoxApplications
     :param enmapBox: the EnMAP-Box instance.
     :return: [list-of-EnMAPBoxApplications]
     """
     return [ImageCubeApplication(enmapBox)]
-
