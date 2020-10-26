@@ -9,10 +9,13 @@ Version 3.7
 * GDAL raster metadata can be modified (resolves #181)
 * map canvas preserves scale on window resize (#409)
 * Reclassify Tool: can save and reload the class mapping, fixed (#501)
+* Virtual Raster Builder App allows to select spatial extents from other QGIS / EnMAP-Box maps
 * several improvements to SpectralLibrary, e.g. to edit SpectralProfile values
-* added 'format_py' to QGIS expression builder to create string with python-format syntax
+* QGIS expression builder:
+    added 'format_py' to create strings with python-string-format syntax,
+    added spectralData() to access SpectralProfile values
+    added spectralMath(...) to modify  / create new SpectralProfiles
 * fixes some bugs in imageCube app
-
 
 
 Version 3.6
