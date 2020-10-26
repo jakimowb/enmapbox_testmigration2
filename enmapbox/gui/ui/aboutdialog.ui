@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>537</width>
+    <width>602</width>
     <height>451</height>
    </rect>
   </property>
@@ -293,7 +293,7 @@
            <item>
             <widget class="QLabel" name="labelAboutText">
              <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Project Website&lt;br/&gt;&lt;a href=&quot;https://enmap-box.readthedocs.io&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://enmap-box.readthedocs.io&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;Licenced under the GNU General Public Licence&lt;br/&gt;&lt;a href=&quot;http://www.gnu.org/licenses/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;http://www.gnu.org/licenses/&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;Environmental Mapping and Analysis Program (EnMAP)&lt;br/&gt;&lt;a href=&quot;http://www.enmap.org&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;http://www.enmap.org&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;The EnMAP-Box is developed at Humboldt-Universität zu Berlin under contract by the Helmholtz Centre Potsdam GFZ and is part of the EnMAP Core Science Team activities. It is funded by the German Aerospace Centre (DLR) - Project Management Agency, granted by the Federal Ministry of Economic Affairs and Energy (BMWi; grant no. 50EE1529). &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt; filled from enmapbox.ABOUT &gt;</string>
              </property>
              <property name="scaledContents">
               <bool>false</bool>

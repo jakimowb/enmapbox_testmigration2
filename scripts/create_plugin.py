@@ -56,9 +56,9 @@ MD.mCategory = 'Analysis'
 MD.mAuthor = 'Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden'
 MD.mIcon = 'enmapbox/gui/ui/icons/enmapbox.png'
 MD.mHomepage = 'http://www.enmap.org/'
-MD.mAbout = 'The EnMAP-Box is designed to process and visualize hyperspectral remote sensing data, and particularly developed to handle EnMAP products.'
-MD.mTracker = 'https://bitbucket.org/hu-geomatics/enmap-box/issues'
-MD.mRepository = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
+MD.mAbout = enmapbox.ABOUT
+MD.mTracker = enmapbox.ISSUE_TRACKER
+MD.mRepository = enmapbox.REPOSITORY
 MD.mQgisMinimumVersion = '3.10'
 MD.mEmail = 'enmapbox@enmap.org'
 

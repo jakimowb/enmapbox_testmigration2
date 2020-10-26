@@ -19,14 +19,13 @@
 """
 
 
-import os, collections, pathlib
-from qgis.core import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
+import os
+import pathlib
 
+from PyQt5.QtWidgets import QDialog
+
+from enmapbox import DIR_REPO, ABOUT
 from enmapbox.gui.utils import loadUi, jp
-from enmapbox import DIR_REPO
 
 
 class AboutDialog(QDialog):
@@ -43,7 +42,6 @@ class AboutDialog(QDialog):
         self.labelVersion.setText('Version {}'.format(__version__))
         self.setAboutTitle()
 
-        import codecs
         #loadTextFile = lambda p: (open(p, 'r','UTF-8').read())
 
         def loadTextFile(p):
@@ -54,7 +52,7 @@ class AboutDialog(QDialog):
             lines = f.read()
             f.close()
             return lines
-
+        self.labelAboutText.setText(f'<html><head/><body>{ABOUT}</body></html>')
         self.tbLicense.setText(loadTextFile(jp(DIR_REPO, 'LICENSE.txt')))
         self.tbContributors.setText(loadTextFile(jp(DIR_REPO, 'CONTRIBUTORS.rst')))
         self.tbChanges.setText(loadTextFile(jp(DIR_REPO, 'CHANGELOG.rst')))
