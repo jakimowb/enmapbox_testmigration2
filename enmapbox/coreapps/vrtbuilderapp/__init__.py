@@ -32,6 +32,7 @@ from enmapbox.gui.enmapboxgui import EnMAPBox
 
 APP_DIR = os.path.dirname(__file__)
 MIN_VERSION = '0.9'
+INSTALLED_VERSION = ''
 
 def vrtBuilderPluginInstalled() -> bool:
     """
@@ -43,13 +44,11 @@ def vrtBuilderPluginInstalled() -> bool:
 
 
 if vrtBuilderPluginInstalled():
-    from vrtbuilder.widgets import VRTBuilderWidget, VRTBuilderMapTools
-    from vrtbuilder import LICENSE, PATH_ICON
-    try:
-        from vrtbuilder import __version__ as VRTBVersion
-    except:
-        from vrtbuilder import VERSION as VRTBVersion
-
+    import vrtbuilder
+    if hasattr(vrtbuilder, '__version__'):
+        INSTALLED_VERSION = vrtbuilder.__version__
+    elif hasattr(vrtbuilder, 'VERSION'):
+        INSTALLED_VERSION = vrtbuilder.VERSION
 
 
 class VRTBuilderApp(EnMAPBoxApplication):
@@ -61,7 +60,8 @@ class VRTBuilderApp(EnMAPBoxApplication):
         self.mInstance = None
 
         if self.mIsInstalled:
-            self.version = 'Version {}'.format(VRTBVersion)
+            from vrtbuilder import LICENSE, PATH_ICON
+            self.version = 'Version {}'.format(INSTALLED_VERSION)
             self.licence = LICENSE
             self.mIcon = QIcon(PATH_ICON)
         else:
@@ -87,11 +87,12 @@ class VRTBuilderApp(EnMAPBoxApplication):
 
         if vrtBuilderPluginInstalled():
 
-            if MIN_VERSION > VRTBVersion:
+            if MIN_VERSION > INSTALLED_VERSION:
                 QMessageBox.information(None, 'Outdated Version',
                                         'Please update the Virtual Raster Builder QGIS Plugin.')
                 return None
             else:
+                from vrtbuilder.widgets import VRTBuilderWidget
                 w = VRTBuilderWidget()
                 # show EnMAP-Box raster sources in VRTBuilder
                 self.enmapbox.sigRasterSourceAdded.connect(lambda path: w.addSourceFiles([path]))
