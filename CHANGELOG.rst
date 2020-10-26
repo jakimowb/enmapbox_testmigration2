@@ -3,13 +3,15 @@ CHANGELOG
 Version 3.7
 -----------
 
-* LayerTreeView: enhanced context menus,
+* LayerTreeView: enhanced context menus:
   double click on map layer opens Properties Dialog,
   double click on a vector layers' legend item opens a Symbol dialog
 * GDAL raster metadata can be modified (resolves #181)
 * map canvas preserves scale on window resize (#409)
 * Reclassify Tool: can save and reload the class mapping, fixed (#501)
-* Virtual Raster Builder App allows to select spatial extents from other QGIS / EnMAP-Box maps
+* several fixed in Image Cube App
+* updated PyQtGraph to version 0.11
+* Virtual Raster Builder and Image Cube can select spatial extents from other QGIS / EnMAP-Box maps
 * several improvements to SpectralLibrary, e.g. to edit SpectralProfile values
 * QGIS expression builder:
     added 'format_py' to create strings with python-string-format syntax,
