@@ -10,7 +10,7 @@ Version 3.7
 * map canvas preserves scale on window resize (#409)
 * Reclassify Tool: can save and reload the class mapping, fixed (#501)
 * several improvements to SpectralLibrary, e.g. to edit SpectralProfile values
-* adds 'format_py' to QgsExpressionWidget to format string like in python
+* added 'format_py' to QGIS expression builder to create string with python-format syntax
 * fixes some bugs in imageCube app
 
 
