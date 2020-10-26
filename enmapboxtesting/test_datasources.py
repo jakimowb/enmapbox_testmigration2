@@ -558,14 +558,13 @@ class standardDataSources(EnMAPBoxTestCase):
             self.assertIsInstance(ds[0], HubFlowDataSource)
 
         for o in hubFlowObjects:
-            node = HubFlowObjectTreeNode(None, None)
+            node = HubFlowObjectTreeNode(None)
             self.assertIsInstance(node, DataSourceTreeNode)
             ds = DataSourceFactory.create(o)[0]
             assert isinstance(ds, HubFlowDataSource)
 
-            n = node.fetchInternals(ds.flowObject())
-            self.assertIsInstance(n, TreeNode)
-            self.assertTrue(len(n.childNodes()) > 0)
+            node.fetchInternals(node, ds.flowObject())
+            self.assertTrue(len(node.childNodes()) > 0)
             node.connectDataSource(ds)
             self.assertIsInstance(node.childNodes(), list)
             self.assertTrue(len(node.childNodes()) > 0)

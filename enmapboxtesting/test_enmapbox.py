@@ -132,15 +132,28 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertIsInstance(d, AboutDialog)
         self.showGui(d)
 
-    def test_instance(self):
-        EMB = EnMAPBox()
+    def test_findqgisresources(self):
+        from enmapbox.externals.qps.resources import findQGISResourceFiles
+        results = findQGISResourceFiles()
+        print('QGIS Resource files:')
+        for p in results:
+            print(p)
+        self.assertTrue(len(results) > 0)
+
+    def test_instance_pure(self):
+        EMB = EnMAPBox(load_other_apps=False, load_core_apps=False)
 
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(EMB, EnMAPBox.instance())
 
         self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
 
-    def test_instanceWithData(self):
+    def test_instance_all_apps(self):
+        enmapbox = EnMAPBox(load_core_apps=True, load_other_apps=True)
+        self.assertIsInstance(enmapbox, EnMAPBox)
+        self.showGui(enmapbox.ui)
+
+    def test_instance_coreapps_and_data(self):
 
         EMB = EnMAPBox(load_other_apps=False)
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)

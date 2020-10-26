@@ -27,6 +27,7 @@ from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
 from enmapbox.gui.utils import KeepRefs
 from ..externals.qps.externals.pyqtgraph.dockarea import DockArea as pgDockArea
+from ..externals.qps.externals.pyqtgraph.dockarea.DockArea import TempAreaWindow
 from ..externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
 from ..externals.qps.externals.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
 
@@ -67,7 +68,7 @@ class Dock(pgDock):
 
     def __init__(self, name='Data View', closable=True, *args, **kwds):
         super().__init__(name=name, closable=closable, *args, **kwds)
-        #KeepRefs.__init__(self)
+        # KeepRefs.__init__(self)
         # ssert enmapboxInstance is not None
         # self.enmapbox = enmapboxInstance
         # self.setStyleSheet('background:#FFF')
@@ -209,7 +210,7 @@ class Dock(pgDock):
             self.label.setOrientation(o)
             self.updateStyle()
 
-    def unfloat(self):
+    def unfloat(self, *args):
 
         from enmapbox import EnMAPBox
         enmapbox = EnMAPBox.instance()
@@ -228,6 +229,7 @@ class DockArea(pgDockArea):
     def __init__(self, *args, **kwds):
         super(DockArea, self).__init__(*args, **kwds)
         self.setAcceptDrops(True)
+
 
         s = ""
 
@@ -276,10 +278,23 @@ class DockArea(pgDockArea):
         if isinstance(lastArea, DockArea):
             lastArea.sigDockRemoved.emit(dock)
 
-        # fix for https://bitbucket.org/hu-geomatics/enmap-box/issues/424
-        newArea = dock.area
-        s2 = QSize(newArea.size().width() + 1, newArea.size().height())
-        newArea.resize(s2)
+        parentWindow = dock.parent()
+        while isinstance(parentWindow, QObject) and parentWindow.parent():
+            parentWindow = parentWindow.parent()
+
+        if isinstance(parentWindow, TempAreaWindow):
+
+            parentWindow.setWindowTitle('EnMAP-Box')
+            parentWindow.setWindowIcon(QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg'))
+            # fix for https://bitbucket.org/hu-geomatics/enmap-box/issues/
+            parentWindow.resize(QSize(300, 300))
+        else:
+            s = ""
+        if False:
+            newArea = dock.area
+            if isinstance(newArea, DockArea):
+                s2 = QSize(newArea.size().width() + 1, newArea.size().height())
+                newArea.resize(s2)
 
     def apoptose(self):
         try:
@@ -335,7 +350,7 @@ class DockLabel(pgDockLabel):
     sigNormalClicked = pyqtSignal()
     sigContextMenuRequest = pyqtSignal(QContextMenuEvent)
 
-    def __init__(self, dock, title=None, allow_floating=True, showClosebutton=True):
+    def __init__(self, dock, title: str = None, allow_floating: bool = True, showClosebutton: bool = True):
         if title is None:
             title = self.dock.title()
         super(DockLabel, self).__init__(title, dock, showClosebutton)
@@ -354,28 +369,30 @@ class DockLabel(pgDockLabel):
             floatButton = QToolButton(self)
             # testButton.clicked.connect(self.sigNormalClicked)
             floatButton.setToolTip('Float window')
-            floatButton.clicked.connect(lambda *args: self.dock.float())
+            floatButton.clicked.connect(self.dock.float)
             floatButton.setIcon(QApplication.style().standardIcon(QStyle.SP_TitleBarNormalButton))
             self.mButtons.append(floatButton)
 
-            self.btnUnFloat = QToolButton(self)
-            self.btnUnFloat.setText('U')
-            self.btnUnFloat.setToolTip('Unfloat window')
-            self.btnUnFloat.clicked.connect(lambda: self.dock.unfloat())
-            self.mButtons.append(self.btnUnFloat)
+            btnUnFloat = QToolButton(self)
+            btnUnFloat.setText('U')
+            btnUnFloat.setToolTip('Unfloat window')
+            btnUnFloat.clicked.connect(self.dock.unfloat)
+            self.mButtons.append(btnUnFloat)
+
+        def setUnfloatButtonVisibility(b: bool):
+            btnUnFloat.setVisible(b)
+            self.update()
 
         from enmapbox import EnMAPBox
         enmapBox = EnMAPBox.instance()
         if isinstance(enmapBox, EnMAPBox):
             dockArea = enmapBox.ui.dockArea
             if isinstance(dockArea, DockArea):
-                dockArea.sigDockAdded.connect(lambda dock: self.setUnfloatButtonVisibility(dock, False))
-                dockArea.sigDockRemoved.connect(lambda dock: self.setUnfloatButtonVisibility(dock, True))
+                dockArea.sigDockAdded.connect(lambda *args: setUnfloatButtonVisibility(False))
+                dockArea.sigDockRemoved.connect(lambda *args: setUnfloatButtonVisibility(True))
         self.update()
 
-    def setUnfloatButtonVisibility(self, dock, b: bool):
-        self.btnUnFloat.setVisible(b)
-        self.update()
+
 
     def contextMenuEvent(self, event):
         assert isinstance(event, QContextMenuEvent)
@@ -386,20 +403,6 @@ class DockLabel(pgDockLabel):
             super(DockLabel, self).mouseMoveEvent(ev)
         else:
             ev.accept()
-
-    """
-    def resizeEvent_BAK(self, ev):
-        if self.closeButton:
-            if self.orientation == 'vertical':
-                size = ev.size().width()
-                pos = QtCore.QPoint(0, 0)
-            else:
-                size = ev.size().height()
-                pos = QtCore.QPoint(ev.size().width() - size, 0)
-            self.closeButton.setFixedSize(QtCore.QSize(size, size))
-            self.closeButton.move(pos)
-        super(DockLabel, self).resizeEvent(ev)
-    """
 
     def resizeEvent(self, ev: QResizeEvent):
         if self.orientation == 'vertical':

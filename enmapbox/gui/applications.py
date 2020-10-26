@@ -17,21 +17,17 @@
 ***************************************************************************
 """
 
-import os, sys, site, collections, re, inspect, traceback, typing, warnings
+import inspect
+import site
 
-from qgis.core import *
-from qgis.core import Qgis
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-
-from enmapbox.gui.utils import *
-from enmapbox.gui.enmapboxgui import EnMAPBox
+from qgis.core import QgsProcessingAlgorithm
+from qgis.gui import QgisInterface
+from enmapbox import messageLog
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
-from enmapbox import messageLog, DIR_REPO as ROOT
+from enmapbox.gui.enmapboxgui import EnMAPBox
+from enmapbox.gui.utils import *
 
-DEBUG = False #set this on True to not hide external-app errors
-
+DEBUG = False  # set this on True to not hide external-app errors
 
 
 class EnMAPBoxApplication(QObject):
@@ -39,6 +35,7 @@ class EnMAPBoxApplication(QObject):
     Base class to describe components of an EnMAPBoxApplication
     and to provide interfaces the main EnMAP-Box
     """
+
     @staticmethod
     def checkRequirements(enmapBoxApp) -> (bool, str):
         """
@@ -64,20 +61,19 @@ class EnMAPBoxApplication(QObject):
     """
     sigFileCreated = pyqtSignal(str)
 
-
     def __init__(self, enmapBox, parent=None):
         super(EnMAPBoxApplication, self).__init__(parent)
         self.enmapbox: EnMAPBox = enmapBox
-        self.qgis = enmapBox.iface
+        self.qgis: QgisInterface = enmapBox.iface
 
-        #required attributes. Must be different to None
-        self.name = None
-        self.version = None
-        self.licence = 'GNU GPL-3'
+        # required attributes. Must be different to None
+        self.name: str = None
+        self.version: str = None
+        self.licence: str = 'GNU GPL-3'
 
-        #optional attributes, can be None
-        self.projectWebsite = None
-        self.description = None
+        # optional attributes, can be None
+        self.projectWebsite: str = None
+        self.description: str = None
 
     def removeApplication(self):
         """
@@ -106,7 +102,6 @@ class EnMAPBoxApplication(QObject):
         """
         raise Exception('Use "processingAlgorithms" instead.')
 
-
     def processingAlgorithms(self) -> list:
 
         return []
@@ -116,18 +111,21 @@ class ApplicationWrapper(QObject):
     """
     Stores information about an initialized EnMAPBoxApplication
     """
-    def __init__(self, app:EnMAPBoxApplication, parent=None):
+
+    def __init__(self, app: EnMAPBoxApplication, parent=None):
         super(ApplicationWrapper, self).__init__(parent)
         assert isinstance(app, EnMAPBoxApplication)
         self.app = app
-        self.appId = '{}.{}'.format(app.__class__,app.name)
+        self.appId = '{}.{}'.format(app.__class__, app.name)
         self.menuItems = []
         self.processingAlgorithms = []
+
 
 class ApplicationRegistry(QObject):
     """
     Registry to load and remove EnMAPBox Applications
     """
+
     def __init__(self, enmapBox, parent=None):
         super(ApplicationRegistry, self).__init__(parent)
         self.appPackageRootFolders = []
@@ -159,10 +157,11 @@ class ApplicationRegistry(QObject):
         """
         wrappers = [w for w in self.mAppWrapper.values()]
         if nameOrApp is not None:
-            wrappers = [w for w in wrappers if isinstance(w, ApplicationWrapper) and nameOrApp in [w.appId, w.app.name, w.app]]
+            wrappers = [w for w in wrappers if
+                        isinstance(w, ApplicationWrapper) and nameOrApp in [w.appId, w.app.name, w.app]]
         return wrappers
 
-    def addApplicationListing(self, appPkgFile:str):
+    def addApplicationListing(self, appPkgFile: str):
         """
         Loads EnMAPBoxApplications from locations defined in a text file
         :param appPkgFile: str, filepath to file with locations of EnMAPBoxApplications
@@ -192,8 +191,7 @@ class ApplicationRegistry(QObject):
         for appPath in appFolders:
             self.addApplicationFolder(appPath)
 
-
-    def isApplicationFolder(self, appPackagePath:str) -> bool:
+    def isApplicationFolder(self, appPackagePath: str) -> bool:
         """
         Checks if the directory "appPackage" contains an '__init__.py' with an enmapboxApplicationFactory
         :param appPackage: path to directory
@@ -208,7 +206,7 @@ class ApplicationRegistry(QObject):
             return False
 
         fileStats = os.stat(pkgFile)
-        if fileStats.st_size > 1 *1024**2: #assumes that files larger 1 MByte are not source code any more
+        if fileStats.st_size > 1 * 1024 ** 2:  # assumes that files larger 1 MByte are not source code any more
             return False
 
         f = open(pkgFile)
@@ -216,7 +214,6 @@ class ApplicationRegistry(QObject):
         f.close()
 
         return re.search(r'def\s+enmapboxApplicationFactory\(.+\)\s*(->[^:]+)?:', text) is not None
-
 
     def findApplicationFolders(self, rootDir):
         """
@@ -232,8 +229,7 @@ class ApplicationRegistry(QObject):
                     results.append(p)
         return results
 
-
-    def addApplicationFolder(self, appPackagePath:str, isRootFolder=False) -> bool:
+    def addApplicationFolder(self, appPackagePath: str, isRootFolder=False) -> bool:
         """
         Loads an EnMAP-Box application from its root folder.
         :param appPackagePath: directory with an __init__.py which defines a .enmapboxApplicationFactory() or
@@ -279,7 +275,7 @@ class ApplicationRegistry(QObject):
                 appModule = importlib.import_module(appPkgName)
 
                 factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
-                            if o[0] == 'enmapboxApplicationFactory']
+                           if o[0] == 'enmapboxApplicationFactory']
 
                 if len(factory) == 0:
                     raise Exception('Missing definition of enmapboxApplicationFactory() in {}'.format(pkgFile))
@@ -326,7 +322,7 @@ class ApplicationRegistry(QObject):
         """
         return [self.addApplication(app) for app in apps]
 
-    def addApplication(self, app:EnMAPBoxApplication) -> bool:
+    def addApplication(self, app: EnMAPBoxApplication) -> bool:
         """
         Adds a single EnMAP-Box application, i.a. a class that implemented the EnMAPBoxApplication Interface
         :param app: EnMAPBoxApplication
@@ -340,7 +336,8 @@ class ApplicationRegistry(QObject):
             print('Check requirements...')
         isOk, errorMessages = EnMAPBoxApplication.checkRequirements(app)
         if not isOk:
-            raise Exception('Unable to load EnMAPBoxApplication "{}"\n{}.'.format(appWrapper.appId, '\n\t'.join(errorMessages)))
+            raise Exception(
+                'Unable to load EnMAPBoxApplication "{}"\n{}.'.format(appWrapper.appId, '\n\t'.join(errorMessages)))
 
         if appWrapper.appId in self.mAppWrapper.keys():
             messageLog('EnMAPBoxApplication {} already loaded. Reload'.format(appWrapper.appId))
@@ -348,7 +345,7 @@ class ApplicationRegistry(QObject):
 
         self.mAppWrapper[appWrapper.appId] = appWrapper
 
-        #load GUI integration
+        # load GUI integration
         if DEBUG:
             print('Load menu items...')
 
@@ -364,7 +361,7 @@ class ApplicationRegistry(QObject):
 
         return True
 
-    def loadProcessingAlgorithms(self, appWrapper:ApplicationWrapper):
+    def loadProcessingAlgorithms(self, appWrapper: ApplicationWrapper):
 
         assert isinstance(appWrapper, ApplicationWrapper)
         processingAlgorithms = appWrapper.app.processingAlgorithms()
@@ -389,8 +386,7 @@ class ApplicationRegistry(QObject):
             else:
                 print('Can not find EnMAPBoxAlgorithmProvider')
 
-
-    def loadMenuItems(self, appWrapper:ApplicationWrapper, parentMenuName = 'Applications'):
+    def loadMenuItems(self, appWrapper: ApplicationWrapper, parentMenuName='Applications'):
         """
         Adds an EnMAPBoxApplication QMenu to its parent QMenu
         :param appWrapper:
@@ -408,9 +404,7 @@ class ApplicationRegistry(QObject):
                 items = [items]
             appWrapper.menuItems.extend(items)
 
-
-
-    def reloadApplication(self, appId:str):
+    def reloadApplication(self, appId: str):
         """
         Reloads an EnMAP-Box Application
         :param appId: str
@@ -444,5 +438,3 @@ class ApplicationRegistry(QObject):
         provider = enmapbox.algorithmprovider.instance()
         assert isinstance(provider, EnMAPBoxProcessingProvider)
         provider.removeAlgorithms(appWrapper.processingAlgorithms)
-
-

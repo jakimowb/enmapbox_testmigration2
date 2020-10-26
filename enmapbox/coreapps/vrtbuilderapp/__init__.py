@@ -31,6 +31,7 @@ from enmapbox.gui.applications import EnMAPBoxApplication
 from enmapbox.gui.enmapboxgui import EnMAPBox
 
 APP_DIR = os.path.dirname(__file__)
+MIN_VERSION = '0.9'
 
 def vrtBuilderPluginInstalled() -> bool:
     """
@@ -48,6 +49,7 @@ if vrtBuilderPluginInstalled():
         from vrtbuilder import __version__ as VRTBVersion
     except:
         from vrtbuilder import VERSION as VRTBVersion
+
 
 
 class VRTBuilderApp(EnMAPBoxApplication):
@@ -85,20 +87,25 @@ class VRTBuilderApp(EnMAPBoxApplication):
 
         if vrtBuilderPluginInstalled():
 
-            w = VRTBuilderWidget()
-            # show EnMAP-Box raster sources in VRTBuilder
-            self.enmapbox.sigRasterSourceAdded.connect(lambda path: w.addSourceFiles([path]))
+            if MIN_VERSION > VRTBVersion:
+                QMessageBox.information(None, 'Outdated Version',
+                                        'Please update the Virtual Raster Builder QGIS Plugin.')
+                return None
+            else:
+                w = VRTBuilderWidget()
+                # show EnMAP-Box raster sources in VRTBuilder
+                self.enmapbox.sigRasterSourceAdded.connect(lambda path: w.addSourceFiles([path]))
 
-            # populate VRT Builder with raster files known to the EnMAP-Box
-            w.addSourceFiles(self.enmapbox.dataSources('RASTER'))
+                # populate VRT Builder with raster files known to the EnMAP-Box
+                w.addSourceFiles(self.enmapbox.dataSources('RASTER'))
 
-            # add created virtual raster to EnMAP-Box
-            w.sigRasterCreated.connect(self.enmapbox.addSource)
+                # add created virtual raster to EnMAP-Box
+                w.sigRasterCreated.connect(self.enmapbox.addSource)
 
-            w.sigAboutCreateCurrentMapTools.connect(self.onSetWidgetMapTool)
+                w.sigAboutCreateCurrentMapTools.connect(self.onSetWidgetMapTool)
 
-            w.show()
-            return w
+                w.show()
+                return w
         else:
             QMessageBox.information(None, 'Missing QGIS Plugin',
                                     'Please install and activate the Virtual Raster Builder QGIS Plugin.')

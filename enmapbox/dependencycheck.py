@@ -33,13 +33,9 @@ import subprocess
 import pathlib
 import requests
 from difflib import SequenceMatcher
-from qgis.PyQt.QtWidgets import QApplication
-from qgis.PyQt.QtCore import QUrl
 
-from qgis.gui import *
 from qgis.gui import QgsFileDownloaderDialog
 
-from qgis.core import *
 from qgis.core import QgsTask, QgsApplication, QgsTaskManager, QgsAnimatedIcon
 
 from qgis.PyQt.QtWidgets import *
@@ -47,6 +43,8 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 import sip
 from enmapbox import debugLog
+
+URL_PACKAGE_HELP = r"https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages"
 # look-up for pip package name and how it gets imported in python
 # e.g. 'pip install scikit-learn' installs a package that is imported via 'import sklearn'
 # Keys need to be lowercase, as accepted by PIP
@@ -59,7 +57,7 @@ PACKAGE_LOOKUP = {'scikit-learn': 'sklearn',
 # just in case a package cannot /should not simply get installed
 # calling pip install --user <pip package name>
 INSTALLATION_HINT = {
-    #'enpt_enmapboxapp' : 'git+https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git'
+    # 'enpt_enmapboxapp' : 'git+https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git'
 }
 
 INSTALLATION_BLOCK = {'numba': 'should to be installed manually using the local package manager.\n' +
@@ -75,14 +73,14 @@ INSTALLATION_BLOCK = {'numba': 'should to be installed manually using the local 
 # This can be any name as long as only contains letters, numbers, _ , and -."
 rxPipPackageName = re.compile(r'^[a-zA-Z]+[a-zA-Z0-9-_]*')
 rxPipVersion = re.compile(r'([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?' + \
-               r'(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?')
+                          r'(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?')
 
 for k in PACKAGE_LOOKUP.keys():
     assert rxPipPackageName.search(k)
 
 class PIPPackage(object):
 
-    def __init__(self, pyPkg: str, pipCmd: str=None):
+    def __init__(self, pyPkg: str, pipCmd: str = None):
 
         assert isinstance(pyPkg, str)
         assert len(pyPkg) > 0
@@ -203,6 +201,7 @@ class PIPPackage(object):
         spam_spec = importlib.util.find_spec(self.pyPkgName)
         return spam_spec is not None
 
+
 def localPythonExecutable() -> pathlib.Path:
     """
     Searches for the local python executable
@@ -220,15 +219,16 @@ def localPythonExecutable() -> pathlib.Path:
     pyexe = candidates[similarity.index(max(similarity))]
     return pathlib.Path(pyexe)
 
-class PIPPackageInfoTask(QgsTask):
 
+class PIPPackageInfoTask(QgsTask):
     sigMessage = pyqtSignal(str, bool)
     sigInstalledVersion = pyqtSignal(str, str)
     sigAvailableVersion = pyqtSignal(str, str)
     sigAvailableVersionJson = pyqtSignal(str, dict)
+
     def __init__(self, description: str,
                  pipPackages: typing.List[str],
-                 load_latest_versions: bool=True,
+                 load_latest_versions: bool = True,
                  callback=None):
         super().__init__(description, QgsTask.CanCancel)
         self.packages: typing.List[str] = pipPackages
@@ -263,7 +263,7 @@ class PIPPackageInfoTask(QgsTask):
                     self.INSTALLED_VERSIONS[pipPkg] = version
                 else:
                     s = ""
-                    #print('no requested: {}'.format(pipPkg))
+                    # print('no requested: {}'.format(pipPkg))
 
         if not self.load_latest_versions:
             return True
@@ -288,8 +288,8 @@ class PIPPackageInfoTask(QgsTask):
                     jsonDict = response.json()
                 else:
                     info = 'request: "{}"\nreturned: {}\nstatus code: {}'.format(response.request.url,
-                                                                             response.reason,
-                                                                             response.status_code)
+                                                                                 response.reason,
+                                                                                 response.status_code)
                     self.sigMessage.emit(info, True)
 
             if isinstance(jsonDict, dict) and len(jsonDict) > 0:
@@ -305,7 +305,7 @@ class PIPPackageInfoTask(QgsTask):
                 session.close()
                 self.sigMessage.emit('version retrieval canceled', False)
                 return False
-            self.setProgress(i+2)
+            self.setProgress(i + 2)
         session.close()
         return True
 
@@ -313,18 +313,18 @@ class PIPPackageInfoTask(QgsTask):
         if self.callback is not None:
             self.callback(result, self)
 
-class InstallationState(enum.Enum):
 
+class InstallationState(enum.Enum):
     Unknown = 'unknown'
     NotInstalled = '<not installed>'
     Installed = '<installed>'
     LoadingError = '<loading error>'
 
-class PIPInstallCommandTask(QgsTask):
 
+class PIPInstallCommandTask(QgsTask):
     sigMessage = pyqtSignal(str, bool)
 
-    def __init__(self, description:str, packages: typing.List[PIPPackage], upgrade=True, user=True, callback=None):
+    def __init__(self, description: str, packages: typing.List[PIPPackage], upgrade=True, user=True, callback=None):
         super().__init__(description, QgsTask.CanCancel)
         self.packages: typing.List[PIPPackage] = packages
         self.callback = callback
@@ -344,7 +344,7 @@ class PIPInstallCommandTask(QgsTask):
 
             if self.isCanceled():
                 return False
-            self.setProgress(i+1)
+            self.setProgress(i + 1)
         return True
 
     def finished(self, result):
@@ -352,7 +352,8 @@ class PIPInstallCommandTask(QgsTask):
         if self.callback is not None:
             self.callback(result, self)
 
-def checkGDALIssues()->typing.List[str]:
+
+def checkGDALIssues() -> typing.List[str]:
     """
     Tests for known GDAL issues
     :return: list of errors / known problems
@@ -407,7 +408,7 @@ def requiredPackages(return_tuples: bool = False) -> typing.List[PIPPackage]:
     return packages
 
 
-def missingPackages()->typing.List[PIPPackage]:
+def missingPackages() -> typing.List[PIPPackage]:
     """
     Returns missing packages
     :return: [PIPPackage]
@@ -415,7 +416,8 @@ def missingPackages()->typing.List[PIPPackage]:
     """
     return [p for p in requiredPackages() if not p.isInstalled()]
 
-def missingPackageInfo(missing_packages: typing.List[PIPPackage], html=True)->str:
+
+def missingPackageInfo(missing_packages: typing.List[PIPPackage], html=True) -> str:
     """
     Converts a list of missing packages into better readable output.
     :param missing_packages: list of uninstalled packages
@@ -434,7 +436,6 @@ def missingPackageInfo(missing_packages: typing.List[PIPPackage], html=True)->st
     info = ['The following {} package(s) are not installed:'.format(n)]
     info.append('<ol>')
     for i, pkg in enumerate(missing_packages):
-
         assert isinstance(pkg, PIPPackage)
         info.append('\t<li>{} (install by "{}")</li>'.format(pkg.pyPkgName, pkg.installCommand()))
 
@@ -449,10 +450,11 @@ def missingPackageInfo(missing_packages: typing.List[PIPPackage], html=True)->st
 
     if not html:
         info = re.sub('<br/>', '\n', info)
-        info = re.sub('<[^>]*>','', info)
-    return  info
+        info = re.sub('<[^>]*>', '', info)
+    return info
 
-def missingTestData()->bool:
+
+def missingTestData() -> bool:
     """
     Returns (True, message:str) if testdata can not be loaded,
      (False, None) else
@@ -467,7 +469,7 @@ def missingTestData()->bool:
         return True
 
 
-def outdatedTestData()->bool:
+def outdatedTestData() -> bool:
     """Returns whether testdata is outdated."""
 
     try:
@@ -511,7 +513,8 @@ def installTestData(overwrite_existing=False, ask=True):
     from pyplugin_installer.unzip import unzip
     from enmapbox import DIR_TESTDATA
     if ask == True:
-        btn = QMessageBox.question(None, 'Testdata is missing or outdated', 'Download testdata from \n{}\n?'.format(URL_TESTDATA))
+        btn = QMessageBox.question(None, 'Testdata is missing or outdated',
+                                   'Download testdata from \n{}\n?'.format(URL_TESTDATA))
         if btn != QMessageBox.Yes:
             print('Canceled')
             return
@@ -535,13 +538,12 @@ def installTestData(overwrite_existing=False, ask=True):
         import zipfile
         zf = zipfile.ZipFile(pathLocalZip)
 
-
         names = zf.namelist()
         names = [n for n in names if re.search(r'[^/]/enmapboxtestdata/..*', n) and not n.endswith('/')]
         for name in names:
             # create directory if doesn't exist
 
-            pathRel = re.search(r'[^/]+/enmapboxtestdata/(.*)$',name).group(1)
+            pathRel = re.search(r'[^/]+/enmapboxtestdata/(.*)$', name).group(1)
             subDir, baseName = os.path.split(pathRel)
             fullDir = os.path.normpath(os.path.join(targetDir, subDir))
             os.makedirs(fullDir, exist_ok=True)
@@ -561,7 +563,6 @@ def installTestData(overwrite_existing=False, ask=True):
         spec.loader.exec_module(module)
         sys.modules['enmapboxtestdata'] = module
 
-
     def onDownloadError(messages):
         raise Exception('\n'.join(messages))
 
@@ -570,19 +571,17 @@ def installTestData(overwrite_existing=False, ask=True):
         pass
         # dirty patch for Issue #167
         #
-        #print('Remove {}...'.format(pathLocalZip))
-        #os.remove(pathLocalZip)
+        # print('Remove {}...'.format(pathLocalZip))
+        # os.remove(pathLocalZip)
 
     def onDownLoadExited():
 
         from qgis.PyQt.QtCore import QTimer
         QTimer.singleShot(5000, deleteFileDownloadedFile)
 
-
-
     def onDownloadProgress(received, total):
         if not qgisMainApp and total > 0:
-            print('\r{:0.2f} %'.format(100.*received/total), end=' ', flush=True)
+            print('\r{:0.2f} %'.format(100. * received / total), end=' ', flush=True)
             time.sleep(0.1)
 
     dialog.downloadCanceled.connect(onCanceled)
@@ -593,7 +592,6 @@ def installTestData(overwrite_existing=False, ask=True):
 
     dialog.open()
     dialog.exec_()
-
 
 
 class PIPPackageInstallerTableModel(QAbstractTableModel):
@@ -615,8 +613,8 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
         self.mUser = True
 
         self.mAnimatedIcon = QgsAnimatedIcon(QgsApplication.iconPath("/mIconLoading.gif"), self)
-        #self.mAnimatedIcon.connectFrameChanged(self, 'onFrameChange')
-        #self.mAnimatedIcon.frameChanged.connect(self.onFrameChange)
+        # self.mAnimatedIcon.connectFrameChanged(self, 'onFrameChange')
+        # self.mAnimatedIcon.frameChanged.connect(self.onFrameChange)
 
     @pyqtSlot()
     def onFrameChange(self):
@@ -625,33 +623,34 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
 
     def setUser(self, b: bool):
         self.mUser = b == True
-        self.dataChanged.emit(self.createIndex(0,0), self.createIndex(self.rowCount()-1, self.columnCount()-1))
+        self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(self.rowCount() - 1, self.columnCount() - 1))
 
-    def packageFromPIPName(self, pipName:str) -> PIPPackage:
+    def packageFromPIPName(self, pipName: str) -> PIPPackage:
         for pkg in self:
             if pkg.pipPkgName.lower() == pipName.lower():
                 return pkg
         return None
 
-    def updateInstalledVersion(self, pipName:str, installedVersion: str):
+    def updateInstalledVersion(self, pipName: str, installedVersion: str):
         pkg = self.packageFromPIPName(pipName)
         if isinstance(pkg, PIPPackage):
             pkg.mInstalledVersion = installedVersion
             self.updatePackage(pkg)
 
-    def updateAvailableVersion(self, pipName:str, availableVersion: str):
+    def updateAvailableVersion(self, pipName: str, availableVersion: str):
         pkg = self.packageFromPIPName(pipName)
         if isinstance(pkg, PIPPackage):
             pkg.mLatestVersion = availableVersion
             self.updatePackage(pkg)
 
-    def updatePackage(self, pkg:PIPPackage):
+    def updatePackage(self, pkg: PIPPackage):
         assert isinstance(pkg, PIPPackage)
         idx = self.pkg2index(pkg)
         if idx.isValid():
             r = idx.row()
             self.dataChanged.emit(self.createIndex(r, 0),
-                                  self.createIndex(r, self.columnCount()-1))
+                                  self.createIndex(r, self.columnCount() - 1))
+
     def __getitem__(self, slice):
         return self.mPackages[slice]
 
@@ -670,7 +669,7 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
     def columnCount(self, parent: QModelIndex = ...) -> int:
         return len(self.mColumnNames)
 
-    def pkg2index(self, pkg:PIPPackage) -> QModelIndex:
+    def pkg2index(self, pkg: PIPPackage) -> QModelIndex:
         assert pkg in self.mPackages
         return self.index(self.mPackages.index(pkg), 0)
 
@@ -743,7 +742,7 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
         if role == Qt.UserRole:
             return pkg
 
-    def addPackages(self, packages:typing.List[PIPPackage]):
+    def addPackages(self, packages: typing.List[PIPPackage]):
 
         if len(packages) > 0:
             for p in packages:
@@ -756,6 +755,7 @@ class PIPPackageInstallerTableModel(QAbstractTableModel):
     def removePackages(self):
         pass
 
+
 class TableViewDelegate(QStyledItemDelegate):
 
     def __init__(self, tableView: QTableView, parent=None):
@@ -765,10 +765,8 @@ class TableViewDelegate(QStyledItemDelegate):
 
 
 class PIPPackageInstallerTableView(QTableView):
-
     sigInstallPackageRequest = pyqtSignal(list)
     sigPackageReloadRequest = pyqtSignal(list)
-
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
@@ -848,7 +846,7 @@ class PIPPackageInstaller(QWidget):
 
         self.actionClearConsole.triggered.connect(self.textBrowser.clear)
         self.actionCopyConsole.triggered.connect(
-            lambda : QgsApplication.instance().clipboard().setText(self.textBrowser.toPlainText()))
+            lambda: QgsApplication.instance().clipboard().setText(self.textBrowser.toPlainText()))
         self.btnClearConsole.setDefaultAction(self.actionClearConsole)
         self.btnCopyConsole.setDefaultAction(self.actionCopyConsole)
 
@@ -881,7 +879,7 @@ class PIPPackageInstaller(QWidget):
         for p in packages:
             if p not in pkgs:
                 pkgs.append(p)
-        #pkgs = [copy.deepcopy(p) for p in packages]
+        # pkgs = [copy.deepcopy(p) for p in packages]
         pkgs = packages
         self.progressBar.setRange(0, len(pkgs))
         self.progressBar.setValue(-1)
@@ -900,7 +898,7 @@ class PIPPackageInstaller(QWidget):
             except Exception as ex:
                 self.addText(str(ex), True)
 
-    def loadPIPVersionInfo(self, pipPackages: typing.List[PIPPackage], load_latest_versions: bool= True):
+    def loadPIPVersionInfo(self, pipPackages: typing.List[PIPPackage], load_latest_versions: bool = True):
         if len(pipPackages) == 0:
             pipPackages = self.model[:]
         else:
@@ -914,20 +912,19 @@ class PIPPackageInstaller(QWidget):
         task.sigAvailableVersion.connect(self.model.updateAvailableVersion)
         self.startTask(task)
 
-
-    def startTask(self, qgsTask:QgsTask):
+    def startTask(self, qgsTask: QgsTask):
         tid = id(qgsTask)
 
         qgsTask.progressChanged.connect(self.onProgressChanged)
-        qgsTask.taskCompleted.connect(lambda *args, tid = tid: self.onRemoveTask(tid))
-        qgsTask.taskTerminated.connect(lambda *args, tid = tid: self.onRemoveTask(tid))
+        qgsTask.taskCompleted.connect(lambda *args, tid=tid: self.onRemoveTask(tid))
+        qgsTask.taskTerminated.connect(lambda *args, tid=tid: self.onRemoveTask(tid))
         qgsTask.sigMessage.connect(self.onTaskMessage)
         self.mTasks[tid] = qgsTask
         tm = QgsApplication.taskManager()
         assert isinstance(tm, QgsTaskManager)
         tm.addTask(qgsTask)
 
-    def onTaskMessage(self, msg:str, is_error:bool):
+    def onTaskMessage(self, msg: str, is_error: bool):
         if is_error:
             self.addText(msg, QColor('red'))
         else:
@@ -937,7 +934,6 @@ class PIPPackageInstaller(QWidget):
         if tid in self.mTasks.keys():
             del self.mTasks[tid]
 
-
     def showWarning(self) -> bool:
         """
         Opens the warning to
@@ -945,8 +941,8 @@ class PIPPackageInstaller(QWidget):
         :rtype:
         """
         if not self.mWarned:
-            info = """
-            <b>Please try to install the missing package(s) with your local package manager first!</b>
+            info = f"""
+            <b>Please prefer installing missing package(s) with your local package manager!</b>
             <p>Common package managers in QGIS environments are:
             <ul>
                 <li><a href="https://trac.osgeo.org/osgeo4w/">OSGeo4W (Windows)<a/></li>
@@ -954,12 +950,14 @@ class PIPPackageInstaller(QWidget):
                 <li><a href="https://linux.die.net/man/8/apt-get">apt-get (Linux)</li>
                 <li><a href="https://brew.sh">homebrew (macOS)</a></li>
             </ul>
+            <p>You can find more information here 
+            <a href="{URL_PACKAGE_HELP}">here</a>
             </p>
             """
             box = QMessageBox(QMessageBox.Warning,
-                             'Package Installation',
-                             info,
-                             QMessageBox.Abort | QMessageBox.Ignore)
+                              'Package Installation',
+                              info,
+                              QMessageBox.Abort | QMessageBox.Ignore)
             box.setTextFormat(Qt.RichText)
             box.setDefaultButton(QMessageBox.Abort)
             result = box.exec_()
@@ -972,7 +970,7 @@ class PIPPackageInstaller(QWidget):
         else:
             return True
 
-    def showMissingOnly(self, b:bool):
+    def showMissingOnly(self, b: bool):
         if b:
             self.proxyModel.setFilterRegExp(QRegExp('Not installed', Qt.CaseInsensitive, QRegExp.Wildcard))
         else:
@@ -980,7 +978,7 @@ class PIPPackageInstaller(QWidget):
 
         self.proxyModel.setFilterKeyColumn(1)
 
-    def addText(self, text:str, color:QColor=None):
+    def addText(self, text: str, color: QColor = None):
 
         c = self.textBrowser.textColor()
         if isinstance(color, QColor):
@@ -991,4 +989,3 @@ class PIPPackageInstaller(QWidget):
     def addPackages(self, packages: typing.List[PIPPackage]):
         self.model.addPackages(packages)
         self.loadPIPVersionInfo(packages)
-

@@ -133,6 +133,11 @@
       <string>Panels</string>
      </property>
     </widget>
+    <widget class="QMenu" name="menuToolBars">
+     <property name="title">
+      <string>Toolbars</string>
+     </property>
+    </widget>
     <addaction name="mActionPan"/>
     <addaction name="mActionZoomIn"/>
     <addaction name="mActionZoomOut"/>
@@ -148,6 +153,7 @@
     <addaction name="mActionAddTextView"/>
     <addaction name="separator"/>
     <addaction name="menuPanels"/>
+    <addaction name="menuToolBars"/>
    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
@@ -732,6 +738,25 @@
   <action name="actionEnMAP_L1B">
    <property name="text">
     <string>EnMAP L1B</string>
+   </property>
+  </action>
+  <action name="actionShowResourceBrowser">
+   <property name="text">
+    <string>Resource Browser</string>
+   </property>
+   <property name="toolTip">
+    <string>Opens a browser to list Qt Resources</string>
+   </property>
+  </action>
+  <action name="optionShowHiddenLayersNode">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Hidden Layers</string>
+   </property>
+   <property name="toolTip">
+    <string>Shows the EnMAP-Box Hidden Layers node</string>
    </property>
   </action>
  </widget>
