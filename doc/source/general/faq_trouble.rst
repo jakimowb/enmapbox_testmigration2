@@ -48,7 +48,7 @@ suggest new entries!
   Please cite the EnMAP-Box as::
 
       EnMAP-Box Developers (2019): EnMAP-Box 3 - A QGIS Plugin to process and visualize
-      hyperspectral remote sensing data. www.enmap.org/enmapbox.html
+      hyperspectral remote sensing data. www.enmap.org/data_tools/enmapbox/
 
   For the general idea behind the EnMAP-Box please refer to::
 
@@ -63,7 +63,7 @@ suggest new entries!
 
     Yes, it is possible to install and run QGIS (and the EnMAP-Box) without admin rights.
     You just need to download and install `Conda`_, where you can install QGIS as described
-    :ref:`here <_dev_installation_create_conda_qgis>`.
+    :ref:`here <dev_installation_create_conda_qgis>`.
 
 
 .. _faq_numba:
