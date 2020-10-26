@@ -291,6 +291,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui = EnMAPBoxUI()
         self.ui.closeEvent = self.closeEvent
 
+        self.mHiddenLayerGroup : QgsLayerTreeGroup = None
+
         self.initQgisInterfaceVariables()
         if not isinstance(iface, QgisInterface):
             iface = qgis.utils.iface
@@ -1741,7 +1743,7 @@ class EnMAPBox(QgisInterface, QObject):
         hide: bool = self.ui.optionShowHiddenLayersNode.isChecked() is False
         grp.setCustomProperty('nodeHidden', 'true' if hide else 'false')
         ltv.setRowHidden(index.row(), index.parent(), hide)
-
+        self.mHiddenLayerGroup = grp
         return grp
 
     """
