@@ -444,7 +444,7 @@ class DataSourceRaster(DataSourceSpatial):
         if not isinstance(layer, QgsRasterLayer):
             layer = self.createUnregisteredMapLayer()
         assert isinstance(layer, QgsRasterLayer)
-        self.mLayer = layer
+        self.mLayer: QgsRasterLayer = layer
         self.mLayerId = self.mLayer.id()
         self.mLayer.setCustomProperty('ENMAPBOX_DATASOURCE',True)
 

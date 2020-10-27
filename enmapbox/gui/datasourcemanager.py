@@ -32,7 +32,7 @@ from qgis.PyQt.QtWidgets import *
 from qgis.core import \
     QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsCoordinateReferenceSystem, \
     QgsRasterRenderer, QgsProject, QgsUnitTypes, QgsWkbTypes, \
-    QgsLayerTreeGroup, QgsLayerTreeLayer, QgsRasterDataProvider, Qgis
+    QgsLayerTreeGroup, QgsLayerTreeLayer, QgsRasterDataProvider, Qgis, QgsField, QgsFieldModel
 from qgis.gui import \
     QgisInterface, QgsMapCanvas
 import qgis.utils
@@ -41,6 +41,7 @@ from enmapbox.gui import \
     ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, \
     qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, KeepRefs, \
     SpatialExtent, SpatialPoint, fileSizeString, file_search, defaultBands, defaultRasterRenderer, loadUi
+from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB
 from enmapbox.gui.utils import enmapboxUiPath
 from enmapbox.gui.mimedata import \
     MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
@@ -102,6 +103,22 @@ class DataSourceManager(QObject):
         self.mSources = list()
         self.mShowSpatialSourceInQgsAndEnMAPBox = True
         # QgsProject.instance().layerWillBeRemoved.connect(self.onLayersWillBeRemoved)
+        from qgis.core import QgsTaskManager, QgsApplication
+        QgsApplication.taskManager().taskAdded.connect(self.onTaskAdded)
+
+    def onTaskAdded(self, taskID):
+        from qgis.core import QgsTaskManager, QgsApplication, QgsTask, QgsProcessingAlgRunnerTask
+        tm: QgsTaskManager = QgsApplication.taskManager()
+        task = tm.task(taskID)
+        if isinstance(task, QgsProcessingAlgRunnerTask):
+            task.executed.connect(self.onTaskCompleted)
+        s = ""
+
+
+    def onTaskCompleted(self, ok, results: dict):
+        if ok:
+            if isinstance(results, dict):
+                self.addSources(results.values())
 
     def close(self):
         DataSourceManager._instance = None
@@ -545,20 +562,16 @@ class DataSourceSizesTreeNode(TreeNode):
             TreeNode(n, 'Bands (z)', values='{}'.format(dataSource.nBands))
 
 
-class DataSourceTreeNode(TreeNode, KeepRefs):
+class DataSourceTreeNode(TreeNode):
 
-    def __init__(self, dataSource: DataSource):
+    def __init__(self, *args, **kwds):
 
-        self.mDataSource = None
-        self.mNodeSize = None
-        self.mNodePath = None
+        super().__init__(*args, **kwds)
 
-        super().__init__('<empty>')
-        # KeepRefs.__init__(self)
-
-        self.disconnectDataSource()
-        if dataSource:
-            self.connectDataSource(dataSource)
+        self.mDataSource: DataSource = None
+        self.mNodeSize: TreeNode = TreeNode('Size')
+        self.mNodePath: TreeNode = TreeNode('Uri')
+        self.appendChildNodes([self.mNodePath, self.mNodeSize])
 
     def connectDataSource(self, dataSource: DataSource):
         """
@@ -567,21 +580,27 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
         """
         assert isinstance(dataSource, DataSource)
         self.mDataSource = dataSource
-        self.setName(dataSource.name())
+        self.updateNodes()
 
-        self.setToolTip(dataSource.uri())
-        self.setIcon(dataSource.icon())
+    def updateNodes(self):
 
-        uri = self.mDataSource.uri()
-        self.mNodePath = TreeNode('Uri', values=[self.mDataSource.uri()])
-        if os.path.isfile(uri):
-            self.mSrcSize = os.path.getsize(self.mDataSource.uri())
-            self.mNodeSize = TreeNode('Size', values=fileSizeString(self.mSrcSize))
+        ds = self.dataSource()
+        if isinstance(ds, DataSource):
+            self.setName(ds.name())
+            self.setToolTip(ds.uri())
+            self.setIcon(ds.icon())
+
+            uri = ds.uri()
+            self.mNodePath.setValue(uri)
+            if os.path.isfile(uri):
+                size = os.path.getsize(self.mDataSource.uri())
+                self.mNodeSize.setValue(fileSizeString(size))
+            else:
+                self.mNodeSize.setValue('unknown')
         else:
-            self.mNodeSize = TreeNode(self, 'Size', values='unknown')
-            self.mSrcSize = -1
-
-        self.appendChildNodes([self.mNodePath, self.mNodeSize])
+            self.setName('<disconnected>')
+            self.mNodePath.setValue(None)
+            self.mNodeSize.setValue(None)
 
     def dataSource(self) -> DataSource:
         """
@@ -590,15 +609,10 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
         """
         return self.mDataSource
 
+
     def disconnectDataSource(self):
         self.mDataSource = None
-        if self.mNodeSize:
-            self.removeChildNode(self.mNodeSize)
-            self.mNodeSize = None
-
-        self.setName(None)
-        self.setIcon(None)
-        self.setToolTip(None)
+        self.updateNodes()
 
     def writeXML(self, parentElement):
         super(DataSourceTreeNode, self).writeXML(parentElement)
@@ -610,84 +624,108 @@ class DataSourceTreeNode(TreeNode, KeepRefs):
 class SpatialDataSourceTreeNode(DataSourceTreeNode):
 
     def __init__(self, *args, **kwds):
-        self.nodeCRS: CRSLayerTreeNode = None
         # extent in map units (mu)
-        self.nodeExtXmu: TreeNode = None
-        self.nodeExtYmu: TreeNode = None
+
         super().__init__(*args, **kwds)
-
-
+        self.nodeExtXmu: TreeNode = TreeNode('Width')
+        self.nodeExtYmu: TreeNode = TreeNode('Height')
+        self.nodeCRS: CRSLayerTreeNode = CRSLayerTreeNode(QgsCoordinateReferenceSystem())
+        self.mNodeSize.appendChildNodes([self.nodeCRS, self.nodeExtXmu, self.nodeExtYmu])
 
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpatial)
         super(SpatialDataSourceTreeNode, self).connectDataSource(dataSource)
-        ext = dataSource.spatialExtent()
-        dataSource.mapLayer().nameChanged.connect(self.onNameChanged)
-        mu = QgsUnitTypes.toString(ext.crs().mapUnits())
-        assert isinstance(ext, SpatialExtent)
 
-        self.nodeCRS = CRSLayerTreeNode(ext.crs())
-        self.nodeExtXmu = TreeNode('Width', values='{} {}'.format(ext.width(), mu))
-        self.nodeExtYmu = TreeNode('Height', values='{} {}'.format(ext.height(), mu))
 
-        self.mNodeSize.appendChildNodes([self.nodeCRS, self.nodeExtXmu, self.nodeExtYmu])
+    def updateNodes(self):
+        super().updateNodes()
 
-    def onNameChanged(self):
         ds = self.dataSource()
-        if isinstance(ds, DataSourceSpatial) and isinstance(ds.mapLayer(), QgsMapLayer):
-            self.setName(ds.mapLayer().name())
+        if isinstance(ds, DataSourceSpatial):
+            ext = ds.spatialExtent()
+            mu = QgsUnitTypes.toString(ext.crs().mapUnits())
+            assert isinstance(ext, SpatialExtent)
 
-    def disconnectDataSource(self):
-        super(SpatialDataSourceTreeNode, self).disconnectDataSource()
-        if self.nodeCRS:
+            self.nodeCRS.setCrs(ext.crs())
+            self.nodeExtXmu.setValue('{} {}'.format(ext.width(), mu))
+            self.nodeExtYmu.setValue('{} {}'.format(ext.height(), mu))
 
-            self.removeChildNodes([self.nodeCRS, self.nodeExtXmu, self.nodeExtYmu])
-            self.nodeCRS = None
-            self.nodeExtXmu = None
-            self.nodeExtYmu = None
 
+        else:
+            self.nodeCRS.setCrs(QgsCoordinateReferenceSystem())
+            self.nodeExtXmu.setValue(None)
+            self.nodeExtYmu.setValue(None)
 
 
 class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
-        self.nodeFeatures: TreeNode = None
-        self.nodeFields: TreeNode = None
+        self.nodeFeatures: TreeNode = TreeNode('Features', values=[0])
+        self.nodeGeomType = TreeNode('Geometry Type')
+        self.nodeWKBType = TreeNode('WKB Type')
+
+        self.nodeFields: TreeNode =  TreeNode('Fields',
+                                            toolTip='Attribute fields related to each feature',
+                                            values=[0])
+
+        self.nodeFeatures.appendChildNodes([self.nodeGeomType, self.nodeWKBType])
+        self.appendChildNodes([self.nodeFeatures, self.nodeFields])
+
 
     def connectDataSource(self, dataSource: DataSourceVector):
         super(VectorDataSourceTreeNode, self).connectDataSource(dataSource)
+        self.updateNodes()
 
-        lyr = self.mDataSource.createUnregisteredMapLayer()
-        assert lyr.isValid()
-        nFeat = lyr.featureCount()
-        nFields = lyr.fields().count()
+    def updateNodes(self):
+        super().updateNodes()
 
-        geomType = ['Point', 'Line', 'Polygon', 'Unknown', 'Null'][lyr.geometryType()]
-        wkbType = QgsWkbTypes.displayString(int(lyr.wkbType()))
+        ds = self.dataSource()
+        if isinstance(ds, DataSourceVector):
+            lyr: QgsVectorLayer = ds.createUnregisteredMapLayer()
+            assert lyr.isValid()
 
-        if re.search('polygon', wkbType, re.I):
-            self.setIcon(QIcon(r':/images/themes/default/mIconPolygonLayer.svg'))
-        elif re.search('line', wkbType, re.I):
-            self.setIcon(QIcon(r':/images/themes/default/mIconLineLayer.svg'))
-        elif re.search('point', wkbType, re.I):
-            self.setIcon(QIcon(r':/images/themes/default/mIconPointLayer.svg'))
 
-        # self.nodeSize.setValue('{} x {}'.format(nFeat, fileSizeString(self.mSrcSize)))
-        self.nodeFeatures = TreeNode(self, 'Features',
-                                     values='{}'.format(nFeat))
-        TreeNode(self.nodeFeatures, 'Geometry Type', values=geomType)
+            nFeat = lyr.featureCount()
+            nFields = lyr.fields().count()
+            self.nodeFields.setValue(nFields)
+            geomType = ['Point', 'Line', 'Polygon', 'Unknown', 'Null'][lyr.geometryType()]
+            wkbType = QgsWkbTypes.displayString(int(lyr.wkbType()))
 
-        TreeNode(self.nodeFeatures, 'WKB Type', values=wkbType)
+            if re.search('polygon', wkbType, re.I):
+                self.setIcon(QIcon(r':/images/themes/default/mIconPolygonLayer.svg'))
+            elif re.search('line', wkbType, re.I):
+                self.setIcon(QIcon(r':/images/themes/default/mIconLineLayer.svg'))
+            elif re.search('point', wkbType, re.I):
+                self.setIcon(QIcon(r':/images/themes/default/mIconPointLayer.svg'))
 
-        self.nodeFields = TreeNode(self, 'Fields',
-                                   toolTip='Attribute fields related to each feature',
-                                   values='{}'.format(nFields))
-        for i in range(nFields):
-            field = lyr.fields().at(i)
-            node = TreeNode(self.nodeFields, field.name(),
-                            values='{} {}'.format(field.typeName(), field.length()))
+            self.nodeWKBType.setValue(wkbType)
+            self.nodeGeomType.setValue(geomType)
 
-        s = ""
+            # self.nodeSize.setValue('{} x {}'.format(nFeat, fileSizeString(self.mSrcSize)))
+            self.nodeFeatures.setValue(nFeat)
+
+            field_nodes: typing.List[TreeNode] = []
+            fieldModel = QgsFieldModel()
+            fieldModel.setLayer(lyr)
+            for i, f in enumerate(lyr.fields()):
+                f: QgsField
+                # fieldItem = QgsFieldsItem(None, f)
+                n = TreeNode(f.name())
+                l = f.length()
+                if l > 0:
+                    n.setValue('{} {}'.format(f.typeName(), l))
+                else:
+                    n.setValue(f.typeName())
+                idx = fieldModel.indexFromName(f.name())
+                ewType = fieldModel.data(idx, QgsFieldModel.EditorWidgetType)
+                if ewType == EWTYPE_SPECLIB:
+                    n.setIcon(QIcon(r':/qps/ui/icons/profile.svg'))
+                else:
+                    n.setIcon(fieldModel.data(idx, Qt.DecorationRole))
+                field_nodes.append(n)
+
+            self.nodeFields.removeAllChildNodes()
+            self.nodeFields.appendChildNodes(field_nodes)
 
 
 class ClassificationNodeLayer(TreeNode):
@@ -785,56 +823,50 @@ class RasterBandTreeNode(TreeNode):
 class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         # extents in pixel
-        self.mNodeExtXpx = None
-        self.mNodeExtYpx = None
-        self.mNodeBands = None
-        self.mNodePxSize = None
         super().__init__(*args, **kwds)
+
+        self.mNodeExtXpx: TreeNode = TreeNode('Samples', toolTip='Data Source Width in Pixel')
+        self.mNodeExtYpx: TreeNode = TreeNode('Lines', toolTip='Data Source Height in Pixel')
+
+        self.mNodePxSize: TreeNode = TreeNode('Pixel', toolTip='Spatial size of single pixel')
+        self.mNodeSize.appendChildNodes([self.mNodeExtXpx, self.mNodeExtXpx, self.mNodePxSize])
+
+        self.mNodeBands: TreeNode = TreeNode('Bands', toolTip='Number of Raster Bands')
+        self.appendChildNodes(self.mNodeBands)
 
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceRaster)
         super().connectDataSource(dataSource)
 
-        self.setIcon(dataSource.icon())
-        mu = QgsUnitTypes.toString(dataSource.spatialExtent().crs().mapUnits())
+    def updateNodes(self):
+        super().updateNodes()
 
-        self.mNodeExtXpx = TreeNode('Samples',
-                                    toolTip='Data Source Width in Pixel',
-                                    values='{} px'.format(dataSource.nSamples()))
-        self.mNodeExtYpx = TreeNode('Lines',
-                                    toolTip='Data Source Height in Pixel',
-                                    values='{} px'.format(dataSource.nLines()))
+        ds = self.dataSource()
+        if isinstance(ds, DataSourceRaster):
+            self.setIcon(ds.icon())
+            mu = QgsUnitTypes.toString(ds.spatialExtent().crs().mapUnits())
 
-        pxSize = dataSource.pixelSize()
-        self.mNodePxSize = TreeNode('Pixel',
-                                    toolTip='Spatial size of single pixel',
-                                    values='{} x {} {}'.format(pxSize.width(), pxSize.height(), mu))
+            self.mNodeExtXpx.setValue('{} px'.format(ds.nSamples()))
+            self.mNodeExtYpx.setValue('{} px'.format(ds.nLines()))
 
-        self.mNodeSize.appendChildNodes([self.mNodeExtXpx, self.mNodeExtYpx, self.mNodePxSize])
+            pxSize = ds.pixelSize()
+            self.mNodePxSize.setValue('{} x {} {}'.format(pxSize.width(), pxSize.height(), mu))
 
-        self.mNodeSize.setValue('{}x{}x{}'.format(dataSource.nSamples(),
-                                                  dataSource.nLines(),
-                                                  dataSource.nBands()))
+            self.mNodeSize.appendChildNodes([self.mNodeExtXpx, self.mNodeExtYpx, self.mNodePxSize])
 
-        self.mNodeBands = TreeNode('Bands',
-                                   toolTip='Number of Raster Bands',
-                                   values='{}'.format(dataSource.nBands()))
+            self.mNodeSize.setValue('{}x{}x{}'.format(ds.nSamples(),
+                                                      ds.nLines(),
+                                                      ds.nBands()))
 
-        bandNodes = []
-        for b in range(dataSource.mapLayer().bandCount()):
-            bandName = dataSource.mapLayer().bandName(b + 1)
-            bandNode = RasterBandTreeNode(dataSource, b, self.mNodeBands, str(b + 1), bandName)
-            bandNodes.append(bandNode)
-        self.mNodeBands.appendChildNodes(bandNodes)
-        self.appendChildNodes(self.mNodeBands)
+            self.mNodeBands.removeAllChildNodes()
+            self.mNodeBands.setValue(ds.nBands())
 
-    def disconnectDataSource(self):
-        if self.mNodeExtXpx is not None:
-            self.mNodeExtXpx = self._removeSubNode(self.mNodeExtXpx)
-            self.mNodeExtYpx = self._removeSubNode(self.mNodeExtYpx)
-            self.mNodeBands = self._removeSubNode(self.mNodeBands)
-            self.mNodePxSize = self._removeSubNode(self.mNodePxSize)
-        pass
+            bandNodes = []
+            for b in range(ds.mapLayer().bandCount()):
+                bandName = ds.mapLayer().bandName(b + 1)
+                bandNode = RasterBandTreeNode(ds, b, self.mNodeBands, str(b + 1), bandName)
+                bandNodes.append(bandNode)
+            self.mNodeBands.appendChildNodes(bandNodes)
 
 
 class FileDataSourceTreeNode(DataSourceTreeNode):
@@ -843,37 +875,14 @@ class FileDataSourceTreeNode(DataSourceTreeNode):
         super(FileDataSourceTreeNode, self).__init__(*args, **kwds)
 
 
-class SpeclibProfilesTreeNode(TreeNode):
-
-    def __init__(self, speclib, **kwds):
-        super(SpeclibProfilesTreeNode, self).__init__('Profiles', **kwds)
-        self.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
-        assert isinstance(speclib, SpectralLibrary)
-        self.mSpeclib = speclib
-        speclib.committedFeaturesAdded.connect(self.update)
-        speclib.committedFeaturesRemoved.connect(self.update)
-        self.update()
-        assert isinstance(self.mSpeclib, SpectralLibrary)
-
-    def update(self, *args):
-        self.setValue(len(self.mSpeclib))
-
-    def fetchCount(self):
-        if isinstance(self.mSpeclib, SpectralLibrary):
-            return len(self.mSpeclib)
-        else:
-            return 0
-
-    def fetchNext(self):
-        if isinstance(self.mSpeclib, SpectralLibrary):
-            for p in self.mSpeclib:
-                TreeNode(self, p.name())
-
-
 class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
+
         self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
+        self.nodeProfiles = TreeNode('Profiles')
+        #self.nodeProfiles.setIcon(QIcon(r':/qps/ui/icons/profile.svg'))
+        self.appendChildNodes([self.nodeProfiles])
 
     def speclib(self) -> SpectralLibrary:
         """
@@ -885,12 +894,67 @@ class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
         else:
             return None
 
+    def updateNodes(self, *args):
+
+        super().updateNodes()
+        self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
+        sl: SpectralLibrary = self.speclib()
+        if isinstance(sl, SpectralLibrary):
+
+
+
+
+            LUNodes= {n.name():n for n in self.nodeProfiles.childNodes()}
+            LUFields= {f.name():f for f in sl.spectralValueFields()}
+
+            to_remove = [node for name, node in LUNodes.items() if name not in LUFields.keys()]
+
+            self.nodeProfiles.removeChildNodes(to_remove)
+
+
+            LUNodes = {n.name(): n for n in self.nodeProfiles.childNodes()}
+
+            to_add = []
+            n_features = sl.featureCount()
+            n_profiles = 0
+            for field in sl.spectralValueFields():
+                n = 0
+                name = field.name()
+                for f in sl.getFeatures(f'"{name}" is not NULL'):
+                    n += 1
+                fieldNode = LUNodes.get(field.name(), None)
+                if fieldNode is None:
+                    fieldNode = TreeNode(field.name())
+                    to_add.append(fieldNode)
+                fieldNode.setValue(n)
+                fieldNode.setToolTip(f'{n} profiles on field "{field.name()}"')
+                n_profiles += n
+            self.nodeProfiles.appendChildNodes(to_add)
+            self.nodeProfiles.setValue(n_profiles)
+
+
+
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpectralLibrary)
         super(SpeclibDataSourceTreeNode, self).connectDataSource(dataSource)
-        assert isinstance(self.mDataSource.speclib(), SpectralLibrary)
-        self.nodeFeatures.setName('Profiles')
-        self.nodeFeatures.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
+
+        sl = self.speclib()
+        if isinstance(sl, SpectralLibrary):
+            sl.afterCommitChanges.connect(self.updateNodes)
+            sl.afterRollBack.connect(self.updateNodes)
+            sl.attributeAdded.connect(self.updateNodes)
+            sl.attributeDeleted.connect(self.updateNodes)
+
+    def disconnectDataSource(self):
+        sl = self.speclib()
+        super().disconnectDataSource()
+
+        if isinstance(sl, SpectralLibrary):
+            sl.afterCommitChanges.disconnect(self.updateNodes)
+            sl.afterRollBack.disconnect(self.updateNodes)
+            sl.attributeAdded.disconnect(self.updateNodes)
+            sl.attributeDeleted.disconnect(self.updateNodes)
+
 
 
 class HubFlowObjectTreeNode(DataSourceTreeNode):
@@ -1570,7 +1634,7 @@ class DataSourceManagerTreeModel(TreeModel):
         assert isinstance(sourceGroupNode, DataSourceGroupTreeNode)
         assert sourceGroupNode.parentNode() == self.rootNode()
 
-        dataSourceNode = CreateNodeFromDataSource(dataSource, sourceGroupNode)
+        dataSourceNode = createNodeFromDataSource(dataSource, sourceGroupNode)
 
         # sourceGroupNode.appendChildNodes([sourceGroupNode])
         #dataSourceNode.setExpanded(False)
@@ -1659,7 +1723,7 @@ class DataSourceManagerTreeModel(TreeModel):
         EnMAPBox.instance().dockManager().createDock('WEBVIEW', url=pathHTML)
 
 
-def CreateNodeFromDataSource(dataSource: DataSource, parent: TreeNode=None) -> DataSourceTreeNode:
+def createNodeFromDataSource(dataSource: DataSource, parent: TreeNode=None) -> DataSourceTreeNode:
     """
     Generates a DataSourceTreeNode
     :param dataSource:
@@ -1672,17 +1736,19 @@ def CreateNodeFromDataSource(dataSource: DataSource, parent: TreeNode=None) -> D
 
     # hint: take care of class inheritance order. inherited classes first
     if isinstance(dataSource, HubFlowDataSource):
-        node = HubFlowObjectTreeNode(dataSource)
+        node = HubFlowObjectTreeNode()
     elif isinstance(dataSource, DataSourceRaster):
-        node = RasterDataSourceTreeNode(dataSource)
+        node = RasterDataSourceTreeNode()
     elif isinstance(dataSource, DataSourceSpectralLibrary):
-        node = SpeclibDataSourceTreeNode(dataSource)
+        node = SpeclibDataSourceTreeNode()
     elif isinstance(dataSource, DataSourceVector):
-        node = VectorDataSourceTreeNode(dataSource)
+        node = VectorDataSourceTreeNode()
     elif isinstance(dataSource, DataSourceFile):
-        node = FileDataSourceTreeNode(dataSource)
+        node = FileDataSourceTreeNode()
     else:
-        node = DataSourceTreeNode(dataSource)
+        node = DataSourceTreeNode()
+    node.connectDataSource(dataSource)
+
     if isinstance(node, DataSourceTreeNode) and isinstance(parent, TreeNode):
         parent.appendChildNodes(node)
     return node
