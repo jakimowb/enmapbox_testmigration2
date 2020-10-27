@@ -3,6 +3,17 @@ CHANGELOG
 Version 3.7
 -----------
 
+* added EnMAP L1B, L1C and L2A product reader
+* added PRISMA L2D product import
+* added DESIS L2A product reader
+* added Classification Statistics PA
+* added Save As ENVI Raster PA: saves a raster in ENVI format and takes care of proper metadata storage inside ENVI header file
+* added Aggregate Raster Bands PA: allows to aggregate multiband raster into a single band using aggregation functions like min, max, mean, any, all, etc.
+* classification scheme is now defined by the layer renderer
+* [Spectral Resampling PA] reworked spectral resampling
+* [Classification Workflow] support libraries as input
+* [ImageMath] added predefined code snippets
+* [Subset Raster Wavebands PA] support band selection via wavelength
 * LayerTreeView: enhanced context menus:
   double click on map layer opens Properties Dialog,
   double click on a vector layers' legend item opens a Symbol dialog
