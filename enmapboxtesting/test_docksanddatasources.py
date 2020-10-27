@@ -32,6 +32,7 @@ from enmapbox.gui.dockmanager import *
 from enmapbox.gui.docks import *
 from enmapbox.externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
 
+
 class testDataSources(EnMAPBoxTestCase):
 
     def test_dataSourceManager(self):
@@ -136,7 +137,6 @@ class testDataSources(EnMAPBoxTestCase):
         mimeData = DMTM.mimeData([idx])
         self.assertIsInstance(mimeData, QMimeData)
 
-
     def test_DockPanelUI(self):
 
         w = DockPanelUI()
@@ -207,12 +207,14 @@ class testDataSources(EnMAPBoxTestCase):
         dock.speclib().addProfiles([profile])
         dock.speclib().commitChanges()
         da.addDock(dock)
+        self.assertIsInstance(dock, SpectralLibraryDock)
         self.showGui(da)
 
     def test_MapDock(self):
         da = DockArea()
         from enmapbox.gui.mapcanvas import MapDock
         dock = MapDock()
+        self.assertIsInstance(dock, MapDock)
         da.addDock(dock)
         self.showGui(da)
 
@@ -236,6 +238,6 @@ class testDataSources(EnMAPBoxTestCase):
 
         self.showGui(eb.ui)
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
