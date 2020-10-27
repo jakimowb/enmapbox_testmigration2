@@ -102,23 +102,6 @@ class DataSourceManager(QObject):
         DataSourceManager._instance = self
         self.mSources = list()
         self.mShowSpatialSourceInQgsAndEnMAPBox = True
-        # QgsProject.instance().layerWillBeRemoved.connect(self.onLayersWillBeRemoved)
-        from qgis.core import QgsTaskManager, QgsApplication
-        QgsApplication.taskManager().taskAdded.connect(self.onTaskAdded)
-
-    def onTaskAdded(self, taskID):
-        from qgis.core import QgsTaskManager, QgsApplication, QgsTask, QgsProcessingAlgRunnerTask
-        tm: QgsTaskManager = QgsApplication.taskManager()
-        task = tm.task(taskID)
-        if isinstance(task, QgsProcessingAlgRunnerTask):
-            task.executed.connect(self.onTaskCompleted)
-        s = ""
-
-
-    def onTaskCompleted(self, ok, results: dict):
-        if ok:
-            if isinstance(results, dict):
-                self.addSources(list(results.values()))
 
     def close(self):
         DataSourceManager._instance = None
@@ -609,7 +592,6 @@ class DataSourceTreeNode(TreeNode):
         """
         return self.mDataSource
 
-
     def disconnectDataSource(self):
         self.mDataSource = None
         self.updateNodes()
@@ -635,7 +617,6 @@ class SpatialDataSourceTreeNode(DataSourceTreeNode):
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpatial)
         super(SpatialDataSourceTreeNode, self).connectDataSource(dataSource)
-
 
     def updateNodes(self):
         super().updateNodes()
@@ -664,13 +645,12 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
         self.nodeGeomType = TreeNode('Geometry Type')
         self.nodeWKBType = TreeNode('WKB Type')
 
-        self.nodeFields: TreeNode =  TreeNode('Fields',
-                                            toolTip='Attribute fields related to each feature',
-                                            values=[0])
+        self.nodeFields: TreeNode = TreeNode('Fields',
+                                             toolTip='Attribute fields related to each feature',
+                                             values=[0])
 
         self.nodeFeatures.appendChildNodes([self.nodeGeomType, self.nodeWKBType])
         self.appendChildNodes([self.nodeFeatures, self.nodeFields])
-
 
     def connectDataSource(self, dataSource: DataSourceVector):
         super(VectorDataSourceTreeNode, self).connectDataSource(dataSource)
@@ -683,7 +663,6 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
         if isinstance(ds, DataSourceVector):
             lyr: QgsVectorLayer = ds.createUnregisteredMapLayer()
             assert lyr.isValid()
-
 
             nFeat = lyr.featureCount()
             nFields = lyr.fields().count()
@@ -737,6 +716,7 @@ class ClassificationNodeLayer(TreeNode):
         for i, ci in enumerate(classificationScheme):
             to_add.append(TreeNode('{}'.format(i), values=ci.name(), icon=ci.icon()))
         self.appendChildNodes(to_add)
+
 
 class CRSLayerTreeNode(TreeNode):
     def __init__(self, crs: QgsCoordinateReferenceSystem):
@@ -881,7 +861,7 @@ class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
 
         self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
         self.nodeProfiles = TreeNode('Profiles')
-        #self.nodeProfiles.setIcon(QIcon(r':/qps/ui/icons/profile.svg'))
+        # self.nodeProfiles.setIcon(QIcon(r':/qps/ui/icons/profile.svg'))
         self.appendChildNodes([self.nodeProfiles])
 
     def speclib(self) -> SpectralLibrary:
@@ -901,16 +881,12 @@ class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
         sl: SpectralLibrary = self.speclib()
         if isinstance(sl, SpectralLibrary):
 
-
-
-
-            LUNodes= {n.name():n for n in self.nodeProfiles.childNodes()}
-            LUFields= {f.name():f for f in sl.spectralValueFields()}
+            LUNodes = {n.name(): n for n in self.nodeProfiles.childNodes()}
+            LUFields = {f.name(): f for f in sl.spectralValueFields()}
 
             to_remove = [node for name, node in LUNodes.items() if name not in LUFields.keys()]
 
             self.nodeProfiles.removeChildNodes(to_remove)
-
 
             LUNodes = {n.name(): n for n in self.nodeProfiles.childNodes()}
 
@@ -931,8 +907,6 @@ class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
                 n_profiles += n
             self.nodeProfiles.appendChildNodes(to_add)
             self.nodeProfiles.setValue(n_profiles)
-
-
 
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpectralLibrary)
@@ -956,28 +930,96 @@ class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
             sl.attributeDeleted.disconnect(self.updateNodes)
 
 
+class PyObjNode(TreeNode):
+
+    @staticmethod
+    def fetchNode(node: TreeNode) -> int:
+
+        if isinstance(node, PyObjNode):
+            #print(f'FETCH {node.mPyObject}')
+            node.isFetched = True
+            obj = node.mPyObject
+            if obj is None:
+                return 0
+            if isinstance(obj, (int, float, str)):
+                node.setValue(obj)
+                return 0
+            elif isinstance(obj, (np.ndarray,)):
+                node.setValue(str(obj))
+
+                return 0
+
+            if isinstance(obj, object):
+                moduleName = obj.__class__.__module__
+                className = obj.__class__.__name__
+                name = f'{moduleName}.{className}'
+                node.setName(name)
+                try:
+                    obj = obj.__dict__
+                except Exception as ex:
+
+                    s  =""
+
+            newNodes = []
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    if isinstance(k, str) and k.startswith('__'):
+                        continue
+                    n = PyObjNode(name=str(k))
+                    n.setPyObject(v)
+                    newNodes.append(n)
+            else:
+                s = ""
+
+            if len(newNodes) > 0:
+                node.appendChildNodes(newNodes)
+                return len(newNodes)
+            return 0
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        self.mPyObject: object = None
+        self.isFetched: bool = False
+
+    def setPyObject(self, obj):
+        self.isFetched = False
+        self.mPyObject = obj
+        self.sigUpdated.emit(self)
+
 
 class HubFlowObjectTreeNode(DataSourceTreeNode):
 
     def __init__(self, *args, **kwds):
         super(HubFlowObjectTreeNode, self).__init__(*args, **kwds)
-        self.flowObject = None
+        self.mFlowObj: object = None
+        self.nodePyObject: PyObjNode = PyObjNode('Content')
+        self.appendChildNodes(self.nodePyObject)
 
     def connectDataSource(self, processingTypeDataSource):
+
         super(HubFlowObjectTreeNode, self).connectDataSource(processingTypeDataSource)
         assert isinstance(self.mDataSource, HubFlowDataSource)
 
-        if isinstance(self.mDataSource.flowObject(), hubflow.core.FlowObject):
-            moduleName = self.mDataSource.flowObject().__class__.__module__
-            className = self.mDataSource.flowObject().__class__.__name__
-            # self.setValue('{}.{}'.format(moduleName, className))
-            self.setName(self.dataSource().name())
-            self.setToolTip('{} - {}.{}'.format(self.dataSource().name(), moduleName, className))
-            node = TreeNode()
-            self.fetchInternals(node, self.mDataSource.flowObject())
-            self.appendChildNodes(node.childNodes())
+        ds = self.dataSource()
+        self.nodePyObject.removeAllChildNodes()
 
-    def fetchInternals(self, parentTreeNode: TreeNode, obj: object, fetchedObjectIds: set = None) :
+        if isinstance(ds, HubFlowDataSource):
+            self.mFlowObj = ds.flowObject()
+            moduleName = self.mFlowObj.__class__.__module__
+            className = self.mFlowObj.__class__.__name__
+
+            self.setName(ds.name())
+            self.setToolTip('{} - {}.{}'.format(ds.name(), moduleName, className))
+
+            self.nodePyObject.setPyObject(self.mFlowObj)
+            PyObjNode.fetchNode(self.nodePyObject)
+            self.appendChildNodes(self.nodePyObject)
+
+            # PyObjNode.fetchNode(self.nodePyObject)
+            # fetch 1st generation
+           # PyObjNode.fetchNode(self.nodePyObject)
+
+    def DEPR_fetchInternals(self, parentTreeNode: TreeNode, obj: object, fetchedObjectIds: set = None):
         """
         Represents a python object as TreeNode structure.
         :param obj: any type of python object
@@ -1132,7 +1174,6 @@ class DataSourceTreeView(TreeView):
         node = self.selectedNode()
         dataSources = list(set([n.mDataSource for n in selectedNodes if isinstance(n, DataSourceTreeNode)]))
         srcURIs = list(set([s.uri() for s in dataSources]))
-
 
         from enmapbox.gui.enmapboxgui import EnMAPBox
         enmapbox = EnMAPBox.instance()
@@ -1637,7 +1678,7 @@ class DataSourceManagerTreeModel(TreeModel):
         dataSourceNode = createNodeFromDataSource(dataSource, sourceGroupNode)
 
         # sourceGroupNode.appendChildNodes([sourceGroupNode])
-        #dataSourceNode.setExpanded(False)
+        # dataSourceNode.setExpanded(False)
         s = ""
 
     def removeDataSource(self, dataSource):
@@ -1722,8 +1763,42 @@ class DataSourceManagerTreeModel(TreeModel):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         EnMAPBox.instance().dockManager().createDock('WEBVIEW', url=pathHTML)
 
+    def canFetchMore(self, parent: QModelIndex) -> bool:
 
-def createNodeFromDataSource(dataSource: DataSource, parent: TreeNode=None) -> DataSourceTreeNode:
+        if not parent.isValid():
+            return False
+
+        node = parent.internalPointer()
+
+        if not isinstance(node, TreeNode):
+            return False
+
+        if isinstance(node, PyObjNode):
+            canFetch = node.isFetched == False
+            #print(f'CAN FETCH {node.name()} : {canFetch}')
+
+            return canFetch
+        else:
+            return len(node.childNodes()) > 0
+        return False
+
+    def fetchMore(self, index: QModelIndex):
+
+        node = index.internalPointer()
+
+        if isinstance(node, PyObjNode):
+            #print(f'FETCH {node.name()} : {node.mPyObject}')
+            if not node.isFetched:
+                n = PyObjNode.fetchNode(node)
+                if n > 0:
+                    s = ""
+            else:
+                s = ""
+        else:
+            s = ""
+
+
+def createNodeFromDataSource(dataSource: DataSource, parent: TreeNode = None) -> DataSourceTreeNode:
     """
     Generates a DataSourceTreeNode
     :param dataSource:
