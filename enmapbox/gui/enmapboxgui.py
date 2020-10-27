@@ -42,6 +42,7 @@ from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
 from enmapbox.dependencycheck import requiredPackages, missingPackageInfo
+from hubdsm.processing.importdesisl2a import ImportDesisL2A
 from hubdsm.processing.importenmapl1b import ImportEnmapL1B
 from hubdsm.processing.importenmapl1c import ImportEnmapL1C
 from hubdsm.processing.importenmapl2a import ImportEnmapL2A
@@ -1014,6 +1015,11 @@ class EnMAPBox(QgisInterface, QObject):
         a = QAction('EnMAP L2A', parent=menu)
         a.setToolTip('Import EnMAP L2A product')
         a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportEnmapL2A()))
+        menu.insertAction(separator, a)
+
+        a = QAction('DESIS L2A', parent=menu)
+        a.setToolTip('Import DESIS L2A product')
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportDesisL2A()))
         menu.insertAction(separator, a)
 
         a = QAction('PRISMA L2D', parent=menu)

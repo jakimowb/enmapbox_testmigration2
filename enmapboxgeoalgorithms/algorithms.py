@@ -6,6 +6,7 @@ from qgis.core import *
 from enmapbox.externals.qps.speclib import EnviSpectralLibraryIO
 from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.classificationstatistics import ClassificationStatistics
+from hubdsm.processing.importdesisl2a import ImportDesisL2A
 from hubdsm.processing.importprismal2d import ImportPrismaL2D
 from hubdsm.processing.saveasenvi import SaveAsEnvi
 from hubdsm.processing.subsetrasterbands import SubsetRasterBands
@@ -28,6 +29,7 @@ ALGORITHMS.append(ImportEnmapL1B())
 ALGORITHMS.append(ImportEnmapL1C())
 ALGORITHMS.append(ImportEnmapL2A())
 ALGORITHMS.append(ImportPrismaL2D())
+ALGORITHMS.append(ImportDesisL2A())
 ALGORITHMS.append(SaveLayerAsClassification())
 ALGORITHMS.append(SubsetRasterBands())
 ALGORITHMS.append(AggregateBands())
