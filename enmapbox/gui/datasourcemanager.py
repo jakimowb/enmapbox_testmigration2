@@ -118,7 +118,7 @@ class DataSourceManager(QObject):
     def onTaskCompleted(self, ok, results: dict):
         if ok:
             if isinstance(results, dict):
-                self.addSources(results.values())
+                self.addSources(list(results.values()))
 
     def close(self):
         DataSourceManager._instance = None

@@ -409,7 +409,7 @@ class standardDataSources(EnMAPBoxTestCase):
             for dataSource in dsl:
                 self.assertIsInstance(dataSource, DataSource)
 
-                node = CreateNodeFromDataSource(dataSource)
+                node = createNodeFromDataSource(dataSource)
                 self.assertIsInstance(node, DataSourceTreeNode)
 
     def test_registryresponse(self):

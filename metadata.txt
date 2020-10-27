@@ -1,11 +1,12 @@
 [general]
-name=EnMAP-Box 3 TEST
+name=EnMAP-Box 3 TEST DUMMY
 author=Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden
-description=Imaging Spectroscopy and Remote Sensing for QGIS
+description=ENMAP BOX TEST DUMMY
 version=3.99
-qgisMinimumVersion=3.10
+qgisMinimumVersion=3.12
 qgisMaximumVersion=3.99
-about=The EnMAP-Box is designed to process and visualize hyperspectral remote sensing data, and particularly developed to handle EnMAP products.
+about=This metadata.txt is show if you have added the EnMAP-Box repository to your QGIS_PLUGINPATH. Be aware that
+the state of your repository might differ from the plugin created with <code>scripts\create_plugin.py</code>
 icon=enmapbox/gui/ui/icons/enmapbox.png
 tags=Raster
 category=https://bitbucket.org/hu-geomatics/enmap-box.git
