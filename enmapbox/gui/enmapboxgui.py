@@ -28,7 +28,7 @@ from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, \
     QgsProcessingAlgorithm, QgsApplication, Qgis, QgsCoordinateReferenceSystem, QgsWkbTypes, \
     QgsMapLayerStore, QgsPointXY, QgsLayerTreeGroup, QgsLayerTree, QgsLayerTreeLayer, QgsVectorLayerTools, \
     QgsZipUtils, QgsProjectArchive, QgsSettings, \
-    QgsStyle, QgsSymbolLegendNode, QgsSymbol
+    QgsStyle, QgsSymbolLegendNode, QgsSymbol, QgsTaskManager, QgsApplication, QgsTask, QgsProcessingAlgRunnerTask
 
 from qgis.gui import QgsMapCanvas, QgsLayerTreeView, \
     QgisInterface, QgsMessageBar, QgsMessageViewer, QgsMessageBarItem, QgsMapLayerConfigWidgetFactory, \
@@ -269,6 +269,8 @@ class EnMAPBox(QgisInterface, QObject):
 
     sigProjectWillBeSaved = pyqtSignal()
 
+    sigDockAdded = pyqtSignal(Dock)
+
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
 
     def __init__(self,
@@ -333,6 +335,8 @@ class EnMAPBox(QgisInterface, QObject):
         QgsProject.instance().layersWillBeRemoved.connect(self.onLayersWillBeRemoved)
         QgsProject.instance().writeProject.connect(self.onWriteProject)
         QgsProject.instance().readProject.connect(self.onReadProject)
+
+        QgsApplication.taskManager().taskAdded.connect(self.onTaskAdded)
 
         # needed to keep a reference on created LayerTreeNodes
         self._layerTreeNodes = []
@@ -727,7 +731,7 @@ class EnMAPBox(QgisInterface, QObject):
                         s = ""
                     node.setCanvas(L2C.get(node.layerId(), None))
 
-            # set the current QGIS node to the top in case it is the hidden group
+            # in case the currentNode is is the hidden group, set the current QGIS node to the top
             currentGroupNode = qgis.utils.iface.layerTreeView().currentGroupNode()
             if currentGroupNode == grp:
                 qgis.utils.iface.layerTreeView().setCurrentIndex(QModelIndex())
@@ -1078,7 +1082,28 @@ class EnMAPBox(QgisInterface, QObject):
     def spectralProfileBridge(self) -> SpectralProfileBridge:
         return self.ui.spectralProfileSourcePanel.bridge()
 
-    sigDockAdded = pyqtSignal(Dock)
+    def onTaskAdded(self, taskID: int):
+        """
+        Connects QgsTasks that have been added to the QgsTaskManager with signales, e.g. to react in outputs.
+        :param taskID:
+        :return:
+        """
+        tm: QgsTaskManager = QgsApplication.taskManager()
+        task = tm.task(taskID)
+        if isinstance(task, QgsProcessingAlgRunnerTask):
+            task.executed.connect(self.onProcessingAlgTaskCompleted)
+
+    def onProcessingAlgTaskCompleted(self, ok: bool, results: dict):
+        """
+        Handles results of QgsProcessingAlgRunnerTasks that have been processed with the QgsTaskManager
+        :param ok:
+        :param results:
+        :return:
+        """
+        if ok:
+            if isinstance(results, dict):
+
+                self.addSources(list(results.values()))
 
     def onDockAdded(self, dock):
         assert isinstance(dock, Dock)

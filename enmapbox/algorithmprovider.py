@@ -20,7 +20,7 @@
 import os, pathlib
 
 from enmapbox import __version__, messageLog
-from qgis.core import *
+from qgis.core import QgsProcessingProvider, QgsProcessingAlgorithm, QgsApplication
 from qgis.PyQt.QtGui import QIcon
 
 try:
@@ -28,30 +28,26 @@ try:
 except ModuleNotFoundError as merr:
 
     import qgis, sys, site
+
     path = pathlib.Path(qgis.__file__)
     pathPlugins = os.path.abspath(path / '../../plugins')
     site.addsitedir(pathPlugins)
     from processing.core.ProcessingConfig import ProcessingConfig, Setting
-
-
-
 
 ID = 'enmapbox'
 NAME = 'EnMAP-Box'
 LONG_NAME = 'EnMAP-Box (build {})'.format(__version__)
 
 
-
 class EnMAPBoxProcessingProvider(QgsProcessingProvider):
-
-
     """
     The EnMAPBoxAlgorithmProvider contains the GeoAlgorithms under the umbrella of the EnMAP-Box.
     It enhances the "standard" processing.core.AlgorithmProvider by functionality to add and remove GeoAlgorithms during runtime.
     """
+
     def __init__(self):
         super(EnMAPBoxProcessingProvider, self).__init__()
-        #internal list of GeoAlgorithms. Is used on re-loads and can be manipulated
+        # internal list of GeoAlgorithms. Is used on re-loads and can be manipulated
         self.mAlgorithms = []
         self.mSettingsPrefix = self.id().upper().replace(' ', '_')
 
@@ -75,7 +71,6 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         else:
             debugLog(f'onHubFlowFileCreated: no EnMAP-Box instance found: {file}')
 
-
     def initializeSettings(self):
         """This is the place where you should add config parameters
         using the ProcessingConfig class.
@@ -86,18 +81,18 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         """
 
         ProcessingConfig.setGroupIcon(self.name(), self.icon())
-        ProcessingConfig.addSetting(Setting(self.name(), self.mSettingsPrefix+'_ACTIVATE',
+        ProcessingConfig.addSetting(Setting(self.name(), self.mSettingsPrefix + '_ACTIVATE',
                                             self.tr('Activates the EnMAP-Box'), True))
-        ProcessingConfig.addSetting(Setting(self.name(), self.mSettingsPrefix+'_HELPPATH', 'Location of EnMAP-Box docs', 'default'))
+        ProcessingConfig.addSetting(
+            Setting(self.name(), self.mSettingsPrefix + '_HELPPATH', 'Location of EnMAP-Box docs', 'default'))
         ProcessingConfig.readSettings()
-
 
     def emitUpdated(self):
         """
         Will inform the ProcessingConfig that Provider settings have been changed.
         """
-        #import processing.core.ProcessingConfig
-        #processing.core.ProcessingConfig.settingsWatcher.settingsChanged.emit()
+        # import processing.core.ProcessingConfig
+        # processing.core.ProcessingConfig.settingsWatcher.settingsChanged.emit()
         self.algorithmsLoaded.emit()
 
     def getName(self):
@@ -109,50 +104,50 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
     def getIcon(self):
         raise DeprecationWarning('Use icon()')
 
-    def id(self)->str:
+    def id(self) -> str:
         """
         :return:
         """
         return ID
 
-    def helpid(self)->str:
+    def helpid(self) -> str:
         return 'https://bitbucket.org/hu-geomatics/enmap-box/wiki/Home'
 
-    def icon(self)->QIcon:
+    def icon(self) -> QIcon:
         """
         Returns the EnMAPBox icon
         :return: QIcon
         """
         return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
 
-    def name(self)->str:
+    def name(self) -> str:
         """
         :return: str
         """
         return NAME
 
-    def longName(self)->str:
+    def longName(self) -> str:
         """
         :return: str
         """
         return LONG_NAME
 
-    def defaultRasterFileExtension(self)->str:
+    def defaultRasterFileExtension(self) -> str:
         """
         :return: 'bsq'
         """
         return 'bsq'
 
-    def defaultVectorFileExtension(self, hasGeometry:bool=True)->str:
+    def defaultVectorFileExtension(self, hasGeometry: bool = True) -> str:
         """
         :return: 'shp'
         """
         return 'shp'
 
-    def supportedOutputRasterLayerExtensions(self)->list:
-        return ['bsq','bil','bip','tif', 'vrt']
+    def supportedOutputRasterLayerExtensions(self) -> list:
+        return ['bsq', 'bil', 'bip', 'tif', 'vrt']
 
-    def supportsNonFileBasedOutput(self)->bool:
+    def supportsNonFileBasedOutput(self) -> bool:
         return False
 
     def load(self):
@@ -163,7 +158,7 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         self.refreshAlgorithms()
         return True
 
-    def containsAlgorithm(self, algorithm:QgsProcessingAlgorithm)->bool:
+    def containsAlgorithm(self, algorithm: QgsProcessingAlgorithm) -> bool:
         """
         Returns True if an algorithm with same name is already added.
         :param algorithm:
@@ -182,19 +177,17 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         for key in list(ProcessingConfig.settings.keys()):
             if key.startswith(self.mSettingsPrefix):
                 ProcessingConfig.removeSetting(key)
-        #del ProcessingConfig.settingIcons[self.name()]
-        #ProcessingConfig.removeSetting(GdalUtils.GDAL_HELP_PATH)
+        # del ProcessingConfig.settingIcons[self.name()]
+        # ProcessingConfig.removeSetting(GdalUtils.GDAL_HELP_PATH)
 
-
-    def isActive(self)->bool:
+    def isActive(self) -> bool:
         """Return True if the provider is activated and ready to run algorithms"""
         return True
 
     def setActive(self, active):
         ProcessingConfig.setSettingValue(self.mSettingsPrefix, active)
 
-
-    def addAlgorithm(self, algorithm:QgsProcessingAlgorithm, _emitUpdated=True):
+    def addAlgorithm(self, algorithm: QgsProcessingAlgorithm, _emitUpdated=True):
         """
         Adds a QgsProcessingAlgorithm to the EnMAPBoxAlgorithmProvider
         :param algorithm: QgsProcessingAlgorithm
@@ -207,25 +200,25 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         if _emitUpdated:
             self.emitUpdated()
 
-    def addAlgorithms(self, algorithmns:list):
+    def addAlgorithms(self, algorithmns: list):
         """
         Adds a list of QgsProcessingAlgorithms. The self.emitUpdated() signal is called 1x afterwards.
         """
         assert isinstance(algorithmns, list)
         for a in algorithmns:
-            self.addAlgorithm(a.createInstance(), _emitUpdated = False)
+            self.addAlgorithm(a.createInstance(), _emitUpdated=False)
         if len(algorithmns) > 0:
             self.emitUpdated()
-        #self.refreshAlgorithms()
+        # self.refreshAlgorithms()
 
-    def removeAlgorithm(self, algorithm:QgsProcessingAlgorithm):
+    def removeAlgorithm(self, algorithm: QgsProcessingAlgorithm):
         """
         Removes a single QgsProcessingAlgorithms
         :param algorithm: QgsProcessingAlgorithm
         """
         self.removeAlgorithms([algorithm])
 
-    def removeAlgorithms(self, algorithms:list):
+    def removeAlgorithms(self, algorithms: list):
         """
         Removes a list of QgsProcessingAlgorithms
         :param algorithms: [list-of-QgsProcessingAlgorithms]
@@ -236,7 +229,7 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         for a in algorithms:
             if a in self.mAlgorithms:
                 self.mAlgorithms.remove(a)
-        #self.refreshAlgorithms()
+        # self.refreshAlgorithms()
 
     def refreshAlgorithms(self, *args, **kwargs):
 
@@ -254,10 +247,9 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         self.addAlgorithms(self.mAlgorithms)
 
 
-def instance()->EnMAPBoxProcessingProvider:
+def instance() -> EnMAPBoxProcessingProvider:
     """
     Returns the EnMAPBoxAlgorithmProvider instance registered to QgsProcessingRegistry
     :return:
     """
     return QgsApplication.instance().processingRegistry().providerById(ID)
-

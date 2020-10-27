@@ -149,13 +149,24 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
 
     def test_instance_all_apps(self):
-        enmapbox = EnMAPBox(load_core_apps=True, load_other_apps=True)
-        self.assertIsInstance(enmapbox, EnMAPBox)
-        self.showGui(enmapbox.ui)
+        EMB = EnMAPBox(load_core_apps=True, load_other_apps=True)
+        self.assertIsInstance(EMB, EnMAPBox)
+        self.showGui(EMB.ui)
+
+    def test_instance_coreapps(self):
+        EMB = EnMAPBox(load_core_apps=True, load_other_apps=False)
+
+        algo = 'enmapbox:CreateTestClassifierRandomForest'
+        from processing.gui.AlgorithmDialog import AlgorithmDialog
+        alg = QgsApplication.processingRegistry().algorithmById(algo)
+        dlg = AlgorithmDialog(alg.create(), in_place=False, parent=EMB.ui)
+        dlg.runButton().click()
+
+        self.showGui(EMB.ui)
 
     def test_instance_coreapps_and_data(self):
 
-        EMB = EnMAPBox(load_other_apps=False)
+        EMB = EnMAPBox(load_core_apps=True, load_other_apps=False)
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(EMB, EnMAPBox.instance())
@@ -175,9 +186,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         from enmapboxtestdata import enmap, landcover_polygons
         from qgis.utils import iface
         from enmapbox.testing import WMS_OSM, WMS_GMAPS, WFS_Berlin
-        layers = []
-        layers.append(QgsRasterLayer(enmap))
-        layers.append(QgsVectorLayer(landcover_polygons))
+        layers = [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons)]
         # layers.append(QgsRasterLayer(WMS_OSM, 'osm', 'wms'))
         # layers.append(QgsVectorLayer(WFS_Berlin, 'wfs', 'WFS'))
 
