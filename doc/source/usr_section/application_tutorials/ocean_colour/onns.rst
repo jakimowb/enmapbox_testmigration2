@@ -78,6 +78,8 @@ Data
 Test data
 ---------
 
+You can download the test data here: https://bitbucket.org/janzandr/onns_for_enmap-box/downloads/S3A_OL_2_WFRC8R_20160720T093421_20160720T093621_20171002T063739_0119_006_307______MR1_R_NT_002_sylt.nc
+
 The present version of the ONNS algorithm is able to process atmospherically corrected data of different ocean
 colour sensors, namely OLCI, MERIS, MODIS and VIIRS. The corresponding data format must be NETCDF4. Moreover, ONNS
 can handle tabulated remote-sensing reflectances at selected wavebands of OLCI, SeaWiFS, MODIS, MERIS, OCM-2, VIIRS,

@@ -156,8 +156,6 @@ Windows
 Linux
 ~~~~~
 
-.. note:: Tested on Ubuntu 18.04
-
 #. Open the terminal and install all missing packages using pip:
 
    .. code-block:: batch
@@ -178,13 +176,20 @@ Mac
 
 #. Open the terminal and install all missing packages using pip:
 
-   .. code-block:: batch
+.. code-block:: batch
 
-      python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
+   python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
-   .. error::
+.. caution::
 
-      See :ref:`FAQ <faq_requirements>` if you run into problems installing the packages.
+   Starting with QGIS 3.16 the `packaging mechanism changed <https://www.lutraconsulting.co.uk/blog/2020/10/01/qgis-macos-package/>`_,
+   so you might have to use this command instead::
+
+   /Applications/QGIS.app/Contents/MacOS/bin/pip3 install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
+
+.. error::
+
+   See :ref:`FAQ <faq_requirements>` if you run into problems installing the packages.
 
 
 ....
