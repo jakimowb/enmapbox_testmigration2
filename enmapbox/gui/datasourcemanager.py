@@ -714,7 +714,7 @@ class ClassificationNodeLayer(TreeNode):
         self.setName(name)
         to_add = []
         for i, ci in enumerate(classificationScheme):
-            to_add.append(TreeNode('{}'.format(i), values=ci.name(), icon=ci.icon()))
+            to_add.append(TreeNode(name='{}'.format(i), values=ci.name(), icon=ci.icon()))
         self.appendChildNodes(to_add)
 
 
@@ -796,7 +796,10 @@ class RasterBandTreeNode(TreeNode):
             to_add = []
             for ci in classScheme:
                 assert isinstance(ci, ClassInfo)
-                to_add.append(TreeNode(str(ci.label()), ci.name(), icon=ci.icon()))
+                classNode = TreeNode(name=str(ci.label()))
+                classNode.setValue(ci.name())
+                classNode.setIcon(ci.icon())
+                to_add.append(classNode)
             self.appendChildNodes(to_add)
 
 
@@ -844,7 +847,8 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
             bandNodes = []
             for b in range(ds.mapLayer().bandCount()):
                 bandName = ds.mapLayer().bandName(b + 1)
-                bandNode = RasterBandTreeNode(ds, b, self.mNodeBands, str(b + 1), bandName)
+                bandNode = RasterBandTreeNode(ds, b, name=str(b + 1), value=bandName)
+
                 bandNodes.append(bandNode)
             self.mNodeBands.appendChildNodes(bandNodes)
 
@@ -934,22 +938,17 @@ class PyObjNode(TreeNode):
 
     @staticmethod
     def fetchNode(node: TreeNode) -> int:
+        newNodes = []
 
         if isinstance(node, PyObjNode):
-            #print(f'FETCH {node.mPyObject}')
-            node.isFetched = True
             obj = node.mPyObject
             if obj is None:
-                return 0
-            if isinstance(obj, (int, float, str)):
+                pass
+            elif isinstance(obj, (int, float, str)):
                 node.setValue(obj)
-                return 0
             elif isinstance(obj, (np.ndarray,)):
                 node.setValue(str(obj))
-
-                return 0
-
-            if isinstance(obj, object):
+            elif isinstance(obj, object):
                 moduleName = obj.__class__.__module__
                 className = obj.__class__.__name__
                 name = f'{moduleName}.{className}'
@@ -958,23 +957,24 @@ class PyObjNode(TreeNode):
                     obj = obj.__dict__
                 except Exception as ex:
 
-                    s  =""
+                        s  =""
 
-            newNodes = []
-            if isinstance(obj, dict):
-                for k, v in obj.items():
-                    if isinstance(k, str) and k.startswith('__'):
-                        continue
-                    n = PyObjNode(name=str(k))
-                    n.setPyObject(v)
-                    newNodes.append(n)
-            else:
-                s = ""
+                if isinstance(obj, dict):
+                    for k, v in obj.items():
+                        if isinstance(k, str) and k.startswith('__'):
+                            continue
+                        n = PyObjNode(name=str(k))
+                        n.setPyObject(v)
+                        newNodes.append(n)
+                else:
+                    s = ""
 
-            if len(newNodes) > 0:
-                node.appendChildNodes(newNodes)
-                return len(newNodes)
-            return 0
+            node.isFetched = True
+
+        if len(newNodes) > 0:
+            node.appendChildNodes(newNodes)
+
+        return len(newNodes)
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
