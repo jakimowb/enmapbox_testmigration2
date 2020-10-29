@@ -1087,18 +1087,22 @@ class ASI_core:
 
         NDVI_closest = [self.find_closest_wl(lambd=827), self.find_closest_wl(lambd=668)]
         self.NDVI_bands = [i for i, x in enumerate(self.wl) if x in NDVI_closest]
+        print(self.NDVI_bands)
 
         for row in range(np.shape(in_raster)[1]):
             for col in range(np.shape(in_raster)[2]):
                 if np.mean(in_raster[:, row, col]) != self.nodat[0]:
                     R827 = in_raster[self.NDVI_bands[1], row, col]
                     R668 = in_raster[self.NDVI_bands[0], row, col]
-                    try:
-                        NDVI = float(R827 - R668) / float(R827 + R668)
-                    except ZeroDivisionError:
-                        NDVI = 0
+                    if R827 or R668 > 0.0:
+                        try:
+                            NDVI = float(R827 - R668) / float(R827 + R668)
+                        except ZeroDivisionError:
+                            NDVI = 0
+                    else:
+                        continue
                     self.prgbar_process(pixel_no=row * self.ncols + col)
-                    if NDVI > 0.85 and NDVI <= 1.0:
+                    if NDVI > 0.85 and NDVI < 0.9:
                         self.NDVI = NDVI
                         self.row = row
                         self.col = col
