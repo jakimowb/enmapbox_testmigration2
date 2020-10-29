@@ -33,7 +33,7 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         self.licence = 'BSD-3'
 
     def icon(self):
-        pathIcon = os.path.join(APP_DIR, 'Resources/icon.png')
+        pathIcon = os.path.join(APP_DIR, 'Resources/LMU_icon.png')
         return QIcon(pathIcon)
 
     def menu(self, appMenu):
@@ -71,8 +71,13 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         g = menu.addAction('interactive Red-Edge Inflection Point (iREIP)')
         g.triggered.connect(self.start_GUI_iREIP)
 
-        h = menu.addAction('Vegetation Processor')
-        h.triggered.connect(self.start_GUI_Processor)
+        h = menu.addMenu('Vegetation Processor')
+
+        ha = h.addAction("ANN Training")
+        ha.triggered.connect(self.start_GUI_ProcessorTraining)
+
+        hb = h.addAction('ANN Inversion')
+        hb.triggered.connect(self.start_GUI_ProcessorInversion)
 
         appMenu.addMenu(menu)
         return menu
@@ -114,8 +119,13 @@ class LMU_EnMAPBoxApp(EnMAPBoxApplication):
         m = MainUiFunc()
         m.show()
 
-    def start_GUI_Processor(self, *args):
+    def start_GUI_ProcessorInversion(self, *args):
         from lmuvegetationapps.Processor.Processor_Inversion_GUI import MainUiFunc
+        m = MainUiFunc()
+        m.show()
+
+    def start_GUI_ProcessorTraining(self, *args):
+        from lmuvegetationapps.Processor.Processor_Training_GUI import MainUiFunc
         m = MainUiFunc()
         m.show()
 
