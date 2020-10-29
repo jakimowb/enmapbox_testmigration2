@@ -51,11 +51,11 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         self.mAlgorithms = []
         self.mSettingsPrefix = self.id().upper().replace(' ', '_')
 
-        try:
-            import hubflow.signals
-            hubflow.signals.sigFileCreated.connect(self.onHubFlowFileCreated)
-        except Exception as ex:
-            messageLog(ex)
+        #try:
+        #    import hubflow.signals
+        #    hubflow.signals.sigFileCreated.connect(self.onHubFlowFileCreated)
+        #except Exception as ex:
+        #    messageLog(ex)
 
     def onHubFlowFileCreated(self, file):
         """
