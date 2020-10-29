@@ -34,12 +34,14 @@ import xml.etree.ElementTree as ET
 
 from qgis.PyQt.QtCore import *
 
+from enmapbox.gui.utils import zipdir
+from qgis.core import QgsFileUtils
 from enmapbox.externals.qps.make.deploy import QGISMetadataFileWriter
 
 import enmapbox
 from enmapbox import DIR_REPO, __version__
 
-
+MAX_PLUGIN_SIZE = 10 # max plugin size in MB
 CHECK_COMMITS = False
 
 ########## Config Section
@@ -159,7 +161,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     f.close()
 
     # include test data into test versions
-    if include_testdata and not re.search(currentBranch, 'master', re.I):
+    if include_testdata:
         if os.path.isdir(enmapbox.DIR_TESTDATA):
             shutil.copytree(enmapbox.DIR_TESTDATA, PLUGIN_DIR / 'enmapboxtestdata')
 
@@ -171,9 +173,20 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
     # 5. create a zip
     print('Create zipfile...')
-    from enmapbox.gui.utils import zipdir
-
     zipdir(PLUGIN_DIR, PLUGIN_ZIP)
+
+    pluginSize: int = os.stat(PLUGIN_ZIP).st_size
+
+    if pluginSize > MAX_PLUGIN_SIZE * 2**20:
+        msg = f'{PLUGIN_ZIP.name} ({QgsFileUtils.representFileSize(pluginSize)}) ' + \
+              f'exceeds maximum plugin size ({MAX_PLUGIN_SIZE} MB)'
+
+        if re.search(currentBranch, 'master', re.I):
+            raise Exception(msg)
+        else:
+            print(msg, file=sys.stderr)
+    else:
+        print(f'Plugin Size ({QgsFileUtils.representFileSize(pluginSize)}) ok.')
 
     # 7. install the zip file into the local QGIS instance. You will need to restart QGIS!
     if True:
@@ -188,13 +201,6 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
         info.append('## press ENTER\n')
 
         print('\n'.join(info))
-
-        from qgis.PyQt.QtGui import QClipboard, QGuiApplication
-
-        #cb = QGuiApplication.clipboard()
-        #if isinstance(cb, QClipboard):
-        #    cb.setText('\n'.join(info))
-
 
     print('Finished')
 
