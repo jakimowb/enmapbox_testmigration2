@@ -178,7 +178,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         import qgis.utils
         QgsProject.instance()
         qgis.utils.iface.actionSaveProject().trigger()
-        self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
+        self.showGui([EMB.ui, qgis.utils.iface.mainWindow()])
 
     def test_Qgis(self):
 
