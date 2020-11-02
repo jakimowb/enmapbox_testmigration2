@@ -59,7 +59,7 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)"
     #linesSh.append('mkdir {}'.format(dirOut))
 
     n = 0
-    if False:
+    if True:
         for DIR_TESTS in TEST_DIRECTORIES:
             for i, file in enumerate(file_search(DIR_TESTS, 'test_*.py')):
                 file = pathlib.Path(file)
