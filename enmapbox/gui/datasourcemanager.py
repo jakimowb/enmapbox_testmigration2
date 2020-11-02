@@ -971,6 +971,7 @@ class DataSourceTreeView(TreeView):
     """
     A TreeView to show EnMAP-Box Data Sources
     """
+    sigPopulateContextMenu = pyqtSignal(QMenu)
 
     def __init__(self, *args, **kwds):
         super(DataSourceTreeView, self).__init__(*args, **kwds)
@@ -1119,6 +1120,8 @@ class DataSourceTreeView(TreeView):
         a = m.addAction('Remove all DataSources')
         a.setToolTip('Removes all data source.')
         a.triggered.connect(self.onRemoveAllDataSources)
+
+        self.sigPopulateContextMenu.emit(m)
 
         m.exec_(self.viewport().mapToGlobal(event.pos()))
 

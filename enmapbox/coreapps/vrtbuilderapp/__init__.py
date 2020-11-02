@@ -22,13 +22,18 @@
 
 import importlib
 import typing
+import uuid
 import os
-from qgis.PyQt.QtWidgets import QMessageBox, QMainWindow
+from osgeo import gdal
+from qgis.PyQt.QtWidgets import QMessageBox, QMainWindow, QMenu, QAction
 from qgis.PyQt.QtGui import QIcon
+from qgis.core import QgsRasterLayer, QgsRasterRenderer
 from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapTool
 import qgis.utils
 from enmapbox.gui.applications import EnMAPBoxApplication
 from enmapbox.gui.enmapboxgui import EnMAPBox
+from enmapbox.gui.datasourcemanager import DataSourceTreeView, RasterBandTreeNode
+from enmapbox.gui.dockmanager import DockTreeView
 
 APP_DIR = os.path.dirname(__file__)
 MIN_VERSION = '0.9'
@@ -64,6 +69,14 @@ class VRTBuilderApp(EnMAPBoxApplication):
             self.version = 'Version {}'.format(INSTALLED_VERSION)
             self.licence = LICENSE
             self.mIcon = QIcon(PATH_ICON)
+
+            dstv: DataSourceTreeView = self.enmapbox.dataSourceTreeView()
+            dstv.sigPopulateContextMenu.connect(
+                lambda menu, widget=None: self.onPopulateDataSourceContextMenu(menu, widget))
+            dotv: DockTreeView = self.enmapbox.dockTreeView()
+            dotv.sigPopulateContextMenu.connect(
+                lambda menu, widget=None: self.onPopulateDockTreeContextMenu(menu, widget))
+
         else:
             self.version = 'Unknown'
             self.licence = 'Unknown'
@@ -104,13 +117,88 @@ class VRTBuilderApp(EnMAPBoxApplication):
                 w.sigRasterCreated.connect(self.enmapbox.addSource)
 
                 w.sigAboutCreateCurrentMapTools.connect(self.onSetWidgetMapTool)
-
+                if False:
+                    dstv: DataSourceTreeView = self.enmapbox.dataSourceTreeView()
+                    dstv.sigPopulateContextMenu.connect(lambda m, widget=w: self.onPopulateDataSourceContextMenu(m, w))
+                    dotv: DockTreeView = self.enmapbox.dockTreeView()
+                    dotv.sigPopulateContextMenu.connect(lambda m, widget=w: self.onPopulateDockTreeContextMenu(m, w))
                 w.show()
                 return w
         else:
             QMessageBox.information(None, 'Missing QGIS Plugin',
                                     'Please install and activate the Virtual Raster Builder QGIS Plugin.')
             return None
+
+    def onPopulateDataSourceContextMenu(self, menu: QMenu, w):
+        assert isinstance(menu, QMenu)
+
+        dstv: DataSourceTreeView = self.enmapbox.dataSourceTreeView()
+        bandNodes = [n for n in dstv.selectedNodes() if isinstance(n, RasterBandTreeNode)]
+        self.addMenuForInputs(menu, bandNodes, w)
+
+    def onPopulateDockTreeContextMenu(self, menu: QMenu, w):
+        assert isinstance(menu, QMenu)
+
+        dotv: DockTreeView = self.enmapbox.dockTreeView()
+
+        selectedRasterLayers = [l for l in dotv.selectedLayers()
+                                if isinstance(l, QgsRasterLayer)
+                                and l.dataProvider().name() == 'gdal']
+
+        self.addMenuForInputs(menu, selectedRasterLayers, w)
+
+    def addMenuForInputs(self, menu: QMenu, inputs: typing.List, w):
+        if len(inputs) > 0:
+            m = menu.addMenu('Create VRT')
+            a = m.addAction('Open in Virtual Raster Builder')
+            a.triggered.connect(lambda *args, i=inputs, w=True: self.openVRT(i, w))
+
+            a = m.addAction('Create in memory stack')
+            a.triggered.connect(lambda *args, ww=w, i=inputs: self.openVRT(i, None, mosaic=False))
+            a = m.addAction('Create in memory mosaic')
+            a.triggered.connect(lambda *args, ww=w, i=inputs: self.openVRT(i, None, mosaic=True))
+
+    def openVRT(self, inputs, builder, mosaic: bool=False):
+        from vrtbuilder.widgets import VRTBuilderWidget
+        from vrtbuilder.virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand
+        source_bands: typing.List[VRTRasterInputSourceBand] = []
+        assert isinstance(inputs, list)
+        for src in inputs:
+            if isinstance(src, QgsRasterLayer):
+                r = src.renderer()
+                if isinstance(r, QgsRasterRenderer):
+                    for b in r.usesBands():
+                        source_bands.append(VRTRasterInputSourceBand(src.source(), b-1))
+
+            elif isinstance(src, RasterBandTreeNode):
+                path = src.mDataSource.uri()
+                bandIndex = src.mBandIndex
+                source_bands.append(VRTRasterInputSourceBand(path, bandIndex))
+            else:
+                raise NotImplementedError()
+        if isinstance(builder, bool) and builder is True:
+            builder = self.startGUI()
+
+        if isinstance(builder, VRTBuilderWidget):
+            VRT = builder.mVRTRaster
+        else:
+            VRT = VRTRaster()
+        if mosaic:
+            band = VRTRasterBand()
+            for srcBand in source_bands:
+                band.addSource(srcBand)
+            VRT.addVirtualBand(band)
+        else:
+            for srcBand in source_bands:
+                band = VRTRasterBand()
+                band.addSource(srcBand)
+                VRT.addVirtualBand(band)
+
+        if not isinstance(builder, VRTBuilderWidget):
+            path = f'/vsimem/{uuid.uuid4()}.vrt'
+            ds: gdal.Dataset = VRT.saveVRT(path)
+            if isinstance(ds, gdal.Dataset):
+                self.enmapbox.addSource(path)
 
     def onSetWidgetMapTool(self):
         w = self.sender()

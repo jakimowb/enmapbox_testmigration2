@@ -66,7 +66,7 @@ MD.mEmail = 'enmapbox@enmap.org'
 
 ########## End of config section
 
-def scantree(path, pattern=re.compile('.$')) -> typing.Iterator[pathlib.Path]:
+def scantree(path, pattern=re.compile(r'.$')) -> typing.Iterator[pathlib.Path]:
     """
     Recursively returns file paths in directory
     :param path: root directory to search in

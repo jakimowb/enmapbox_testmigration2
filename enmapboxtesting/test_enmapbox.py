@@ -178,7 +178,16 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         import qgis.utils
         QgsProject.instance()
         qgis.utils.iface.actionSaveProject().trigger()
+
+
+        EMB.dockTreeView().sigPopulateContextMenu.connect(
+            lambda *args: print(f'sigPopulateContextMenu DockTreeView {args}'))
+        EMB.dataSourceTreeView().sigPopulateContextMenu.connect(
+            lambda *args: print(f'sigPopulateContextMenu DataSourceView {args}'))
+
+
         self.showGui([EMB.ui, qgis.utils.iface.mainWindow()])
+
 
     def test_Qgis(self):
 
