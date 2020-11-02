@@ -20,6 +20,8 @@ class TestVRTBuilderApp(EnMAPBoxTestCase):
     def test_startapp(self):
 
         enmapbox = EnMAPBox(load_core_apps=False, load_other_apps=False)
+        enmapbox.loadExampleData()
+
         APP = VRTBuilderApp(enmapbox)
 
         self.assertIsInstance(APP, EnMAPBoxApplication)
