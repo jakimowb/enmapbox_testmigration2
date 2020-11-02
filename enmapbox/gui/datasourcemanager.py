@@ -38,7 +38,7 @@ from qgis.gui import \
 import qgis.utils
 from enmapbox import DIR_TESTDATA, messageLog
 from enmapbox.gui import \
-    ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, \
+    ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, PyObjectTreeNode, \
     qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, KeepRefs, \
     SpatialExtent, SpatialPoint, fileSizeString, file_search, defaultBands, defaultRasterRenderer, loadUi
 from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB
@@ -934,75 +934,23 @@ class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
             sl.attributeDeleted.disconnect(self.updateNodes)
 
 
-class PyObjNode(TreeNode):
-
-    @staticmethod
-    def fetchNode(node: TreeNode) -> int:
-        newNodes = []
-
-        if isinstance(node, PyObjNode):
-            obj = node.mPyObject
-            if obj is None:
-                pass
-            elif isinstance(obj, (int, float, str)):
-                node.setValue(obj)
-            elif isinstance(obj, (np.ndarray,)):
-                node.setValue(str(obj))
-            elif isinstance(obj, object):
-                moduleName = obj.__class__.__module__
-                className = obj.__class__.__name__
-                name = f'{moduleName}.{className}'
-                node.setName(name)
-                try:
-                    obj = obj.__dict__
-                except Exception as ex:
-
-                        s  =""
-
-                if isinstance(obj, dict):
-                    for k, v in obj.items():
-                        if isinstance(k, str) and k.startswith('__'):
-                            continue
-                        n = PyObjNode(name=str(k))
-                        n.setPyObject(v)
-                        newNodes.append(n)
-                else:
-                    s = ""
-
-            node.isFetched = True
-
-        if len(newNodes) > 0:
-            node.appendChildNodes(newNodes)
-
-        return len(newNodes)
-
-    def __init__(self, *args, **kwds):
-        super().__init__(*args, **kwds)
-        self.mPyObject: object = None
-        self.isFetched: bool = False
-
-    def setPyObject(self, obj):
-        self.isFetched = False
-        self.mPyObject = obj
-        self.sigUpdated.emit(self)
-
-
 class HubFlowObjectTreeNode(DataSourceTreeNode):
 
     def __init__(self, *args, **kwds):
         super(HubFlowObjectTreeNode, self).__init__(*args, **kwds)
         self.mFlowObj: object = None
-        self.nodePyObject: PyObjNode = PyObjNode('Content')
-        self.appendChildNodes(self.nodePyObject)
+        self.mFlowNode: PyObjectTreeNode = None
+        #self.appendChildNodes(self.nodePyObject)
 
     def connectDataSource(self, processingTypeDataSource):
 
         super(HubFlowObjectTreeNode, self).connectDataSource(processingTypeDataSource)
         assert isinstance(self.mDataSource, HubFlowDataSource)
 
-        ds = self.dataSource()
-        self.nodePyObject.removeAllChildNodes()
+        if isinstance(self.mFlowNode, PyObjectTreeNode):
+            self.removeChildNodes([self.mFlowNode])
 
+        ds = self.dataSource()
         if isinstance(ds, HubFlowDataSource):
             self.mFlowObj = ds.flowObject()
             moduleName = self.mFlowObj.__class__.__module__
@@ -1011,138 +959,8 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
             self.setName(ds.name())
             self.setToolTip('{} - {}.{}'.format(ds.name(), moduleName, className))
 
-            self.nodePyObject.setPyObject(self.mFlowObj)
-            PyObjNode.fetchNode(self.nodePyObject)
-            self.appendChildNodes(self.nodePyObject)
-
-            # PyObjNode.fetchNode(self.nodePyObject)
-            # fetch 1st generation
-           # PyObjNode.fetchNode(self.nodePyObject)
-
-    def DEPR_fetchInternals(self, parentTreeNode: TreeNode, obj: object, fetchedObjectIds: set = None):
-        """
-        Represents a python object as TreeNode structure.
-        :param obj: any type of python object
-                    lists, sets and dictionaries will be shown as subtree
-                    basic builtin objects (float, int, str, numpy.arrays) are show as str(obj) value
-        :param parentTreeNode: the parent Node. Need to have a name
-        :param fetchedObjectIds: reminder of already used objects. necessary to avoid circular references
-        :return: TreeNode
-        """
-
-        assert isinstance(parentTreeNode, TreeNode)
-
-        if fetchedObjectIds is None:
-            fetchedObjectIds = set()
-
-        assert isinstance(fetchedObjectIds, set)
-        if id(obj) in fetchedObjectIds:
-            # do not return any node for objects already described.
-            # this is necessary to avoid circular references
-
-            return
-        fetchedObjectIds.add(id(obj))
-
-        # create a node for this object
-
-        import hubflow.core
-        objNode: TreeNode = TreeNode()
-        subNodes: typing.List[TreeNode] = []
-
-        if isinstance(obj, hubflow.core.FlowObject):
-            # for all FlowObjects
-            moduleName = obj.__class__.__module__
-            className = obj.__class__.__name__
-
-            objNode.setName('{}.{}'.format(moduleName, className))
-            # ClassDefinitions
-            if isinstance(obj, hubflow.core.ClassDefinition):
-
-                csi = ClassificationScheme()
-                classes = []
-                classes.append(ClassInfo(name=obj.noDataName(), color=obj.noDataColor()._qColor))
-                import hubflow.core
-                for name, color in zip(obj.names(), obj.colors()):
-                    classes.append(ClassInfo(name=name, color=color._qColor))
-                csi.insertClasses(classes)
-                subNodes.append(ClassificationNodeLayer(csi, name='Classes'))
-
-            self.fetchInternals(objNode, obj.__dict__, fetchedObjectIds=fetchedObjectIds)
-
-        elif isinstance(obj, dict):
-            """
-            Show dictionary
-            """
-            s = ""
-
-            for key in sorted(obj.keys()):
-                value = obj[key]
-                name = str(key)
-                if name.startswith('__'):
-                    continue
-
-                if re.search('_(vector|raster).*', name):
-                    s = ""
-                node = TreeNode(name, values=reprNL(value))
-                self.fetchInternals(node, value, fetchedObjectIds=fetchedObjectIds)
-                subNodes.append(node)
-
-        elif isinstance(obj, np.ndarray):
-
-            if obj.ndim == 1:
-                self.fetchInternals(objNode, list(obj), fetchedObjectIds=fetchedObjectIds)
-            else:
-                objNode.setValue(str(obj))
-
-        elif isinstance(obj, (list, set, tuple)):
-            """Show enumerations"""
-
-            for i, item in enumerate(obj):
-                node = TreeNode(str(i + 1), values=reprNL(item))
-                self.fetchInternals(node, item, fetchedObjectIds=fetchedObjectIds)
-                if i > HUBFLOW_MAX_VALUES:
-                    node = TreeNode(parentTreeNode, '...')
-                    break
-                subNodes.append(node)
-        elif isinstance(obj, QColor):
-            subNodes.append(ColorTreeNode(obj))
-
-        elif not hasattr(obj, '__dict__'):
-            objNode.setValue(str(obj))
-
-        elif isinstance(obj, object):
-            # a __class__
-            moduleName = obj.__class__.__module__
-            className = obj.__class__.__name__
-
-            attributes = []
-            for a in obj.__dict__.keys():
-                if a.startswith('__'):
-                    continue
-                if moduleName.startswith('hubflow') or not a.startswith('_'):
-                    attributes.append(a)
-
-            for t in inspect.getmembers(obj, lambda o: isinstance(o, np.ndarray)):
-                if t[0] not in attributes:
-                    attributes.append(t[0])
-
-            for name in sorted(attributes):
-                attr = getattr(obj, name, None)
-                if attr is None:
-                    try:
-                        attr = obj.__dict__[name]
-                    except:
-                        pass
-
-                node = TreeNode(name, values=reprNL(attr))
-                self.fetchInternals(node, attr, fetchedObjectIds=fetchedObjectIds)
-                subNodes.append(node)
-
-        else:
-            # show the object's 'natural' printout as node value
-            objNode.setValue(reprNL(obj))
-        objNode.appendChildNodes(subNodes)
-        parentTreeNode.appendChildNodes(objNode)
+            self.mFlowNode = PyObjectTreeNode(name=className, obj=self.mFlowObj)
+            self.appendChildNodes(self.mFlowNode)
 
     def contextMenu(self):
         m = QMenu()
@@ -1763,39 +1581,6 @@ class DataSourceManagerTreeModel(TreeModel):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         EnMAPBox.instance().dockManager().createDock('WEBVIEW', url=pathHTML)
 
-    def canFetchMore(self, parent: QModelIndex) -> bool:
-
-        if not parent.isValid():
-            return False
-
-        node = parent.internalPointer()
-
-        if not isinstance(node, TreeNode):
-            return False
-
-        if isinstance(node, PyObjNode):
-            canFetch = node.isFetched == False
-            #print(f'CAN FETCH {node.name()} : {canFetch}')
-
-            return canFetch
-        else:
-            return len(node.childNodes()) > 0
-        return False
-
-    def fetchMore(self, index: QModelIndex):
-
-        node = index.internalPointer()
-
-        if isinstance(node, PyObjNode):
-            #print(f'FETCH {node.name()} : {node.mPyObject}')
-            if not node.isFetched:
-                n = PyObjNode.fetchNode(node)
-                if n > 0:
-                    s = ""
-            else:
-                s = ""
-        else:
-            s = ""
 
 
 def createNodeFromDataSource(dataSource: DataSource, parent: TreeNode = None) -> DataSourceTreeNode:
