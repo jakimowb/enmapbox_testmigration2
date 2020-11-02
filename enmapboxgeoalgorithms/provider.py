@@ -959,6 +959,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
             assert 0, repr(self._parameters[name])
         assert isinstance(filename, str), repr(filename)
 
+        if not isabs(filename):
+            filename = abspath(join(QgsApplication.qgisSettingsDirPath(), 'processing', 'outputs', filename))
         return filename
 
     P_OUTPUT_FLOW_OBJECT = 'outFlowObject'
