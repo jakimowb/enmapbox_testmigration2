@@ -61,7 +61,7 @@ MD.mHomepage = 'http://www.enmap.org/'
 MD.mAbout = enmapbox.ABOUT
 MD.mTracker = enmapbox.ISSUE_TRACKER
 MD.mRepository = enmapbox.REPOSITORY
-MD.mQgisMinimumVersion = '3.14'
+MD.mQgisMinimumVersion = enmapbox.MIN_VERSION_QGIS
 MD.mEmail = 'enmapbox@enmap.org'
 
 ########## End of config section
