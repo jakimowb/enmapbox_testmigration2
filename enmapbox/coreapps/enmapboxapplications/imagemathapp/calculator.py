@@ -78,7 +78,14 @@ class CalculatorOperator(ApplierOperator):
 
         # add functions to namespace
         exec('from enmapboxapplications.imagemathapp.routines import *', namespace)
-        namespace['print'] = self.progressBar.setText
+
+        def print2(value):
+            #text = f'<pre><code>{str(value).replace("&", "&amp").replace("<", "&lt")}</code></pre>'
+            text = f'<code>{str(value).replace("&", "&amp").replace("<", "&lt")}</code>'
+
+            self.progressBar.setText(text)
+
+        namespace['print'] = print2
 
         try:
             exec(code, namespace)
