@@ -1629,6 +1629,6 @@ class LayerTreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
         """
         node = self.currentNode()
         if isinstance(node, LayerTreeNode):
-            return self.currentNode().contextMenu()
+            return self.currentNode().populateContextMenu()
         else:
             return QMenu()
