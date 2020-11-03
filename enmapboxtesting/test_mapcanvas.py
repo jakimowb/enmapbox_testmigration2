@@ -53,8 +53,8 @@ class MapCanvasTests(EnMAPBoxTestCase):
 
         #self.assertTrue(lyr in QgsProject.instance().mapLayers().values())
         self.assertTrue(lyr in mapCanvas.layers())
-
-        menu = mapCanvas.contextMenu()
+        menu = QMenu()
+        mapCanvas.populateContextMenu(menu, None)
         self.assertIsInstance(menu, QMenu)
         actions = [a for a in menu.children() if isinstance(a, QAction)]
         self.assertTrue(len(actions) > 2)
