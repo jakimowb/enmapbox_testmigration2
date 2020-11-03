@@ -231,8 +231,8 @@ def initEnMAPBoxProcessingProvider():
         provider.addAlgorithms(missingAlgs)
     except Exception as ex:
         traceback.print_exc()
-        info = ['EnMAP-Box: Failed to load enmapboxgeoalgorithms.algorithms.ALGORITHMS.\n{}'.format(str(ex))]
-        info.append('PYTHONPATH:')
+        info = ['EnMAP-Box: Failed to load enmapboxgeoalgorithms.algorithms.ALGORITHMS.\n{}'.format(str(ex)),
+                'PYTHONPATH:']
         for p in sorted(sys.path):
             info.append(p)
         messageLog(info, Qgis.Warning)
