@@ -21,11 +21,11 @@ from qgis.core import *
 from qgis.gui import *
 from qgis.core import QgsCoordinateReferenceSystem, QgsMapLayer, \
     QgsRectangle, QgsMapLayerProxyModel, QgsVectorLayerTools, \
-    QgsMapLayer, QgsRasterLayer, QgsRasterLayer, \
-    QgsProject
+    QgsMapLayer, QgsRasterLayer, QgsRasterLayer, QgsPointXY, \
+    QgsProject, Qgis, QgsMapSettings
 from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapMouseEvent, \
     QgsMapToolZoom, QgsAdvancedDigitizingDockWidget, QgsMapLayerComboBox, \
-    QgsProjectionSelectionWidget, QgsMapToolIdentify, QgsMapTool, QgsMapToolPan, QgsMapToolCapture
+    QgsProjectionSelectionWidget, QgsMapToolIdentify, QgsMapTool, QgsMapToolPan, QgsMapToolCapture, QgsMapMouseEvent
 
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
@@ -863,6 +863,9 @@ class MapCanvas(QgsMapCanvas):
     def __init__(self, parent=None):
         super(MapCanvas, self).__init__(parent=parent)
 
+        if Qgis.QGIS_VERSION >= '3.16':
+            self.contextMenuAboutToShow.connect(self.populateContextMenu)
+
         self._id = 'MapCanvas.#{}'.format(MapCanvas._cnt)
         self.setWindowTitle(self._id)
         self.setProperty(KEY_LAST_CLICKED, time.time())
@@ -906,14 +909,27 @@ class MapCanvas(QgsMapCanvas):
     def mousePressEvent(self, event: QMouseEvent):
 
         self.setProperty(KEY_LAST_CLICKED, time.time())
+        set_cursor_location: bool = event.button() == Qt.LeftButton \
+                                    and isinstance(self.mapTool(), (QgsMapToolIdentify, CursorLocationMapTool))
 
-        b = event.button() == Qt.LeftButton
-        if b and isinstance(self.mapTool(), QgsMapTool):
-            b = isinstance(self.mapTool(), (QgsMapToolIdentify, CursorLocationMapTool))
+        if Qgis.QGIS_VERSION >= '3.16':
+            super(MapCanvas, self).mousePressEvent(event)
+        else:
+            if event.button() == Qt.RightButton:
+                mt: QgsMapTool = self.mapTool()
 
-        super(MapCanvas, self).mousePressEvent(event)
+                if isinstance(mt, QgsMapTool):
 
-        if b:
+                    if bool(mt.flags() & QgsMapTool.ShowContextMenu):
+                        menu = QMenu()
+                        mt.populateContextMenu(menu)
+                        mapMouseEvent = QgsMapMouseEvent(self, event)
+                        self.populateContextMenu(menu, mapMouseEvent)
+                        menu.exec_(event.globalPos())
+                        return
+            super().mousePressEvent(event)
+
+        if set_cursor_location:
             ms = self.mapSettings()
             pointXY = ms.mapToPixel().toMapCoordinates(event.x(), event.y())
             spatialPoint = SpatialPoint(ms.destinationCrs(), pointXY)
@@ -954,12 +970,22 @@ class MapCanvas(QgsMapCanvas):
         """
         return self.mMapTools
 
-    def contextMenu(self, spatialPoint: SpatialPoint = None):
+    def populateContextMenu(self, menu: QMenu, event: QgsMapMouseEvent):
         """
-        Create a context menu for common MapCanvas operations
-        :return: QMenu
+        Populates a context menu with actions for applicable MapCanvas operations
         """
-        menu = QMenu()
+        if event is None:
+            pt = QPointF(self.width() * 0.5, self.height() * 0.5)
+            event = QMouseEvent(QEvent.MouseButtonPress, pt, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+            event = QgsMapMouseEvent(self, event)
+        assert isinstance(menu, QMenu)
+        assert isinstance(event, QgsMapMouseEvent)
+        mapSettings = self.mapSettings()
+        assert isinstance(mapSettings, QgsMapSettings)
+        pos = event.pos()
+        pointGeo = mapSettings.mapToPixel().toMapCoordinates(pos.x(), pos.y())
+        assert isinstance(pointGeo, QgsPointXY)
+        spatialPoint = SpatialPoint(mapSettings.destinationCrs(), pointGeo)
 
         action = menu.addAction('Link with other maps')
         action.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_basic.svg'))
@@ -1270,21 +1296,6 @@ class MapCanvas(QgsMapCanvas):
                 event.accept()
             # event.acceptProposedAction()
 
-    def contextMenuEvent(self, event):
-
-        # do not open in case of map tools that provide its own context menu
-        if self.mapTool() in [self.mapTools().mtAddFeature]:
-            return
-        pos = event.globalPos()
-        pos = self.mapFromGlobal(pos)
-        point = self.mapSettings().mapToPixel().toMapCoordinates(pos.x(), pos.y())
-        point2 = SpatialPoint(self.mapSettings().destinationCrs(), point)
-
-        menu = self.contextMenu(spatialPoint=point2)
-        menu.exec_(event.globalPos())
-
-        # self.sigContextMenuEvent.emit(event)
-
     def setExtent(self, rectangle):
         """
         Sets the map extent
@@ -1456,10 +1467,10 @@ class MapDock(Dock):
         """
         if not isinstance(menu, QMenu):
             menu = QMenu()
-        menuDock = super(MapDock, self).contextMenu(menu=menu)
+        menu = super(MapDock, self).contextMenu(menu=menu)
 
-        menuCanvas = self.mCanvas.contextMenu()
-        return appendItemsToMenu(menuDock, menuCanvas)
+        self.mCanvas.populateContextMenu(menu, None)
+        return menu
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
