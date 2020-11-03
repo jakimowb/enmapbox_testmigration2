@@ -10,9 +10,10 @@ from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 TESTALGORITHMS = list()
 ALGORITHMS = list()
 
+
 class EnMAPProvider(QgsProcessingProvider):
     def loadAlgorithms(self):
-        #for a in TESTALGORITHMS: self.addAlgorithm(a)
+        # for a in TESTALGORITHMS: self.addAlgorithm(a)
         for a in ALGORITHMS: self.addAlgorithm(a)
 
     def id(self):
@@ -28,10 +29,12 @@ class EnMAPProvider(QgsProcessingProvider):
     def supportsNonFileBasedOutput(self):
         return False
 
+
 class Link():
     def __init__(self, url, name):
         self.url = url
         self.name = name
+
 
 class Help(object):
     def __init__(self, text='undocumented', links=()):
@@ -57,13 +60,13 @@ class Help(object):
         tooltip = self.text.format(*links)
         return tooltip
 
-#help = Help('abc {} def {} dsa', (Link('www.google.de', 'Google'), Link('www.google.de', 'Google')))
-#print(help.html())
-#print(help.tooltip())
-#exit()
+
+# help = Help('abc {} def {} dsa', (Link('www.google.de', 'Google'), Link('www.google.de', 'Google')))
+# print(help.html())
+# print(help.tooltip())
+# exit()
 
 class Cookbook(object):
-
     URL = r'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook'
     R_CLASSIFICATION = 'Classification'
     R_REGRESSION = 'Regression'
@@ -85,8 +88,8 @@ class Cookbook(object):
     def url(cls, key):
         return '{}/{}'.format(cls.URL, cls.LINK[key])
 
-class EnMAPAlgorithm(QgisAlgorithm):
 
+class EnMAPAlgorithm(QgisAlgorithm):
     GROUP_ACCURACY_ASSESSMENT = 'Accuracy Assessment'
     GROUP_AUXILLIARY = 'Auxilliary'
     GROUP_CONVOLUTION = 'Convolution, Morphology and Filtering'
@@ -164,7 +167,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
             for line in traceback.format_exc().split('\n'):
                 feedback.reportError(line)  # .replace('\n', '<br>')
             raise Exception('unexpected error')
-            #return {}
+            # return {}
 
     def addParameter_(self, parameterDefinition, help=None):
         self.addParameter(parameterDefinition=parameterDefinition)
@@ -174,7 +177,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
             help = Help(help)
         assert isinstance(help, Help)
         parameterDefinition._help = help
-        parameterDefinition.toolTip = lambda : help.tooltip()
+        parameterDefinition.toolTip = lambda: help.tooltip()
 
     P_RASTER = 'raster'
 
@@ -238,7 +241,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
         if self.getParameterRaster(name=name) is None:
             return None
         else:
-            return Regression(filename=self.getParameterRaster(name=name).filename(), minOverallCoverage=minOverallCoverage)
+            return Regression(filename=self.getParameterRaster(name=name).filename(),
+                              minOverallCoverage=minOverallCoverage)
 
     P_FRACTION = 'fraction'
 
@@ -295,13 +299,13 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
             if isinstance(mask, Mask):
                 mask = Mask(filename=mask.filename(), noDataValues=mask.noDataValues(),
-                            minOverallCoverage=mask.minOverallCoverage(), indices=mask.indices(), invert=not mask.invert())
+                            minOverallCoverage=mask.minOverallCoverage(), indices=mask.indices(),
+                            invert=not mask.invert())
             elif isinstance(mask, VectorMask):
                 mask = VectorMask(filename=mask.filename(), layer=mask.layer(), invert=True)
             else:
                 assert 0
         return mask
-
 
     P_VECTOR = 'vector'
 
@@ -329,7 +333,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
     P_VECTOR_LIBRARY = 'vectorLibrary'
 
     def addParameterVectorLibrary(self, name=P_VECTOR_LIBRARY, description='Library', defaultValue=None, optional=False,
-                           help=None):
+                                  help=None):
         if help is None:
             help = 'Specify input library.'
 
@@ -381,7 +385,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
                                type=QgsProcessingParameterField.Numeric,
                                help='Vector field specifying the class ids.')
 
-        self.addParameterMinCoverages(defaultValues=minCoveragesDefaultValues, hideMinDominantCoverage=hideMinDominantCoverage)
+        self.addParameterMinCoverages(defaultValues=minCoveragesDefaultValues,
+                                      hideMinDominantCoverage=hideMinDominantCoverage)
         self.addParameterOversampling(defaultValue=oversamplingDefaultValue)
 
     def getParameterVectorClassification(self):
@@ -412,6 +417,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
                                 oversampling=self.getParameterOversampling())
 
     P_MIN_OVERALL_COVERAGE = 'minOverallCoverage'
+
     def addParameterMinOverallCoverage(self, name=P_MIN_OVERALL_COVERAGE, description='Minimal overall coverage',
                                        defaultValue=0.5):
 
@@ -419,10 +425,10 @@ class EnMAPAlgorithm(QgisAlgorithm):
         self.addParameterFloat(name=name, description=description, minValue=0., maxValue=1.,
                                defaultValue=defaultValue, help=help)
 
-
     P_MIN_DOMINANT_COVERAGE = 'minDominantCoverage'
+
     def addParameterMinDominantCoverage(self, name=P_MIN_DOMINANT_COVERAGE, description='Minimal dominant coverage',
-                                       defaultValue=0.5):
+                                        defaultValue=0.5):
 
         help = 'Mask out all pixels that have a coverage of the predominant class less than the specified value. This controls pixel purity.'
         self.addParameterFloat(name=name, description=description, minValue=0., maxValue=1.,
@@ -488,7 +494,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
     P_STRING_LIST = 'stringList'
 
     def addParameterStringList(self, name=P_STRING_LIST, description='StringList', defaultValue=None,
-                           multiLine=False, optional=False, help=None):
+                               multiLine=False, optional=False, help=None):
         self.addParameterString(name=name, description=description, defaultValue=defaultValue,
                                 multiLine=multiLine, optional=optional, help=help)
 
@@ -623,9 +629,11 @@ class EnMAPAlgorithm(QgisAlgorithm):
         return self.DATA_TYPE_TYPES[selection]
 
     P_GDAL_RESAMPLING_ALG = 'resamplingAlg'
-    GDAL_RESAMPLING_ALG_IDS, GDAL_RESAMPLING_ALG_NAMES = zip(*[(gdal.__dict__[key], key[4:]) for key in (gdal.__dict__.keys()) if key.startswith('GRA_')])
+    GDAL_RESAMPLING_ALG_IDS, GDAL_RESAMPLING_ALG_NAMES = zip(
+        *[(gdal.__dict__[key], key[4:]) for key in (gdal.__dict__.keys()) if key.startswith('GRA_')])
 
-    def addParameterGDALResamplingAlg(self, name=P_GDAL_RESAMPLING_ALG, description='Resampling Algorithm', defaultValue=0):
+    def addParameterGDALResamplingAlg(self, name=P_GDAL_RESAMPLING_ALG, description='Resampling Algorithm',
+                                      defaultValue=0):
         self.addParameterEnum(name=name, description=description, options=self.GDAL_RESAMPLING_ALG_NAMES,
                               defaultValue=defaultValue,
                               help='Specify resampling algorithm.')
@@ -661,12 +669,11 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     def getParameterLibrary(self, name=P_LIBRARY):
         filename = self.getParameterFile(name=name)
-        if filename=='':
+        if filename == '':
             library = None
         else:
             library = EnviSpectralLibrary(filename=filename)
         return library
-
 
     '''P_CLASS_DEFINITION = 'classDefinition'
 
@@ -700,11 +707,10 @@ class EnMAPAlgorithm(QgisAlgorithm):
         assert isinstance(classDefinition, ClassDefinition)
         return classDefinition'''
 
-
     P_NUMBER_OF_POINTS = 'numberOfPoints'
 
     def addParameterNumberOfPoints(self, name=P_NUMBER_OF_POINTS, description='Number of Points',
-                                         defaultValue=100, optional=False):
+                                   defaultValue=100, optional=False):
         help = 'Number of points, given as integer or fraction between 0 and 1, to sample from the mask.'
 
         self.addParameterString(name=name, description=description, defaultValue=str(defaultValue), optional=optional,
@@ -721,12 +727,12 @@ class EnMAPAlgorithm(QgisAlgorithm):
                 pass
             elif isinstance(n, float) and n >= 0 and n <= 1:
                 total = funcTotal()
-                n = int(round(n*total))
+                n = int(round(n * total))
             else:
                 parameterDefinition = self.parameterDefinition(name)
-                raise EnMAPAlgorithmParameterValueError('Unexpected parameter value ({}): "{}"'.format(parameterDefinition.name, string))
+                raise EnMAPAlgorithmParameterValueError(
+                    'Unexpected parameter value ({}): "{}"'.format(parameterDefinition.name, string))
         return n
-
 
     P_NUMBER_OF_POINTS_PER_CLASS = 'numberOfPointsPerClass'
 
@@ -771,7 +777,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
     P_OUTPUT_RASTER = 'outRaster'
 
     def addParameterOutputRaster(self, name=P_OUTPUT_RASTER, description='Output Raster', optional=False, help=None):
-        parameter = QgsProcessingParameterRasterDestination(name=name, description=description, optional=optional) #, defaultValue='hello.bsq')
+        parameter = QgsProcessingParameterRasterDestination(name=name, description=description,
+                                                            optional=optional)  # , defaultValue='hello.bsq')
 
         if help is None:
             help = 'Specify output path for raster.'
@@ -786,13 +793,12 @@ class EnMAPAlgorithm(QgisAlgorithm):
         if help is None:
             help = 'Specify output path for the vector.'
         self.addParameter_(QgsProcessingParameterVectorDestination(name=name, description=description
-                                                                   #, defaultValue='hello.bsq'
+                                                                   # , defaultValue='hello.bsq'
                                                                    ),
                            help=help)
 
     def getParameterOutputVector(self, name=P_OUTPUT_VECTOR):
         return self.getParameterOutputFile(name=name)
-
 
     P_OUTPUT_MASK = 'outMask'
 
@@ -826,7 +832,6 @@ class EnMAPAlgorithm(QgisAlgorithm):
     def getParameterOutputRegression(self, name=P_OUTPUT_REGRESSION):
         return self.getParameterOutputFile(name=name)
 
-
     P_OUTPUT_FRACTION = 'outFraction'
 
     def addParameterOutputFraction(self, name=P_OUTPUT_FRACTION, description='Output Fraction',
@@ -846,9 +851,9 @@ class EnMAPAlgorithm(QgisAlgorithm):
         self.addParameter_(QgsProcessingParameterFileDestination(name=name, description=description,
                                                                  defaultValue='{}.html'.format(name),
                                                                  fileFilter='HTML files (*.html)'), help)
-        #self.addOutput(QgsProcessingOutputHtml(name=name, description=description))
+        # self.addOutput(QgsProcessingOutputHtml(name=name, description=description))
 
-#        self.addOutput(QgsProcessingOutputHtml(name=name, description=description))
+    #        self.addOutput(QgsProcessingOutputHtml(name=name, description=description))
 
     def getParameterOutputReport(self, name=P_OUTPUT_REPORT):
         self._progressBar.setText(str(self._parameters))
@@ -946,7 +951,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
                                                                  optional=optional), help=help)
         if help is None:
             help = 'Specify output path for file.'
-        #self.addOutput(QgsProcessingOutputFile(name=name, description=description))
+        # self.addOutput(QgsProcessingOutputFile(name=name, description=description))
 
     def getParameterOutputFile(self, name):
         assert name in self._parameters, name
@@ -1054,6 +1059,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
 
     def helpUrl(self, *args, **kwargs):
         return 'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_manual/processing_algorithms/processing_algorithms.html'
+
 
 class ProgressBar(hubdc.progressbar.ProgressBar):
     def __init__(self, feedback):
