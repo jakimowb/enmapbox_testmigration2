@@ -354,9 +354,12 @@ def run():
     enmapbox.__main__.run()
 
 
-# skip imports when on RTD, as we can not install the full QGIS environment as required
+# skip imports when QGIS is not properly setup.
+# this is the case e.g. in an Read-the-docs environment, when the source code needs just to be there,
+# but not its dependencies
 # https://docs.readthedocs.io/en/stable/builds.html
-if not os.environ.get('READTHEDOCS') in ['True', 'TRUE', True]:
+# print(f'QGIS_PREFIX_PATH={QgsApplication.prefixPath()}')
+if not os.environ.get('READTHEDOCS', False) in [True, 'True']:
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EnMAPBox = EnMAPBox
 

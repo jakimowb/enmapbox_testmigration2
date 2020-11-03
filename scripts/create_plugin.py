@@ -20,26 +20,20 @@
 """
 # noinspection PyPep8Naming
 
-import os, sys, re, shutil, zipfile, datetime, requests, http, mimetypes, pathlib
-import docutils
-import docutils.writers
-from qgis.PyQt.QtXml import *
-import typing
 import argparse
-from enmapbox.gui.utils import file_search
-
-from requests.auth import HTTPBasicAuth
-from http.client import responses
-import xml.etree.ElementTree as ET
-
-from qgis.PyQt.QtCore import *
-
-from enmapbox.gui.utils import zipdir
-from qgis.core import QgsFileUtils
-from enmapbox.externals.qps.make.deploy import QGISMetadataFileWriter
+import datetime
+import os
+import pathlib
+import re
+import shutil
+import sys
+import typing
 
 import enmapbox
 from enmapbox import DIR_REPO, __version__
+from enmapbox.externals.qps.make.deploy import QGISMetadataFileWriter
+from enmapbox.gui.utils import zipdir
+from qgis.core import QgsFileUtils
 
 MAX_PLUGIN_SIZE = 10 # max plugin size in MB
 CHECK_COMMITS = False
@@ -66,7 +60,7 @@ MD.mEmail = 'enmapbox@enmap.org'
 
 ########## End of config section
 
-def scantree(path, pattern=re.compile('.$')) -> typing.Iterator[pathlib.Path]:
+def scantree(path, pattern=re.compile(r'.$')) -> typing.Iterator[pathlib.Path]:
     """
     Recursively returns file paths in directory
     :param path: root directory to search in
@@ -131,7 +125,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
     # add special files required by EnMAP-Box Applications
     files.extend(list(scantree(DIR_REPO / 'enmapbox' / 'apps' / 'lmuvegetationapps',
-                               pattern=re.compile('\.(meta|srf)$'))))
+                               pattern=re.compile(r'\.(meta|srf)$'))))
 
     # add unit tests
     files.extend(list(scantree(DIR_REPO / 'enmapboxtesting', pattern=re.compile(r'\.py$'))))
