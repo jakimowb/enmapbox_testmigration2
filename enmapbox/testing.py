@@ -30,12 +30,15 @@ import uuid
 import warnings
 import pathlib
 import sip
-from qgis.core import *
-from qgis.gui import *
+from qgis.core import QgsApplication, QgsProcessingAlgorithm, \
+    QgsProcessingParameterRasterDestination, QgsProcessingParameterNumber, \
+    QgsProcessingContext, QgsProcessingFeedback, QgsProcessingParameterRasterLayer, \
+    QgsPythonRunner, QgsProcessingAlgorithm
+from qgis.gui import QgsPluginManagerInterface
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
-from .externals.qps.testing import TestObjects, WFS_Berlin, WMS_GMAPS, WMS_OSM, TestCase
+from .externals.qps.testing import TestObjects, WFS_Berlin, WMS_GMAPS, WMS_OSM, TestCase, QgisMockup
 import qgis.utils
 import numpy as np
 from osgeo import gdal, ogr, osr
@@ -211,8 +214,6 @@ class TestObjects(TestObjects):
 
     @staticmethod
     def processingAlgorithm():
-
-        from qgis.core import QgsProcessingAlgorithm
 
         class TestProcessingAlgorithm(QgsProcessingAlgorithm):
 

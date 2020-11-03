@@ -34,12 +34,14 @@ import xml.etree.ElementTree as ET
 
 from qgis.PyQt.QtCore import *
 
+from enmapbox.gui.utils import zipdir
+from qgis.core import QgsFileUtils
 from enmapbox.externals.qps.make.deploy import QGISMetadataFileWriter
 
 import enmapbox
 from enmapbox import DIR_REPO, __version__
 
-
+MAX_PLUGIN_SIZE = 10 # max plugin size in MB
 CHECK_COMMITS = False
 
 ########## Config Section
@@ -56,15 +58,15 @@ MD.mCategory = 'Analysis'
 MD.mAuthor = 'Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden'
 MD.mIcon = 'enmapbox/gui/ui/icons/enmapbox.png'
 MD.mHomepage = 'http://www.enmap.org/'
-MD.mAbout = 'The EnMAP-Box is designed to process and visualize hyperspectral remote sensing data, and particularly developed to handle EnMAP products.'
-MD.mTracker = 'https://bitbucket.org/hu-geomatics/enmap-box/issues'
-MD.mRepository = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
-MD.mQgisMinimumVersion = '3.10'
+MD.mAbout = enmapbox.ABOUT
+MD.mTracker = enmapbox.ISSUE_TRACKER
+MD.mRepository = enmapbox.REPOSITORY
+MD.mQgisMinimumVersion = enmapbox.MIN_VERSION_QGIS
 MD.mEmail = 'enmapbox@enmap.org'
 
 ########## End of config section
 
-def scantree(path, pattern=re.compile('.$')) -> typing.Iterator[pathlib.Path]:
+def scantree(path, pattern=re.compile(r'.$')) -> typing.Iterator[pathlib.Path]:
     """
     Recursively returns file paths in directory
     :param path: root directory to search in
@@ -114,19 +116,23 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     MD.mVersion = BUILD_NAME
     MD.writeMetadataTxt(PATH_METADATAFILE)
 
-    #1. (re)-compile all enmapbox resource files
-
+    # 1. (re)-compile all enmapbox resource files
     from scripts.compile_resourcefiles import compileEnMAPBoxResources
     compileEnMAPBoxResources()
 
     # copy python and other resource files
-    pattern = re.compile(r'\.(sli|hdr|py|svg|png|txt|ui|tif|qml|md|js|css)$')
+    pattern = re.compile(r'\.(sli|hdr|py|svg|png|txt|ui|tif|qml|md|js|css|json)$')
     files = list(scantree(DIR_REPO / 'enmapbox', pattern=pattern))
     files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdc', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdsm', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
+
+    # add special files required by EnMAP-Box Applications
+    files.extend(list(scantree(DIR_REPO / 'enmapbox' / 'apps' / 'lmuvegetationapps',
+                               pattern=re.compile('\.(meta|srf)$'))))
+
     # add unit tests
     files.extend(list(scantree(DIR_REPO / 'enmapboxtesting', pattern=re.compile(r'\.py$'))))
     files.append(DIR_REPO / '__init__.py')
@@ -155,7 +161,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     f.close()
 
     # include test data into test versions
-    if include_testdata and not re.search(currentBranch, 'master', re.I):
+    if include_testdata:
         if os.path.isdir(enmapbox.DIR_TESTDATA):
             shutil.copytree(enmapbox.DIR_TESTDATA, PLUGIN_DIR / 'enmapboxtestdata')
 
@@ -167,9 +173,20 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
     # 5. create a zip
     print('Create zipfile...')
-    from enmapbox.gui.utils import zipdir
-
     zipdir(PLUGIN_DIR, PLUGIN_ZIP)
+
+    pluginSize: int = os.stat(PLUGIN_ZIP).st_size
+
+    if pluginSize > MAX_PLUGIN_SIZE * 2**20:
+        msg = f'{PLUGIN_ZIP.name} ({QgsFileUtils.representFileSize(pluginSize)}) ' + \
+              f'exceeds maximum plugin size ({MAX_PLUGIN_SIZE} MB)'
+
+        if re.search(currentBranch, 'master', re.I):
+            raise Exception(msg)
+        else:
+            print(msg, file=sys.stderr)
+    else:
+        print(f'Plugin Size ({QgsFileUtils.representFileSize(pluginSize)}) ok.')
 
     # 7. install the zip file into the local QGIS instance. You will need to restart QGIS!
     if True:
@@ -184,13 +201,6 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
         info.append('## press ENTER\n')
 
         print('\n'.join(info))
-
-        from qgis.PyQt.QtGui import QClipboard, QGuiApplication
-
-        #cb = QGuiApplication.clipboard()
-        #if isinstance(cb, QClipboard):
-        #    cb.setText('\n'.join(info))
-
 
     print('Finished')
 
@@ -256,219 +266,6 @@ def createCHANGELOG(dirPlugin):
             f.write('\n'.join(html_cleaned))
     s = ""
 
-
-def updateRepositoryXML(path:str=None):
-    """
-    Creates the XML files:
-        deploy/qgis_plugin_develop.xml - to be uploaded to the bitbucket repository
-        deploy/qgis_plugin_develop_local.xml - can be used as local QGIS Repository source
-    :param path: str, optional, path of local *.zip which has been build with build()
-    :return:
-    """
-    if not isinstance(path, str):
-        zipFiles = list(file_search(DIR_DEPLOY, PLUGIN_NAME+'*.zip'))
-        zipFiles.sort(key=lambda f:os.path.getctime(f))
-        path = zipFiles[-1]
-
-    assert isinstance(path, str)
-    assert os.path.isfile(path)
-    assert os.path.splitext(path)[1] == '.zip'
-
-    os.makedirs(DIR_DEPLOY, exist_ok=True)
-    bn = os.path.basename(path)
-    version = re.search(r'^' + PLUGIN_NAME + '\.(.*)\.zip$', bn).group(1)
-    s = ""
-    """
- <?xml-stylesheet type="text/xsl" href="plugins.xsl" ?>
-<plugins>
-   <pyqgis_plugin name="EnMAP-Box (develop version)" version="3.2.20180904T1723.DEVELOP">
-        <description><![CDATA[EnMAP-Box development version]]></description>
-        <about><![CDATA[EnMAP-Box Preview.]]></about>
-        <version>3.2.20180904T1723.DEVELOP</version>
-        <trusted>True</trusted>
-        <qgis_minimum_version>3.4.4</qgis_minimum_version>
-        <qgis_maximum_version>3.99.0</qgis_maximum_version>
-        <homepage><![CDATA[https://bitbucket.org/hu-geomatics/enmap-box/]]></homepage>
-        <file_name>EnMAP-Box.3.3.20180904T1723.develop.snapshot.zip</file_name>
-        <icon></icon>
-        <author_name><![CDATA[HU Geomatics]]></author_name>
-        <download_url>https://bitbucket.org/hu-geomatics/enmap-box/downloads/enmapboxplugin.3.2.20180904T1723.develop.snapshot.zip</download_url>
-        <uploaded_by><![CDATA[jakimowb]]></uploaded_by>
-        <experimental>False</experimental>
-        <deprecated>False</deprecated>
-        <tracker><![CDATA[https://bitbucket.org/hu-geomatics/enmap-box/issues/]]></tracker>
-        <repository><![CDATA[https://bitbucket.org/hu-geomatics/enmap-box/src]]></repository>
-        <tags><![CDATA[Remote Sensing]]></tags>
-        <downloads>0</downloads>
-        <average_vote>0.0</average_vote>
-        <rating_votes>0</rating_votes>
-        <external_dependencies></external_dependencies>
-        <server>True</server>
-    </pyqgis_plugin>
-</plugins>
-    """
-    download_url = URL_DOWNLOADS+'/'+bn
-
-    root = ET.Element('plugins')
-    plugin = ET.SubElement(root, 'pyqgis_plugin')
-    plugin.attrib['name'] = "EnMAP-Box (develop version)"
-    plugin.attrib['version'] = '{}'.format(version)
-    ET.SubElement(plugin, 'description').text = r'EnMAP-Box development version'
-    ET.SubElement(plugin, 'about').text = 'Preview'
-    ET.SubElement(plugin, 'version').text = version
-    ET.SubElement(plugin, 'qgis_minimum_version').text = '3.4'
-    ET.SubElement(plugin, 'qgis_maximum_version').text = '3.99'
-    ET.SubElement(plugin, 'homepage').text = enmapbox.HOMEPAGE
-    ET.SubElement(plugin, 'file_name').text = bn
-    ET.SubElement(plugin, 'icon').text = 'enmapbox.png'
-    ET.SubElement(plugin, 'author_name').text = 'Andreas Rabe, Benjamin Jakimow, Fabian Thiel, Sebastian van der Linden'
-    ET.SubElement(plugin, 'download_url').text = download_url
-    ET.SubElement(plugin, 'deprecated').text = 'False'
-    #is this a supported tag????
-    #ET.SubElement(plugin, 'external_dependencies').text = ','.join(enmapbox.DEPENDENCIES)
-    ET.SubElement(plugin, 'tracker').text = enmapbox.ISSUE_TRACKER
-    ET.SubElement(plugin, 'repository').text = enmapbox.REPOSITORY
-    ET.SubElement(plugin, 'tags').text = 'Remote Sensing, Raster'
-    ET.SubElement(plugin, 'experimental').text = 'False'
-
-    tree = ET.ElementTree(root)
-
-    xml = ET.tostring(root)
-    dom = minidom.parseString(xml)
-    #<?xml version="1.0"?>
-    #<?xml-stylesheet type="text/xsl" href="plugins.xsl" ?>
-    #pi1 = dom.createProcessingInstruction('xml', 'version="1.0"')
-    url_xsl = 'https://plugins.qgis.org/static/style/plugins.xsl'
-    pi2 = dom.createProcessingInstruction('xml-stylesheet', 'type="text/xsl" href="{}"'.format(url_xsl))
-
-    dom.insertBefore(pi2, dom.firstChild)
-
-    xmlRemote = dom.toprettyxml(encoding='utf-8').decode('utf-8')
-
-    with open(PLUGIN_REPO_XML_REMOTE, 'w') as f:
-        f.write(xmlRemote)
-
-    import pathlib
-    uri = pathlib.Path(path).as_uri()
-    xmlLocal = re.sub(r'<download_url>.*</download_url>', r'<download_url>{}</download_url>'.format(uri), xmlRemote)
-    with open(PLUGIN_REPO_XML_LOCAL, 'w') as f:
-        f.write(xmlLocal)
-
-   # tree.write(pathXML, encoding='utf-8', pretty_print=True, xml_declaration=True)
-    #https://bitbucket.org/hu-geomatics/enmap-box/raw/HEAD/qgis_plugin_develop.xml
-
-def uploadDeveloperPlugin():
-    urlDownloads = 'https://api.bitbucket.org/2.0/repositories/hu-geomatics/enmap-box/downloads'
-    assert os.path.isfile(PLUGIN_REPO_XML_REMOTE)
-
-    if True:
-        #copy to head
-        bnXML = os.path.basename(PLUGIN_REPO_XML_REMOTE)
-        pathNew = os.path.join(DIR_REPO, bnXML)
-        print('Copy {}\n\tto {}'.format(PLUGIN_REPO_XML_REMOTE, pathNew))
-        shutil.copy(PLUGIN_REPO_XML_REMOTE, pathNew)
-
-        try:
-            import git
-            REPO = git.Repo(DIR_REPO)
-            for diff in REPO.index.diff(None):
-                if diff.a_path == bnXML:
-                    REPO.git.execute(['git', 'commit', '-m', "'updated {}'".format(bnXML), bnXML])
-
-            REPO.git.push()
-        except Exception as ex:
-            print(ex,file=sys.stderr)
-
-    UPLOADS = {urlDownloads:[]}    #urlRepoXML:[PLUGIN_REPO_XML],
-                #urlDownloads:[PLUGIN_REPO_XML]}
-    doc = minidom.parse(PLUGIN_REPO_XML_REMOTE)
-    for tag in doc.getElementsByTagName('file_name'):
-        bn = tag.childNodes[0].nodeValue
-        pathFile = os.path.join(DIR_DEPLOY, bn)
-        assert os.path.isfile(pathFile)
-        UPLOADS[urlDownloads].append(pathFile)
-
-    for url, paths in UPLOADS.items():
-        UPLOADS[url] = [p.replace('\\','/') for p in paths]
-
-    skeyUsr = 'enmapbox-repo-username'
-    settings = QSettings('HU Geomatics', 'enmabox-development-team')
-    usr = settings.value(skeyUsr, '')
-    pwd = ''
-    auth = HTTPBasicAuth(usr, pwd)
-    auth_success = False
-    while not auth_success:
-        try:
-            if False: #print curl command(s) to be used in shell
-                print('# CURL command(s) to upload enmapbox plugin build')
-                for url, paths in UPLOADS.items():
-
-                    cmd = ['curl']
-                    if auth.username:
-                        tmp = '-u {}'.format(auth.username)
-                        if auth.password:
-                            tmp += ':{}'.format(auth.password)
-                        cmd.append(tmp)
-                        del tmp
-                    cmd.append('-X POST {}'.format(urlDownloads))
-                    for f in paths:
-                        cmd.append('-F files=@{}'.format(f))
-                    cmd = ' '.join(cmd)
-
-                    print(cmd)
-                    print('# ')
-            # files = {'file': ('test.csv', 'some,data,to,send\nanother,row,to,send\n')}
-
-            if True: #upload
-
-                session = requests.Session()
-                session.auth = auth
-
-                for url, paths in UPLOADS.items():
-                    for path in paths:
-                        print('Upload {} \n\t to {}...'.format(path, url))
-                        #mimeType = mimetypes.MimeTypes().guess_type(path)[0]
-                        #files = {'file': (open(path, 'rb'), mimeType)}
-                        files = {'files':open(path, 'rb')}
-
-                        r = session.post(url, auth=auth, files=files)
-                        #r = requests.post(url, auth=auth, data = open(path, 'rb').read())
-                        r.close()
-                        assert isinstance(r, requests.models.Response)
-
-                        for f in files.values():
-                            if isinstance(f, tuple):
-                                f = f[0]
-                            f.close()
-
-                        info = 'Status {} "{}"'.format(r.status_code, responses[r.status_code])
-                        if r.status_code == 401:
-                            print(info, file=sys.stderr)
-                            from qgis.gui import QgsCredentialDialog
-                            #from qgis.core import QgsCredentialsConsole
-
-                            d = QgsCredentialDialog()
-                            #d = QgsCredentialsConsole()
-                            ok, usr, pwd = d.request(url, auth.username, auth.password)
-                            if ok:
-                                auth.username = usr
-                                auth.password = pwd
-                                session.auth = auth
-                                continue
-                            else:
-
-                                raise Exception('Need credentials to access {}'.format(url))
-                        elif not r.status_code in [200,201]:
-                            print(info, file=sys.stderr)
-                        else:
-                            print(info)
-                            auth_success = True
-
-        except Exception as ex:
-            pass
-
-    if auth_success:
-        settings.setValue(skeyUsr, session.auth.username)
 
 
 if __name__ == "__main__":

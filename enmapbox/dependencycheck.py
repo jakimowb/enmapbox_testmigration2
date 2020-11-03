@@ -60,10 +60,9 @@ INSTALLATION_HINT = {
     # 'enpt_enmapboxapp' : 'git+https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git'
 }
 
-INSTALLATION_BLOCK = {'numba': 'should to be installed manually using the local package manager.\n' +
-                               'please read <a href="https://numba.pydata.org/numba-doc/dev/user/installing.html">' +
-                               'https://numba.pydata.org/numba-doc/dev/user/installing.html</a> for details',
-
+INSTALLATION_BLOCK = {#'numba': 'should to be installed manually using the local package manager.\n' +
+                      #         'please read <a href="https://numba.pydata.org/numba-doc/dev/user/installing.html">' +
+                      #         'https://numba.pydata.org/numba-doc/dev/user/installing.html</a> for details',
                       'numpy': 'needs to be installed/updated manually with local package manager',
                       'GDAL': 'needs to be installed/updated manually with local package manager'
                       }

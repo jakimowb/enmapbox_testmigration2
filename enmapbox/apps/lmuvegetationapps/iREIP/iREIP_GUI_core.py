@@ -540,15 +540,15 @@ class iREIP:
                 if self.division_factor != 1.0:
                     self.iiREIP.in_raster = np.divide(self.iiREIP.in_raster, self.division_factor)
 
-            try:  # give it a shot
-                result, first_deriv, second_deriv = self.iiREIP.execute_iREIP(
-                    in_raster=self.iiREIP.in_raster,
-                    prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
-            except:
-                QMessageBox.critical(self.gui, 'error', "Calculation cancelled.")
-                self.main.prg_widget.gui.allow_cancel = True
-                self.main.prg_widget.gui.close()
-                return
+            # try:  # give it a shot
+            result, first_deriv, second_deriv = self.iiREIP.execute_iREIP(
+                in_raster=self.iiREIP.in_raster,
+                prg_widget=self.main.prg_widget, QGis_app=self.main.QGis_app)
+            # except:
+            # QMessageBox.critical(self.gui, 'error', "Calculation cancelled.")
+            # self.main.prg_widget.gui.allow_cancel = True
+            # self.main.prg_widget.gui.close()
+            # return
 
             self.main.prg_widget.gui.lblCaption_r.setText("Writing REIP Output-File")
             self.main.QGis_app.processEvents()
@@ -907,7 +907,7 @@ class iREIP_core:
                     except ZeroDivisionError:
                         NDVI = 0
                     self.prgbar_process(pixel_no=row * self.ncols + col)
-                    if NDVI > 0.85 and NDVI <= 1.0:
+                    if NDVI > 0.85 and NDVI < 0.9:
                         self.NDVI = NDVI
                         self.row = row
                         self.col = col

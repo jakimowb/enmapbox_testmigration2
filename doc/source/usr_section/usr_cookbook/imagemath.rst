@@ -18,19 +18,12 @@ Calculate NDVI
 
   .. code-block:: python
 
-     # retrieve nodata value
-     nodata = noDataValue(enmap)
      # select the red band
      red = enmap[38]
      # select the nir band
      nir = enmap[64]
      # calculate ndvi
      ndvi = (nir-red)/(nir+red)
-     # set all cells to nodata that where nodata before
-     ndvi[red == nodata] = nodata
-     # set nodata value in the metadata
-     setNoDataValue(ndvi, nodata)
-
 
 * Click the run button |action|. The result should be listed in the :guilabel:`Data Sources` panel.
 

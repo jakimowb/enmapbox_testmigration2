@@ -132,6 +132,14 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertIsInstance(d, AboutDialog)
         self.showGui(d)
 
+    def test_findqgisresources(self):
+        from enmapbox.externals.qps.resources import findQGISResourceFiles
+        results = findQGISResourceFiles()
+        print('QGIS Resource files:')
+        for p in results:
+            print(p)
+        self.assertTrue(len(results) > 0)
+
     def test_instance_pure(self):
         EMB = EnMAPBox(load_other_apps=False, load_core_apps=False)
 
@@ -141,9 +149,20 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
 
     def test_instance_all_apps(self):
-        enmapbox = EnMAPBox(load_core_apps=True, load_other_apps=True)
-        self.assertIsInstance(enmapbox, EnMAPBox)
-        self.showGui(enmapbox.ui)
+        EMB = EnMAPBox(load_core_apps=True, load_other_apps=True)
+        self.assertIsInstance(EMB, EnMAPBox)
+        self.showGui(EMB.ui)
+
+    def test_instance_coreapps(self):
+        EMB = EnMAPBox(load_core_apps=True, load_other_apps=False)
+
+        algo = 'enmapbox:CreateTestClassifierRandomForest'
+        from processing.gui.AlgorithmDialog import AlgorithmDialog
+        alg = QgsApplication.processingRegistry().algorithmById(algo)
+        dlg = AlgorithmDialog(alg.create(), in_place=False, parent=EMB.ui)
+        dlg.runButton().click()
+
+        self.showGui(EMB.ui)
 
     def test_instance_coreapps_and_data(self):
 
@@ -159,7 +178,16 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         import qgis.utils
         QgsProject.instance()
         qgis.utils.iface.actionSaveProject().trigger()
-        self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
+
+
+        EMB.dockTreeView().sigPopulateContextMenu.connect(
+            lambda *args: print(f'sigPopulateContextMenu DockTreeView {args}'))
+        EMB.dataSourceTreeView().sigPopulateContextMenu.connect(
+            lambda *args: print(f'sigPopulateContextMenu DataSourceView {args}'))
+
+
+        self.showGui([EMB.ui, qgis.utils.iface.mainWindow()])
+
 
     def test_Qgis(self):
 
@@ -167,9 +195,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         from enmapboxtestdata import enmap, landcover_polygons
         from qgis.utils import iface
         from enmapbox.testing import WMS_OSM, WMS_GMAPS, WFS_Berlin
-        layers = []
-        layers.append(QgsRasterLayer(enmap))
-        layers.append(QgsVectorLayer(landcover_polygons))
+        layers = [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons)]
         # layers.append(QgsRasterLayer(WMS_OSM, 'osm', 'wms'))
         # layers.append(QgsVectorLayer(WFS_Berlin, 'wfs', 'WFS'))
 
@@ -310,9 +336,11 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
         # load
         E.loadExampleData()
+        QApplication.processEvents()
+
         self.assertTrue(len(E.dataSources()) > 0)
         ns = len(E.dataSources('SPATIAL'))
-        self.assertTrue(len(QgsProject.instance().mapLayers()) > 0)
+        #self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
 
         # add layer to map
         mapDock.addLayers([TestObjects.createRasterLayer()])

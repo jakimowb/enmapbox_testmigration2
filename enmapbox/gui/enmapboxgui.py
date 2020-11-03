@@ -28,7 +28,7 @@ from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, \
     QgsProcessingAlgorithm, QgsApplication, Qgis, QgsCoordinateReferenceSystem, QgsWkbTypes, \
     QgsMapLayerStore, QgsPointXY, QgsLayerTreeGroup, QgsLayerTree, QgsLayerTreeLayer, QgsVectorLayerTools, \
     QgsZipUtils, QgsProjectArchive, QgsSettings, \
-    QgsStyle, QgsSymbolLegendNode, QgsSymbol
+    QgsStyle, QgsSymbolLegendNode, QgsSymbol, QgsTaskManager, QgsApplication, QgsTask, QgsProcessingAlgRunnerTask
 
 from qgis.gui import QgsMapCanvas, QgsLayerTreeView, \
     QgisInterface, QgsMessageBar, QgsMessageViewer, QgsMessageBarItem, QgsMapLayerConfigWidgetFactory, \
@@ -42,6 +42,7 @@ from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
 from enmapbox.dependencycheck import requiredPackages, missingPackageInfo
+from hubdsm.processing.importdesisl2a import ImportDesisL2A
 from hubdsm.processing.importenmapl1b import ImportEnmapL1B
 from hubdsm.processing.importenmapl1c import ImportEnmapL1C
 from hubdsm.processing.importenmapl2a import ImportEnmapL2A
@@ -176,6 +177,7 @@ class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
         if 'canvas' in kwds.keys():
             canvas = kwds.pop('canvas')
 
+        #assert isinstance(canvas, QgsMapCanvas)
         super().__init__(*args, **kwds)
         self.setUseLayerName(False)
 
@@ -267,6 +269,8 @@ class EnMAPBox(QgisInterface, QObject):
 
     sigProjectWillBeSaved = pyqtSignal()
 
+    sigDockAdded = pyqtSignal(Dock)
+
     """Main class that drives the EnMAPBox_GUI and all the magic behind"""
 
     def __init__(self,
@@ -289,6 +293,8 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui = EnMAPBoxUI()
         self.ui.closeEvent = self.closeEvent
+
+        self.mHiddenLayerGroup : QgsLayerTreeGroup = None
 
         self.initQgisInterfaceVariables()
         if not isinstance(iface, QgisInterface):
@@ -329,6 +335,8 @@ class EnMAPBox(QgisInterface, QObject):
         QgsProject.instance().layersWillBeRemoved.connect(self.onLayersWillBeRemoved)
         QgsProject.instance().writeProject.connect(self.onWriteProject)
         QgsProject.instance().readProject.connect(self.onReadProject)
+
+        QgsApplication.taskManager().taskAdded.connect(self.onTaskAdded)
 
         # needed to keep a reference on created LayerTreeNodes
         self._layerTreeNodes = []
@@ -673,32 +681,24 @@ class EnMAPBox(QgisInterface, QObject):
         self.removeMapLayers(layers, remove_from_project=False)
 
     def syncHiddenLayers(self):
+        """
+        Updates the hidden layers node in the QGIS LayerTree.
+        This is important as only layers in the QGIS LayerTree will be shown in the QgsMapLayerComboBox.
 
+        :return:
+        """
 
         grp = self.hiddenLayerGroup()
-        if isinstance(grp, QgsLayerTreeGroup):
+        if isinstance(grp, EnMAPBoxHiddenLayerTreeGroup):
             knownInQGIS = [l.layerId() for l in grp.findLayers() if isinstance(l.layer(), QgsMapLayer)]
 
-            # search in data sources
-            knownAsDataSource = []
-            for ds in self.dataSourceManager():
-                if isinstance(ds, DataSourceSpatial):
-                    id = ds.mapLayerId()
-                    if id not in [None, '']:
-                        knownAsDataSource.append(id)
-            knownAsCanvasLayer = self.mapLayerIds()
-            knownInEnMAPBox = knownAsDataSource + knownAsCanvasLayer
-            knownInRegistry = list(QgsProject.instance().mapLayers().keys())
-
-            L2C = dict()  # which layer is visible in which canvas?
-            for lid in knownInEnMAPBox:
-                L2C[lid] = None
-                for c in self.mapCanvases():
-                    assert isinstance(c, QgsMapCanvas)
-                    for lyr in c.layers():
-                        if isinstance(lyr, QgsMapLayer) and not sip.isdeleted(lyr) and lyr.id() == lid:
-                            L2C[lid] = c
-                            break
+            # which layer is visible in which canvas?
+            L2C = dict()
+            for mapDockNode in self.dockManagerTreeModel().mapDockTreeNodes():
+                for lid in mapDockNode.findLayerIds():
+                    if lid not in L2C.keys():
+                        L2C[lid] = mapDockNode.mapCanvas()
+            knownInEnMAPBox = list(L2C.keys())
 
             toAdd = [l for l in knownInEnMAPBox if l not in knownInQGIS]
             toRemove = [l for l in knownInQGIS if l not in knownInEnMAPBox]
@@ -707,7 +707,7 @@ class EnMAPBox(QgisInterface, QObject):
             for lid in toAdd:
                 assert isinstance(lid, str)
                 lyr = QgsProject.instance().mapLayer(lid)
-                if isinstance(lyr, QgsMapLayer):
+                if isinstance(lyr, QgsMapLayer) and not sip.isdeleted(lyr):
                     node = EnMAPBoxLayerTreeLayer(lyr)
                     self._layerTreeNodes.append(node)
                     grp.addChildNode(node)
@@ -727,8 +727,11 @@ class EnMAPBox(QgisInterface, QObject):
             # update layer title according to its position in the EnMAP-Box
             for node in grp.children():
                 if isinstance(node, EnMAPBoxLayerTreeLayer):
+                    if node.layerId() not in L2C.keys():
+                        s = ""
                     node.setCanvas(L2C.get(node.layerId(), None))
 
+            # in case the currentNode is is the hidden group, set the current QGIS node to the top
             currentGroupNode = qgis.utils.iface.layerTreeView().currentGroupNode()
             if currentGroupNode == grp:
                 qgis.utils.iface.layerTreeView().setCurrentIndex(QModelIndex())
@@ -1018,6 +1021,11 @@ class EnMAPBox(QgisInterface, QObject):
         a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportEnmapL2A()))
         menu.insertAction(separator, a)
 
+        a = QAction('DESIS L2A', parent=menu)
+        a.setToolTip('Import DESIS L2A product')
+        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportDesisL2A()))
+        menu.insertAction(separator, a)
+
         a = QAction('PRISMA L2D', parent=menu)
         a.setToolTip('Import PRISMA L2D product')
         a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportPrismaL2D()))
@@ -1074,7 +1082,28 @@ class EnMAPBox(QgisInterface, QObject):
     def spectralProfileBridge(self) -> SpectralProfileBridge:
         return self.ui.spectralProfileSourcePanel.bridge()
 
-    sigDockAdded = pyqtSignal(Dock)
+    def onTaskAdded(self, taskID: int):
+        """
+        Connects QgsTasks that have been added to the QgsTaskManager with signales, e.g. to react in outputs.
+        :param taskID:
+        :return:
+        """
+        tm: QgsTaskManager = QgsApplication.taskManager()
+        task = tm.task(taskID)
+        if isinstance(task, QgsProcessingAlgRunnerTask):
+            task.executed.connect(self.onProcessingAlgTaskCompleted)
+
+    def onProcessingAlgTaskCompleted(self, ok: bool, results: dict):
+        """
+        Handles results of QgsProcessingAlgRunnerTasks that have been processed with the QgsTaskManager
+        :param ok:
+        :param results:
+        :return:
+        """
+        if ok:
+            if isinstance(results, dict):
+
+                self.addSources(list(results.values()))
 
     def onDockAdded(self, dock):
         assert isinstance(dock, Dock)
@@ -1458,7 +1487,7 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigSpectralLibraryAdded[SpectralLibrary].emit(dataSource.speclib())
             self.sigSpectralLibraryAdded[DataSourceSpectralLibrary].emit(dataSource)
 
-        if isinstance(dataSource, DataSourceSpatial):
+        if False and isinstance(dataSource, DataSourceSpatial):
             self.addMapLayer(dataSource.mapLayer())
 
     def restoreProject(self):
@@ -1719,7 +1748,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.mDataSourceManager.close()
         self.ui.close()
 
-    def hiddenLayerGroup(self) -> QgsLayerTreeGroup:
+    def hiddenLayerGroup(self) -> EnMAPBoxHiddenLayerTreeGroup:
         """
         Returns the hidden QgsLayerTreeGroup in the QGIS Layer Tree
         :return: QgsLayerTreeGroup
@@ -1745,7 +1774,7 @@ class EnMAPBox(QgisInterface, QObject):
         hide: bool = self.ui.optionShowHiddenLayersNode.isChecked() is False
         grp.setCustomProperty('nodeHidden', 'true' if hide else 'false')
         ltv.setRowHidden(index.row(), index.parent(), hide)
-
+        self.mHiddenLayerGroup = grp
         return grp
 
     """

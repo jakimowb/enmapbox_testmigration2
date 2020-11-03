@@ -1,13 +1,13 @@
 import unittest
 import xmlrunner
+import os
+import numpy as np
 from osgeo import gdal, gdal_array, osr
-
-from qgis.core import QgsRasterLayer, QgsProject, QgsRasterRenderer, QgsRectangle
-
+from qgis.core import QgsRasterLayer, QgsProject, QgsRasterRenderer, QgsRectangle, QgsCoordinateReferenceSystem
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-
-from imagecubeapp.imagecube import *
-
+from imagecubeapp.imagecube import samplingGrid, ImageCubeRenderJob, ImageCubeWidget, GLItem
+from enmapboxtestdata import enmap as pathEnMAP
+from enmapboxtestdata import hires as pathHyMap
 
 class VTest(EnMAPBoxTestCase):
 
@@ -80,12 +80,6 @@ class VTest(EnMAPBoxTestCase):
         W = ImageCubeWidget()
         W.show()
 
-        from enmapboxtestdata import enmap as pathEnMAP
-        from enmapboxtestdata import hires as pathHyMap
-
-        pathLargeImage = r'R:\temp\temp_bj\Cerrado\cerrado_evi.vrt'
-        pathLargeImage = r'Q:\Processing_BJ\01_Data\level2\X0016_Y0046\20140803_LEVEL2_LND07_BOA.tif'
-
         layers = [self.createImageCube(ns=100, nl=200)]
         pathes = [pathEnMAP, pathHyMap]
         for p in pathes:
@@ -138,6 +132,11 @@ class VTest(EnMAPBoxTestCase):
             W.startDataLoading()
 
         self.showGui(W)
+
+    def test_noLayers(self):
+
+        w = ImageCubeWidget()
+        self.showGui(w)
 
     def test_extent(self):
 

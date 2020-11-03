@@ -409,7 +409,7 @@ class standardDataSources(EnMAPBoxTestCase):
             for dataSource in dsl:
                 self.assertIsInstance(dataSource, DataSource)
 
-                node = CreateNodeFromDataSource(dataSource)
+                node = createNodeFromDataSource(dataSource)
                 self.assertIsInstance(node, DataSourceTreeNode)
 
     def test_registryresponse(self):
@@ -540,50 +540,6 @@ class standardDataSources(EnMAPBoxTestCase):
                     if n > 3:
                         break
 
-    def test_hubflowsources(self):
-
-        from hubflow.testdata import enmapClassification, vector, enmap
-        from hubflow.core import FlowObject
-        hubFlowObjects = [vector(), enmap(), enmapClassification()]
-        # hubFlowObjects = [vector()]
-        # hubFlowObjects = [enmapClassification()]
-
-        for obj in hubFlowObjects:
-            isObj, o = DataSourceFactory.isHubFlowObj(obj)
-            self.assertTrue(isObj)
-            self.assertIsInstance(o, FlowObject)
-
-            ds = DataSourceFactory.create(obj)
-            self.assertIsInstance(ds, list)
-            self.assertIsInstance(ds[0], HubFlowDataSource)
-
-        for o in hubFlowObjects:
-            node = HubFlowObjectTreeNode(None)
-            self.assertIsInstance(node, DataSourceTreeNode)
-            ds = DataSourceFactory.create(o)[0]
-            assert isinstance(ds, HubFlowDataSource)
-
-            node.fetchInternals(node, ds.flowObject())
-            self.assertTrue(len(node.childNodes()) > 0)
-            node.connectDataSource(ds)
-            self.assertIsInstance(node.childNodes(), list)
-            self.assertTrue(len(node.childNodes()) > 0)
-            s = ""
-
-        DSM = DataSourceManager()
-        TM = DataSourceManagerTreeModel(None, DSM)
-
-        TV = QTreeView()
-        TV.header().setResizeMode(QHeaderView.ResizeToContents)
-        TV.setModel(TM)
-        TV.show()
-        TV.resize(QSize(400, 250))
-
-        DSM.addSources(hubFlowObjects)
-        self.assertTrue(len(DSM) == len(hubFlowObjects))
-
-        self.showGui(DSM)
-
     def test_hubflowtypes(self):
         """
         Tests to load serialized hubflow objects
@@ -595,6 +551,11 @@ class standardDataSources(EnMAPBoxTestCase):
         from hubflow.testdata import outdir
         print(outdir)
 
+        ds = DataSourceManager()
+        dm =DataSourceManagerTreeModel(None, ds)
+        dtv = DataSourceTreeView()
+        dtv.setModel(dm)
+
         for name in dir(hubflow.testdata):
             obj1 = getattr(hubflow.testdata, name)
 
@@ -602,15 +563,23 @@ class standardDataSources(EnMAPBoxTestCase):
                 self.assertIsInstance(obj1, hubflow.core.FlowObject)
                 pathTmp = jp(dirTmp, 'test.{}.pkl'.format(name))
                 obj1.pickle(pathTmp)
-                ds = DataSourceFactory.create(pathTmp)
+
+
                 self.assertTrue(len(ds) == 1), 'Failed to open {}'.format(obj1)
                 self.assertIsInstance(ds[0], HubFlowDataSource)
+                dm.addDataSource(ds[0])
+
+                ds = DataSourceFactory.create(pathTmp)
+
+
                 obj3 = hubflow.core.FlowObject.unpickle(pathTmp)
                 obj2 = ds[0].flowObject()
                 self.assertIsInstance(obj2, hubflow.core.FlowObject)
                 self.assertIsInstance(obj3, hubflow.core.FlowObject)
                 # self.assertEqual(obj1, obj2)
                 # self.assertEqual(obj1, obj3)
+
+        self.showGui(dtv)
 
     def test_issue478(self):
         # https://bitbucket.org/hu-geomatics/enmap-box/issues/478/visualization-of-single-band-fails
