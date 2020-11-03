@@ -35,7 +35,7 @@ from enmapbox.externals.qps.make.deploy import QGISMetadataFileWriter
 from enmapbox.gui.utils import zipdir
 from qgis.core import QgsFileUtils
 
-MAX_PLUGIN_SIZE = 10 # max plugin size in MB
+MAX_PLUGIN_SIZE = 10  # max plugin size in MB
 CHECK_COMMITS = False
 
 ########## Config Section
@@ -44,7 +44,7 @@ MD = QGISMetadataFileWriter()
 MD.mName = 'EnMAP-Box 3'
 MD.mDescription = 'Imaging Spectroscopy and Remote Sensing for QGIS'
 MD.mTags = ['raster', 'analysis', 'imaging spectroscopy', 'spectral', 'hyperspectral', 'multispectral',
-            'landsat', 'sentinel','enmap', 'land cover', 'landscape',
+            'landsat', 'sentinel', 'enmap', 'land cover', 'landscape',
             'classification', 'remote sensing',
             'mask', 'accuracy', 'clip', 'spectral signature', 'supervised classification', 'clustering',
             'machine learning']
@@ -57,6 +57,7 @@ MD.mTracker = enmapbox.ISSUE_TRACKER
 MD.mRepository = enmapbox.REPOSITORY
 MD.mQgisMinimumVersion = '3.14'
 MD.mEmail = 'enmapbox@enmap.org'
+
 
 ########## End of config section
 
@@ -75,7 +76,6 @@ def scantree(path, pattern=re.compile(r'.$')) -> typing.Iterator[pathlib.Path]:
 
 
 def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False):
-
     DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
     assert (DIR_REPO / '.git').is_dir()
 
@@ -143,13 +143,13 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
         os.makedirs(fileDst.parent, exist_ok=True)
         shutil.copy(fileSrc, fileDst.parent)
 
-    #update metadata version
+    # update metadata version
 
     f = open(DIR_REPO / 'enmapbox' / '__init__.py')
     lines = f.read()
     f.close()
     lines = re.sub(r'(__version__\W*=\W*)([^\n]+)', r'__version__ = "{}"\n'.format(BUILD_NAME), lines)
-    f = open(PLUGIN_DIR  / 'enmapbox' / '__init__.py', 'w')
+    f = open(PLUGIN_DIR / 'enmapbox' / '__init__.py', 'w')
     f.write(lines)
     f.flush()
     f.close()
@@ -171,7 +171,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
     pluginSize: int = os.stat(PLUGIN_ZIP).st_size
 
-    if pluginSize > MAX_PLUGIN_SIZE * 2**20:
+    if pluginSize > MAX_PLUGIN_SIZE * 2 ** 20:
         msg = f'{PLUGIN_ZIP.name} ({QgsFileUtils.representFileSize(pluginSize)}) ' + \
               f'exceeds maximum plugin size ({MAX_PLUGIN_SIZE} MB)'
 
@@ -189,7 +189,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
         info.append('from pyplugin_installer.installer import pluginInstaller')
         info.append('pluginInstaller.installFromZipFile(r"{}")'.format(PLUGIN_ZIP))
         info.append('#### Close (and restart manually)\n')
-        #print('iface.mainWindow().close()\n')
+        # print('iface.mainWindow().close()\n')
         info.append('QProcess.startDetached(QgsApplication.arguments()[0], [])')
         info.append('QgsApplication.quit()\n')
         info.append('## press ENTER\n')
@@ -210,12 +210,12 @@ def createCHANGELOG(dirPlugin):
 
     os.makedirs(os.path.dirname(pathCL), exist_ok=True)
     assert os.path.isfile(pathMD)
-#    import sphinx.transforms
+    #    import sphinx.transforms
     import docutils.core
 
-    overrides = {'stylesheet':None,
-                 'embed_stylesheet':False,
-                 'output_encoding':'utf-8',
+    overrides = {'stylesheet': None,
+                 'embed_stylesheet': False,
+                 'output_encoding': 'utf-8',
                  }
 
     html = docutils.core.publish_file(source_path=pathMD, writer_name='html5', settings_overrides=overrides)
@@ -236,7 +236,6 @@ def createCHANGELOG(dirPlugin):
         if node.getAttribute('name') == 'generator':
             node.parentNode.removeChild(node)
 
-
     xml = xml.getElementsByTagName('body')[0]
     html = xml.toxml()
     html_cleaned = []
@@ -256,10 +255,9 @@ def createCHANGELOG(dirPlugin):
         f.write('\n'.join(html_cleaned))
 
     if False:
-        with open(pathCL+'.html', 'w', encoding='utf-8') as f:
+        with open(pathCL + '.html', 'w', encoding='utf-8') as f:
             f.write('\n'.join(html_cleaned))
     s = ""
-
 
 
 if __name__ == "__main__":
@@ -279,4 +277,3 @@ if __name__ == "__main__":
 
     create_enmapbox_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
     exit()
-
