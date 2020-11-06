@@ -25,15 +25,16 @@ import numpy as np
 from PyQt5 import uic, QtCore, QtGui, QtWidgets, QtXml
 import PyQt5
 
-#sys.modules['qgis.PyQt'] = PyQt5
-#for m in [uic, QtCore, QtGui, QtWidgets, QtXml]:
+# sys.modules['qgis.PyQt'] = PyQt5
+# for m in [uic, QtCore, QtGui, QtWidgets, QtXml]:
 #    sys.modules['qgis.PyQt.{}'.format(m.__name__.split('.')[-1])] = m
 
 if True:
-    MOCK_MODULES = ['qgis','qgis.core','qgis.gui','qgis.utils', 'osgeo',
-                'vrtbuilder','vrtbuilder.virtualrasters',
-                'qgis.PyQt','qgis.PyQt.Qt','qgis.PyQt.QtCore','qgis.PyQt.QtGui','qgis.PyQt.QtWidgets','qgis.PyQt.QtXml',
-                'processing','processing.core','processing.core.ProcessingConfig']
+    MOCK_MODULES = ['qgis', 'qgis.core', 'qgis.gui', 'qgis.utils', 'osgeo',
+                    'vrtbuilder', 'vrtbuilder.virtualrasters',
+                    'qgis.PyQt', 'qgis.PyQt.Qt', 'qgis.PyQt.QtCore', 'qgis.PyQt.QtGui', 'qgis.PyQt.QtWidgets',
+                    'qgis.PyQt.QtXml',
+                    'processing', 'processing.core', 'processing.core.ProcessingConfig']
 
     for mod_name in MOCK_MODULES:
         sys.modules[mod_name] = mock.Mock()
@@ -44,60 +45,53 @@ sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
 
 if False:
-    pathMockedNames = os.path.join(os.path.dirname(__file__),'mockednameslist.txt')
+    pathMockedNames = os.path.join(os.path.dirname(__file__), 'mockednameslist.txt')
     print('Read mocked names list')
     f = open(pathMockedNames, 'r', encoding='utf-8')
     lines = f.read().splitlines()
     f.close()
     for l in lines:
-
         sys.modules[l] = mock.NonCallableMagicMock()
 
 REPO_ROOT = pathlib.Path(__file__).parents[2].absolute()
 print(f'REPO ROOT={REPO_ROOT}')
 
+try:
+    # enable readthedocs to load git-lfs files
+    # see https://github.com/rtfd/readthedocs.org/issues/1846
+    #     https://github.com/InfinniPlatform/InfinniPlatform.readthedocs.org.en/blob/master/docs/source/conf.py#L18-L31
+    # If runs on ReadTheDocs environment
+    on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-if on_rtd:
+    if True or on_rtd:
+        print('Fetching files with git_lfs')
+        DOC_SOURCES_DIR = os.path.dirname(os.path.abspath(__file__))
+        PROJECT_ROOT_DIR = os.path.dirname(os.path.dirname(DOC_SOURCES_DIR))
+        sys.path.insert(0, DOC_SOURCES_DIR)
+        print('PROJECT_ROOT_DIR', PROJECT_ROOT_DIR)
 
-    print('## Install git-lfs on read the docs')
-    lfs_zip = r'git-lfs-linux-amd64-v2.12.0.tar.gz'
-    os.system(f'wget https://github.com/git-lfs/git-lfs/releases/download/v2.12.0/{lfs_zip}')
-    os.system(f'tar xvfz {lfs_zip}')
-    print('## git-lfs installation finished')
-    #os.system(f'PATH="./gitlfs:$PATH"')
-    os.system('./git-lfs install')  # make lfs available in current repository
-    os.system('./git-lfs fetch')  # download content from remote
-    os.system('./git-lfs checkout')  # make local files to have the real content on them
-    print('## git-lfs checkout finished')
+        from git_lfs import fetch
 
-    print('Fetch GIT_LFS files')
-    import git_lfs
-    git_lfs.fetch(REPO_ROOT.as_posix())
-
-
-
-if not on_rtd:
-    os.environ['READTHEDOCS'] = 'True'
-
+        fetch(PROJECT_ROOT_DIR)
+except Exception as ex:
+    print(ex)
 
 autodoc_mock_imports = ['vrtbuilder',
-                'gdal','sklearn','numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate',
-                'qgis','qgis.utils','qgis.core','qgis.gui',
-                'processing', 'processing.core.ProcessingConfig',
-]
+                        'gdal', 'sklearn', 'numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate',
+                        'qgis', 'qgis.utils', 'qgis.core', 'qgis.gui',
+                        'processing', 'processing.core.ProcessingConfig',
+                        ]
 autodoc_warningiserror = False
-
-
 
 import os, sys, re
 from PyQt5.QtGui import QImage
 from PyQt5.QtCore import *
 from PyQt5.QtSvg import *
 
-def convert2png(pathSVG:str):
+
+def convert2png(pathSVG: str):
     if os.path.isfile(pathSVG) and pathSVG.endswith('.svg'):
-        pathPNG = re.sub('\.svg$','.png', pathSVG)
+        pathPNG = re.sub('\.svg$', '.png', pathSVG)
         image = QImage(pathSVG)
         image.save(pathPNG)
 
@@ -112,15 +106,15 @@ def convert2png(pathSVG:str):
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
-    #'sphinxcontrib.mockautodoc',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    #'sphinx.ext.autosectionlabel',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode']
+              # 'sphinxcontrib.mockautodoc',
+              'sphinx.ext.doctest',
+              'sphinx.ext.intersphinx',
+              # 'sphinx.ext.autosectionlabel',
+              'sphinx.ext.todo',
+              'sphinx.ext.coverage',
+              'sphinx.ext.mathjax',
+              'sphinx.ext.ifconfig',
+              'sphinx.ext.viewcode']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -129,11 +123,11 @@ templates_path = ['_templates']
 # You can specify multiple suffix as a list of string:
 #
 source_parsers = {
-   '.md': 'recommonmark.parser.CommonMarkParser',
+    '.md': 'recommonmark.parser.CommonMarkParser',
 }
 
 source_suffix = ['.rst', '.md']
-#source_suffix = '.rst'
+# source_suffix = '.rst'
 
 # The master toctree document.
 master_doc = 'index'
@@ -151,12 +145,13 @@ author = u'Fabian Thiel,\nAndreas Rabe,\nBenjamin Jakimow, \nSebastian van der L
 if not 'READTHEDOCS' in os.environ.keys():
     os.environ['READTHEDOCS'] = 'True'
     from enmapbox.testing import initQgisApplication
+
     app = initQgisApplication()
 
 import enmapbox
-timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-','')
-buildID = '{}.{}'.format(re.search(r'(\.?[^.]*){2}', enmapbox.__version__).group(), timestamp)
 
+timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-', '')
+buildID = '{}.{}'.format(re.search(r'(\.?[^.]*){2}', enmapbox.__version__).group(), timestamp)
 
 # The short X.Y version.
 version = u'{}'.format(re.search(r'(\.?[^.]*){2}', enmapbox.__version__).group())
@@ -182,10 +177,9 @@ pygments_style = 'sphinx'
 todo_include_todos = True
 
 # A string of reStructuredText that will be included at the beginning of every source file that is read.
-#rst_epilog = """
-#.. include:: /icon_links.rst
-#"""
-
+# rst_epilog = """
+# .. include:: /icon_links.rst
+# """
 
 
 # -- Options for HTML output ----------------------------------------------
@@ -193,8 +187,8 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-#html_theme = 'alabaster'
-#html_theme = 'classic'
+# html_theme = 'alabaster'
+# html_theme = 'classic'
 html_theme = 'sphinx_rtd_theme'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -243,7 +237,6 @@ html_sidebars = {
     ]
 }
 
-
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
@@ -280,7 +273,6 @@ latex_documents = [
      u'Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden, Patrick Hostert', 'manual'),
 ]
 
-
 # -- Options for manual page output ---------------------------------------
 
 # One entry per manual page. List of tuples
@@ -289,7 +281,6 @@ man_pages = [
     (master_doc, 'enmap-box3', u'EnMAP-Box 3 Documentation',
      [author], 1)
 ]
-
 
 # -- Options for Texinfo output -------------------------------------------
 
@@ -301,9 +292,6 @@ texinfo_documents = [
      author, 'EnMAP-Box3', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'https://docs.python.org/': None}
