@@ -2,11 +2,12 @@
 Initial setup of the EnMAP-Box repository.
 Run this script after you have cloned the EnMAP-Box repository
 """
-import sys, getopt
+import pathlib
+import site
 
 def setup_enmapbox_repository():
     # specify the local path to the cloned QGIS repository
-    import os, sys, pathlib, site
+
 
     DIR_REPO = pathlib.Path(__file__).parents[1].resolve()
     DIR_SITEPACKAGES = DIR_REPO / 'site-packages'

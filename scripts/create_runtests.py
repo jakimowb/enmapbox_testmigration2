@@ -1,4 +1,5 @@
-import os, sys, pathlib, re
+import pathlib
+import re
 
 from enmapbox.gui.utils import file_search
 
