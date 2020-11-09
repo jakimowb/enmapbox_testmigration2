@@ -38,13 +38,26 @@ from qgis.gui import QgsFileDownloaderDialog
 
 from qgis.core import QgsTask, QgsApplication, QgsTaskManager, QgsAnimatedIcon
 
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import \
+    QMessageBox, QStyledItemDelegate, QApplication, QTableView, QMenu, \
+    QDialogButtonBox, QWidget
+from qgis.PyQt.QtCore import \
+    pyqtSignal, pyqtSlot, \
+    QAbstractTableModel, QModelIndex, QSortFilterProxyModel, QRegExp, QUrl
+
+from qgis.PyQt.QtGui import Qt, QContextMenuEvent, QColor, QIcon
 import sip
 from enmapbox import debugLog
 
+
 URL_PACKAGE_HELP = r"https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages"
+
+INFO_MESSAGE_BEFORE_PACKAGE_INSTALLATION = f"""
+<b>It might be necessary to install missing package(s) with your local package manager!</b>
+  <p>You can find more information on how to install them here <a href="{URL_PACKAGE_HELP}">here</a>
+  </p>
+"""
+
 # look-up for pip package name and how it gets imported in python
 # e.g. 'pip install scikit-learn' installs a package that is imported via 'import sklearn'
 # Keys need to be lowercase, as accepted by PIP
@@ -53,6 +66,9 @@ PACKAGE_LOOKUP = {'scikit-learn': 'sklearn',
                   'enpt-enmapboxapp': 'enpt_enmapboxapp',
                   'GDAL': 'gdal'
                   }
+
+
+
 
 # just in case a package cannot /should not simply get installed
 # calling pip install --user <pip package name>
@@ -940,22 +956,10 @@ class PIPPackageInstaller(QWidget):
         :rtype:
         """
         if not self.mWarned:
-            info = f"""
-            <b>Please prefer installing missing package(s) with your local package manager!</b>
-            <p>Common package managers in QGIS environments are:
-            <ul>
-                <li><a href="https://trac.osgeo.org/osgeo4w/">OSGeo4W (Windows)<a/></li>
-                <li><a href="https://docs.conda.io">minconda/anaconda (all platforms)<a/></li>
-                <li><a href="https://linux.die.net/man/8/apt-get">apt-get (Linux)</li>
-                <li><a href="https://brew.sh">homebrew (macOS)</a></li>
-            </ul>
-            <p>You can find more information here 
-            <a href="{URL_PACKAGE_HELP}">here</a>
-            </p>
-            """
-            box = QMessageBox(QMessageBox.Warning,
+
+            box = QMessageBox(QMessageBox.Information,
                               'Package Installation',
-                              info,
+                              INFO_MESSAGE_BEFORE_PACKAGE_INSTALLATION,
                               QMessageBox.Abort | QMessageBox.Ignore)
             box.setTextFormat(Qt.RichText)
             box.setDefaultButton(QMessageBox.Abort)
