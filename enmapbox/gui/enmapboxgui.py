@@ -645,10 +645,10 @@ class EnMAPBox(QgisInterface, QObject):
         root = dom.documentElement()
 
         # save time series
-        self.timeSeries().writeXml(node, dom)
+        #self.timeSeries().writeXml(node, dom)
 
         # save map views
-        self.mapWidget().writeXml(node, dom)
+        #self.mapWidget().writeXml(node, dom)
         root.appendChild(node)
 
     def onReadProject(self, doc: QDomDocument) -> bool:
