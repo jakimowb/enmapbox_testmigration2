@@ -2,11 +2,11 @@
 name=EnMAP-Box 3 Dummy
 author=EnMAP-Box Authors
 email=enmapbox@enmap.org
-description=<p align="center">This is a dummy text. See <code>scrpts/create_plugin.py</code> for details of metadata.txt generation</p>
+description=Imaging Spectroscopy and Remote Sensing for QGIS
 version=3.XXXX
 qgisMinimumVersion=3.14
 qgisMaximumVersion=3.99
-about=enmapbox.ABOUT
+about=<p align="center">This is a dummy text. See <code>scrpts/create_plugin.py</code> for details of metadata.txt generation</p>
 icon=enmapbox/gui/ui/icons/enmapbox.png
 tags=keyword dummy
 category=https://bitbucket.org/hu-geomatics/enmap-box.git
