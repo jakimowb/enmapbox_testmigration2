@@ -55,7 +55,7 @@ try:
     # If runs on ReadTheDocs environment
     on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
-    if True or on_rtd:
+    if on_rtd:
         print('Fetching files with git_lfs')
         DOC_SOURCES_DIR = os.path.dirname(os.path.abspath(__file__))
         PROJECT_ROOT_DIR = os.path.dirname(os.path.dirname(DOC_SOURCES_DIR))
