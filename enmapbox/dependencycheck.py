@@ -54,7 +54,7 @@ URL_PACKAGE_HELP = r"https://enmap-box.readthedocs.io/en/latest/usr_section/usr_
 
 INFO_MESSAGE_BEFORE_PACKAGE_INSTALLATION = f"""
 <b>It might be necessary to install missing package(s) with your local package manager!</b>
-  <p>You can find more information on how to install them here <a href="{URL_PACKAGE_HELP}">here</a>
+  <p>You can find more information on how to install them <a href="{URL_PACKAGE_HELP}">here</a>
   </p>
 """
 
