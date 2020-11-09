@@ -1,4 +1,4 @@
-        # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 /***************************************************************************
                               EO Time Series Viewer
@@ -43,12 +43,11 @@ import qgis.utils
 import numpy as np
 from osgeo import gdal, ogr, osr
 
-
 from enmapbox.gui.utils import file_search
 from enmapbox import DIR_TESTDATA
 
-
 SHOW_GUI = True
+
 
 def start_app(*args, loadProcessingFramework: bool = True, **kwds) -> QgsApplication:
     """
@@ -68,7 +67,9 @@ def start_app(*args, loadProcessingFramework: bool = True, **kwds) -> QgsApplica
         enmapbox.initEditorWidgets()
         return app
 
+
 initQgisApplication = start_app
+
 
 class EnMAPBoxTestCase(TestCase):
     @classmethod
@@ -92,6 +93,7 @@ class EnMAPBoxTestCase(TestCase):
             shutil.rmtree(p)
         os.makedirs(p, exist_ok=True)
         return p
+
 
 class TestObjects(TestObjects):
     """
@@ -117,13 +119,12 @@ class TestObjects(TestObjects):
             print(v)
             return v
 
-
-
         class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
             """
             Exemplary implementation of a QgsProcessingAlgorithm.
             See https://qgis.org/api/classQgsProcessingAlgorithm.html for API documentation
             """
+
             def __init__(self):
                 super(ExampleProcessingAlgorithm, self).__init__()
 
@@ -184,7 +185,7 @@ class TestObjects(TestObjects):
 
         class ExampleApp(EnMAPBoxApplication):
 
-            def __init__(self, enmapbox:EnMAPBox, parent):
+            def __init__(self, enmapbox: EnMAPBox, parent):
                 super(ExampleApp, self).__init__(enmapbox, parent)
 
                 self.name = 'TestApp'
@@ -193,28 +194,22 @@ class TestObjects(TestObjects):
                 self.description = 'test app'
 
             def icon(self) -> QIcon:
-
                 return EnMAPBox.icon()
 
             def menu(self, parentMenu) -> QMenu:
-
                 assert isinstance(parentMenu, QMenu)
                 action = parentMenu.addAction('Hello')
                 action.triggered.connect(testAlgorithm)
                 return parentMenu
 
             def processingAlgorithms(self) -> list:
-
-
                 return [ExampleProcessingAlgorithm()]
 
         emb = EnMAPBox.instance()
         return ExampleApp(emb, emb.ui)
 
-
     @staticmethod
     def processingAlgorithm():
-
         class TestProcessingAlgorithm(QgsProcessingAlgorithm):
 
             def __init__(self):
@@ -248,20 +243,16 @@ class TestObjects(TestObjects):
                 assert isinstance(context, QgsProcessingContext)
                 assert isinstance(feedback, QgsProcessingFeedback)
 
-
                 outputs = {}
                 return outputs
 
         return TestProcessingAlgorithm()
 
 
-
 class QgsPluginManagerMockup(QgsPluginManagerInterface):
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
 
     def addPluginMetadata(self, *args, **kwargs):
         super().addPluginMetadata(*args, **kwargs)
@@ -273,7 +264,7 @@ class QgsPluginManagerMockup(QgsPluginManagerInterface):
         super().childEvent(*args, **kwargs)
 
     def clearPythonPluginMetadata(self, *args, **kwargs):
-        #super().clearPythonPluginMetadata(*args, **kwargs)
+        # super().clearPythonPluginMetadata(*args, **kwargs)
         pass
 
     def clearRepositoryList(self, *args, **kwargs):
@@ -324,8 +315,7 @@ class PythonRunnerImpl(QgsPythonRunner):
     def __init__(self):
         super(PythonRunnerImpl, self).__init__()
 
-
-    def evalCommand(self, cmd:str, result:str):
+    def evalCommand(self, cmd: str, result: str):
         try:
             o = compile(cmd)
         except Exception as ex:
@@ -339,10 +329,8 @@ class PythonRunnerImpl(QgsPythonRunner):
             exec(o)
         except Exception as ex:
             messageOnError = str(ex)
-            command = ['{}:{}'.format(i+1, l) for i,l in enumerate(command.splitlines())]
+            command = ['{}:{}'.format(i + 1, l) for i, l in enumerate(command.splitlines())]
             print('\n'.join(command), file=sys.stderr)
             raise ex
             return False
         return True
-
-
