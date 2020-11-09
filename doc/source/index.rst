@@ -40,6 +40,16 @@ Related websites
 News
 ****
 
+EnMAP-Box Version 3.7 released
+==============================
+
+Oct. 27, 2020
+
+A new EnMAP-Box version has been released. It includes product readers for EnMAP L1B, L2C and L2A, PRISMA L2D
+and DESIS L2A images, and a first version of Spectral Math in the QGIS Expression Builder.
+A list of all improvements can be found in the `changelog <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/CHANGELOG.rst>`_.
+
+
 FOSSGIS 2020
 ============
 
