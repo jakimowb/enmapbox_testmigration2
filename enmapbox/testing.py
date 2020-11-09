@@ -74,7 +74,7 @@ initQgisApplication = start_app
 class EnMAPBoxTestCase(TestCase):
     @classmethod
     def setUpClass(cls, resources=[]):
-        tmpDir = cls.tempDir(cls)
+        tmpDir = cls.tempDir(cls, subdir=cls.__name__)
         os.chdir(tmpDir)
         super().setUpClass(resources=resources)
         import enmapbox

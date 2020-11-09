@@ -21,8 +21,8 @@ import os, pathlib, enum
 
 from enmapbox import enmapboxSettings
 from enmapbox.gui.utils import loadUi, enmapboxUiPath
-from qgis.core import *
-from qgis.gui import *
+from qgis.core import QgsSettings, QgsProject
+from qgis.gui import QgsColorButton
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
@@ -37,31 +37,31 @@ class SettingsKey(enum.Enum):
     SplashScreen = 'SPLASHSCREEN'
     MessageTimeout = 'MESSAGE_TIMEOUT'
     ApplicationPath = 'APPLICATION_PATH'
+    CursorLocationZeroBased = 'CURSOR_LOCATION_ZERO_BASED'
+
 
 class EnMAPBoxSettings(QgsSettings):
 
     def __init__(self):
         super().__init__(QSettings.UserScope, 'HU-Berlin', 'EnMAP-Box')
 
-
         # define missing default values
         self.restoreDefaultValues(overwrite=False)
         s = ""
 
-    def writeSettingsToProject(self, project:QgsProject):
+    def writeSettingsToProject(self, project: QgsProject):
         pass
 
-    def readSettingsFromProject(self, project:QgsProject):
+    def readSettingsFromProject(self, project: QgsProject):
         pass
 
-    def writeXml(self, element:QDomElement):
+    def writeXml(self, element: QDomElement):
         pass
 
-    def readXml(self, element:QDomElement):
+    def readXml(self, element: QDomElement):
         pass
 
     def restoreDefaultValues(self, overwrite=True):
-
         allKeys = self.allKeys()
 
         if overwrite or SettingsKey.ApplicationPath.value not in allKeys:
@@ -69,6 +69,8 @@ class EnMAPBoxSettings(QgsSettings):
 
 
 GLOBAL_DEFAULT_SETTINGS = dict()
+
+
 class SettingsInfo(object):
     @staticmethod
     def readFromQgsProject(project):
@@ -76,7 +78,7 @@ class SettingsInfo(object):
 
         r = []
         return []
-        #todo: read settings from QgsProject
+        # todo: read settings from QgsProject
         for key in settings.childKeys():
             key = str(key)
             description = None
@@ -98,7 +100,7 @@ class SettingsInfo(object):
             r.append(SettingsInfo(key, settings.value(key), description))
         return r
 
-    def __init__(self, key, value, description, defaultValue=None, range = None):
+    def __init__(self, key, value, description, defaultValue=None, range=None):
 
         assert isinstance(key, str)
         if range:
@@ -121,21 +123,20 @@ class SettingsInfo(object):
             settings = enmapboxSettings()
 
         settings.setValue(self.mKey, self.mValue)
+
     def saveToProject(self, project=None):
         if project is None:
             project = QgsProject.instance()
         assert isinstance(project, QgsProject)
 
 
-
-#describe default settings (might be loaded from txt file in future
+# describe default settings (might be loaded from txt file in future
 SettingsInfo('LOAD_PF', True, 'Load QGIS processing framework.')
 SettingsInfo('LOAD_EA', True, 'Load external EnMAP-Box applications.')
 SettingsInfo('DEBUG', False, 'Show additional debug printouts.')
 SettingsInfo('SPLASHSCREEN', True, 'Show splashscreen on EnMAP-Box start.')
 SettingsInfo('MESSAGE_TIMEOUT', 250, 'Timeout for message in messag bar.')
 SettingsInfo('APPLICATION_PATH', '', 'List of additional EnMAP-Box application folders. Separated by ";" or ":"')
-
 
 
 def initGlobalSettings():
@@ -150,7 +151,9 @@ def initGlobalSettings():
         if settings.value(settingsInfo.mKey, None) is None:
             settings.setValue(settingsInfo.mKey, settingsInfo.mDefaultValue)
 
+
 initGlobalSettings()
+
 
 def resetGlobalSettings():
     settings = enmapboxSettings()
@@ -172,7 +175,7 @@ class SettingsTableModel(QAbstractTableModel):
         self.cDefault = 'Default'
         self.columnNames = [self.cKey, self.cValue, self.cDefault]
 
-        if isinstance(settings,QSettings):
+        if isinstance(settings, QSettings):
             self.mSettingsList = SettingsInfo.readFromQSettings(settings)
         elif isinstance(settings, QgsProject):
             self.mSettingsList = SettingsInfo.readFromQgsProject(settings)
@@ -252,8 +255,6 @@ class SettingsTableModel(QAbstractTableModel):
         return False
 
 
-
-
 class SettingsWidgetDelegates(QStyledItemDelegate):
 
     def __init__(self, tableView, parent=None):
@@ -261,7 +262,7 @@ class SettingsWidgetDelegates(QStyledItemDelegate):
         super(SettingsWidgetDelegates, self).__init__(parent=parent)
         self.tableView = tableView
         self.tableView.doubleClicked.connect(self.onDoubleClick)
-        #self.tableView.model().rowsInserted.connect(self.onRowsInserted)
+        # self.tableView.model().rowsInserted.connect(self.onRowsInserted)
 
     def onDoubleClick(self, idx):
         model = self.tableView.model()
@@ -274,7 +275,6 @@ class SettingsWidgetDelegates(QStyledItemDelegate):
             if w1.result() == QDialog.Accepted:
                 c = w1.getColor()
                 model.setData(idx, c, role=Qt.EditRole)
-
 
     def getColumnName(self, index):
         assert index.isValid()
@@ -320,21 +320,20 @@ class SettingsDialog(QDialog):
 
         self.modelGlobals = SettingsTableModel(enmapboxSettings(), parent=self)
         self.tableViewGlobalSettings.setModel(self.modelGlobals)
-        #self.tableViewGlobalSettings.verticalHeader().setMovable(True)
+        # self.tableViewGlobalSettings.verticalHeader().setMovable(True)
         self.tableViewGlobalSettings.verticalHeader().setDragEnabled(True)
         self.tableViewGlobalSettings.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
         self.tableViewGlobalSettings.horizontalHeader().setResizeMode(QHeaderView.Interactive)
         self.tableViewGlobalSettings.resizeColumnsToContents()
 
-
-        #self.tableViewProjectSettings.verticalHeader().setMovable(True)
+        # self.tableViewProjectSettings.verticalHeader().setMovable(True)
         self.tableViewProjectSettings.verticalHeader().setDragEnabled(True)
         self.tableViewProjectSettings.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
         self.tableViewProjectSettings.horizontalHeader().setResizeMode(QHeaderView.Interactive)
         self.synQgsProjectSettings()
 
         self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self.onAccepted)
-        self.buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(lambda : self.setResult(QDialog.Rejected))
+        self.buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(lambda: self.setResult(QDialog.Rejected))
         self.buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.resetSettings)
         self.buttonBox.button(QDialogButtonBox.Apply).clicked.connect(self.saveSettings)
 
@@ -347,7 +346,7 @@ class SettingsDialog(QDialog):
             assert isinstance(info, SettingsInfo)
             info.saveToQSettings()
 
-        #todo: save to QGIS Project file
+        # todo: save to QGIS Project file
 
     def resetSettings(self):
         resetGlobalSettings()
@@ -377,4 +376,3 @@ class SettingsDialog(QDialog):
 def showSettingsDialog(parent=None):
     w = SettingsDialog(parent=parent)
     w.show()
-

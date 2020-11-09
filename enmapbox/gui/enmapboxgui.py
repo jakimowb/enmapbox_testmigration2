@@ -867,7 +867,10 @@ class EnMAPBox(QgisInterface, QObject):
         area = Qt.LeftDockWidgetArea
         self.ui.dataSourcePanel = self.addPanel(area, enmapbox.gui.datasourcemanager.DataSourcePanelUI(self.ui))
         self.ui.dockPanel = self.addPanel(area, enmapbox.gui.dockmanager.DockPanelUI(self.ui))
+
         self.ui.cursorLocationValuePanel = self.addPanel(area, CursorLocationInfoDock(self.ui), show=False)
+        self.ui.cursorLocationValuePanel.mLocationInfoModel.setCountFromZero(False)
+
         self.ui.spectralProfileSourcePanel = self.addPanel(area, SpectralProfileSourcePanel(self.ui))
         area = Qt.RightDockWidgetArea
 
