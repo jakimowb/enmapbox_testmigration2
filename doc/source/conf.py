@@ -44,14 +44,6 @@ sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../../'))
 
-if False:
-    pathMockedNames = os.path.join(os.path.dirname(__file__), 'mockednameslist.txt')
-    print('Read mocked names list')
-    f = open(pathMockedNames, 'r', encoding='utf-8')
-    lines = f.read().splitlines()
-    f.close()
-    for l in lines:
-        sys.modules[l] = mock.NonCallableMagicMock()
 
 REPO_ROOT = pathlib.Path(__file__).parents[2].absolute()
 print(f'REPO ROOT={REPO_ROOT}')
@@ -75,6 +67,10 @@ try:
         fetch(PROJECT_ROOT_DIR)
 except Exception as ex:
     print(ex)
+
+# from now on, always assume that we are building on RTD
+
+os.environ['READTHEDOCS'] = 'True'
 
 autodoc_mock_imports = ['vrtbuilder',
                         'gdal', 'sklearn', 'numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate',
@@ -141,12 +137,6 @@ author = u'Fabian Thiel,\nAndreas Rabe,\nBenjamin Jakimow, \nSebastian van der L
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-
-if not 'READTHEDOCS' in os.environ.keys():
-    os.environ['READTHEDOCS'] = 'True'
-    from enmapbox.testing import initQgisApplication
-
-    app = initQgisApplication()
 
 import enmapbox
 
