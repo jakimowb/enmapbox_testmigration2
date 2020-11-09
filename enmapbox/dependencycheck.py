@@ -42,10 +42,10 @@ from qgis.PyQt.QtWidgets import \
     QMessageBox, QStyledItemDelegate, QApplication, QTableView, QMenu, \
     QDialogButtonBox, QWidget
 from qgis.PyQt.QtCore import \
-    pyqtSignal, pyqtSlot, \
+    pyqtSignal, pyqtSlot, Qt, \
     QAbstractTableModel, QModelIndex, QSortFilterProxyModel, QRegExp, QUrl
 
-from qgis.PyQt.QtGui import Qt, QContextMenuEvent, QColor, QIcon
+from qgis.PyQt.QtGui import QContextMenuEvent, QColor, QIcon
 import sip
 from enmapbox import debugLog
 
