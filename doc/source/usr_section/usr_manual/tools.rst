@@ -116,6 +116,42 @@ Specify the output path for the reclassified image under :guilabel:`Output File`
 
 Click :guilabel:`OK` to run the tool.
 
+Image Cube
+==========
+
+The Image Cube tool visualizes a raster image in a interactive 3D view.
+
+To visualize a raster image:
+
+1.  Select the raster image that you like to visualize.
+
+2.  Specify the renderer:
+
+    * The top plane renderer can be a Multiband color renderer, e.g. to show the True Color bands
+
+    * The Cube and Slice renderer must use a single band only, as it colorizes single band values for the 3D image
+      cube and the X, Y or Z plane
+
+3.  Load or reload the data to apply the changed color settings.
+
+.. image:: /img/imagecube_gui.png
+
+
+The 3D scene contains the following elements:
+
+* Top Plane - a raster layer for spatial orientation
+* Image Cube - a volumetric representation of the raster image, showing the raster bands on the z axis
+* X Slice - a slice along the raster's X / column / sample dimension
+* Y Slice - a slice along the raster's Y / row / line dimension
+* Z Slice - a slice along the raster's Z / band dimension
+* Box (Image) - a 3D bounding box along the maximum image extent
+* Box (Subset) - a 3D bounding box to show the extent of the spatial subset that migh be used to focus on specific
+  image areas
+
+
+.. image:: /img/imagecube_gui_slices.png
+
+
 Virtual Raster Builder
 ======================
 
