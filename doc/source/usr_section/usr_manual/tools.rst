@@ -119,20 +119,20 @@ Click :guilabel:`OK` to run the tool.
 Image Cube
 ==========
 
-The Image Cube tool visualizes a raster image in a interactive 3D view.
+The Image Cube tool visualizes a raster image in an interactive 3D view:
 
-To visualize a raster image:
+1.  Select the raster image.
 
-1.  Select the raster image that you like to visualize.
+2.  Specify the:
 
-2.  Specify the renderer:
+    * **Top Plane** renderer. It can be any raster renderer known from QIGS, e.g. a Multiband
+        color renderer that shows the true color bands
 
-    * The top plane renderer can be a Multiband color renderer, e.g. to show the True Color bands
+    * **Cube & Slice** renderer. This must be a render that uses a single band only, e.g. a
+      *Singleband grey* or *Pseudocolor renderer*. It will colorize the band-related pixel values
+        of the 3D image cube and planes relating to the X, Y or Z slice.
 
-    * The Cube and Slice renderer must use a single band only, as it colorizes single band values for the 3D image
-      cube and the X, Y or Z plane
-
-3.  Load or reload the data to apply the changed color settings.
+3.  Press **Load Data** to (re)load and render the raster image values.
 
 .. image:: /img/imagecube_gui.png
 
@@ -150,6 +150,7 @@ The 3D scene contains the following elements:
 
 
 .. image:: /img/imagecube_gui_slices.png
+
 
 
 Virtual Raster Builder
