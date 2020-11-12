@@ -522,27 +522,44 @@ class DataSourceSizesTreeNode(TreeNode):
         pixel extent (if raster source)
     """
 
-    def __init__(self, parent, dataSource):
-        assert isinstance(dataSource, DataSourceFile)
-        super(DataSourceSizesTreeNode, self).__init__(parent, 'Size')
+    def __init__(self):
+        super().__init__('Size')
 
-        fileSize = os.path.getsize(dataSource.uri())
-        fileSize = fileSizeString(fileSize)
+    def update_size(self, dataSource):
+        self.removeAllChildNodes()
 
-        n = TreeNode(self, 'File', values=fileSize, icon=dataSource.icon())
+        if not isinstance(dataSource, DataSource):
+            return
+
+        childs = []
+        value = []
+        try:
+            size = os.path.getsize(dataSource.uri())
+            size = fileSizeString(size)
+            value.append(size)
+            childs += [TreeNode('File', size)]
+        except:
+            pass
+
         if isinstance(dataSource, DataSourceSpatial):
             ext = dataSource.spatialExtent()
             mu = QgsUnitTypes.encodeUnit(ext.crs().mapUnits())
 
-            n = TreeNode(self, 'Spatial Extent')
-            TreeNode(n, 'Width', values='{} {}'.format(ext.width(), mu))
-            TreeNode(n, 'Heigth', values='{} {}'.format(ext.height(), mu))
+            childs += [TreeNode('Width', value='{:0.2f} {}'.format(ext.width(), mu), toolTip='Spatial width'),
+                       TreeNode('Height', value='{:0.2f} {}'.format(ext.height(), mu, toolTip='Spatial height'))
+                       ]
 
         if isinstance(dataSource, DataSourceRaster):
-            n = TreeNode(self, 'Pixels')
-            TreeNode(n, 'Samples (x)', values='{}'.format(dataSource.nSamples))
-            TreeNode(n, 'Lines (y)', values='{}'.format(dataSource.nLines))
-            TreeNode(n, 'Bands (z)', values='{}'.format(dataSource.nBands))
+            value.append(f'{dataSource.nSamples()}x{dataSource.nLines()}x{dataSource.nBands()}')
+            childs += [TreeNode('Samples', value=dataSource.nSamples(), toolTip='Samples/columns in X direction'),
+                       TreeNode('Lines', value=dataSource.nLines(), toolTip='Lines/rows in Y direction'),
+                       TreeNode('Bands', value=dataSource.nBands(), toolTip='Raster bands')
+                       ]
+        if isinstance(dataSource, DataSourceVector):
+            value.append('{} features'.format(dataSource.mLayer.featureCount()))
+
+        self.setValue(' '.join([str(v) for v in value]))
+        self.appendChildNodes(childs)
 
 
 class DataSourceTreeNode(TreeNode):
@@ -552,7 +569,7 @@ class DataSourceTreeNode(TreeNode):
         super().__init__(*args, **kwds)
 
         self.mDataSource: DataSource = None
-        self.mNodeSize: TreeNode = TreeNode('Size')
+        self.mNodeSize: DataSourceSizesTreeNode = DataSourceSizesTreeNode()
         self.mNodePath: TreeNode = TreeNode('Path')
         self.appendChildNodes([self.mNodePath, self.mNodeSize])
 
@@ -572,18 +589,13 @@ class DataSourceTreeNode(TreeNode):
             self.setName(ds.name())
             self.setToolTip(ds.uri())
             self.setIcon(ds.icon())
-
             uri = ds.uri()
             self.mNodePath.setValue(uri)
-            if os.path.isfile(uri):
-                size = os.path.getsize(self.mDataSource.uri())
-                self.mNodeSize.setValue(fileSizeString(size))
-            else:
-                self.mNodeSize.setValue('unknown')
         else:
             self.setName('<disconnected>')
             self.mNodePath.setValue(None)
-            self.mNodeSize.setValue(None)
+
+        self.mNodeSize.update_size(ds)
 
     def dataSource(self) -> DataSource:
         """
@@ -631,7 +643,6 @@ class SpatialDataSourceTreeNode(DataSourceTreeNode):
             self.nodeCRS.setCrs(ext.crs())
             self.nodeExtXmu.setValue('{} {}'.format(ext.width(), mu))
             self.nodeExtYmu.setValue('{} {}'.format(ext.height(), mu))
-
 
         else:
             self.nodeCRS.setCrs(QgsCoordinateReferenceSystem())
@@ -828,20 +839,6 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
         ds = self.dataSource()
         if isinstance(ds, DataSourceRaster):
             self.setIcon(ds.icon())
-            mu = QgsUnitTypes.toString(ds.spatialExtent().crs().mapUnits())
-
-            self.mNodeExtXpx.setValue('{} px'.format(ds.nSamples()))
-            self.mNodeExtYpx.setValue('{} px'.format(ds.nLines()))
-
-            pxSize = ds.pixelSize()
-            self.mNodePxSize.setValue('{} x {} {}'.format(pxSize.width(), pxSize.height(), mu))
-
-            self.mNodeSize.appendChildNodes([self.mNodeExtXpx, self.mNodeExtYpx, self.mNodePxSize])
-
-            self.mNodeSize.setValue('{}x{}x{}'.format(ds.nSamples(),
-                                                      ds.nLines(),
-                                                      ds.nBands()))
-
             self.mNodeBands.removeAllChildNodes()
             self.mNodeBands.setValue(ds.nBands())
 
@@ -953,7 +950,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
         super(HubFlowObjectTreeNode, self).__init__(*args, **kwds)
         self.mFlowObj: object = None
         self.mFlowNode: HubFlowPyObjectTreeNode = None
-        #self.appendChildNodes(self.nodePyObject)
+        # self.appendChildNodes(self.nodePyObject)
 
     def connectDataSource(self, processingTypeDataSource):
 
@@ -1592,7 +1589,6 @@ class DataSourceManagerTreeModel(TreeModel):
         pathHTML = pfType.report().saveHTML().filename
         from enmapbox.gui.enmapboxgui import EnMAPBox
         EnMAPBox.instance().dockManager().createDock('WEBVIEW', url=pathHTML)
-
 
 
 def createNodeFromDataSource(dataSource: DataSource, parent: TreeNode = None) -> DataSourceTreeNode:
