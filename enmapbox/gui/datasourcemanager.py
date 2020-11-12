@@ -612,7 +612,8 @@ class SpatialDataSourceTreeNode(DataSourceTreeNode):
         self.nodeExtXmu: TreeNode = TreeNode('Width')
         self.nodeExtYmu: TreeNode = TreeNode('Height')
         self.nodeCRS: CRSLayerTreeNode = CRSLayerTreeNode(QgsCoordinateReferenceSystem())
-        self.mNodeSize.appendChildNodes([self.nodeCRS, self.nodeExtXmu, self.nodeExtYmu])
+        self.mNodeSize.appendChildNodes([self.nodeExtXmu, self.nodeExtYmu])
+        self.appendChildNodes(self.nodeCRS)
 
     def connectDataSource(self, dataSource):
         assert isinstance(dataSource, DataSourceSpatial)
