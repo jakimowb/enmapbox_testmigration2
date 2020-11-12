@@ -553,7 +553,7 @@ class DataSourceTreeNode(TreeNode):
 
         self.mDataSource: DataSource = None
         self.mNodeSize: TreeNode = TreeNode('Size')
-        self.mNodePath: TreeNode = TreeNode('Uri')
+        self.mNodePath: TreeNode = TreeNode('Path')
         self.appendChildNodes([self.mNodePath, self.mNodeSize])
 
     def connectDataSource(self, dataSource: DataSource):
