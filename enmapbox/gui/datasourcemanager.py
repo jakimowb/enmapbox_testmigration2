@@ -934,12 +934,24 @@ class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
             sl.attributeDeleted.disconnect(self.updateNodes)
 
 
+class HubFlowPyObjectTreeNode(PyObjectTreeNode):
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+
+    def populateContextMenu(self, menu: QMenu):
+        # implement your context menu actions here
+
+        if isinstance(self.mPyObject, np.ndarray):
+            a = menu.addAction('todo: Copy to clipboard')
+
+
 class HubFlowObjectTreeNode(DataSourceTreeNode):
 
     def __init__(self, *args, **kwds):
         super(HubFlowObjectTreeNode, self).__init__(*args, **kwds)
         self.mFlowObj: object = None
-        self.mFlowNode: PyObjectTreeNode = None
+        self.mFlowNode: HubFlowPyObjectTreeNode = None
         #self.appendChildNodes(self.nodePyObject)
 
     def connectDataSource(self, processingTypeDataSource):
@@ -959,7 +971,7 @@ class HubFlowObjectTreeNode(DataSourceTreeNode):
             self.setName(ds.name())
             self.setToolTip('{} - {}.{}'.format(ds.name(), moduleName, className))
 
-            self.mFlowNode = PyObjectTreeNode(name=className, obj=self.mFlowObj)
+            self.mFlowNode = HubFlowPyObjectTreeNode(name=className, obj=self.mFlowObj)
             self.appendChildNodes(self.mFlowNode)
 
     def contextMenu(self):
