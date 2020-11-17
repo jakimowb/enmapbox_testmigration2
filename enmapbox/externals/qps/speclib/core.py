@@ -694,7 +694,11 @@ class SpectralProfile(QgsFeature):
         assert isinstance(feature, QgsFeature)
         if isinstance(value_field, QgsField):
             value_field = value_field.name()
-        assert value_field in feature.fields().names(), f'field "{value_field}" does not exist'
+
+        if not value_field in feature.fields().names():
+            print(f'field "{value_field}" does not exist. Allows values: {",".join(feature.fields().names())}')
+            return None
+
         sp = SpectralProfile(fields=feature.fields(), value_field=value_field)
         sp.setId(feature.id())
         sp.setAttributes(feature.attributes())
@@ -2794,8 +2798,9 @@ class SpectralLibrary(QgsVectorLayer):
         if path is None:
             path, filter = QFileDialog.getSaveFileName(parent=kwds.get('parent'),
                                                        caption='Save Spectral Library',
-                                                       directory=QgsFileUtils.stringToSafeFilename(self.name()),
-                                                       filter=FILTERS)
+                                                       directory=QgsFileUtils.stringToSafeFilename(self.name()+'.gpkg'),
+                                                       filter=FILTERS,
+                                                       initialFilter='Geopackage (*.gpkg)')
 
         if isinstance(path, pathlib.Path):
             path = path.as_posix()
@@ -2812,7 +2817,8 @@ class SpectralLibrary(QgsVectorLayer):
 
             elif ext in ['.json', '.geojson', '.geojsonl', '.csv', '.gpkg']:
                 return VectorSourceSpectralLibraryIO.write(self, path, **kwds)
-
+            else:
+                raise Exception(f'Filetype not supported: {path}')
         return []
 
     def spectralValueFields(self) -> typing.List[QgsField]:

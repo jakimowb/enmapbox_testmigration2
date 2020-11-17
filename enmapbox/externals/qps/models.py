@@ -37,7 +37,7 @@ import inspect
 from qgis.PyQt.QtCore import QModelIndex, QAbstractItemModel, QAbstractListModel, \
     pyqtSignal, Qt, QObject, QAbstractListModel, QSize, pyqtBoundSignal, QMetaEnum, QMetaType
 from qgis.PyQt.QtWidgets import QComboBox, QTreeView, QMenu
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon, QContextMenuEvent
 
 
 def currentComboBoxValue(comboBox):
@@ -449,7 +449,12 @@ class TreeNode(QObject):
         if isinstance(child_nodes, TreeNode):
             child_nodes = [child_nodes]
         assert isinstance(child_nodes, list)
-        child_nodes = [l for l in child_nodes if l not in self.mChildren]
+        unique = []
+        for n in child_nodes:
+            if not (n in unique or n in self.mChildren):
+                unique.append(n)
+
+        child_nodes = unique
 
         l = len(child_nodes)
         if l == 0:
@@ -574,8 +579,13 @@ class TreeNode(QObject):
         """
         return self.mName
 
-    def contextMenu(self):
-        return None
+    def populateContextMenu(self, menu: QMenu):
+        """
+        Implement this to add a TreeNode specific context menu
+        :param menu:
+        :return:
+        """
+        pass
 
     def setValue(self, value):
         """
@@ -730,7 +740,8 @@ class PyObjectTreeNode(TreeNode):
             if isinstance(v, QMetaEnum):
                 s = ""
             # create a new node
-            newNodes.append(PyObjectTreeNode(name=a, obj=v))
+            # this allows to create a new node even of inherited classes
+            newNodes.append(self.__class__(name=a, obj=v))
 
         if len(newNodes) > 0:
             self.appendChildNodes(newNodes)
@@ -1107,6 +1118,7 @@ class TreeView(QTreeView):
     """
     A basic QAbstractItemView implementation to realize TreeModels.
     """
+    populateContextMenu = pyqtSignal(QMenu)
 
     def __init__(self, *args, **kwds):
         super(TreeView, self).__init__(*args, **kwds)
@@ -1114,6 +1126,25 @@ class TreeView(QTreeView):
         self.mAutoExpansionDepth: int = 1
         self.mModel = None
         self.mNodeExpansion: typing.Dict[str, bool] = dict()
+
+    def contextMenuEvent(self, event: QContextMenuEvent) -> None:
+        """
+        Default implementation. Emits populateContextMenu to create context menu
+        :param event:
+        :return:
+        """
+
+        menu: QMenu = QMenu()
+        menu.setToolTipsVisible(True)
+        nodes = self.selectedNodes()
+        if len(nodes) == 1:
+            node: TreeNode = nodes[0]
+            node.populateContextMenu(menu)
+        self.populateContextMenu.emit(menu)
+
+        if not menu.isEmpty():
+            menu.exec_(self.viewport().mapToGlobal(event.pos()))
+
 
     def setAutoExpansionDepth(self, depth: int):
         """
