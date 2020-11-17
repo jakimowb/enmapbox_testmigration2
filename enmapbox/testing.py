@@ -77,8 +77,11 @@ class EnMAPBoxTestCase(TestCase):
         tmpDir = cls.tempDir(cls)
         os.chdir(tmpDir)
         super().setUpClass(resources=resources)
+
         import enmapbox
         enmapbox.initAll()
+
+        s = ""
 
     def tempDir(self, subdir: str = None, cleanup: bool = False) -> pathlib.Path:
         """
