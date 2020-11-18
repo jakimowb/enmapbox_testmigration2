@@ -45,16 +45,16 @@ The **EnMAP-Box** is a plugin for **QGIS** and requires additional **python pack
 ---------------
 
 
-Install QGIS version 3.10.0 or higher to run the EnMAP-Box. You can `get QGIS here <https://www.qgis.org/en/site/forusers/download.html>`_.
+Install QGIS version 3.14 or higher to run the EnMAP-Box. You can `get QGIS here <https://www.qgis.org/en/site/forusers/download.html>`_.
 Additional information on the installation process is provided in the `QGIS Documentation <https://www.qgis.org/en/site/forusers/alldownloads.html>`_.
 
 In case you already have QGIS installed, you can skip this step.
 
-.. tip::
+.. .. tip::
 
-    The installation of additional python packages can be cumbersome, in particular on windows and macOS.
-    You might therefore consider to
-    :ref:`install QGIS in a conda/anaconda environment <dev_installation_create_conda_qgis>`.
+..    The installation of additional python packages can be cumbersome, in particular on windows and macOS.
+..    You might therefore consider to
+..    :ref:`install QGIS in a conda/anaconda environment <dev_installation_create_conda_qgis>`.
 
 
 ....
@@ -80,7 +80,9 @@ Follow the platform specific installation instructions below in order to install
 
    Starting with version 3.6 the EnMAP-Box starts without previously installing the required Python packages.
    If needed, these can be installed ad-hoc to the user directory using the Package Installer (:menuselection:`Project --> Package Installer`)
-   in order to make the plugin run. However, we still recommend to install the packages as described below!
+   in order to make the plugin run.
+
+   **However, we still recommend to install the packages as described below!**
 
    .. image:: /img/package_installer.png
 
@@ -114,19 +116,18 @@ Windows
    .. image:: ../img/shell_callpy3env.png
 
 |
+
 4. Install required python packages by entering:
 
-    .. code-block:: batch
+   .. code-block:: batch
 
-        python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
-
-
-    Now all packages will be installed automatically. After completion, the shell should show something like this:
-
-    .. image:: ../img/shell_install_output.png
+      python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
 
-   |
+   Now all packages will be installed automatically. After completion, the shell should show something like this:
+
+   .. image:: ../img/shell_install_output.png
+
    If the package installation was successful, you can close the shell. The required packages are installed now and
    you can continue to start/install the EnMAP-Box.
 

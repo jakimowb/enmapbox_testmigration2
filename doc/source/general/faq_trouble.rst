@@ -134,7 +134,7 @@ suggest new entries!
      <div><video width="90%" controls muted><source src="../_static/osgeo_install_short.webm" type="video/webm">Your browser does not support HTML5 video.</video>
      <p><i>Demonstration of package selection in the Setup</i></p></div>
 
-  Click :guilabel:`Finish` when the installation is done. **Now repeat the steps 2.- 4. again**.
+  Click :guilabel:`Finish` when the installation is done.
 
 ....
 
