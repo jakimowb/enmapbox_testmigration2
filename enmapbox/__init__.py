@@ -44,32 +44,27 @@ import traceback
 try:
     import processing
 except ModuleNotFoundError as ex:
-
     qgis_dir = pathlib.Path(qgis.__file__).parent
     print(f'Try to find processing framework relative to {qgis_dir}')
     potential_paths = []
     if not isinstance(QgsApplication.instance(), QgsApplication):
         from qgis.testing import start_app
-
         app = start_app()
-        print(f'PREFIX_PATH={app.prefixPath()}')
-        print(f'PLUGIN_PATH={app.pluginPath()}')
-        potential_paths.append(pathlib.Path(app.prefixPath()) / 'share' / 'qgis' / 'python' / 'plugins')
+        pkg = pathlib.Path(QgsApplication.pkgDataPath())
         app.quit()
 
+        potential_paths.append(pkg / 'python' / 'plugins')
+        potential_paths.append(pkg / 'share' / 'qgis' / 'python' / 'plugins')
     for p in potential_paths:
-        print(f'## {p}')
-        if p.is_dir():
-            print(f'## Add to python path: {p}')
+        if (p / 'processing').is_dir():
+            print(f'## Add plugin directory to python path: {p}')
             site.addsitedir(p)
             break
-
     try:
         import processing
         print(f'## Success {p}')
     except Exception as ex:
         traceback.print_exc()
-
         print(ex)
 
 __version__ = '3.7'  # subsub-version information is added during build process
