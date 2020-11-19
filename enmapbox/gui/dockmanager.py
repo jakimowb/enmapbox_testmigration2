@@ -331,17 +331,18 @@ class AttributeTableDockTreeNode(DockTreeNode):
 
 class SpeclibDockTreeNode(DockTreeNode):
     def __init__(self, parent, dock):
-        super(SpeclibDockTreeNode, self).__init__(parent, dock)
+        super().__init__(parent, dock)
+
         self.setIcon(QIcon(':/enmapbox/gui/ui/icons/viewlist_spectrumdock.svg'))
+        self.speclibWidget: SpectralLibraryWidget = None
+        self.profilesNode: LayerTreeNode = LayerTreeNode(self, 'Profiles')
+        self.profilesNode.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
 
     def connectDock(self, dock):
         assert isinstance(dock, SpectralLibraryDock)
         super(SpeclibDockTreeNode, self).connectDock(dock)
         self.speclibWidget = dock.mSpeclibWidget
         assert isinstance(self.speclibWidget, SpectralLibraryWidget)
-
-        self.profilesNode: LayerTreeNode = LayerTreeNode(self, 'Profiles')
-        self.profilesNode.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
 
         speclib = self.speclibWidget.speclib()
         if isinstance(speclib, SpectralLibrary):
@@ -636,12 +637,15 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                 s = ""
         s = ""
 
+    def dockTreeNodes(self) -> typing.List[DockTreeNode]:
+        return [n for n in self.rootNode.children() if isinstance(n, DockTreeNode)]
+
     def mapDockTreeNodes(self) -> typing.List[MapDockTreeNode]:
         """
         Returns all MapDockTreeNodes
         :return: [list-of-MapDockTreeNodes]
         """
-        return [n for n in self.rootNode.children() if isinstance(n, MapDockTreeNode)]
+        return [n for n in self.dockTreeNodes() if isinstance(n, MapDockTreeNode)]
 
     def mapDockTreeNode(self, canvas: QgsMapCanvas) -> MapDockTreeNode:
         """
