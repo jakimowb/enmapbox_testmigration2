@@ -2301,6 +2301,54 @@ class ExtractOrdinationFeilhauerEtAll2014(EnMAPAlgorithm):
 ALGORITHMS.append(ExtractOrdinationFeilhauerEtAll2014())
 
 
+class DecorrelationStretch(EnMAPAlgorithm):
+    def displayName(self):
+        return 'Decorrelation Stretch'
+
+    def description(self):
+        return 'This algorithm applies decorrelation stretching to a RGB raster.'
+
+    def group(self):
+        return self.GROUP_POSTPROCESSING
+
+    P_RED = 'redBand'
+    P_GREEN = 'greenBand'
+    P_BLUE = 'blueBand'
+
+    def defineCharacteristics(self):
+        self.addParameterRaster()
+        self.addParameterBand(self.P_RED, description='Red Band')
+        self.addParameterBand(self.P_GREEN, description='Green Band')
+        self.addParameterBand(self.P_BLUE, description='Blue Band')
+        self.addParameterOutputRaster()
+
+    def processAlgorithm_(self):
+        raster = self.getParameterRaster()
+        indices = [self.getParameterBand(name) -1 for name in [self.P_RED, self.P_GREEN, self.P_BLUE]]
+        filename = self.getParameterOutputRaster()
+
+        from sklearn.decomposition import PCA
+        from sklearn.preprocessing import RobustScaler
+        from hubflow.core import Transformer, Sample
+
+        tmpfilenames = list([join(gettempdir(), 'DecorrelationStretch', 'subset.vrt')])
+        subset = raster.subsetBands(filename=tmpfilenames[-1], indices=indices)
+        pca = Transformer(PCA(n_components=3))
+        pca.fit(sample=Sample(raster=subset))
+        tmpfilenames.append(join(gettempdir(), 'DecorrelationStretch', 'pc.bsq'))
+        pcRaster = pca.transform(filename=tmpfilenames[1], raster=subset)
+        scaler = Transformer(RobustScaler(quantile_range=(2, 98)))
+        scaler.fit(sample=Sample(raster=pcRaster))
+        tmpfilenames.append(join(gettempdir(), 'DecorrelationStretch', 'pcRasterStretched.bsq'))
+        pcRasterStretched = scaler.transform(filename=tmpfilenames[-1], raster=pcRaster)
+        pca.inverseTransform(filename=filename, raster=pcRasterStretched)
+        return {self.P_OUTPUT_RASTER: filename}
+
+
+ALGORITHMS.append(DecorrelationStretch())
+
+
+
 def generateRST():
     global ALGORITHMS
 
@@ -2432,3 +2480,4 @@ def generateRST():
     with open(filename, mode='w') as f:
         f.write(textProcessingAlgorithmsRst)
     print('created RST file: ', filename)
+
