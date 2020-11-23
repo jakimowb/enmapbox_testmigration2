@@ -2306,7 +2306,7 @@ class DecorrelationStretch(EnMAPAlgorithm):
         return 'Decorrelation Stretch'
 
     def description(self):
-        return 'This algorithm applies decorrelation stretching to a RGB raster.'
+        return 'This algorithm applies decorrelation stretching (aka detrended stretching) to 3 selected bands for enhanced display as a trichromatic composite.'
 
     def group(self):
         return self.GROUP_POSTPROCESSING
