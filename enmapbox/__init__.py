@@ -52,15 +52,14 @@ except ModuleNotFoundError as ex:
         from qgis.testing import start_app
 
         app = start_app()
-        print(f'PREFIX_PATH={app.prefixPath()}')
-        print(f'PLUGIN_PATH={app.pluginPath()}')
-        potential_paths.append(pathlib.Path(app.prefixPath()) / 'share' / 'qgis' / 'python' / 'plugins')
+        pkg = pathlib.Path(QgsApplication.pkgDataPath())
         app.quit()
 
+        potential_paths.append(pkg / 'python' / 'plugins')
+        potential_paths.append(pkg / 'share' / 'qgis' / 'python' / 'plugins')
     for p in potential_paths:
-        print(f'## {p}')
-        if p.is_dir():
-            print(f'## Add to python path: {p}')
+        if (p / 'processing').is_dir():
+            print(f'## Add plugin directory to python path: {p}')
             site.addsitedir(p)
             break
 
