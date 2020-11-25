@@ -938,10 +938,17 @@ class HubFlowPyObjectTreeNode(PyObjectTreeNode):
         super().__init__(*args, **kwds)
 
     def populateContextMenu(self, menu: QMenu):
-        # implement your context menu actions here
+
+        def copyToClipboard():
+            state = np.get_printoptions()['threshold']
+            np.set_printoptions(threshold=np.inf)
+            QApplication.clipboard().setText(str(self.mPyObject))
+            np.set_printoptions(threshold=state)
 
         if isinstance(self.mPyObject, np.ndarray):
-            a = menu.addAction('todo: Copy to clipboard')
+            a = menu.addAction('Copy Array')
+            a.setToolTip('Copy Numpy Array to Clipboard.')
+            a.triggered.connect(copyToClipboard)
 
 
 class HubFlowObjectTreeNode(DataSourceTreeNode):

@@ -958,8 +958,6 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
 class DockTreeView(QgsLayerTreeView):
 
-    sigPopulateContextMenu = pyqtSignal(QMenu)
-
     def __init__(self, parent):
         super(DockTreeView, self).__init__(parent)
 
@@ -969,9 +967,6 @@ class DockTreeView(QgsLayerTreeView):
         # self.header().setResizeMode(1, QHeaderView.ResizeToContents)
         self.currentLayerChanged.connect(self.onCurrentLayerChanged)
         self.setEditTriggers(QAbstractItemView.EditKeyPressed)
-        self.mMenuProvider: DockManagerLayerTreeModelMenuProvider = DockManagerLayerTreeModelMenuProvider(self)
-        self.mMenuProvider.mSignals.sigPopulateContextMenu.connect(self.sigPopulateContextMenu)
-        self.setMenuProvider(self.mMenuProvider)
 
     def findParentMapDockTreeNode(self, node: QgsLayerTreeNode) -> MapDockTreeNode:
         while isinstance(node, QgsLayerTreeNode) and not isinstance(node, MapDockTreeNode):
@@ -1061,19 +1056,11 @@ class DockTreeView(QgsLayerTreeView):
 
 
 class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
-
-    class Signals(QObject):
-        sigPopulateContextMenu = pyqtSignal(QMenu)
-
-        def __init__(self, *args, **kwds):
-            super().__init__(*args, **kwds)
-
     def __init__(self, treeView: DockTreeView):
         super(DockManagerLayerTreeModelMenuProvider, self).__init__()
-        #QObject.__init__(self)
         assert isinstance(treeView, DockTreeView)
         self.mDockTreeView = treeView
-        self.mSignals = DockManagerLayerTreeModelMenuProvider.Signals()
+        assert isinstance(self.mDockTreeView.model(), DockManagerTreeModel)
 
     def createContextMenu(self):
 
@@ -1083,8 +1070,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         if node is None:
             return
         menu = QMenu()
-        menu.setToolTipsVisible(True)
-
         selectedLayerNodes = list(set(self.mDockTreeView.selectedLayerNodes()))
         if isinstance(node, (DockTreeNode, QgsLayerTreeLayer)):
             actionEdit = menu.addAction('Rename')
@@ -1147,7 +1132,8 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
-            menu = node.dock.contextMenu(menu=menu)
+            from enmapbox.gui.utils import appendItemsToMenu
+            return node.dock.contextMenu(menu=menu)
 
         elif isinstance(node, LayerTreeNode):
             if col == 0:
@@ -1156,9 +1142,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 menu = QMenu()
                 a = menu.addAction('Copy')
                 a.triggered.connect(lambda: QApplication.clipboard().setText('{}'.format(node.value())))
-
-        # last change to add other menu actions
-        self.mSignals.sigPopulateContextMenu.emit(menu)
 
         return menu
 
@@ -1468,7 +1451,6 @@ class DockPanelUI(QgsDockWidget):
         super(DockPanelUI, self).__init__(parent)
         loadUi(enmapboxUiPath('dockpanel.ui'), self)
         self.dockManager = None
-        self.dockTreeView: DockTreeView
         assert isinstance(self.dockTreeView, DockTreeView)
 
         self.initActions()
