@@ -1001,7 +1001,8 @@ class DataSourceTreeView(TreeView):
         if isinstance(enmapbox, EnMAPBox):
             mapDocks = enmapbox.mDockManager.docks('MAP')
 
-        m = QMenu()
+        m: QMenu = QMenu()
+        m.setToolTipsVisible(True)
 
         if isinstance(node, DataSourceGroupTreeNode):
             a = m.addAction('Remove')
@@ -1110,12 +1111,7 @@ class DataSourceTreeView(TreeView):
             a.triggered.connect(lambda *args, n=node: QApplication.clipboard().setText(str(n.value())))
 
         if isinstance(node, TreeNode):
-            m2 = node.contextMenu()
-            if isinstance(m2, QMenu):
-                for a in m2.actions():
-                    a.setParent(None)
-                    m.addAction(a)
-                    a.setParent(m)
+            node.populateContextMenu(m)
 
         a = m.addAction('Remove all DataSources')
         a.setToolTip('Removes all data source.')

@@ -155,13 +155,12 @@ class LayerTreeNode(QgsLayerTree):
     def icon(self):
         return self.mIcon
 
-    def contextMenu(self):
+    def populateContextMenu(self, menu:QMenu):
         """
         Returns an empty QMenu
         Overwrite with QMenu + QActions that implement logic related to the TreeNode and its data.
         :return:
         """
-        return QMenu()
 
     @staticmethod
     def readXml(element):
@@ -290,25 +289,31 @@ class SpeclibDockTreeNode(DockTreeNode):
         super().__init__(dock)
 
         self.setIcon(QIcon(':/enmapbox/gui/ui/icons/viewlist_spectrumdock.svg'))
-        self.speclibWidget: SpectralLibraryWidget = None
+        self.mSpeclibWidget: SpectralLibraryWidget = None
         self.profilesNode: LayerTreeNode = LayerTreeNode('Profiles')
         self.profilesNode.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
         self.addChildNode(self.profilesNode)
 
         assert isinstance(dock, SpectralLibraryDock)
-        self.speclibWidget = dock.mSpeclibWidget
-        assert isinstance(self.speclibWidget, SpectralLibraryWidget)
+        self.mSpeclibWidget = dock.mSpeclibWidget
+        assert isinstance(self.mSpeclibWidget, SpectralLibraryWidget)
 
-        speclib = self.speclibWidget.speclib()
+        speclib = self.speclib()
         if isinstance(speclib, SpectralLibrary):
             speclib.committedFeaturesAdded.connect(self.updateNodes)
             speclib.committedFeaturesRemoved.connect(self.updateNodes)
             self.updateNodes()
 
+    def speclib(self) -> SpectralLibrary:
+        return self.speclibWidget().speclib()
+
+    def speclibWidget(self) -> SpectralLibraryWidget:
+        return self.mSpeclibWidget
+
     def updateNodes(self):
 
-        if isinstance(self.speclibWidget, SpectralLibraryWidget):
-            sl: SpectralLibrary = self.speclibWidget.speclib()
+        if isinstance(self.mSpeclibWidget, SpectralLibraryWidget):
+            sl: SpectralLibrary = self.mSpeclibWidget.speclib()
             if isinstance(sl, SpectralLibrary):
                 # self.profilesNode.setValue(len(speclib))
 
@@ -517,7 +522,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
             self.addDock(dock)
 
         self.mDockManager.sigDockAdded.connect(self.addDock)
-        self.mDockManager.sigDockRemoved.connect(self.removeDock)
+        self.mDockManager.sigDockWillBeRemoved.connect(self.removeDock)
 
     def columnCount(self, index) -> int:
         node = self.index2node(index)
@@ -664,7 +669,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
     def removeDockNode(self, node):
         self.removeNodes([node])
-        self.mDockManager.removeDock(node.dock)
+        #self.mDockManager.removeDock(node.dock)
 
     def flags(self, index):
         if not index.isValid():
@@ -1050,11 +1055,19 @@ class DockTreeView(QgsLayerTreeView):
 
 
 class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
+
+    class Signals(QObject):
+        sigPopulateContextMenu = pyqtSignal(QMenu)
+
+        def __init__(self, *args, **kwds):
+            super().__init__(*args, **kwds)
+
     def __init__(self, treeView: DockTreeView):
         super(DockManagerLayerTreeModelMenuProvider, self).__init__()
+        #QObject.__init__(self)
         assert isinstance(treeView, DockTreeView)
         self.mDockTreeView = treeView
-        assert isinstance(self.mDockTreeView.model(), DockManagerTreeModel)
+        self.mSignals = DockManagerLayerTreeModelMenuProvider.Signals()
 
     def createContextMenu(self):
 
@@ -1064,6 +1077,8 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         if node is None:
             return
         menu = QMenu()
+        menu.setToolTipsVisible(True)
+
         selectedLayerNodes = list(set(self.mDockTreeView.selectedLayerNodes()))
         if isinstance(node, (DockTreeNode, QgsLayerTreeLayer)):
             actionEdit = menu.addAction('Rename')
@@ -1126,8 +1141,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
-            from enmapbox.gui.utils import appendItemsToMenu
-            return node.dock.contextMenu(menu=menu)
+            menu = node.dock.contextMenu(menu=menu)
 
         elif isinstance(node, LayerTreeNode):
             if col == 0:
@@ -1136,6 +1150,9 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 menu = QMenu()
                 a = menu.addAction('Copy')
                 a.triggered.connect(lambda: QApplication.clipboard().setText('{}'.format(node.value())))
+
+        # last change to add other menu actions
+        self.mSignals.sigPopulateContextMenu.emit(menu)
 
         return menu
 
@@ -1184,6 +1201,7 @@ class DockManager(QObject):
 
     sigDockAdded = pyqtSignal(Dock)
     sigDockRemoved = pyqtSignal(Dock)
+    sigDockWillBeRemoved = pyqtSignal(Dock)
     sigDockTitleChanged = pyqtSignal(Dock)
 
     def __init__(self):
@@ -1332,6 +1350,7 @@ class DockManager(QObject):
         :return:
         """
         if dock in self.mDocks:
+            self.sigDockWillBeRemoved.emit(dock)
             self.mDocks.remove(dock)
 
             if dock.container():
