@@ -37,7 +37,7 @@ from qgis.gui import QgsMapCanvas, QgsLayerTreeView, \
 
 from enmapbox import messageLog, debugLog
 from enmapbox.gui.docks import *
-from enmapbox.gui.dockmanager import DockManagerTreeModel, MapDockTreeNode
+from enmapbox.gui.dockmanager import DockManagerTreeModel, MapDockTreeNode, DockTreeNode, SpeclibDockTreeNode
 from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
@@ -173,21 +173,19 @@ class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
 
     def __init__(self, *args, **kwds):
 
-        canvas = None
-        if 'canvas' in kwds.keys():
-            canvas = kwds.pop('canvas')
+        widget = None
+        if 'widget' in kwds.keys():
+            widget = kwds.pop('widget')
 
         #assert isinstance(canvas, QgsMapCanvas)
         super().__init__(*args, **kwds)
         self.setUseLayerName(False)
 
-        self.mCanvas: QgsMapCanvas = None
+        self.mWidget: QWidget = None
         lyr = self.layer()
         if isinstance(lyr, QgsMapLayer):
             lyr.nameChanged.connect(self.updateLayerTitle)
-
-        if isinstance(canvas, QgsMapCanvas):
-            self.setCanvas(canvas)
+        self.setWidget(widget)
 
         self.updateLayerTitle()
 
@@ -197,8 +195,8 @@ class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
         """
         location = '[EnMAP-Box]'
         name = '<not connected>'
-        if isinstance(self.mCanvas, QgsMapCanvas):
-            location = '[{}]'.format(self.mCanvas.windowTitle())
+        if isinstance(self.mWidget, QWidget):
+            location = '[{}]'.format(self.mWidget.windowTitle())
 
         lyr = self.layer()
         if isinstance(lyr, QgsMapLayer):
@@ -210,12 +208,15 @@ class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
 
         self.setName(title)
 
-    def setCanvas(self, canvas: QgsMapCanvas):
-        if isinstance(self.mCanvas, QgsMapCanvas):
-            self.mCanvas.windowTitleChanged.disconnect(self.updateLayerTitle)
-        self.mCanvas = canvas
-        if isinstance(self.mCanvas, QgsMapCanvas):
-            self.mCanvas.windowTitleChanged.connect(self.updateLayerTitle)
+    def setWidget(self, widget: QWidget):
+        if isinstance(self.mWidget, QWidget):
+            try:
+                self.mWidget.windowTitleChanged.disconnect(self.updateLayerTitle)
+            except:
+                pass
+        self.mWidget = widget
+        if isinstance(self.mWidget, QgsMapCanvas):
+            self.mWidget.windowTitleChanged.connect(self.updateLayerTitle)
         self.updateLayerTitle()
 
 
@@ -515,7 +516,7 @@ class EnMAPBox(QgisInterface, QObject):
         settings = QgsSettings()
         mode = int(settings.value('qgis/legendDoubleClickAction', '0'))
 
-        debugLog(f'Current MapCanvas: {self.currentMapCanvas().name()}')
+        debugLog(f'Current MapCanvas: {self.currentMapCanvas()}')
         debugLog(f'Current MapLayer: {self.currentLayer()}')
 
         if mode == 0:
@@ -692,13 +693,22 @@ class EnMAPBox(QgisInterface, QObject):
         if isinstance(grp, EnMAPBoxHiddenLayerTreeGroup):
             knownInQGIS = [l.layerId() for l in grp.findLayers() if isinstance(l.layer(), QgsMapLayer)]
 
-            # which layer is visible in which canvas?
-            L2C = dict()
-            for mapDockNode in self.dockManagerTreeModel().mapDockTreeNodes():
-                for lid in mapDockNode.findLayerIds():
-                    if lid not in L2C.keys():
-                        L2C[lid] = mapDockNode.mapCanvas()
-            knownInEnMAPBox = list(L2C.keys())
+            # which layer is visible in which widget? e.g. QgsMapCanvas or SpectralLibrary Widget?
+            L2W = dict()
+            SPECLIBS = dict()
+            for dockNode in self.dockManagerTreeModel().dockTreeNodes():
+                if isinstance(dockNode, MapDockTreeNode):
+                    for lid in dockNode.findLayerIds():
+                        if lid not in L2W.keys():
+                            L2W[lid] = dockNode.mapCanvas()
+                elif isinstance(dockNode, SpeclibDockTreeNode):
+                    slw = dockNode.speclibWidget()
+                    speclib = slw.speclib()
+                    SPECLIBS[speclib.id()] = speclib
+                    L2W[speclib.id()] = slw
+
+            knownInEnMAPBox = list(L2W.keys())
+            # knownInEnMAPBox = self.dockManagerTreeModel().rootNode.findLayerIds()
 
             toAdd = [l for l in knownInEnMAPBox if l not in knownInQGIS]
             toRemove = [l for l in knownInQGIS if l not in knownInEnMAPBox]
@@ -706,7 +716,12 @@ class EnMAPBox(QgisInterface, QObject):
             # update QGIS layer tree
             for lid in toAdd:
                 assert isinstance(lid, str)
+                if lid in SPECLIBS.keys() and not lid in QgsProject.instance().mapLayers().keys():
+                    lyr = SPECLIBS[lid]
+                    QgsProject.instance().addMapLayer(lyr, False)
+
                 lyr = QgsProject.instance().mapLayer(lid)
+
                 if isinstance(lyr, QgsMapLayer) and not sip.isdeleted(lyr):
                     node = EnMAPBoxLayerTreeLayer(lyr)
                     self._layerTreeNodes.append(node)
@@ -727,9 +742,8 @@ class EnMAPBox(QgisInterface, QObject):
             # update layer title according to its position in the EnMAP-Box
             for node in grp.children():
                 if isinstance(node, EnMAPBoxLayerTreeLayer):
-                    if node.layerId() not in L2C.keys():
-                        s = ""
-                    node.setCanvas(L2C.get(node.layerId(), None))
+                    widget = L2W.get(node.layerId(), None)
+                    node.setWidget(widget)
 
             # in case the currentNode is is the hidden group, set the current QGIS node to the top
             currentGroupNode = qgis.utils.iface.layerTreeView().currentGroupNode()
@@ -1119,7 +1133,8 @@ class EnMAPBox(QgisInterface, QObject):
             slw.plotWidget().backgroundBrush().setColor(QColor('black'))
             self.spectralProfileBridge().addDestination(slw)
             slw.sigFilesCreated.connect(self.addSources)
-            self.dataSourceManager().addSource(slw.speclib())
+            #self.dataSourceManager().addSource(slw.speclib())
+            # self.mapLayerStore().addMapLayer(slw.speclib(), addToLegend=False)
 
         if isinstance(dock, MapDock):
             canvas = dock.mapCanvas()
@@ -1156,6 +1171,9 @@ class EnMAPBox(QgisInterface, QObject):
 
         if isinstance(dock, SpectralLibraryDock):
             self.spectralProfileBridge().removeDestination(dock.speclibWidget())
+           # lid = dock.speclib().id()
+           # if self.mapLayerStore().mapLayer(lid):
+           #     self.mapLayerStore().removeMapLayer(lid)
 
     @pyqtSlot(SpatialPoint, QgsMapCanvas)
     def loadCurrentMapSpectra(self, spatialPoint: SpatialPoint, mapCanvas: QgsMapCanvas = None, runAsync: bool = None):

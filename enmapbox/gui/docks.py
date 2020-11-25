@@ -826,3 +826,12 @@ class SpectralLibraryDock(Dock):
     def speclib(self) -> SpectralLibrary:
         """Returns the underlying spectral library"""
         return self.mSpeclibWidget.speclib()
+
+    def contextMenu(self, menu: QMenu = None) -> QMenu:
+        """
+        Returns the MapDock context menu
+        :return: QMenu
+        """
+        menu = super().contextMenu(menu=menu)
+        menu.addAction(self.speclibWidget().actionShowProperties)
+        return menu
