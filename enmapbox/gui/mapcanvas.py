@@ -1503,3 +1503,8 @@ class MapDock(Dock):
         assert isinstance(layers, list)
         new_set = self.mapCanvas().layers() + layers
         self.mapCanvas().setLayers(new_set)
+
+    def insertLayer(self, idx, layerSource):
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox.instance()
+        enmapBox.dockManagerTreeModel().mapDockTreeNodes()[0].insertLayer(idx=idx, layerSource=layerSource)
