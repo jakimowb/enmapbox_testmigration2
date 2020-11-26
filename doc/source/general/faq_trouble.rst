@@ -48,7 +48,7 @@ suggest new entries!
   Please cite the EnMAP-Box as::
 
       EnMAP-Box Developers (2019): EnMAP-Box 3 - A QGIS Plugin to process and visualize
-      hyperspectral remote sensing data. www.enmap.org/data_tools/enmapbox/
+      hyperspectral remote sensing data. https://enmap-box.readthedocs.io
 
   For the general idea behind the EnMAP-Box please refer to::
 
