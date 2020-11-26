@@ -1238,10 +1238,16 @@ class MapCanvas(QgsMapCanvas):
     def name(self):
         return self.windowTitle()
 
-    def zoomToPixelScale(self, spatialPoint: SpatialPoint = None):
+    def zoomToPixelScale(self, spatialPoint: SpatialPoint = None, layer: QgsRasterLayer=None):
         unitsPxX = []
         unitsPxY = []
-        for lyr in self.layers():
+
+        if layer is not None:
+            layers = [layer]
+        else:
+            layers = self.layers()
+
+        for lyr in layers:
             if isinstance(lyr, QgsRasterLayer):
                 if isinstance(spatialPoint, SpatialPoint):
                     if not lyr.extent().contains(spatialPoint.toCrs(lyr.crs())):
