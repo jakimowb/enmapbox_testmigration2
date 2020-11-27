@@ -860,8 +860,17 @@ class MapCanvas(QgsMapCanvas):
 
     _cnt = 0
 
-    def __init__(self, parent=None):
+    def __init__(
+            self, parent=None, lockFullExtent=False, lockNativeResolution=False,
+            nativeResolutionLayer: QgsRasterLayer = None, nativeResolutionMagnificationFactor=1
+    ):
         super(MapCanvas, self).__init__(parent=parent)
+        self.lockFullExtent = lockFullExtent
+        self.lockNativeResolution = lockNativeResolution
+        if lockNativeResolution:
+            assert isinstance(nativeResolutionLayer, QgsRasterLayer)
+        self.nativeResolutionLayer = nativeResolutionLayer
+        self.nativeResolutionMagnificationFactor = nativeResolutionMagnificationFactor
 
         if Qgis.QGIS_VERSION >= '3.16':
             self.contextMenuAboutToShow.connect(self.populateContextMenu)
@@ -890,6 +899,7 @@ class MapCanvas(QgsMapCanvas):
 
         self.layersChanged.connect(self.onLayersChanged)
         self.destinationCrsChanged.connect(lambda: self.sigCrsChanged.emit(self.mapSettings().destinationCrs()))
+
         # activate default map tool
         self.setMapTool(QgsMapToolPan(self))
         self.mMapMouseEvent = None
@@ -1211,10 +1221,24 @@ class MapCanvas(QgsMapCanvas):
         return self.mCrosshairItem.mShow
 
     def onScaleChanged(self, scale):
+        if self.lockNativeResolution:
+            self.blockSignals(True)
+            self.zoomToPixelScale(
+                layer=self.nativeResolutionLayer,  magnificationFactor=self.nativeResolutionMagnificationFactor
+            )
+            self.blockSignals(False)
+            return
+
         CanvasLink.applyLinking(self)
         pass
 
     def onExtentsChanged(self):
+
+        if self.lockFullExtent:
+            self.blockSignals(True)
+            self.zoomToFullExtent()
+            self.blockSignals(False)
+            return
 
         CanvasLink.applyLinking(self)
         self.sigSpatialExtentChanged.emit(SpatialExtent.fromMapCanvas(self))
@@ -1238,7 +1262,7 @@ class MapCanvas(QgsMapCanvas):
     def name(self):
         return self.windowTitle()
 
-    def zoomToPixelScale(self, spatialPoint: SpatialPoint = None, layer: QgsRasterLayer=None):
+    def zoomToPixelScale(self, spatialPoint: SpatialPoint = None, layer: QgsRasterLayer=None, magnificationFactor=1):
         unitsPxX = []
         unitsPxY = []
 
@@ -1256,8 +1280,8 @@ class MapCanvas(QgsMapCanvas):
                 unitsPxY.append(lyr.rasterUnitsPerPixelY())
 
         if len(unitsPxX) > 0:
-            unitsPxX = unitsPxX[0]
-            unitsPxY = unitsPxY[0]
+            unitsPxX = unitsPxX[0] / magnificationFactor
+            unitsPxY = unitsPxY[0] / magnificationFactor
             f = 1.0
             width = f * self.size().width() * unitsPxX  # width in map units
             height = f * self.size().height() * unitsPxY  # height in map units
@@ -1437,12 +1461,19 @@ class MapDock(Dock):
     sigLayersAdded = pyqtSignal(list)
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
 
-    def __init__(self, *args, **kwds):
+    def __init__(
+            self, *args, lockFullExtent=False, lockNativeResolution=False,
+            nativeResolutionLayer: QgsRasterLayer = None, nativeResolutionMagnificationFactor=1,
+            **kwds
+    ):
         initSrc = kwds.pop('initSrc', None)
         super(MapDock, self).__init__(*args, **kwds)
         self.mBaseName = self.title()
-
-        self.mCanvas: MapCanvas = MapCanvas(self)
+        self.mCanvas: MapCanvas = MapCanvas(
+            self, lockFullExtent=lockFullExtent, lockNativeResolution=lockNativeResolution,
+            nativeResolutionLayer=nativeResolutionLayer,
+            nativeResolutionMagnificationFactor=nativeResolutionMagnificationFactor
+        )
         self.mCanvas.setWindowTitle(self.title())
         self.mCanvas.sigNameChanged.connect(self.setTitle)
 
