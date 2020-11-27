@@ -1506,5 +1506,11 @@ class MapDock(Dock):
 
     def insertLayer(self, idx, layerSource):
         from enmapbox import EnMAPBox
+        from enmapbox.gui.dockmanager import MapDockTreeNode
+
         enmapBox = EnMAPBox.instance()
-        enmapBox.dockManagerTreeModel().mapDockTreeNodes()[0].insertLayer(idx=idx, layerSource=layerSource)
+        if enmapBox is not None:
+            mapDockTreeNode: MapDockTreeNode
+            for mapDockTreeNode in enmapBox.dockManagerTreeModel().mapDockTreeNodes():
+                if mapDockTreeNode.dock is self:
+                    mapDockTreeNode.insertLayer(idx=idx, layerSource=layerSource)

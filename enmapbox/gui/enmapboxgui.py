@@ -238,7 +238,7 @@ class EnMAPBox(QgisInterface, QObject):
     _instance = None
 
     @staticmethod
-    def instance():
+    def instance() -> Optional['EnMAPBox']:
         return EnMAPBox._instance
 
     MAPTOOLACTION = 'enmapbox/maptoolkey'
