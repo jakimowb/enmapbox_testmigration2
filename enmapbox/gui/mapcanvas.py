@@ -1514,3 +1514,4 @@ class MapDock(Dock):
             for mapDockTreeNode in enmapBox.dockManagerTreeModel().mapDockTreeNodes():
                 if mapDockTreeNode.dock is self:
                     mapDockTreeNode.insertLayer(idx=idx, layerSource=layerSource)
+
