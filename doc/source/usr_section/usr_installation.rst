@@ -50,11 +50,32 @@ Additional information on the installation process is provided in the `QGIS Docu
 
 In case you already have QGIS installed, you can skip this step.
 
+
 .. .. tip::
 
-..    The installation of additional python packages can be cumbersome, in particular on windows and macOS.
+..    The installation of additional python packages can be cumbersome, in particular on windows.
 ..    You might therefore consider to
 ..    :ref:`install QGIS in a conda/anaconda environment <dev_installation_create_conda_qgis>`.
+
+MacOS
+~~~~~
+
+Before you can install QGIS from the downloaded disk image `qgis-macos-pr.dmg`,
+you need to allow your macOS to install it:
+
+1. Open System Preferences > Security & Privacy an
+
+2. Unlock the page to make changes.
+
+3. Enable "Allow apps downloaded from": "Anywhere"  
+
+
+.. image:: ../img/macOS/install_qgis1.png
+
+
+Now open the disk image (double click) and copy the QGIS.app to your applications folder
+
+.. image:: ../img/macOS/install_qgis2.pn
 
 
 ....
@@ -175,16 +196,12 @@ Linux
 Mac
 ~~~
 
-#. Open the terminal and install all missing packages using pip:
+Most packages required by the EnMAP-Box, like scikit-learn, are already be part of the QGIS.app environment. 
 
-.. code-block:: batch
+Since QGIS 3.16, the `packaging mechanism <https://www.lutraconsulting.co.uk/blog/2020/10/01/qgis-macos-package/>`_,
+allows to install additional package with pip as followed::
 
-   python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
-
-.. caution::
-
-   Starting with QGIS 3.16 the `packaging mechanism changed <https://www.lutraconsulting.co.uk/blog/2020/10/01/qgis-macos-package/>`_,
-   so you might have to use this command instead::
+   /Applications/QGIS.app/Contents/MacOS/bin/pip3 install astropy
 
    /Applications/QGIS.app/Contents/MacOS/bin/pip3 install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
