@@ -70,12 +70,12 @@ you need to allow your macOS to install it:
 3. Enable "Allow apps downloaded from": "Anywhere"  
 
 
-.. image:: ../img/macOS/install_qgis1.png
+.. image:: ../img/macos/install_qgis1.png
 
 
 Now open the disk image (double click) and copy the QGIS.app to your applications folder
 
-.. image:: ../img/macOS/install_qgis2.pn
+.. image:: ../img/macos/install_qgis2.pn
 
 
 ....
