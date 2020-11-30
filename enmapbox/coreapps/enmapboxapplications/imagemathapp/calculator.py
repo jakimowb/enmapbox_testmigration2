@@ -24,11 +24,10 @@ class Calulator(Applier):
             for key in self.outputRaster.flatRasterKeys():
                 value = self.outputRaster.raster(key=key)
                 self.controls.progressBar.setText('<b>{}</b> = {}'.format(key, value.filename()))
-                try:
-                    import hubflow.signals
-                    hubflow.signals.sigFileCreated.emit(value.filename())
-                except:
-                    pass
+                from enmapbox import EnMAPBox
+                enmapBox = EnMAPBox.instance()
+                if isinstance(enmapBox, EnMAPBox):
+                    enmapBox.addSource(value.filename())
 
         missingOutputs = [key for key in outputKeys if key not in self.outputRaster.flatRasterKeys()]
         if len(missingOutputs) > 0:

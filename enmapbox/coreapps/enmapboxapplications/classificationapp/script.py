@@ -65,23 +65,31 @@ def classificationWorkflow(sample, classifier, raster, mask, n, cv,
     setInfo('Step 2: fit classifier')
     classifier.fit(sample)
 
+    from enmapbox import EnMAPBox
+    enmapBox: EnMAPBox = EnMAPBox.instance()
+
     if saveModel:
         classifier.pickle(filename=filenameModel)
+        enmapBox.addSource(filenameModel)
 
     setInfo('Step 3: predict classification')
     if saveClassification:
         classifier.predict(filename=filenameClassification, raster=raster, mask=mask, progressBar=progressBar)
+        enmapBox.addSource(filenameClassification)
 
     setInfo('Step 4: predict probability')
     if saveProbability:
         probability = classifier.predictProbability(filename=filenameProbability, raster=raster, mask=mask, progressBar=progressBar)
+        enmapBox.addSource(filenameProbability)
         if saveRGB:
-            probability.asClassColorRGBRaster(filename='{}_rgb{}'.format(*splitext(filenameProbability)))
+            filenameRgb = '{}_rgb{}'.format(*splitext(filenameProbability))
+            probability.asClassColorRGBRaster(filename=filenameRgb)
+            enmapBox.addSource(filenameRgb)
 
     setInfo('Step 5: assess cross-validation performance')
     if saveReport:
         classifier.crossValidation(cv=cv).report().saveHTML(filename=filenameReport)
-
+        enmapBox.addSource(filenameReport)
 
 def test():
     from sklearn.ensemble import RandomForestClassifier

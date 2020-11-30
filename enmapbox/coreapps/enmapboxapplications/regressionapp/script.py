@@ -74,16 +74,22 @@ def regressionWorkflow(
     setInfo('Step 2: fit regressor')
     regressor.fit(sample)
 
+    from enmapbox import EnMAPBox
+    enmapBox: EnMAPBox = EnMAPBox.instance()
+
     if saveModel:
         regressor.pickle(filename=filenameModel)
+        enmapBox.addSource(filenameModel)
 
     setInfo('Step 3: predict regression')
     if saveRegression:
         regressor.predict(filename=filenameRegression, raster=raster, progressBar=progressBar)
+        enmapBox.addSource(filenameRegression)
 
     setInfo('Step 4: assess cross-validation performance')
     if saveReport:
         regressor.performanceCrossValidation(nfold=cv).report().saveHTML(filename=filenameReport)
+        enmapBox.addSource(filenameReport)
 
 
 def test():
@@ -93,7 +99,8 @@ def test():
     outdir = r'c:\outputs'
 
     raster = Raster(filename=r'C:\Work\data\sam_cooper\enmap_subset.bsq')
-    regression = VectorRegression(filename=r'C:\Work\data\sam_cooper\biomass_training.shp', regressionAttribute='biomass_la')
+    regression = VectorRegression(filename=r'C:\Work\data\sam_cooper\biomass_training.shp',
+        regressionAttribute='biomass_la')
     regression = Regression.fromVectorRegression(
         filename=join(outdir, 'rasterized_regression.bsq'), vectorRegression=regression, grid=raster.grid()
     )
@@ -101,6 +108,7 @@ def test():
     sample = RegressionSample(raster=raster, regression=regression)
     n = [76, 106, 84, 28, 4]
     bin_edges = [0., 100., 200., 300., 400., 500.]
+
     def doit(array, bin_edges):
         result = np.zeros_like(array, dtype=np.uint8)
         for i, v0 in enumerate(bin_edges[:-1], 1):
