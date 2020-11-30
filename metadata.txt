@@ -1,17 +1,17 @@
 [general]
-name=EnMAP-Box 3 TEST DUMMY
-author=Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden
-description=ENMAP BOX TEST DUMMY
-version=3.99
-qgisMinimumVersion=3.12
+name=EnMAP-Box 3 Dummy
+author=EnMAP-Box Authors
+email=enmapbox@enmap.org
+description=Imaging Spectroscopy and Remote Sensing for QGIS
+version=3.XXXX
+qgisMinimumVersion=3.14
 qgisMaximumVersion=3.99
-about=This metadata.txt is show if you have added the EnMAP-Box repository to your QGIS_PLUGINPATH. Be aware that
-the state of your repository might differ from the plugin created with <code>scripts\create_plugin.py</code>
+about=<p align="center">This is a dummy text. See <code>scrpts/create_plugin.py</code> for details of metadata.txt generation</p>
 icon=enmapbox/gui/ui/icons/enmapbox.png
-tags=Raster
+tags=keyword dummy
 category=https://bitbucket.org/hu-geomatics/enmap-box.git
 homepage=http://www.enmap.org/
 tracker=https://bitbucket.org/hu-geomatics/enmap-box/issues
 repository=https://bitbucket.org/hu-geomatics/enmap-box.git
 
-changelog=
+changelog=CHANGELOG.rst
