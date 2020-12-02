@@ -298,7 +298,13 @@ class EstimatorFit(EnMAPAlgorithm):
 
     def processAlgorithm_(self):
         estimator = self.estimator(sklEstimator=self.sklEstimator())
-        estimator.fit(sample=self.sample())
+        try:
+            estimator.fit(sample=self.sample())
+        except Exception as error:
+            if 'Grids do not match and on the fly resampling is turned off.' in str(error):
+                raise EnMAPAlgorithmParameterValueError(str(error))
+            else:
+                raise
         filename = self.getParameterOutputEstimator()
         estimator._initPickle()
         estimator.pickle(filename=filename, progressBar=self._progressBar)
