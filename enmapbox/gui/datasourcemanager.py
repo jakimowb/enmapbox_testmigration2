@@ -25,6 +25,7 @@ import re
 import sys
 import collections
 import uuid
+import webbrowser
 import numpy as np
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
@@ -855,6 +856,23 @@ class FileDataSourceTreeNode(DataSourceTreeNode):
 
     def __init__(self, *args, **kwds):
         super(FileDataSourceTreeNode, self).__init__(*args, **kwds)
+
+    def populateContextMenu(self, menu: QMenu):
+        """
+        Implement this to add a TreeNode specific context menu
+        :param menu:
+        :return:
+        """
+        super().populateContextMenu(menu)
+        
+        path = self.mDataSource.uri()
+        if re.search('(html|json)$', path):
+            a = menu.addAction('Open in Browser')
+            a.triggered.connect(lambda *args, p=path: webbrowser.open(path))
+        else:
+            a = menu.addAction('Open in Editor')
+            a.triggered.connect(lambda *args, p=path: webbrowser.open(path))
+
 
 
 class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
