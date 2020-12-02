@@ -127,12 +127,16 @@ class Dock(pgDock):
         self.topLayout.update()
 
     def contextMenu(self, menu: QMenu = None):
+        warnings.warn('Use populateContextMenu instead', DeprecationWarning)
+        self.populateContextMenu(menu)
+        return menu
+
+    def populateContextMenu(self, menu: QMenu) -> QMenu:
         """
         implement this to return a QMenu with context menu properties for this dock.
         :return: None or QMenu
         """
-        if not isinstance(menu, QMenu):
-            menu = QMenu()
+        assert isinstance(menu, QMenu)
         if self.isVisible():
             a = menu.addAction('Hide View')
             a.triggered.connect(lambda: self.setVisible(False))
@@ -827,11 +831,10 @@ class SpectralLibraryDock(Dock):
         """Returns the underlying spectral library"""
         return self.mSpeclibWidget.speclib()
 
-    def contextMenu(self, menu: QMenu = None) -> QMenu:
+    def populateContextMenu(self, menu: QMenu):
         """
         Returns the MapDock context menu
         :return: QMenu
         """
-        menu = super().contextMenu(menu=menu)
+        super(SpectralLibraryDock, self).populateContextMenu(menu)
         menu.addAction(self.speclibWidget().actionShowProperties)
-        return menu

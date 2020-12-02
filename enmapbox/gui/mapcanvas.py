@@ -1460,14 +1460,12 @@ class MapDock(Dock):
     def mapCanvas(self) -> MapCanvas:
         return self.mCanvas
 
-    def contextMenu(self, menu: QMenu = None) -> QMenu:
+    def populateContextMenu(self, menu: QMenu):
         """
         Returns the MapDock context menu
         :return: QMenu
         """
-        if not isinstance(menu, QMenu):
-            menu = QMenu()
-        menu = super(MapDock, self).contextMenu(menu=menu)
+        super(MapDock, self).populateContextMenu(menu)
 
         self.mCanvas.populateContextMenu(menu, None)
         return menu

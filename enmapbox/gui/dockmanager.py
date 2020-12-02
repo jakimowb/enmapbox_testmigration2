@@ -1141,13 +1141,12 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
-            menu = node.dock.contextMenu(menu=menu)
+            node.dock.populateContextMenu(menu)
 
         elif isinstance(node, LayerTreeNode):
             if col == 0:
-                menu = node.contextMenu()
+                node.populateContextMenu(menu)
             elif col == 1:
-                menu = QMenu()
                 a = menu.addAction('Copy')
                 a.triggered.connect(lambda: QApplication.clipboard().setText('{}'.format(node.value())))
 
