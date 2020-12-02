@@ -81,7 +81,7 @@ URL_INSTALLATION = r'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_
 URL_QGIS_RESOURCES = r'https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip'
 MIN_VERSION_TESTDATA = '0.12'
 MIN_VERSION_QGIS = '3.16'
-
+PLUGIN_DEPENDENCIES = ['vrtbuilderplugin>=0.9']
 ABOUT = """
 <p align="center">
 The EnMAP-Box is a QGIS plug-in to visualize and process remote sensing data, and particularly developed to handle EnMAP products. 
