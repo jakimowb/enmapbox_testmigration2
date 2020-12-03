@@ -50,14 +50,14 @@ suggest new entries!
       EnMAP-Box Developers (2019): EnMAP-Box 3 - A QGIS Plugin to process and visualize
       hyperspectral remote sensing data. https://enmap-box.readthedocs.io
 
-  For the general idea behind the EnMAP-Box please refer to::
+  For the general idea behind the EnMAP-Box please refer to:
 
-      van der Linden, S., Rabe, A., Held, M., Jakimow, B., Leitão, P., Okujeni, A., Schwieder, M.,
-      Suess, S., Hostert, P., 2015. The EnMAP-Box—A Toolbox and Application Programming Interface
-      for EnMAP Data Processing. Remote Sensing 7,
-      11249–11266. 10.3390/rs70911249.
+  .. code-block:: none
 
-
+     van der Linden, S., Rabe, A., Held, M., Jakimow, B., Leitão, P., Okujeni, A., Schwieder, M.,
+     Suess, S., Hostert, P., 2015. The EnMAP-Box—A Toolbox and Application Programming Interface
+     for EnMAP Data Processing. Remote Sensing 7,
+     11249–11266. 10.3390/rs70911249.
 
 * **How to install QGIS without administrative rights?**
 

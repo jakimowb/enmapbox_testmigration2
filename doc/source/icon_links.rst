@@ -264,6 +264,10 @@
    :width: 28px
 .. |edit_ogr_metadata| image:: /../../enmapbox/externals/qps/ui/icons/edit_ogr_metadata.svg
    :width: 28px
+.. |export_symbology| image:: /../../enmapbox/externals/qps/ui/icons/export_symbology.svg
+   :width: 28px
+.. |import_symbology| image:: /../../enmapbox/externals/qps/ui/icons/import_symbology.svg
+   :width: 28px
 .. |pan_center| image:: /../../enmapbox/externals/qps/ui/icons/pan_center.svg
    :width: 28px
 .. |plus_green| image:: /../../enmapbox/externals/qps/ui/icons/plus_green.svg
@@ -273,6 +277,10 @@
 .. |poly2speclib| image:: /../../enmapbox/externals/qps/ui/icons/poly2speclib.svg
    :width: 28px
 .. |profile| image:: /../../enmapbox/externals/qps/ui/icons/profile.svg
+   :width: 28px
+.. |profiletheme_bright| image:: /../../enmapbox/externals/qps/ui/icons/profiletheme_bright.svg
+   :width: 28px
+.. |profiletheme_dark| image:: /../../enmapbox/externals/qps/ui/icons/profiletheme_dark.svg
    :width: 28px
 .. |profile_add_auto| image:: /../../enmapbox/externals/qps/ui/icons/profile_add_auto.svg
    :width: 28px
@@ -313,6 +321,8 @@
 .. |speclib_reload| image:: /../../enmapbox/externals/qps/ui/icons/speclib_reload.svg
    :width: 28px
 .. |speclib_save| image:: /../../enmapbox/externals/qps/ui/icons/speclib_save.svg
+   :width: 28px
+.. |speclib_usevectorrenderer| image:: /../../enmapbox/externals/qps/ui/icons/speclib_usevectorrenderer.svg
    :width: 28px
 .. |temporalProfile| image:: /../../enmapbox/externals/qps/ui/icons/temporalProfile.svg
    :width: 28px
@@ -373,6 +383,8 @@
 .. |rb0| image:: /img/icons/rb0.png
    :width: 28px
 .. |rb1| image:: /img/icons/rb1.png
+   :width: 28px
+.. |rendererCategorizedSymbol| image:: /img/icons/rendererCategorizedSymbol.svg
    :width: 28px
 .. |spin| image:: /img/icons/spin.png
    :width: 28px
