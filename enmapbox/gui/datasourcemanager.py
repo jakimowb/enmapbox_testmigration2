@@ -264,7 +264,7 @@ class DataSourceManager(QObject):
 
         try:
             newDataSources = DataSourceFactory.create(newDataSource, name=name, icon=icon)
-        except RuntimeError:
+        except RuntimeError as err:
             newDataSources = []
 
         toAdd = []
