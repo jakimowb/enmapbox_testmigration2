@@ -43,11 +43,10 @@ from osgeo import gdal
 import traceback
 
 
-
+# try to find and add the QGIS internal processing folder
 try:
     import processing
 except ModuleNotFoundError as ex:
-
     qgis_dir = pathlib.Path(qgis.__file__).parent
     print(f'Try to find processing framework relative to {qgis_dir}')
     potential_paths = []
@@ -60,9 +59,11 @@ except ModuleNotFoundError as ex:
             ['python3', str(info_script)],
             ['python', str(info_script)]
         ]
+        new_env = os.environ.copy()
+        new_env['QT_QPA_PLATFORM'] = 'offscreen'
         for cmd in commands:
             try:
-                result = subprocess.check_output(cmd).decode()
+                result = subprocess.check_output(cmd, env=new_env).decode()
                 match = rxPackagePath.search(result)
                 pkg = pathlib.Path(match.group('path'))
                 if pkg.is_dir():
@@ -71,22 +72,22 @@ except ModuleNotFoundError as ex:
                 pass
     else:
         pkg = pathlib.Path(QgsApplication.pkgDataPath())
+    if isinstance(pkg, pathlib.Path):
+        potential_paths.append(pkg / 'python' / 'plugins')
+        potential_paths.append(pkg / 'share' / 'qgis' / 'python' / 'plugins')
+        for p in potential_paths:
+            if (p / 'processing').is_dir():
+                print(f'## Add plugin directory to python path: {p}')
+                site.addsitedir(p)
+                break
 
-    potential_paths.append(pkg / 'python' / 'plugins')
-    potential_paths.append(pkg / 'share' / 'qgis' / 'python' / 'plugins')
-    for p in potential_paths:
-        if (p / 'processing').is_dir():
-            print(f'## Add plugin directory to python path: {p}')
-            site.addsitedir(p)
-            break
+        try:
+            import processing
+            print(f'## Success {p}')
+        except Exception as ex:
+            traceback.print_exc()
 
-    try:
-        import processing
-        print(f'## Success {p}')
-    except Exception as ex:
-        traceback.print_exc()
-
-        print(ex)
+            print(ex)
 
 __version__ = '3.7'  # subsub-version information is added during build process
 
