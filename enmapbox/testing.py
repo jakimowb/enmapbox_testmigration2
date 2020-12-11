@@ -38,7 +38,7 @@ from qgis.gui import QgsPluginManagerInterface
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
-from .externals.qps.testing import TestObjects, WFS_Berlin, WMS_GMAPS, WMS_OSM, TestCase, QgisMockup
+from .externals.qps.testing import TestObjects, WFS_Berlin, WMS_GMAPS, WMS_OSM, TestCase, QgisMockup, StartOptions
 import qgis.utils
 import numpy as np
 from osgeo import gdal, ogr, osr
@@ -65,6 +65,7 @@ def start_app(*args, loadProcessingFramework: bool = True, **kwds) -> QgsApplica
         if loadProcessingFramework:
             enmapbox.initEnMAPBoxProcessingProvider()
         enmapbox.initEditorWidgets()
+        enmapbox.initMapLayerConfigWidgetFactories()
         return app
 
 
