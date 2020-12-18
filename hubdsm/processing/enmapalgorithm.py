@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Union, Any, Dict, Iterable
 
+from numba.cpython.mathimpl import DBL_MAX
 from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 from qgis._core import *
 
@@ -78,6 +79,12 @@ class EnMAPAlgorithm(QgisAlgorithm):
                 value = parameters[name]
             else:
                 assert 0, repr(parameters[name])
+        elif isinstance(pd, EnMAPProcessingParameterDouble):
+            value = self.parameterAsDouble(parameters, name, context)
+        elif isinstance(pd, EnMAPProcessingParameterCrs):
+            value = self.parameterAsCrs(parameters, name, context)
+        elif isinstance(pd, EnMAPProcessingParameterExtent):
+            value = self.parameterAsExtent(parameters, name, context)
         else:
             value = parameters[name]
         return value
@@ -335,4 +342,53 @@ class EnMAPProcessingOutputString(QgsProcessingOutputString):
             self, name: str, description: str, help=Help()
     ):
         QgsProcessingOutputString.__init__(self, name=name, description=description)
+        self.help = help
+
+
+class EnMAPProcessingParameterCrs(QgsProcessingParameterCrs):
+    def __init__(
+            self, name: str, description: str, defaultValue: Any = None, optional: bool = False, help=Help()
+    ):
+        QgsProcessingParameterCrs.__init__(
+            self, name=name, description=description, defaultValue=defaultValue, optional=optional
+        )
+        self.help = help
+
+
+class EnMAPProcessingParameterExtent(QgsProcessingParameterExtent):
+    def __init__(
+            self, name: str, description: str, defaultValue: Any = None, optional: bool = False, help=Help()
+    ):
+        QgsProcessingParameterExtent.__init__(
+            self, name=name, description=description, defaultValue=defaultValue, optional=optional
+        )
+        self.help = help
+
+
+class EnMAPProcessingParameterNumber(QgsProcessingParameterNumber):
+    def __init__(
+            self, name: str, description: str, type: QgsProcessingParameterNumber.Type, minValue: float,
+            maxValue: float, defaultValue: Any = None, optional: bool = False, help=Help()
+    ):
+        QgsProcessingParameterExtent.__init__(
+            self, name=name, description=description, type=type, defaultValue=defaultValue, optional=optional,
+            minValue=minValue, maxValue=maxValue
+        )
+        self.help = help
+
+
+class EnMAPProcessingParameterDouble(EnMAPProcessingParameterNumber):
+    def __init__(
+            self, name: str, description: str, defaultValue: Any = None, optional: bool = False, minValue=None,
+            maxValue=None, help=Help()
+    ):
+        if minValue is None:
+            minValue = -DBL_MAX + 1
+        if maxValue is None:
+            maxValue = DBL_MAX
+
+        QgsProcessingParameterExtent.__init__(
+            self, name=name, description=description, type=QgsProcessingParameterNumber.Double,
+            defaultValue=defaultValue, optional=optional, minValue=minValue, maxValue=maxValue
+        )
         self.help = help
