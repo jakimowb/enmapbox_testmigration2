@@ -38,8 +38,10 @@ class MapCanvasTests(EnMAPBoxTestCase):
     def test_mapDock(self):
         dock = MapDock()
         self.assertIsInstance(dock, MapDock)
-        m = dock.contextMenu()
+        m = QMenu()
+        dock.populateContextMenu(m)
         self.assertIsInstance(m, QMenu)
+        self.assertTrue(len(m.actions()) > 0)
 
 
     def test_mapCanvas(self):
@@ -128,6 +130,16 @@ class MapCanvasTests(EnMAPBoxTestCase):
         self.assertTrue(c3.center() == center3)
 
 
+    def test_issue593(self):
+
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox(None, load_core_apps=False, load_other_apps=False)
+
+        map1: MapDock = enmapBox.createDock('MAP')
+        map2: MapDock = enmapBox.createDock('MAP')
+        link = map1.linkWithMapDock(mapDock=map2, linkType=LINK_ON_CENTER)
+        self.assertIsInstance(link, CanvasLink)
+        self.showGui(enmapBox.ui)
 
     def test_dropEvents(self):
 

@@ -29,9 +29,8 @@ from PyQt5.QtCore import *
 from enmapbox.testing import initQgisApplication, TestObjects
 QGIS_APP = initQgisApplication()
 
+from enmapbox import DIR_REPO
 from enmapbox.gui.utils import *
-
-
 
 
 from qgis.utils import iface
@@ -41,6 +40,29 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
     def setUp(self):
         print('START TEST {}'.format(self.id()))
         QgsProject.instance().removeMapLayers(QgsProject.instance().mapLayers().keys())
+
+    def test_metadata(self):
+        from qgis.utils import findPlugins
+
+        path_repo_root = pathlib.Path(DIR_REPO).parent
+        plugins = {k: parser for k, parser in findPlugins(path_repo_root.as_posix())}
+
+        self.assertTrue('enmap-box' in plugins.keys())
+        parser = plugins['enmap-box']
+
+        required = ['name', 'qgisMinimumVersion', 'description', ]
+        # details in https://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/plugins/plugins.html#plugin-metadata
+        self.assertTrue(parser.get('general', 'name') != '')
+        self.assertTrue(parser.get('general', 'qgisMinimumVersion') != '')
+        self.assertTrue(parser.get('general', 'description') != '')
+        self.assertTrue(parser.get('general', 'about') != '')
+        self.assertTrue(parser.get('general', 'version') != '')
+        self.assertTrue(parser.get('general', 'author') != '')
+        self.assertTrue(parser.get('general', 'email') != '')
+        self.assertTrue(parser.get('general', 'repository') != '')
+
+
+        s = ""
 
 
     def test_loadplugin(self):

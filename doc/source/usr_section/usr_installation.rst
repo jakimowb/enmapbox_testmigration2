@@ -18,11 +18,6 @@ Installation
    :width: 30px
    :height: 30px
 
-
-.. |osgeoicon| image:: ../img/OSGeo4W.ico
-   :width: 30px
-   :height: 30px
-
 .. |osgeoinstaller| image:: ../img/osgeoinstaller.png
 
 
@@ -51,19 +46,13 @@ Additional information on the installation process is provided in the `QGIS Docu
 In case you already have QGIS installed, you can skip this step.
 
 
-.. .. tip::
-
-..    The installation of additional python packages can be cumbersome, in particular on windows.
-..    You might therefore consider to
-..    :ref:`install QGIS in a conda/anaconda environment <dev_installation_create_conda_qgis>`.
-
 MacOS
 ~~~~~
 
 Before you can install QGIS from the downloaded disk image `qgis-macos-pr.dmg`,
 you need to allow your macOS to install it:
 
-1. Open System Preferences > Security & Privacy an
+1. Open System Preferences > Security & Privacy
 
 2. Unlock the page to make changes.
 
@@ -75,74 +64,85 @@ you need to allow your macOS to install it:
 
 Now open the disk image (double click) and copy the QGIS.app to your applications folder
 
-.. image:: ../img/macos/install_qgis2.pn
+.. image:: ../img/macos/install_qgis2.png
 
 
 ....
 
-|
 
 .. _install-python-packages:
 
 2. Install required python packages
 -----------------------------------
 
-The EnMAP-Box core plugin requires the following python packages:
+The EnMAP-Box core plugin requires several python packages:
 
 * `numpy <http://www.numpy.org/>`_
 * `scipy <https://www.scipy.org>`_
 * `scikit-learn <http://scikit-learn.org/stable/index.html>`_
 * `matplotlib <https://matplotlib.org/>`_
-* `astropy <http://docs.astropy.org>`_ (**optional**, relevant e.g. for certain filtering algorithms)
+* `astropy <http://docs.astropy.org>`_ (**optional**, relevant for certain processing algorithms)
 
-Follow the platform specific installation instructions below in order to install these packages.
 
-.. note::
+In the following we demonstrate two variants for installing the required Python packages:
 
-   Starting with version 3.6 the EnMAP-Box starts without previously installing the required Python packages.
-   If needed, these can be installed ad-hoc to the user directory using the Package Installer (:menuselection:`Project --> Package Installer`)
-   in order to make the plugin run.
+.. _package_installer:
 
-   **However, we still recommend to install the packages as described below!**
+2.1 Package Installer
+~~~~~~~~~~~~~~~~~~~~
 
-   .. image:: /img/package_installer.png
+The EnMAP-Box includes a Package Installer that offers a more or less one-click solution to install required python packages.
+It can be accessed from the menu bar via :menuselection:`Project --> Package Installer`.
 
+If you start the EnMAP-Box for the first time, you may see a warning.
+The Package Installer can also be opened by clicking :guilabel:`Install Missing`.
+
+.. image:: /img/warning_missing_packages.png
+
+Use the :guilabel:`Yes to All` button to install all required python packages. Per default, this will install packages using pip into
+the user directory (as this does not require admin rights). It is also possible to install/update packages individually via
+the context menu inside the package list.
+
+.. image:: /img/package_installer.png
+
+It might be necessary to restart QGIS and the EnMAP-Box.
+
+2.2 Command-line
+~~~~~~~~~~~~~~~~
+
+In case the :ref:`Package Installer <package_installer>` does not work for you our you do not want to use it,
+try installing the packages from the command-line. This variant may be more reliable. See OS specific instructions below:
 
 .. _install-packages-windows:
 
 Windows
-~~~~~~~
+*******
 
 
 1. Close QGIS, if it is open.
 
-2. Start the OSGeo4W Shell |osgeoicon| with admin rights.
+2. Run the OSGeo4W Shell as administrator **(!!!)**. A convenient way to access the OSGeo4W Shell is from the start menu.
+   Depending on the installation method you used to install QGIS, the shortcut will be listed under *QGIS 3.xx* (standalone installer)
+   or *OSGeo4W* (network installer)
 
-   * Open the start menu :menuselection:`QGIS 3.xx --> OSGeo4W Shell --> Right-Click --> Run as administrator`
+   Hold :kbd:`Ctrl` + :kbd:`Shift` and click on the OSGeo4W Shell entry (or right-click and choose *Run as administrator*)
 
-     .. image:: ../img/open_osgeoshell.png
-        :width: 500px
-
-
-     .. hint::
-
-        If you used the OSGeo4W Installer to install QGIS, the OSGeo4W Shell will be listed under *OSGeo4W* in the Start Menu
+   .. image:: /img/windows_start_osgeo.png
 
 3. Activate the Python 3 environment by entering:
 
    .. code-block:: batch
 
-      call py3_env.bat
+      py3_env
 
    .. image:: ../img/shell_callpy3env.png
 
-|
 
 4. Install required python packages by entering:
 
    .. code-block:: batch
 
-      python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
+      pip3 install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
 
    Now all packages will be installed automatically. After completion, the shell should show something like this:
@@ -152,51 +152,33 @@ Windows
    If the package installation was successful, you can close the shell. The required packages are installed now and
    you can continue to start/install the EnMAP-Box.
 
-   |
-
    .. error::
 
       In case you run into problems because pip is not available in your python environment
       (error message ``C:/.../python3.exe: No module named pip`` or similar), :ref:`follow these steps... <faq_no_pip>`
 
-
-
-.. 5. **Optionally**, also install astropy using pip in the OSGeo4W Shell:
-
-
-..    .. code-block:: batch
-
-..      python3 -m pip install astropy
-
-
-
+|
 
 .. _install-packages-linux:
 
-|
-
 Linux
-~~~~~
+*****
 
-#. Open the terminal and install all missing packages using pip:
+1. Close QGIS, if it is open.
+2. Open the terminal and install all missing packages using pip:
 
-   .. code-block:: batch
+   .. code-block:: bash
 
-      python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
+      pip3 install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
-   .. error::
-
-      See :ref:`FAQ <faq_requirements>` if you run into problems installing the packages.
-
+|
 
 .. _install-packages-mac:
 
-|
-
 Mac
-~~~
+***
 
-Most packages required by the EnMAP-Box, like scikit-learn, are already be part of the QGIS.app environment. 
+Most packages required by the EnMAP-Box, like scikit-learn, are already a part of the QGIS.app environment.
 
 Since QGIS 3.16, the `packaging mechanism <https://www.lutraconsulting.co.uk/blog/2020/10/01/qgis-macos-package/>`_,
 allows to install additional package with pip as followed::
@@ -204,6 +186,8 @@ allows to install additional package with pip as followed::
    /Applications/QGIS.app/Contents/MacOS/bin/pip3 install astropy
 
    /Applications/QGIS.app/Contents/MacOS/bin/pip3 install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
+
+|
 
 .. error::
 

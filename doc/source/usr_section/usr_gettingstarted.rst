@@ -102,20 +102,11 @@ image using a point vector dataset with the classes *impervious, low vegetation,
 * Here you can alter the class colors and the class names or change the size of your sample. But for this tutorial use
   the default settings (sample size at 100%).
 
-..  .. tip::
+  .. tip::
 
-..     Find more information on the Classification Workflow application in the :ref:`User Manual <classification_workflow>`
+     Find more information on the Classification Workflow application in the :ref:`User Manual <Classification Workflow>`.
 
-* As :guilabel:`Classifier` choose RandomForestClassifier (which is the default setting)
-* In the :guilabel:`Model Parameters` text field add the parameter ``n_estimators = 300``. This will increase the number of trees
-  in the random forest. We alter this parameter here, because the scikit-learn default is 10, which is quite low.
-  So the text field should look like this:
-
-  .. code-block:: python
-
-      from sklearn.ensemble import RandomForestClassifier
-      estimator = RandomForestClassifier(n_estimators = 300)
-
+* As :guilabel:`Classifier` choose RandomForestClassifier (which is the default setting).
 * Under :guilabel:`Mapping` you have to specify the raster which will be classified. We will choose the same raster we took the samples from,
   so select :file:`enmap_berlin.bsq` as :guilabel:`Raster`.
 * Make sure to check |cb1| the :guilabel:`Classification` output. Specify an output path and filename by pressing :guilabel:`...` or
