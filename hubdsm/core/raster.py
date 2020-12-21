@@ -273,6 +273,7 @@ class Raster(object):
     def setNoDataValue(self, value: Union[int, float]):
         for band in self.bands:
             band.setNoDataValue(value=value)
+        return self
 
     @property
     def rasterize(self):

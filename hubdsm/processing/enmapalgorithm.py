@@ -131,7 +131,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
         if ok:
             for parameterDefinition in self.parameterDefinitions():
                 if isinstance(parameterDefinition, EnMAPProcessingParameterPalettedRasterLayer):
-                    layer = self.parameter(parameters, parameterDefinition.description(), context)
+                    layer = self.parameter(parameters, parameterDefinition.name(), context)
                     assert isinstance(layer, QgsRasterLayer), layer
                     if not isinstance(layer.renderer(), QgsPalettedRasterRenderer):
                         ok, msg = False, f'Raster with Paletted/Unique values renderer required: {parameterDefinition.description()}'
@@ -259,7 +259,7 @@ class EnMAPProcessingParameterRasterLayer(QgsProcessingParameterRasterLayer):
 
 class EnMAPProcessingParameterPalettedRasterLayer(EnMAPProcessingParameterRasterLayer):
     def __init__(
-            self, name: str, description: str, defaultValue: Any = None, optional: bool = False, help=Help()
+            self, name: str, description: str, defaultValue: Any = None, optional: bool = False, help=Help('Select a classification layer.')
     ):
         EnMAPProcessingParameterRasterLayer.__init__(
             self, name=name, description=description, defaultValue=defaultValue, optional=optional, help=help
@@ -328,7 +328,7 @@ class EnMAPProcessingParameterEnum(QgsProcessingParameterEnum):
 class EnMAPProcessingParameterRasterDestination(QgsProcessingParameterRasterDestination):
     def __init__(
             self, name: str, description: str, defaultValue: str = None, optional: bool = False,
-            createByDefault: bool = True, help=Help()
+            createByDefault: bool = True, help=Help('Specify output path.')
     ):
         QgsProcessingParameterRasterDestination.__init__(
             self, name=name, description=description, defaultValue=defaultValue, optional=optional,

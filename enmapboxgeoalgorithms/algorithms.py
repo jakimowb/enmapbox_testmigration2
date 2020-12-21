@@ -5,6 +5,7 @@ from qgis.core import *
 
 from enmapbox.externals.qps.speclib import EnviSpectralLibraryIO
 from hubdsm.processing.aggregatebands import AggregateBands
+from hubdsm.processing.changemap import ChangeMap
 from hubdsm.processing.classificationstatistics import ClassificationStatistics
 from hubdsm.processing.creategrid import CreateGrid
 from hubdsm.processing.importdesisl2a import ImportDesisL2A
@@ -37,7 +38,7 @@ ALGORITHMS.append(AggregateBands())
 ALGORITHMS.append(ClassificationStatistics())
 ALGORITHMS.append(SaveAsEnvi())
 ALGORITHMS.append(CreateGrid())
-
+ALGORITHMS.append(ChangeMap())
 
 
 class ClassificationFromFraction(EnMAPAlgorithm):
@@ -2333,7 +2334,7 @@ class DecorrelationStretch(EnMAPAlgorithm):
 
     def processAlgorithm_(self):
         raster = self.getParameterRaster()
-        indices = [self.getParameterBand(name) -1 for name in [self.P_RED, self.P_GREEN, self.P_BLUE]]
+        indices = [self.getParameterBand(name) - 1 for name in [self.P_RED, self.P_GREEN, self.P_BLUE]]
         filename = self.getParameterOutputRaster()
 
         from sklearn.decomposition import PCA
@@ -2355,7 +2356,6 @@ class DecorrelationStretch(EnMAPAlgorithm):
 
 
 ALGORITHMS.append(DecorrelationStretch())
-
 
 
 def generateRST():
@@ -2489,4 +2489,3 @@ def generateRST():
     with open(filename, mode='w') as f:
         f.write(textProcessingAlgorithmsRst)
     print('created RST file: ', filename)
-
