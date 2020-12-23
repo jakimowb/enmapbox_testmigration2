@@ -21,7 +21,7 @@ def changeMap(
     np.multiply(array, np.uint64(1e10), out=array)
     np.add(array, band2.readAsArray(grid=grid).astype(np.uint64) * mask, out=array)
 
-    uniques, array = np.unique(array, return_index=False, return_inverse=True, return_counts=False)
+    uniques, array = np.unique(array, return_inverse=True)
     array = np.reshape(array, grid.shape.withZ(1)) + 1
 
     vmax = array.max()
@@ -52,4 +52,5 @@ def changeMap(
 
     gdalRaster = GdalRaster.createFromArray(array=array, grid=grid, filename=filename)
     gdalRaster.setCategories(categories=categories)
+
     return gdalRaster

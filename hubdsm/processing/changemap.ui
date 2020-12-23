@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>568</width>
+    <height>525</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Classification Statistics</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0">
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,1,1">
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Unit</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="mUnitUnknown">
+        <item>
+         <property name="text">
+          <string>Pixel</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Percentage</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="mUnitStandard">
+        <item>
+         <property name="text">
+          <string>Pixel</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Percentage</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Square Meters</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Hectares</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Square Kilometers</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Square Feet</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Square Yards</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Acres</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Square Miles</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item>
+       <widget class="QComboBox" name="mUnitGeographic">
+        <item>
+         <property name="text">
+          <string>Pixel</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Percentage</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Square Degrees </string>
+         </property>
+        </item>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QTableWidget" name="mTable">
+      <row>
+       <property name="text">
+        <string>1</string>
+       </property>
+      </row>
+      <row>
+       <property name="text">
+        <string>2</string>
+       </property>
+      </row>
+      <row>
+       <property name="text">
+        <string>3</string>
+       </property>
+      </row>
+      <row>
+       <property name="text">
+        <string>4</string>
+       </property>
+      </row>
+      <column>
+       <property name="text">
+        <string>1</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>2</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>3</string>
+       </property>
+      </column>
+      <item row="0" column="0">
+       <property name="text">
+        <string>12</string>
+       </property>
+      </item>
+      <item row="1" column="1">
+       <property name="text">
+        <string>5</string>
+       </property>
+      </item>
+      <item row="1" column="2">
+       <property name="text">
+        <string>1</string>
+       </property>
+      </item>
+      <item row="2" column="1">
+       <property name="text">
+        <string>2</string>
+       </property>
+      </item>
+      <item row="2" column="2">
+       <property name="text">
+        <string>5</string>
+       </property>
+      </item>
+      <item row="3" column="2">
+       <property name="text">
+        <string>1</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
