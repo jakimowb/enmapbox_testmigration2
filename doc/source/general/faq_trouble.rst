@@ -66,6 +66,11 @@ suggest new entries!
     :ref:`here <dev_installation_create_conda_qgis>`.
 
 
+* **Spectral Library: Axis visualisation bugs (pyqtgraph)**
+
+   If you experience visualisation bugs in the Spectral Library Window, this might be related to (windows) resolution
+   scaling factor. Try setting the scaling to 100% (see corresponding `Issue #603 <https://bitbucket.org/hu-geomatics/enmap-box/issues/603/darstellung-y-achse-bei-spektrum-plot>`_ for more information)
+
 .. _faq_numba:
 
 * **Installation: error ensomap / numba / TypeError jitdebug**
