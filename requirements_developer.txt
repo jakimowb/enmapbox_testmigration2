@@ -18,6 +18,7 @@ sphinx-autobuild
 docutils
 coverage
 xmlrunner
+urlchecker
 
 # optionals
 git-lfs
