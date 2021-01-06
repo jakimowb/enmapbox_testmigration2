@@ -510,7 +510,12 @@ class DataSourceRaster(DataSourceSpatial):
         self.mDatasetMetadata.clear()
         # self.nBands = self.nSamples = self.nLines = -1
         # self.mDataType = None
-        self.mWaveLengths, self.mWaveLengthUnits = parseWavelength(self.mapLayer())
+
+        try:
+            self.mWaveLengths, self.mWaveLengthUnits = parseWavelength(self.mapLayer())
+        except Exception as ex:
+            self.mWaveLengths = []
+            self.mWaveLengthUnits = []
 
         hasClassInfo = False
 

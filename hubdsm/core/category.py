@@ -2,7 +2,7 @@ from typing import List
 
 from PyQt5.QtGui import QColor
 from dataclasses import dataclass
-from qgis._core import QgsPalettedRasterRenderer, QgsCategorizedSymbolRenderer
+from qgis._core import QgsPalettedRasterRenderer, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol
 
 from hubdsm.core.color import Color
 
@@ -35,6 +35,7 @@ class Category(object):
 
     @staticmethod
     def fromQgsCategorizedSymbolRenderer(renderer: QgsCategorizedSymbolRenderer) -> List['Category']:
+        assert 0
         assert isinstance(renderer, QgsCategorizedSymbolRenderer)
         categories = list()
         idByName = dict()

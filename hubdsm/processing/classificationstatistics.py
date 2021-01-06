@@ -4,7 +4,6 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QMainWindow, QComboBox, QPlainTextEdit
 from PyQt5.uic import loadUi
 
-from hubdsm.core.size import Size
 from pyqtgraph import AxisItem
 from pyqtgraph.widgets.PlotWidget import PlotWidget as PlotWidget_
 

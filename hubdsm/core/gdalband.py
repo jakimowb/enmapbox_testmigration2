@@ -1,4 +1,5 @@
 # from __future__ import annotations
+import warnings
 from dataclasses import dataclass
 from typing import Optional, Union, Any, List, Dict
 
@@ -72,8 +73,8 @@ class GdalBand(object):
             array = self.gdalBand.ReadAsArray(resample_alg=gra)
         else:
             assert isinstance(grid, Grid)
-            if grid.projection != self.grid.projection:
-                raise ProjectionMismatchError()
+            if not grid.projection.osrSpatialReference.IsSame(self.grid.projection.osrSpatialReference):
+                warnings.warn(f'ProjectionMismatchWarning: osr.SpatialReference.IsSame returns False for the following projections, please chack manually:\n{grid.projection.osrSpatialReference}\n\n{self.grid.projection.osrSpatialReference}')
             if grid.extent.within(self.grid.extent):
                 # read data directly
                 resolution = self.grid.resolution
@@ -235,6 +236,7 @@ class GdalBand(object):
                 colors[c.id] = c.color
             self._setCategoryNames(names=names)
             self._setCategoryColors(colors)
+        return self
 
     def _setCategoryNames(self, names: List[str]):
         """Set category names."""

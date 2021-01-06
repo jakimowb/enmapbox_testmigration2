@@ -22,12 +22,16 @@ import uuid
 import typing
 import warnings
 import time
+
+from PyQt5.QtWidgets import QWidgetAction, QLabel
+from osgeo import gdal
 from processing import Processing
 from qgis.PyQt.QtWidgets import QWidget, QHeaderView, QMenu, QAbstractItemView, QApplication
 from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent
 
 from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
+from qgis._gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
     QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
     QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils, \
@@ -57,6 +61,7 @@ from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui.utils import getDOMAttributes
 from hubdsm.core.category import Category  # needed for eval
 from hubdsm.core.color import Color  # needed for eval
+from hubdsm.processing.changemap import ChangeMap, ChangeMapTable
 from hubdsm.processing.classificationstatistics import ClassificationStatistics, ClassificationStatisticsPlot
 
 LUT_DOCKTYPES = {'MAP': MapDock,
@@ -1142,6 +1147,18 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                     action = menu.addAction('Classification Statistics')
                     action.triggered.connect(lambda: self.runClassificationStatistics(lyr))
 
+            self._changeMapMenu = QMenu(title='Change Statistics')
+            self._changeMapLayerWidget = QgsMapLayerComboBox(menu)
+            self._changeMapLayerWidget.setLayer(None)
+            self._changeMapLayerWidget.layerChanged.connect(lambda lyr2: self.runChangeStatistics(lyr, lyr2))
+            self._changeMapLayerWidget.setFixedWidth(200)
+            action = QWidgetAction(menu)
+            action.setDefaultWidget(self._changeMapLayerWidget)
+            self._changeMapMenu.addAction(action)
+            menu.addMenu(self._changeMapMenu)
+            #menu.addAction(action)
+            #print('HI')
+
             menu.addSeparator()
             action = menu.addAction('Layer properties')
             action.setToolTip('Set layer properties')
@@ -1200,6 +1217,22 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                                               parent=self.mDockTreeView)
         widget.show()
 
+    def runChangeStatistics(self, layer1, layer2):
+
+        filename = '/vsimem/temp/runChangeStatistics.bsq'
+        alg = ChangeMap()
+        io = {
+            alg.P_CLASSIFICATION1: layer1,
+            alg.P_CLASSIFICATION2: layer2,
+            alg.P_OUTRASTER: filename
+        }
+        result = Processing.runAlgorithm(alg, parameters=io, feedback=QgsProcessingFeedback())
+        layer = QgsRasterLayer(filename)
+        print(layer.renderer())
+
+        widget = ChangeMapTable(layer=layer, parent=self.mDockTreeView)
+        widget.show()
+        gdal.Unlink(filename)
 
 class DockManager(QObject):
     """

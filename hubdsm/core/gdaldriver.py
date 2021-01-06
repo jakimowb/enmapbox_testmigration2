@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 from os import makedirs
 from os.path import splitext, isabs, abspath, exists, dirname
-from typing import List, Optional, Type
+from typing import List, Optional, Type, Tuple
 
 import numpy as np
 from osgeo import gdal, gdal_array
@@ -28,7 +28,7 @@ class GdalDriver(object):
         if filename is None or filename == '':
             return MEM_DRIVER
 
-        ext = splitext(filename)[1][1:].lower()
+        ext = splitext(filename.split('|')[0])[1][1:].lower()
         if ext in ['bsq', 'sli', 'esl']:
             return ENVI_BSQ_DRIVER
         if ext == 'bil':
@@ -57,13 +57,11 @@ class GdalDriver(object):
 
         assert isinstance(grid, Grid)
         assert isinstance(bands, int) and bands >= 0
-        filename = self.prepareCreation(filename)
+        filename, gco, gdt = self.prepareCreation(filename=filename, gco=gco, gdt=gdt)
         if gco is None:
-            gco = self.options
-        assert isinstance(gco, list)
-        utf8_path = filename
+            gco = list()
         ysize, xsize = grid.shape
-        gdalDataset = self.gdalDriver.Create(utf8_path, xsize, ysize, bands, gdt, gco)
+        gdalDataset = self.gdalDriver.Create(filename, xsize, ysize, bands, gdt, gco)
         gdalDataset.SetProjection(grid.projection.wkt)
         gdalDataset.SetGeoTransform(grid.geoTransform.gdalGeoTransform())
         return GdalRaster(gdalDataset=gdalDataset)
@@ -106,26 +104,37 @@ class GdalDriver(object):
             except:
                 pass
 
-    def prepareCreation(self, filename: str) -> str:
-        """Return absolute filename and create root folder/subfolders if not existing."""
+    def prepareCreation(
+            self, filename: str, gco: List[str] = None, gdt: int = None
+    ) -> Tuple[str, Optional[List[str]], int]:
+        """Return absolute filename, creation options and data type. Create root folder/subfolders if not existing. """
 
         if filename is None or filename == '':
-            return ''
+            return '', gco, gdt
 
+        if '|' in filename:
+            tmp = filename.split('|')
+            filename = tmp[0].strip()
+            for option in tmp[1:]:
+                items = option.split(' ')
+                if items[0] == '-co':
+                    gco = items[1:]
+                elif items[0] == '-ot':
+                    gdt = getattr(gdal, 'GDT_' + items[1])
         if self == MEM_DRIVER:
-            return ''
+            return '', gco, gdt
 
         assert isinstance(filename, str)
         if filename.startswith('/vsimem/'):
             self.delete(filename)
-            return filename
+            return filename, gco, gdt
 
         if not isabs(filename):
             filename = abspath(filename)
         if not exists(dirname(filename)):
             makedirs(dirname(filename))
         self.delete(filename=filename)
-        return filename
+        return filename, gco, gdt
 
 
 MEM_DRIVER = GdalDriver(name='MEM')
