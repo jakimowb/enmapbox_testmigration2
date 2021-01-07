@@ -31,6 +31,7 @@ import enmapbox
 from enmapbox.testing import start_app, QgisMockup
 from enmapbox.externals.qps.resources import findQGISResourceFiles
 
+
 qApp: QgsApplication = None
 
 
@@ -70,13 +71,13 @@ def run(
     # initialize resources and background frameworks
     # if started from QGIS, this is done by enmapbox/enmapboxplugin.py
     # initialize Qt resources, QgsEditorWidgetWrapper, QgsProcessingProviders etc.
-    enmapbox.initAll(processing=initProcessing)
+    # enmapbox.initAll(processing=initProcessing)
     from enmapbox.gui.enmapboxgui import EnMAPBox
     import qgis.utils
     enmapBox = EnMAPBox(qgis.utils.iface, load_core_apps=load_core_apps, load_other_apps=load_other_apps)
     enmapBox.run()
     print('## EnMAP-Box started')
-    if sources is not None:
+    if True and sources is not None:
         for source in enmapBox.addSources(sourceList=sources):
             try:
                 # add as map
@@ -89,7 +90,9 @@ def run(
     if not qAppExists:
         print('Execute QgsApplication')
         enmapBox.sigClosed.connect(exitAll)
-        qApp.exec_()
+        return qApp.exec_()
+    else:
+        return os.EX_OK
 
 
 if __name__ == '__main__':
@@ -100,3 +103,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     run(debug=args.debug, initProcessing=True, load_core_apps=True, load_other_apps=True)
+    s = ""

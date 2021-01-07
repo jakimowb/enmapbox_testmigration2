@@ -39,6 +39,7 @@ from enmapbox.gui.utils import *
 from enmapbox.gui.mimedata import *
 from enmapbox.gui.docks import Dock, DockLabel
 
+
 LINK_ON_SCALE = 'SCALE'
 LINK_ON_CENTER = 'CENTER'
 LINK_ON_CENTER_SCALE = 'CENTER_SCALE'
@@ -1327,11 +1328,11 @@ class MapCanvas(QgsMapCanvas):
         """
         return SpatialPoint.fromMapCanvasCenter(self)
 
-    def createCanvasLink(self, otherCanvas: QgsMapCanvas, linkType):
+    def createCanvasLink(self, otherCanvas: QgsMapCanvas, linkType) -> CanvasLink:
         assert isinstance(otherCanvas, MapCanvas)
         return self.addCanvasLink(CanvasLink(self, otherCanvas, linkType))
 
-    def addCanvasLink(self, canvasLink: CanvasLink):
+    def addCanvasLink(self, canvasLink: CanvasLink) -> CanvasLink:
         assert isinstance(canvasLink, CanvasLink)
         toRemove = [cLink for cLink in self.canvasLinks if cLink.isSameCanvasPair(canvasLink)]
         for cLink in toRemove:
@@ -1466,14 +1467,12 @@ class MapDock(Dock):
     def mapCanvas(self) -> MapCanvas:
         return self.mCanvas
 
-    def contextMenu(self, menu: QMenu = None) -> QMenu:
+    def populateContextMenu(self, menu: QMenu):
         """
         Returns the MapDock context menu
         :return: QMenu
         """
-        if not isinstance(menu, QMenu):
-            menu = QMenu()
-        menu = super(MapDock, self).contextMenu(menu=menu)
+        super(MapDock, self).populateContextMenu(menu)
 
         self.mCanvas.populateContextMenu(menu, None)
         return menu
@@ -1484,13 +1483,13 @@ class MapDock(Dock):
         else:
             super(MapDock, self).mousePressEvent(event)
 
-    def linkWithMapDock(self, mapDock, linkType):
+    def linkWithMapDock(self, mapDock, linkType) -> CanvasLink:
         assert isinstance(mapDock, MapDock)
-        self.linkWithCanvas(mapDock.mCanvas, linkType)
+        return self.linkWithCanvas(mapDock.mCanvas, linkType)
 
-    def linkWithCanvas(self, canvas, linkType):
+    def linkWithCanvas(self, canvas, linkType) -> CanvasLink:
         assert isinstance(canvas, QgsMapCanvas)
-        canvas.createCanvasLink(canvas, linkType)
+        return self.mapCanvas().createCanvasLink(canvas, linkType)
 
     def mapCanvas(self) -> MapCanvas:
         """

@@ -161,7 +161,6 @@ class LayerTreeNode(QgsLayerTree):
         Overwrite with QMenu + QActions that implement logic related to the TreeNode and its data.
         :return:
         """
-        return QMenu()
 
     @staticmethod
     def readXml(element):
@@ -1056,11 +1055,19 @@ class DockTreeView(QgsLayerTreeView):
 
 
 class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
+
+    class Signals(QObject):
+        sigPopulateContextMenu = pyqtSignal(QMenu)
+
+        def __init__(self, *args, **kwds):
+            super().__init__(*args, **kwds)
+
     def __init__(self, treeView: DockTreeView):
         super(DockManagerLayerTreeModelMenuProvider, self).__init__()
+        #QObject.__init__(self)
         assert isinstance(treeView, DockTreeView)
         self.mDockTreeView = treeView
-        assert isinstance(self.mDockTreeView.model(), DockManagerTreeModel)
+        self.mSignals = DockManagerLayerTreeModelMenuProvider.Signals()
 
     def createContextMenu(self):
 
@@ -1070,6 +1077,8 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         if node is None:
             return
         menu = QMenu()
+        menu.setToolTipsVisible(True)
+
         selectedLayerNodes = list(set(self.mDockTreeView.selectedLayerNodes()))
         if isinstance(node, (DockTreeNode, QgsLayerTreeLayer)):
             actionEdit = menu.addAction('Rename')
@@ -1132,16 +1141,17 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
-            from enmapbox.gui.utils import appendItemsToMenu
-            return node.dock.contextMenu(menu=menu)
+            node.dock.populateContextMenu(menu)
 
         elif isinstance(node, LayerTreeNode):
             if col == 0:
-                menu = node.contextMenu()
+                node.populateContextMenu(menu)
             elif col == 1:
-                menu = QMenu()
                 a = menu.addAction('Copy')
                 a.triggered.connect(lambda: QApplication.clipboard().setText('{}'.format(node.value())))
+
+        # last change to add other menu actions
+        self.mSignals.sigPopulateContextMenu.emit(menu)
 
         return menu
 
