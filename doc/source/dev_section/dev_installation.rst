@@ -65,11 +65,11 @@ installs QGIS into a `Conda`_ environment.
 It was tested successfully on Windows 10, Ubuntu 18 and macOS.
 
 1.  `Create <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands>`_
-    a new conda environment called *qgis_stable*
+    a new conda environment *qgis_stable* and install qgis from the conda-forge channel
 
     .. code-block:: bat
 
-         $>conda create --name qgis_stable
+         $>conda create -n qgis-stable -c conda-forge qgis
 
 
 2.  `Activate <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#activating-an-environment>`_
@@ -80,22 +80,15 @@ It was tested successfully on Windows 10, Ubuntu 18 and macOS.
         $>conda activate qgis_stable
 
 
-3.  `Install <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-pkgs.html#installing-packages>`_
-    QGIS from the `conda-forge`_ channel
 
-    .. code-block:: batch
-
-        (qgis_stable) $>conda install qgis --channel=conda-forge
-
-4.  Install other required packages, e.g. that listed in ``enmap-box/requirements.txt`` and ``enmap-box/requirements_developers.txt``.
+3.  Install other required packages, e.g. that listed in ``enmap-box/requirements.txt`` and ``enmap-box/requirements_developers.txt``.
 
     .. code-block:: batch
 
          (qgis_stable) $>conda install scikit-learn --channel=conda-forge
-         (qgis_stable) $>conda install scipy --channel=conda-forge
          (qgis_stable) $>conda install matplotlib --channel=conda-forge
 
-    Packages which are not a conda package can be installed with pip_.
+    Some python packages which are not available as conda package can be installed directly with pip_.
 
     .. code-block:: batch
 
@@ -108,23 +101,31 @@ It was tested successfully on Windows 10, Ubuntu 18 and macOS.
 
 
 
-5.  Now you can start `QGIS`_, the :ref:`dev_qt_designer` and :ref:`dev_qt_assistant` from your conda shell:
+4.  Now you can start `QGIS`_, the :ref:`dev_qt_designer` and :ref:`dev_qt_assistant` from your conda shell:
 
     .. code-block:: batch
 
         (qgis_stable) $>qgis
-        (qgis_stable) $>desginer
+        (qgis_stable) $>designer
         (qgis_stable) $>assistant
 
+    .. admonition:: macOS Users
 
-    If you can't start QGIS, you might need to update libzip (thanks to Florian P. who discovered that):
+            If you are using macOS and calling `qgis` does not show any application window, it might be necessary to set:
 
-    .. code-block:: batch
+            .. code-block:: batch
 
-            (qgis_stable) $>conda update libzip
+                `export QT_MAC_WANTS_LAYER=1`
+
+            This can be done permanently for the `qgis_stable` environment by:
+
+            .. code-block:: batch
+
+                `(qgis_stable) conda env config vars set QT_MAC_WANTS_LAYER=1`
 
 
-6.  Start python and check it's version. It should be a Python >= 3.7.
+
+5.  Start python and check it's version. It should be a Python >= 3.7.
     Calling ``quit()`` will close the python interpreter and return you to the conda shell:
 
     .. code-block:: batch
