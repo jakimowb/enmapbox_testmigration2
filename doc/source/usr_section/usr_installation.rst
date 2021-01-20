@@ -110,7 +110,7 @@ It might be necessary to restart QGIS and the EnMAP-Box.
 2.2 Command-line
 ~~~~~~~~~~~~~~~~
 
-In case the :ref:`Package Installer <package_installer>` does not work for you our you do not want to use it,
+In case the :ref:`Package Installer <package_installer>` does not work for you or you do not want to use it,
 try installing the packages from the command-line. This variant may be more reliable. See OS specific instructions below:
 
 .. _install-packages-windows:
@@ -214,6 +214,7 @@ Install from QGIS plugin repository
 
    Select it and click :guilabel:`Install plugin` (or :guilabel:`Upgrade` in case you update to a new version)
 #. Start the EnMAP-Box via the |icon| icon or from the menubar :menuselection:`Raster --> EnMAP-Box`
+#. (Optional): You can download a test/demo dataset via :menuselection:`Project --> Load Example Data`
 
 .. admonition:: Experimental version
 
