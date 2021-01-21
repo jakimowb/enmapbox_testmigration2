@@ -2,8 +2,8 @@
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Union, Any, Dict, Iterable
+import numpy as np
 
-from numba.cpython.mathimpl import DBL_MAX
 from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 from qgis._core import *
 
@@ -383,9 +383,9 @@ class EnMAPProcessingParameterDouble(EnMAPProcessingParameterNumber):
             maxValue=None, help=Help()
     ):
         if minValue is None:
-            minValue = -DBL_MAX + 1
+            minValue = np.finfo(np.float64).min
         if maxValue is None:
-            maxValue = DBL_MAX
+            maxValue = np.finfo(np.float64).max
 
         QgsProcessingParameterExtent.__init__(
             self, name=name, description=description, type=QgsProcessingParameterNumber.Double,
