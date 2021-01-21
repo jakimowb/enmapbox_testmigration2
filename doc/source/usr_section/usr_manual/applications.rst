@@ -108,18 +108,41 @@ Input Parameters:
 
 * **Training Inputs**
 
-  * :guilabel:`Raster`: Specify input raster based on which samples will be drawn for training a classifier.
-  * :guilabel:`Reference`: Specify vector dataset with reference information. Has to have a column in the attribute table with a
-    unique class identifier (numeric). This vector dataset is rasterized/burned on-the-fly onto the grid of
-    the input raster in order to extract the sample. If the vector source is a polygon dataset, only polygons which cover more than
-    75% of a pixel in the target grid are rasterized (this default behavior can be altered by pressing :kbd:`F1`,
-    which will make these settings adjustable in the GUI).
-  * :guilabel:`Attribute`: Attribute field in the reference vector layer which contains the unique class identifier.
+  * :guilabel:`Type` |combo|
+
+    Three different types of input data sources are supported and have to be specified beforehand in the dropdown menu.
+    Depending on the selected input type the user interface shows different options.
+
+    * ``Raster / Classification``:
+
+      * :guilabel:`Raster`: Specify input raster based on which samples will be drawn for training a classifier.
+      * :guilabel:`Classification`: Specify input raster which holds class information.
+
+
+    * ``Raster / Vector Classification``:
+
+      * :guilabel:`Raster`: Specify input raster based on which samples will be drawn for training a classifier.
+      * :guilabel:`Reference`: Specify vector dataset with reference information. Has to have a column in the attribute table with a
+        unique class identifier (numeric). The class colors and labels are derived from the current Symbology. To set or
+        change those settings, click the |rendererCategorizedSymbol| button or go to the Layer Properties (:menuselection:`Layer properties --> Symbology`).
+        The vector dataset is rasterized/burned on-the-fly onto the grid of the input raster in order to extract the sample.
+        If the vector source is a polygon dataset, only polygons which cover more than 75% of a pixel in the target grid are rasterized.
+
+    * ``labelled Library``:
+
+      * :guilabel:`Library`: Specify input spectral library.
+
+
 
 * **Sampling**
 
   Once you specified all inputs in the Training inputs section, you can edit the class colors, names and class sample sizes
   in the Sampling submenu.
+
+  .. note::
+
+     If set, the class labels and color information is automatically retrieved from the layers current renderer settings
+     (:menuselection:`Layer properties --> Symbology`).
 
   * :guilabel:`Sample size` |combo| |spin| Specify the sample size per class, either relative in percent or in absolute pixel counts.
   * The total sample size is shown below
@@ -182,7 +205,8 @@ Input Parameters:
 * **Training Inputs**
 
   * :guilabel:`Raster`: Specify input raster based on which samples will be drawn for training a regressor.
-  * :guilabel:`Reference`: Specify vector dataset with reference information. Has to have a numeric column in the attribute table with a
+  * :guilabel:`Reference`: Specify vector or raster dataset with reference information (regression target). In case of
+    vector input, dataset has to have a numeric column in the attribute table with a
     target variable of interest. This vector dataset is rasterized/burned on-the-fly onto the grid of
     the input raster in order to extract the sample. If the vector source is a polygon dataset, all pixels will be drawn which
     intersect the polygon.

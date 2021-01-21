@@ -57,7 +57,7 @@ Version 3.6
   This can be used to copy classes from other raster or vector layers, or to set the layer renderer
   according to the classification scheme
 * updated in LMU vegetation app
-* updated EnPTEnMAPBoxApp (see http://enmap.gitext.gfz-potsdam.de/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp for documentation)
+* updated EnPTEnMAPBoxApp (see https://git-pages.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp for documentation)
 * added EnSoMAP and EnGeoMAP applications provided by GFZ
 * added ONNS application provided by HZG
 * removed several bugs, e.g. #285, #206,
