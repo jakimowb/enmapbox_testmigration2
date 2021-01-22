@@ -340,62 +340,6 @@ def tr(text: str) -> str:
     return text
 
 
-class Qgis(object):
-    """Collection of some static methods to programmatically interact with QGIS inside the QGIS console."""
-
-    @classmethod
-    def activeRaster(cls):
-        try:
-            from hubdc.core import openRasterDataset
-            return openRasterDataset(qgis.utils.iface.activeLayer().source())
-        except:
-            return None
-
-    @classmethod
-    def activeVector(cls):
-        try:
-            from hubdc.core import openVectorDataset
-            return openVectorDataset(qgis.utils.iface.activeLayer().source())
-        except:
-            return None
-
-    @classmethod
-    def activeDataset(cls):
-        dataset = cls.activeRaster()
-        if dataset is None:
-            dataset = cls.activeVector()
-        return dataset
-
-    @classmethod
-    def activeBand(cls, index):
-        dataset = cls.activeRaster()
-        if dataset is not None:
-            try:
-                return dataset.band(index=index)
-            except:
-                return None
-        else:
-            return None
-
-    @classmethod
-    def activeData(cls, index=None):
-
-        from hubdc.core import RasterDataset, VectorDataset
-
-        dataset = cls.activeDataset()
-        if isinstance(dataset, RasterDataset):
-            if index is None:
-                return cls.activeRaster().readAsArray()
-            else:
-                return cls.activeBand(index=index).readAsArray()
-        elif isinstance(dataset, VectorDataset):
-            return dataset.attributeTable()
-        elif dataset is None:
-            return None
-        else:
-            raise TypeError()
-
-
 def run():
     """
     Call to start the EnMAP-Box
