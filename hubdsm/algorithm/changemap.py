@@ -11,7 +11,7 @@ from hubdsm.core.gdalraster import GdalRaster
 def changeMap(
         band1: Band, band2: Band, categories1: List[Category] = None, categories2: List[Category] = None, filename=None
 ) -> GdalRaster:
-    '''Return change map.'''
+    """Return change map."""
 
     grid = band1.gdalBand.grid
     mask = band1.readAsMaskArray()

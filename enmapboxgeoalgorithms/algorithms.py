@@ -4,6 +4,9 @@ from tempfile import gettempdir
 from qgis.core import *
 
 from enmapbox.externals.qps.speclib import EnviSpectralLibraryIO
+from enmapboxprocessing.algorithm.classificationtofractionalgorithm import ClassificationToFractionAlgorithm
+from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
+from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.changemap import ChangeMap
 from hubdsm.processing.classificationstatistics import ClassificationStatistics
@@ -26,6 +29,8 @@ from enmapboxgeoalgorithms.filters.convolution import parseSpatialKernel, parseS
 from enmapboxgeoalgorithms.filters.morphology import parseMorphology
 from enmapboxgeoalgorithms.filters.other import parseOtherFilter
 
+from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
+
 ALGORITHMS.append(UniqueBandValueCounts())
 ALGORITHMS.append(ImportEnmapL1B())
 ALGORITHMS.append(ImportEnmapL1C())
@@ -39,6 +44,11 @@ ALGORITHMS.append(ClassificationStatistics())
 ALGORITHMS.append(SaveAsEnvi())
 ALGORITHMS.append(CreateGrid())
 ALGORITHMS.append(ChangeMap())
+
+ALGORITHMS.append(RasterizeVectorAlgorithm())
+ALGORITHMS.append(RasterizeClassificationAlgorithm())
+ALGORITHMS.append(TranslateRasterAlgorithm())
+ALGORITHMS.append(ClassificationToFractionAlgorithm())
 
 
 class ClassificationFromFraction(EnMAPAlgorithm):
