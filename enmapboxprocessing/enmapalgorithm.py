@@ -10,7 +10,8 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterString, QgsProcessingParameterBand, QgsCategorizedSymbolRenderer,
                         QgsPalettedRasterRenderer, QgsProcessingParameterMapLayer, QgsMapLayer,
                         QgsProcessingParameterCoordinateOperation, QgsProcessingParameterAggregate,
-                        QgsProcessingParameterExtent, QgsCoordinateReferenceSystem, QgsRectangle)
+                        QgsProcessingParameterExtent, QgsCoordinateReferenceSystem, QgsRectangle,
+                        QgsProcessingParameterFileDestination)
 
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
 from typeguard import typechecked
@@ -333,6 +334,17 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     ):
         self.addParameter(
             QgsProcessingParameterRasterDestination(name, description, defaultValue, optional, createByDefault)
+        )
+        self.flagParameterAsAdvanced(name, advanced)
+
+    def addParameterFileDestination(
+            self, name: str, description: str, fileFilter='', defaultValue=None, optional=False,
+            createByDefault=True, advanced=False
+    ):
+        self.addParameter(
+            QgsProcessingParameterFileDestination(
+                name, description, fileFilter, defaultValue, optional, createByDefault
+            )
         )
         self.flagParameterAsAdvanced(name, advanced)
 

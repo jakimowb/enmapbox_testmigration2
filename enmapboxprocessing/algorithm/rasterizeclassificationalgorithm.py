@@ -1,16 +1,15 @@
-from enum import Enum, IntEnum
-from time import time
 from typing import Dict, Any, List, Tuple
 
 from PyQt5.QtCore import QVariant
 from PyQt5.QtGui import QColor
 from osgeo import gdal
+from qgis.core import edit
 
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.typing import CreationOptions
 from enmapboxprocessing.utils import Utils
-from python.core.additions.edit import edit
+
 from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRectangle,
                         QgsCoordinateReferenceSystem, QgsVectorFileWriter,

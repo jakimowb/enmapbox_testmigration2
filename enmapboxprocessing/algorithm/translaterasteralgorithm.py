@@ -62,7 +62,6 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                                        'https://www.l3harrisgeospatial.com/docs/ENVIHeaderFiles.html '),
             (self.P_COPY_METADATA, 'Wether to copy metadata from source to destination. '),
             (self.P_RESAMPLE_ALG, 'Spatial resample algorithm.'),
-            (self.P_OVERSAMPLING, self.helpParameterOversampling()),
             (self.P_DATA_TYPE, self.helpParameterDataType()),
             (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
             (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())

@@ -86,7 +86,7 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
     ) -> RasterWriter:
         if oversampling is None:
             oversampling = 10  # results in integer precision fraction values (oversampling=100 would be 2 decimals)
-
+        assert filename is not None
         if isinstance(map, QgsRasterLayer):
             assert isinstance(map.renderer(), QgsPalettedRasterRenderer)
             tmpFilename = Utils.tmpFilename(filename, 'oversampled.vrt')

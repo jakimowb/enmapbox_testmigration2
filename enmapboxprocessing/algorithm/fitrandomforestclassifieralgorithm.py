@@ -1,4 +1,3 @@
-import inspect
 import traceback
 from os.path import splitext, basename
 from time import time
@@ -11,6 +10,7 @@ from osgeo import gdal
 from sklearn.base import ClassifierMixin
 from sklearn.ensemble import RandomForestClassifier
 
+from enmapboxprocessing.algorithm.fitestimatoralgorithm import FitClassifierAlgorithmBase
 from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
@@ -27,66 +27,24 @@ from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
 
 @typechecked
-class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
-    P_RASTER = 'raster'
-    P_CLASSIFICATION = 'classification'
-    P_CODE = 'code'
-    P_OUTPUT_CLASSIFIER = 'classifier'
+class FitRandomForestClassifierAlgorithm(FitClassifierAlgorithmBase):
 
     def displayName(self) -> str:
-        raise NotImplementedError()
+        return 'Fit RandomForestClassifier'
 
     def shortDescription(self) -> str:
-        raise NotImplementedError()
+        return 'Fit a Random Forest Classifier.'
 
     def helpParameterCode(self) -> str:
-        raise NotImplementedError()
+        return 'Scikit-learn python code. ' \
+               'See <a href="' \
+               'http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html' \
+               '">RandomForestClassifier</a> for information on different parameters.'
 
-    def helpParameters(self) -> List[Tuple[str, str]]:
-        return [
-            (self.P_RASTER, 'Raster with training data features.'),
-            (self.P_CLASSIFICATION, 'Classification with training data labels. '
-                                    f'{self.helpParameterMapClassification()} '
-                                    f'Note that the classification layer is resampled/reprojected/rasterized '
-                                    f'internally to match the raster grid.'),
-            (self.P_CODE, self.helpParameterCode()),
-            (self.P_OUTPUT_MODEL, 'Output model destination (*.pkl file). '
-                                  'This file can be used for applying the classifier to an image using '
-                                  '<i>Classification / Predict Classification<\i> and '
-                                  '<i>Classification / Predict Class Probability<\i>.')
-        ]
-
-    def group(self):
-        return Group.Test.value + Group.Classification.value
-
-    def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_RASTER, 'Raster')
-        self.addParameterMapLayer(self.P_CLASSIFICATION, 'Label')
-        self.addParameterString(self.P_CODE, 'Code', self.codeAsString(), True, advanced=True)
-        self.addParameterFileDestination(
-            self.P_OUTPUT_CLASSIFIER, 'Output Classifier', 'Model file (*.pkl)', f'{self.P_OUTPUT_CLASSIFIER}')
-
-    #def code(self) -> ClassifierMixin:
-    #    raise NotImplementedError()
-
-    def codeAsString(self):
-        lines = [line for line in inspect.getsource(self.code).split('\n')
-                 if not line.strip().startswith('def') and line != ''][:-1]
-        lines = '\n'.join([line[8:] for line in lines])
-        return lines
-
-    def makeClassifier(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> ClassifierMixin:
-        namespace = dict()
-        code = self.parameterAsString(parameters, self.P_CODE, context)
-        exec(code, namespace)
-        return namespace['classifier']
-
-    def checkParameterCode(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
-        try:
-            self.makeClassifier(parameters, context)
-        except Exception as error:
-            return False, traceback.format_exc()
-        return True, ''
+    def code(self) -> ClassifierMixin:
+        from sklearn.ensemble import RandomForestClassifier
+        classifier = RandomForestClassifier(n_estimators=100, oob_score=True)
+        return classifier
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         checks = [
@@ -103,9 +61,8 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         classification = self.parameterAsLayer(parameters, self.P_CLASSIFICATION, context)
-        code = self.parameterAsString(parameters, self.P_CODE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_CLASSIFIER, context)
-        classifier = self.makeClassifier()
+        classifier = self.makeClassifier(parameters, context)
 
         self.processQgis(
             raster, classification, classifier, filename, feedback
@@ -121,11 +78,10 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         if isinstance(classification, QgsRasterLayer):
             assert 0
         elif isinstance(classification, QgsVectorLayer):
+            RasterizeClassificationAlgorithm
             assert 0
         else:
             assert 0
-
-
 
 
 """"
