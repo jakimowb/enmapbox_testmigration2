@@ -1,17 +1,19 @@
-from collections import OrderedDict
+import pickle
 from os.path import join, dirname, basename
-from time import time
-from typing import Tuple, Optional, Callable, List
+from typing import Tuple, Optional, Callable, List, Any
+from warnings import warn
 
+from PyQt5.QtCore import QTimer
 from osgeo import gdal
 from qgis._core import (Qgis, QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRasterRenderer,
                         QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol, QgsRectangle, QgsRasterLayer,
                         QgsRasterDataProvider, QgsPointXY, QgsReferencedPointXY, QgsPoint)
 import numpy as np
+from sklearn.base import ClassifierMixin
 
 from enmapboxprocessing.enmapalgorithm import AlgorithmCanceledException
 from enmapboxprocessing.typing import (NumpyDataType, MetadataValue, GdalDataType, QgisDataType, MetadataDomain,
-                                       Category, GdalResamplingAlgorithm)
+                                       Category, GdalResamplingAlgorithm, Categories)
 from typeguard import typechecked
 
 
@@ -184,18 +186,26 @@ class Utils(object):
         return metadata
 
     @classmethod
-    def categoriesFromPalettedRasterRenderer(cls, renderer: QgsPalettedRasterRenderer) -> List[Category]:
+    def categoriesFromPalettedRasterRenderer(cls, renderer: QgsPalettedRasterRenderer) -> Categories:
         categories = [(c.value, c.label, c.color) for c in renderer.classes()]
         return categories
 
     @classmethod
-    def categoriesFromCategorizedSymbolRenderer(cls, renderer: QgsCategorizedSymbolRenderer) -> List[Category]:
+    def palettedRasterRendererFromCategories(
+            cls, provider: QgsRasterDataProvider, bandNumber: int, categories: Categories
+    ) -> QgsPalettedRasterRenderer:
+        classes = [QgsPalettedRasterRenderer.Class(value, color, label) for value, label, color in categories]
+        renderer = QgsPalettedRasterRenderer(provider, bandNumber, classes)
+        return renderer
+
+    @classmethod
+    def categoriesFromCategorizedSymbolRenderer(cls, renderer: QgsCategorizedSymbolRenderer) -> Categories:
         c: QgsRendererCategory
         categories = [(c.value(), c.label(), c.symbol().color()) for c in renderer.categories()]
         return categories
 
     @classmethod
-    def smallesUIntDataType(cls, value: int):
+    def smallesUIntDataType(cls, value: int) -> QgisDataType:
         if 0 <= value < 256:
             return Qgis.Byte
         elif value < 65536:
@@ -221,7 +231,6 @@ class Utils(object):
             QgsPoint(round(lrSubPixel.x()), round(lrSubPixel.y())), QgsRasterDataProvider.TransformImageToLayer
         )
         return QgsRectangle(QgsPointXY(ul), QgsPointXY(lr))
-
 
     @classmethod
     def gdalResampleAlgToGdalWarpFormat(cls, resampleAlg: Optional[GdalResamplingAlgorithm]) -> Optional[str]:
@@ -252,5 +261,33 @@ class Utils(object):
 
     @classmethod
     def tmpFilenameDelete(cls, filename: str, head: str = '.tmp'):
-        if basename(filename).startswith(head):
-            gdal.Unlink(filename)
+
+        if not basename(filename).startswith(head):
+            return
+
+        def deleteLater(filename):
+            try:
+                gdal.Unlink(filename)
+                print('DELETED', filename)
+            except RuntimeError:
+                warn(f"Couldn't delete temp file: {filename}")
+
+        QTimer.singleShot(1000, lambda: deleteLater(filename))
+
+    @classmethod
+    def pickleDump(cls, obj: Any, filename: str):
+        with open(filename, 'wb') as file:
+            pickle.dump(obj, file)
+
+    @classmethod
+    def pickleLoad(cls, filename: str) -> Any:
+        with open(filename, 'rb') as file:
+            return pickle.load(file)
+
+    @classmethod
+    def pickleDumpClassifier(cls, classifier: ClassifierMixin, categories: Categories, filename: str):
+        cls.pickleDump((classifier, categories), filename)
+
+    @classmethod
+    def pickleLoadClassifier(cls, filename: str) -> Tuple[ClassifierMixin, Categories]:
+        return cls.pickleLoad(filename)

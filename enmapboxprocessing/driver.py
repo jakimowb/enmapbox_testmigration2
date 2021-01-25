@@ -77,10 +77,7 @@ class Driver(object):
             nBands = provider.bandCount()
         if dataType is None:
             dataType = raster.provider.dataType(bandNo=1)
-        raster2 = self.create(
-            dataType=dataType, width=provider.xSize(), height=provider.ySize(), nBands=nBands, extent=provider.extent(),
-            crs=provider.crs()
-        )
+        raster2 = self.create(dataType, provider.xSize(), provider.ySize(), nBands, provider.extent(), provider.crs())
         return raster2
 
     @classmethod

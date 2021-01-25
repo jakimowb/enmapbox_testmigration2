@@ -2,6 +2,7 @@ from enum import Enum, IntEnum
 from math import inf
 from os.path import splitext, join, dirname, basename
 from typing import Dict, Any, List, Tuple, Callable
+from warnings import warn
 
 from osgeo import ogr, gdal
 
@@ -176,7 +177,7 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
 
         for f in [tmpFilename, tmpVectorFilename]:
             if basename(f).startswith('.tmp'):
-                gdal.Unlink(f)
+                Utils.tmpFilenameDelete(f)
 
         return writer
 

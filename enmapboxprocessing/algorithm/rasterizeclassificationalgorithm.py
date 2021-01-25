@@ -7,13 +7,13 @@ from qgis.core import edit
 
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.rasterwriter import RasterWriter
-from enmapboxprocessing.typing import CreationOptions
+from enmapboxprocessing.typing import CreationOptions, Category, Categories
 from enmapboxprocessing.utils import Utils
 
 from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRectangle,
                         QgsCoordinateReferenceSystem, QgsVectorFileWriter,
-                        QgsProject, QgsField, QgsCoordinateTransform)
+                        QgsProject, QgsField, QgsCoordinateTransform, QgsRasterLayer, QgsProcessingException)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
@@ -51,7 +51,7 @@ class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterVectorLayer(self.P_VECTOR, 'Vector Classification')
         self.addParameterRasterLayer(self.P_GRID, 'Grid')
         self.addParameterCreationProfile(self.P_CREATION_PROFILE)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output Classification')
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         return self.checkParameterVectorClassification(parameters, self.P_VECTOR, context)
@@ -77,7 +77,7 @@ class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
             cls, vector: QgsVectorLayer, extent: QgsRectangle, width: int, height: int,
             crs: QgsCoordinateReferenceSystem, oversampling: int, filename: str = None, format: str = None,
             options: CreationOptions = None, feedback: QgsProcessingFeedback = None
-    ) -> RasterWriter:
+    ) -> Tuple[RasterWriter, Categories]:
 
         info = 'Derive class ids from renderer categories'
         feedback.pushInfo(info)
@@ -93,12 +93,20 @@ class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
             tmpVector, extent, width, height, dataType, crs, oversampling, resampleAlg=gdal.GRA_Mode,
             burnAttribute=fieldName, filename=filename, format=format, options=options, feedback=feedback
         )
-        writer.setCategoryNames(['unclassified'] + names)
-        writer.setCategoryColors([QColor('#000')] + colors)
+
+        # setup renderer
+        layer = QgsRasterLayer(filename)
+        categories = [(value, label, color) for value, (label, color) in enumerate(zip(names, colors), 1)]
+        renderer = Utils.palettedRasterRendererFromCategories(layer.dataProvider(), 1, categories)
+        layer.setRenderer(renderer)
+        message, success = layer.saveDefaultStyle()
+        if not success:
+            raise QgsProcessingException(message)
 
         # clean up
-        gdal.Unlink(tmpFilename)
-        return writer
+        Utils.tmpFilenameDelete(tmpFilename)
+
+        return writer, categories
 
     @classmethod
     def categoriesToField(
