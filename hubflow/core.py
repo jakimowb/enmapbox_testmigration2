@@ -5208,7 +5208,12 @@ class Estimator(FlowObject):
         if isinstance(sample, (ClassificationSample, RegressionSample, FractionSample)):
             features, labels = sample.extractAsArray()
             X = np.float64(features.T)
-            if labels.shape[0] == 1 and not isinstance(self.sklEstimator(), sklearn.multioutput.MultiOutputEstimator):
+            if labels.shape[0] == 1 and not isinstance(
+                    self.sklEstimator(), (
+                            sklearn.multioutput.MultiOutputClassifier,
+                            sklearn.multioutput.MultiOutputRegressor,
+                    )
+            ):
                 y = labels.ravel()
             else:
                 y = labels.T
