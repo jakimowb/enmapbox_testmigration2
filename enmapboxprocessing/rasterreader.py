@@ -66,6 +66,9 @@ class RasterReader(object):
             bandNo = 1
         return self.gdalDataset.GetRasterBand(bandNo).GetNoDataValue()
 
+    def bandName(self, bandNo: int):
+        return self.gdalBand(bandNo).GetDescription()
+
     def setUserNoDataValue(self, bandNo: int, noData: Iterable[QgsRasterRange]):
         return self.provider.setUserNoDataValue(bandNo, noData)
 

@@ -70,7 +70,7 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         mask = self.parameterAsLayer(parameters, self.P_MASK, context)
-        classifier, categories = Utils.pickleLoad(self.parameterAsFile(parameters, self.P_CLASSIFIER, context))
+        classifier, categories, X, y = Utils.pickleLoadClassifier(self.parameterAsFile(parameters, self.P_CLASSIFIER, context))
         maximumMemoryUsage = self.parameterAsInt(parameters, self.P_MAXIMUM_MEMORY_USAGE, context)
         format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)

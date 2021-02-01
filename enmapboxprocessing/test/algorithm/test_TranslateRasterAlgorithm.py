@@ -1,18 +1,19 @@
 from osgeo import gdal
-from qgis._core import QgsRasterLayer
+from qgis._core import QgsRasterLayer, QgsPalettedRasterRenderer
 import numpy as np
 
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
+from enmapboxprocessing.utils import Utils
 from enmapboxtestdata import enmap, hires
-from enmapboxunittestdata import landcover_polygons_l3_30m_epsg3035
+from enmapboxunittestdata import landcover_raster_30m_epsg3035, landcover_raster_30m
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
-class TestTranslateAlgorithm(TestCase):
+class TestTranslateRasterAlgorithm(TestCase):
 
     def test_default(self):
         alg = TranslateRasterAlgorithm()
@@ -30,7 +31,7 @@ class TestTranslateAlgorithm(TestCase):
         alg = TranslateRasterAlgorithm()
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap),
-            alg.P_GRID: QgsRasterLayer(landcover_polygons_l3_30m_epsg3035),
+            alg.P_GRID: QgsRasterLayer(landcover_raster_30m_epsg3035),
             alg.P_BAND_LIST: [5],
             alg.P_CREATION_PROFILE: alg.Vrt,
             alg.P_OUTPUT_RASTER: c + '/vsimem/raster.vrt'
@@ -56,7 +57,7 @@ class TestTranslateAlgorithm(TestCase):
         alg = TranslateRasterAlgorithm()
         parameters = {
             alg.P_RASTER: QgsRasterLayer(hires),
-            alg.P_GRID: QgsRasterLayer(landcover_polygons_l3_30m_epsg3035),
+            alg.P_GRID: QgsRasterLayer(landcover_raster_30m_epsg3035),
             # alg.P_BAND_LIST: [1],
             alg.P_OUTPUT_RASTER: c + '/vsimem/raster3035.tif'
         }
@@ -68,7 +69,7 @@ class TestTranslateAlgorithm(TestCase):
         alg = TranslateRasterAlgorithm()
         parameters = {
             alg.P_RASTER: QgsRasterLayer(hires),
-            alg.P_GRID: QgsRasterLayer(landcover_polygons_l3_30m_epsg3035),
+            alg.P_GRID: QgsRasterLayer(landcover_raster_30m_epsg3035),
             alg.P_BAND_LIST: [1],
             alg.P_OUTPUT_RASTER: c + '/vsimem/raster3035_bandSubset.tif'
         }
@@ -226,3 +227,20 @@ class TestTranslateAlgorithm(TestCase):
             parameters[alg.P_RESAMPLE_ALG] = index
             parameters[alg.P_OUTPUT_RASTER] = c + f'/vsimem/raster.{name}.tif'
             self.runalg(alg, parameters)
+
+    def test_copyStyle(self):
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: QgsRasterLayer(landcover_raster_30m),
+            alg.P_COPY_RENDERER: True,
+            alg.P_OUTPUT_RASTER: c + '/vsimem/landcover.tif'
+        }
+        result = self.runalg(alg, parameters)
+        inraster =QgsRasterLayer(landcover_raster_30m)
+        outraster = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+        assert isinstance(outraster.renderer(), QgsPalettedRasterRenderer)
+        self.assertListEqual(
+            Utils.categoriesFromPalettedRasterRenderer(inraster.renderer()),
+            Utils.categoriesFromPalettedRasterRenderer(outraster.renderer())
+        )
+

@@ -7,6 +7,7 @@ import numpy as np
 from osgeo import gdal
 
 from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
+from enmapboxprocessing.algorithm.translateclassification import TranslateClassificationAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
@@ -17,6 +18,7 @@ from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRectangle,
                         QgsCoordinateReferenceSystem, QgsRasterLayer, QgsPalettedRasterRenderer, QgsMapLayer,
                         QgsCategorizedSymbolRenderer)
+from processing.core.Processing import Processing
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
@@ -70,47 +72,37 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
         oversampling = [10, 32, 100][precision]
         format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
-        width = grid.width()
-        height = grid.height()
 
-        self.processQgis(
-            map, grid.extent(), width, height, grid.crs(), oversampling, filename, format, options, feedback
-        )
-        return {self.P_OUTPUT_RASTER: filename}
-
-    @classmethod
-    def processQgis(
-            cls, map: QgsMapLayer, extent: QgsRectangle, width: int, height: int,
-            crs: QgsCoordinateReferenceSystem, oversampling: int = None, filename: str = None, format: str = None,
-            options: CreationOptions = None, feedback: QgsProcessingFeedback = None
-    ) -> RasterWriter:
         if oversampling is None:
             oversampling = 10  # results in integer precision fraction values (oversampling=100 would be 2 decimals)
-        assert filename is not None
+            assert 0 # todo create oversampled grid
+
         if isinstance(map, QgsRasterLayer):
-            assert isinstance(map.renderer(), QgsPalettedRasterRenderer)
             tmpFilename = Utils.tmpFilename(filename, 'oversampled.vrt')
-            TranslateRasterAlgorithm.processQgis(
-                tmpFilename, map, extent, width * oversampling, height * oversampling, crs, gdal.GRA_Mode,
-                [map.renderer().band()], format='VRT'
-            )
+            alg = TranslateClassificationAlgorithm()
+            parameters = {
+                alg.P_CLASSIFICATION: map,
+                alg.P_GRID: gridOversampled,
+                alg.P_CREATION_PROFILE: alg.VrtProfile,
+                alg.P_OUTPUT_RASTER: tmpFilename
+            }
+            Processing.runAlgorithm(alg, parameters, feedback=feedback)
             raster = QgsRasterLayer(tmpFilename)
-            categories = Utils.categoriesFromPalettedRasterRenderer(map.renderer())
         elif isinstance(map, QgsVectorLayer):
-            assert isinstance(map.renderer(), QgsCategorizedSymbolRenderer), map.renderer()
-            tmpFormat = cls.GTiffFormat
-            tmpOptions = cls.TiledAndCompressedGTiffCreationOptions
             tmpFilename = Utils.tmpFilename(filename, 'oversampled.tif')
-            RasterizeClassificationAlgorithm.processQgis(
-                map, extent, width, height, crs, oversampling, tmpFilename, tmpFormat,
-                tmpOptions, feedback
-            )
+            alg = RasterizeClassificationAlgorithm()
+            alg.initAlgorithm()
+            parameters = {
+                alg.P_VECTOR: map,
+                alg.P_GRID: gridOversampled,
+                alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
+                alg.P_OUTPUT_RASTER: tmpFilename
+            }
+            Processing.runAlgorithm(alg, parameters, feedback=feedback)
             raster = QgsRasterLayer(tmpFilename)
-            categories = Utils.categoriesFromPalettedRasterRenderer(raster.renderer())
-            # skip 'unclassified' category and empty categories (value equal label and color is black)
-            categories = [c for c in categories[1:] if str(c[0]) != c[1]]
         else:
             assert 0
+        categories = Utils.categoriesFromPalettedRasterRenderer(raster.renderer())
 
         maxClassId = max([c[0] for c in categories])
         indexByClass = np.full(shape=(maxClassId + 1,), fill_value=-1)
@@ -167,7 +159,7 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
 
         #Utils.tmpFilenameDelete(tmpFilename)
 
-        return writer
+        return {self.P_OUTPUT_RASTER: filename}
 
 
 def _calculatePurePython(classes, counts, notCovered, oversampling, indexByClass):

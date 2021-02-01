@@ -6,7 +6,8 @@ from osgeo import gdal
 from enmapboxprocessing.rasterwriter import RasterWriter
 from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRectangle, QgsRasterLayer, Qgis,
-                        QgsRasterDataProvider, QgsPoint, QgsPointXY, QgsCoordinateReferenceSystem, QgsRasterRenderer)
+                        QgsRasterDataProvider, QgsPoint, QgsPointXY, QgsCoordinateReferenceSystem, QgsRasterRenderer,
+                        QgsProcessingParameterExpression, QgsExpression)
 
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm, GdalDataType
@@ -15,22 +16,14 @@ from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group, A
 
 
 @typechecked
-class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
-    P_RASTER = 'raster'
-    P_BAND_LIST = 'bandList'
-    P_GRID = 'grid'
+class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
+    P_CRS = 'crs'
     P_EXTENT = 'extent'
-    P_SOURCE_WINDOW = 'sourceWindow'
-    P_EXCLUDE_BAD_BANDS = 'excludeBadBands'
-    P_RESAMPLE_ALG = 'resampleAlg'
-    P_DATA_TYPE = 'dataType'
-    P_COPY_METADATA = 'copyMetadata'
-    P_COPY_RENDERER = 'copyRenderer'
-    P_CREATION_PROFILE = 'creationProfile'
+    P_WIDTH = 'grid'
     P_OUTPUT_RASTER = 'outraster'
 
     def displayName(self):
-        return 'Translate/Warp Raster'
+        return 'Create Grid'
 
     def shortDescription(self):
         return 'Convert raster data between different formats, ' \
@@ -49,83 +42,35 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_RASTER, self.helpParameterRaster()),
-            (self.P_BAND_LIST, 'Bands to subset and rearrange. '
-                               'Note that an empty selection (default) will select all bands in native order.'),
-            (self.P_GRID, self.helpParameterGrid()),
             (self.P_EXTENT, 'Spatial extent for clipping the destination grid, '
                             'which is given by the source Raster or the selected Grid. '
                             'In both cases, the extent is aligned with the actual pixel grid '
                             'to avoid subpixel shifts.'),
-            (self.P_SOURCE_WINDOW, 'Subwindow in pixels to extract: left_x, top_y, width, height'),
-            (self.P_EXCLUDE_BAD_BANDS, 'Wether to exclude bad bands (given by BBL metadata item inside ENVI domain). '
-                                       'Also see The ENVI Header Format for more details: '
-                                       'https://www.l3harrisgeospatial.com/docs/ENVIHeaderFiles.html '),
-            (self.P_COPY_METADATA, 'Wether to copy source metadata. '),
-            (self.P_COPY_RENDERER, 'Wether to copy source style.'),
-            (self.P_RESAMPLE_ALG, 'Spatial resample algorithm.'),
-            (self.P_DATA_TYPE, self.helpParameterDataType()),
-            (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
             (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
-        return self.checkParameterSourceWindow(parameters, context)
-
-    def parameterAsSourceWindow(
-            self, parameters: Dict[str, Any], context: QgsProcessingContext
-    ) -> List[int]:
-        string = self.parameterAsString(parameters, self.P_SOURCE_WINDOW, context)
-        if string in ['', 'Not set']:
-            string = '0, 0, 0, 0'
-        return [int(v) for v in string.split(',')]
-
-    def parameterAsSourceWindowExtent(
-            self, parameters: Dict[str, Any], context: QgsProcessingContext
-    ) -> QgsRectangle:
-        left_x, top_y, width, height = self.parameterAsSourceWindow(parameters, context)
-        raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
-        provider: QgsRasterDataProvider = raster.dataProvider()
-        ul: QgsPoint = provider.transformCoordinates(
-            QgsPoint(left_x, top_y), QgsRasterDataProvider.TransformImageToLayer
-        )
-        lr: QgsPoint = provider.transformCoordinates(
-            QgsPoint(left_x + width, top_y + height), QgsRasterDataProvider.TransformImageToLayer
-        )
-        return QgsRectangle(QgsPointXY(ul), QgsPointXY(lr))
-
-    def checkParameterSourceWindow(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
-        try:
-            values = self.parameterAsSourceWindow(parameters, context)
-            assert len(values) == 4
-        except:
-            return False, f'Invalid source window ({self.parameterDefinition(self.P_SOURCE_WINDOW).description()})'
         return True, ''
 
     def group(self):
         return Group.Test.value + Group.CreateRaster.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_RASTER, 'Raster')
-        self.addParameterBandList(
-            self.P_BAND_LIST, 'Selected Bands', parentLayerParameterName=self.P_RASTER, optional=True
-        )
-        self.addParameterRasterLayer(self.P_GRID, 'Grid', optional=True)
-        self.addParameterExtent(self.P_EXTENT, 'Spatial Extent', optional=True, advanced=True)
-        self.addParameterString(
-            self.P_SOURCE_WINDOW, 'Source Window', defaultValue='Not set', optional=True, advanced=True
-        )
-        self.addParameterBoolean(self.P_EXCLUDE_BAD_BANDS, 'Exclude Bad Bands', defaultValue=False, advanced=True)
-        self.addParameterBoolean(self.P_COPY_METADATA, 'Copy Metadata', defaultValue=False, advanced=True)
-        self.addParameterBoolean(self.P_COPY_RENDERER, 'Copy Style', defaultValue=False, advanced=True)
-        self.addParameterResampleAlg(self.P_RESAMPLE_ALG, advanced=True)
-        self.addParameterDataType(self.P_DATA_TYPE, defaultValue=-1, optional=True, advanced=True)
-        self.addParameterCreationProfile(self.P_CREATION_PROFILE, allowVrt=True, advanced=True)
+        self.addParameterExtent(self.P_EXTENT, 'Spatial Extent')
+        self.addParameter(QgsProcessingParameterExpression(self.P_WIDTH, 'Width'))
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
+
+        expression = QgsExpression(self.parameterAsExpression(parameters, self.P_WIDTH, context))
+        x = expression.evaluate()
+        if expression.hasParserError():
+            print(expression.parserErrorString())
+
+        assert 0
+
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         bandList = self.parameterAsInts(parameters, self.P_BAND_LIST, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)

@@ -34,8 +34,7 @@ class FitRandomForestClassifierAlgorithm(FitClassifierAlgorithmBase):
                'http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html' \
                '">RandomForestClassifier</a> for information on different parameters.'
 
-    def code(self) -> ClassifierMixin:
+    def code(cls) -> ClassifierMixin:
         from sklearn.ensemble import RandomForestClassifier
         classifier = RandomForestClassifier(n_estimators=100, bootstrap=True, oob_score=True, max_samples=None)
         return classifier
-

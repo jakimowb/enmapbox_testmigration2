@@ -1,19 +1,21 @@
 import pickle
-from os.path import join, dirname, basename
+from os import makedirs
+from os.path import join, dirname, basename, exists
 from typing import Tuple, Optional, Callable, List, Any
 from warnings import warn
 
 from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QColor
 from osgeo import gdal
-from qgis._core import (Qgis, QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRasterRenderer,
+from qgis._core import (QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRasterRenderer,
                         QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol, QgsRectangle, QgsRasterLayer,
-                        QgsRasterDataProvider, QgsPointXY, QgsReferencedPointXY, QgsPoint)
+                        QgsRasterDataProvider, QgsPointXY, QgsReferencedPointXY, QgsPoint, Qgis, QgsWkbTypes)
 import numpy as np
 from sklearn.base import ClassifierMixin
 
 from enmapboxprocessing.enmapalgorithm import AlgorithmCanceledException
 from enmapboxprocessing.typing import (NumpyDataType, MetadataValue, GdalDataType, QgisDataType, MetadataDomain,
-                                       Category, GdalResamplingAlgorithm, Categories)
+                                       Category, GdalResamplingAlgorithm, Categories, SampleX, SampleY)
 from typeguard import typechecked
 
 
@@ -187,21 +189,21 @@ class Utils(object):
 
     @classmethod
     def categoriesFromPalettedRasterRenderer(cls, renderer: QgsPalettedRasterRenderer) -> Categories:
-        categories = [(c.value, c.label, c.color) for c in renderer.classes()]
+        categories = [(c.value, c.label, c.color.name()) for c in renderer.classes()]
         return categories
 
     @classmethod
     def palettedRasterRendererFromCategories(
             cls, provider: QgsRasterDataProvider, bandNumber: int, categories: Categories
     ) -> QgsPalettedRasterRenderer:
-        classes = [QgsPalettedRasterRenderer.Class(value, color, label) for value, label, color in categories]
+        classes = [QgsPalettedRasterRenderer.Class(value, QColor(color), label) for value, label, color in categories]
         renderer = QgsPalettedRasterRenderer(provider, bandNumber, classes)
         return renderer
 
     @classmethod
     def categoriesFromCategorizedSymbolRenderer(cls, renderer: QgsCategorizedSymbolRenderer) -> Categories:
         c: QgsRendererCategory
-        categories = [(c.value(), c.label(), c.symbol().color()) for c in renderer.categories()]
+        categories = [(c.value(), c.label(), c.symbol().color().name()) for c in renderer.categories()]
         return categories
 
     @classmethod
@@ -257,7 +259,13 @@ class Utils(object):
 
     @classmethod
     def tmpFilename(cls, filename: str, tail: str, head: str = '.tmp'):
-        return join(dirname(filename), f'{head}.{basename(filename)}.{tail}')
+        #return join(dirname(filename), f'{head}.{basename(filename)}.{tail}')
+
+        tmpDirname = join(dirname(filename), f'_temp_{basename(filename)}')
+        if not exists(tmpDirname):
+            makedirs(tmpDirname)
+        tmpFilename = join(tmpDirname, tail)
+        return tmpFilename
 
     @classmethod
     def tmpFilenameDelete(cls, filename: str, head: str = '.tmp'):
@@ -285,9 +293,26 @@ class Utils(object):
             return pickle.load(file)
 
     @classmethod
-    def pickleDumpClassifier(cls, classifier: ClassifierMixin, categories: Categories, filename: str):
-        cls.pickleDump((classifier, categories), filename)
+    def pickleDumpClassifier(
+            cls, classifier: ClassifierMixin, categories: Categories, X: Optional[SampleX], y: Optional[SampleY],
+            filename: str
+    ):
+        cls.pickleDump(dict(classifier=classifier, categories=categories, X=X, y=y), filename)
 
     @classmethod
-    def pickleLoadClassifier(cls, filename: str) -> Tuple[ClassifierMixin, Categories]:
-        return cls.pickleLoad(filename)
+    def pickleLoadClassifier(cls, filename: str) -> Tuple[
+        ClassifierMixin, Categories, Optional[SampleX], Optional[SampleY]
+    ]:
+        values = cls.pickleLoad(filename)
+        classifier, categories, X, y = tuple(values[key] for key in ['classifier', 'categories', 'X', 'y'])
+        return classifier, categories, X, y
+
+    @classmethod
+    def isPolygonGeometry(cls, wkbType: int) -> bool:
+        types = [value for key, value in QgsWkbTypes.__dict__.items() if 'Polygon' in key]
+        return wkbType in types
+
+    @classmethod
+    def isPointGeometry(cls, wkbType: int) -> bool:
+        types = [value for key, value in QgsWkbTypes.__dict__.items() if 'Point' in key]
+        return wkbType in types

@@ -26,7 +26,8 @@ class AlgorithmCanceledException(Exception):
 class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     O_CREATION_PROFILE = ['GeoTiff', 'Compressed GeoTiff', 'Tiled GeoTiff', 'Tiled and compressed GeoTiff',
                           'ENVI BSQ', 'ENVI BIL', 'ENVI BIP', 'Virtual Raster']
-    GTiff, CompressedGTiff, TiledGTiff, TiledAndCompressedGTiff, EnviBsq, EnviBil, EnviBip, Vrt = range(8)
+    GTiffProfile, CompressedGTiffProfile, TiledGTiffProfile, TiledAndCompressedGTiffProfile, EnviBsqProfile, \
+    EnviBilProfile, EnviBipProfile, VrtProfile = range(8)
     GTiffFormat, EnviFormat, VrtFormat = ['GTiff', 'ENVI', 'VRT']
     GTiffCreationOptions = ['INTERLEAVE=BAND']
     CompressedGTiffCreationOptions = 'INTERLEAVE=BAND COMPRESS=LZW PREDICTOR=2 BIGTIFF=YES'.split()
@@ -44,6 +45,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
 
     O_DATA_TYPE = 'Byte Int16 UInt16 Int32 UInt32 Float32 Float64'.split()
     Byte, Int16, UInt16, Int32, UInt32, Float32, Float64 = range(7)
+
+    SkipValue = '[Skip output]'
 
     def createInstance(self):
         return type(self)()
@@ -118,8 +121,13 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsString(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> str:
         return super().parameterAsString(parameters, name, context)
 
-    def parameterAsDouble(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> float:
-        return super().parameterAsDouble(parameters, name, context)
+    def parameterAsDouble(
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
+    ) -> Optional[float]:
+        if self.parameterIsSet(parameters, name):
+            return super().parameterAsDouble(parameters, name, context)
+        else:
+            return self.parameterDefinition(name).defaultValue()
 
     def parameterAsInt(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> int:
         return super().parameterAsInt(parameters, name, context)
@@ -182,6 +190,9 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         ][index]
         return format, options.split()
 
+    def parameterIsSet(self, parameters: Dict[str, Any], name: str):
+        return parameters.get(name, None) is not None
+
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         return super().checkParameterValues(parameters, context)
 
@@ -198,7 +209,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def checkParameterRasterClassification(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Tuple[bool, str]:
-        renderer = self.parameterAsRasterLayer(parameters, name, context).renderer()
+        layer = self.parameterAsRasterLayer(parameters, name, context)
+        renderer = layer.renderer()
         return (
             isinstance(renderer, QgsPalettedRasterRenderer),
             f'Invalid classification, '
@@ -389,11 +401,12 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
 
     def addParameterInt(
             self, name: str, description: str, defaultValue=None, optional=False, minValue: int = None,
-            maxValue: int = None, advanced=False
+            maxValue: int = None, advanced=False, hidden=False
     ):
         type = QgsProcessingParameterNumber.Integer
         self.addParameterNumber(name, description, type, defaultValue, optional, minValue, maxValue)
         self.flagParameterAsAdvanced(name, advanced)
+        self.flagParameterAsHidden(name, hidden)
 
     def addParameterFloat(
             self, name: str, description: str, defaultValue=None, optional=False, minValue: float = None,
@@ -463,9 +476,14 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             p = self.parameterDefinition(name)
             p.setFlags(p.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
+    def flagParameterAsHidden(self, name: str, hidden: bool):
+        if hidden:
+            p = self.parameterDefinition(name)
+            p.setFlags(p.flags() | QgsProcessingParameterDefinition.FlagHidden)
+
 
 class Group(Enum):
-    ACCURACY_ASSESSMENT = 'Accuracy Assessment'
+    AccuracyAssessment = 'Accuracy Assessment'
     Auxilliary = 'Auxilliary'
     ConvolutionMorphologyAndFiltering = 'Convolution, Morphology and Filtering'
     CreateRaster = 'Create Raster'

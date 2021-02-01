@@ -13,9 +13,11 @@ class TestRasterizeAlgorithm(TestCase):
         raster = QgsRasterLayer(enmap)
         vector = QgsVectorLayer(landcover_polygons)
         alg = RasterizeVectorAlgorithm()
+        alg.initAlgorithm()
         parameters = {
             alg.P_GRID: raster,
             alg.P_VECTOR: vector,
+            alg.P_BURN_VALUE: 255,
             alg.P_OUTPUT_RASTER: 'c:/vsimem/mask.tif'
         }
         result = self.runalg(alg, parameters)

@@ -5,7 +5,11 @@ from qgis.core import *
 
 from enmapbox.externals.qps.speclib import EnviSpectralLibraryIO
 from enmapboxprocessing.algorithm.classificationtofractionalgorithm import ClassificationToFractionAlgorithm
+from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
+from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
+from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
 from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
+from enmapboxprocessing.algorithm.translateclassification import TranslateClassificationAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.changemap import ChangeMap
@@ -45,10 +49,14 @@ ALGORITHMS.append(SaveAsEnvi())
 ALGORITHMS.append(CreateGrid())
 ALGORITHMS.append(ChangeMap())
 
-ALGORITHMS.append(RasterizeVectorAlgorithm())
-ALGORITHMS.append(RasterizeClassificationAlgorithm())
-ALGORITHMS.append(TranslateRasterAlgorithm())
 ALGORITHMS.append(ClassificationToFractionAlgorithm())
+ALGORITHMS.append(FitRandomForestClassifierAlgorithm())
+ALGORITHMS.append(PredictClassificationAlgorithm())
+ALGORITHMS.append(PredictClassPropabilityAlgorithm())
+ALGORITHMS.append(RasterizeClassificationAlgorithm())
+ALGORITHMS.append(RasterizeVectorAlgorithm())
+ALGORITHMS.append(TranslateRasterAlgorithm())
+ALGORITHMS.append(TranslateClassificationAlgorithm())
 
 
 class ClassificationFromFraction(EnMAPAlgorithm):

@@ -107,32 +107,31 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
             oversampling = 10
         noDataValue = None
         self.processQgis(
-            vector, grid.extent(), grid.width(), grid.height(), dataType, grid.crs(), oversampling, resampleAlg,
+            vector, grid, dataType, oversampling, resampleAlg,
             initValue, burnValue, burnAttribute, addValue, allTouched, noDataValue, filename, format, options, feedback
         )
         return {self.P_OUTPUT_RASTER: filename}
 
     @classmethod
     def processQgis(
-            cls, vector: QgsVectorLayer, extent: QgsRectangle, width: int, height: int, dataType: QgisDataType,
-            crs: QgsCoordinateReferenceSystem, oversampling: int = None, resampleAlg: GdalResamplingAlgorithm = None,
-            initValue: float = 0., burnValue: float = 1., burnAttribute: str = None,
-            addValue: bool = None, allTouched=False, noDataValue: float = None, filename: str = None,
-            format: str = None,
-            options: CreationOptions = None, feedback: QgsProcessingFeedback = None
+            cls, vector: QgsVectorLayer, grid: QgsRasterLayer, dataType: QgisDataType, oversampling: int = None,
+            resampleAlg: GdalResamplingAlgorithm = None, initValue: float = 0., burnValue: float = 1.,
+            burnAttribute: str = None, addValue: bool = None, allTouched=False, noDataValue: float = None,
+            filename: str = None, format: str = None, options: CreationOptions = None,
+            feedback: QgsProcessingFeedback = None
     ) -> RasterWriter:
         if oversampling is None:
             oversampling = 1
         sourceFilename, layerName = Utils.splitQgsVectorLayerSourceString(vector.source())
-        if vector.crs() != crs:
+        if vector.crs() != grid.crs():
             feedback.pushInfo('Reproject source vector to target crs')
             tmpVectorFilename = Utils.tmpFilename(filename, 'reprojected.gpkg')
             transformContext = QgsProject.instance().transformContext()
-            coordinateTransform = QgsCoordinateTransform(vector.crs(), crs, QgsProject.instance())
+            coordinateTransform = QgsCoordinateTransform(vector.crs(), grid.crs(), QgsProject.instance())
             saveVectorOptions = QgsVectorFileWriter.SaveVectorOptions()
             saveVectorOptions.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
             saveVectorOptions.ct = coordinateTransform
-            saveVectorOptions.filterExtent = extent
+            saveVectorOptions.filterExtent = grid.extent()
             if layerName is not None:
                 saveVectorOptions.layerName = layerName
             saveVectorOptions.feedback = feedback
@@ -150,10 +149,10 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
         tmpFilename = Utils.tmpFilename(filename, 'oversampled.tif')
         tmpFormat = cls.GTiffFormat
         tmpCreationOptions = cls.TiledAndCompressedGTiffCreationOptions
-        tmpWidth = int(round(width * oversampling))
-        tmpHeight = int(round(height * oversampling))
+        tmpWidth = int(round(grid.width() * oversampling))
+        tmpHeight = int(round(grid.height() * oversampling))
         tmpDriver = Driver(tmpFilename, tmpFormat, tmpCreationOptions, feedback)
-        tmpWriter = tmpDriver.create(Qgis.Float32, tmpWidth, tmpHeight, 1, extent, crs)
+        tmpWriter = tmpDriver.create(Qgis.Float32, tmpWidth, tmpHeight, 1, grid.extent(), grid.crs())
         tmpWriter.fill(initValue)
         tmpWriter.setNoDataValue(noDataValue)
         callback = Utils.qgisFeedbackToGdalCallback(feedback)
@@ -167,7 +166,7 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
         resampleAlgString = Utils.gdalResampleAlgToGdalWarpFormat(resampleAlg)  # use string to avoid a bug in gdalwarp
         gdalDataType = Utils.qgisDataTypeToGdalDataType(dataType)
         warpOptions = gdal.WarpOptions(
-            width=width, height=height, resampleAlg=resampleAlgString, outputType=gdalDataType,
+            width=grid.width(), height=grid.height(), resampleAlg=resampleAlgString, outputType=gdalDataType,
             format=format, creationOptions=options, callback=callback, multithread=True
         )
         outGdalDataset = gdal.Warp(
