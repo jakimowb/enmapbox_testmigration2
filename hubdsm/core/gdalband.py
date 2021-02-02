@@ -227,13 +227,13 @@ class GdalBand(object):
     def setCategories(self, categories: Optional[List[Category]]):
         """Set categories."""
         if categories is not None:
-            ids = [c.id for c in categories]
-            maxId = max(ids)
+            ids = [int(c.id) for c in categories]
+            maxId = int(max(ids))
             names = ['n/a'] * (maxId + 1)
             colors = [Color(red=0, green=0, blue=0)] * (maxId + 1)
             for c in categories:
-                names[c.id] = c.name
-                colors[c.id] = c.color
+                names[max(c.id)] = c.name
+                colors[max(c.id)] = c.color
             self._setCategoryNames(names=names)
             self._setCategoryColors(colors)
         return self
