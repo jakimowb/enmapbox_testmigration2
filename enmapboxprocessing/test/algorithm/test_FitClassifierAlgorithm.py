@@ -1,154 +1,76 @@
-from qgis._core import QgsRasterLayer, QgsVectorLayer
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
+from qgis._core import QgsRasterLayer, QgsVectorLayer
+from sklearn.base import ClassifierMixin
 
-from enmapboxprocessing.algorithm.classificationtofractionalgorithm import ClassificationToFractionAlgorithm
-from enmapboxprocessing.algorithm.fitestimatoralgorithm import FitClassifierAlgorithmBase
-from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
+from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
+from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
+from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
+from enmapboxprocessing.utils import Utils
 from enmapboxtestdata import enmap, landcover_polygons
-from enmapboxunittestdata import (landcover_polygons_l3_1m, landcover_polygons_l3_1m_3classes,
-                                  landcover_polygons_3classes, landcover_polygons_3classes_epsg4326)
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
-class TestFitRandomForestClassifierAlgorithm(TestCase):
 
-    def test_rfc_default(self):
-        alg = FitRandomForestClassifierAlgorithm()
+class FitTestClassifierAlgorithm(FitClassifierAlgorithmBase):
+
+    def displayName(self) -> str:
+        return ''
+
+    def shortDescription(self) -> str:
+        return ''
+
+    def helpParameterCode(self) -> str:
+        return ''
+
+    def code(self) -> ClassifierMixin:
+        from sklearn.ensemble import RandomForestClassifier
+        classifier = RandomForestClassifier(n_estimators=10, oob_score=True, random_state=42)
+        return classifier
+
+
+class TestClassifierAlgorithm(TestCase):
+
+    def test_default(self):
+        global c
+        alg = FitTestClassifierAlgorithm()
         alg.initAlgorithm()
-        self.assertIsInstance(alg.code(), RandomForestClassifier)
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap),
             alg.P_CLASSIFICATION: QgsVectorLayer(landcover_polygons),
-            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/RandomForestClassifier.pkl'
+            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl'
         }
         result = self.runalg(alg, parameters)
-        #self.assertEqual(21835742, RasterReader(result[alg.P_OUTPUT_CLASSIFIER]))
+        classifier, categories = Utils.pickleLoad(result[alg.P_OUTPUT_CLASSIFIER])
+        assert isinstance(classifier, ClassifierMixin)
+        self.assertListEqual([1, 2, 3, 4, 5, 6], [c[0] for c in categories])
+        self.assertListEqual(
+            ['roof', 'pavement', 'low vegetation', 'tree', 'soil', 'water'],
+            [c[1] for c in categories]
+        )
+        self.assertListEqual(
+            ['#e60000', '#9c9c9c', '#98e600', '#267300', '#a87000', '#0064ff'],
+            [c[2].name() for c in categories])
 
-    def test_defaultRaster(self):
-        alg = ClassificationToFractionAlgorithm()
-        parameters = {
-            alg.P_MAP: QgsVectorLayer(landcover_polygons),
-            alg.P_GRID: QgsRasterLayer(enmap),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/fraction.tif'
+        alg2 = PredictClassificationAlgorithm()
+        alg2.initAlgorithm()
+        parameters2 = {
+            alg2.P_RASTER: QgsRasterLayer(enmap),
+            alg2.P_CLASSIFIER: result[alg.P_OUTPUT_CLASSIFIER],
+            alg2.P_OUTPUT_RASTER: c + '/vsimem/classification.tif'
         }
-        result = self.runalg(alg, parameters)
-        self.assertEqual(21835742, RasterReader(result[alg.P_OUTPUT_RASTER]).array()[0].sum())
+        result2 = self.runalg(alg2, parameters2)
+        self.assertEqual(193260, RasterReader(result2[alg2.P_OUTPUT_RASTER]).array()[0].sum())
 
-
-    def test_raster_withNonMatching_crs(self):
-        alg = ClassificationToFractionAlgorithm()
-        parameters = {
-            alg.P_MAP: QgsRasterLayer(landcover_polygons_l3_1m_3classes),
-            alg.P_GRID: QgsRasterLayer(enmap),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/fraction.tif'
+        alg3 = PredictClassPropabilityAlgorithm()
+        alg3.initAlgorithm()
+        parameters3 = {
+            alg3.P_RASTER: QgsRasterLayer(enmap),
+            alg3.P_CLASSIFIER: result[alg.P_OUTPUT_CLASSIFIER],
+            alg3.P_OUTPUT_RASTER: c + '/vsimem/probability.tif'
         }
-        result = self.runalg(alg, parameters)
-        self.assertEqual(21885796, RasterReader(result[alg.P_OUTPUT_RASTER]).array()[0].sum())
-
-    def test_vector_withNonMatching_crs(self):
-        alg = ClassificationToFractionAlgorithm()
-        parameters = {
-            alg.P_MAP: QgsVectorLayer(landcover_polygons_3classes_epsg4326),
-            alg.P_GRID: QgsRasterLayer(enmap),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/fraction.tif'
-        }
-        result = self.runalg(alg, parameters)
-        self.assertEqual(21835742, RasterReader(result[alg.P_OUTPUT_RASTER]).array()[0].sum())
-
-    def test_vectorSource_floatPrecision(self):
-        vector = QgsVectorLayer(landcover_polygons)
-        grid = QgsRasterLayer(enmap)
-
-        alg = ClassificationToFractionAlgorithm()
-        alg.initAlgorithm()
-        print(alg.shortHelpString())
-
-        parameters = {
-            alg.P_MAP: vector,
-            alg.P_GRID: grid,
-            alg.P_OVERSAMPLING: 15,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/fraction'
-        }
-        result = self.runalg(alg, parameters)
-        self.assertEqual(-309699.0, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array())))
-
-    def test_rasterSource_default(self):
-        raster = QgsRasterLayer(landcover_polygons_l3_1m)
-        grid = QgsRasterLayer(enmap)
-
-        alg = ClassificationToFractionAlgorithm()
-
-        parameters = {
-            alg.P_MAP: raster,
-            alg.P_GRID: grid,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/fraction'
-        }
-        result = self.runalg(alg, parameters)
-        self.assertEqual(130931945, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
-
-    def test_rasterSource_floatPrecision(self):
-        raster = QgsRasterLayer(landcover_polygons_l3_1m)
-        grid = QgsRasterLayer(enmap)
-
-        alg = ClassificationToFractionAlgorithm()
-
-        parameters = {
-            alg.P_MAP: raster,
-            alg.P_GRID: grid,
-            alg.P_OVERSAMPLING: 15,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/fraction'
-        }
-        result = self.runalg(alg, parameters)
-        self.assertEqual(-309789.0, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array())))
-
-    def test_rasterSource_nonConsecutiveClasses(self):
-        raster = QgsRasterLayer(landcover_polygons_l3_1m_3classes)
-        grid = QgsRasterLayer(enmap)
-
-        alg = ClassificationToFractionAlgorithm()
-
-        parameters = {
-            alg.P_MAP: raster,
-            alg.P_GRID: grid,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/fraction'
-        }
-        result = self.runalg(alg, parameters)
-        self.assertEqual(65618715, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
-
-    def test_vectorSource_nonConsecutiveClasses(self):
-        vector = QgsVectorLayer(landcover_polygons_3classes)
-        grid = QgsRasterLayer(enmap)
-
-        alg = ClassificationToFractionAlgorithm()
-
-        parameters = {
-            alg.P_MAP: vector,
-            alg.P_GRID: grid,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/fraction'
-        }
-        result = self.runalg(alg, parameters)
-        self.assertEqual(65615019, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
-
-    def test_vectorSource_nonConsecutiveClasses_nonMatchingCrs(self):
-        vector = QgsVectorLayer(landcover_polygons_3classes_epsg4326)
-        grid = QgsRasterLayer(enmap)
-
-        alg = ClassificationToFractionAlgorithm()
-        parameters = {
-            alg.P_MAP: vector,
-            alg.P_GRID: grid,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/fraction'
-        }
-        result = self.runalg(alg, parameters)
-        self.assertEqual(65615019, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
-
-
-# todo block-wise IO
-# on-the-fly-resampling?
-
-    P_GRID = 'grid'
-    P_PRECISION = 'precision'
+        result3 = self.runalg(alg3, parameters3)
+        return
+        self.assertEqual(193721, np.sum(RasterReader(result3[alg2.P_OUTPUT_RASTER]).array()))

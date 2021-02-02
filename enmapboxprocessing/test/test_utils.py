@@ -12,3 +12,6 @@ class TestUtils(TestCase):
         vector = QgsVectorLayer(landcover_polygons)
         categories = Utils.categoriesFromCategorizedSymbolRenderer(renderer=vector.renderer())
         print(categories)
+
+    def test_nPixelFittingInRam(self, ):
+        print(Utils.nPixelFromMegaByteAndDataType(10))

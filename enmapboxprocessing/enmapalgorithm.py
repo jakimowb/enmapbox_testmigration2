@@ -11,7 +11,8 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsPalettedRasterRenderer, QgsProcessingParameterMapLayer, QgsMapLayer,
                         QgsProcessingParameterCoordinateOperation, QgsProcessingParameterAggregate,
                         QgsProcessingParameterExtent, QgsCoordinateReferenceSystem, QgsRectangle,
-                        QgsProcessingParameterFileDestination)
+                        QgsProcessingParameterFileDestination, QgsProcessingParameterExpression,
+                        QgsProcessingParameterFile)
 
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
 from typeguard import typechecked
@@ -236,15 +237,27 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def helpParameterClassification(self):
         return 'Source raster layer styled with a paletted/unique values renderer.'
 
+    def helpParameterMask(self):
+        return 'Source raster or vector layer interpreted as binary mask. ' \
+               'In case of a raster, all pixels with no data (zero, if undefined) ' \
+               'are excluded from processing (only the first band used by the renderer is considered). ' \
+               'In case of a vector, all pixels not covered by geometries are excluded. '
+
     def helpParameterVector(self):
         return 'Source vector layer.'
 
     def helpParameterVectorClassification(self):
         return 'Source vector layer styled with a categorized symbol renderer.'
 
+    def helpParameterClassifier(self):
+        return 'Classifier created with <i>Classification / Fit *Classifier</i>.'
+
     def helpParameterGrid(self):
         return 'A raster layer defining the destination extent, resolution and coordinate reference system ' \
                '(inputs are reprojected if necessary).'
+
+    def helpParameterMaximumMemoryUsage(self):
+        return 'Maximum amount of memory (as bytes) for processing (defaults to 5 % of total memory).'
 
     def helpParameterDataType(self):
         return 'Output data type.'
@@ -337,6 +350,18 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         )
         self.flagParameterAsAdvanced(name, advanced)
 
+    def addParameterFile(
+            self, name: str, description: str,
+            behavior: QgsProcessingParameterFile.Behavior = QgsProcessingParameterFile.File, extension: str = '',
+            defaultValue=None, optional=False, fileFilter='', advanced=False
+    ):
+        self.addParameter(
+            QgsProcessingParameterFile(
+                name, description, behavior, extension, defaultValue, optional, fileFilter
+            )
+        )
+        self.flagParameterAsAdvanced(name, advanced)
+
     def addParameterFileDestination(
             self, name: str, description: str, fileFilter='', defaultValue=None, optional=False,
             createByDefault=True, advanced=False
@@ -413,8 +438,10 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             advanced=False
     ):
         options = self.O_DATA_TYPE
-        self.addParameterEnum(name, description, options, False, defaultValue, optional)
-        self.flagParameterAsAdvanced(name, advanced)
+        self.addParameterEnum(name, description, options, False, defaultValue, optional, advanced)
+
+    def addParameterMaximumMemoryUsage(self, name: str, description='Maximum Memory Usage', advanced=False):
+        self.addParameterInt(name, description, gdal.GetCacheMax(), True, 0, None, advanced)
 
     def addParameterCreationProfile(
             self, name: str, description='Output Options', defaultValue=0, advanced=False, allowVrt=False
@@ -423,15 +450,13 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             options = self.O_CREATION_PROFILE
         else:
             options = self.O_CREATION_PROFILE[:-1]
-        self.addParameterEnum(name, description, options, False, defaultValue=defaultValue)
-        self.flagParameterAsAdvanced(name, advanced)
+        self.addParameterEnum(name, description, options, False, defaultValue=defaultValue, advanced=advanced)
 
     def addParameterResampleAlg(
             self, name: str, description='Resample Algorithm', defaultValue=0, optional=False, advanced=False
     ):
         options = self.O_RESAMPLE_ALG
-        self.addParameterEnum(name, description, options, False, defaultValue, optional)
-        self.flagParameterAsAdvanced(name, advanced)
+        self.addParameterEnum(name, description, options, False, defaultValue, optional, advanced)
 
     def flagParameterAsAdvanced(self, name: str, advanced: bool):
         if advanced:

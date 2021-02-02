@@ -14,4 +14,4 @@ homepage=http://www.enmap.org/
 tracker=https://bitbucket.org/hu-geomatics/enmap-box/issues
 repository=https://bitbucket.org/hu-geomatics/enmap-box.git
 changelog=CHANGELOG.rst
-hasProcessingProvider=True
+hasProcessingProvider=yes

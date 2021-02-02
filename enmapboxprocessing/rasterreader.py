@@ -1,14 +1,16 @@
 from math import isnan
-from typing import Iterable, List, NamedTuple, Union, Optional
+from typing import Iterable, List, Union, Optional
 
+from enmapboxprocessing.rasterblockinfo import RasterBlockInfo
 from typeguard import typechecked
 import numpy as np
 from PyQt5.QtCore import QSizeF
 from osgeo import gdal
 from qgis._core import (QgsRasterLayer, QgsRasterDataProvider, QgsCoordinateReferenceSystem, QgsRectangle,
-                        QgsRasterRange, QgsPoint, QgsRasterBlockFeedback, QgsRasterBlock, QgsPointXY)
+                        QgsRasterRange, QgsPoint, QgsRasterBlockFeedback, QgsRasterBlock, QgsPointXY,
+                        QgsProcessingFeedback)
 
-from enmapboxprocessing.typing import (QgisDataType, RasterSource, Array3d, Array2d, Metadata, MetadataValue,
+from enmapboxprocessing.typing import (QgisDataType, RasterSource, Array3d, Metadata, MetadataValue,
                                        MetadataDomain)
 from enmapboxprocessing.utils import Utils
 
@@ -50,6 +52,11 @@ class RasterReader(object):
         if bandNo is None:
             bandNo = 1
         return self.provider.dataType(bandNo)
+
+    def dataTypeSize(self, bandNo: int = None) -> int:
+        if bandNo is None:
+            bandNo = 1
+        return self.provider.dataTypeSize(bandNo)
 
     def extent(self) -> QgsRectangle:
         return self.provider.extent()
@@ -98,16 +105,19 @@ class RasterReader(object):
     def rasterUnitsPerPixel(self) -> QSizeF:
         return QSizeF(self.rasterUnitsPerPixelX(), self.rasterUnitsPerPixelY())
 
-    def walkGrid(self, blockSizeX: int, blockSizeY: int):
+    def walkGrid(self, blockSizeX: int, blockSizeY: int, feedback: QgsProcessingFeedback = None):
         pixelSizeX = self.rasterUnitsPerPixelX()
         pixelSizeY = self.rasterUnitsPerPixelY()
         extent = self.extent()
-        for blockExtent in GridWalker(extent, blockSizeX, blockSizeY, pixelSizeX, pixelSizeY):
+        for blockExtent in GridWalker(extent, blockSizeX, blockSizeY, pixelSizeX, pixelSizeY, feedback):
             xOffset = int(round((blockExtent.xMinimum() - extent.xMinimum()) / pixelSizeX))
             yOffset = int(round((extent.yMaximum() - blockExtent.yMaximum()) / pixelSizeY))
             width = min(blockSizeX, int(round((blockExtent.xMaximum() - blockExtent.xMinimum()) / pixelSizeX)))
             height = min(blockSizeY, int(round((blockExtent.yMaximum() - blockExtent.yMinimum()) / pixelSizeY)))
             yield RasterBlockInfo(blockExtent, xOffset, yOffset, width, height)
+
+    def arrayFromBlock(self, block: RasterBlockInfo, bandList: List[int] = None, feedback: QgsRasterBlockFeedback = None):
+        return self.arrayFromBoundingBoxAndSize(block.extent, block.width, block.height, bandList, feedback)
 
     def arrayFromBoundingBoxAndSize(
             self, boundingBox: QgsRectangle, width: int, height: int, bandList: List[int] = None,
@@ -117,8 +127,10 @@ class RasterReader(object):
             bandList = range(1, self.provider.bandCount() + 1)
         arrays = list()
         for bandNo in bandList:
+            assert 0 < bandNo <= self.bandCount()
             block: QgsRasterBlock = self.provider.block(bandNo, boundingBox, width, height, feedback)
-            arrays.append(Utils.qgsRasterBlockToNumpyArray(block=block))
+            array = Utils.qgsRasterBlockToNumpyArray(block=block)
+            arrays.append(array)
         return arrays
 
     def arrayFromPixelOffsetAndSize(
@@ -158,15 +170,7 @@ class RasterReader(object):
             array = self.arrayFromBoundingBoxAndSize(boundingBox, width, height, bandList, feedback)
         return array
 
-    def array2d(
-            self, band: int, xOffset: int = 0, yOffset: int = 0,
-            boundingBox: QgsRectangle = None, width: int = None, height: int = None,
-            feedback: QgsRasterBlockFeedback = None
-    ) -> Array2d:
-        array = self.array(xOffset, yOffset, width, height, [band], boundingBox, feedback)
-        return array[0]
-
-    def maskArray(self, array: Array3d, bandList: List[int] = None) -> Array3d:
+    def maskArray(self, array: Array3d, bandList: List[int] = None, maskNotFinite=True) -> Array3d:
         if bandList is None:
             bandList = range(1, self.provider.bandCount() + 1)
         assert len(bandList) == len(array)
@@ -198,6 +202,8 @@ class RasterReader(object):
                 else:
                     assert 0
                 m[contained] = False
+                if maskNotFinite:
+                    m[np.logical_not(np.isfinite(a))] = False
             maskArray.append(m)
         return maskArray
 
@@ -219,6 +225,13 @@ class RasterReader(object):
         domains = self._gdalObject(bandNo).GetMetadataDomainList()
         return {domain: self.metadataDomain(domain, bandNo) for domain in domains}
 
+    def lineMemoryUsage(self, nBands: int = None, dataTypeSize: int = None) -> int:
+        if nBands is None:
+            nBands = self.bandCount()
+        if dataTypeSize is None:
+            dataTypeSize = self.dataTypeSize()
+        return self.width() * nBands * dataTypeSize
+
     def _gdalObject(self, bandNo: int = None) -> Union[gdal.Band, gdal.Dataset]:
         if bandNo is None:
             gdalObject = self.gdalDataset
@@ -228,11 +241,3 @@ class RasterReader(object):
 
     def gdalBand(self, bandNo: int) -> gdal.Band:
         return self.gdalDataset.GetRasterBand(bandNo)
-
-
-class RasterBlockInfo(NamedTuple):
-    extent: QgsRectangle
-    xOffset: int
-    yOffset: int
-    width: int
-    height: int

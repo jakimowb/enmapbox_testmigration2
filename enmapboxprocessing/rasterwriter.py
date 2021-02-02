@@ -17,12 +17,12 @@ class RasterWriter(object):
         self.gdalDataset = gdalDataset
         self._source: str = self.gdalDataset.GetDescription()
 
-    def writeArray(self, array: Array3d, xOffset=0, yOffset=0, bands: List[int] = None):
-        if bands is None:
+    def writeArray(self, array: Array3d, xOffset=0, yOffset=0, bandList: List[int] = None):
+        if bandList is None:
             assert len(array) == self.bandCount()
-            bands = range(1, self.bandCount() + 1)
-        for band, array2d in zip(bands, array):
-            self.writeArray2d(array2d, band, xOffset, yOffset)
+            bandList = range(1, self.bandCount() + 1)
+        for bandNo, array2d in zip(bandList, array):
+            self.writeArray2d(array2d, bandNo, xOffset, yOffset)
 
     def writeArray2d(self, array: Array2d, bandNo: int, xOffset=0, yOffset=0):
         gdalBand: gdal.Band = self.gdalDataset.GetRasterBand(bandNo)
