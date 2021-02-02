@@ -29,6 +29,7 @@ import shutil
 import sys
 import typing
 import site
+import io
 site.addsitedir(pathlib.Path(__file__).parents[1])
 import enmapbox
 from enmapbox import DIR_REPO, __version__
@@ -219,7 +220,12 @@ def createCHANGELOG(dirPlugin):
                  'output_encoding': 'utf-8',
                  }
 
-    html = docutils.core.publish_file(source_path=pathMD, writer_name='html5', settings_overrides=overrides)
+    buffer = io.StringIO()
+    html = docutils.core.publish_file(
+        source_path=pathMD,
+        writer_name='html5',
+        destination=buffer,
+        settings_overrides=overrides)
 
     from xml.dom import minidom
     xml = minidom.parseString(html)
