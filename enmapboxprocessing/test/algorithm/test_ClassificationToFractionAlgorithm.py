@@ -5,7 +5,7 @@ from enmapboxprocessing.algorithm.classificationtofractionalgorithm import Class
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxtestdata import enmap, landcover_polygons
-from enmapboxunittestdata import (landcover_polygons_l3_1m, landcover_polygons_l3_1m_3classes,
+from enmapboxunittestdata import (landcover_raster_1m, landcover_raster_1m_3classes,
                                   landcover_polygons_3classes, landcover_polygons_3classes_epsg4326)
 
 writeToDisk = True
@@ -37,7 +37,7 @@ class TestClassificationToFractionAlgorithm(TestCase):
     def test_raster_withNonMatching_crs(self):
         alg = ClassificationToFractionAlgorithm()
         parameters = {
-            alg.P_MAP: QgsRasterLayer(landcover_polygons_l3_1m_3classes),
+            alg.P_MAP: QgsRasterLayer(landcover_raster_1m_3classes),
             alg.P_GRID: QgsRasterLayer(enmap),
             alg.P_OUTPUT_RASTER: c + '/vsimem/fraction.tif'
         }
@@ -72,7 +72,7 @@ class TestClassificationToFractionAlgorithm(TestCase):
         self.assertEqual(-309699.0, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array())))
 
     def test_rasterSource_default(self):
-        raster = QgsRasterLayer(landcover_polygons_l3_1m)
+        raster = QgsRasterLayer(landcover_raster_1m)
         grid = QgsRasterLayer(enmap)
 
         alg = ClassificationToFractionAlgorithm()
@@ -86,7 +86,7 @@ class TestClassificationToFractionAlgorithm(TestCase):
         self.assertEqual(130931945, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
 
     def test_rasterSource_floatPrecision(self):
-        raster = QgsRasterLayer(landcover_polygons_l3_1m)
+        raster = QgsRasterLayer(landcover_raster_1m)
         grid = QgsRasterLayer(enmap)
 
         alg = ClassificationToFractionAlgorithm()
@@ -101,7 +101,7 @@ class TestClassificationToFractionAlgorithm(TestCase):
         self.assertEqual(-309789.0, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array())))
 
     def test_rasterSource_nonConsecutiveClasses(self):
-        raster = QgsRasterLayer(landcover_polygons_l3_1m_3classes)
+        raster = QgsRasterLayer(landcover_raster_1m_3classes)
         grid = QgsRasterLayer(enmap)
 
         alg = ClassificationToFractionAlgorithm()
