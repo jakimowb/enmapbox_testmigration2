@@ -7,7 +7,7 @@ from qgis.core import edit
 
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.rasterwriter import RasterWriter
-from enmapboxprocessing.typing import CreationOptions, Category, Categories, HexColor
+from enmapboxprocessing.typing import CreationOptions, Category, Categories
 from enmapboxprocessing.utils import Utils
 
 from typeguard import typechecked
@@ -32,10 +32,9 @@ class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
         return 'Converts a categorized vector into a classification by evaluating renderer categories. ' \
                'Class ids run from 1 to number of categories, in the order of the given categories. ' \
                'Class names and colors are given by the category legend and symbol color. ' \
-               'In case of polygon geometries, rasterization is done by an Oversampling Majority Voting approach, ' \
+               'Rasterization is done by an Oversampling Majority Voting approach, ' \
                'that burns classes at x10 finer resolution, ' \
-               'resulting in 100 classified subpixel used for the final majority vote. ' \
-               'A simple burn operation is performed for point and line geometries. '
+               'resulting in 100 classified subpixel used for the final majority vote.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
@@ -62,23 +61,13 @@ class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         vector = self.parameterAsVectorLayer(parameters, self.P_VECTOR, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
-        if Utils.isPolygonGeometry(vector.geometryType()):
-            oversampling = 10
-        else:
-            oversampling = 1
+        oversampling = 10
         format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
-
-        self.processQgis(
-            vector, grid, oversampling, filename, format, options, feedback
-        )
-        return {self.P_OUTPUT_RASTER: filename}
-
-    @classmethod
-    def processQgis(
-            cls, vector: QgsVectorLayer, grid: QgsRasterLayer, oversampling: int, filename: str = None, format: str = None,
-            options: CreationOptions = None, feedback: QgsProcessingFeedback = None
-    ) -> Tuple[RasterWriter, Categories]:
+        width = grid.width()
+        height = grid.height()
+        extent = grid.extent()
+        crs = grid.crs()
 
         info = 'Derive class ids from renderer categories'
         feedback.pushInfo(info)
@@ -86,16 +75,32 @@ class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
         # create vector layer with class id attribute (values from 1...n) matching the given categories
         fieldName = 'derived_id'
         tmpFilename = Utils.tmpFilename(filename, 'categorized.gpkg')
-        tmpVector, names, colors = cls.categoriesToField(
-            vector, fieldName, grid.extent(), grid.crs(), tmpFilename, feedback
-        )
+        tmpVector, names, colors = self.categoriesToField(vector, fieldName, extent, crs, tmpFilename, feedback)
 
         # rasterize class ids
+        assert 0
+        oversampledGrid = 1 # todo
         dataType = Utils.smallesUIntDataType(len(names))
-        writer = RasterizeVectorAlgorithm.processQgis(
-            tmpVector, grid, dataType, oversampling, resampleAlg=gdal.GRA_Mode,
-            burnAttribute=fieldName, filename=filename, format=format, options=options, feedback=feedback
-        )
+
+        alg = RasterizeVectorAlgorithm()
+        parameters = {
+            alg.P_GRID: grid,
+            alg.P_VECTOR: tmpVector,
+            alg.P_DATA_TYPE: self.O_DATA_TYPE.index(dataType),
+
+            alg.P_OUTPUT_RASTER: filename
+        }
+        result = self.runalg(alg, parameters)
+
+        oversampling, resampleAlg=gdal.GRA_Mode,
+        #    burnAttribute=fieldName, filename=filename, format=format, options=options, feedback=feedback
+        #)
+
+
+        #writer = RasterizeVectorAlgorithm.processQgis(
+        #    tmpVector, extent, width, height, dataType, crs, oversampling, resampleAlg=gdal.GRA_Mode,
+        #    burnAttribute=fieldName, filename=filename, format=format, options=options, feedback=feedback
+        #)
 
         # setup renderer
         layer = QgsRasterLayer(filename)
@@ -109,14 +114,15 @@ class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
         # clean up
         Utils.tmpFilenameDelete(tmpFilename)
 
-        return writer, categories
+        return {self.P_OUTPUT_RASTER: filename}
+
 
     @classmethod
     def categoriesToField(
             cls, vector: QgsVectorLayer, fieldName: str, extent: QgsRectangle, crs: QgsCoordinateReferenceSystem,
             filename: str = None,
             feedback: QgsProcessingFeedback = None
-    ) -> Tuple[QgsVectorLayer, List[str], List[HexColor]]:
+    ) -> Tuple[QgsVectorLayer, List[str], List[QColor]]:
 
         # make copy of layer (class attribute only)
         categories = Utils.categoriesFromCategorizedSymbolRenderer(vector.renderer())

@@ -1,19 +1,17 @@
-from osgeo import gdal
-from qgis._core import QgsRasterLayer, QgsPalettedRasterRenderer
+from qgis._core import QgsRasterLayer
 import numpy as np
 
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxprocessing.utils import Utils
 from enmapboxtestdata import enmap, hires
-from enmapboxunittestdata import landcover_raster_30m_epsg3035, landcover_raster_30m
+from enmapboxunittestdata import landcover_raster_30m_epsg3035
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
-class TestTranslateRasterAlgorithm(TestCase):
+class TestTranslateAlgorithm(TestCase):
 
     def test_default(self):
         alg = TranslateRasterAlgorithm()
@@ -208,13 +206,43 @@ class TestTranslateRasterAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: raster,
             alg.P_BAND_LIST: [1],
-            alg.P_SOURCE_WINDOW: f'1, 1, {raster.width() - 2}, {raster.height() - 2}',
-            alg.P_OUTPUT_RASTER: c + '/vsimem/enmapClipSourceWindow.tif'
         }
-        result = self.runalg(alg, parameters)
+
+        # whole extent minus 1 pixel
+        parameters2 = parameters.copy()
+        parameters2[alg.P_SOURCE_COLUMNS] = [1, raster.width() - 2]
+        parameters2[alg.P_SOURCE_ROWS] = [1, raster.height() - 2]
+        parameters2[alg.P_OUTPUT_RASTER] = c + '/vsimem/enmapClipSourceWindow_buffered.tif'
+        result = self.runalg(alg, parameters2)
         self.assertEqual(raster.extent().buffered(-30), RasterReader(result[alg.P_OUTPUT_RASTER]).extent())
         self.assertEqual(raster.width() - 2, RasterReader(result[alg.P_OUTPUT_RASTER]).width())
         self.assertEqual(raster.height() - 2, RasterReader(result[alg.P_OUTPUT_RASTER]).height())
+
+        # single pixel
+        parameters2 = parameters.copy()
+        parameters2[alg.P_SOURCE_COLUMNS] = [50, 50]
+        parameters2[alg.P_SOURCE_ROWS] = [50, 50]
+        parameters2[alg.P_OUTPUT_RASTER] = c + '/vsimem/enmapClipSourceWindow_singlePixel.tif'
+        result = self.runalg(alg, parameters2)
+        self.assertEqual(1, RasterReader(result[alg.P_OUTPUT_RASTER]).width())
+        self.assertEqual(1, RasterReader(result[alg.P_OUTPUT_RASTER]).height())
+        self.assertTrue(390, RasterReader(result[alg.P_OUTPUT_RASTER]).array()[0][0, 0])
+
+        # single row
+        parameters2 = parameters.copy()
+        parameters2[alg.P_SOURCE_ROWS] = [50, 50]
+        parameters2[alg.P_OUTPUT_RASTER] = c + '/vsimem/enmapClipSourceWindow_singleRow.tif'
+        result = self.runalg(alg, parameters2)
+        self.assertEqual(raster.width(), RasterReader(result[alg.P_OUTPUT_RASTER]).width())
+        self.assertEqual(1, RasterReader(result[alg.P_OUTPUT_RASTER]).height())
+
+        # single column
+        parameters2 = parameters.copy()
+        parameters2[alg.P_SOURCE_COLUMNS] = [50, 50]
+        parameters2[alg.P_OUTPUT_RASTER] = c + '/vsimem/enmapClipSourceWindow_singleColumn.tif'
+        result = self.runalg(alg, parameters2)
+        self.assertEqual(raster.height(), RasterReader(result[alg.P_OUTPUT_RASTER]).height())
+        self.assertEqual(1, RasterReader(result[alg.P_OUTPUT_RASTER]).width())
 
     def test_resampleAlg(self):
         alg = TranslateRasterAlgorithm()
@@ -227,20 +255,3 @@ class TestTranslateRasterAlgorithm(TestCase):
             parameters[alg.P_RESAMPLE_ALG] = index
             parameters[alg.P_OUTPUT_RASTER] = c + f'/vsimem/raster.{name}.tif'
             self.runalg(alg, parameters)
-
-    def test_copyStyle(self):
-        alg = TranslateRasterAlgorithm()
-        parameters = {
-            alg.P_RASTER: QgsRasterLayer(landcover_raster_30m),
-            alg.P_COPY_RENDERER: True,
-            alg.P_OUTPUT_RASTER: c + '/vsimem/landcover.tif'
-        }
-        result = self.runalg(alg, parameters)
-        inraster =QgsRasterLayer(landcover_raster_30m)
-        outraster = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
-        assert isinstance(outraster.renderer(), QgsPalettedRasterRenderer)
-        self.assertListEqual(
-            Utils.categoriesFromPalettedRasterRenderer(inraster.renderer()),
-            Utils.categoriesFromPalettedRasterRenderer(outraster.renderer())
-        )
-

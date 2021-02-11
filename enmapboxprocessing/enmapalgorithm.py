@@ -12,7 +12,7 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterCoordinateOperation, QgsProcessingParameterAggregate,
                         QgsProcessingParameterExtent, QgsCoordinateReferenceSystem, QgsRectangle,
                         QgsProcessingParameterFileDestination, QgsProcessingParameterExpression,
-                        QgsProcessingParameterFile)
+                        QgsProcessingParameterFile, QgsProcessingParameterRange)
 
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
 from typeguard import typechecked
@@ -150,6 +150,9 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsFileOutput(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> str:
         return super().parameterAsFileOutput(parameters, name, context)
 
+    def parameterAsRange(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> List[float]:
+        return super().parameterAsRange(parameters, name, context)
+
     def parameterAsExtent(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext,
             crs: QgsCoordinateReferenceSystem
@@ -157,13 +160,14 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         return super().parameterAsExtent(parameters, name, context, crs)
 
     def parameterAsQgsDataType(
-            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext, default: QgisDataType = None
     ) -> Optional[QgisDataType]:
         index = self.parameterAsEnum(parameters, name, context)
         if index == -1:
-            return None
-        label = self.O_DATA_TYPE[index]
-        return getattr(Qgis, label)
+            return default
+        else:
+            label = self.O_DATA_TYPE[index]
+            return getattr(Qgis, label)
 
     def parameterAsGdalResampleAlg(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
@@ -438,6 +442,14 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             optional=False, advanced=False
     ):
         self.addParameter(QgsProcessingParameterEnum(name, description, options, allowMultiple, defaultValue, optional))
+        self.flagParameterAsAdvanced(name, advanced)
+
+    def addParameterIntRange(
+            self, name: str, description: str, defaultValue: List[int] = None,
+            optional=False, advanced=False
+    ):
+        type = QgsProcessingParameterNumber.Integer
+        self.addParameter(QgsProcessingParameterRange(name, description, type, defaultValue, optional))
         self.flagParameterAsAdvanced(name, advanced)
 
     def addParameterString(

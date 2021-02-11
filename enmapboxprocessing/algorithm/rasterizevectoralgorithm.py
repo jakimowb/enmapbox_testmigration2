@@ -1,12 +1,8 @@
-from enum import Enum, IntEnum
-from math import inf
-from os.path import splitext, join, dirname, basename
-from typing import Dict, Any, List, Tuple, Callable
-from warnings import warn
+from os.path import basename
+from typing import Dict, Any, List, Tuple
 
-from osgeo import ogr, gdal
+from osgeo import gdal
 
-from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
@@ -14,8 +10,7 @@ from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRectangle,
                         QgsCoordinateReferenceSystem, QgsProcessingParameterField, Qgis, QgsVectorFileWriter,
-                        QgsProject, QgsFeature, QgsFields, QgsField, QgsCoordinateTransform, QgsRasterLayer,
-                        QgsProcessingException)
+                        QgsProject, QgsCoordinateTransform)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
@@ -106,22 +101,8 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
         else:
             oversampling = 10
         noDataValue = None
-        self.processQgis(
-            vector, grid, dataType, oversampling, resampleAlg,
-            initValue, burnValue, burnAttribute, addValue, allTouched, noDataValue, filename, format, options, feedback
-        )
-        return {self.P_OUTPUT_RASTER: filename}
 
-    @classmethod
-    def processQgis(
-            cls, vector: QgsVectorLayer, grid: QgsRasterLayer, dataType: QgisDataType, oversampling: int = None,
-            resampleAlg: GdalResamplingAlgorithm = None, initValue: float = 0., burnValue: float = 1.,
-            burnAttribute: str = None, addValue: bool = None, allTouched=False, noDataValue: float = None,
-            filename: str = None, format: str = None, options: CreationOptions = None,
-            feedback: QgsProcessingFeedback = None
-    ) -> RasterWriter:
-        if oversampling is None:
-            oversampling = 1
+        # reproject if needed
         sourceFilename, layerName = Utils.splitQgsVectorLayerSourceString(vector.source())
         if vector.crs() != grid.crs():
             feedback.pushInfo('Reproject source vector to target crs')
@@ -142,24 +123,32 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
         else:
             tmpVectorFilename = sourceFilename
 
+        # oversampled burn
         info = f'Burn geometries with {burnValue if burnAttribute is None else f"{repr(burnAttribute)} field"}'
         feedback.pushInfo(info)
-
-        # oversampled burn
+        # - init raster
         tmpFilename = Utils.tmpFilename(filename, 'oversampled.tif')
-        tmpFormat = cls.GTiffFormat
-        tmpCreationOptions = cls.TiledAndCompressedGTiffCreationOptions
+        tmpFormat = self.GTiffFormat
+        tmpCreationOptions = self.TiledAndCompressedGTiffCreationOptions
         tmpWidth = int(round(grid.width() * oversampling))
         tmpHeight = int(round(grid.height() * oversampling))
         tmpDriver = Driver(tmpFilename, tmpFormat, tmpCreationOptions, feedback)
         tmpWriter = tmpDriver.create(Qgis.Float32, tmpWidth, tmpHeight, 1, grid.extent(), grid.crs())
         tmpWriter.fill(initValue)
         tmpWriter.setNoDataValue(noDataValue)
+        # - prepare rasterize options and rasterize
         callback = Utils.qgisFeedbackToGdalCallback(feedback)
-        cls.gdalRasterize(
-            tmpWriter.gdalDataset, tmpVectorFilename, burnValue, burnAttribute, allTouched, add=addValue,
-            callback=callback
-        )
+        if burnAttribute is None:
+            burnValues = [burnValue]
+        else:
+            burnValues = None
+        if callback is None:
+            callback = gdal.TermProgress_nocb
+        kwds = dict(burnValues=burnValues, attribute=burnAttribute, allTouched=allTouched, add=addValue)
+        kwds = {k: v for k, v in kwds.items() if v is not None}
+        rasterizeOptions = gdal.RasterizeOptions(callback=callback, **kwds)
+        success = gdal.Rasterize(destNameOrDestDS=tmpWriter.gdalDataset, srcDS=tmpVectorFilename, options=rasterizeOptions)
+        assert success == 1
         del tmpWriter
 
         # for aggregation we use Warp instead of Translate, because it supports more ResamplAlgs!
@@ -169,17 +158,11 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
             width=grid.width(), height=grid.height(), resampleAlg=resampleAlgString, outputType=gdalDataType,
             format=format, creationOptions=options, callback=callback, multithread=True
         )
-        outGdalDataset = gdal.Warp(
-            destNameOrDestDS=filename, srcDSOrSrcDSTab=tmpFilename, options=warpOptions
-        )
-        writer = RasterWriter(outGdalDataset)
+        gdal.Warp(destNameOrDestDS=filename, srcDSOrSrcDSTab=tmpFilename, options=warpOptions)
 
-        for f in [tmpFilename, tmpVectorFilename]:
-            if basename(f).startswith('.tmp'):
-                Utils.tmpFilenameDelete(f)
+        return {self.P_OUTPUT_RASTER: filename}
 
-        return writer
-
+'''
     @classmethod
     def gdalRasterize(
             cls, gdalDataset: gdal.Dataset, sourceFilename: str, burnValue: float = 1., burnAttribute: str = None,
@@ -201,3 +184,4 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
         options = gdal.RasterizeOptions(callback=callback, **kwds)
         success = gdal.Rasterize(destNameOrDestDS=gdalDataset, srcDS=sourceFilename, options=options)
         assert success == 1
+'''
