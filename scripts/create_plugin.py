@@ -92,8 +92,11 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
     except Exception as ex:
         currentBranch = 'TEST'
+        print(ex, file=sys.stderr)
+
         print(f'Unable to find git repo. Set currentBranch to "{currentBranch}"',
               file=sys.stderr)
+
 
         timestamp = re.split(r'[.+]', datetime.datetime.now().isoformat())[0]
 
