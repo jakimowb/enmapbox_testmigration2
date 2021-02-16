@@ -24,7 +24,7 @@ import warnings
 import time
 from processing import Processing
 from qgis.PyQt.QtWidgets import QWidget, QHeaderView, QMenu, QAbstractItemView, QApplication
-from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent
+from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
 
 from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
@@ -981,7 +981,7 @@ class DockTreeView(QgsLayerTreeView):
         currentLayerNode = self.currentNode()
         if not (isinstance(currentLayerNode, QgsLayerTreeLayer) and currentLayerNode.layerId() == layer.id()):
             # find the QgsLayerTreeNode
-            currentLayerNode = self.model().rootNode.findLayer(layer)
+            currentLayerNode = self.layerTreeModel().rootNode.findLayer(layer)
 
         map_node = self.findParentMapDockTreeNode(currentLayerNode)
         if isinstance(map_node, MapDockTreeNode):
@@ -1016,10 +1016,7 @@ class DockTreeView(QgsLayerTreeView):
             return None
 
     def mapCanvases(self) -> typing.List[MapCanvas]:
-        return self.model().mapCanvases()
-
-    def layerTreeModel(self) -> DockManagerTreeModel:
-        return self.model()
+        return self.layerTreeModel().mapCanvases()
 
     def setModel(self, model):
         assert isinstance(model, DockManagerTreeModel)
@@ -1028,6 +1025,9 @@ class DockTreeView(QgsLayerTreeView):
         model.rootNode.addedChildren.connect(self.onNodeAddedChildren)
         for c in model.rootNode.findChildren(LayerTreeNode):
             self.setColumnSpan(c)
+
+    def layerTreeModel(self) -> DockManagerTreeModel:
+        return super().layerTreeModel()
 
     def onNodeAddedChildren(self, parent, iFrom, iTo):
         for i in range(iFrom, iTo + 1):
@@ -1040,7 +1040,7 @@ class DockTreeView(QgsLayerTreeView):
     def setColumnSpan(self, node):
         parent = node.parent()
         if parent is not None:
-            model = self.model()
+            model = self.layerTreeModel()
             idxNode = model.node2index(node)
             idxParent = model.node2index(parent)
             span = False
@@ -1048,6 +1048,12 @@ class DockTreeView(QgsLayerTreeView):
                 span = node.value() == None or '{}'.format(node.value()).strip() == ''
             elif type(node) in [QgsLayerTreeGroup, QgsLayerTreeLayer]:
                 span = True
+
+            m = self.model()
+            # account for changes model() return between 3.16 and 3.18
+            if isinstance(m, QSortFilterProxyModel):
+                idxNode = m.mapFromSource(idxNode)
+                idxParent = m.mapFromSource(idxParent)
 
             self.setFirstColumnSpanned(idxNode.row(), idxParent, span)
             # for child in node.children():
@@ -1118,7 +1124,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             action = menu.addAction('Remove layer')
             action.setToolTip('Remove layer from map canvas')
             action.triggered.connect(
-                lambda *arg, nodes=selectedLayerNodes: self.mDockTreeView.model().removeNodes(nodes))
+                lambda *arg, nodes=selectedLayerNodes: self.mDockTreeView.layerTreeModel().removeNodes(nodes))
 
             if isinstance(lyr, QgsVectorLayer):
                 action = menu.addAction('Open Attribute Table')
@@ -1410,7 +1416,7 @@ class DockManager(QObject):
                 dock.mSpeclibWidget.setMainMessageBar(self.mMessageBar)
 
         elif cls == AttributeTableDock:
-            layer = kwds.pop('layer')
+            layer = kwds.pop('layer', None)
             assert isinstance(layer, QgsVectorLayer), 'QgsVectorLayer "layer" is not defined'
             dock = AttributeTableDock(layer, *args, **kwds)
             layer.willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
@@ -1461,6 +1467,7 @@ class DockPanelUI(QgsDockWidget):
         super(DockPanelUI, self).__init__(parent)
         loadUi(enmapboxUiPath('dockpanel.ui'), self)
         self.dockManager = None
+        self.mDockManagerTreeModel: DockManagerTreeModel = None
         assert isinstance(self.dockTreeView, DockTreeView)
 
         self.initActions()
@@ -1480,9 +1487,13 @@ class DockPanelUI(QgsDockWidget):
         """
         assert isinstance(dockManager, DockManager)
         self.dockManager = dockManager
-        self.model: DockManagerTreeModel = DockManagerTreeModel(self.dockManager)
-        self.dockTreeView.setModel(self.model)
-        assert self.model == self.dockTreeView.model(), f'Different models: {self.model} {self.dockTreeView.model()}'
+        self.mDockManagerTreeModel = DockManagerTreeModel(self.dockManager)
+        self.dockTreeView.setModel(self.mDockManagerTreeModel)
+
+        m = self.dockTreeView.layerTreeModel()
+        assert self.mDockManagerTreeModel == m
+        assert isinstance(m, QgsLayerTreeModel)
+
         self.menuProvider: DockManagerLayerTreeModelMenuProvider = DockManagerLayerTreeModelMenuProvider(
             self.dockTreeView)
         self.dockTreeView.setMenuProvider(self.menuProvider)
@@ -1580,9 +1591,9 @@ class LayerTreeViewMenuProvider(QgsLayerTreeViewMenuProvider):
     def __init__(self, treeView):
         super(LayerTreeViewMenuProvider, self).__init__()
         assert isinstance(treeView, DockTreeView)
-        assert isinstance(treeView.model(), DockManagerTreeModel)
+        assert isinstance(treeView.layerTreeModel(), DockManagerTreeModel)
         self.treeView = treeView
-        self.model = treeView.model()
+        self.model = treeView.layerTreeModel()
 
     def currentNode(self):
         return self.treeView.currentNode()
