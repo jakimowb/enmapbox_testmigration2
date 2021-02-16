@@ -1482,7 +1482,7 @@ class DockPanelUI(QgsDockWidget):
         self.dockManager = dockManager
         self.model: DockManagerTreeModel = DockManagerTreeModel(self.dockManager)
         self.dockTreeView.setModel(self.model)
-        assert self.model == self.dockTreeView.model()
+        assert self.model == self.dockTreeView.model(), f'Different models: {self.model} {self.dockTreeView.model()}'
         self.menuProvider: DockManagerLayerTreeModelMenuProvider = DockManagerLayerTreeModelMenuProvider(
             self.dockTreeView)
         self.dockTreeView.setMenuProvider(self.menuProvider)
