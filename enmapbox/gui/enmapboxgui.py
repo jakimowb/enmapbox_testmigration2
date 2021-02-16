@@ -23,6 +23,7 @@ from typing import Optional
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
+import sip
 
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, \
     QgsProcessingAlgorithm, QgsApplication, Qgis, QgsCoordinateReferenceSystem, QgsWkbTypes, \
@@ -557,8 +558,10 @@ class EnMAPBox(QgisInterface, QObject):
 
         if lyr is None:
             lyr = self.currentLayer()
-        if isinstance(lyr, QgsVectorLayer):
-            dock = self.createDock(AttributeTableDock, lyr)
+        if isinstance(lyr, SpectralLibrary):
+            dock = self.createDock(SpectralLibraryDock, speclib=lyr)
+        elif isinstance(lyr, QgsVectorLayer):
+            dock = self.createDock(AttributeTableDock, layer=lyr)
 
 
     def showPackageInstaller(self):
@@ -745,7 +748,7 @@ class EnMAPBox(QgisInterface, QObject):
                     widget = L2W.get(node.layerId(), None)
                     node.setWidget(widget)
 
-            # in case the currentNode is is the hidden group, set the current QGIS node to the top
+            # in case the currentNode is the hidden group, set the current QGIS node to the top
             currentGroupNode = qgis.utils.iface.layerTreeView().currentGroupNode()
             if currentGroupNode == grp:
                 qgis.utils.iface.layerTreeView().setCurrentIndex(QModelIndex())
@@ -753,18 +756,11 @@ class EnMAPBox(QgisInterface, QObject):
     def removeMapLayer(self, layer: QgsMapLayer, remove_from_project: bool = True):
         self.removeMapLayers([layer], remove_from_project=remove_from_project)
 
-    def findGroupLayerIds(self, root: QgsLayerTreeGroup = None, exclude: typing.List[QgsLayerTreeGroup] = []):
-        if root is None:
-            ltv = qgis.utils.iface.layerTreeView()
-            assert isinstance(ltv, QgsLayerTreeView)
-            root: QgsLayerTreeGroup = ltv.model().rootGroup()
-
     def removeMapLayers(self, layers: typing.List[QgsMapLayer], remove_from_project=True):
         """
         Removes layers from the EnMAP-Box
         """
         grp = self.hiddenLayerGroup()
-        enmapboxLayerIdsBefore = grp.findLayerIds()
 
         removedIds = [l.id() for l in layers]
 
@@ -775,7 +771,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         ltv = qgis.utils.iface.layerTreeView()
         assert isinstance(ltv, QgsLayerTreeView)
-        root: QgsLayerTreeGroup = ltv.model().rootGroup()
+        root: QgsLayerTreeGroup = ltv.layerTreeModel().rootGroup()
         remainingQgisLayerIDs = root.findLayerIds()
         if remove_from_project:
             QgsProject.instance().removeMapLayers([lid for lid in removedIds if lid not in remainingQgisLayerIDs])
@@ -789,7 +785,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         hasSelectedFeatures = False
 
-        for l in self.dockTreeView().model().mapLayers():
+        for l in self.dockTreeView().layerTreeModel().mapLayers():
             if isinstance(l, QgsVectorLayer) and l.selectedFeatureCount() > 0:
                 hasSelectedFeatures = True
                 break
@@ -1262,6 +1258,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         Initialized EnMAPBoxApplications
         """
+        assert isinstance(self, EnMAPBox)
         from enmapbox.gui.applications import ApplicationRegistry
         self.applicationRegistry = ApplicationRegistry(self, parent=self)
 
@@ -1630,7 +1627,7 @@ class EnMAPBox(QgisInterface, QObject):
         Returns the DockManagerTreeModel
         :return: DockManagerTreeModel
         """
-        return self.dockTreeView().model()
+        return self.dockTreeView().layerTreeModel()
 
     def docks(self, dockType=None):
         """
@@ -1774,7 +1771,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         ltv = qgis.utils.iface.layerTreeView()
         assert isinstance(ltv, QgsLayerTreeView)
-        root: QgsLayerTreeGroup = ltv.model().rootGroup()
+        root: QgsLayerTreeGroup = ltv.layerTreeModel().rootGroup()
         grp = root.findGroup(HIDDEN_ENMAPBOX_LAYER_GROUP)
 
         if not isinstance(grp, EnMAPBoxHiddenLayerTreeGroup):
@@ -1786,7 +1783,14 @@ class EnMAPBox(QgisInterface, QObject):
             self._layerTreeGroup = grp
 
         ltv = qgis.utils.iface.layerTreeView()
-        index = ltv.model().node2index(grp)
+        index = ltv.layerTreeModel().node2index(grp)
+
+        ltv_model = ltv.model()
+
+        # takes care of differences between 3.16 an 3.18
+        #if isinstance(ltv_model, QSortFilterProxyModel):
+        #    index = ltv_model.mapFromSource(index)
+
         grp.setItemVisibilityChecked(False)
 
         hide: bool = self.ui.optionShowHiddenLayersNode.isChecked() is False
