@@ -222,7 +222,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         box = EnMAPBox(load_core_apps=False, load_other_apps=False)
         iface = qgis.utils.iface
         self.assertIsInstance(iface, QgisInterface)
-        root = iface.layerTreeView().model().rootGroup()
+        root = iface.layerTreeView().layerTreeModel().rootGroup()
         self.assertIsInstance(root, QgsLayerTree)
 
         self.assertTrue(len(box.dataSources()) == 0)

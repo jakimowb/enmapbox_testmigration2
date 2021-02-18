@@ -20,9 +20,9 @@ import os
 import sys
 import site
 import warnings
-from qgis.core import QgsApplication, QgsProcessingProvider, QgsProcessingAlgorithm, Qgis
+import typing
 from qgis.gui import QgisInterface
-from qgis.PyQt.QtCore import QTimer, QOperatingSystemVersion
+from qgis.PyQt.QtCore import QOperatingSystemVersion
 from qgis.PyQt.QtWidgets import QAction
 
 
@@ -30,9 +30,8 @@ class EnMAPBoxPlugin(object):
 
     def __init__(self, iface):
         # make site-packages available to python
-        assert isinstance(iface, QgisInterface)
-        self.iface = iface
 
+        self.toolbarActions: typing.List[QAction] = []
         if QOperatingSystemVersion.current().name() == 'macOS':
             # os.environ['SKLEARN_SITE_JOBLIB']='True'True
             # fix for issue #221
@@ -68,36 +67,37 @@ class EnMAPBoxPlugin(object):
 
     def initGui(self):
 
-        self.toolbarActions = []
-
-        from enmapbox.gui.enmapboxgui import EnMAPBox
         import enmapbox
-        self.enmapBox = None
-        action = QAction(enmapbox.icon(), 'EnMAP-Box', self.iface)
-        self.iface.addPluginToRasterMenu('EnMAP-Box', action)
+        from qgis.utils import iface
+        if isinstance(iface, QgisInterface):
+            action = QAction(enmapbox.icon(), 'EnMAP-Box', iface)
+            action.triggered.connect(self.run)
+            iface.addPluginToRasterMenu('EnMAP-Box', action)
+            self.enmapBox = None
+            self.toolbarActions.append(action)
 
-        action.triggered.connect(self.run)
-        self.toolbarActions.append(action)
-        for action in self.toolbarActions:
-            self.iface.addToolBarIcon(action)
+            for action in self.toolbarActions:
+                iface.addToolBarIcon(action)
+        else:
+            print('EnMAPBoxPlugin.initGui() calles without iface')
 
     def run(self):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         self.enmapBox = EnMAPBox.instance()
         if not isinstance(self.enmapBox, EnMAPBox):
-            #print('STARTED NEW BOX')
-            self.enmapBox = EnMAPBox(self.iface)
+            from qgis.utils import iface
+            self.enmapBox = EnMAPBox(iface)
             assert self.enmapBox == EnMAPBox.instance()
             self.enmapBox.run()
-            s = ""
         else:
-            #print('FOUND BOX')
             self.enmapBox.ui.show()
 
     def unload(self):
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        for action in self.toolbarActions:
-            self.iface.removeToolBarIcon(action)
+        from qgis.utils import iface
+        if isinstance(iface, QgisInterface):
+            for action in self.toolbarActions:
+                iface.removeToolBarIcon(action)
 
         import enmapbox
         enmapbox.removeEnMAPBoxProcessingProvider()
