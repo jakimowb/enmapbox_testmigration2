@@ -29,6 +29,7 @@ import shutil
 import sys
 import typing
 import site
+import io
 site.addsitedir(pathlib.Path(__file__).parents[1])
 import enmapbox
 from enmapbox import DIR_REPO, __version__
@@ -58,7 +59,7 @@ MD.mTracker = enmapbox.ISSUE_TRACKER
 MD.mRepository = enmapbox.REPOSITORY
 MD.mQgisMinimumVersion = enmapbox.MIN_VERSION_QGIS
 MD.mEmail = 'enmapbox@enmap.org'
-
+MD.hasProcessingProvider=True
 
 ########## End of config section
 
@@ -92,11 +93,8 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
     except Exception as ex:
         currentBranch = 'TEST'
-        print(ex, file=sys.stderr)
-
         print(f'Unable to find git repo. Set currentBranch to "{currentBranch}"',
               file=sys.stderr)
-
 
         timestamp = re.split(r'[.+]', datetime.datetime.now().isoformat())[0]
 
@@ -119,7 +117,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     compileEnMAPBoxResources()
 
     # copy python and other resource files
-    pattern = re.compile(r'\.(sli|hdr|py|svg|png|txt|ui|tif|qml|md|js|css|json)$')
+    pattern = re.compile(r'\.(sli|hdr|py|svg|png|txt|ui|tif|qml|md|js|css|json|aux\.xml)$')
     files = list(scantree(DIR_REPO / 'enmapbox', pattern=pattern))
     files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
@@ -222,7 +220,12 @@ def createCHANGELOG(dirPlugin):
                  'output_encoding': 'utf-8',
                  }
 
-    html = docutils.core.publish_file(source_path=pathMD, writer_name='html5', settings_overrides=overrides)
+    buffer = io.StringIO()
+    html = docutils.core.publish_file(
+        source_path=pathMD,
+        writer_name='html5',
+        destination=buffer,
+        settings_overrides=overrides)
 
     from xml.dom import minidom
     xml = minidom.parseString(html)
