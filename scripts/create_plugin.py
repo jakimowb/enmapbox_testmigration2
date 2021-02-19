@@ -19,7 +19,7 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-
+import warnings
 import argparse
 import datetime
 import os
@@ -92,8 +92,11 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
     except Exception as ex:
         currentBranch = 'TEST'
+        print(ex, file=sys.stderr)
+
         print(f'Unable to find git repo. Set currentBranch to "{currentBranch}"',
               file=sys.stderr)
+
 
         timestamp = re.split(r'[.+]', datetime.datetime.now().isoformat())[0]
 
@@ -177,7 +180,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
               f'exceeds maximum plugin size ({MAX_PLUGIN_SIZE} MB)'
 
         if re.search(currentBranch, 'master', re.I):
-            raise Exception(msg)
+            warnings.warn(msg, Warning, stacklevel=2)
         else:
             print(msg, file=sys.stderr)
     else:
