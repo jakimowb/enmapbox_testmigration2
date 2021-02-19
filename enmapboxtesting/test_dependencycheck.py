@@ -21,6 +21,7 @@ from enmapbox.dependencycheck import *
 from qgis.core import QgsApplication
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import QMovie
 
 class test_dependencycheck(EnMAPBoxTestCase):
 
