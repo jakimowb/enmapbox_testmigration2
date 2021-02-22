@@ -2,7 +2,9 @@ from typing import Dict, Any, List, Tuple
 
 from processing.core.Processing import Processing
 
+from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
+from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer)
 
@@ -20,7 +22,9 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
         return 'Translate/Warp Classification'
 
     def shortDescription(self):
-        return 'Resample classification into target grid by applying majority voting.'
+        return 'Translates classification into target grid.' \
+               '\nResampling is done by class majority voting at x10 oversampled resolution, using 100 classified ' \
+               'subpixel to be accurate to the percent.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
@@ -39,7 +43,7 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_CLASSIFICATION, 'Classification')
         self.addParameterRasterLayer(self.P_GRID, 'Grid')
-        self.addParameterCreationProfile(self.P_CREATION_PROFILE, allowVrt=True, advanced=True)
+        self.addParameterCreationProfile(self.P_CREATION_PROFILE, allowVrt=True)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER)
 
     def processAlgorithm(
@@ -50,13 +54,42 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
         creationProfile = self.parameterAsEnum(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
 
+        # create oversampling grid
+        alg = CreateGridAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_CRS: grid.crs(),
+            alg.P_EXTENT: grid.extent(),
+            alg.P_UNIT: alg.PixelUnits,
+            alg.P_WIDTH: grid.width() * 10,
+            alg.P_HEIGHT: grid.height() * 10,
+            alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'grid.x10.vrt')
+        }
+        result = Processing.runAlgorithm(alg, parameters, None, feedback, context)
+        oversamplingGrid = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+
+        # translate into oversampling grid
         alg = TranslateRasterAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_RASTER: classification,
+            alg.P_GRID: oversamplingGrid,
+            alg.P_RESAMPLE_ALG: alg.NearestNeighbourResampleAlg,
+            alg.P_COPY_STYLE: True,
+            alg.P_CREATION_PROFILE: alg.VrtProfile,
+            alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.x10.vrt')
+        }
+        result = Processing.runAlgorithm(alg, parameters, None, feedback, context)
+        oversamplingClassification = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+
+        # final majority voting
+        alg = TranslateRasterAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_RASTER: oversamplingClassification,
             alg.P_GRID: grid,
             alg.P_RESAMPLE_ALG: alg.ModeResampleAlg,
-            alg.P_COPY_RENDERER: True,
+            alg.P_COPY_STYLE: True,
             alg.P_CREATION_PROFILE: creationProfile,
             alg.P_OUTPUT_RASTER: filename
         }

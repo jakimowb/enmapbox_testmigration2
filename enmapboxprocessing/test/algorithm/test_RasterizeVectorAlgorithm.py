@@ -22,6 +22,7 @@ class TestRasterizeAlgorithm(TestCase):
             alg.P_OUTPUT_RASTER: c + '/vsimem/mask.tif'
         }
         result = self.runalg(alg, parameters)
+        self.assertEqual(Qgis.Float32, RasterReader(result[alg.P_OUTPUT_RASTER]).dataType())
         self.assertEqual(2028, RasterReader(result[alg.P_OUTPUT_RASTER]).array()[0].sum())
 
     def test_tmpFileAndVrt(self):
@@ -31,7 +32,7 @@ class TestRasterizeAlgorithm(TestCase):
         parameters = {
             alg.P_GRID: raster,
             alg.P_VECTOR: vector,
-            alg.P_CREATION_PROFILE: alg.Vrt,
+            alg.P_CREATION_PROFILE: alg.VrtProfile,
             alg.P_OUTPUT_RASTER: c + '/vsimem/mask.vrt'
         }
         result = self.runalg(alg, parameters)
@@ -142,3 +143,16 @@ class TestRasterizeAlgorithm(TestCase):
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(2031, RasterReader(result[alg.P_OUTPUT_RASTER]).array()[0].sum())
+
+    def test_burnFid(self):
+        raster = QgsRasterLayer(enmap)
+        vector = QgsVectorLayer(landcover_polygons)
+        alg = RasterizeVectorAlgorithm()
+        parameters = {
+            alg.P_GRID: raster,
+            alg.P_VECTOR: vector,
+            alg.P_BURN_FID: True,
+            alg.P_OUTPUT_RASTER: c + '/vsimem/fid.tif'
+        }
+        result = self.runalg(alg, parameters)
+        self.assertEqual(-81902, RasterReader(result[alg.P_OUTPUT_RASTER]).array()[0].sum())

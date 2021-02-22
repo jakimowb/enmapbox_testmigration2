@@ -7,7 +7,7 @@ import numpy as np
 from osgeo import gdal
 
 from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
-from enmapboxprocessing.algorithm.translateclassification import TranslateClassificationAlgorithm
+from enmapboxprocessing.algorithm.translateclassificationalgorithm import TranslateClassificationAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader

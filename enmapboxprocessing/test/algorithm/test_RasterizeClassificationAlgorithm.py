@@ -7,7 +7,8 @@ from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.utils import Utils
 from enmapboxtestdata import enmap, landcover_polygons
-from enmapboxunittestdata import landcover_polygons_3classes_epsg4326, landcover_polygons_3classes_id
+from enmapboxunittestdata import (landcover_polygons_3classes_epsg4326, landcover_polygons_3classes_id,
+                                  landcover_points_multipart_epsg3035)
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -30,12 +31,9 @@ class TestRasterizeClassificationAlgorithm(TestCase):
                 Utils.categoriesFromCategorizedSymbolRenderer(parameters[alg.P_VECTOR].renderer()),
                 Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
         ):
-            self.assertEqual((c1[1], c1[2].name()), (c2[1], c2[2].name()))
+            self.assertEqual((c1[1], c1[2]), (c2[1], c2[2]))
 
-        print(np.max(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
-        return
-        self.assertEqual(4832, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
-
+        self.assertEqual(1381, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
 
     def test_stringClassAttribute(self):
         alg = RasterizeClassificationAlgorithm()
@@ -52,7 +50,7 @@ class TestRasterizeClassificationAlgorithm(TestCase):
                 Utils.categoriesFromCategorizedSymbolRenderer(parameters[alg.P_VECTOR].renderer()),
                 Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
         ):
-            self.assertEqual((c1[1], c1[2].name()), (c2[1], c2[2].name()))
+            self.assertEqual((c1[1], c1[2]), (c2[1], c2[2]))
         self.assertEqual(4832, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
 
     def test_withNoneMatching_crs(self):
@@ -65,3 +63,14 @@ class TestRasterizeClassificationAlgorithm(TestCase):
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(1381, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
+
+    def test_pointVector(self):
+        alg = RasterizeClassificationAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_VECTOR: QgsVectorLayer(landcover_points_multipart_epsg3035),
+            alg.P_GRID: QgsRasterLayer(enmap),
+            alg.P_OUTPUT_RASTER: c + '/vsimem/landcover_points.tif'
+        }
+        result = self.runalg(alg, parameters)
+        self.assertEqual(152, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))

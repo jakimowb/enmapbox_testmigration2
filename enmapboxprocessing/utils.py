@@ -8,14 +8,14 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QColor
 from osgeo import gdal
 from qgis._core import (QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRasterRenderer,
-                        QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol, QgsRectangle, QgsRasterLayer,
-                        QgsRasterDataProvider, QgsPointXY, QgsReferencedPointXY, QgsPoint, Qgis, QgsWkbTypes)
+                        QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsRectangle, QgsRasterLayer,
+                        QgsRasterDataProvider, QgsPointXY, QgsPoint, Qgis, QgsWkbTypes, QgsSymbol, QgsVectorLayer)
 import numpy as np
 from sklearn.base import ClassifierMixin
 
 from enmapboxprocessing.enmapalgorithm import AlgorithmCanceledException
 from enmapboxprocessing.typing import (NumpyDataType, MetadataValue, GdalDataType, QgisDataType, MetadataDomain,
-                                       Category, GdalResamplingAlgorithm, Categories, SampleX, SampleY)
+                                       GdalResamplingAlgorithm, Categories, SampleX, SampleY)
 from typeguard import typechecked
 
 
@@ -62,11 +62,18 @@ class Utils(object):
             raise Exception(f'unsupported data type: {dataType}')
 
     @staticmethod
-    def qgisDataTypeName(dataType: Qgis.DataType) -> str:
+    def qgisDataTypeName(dataType: QgisDataType) -> str:
         for name in ('Byte', 'Float32', 'Float64', 'Int16', 'Int32', 'UInt16', 'UInt32'):
             if getattr(Qgis, name) == dataType:
                 return name
         raise Exception(f'unsupported data type: {dataType}')
+
+    @staticmethod
+    def gdalResampleAlgName(resampleAlg: GdalResamplingAlgorithm) -> str:
+        for name in 'NearestNeighbour Bilinear Cubic CubicSpline Lanczos Average Mode Min Q1 Med Q3 Max'.split():
+            if getattr(gdal, 'GRA_' + name) == resampleAlg:
+                return name
+        raise Exception(f'unsupported resampling algorithm: {resampleAlg}')
 
     @staticmethod
     def gdalDataTypeToQgisDataType(dataType: GdalDataType) -> QgisDataType:
@@ -201,6 +208,20 @@ class Utils(object):
         return renderer
 
     @classmethod
+    def categorizedSymbolRendererFromCategories(
+            cls, fieldName: str, categories: Categories
+    ) -> QgsCategorizedSymbolRenderer:
+        rendererCategories = list()
+        for value, label, color in categories:
+            symbol = QgsSymbol.defaultSymbol(QgsWkbTypes.geometryType(QgsWkbTypes.Point))
+            symbol.setColor(QColor(color))
+            category = QgsRendererCategory(value, symbol, label)
+            rendererCategories.append(category)
+
+        renderer = QgsCategorizedSymbolRenderer(fieldName, rendererCategories)
+        return renderer
+
+    @classmethod
     def categoriesFromCategorizedSymbolRenderer(cls, renderer: QgsCategorizedSymbolRenderer) -> Categories:
         c: QgsRendererCategory
         categories = [(c.value(), c.label(), c.symbol().color().name()) for c in renderer.categories()]
@@ -258,29 +279,12 @@ class Utils(object):
         return resampleAlgStrings[resampleAlg]
 
     @classmethod
-    def tmpFilename(cls, filename: str, tail: str, head: str = '.tmp'):
-        #return join(dirname(filename), f'{head}.{basename(filename)}.{tail}')
-
+    def tmpFilename(cls, filename: str, tail: str):
         tmpDirname = join(dirname(filename), f'_temp_{basename(filename)}')
         if not exists(tmpDirname):
             makedirs(tmpDirname)
         tmpFilename = join(tmpDirname, tail)
         return tmpFilename
-
-    @classmethod
-    def tmpFilenameDelete(cls, filename: str, head: str = '.tmp'):
-
-        if not basename(filename).startswith(head):
-            return
-
-        def deleteLater(filename):
-            try:
-                gdal.Unlink(filename)
-                print('DELETED', filename)
-            except RuntimeError:
-                warn(f"Couldn't delete temp file: {filename}")
-
-        QTimer.singleShot(1000, lambda: deleteLater(filename))
 
     @classmethod
     def _pickleDump(cls, obj: Any, filename: str):

@@ -9,7 +9,7 @@ from typeguard import typechecked
 GdalDataType = int
 GdalResamplingAlgorithm = int
 NumpyDataType = np.dtype
-QgisDataType = Qgis.DataType
+QgisDataType = int
 Array2d = np.ndarray
 Array3d = Union[np.ndarray, List[Array2d]]
 MetadataScalarValue = Optional[Union[str, int, float]]

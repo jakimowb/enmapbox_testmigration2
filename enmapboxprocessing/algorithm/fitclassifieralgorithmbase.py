@@ -1,6 +1,5 @@
 import inspect
 import traceback
-from _ast import Tuple
 from math import ceil
 from typing import Dict, Any, List, Tuple, Union
 
@@ -11,12 +10,12 @@ from processing.core.Processing import Processing
 
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
-from enmapboxprocessing.algorithm.translateclassification import TranslateClassificationAlgorithm
+from enmapboxprocessing.algorithm.translateclassificationalgorithm import TranslateClassificationAlgorithm
 from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
                         QgsPalettedRasterRenderer, QgsMapLayer, QgsCategorizedSymbolRenderer,
                         QgsFeatureRequest, QgsFeature, QgsCoordinateTransform, QgsProject, QgsGeometry, QgsPointXY,
-                        QgsPoint, QgsRasterDataProvider, QgsProcessingParameterFileDestination)
+                        QgsPoint, QgsRasterDataProvider, QgsProcessingParameterRasterDestination)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
@@ -56,15 +55,15 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
             (self.P_RASTER, 'Raster with training data features.'),
             (self.P_CLASSIFICATION, 'Classification with training data labels. '
                                     f'{self.helpParameterMapClassification()} '
-                                    f'Note that the classification layer is resampled/reprojected/rasterized '
-                                    f'internally to match the raster grid.'),
+                                    f'Note that, if required, the classification layer is resampled, reprojected and '
+                                    f'rasterized internally to match the raster grid.'),
             (self.P_CODE, self.helpParameterCode()),
             (self.P_SAMPLE_SIZE, 'Use all data for training, if value is "not set", '
                                  'a random subsample with given class size for values greater equal 1, '
                                  'or a random subsample with given class propotion for values between 0 and 1.'),
-            (self.P_REPLACE, 'Wether to perform random sampling with replacement.'),
-            (self.P_SAVE_DATA, 'Wether to store the training data (X, y) inside the model file.'),
-            (self.P_RASTERIZE_POINTS, 'Wether to rasterize points instead of point-wise reading. '
+            (self.P_REPLACE, 'Whether to perform random sampling with replacement.'),
+            (self.P_SAVE_DATA, 'Whether to store the training data (X, y) inside the model file.'),
+            (self.P_RASTERIZE_POINTS, 'Whether to rasterize points instead of point-wise reading. '
                                       'Only relevant for point geometries. Line and polygon geometries are always '
                                       'rasterized.'),
             (self.P_MAXIMUM_MEMORY_USAGE, self.helpParameterMaximumMemoryUsage()),
@@ -86,12 +85,8 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         self.addParameterBoolean(self.P_REPLACE, 'Sample with Replacement', False, advanced=True)
         self.addParameterBoolean(self.P_SAVE_DATA, 'Save Data', defaultValue=False, advanced=True)
         self.addParameterBoolean(self.P_RASTERIZE_POINTS, 'Rasterize Points', defaultValue=False, advanced=True)
-        self.addParameterRasterDestination(
-            self.P_OUTPUT_CLASSIFICATION, 'Output Classification', self.SkipValue, True, advanced=True
-        )
-        self.addParameterRasterDestination(
-            self.P_OUTPUT_PROBABILITY, 'Output Class Probability', self.SkipValue, True, advanced=True
-        )
+        self.addParameterRasterDestination(self.P_OUTPUT_CLASSIFICATION, 'Output Classification', None, True, False)
+        self.addParameterRasterDestination(self.P_OUTPUT_PROBABILITY, 'Output Class Probability', None, True, False)
         self.addParameterMaximumMemoryUsage(self.P_MAXIMUM_MEMORY_USAGE, advanced=True)
         self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, 'Output Classifier', 'Model file (*.pkl)')
 
@@ -162,7 +157,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
             parameters = {
                 alg.P_CLASSIFIER: filename,
                 alg.P_RASTER: raster,
-                alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiff,
+                alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiffProfile,
                 alg.P_MAXIMUM_MEMORY_USAGE: maximumMemoryUsage,
                 alg.P_OUTPUT_RASTER: filenameClassification
             }
@@ -175,7 +170,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
             parameters = {
                 alg.P_CLASSIFIER: filename,
                 alg.P_RASTER: raster,
-                alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiff,
+                alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiffProfile,
                 alg.P_MAXIMUM_MEMORY_USAGE: maximumMemoryUsage,
                 alg.P_OUTPUT_RASTER: filenameProbability
             }
@@ -200,7 +195,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
                 parameters = {
                     alg.P_VECTOR: classification,
                     alg.P_GRID: raster,
-                    alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiff,
+                    alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: tmpFilename
                 }
                 Processing.runAlgorithm(alg, parameters, None, feedback, context)
@@ -218,7 +213,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
                 parameters = {
                     alg.P_CLASSIFICATION: classification,
                     alg.P_GRID: raster,
-                    alg.P_CREATION_PROFILE: alg.Vrt,
+                    alg.P_CREATION_PROFILE: alg.VrtProfile,
                     alg.P_OUTPUT_RASTER: tmpFilename
                 }
                 Processing.runAlgorithm(alg, parameters, None, feedback, context)

@@ -102,3 +102,7 @@ class RasterWriter(object):
 
     def gdalBand(self, bandNo: int = None) -> gdal.Band:
         return self._gdalObject(bandNo)
+
+    def close(self):
+        self.gdalDataset.FlushCache()
+        self.gdalDataset = None

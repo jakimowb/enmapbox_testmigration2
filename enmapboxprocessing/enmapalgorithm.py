@@ -1,4 +1,5 @@
 from enum import Enum, IntEnum
+from os.path import abspath, isabs, join
 from typing import Any, Dict, Iterable, Optional, List, Tuple
 
 import numpy as np
@@ -9,10 +10,10 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterField, QgsProcessingParameterBoolean, QgsProcessingParameterEnum, Qgis,
                         QgsProcessingParameterString, QgsProcessingParameterBand, QgsCategorizedSymbolRenderer,
                         QgsPalettedRasterRenderer, QgsProcessingParameterMapLayer, QgsMapLayer,
-                        QgsProcessingParameterCoordinateOperation, QgsProcessingParameterAggregate,
                         QgsProcessingParameterExtent, QgsCoordinateReferenceSystem, QgsRectangle,
-                        QgsProcessingParameterFileDestination, QgsProcessingParameterExpression,
-                        QgsProcessingParameterFile, QgsProcessingParameterRange)
+                        QgsProcessingParameterFileDestination, QgsProcessingParameterFile, QgsProcessingParameterRange,
+                        QgsProcessingParameterCrs, QgsProcessingParameterVectorDestination, QgsProcessing,
+                        QgsProcessingUtils)
 
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
 from typeguard import typechecked
@@ -44,9 +45,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     MaxResampleAlg = range(12)
 
     O_DATA_TYPE = 'Byte Int16 UInt16 Int32 UInt32 Float32 Float64'.split()
-    Byte, Int16, UInt16, Int32, UInt32, Float32, Float64 = range(7)
-
-    SkipValue = '[Skip output]'
+    Byte, Int16, UInt16, Int32, UInt32, Float32, Float64 = range(len(O_DATA_TYPE))
+    SkipOutput = '[Skip output]'
 
     def createInstance(self):
         return type(self)()
@@ -118,19 +118,25 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsEnum(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> int:
         return super().parameterAsEnum(parameters, name, context)
 
+    def parameterAsEnums(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> List[int]:
+        return super().parameterAsEnums(parameters, name, context)
+
     def parameterAsString(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> str:
         return super().parameterAsString(parameters, name, context)
 
     def parameterAsDouble(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[float]:
-        if self.parameterIsSet(parameters, name):
-            return super().parameterAsDouble(parameters, name, context)
-        else:
+        if self.parameterIsNone(parameters, name):
             return self.parameterDefinition(name).defaultValue()
+        else:
+            return super().parameterAsDouble(parameters, name, context)
 
-    def parameterAsInt(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> int:
-        return super().parameterAsInt(parameters, name, context)
+    def parameterAsInt(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> Optional[int]:
+        if self.parameterIsNone(parameters, name):
+            return self.parameterDefinition(name).defaultValue()
+        else:
+            return super().parameterAsInt(parameters, name, context)
 
     def parameterAsInts(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
@@ -147,11 +153,23 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsBoolean(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> bool:
         return super().parameterAsBoolean(parameters, name, context)
 
-    def parameterAsFileOutput(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> str:
-        return super().parameterAsFileOutput(parameters, name, context)
+    def parameterAsFileOutput(
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
+    ) -> Optional[str]:
+        filename = super().parameterAsFileOutput(parameters, name, context)
+        if filename == '':
+            return None
+        if not isabs(filename):
+            filename = join(QgsProcessingUtils.tempFolder(), filename)
+        return filename
 
     def parameterAsRange(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> List[float]:
         return super().parameterAsRange(parameters, name, context)
+
+    def parameterAsCrs(
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
+    ) -> QgsCoordinateReferenceSystem:
+        return super().parameterAsCrs(parameters, name, context)
 
     def parameterAsExtent(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext,
@@ -162,10 +180,10 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsQgsDataType(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext, default: QgisDataType = None
     ) -> Optional[QgisDataType]:
-        index = self.parameterAsEnum(parameters, name, context)
-        if index == -1:
+        if self.parameterIsNone(parameters, name):
             return default
         else:
+            index = self.parameterAsEnum(parameters, name, context)
             label = self.O_DATA_TYPE[index]
             return getattr(Qgis, label)
 
@@ -194,8 +212,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         ][index]
         return format, options.split()
 
-    def parameterIsSet(self, parameters: Dict[str, Any], name: str):
-        return parameters.get(name, None) is not None
+    def parameterIsNone(self, parameters: Dict[str, Any], name: str):
+        return parameters.get(name, None) is None
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         return super().checkParameterValues(parameters, context)
@@ -284,6 +302,9 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def helpParameterRasterDestination(self):
         return 'Output raster destination.'
 
+    def helpParameterVectorDestination(self):
+        return 'Output vector destination.'
+
     def helpParameterCreationProfile(self):
         return 'Output format and creation options.'
 
@@ -294,7 +315,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         text = '<p>' + self.shortDescription() + '</p>'
         if self.helpHeader() is not None:
             title, text2 = self.helpHeader()
-            text += f'<h3>{title}</h3><p>{text2}</p>'
+            text += f' <i><h3>{title}</h3> </i><p>{text2}</p>'
         if len(self.helpCookbookUrls()) > 0:
             text += '<p>Used in the Cookbook Recipes: '
             text += ', '.join(
@@ -351,6 +372,25 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterVectorLayer(name, description, types, defaultValue, optional))
         self.flagParameterAsAdvanced(name, advanced)
 
+    def addParameterField(
+            self, name: str, description: str, parentLayerParameterName: str, defaultValue=None,
+            type=QgsProcessingParameterField.Any, allowMultiple=False, optional=False, defaultToAllFields=False,
+            advanced=False
+    ):
+        self.addParameter(
+            QgsProcessingParameterField(
+                name, description, defaultValue, parentLayerParameterName, type, allowMultiple, optional,
+                defaultToAllFields
+            )
+        )
+        self.flagParameterAsAdvanced(name, advanced)
+
+    def addParameterCrs(
+            self, name: str, description: str, defaultValue=None, optional=False, advanced=False
+    ):
+        self.addParameter(QgsProcessingParameterCrs(name, description, defaultValue, optional))
+        self.flagParameterAsAdvanced(name, advanced)
+
     def addParameterExtent(
             self, name: str, description: str, defaultValue=None, optional=False, advanced=False
     ):
@@ -363,6 +403,15 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     ):
         self.addParameter(
             QgsProcessingParameterRasterDestination(name, description, defaultValue, optional, createByDefault)
+        )
+        self.flagParameterAsAdvanced(name, advanced)
+
+    def addParameterVectorDestination(
+            self, name: str, description='Output Vector', type=QgsProcessing.TypeVectorAnyGeometry, defaultValue=None,
+            optional=False, createByDefault=True, advanced=False
+    ):
+        self.addParameter(
+            QgsProcessingParameterVectorDestination(name, description, type, defaultValue, optional, createByDefault)
         )
         self.flagParameterAsAdvanced(name, advanced)
 
@@ -510,6 +559,7 @@ class Group(Enum):
     ResamplingAndSubsetting = 'Resampling and Subsetting'
     Random = 'Random'
     Regression = 'Regression'
+    Sampling = 'Sampling'
     Test = 'TEST/'
     Testdata = 'Testdata'
     Transformation = 'Transformation'

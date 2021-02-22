@@ -1,11 +1,11 @@
-from qgis._core import QgsRasterLayer
+from qgis._core import QgsRasterLayer, QgsRasterRenderer
 import numpy as np
 
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxtestdata import enmap, hires
-from enmapboxunittestdata import landcover_raster_30m_epsg3035
+from enmapboxunittestdata import landcover_raster_30m_epsg3035, landcover_raster_30m
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -31,7 +31,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_RASTER: QgsRasterLayer(enmap),
             alg.P_GRID: QgsRasterLayer(landcover_raster_30m_epsg3035),
             alg.P_BAND_LIST: [5],
-            alg.P_CREATION_PROFILE: alg.Vrt,
+            alg.P_CREATION_PROFILE: alg.VrtProfile,
             alg.P_OUTPUT_RASTER: c + '/vsimem/raster.vrt'
         }
         result = self.runalg(alg, parameters)
@@ -109,12 +109,12 @@ class TestTranslateAlgorithm(TestCase):
         result = self.runalg(alg, parameters)
         self.assertEqual(3, RasterReader(result[alg.P_OUTPUT_RASTER]).bandCount())
 
-    def test_metadata_forEnviSource_allBands(self):
+    def test_copyMetadata_forEnviSource_allBands(self):
         alg = TranslateRasterAlgorithm()
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap),
             alg.P_COPY_METADATA: True,
-            alg.P_CREATION_PROFILE: alg.EnviBsq,
+            alg.P_CREATION_PROFILE: alg.EnviBsqProfile,
             alg.P_OUTPUT_RASTER: c + '/vsimem/enmap.tif'
         }
         result = self.runalg(alg, parameters)
@@ -128,13 +128,13 @@ class TestTranslateAlgorithm(TestCase):
         for key in gold:
             self.assertEqual(gold[key], lead[key])
 
-    def test_metadata_forEnviSource_bandSubset(self):
+    def test_copyMetadata_forEnviSource_bandSubset(self):
         alg = TranslateRasterAlgorithm()
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap),
             alg.P_BAND_LIST: [3],
             alg.P_COPY_METADATA: True,
-            alg.P_CREATION_PROFILE: alg.EnviBsq,
+            alg.P_CREATION_PROFILE: alg.EnviBsqProfile,
             alg.P_OUTPUT_RASTER: c + '/vsimem/enmap.tif'
         }
         result = self.runalg(alg, parameters)
@@ -255,3 +255,16 @@ class TestTranslateAlgorithm(TestCase):
             parameters[alg.P_RESAMPLE_ALG] = index
             parameters[alg.P_OUTPUT_RASTER] = c + f'/vsimem/raster.{name}.tif'
             self.runalg(alg, parameters)
+
+    def test_copyStyle(self):
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: QgsRasterLayer(enmap),
+            alg.P_COPY_STYLE: True,
+            alg.P_CREATION_PROFILE: alg.VrtProfile,
+            alg.P_OUTPUT_RASTER: c + f'/vsimem/rasterStyled.tif'
+        }
+        result = self.runalg(alg, parameters)
+        layer = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+        renderer: QgsRasterRenderer = layer.renderer()
+        self.assertListEqual([38, 23, 5], renderer.usesBands())

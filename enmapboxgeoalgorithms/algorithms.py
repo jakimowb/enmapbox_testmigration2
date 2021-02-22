@@ -4,13 +4,8 @@ from tempfile import gettempdir
 from qgis.core import *
 
 from enmapbox.externals.qps.speclib import EnviSpectralLibraryIO
-from enmapboxprocessing.algorithm.classificationtofractionalgorithm import ClassificationToFractionAlgorithm
-from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
-from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
-from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
-from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
-from enmapboxprocessing.algorithm.translateclassification import TranslateClassificationAlgorithm
-from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
+
+from enmapboxprocessing.algorithm.algorithms import algorithms
 from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.changemap import ChangeMap
 from hubdsm.processing.classificationstatistics import ClassificationStatistics
@@ -33,8 +28,6 @@ from enmapboxgeoalgorithms.filters.convolution import parseSpatialKernel, parseS
 from enmapboxgeoalgorithms.filters.morphology import parseMorphology
 from enmapboxgeoalgorithms.filters.other import parseOtherFilter
 
-from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
-
 ALGORITHMS.append(UniqueBandValueCounts())
 ALGORITHMS.append(ImportEnmapL1B())
 ALGORITHMS.append(ImportEnmapL1C())
@@ -49,15 +42,7 @@ ALGORITHMS.append(SaveAsEnvi())
 ALGORITHMS.append(CreateGrid())
 ALGORITHMS.append(ChangeMap())
 
-ALGORITHMS.append(ClassificationToFractionAlgorithm())
-ALGORITHMS.append(FitRandomForestClassifierAlgorithm())
-ALGORITHMS.append(PredictClassificationAlgorithm())
-ALGORITHMS.append(PredictClassPropabilityAlgorithm())
-ALGORITHMS.append(RasterizeClassificationAlgorithm())
-ALGORITHMS.append(RasterizeVectorAlgorithm())
-ALGORITHMS.append(TranslateRasterAlgorithm())
-ALGORITHMS.append(TranslateClassificationAlgorithm())
-
+ALGORITHMS.extend(algorithms())
 
 class ClassificationFromFraction(EnMAPAlgorithm):
     def displayName(self):

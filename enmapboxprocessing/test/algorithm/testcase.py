@@ -1,26 +1,21 @@
 import unittest
 from typing import Dict
 
-from qgis.core import QgsApplication
-from qgis.core import QgsProcessingFeedback
+from qgis._core import QgsApplication, QgsProcessingFeedback
+
 from processing.core.Processing import Processing
-
-
+from enmapbox.testing import start_app
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm
 
-# init QGIS
-qgsApp = QgsApplication([], True)
-qgsApp.initQgis()
-
+qgsApp = start_app()
 
 # activate QGIS log in PyCharm
 def printQgisLog(tb, error, level):
     print(tb)
 
-
 QgsApplication.instance().messageLog().messageReceived.connect(printQgisLog)
 
-Processing.initialize()
+#Processing.initialize()
 
 
 class TestCase(unittest.TestCase):

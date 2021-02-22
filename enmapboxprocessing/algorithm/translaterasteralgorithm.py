@@ -25,6 +25,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_RESAMPLE_ALG = 'resampleAlg'
     P_DATA_TYPE = 'dataType'
     P_COPY_METADATA = 'copyMetadata'
+    P_COPY_STYLE = 'copyStyle'
     P_CREATION_PROFILE = 'creationProfile'
     P_OUTPUT_RASTER = 'outraster'
 
@@ -58,10 +59,16 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                             'to avoid subpixel shifts.'),
             (self.P_SOURCE_COLUMNS, 'Column subset range in pixels to extract.'),
             (self.P_SOURCE_ROWS, 'Rows subset range in pixels to extract.'),
-            (self.P_EXCLUDE_BAD_BANDS, 'Wether to exclude bad bands (given by BBL metadata item inside ENVI domain). '
+            (self.P_EXCLUDE_BAD_BANDS, 'Whether to exclude bad bands (given by BBL metadata item inside ENVI domain). '
                                        'Also see The ENVI Header Format for more details: '
                                        'https://www.l3harrisgeospatial.com/docs/ENVIHeaderFiles.html '),
-            (self.P_COPY_METADATA, 'Wether to copy metadata from source to destination. '),
+            (self.P_COPY_METADATA, 'Whether to copy metadata from source to destination. '
+                                   'Special care is taken of ENVI list items containing band information. '
+                                   'The following list items will be properly subsetted according to the selected '
+                                   'bands: <i>band names, bbl, data_gain_values, data_offset_values, '
+                                   'data_reflectance_gain_values, data_reflectance_offset_values, fwhm, ' 
+                                   'wavelength.</i>'),
+            (self.P_COPY_STYLE, 'Whether to copy style from source to destination.'),
             (self.P_RESAMPLE_ALG, 'Spatial resample algorithm.'),
             (self.P_DATA_TYPE, self.helpParameterDataType()),
             (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
@@ -109,13 +116,14 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         )
         self.addParameterRasterLayer(self.P_GRID, 'Grid', optional=True)
         self.addParameterBoolean(self.P_COPY_METADATA, 'Copy Metadata', defaultValue=False)
+        self.addParameterBoolean(self.P_COPY_STYLE, 'Copy Style', defaultValue=False)
         self.addParameterExtent(self.P_EXTENT, 'Spatial Extent', optional=True, advanced=True)
         self.addParameterIntRange(self.P_SOURCE_COLUMNS, 'Column Subset', optional=True, advanced=True)
         self.addParameterIntRange(self.P_SOURCE_ROWS, 'Row Subset', optional=True, advanced=True)
         self.addParameterBoolean(self.P_EXCLUDE_BAD_BANDS, 'Exclude Bad Bands', defaultValue=False, advanced=True)
         self.addParameterResampleAlg(self.P_RESAMPLE_ALG, advanced=True)
-        self.addParameterDataType(self.P_DATA_TYPE, defaultValue=-1, optional=True, advanced=True)
-        self.addParameterCreationProfile(self.P_CREATION_PROFILE, allowVrt=True, advanced=True)
+        self.addParameterDataType(self.P_DATA_TYPE, optional=True, advanced=True)
+        self.addParameterCreationProfile(self.P_CREATION_PROFILE, allowVrt=True)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER)
 
     def processAlgorithm(
@@ -140,6 +148,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         resampleAlg = self.parameterAsGdalResampleAlg(parameters, self.P_RESAMPLE_ALG, context)
         dataType = self.parameterAsQgsDataType(parameters, self.P_DATA_TYPE, context, default=provider.dataType(1))
         copyMetadata = self.parameterAsBoolean(parameters, self.P_COPY_METADATA, context)
+        copyStyle = self.parameterAsBoolean(parameters, self.P_COPY_STYLE, context)
         format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
         width = int(round(extent.width() / grid.rasterUnitsPerPixelX()))
@@ -222,9 +231,18 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             )
             assert outGdalDataset is not None
 
+        if copyStyle:
+            raster.saveDefaultStyle()
+
         writer = RasterWriter(outGdalDataset)
         if copyMetadata:
             self.copyMetadata(raster, writer, bandList)
+
+        if copyStyle:
+            renderer = raster.renderer().clone()
+            outraster = QgsRasterLayer(filename)
+            outraster.setRenderer(renderer)
+            outraster.saveDefaultStyle()
 
         return {self.P_OUTPUT_RASTER: filename}
 
