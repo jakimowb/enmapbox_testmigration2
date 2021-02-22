@@ -27,7 +27,8 @@ def create_runtests():
 ::
 @echo off
 set CI=True
-
+set PYTHONPATH=%~dp0/..;%PYTHONPATH%
+set PYTHONPATH
 WHERE python3 >nul 2>&1 && (
     echo Found "python3" command
     set PYTHON=python3
@@ -103,9 +104,9 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd):/usr/share/qgis/python/plugins"
         endLines = []
 
         for i, line in enumerate(linesYAML):
-            if re.search('\W*# START UNITTESTS', line):
+            if re.search(r'\W*# START UNITTESTS', line):
                 startLines.insert(0, i)
-            if re.search('\W*# END UNITTESTS', line):
+            if re.search(r'\W*# END UNITTESTS', line):
                 endLines.insert(0, i)
 
         assert len(startLines) == len(endLines)
