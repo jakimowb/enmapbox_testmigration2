@@ -79,7 +79,7 @@ class EnMAPBoxPlugin(object):
             for action in self.toolbarActions:
                 iface.addToolBarIcon(action)
         else:
-            print('EnMAPBoxPlugin.initGui() calles without iface')
+            print('EnMAPBoxPlugin.initGui() called without iface')
 
     def run(self):
         from enmapbox.gui.enmapboxgui import EnMAPBox

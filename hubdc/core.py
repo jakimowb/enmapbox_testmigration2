@@ -3186,31 +3186,10 @@ class ResampleAlgHandler(object):
             pass
         elif resampleAlg == gdal.GRA_NearestNeighbour or gdal.GRIORA_NearestNeighbour:  # 0
             resampleAlg = 'near'
-        elif resampleAlg == gdal.GRA_Bilinear:  # 1
-            resampleAlg = 'bilinear'
-        elif resampleAlg == gdal.GRA_Cubic:  # 2
-            resampleAlg = 'cubic'
-        elif resampleAlg == gdal.GRA_CubicSpline:  # 3
-            resampleAlg = 'cubicspline'
-        elif resampleAlg == gdal.GRA_Lanczos:  # 4
-            resampleAlg = 'lanczos'
-        elif resampleAlg == gdal.GRA_Average:  # 5
-            resampleAlg = 'average'
-        elif resampleAlg == gdal.GRA_Mode:  # 6
-            resampleAlg = 'mode'
-        elif resampleAlg == gdal.GRIORA_Gauss:  # 7
-            resampleAlg = 'gauss'
-        elif resampleAlg == gdal.GRA_Max:  # 8
-            resampleAlg = 'max'
-        elif resampleAlg == gdal.GRA_Min:  # 9
-            resampleAlg = 'min'
-        elif resampleAlg == gdal.GRA_Med:  # 10
-            resampleAlg = 'med'
-        elif resampleAlg == gdal.GRA_Q1:  # 11
-            resampleAlg = 'q1'
-        elif resampleAlg == gdal.GRA_Q3:  # 12
-            resampleAlg = 'q3'
         else:
+            for k, v in gdal.__dict__.items():
+                if (k.startswith('GRA') or k.startswith('GRIORA')) and v == resampleAlg:
+                    return k.split('_')[1].lower()
             raise TypeError('unexpected value: {}'.format(resampleAlg))
 
         return resampleAlg
