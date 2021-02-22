@@ -355,6 +355,9 @@ def run():
 # https://docs.readthedocs.io/en/stable/builds.html
 # print(f'QGIS_PREFIX_PATH={QgsApplication.prefixPath()}')
 if not os.environ.get('READTHEDOCS', False) in [True, 'True']:
+    from enmapbox import initEnMAPBoxResources
+    initEnMAPBoxResources()
+
     from enmapbox.gui.enmapboxgui import EnMAPBox
     EnMAPBox = EnMAPBox
 
