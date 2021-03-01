@@ -30,7 +30,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_OUTPUT_RASTER = 'outraster'
 
     def displayName(self):
-        return 'Translate/Warp Raster'
+        return 'Translate / Warp Raster'
 
     def shortDescription(self):
         return 'Convert raster data between different formats, ' \
@@ -66,7 +66,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                                    'Special care is taken of ENVI list items containing band information. '
                                    'The following list items will be properly subsetted according to the selected '
                                    'bands: <i>band names, bbl, data_gain_values, data_offset_values, '
-                                   'data_reflectance_gain_values, data_reflectance_offset_values, fwhm, ' 
+                                   'data_reflectance_gain_values, data_reflectance_offset_values, fwhm, '
                                    'wavelength.</i>'),
             (self.P_COPY_STYLE, 'Whether to copy style from source to destination.'),
             (self.P_RESAMPLE_ALG, 'Spatial resample algorithm.'),
@@ -155,96 +155,103 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         height = int(round(extent.height() / grid.rasterUnitsPerPixelY()))
         crs = grid.crs()
 
-        reader = RasterReader(raster)
-        gdalDataType = Utils.qgisDataTypeToGdalDataType(dataType)
-        if excludeBadBands and reader.metadataItem('bbl', 'ENVI') is not None:
-            bbl = [bool(v) for v in reader.metadataItem('bbl', 'ENVI')]
+        with open(filename + '.log', 'w') as logfile:
+            feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
+            self.tic(feedback, parameters, context)
+
+            reader = RasterReader(raster)
+            gdalDataType = Utils.qgisDataTypeToGdalDataType(dataType)
+            if excludeBadBands and reader.metadataItem('bbl', 'ENVI') is not None:
+                bbl = [bool(v) for v in reader.metadataItem('bbl', 'ENVI')]
+                if bandList is None:
+                    bandList = [bandNo for bandNo, isGoodBand in enumerate(bbl, 1) if isGoodBand]
+                else:
+                    bandList = [bandNo for bandNo, isGoodBand in enumerate(bbl, 1) if isGoodBand and bandNo in bandList]
             if bandList is None:
-                bandList = [bandNo for bandNo, isGoodBand in enumerate(bbl, 1) if isGoodBand]
+                nBands = raster.bandCount()
             else:
-                bandList = [bandNo for bandNo, isGoodBand in enumerate(bbl, 1) if isGoodBand and bandNo in bandList]
-        if bandList is None:
-            nBands = raster.bandCount()
-        else:
-            nBands = len(bandList)
-        if reader.sourceHasNoDataValue() and reader.useSourceNoDataValue():
-            noDataValue = None  # use default no data value
-        else:
-            rasterRanges = reader.userNoDataValues()
-            if len(rasterRanges) == 1:
-                noDataValue = rasterRanges[0].min()  # use user no data value
+                nBands = len(bandList)
+            if reader.sourceHasNoDataValue() and reader.useSourceNoDataValue():
+                noDataValue = None  # use default no data value
             else:
-                noDataValue = 'none'  # unset no data value
+                rasterRanges = reader.userNoDataValues()
+                if len(rasterRanges) == 1:
+                    noDataValue = rasterRanges[0].min()  # use user no data value
+                else:
+                    noDataValue = 'none'  # unset no data value
 
-        infoTail = f' [{width}x{height}x{nBands}]({Utils.qgisDataTypeName(dataType)})'
-        if format is not None:
-            infoTail += f' -of {format}'
-        if options is not None:
-            infoTail += f' -co {" ".join(options)}'
-        infoTail += f' {filename}'
+            infoTail = f' [{width}x{height}x{nBands}]({Utils.qgisDataTypeName(dataType)})'
+            if format is not None:
+                infoTail += f' -of {format}'
+            if options is not None:
+                infoTail += f' -co {" ".join(options)}'
+            infoTail += f' {filename}'
 
-        gdalDataset = gdal.Open(raster.source())
-        assert gdalDataset is not None
+            gdalDataset = gdal.Open(raster.source())
+            assert gdalDataset is not None
 
-        callback = Utils.qgisFeedbackToGdalCallback(feedback)
-        resampleAlgSupportedByGdalTranslate = resampleAlg not in [gdal.GRA_Min, gdal.GRA_Q1, gdal.GRA_Med,
-                                                                  gdal.GRA_Q3, gdal.GRA_Max]
-        if raster.crs() == crs and resampleAlgSupportedByGdalTranslate:
-            feedback.pushInfo('Translate Raster' + infoTail)
-            projWin = (extent.xMinimum(), extent.yMaximum(), extent.xMaximum(), extent.yMinimum())
-            translateOptions = gdal.TranslateOptions(
-                format=format, width=width, height=height, creationOptions=options, resampleAlg=resampleAlg,
-                projWin=projWin, bandList=bandList, outputType=gdalDataType, callback=callback, noData=noDataValue
-            )
-            outGdalDataset: gdal.Dataset = gdal.Translate(
-                destName=filename, srcDS=gdalDataset, options=translateOptions
-            )
-            assert outGdalDataset is not None
-
-            # need to explicitely set the GeoTransform tuple, because gdal.Translate extent may deviate slightly
-            ulx, uly, lrx, lry = projWin
-            xres = (lrx - ulx) / width
-            yres = (uly - lry) / height
-            geoTransform = (ulx, xres, 0., uly, 0., -yres)
-            outGdalDataset.SetGeoTransform(geoTransform)
-        else:
-            if bandList is not None:
-                tmpFilename = Utils.tmpFilename(filename, 'bandSubset.vrt')
-                tmpGdalDataset = gdal.Translate(
-                    destName=tmpFilename, srcDS=gdalDataset, format=self.VrtFormat, bandList=bandList,
-                    noData=noDataValue, callback=callback
+            callback = Utils.qgisFeedbackToGdalCallback(feedback)
+            resampleAlgSupportedByGdalTranslate = resampleAlg not in [gdal.GRA_Min, gdal.GRA_Q1, gdal.GRA_Med,
+                                                                      gdal.GRA_Q3, gdal.GRA_Max]
+            if raster.crs() == crs and resampleAlgSupportedByGdalTranslate:
+                feedback.pushInfo('Translate Raster' + infoTail)
+                projWin = (extent.xMinimum(), extent.yMaximum(), extent.xMaximum(), extent.yMinimum())
+                translateOptions = gdal.TranslateOptions(
+                    format=format, width=width, height=height, creationOptions=options, resampleAlg=resampleAlg,
+                    projWin=projWin, bandList=bandList, outputType=gdalDataType, callback=callback, noData=noDataValue
                 )
+                outGdalDataset: gdal.Dataset = gdal.Translate(
+                    destName=filename, srcDS=gdalDataset, options=translateOptions
+                )
+                assert outGdalDataset is not None
+
+                # need to explicitely set the GeoTransform tuple, because gdal.Translate extent may deviate slightly
+                ulx, uly, lrx, lry = projWin
+                xres = (lrx - ulx) / width
+                yres = (uly - lry) / height
+                geoTransform = (ulx, xres, 0., uly, 0., -yres)
+                outGdalDataset.SetGeoTransform(geoTransform)
             else:
-                tmpGdalDataset = gdalDataset
+                if bandList is not None:
+                    tmpFilename = Utils.tmpFilename(filename, 'bandSubset.vrt')
+                    tmpGdalDataset = gdal.Translate(
+                        destName=tmpFilename, srcDS=gdalDataset, format=self.VrtFormat, bandList=bandList,
+                        noData=noDataValue, callback=callback
+                    )
+                else:
+                    tmpGdalDataset = gdalDataset
 
-            feedback.pushInfo('Warp Raster' + infoTail)
-            outputBounds = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
-            dstSRS = crs.toWkt()
-            resampleAlgString = Utils.gdalResampleAlgToGdalWarpFormat(resampleAlg)
-            warpOptions = gdal.WarpOptions(
-                format=format, width=width, height=height, creationOptions=options, resampleAlg=resampleAlgString,
-                outputBounds=outputBounds, outputType=gdalDataType, dstSRS=dstSRS, srcNodata=noDataValue,
-                callback=callback
-            )
-            outGdalDataset: gdal.Dataset = gdal.Warp(
-                filename, tmpGdalDataset, options=warpOptions
-            )
-            assert outGdalDataset is not None
+                feedback.pushInfo('Warp Raster' + infoTail)
+                outputBounds = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+                dstSRS = crs.toWkt()
+                resampleAlgString = Utils.gdalResampleAlgToGdalWarpFormat(resampleAlg)
+                warpOptions = gdal.WarpOptions(
+                    format=format, width=width, height=height, creationOptions=options, resampleAlg=resampleAlgString,
+                    outputBounds=outputBounds, outputType=gdalDataType, dstSRS=dstSRS, srcNodata=noDataValue,
+                    callback=callback
+                )
+                outGdalDataset: gdal.Dataset = gdal.Warp(
+                    filename, tmpGdalDataset, options=warpOptions
+                )
+                assert outGdalDataset is not None
 
-        if copyStyle:
-            raster.saveDefaultStyle()
+            if copyStyle:
+                raster.saveDefaultStyle()
 
-        writer = RasterWriter(outGdalDataset)
-        if copyMetadata:
-            self.copyMetadata(raster, writer, bandList)
+            writer = RasterWriter(outGdalDataset)
+            if copyMetadata:
+                self.copyMetadata(raster, writer, bandList)
 
-        if copyStyle:
-            renderer = raster.renderer().clone()
-            outraster = QgsRasterLayer(filename)
-            outraster.setRenderer(renderer)
-            outraster.saveDefaultStyle()
+            if copyStyle:
+                renderer = raster.renderer().clone()
+                outraster = QgsRasterLayer(filename)
+                outraster.setRenderer(renderer)
+                outraster.saveDefaultStyle()
 
-        return {self.P_OUTPUT_RASTER: filename}
+            result = {self.P_OUTPUT_RASTER: filename}
+            self.toc(feedback, result)
+
+        return result
 
     @classmethod
     def copyMetadata(cls, raster: QgsRasterLayer, writer: RasterWriter, bandList: List[int] = None):

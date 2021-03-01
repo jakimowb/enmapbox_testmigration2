@@ -9,7 +9,6 @@ from enmapboxprocessing.algorithm.algorithms import algorithms
 from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.changemap import ChangeMap
 from hubdsm.processing.classificationstatistics import ClassificationStatistics
-from hubdsm.processing.creategrid import CreateGrid
 from hubdsm.processing.importdesisl2a import ImportDesisL2A
 from hubdsm.processing.importprismal2d import ImportPrismaL2D
 from hubdsm.processing.saveasenvi import SaveAsEnvi
@@ -39,7 +38,6 @@ ALGORITHMS.append(SubsetRasterBands())
 ALGORITHMS.append(AggregateBands())
 ALGORITHMS.append(ClassificationStatistics())
 ALGORITHMS.append(SaveAsEnvi())
-ALGORITHMS.append(CreateGrid())
 ALGORITHMS.append(ChangeMap())
 
 ALGORITHMS.extend(algorithms())

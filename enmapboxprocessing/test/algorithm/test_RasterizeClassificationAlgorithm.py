@@ -1,4 +1,7 @@
-from qgis._core import QgsRasterLayer, QgsVectorLayer, QgsPalettedRasterRenderer
+import webbrowser
+
+import processing
+from qgis._core import QgsRasterLayer, QgsVectorLayer, QgsPalettedRasterRenderer, QgsProcessingContext
 
 import numpy as np
 
@@ -15,6 +18,20 @@ c = ['', 'c:'][int(writeToDisk)]
 
 
 class TestRasterizeClassificationAlgorithm(TestCase):
+
+    def test_pythonCommand(self):
+        alg = RasterizeClassificationAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_VECTOR: QgsVectorLayer(landcover_polygons_3classes_id),
+            alg.P_GRID: QgsRasterLayer(enmap),
+            alg.P_OUTPUT_RASTER: c + '/vsimem/landcover_polygons.tif'
+        }
+        processing
+        cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
+        print(cmd)
+        eval(cmd)
+        webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
 
     def test_numberClassAttribute(self):
         alg = RasterizeClassificationAlgorithm()
@@ -74,3 +91,16 @@ class TestRasterizeClassificationAlgorithm(TestCase):
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(152, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
+
+    def test_minimalCoverage(self):
+        alg = RasterizeClassificationAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_VECTOR: QgsVectorLayer(landcover_polygons),
+            alg.P_GRID: QgsRasterLayer(enmap),
+            alg.P_COVERAGE: 100,
+            alg.P_OUTPUT_RASTER: c + '/vsimem/classification_fullcoverage.tif'
+        }
+
+        result = self.runalg(alg, parameters)
+        self.assertEqual(3816, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))

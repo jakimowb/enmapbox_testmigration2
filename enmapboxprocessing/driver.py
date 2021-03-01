@@ -23,8 +23,6 @@ class Driver(object):
             format = self.defaultFormat(filename)
         if options is None:
             options = list()
-        if feedback is None:
-            feedback = QgsProcessingFeedback()
         self.filename = filename
         self.format = format
         self.options = options
@@ -48,7 +46,8 @@ class Driver(object):
         info = f'Create Raster [{width}x{height}x{nBands}]({Utils.qgisDataTypeName(dataType)})' \
                f' -co {" ".join(self.options)}' \
                f' {self.filename}'
-        self.feedback.pushInfo(info)
+        if self.feedback is not None:
+            self.feedback.pushInfo(info)
 
         gdalDriver: gdal.Driver = gdal.GetDriverByName(self.format)
         gdalDataset: gdal.Dataset = gdalDriver.Create(self.filename, width, height, nBands, gdalDataType, self.options)

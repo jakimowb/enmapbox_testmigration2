@@ -1,4 +1,7 @@
-from qgis._core import QgsPalettedRasterRenderer, QgsRasterLayer
+import webbrowser
+
+import processing
+from qgis._core import QgsPalettedRasterRenderer, QgsRasterLayer, QgsProcessingContext
 import numpy as np
 
 from enmapboxprocessing.algorithm.translateclassificationalgorithm import TranslateClassificationAlgorithm
@@ -14,6 +17,20 @@ c = ['', 'c:'][int(writeToDisk)]
 
 
 class TestTranslateClassificationAlgorithm(TestCase):
+
+    def test_pythonCommand(self):
+        alg = TranslateClassificationAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_CLASSIFICATION: QgsRasterLayer(landcover_raster_30m_epsg3035),
+            alg.P_GRID: QgsRasterLayer(enmap),
+            alg.P_OUTPUT_RASTER: c + '/vsimem/landcover.tif'
+        }
+        processing
+        cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
+        print(cmd)
+        eval(cmd)
+        webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
 
     def test_default(self):
         alg = TranslateClassificationAlgorithm()

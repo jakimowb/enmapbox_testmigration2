@@ -5,6 +5,7 @@ from PyQt5.QtCore import QVariant
 from osgeo import gdal
 
 from enmapboxprocessing.driver import Driver
+from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
 from enmapboxprocessing.utils import Utils
@@ -105,84 +106,90 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
             oversampling = 10
         noDataValue = None
 
-        # create fid field if needed
-        if burnFid:
-            field = QgsField('temp_fid', QVariant.LongLong)
-            vector.addExpressionField('$id', field)
-            tmpFilename = Utils.tmpFilename(filename, 'fid.gpkg')
-            saveVectorOptions = QgsVectorFileWriter.SaveVectorOptions()
-            saveVectorOptions.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
-            saveVectorOptions.attributes = [vector.fields().indexFromName(field.name())]
-            saveVectorOptions.feedback = feedback
-            transformContext = QgsProject.instance().transformContext()
-            error, message = QgsVectorFileWriter.writeAsVectorFormatV2(
-                vector, tmpFilename, transformContext, saveVectorOptions
-            )
-            assert error == QgsVectorFileWriter.NoError, f'Fail error {error}:{message}'
-            vector = QgsVectorLayer(tmpFilename)
-            burnAttribute = field.name()
-            initValue = -1
-            dataType = Qgis.Int32
+        with open(filename + '.log', 'w') as logfile:
+            feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
+            self.tic(feedback, parameters, context)
 
-        # reproject if needed
-        sourceFilename, layerName = Utils.splitQgsVectorLayerSourceString(vector.source())
-        if vector.crs() != grid.crs():
-            feedback.pushInfo('Reproject source vector to target crs')
-            tmpFilename = Utils.tmpFilename(filename, 'reprojected.gpkg')
-            transformContext = QgsProject.instance().transformContext()
-            coordinateTransform = QgsCoordinateTransform(vector.crs(), grid.crs(), QgsProject.instance())
-            saveVectorOptions = QgsVectorFileWriter.SaveVectorOptions()
-            saveVectorOptions.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
-            saveVectorOptions.ct = coordinateTransform
-            saveVectorOptions.filterExtent = grid.extent()
+            # create fid field if needed
+            if burnFid:
+                field = QgsField('temp_fid', QVariant.LongLong)
+                vector.addExpressionField('$id', field)
+                tmpFilename = Utils.tmpFilename(filename, 'fid.gpkg')
+                saveVectorOptions = QgsVectorFileWriter.SaveVectorOptions()
+                saveVectorOptions.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
+                saveVectorOptions.attributes = [vector.fields().indexFromName(field.name())]
+                saveVectorOptions.feedback = feedback
+                transformContext = QgsProject.instance().transformContext()
+                error, message = QgsVectorFileWriter.writeAsVectorFormatV2(
+                    vector, tmpFilename, transformContext, saveVectorOptions
+                )
+                assert error == QgsVectorFileWriter.NoError, f'Fail error {error}:{message}'
+                vector = QgsVectorLayer(tmpFilename)
+                burnAttribute = field.name()
+                initValue = -1
+                dataType = Qgis.Int32
+
+            # reproject if needed
+            sourceFilename, layerName = Utils.splitQgsVectorLayerSourceString(vector.source())
+            if vector.crs() != grid.crs():
+                feedback.pushInfo('Reproject source vector to target crs')
+                tmpFilename = Utils.tmpFilename(filename, 'reprojected.gpkg')
+                transformContext = QgsProject.instance().transformContext()
+                coordinateTransform = QgsCoordinateTransform(vector.crs(), grid.crs(), QgsProject.instance())
+                saveVectorOptions = QgsVectorFileWriter.SaveVectorOptions()
+                saveVectorOptions.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
+                saveVectorOptions.ct = coordinateTransform
+                saveVectorOptions.filterExtent = grid.extent()
+                if burnAttribute is None:
+                    saveVectorOptions.skipAttributeCreation = True
+                if layerName is not None:
+                    saveVectorOptions.layerName = layerName
+                saveVectorOptions.feedback = feedback
+                error, message = QgsVectorFileWriter.writeAsVectorFormatV2(
+                    vector, tmpFilename, transformContext, saveVectorOptions
+                )
+                assert error == QgsVectorFileWriter.NoError, f'Fail error {error}:{message}'
+                vector = QgsVectorLayer(tmpFilename)
+
+            # oversampled burn
+            info = f'Burn vector geometries'
+            feedback.pushInfo(info)
+            # - init raster
+            tmpFilename = Utils.tmpFilename(filename, 'oversampled.tif')
+            tmpFormat = self.GTiffFormat
+            tmpCreationOptions = self.TiledAndCompressedGTiffCreationOptions
+            tmpWidth = int(round(grid.width() * oversampling))
+            tmpHeight = int(round(grid.height() * oversampling))
+            tmpDriver = Driver(tmpFilename, tmpFormat, tmpCreationOptions, feedback2)
+            tmpWriter = tmpDriver.create(Qgis.Float32, tmpWidth, tmpHeight, 1, grid.extent(), grid.crs())
+            tmpWriter.fill(initValue)
+            tmpWriter.setNoDataValue(noDataValue)
+            # - prepare rasterize options and rasterize
+            callback = Utils.qgisFeedbackToGdalCallback(feedback2)
             if burnAttribute is None:
-                saveVectorOptions.skipAttributeCreation = True
-            if layerName is not None:
-                saveVectorOptions.layerName = layerName
-            saveVectorOptions.feedback = feedback
-            error, message = QgsVectorFileWriter.writeAsVectorFormatV2(
-                vector, tmpFilename, transformContext, saveVectorOptions
+                burnValues = [burnValue]
+            else:
+                burnValues = None
+            if callback is None:
+                callback = gdal.TermProgress_nocb
+            kwds = dict(burnValues=burnValues, attribute=burnAttribute, allTouched=allTouched, add=addValue)
+            kwds = {k: v for k, v in kwds.items() if v is not None}
+            rasterizeOptions = gdal.RasterizeOptions(callback=callback, **kwds)
+            success = gdal.Rasterize(
+                destNameOrDestDS=tmpWriter.gdalDataset, srcDS=vector.source(), options=rasterizeOptions
             )
-            assert error == QgsVectorFileWriter.NoError, f'Fail error {error}:{message}'
-            vector = QgsVectorLayer(tmpFilename)
+            assert success == 1
+            del tmpWriter
 
-        # oversampled burn
-        info = f'Burn geometries with {burnValue if burnAttribute is None else f"{repr(burnAttribute)} field"}'
-        feedback.pushInfo(info)
-        # - init raster
-        tmpFilename = Utils.tmpFilename(filename, 'oversampled.tif')
-        tmpFormat = self.GTiffFormat
-        tmpCreationOptions = self.TiledAndCompressedGTiffCreationOptions
-        tmpWidth = int(round(grid.width() * oversampling))
-        tmpHeight = int(round(grid.height() * oversampling))
-        tmpDriver = Driver(tmpFilename, tmpFormat, tmpCreationOptions, feedback)
-        tmpWriter = tmpDriver.create(Qgis.Float32, tmpWidth, tmpHeight, 1, grid.extent(), grid.crs())
-        tmpWriter.fill(initValue)
-        tmpWriter.setNoDataValue(noDataValue)
-        # - prepare rasterize options and rasterize
-        callback = Utils.qgisFeedbackToGdalCallback(feedback)
-        if burnAttribute is None:
-            burnValues = [burnValue]
-        else:
-            burnValues = None
-        if callback is None:
-            callback = gdal.TermProgress_nocb
-        kwds = dict(burnValues=burnValues, attribute=burnAttribute, allTouched=allTouched, add=addValue)
-        kwds = {k: v for k, v in kwds.items() if v is not None}
-        rasterizeOptions = gdal.RasterizeOptions(callback=callback, **kwds)
-        success = gdal.Rasterize(
-            destNameOrDestDS=tmpWriter.gdalDataset, srcDS=vector.source(), options=rasterizeOptions
-        )
-        assert success == 1
-        del tmpWriter
+            # for aggregation we use Warp instead of Translate, because it supports more ResamplAlgs!
+            resampleAlgString = Utils.gdalResampleAlgToGdalWarpFormat(resampleAlg)  # use string to avoid a bug in gdalwarp
+            gdalDataType = Utils.qgisDataTypeToGdalDataType(dataType)
+            warpOptions = gdal.WarpOptions(
+                width=grid.width(), height=grid.height(), resampleAlg=resampleAlgString, outputType=gdalDataType,
+                format=format, creationOptions=options, callback=callback, multithread=True
+            )
+            gdal.Warp(destNameOrDestDS=filename, srcDSOrSrcDSTab=tmpFilename, options=warpOptions)
 
-        # for aggregation we use Warp instead of Translate, because it supports more ResamplAlgs!
-        resampleAlgString = Utils.gdalResampleAlgToGdalWarpFormat(resampleAlg)  # use string to avoid a bug in gdalwarp
-        gdalDataType = Utils.qgisDataTypeToGdalDataType(dataType)
-        warpOptions = gdal.WarpOptions(
-            width=grid.width(), height=grid.height(), resampleAlg=resampleAlgString, outputType=gdalDataType,
-            format=format, creationOptions=options, callback=callback, multithread=True
-        )
-        gdal.Warp(destNameOrDestDS=filename, srcDSOrSrcDSTab=tmpFilename, options=warpOptions)
-
-        return {self.P_OUTPUT_RASTER: filename}
+            result = {self.P_OUTPUT_RASTER: filename}
+            self.toc(feedback, result)
+        return result

@@ -1,6 +1,8 @@
+from collections import OrderedDict
 from enum import Enum, IntEnum
 from os.path import abspath, isabs, join
-from typing import Any, Dict, Iterable, Optional, List, Tuple
+from time import time
+from typing import Any, Dict, Iterable, Optional, List, Tuple, TextIO
 
 import numpy as np
 from osgeo import gdal
@@ -15,6 +17,7 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterCrs, QgsProcessingParameterVectorDestination, QgsProcessing,
                         QgsProcessingUtils)
 
+from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
 from typeguard import typechecked
 
@@ -100,14 +103,18 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
 
     def parameterAsFields(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
-    ) -> List[str]:
-        return super().parameterAsFields(parameters, name, context)
+    ) -> Optional[List[str]]:
+        fields = super().parameterAsFields(parameters, name, context)
+        if len(fields) == 0:
+            return None
+        else:
+            return fields
 
     def parameterAsField(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[str]:
         fields = self.parameterAsFields(parameters, name, context)
-        if len(fields) == 0:
+        if fields is None:
             return None
         else:
             return fields[0]
@@ -305,6 +312,9 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def helpParameterVectorDestination(self):
         return 'Output vector destination.'
 
+    def helpParameterReportDestination(self):
+        return 'Output report destination.'
+
     def helpParameterCreationProfile(self):
         return 'Output format and creation options.'
 
@@ -373,7 +383,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.flagParameterAsAdvanced(name, advanced)
 
     def addParameterField(
-            self, name: str, description: str, parentLayerParameterName: str, defaultValue=None,
+            self, name: str, description: str, defaultValue=None, parentLayerParameterName='',
             type=QgsProcessingParameterField.Any, allowMultiple=False, optional=False, defaultToAllFields=False,
             advanced=False
     ):
@@ -454,12 +464,11 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
 
     def addParameterInt(
             self, name: str, description: str, defaultValue=None, optional=False, minValue: int = None,
-            maxValue: int = None, advanced=False, hidden=False
+            maxValue: int = None, advanced=False
     ):
         type = QgsProcessingParameterNumber.Integer
         self.addParameterNumber(name, description, type, defaultValue, optional, minValue, maxValue)
         self.flagParameterAsAdvanced(name, advanced)
-        self.flagParameterAsHidden(name, hidden)
 
     def addParameterFloat(
             self, name: str, description: str, defaultValue=None, optional=False, minValue: float = None,
@@ -541,6 +550,53 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         if hidden:
             p = self.parameterDefinition(name)
             p.setFlags(p.flags() | QgsProcessingParameterDefinition.FlagHidden)
+
+    def asConsoleCommand(self, parameters: Dict[str, Any], context: QgsProcessingContext):
+        cmd = f'qgis_process run enmapbox:{self.id()} '
+        parameter: QgsProcessingParameterDefinition
+        for parameter in self.parameterDefinitions():
+            value = parameters.get(parameter.name())
+            if value is None:
+                continue
+            value = parameter.valueAsPythonString(value, context)
+            cmd += f'--{parameter.name()}={value} '
+        return cmd
+
+    def asPythonCommand(self, parameters: Dict[str, Any], context: QgsProcessingContext):
+        cmdParameters = list()
+        for parameter in self.parameterDefinitions():
+            value_ = parameters.get(parameter.name())
+            if value_ is None:
+                continue
+            value = parameter.valueAsPythonString(value_, context)
+
+            # workaround issue: processing.run is not loading the default renderer when passing simple filenames
+            if isinstance(value_, QgsRasterLayer):
+                value = f"QgsRasterLayer(r'{eval(value)}')"
+            if isinstance(value_, QgsVectorLayer):
+                value = f"QgsVectorLayer(r'{eval(value)}')"
+
+            cmdParameters.append(f'{parameter.name()}={value}')
+
+        cmd = f"processing.run('enmapbox:{self.name()}', dict({', '.join(cmdParameters)}))"
+        return cmd
+
+
+    def createLoggingFeedback(
+            cls, feedback: QgsProcessingFeedback, logfile: TextIO
+    ) -> Tuple[ProcessingFeedback, ProcessingFeedback]:
+        feedbackMainAlgo = ProcessingFeedback(feedback, logfile=logfile)
+        feedbackChildAlgo = ProcessingFeedback(feedback, logfile=logfile, isChildFeedback=True, silenced=True)
+        return feedbackMainAlgo, feedbackChildAlgo
+
+    def tic(self, feedback: ProcessingFeedback, parameters: Dict[str, Any], context: QgsProcessingContext):
+        feedback.pushCommand(self.asPythonCommand(parameters, context))
+        feedback.pushInfo('')
+        self._startTime = time()
+
+    def toc(self, feedback: ProcessingFeedback, result: Dict):
+        feedback.pushTiming(time() - self._startTime)
+        feedback.pushResult(result)
 
 
 class Group(Enum):

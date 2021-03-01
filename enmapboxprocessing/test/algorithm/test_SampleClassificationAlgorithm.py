@@ -18,6 +18,7 @@ from enmapboxunittestdata import (landcover_polygons_3classes_epsg4326, landcove
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
+assert 0 # todo do we need this anymore?
 
 class TestClassifierAlgorithm(TestCase):
 

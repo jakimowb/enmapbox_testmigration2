@@ -56,7 +56,6 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterMapLayer(self.P_MAP, 'Classification')
         self.addParameterRasterLayer(self.P_GRID, 'Grid')
-        self.addParameterInt(self.P_PRECISION, 'Precision', 0, False, minValue=0, maxValue=2)
         self.addParameterCreationProfile(self.P_CREATION_PROFILE)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER)
 
@@ -69,10 +68,9 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
         map = self.parameterAsLayer(parameters, self.P_MAP, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         precision = self.parameterAsInt(parameters, self.P_PRECISION, context)
-        oversampling = [10, 32, 100][precision]
         format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
-
+        assert 0 # todo
         if oversampling is None:
             oversampling = 10  # results in integer precision fraction values (oversampling=100 would be 2 decimals)
             assert 0 # todo create oversampled grid

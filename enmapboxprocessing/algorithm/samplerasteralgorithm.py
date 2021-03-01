@@ -1,13 +1,13 @@
 from typing import Dict, Any, List, Tuple
 
 import processing
-from processing.algs.qgis.RasterSampling import RasterSampling
+#from processing.algs.qgis.RasterSampling import RasterSampling
 from processing.core.Processing import Processing
 
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.driver import Driver
-from enmapboxprocessing.progress import SilentFeedback
+from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
                         QgsFeature, QgsField, QgsProcessingFeatureSourceDefinition, QgsApplication,
@@ -59,46 +59,45 @@ class SampleRasterAlgorithm(EnMAPProcessingAlgorithm):
         vector = self.parameterAsVectorLayer(parameters, self.P_VECTOR, context)
         # aggregate = self.parameterAsBoolean(parameters, self.P_AGGREGATE, context)
         # aggregations = self.parameterAsEnums(parameters, self.P_AGGREGATIONS, context)
-
-        # feedback=QgsProcessingFeedback()
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_SAMPLE, context)
-        # filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_SAMPLE, context)
 
-        selectedFeaturesOnly = False
-        if Utils.isPointGeometry(vector.geometryType()):
-            self.samplePoints(filename, raster, vector, selectedFeaturesOnly, feedback, context)
-        else:
-            self.samplePolygons(filename, raster, vector, selectedFeaturesOnly, feedback, context)
+        with open(filename + '.log', 'w') as logfile:
+            feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
+            self.tic(feedback, parameters, context)
+            selectedFeaturesOnly = False
+            if Utils.isPointGeometry(vector.geometryType()):
+                self.samplePoints(filename, raster, vector, selectedFeaturesOnly, feedback, feedback2, context)
+            else:
+                self.samplePolygons(filename, raster, vector, selectedFeaturesOnly, feedback, feedback2, context)
+            result = {self.P_OUTPUT_SAMPLE: filename}
+            self.toc(feedback, result)
 
-        return {self.P_OUTPUT_SAMPLE: filename}
+        return result
+
 
     @classmethod
     def samplePoints(
-            cls, filename: str, raster: QgsRasterLayer, vector: QgsVectorLayer, selectedFeaturesOnly: bool, feedback,
-            context
+            cls, filename: str, raster: QgsRasterLayer, vector: QgsVectorLayer, selectedFeaturesOnly: bool,
+            feedback: QgsProcessingFeedback, feedback2: QgsProcessingFeedback, context: QgsProcessingContext
     ):
         assert Utils.isPointGeometry(vector.geometryType())
-
-        alg = RasterSampling()
+        alg = 'qgis:rastersampling'
         parameters = {
-            alg.COLUMN_PREFIX: 'SAMPLE_',
-            alg.INPUT: QgsProcessingFeatureSourceDefinition(vector.source(), selectedFeaturesOnly),
-            alg.OUTPUT: filename,
-            alg.RASTERCOPY: raster
+            'COLUMN_PREFIX': 'SAMPLE_',
+            'INPUT': QgsProcessingFeatureSourceDefinition(vector.source(), selectedFeaturesOnly),
+            'OUTPUT': filename,
+            'RASTERCOPY': raster
         }
-        processing.run(alg, parameters, None, feedback, context, True)
-        # Processing.runAlgorithm(alg, parameters, None, feedback, context)
+        processing.run(alg, parameters, None, feedback2, context, True)
         result = QgsVectorLayer(filename)
         return result
 
     @classmethod
     def samplePolygons(
             cls, filename: str, raster: QgsRasterLayer, vector: QgsVectorLayer, selectedFeaturesOnly: bool,
-            feedback: QgsProcessingFeedback, context: QgsProcessingContext
+            feedback: ProcessingFeedback, feedback2: ProcessingFeedback, context: QgsProcessingContext
     ):
         assert Utils.isPolygonGeometry(vector.geometryType())
-
-        feedback2 = SilentFeedback(feedback, setProgress=True)
 
         # create oversampling grid
         alg = CreateGridAlgorithm()
@@ -191,7 +190,7 @@ class SampleRasterAlgorithm(EnMAPProcessingAlgorithm):
             sampleVectors.append(
                 cls.samplePoints(
                     Utils.tmpFilename(filename, f'sample{fid}.gpkg'), raster, locationVector, selectedFeaturesOnly,
-                    feedback2, context
+                    feedback, feedback2, context
                 )
             )
 

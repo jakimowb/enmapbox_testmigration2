@@ -11,11 +11,13 @@ from processing.core.Processing import Processing
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
 from enmapboxprocessing.algorithm.translateclassificationalgorithm import TranslateClassificationAlgorithm
+from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
                         QgsPalettedRasterRenderer, QgsMapLayer, QgsCategorizedSymbolRenderer,
                         QgsFeatureRequest, QgsFeature, QgsCoordinateTransform, QgsProject, QgsGeometry, QgsPointXY,
-                        QgsPoint, QgsRasterDataProvider, QgsProcessingParameterRasterDestination)
+                        QgsPoint, QgsRasterDataProvider, QgsProcessingParameterRasterDestination,
+                        QgsProcessingParameterField)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
@@ -28,6 +30,7 @@ from enmapboxprocessing.utils import Utils
 class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
     P_RASTER = 'raster'
     P_CLASSIFICATION = 'classification'
+    P_FEATURE_FIELDS = 'featureFields'
     P_CODE = 'code'
     P_SAMPLE_SIZE = 'sampleSize'
     P_REPLACE = 'replace'
@@ -55,8 +58,12 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
             (self.P_RASTER, 'Raster with training data features.'),
             (self.P_CLASSIFICATION, 'Classification with training data labels. '
                                     f'{self.helpParameterMapClassification()} '
-                                    f'Note that, if required, the classification layer is resampled, reprojected and '
-                                    f'rasterized internally to match the raster grid.'),
+                                    f'The classification layer is resampled, reprojected and rasterized internally to '
+                                    f'match the raster grid, if required. '
+                                    f'\nNote: you can safely ignore the <i>"Could not load layer/table. '
+                                    f'Dependent field could not be populated."</i> warning, when selecting a raster '
+                                    f'layer.'),
+            (self.P_FEATURE_FIELDS, 'Use selected fields as training data features.'),
             (self.P_CODE, self.helpParameterCode()),
             (self.P_SAMPLE_SIZE, 'Use all data for training, if value is "not set", '
                                  'a random subsample with given class size for values greater equal 1, '
@@ -67,7 +74,8 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
                                       'Only relevant for point geometries. Line and polygon geometries are always '
                                       'rasterized.'),
             (self.P_MAXIMUM_MEMORY_USAGE, self.helpParameterMaximumMemoryUsage()),
-            (self.P_OUTPUT_CLASSIFICATION, 'Output Classification'),
+            (self.P_OUTPUT_CLASSIFICATION, 'Output classification destination.'),
+            (self.P_OUTPUT_PROBABILITY, 'Output class probability destination.'),
             (self.P_OUTPUT_CLASSIFIER, 'Output classifier model destination (*.pkl file). '
                                        'This file can be used for applying the classifier to a raster using '
                                        '<i>Classification / Predict Classification</i> and '
@@ -78,8 +86,12 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         return Group.Test.value + Group.Classification.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_RASTER, 'Raster')
+        self.addParameterRasterLayer(self.P_RASTER, 'Raster', optional=True)
         self.addParameterMapLayer(self.P_CLASSIFICATION, 'Label')
+        self.addParameterField(
+            self.P_FEATURE_FIELDS, 'Features', None, self.P_CLASSIFICATION, QgsProcessingParameterField.Numeric, True,
+            optional=True, advanced=True
+        )
         self.addParameterString(self.P_CODE, 'Code', self.defaultCodeAsString(), True, advanced=True)
         self.addParameterFloat(self.P_SAMPLE_SIZE, 'Sample Size', optional=True, minValue=0, advanced=True)
         self.addParameterBoolean(self.P_REPLACE, 'Sample with Replacement', False, advanced=True)
@@ -109,9 +121,31 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
             return False, traceback.format_exc()
         return True, ''
 
+    def checkParameterFeatures(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
+        raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
+        fields = self.parameterAsFields(parameters, self.P_FEATURE_FIELDS, context)
+
+        if raster is None and fields is None:
+            return False, 'Select either a raster layer (Raster) or a list of fields (Feature Fields) used as ' \
+                          'training data features.'
+        if raster is not None and fields is not None:
+            if raster.bandCount() != len(fields):
+                return False, 'Number of bands (Raster) must match number of selected fields (Feature Fields).'
+        return True, ''
+
+    def checkParameterRaster(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
+        if self.parameterAsRasterLayer(parameters, self.P_RASTER, context) is None:
+            if self.parameterAsFileOutput(parameters, self.P_OUTPUT_CLASSIFICATION, context) is not None:
+                return False, 'Missing parameter value: (Raster)'
+            if self.parameterAsFileOutput(parameters, self.P_OUTPUT_PROBABILITY, context) is not None:
+                return False, 'Missing parameter value: (Raster)'
+        return True, ''
+
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         checks = [
+            self.checkParameterRaster(parameters, context),
             self.checkParameterMapClassification(parameters, self.P_CLASSIFICATION, context),
+            self.checkParameterFeatures(parameters, context),
             self.checkParameterCode(parameters, context)
         ]
         for valid, message in checks:
@@ -124,6 +158,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         classification = self.parameterAsLayer(parameters, self.P_CLASSIFICATION, context)
+        featureFields = self.parameterAsFields(parameters, self.P_FEATURE_FIELDS, context)
         sampleSize = self.parameterAsDouble(parameters, self.P_SAMPLE_SIZE, context)
         replace = self.parameterAsBoolean(parameters, self.P_REPLACE, context)
         saveData = self.parameterAsBoolean(parameters, self.P_SAVE_DATA, context)
@@ -136,55 +171,94 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         if sampleSize is not None and sampleSize >= 1:
             sampleSize = int(round(sampleSize))
 
-        X, y, categories = self.sampleAny(
-            raster, classification, filename, rasterizePoints, maximumMemoryUsage, feedback, context
-        )
+        with open(filename + '.log', 'w') as logfile:
+            feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
+            self.tic(feedback, parameters, context)
 
-        if sampleSize:
-            X, y = self.subsample(X, y, sampleSize, replace)
+            if featureFields is None:
+                X, y, categories = self.sampleAny(
+                    raster, classification, filename, rasterizePoints, maximumMemoryUsage, feedback, context
+                )
+            else:
+                assert isinstance(classification, QgsVectorLayer)
+                X, y, categories = self.sampleFromFields(featureFields, classification, feedback)
 
-        classifier.fit(X, y.ravel())
+            if sampleSize:
+                X, y = self.subsample(X, y, sampleSize, replace)
 
-        if not saveData:
-            X = y = None
-        Utils.pickleDumpClassifier(classifier, categories, X, y, filename)
+            classifier.fit(X, y.ravel())
 
-        result = {self.P_OUTPUT_CLASSIFIER: filename}
+            if not saveData:
+                X = y = None
+            Utils.pickleDumpClassifier(classifier, categories, X, y, filename)
 
-        if filenameClassification is not None:
-            alg = PredictClassificationAlgorithm()
-            alg.initAlgorithm()
-            parameters = {
-                alg.P_CLASSIFIER: filename,
-                alg.P_RASTER: raster,
-                alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiffProfile,
-                alg.P_MAXIMUM_MEMORY_USAGE: maximumMemoryUsage,
-                alg.P_OUTPUT_RASTER: filenameClassification
-            }
-            Processing.runAlgorithm(alg, parameters, None, feedback, context)
-            result[self.P_OUTPUT_CLASSIFICATION] = filenameClassification
+            result = {self.P_OUTPUT_CLASSIFIER: filename}
 
-        if filenameProbability is not None:
-            alg = PredictClassPropabilityAlgorithm()
-            alg.initAlgorithm()
-            parameters = {
-                alg.P_CLASSIFIER: filename,
-                alg.P_RASTER: raster,
-                alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiffProfile,
-                alg.P_MAXIMUM_MEMORY_USAGE: maximumMemoryUsage,
-                alg.P_OUTPUT_RASTER: filenameProbability
-            }
-            Processing.runAlgorithm(alg, parameters, None, feedback, context)
-            result[self.P_OUTPUT_PROBABILITY] = filenameProbability
+            if filenameClassification is not None:
+                alg = PredictClassificationAlgorithm()
+                alg.initAlgorithm()
+                parameters = {
+                    alg.P_CLASSIFIER: filename,
+                    alg.P_RASTER: raster,
+                    alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiffProfile,
+                    alg.P_MAXIMUM_MEMORY_USAGE: maximumMemoryUsage,
+                    alg.P_OUTPUT_RASTER: filenameClassification
+                }
+                Processing.runAlgorithm(alg, parameters, None, feedback, context)
+                result[self.P_OUTPUT_CLASSIFICATION] = filenameClassification
+
+            if filenameProbability is not None:
+                alg = PredictClassPropabilityAlgorithm()
+                alg.initAlgorithm()
+                parameters = {
+                    alg.P_CLASSIFIER: filename,
+                    alg.P_RASTER: raster,
+                    alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiffProfile,
+                    alg.P_MAXIMUM_MEMORY_USAGE: maximumMemoryUsage,
+                    alg.P_OUTPUT_RASTER: filenameProbability
+                }
+                Processing.runAlgorithm(alg, parameters, None, feedback, context)
+                result[self.P_OUTPUT_PROBABILITY] = filenameProbability
+
+            self.toc(feedback, result)
 
         return result
+
+
+    @classmethod
+    def sampleFromFields(
+            cls, featureFields: List[str], classification: QgsVectorLayer, feedback: ProcessingFeedback
+    ) -> Tuple[SampleX, SampleY, Categories]:
+        renderer = classification.renderer()
+        assert isinstance(renderer, QgsCategorizedSymbolRenderer)
+        categories = Utils.categoriesFromCategorizedSymbolRenderer(renderer)
+        classIdByValue = {value: i + 1 for i, (value, label, color) in enumerate(categories) if label != ''}
+        categories = [(classIdByValue[value], label, color)
+                      for i, (value, label, color) in enumerate(categories) if label != '']
+        classField = renderer.classAttribute()
+
+        n = classification.featureCount()
+        X = np.zeros(shape=(n, len(featureFields)), dtype=np.float32)
+        y = np.zeros(shape=(n, 1), dtype=np.float32)
+        feature: QgsFeature
+        for i, feature in enumerate(classification.getFeatures()):
+            feedback.setProgress(i / n * 100)
+            yi = classIdByValue.get(feature.attribute(classField), np.nan)
+            y[i, 0] = yi
+            for k, featureField in enumerate(featureFields):
+                Xik = feature.attribute(featureField)
+                if Xik is None:
+                    Xik = np.nan
+                X[i, k] = Xik
+
+        checkSampleShape(X, y)
+        return X, y, categories
 
     @classmethod
     def sampleAny(
             cls, raster: QgsRasterLayer, classification: QgsMapLayer, filename: str, rasterizePoints: bool = False,
-            maximumMemoryUsage: int = None, feedback: QgsProcessingFeedback = None, context: QgsProcessingContext = None
-    ):
-
+            maximumMemoryUsage: int = None, feedback: ProcessingFeedback = None, context: QgsProcessingContext = None
+    ) -> Tuple[SampleX, SampleY, Categories]:
         if isinstance(classification, QgsVectorLayer):
             if not rasterizePoints and Utils.isPointGeometry(classification.geometryType()):
                 X, y, categories = cls.samplePoints(raster, classification, feedback)
@@ -283,8 +357,10 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         coordinateTransform = QgsCoordinateTransform(classification.sourceCrs(), raster.crs(), QgsProject.instance())
         X = list()
         y = list()
+        n = classification.featureCount()
         feature: QgsFeature
-        for feature in classification.getFeatures(featureRequest):
+        for i, feature in enumerate(classification.getFeatures(featureRequest)):
+            feedback.setProgress(i / n * 100)
             yi = classIdByValue.get(feature.attribute(classField), None)
             if yi is None:
                 continue

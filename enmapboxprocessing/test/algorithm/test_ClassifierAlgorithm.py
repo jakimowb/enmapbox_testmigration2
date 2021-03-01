@@ -1,5 +1,8 @@
+import webbrowser
+
 import numpy as np
-from qgis._core import QgsRasterLayer, QgsVectorLayer
+import processing
+from qgis._core import QgsRasterLayer, QgsVectorLayer, QgsProcessingContext
 from sklearn.base import ClassifierMixin
 
 from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
@@ -12,7 +15,7 @@ from enmapboxprocessing.utils import Utils
 from enmapboxtestdata import enmap, landcover_polygons
 from enmapboxunittestdata import (landcover_polygons_3classes_epsg4326, landcover_points_multipart_epsg3035,
                                   landcover_points_singlepart_epsg3035, landcover_raster_30m, landcover_raster_1m,
-                                  landcover_raster_1m_epsg3035)
+                                  landcover_raster_1m_epsg3035, sample)
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -36,6 +39,35 @@ class FitTestClassifierAlgorithm(FitClassifierAlgorithmBase):
 
 
 class TestClassifierAlgorithm(TestCase):
+
+    def test_pythonCommand(self):
+        alg = FitRandomForestClassifierAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_RASTER: QgsRasterLayer(enmap),
+            alg.P_CLASSIFICATION: QgsVectorLayer(landcover_polygons),
+            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl'
+        }
+        processing
+        cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
+        print(cmd)
+        eval(cmd)
+        webbrowser.open_new(parameters[alg.P_OUTPUT_CLASSIFIER] + '.log')
+
+    def test_vectorSample(self):
+        global c
+        alg = FitTestClassifierAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_RASTER: QgsRasterLayer(enmap),
+            alg.P_CLASSIFICATION: QgsVectorLayer(sample),
+            alg.P_FEATURE_FIELDS: [f'Sample__{i + 1}' for i in range(177)],
+            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+            alg.P_OUTPUT_CLASSIFICATION: c + '/vsimem/classification.tif'
+        }
+        result = self.runalg(alg, parameters)
+        classifier, categories, X, y = Utils.pickleLoadClassifier(result[alg.P_OUTPUT_CLASSIFIER])
+        a=1
 
     def test_polygonLabels(self):
         global c

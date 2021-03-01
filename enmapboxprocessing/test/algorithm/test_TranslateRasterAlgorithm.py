@@ -1,4 +1,7 @@
-from qgis._core import QgsRasterLayer, QgsRasterRenderer
+import webbrowser
+
+import processing
+from qgis._core import QgsRasterLayer, QgsRasterRenderer, QgsProcessingContext
 import numpy as np
 
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
@@ -12,6 +15,19 @@ c = ['', 'c:'][int(writeToDisk)]
 
 
 class TestTranslateAlgorithm(TestCase):
+
+    def test_pythonCommand(self):
+        alg = TranslateRasterAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_RASTER: QgsRasterLayer(enmap),
+            alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
+        }
+        processing
+        cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
+        print(cmd)
+        eval(cmd)
+        webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
 
     def test_default(self):
         alg = TranslateRasterAlgorithm()

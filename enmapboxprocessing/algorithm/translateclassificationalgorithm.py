@@ -19,7 +19,7 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
     P_OUTPUT_RASTER = 'outraster'
 
     def displayName(self):
-        return 'Translate/Warp Classification'
+        return 'Translate / Warp Classification'
 
     def shortDescription(self):
         return 'Translates classification into target grid.' \
@@ -54,44 +54,51 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
         creationProfile = self.parameterAsEnum(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
 
-        # create oversampling grid
-        alg = CreateGridAlgorithm()
-        alg.initAlgorithm()
-        parameters = {
-            alg.P_CRS: grid.crs(),
-            alg.P_EXTENT: grid.extent(),
-            alg.P_UNIT: alg.PixelUnits,
-            alg.P_WIDTH: grid.width() * 10,
-            alg.P_HEIGHT: grid.height() * 10,
-            alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'grid.x10.vrt')
-        }
-        result = Processing.runAlgorithm(alg, parameters, None, feedback, context)
-        oversamplingGrid = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+        with open(filename + '.log', 'w') as logfile:
+            feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
+            self.tic(feedback, parameters, context)
 
-        # translate into oversampling grid
-        alg = TranslateRasterAlgorithm()
-        alg.initAlgorithm()
-        parameters = {
-            alg.P_RASTER: classification,
-            alg.P_GRID: oversamplingGrid,
-            alg.P_RESAMPLE_ALG: alg.NearestNeighbourResampleAlg,
-            alg.P_COPY_STYLE: True,
-            alg.P_CREATION_PROFILE: alg.VrtProfile,
-            alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.x10.vrt')
-        }
-        result = Processing.runAlgorithm(alg, parameters, None, feedback, context)
-        oversamplingClassification = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
 
-        # final majority voting
-        alg = TranslateRasterAlgorithm()
-        alg.initAlgorithm()
-        parameters = {
-            alg.P_RASTER: oversamplingClassification,
-            alg.P_GRID: grid,
-            alg.P_RESAMPLE_ALG: alg.ModeResampleAlg,
-            alg.P_COPY_STYLE: True,
-            alg.P_CREATION_PROFILE: creationProfile,
-            alg.P_OUTPUT_RASTER: filename
-        }
-        Processing.runAlgorithm(alg, parameters, None, feedback, context)
-        return {self.P_OUTPUT_RASTER: filename}
+            # create oversampling grid
+            alg = CreateGridAlgorithm()
+            alg.initAlgorithm()
+            parameters = {
+                alg.P_CRS: grid.crs(),
+                alg.P_EXTENT: grid.extent(),
+                alg.P_UNIT: alg.PixelUnits,
+                alg.P_WIDTH: grid.width() * 10,
+                alg.P_HEIGHT: grid.height() * 10,
+                alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'grid.x10.vrt')
+            }
+            result = Processing.runAlgorithm(alg, parameters, None, feedback2, context)
+            oversamplingGrid = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+
+            # translate into oversampling grid
+            alg = TranslateRasterAlgorithm()
+            alg.initAlgorithm()
+            parameters = {
+                alg.P_RASTER: classification,
+                alg.P_GRID: oversamplingGrid,
+                alg.P_RESAMPLE_ALG: alg.NearestNeighbourResampleAlg,
+                alg.P_COPY_STYLE: True,
+                alg.P_CREATION_PROFILE: alg.VrtProfile,
+                alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.x10.vrt')
+            }
+            result = Processing.runAlgorithm(alg, parameters, None, feedback2, context)
+            oversamplingClassification = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+
+            # final majority voting
+            alg = TranslateRasterAlgorithm()
+            alg.initAlgorithm()
+            parameters = {
+                alg.P_RASTER: oversamplingClassification,
+                alg.P_GRID: grid,
+                alg.P_RESAMPLE_ALG: alg.ModeResampleAlg,
+                alg.P_COPY_STYLE: True,
+                alg.P_CREATION_PROFILE: creationProfile,
+                alg.P_OUTPUT_RASTER: filename
+            }
+            Processing.runAlgorithm(alg, parameters, None, feedback2, context)
+            result = {self.P_OUTPUT_RASTER: filename}
+            self.toc(feedback, result)
+        return result

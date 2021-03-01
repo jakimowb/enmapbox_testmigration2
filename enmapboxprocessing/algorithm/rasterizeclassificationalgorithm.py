@@ -2,7 +2,9 @@ from typing import Dict, Any, List, Tuple
 
 from PyQt5.QtCore import QVariant
 from qgis.core import edit
-from processing.core.Processing import Processing
+import processing
+from enmapboxprocessing.driver import Driver
+from enmapboxprocessing.rasterreader import RasterReader
 from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRectangle,
                         QgsCoordinateReferenceSystem, QgsVectorFileWriter,
@@ -18,11 +20,12 @@ from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
     P_VECTOR = 'vector'
     P_GRID = 'grid'
+    P_COVERAGE = 'coverage'
     P_CREATION_PROFILE = 'creationProfile'
     P_OUTPUT_RASTER = 'outraster'
 
     def displayName(self):
-        return 'Rasterize Classification'
+        return 'Rasterize Vector Classification'
 
     def shortDescription(self):
         return 'Converts a categorized vector into a classification by evaluating renderer categories. ' \
@@ -35,6 +38,7 @@ class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
         return [
             (self.P_VECTOR, self.helpParameterVectorClassification()),
             (self.P_GRID, self.helpParameterGrid()),
+            (self.P_COVERAGE, 'Exclude all pixel where (polygon) coverage is smaller than given threshold.'),
             (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
             (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
@@ -45,7 +49,8 @@ class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterVectorLayer(self.P_VECTOR, 'Vector Classification')
         self.addParameterRasterLayer(self.P_GRID, 'Grid')
-        self.addParameterCreationProfile(self.P_CREATION_PROFILE)
+        self.addParameterInt(self.P_COVERAGE, 'Minimum Pixel Coverage', 0, False, 0, 100, advanced=True)
+        self.addParameterCreationProfile(self.P_CREATION_PROFILE, advanced=True)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output Classification')
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
@@ -56,48 +61,74 @@ class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         vector = self.parameterAsVectorLayer(parameters, self.P_VECTOR, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
-        creationProfile = self.parameterAsInt(parameters, self.P_CREATION_PROFILE, context)
+        minCoverage = self.parameterAsInt(parameters, self.P_COVERAGE, context) / 100.
+        format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
 
-        info = 'Derive class ids from renderer categories'
-        feedback.pushInfo(info)
+        with open(filename + '.log', 'w') as logfile:
+            feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
+            self.tic(feedback, parameters, context)
 
-        # create vector layer with class id attribute (values from 1...n) matching the given categories
-        fieldName = 'derived_id'
-        tmpVectorFilename = Utils.tmpFilename(filename, 'categorized.gpkg')
-        tmpVector, names, colors = self.categoriesToField(
-            vector, fieldName, grid.extent(), grid.crs(), tmpVectorFilename, feedback
-        )
+            info = 'Derive class ids from renderer categories'
+            feedback.pushInfo(info)
+            fieldName = 'derived_id'
+            tmpVector, names, colors = self.categoriesToField(
+                vector, fieldName, grid.extent(), grid.crs(), Utils.tmpFilename(filename, 'categorized.gpkg'), feedback2
+            )
 
-        geometryType = vector.geometryType()
-        if Utils.isPolygonGeometry(geometryType):
-            resampleAlg = self.ModeResampleAlg  # use 10x oversampling
-        else:
-            resampleAlg = self.NearestNeighbourResampleAlg  # simple burn
+            info = 'Rasterite vector classification'
+            feedback.pushInfo(info)
+            geometryType = vector.geometryType()
+            if Utils.isPolygonGeometry(geometryType):
+                resampleAlg = self.ModeResampleAlg  # use 10x oversampling
+            else:
+                resampleAlg = self.NearestNeighbourResampleAlg  # simple burn
+            dataType = Utils.smallesUIntDataType(len(names))
+            alg = RasterizeVectorAlgorithm()
+            parameters = {
+                alg.P_GRID: grid,
+                alg.P_VECTOR: tmpVector,
+                alg.P_DATA_TYPE: self.O_DATA_TYPE.index(Utils.qgisDataTypeName(dataType)),
+                alg.P_BURN_ATTRIBUTE: fieldName,
+                alg.P_RESAMPLE_ALG: resampleAlg,
+                alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
+                alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'rasterized.tif')
+            }
+            classification = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER]
 
-        dataType = Utils.smallesUIntDataType(len(names))
-        alg = RasterizeVectorAlgorithm()
-        parameters = {
-            alg.P_GRID: grid,
-            alg.P_VECTOR: tmpVector,
-            alg.P_DATA_TYPE: self.O_DATA_TYPE.index(Utils.qgisDataTypeName(dataType)),
-            alg.P_BURN_ATTRIBUTE: fieldName,
-            alg.P_RESAMPLE_ALG: resampleAlg,
-            alg.P_CREATION_PROFILE: creationProfile,
-            alg.P_OUTPUT_RASTER: filename
-        }
-        Processing.runAlgorithm(alg, parameters, None, feedback, context)
+            info = 'Calculate pixel coverage'
+            feedback.pushInfo(info)
+            alg = RasterizeVectorAlgorithm()
+            parameters = {
+                alg.P_GRID: grid,
+                alg.P_VECTOR: tmpVector,
+                alg.P_DATA_TYPE: self.Float32,
+                alg.P_RESAMPLE_ALG: self.AverageResampleAlg,
+                alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
+                alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'coverage.tif')
+            }
+            coverageRaster = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER]
 
-        # setup renderer
-        layer = QgsRasterLayer(filename)
-        categories = [(value, label, color) for value, (label, color) in enumerate(zip(names, colors), 1)]
-        renderer = Utils.palettedRasterRendererFromCategories(layer.dataProvider(), 1, categories)
-        layer.setRenderer(renderer)
-        message, success = layer.saveDefaultStyle()
-        if not success:
-            raise QgsProcessingException(message)
+            info = 'Mask pixel with low coverage'
+            feedback.pushInfo(info)
+            array = RasterReader(classification).array()
+            marray = RasterReader(coverageRaster).array()[0] < minCoverage
+            array[0][marray] = 0
+            Driver(filename, format, options, feedback2).createFromArray(array, grid.extent(), grid.crs())
 
-        return {self.P_OUTPUT_RASTER: filename}
+            # setup renderer
+            layer = QgsRasterLayer(filename)
+            categories = [(value, label, color) for value, (label, color) in enumerate(zip(names, colors), 1)]
+            renderer = Utils.palettedRasterRendererFromCategories(layer.dataProvider(), 1, categories)
+            layer.setRenderer(renderer)
+            message, success = layer.saveDefaultStyle()
+            if not success:
+                raise QgsProcessingException(message)
+
+            result = {self.P_OUTPUT_RASTER: filename}
+            self.toc(feedback, result)
+
+        return result
 
     @classmethod
     def categoriesToField(

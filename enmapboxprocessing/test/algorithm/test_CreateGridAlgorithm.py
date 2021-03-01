@@ -1,20 +1,36 @@
-from osgeo import gdal
-from qgis._core import QgsRasterLayer, QgsPalettedRasterRenderer
-import numpy as np
+import subprocess
+import webbrowser
+
+import processing
+from qgis._core import QgsRasterLayer, QgsProcessingContext, QgsCoordinateReferenceSystem
 
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
-from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
-from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxprocessing.utils import Utils
-from enmapboxtestdata import enmap, hires
-from enmapboxunittestdata import landcover_raster_30m_epsg3035, landcover_raster_30m
+from enmapboxtestdata import enmap
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
 class TestCreateGridAlgorithm(TestCase):
+
+    def test_pythonCommand(self):
+        raster = QgsRasterLayer(enmap)
+        alg = CreateGridAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_CRS: raster.crs(),
+            alg.P_EXTENT: raster.extent(),
+            alg.P_UNIT: alg.PixelUnits,
+            alg.P_WIDTH: raster.width(),
+            alg.P_HEIGHT: raster.height(),
+            alg.P_OUTPUT_RASTER: c + '/vsimem/grid.tif'
+        }
+        processing, QgsCoordinateReferenceSystem
+        cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
+        print(cmd)
+        eval(cmd)
+        webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
 
     def test_pixelUnits(self):
         raster = QgsRasterLayer(enmap)
@@ -31,7 +47,7 @@ class TestCreateGridAlgorithm(TestCase):
         result = self.runalg(alg, parameters)
         grid = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
         for gold, lead in [
-            (raster.crs(), grid.crs()), (raster.extent(), grid.extent()),(raster.width(), grid.width()),
+            (raster.crs(), grid.crs()), (raster.extent(), grid.extent()), (raster.width(), grid.width()),
             (raster.height(), grid.height())
         ]:
             self.assertEqual(gold, lead)
@@ -51,7 +67,7 @@ class TestCreateGridAlgorithm(TestCase):
         result = self.runalg(alg, parameters)
         grid = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
         for gold, lead in [
-            (raster.crs(), grid.crs()), (raster.extent(), grid.extent()),(raster.width(), grid.width()),
+            (raster.crs(), grid.crs()), (raster.extent(), grid.extent()), (raster.width(), grid.width()),
             (raster.height(), grid.height())
         ]:
             self.assertEqual(gold, lead)
