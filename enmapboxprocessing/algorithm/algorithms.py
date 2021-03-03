@@ -1,3 +1,4 @@
+from enmapboxprocessing.algorithm.classificationperformancealgorithm import ClassificationPerformanceAlgorithm
 from enmapboxprocessing.algorithm.classificationtofractionalgorithm import ClassificationToFractionAlgorithm
 from enmapboxprocessing.algorithm.colorizeclassprobabilityalgorithm import ColorizeClassProbabilityAlgorithm
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
@@ -14,6 +15,7 @@ from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRaste
 
 def algorithms():
     return [
+        ClassificationPerformanceAlgorithm(),
         ClassificationToFractionAlgorithm(),
         ColorizeClassProbabilityAlgorithm(),
         CreateGridAlgorithm(),

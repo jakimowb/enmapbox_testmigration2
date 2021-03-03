@@ -15,7 +15,7 @@ from sklearn.base import ClassifierMixin
 
 from enmapboxprocessing.enmapalgorithm import AlgorithmCanceledException
 from enmapboxprocessing.typing import (NumpyDataType, MetadataValue, GdalDataType, QgisDataType, MetadataDomain,
-                                       GdalResamplingAlgorithm, Categories, SampleX, SampleY)
+                                       GdalResamplingAlgorithm, Categories, SampleX, SampleY, Category)
 from typeguard import typechecked
 
 
@@ -196,7 +196,7 @@ class Utils(object):
 
     @classmethod
     def categoriesFromPalettedRasterRenderer(cls, renderer: QgsPalettedRasterRenderer) -> Categories:
-        categories = [(c.value, c.label, c.color.name()) for c in renderer.classes()]
+        categories = [Category(c.value, c.label, c.color.name()) for c in renderer.classes()]
         return categories
 
     @classmethod
@@ -224,7 +224,7 @@ class Utils(object):
     @classmethod
     def categoriesFromCategorizedSymbolRenderer(cls, renderer: QgsCategorizedSymbolRenderer) -> Categories:
         c: QgsRendererCategory
-        categories = [(c.value(), c.label(), c.symbol().color().name()) for c in renderer.categories()]
+        categories = [Category(c.value(), c.label(), c.symbol().color().name()) for c in renderer.categories()]
         return categories
 
     @classmethod

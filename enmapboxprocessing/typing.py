@@ -1,9 +1,8 @@
-from typing import Union, List, Dict, Optional, Tuple
+from typing import Union, List, Dict, Optional, NamedTuple
 
 import numpy as np
-from PyQt5.QtGui import QColor
 from osgeo import gdal
-from qgis._core import Qgis, QgsRasterDataProvider, QgsRasterLayer
+from qgis._core import QgsRasterDataProvider, QgsRasterLayer
 from typeguard import typechecked
 
 GdalDataType = int
@@ -20,7 +19,13 @@ Metadata = Dict[str, MetadataDomain]
 RasterSource = Union[str, QgsRasterLayer, QgsRasterDataProvider, gdal.Dataset]
 CreationOptions = List[str]
 HexColor = str
-Category = Tuple[Union[int, str], str, HexColor]  # (value, label, hexcolor)
+
+@typechecked
+class Category(NamedTuple):
+    value: Union[int, str]
+    name: str
+    color: HexColor
+
 Categories = List[Category]
 SampleX = Array2d
 SampleY = Array2d

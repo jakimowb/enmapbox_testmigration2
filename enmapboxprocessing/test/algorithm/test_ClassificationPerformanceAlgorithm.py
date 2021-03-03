@@ -1,7 +1,14 @@
-import numpy as np
+import webbrowser
 
-from enmapboxprocessing.algorithm.classificationperformancealgorithm import aa_stratified
+import numpy as np
+from qgis._core import QgsRasterLayer, QgsVectorLayer
+
+from enmapboxprocessing.algorithm.classificationperformancealgorithm import (aa_stratified,
+                                                                             stratifiedAccuracyAssessment,
+                                                                             ClassificationPerformanceAlgorithm)
 from enmapboxprocessing.test.algorithm.testcase import TestCase
+from enmapboxtestdata import landcover_points, landcover_polygons
+from enmapboxunittestdata import landcover_map_l2, landcover_map_l3
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -9,14 +16,14 @@ c = ['', 'c:'][int(writeToDisk)]
 
 class Test_aa_stratified(TestCase):
 
-    def test(self):
+    def test_stehmanData(self):
         map =       ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'A', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'C', 'C', 'C', 'C', 'C', 'C', 'B', 'B', 'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D', 'D']
         reference = ['A', 'A', 'A', 'A', 'A', 'C', 'B', 'A', 'B', 'C', 'A', 'B', 'B', 'B', 'B', 'B', 'A', 'A', 'B', 'B', 'C', 'C', 'C', 'C', 'C', 'D', 'D', 'B', 'B', 'A', 'D', 'D', 'D', 'D', 'D', 'D', 'D', 'C', 'C', 'B']
         stratum =   ['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '3', '3', '3', '3', '3', '3', '3', '3', '3', '3', '4', '4', '4', '4', '4', '4', '4', '4', '4', '4']
         h = ['1', '2', '3', '4']
         N_h = [40000, 30000, 20000, 10000]
 
-        stats = aa_stratified(stratum, reference, map, h, N_h)
+        stats = stratifiedAccuracyAssessment(stratum, reference, map, h, N_h)
 
         cm = [[9.2,  1.6, 1.6, 0.0],
               [4.8, 10.8, 3.2, 0.0],
@@ -47,15 +54,41 @@ class Test_aa_stratified(TestCase):
                 [0.11,            0.03073181]]
         area = np.array(area).T
 
-        self.assertTrue(np.allclose(cmp, stats['confusion_matrix_proportions']))
-        self.assertTrue(np.allclose(cm, stats['confusion_matrix_counts']))
-        self.assertAlmostEqual(accuracy[0], stats['overall_accuracy'])
-        self.assertAlmostEqual(accuracy[1], stats['overall_accuracy_se'])
-        self.assertTrue(np.allclose(area[0], stats['area_proportion']))
-        self.assertTrue(np.allclose(area[1], stats['area_proportion_se']))
-        self.assertTrue(np.allclose(cwa[0], stats['users_accuracy']))
-        self.assertTrue(np.allclose(cwa[1], stats['users_accuracy_se']))
-        self.assertTrue(np.allclose(cwa[2], stats['producers_accuracy']))
-        self.assertTrue(np.allclose(cwa[3], stats['producers_accuracy_se']))
-        self.assertTrue(np.allclose(cwa[4], stats['f1']))
-        self.assertTrue(np.allclose(cwa[5], stats['f1_se']))
+        self.assertTrue(np.allclose(cmp, stats.confusion_matrix_proportions))
+        self.assertTrue(np.allclose(cm, stats.confusion_matrix_counts))
+        self.assertAlmostEqual(accuracy[0], stats.overall_accuracy)
+        self.assertAlmostEqual(accuracy[1], stats.overall_accuracy_se, places=4)
+        self.assertTrue(np.allclose(area[0], stats.area_proportion))
+        self.assertTrue(np.allclose(area[1], stats.area_proportion_se, rtol=1e-3))
+        self.assertTrue(np.allclose(cwa[0], stats.users_accuracy))
+        self.assertTrue(np.allclose(cwa[1], stats.users_accuracy_se, rtol=1e-3))
+        self.assertTrue(np.allclose(cwa[2], stats.producers_accuracy))
+        self.assertTrue(np.allclose(cwa[3], stats.producers_accuracy_se, rtol=1e-3))
+        self.assertTrue(np.allclose(cwa[4], stats.f1))
+        self.assertTrue(np.allclose(cwa[5], stats.f1_se, rtol=1e-3))
+
+    def test_withSmall_sampleSize(self):
+        map =       ['A', 'B', 'C']
+        reference = ['A', 'B', 'C']
+        stratum =   ['1', '1', '2']
+        h = ['1', '2']
+        N_h = [10, 20]
+
+        result = stratifiedAccuracyAssessment(stratum, reference, map, h, N_h)
+        self.assertEqual(1., result.overall_accuracy)
+        self.assertTrue(np.isnan(result.overall_accuracy_se))
+
+class TestClassificationPerformanceAlgorithm(TestCase):
+    def test_withStratification(self):
+        global c
+        alg = ClassificationPerformanceAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_CLASSIFICATION: QgsRasterLayer(landcover_map_l3),
+            alg.P_REFERENCE: QgsVectorLayer(landcover_polygons),
+            alg.P_STRATIFICATION: QgsRasterLayer(landcover_map_l3),
+            alg.P_OUTPUT_REPORT: c + '/vsimem/report.html',
+        }
+        result = self.runalg(alg, parameters)
+        webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT])
+        #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT] + '.log')

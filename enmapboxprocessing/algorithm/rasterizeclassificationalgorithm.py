@@ -11,7 +11,7 @@ from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLa
                         QgsProject, QgsField, QgsCoordinateTransform, QgsRasterLayer, QgsProcessingException)
 
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
-from enmapboxprocessing.typing import HexColor
+from enmapboxprocessing.typing import HexColor, Category
 from enmapboxprocessing.utils import Utils
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
@@ -118,7 +118,7 @@ class RasterizeClassificationAlgorithm(EnMAPProcessingAlgorithm):
 
             # setup renderer
             layer = QgsRasterLayer(filename)
-            categories = [(value, label, color) for value, (label, color) in enumerate(zip(names, colors), 1)]
+            categories = [Category(value, label, color) for value, (label, color) in enumerate(zip(names, colors), 1)]
             renderer = Utils.palettedRasterRendererFromCategories(layer.dataProvider(), 1, categories)
             layer.setRenderer(renderer)
             message, success = layer.saveDefaultStyle()
