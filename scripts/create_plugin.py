@@ -59,7 +59,7 @@ MD.mTracker = enmapbox.ISSUE_TRACKER
 MD.mRepository = enmapbox.REPOSITORY
 MD.mQgisMinimumVersion = enmapbox.MIN_VERSION_QGIS
 MD.mEmail = 'enmapbox@enmap.org'
-MD.hasProcessingProvider=True
+MD.mHasProcessingProvider = True
 
 ########## End of config section
 

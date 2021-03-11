@@ -12,7 +12,6 @@ python3 -m coverage run --rcfile=.coveragec   enmapboxtesting/test_applications.
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasources.py
-python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasourcesV2.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_dependencycheck.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_docksanddatasources.py
 python3 -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox.py

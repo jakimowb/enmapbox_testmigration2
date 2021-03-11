@@ -23,6 +23,7 @@ from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import QMovie
 
+
 class test_dependencycheck(EnMAPBoxTestCase):
 
     def setUp(self):
@@ -92,7 +93,7 @@ class test_dependencycheck(EnMAPBoxTestCase):
 
     def nonexistingPackageName(self) -> str:
         s = str(uuid.uuid4())
-        return 'foobar'+s
+        return 'foobar' + s
 
     def test_PIPInstaller(self):
         pkgs = [PIPPackage(self.nonexistingPackageName()),
@@ -101,18 +102,18 @@ class test_dependencycheck(EnMAPBoxTestCase):
         pkgs += requiredPackages()
         w = PIPPackageInstaller()
         w.addPackages(pkgs)
-        #w.installAll()
-       #w.model.installAll()
+        # w.installAll()
+        # w.model.installAll()
 
         self.showGui(w)
-    def test_AnimatedIcon(self):
 
+    def test_AnimatedIcon(self):
 
         label = QLabel()
         p = QgsApplication.iconPath("/mIconLoading.gif")
-        #icon = QIcon(p)
-        #pm = icon.pixmap(QSize(50,50))
-        #label.setPixmap(pm)
+        # icon = QIcon(p)
+        # pm = icon.pixmap(QSize(50,50))
+        # label.setPixmap(pm)
         movie = QMovie(p)
         movie.start()
         label.setMovie(movie)
@@ -135,10 +136,8 @@ class test_dependencycheck(EnMAPBoxTestCase):
         def onProgress(p: int):
             print('Progress {}'.format(p))
 
-        def onMessage(msg:str, is_error:bool):
+        def onMessage(msg: str, is_error: bool):
             print(msg)
-
-
 
         task = PIPPackageInfoTask('package info', [p.pipPkgName for p in required])
         task.progressChanged.connect(onProgress)
@@ -147,7 +146,6 @@ class test_dependencycheck(EnMAPBoxTestCase):
         task.sigMessage.connect(onMessage)
         task.run()
         QApplication.processEvents()
-
 
     def test_findpython(self):
 
@@ -168,9 +166,6 @@ class test_dependencycheck(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-
     import xmlrunner
+
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
-

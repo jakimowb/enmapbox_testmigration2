@@ -155,12 +155,11 @@ class LayerTreeNode(QgsLayerTree):
     def icon(self):
         return self.mIcon
 
-    def populateContextMenu(self, menu:QMenu):
+    def populateContextMenu(self, menu: QMenu):
         """
-        Returns an empty QMenu
-        Overwrite with QMenu + QActions that implement logic related to the TreeNode and its data.
-        :return:
+        Allows to add QActions and QMenues to a parent menu
         """
+        pass
 
     @staticmethod
     def readXml(element):
@@ -316,7 +315,6 @@ class SpeclibDockTreeNode(DockTreeNode):
             sl: SpectralLibrary = self.mSpeclibWidget.speclib()
             if isinstance(sl, SpectralLibrary):
                 # self.profilesNode.setValue(len(speclib))
-
 
                 NODES = {}
                 PROFILES = dict()
@@ -669,7 +667,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
     def removeDockNode(self, node):
         self.removeNodes([node])
-        #self.mDockManager.removeDock(node.dock)
+        # self.mDockManager.removeDock(node.dock)
 
     def flags(self, index):
         if not index.isValid():
@@ -956,6 +954,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
 
 class DockTreeView(QgsLayerTreeView):
+    sigPopulateContextMenu = pyqtSignal(QMenu)
 
     def __init__(self, parent):
         super(DockTreeView, self).__init__(parent)
@@ -966,6 +965,10 @@ class DockTreeView(QgsLayerTreeView):
         # self.header().setResizeMode(1, QHeaderView.ResizeToContents)
         self.currentLayerChanged.connect(self.onCurrentLayerChanged)
         self.setEditTriggers(QAbstractItemView.EditKeyPressed)
+
+        self.mMenuProvider = DockManagerLayerTreeModelMenuProvider(self)
+        self.setMenuProvider(self.mMenuProvider)
+        self.mMenuProvider.mSignals.sigPopulateContextMenu.connect(self.sigPopulateContextMenu.emit)
 
     def findParentMapDockTreeNode(self, node: QgsLayerTreeNode) -> MapDockTreeNode:
         while isinstance(node, QgsLayerTreeNode) and not isinstance(node, MapDockTreeNode):
@@ -1061,7 +1064,6 @@ class DockTreeView(QgsLayerTreeView):
 
 
 class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
-
     class Signals(QObject):
         sigPopulateContextMenu = pyqtSignal(QMenu)
 
@@ -1070,7 +1072,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
     def __init__(self, treeView: DockTreeView):
         super(DockManagerLayerTreeModelMenuProvider, self).__init__()
-        #QObject.__init__(self)
+        # QObject.__init__(self)
         assert isinstance(treeView, DockTreeView)
         self.mDockTreeView = treeView
         self.mSignals = DockManagerLayerTreeModelMenuProvider.Signals()
@@ -1156,7 +1158,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 a = menu.addAction('Copy')
                 a.triggered.connect(lambda: QApplication.clipboard().setText('{}'.format(node.value())))
 
-        # last change to add other menu actions
+        # last chance to add other menu actions
         self.mSignals.sigPopulateContextMenu.emit(menu)
 
         return menu
@@ -1278,7 +1280,12 @@ class DockManager(QObject):
             speclibUris = [s.source() for s in speclibs]
             layers = extractMapLayers(mimeData)
             layers = [l for l in layers if l.source() not in speclibUris]
+            rxSupportedFiles = re.compile('(xml|html|txt|csv|log|md|rst)$')
             textfiles = []
+            for url in mimeData.urls():
+                path = url.toLocalFile()
+                if os.path.isfile(path) and rxSupportedFiles.search(path):
+                    textfiles.append(path)
 
             # register datasources
             for src in layers + textfiles + speclibs:
@@ -1302,12 +1309,11 @@ class DockManager(QObject):
                 NEW_DOCK.addLayers(layers)
 
             # open test dock for new text files
-            for textSource in textfiles:
-                if re.search('(xml|html)$', os.path.basename(textSource.uri)):
-                    dock = self.createDock('WEBVIEW')
-                    dock.load(textSource.uri)
-                else:
-                    self.createDock('TEXT', plainTxt=open(textSource.uri).read())
+            for path in textfiles:
+                if rxSupportedFiles.search(os.path.basename(path)):
+                    dock: TextDock = self.createDock(TextDock)
+                    dock.setTitle(os.path.basename(path))
+                    dock.textDockWidget().loadFile(path)
             event.accept()
 
     def __len__(self):
