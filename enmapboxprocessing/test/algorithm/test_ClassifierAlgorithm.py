@@ -59,15 +59,16 @@ class TestClassifierAlgorithm(TestCase):
         alg = FitTestClassifierAlgorithm()
         alg.initAlgorithm()
         parameters = {
-            alg.P_RASTER: QgsRasterLayer(enmap),
+            #alg.P_RASTER: QgsRasterLayer(enmap),
             alg.P_CLASSIFICATION: QgsVectorLayer(sample),
             alg.P_FEATURE_FIELDS: [f'Sample__{i + 1}' for i in range(177)],
+            alg.P_SAVE_DATA: True,
             alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
             alg.P_OUTPUT_CLASSIFICATION: c + '/vsimem/classification.tif'
         }
         result = self.runalg(alg, parameters)
         classifier, categories, X, y = Utils.pickleLoadClassifier(result[alg.P_OUTPUT_CLASSIFIER])
-        a=1
+        webbrowser.open_new(parameters[alg.P_OUTPUT_CLASSIFIER] + '.json')
 
     def test_polygonLabels(self):
         global c
@@ -303,6 +304,18 @@ class TestClassifierAlgorithm(TestCase):
             alg.P_CLASSIFICATION: QgsRasterLayer(landcover_raster_30m),
             alg.P_OUTPUT_CLASSIFICATION: c + '/vsimem/classification.tif',
             alg.P_OUTPUT_PROBABILITY: c + '/vsimem/classPropability.tif',
+            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl'
+        }
+        result = self.runalg(alg, parameters)
+
+    def test_dumpAsJson(self):
+        global c
+        alg = FitTestClassifierAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_RASTER: QgsRasterLayer(enmap),
+            alg.P_CLASSIFICATION: QgsRasterLayer(landcover_raster_30m),
+            alg.P_DUMP_AS_JSON: True,
             alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl'
         }
         result = self.runalg(alg, parameters)

@@ -9,6 +9,7 @@ from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import Raster
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.sampleclassificationalgorithm import SampleClassificationAlgorithm
 from enmapboxprocessing.algorithm.samplerasteralgorithm import SampleRasterAlgorithm
+from enmapboxprocessing.algorithm.stratifiedrandomsampling import StratifiedRandomSamplingAlgorithm
 from enmapboxprocessing.algorithm.translateclassificationalgorithm import TranslateClassificationAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 
@@ -26,6 +27,7 @@ def algorithms():
         RasterizeVectorAlgorithm(),
         SampleClassificationAlgorithm(),
         SampleRasterAlgorithm(),
+        StratifiedRandomSamplingAlgorithm(),
         TranslateClassificationAlgorithm(),
         TranslateRasterAlgorithm(),
     ]

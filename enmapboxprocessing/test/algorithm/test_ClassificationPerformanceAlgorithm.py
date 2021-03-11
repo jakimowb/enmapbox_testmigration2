@@ -1,4 +1,6 @@
+import json
 import webbrowser
+from collections import OrderedDict
 
 import numpy as np
 from qgis._core import QgsRasterLayer, QgsVectorLayer
@@ -67,6 +69,7 @@ class Test_aa_stratified(TestCase):
         self.assertTrue(np.allclose(cwa[4], stats.f1))
         self.assertTrue(np.allclose(cwa[5], stats.f1_se, rtol=1e-3))
 
+
     def test_withSmall_sampleSize(self):
         map =       ['A', 'B', 'C']
         reference = ['A', 'B', 'C']
@@ -79,6 +82,7 @@ class Test_aa_stratified(TestCase):
         self.assertTrue(np.isnan(result.overall_accuracy_se))
 
 class TestClassificationPerformanceAlgorithm(TestCase):
+
     def test_withStratification(self):
         global c
         alg = ClassificationPerformanceAlgorithm()
@@ -87,6 +91,19 @@ class TestClassificationPerformanceAlgorithm(TestCase):
             alg.P_CLASSIFICATION: QgsRasterLayer(landcover_map_l3),
             alg.P_REFERENCE: QgsVectorLayer(landcover_polygons),
             alg.P_STRATIFICATION: QgsRasterLayer(landcover_map_l3),
+            alg.P_OUTPUT_REPORT: c + '/vsimem/report.html',
+        }
+        self.runalg(alg, parameters)
+        webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT])
+        #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT] + '.csv')
+
+    def test_withoutStratification(self):
+        global c
+        alg = ClassificationPerformanceAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_CLASSIFICATION: QgsRasterLayer(landcover_map_l3),
+            alg.P_REFERENCE: QgsVectorLayer(landcover_polygons),
             alg.P_OUTPUT_REPORT: c + '/vsimem/report.html',
         }
         result = self.runalg(alg, parameters)

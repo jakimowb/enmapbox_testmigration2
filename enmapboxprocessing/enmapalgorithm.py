@@ -150,9 +150,15 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     ) -> Optional[List[int]]:
         ints = super().parameterAsInts(parameters, name, context)
         if len(ints) == 0:
-            return None
-        else:
-            return ints
+            if isinstance(parameters.get(name), str):
+                try:
+                    sints = parameters.get(name).strip().replace(',', ' ').split()
+                    ints = [int(sint) for sint in sints]
+                except:
+                    ints = None
+            else:
+                ints = None
+        return ints
 
     def parameterAsBool(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> bool:
         return super().parameterAsBool(parameters, name, context)
@@ -164,6 +170,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[str]:
         filename = super().parameterAsFileOutput(parameters, name, context)
+        if filename == '':
+            filename = parameters.get(name, '')
         if filename == '':
             return None
         if not isabs(filename):
@@ -238,7 +246,10 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def checkParameterRasterClassification(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Tuple[bool, str]:
+
         layer = self.parameterAsRasterLayer(parameters, name, context)
+        if layer is None:
+            return True, ''
         renderer = layer.renderer()
         return (
             isinstance(renderer, QgsPalettedRasterRenderer),

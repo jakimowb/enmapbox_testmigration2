@@ -1,5 +1,6 @@
 import inspect
 import traceback
+from collections import OrderedDict
 from math import ceil
 from typing import Dict, Any, List, Tuple, Union
 
@@ -22,7 +23,7 @@ from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLa
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.typing import SampleX, SampleY, Categories, checkSampleShape
+from enmapboxprocessing.typing import SampleX, SampleY, Categories, checkSampleShape, Category
 from enmapboxprocessing.utils import Utils
 
 
@@ -36,6 +37,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
     P_REPLACE = 'replace'
     P_SAVE_DATA = 'saveData'
     P_RASTERIZE_POINTS = 'rasterizePoints'
+    P_DUMP_AS_JSON = 'dumpAsJson'
     P_MAXIMUM_MEMORY_USAGE = 'maximumMemoryUsage'
     P_OUTPUT_CLASSIFICATION = 'outclassification'
     P_OUTPUT_PROBABILITY = 'outprobability'
@@ -73,6 +75,8 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
             (self.P_RASTERIZE_POINTS, 'Whether to rasterize points instead of point-wise reading. '
                                       'Only relevant for point geometries. Line and polygon geometries are always '
                                       'rasterized.'),
+            (self.P_DUMP_AS_JSON, 'Whether to additionally store the model as a human-readable JSON sidecar '
+                                  '(*.pkl.json) file.'),
             (self.P_MAXIMUM_MEMORY_USAGE, self.helpParameterMaximumMemoryUsage()),
             (self.P_OUTPUT_CLASSIFICATION, 'Output classification destination.'),
             (self.P_OUTPUT_PROBABILITY, 'Output class probability destination.'),
@@ -97,7 +101,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         self.addParameterBoolean(self.P_REPLACE, 'Sample with Replacement', False, advanced=True)
         self.addParameterBoolean(self.P_SAVE_DATA, 'Save Data', defaultValue=False, advanced=True)
         self.addParameterBoolean(self.P_RASTERIZE_POINTS, 'Rasterize Points', defaultValue=False, advanced=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_CLASSIFICATION, 'Output Classification', None, True, False)
+        self.addParameterBoolean(self.P_DUMP_AS_JSON, 'Save Model as JSON', False, False, True)
         self.addParameterRasterDestination(self.P_OUTPUT_PROBABILITY, 'Output Class Probability', None, True, False)
         self.addParameterMaximumMemoryUsage(self.P_MAXIMUM_MEMORY_USAGE, advanced=True)
         self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, 'Output Classifier', 'Model file (*.pkl)')
@@ -175,6 +179,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
 
+            feedback.pushInfo('Sample/read training data')
             if featureFields is None:
                 X, y, categories = self.sampleAny(
                     raster, classification, filename, rasterizePoints, maximumMemoryUsage, feedback, context
@@ -186,15 +191,25 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
             if sampleSize:
                 X, y = self.subsample(X, y, sampleSize, replace)
 
+            feedback.pushInfo('Fit classifier')
             classifier.fit(X, y.ravel())
 
             if not saveData:
                 X = y = None
             Utils.pickleDumpClassifier(classifier, categories, X, y, filename)
 
+            if self.parameterAsBoolean(parameters, self.P_DUMP_AS_JSON, context):
+                Utils.jsonDump(OrderedDict([
+                    ('classifier',classifier),
+                    ('categories', categories),
+                    ('training samples X', X),
+                    ('training samples y', y)
+                ]), filename + '.json')
+
             result = {self.P_OUTPUT_CLASSIFIER: filename}
 
             if filenameClassification is not None:
+                feedback.pushInfo('Predict classification')
                 alg = PredictClassificationAlgorithm()
                 alg.initAlgorithm()
                 parameters = {
@@ -204,10 +219,11 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
                     alg.P_MAXIMUM_MEMORY_USAGE: maximumMemoryUsage,
                     alg.P_OUTPUT_RASTER: filenameClassification
                 }
-                Processing.runAlgorithm(alg, parameters, None, feedback, context)
+                Processing.runAlgorithm(alg, parameters, None, feedback2, context)
                 result[self.P_OUTPUT_CLASSIFICATION] = filenameClassification
 
             if filenameProbability is not None:
+                feedback.pushInfo('Predict class probabilities')
                 alg = PredictClassPropabilityAlgorithm()
                 alg.initAlgorithm()
                 parameters = {
@@ -217,7 +233,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
                     alg.P_MAXIMUM_MEMORY_USAGE: maximumMemoryUsage,
                     alg.P_OUTPUT_RASTER: filenameProbability
                 }
-                Processing.runAlgorithm(alg, parameters, None, feedback, context)
+                Processing.runAlgorithm(alg, parameters, None, feedback2, context)
                 result[self.P_OUTPUT_PROBABILITY] = filenameProbability
 
             self.toc(feedback, result)
@@ -233,7 +249,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         assert isinstance(renderer, QgsCategorizedSymbolRenderer)
         categories = Utils.categoriesFromCategorizedSymbolRenderer(renderer)
         classIdByValue = {value: i + 1 for i, (value, label, color) in enumerate(categories) if label != ''}
-        categories = [(classIdByValue[value], label, color)
+        categories = [Category(classIdByValue[value], label, color)
                       for i, (value, label, color) in enumerate(categories) if label != '']
         classField = renderer.classAttribute()
 

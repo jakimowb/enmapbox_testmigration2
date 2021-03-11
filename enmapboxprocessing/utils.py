@@ -1,3 +1,4 @@
+import json
 import pickle
 from os import makedirs
 from os.path import join, dirname, basename, exists
@@ -287,19 +288,13 @@ class Utils(object):
         return tmpFilename
 
     @classmethod
-    def _pickleDump(cls, obj: Any, filename: str):
-        with open(filename, 'wb') as file:
-            pickle.dump(obj, file)
-    @classmethod
     def pickleDump(cls, obj: Any, filename: str):
-        import bz2
-        with bz2.BZ2File(filename, 'w') as file:
+        with open(filename, 'wb') as file:
             pickle.dump(obj, file)
 
     @classmethod
     def pickleLoad(cls, filename: str) -> Any:
-        import bz2
-        with bz2.BZ2File(filename, 'r') as file:
+        with open(filename, 'rb') as file:
             return pickle.load(file)
 
     @classmethod
@@ -316,6 +311,23 @@ class Utils(object):
         values = cls.pickleLoad(filename)
         classifier, categories, X, y = tuple(values[key] for key in ['classifier', 'categories', 'X', 'y'])
         return classifier, categories, X, y
+
+    @classmethod
+    def jsonDumps(cls, obj: Any) -> str:
+        def default(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif hasattr(obj, '__dict__'):
+                return obj.__dict__
+            else:
+                return str(obj)
+        return json.dumps(obj, default=default, indent=2)
+
+    @classmethod
+    def jsonDump(cls, obj: Any, filename: str):
+        with open(filename, 'w') as file:
+            text = Utils.jsonDumps(obj)
+            file.write(text)
 
     @classmethod
     def isPolygonGeometry(cls, wkbType: int) -> bool:
