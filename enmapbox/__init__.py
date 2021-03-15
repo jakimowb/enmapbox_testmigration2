@@ -337,7 +337,8 @@ def registerExpressionFunctions():
 
 
 def unregisterExpressionFunctions():
-    pass
+    from .externals.qps.speclib.qgsfunctions import unregisterQgsExpressionFunctions
+    unregisterQgsExpressionFunctions()
 
 
 def initAll(processing=True):
