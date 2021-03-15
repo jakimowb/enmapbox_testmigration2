@@ -4,15 +4,21 @@ import typing
 import pathlib
 import json
 import datetime
+import csv
+# 1. open bitbucket,
+# goto repository settings -> issues
+# 2. export issues, extract zip file and copy db-2.0.json to JSON_DIR (defaults to <repo>/tmp)
+# 3. set report period with start_date / end_date
+JSON_DIR = pathlib.Path(__file__).parents[1] / 'tmp'
+start_date = datetime.date(2020, 10, 29)
+end_date = datetime.date(2021, 3, 15)
 
-PATH_DB_JSON = pathlib.Path(r'C:\Users\geo_beja\Downloads\enmap-box-issues\db-2.0.json')
-
-assert PATH_DB_JSON.is_file(), 'No json, no stats!'
-
-start_date = datetime.date(2020, 7, 1)
-end_date = datetime.date(2020, 12, 31)
 
 
+PATH_DB_JSON = JSON_DIR / 'db-2.0.json'
+PATH_REPORT = JSON_DIR / 'issue_report.csv'
+assert PATH_DB_JSON.is_file(), 'No db-2.0.json, no stats!'
+assert start_date < end_date
 with open(PATH_DB_JSON, 'r', encoding='utf-8') as f:
     DB = json.load(f)
 
@@ -45,4 +51,22 @@ print(f'Updated: {len(UPDATED_ISSUES)}')
 for k in sorted(UPDATED_BY_STATUS.keys()):
     print(f'\t{k}: {len(UPDATED_BY_STATUS[k])}')
 
-s = ""
+with open(PATH_REPORT, 'w', encoding='utf-8', newline='') as f:
+    states = ['new', 'open', 'on hold', 'resolved', 'closed', 'duplicate', 'wontfix', 'invalid']
+    fieldnames = ['action', 'total'] + states
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    writer.writeheader()
+    total_created = total_updated = 0
+    ROW1 = {'action': 'created'}
+    ROW2 = {'action': 'updated'}
+
+    for s in states:
+        total_created += len(CREATED_BY_STATUS.get(s, 0))
+        total_updated += len(UPDATED_BY_STATUS.get(s, 0))
+        ROW1[s] = len(CREATED_BY_STATUS[s])
+        ROW2[s] = len(UPDATED_BY_STATUS[s])
+    ROW1['total'] = total_created
+    ROW2['total'] = total_updated
+    writer.writerow(ROW1)
+    writer.writerow(ROW2)
+
