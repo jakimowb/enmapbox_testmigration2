@@ -64,7 +64,7 @@ INFO_MESSAGE_BEFORE_PACKAGE_INSTALLATION = f"""
 PACKAGE_LOOKUP = {'scikit-learn': 'sklearn',
                   'PyOpenGL': 'OpenGL',
                   'enpt-enmapboxapp': 'enpt_enmapboxapp',
-                  'GDAL': 'gdal'
+                  'GDAL': 'osgeo.gdal'
                   }
 
 
