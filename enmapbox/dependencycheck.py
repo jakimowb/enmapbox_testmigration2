@@ -49,7 +49,6 @@ from qgis.PyQt.QtGui import QContextMenuEvent, QColor, QIcon
 import sip
 from enmapbox import debugLog
 
-
 URL_PACKAGE_HELP = r"https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages"
 
 INFO_MESSAGE_BEFORE_PACKAGE_INSTALLATION = f"""
@@ -67,21 +66,18 @@ PACKAGE_LOOKUP = {'scikit-learn': 'sklearn',
                   'GDAL': 'osgeo.gdal'
                   }
 
-
-
-
 # just in case a package cannot /should not simply get installed
 # calling pip install --user <pip package name>
 INSTALLATION_HINT = {
     # 'enpt_enmapboxapp' : 'git+https://gitext.gfz-potsdam.de/EnMAP/GFZ_Tools_EnMAP_BOX/enpt_enmapboxapp.git'
 }
 
-INSTALLATION_BLOCK = {#'numba': 'should to be installed manually using the local package manager.\n' +
-                      #         'please read <a href="https://numba.pydata.org/numba-doc/dev/user/installing.html">' +
-                      #         'https://numba.pydata.org/numba-doc/dev/user/installing.html</a> for details',
-                      'numpy': 'needs to be installed/updated manually with local package manager',
-                      'GDAL': 'needs to be installed/updated manually with local package manager'
-                      }
+INSTALLATION_BLOCK = {  # 'numba': 'should to be installed manually using the local package manager.\n' +
+    #         'please read <a href="https://numba.pydata.org/numba-doc/dev/user/installing.html">' +
+    #         'https://numba.pydata.org/numba-doc/dev/user/installing.html</a> for details',
+    'numpy': 'needs to be installed/updated manually with local package manager',
+    'GDAL': 'needs to be installed/updated manually with local package manager'
+}
 
 # https://packaging.python.org/tutorials/packaging-projects/#uploading-your-project-to-pypi
 # pip package names: "name is the distribution name of your package.
@@ -92,6 +88,7 @@ rxPipVersion = re.compile(r'([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((
 
 for k in PACKAGE_LOOKUP.keys():
     assert rxPipPackageName.search(k)
+
 
 class PIPPackage(object):
 
