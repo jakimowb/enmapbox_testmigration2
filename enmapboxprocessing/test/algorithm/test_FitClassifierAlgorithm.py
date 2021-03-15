@@ -38,7 +38,7 @@ class FitTestClassifierAlgorithm(FitClassifierAlgorithmBase):
         return classifier
 
 
-class TestClassifierAlgorithm(TestCase):
+class TestFitClassifierAlgorithm(TestCase):
 
     def test_pythonCommand(self):
         alg = FitRandomForestClassifierAlgorithm()
@@ -59,16 +59,17 @@ class TestClassifierAlgorithm(TestCase):
         alg = FitTestClassifierAlgorithm()
         alg.initAlgorithm()
         parameters = {
-            #alg.P_RASTER: QgsRasterLayer(enmap),
+            alg.P_RASTER: QgsRasterLayer(enmap),
             alg.P_CLASSIFICATION: QgsVectorLayer(sample),
             alg.P_FEATURE_FIELDS: [f'Sample__{i + 1}' for i in range(177)],
             alg.P_SAVE_DATA: True,
+            alg.P_DUMP_AS_JSON: True,
             alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
             alg.P_OUTPUT_CLASSIFICATION: c + '/vsimem/classification.tif'
         }
         result = self.runalg(alg, parameters)
         classifier, categories, X, y = Utils.pickleLoadClassifier(result[alg.P_OUTPUT_CLASSIFIER])
-        webbrowser.open_new(parameters[alg.P_OUTPUT_CLASSIFIER] + '.json')
+        #webbrowser.open_new(parameters[alg.P_OUTPUT_CLASSIFIER] + '.json')
 
     def test_polygonLabels(self):
         global c
@@ -89,30 +90,6 @@ class TestClassifierAlgorithm(TestCase):
         self.assertListEqual(
             ['#e60000', '#9c9c9c', '#98e600', '#267300', '#a87000', '#0064ff'],
             [c[2] for c in categories])
-
-        alg2 = PredictClassificationAlgorithm()
-        alg2.initAlgorithm()
-        parameters2 = {
-            alg2.P_RASTER: QgsRasterLayer(enmap),
-            alg2.P_CLASSIFIER: result[alg.P_OUTPUT_CLASSIFIER],
-            alg2.P_OUTPUT_RASTER: c + '/vsimem/classification.tif'
-        }
-        result2 = self.runalg(alg2, parameters2)
-        self.assertEqual(193260, RasterReader(result2[alg2.P_OUTPUT_RASTER]).array()[0].sum())
-
-        alg3 = PredictClassPropabilityAlgorithm()
-        alg3.initAlgorithm()
-        parameters3 = {
-            alg3.P_RASTER: QgsRasterLayer(enmap),
-            alg3.P_CLASSIFIER: result[alg.P_OUTPUT_CLASSIFIER],
-            alg3.P_OUTPUT_RASTER: c + '/vsimem/probability.tif'
-        }
-        result3 = self.runalg(alg3, parameters3)
-        self.assertListEqual(
-            ['roof', 'pavement', 'low vegetation', 'tree', 'soil', 'water'],
-            [RasterReader(result3[alg3.P_OUTPUT_RASTER]).bandName(bandNo) for bandNo in range(1, 7)]
-        )
-        self.assertEqual(-29894, np.sum(RasterReader(result3[alg3.P_OUTPUT_RASTER]).array()).round())
 
     def test_polygonLabels_withDifferentCrs_andClassSubset(self):
         global c

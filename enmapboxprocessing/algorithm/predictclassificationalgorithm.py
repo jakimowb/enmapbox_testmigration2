@@ -6,6 +6,7 @@ import numpy as np
 from osgeo import gdal
 from sklearn.base import ClassifierMixin
 from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
+from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.typing import SampleX, SampleY, Categories, checkSampleShape, CreationOptions
@@ -24,10 +25,10 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
     P_CLASSIFIER = 'classification'
     P_MAXIMUM_MEMORY_USAGE = 'maximumMemoryUsage'
     P_CREATION_PROFILE = 'creationProfile'
-    P_OUTPUT_RASTER = 'outclassification'
+    P_OUTPUT_CLASSIFICATION = 'outClassification'
 
     def displayName(self) -> str:
-        return 'Predict Classification'
+        return 'Predict classification'
 
     def shortDescription(self) -> str:
         return 'Applies a classifier to a raster to predict class labels. ' \
@@ -41,10 +42,10 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
         return [
             (self.P_RASTER, self.helpParameterRaster()),
             (self.P_CLASSIFIER, self.helpParameterClassifier()),
-            (self.P_MASK, self.helpParameterMask()),
+            (self.P_MASK, self.helpParameterMapMask()),
             (self.P_MAXIMUM_MEMORY_USAGE, self.helpParameterMaximumMemoryUsage()),
             (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
-            (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self.P_OUTPUT_CLASSIFICATION, self.helpParameterRasterDestination())
         ]
 
     def group(self):
@@ -56,7 +57,7 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterMapLayer(self.P_MASK, 'Mask', optional=True, advanced=True)
         self.addParameterMaximumMemoryUsage(self.P_MAXIMUM_MEMORY_USAGE, advanced=True)
         self.addParameterCreationProfile(self.P_CREATION_PROFILE, advanced=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output Classification')
+        self.addParameterRasterDestination(self.P_OUTPUT_CLASSIFICATION, 'Output Classification')
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         try:
@@ -73,50 +74,59 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
         classifier, categories, X, y = Utils.pickleLoadClassifier(self.parameterAsFile(parameters, self.P_CLASSIFIER, context))
         maximumMemoryUsage = self.parameterAsInt(parameters, self.P_MAXIMUM_MEMORY_USAGE, context)
         format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
-        self.processQgis(
-            raster, classifier, categories, filename, mask, format, options, maximumMemoryUsage, feedback
-        )
-        return {self.P_OUTPUT_RASTER: filename}
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_CLASSIFICATION, context)
 
-    @classmethod
-    def processQgis(
-            cls, raster: QgsRasterLayer, classifier: ClassifierMixin, categories: Categories, filename: str,
-            mask: QgsMapLayer = None, format: str = None, options: CreationOptions = None,
-            maximumMemoryUsage: int = None, feedback: QgsProcessingFeedback = None
-    ):
-        if isinstance(mask, QgsVectorLayer):
-            assert 0  # todo rasterize as mask
-        assert isinstance(mask, (type(None), QgsRasterLayer))
+        with open(filename + '.log', 'w') as logfile:
+            feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
+            self.tic(feedback, parameters, context)
 
-        if maximumMemoryUsage is None:
-            maximumMemoryUsage = gdal.GetCacheMax()
-        rasterReader = RasterReader(raster)
-        if mask is not None:
-            maskReader = RasterReader(mask)
-            maskBandNo = mask.renderer().usesBands()[0]
-            # todo test with same and different crs
+            if isinstance(mask, QgsRasterLayer):
+                feedback.pushInfo('Prepare mask')
+                alg = TranslateRasterAlgorithm()
+                parameters = {
+                    alg.P_RASTER: mask,
+                    alg.P_GRID: raster,
+                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
+                    alg.P_BAND_LIST: [mask.renderer().usesBands()[0]],
+                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'mask.vrt')
+                }
+                mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER])
+            if isinstance(mask, QgsVectorLayer):
+                feedback.pushInfo('Prepare mask')
+                assert 0  # todo rasterize as mask
+            assert isinstance(mask, (type(None), QgsRasterLayer))
 
-        dataType = Utils.smallesUIntDataType(max([c[0] for c in categories]))
-        writer = Driver(filename, format, options, feedback).createLike(rasterReader, dataType, 1)
-        lineMemoryUsage = rasterReader.lineMemoryUsage()
-        blockSizeY = min(raster.height(), ceil(maximumMemoryUsage / lineMemoryUsage))
-        blockSizeX = raster.width()
-        for block in rasterReader.walkGrid(blockSizeX, blockSizeY, feedback):
-            arrayX = rasterReader.arrayFromBlock(block)
-            valid = np.all(rasterReader.maskArray(arrayX), axis=0)
+            if maximumMemoryUsage is None:
+                maximumMemoryUsage = gdal.GetCacheMax()
+            rasterReader = RasterReader(raster)
             if mask is not None:
-                marray = maskReader.arrayFromBlock(block, bandList=[maskBandNo])[0]
-                np.logical_and(valid, maskReader.maskArray(marray, bandList=[maskBandNo]), out=valid)
-            X = list()
-            for a in arrayX:
-                X.append(a[valid])
-            y = classifier.predict(np.transpose(X))
-            arrayY = np.zeros_like(valid, Utils.qgisDataTypeToNumpyDataType(dataType))
-            arrayY[valid] = y
-            writer.writeArray2d(arrayY, 1, xOffset=block.xOffset, yOffset=block.yOffset)
-        writer.gdalDataset.FlushCache()
-        outraster = QgsRasterLayer(filename)
-        renderer = Utils.palettedRasterRendererFromCategories(outraster.dataProvider(), 1, categories)
-        outraster.setRenderer(renderer)
-        outraster.saveDefaultStyle()
+                maskReader = RasterReader(mask)
+            dataType = Utils.smallesUIntDataType(max([c[0] for c in categories]))
+            writer = Driver(filename, format, options, feedback).createLike(rasterReader, dataType, 1)
+            lineMemoryUsage = rasterReader.lineMemoryUsage()
+            blockSizeY = min(raster.height(), ceil(maximumMemoryUsage / lineMemoryUsage))
+            blockSizeX = raster.width()
+            for block in rasterReader.walkGrid(blockSizeX, blockSizeY, feedback):
+                arrayX = rasterReader.arrayFromBlock(block)
+                valid = np.all(rasterReader.maskArray(arrayX), axis=0)
+                if mask is not None:
+                    marray = maskReader.arrayFromBlock(block)
+                    np.logical_and(valid, maskReader.maskArray(marray, defaultNoDataValue=0.)[0], out=valid)
+                X = list()
+                for a in arrayX:
+                    X.append(a[valid])
+                y = classifier.predict(np.transpose(X))
+                arrayY = np.zeros_like(valid, Utils.qgisDataTypeToNumpyDataType(dataType))
+                arrayY[valid] = y
+                writer.writeArray2d(arrayY, 1, xOffset=block.xOffset, yOffset=block.yOffset)
+
+            writer.close()
+            outraster = QgsRasterLayer(filename)
+            renderer = Utils.palettedRasterRendererFromCategories(outraster.dataProvider(), 1, categories)
+            outraster.setRenderer(renderer)
+            outraster.saveDefaultStyle()
+            result = {self.P_OUTPUT_CLASSIFICATION: filename}
+
+            self.toc(feedback, result)
+
+        return result

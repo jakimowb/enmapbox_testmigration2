@@ -39,9 +39,9 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
     P_RASTERIZE_POINTS = 'rasterizePoints'
     P_DUMP_AS_JSON = 'dumpAsJson'
     P_MAXIMUM_MEMORY_USAGE = 'maximumMemoryUsage'
-    P_OUTPUT_CLASSIFICATION = 'outclassification'
-    P_OUTPUT_PROBABILITY = 'outprobability'
-    P_OUTPUT_CLASSIFIER = 'outclassifier'
+    P_OUTPUT_CLASSIFICATION = 'outClassification'
+    P_OUTPUT_PROBABILITY = 'outProbability'
+    P_OUTPUT_CLASSIFIER = 'outClassifier'
 
     def displayName(self) -> str:
         raise NotImplementedError()
@@ -58,32 +58,34 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
             (self.P_RASTER, 'Raster with training data features.'),
-            (self.P_CLASSIFICATION, 'Classification with training data labels. '
+            (self.P_CLASSIFICATION, 'Training data labels. '
                                     f'{self.helpParameterMapClassification()} '
                                     f'The classification layer is resampled, reprojected and rasterized internally to '
                                     f'match the raster grid, if required. '
                                     f'\nNote: you can safely ignore the <i>"Could not load layer/table. '
                                     f'Dependent field could not be populated."</i> warning, when selecting a raster '
                                     f'layer.'),
-            (self.P_FEATURE_FIELDS, 'Use selected fields as training data features.'),
+            (self.P_FEATURE_FIELDS, 'Use selected fields as training data features (instead of sampling the Raster).'),
             (self.P_CODE, self.helpParameterCode()),
             (self.P_SAMPLE_SIZE, 'Use all data for training, if value is "not set", '
                                  'a random subsample with given class size for values greater equal 1, '
                                  'or a random subsample with given class propotion for values between 0 and 1.'),
             (self.P_REPLACE, 'Whether to perform random sampling with replacement.'),
-            (self.P_SAVE_DATA, 'Whether to store the training data (X, y) inside the model file.'),
+            (self.P_SAVE_DATA, 'Whether to store the training data inside the model file.'),
             (self.P_RASTERIZE_POINTS, 'Whether to rasterize points instead of point-wise reading. '
                                       'Only relevant for point geometries. Line and polygon geometries are always '
                                       'rasterized.'),
             (self.P_DUMP_AS_JSON, 'Whether to additionally store the model as a human-readable JSON sidecar '
-                                  '(*.pkl.json) file.'),
+                                  '*.pkl.json file.'),
             (self.P_MAXIMUM_MEMORY_USAGE, self.helpParameterMaximumMemoryUsage()),
-            (self.P_OUTPUT_CLASSIFICATION, 'Output classification destination.'),
-            (self.P_OUTPUT_PROBABILITY, 'Output class probability destination.'),
-            (self.P_OUTPUT_CLASSIFIER, 'Output classifier model destination (*.pkl file). '
-                                       'This file can be used for applying the classifier to a raster using '
-                                       '<i>Classification / Predict Classification</i> and '
-                                       '<i>Classification / Predict Class Probability</i>.')
+            (self.P_OUTPUT_CLASSIFICATION, 'Specify an output classification destination to apply the model to the '
+                                           'given Raster.'),
+            (self.P_OUTPUT_PROBABILITY, 'Specify an output class probability destination to apply the model to the '
+                                        'given Raster.'),
+            (self.P_OUTPUT_CLASSIFIER, 'Output classifier model destination *.pkl file.'
+                                       'This file can be used for applying the model to a raster using '
+                                       '"EnMAP-Box/Classification/Predict classification" and '
+                                       '"EnMAP-Box/Classification/Predict class probability"')
         ]
 
     def group(self):
@@ -91,20 +93,21 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_RASTER, 'Raster', optional=True)
-        self.addParameterMapLayer(self.P_CLASSIFICATION, 'Label')
+        self.addParameterMapLayer(self.P_CLASSIFICATION, 'Labels')
         self.addParameterField(
             self.P_FEATURE_FIELDS, 'Features', None, self.P_CLASSIFICATION, QgsProcessingParameterField.Numeric, True,
             optional=True, advanced=True
         )
         self.addParameterString(self.P_CODE, 'Code', self.defaultCodeAsString(), True, advanced=True)
-        self.addParameterFloat(self.P_SAMPLE_SIZE, 'Sample Size', optional=True, minValue=0, advanced=True)
-        self.addParameterBoolean(self.P_REPLACE, 'Sample with Replacement', False, advanced=True)
-        self.addParameterBoolean(self.P_SAVE_DATA, 'Save Data', defaultValue=False, advanced=True)
-        self.addParameterBoolean(self.P_RASTERIZE_POINTS, 'Rasterize Points', defaultValue=False, advanced=True)
-        self.addParameterBoolean(self.P_DUMP_AS_JSON, 'Save Model as JSON', False, False, True)
-        self.addParameterRasterDestination(self.P_OUTPUT_PROBABILITY, 'Output Class Probability', None, True, False)
+        self.addParameterFloat(self.P_SAMPLE_SIZE, 'Sample size', optional=True, minValue=0, advanced=True)
+        self.addParameterBoolean(self.P_REPLACE, 'Sample with replacement', False, advanced=True)
+        self.addParameterBoolean(self.P_SAVE_DATA, 'Save training data', defaultValue=False, advanced=True)
+        self.addParameterBoolean(self.P_RASTERIZE_POINTS, 'Rasterize points', defaultValue=False, advanced=True)
+        self.addParameterBoolean(self.P_DUMP_AS_JSON, 'Save model as JSON', False, False, True)
+        self.addParameterRasterDestination(self.P_OUTPUT_CLASSIFICATION, 'Output classification', None, True, False)
+        self.addParameterRasterDestination(self.P_OUTPUT_PROBABILITY, 'Output class probability', None, True, False)
         self.addParameterMaximumMemoryUsage(self.P_MAXIMUM_MEMORY_USAGE, advanced=True)
-        self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, 'Output Classifier', 'Model file (*.pkl)')
+        self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, 'Output classifier', 'Model file (*.pkl)')
 
     def defaultCodeAsString(self):
         lines = [line for line in inspect.getsource(self.code).split('\n')
@@ -130,11 +133,11 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         fields = self.parameterAsFields(parameters, self.P_FEATURE_FIELDS, context)
 
         if raster is None and fields is None:
-            return False, 'Select either a raster layer (Raster) or a list of fields (Feature Fields) used as ' \
+            return False, 'Select either a raster layer (Raster) or a list of fields (Feature fields) used as ' \
                           'training data features.'
         if raster is not None and fields is not None:
             if raster.bandCount() != len(fields):
-                return False, 'Number of bands (Raster) must match number of selected fields (Feature Fields).'
+                return False, 'Number of bands (Raster) must match number of selected fields (Feature fields).'
         return True, ''
 
     def checkParameterRaster(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
@@ -179,7 +182,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
 
-            feedback.pushInfo('Sample/read training data')
+            feedback.pushInfo('Sample training data')
             if featureFields is None:
                 X, y, categories = self.sampleAny(
                     raster, classification, filename, rasterizePoints, maximumMemoryUsage, feedback, context
@@ -362,7 +365,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         assert isinstance(renderer, QgsCategorizedSymbolRenderer)
         categories = Utils.categoriesFromCategorizedSymbolRenderer(renderer)
         classIdByValue = {value: i + 1 for i, (value, label, color) in enumerate(categories) if label != ''}
-        categories = [(classIdByValue[value], label, color)
+        categories = [Category(classIdByValue[value], label, color)
                       for i, (value, label, color) in enumerate(categories) if label != '']
         rasterReader = RasterReader(raster)
 

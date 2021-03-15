@@ -2,6 +2,7 @@ from typing import Dict, Any, List, Tuple
 
 import processing
 #from processing.algs.qgis.RasterSampling import RasterSampling
+from PyQt5.QtCore import QVariant
 from processing.core.Processing import Processing
 
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
@@ -11,7 +12,8 @@ from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
                         QgsFeature, QgsField, QgsProcessingFeatureSourceDefinition, QgsApplication,
-                        QgsVectorDataProvider, QgsProcessingOutputLayerDefinition)
+                        QgsVectorDataProvider, QgsProcessingOutputLayerDefinition, QgsRasterDataProvider, QgsPoint,
+                        QgsGeometry)
 
 from qgis.core.additions.edit import edit
 
@@ -21,21 +23,33 @@ from enmapboxprocessing.utils import Utils
 
 
 @typechecked
-class SampleRasterAlgorithm(EnMAPProcessingAlgorithm):
+class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
     P_RASTER = 'raster'
     P_VECTOR = 'vector'
-    P_OUTPUT_SAMPLE = 'outVector'
+    P_COVERAGE_RANGE = 'coverageRange'
+    P_OUTPUT_SAMPLE = 'outSample'
 
     def displayName(self) -> str:
-        return 'Sample Raster'
+        return 'Sample raster values'
 
     def shortDescription(self) -> str:
-        return 'Sample raster with vector geometries (points and polygons).'
+        return 'Creates a new point vector layer with the same attributes of the input layer and the ' \
+               'raster values corresponding to the pixels covered by polygons or point location. '\
+               '\nThe resulting point vector contains ' \
+               '1) all input attributes from the Locations vector,  ' \
+               '2) attributes SAMPLE_{i}, one for each input raster band, ' \
+               '3) two attributes PIXEL_X, PIXEL_Y for storing the raster pixel locations (zero-based),' \
+               'and 4), in case of polygon locations, an attribute COVER for storing the pixel coverage (%). ' \
+               '\nNote that we assume non-overlapping feature geometries! ' \
+               'In case of overlapping geometries, split the Locations layer into non-overlapping subsets, ' \
+               'perform the sampling for each subset individually, and finally concatenate the results.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
             (self.P_RASTER, self.helpParameterRaster()),
             (self.P_VECTOR, self.helpParameterVector()),
+            (self.P_COVERAGE_RANGE, 'Samples with polygon pixel coverage outside the given range are excluded. '
+                                    'This parameter has no effect in case of point locations.'),
             (self.P_OUTPUT_SAMPLE, self.helpParameterVectorDestination())
         ]
 
@@ -45,20 +59,15 @@ class SampleRasterAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_RASTER, 'Raster')
         self.addParameterVectorLayer(self.P_VECTOR, 'Locations')
-
-        # self.addParameterBoolean(self.P_AGGREGATE, 'Aggregate Geometries', False)
-        # self.addParameterEnum(
-        #    self.P_AGGREGATIONS, 'Additional Aggregation Statistics', self.O_AGGREGATIONS, True, optional=True
-        # )
-        self.addParameterVectorDestination(self.P_OUTPUT_SAMPLE, 'Output Sample', defaultValue='sample.gpkg')
+        self.addParameterIntRange(self.P_COVERAGE_RANGE, 'Pixel Coverage (%)', [50, 100], advanced=True)
+        self.addParameterVectorDestination(self.P_OUTPUT_SAMPLE, 'Output Sample')
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         vector = self.parameterAsVectorLayer(parameters, self.P_VECTOR, context)
-        # aggregate = self.parameterAsBoolean(parameters, self.P_AGGREGATE, context)
-        # aggregations = self.parameterAsEnums(parameters, self.P_AGGREGATIONS, context)
+        coverageMin, coverageMax = self.parameterAsInts(parameters, self.P_COVERAGE_RANGE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_SAMPLE, context)
 
         with open(filename + '.log', 'w') as logfile:
@@ -68,12 +77,14 @@ class SampleRasterAlgorithm(EnMAPProcessingAlgorithm):
             if Utils.isPointGeometry(vector.geometryType()):
                 self.samplePoints(filename, raster, vector, selectedFeaturesOnly, feedback, feedback2, context)
             else:
-                self.samplePolygons(filename, raster, vector, selectedFeaturesOnly, feedback, feedback2, context)
+                self.samplePolygons(
+                    filename, raster, vector, selectedFeaturesOnly, coverageMin, coverageMax, feedback, feedback2,
+                    context
+                )
             result = {self.P_OUTPUT_SAMPLE: filename}
             self.toc(feedback, result)
 
         return result
-
 
     @classmethod
     def samplePoints(
@@ -89,12 +100,32 @@ class SampleRasterAlgorithm(EnMAPProcessingAlgorithm):
             'RASTERCOPY': raster
         }
         processing.run(alg, parameters, None, feedback2, context, True)
-        result = QgsVectorLayer(filename)
-        return result
+        sample = QgsVectorLayer(filename)
+
+        # add image X, Y coordinates
+        rasterProvider = raster.dataProvider()
+        vectorProvider: QgsVectorDataProvider = sample.dataProvider()
+        fields = [QgsField('PIXEL_X', QVariant.LongLong), QgsField('PIXEL_Y', QVariant.LongLong)]
+        vectorProvider.addAttributes(fields)
+        sample.updateFields()
+        with edit(sample):
+            feature: QgsFeature
+            for feature in sample.getFeatures():
+                point = QgsPoint(feature.geometry().asPoint())
+                assert isinstance(point, QgsPoint)
+                imagePoint: QgsPoint = rasterProvider.transformCoordinates(
+                    point, QgsRasterDataProvider.TransformLayerToImage
+                )
+                feature.setAttribute('PIXEL_X', imagePoint.x())
+                feature.setAttribute('PIXEL_Y', imagePoint.y())
+                sample.updateFeature(feature)
+
+        return sample
 
     @classmethod
     def samplePolygons(
             cls, filename: str, raster: QgsRasterLayer, vector: QgsVectorLayer, selectedFeaturesOnly: bool,
+            coverageMin: int, coverageMax: int,
             feedback: ProcessingFeedback, feedback2: ProcessingFeedback, context: QgsProcessingContext
     ):
         assert Utils.isPolygonGeometry(vector.geometryType())
@@ -141,8 +172,14 @@ class SampleRasterAlgorithm(EnMAPProcessingAlgorithm):
             feedback.pushInfo(f'Sample polygon [{i + 1}/{n}]')
 
             fid = polygonFeature.id()
+            # calculate coverage
             x10MaskArray = x10FidArray == fid
             percentArray = x10MaskArray.reshape((raster.height(), 10, raster.width(), 10)).sum(axis=3).sum(axis=1)
+            # mask coverage outside valid range
+            if coverageMin != 0:
+                percentArray[percentArray < coverageMin] = 0
+            if coverageMax != 100:
+                percentArray[percentArray > coverageMax] = 0
 
             driver = Driver(
                 Utils.tmpFilename(filename, f'cover{fid}.tif'), 'GTiff', cls.CompressedGTiffCreationOptions, feedback2
@@ -187,12 +224,11 @@ class SampleRasterAlgorithm(EnMAPProcessingAlgorithm):
             if feedback.isCanceled():
                 raise AlgorithmCanceledException()
 
-            sampleVectors.append(
-                cls.samplePoints(
-                    Utils.tmpFilename(filename, f'sample{fid}.gpkg'), raster, locationVector, selectedFeaturesOnly,
-                    feedback, feedback2, context
-                )
+            sampleVector = cls.samplePoints(
+                Utils.tmpFilename(filename, f'sample{fid}.gpkg'), raster, locationVector, selectedFeaturesOnly,
+                feedback, feedback2, context
             )
+            sampleVectors.append(sampleVector)
 
         if feedback.isCanceled():
             raise AlgorithmCanceledException()
@@ -206,5 +242,3 @@ class SampleRasterAlgorithm(EnMAPProcessingAlgorithm):
             'OUTPUT': filename
         }
         processing.run(alg, parameters, None, feedback, context, True)
-        result = QgsVectorLayer(filename)
-        return result

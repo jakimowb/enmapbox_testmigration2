@@ -36,7 +36,7 @@ class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
         return [
             (self.P_RASTER, self.helpParameterRaster()),
             (self.P_CLASSIFIER, self.helpParameterClassifier()),
-            (self.P_MASK, self.helpParameterMask()),
+            (self.P_MASK, self.helpParameterMapMask()),
             (self.P_MAXIMUM_MEMORY_USAGE, self.helpParameterMaximumMemoryUsage()),
             (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
             (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())

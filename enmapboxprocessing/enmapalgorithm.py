@@ -1,11 +1,11 @@
-from collections import OrderedDict
-from enum import Enum, IntEnum
-from os.path import abspath, isabs, join
+from enum import Enum
+from os.path import isabs, join
 from time import time
 from typing import Any, Dict, Iterable, Optional, List, Tuple, TextIO
 
 import numpy as np
 from osgeo import gdal
+from typeguard import typechecked
 from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
                         QgsProcessingParameterRasterDestination, QgsProcessingContext, QgsProcessingFeedback,
                         QgsRasterLayer, QgsVectorLayer, QgsProcessingParameterNumber, QgsProcessingParameterDefinition,
@@ -16,10 +16,10 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterFileDestination, QgsProcessingParameterFile, QgsProcessingParameterRange,
                         QgsProcessingParameterCrs, QgsProcessingParameterVectorDestination, QgsProcessing,
                         QgsProcessingUtils)
+import processing
 
 from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
-from typeguard import typechecked
 
 
 class AlgorithmCanceledException(Exception):
@@ -286,14 +286,21 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         return 'Source raster or vector layer styled with a paletted/unique values (raster) ' \
                'or categorized symbol (vector) renderer.'
 
-    def helpParameterClassification(self):
+    def helpParameterRasterClassification(self):
         return 'Source raster layer styled with a paletted/unique values renderer.'
 
-    def helpParameterMask(self):
+    def helpParameterMapMask(self):
         return 'Source raster or vector layer interpreted as binary mask. ' \
-               'In case of a raster, all pixels with no data (zero, if undefined) ' \
-               'are excluded from processing (only the first band used by the renderer is considered). ' \
-               'In case of a vector, all pixels not covered by geometries are excluded. '
+               'In case of a raster, all no data (zero, if missing), inf and nan pixel evaluate to false, ' \
+               'all other to true. ' \
+               'In case of a vector, all pixel with pixel center not covered by a feature geometry evaluate to false,' \
+               'all other to true. ' \
+               'Note that only the first raster band used by the renderer is considered.'
+
+    def helpParameterRasterMask(self):
+        return 'Source raster interpreted as binary mask. All no data (zero, if missing), ' \
+               'inf and nan pixel evaluate to false, all other to true. ' \
+               'Note that only the first band used by the renderer is considered.'
 
     def helpParameterVector(self):
         return 'Source vector layer.'
@@ -302,11 +309,10 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         return 'Source vector layer styled with a categorized symbol renderer.'
 
     def helpParameterClassifier(self):
-        return 'Classifier created with <i>Classification / Fit *Classifier</i>.'
+        return 'Source classifier file (*.pkl).'
 
     def helpParameterGrid(self):
-        return 'A raster layer defining the destination extent, resolution and coordinate reference system ' \
-               '(inputs are reprojected if necessary).'
+        return 'Source raster layer defining the destination extent, resolution and coordinate reference system.'
 
     def helpParameterMaximumMemoryUsage(self):
         return 'Maximum amount of memory (as bytes) for processing (defaults to 5 % of total memory).'
@@ -592,7 +598,6 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         cmd = f"processing.run('enmapbox:{self.name()}', dict({', '.join(cmdParameters)}))"
         return cmd
 
-
     def createLoggingFeedback(
             cls, feedback: QgsProcessingFeedback, logfile: TextIO
     ) -> Tuple[ProcessingFeedback, ProcessingFeedback]:
@@ -609,13 +614,17 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         feedback.pushTiming(time() - self._startTime)
         feedback.pushResult(result)
 
+    @staticmethod
+    def runAlg(algOrName, parameters, onFinish, feedback, context, is_child_algorithm) -> Dict:
+        return processing.run(algOrName, parameters, onFinish, feedback, context, is_child_algorithm)
+
 
 class Group(Enum):
     AccuracyAssessment = 'Accuracy Assessment'
     Auxilliary = 'Auxilliary'
     ConvolutionMorphologyAndFiltering = 'Convolution, Morphology and Filtering'
-    CreateRaster = 'Create Raster'
-    CreateSample = 'Create Sample'
+    CreateRaster = 'Raster Creation'
+    CreateVector = 'Vector Creation'
     Classification = 'Classification'
     Clustering = 'Clustering'
     ImportData = 'Import Data'
@@ -624,7 +633,6 @@ class Group(Enum):
     Preprocessing = 'Pre-Processing'
     Postprocessing = 'Post-Processing'
     ResamplingAndSubsetting = 'Resampling and Subsetting'
-    Random = 'Random'
     Regression = 'Regression'
     Sampling = 'Sampling'
     Test = 'TEST/'

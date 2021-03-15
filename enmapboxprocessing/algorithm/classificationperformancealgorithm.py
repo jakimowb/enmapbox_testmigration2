@@ -35,11 +35,11 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_CLASSIFICATION, self.helpParameterClassification()),
+            (self.P_CLASSIFICATION, self.helpParameterRasterClassification()),
             (self.P_REFERENCE, 'Stratified random reference sample. '
                                f'{self.helpParameterMapClassification()} '),
             (self.P_STRATIFICATION, 'Sample strata. '
-                                    f'{self.helpParameterClassification()}. '
+                                    f'{self.helpParameterRasterClassification()}. '
                                     'If not set, the Classification is used as sample strata.'),
             (self.P_OUTPUT_REPORT, self.helpParameterReportDestination())
         ]

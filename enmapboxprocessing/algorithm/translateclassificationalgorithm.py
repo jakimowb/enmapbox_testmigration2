@@ -28,7 +28,7 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_CLASSIFICATION, self.helpParameterClassification()),
+            (self.P_CLASSIFICATION, self.helpParameterRasterClassification()),
             (self.P_GRID, self.helpParameterGrid()),
             (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
             (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
