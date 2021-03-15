@@ -52,21 +52,21 @@ class ProcessingProviderTests(TestCase):
 
     def test_init(self):
 
-        from enmapbox import initEnMAPBoxProcessingProvider, removeEnMAPBoxProcessingProvider
+        from enmapbox import registerEnMAPBoxProcessingProvider, unregisterEnMAPBoxProcessingProvider
         from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider, ID
 
         registry = QgsApplication.instance().processingRegistry()
         self.assertIsInstance(registry, QgsProcessingRegistry)
 
         n1 = len(registry.algorithms())
-        initEnMAPBoxProcessingProvider()
+        registerEnMAPBoxProcessingProvider()
 
         enmapBoxProvider = registry.providerById(ID)
         self.assertIsInstance(enmapBoxProvider, EnMAPBoxProcessingProvider)
         del enmapBoxProvider
         n2 = len(registry.algorithms())
         self.assertTrue(n2 > n1)
-        removeEnMAPBoxProcessingProvider()
+        unregisterEnMAPBoxProcessingProvider()
 
         n3 = len(registry.algorithms())
         self.assertEqual(n1, n3)

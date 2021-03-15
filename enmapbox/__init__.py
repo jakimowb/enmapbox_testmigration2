@@ -42,7 +42,6 @@ from qgis.PyQt.QtGui import QIcon
 from osgeo import gdal
 import traceback
 
-
 # try to find and add the QGIS internal processing folder
 try:
     import processing
@@ -83,6 +82,7 @@ except ModuleNotFoundError as ex:
 
         try:
             import processing
+
             print(f'## Success {p}')
         except Exception as ex:
             traceback.print_exc()
@@ -90,7 +90,6 @@ except ModuleNotFoundError as ex:
             print(ex)
 
 __version__ = '3.7'  # subsub-version information is added during build process
-
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
@@ -221,7 +220,7 @@ def initEnMAPBoxResources():
     debugLog('finished initEnMAPBoxResources')
 
 
-def initEditorWidgets():
+def registerEditorWidgets():
     """
     Initialises QgsEditorWidgets
     """
@@ -231,6 +230,15 @@ def initEditorWidgets():
     registerEditorWidgets()
 
     debugLog('finished initEditorWidgets')
+
+
+def unregisterEditorWidgets():
+    """
+
+    :return:
+    :rtype:
+    """
+    pass
 
 
 def collectEnMAPBoxAlgorithms() -> typing.List[QgsProcessingAlgorithm]:
@@ -258,7 +266,7 @@ def collectEnMAPBoxAlgorithms() -> typing.List[QgsProcessingAlgorithm]:
     return algs
 
 
-def initEnMAPBoxProcessingProvider():
+def registerEnMAPBoxProcessingProvider():
     """
     Initializes the EnMAPBoxProcessingProvider
     """
@@ -293,7 +301,7 @@ def initEnMAPBoxProcessingProvider():
     debugLog('started initEnMAPBoxProcessingProvider')
 
 
-def removeEnMAPBoxProcessingProvider():
+def unregisterEnMAPBoxProcessingProvider():
     """Removes the EnMAPBoxProcessingProvider"""
     from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider, ID
     registry = QgsApplication.instance().processingRegistry()
@@ -306,7 +314,7 @@ def removeEnMAPBoxProcessingProvider():
         registry.removeProvider(ID)
 
 
-def initMapLayerConfigWidgetFactories():
+def registerMapLayerConfigWidgetFactories():
     debugLog('started initMapLayerConfigWidgetFactories')
 
     from .externals.qps import registerMapLayerConfigWidgetFactories, mapLayerConfigWidgetFactories
@@ -317,15 +325,39 @@ def initMapLayerConfigWidgetFactories():
     debugLog('finished initMapLayerConfigWidgetFactories')
 
 
+def unregisterMapLayerConfigWidgetFactories():
+    from .externals.qps import unregisterMapLayerConfigWidgetFactory, mapLayerConfigWidgetFactories
+    for factory in mapLayerConfigWidgetFactories():
+        unregisterMapLayerConfigWidgetFactory(factory)
+
+
+def registerExpressionFunctions():
+    from .externals.qps.speclib.qgsfunctions import registerQgsExpressionFunctions
+    registerQgsExpressionFunctions()
+
+
+def unregisterExpressionFunctions():
+    from .externals.qps.speclib.qgsfunctions import unregisterQgsExpressionFunctions
+    unregisterQgsExpressionFunctions()
+
+
 def initAll(processing=True):
     """
     Calls other init routines required to run the EnMAP-Box properly
     """
     initEnMAPBoxResources()
-    initEditorWidgets()
+    registerEditorWidgets()
+    registerExpressionFunctions()
     if processing:
-        initEnMAPBoxProcessingProvider()
-    initMapLayerConfigWidgetFactories()
+        registerEnMAPBoxProcessingProvider()
+    registerMapLayerConfigWidgetFactories()
+
+
+def unloadAll():
+    unregisterEditorWidgets()
+    unregisterExpressionFunctions()
+    unregisterMapLayerConfigWidgetFactories()
+    unregisterEnMAPBoxProcessingProvider()
 
 
 EnMAPBox = None
@@ -357,10 +389,13 @@ def run():
 # print(f'QGIS_PREFIX_PATH={QgsApplication.prefixPath()}')
 if not os.environ.get('READTHEDOCS', False) in [True, 'True']:
     from enmapbox import initEnMAPBoxResources
+
     initEnMAPBoxResources()
 
     from enmapbox.gui.enmapboxgui import EnMAPBox
+
     EnMAPBox = EnMAPBox
 
     from enmapbox.gui.applications import EnMAPBoxApplication
+
     EnMAPBoxApplication = EnMAPBoxApplication

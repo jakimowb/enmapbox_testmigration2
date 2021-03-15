@@ -100,7 +100,7 @@ class EnMAPBoxPlugin(object):
                 iface.removeToolBarIcon(action)
 
         import enmapbox
-        enmapbox.removeEnMAPBoxProcessingProvider()
+        enmapbox.unloadAll()
 
         if isinstance(EnMAPBox.instance(), EnMAPBox):
             EnMAPBox.instance().close()
