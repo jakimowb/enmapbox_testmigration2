@@ -41,9 +41,13 @@ class RasterReader(object):
 
         self.provider: QgsRasterDataProvider = provider
         self.gdalDataset = gdalDataset
+        assert self.gdalDataset is not None
 
     def bandCount(self):
         return self.provider.bandCount()
+
+    def bandName(self, bandNo: int) -> str:
+        return self.gdalBand(bandNo).GetDescription()
 
     def crs(self) -> QgsCoordinateReferenceSystem:
         return self.provider.crs()

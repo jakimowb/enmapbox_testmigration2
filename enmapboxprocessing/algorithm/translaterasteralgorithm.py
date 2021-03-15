@@ -1,17 +1,16 @@
-from os.path import splitext, basename
+from math import isnan
 from typing import Dict, Any, List, Tuple
 
 from osgeo import gdal
 
 from enmapboxprocessing.rasterwriter import RasterWriter
 from typeguard import typechecked
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRectangle, QgsRasterLayer, Qgis,
-                        QgsRasterDataProvider, QgsPoint, QgsPointXY, QgsCoordinateReferenceSystem)
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRectangle, QgsRasterLayer,
+                        QgsRasterDataProvider, QgsPoint, QgsPointXY)
 
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm, GdalDataType
 from enmapboxprocessing.utils import Utils
-from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group, AlgorithmCanceledException
+from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
 
 @typechecked
@@ -20,7 +19,8 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_BAND_LIST = 'bandList'
     P_GRID = 'grid'
     P_EXTENT = 'extent'
-    P_SOURCE_WINDOW = 'sourceWindow'
+    P_SOURCE_COLUMNS = 'sourceColumns'
+    P_SOURCE_ROWS = 'sourceRows'
     P_EXCLUDE_BAD_BANDS = 'excludeBadBands'
     P_RESAMPLE_ALG = 'resampleAlg'
     P_DATA_TYPE = 'dataType'
@@ -56,7 +56,8 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                             'which is given by the source Raster or the selected Grid. '
                             'In both cases, the extent is aligned with the actual pixel grid '
                             'to avoid subpixel shifts.'),
-            (self.P_SOURCE_WINDOW, 'Subwindow in pixels to extract: left_x, top_y, width, height'),
+            (self.P_SOURCE_COLUMNS, 'Column subset range in pixels to extract.'),
+            (self.P_SOURCE_ROWS, 'Rows subset range in pixels to extract.'),
             (self.P_EXCLUDE_BAD_BANDS, 'Wether to exclude bad bands (given by BBL metadata item inside ENVI domain). '
                                        'Also see The ENVI Header Format for more details: '
                                        'https://www.l3harrisgeospatial.com/docs/ENVIHeaderFiles.html '),
@@ -68,37 +69,35 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         ]
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
-        return self.checkParameterSourceWindow(parameters, context)
-
-    def parameterAsSourceWindow(
-            self, parameters: Dict[str, Any], context: QgsProcessingContext
-    ) -> List[int]:
-        string = self.parameterAsString(parameters, self.P_SOURCE_WINDOW, context)
-        if string in ['', 'Not set']:
-            string = '0, 0, 0, 0'
-        return [int(v) for v in string.split(',')]
+        return True, ''
 
     def parameterAsSourceWindowExtent(
             self, parameters: Dict[str, Any], context: QgsProcessingContext
     ) -> QgsRectangle:
-        left_x, top_y, width, height = self.parameterAsSourceWindow(parameters, context)
+
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         provider: QgsRasterDataProvider = raster.dataProvider()
-        ul: QgsPoint = provider.transformCoordinates(
-            QgsPoint(left_x, top_y), QgsRasterDataProvider.TransformImageToLayer
-        )
-        lr: QgsPoint = provider.transformCoordinates(
-            QgsPoint(left_x + width, top_y + height), QgsRasterDataProvider.TransformImageToLayer
-        )
-        return QgsRectangle(QgsPointXY(ul), QgsPointXY(lr))
 
-    def checkParameterSourceWindow(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
-        try:
-            values = self.parameterAsSourceWindow(parameters, context)
-            assert len(values) == 4
-        except:
-            return False, f'Invalid source window ({self.parameterDefinition(self.P_SOURCE_WINDOW).description()})'
-        return True, ''
+        xmin, xmax = self.parameterAsRange(parameters, self.P_SOURCE_COLUMNS, context)
+        ymin, ymax = self.parameterAsRange(parameters, self.P_SOURCE_ROWS, context)
+        skipRangeX = isnan(xmin) and isnan(xmax)
+        skipRangeY = isnan(ymin) and isnan(ymax)
+        if skipRangeX and skipRangeY:
+            return QgsRectangle()
+
+        if isnan(xmin):
+            xmin = 0
+        if isnan(ymin):
+            ymin = 0
+        if isnan(xmax):
+            xmax = xmin + raster.width() - 1
+        if isnan(ymax):
+            ymax = ymin + raster.height() - 1
+        p1: QgsPoint = provider.transformCoordinates(QgsPoint(xmin, ymin), QgsRasterDataProvider.TransformImageToLayer)
+        p2: QgsPoint = provider.transformCoordinates(
+            QgsPoint(xmax + 1, ymax + 1), QgsRasterDataProvider.TransformImageToLayer
+        )
+        return QgsRectangle(QgsPointXY(p1), QgsPointXY(p2))
 
     def group(self):
         return Group.Test.value + Group.CreateRaster.value
@@ -111,9 +110,8 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_GRID, 'Grid', optional=True)
         self.addParameterBoolean(self.P_COPY_METADATA, 'Copy Metadata', defaultValue=False)
         self.addParameterExtent(self.P_EXTENT, 'Spatial Extent', optional=True, advanced=True)
-        self.addParameterString(
-            self.P_SOURCE_WINDOW, 'Source Window', defaultValue='Not set', optional=True, advanced=True
-        )
+        self.addParameterIntRange(self.P_SOURCE_COLUMNS, 'Column Subset', optional=True, advanced=True)
+        self.addParameterIntRange(self.P_SOURCE_ROWS, 'Row Subset', optional=True, advanced=True)
         self.addParameterBoolean(self.P_EXCLUDE_BAD_BANDS, 'Exclude Bad Bands', defaultValue=False, advanced=True)
         self.addParameterResampleAlg(self.P_RESAMPLE_ALG, advanced=True)
         self.addParameterDataType(self.P_DATA_TYPE, defaultValue=-1, optional=True, advanced=True)
@@ -124,6 +122,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
+        provider: QgsRasterDataProvider = raster.dataProvider()
         bandList = self.parameterAsInts(parameters, self.P_BAND_LIST, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         if grid is None:
@@ -139,34 +138,15 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             extent = grid.extent()
         excludeBadBands = self.parameterAsBoolean(parameters, self.P_EXCLUDE_BAD_BANDS, context)
         resampleAlg = self.parameterAsGdalResampleAlg(parameters, self.P_RESAMPLE_ALG, context)
-        dataType = self.parameterAsQgsDataType(parameters, self.P_DATA_TYPE, context)
+        dataType = self.parameterAsQgsDataType(parameters, self.P_DATA_TYPE, context, default=provider.dataType(1))
         copyMetadata = self.parameterAsBoolean(parameters, self.P_COPY_METADATA, context)
         format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
         width = int(round(extent.width() / grid.rasterUnitsPerPixelX()))
         height = int(round(extent.height() / grid.rasterUnitsPerPixelY()))
+        crs = grid.crs()
 
-        self.processQgis(
-            filename, raster, extent, width, height, grid.crs(), resampleAlg, bandList, excludeBadBands, dataType,
-            copyMetadata, format, options, feedback
-        )
-        return {self.P_OUTPUT_RASTER: filename}
-
-    @classmethod
-    def processQgis(
-            cls, filename: str, raster: QgsRasterLayer, extent: QgsRectangle, width: int, height: int,
-            crs: QgsCoordinateReferenceSystem = None, resampleAlg: GdalResamplingAlgorithm = None,
-            bandList: List[int] = None, excludeBadBands=False, dataType: QgisDataType = None,
-            copyMetadata=False, format: str = None, options: CreationOptions = None,
-            feedback=QgsProcessingFeedback(), **kwargs
-    ) -> RasterWriter:
         reader = RasterReader(raster)
-        if crs is not None:
-            assert crs.isValid()
-        if resampleAlg is None:
-            resampleAlg = gdal.GRA_NearestNeighbour
-        if dataType in [None, Qgis.UnknownDataType]:
-            dataType = reader.dataType()
         gdalDataType = Utils.qgisDataTypeToGdalDataType(dataType)
         if excludeBadBands and reader.metadataItem('bbl', 'ENVI') is not None:
             bbl = [bool(v) for v in reader.metadataItem('bbl', 'ENVI')]
@@ -218,17 +198,15 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             yres = (uly - lry) / height
             geoTransform = (ulx, xres, 0., uly, 0., -yres)
             outGdalDataset.SetGeoTransform(geoTransform)
-            tmpFilename = ''
         else:
             if bandList is not None:
                 tmpFilename = Utils.tmpFilename(filename, 'bandSubset.vrt')
                 tmpGdalDataset = gdal.Translate(
-                    destName=tmpFilename, srcDS=gdalDataset, format=cls.VrtFormat, bandList=bandList,
+                    destName=tmpFilename, srcDS=gdalDataset, format=self.VrtFormat, bandList=bandList,
                     noData=noDataValue, callback=callback
                 )
             else:
                 tmpGdalDataset = gdalDataset
-                tmpFilename = ''
 
             feedback.pushInfo('Warp Raster' + infoTail)
             outputBounds = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
@@ -246,14 +224,9 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
 
         writer = RasterWriter(outGdalDataset)
         if copyMetadata:
-            cls.copyMetadata(raster, writer, bandList)
+            self.copyMetadata(raster, writer, bandList)
 
-        if format != cls.VrtFormat:
-            for f in [tmpFilename]:
-                if basename(f).startswith('.tmp'):
-                    gdal.Unlink(f)
-
-        return writer
+        return {self.P_OUTPUT_RASTER: filename}
 
     @classmethod
     def copyMetadata(cls, raster: QgsRasterLayer, writer: RasterWriter, bandList: List[int] = None):

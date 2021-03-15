@@ -38,10 +38,10 @@ class MapCanvasTests(EnMAPBoxTestCase):
     def test_mapDock(self):
         dock = MapDock()
         self.assertIsInstance(dock, MapDock)
-        m = QMenu()
-        dock.populateContextMenu(m)
+        m1 = QMenu()
+        m = dock.populateContextMenu(m1)
         self.assertIsInstance(m, QMenu)
-        self.assertTrue(len(m.actions()) > 0)
+        self.assertTrue(m == m1)
 
     def test_mapCanvas(self):
         mapCanvas = MapCanvas()
@@ -52,7 +52,7 @@ class MapCanvasTests(EnMAPBoxTestCase):
         mapCanvas.setDestinationCrs(lyr.crs())
         mapCanvas.zoomToFullExtent()
 
-        # self.assertTrue(lyr in QgsProject.instance().mapLayers().values())
+        #self.assertTrue(lyr in QgsProject.instance().mapLayers().values())
         self.assertTrue(lyr in mapCanvas.layers())
         menu = QMenu()
         mapCanvas.populateContextMenu(menu, None)
@@ -60,7 +60,7 @@ class MapCanvasTests(EnMAPBoxTestCase):
         actions = [a for a in menu.children() if isinstance(a, QAction)]
         self.assertTrue(len(actions) > 2)
 
-        # trigger all context menu actions
+        #trigger all context menu actions
         if False:
             for action in actions:
                 info = action.text()
@@ -150,17 +150,16 @@ class MapCanvasTests(EnMAPBoxTestCase):
         md = QMimeData()
         md.setUrls([QUrl.fromLocalFile(f) for f in allFiles])
 
-        # drop URLs
+        #drop URLs
         mapCanvas.setLayers([])
         mapCanvas.dropEvent(TestObjects.createDropEvent(md))
-
-        # self.assertTrue(len(self.mapCanvas.layerPaths()) == len(spatialFiles))
+        #self.assertTrue(len(self.mapCanvas.layerPaths()) == len(spatialFiles))
 
         layerPaths = [pathlib.Path(p) for p in mapCanvas.layerPaths()]
         for p in spatialFiles:
             self.assertTrue(pathlib.Path(p) in layerPaths)
 
-        # drop layertree
+        #drop layertree
 
         layers = [QgsVectorLayer(landcover_polygons), QgsRasterLayer(enmap)]
         md = fromLayerList(layers)
@@ -171,7 +170,7 @@ class MapCanvasTests(EnMAPBoxTestCase):
         for p in mapCanvas.layerPaths():
             self.assertTrue(p in spatialFiles)
 
-        # drop registered layers
+        #drop registered layers
         layers = [QgsVectorLayer(landcover_polygons), QgsRasterLayer(enmap)]
         QgsProject.instance().addMapLayers(layers)
 

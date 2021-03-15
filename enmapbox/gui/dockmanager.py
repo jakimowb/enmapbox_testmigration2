@@ -22,16 +22,12 @@ import uuid
 import typing
 import warnings
 import time
-
-from PyQt5.QtWidgets import QWidgetAction, QLabel
-from osgeo import gdal
 from processing import Processing
 from qgis.PyQt.QtWidgets import QWidget, QHeaderView, QMenu, QAbstractItemView, QApplication
 from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
 
 from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
-from qgis._gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
     QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
     QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils, \
@@ -61,7 +57,6 @@ from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui.utils import getDOMAttributes
 from hubdsm.core.category import Category  # needed for eval
 from hubdsm.core.color import Color  # needed for eval
-from hubdsm.processing.changemap import ChangeMap, ChangeMapTable
 from hubdsm.processing.classificationstatistics import ClassificationStatistics, ClassificationStatisticsPlot
 
 LUT_DOCKTYPES = {'MAP': MapDock,
@@ -160,13 +155,11 @@ class LayerTreeNode(QgsLayerTree):
     def icon(self):
         return self.mIcon
 
-    def populateContextMenu(self, menu:QMenu):
+    def populateContextMenu(self, menu: QMenu):
         """
-        Returns an empty QMenu
-        Overwrite with QMenu + QActions that implement logic related to the TreeNode and its data.
-        :return:
+        Allows to add QActions and QMenues to a parent menu
         """
-        return QMenu()
+        pass
 
     @staticmethod
     def readXml(element):
@@ -322,7 +315,6 @@ class SpeclibDockTreeNode(DockTreeNode):
             sl: SpectralLibrary = self.mSpeclibWidget.speclib()
             if isinstance(sl, SpectralLibrary):
                 # self.profilesNode.setValue(len(speclib))
-
 
                 NODES = {}
                 PROFILES = dict()
@@ -675,7 +667,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
     def removeDockNode(self, node):
         self.removeNodes([node])
-        #self.mDockManager.removeDock(node.dock)
+        # self.mDockManager.removeDock(node.dock)
 
     def flags(self, index):
         if not index.isValid():
@@ -962,7 +954,6 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
 
 class DockTreeView(QgsLayerTreeView):
-
     sigPopulateContextMenu = pyqtSignal(QMenu)
 
     def __init__(self, parent):
@@ -978,7 +969,6 @@ class DockTreeView(QgsLayerTreeView):
         self.mMenuProvider = DockManagerLayerTreeModelMenuProvider(self)
         self.setMenuProvider(self.mMenuProvider)
         self.mMenuProvider.mSignals.sigPopulateContextMenu.connect(self.sigPopulateContextMenu.emit)
-
 
     def findParentMapDockTreeNode(self, node: QgsLayerTreeNode) -> MapDockTreeNode:
         while isinstance(node, QgsLayerTreeNode) and not isinstance(node, MapDockTreeNode):
@@ -1074,7 +1064,6 @@ class DockTreeView(QgsLayerTreeView):
 
 
 class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
-
     class Signals(QObject):
         sigPopulateContextMenu = pyqtSignal(QMenu)
 
@@ -1083,7 +1072,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
     def __init__(self, treeView: DockTreeView):
         super(DockManagerLayerTreeModelMenuProvider, self).__init__()
-        #QObject.__init__(self)
+        # QObject.__init__(self)
         assert isinstance(treeView, DockTreeView)
         self.mDockTreeView = treeView
         self.mSignals = DockManagerLayerTreeModelMenuProvider.Signals()
@@ -1153,18 +1142,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                     action = menu.addAction('Classification Statistics')
                     action.triggered.connect(lambda: self.runClassificationStatistics(lyr))
 
-            self._changeMapMenu = QMenu(title='Change Statistics')
-            self._changeMapLayerWidget = QgsMapLayerComboBox(menu)
-            self._changeMapLayerWidget.setLayer(None)
-            self._changeMapLayerWidget.layerChanged.connect(lambda lyr2: self.runChangeStatistics(lyr, lyr2))
-            self._changeMapLayerWidget.setFixedWidth(200)
-            action = QWidgetAction(menu)
-            action.setDefaultWidget(self._changeMapLayerWidget)
-            self._changeMapMenu.addAction(action)
-            menu.addMenu(self._changeMapMenu)
-            #menu.addAction(action)
-            #print('HI')
-
             menu.addSeparator()
             action = menu.addAction('Layer properties')
             action.setToolTip('Set layer properties')
@@ -1223,22 +1200,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                                               parent=self.mDockTreeView)
         widget.show()
 
-    def runChangeStatistics(self, layer1, layer2):
-
-        filename = '/vsimem/temp/runChangeStatistics.bsq'
-        alg = ChangeMap()
-        io = {
-            alg.P_CLASSIFICATION1: layer1,
-            alg.P_CLASSIFICATION2: layer2,
-            alg.P_OUTRASTER: filename
-        }
-        result = Processing.runAlgorithm(alg, parameters=io, feedback=QgsProcessingFeedback())
-        layer = QgsRasterLayer(filename)
-        print(layer.renderer())
-
-        widget = ChangeMapTable(layer=layer, parent=self.mDockTreeView)
-        widget.show()
-        gdal.Unlink(filename)
 
 class DockManager(QObject):
     """

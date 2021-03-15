@@ -87,7 +87,7 @@ class Utils(object):
 
     @staticmethod
     def numpyDataTypeToQgisDataType(dataType: NumpyDataType) -> Qgis.DataType:
-        if dataType == np.uint8:
+        if dataType in [np.bool, np.uint8]:
             return Qgis.Byte
         elif dataType == np.float32:
             return Qgis.Float32
@@ -275,13 +275,19 @@ class Utils(object):
         QTimer.singleShot(1000, lambda: deleteLater(filename))
 
     @classmethod
-    def pickleDump(cls, obj: Any, filename: str):
+    def _pickleDump(cls, obj: Any, filename: str):
         with open(filename, 'wb') as file:
+            pickle.dump(obj, file)
+    @classmethod
+    def pickleDump(cls, obj: Any, filename: str):
+        import bz2
+        with bz2.BZ2File(filename, 'w') as file:
             pickle.dump(obj, file)
 
     @classmethod
     def pickleLoad(cls, filename: str) -> Any:
-        with open(filename, 'rb') as file:
+        import bz2
+        with bz2.BZ2File(filename, 'r') as file:
             return pickle.load(file)
 
     @classmethod

@@ -180,12 +180,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         qgis.utils.iface.actionSaveProject().trigger()
 
 
-        EMB.dockTreeView().sigPopulateContextMenu.connect(
-            lambda *args: print(f'sigPopulateContextMenu DockTreeView {args}'))
-        EMB.dataSourceTreeView().sigPopulateContextMenu.connect(
-            lambda *args: print(f'sigPopulateContextMenu DataSourceView {args}'))
-
-
         self.showGui([EMB.ui, qgis.utils.iface.mainWindow()])
 
 
@@ -213,11 +207,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
             iface.setActiveLayer(layer)
             self.assertEqual(iface.activeLayer(), layer)
 
-            # todo: test return types
-            result1 = Qgis.activeBand(0)
-            result2 = Qgis.activeData()
-            result3 = Qgis.activeRaster()
-            s = ""
 
         box = EnMAPBox(load_core_apps=False, load_other_apps=False)
         iface = qgis.utils.iface
