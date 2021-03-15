@@ -430,7 +430,7 @@ class SpectralProfilePlotDataItem(PlotDataItem):
 
                 # 1. convert to numpy arrays
                 if not isinstance(y, np.ndarray):
-                    y = np.asarray(y, dtype=np.float)
+                    y = np.asarray(y, dtype=float)
                 if not isinstance(x, np.ndarray):
                     x = np.asarray(x)
 
@@ -2413,6 +2413,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.actionExportSpeclib.triggered.connect(self.onExportSpectra)
 
         self.tbSpeclibAction = QToolBar('Spectral Profiles')
+        self.tbSpeclibAction.setObjectName('SpectralLibraryToolbar')
         self.tbSpeclibAction.addAction(self.actionSelectProfilesFromMap)
         self.tbSpeclibAction.addAction(self.actionAddProfiles)
         self.tbSpeclibAction.addAction(self.actionImportSpeclib)
