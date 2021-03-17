@@ -36,6 +36,7 @@ pipelines:
             - python3 enmapbox --debug --no_exec
             # run unittests in "enmapboxtesting" with coverage
             - python3 -m coverage run -m unittest discover -s enmapboxtesting
+            - urlchecker check . --file-types .py,.rst,.md,.json
 
   custom:
     scheduled-testing:
