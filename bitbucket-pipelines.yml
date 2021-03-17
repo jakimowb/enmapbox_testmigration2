@@ -60,8 +60,7 @@ pipelines:
             - python3 --version
             - gdalinfo --version
             - printenv PYTHONPATH
-            - QT_QPA_PLATFORM=offscreen
-            - export QT_QPA_PLATFORM
+            - export QT_QPA_PLATFORM=offscreen
             - python3 scripts/setup_repository.py
           artifacts:
             # defining the artifacts to be passed to each future step.
@@ -90,8 +89,7 @@ pipelines:
             - echo "current dir:" $(pwd)
             - python3 --version
             - printenv PYTHONPATH
-            - QT_QPA_PLATFORM=offscreen
-            - export QT_QPA_PLATFORM
+            - export QT_QPA_PLATFORM=offscreen
             #- export PYTHONPATH="${PYTHONPATH}:$(pwd)/deploy/enmapboxplugin"
             #- echo " PYTHONPATH "
 
