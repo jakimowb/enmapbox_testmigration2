@@ -182,7 +182,7 @@ def debugLog(msg: str):
         print('DEBUG:' + msg, flush=True)
 
 
-def messageLog(msg, level=Qgis.Info):
+def messageLog(msg, level=Qgis.Info, notifyUser:bool = True):
     """
     Writes a log message to the QGIS EnMAP-Box Log
     :param msg: log message string
@@ -192,7 +192,14 @@ def messageLog(msg, level=Qgis.Info):
         msg = str(msg)
     app = QgsApplication.instance()
     if isinstance(app, QgsApplication):
-        app.messageLog().logMessage(msg, 'EnMAP-Box', level)
+        app.messageLog().logMessage(msg, 'EnMAP-Box',
+                                    level=level,
+                                    notifyUser=notifyUser)
+        from qgis.utils import iface
+        if isinstance(iface, QgisInterface):
+            iface.openMessageLog()
+            title = msg.split('\n')[0]
+            iface.messageBar().pushCritical(title, msg)
     else:
         if level == Qgis.Critical:
             print(msg, file=sys.stderr)
@@ -256,15 +263,12 @@ def collectEnMAPBoxAlgorithms() -> typing.List[QgsProcessingAlgorithm]:
                 algs.append(a.create())
             except Exception as ex2:
                 traceback.print_stack()
-                print(ex2)
                 messageLog(str(ex2), Qgis.Warning)
     except Exception as ex:
         traceback.print_stack()
         info = 'Unable to load enmapboxgeoalgorithms.algorithms'
         info += '\n' + str(ex)
-        messageLog(info, Qgis.Warning)
-        print(info, file=sys.stderr)
-
+        messageLog(info, Qgis.Critical)
     return algs
 
 
