@@ -182,7 +182,7 @@ def debugLog(msg: str):
         print('DEBUG:' + msg, flush=True)
 
 
-def messageLog(msg, level=Qgis.Info):
+def messageLog(msg, level=Qgis.Info, notifyUser:bool = True):
     """
     Writes a log message to the QGIS EnMAP-Box Log
     :param msg: log message string
@@ -194,7 +194,12 @@ def messageLog(msg, level=Qgis.Info):
     if isinstance(app, QgsApplication):
         app.messageLog().logMessage(msg, 'EnMAP-Box',
                                     level=level,
-                                    notifyUser= level == Qgis.Critical)
+                                    notifyUser=notifyUser)
+        from qgis.utils import iface
+        if isinstance(iface, QgisInterface):
+            iface.openMessageLog()
+            title = msg.split('\n')[0]
+            iface.messageBar().pushCritical(title, msg)
     else:
         if level == Qgis.Critical:
             print(msg, file=sys.stderr)
