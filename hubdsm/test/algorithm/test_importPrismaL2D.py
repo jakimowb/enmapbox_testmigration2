@@ -61,7 +61,7 @@ class TestImportPrismaL2D(TestCase):
              0.1174, 0.1106, 0.1092, 0.1075, 0.1097, 0.1, 0.0899, 0.0889, 0.0976, 0.0864]
         )
 
-        def test_issueisEnmapL2AProduct(self):
-            filenameHe5 = r'C:\Users\janzandr\Downloads\PRS_L2D_STD_20210301145150_20210301145154_0001\PRS_L2D_STD_20210301145150_20210301145154_0001.he5'
-            self.assertTrue(isPrismaL2DProduct(filenameHe5=filenameHe5))
-            importPrismaL2D(filenameHe5)
+    def test_issueisEnmapL2AProduct(self):
+        filenameHe5 = r'C:\Users\janzandr\Downloads\PRS_L2D_STD_20210301145150_20210301145154_0001\PRS_L2D_STD_20210301145150_20210301145154_0001.he5'
+        self.assertTrue(isPrismaL2DProduct(filenameHe5=filenameHe5))
+        importPrismaL2D(filenameHe5)
