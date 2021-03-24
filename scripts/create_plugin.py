@@ -19,7 +19,7 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-
+import warnings
 import argparse
 import datetime
 import os
@@ -29,6 +29,7 @@ import shutil
 import sys
 import typing
 import site
+import io
 site.addsitedir(pathlib.Path(__file__).parents[1])
 import enmapbox
 from enmapbox import DIR_REPO, __version__
@@ -116,7 +117,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     compileEnMAPBoxResources()
 
     # copy python and other resource files
-    pattern = re.compile(r'\.(sli|hdr|py|svg|png|txt|ui|tif|qml|md|js|css|json)$')
+    pattern = re.compile(r'\.(sli|hdr|py|svg|png|txt|ui|tif|qml|md|js|css|json|aux\.xml|pth)$')
     files = list(scantree(DIR_REPO / 'enmapbox', pattern=pattern))
     files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
@@ -178,7 +179,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
               f'exceeds maximum plugin size ({MAX_PLUGIN_SIZE} MB)'
 
         if re.search(currentBranch, 'master', re.I):
-            raise Exception(msg)
+            warnings.warn(msg, Warning, stacklevel=2)
         else:
             print(msg, file=sys.stderr)
     else:
@@ -220,7 +221,12 @@ def createCHANGELOG(dirPlugin):
                  'output_encoding': 'utf-8',
                  }
 
-    html = docutils.core.publish_file(source_path=pathMD, writer_name='html5', settings_overrides=overrides)
+    buffer = io.StringIO()
+    html = docutils.core.publish_file(
+        source_path=pathMD,
+        writer_name='html5',
+        destination=buffer,
+        settings_overrides=overrides)
 
     from xml.dom import minidom
     xml = minidom.parseString(html)

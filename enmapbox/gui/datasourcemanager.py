@@ -364,7 +364,7 @@ class DataSourceManager(QObject):
 
         from qgis.utils import iface
         if isinstance(iface, QgisInterface):
-            root = iface.layerTreeView().model().rootGroup()
+            root = iface.layerTreeView().layerTreeModel().rootGroup()
             assert isinstance(root, QgsLayerTreeGroup)
 
             for layerTree in root.findLayers():

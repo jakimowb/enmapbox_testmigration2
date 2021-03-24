@@ -26,14 +26,16 @@ from qgis.core import QgsProcessingAlgorithm, QgsProject
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-from enmapbox.testing import initQgisApplication, TestObjects
-QGIS_APP = initQgisApplication()
+from enmapbox.externals.qps.testing import start_app
+from enmapbox.testing import TestObjects
+
+QGIS_APP = start_app()
 
 from enmapbox import DIR_REPO
 from enmapbox.gui.utils import *
 
-
 from qgis.utils import iface
+
 
 class TestEnMAPBoxPlugin(unittest.TestCase):
 
@@ -61,10 +63,6 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
         self.assertTrue(parser.get('general', 'email') != '')
         self.assertTrue(parser.get('general', 'repository') != '')
 
-
-        s = ""
-
-
     def test_loadplugin(self):
         from enmapbox.enmapboxplugin import EnMAPBoxPlugin
 
@@ -74,7 +72,7 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
 
     def test_loadAlgorithmProvider(self):
 
-        #test algos
+        # test algos
 
         import enmapboxgeoalgorithms.algorithms
         exceptions = []
@@ -87,7 +85,6 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
             except Exception as ex:
                 exceptions.append((algorithm.name(), ex))
 
-
         if len(exceptions) > 0:
 
             names = '\n'.join([ex[0] for ex in exceptions])
@@ -97,10 +94,7 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
                 info.append('Failed Algorithm: {}\nStack trace:\n{}\n'.format(ex[0], str(ex[1])))
             self.fail('\n'.join(info))
 
-
         from enmapbox.enmapboxplugin import EnMAPBoxPlugin
-
-
 
         plugin = EnMAPBoxPlugin(iface)
         self.assertIsInstance(plugin, EnMAPBoxPlugin)
@@ -108,7 +102,6 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
         plugin.unload()
 
         self.assertTrue(True)
-
 
     def test_dependencies(self):
 
@@ -133,5 +126,4 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
 
 
 if __name__ == '__main__':
-
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

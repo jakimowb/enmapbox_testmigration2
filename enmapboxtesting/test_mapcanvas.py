@@ -38,11 +38,10 @@ class MapCanvasTests(EnMAPBoxTestCase):
     def test_mapDock(self):
         dock = MapDock()
         self.assertIsInstance(dock, MapDock)
-        m = QMenu()
-        dock.populateContextMenu(m)
+        m1 = QMenu()
+        m = dock.populateContextMenu(m1)
         self.assertIsInstance(m, QMenu)
-        self.assertTrue(len(m.actions()) > 0)
-
+        self.assertTrue(m == m1)
 
     def test_mapCanvas(self):
         mapCanvas = MapCanvas()
