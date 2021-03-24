@@ -89,17 +89,26 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsLayer(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsMapLayer]:
-        return super().parameterAsLayer(parameters, name, context)
+        layer = super().parameterAsLayer(parameters, name, context)
+        if isinstance(layer, QgsMapLayer) and isinstance(parameters[name], str):
+            layer.loadDefaultStyle()
+        return layer
 
     def parameterAsRasterLayer(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsRasterLayer]:
-        return super().parameterAsRasterLayer(parameters, name, context)
+        layer = super().parameterAsRasterLayer(parameters, name, context)
+        if isinstance(layer, QgsRasterLayer) and isinstance(parameters[name], str):
+            layer.loadDefaultStyle()
+        return layer
 
     def parameterAsVectorLayer(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
-    ) -> QgsVectorLayer:
-        return super().parameterAsVectorLayer(parameters, name, context)
+    ) -> Optional[QgsVectorLayer]:
+        layer = super().parameterAsVectorLayer(parameters, name, context)
+        if isinstance(layer, QgsVectorLayer) and isinstance(parameters[name], str):
+            layer.loadDefaultStyle()
+        return layer
 
     def parameterAsFields(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
@@ -586,13 +595,6 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             if value_ is None:
                 continue
             value = parameter.valueAsPythonString(value_, context)
-
-            # workaround issue: processing.run is not loading the default renderer when passing simple filenames
-            if isinstance(value_, QgsRasterLayer):
-                value = f"QgsRasterLayer(r'{eval(value)}')"
-            if isinstance(value_, QgsVectorLayer):
-                value = f"QgsVectorLayer(r'{eval(value)}')"
-
             cmdParameters.append(f'{parameter.name()}={value}')
 
         cmd = f"processing.run('enmapbox:{self.name()}', dict({', '.join(cmdParameters)}))"
@@ -606,8 +608,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         return feedbackMainAlgo, feedbackChildAlgo
 
     def tic(self, feedback: ProcessingFeedback, parameters: Dict[str, Any], context: QgsProcessingContext):
-        feedback.pushCommand(self.asPythonCommand(parameters, context))
-        feedback.pushInfo('')
+        feedback.pushPythonCommand(self.asPythonCommand(parameters, context) + '\n')
+        feedback.pushConsoleCommand(self.asConsoleCommand(parameters, context) + '\n')
         self._startTime = time()
 
     def toc(self, feedback: ProcessingFeedback, result: Dict):

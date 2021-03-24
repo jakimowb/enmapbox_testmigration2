@@ -18,7 +18,7 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
     P_SCORE = 'score'
     P_STYLE = 'style'
     P_MAXIMUM_MEMORY_USAGE = 'maximumMemoryUsage'
-    P_OUTPUT_RGB = 'outrgb'
+    P_OUTPUT_RASTER = 'outRaster'
 
     def displayName(self):
         return 'Colorize Class Scores'
@@ -27,7 +27,8 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         return 'Converts multiband class scores (e.g. class cover fractions or probabilies) ' \
                'into a RGB visualization concidering all classes at ones. ' \
                'The RGB color is the weighted mean of class colors given by the style, ' \
-               'and weights are given by class scores.  ' \
+               'and weights are given by class scores. Note that scores must range between 0 and 1, ' \
+               'and outlieres are trimmed beforehand! ' \
                '\nFor example, pure pixels with score of 1 (e.g. class cover fraction equal 100%) ' \
                'appear in its pure class color. ' \
                'A two class mixture pixel with 50% of class red (255, 0, 0) and 50% of class green (0, 255, 0) ' \
@@ -38,7 +39,7 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
             (self.P_SCORE, 'Source raster layer with bands matching categories given by style.'),
             (self.P_STYLE, self.helpParameterMapClassification()),
             (self.P_MAXIMUM_MEMORY_USAGE, self.helpParameterMaximumMemoryUsage()),
-            (self.P_OUTPUT_RGB, self.helpParameterRasterDestination())
+            (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
     def group(self):
@@ -48,7 +49,7 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_SCORE, 'Score')
         self.addParameterMapLayer(self.P_STYLE, 'Style')
         self.addParameterMaximumMemoryUsage(self.P_MAXIMUM_MEMORY_USAGE, advanced=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RGB, 'Output RGB')
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output RGB raster')
 
     def checkParameterFractionAndStyle(
             self, parameters: Dict[str, Any], context: QgsProcessingContext
@@ -62,7 +63,7 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         else:
             return False, f'invalid layer type {classification}'
         valid = fraction.bandCount() == len(categories)
-        return valid, 'Number of bands (Score) not matching number of categories (Style)'
+        return valid, 'Number of bands (score) not matching number of categories (style)'
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         valid, message = self.checkParameterMapClassification(parameters, self.P_CLASSIFICATION, context)
@@ -79,7 +80,7 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         raster = self.parameterAsRasterLayer(parameters, self.P_SCORE, context)
         style = self.parameterAsLayer(parameters, self.P_STYLE, context)
         maximumMemoryUsage = self.parameterAsInt(parameters, self.P_MAXIMUM_MEMORY_USAGE, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RGB, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
 
         if isinstance(style, QgsVectorLayer):
             categories = Utils.categoriesFromCategorizedSymbolRenderer(style.renderer())
@@ -107,4 +108,4 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
                     a[:] += arrayScore * v
             writer.writeArray(arrayRgb, block.xOffset, block.yOffset)
 
-        return {self.P_OUTPUT_RGB: filename}
+        return {self.P_OUTPUT_RASTER: filename}

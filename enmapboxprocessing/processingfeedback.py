@@ -79,7 +79,12 @@ class ProcessingFeedback(QgsProcessingFeedback):
             info = f'Results:\n{result}'
             self.pushInfo(info)
 
-    def pushCommand(self, cmd: str):
+    def pushConsoleCommand(self, cmd: str):
+        if not self._isChildFeedback:
+            self.pushInfo('Console command:')
+            self.pushConsoleInfo('>>>' + cmd)
+
+    def pushPythonCommand(self, cmd: str):
         if not self._isChildFeedback:
             self.pushInfo('Python command:')
             self.pushConsoleInfo('>>>' + cmd)

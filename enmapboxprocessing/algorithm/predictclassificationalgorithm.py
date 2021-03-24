@@ -1,19 +1,16 @@
-import inspect
-import traceback
 from math import ceil
 from typing import Dict, Any, List, Tuple
 import numpy as np
 from osgeo import gdal
-from sklearn.base import ClassifierMixin
-from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
+
+from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.typing import SampleX, SampleY, Categories, checkSampleShape, CreationOptions
+from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
-                        QgsPalettedRasterRenderer, QgsMapLayer, QgsWkbTypes, QgsRasterRenderer)
+from qgis._core import QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
@@ -25,7 +22,7 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
     P_CLASSIFIER = 'classification'
     P_MAXIMUM_MEMORY_USAGE = 'maximumMemoryUsage'
     P_CREATION_PROFILE = 'creationProfile'
-    P_OUTPUT_CLASSIFICATION = 'outClassification'
+    P_OUTPUT_RASTER = 'outClassification'
 
     def displayName(self) -> str:
         return 'Predict classification'
@@ -45,7 +42,7 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
             (self.P_MASK, self.helpParameterMapMask()),
             (self.P_MAXIMUM_MEMORY_USAGE, self.helpParameterMaximumMemoryUsage()),
             (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
-            (self.P_OUTPUT_CLASSIFICATION, self.helpParameterRasterDestination())
+            (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
     def group(self):
@@ -57,11 +54,11 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterMapLayer(self.P_MASK, 'Mask', optional=True, advanced=True)
         self.addParameterMaximumMemoryUsage(self.P_MAXIMUM_MEMORY_USAGE, advanced=True)
         self.addParameterCreationProfile(self.P_CREATION_PROFILE, advanced=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_CLASSIFICATION, 'Output Classification')
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output classification')
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         try:
-            Utils.pickleLoad(self.parameterAsFile(parameters, self.P_CLASSIFIER, context))
+            ClassifierDump(**Utils.pickleLoad(self.parameterAsFile(parameters, self.P_CLASSIFIER, context)))
         except TypeError:
             return False, 'Invalid classifier file.'
         return True, ''
@@ -71,10 +68,10 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         mask = self.parameterAsLayer(parameters, self.P_MASK, context)
-        classifier, categories, X, y = Utils.pickleLoadClassifier(self.parameterAsFile(parameters, self.P_CLASSIFIER, context))
+        dump = ClassifierDump(**Utils.pickleLoad(self.parameterAsFile(parameters, self.P_CLASSIFIER, context)))
         maximumMemoryUsage = self.parameterAsInt(parameters, self.P_MAXIMUM_MEMORY_USAGE, context)
         format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_CLASSIFICATION, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -86,14 +83,24 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
                 parameters = {
                     alg.P_RASTER: mask,
                     alg.P_GRID: raster,
-                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
+                    alg.P_CREATION_PROFILE: self.VrtProfile,
                     alg.P_BAND_LIST: [mask.renderer().usesBands()[0]],
                     alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'mask.vrt')
                 }
                 mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER])
             if isinstance(mask, QgsVectorLayer):
                 feedback.pushInfo('Prepare mask')
-                assert 0  # todo rasterize as mask
+                alg = RasterizeVectorAlgorithm()
+                parameters = {
+                    alg.P_VECTOR: mask,
+                    alg.P_GRID: raster,
+                    alg.P_INIT_VALUE: 0,
+                    alg.P_BURN_VALUE: 1,
+                    alg.P_DATA_TYPE: self.Byte,
+                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
+                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'mask.tif')
+                }
+                mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER])
             assert isinstance(mask, (type(None), QgsRasterLayer))
 
             if maximumMemoryUsage is None:
@@ -101,7 +108,7 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
             rasterReader = RasterReader(raster)
             if mask is not None:
                 maskReader = RasterReader(mask)
-            dataType = Utils.smallesUIntDataType(max([c[0] for c in categories]))
+            dataType = Utils.smallesUIntDataType(max([c[0] for c in dump.categories]))
             writer = Driver(filename, format, options, feedback).createLike(rasterReader, dataType, 1)
             lineMemoryUsage = rasterReader.lineMemoryUsage()
             blockSizeY = min(raster.height(), ceil(maximumMemoryUsage / lineMemoryUsage))
@@ -115,18 +122,18 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
                 X = list()
                 for a in arrayX:
                     X.append(a[valid])
-                y = classifier.predict(np.transpose(X))
+                y = dump.classifier.predict(np.transpose(X))
                 arrayY = np.zeros_like(valid, Utils.qgisDataTypeToNumpyDataType(dataType))
                 arrayY[valid] = y
                 writer.writeArray2d(arrayY, 1, xOffset=block.xOffset, yOffset=block.yOffset)
 
             writer.close()
             outraster = QgsRasterLayer(filename)
-            renderer = Utils.palettedRasterRendererFromCategories(outraster.dataProvider(), 1, categories)
+            renderer = Utils.palettedRasterRendererFromCategories(outraster.dataProvider(), 1, dump.categories)
             outraster.setRenderer(renderer)
             outraster.saveDefaultStyle()
-            result = {self.P_OUTPUT_CLASSIFICATION: filename}
 
+            result = {self.P_OUTPUT_RASTER: filename}
             self.toc(feedback, result)
 
         return result

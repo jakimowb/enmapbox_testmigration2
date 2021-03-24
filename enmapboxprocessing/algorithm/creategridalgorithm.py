@@ -10,12 +10,12 @@ from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
     P_CRS = 'crs'
     P_EXTENT = 'extent'
-    O_UNIT = ['Pixels', 'Georeferenced Units']
+    O_UNIT = ['Pixels', 'Georeferenced units']
     PixelUnits, GeoreferencedUnits = range(2)
     P_UNIT = 'unit'
     P_WIDTH = 'width'
     P_HEIGHT = 'hight'
-    P_OUTPUT_RASTER = 'outraster'
+    P_OUTPUT_RASTER = 'outRaster'
 
     def displayName(self):
         return 'Create Grid'
@@ -41,9 +41,9 @@ class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterCrs(self.P_CRS, 'CRS')
         self.addParameterExtent(self.P_EXTENT, 'Extent')
-        self.addParameterEnum(self.P_UNIT, 'Size Units', self.O_UNIT)
-        self.addParameterFloat(self.P_WIDTH, 'Width / Horizontal Resolution', 0, minValue=0)
-        self.addParameterFloat(self.P_HEIGHT, 'Height / Vertical Resolution', 0, minValue=0)
+        self.addParameterEnum(self.P_UNIT, 'Size units', self.O_UNIT)
+        self.addParameterFloat(self.P_WIDTH, 'Width / horizontal resolution', 0, minValue=0)
+        self.addParameterFloat(self.P_HEIGHT, 'Height / vertical resolution', 0, minValue=0)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:

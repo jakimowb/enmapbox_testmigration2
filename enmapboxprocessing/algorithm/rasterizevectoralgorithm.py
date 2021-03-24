@@ -33,7 +33,7 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
     P_OUTPUT_RASTER = 'outraster'
 
     def displayName(self):
-        return 'Rasterize Vector'
+        return 'Rasterize vector'
 
     def shortDescription(self):
         return 'Converts vector geometries (points, lines and polygons) into a raster grid.'
@@ -68,15 +68,15 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterVectorLayer(self.P_VECTOR, 'Vector')
         self.addParameterRasterLayer(self.P_GRID, 'Grid')
-        self.addParameterFloat(self.P_INIT_VALUE, 'Init Value', defaultValue=0)
-        self.addParameterFloat(self.P_BURN_VALUE, 'Burn Value', defaultValue=1)
+        self.addParameterFloat(self.P_INIT_VALUE, 'Init value', defaultValue=0)
+        self.addParameterFloat(self.P_BURN_VALUE, 'Burn value', defaultValue=1)
         self.addParameterField(
-            self.P_BURN_ATTRIBUTE, 'Burn Attribute', type=QgsProcessingParameterField.Numeric,
+            self.P_BURN_ATTRIBUTE, 'Burn attribute', type=QgsProcessingParameterField.Numeric,
             parentLayerParameterName=self.P_VECTOR, optional=True
         )
-        self.addParameterBoolean(self.P_BURN_FID, 'Burn Feature ID (FID)', defaultValue=False)
-        self.addParameterResampleAlg(self.P_RESAMPLE_ALG, 'Aggregation Algorithm', optional=True)
-        self.addParameterBoolean(self.P_ADD_VALUE, 'Add Value', defaultValue=False)
+        self.addParameterBoolean(self.P_BURN_FID, 'Burn feature ID', defaultValue=False)
+        self.addParameterResampleAlg(self.P_RESAMPLE_ALG, 'Aggregation algorithm', optional=True)
+        self.addParameterBoolean(self.P_ADD_VALUE, 'Add value', defaultValue=False)
         self.addParameterBoolean(self.P_ALL_TOUCHED, 'All touched', defaultValue=False)
         self.addParameterDataType(self.P_DATA_TYPE, defaultValue=self.Float32)
         self.addParameterCreationProfile(self.P_CREATION_PROFILE)

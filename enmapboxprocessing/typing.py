@@ -3,6 +3,8 @@ from typing import Union, List, Dict, Optional, NamedTuple
 import numpy as np
 from osgeo import gdal
 from qgis._core import QgsRasterDataProvider, QgsRasterLayer
+from sklearn.base import ClassifierMixin
+
 from typeguard import typechecked
 
 GdalDataType = int
@@ -20,15 +22,26 @@ RasterSource = Union[str, QgsRasterLayer, QgsRasterDataProvider, gdal.Dataset]
 CreationOptions = List[str]
 HexColor = str
 
+
 @typechecked
 class Category(NamedTuple):
     value: Union[int, str]
     name: str
     color: HexColor
 
+
 Categories = List[Category]
 SampleX = Array2d
 SampleY = Array2d
+
+
+@typechecked
+class ClassifierDump(NamedTuple):
+    classifier: Optional[ClassifierMixin] = None
+    categories: Categories = None
+    features: Optional[List[str]] = None
+    X: Optional[SampleX] = None
+    y: Optional[SampleY] = None
 
 
 @typechecked

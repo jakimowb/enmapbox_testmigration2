@@ -298,21 +298,6 @@ class Utils(object):
             return pickle.load(file)
 
     @classmethod
-    def pickleDumpClassifier(
-            cls, classifier: ClassifierMixin, categories: Categories, X: Optional[SampleX], y: Optional[SampleY],
-            filename: str
-    ):
-        cls.pickleDump(dict(classifier=classifier, categories=categories, X=X, y=y), filename)
-
-    @classmethod
-    def pickleLoadClassifier(cls, filename: str) -> Tuple[
-        ClassifierMixin, Categories, Optional[SampleX], Optional[SampleY]
-    ]:
-        values = cls.pickleLoad(filename)
-        classifier, categories, X, y = tuple(values[key] for key in ['classifier', 'categories', 'X', 'y'])
-        return classifier, categories, X, y
-
-    @classmethod
     def jsonDumps(cls, obj: Any) -> str:
         def default(obj):
             if isinstance(obj, np.ndarray):
@@ -328,6 +313,11 @@ class Utils(object):
         with open(filename, 'w') as file:
             text = Utils.jsonDumps(obj)
             file.write(text)
+
+    @classmethod
+    def jsonLoad(cls, filename: str) -> Any:
+        with open(filename) as file:
+            return json.load(file)
 
     @classmethod
     def isPolygonGeometry(cls, wkbType: int) -> bool:

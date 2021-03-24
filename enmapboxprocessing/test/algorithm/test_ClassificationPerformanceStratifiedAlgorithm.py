@@ -1,16 +1,14 @@
-import json
 import webbrowser
-from collections import OrderedDict
 
 import numpy as np
 from qgis._core import QgsRasterLayer, QgsVectorLayer
 
-from enmapboxprocessing.algorithm.classificationperformancealgorithm import (aa_stratified,
-                                                                             stratifiedAccuracyAssessment,
-                                                                             ClassificationPerformanceAlgorithm)
+from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import (
+    stratifiedAccuracyAssessment, ClassificationPerformanceStratifiedAlgorithm
+)
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import landcover_points, landcover_polygons
-from enmapboxunittestdata import landcover_map_l2, landcover_map_l3
+from enmapboxtestdata import landcover_polygons
+from enmapboxunittestdata import landcover_map_l3
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -85,7 +83,7 @@ class TestClassificationPerformanceAlgorithm(TestCase):
 
     def test_withStratification(self):
         global c
-        alg = ClassificationPerformanceAlgorithm()
+        alg = ClassificationPerformanceStratifiedAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_CLASSIFICATION: QgsRasterLayer(landcover_map_l3),
@@ -99,7 +97,7 @@ class TestClassificationPerformanceAlgorithm(TestCase):
 
     def test_withoutStratification(self):
         global c
-        alg = ClassificationPerformanceAlgorithm()
+        alg = ClassificationPerformanceStratifiedAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_CLASSIFICATION: QgsRasterLayer(landcover_map_l3),

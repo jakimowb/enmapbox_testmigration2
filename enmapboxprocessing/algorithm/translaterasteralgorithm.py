@@ -27,10 +27,10 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_COPY_METADATA = 'copyMetadata'
     P_COPY_STYLE = 'copyStyle'
     P_CREATION_PROFILE = 'creationProfile'
-    P_OUTPUT_RASTER = 'outraster'
+    P_OUTPUT_RASTER = 'outRaster'
 
     def displayName(self):
-        return 'Translate / Warp Raster'
+        return 'Translate raster'
 
     def shortDescription(self):
         return 'Convert raster data between different formats, ' \
@@ -112,15 +112,15 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_RASTER, 'Raster')
         self.addParameterBandList(
-            self.P_BAND_LIST, 'Selected Bands', parentLayerParameterName=self.P_RASTER, optional=True
+            self.P_BAND_LIST, 'Selected bands', parentLayerParameterName=self.P_RASTER, optional=True
         )
         self.addParameterRasterLayer(self.P_GRID, 'Grid', optional=True)
-        self.addParameterBoolean(self.P_COPY_METADATA, 'Copy Metadata', defaultValue=False)
-        self.addParameterBoolean(self.P_COPY_STYLE, 'Copy Style', defaultValue=False)
-        self.addParameterExtent(self.P_EXTENT, 'Spatial Extent', optional=True, advanced=True)
-        self.addParameterIntRange(self.P_SOURCE_COLUMNS, 'Column Subset', optional=True, advanced=True)
-        self.addParameterIntRange(self.P_SOURCE_ROWS, 'Row Subset', optional=True, advanced=True)
-        self.addParameterBoolean(self.P_EXCLUDE_BAD_BANDS, 'Exclude Bad Bands', defaultValue=False, advanced=True)
+        self.addParameterBoolean(self.P_COPY_METADATA, 'Copy metadata', defaultValue=False)
+        self.addParameterBoolean(self.P_COPY_STYLE, 'Copy style', defaultValue=False)
+        self.addParameterExtent(self.P_EXTENT, 'Spatial extent', optional=True, advanced=True)
+        self.addParameterIntRange(self.P_SOURCE_COLUMNS, 'Column subset', optional=True, advanced=True)
+        self.addParameterIntRange(self.P_SOURCE_ROWS, 'Row subset', optional=True, advanced=True)
+        self.addParameterBoolean(self.P_EXCLUDE_BAD_BANDS, 'Exclude bad bands', defaultValue=False, advanced=True)
         self.addParameterResampleAlg(self.P_RESAMPLE_ALG, advanced=True)
         self.addParameterDataType(self.P_DATA_TYPE, optional=True, advanced=True)
         self.addParameterCreationProfile(self.P_CREATION_PROFILE, allowVrt=True)
@@ -194,7 +194,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             resampleAlgSupportedByGdalTranslate = resampleAlg not in [gdal.GRA_Min, gdal.GRA_Q1, gdal.GRA_Med,
                                                                       gdal.GRA_Q3, gdal.GRA_Max]
             if raster.crs() == crs and resampleAlgSupportedByGdalTranslate:
-                feedback.pushInfo('Translate Raster' + infoTail)
+                feedback.pushInfo('Translate raster' + infoTail)
                 projWin = (extent.xMinimum(), extent.yMaximum(), extent.xMaximum(), extent.yMinimum())
                 translateOptions = gdal.TranslateOptions(
                     format=format, width=width, height=height, creationOptions=options, resampleAlg=resampleAlg,
@@ -221,7 +221,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                 else:
                     tmpGdalDataset = gdalDataset
 
-                feedback.pushInfo('Warp Raster' + infoTail)
+                feedback.pushInfo('Warp raster' + infoTail)
                 outputBounds = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
                 dstSRS = crs.toWkt()
                 resampleAlgString = Utils.gdalResampleAlgToGdalWarpFormat(resampleAlg)

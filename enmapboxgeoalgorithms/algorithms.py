@@ -68,201 +68,6 @@ class ClassificationFromFraction(EnMAPAlgorithm):
 ALGORITHMS.append(ClassificationFromFraction())
 
 
-# class ClassificationStatistics(EnMAPAlgorithm):
-#     def displayName(self):
-#         return 'Classification Statistics'
-#
-#     def description(self):
-#         return 'This algorithm returns class count statistics. The output will be shown in the log window and can the copied from there accordingly.'
-#
-#     def group(self):
-#         return self.GROUP_AUXILLIARY
-#
-#     def defineCharacteristics(self):
-#         self.addParameterClassification()
-#
-#     def processAlgorithm_(self):
-#         classification = self.getParameterClassification()
-#         values = classification.statistics()
-#         for name, n in zip(classification.classDefinition().names(), values):
-#             self._progressBar.setText('{}: {}'.format(name, n))
-#         return {}
-#
-#
-# ALGORITHMS.append(ClassificationStatistics())
-
-class ClassificationFromVectorClassification(EnMAPAlgorithm):
-    def group(self): return self.GROUP_CREATE_RASTER
-
-    def displayName(self): return 'Classification from Vector'
-
-    def description(self):
-        return 'Creates a classification from a vector field with class ids.'
-
-    def cookbookRecipes(self):
-        return [Cookbook.R_CLASSIFICATION, Cookbook.R_GRAPHICALMODELER]
-
-    def defineCharacteristics(self):
-        self.addParameterGrid()
-        self.addParameterVectorClassification()
-        self.addParameterOutputClassification()
-
-    def processAlgorithm_(self):
-        classification = Classification.fromClassification(filename=self.getParameterOutputClassification(),
-            classification=self.getParameterVectorClassification(),
-            grid=self.getParameterGrid(),
-            progressBar=self._progressBar)
-        return {self.P_OUTPUT_CLASSIFICATION: classification.filename()}
-
-
-ALGORITHMS.append(ClassificationFromVectorClassification())
-
-
-class ClassificationPerformanceFromRaster(EnMAPAlgorithm):
-    P_PREDICTION = 'prediction'
-    P_REFERENCE = 'reference'
-
-    def group(self):
-        return self.GROUP_ACCURACY_ASSESSMENT
-
-    def displayName(self):
-        return 'Classification Performance'
-
-    def description(self):
-        return 'Assesses the performance of a classification.'
-
-    def defineCharacteristics(self):
-        self.addParameterClassification(self.P_PREDICTION, 'Prediction',
-            help='Specify classification raster be evaluated')
-        self.addParameterClassification(self.P_REFERENCE, 'Reference',
-            help='Specify reference classification raster (i.e. ground truth).')
-        self.addParameterOutputReport()
-
-    def processAlgorithm_(self):
-        prediction = self.getParameterClassification(self.P_PREDICTION)
-        reference = self.getParameterClassification(self.P_REFERENCE)
-        if not prediction.grid().equal(reference.grid()):
-            raise EnMAPAlgorithmParameterValueError('prediction and reference grid must match')
-
-        performance = ClassificationPerformance.fromRaster(prediction=prediction, reference=reference,
-            progressBar=self._progressBar,
-            grid=prediction.grid())
-        filename = self.getParameterOutputReport()
-        performance.report().saveHTML(filename=filename, open=True)
-        return {self.P_OUTPUT_REPORT: filename}
-
-
-ALGORITHMS.append(ClassificationPerformanceFromRaster())
-
-
-class ClassifierPerformanceCrossValidation(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Cross-validated Classifier Performance'
-
-    def description(self):
-        return 'Assesses the performance of a classifier using n-fold cross-validation.'
-
-    def group(self):
-        return 'Accuracy Assessment'
-
-    P_NFOLD = 'nfold'
-
-    def defineCharacteristics(self):
-        self.addParameterClassifier()
-        self.addParameterInteger(name=self.P_NFOLD, description='Number of folds', minValue=2, maxValue=100,
-            defaultValue=10)
-        self.addParameterOutputReport()
-
-    def processAlgorithm_(self):
-        classifier = self.getParameterClassifier()
-        nfold = self.getParameterInteger(name=self.P_NFOLD)
-        performance = classifier.performanceCrossValidation(nfold=nfold)
-        filename = self.getParameterOutputReport()
-        performance.report().saveHTML(filename=filename, open=True)
-        return {self.P_OUTPUT_REPORT: filename}
-
-
-ALGORITHMS.append(ClassifierPerformanceCrossValidation())
-
-
-class ClassifierPerformanceTraining(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Classifier Fit/Training Performance'
-
-    def description(self):
-        return 'Assesses the fit performance of a regressor using the training data.'
-
-    def group(self):
-        return 'Accuracy Assessment'
-
-    def defineCharacteristics(self):
-        self.addParameterClassifier()
-        self.addParameterOutputReport()
-
-    def processAlgorithm_(self):
-        classifier = self.getParameterClassifier()
-        performance = classifier.performanceTraining()
-        filename = self.getParameterOutputReport()
-        performance.report().saveHTML(filename=filename, open=True)
-        return {self.P_OUTPUT_REPORT: filename}
-
-
-ALGORITHMS.append(ClassifierPerformanceTraining())
-
-
-# class SynthMix(EnMAPAlgorithm):
-#     def displayName(self):
-#         return 'Create Sample from synthetically mixed Endmembers'
-#
-#     def description(self):
-#         return 'Derives a class fraction sample by synthetically mixing (pure) spectra from a classification sample.'
-#
-#     def group(self): return self.GROUP_CREATE_SAMPLE
-#
-#     P_N = 'n'
-#     P_COMPLEXITY2LIKELIHOOD = 'complexity2Likelihoods'
-#     P_COMPLEXITY3LIKELIHOOD = 'complexity3Likelihoods'
-#     P_CLASSLIKELIHOODS = 'classLikelihoods'
-#     ENUM_CLASSLIKELIHOODS = ['proportional', 'equalized']
-#
-#     def defineCharacteristics(self):
-#         self.addParameterRaster()
-#         self.addParameterClassification()
-#         self.addParameterMask()
-#
-#         self.addParameterInteger(self.P_N, 'n', defaultValue=1000,
-#                                  help='Total number of samples to be generated.')
-#         self.addParameterFloat(self.P_COMPLEXITY2LIKELIHOOD, 'Likelihood for mixing complexity 2', defaultValue=1.0,
-#                                help='Specifies the probability of mixing spectra from 2 classes.')
-#         self.addParameterFloat(self.P_COMPLEXITY3LIKELIHOOD, 'Likelihood for mixing complexity 3', defaultValue=0.0,
-#                                help='Specifies the probability of mixing spectra from 3 classes.')
-#         self.addParameterEnum(self.P_CLASSLIKELIHOODS, 'Class likelihoods', options=self.ENUM_CLASSLIKELIHOODS,
-#                               defaultValue=0,
-#                               help='Specifies the likelihoods for drawing spectra from individual classes.\n'
-#                                    "In case of 'equalized', all classes have the same likelihhod to be drawn from.\n"
-#                                    "In case of 'proportional', class likelihoods scale with their sizes.")
-#         self.addParameterOutputRaster()
-#         self.addParameterOutputFraction()
-#
-#     def processAlgorithm_(self):
-#         classificationSample = ClassificationSample(raster=self.getParameterRaster(),
-#                                                     classification=self.getParameterClassification(),
-#                                                     mask=self.getParameterMask())
-#         mixingComplexities = {2: self.getParameterFloat(self.P_COMPLEXITY2LIKELIHOOD),
-#                               3: self.getParameterFloat(self.P_COMPLEXITY3LIKELIHOOD)}
-#         classLikelihoods = self.ENUM_CLASSLIKELIHOODS[self.getParameterEnum(self.P_CLASSLIKELIHOODS)]
-#         fractionSample = classificationSample.synthMix(filenameFeatures=self.getParameterOutputRaster(),
-#                                                        filenameFractions=self.getParameterOutputFraction(),
-#                                                        mixingComplexities=mixingComplexities,
-#                                                        classLikelihoods=classLikelihoods,
-#                                                        n=self.getParameterInteger(self.P_N))
-#         return {self.P_OUTPUT_RASTER: fractionSample.raster().filename(),
-#                 self.P_OUTPUT_FRACTION: fractionSample.fraction().filename()}
-#
-#
-# ALGORITHMS.append(SynthMix())
-
-
 class EstimatorFit(EnMAPAlgorithm):
     def __init__(self, name, code, helpAlg, helpCode, postCode=None):
         self._name = name
@@ -327,36 +132,6 @@ class EstimatorFit(EnMAPAlgorithm):
         pass
 
 
-class ClassifierFit(EstimatorFit):
-    def group(self):
-        return self.GROUP_CLASSIFICATION
-
-    def defineCharacteristics(self):
-        self.addParameterRaster(description='Raster', help='Raster with training data features.')
-        self.addParameterClassification(description='Labels', help='Classification with training data labels.')
-        self.addParameterMask()
-        self.addParameterCode()
-        self.addParameterOutputClassifier(name=self.P_OUTPUT_ESTIMATOR)
-
-    def sample(self):
-        return ClassificationSample(raster=self.getParameterRaster(),
-            classification=self.getParameterClassification(),
-            mask=self.getParameterMask())
-
-    def estimator(self, sklEstimator):
-        return Classifier(sklEstimator=sklEstimator)
-
-    def cookbookRecipes(self):
-        return [Cookbook.R_CLASSIFICATION, Cookbook.R_GRAPHICALMODELER]
-
-    def cookbookDescription(self):
-        return 'See the following Cookbook Recipes on how to use classifiers:'
-
-
-for name, (code, helpAlg, helpCode, postCode) in parseClassifiers().items():
-    ALGORITHMS.append(ClassifierFit(name=name, code=code, helpAlg=helpAlg, helpCode=helpCode, postCode=postCode))
-
-
 class ClustererFit(EstimatorFit):
     def group(self):
         return self.GROUP_CLUSTERING
@@ -382,66 +157,6 @@ class ClustererFit(EstimatorFit):
 
 for name, (code, helpAlg, helpCode, postCode) in parseClusterers().items():
     ALGORITHMS.append(ClustererFit(name=name, code=code, helpAlg=helpAlg, helpCode=helpCode, postCode=postCode))
-
-
-class ClassifierPredict(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Predict Classification'
-
-    def group(self):
-        return self.GROUP_CLASSIFICATION
-
-    def description(self):
-        return 'Applies a classifier to a raster.'
-
-    def defineCharacteristics(self):
-        self.addParameterRaster(help='Select raster file which should be classified.')
-        self.addParameterMask()
-        self.addParameterClassifier()
-        self.addParameterOutputClassification()
-
-    def processAlgorithm_(self):
-        estimator = self.getParameterClassifier()
-        raster = self.getParameterRaster()
-        mask = self.getParameterMask()
-        filename = self.getParameterOutputClassification()
-        estimator.predict(filename=filename, raster=raster, mask=mask, progressBar=self._progressBar)
-        return {self.P_OUTPUT_CLASSIFICATION: filename}
-
-    def cookbookRecipes(self):
-        return [Cookbook.R_CLASSIFICATION, Cookbook.R_GRAPHICALMODELER]
-
-
-ALGORITHMS.append(ClassifierPredict())
-
-
-class ClassifierPredictFraction(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Predict Class Probability'
-
-    def description(self):
-        return 'Applies a classifier to a raster.'
-
-    def group(self):
-        return self.GROUP_CLASSIFICATION
-
-    def defineCharacteristics(self):
-        self.addParameterRaster()
-        self.addParameterMask()
-        self.addParameterClassifier()
-        self.addParameterOutputFraction(description='Probability')
-
-    def processAlgorithm_(self):
-        estimator = self.getParameterClassifier()
-        raster = self.getParameterRaster()
-        mask = self.getParameterMask()
-        filename = self.getParameterOutputFraction()
-        estimator.predictProbability(filename=filename, raster=raster, mask=mask, progressBar=self._progressBar)
-        return {self.P_OUTPUT_FRACTION: filename}
-
-
-ALGORITHMS.append(ClassifierPredictFraction())
-
 
 class ClustererPredict(EnMAPAlgorithm):
     def displayName(self):
@@ -825,40 +540,7 @@ class ImportLibraryFractionAttribute(EnMAPAlgorithm):
 ALGORITHMS.append(ImportLibraryFractionAttribute())'''
 
 
-class OpenTestMaps_Toolbox(EnMAPAlgorithm):
-    def group(self):
-        return self.GROUP_TESTDATA
-
-    def displayName(self):
-        return OpenTestMaps_Modeler().displayName()
-
-    def description(self):
-        return OpenTestMaps_Modeler().description()
-
-    def defineCharacteristics(self):
-        pass
-
-    def processAlgorithm_(self):
-        import enmapboxtestdata
-        import qgis.utils
-
-        qgis.utils.iface.addRasterLayer(enmapboxtestdata.enmap, basename(enmapboxtestdata.enmap), 'gdal')
-        qgis.utils.iface.addRasterLayer(enmapboxtestdata.hires, basename(enmapboxtestdata.hires), 'gdal')
-        qgis.utils.iface.addVectorLayer(enmapboxtestdata.landcover_polygons, None,
-            'ogr')  # QGIS 3 bug when setting the name, e.g. basename(enmapboxtestdata.landcover)
-        qgis.utils.iface.addVectorLayer(enmapboxtestdata.landcover_points, None,
-            'ogr')  # QGIS 3 bug when setting the name, e.g. basename(enmapboxtestdata.landcover)
-
-        return {}
-
-    def flags(self):
-        return self.FlagHideFromModeler
-
-
-ALGORITHMS.append(OpenTestMaps_Toolbox())
-
-
-class OpenTestMaps_Modeler(EnMAPAlgorithm):
+class OpenTestMaps(EnMAPAlgorithm):
     def group(self):
         return self.GROUP_TESTDATA
 
@@ -883,73 +565,15 @@ class OpenTestMaps_Modeler(EnMAPAlgorithm):
                  'Polygon shapefile containing land cover information on two classification levels. Derived from very high resolution aerial imagery and cadastral datasets.\n'
                  'Level 1 classes: Impervious; Other; Vegetation; Soil\n'
                  'Level 2 classes: Roof; Low vegetation; Other; Pavement; Tree; Soil')
-        self.addParameterOutputRaster('speclib', 'Library as Raster',
-            help='File name: SpecLib_BerlinUrbanGradient.sli\n'
-                 'Spectral library with 75 spectra (material level, level 2 and level 3 class information)')
 
     def processAlgorithm_(self):
         import enmapboxtestdata
-        library = EnviSpectralLibrary(filename=enmapboxtestdata.library)
         return {'enmap': enmapboxtestdata.enmap,
                 'hymap': enmapboxtestdata.hires,
-                'landcover': enmapboxtestdata.landcover_polygons,
-                'speclib': library.raster().filename()}
-
-    def flags(self):
-        return self.FlagHideFromToolbox
+                'landcover': enmapboxtestdata.landcover_polygons}
 
 
-ALGORITHMS.append(OpenTestMaps_Modeler())
-
-
-class FractionAsClassColorRGB(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Fraction as RGB Raster'
-
-    def description(self):
-        return 'Creates a RGB representation from given class fractions. ' \
-               'The RGB color of a specific pixel is the weighted mean value of the original class colors, ' \
-               'where the weights are given by the corresponding class propability.\n'
-
-    def group(self):
-        return self.GROUP_POSTPROCESSING
-
-    def defineCharacteristics(self):
-        self.addParameterFraction()
-        self.addParameterOutputRaster()
-
-    def processAlgorithm_(self):
-        fraction = self.getParameterFraction()
-        filename = self.getParameterOutputRaster()
-        fraction.asClassColorRGBRaster(filename=filename, progressBar=self._progressBar)
-        return {self.P_OUTPUT_RASTER: filename}
-
-
-ALGORITHMS.append(FractionAsClassColorRGB())
-
-
-class FractionFromClassification(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Fraction from Classification'
-
-    def description(self):
-        return 'Derive (binarized) class fractions from a classification.'
-
-    def group(self):
-        return self.GROUP_CREATE_RASTER
-
-    def defineCharacteristics(self):
-        self.addParameterClassification()
-        self.addParameterOutputFraction()
-
-    def processAlgorithm_(self):
-        classification = self.getParameterClassification()
-        filename = self.getParameterOutputFraction()
-        Fraction.fromClassification(filename=filename, classification=classification, progressBar=self._progressBar)
-        return {self.P_OUTPUT_FRACTION: filename}
-
-
-ALGORITHMS.append(FractionFromClassification())
+ALGORITHMS.append(OpenTestMaps())
 
 
 class FractionFromVectorClassification(EnMAPAlgorithm):

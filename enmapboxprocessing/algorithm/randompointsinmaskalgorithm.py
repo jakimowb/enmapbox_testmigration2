@@ -18,7 +18,7 @@ from enmapboxprocessing.utils import Utils
 class RandomPointsInMaskAlgorithm(EnMAPProcessingAlgorithm):
     P_MASK = 'mask'
     P_N = 'n'
-    P_DISTANCE = 'distanceGlobal'
+    P_DISTANCE = 'distance'
     P_SEED = 'seed'
     P_OUTPUT_VECTOR = 'outVector'
 

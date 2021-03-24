@@ -5,7 +5,7 @@ from qgis._core import QgsRasterLayer, QgsVectorLayer, QgsPalettedRasterRenderer
 
 import numpy as np
 
-from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
+from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import VectorToClassificationAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.utils import Utils
@@ -20,7 +20,7 @@ c = ['', 'c:'][int(writeToDisk)]
 class TestRasterizeClassificationAlgorithm(TestCase):
 
     def test_pythonCommand(self):
-        alg = RasterizeClassificationAlgorithm()
+        alg = VectorToClassificationAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_VECTOR: QgsVectorLayer(landcover_polygons_3classes_id),
@@ -34,7 +34,7 @@ class TestRasterizeClassificationAlgorithm(TestCase):
         webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
 
     def test_numberClassAttribute(self):
-        alg = RasterizeClassificationAlgorithm()
+        alg = VectorToClassificationAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_VECTOR: QgsVectorLayer(landcover_polygons_3classes_id),
@@ -53,7 +53,7 @@ class TestRasterizeClassificationAlgorithm(TestCase):
         self.assertEqual(1381, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
 
     def test_stringClassAttribute(self):
-        alg = RasterizeClassificationAlgorithm()
+        alg = VectorToClassificationAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_VECTOR: QgsVectorLayer(landcover_polygons),
@@ -71,7 +71,7 @@ class TestRasterizeClassificationAlgorithm(TestCase):
         self.assertEqual(4832, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
 
     def test_withNoneMatching_crs(self):
-        alg = RasterizeClassificationAlgorithm()
+        alg = VectorToClassificationAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_VECTOR: QgsVectorLayer(landcover_polygons_3classes_epsg4326),
@@ -82,7 +82,7 @@ class TestRasterizeClassificationAlgorithm(TestCase):
         self.assertEqual(1381, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
 
     def test_pointVector(self):
-        alg = RasterizeClassificationAlgorithm()
+        alg = VectorToClassificationAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_VECTOR: QgsVectorLayer(landcover_points_multipart_epsg3035),
@@ -93,7 +93,7 @@ class TestRasterizeClassificationAlgorithm(TestCase):
         self.assertEqual(152, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
 
     def test_minimalCoverage(self):
-        alg = RasterizeClassificationAlgorithm()
+        alg = VectorToClassificationAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_VECTOR: QgsVectorLayer(landcover_polygons),

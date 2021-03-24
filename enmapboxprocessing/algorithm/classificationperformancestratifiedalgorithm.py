@@ -5,28 +5,29 @@ from os.path import exists, dirname
 from typing import Dict, Any, List, Tuple, NamedTuple, Iterable
 
 import numpy as np
-from processing.core.Processing import Processing
 
-from enmapboxprocessing.reportwriter import HtmlReportWriter, CsvReportWriter, MultiReportWriter
+from enmapboxprocessing.typing import Category
 from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer, QgsUnitTypes)
 
+from enmapboxprocessing.reportwriter import HtmlReportWriter, CsvReportWriter, MultiReportWriter
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
+from enmapboxprocessing.algorithm.vectortoclassificationalgorithm import VectorToClassificationAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.utils import Utils
 
 
 @typechecked
-class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
+class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
     P_CLASSIFICATION = 'classification'
     P_REFERENCE = 'reference'
     P_STRATIFICATION = 'stratification'
+    P_USE_MAP_STRATA = 'useMapStrata'
     P_OUTPUT_REPORT = 'outReport'
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Classification Performance'
+        return 'Classification performance (for stratified random sampling)'
 
     def shortDescription(self) -> str:
         return 'Estimates map accuracy and area proportions for stratified random sampling as described in ' \
@@ -39,8 +40,8 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
             (self.P_REFERENCE, 'Stratified random reference sample. '
                                f'{self.helpParameterMapClassification()} '),
             (self.P_STRATIFICATION, 'Sample strata. '
-                                    f'{self.helpParameterRasterClassification()}. '
-                                    'If not set, the Classification is used as sample strata.'),
+                                    f'{self.helpParameterRasterClassification()}.'),
+            (self.P_USE_MAP_STRATA, 'Whether to use map classes as sample strata, if sample strata are not selected.'),
             (self.P_OUTPUT_REPORT, self.helpParameterReportDestination())
         ]
 
@@ -73,7 +74,6 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
         classification = self.parameterAsRasterLayer(parameters, self.P_CLASSIFICATION, context)
         reference = self.parameterAsLayer(parameters, self.P_REFERENCE, context)
         stratification = self.parameterAsRasterLayer(parameters, self.P_STRATIFICATION, context)
-
         if isinstance(reference, QgsRasterLayer):
             if not all(
                     [
@@ -82,7 +82,7 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
                         reference.height() == classification.height(),
                     ]
             ):
-                return False, 'Classification and Reference Sample pixel grids are not matching.'
+                return False, 'Classification and reference sample pixel grids are not matching.'
         if stratification is not None:
             if not all(
                     [
@@ -91,7 +91,7 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
                         stratification.height() == classification.height(),
                     ]
             ):
-                return False, 'Sample Strata and Reference Sample pixel grids are not matching.'
+                return False, 'Sample strata and reference sample pixel grids are not matching.'
         return True, ''
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
@@ -109,10 +109,11 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_CLASSIFICATION, 'Classification')
-        self.addParameterMapLayer(self.P_REFERENCE, 'Reference Sample')
-        self.addParameterMapLayer(self.P_STRATIFICATION, 'Sample Strata', optional=True)
+        self.addParameterMapLayer(self.P_REFERENCE, 'Reference sample')
+        self.addParameterMapLayer(self.P_STRATIFICATION, 'Sample strata', optional=True)
+        self.addParameterBoolean(self.P_USE_MAP_STRATA, 'Use map strata as sample strata', True, advanced=True)
         self.addParameterFileDestination(
-            self.P_OUTPUT_REPORT, 'Classification Performance Report', 'HTML file (*.html)'
+            self.P_OUTPUT_REPORT, 'Classification performance report', 'HTML file (*.html)'
         )
 
     def processAlgorithm(
@@ -121,7 +122,8 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
         classification = self.parameterAsRasterLayer(parameters, self.P_CLASSIFICATION, context)
         reference = self.parameterAsLayer(parameters, self.P_REFERENCE, context)
         stratification = self.parameterAsRasterLayer(parameters, self.P_STRATIFICATION, context)
-        if stratification is None:
+        useMapStrata = self.parameterAsBoolean(parameters, self.P_USE_MAP_STRATA, context)
+        if stratification is None and useMapStrata:
             stratification = classification
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_REPORT, context)
 
@@ -131,7 +133,7 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
 
             if isinstance(reference, QgsVectorLayer):
                 feedback.pushInfo('Rasterize reference')
-                alg = RasterizeClassificationAlgorithm()
+                alg = VectorToClassificationAlgorithm()
                 alg.initAlgorithm()
                 parameters = {
                     alg.P_VECTOR: reference,
@@ -139,17 +141,21 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'reference.tif')
                 }
-                Processing.runAlgorithm(alg, parameters, None, feedback2, context)
+                self.runAlg(alg, parameters, None, feedback2, context, True)
                 reference = QgsRasterLayer(parameters[alg.P_OUTPUT_RASTER])
 
             feedback.pushInfo('Read data')
             # Note that we can be sure that all pixel grids match!
             arrayReference = RasterReader(reference).array()[0]
-            arrayPrediction = RasterReader(classification).array()[0]
-            arrayStratification = RasterReader(stratification).array()[0]
             categoriesReference = Utils.categoriesFromPalettedRasterRenderer(reference.renderer())
+            arrayPrediction = RasterReader(classification).array()[0]
             categoriesPrediction = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
-            categoriesStratification = Utils.categoriesFromPalettedRasterRenderer(stratification.renderer())
+            if stratification is None:  # put all samples in one strata
+                arrayStratification = np.ones_like(arrayReference)
+                categoriesStratification = [Category(1, 'stratum 1', '#FF0000')]
+            else:
+                arrayStratification = RasterReader(stratification).array()[0]
+                categoriesStratification = Utils.categoriesFromPalettedRasterRenderer(stratification.renderer())
             # - get valid reference location
             valid = np.full_like(arrayReference, False, np.bool)
             for category in categoriesReference:
@@ -191,7 +197,12 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
         return result
 
     @classmethod
-    def writeReport(cls, filename: str, stats: 'StratifiedAccuracyAssessmentResult', pixelUnits='px', pixelArea=1.):
+    def writeReport(cls, filename: str, stats: 'StratifiedAccuracyAssessmentResult', pixelUnits='pixel', pixelArea=1.):
+
+        if pixelUnits == 'degrees':
+            pixelUnits = 'pixel'
+        if pixelUnits != 'pixel':
+            pixelUnits = 'square ' + pixelUnits
 
         def confidenceIntervall(mean, se):
             alpha = 0.05
@@ -201,21 +212,21 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
             makedirs(dirname(filename))
         with open(filename, 'w') as fileHtml, open(filename + '.csv', 'w') as fileCsv:
             report = MultiReportWriter([HtmlReportWriter(fileHtml), CsvReportWriter(fileCsv)])
-            report.writeHeader('Classification Performance')
+            report.writeHeader('Classification performance')
 
             report.writeParagraph(f'Reference sample size: {stats.n} px')
-            report.writeParagraph(f'Map size: {round(stats.N, 2)} square {pixelUnits}')
+            report.writeParagraph(f'Map size: {round(stats.N, 2)} {pixelUnits}')
 
             values = np.round(stats.confusion_matrix_counts, 2).tolist()
             report.writeTable(
-                values, 'Adjusted Confusion Matrix Counts',
+                values, 'Adjusted confusion matrix counts',
                 [f'({i + 1})' for i in range(len(stats.class_names))],
                 stats.class_names
             )
 
             values = np.round(stats.confusion_matrix_proportions, 4).tolist()
             report.writeTable(
-                values, 'Adjusted Confusion Matrix Area Proportions',
+                values, 'Adjusted confusion matrix area proportions',
                 [f'({i + 1})' for i in range(len(stats.class_names))],
                 stats.class_names
             )
@@ -225,10 +236,10 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
                 4
             ).tolist()
             report.writeTable(
-                values, 'Overall Accuracies',
+                values, 'Overall accuracies',
                 None,
-                ['Overall Accuracy'],
-                [('Estimate', 1), ('95 % Confidence Interval', 2)]
+                ['Overall accuracy'],
+                [('Estimate', 1), ('95 % confidence interval', 2)]
             )
 
             values = list()
@@ -243,12 +254,12 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
                 )
             values = np.round(values, 4).tolist()
             report.writeTable(
-                values, 'Class-wise Accuracies',
+                values, 'Class-wise accuracies',
                 None,
                 stats.class_names,
-                [("User's Accuracy", 1), ('95 % Confidence Interval', 2),
-                 ("Producer's Accuracy", 1), ('95 % Confidence Interval', 2),
-                 ("F1-Score", 1), ('95 % Confidence Interval', 2)]
+                [("User's accuracy", 1), ('95 % confidence interval', 2),
+                 ("Producer's accuracy", 1), ('95 % confidence interval', 2),
+                 ("F1-score", 1), ('95 % confidence interval', 2)]
             )
 
             values = list()
@@ -264,11 +275,11 @@ class ClassificationPerformanceAlgorithm(EnMAPProcessingAlgorithm):
             values[:, -3:] = np.round(values[:, -3:], 2)
             values = values.tolist()
             report.writeTable(
-                values, 'Class-wise Proportion and Area Estimates',
+                values, 'Class-wise proportion and area estimates',
                 None,
                 stats.class_names,
-                [('Proportion', 1), ('95 % Confidence Interval', 2),
-                 (f'Area [square {pixelUnits}]', 1), ('95 % Confidence Interval', 2)]
+                [('Proportion', 1), ('95 % confidence interval', 2),
+                 (f'Area [{pixelUnits}]', 1), ('95 % confidence interval', 2)]
             )
 
             report.writeParagraph(

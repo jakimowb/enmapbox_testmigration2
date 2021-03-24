@@ -1,51 +1,39 @@
-from os.path import splitext, basename
-from time import time
 from typing import Dict, Any, List, Tuple
 from warnings import warn
 
 import numpy as np
-from osgeo import gdal
 
-from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
+from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
+from typeguard import typechecked
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
+                        QgsPalettedRasterRenderer)
+
+from enmapboxprocessing.algorithm.vectortoclassificationalgorithm import VectorToClassificationAlgorithm
 from enmapboxprocessing.algorithm.translateclassificationalgorithm import TranslateClassificationAlgorithm
-from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.rasterwriter import RasterWriter
-from enmapboxprocessing.typing import CreationOptions
 from enmapboxprocessing.utils import Utils
-from typeguard import typechecked
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRectangle,
-                        QgsCoordinateReferenceSystem, QgsRasterLayer, QgsPalettedRasterRenderer, QgsMapLayer,
-                        QgsCategorizedSymbolRenderer)
-from processing.core.Processing import Processing
-
-from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
+from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group, AlgorithmCanceledException
 
 
 @typechecked
 class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
     P_MAP = 'map'
     P_GRID = 'grid'
-    P_PRECISION = 'precision'
     P_CREATION_PROFILE = 'creationProfile'
-    P_OUTPUT_RASTER = 'outraster'
+    P_OUTPUT_RASTER = 'outRaster'
 
     def displayName(self):
-        return 'Classification to Fraction'
+        return 'Classification to fraction'
 
     def shortDescription(self):
         return 'Converts a classification (raster or vector) into a multiband class cover fraction raster. ' \
-               'Output band order and naming are given by the renderer categories. ' \
-               'Values are stored as percentages ranging from 0 to 100.'
+               'Output band order and naming are given by the renderer categories.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
             (self.P_MAP, self.helpParameterMapClassification()),
             (self.P_GRID, self.helpParameterGrid()),
-            (self.P_PRECISION, 'Processing precision in number of decimals. Default is 0 (accurate to the percent). '
-                               'Decimal precision depends on internal oversampling of the source classification. '
-                               'Note that processing load increases quadratically with number of decimals.'),
             (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
             (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
@@ -67,97 +55,93 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         map = self.parameterAsLayer(parameters, self.P_MAP, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
-        precision = self.parameterAsInt(parameters, self.P_PRECISION, context)
         format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
-        assert 0 # todo
-        if oversampling is None:
-            oversampling = 10  # results in integer precision fraction values (oversampling=100 would be 2 decimals)
-            assert 0 # todo create oversampled grid
 
-        if isinstance(map, QgsRasterLayer):
-            tmpFilename = Utils.tmpFilename(filename, 'oversampled.vrt')
-            alg = TranslateClassificationAlgorithm()
-            parameters = {
-                alg.P_CLASSIFICATION: map,
-                alg.P_GRID: gridOversampled,
-                alg.P_CREATION_PROFILE: alg.VrtProfile,
-                alg.P_OUTPUT_RASTER: tmpFilename
-            }
-            Processing.runAlgorithm(alg, parameters, feedback=feedback)
-            raster = QgsRasterLayer(tmpFilename)
-        elif isinstance(map, QgsVectorLayer):
-            tmpFilename = Utils.tmpFilename(filename, 'oversampled.tif')
-            alg = RasterizeClassificationAlgorithm()
+        with open(filename + '.log', 'w') as logfile:
+            feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
+            self.tic(feedback, parameters, context)
+
+            # create x10 grid
+            alg = CreateGridAlgorithm()
             alg.initAlgorithm()
             parameters = {
-                alg.P_VECTOR: map,
-                alg.P_GRID: gridOversampled,
-                alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
-                alg.P_OUTPUT_RASTER: tmpFilename
+                alg.P_CRS: grid.crs(),
+                alg.P_EXTENT: grid.extent(),
+                alg.P_UNIT: alg.PixelUnits,
+                alg.P_WIDTH: grid.width() * 10,
+                alg.P_HEIGHT: grid.height() * 10,
+                alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'grid.x10.vrt')
             }
-            Processing.runAlgorithm(alg, parameters, feedback=feedback)
-            raster = QgsRasterLayer(tmpFilename)
-        else:
-            assert 0
-        categories = Utils.categoriesFromPalettedRasterRenderer(raster.renderer())
+            self.runAlg(alg, parameters, None, feedback2, context, True)
+            gridOversampled = QgsRasterLayer(parameters[alg.P_OUTPUT_RASTER])
 
-        maxClassId = max([c[0] for c in categories])
-        indexByClass = np.full(shape=(maxClassId + 1,), fill_value=-1)
-        for i, (value, label, color) in enumerate(categories):
-            indexByClass[value] = i
+            # create x10 classification
+            if isinstance(map, QgsRasterLayer):
+                alg = TranslateClassificationAlgorithm()
+                parameters = {
+                    alg.P_CLASSIFICATION: map,
+                    alg.P_GRID: gridOversampled,
+                    alg.P_MAJORITY_VOTING: False,
+                    alg.P_CREATION_PROFILE: alg.VrtProfile,
+                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.x10.vrt')
+                }
+                self.runAlg(alg, parameters, None, feedback2, context, True)
+                classification = QgsRasterLayer(parameters[alg.P_OUTPUT_RASTER])
+            elif isinstance(map, QgsVectorLayer):
+                alg = VectorToClassificationAlgorithm()
+                alg.initAlgorithm()
+                parameters = {
+                    alg.P_VECTOR: map,
+                    alg.P_GRID: gridOversampled,
+                    alg.P_MAJORITY_VOTING: False,
+                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
+                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.x10.tif')
+                }
+                self.runAlg(alg, parameters, None, feedback2, context, True)
+                classification = QgsRasterLayer(parameters[alg.P_OUTPUT_RASTER])
+            else:
+                assert 0
 
-        renderer = raster.renderer()
-        assert isinstance(renderer, QgsPalettedRasterRenderer)
+            # calculate category fractions
+            categories = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
+            x10IdArray = RasterReader(classification).array()[0]
+            maskArray = np.full((grid.height(), grid.width()), True, dtype=np.bool)
+            arrays = list()
+            for i, category in enumerate(categories):
 
-        feedback.pushInfo('Calculate class fractions')
+                if feedback.isCanceled():
+                    raise AlgorithmCanceledException()
 
-        # todo iterate blocks
-        reader = RasterReader(raster)
-        classes = reader.arrayFromBoundingBoxAndSize(
-            extent, width * oversampling, height * oversampling, [renderer.band()]
-        )[0]
-        nc = len(categories)
-        if oversampling == 10:
-            dtype = np.uint8
-        else:
-            dtype = np.float32
+                feedback.pushInfo(f"Calculate '{category.name}' cover fraction")
+                feedback.setProgress(i / len(categories))
 
-        counts = np.zeros((nc, height, width), dtype)
-        notCovered = np.full_like(counts[0], True, np.bool)
+                # calculate cover fraction
+                x10MaskArray = x10IdArray == category.value
+                percentArray = x10MaskArray.reshape(
+                    (grid.height(), 10, grid.width(), 10)
+                ).sum(axis=3, dtype=np.float32).sum(axis=1, dtype=np.float32)
+                percentArray /= 100
 
-        try:
-            from numba import jit
-            calculate = jit(nopython=True)(_calculatePurePython)
-        except ModuleNotFoundError as error:
-            warn(f'{str(error)}. Will fall back into pure Python mode which may be really slow.')
-            calculate = _calculatePurePython
+                # update global mask
+                np.logical_and(maskArray, percentArray == 0, out=maskArray)
 
-        calculate(classes, counts, notCovered, oversampling, indexByClass)
+                arrays.append(percentArray)
 
-        # scale to percentage
-        if oversampling < 10:
-            np.divide(counts, oversampling ** 2 / 100, out=counts)
-            np.round(counts, 0, out=counts)
-            counts = counts.astype(np.uint8)
-            noDataValue = 255
-        elif oversampling == 10:
-            noDataValue = 255
-        else:
-            np.divide(counts, oversampling ** 2 / 100, out=counts)
+            # apply global mask
             noDataValue = -1
+            for array in arrays:
+                array[maskArray] = noDataValue
 
-        for a in counts:
-            a[notCovered] = noDataValue
+            writer = Driver(filename, format, options).createFromArray(arrays, grid.extent(), grid.crs())
+            writer.setNoDataValue(noDataValue)
+            for bandNo, category in enumerate(categories, 1):
+                writer.setBandName(category.name, bandNo)
 
-        writer = Driver(filename, format, options, feedback).createFromArray(counts, extent, crs)
-        writer.setNoDataValue(noDataValue)
-        for bandNo, (value, label, color) in enumerate(categories, 1):
-            writer.setBandName(label, bandNo)
+            result = {self.P_OUTPUT_RASTER: filename}
+            self.toc(feedback, result)
 
-        #Utils.tmpFilenameDelete(tmpFilename)
-
-        return {self.P_OUTPUT_RASTER: filename}
+        return result
 
 
 def _calculatePurePython(classes, counts, notCovered, oversampling, indexByClass):
