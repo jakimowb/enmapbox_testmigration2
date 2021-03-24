@@ -563,6 +563,7 @@ class DataSourceTests(EnMAPBoxTestCase):
             if callable(obj1):
                 n_tested += 1
                 obj1 = obj1()
+                obj1: hubflow.core.FlowObject
                 self.assertIsInstance(obj1, hubflow.core.FlowObject)
                 pathTmp = jp(dirTmp, 'test.{}.pkl'.format(name))
                 obj1.pickle(pathTmp)
