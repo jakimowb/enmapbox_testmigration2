@@ -28,7 +28,7 @@ from enmapboxtestdata import enmap, hires, landcover_polygons, library
 from enmapbox.gui.datasources import *
 
 
-class standardDataSources(EnMAPBoxTestCase):
+class DataSourceTests(EnMAPBoxTestCase):
 
     def setUp(self):
         eb = EnMAPBox.instance()
@@ -552,25 +552,26 @@ class standardDataSources(EnMAPBoxTestCase):
         print(outdir)
 
         ds = DataSourceManager()
-        dm =DataSourceManagerTreeModel(None, ds)
+        dm = DataSourceManagerTreeModel(None, ds)
         dtv = DataSourceTreeView()
         dtv.setModel(dm)
 
+        n_tested = 0
         for name in dir(hubflow.testdata):
             obj1 = getattr(hubflow.testdata, name)
 
-            if isinstance(obj1, hubflow.core.FlowObject):
+            if callable(obj1):
+                n_tested += 1
+                obj1 = obj1()
                 self.assertIsInstance(obj1, hubflow.core.FlowObject)
                 pathTmp = jp(dirTmp, 'test.{}.pkl'.format(name))
                 obj1.pickle(pathTmp)
-
 
                 self.assertTrue(len(ds) == 1), 'Failed to open {}'.format(obj1)
                 self.assertIsInstance(ds[0], HubFlowDataSource)
                 dm.addDataSource(ds[0])
 
                 ds = DataSourceFactory.create(pathTmp)
-
 
                 obj3 = hubflow.core.FlowObject.unpickle(pathTmp)
                 obj2 = ds[0].flowObject()
@@ -579,6 +580,7 @@ class standardDataSources(EnMAPBoxTestCase):
                 # self.assertEqual(obj1, obj2)
                 # self.assertEqual(obj1, obj3)
 
+        self.assertTrue(n_tested > 0)
         self.showGui(dtv)
 
     def test_issue478(self):
