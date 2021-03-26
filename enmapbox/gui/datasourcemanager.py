@@ -27,9 +27,12 @@ import collections
 import uuid
 import webbrowser
 import numpy as np
-from qgis.PyQt.QtCore import *
+from PyQt5.QtCore import Qt, QMimeData, QModelIndex, QSize, QUrl, QObject
+from PyQt5.QtGui import QIcon, QContextMenuEvent, QPixmap
+from PyQt5.QtWidgets import QAbstractItemView, QDockWidget, QStyle, QAction, QTreeView, QFileDialog, QDialog
+from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtWidgets import QApplication, QMenu
 from qgis.core import \
     QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsCoordinateReferenceSystem, \
     QgsRasterRenderer, QgsProject, QgsUnitTypes, QgsWkbTypes, \
