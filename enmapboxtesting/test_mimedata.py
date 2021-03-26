@@ -146,6 +146,16 @@ class MimeDataTests(EnMAPBoxTestCase):
 
         EB.close()
 
+    def test_csv_drop(self):
+
+        path_csv = pathlib.Path(enmap).parent / 'library_berlin.csv'
+        self.assertTrue(path_csv.is_file())
+
+        mimeData = QMimeData()
+        mimeData.setUrls(QUrl.fromLocalFile(path_csv.as_posix()))
+
+
+
     @unittest.SkipTest
     def test_dropping_files_speclib_widget(self):
         files = []

@@ -182,6 +182,11 @@ class DataSourceTests(EnMAPBoxTestCase):
         source = DataSourceFactory.create(path_csv)
         self.assertTrue(source, DataSourceVector)
 
+        mimeData = QMimeData()
+        mimeData.setUrls(QUrl.fromLocalFile(path_csv.as_posix()))
+
+
+
 
     def test_speclibs(self):
 
