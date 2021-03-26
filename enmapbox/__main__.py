@@ -67,7 +67,6 @@ def run(
     else:
         print('## QgsApplication exists')
 
-    enmapbox.DEBUG = debug is True
     # initialize resources and background frameworks
     # if started from QGIS, this is done by enmapbox/enmapboxplugin.py
     # initialize Qt resources, QgsEditorWidgetWrapper, QgsProcessingProviders etc.

@@ -155,7 +155,7 @@ def enmapboxSettings() -> QSettings:
 
 
 settings = enmapboxSettings()
-DEBUG = settings.value('EMB_DEBUG', False) or str(os.environ.get('DEBUG', False)).lower() in ['1', 'true']
+DEBUG = str(os.environ.get('DEBUG', False)).lower() in ['1', 'true']
 site.addsitedir(DIR_SITEPACKAGES)
 
 # test PyQtGraph
@@ -178,7 +178,7 @@ def icon() -> QIcon:
 
 
 def debugLog(msg: str):
-    if DEBUG:
+    if str(os.environ.get('DEBUG', False)).lower() in ['1', 'true']:
         print('DEBUG:' + msg, flush=True)
 
 

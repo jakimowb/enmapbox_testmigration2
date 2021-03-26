@@ -1,4 +1,3 @@
-
 import pickle, uuid, json
 from qgis.core import *
 
@@ -10,8 +9,7 @@ from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpatial, DataS
 from enmapbox.gui.datasources import DataSource, DataSourceSpatial
 from ..externals.qps.layerproperties import defaultRasterRenderer, defaultBands
 from enmapbox.gui import SpectralLibrary
-
-
+from enmapbox import debugLog
 
 MDF_RASTERBANDS = 'application/enmapbox.rasterbanddata'
 
@@ -33,9 +31,7 @@ MDF_QGIS_LAYER_STYLE = 'application/qgis.style'
 QGIS_URILIST_MIMETYPE = "application/x-vnd.qgis.qgis.uri"
 
 
-
-
-def attributesd2dict(attributes:QDomNamedNodeMap)->str:
+def attributesd2dict(attributes: QDomNamedNodeMap) -> str:
     d = {}
     assert isinstance(attributes, QDomNamedNodeMap)
     for i in range(attributes.count()):
@@ -60,6 +56,7 @@ def fromDataSourceList(dataSources):
         ds.writeXml(node)
     mimeData.setData(MDF_DATASOURCETREEMODELDATA, doc.toByteArray())
     return mimeData
+
 
 def toDataSourceList(mimeData):
     assert isinstance(mimeData, QMimeData)
@@ -92,6 +89,7 @@ def toDataSourceList(mimeData):
 
     return dataSources
 
+
 def fromLayerList(mapLayers):
     """
     Converts a list of QgsMapLayers into a QMimeData object
@@ -120,14 +118,14 @@ def fromLayerList(mapLayers):
     return mimeData
 
 
-
-def containsMapLayers(mimeData:QMimeData)->bool:
+def containsMapLayers(mimeData: QMimeData) -> bool:
     """
     Checks if the mimeData contains any format suitable to describe QgsMapLayers
     :param mimeData:
     :return:
     """
-    valid = [MDF_RASTERBANDS, MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE, MDF_URILIST]
+    valid = [MDF_RASTERBANDS, MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE,
+             MDF_URILIST]
 
     for f in valid:
         if f in mimeData.formats():
@@ -135,16 +133,15 @@ def containsMapLayers(mimeData:QMimeData)->bool:
     return False
 
 
-
-def extractMapLayers(mimeData:QMimeData)->list:
+def extractMapLayers(mimeData: QMimeData) -> list:
     """
     Extracts available QgsMapLayer from QMimeData
     :param mimeData: QMimeData
     :return: [list-of-QgsMapLayers]
     """
     assert isinstance(mimeData, QMimeData)
-    newMapLayers = []
 
+    newMapLayers = []
 
     QGIS_LAYERTREE_FORMAT = None
     if MDF_ENMAPBOX_LAYERTREEMODELDATA in mimeData.formats():
@@ -157,10 +154,10 @@ def extractMapLayers(mimeData:QMimeData)->list:
         doc.setContent(mimeData.data(QGIS_LAYERTREE_FORMAT))
         node = doc.firstChildElement(MDF_QGIS_LAYERTREEMODELDATA_XML)
         context = QgsReadWriteContext()
-        #context.setPathResolver(QgsProject.instance().pathResolver())
+        # context.setPathResolver(QgsProject.instance().pathResolver())
         layerTree = QgsLayerTree.readXml(node, context)
 
-        attributesLUT= {}
+        attributesLUT = {}
         childs = node.childNodes()
 
         for i in range(childs.count()):
@@ -178,20 +175,19 @@ def extractMapLayers(mimeData:QMimeData)->list:
                 mapLayer = mapLayer.clone()
 
             if not isinstance(mapLayer, QgsMapLayer) and id in attributesLUT.keys():
-                    attributes = attributesLUT[id]
-                    name = attributes.get('name')
-                    src = attributes['source']
-                    providerKey = attributes.get('providerKey')
+                attributes = attributesLUT[id]
+                name = attributes.get('name')
+                src = attributes['source']
+                providerKey = attributes.get('providerKey')
 
-                    if providerKey in ['gdal','wms']:
-                        mapLayer = QgsRasterLayer(src, name, providerKey)
+                if providerKey in ['gdal', 'wms']:
+                    mapLayer = QgsRasterLayer(src, name, providerKey)
 
-                    elif providerKey in ['ogr','WFS']:
-                        mapLayer = QgsVectorLayer(src, name, providerKey)
+                elif providerKey in ['ogr', 'WFS']:
+                    mapLayer = QgsVectorLayer(src, name, providerKey)
 
-                    if isinstance(mapLayer, QgsMapLayer):
-                        mapLayer.setName(attributes['name'])
-
+                if isinstance(mapLayer, QgsMapLayer):
+                    mapLayer.setName(attributes['name'])
 
             if isinstance(mapLayer, (QgsRasterLayer, QgsVectorLayer)):
                 newMapLayers.append(mapLayer)
@@ -246,9 +242,15 @@ def extractMapLayers(mimeData:QMimeData)->list:
     else:
         s = ""
 
+    info = ['Extract map layers from QMimeData']
+    info.append('Formats:' + ','.join(mimeData.formats()))
+    info.append(f' {len(newMapLayers)} Map Layers: ' + '\n\t'.join([f'{l}' for l in newMapLayers]))
+    debugLog('\n'.join(info))
+
     return newMapLayers
 
-def extractSpectralLibraries(mimeData:QMimeData)->list:
+
+def extractSpectralLibraries(mimeData: QMimeData) -> list:
     """Reads spectral libraries that may be defined in mimeData"""
     results = []
     slib = SpectralLibrary.readFromMimeData(mimeData)
@@ -272,6 +274,7 @@ def textToByteArray(text):
         data.append(text)
         return data
 
+
 def textFromByteArray(data):
     """
     Decodes a QByteArray into a str
@@ -281,4 +284,3 @@ def textFromByteArray(data):
     assert isinstance(data, QByteArray)
     s = data.data().decode()
     return s
-
