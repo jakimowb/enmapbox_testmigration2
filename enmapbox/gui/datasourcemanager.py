@@ -1137,6 +1137,10 @@ class DataSourceTreeView(TreeView):
                 a = m.addAction('Open Editor')
                 a.triggered.connect(lambda *args, s=src: self.onOpenSpeclib(s.speclib()))
 
+            if isinstance(src, DataSourceFile):
+                s = ""
+                pass
+
         if isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
             a.setEnabled(False)
