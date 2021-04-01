@@ -81,14 +81,15 @@ def guessDataProvider(src: str) -> str:
         return 'gdal'
 
     # probably a spectral library
-    elif re.search(r'\.(sli|esl|asd|asd.txt)$', src, re.I):
+    elif re.search(r'\.(sli|esl|asd|asd\.txt)$', src, re.I):
         return 'enmapbox_speclib'
     elif re.search(r'\.(shp|gpkg|kml|csv)$', src, re.I):  # probably a vector file
         return 'ogr'
-    elif re.search(r'\.(txt|csv)$', src, re.I):  # probably normal text file
-        return 'enmapbox_textfile'
-    elif re.search(r'\.pkl$', src, re.I):
+    elif re.search(r'\.(pkl)$', src, re.I):
         return 'enmapbox_pkl'
+    elif re.search(r'\.(txt|csv|json)$', src, re.I):  # probably normal text file
+        return 'enmapbox_textfile'
+
     elif re.search(r'url=https?.*wfs', src, re.I):
         return 'WFS'
     return None

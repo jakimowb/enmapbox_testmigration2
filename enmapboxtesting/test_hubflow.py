@@ -1,10 +1,22 @@
 import unittest
 import os
+import pathlib
 from osgeo import gdal
+import pickle
+import json
 import numpy as np
+
+from enmapbox.gui.datasourcemanager import DataSourceManager, DataSourceManagerTreeModel, DataSourceTreeView
 from enmapbox.testing import TestCase, TestObjects
+import enmapboxtestdata
+from qgis.core import QgsApplication, QgsProcessingRegistry, \
+    QgsProcessingAlgorithm, \
+    QgsProcessingContext, \
+    QgsProcessingFeedback
 
 class HUBFlowTests(TestCase):
+
+
     def test_wavelength(self):
 
         # define raster image with ENVI-like metadata
@@ -46,7 +58,62 @@ class HUBFlowTests(TestCase):
             self.assertEqual(v1, v2)
 
 
+    def test_create_RFC_model(self):
 
+        configuration = {}
+
+        def onFeedbackProgress(v: float):
+            print(f'Progress {v}')
+
+        context = QgsProcessingContext()
+        feedback = QgsProcessingFeedback()
+        feedback.progressChanged.connect(onFeedbackProgress)
+
+        from enmapbox import initAll
+        initAll()
+        procReg = QgsApplication.instance().processingRegistry()
+        assert isinstance(procReg, QgsProcessingRegistry)
+        alg_ids = [a.id() for a in procReg.algorithms()]
+        from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
+        a = FitRandomForestClassifierAlgorithm()
+        aid = f'enmapbox:{a.id()}'
+        alg: FitRandomForestClassifierAlgorithm = procReg.algorithmById(aid)
+        self.assertIsInstance(alg, QgsProcessingAlgorithm)
+        self.assertIsInstance(alg, FitRandomForestClassifierAlgorithm)
+
+        DIR_TMP = self.createTestOutputDirectory()
+        path_rfc_pkl = DIR_TMP / 'test_rfc.pkl'
+
+        if not path_rfc_pkl.is_file():
+            parameters = {FitRandomForestClassifierAlgorithm.P_RASTER: enmapboxtestdata.enmap,
+                          FitRandomForestClassifierAlgorithm.P_CLASSIFICATION: enmapboxtestdata.landcover_points,
+                          FitRandomForestClassifierAlgorithm.P_OUTPUT_CLASSIFIER: path_rfc_pkl.as_posix()}
+            self.assertTrue(alg.checkParameterValues(parameters, context))
+
+            results = alg.processAlgorithm(parameters, context, feedback)
+            self.assertIsInstance(results, dict)
+
+            path_pkl = results.get(FitRandomForestClassifierAlgorithm.P_OUTPUT_CLASSIFIER)
+            path_pkl = pathlib.Path(path_pkl)
+            self.assertEqual(path_pkl, path_rfc_pkl)
+        else:
+            path_pkl = path_rfc_pkl
+
+        self.assertTrue(path_pkl.is_file())
+
+        with open(path_pkl, 'rb') as f:
+            obj = pickle.load(f)
+
+            s = ""
+
+        ds = DataSourceManager()
+        dm = DataSourceManagerTreeModel(None, ds)
+        dtv = DataSourceTreeView()
+        dtv.setModel(dm)
+
+        sources = ds.addSource(path_pkl)
+        self.assertTrue(len(sources) > 0)
+        s = ""
 
 
 if __name__ == '__main__':

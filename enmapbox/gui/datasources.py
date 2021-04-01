@@ -16,7 +16,22 @@
 *                                                                         *
 ***************************************************************************
 """
+import collections
+import pickle
+import json
+import warnings
+import weakref
+import os
+import sys
+import re
+import typing
+import pathlib
 import uuid
+
+from qgis.PyQt.QtCore import QVariant, pyqtSignal, QDateTime, QFileInfo, QUrl, QSizeF
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QFileIconProvider
+from qgis.PyQt.QtXml import QDomElement
 
 from osgeo import gdal, ogr
 
@@ -25,11 +40,12 @@ from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer, \
     QgsProviderRegistry, QgsRasterDataProvider, QgsVectorDataProvider, \
     QgsLayerTreeLayer, QgsMimeDataUtils, QgsProject
 from qgis.gui import QgsSublayersDialog
-
+from enmapbox.gui.utils import SpatialExtent, SpatialPoint, guessDataProvider
 from enmapbox.gui import subLayerDefinitions, openRasterLayerSilent, \
     SpectralLibrary, ClassificationScheme, AbstractSpectralLibraryIO
-from enmapbox.gui.utils import *
+
 from ..externals.qps.layerproperties import defaultRasterRenderer
+from ..externals.qps.utils import parseWavelength
 
 
 def rasterProvider(uri: str) -> str:
@@ -407,12 +423,10 @@ class HubFlowDataSource(DataSource):
         return 'hubflow:{}:{}:{}'.format(obj.__class__.__name__, id(obj), uri)
 
     def __init__(self, obj, uri: str = None, name: str = None, icon: QIcon = None):
-        import hubflow.core
-        assert isinstance(obj, hubflow.core.FlowObject)
         if isinstance(uri, str):
             id = uri
         else:
-            id = HubFlowDataSource.createID(obj)
+            id = f'{obj}:{id(obj)}'
 
         if name in [None, '']:
             name = os.path.basename(id)
@@ -426,7 +440,7 @@ class HubFlowDataSource(DataSource):
 
         s = ""
 
-    def flowObject(self):
+    def flowObject(self) -> object:
         return self.mFlowObj
 
 
@@ -867,10 +881,22 @@ class DataSourceFactory(object):
             return True, src
 
         src = DataSourceFactory.srcToString(src)
-        if not src is None and os.path.exists(src):
-            obj = FlowObject.unpickle(src, raiseError=False)
-            if isinstance(obj, FlowObject) and not isinstance(obj, Map):
-                return True, obj
+        if isinstance(src, str) and os.path.exists(src):
+            pkl_obj = None
+            if src.endswith('.pkl'):
+                try:
+                    with open(src, 'rb') as f:
+                        pkl_obj = pickle.load(f)
+                except Exception:
+                    pass
+            elif src.endswith('.json'):
+                try:
+                    with open(src, 'r', encoding='utf-8') as f:
+                        pkl_obj = json.load(f)
+                except Exception:
+                    pass
+            if pkl_obj is not None:
+                return True, pkl_obj
         return False, None
 
     @staticmethod
