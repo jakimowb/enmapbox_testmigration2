@@ -54,7 +54,7 @@ try:
     on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
     if on_rtd:
-        print('Fetching files with git_lfs')
+        print('Fetching files with ...')
         DOC_SOURCES_DIR = os.path.dirname(os.path.abspath(__file__))
         PROJECT_ROOT_DIR = os.path.dirname(os.path.dirname(DOC_SOURCES_DIR))
         sys.path.insert(0, DOC_SOURCES_DIR)
@@ -65,6 +65,15 @@ try:
         fetch(PROJECT_ROOT_DIR)
 except Exception as ex:
     print(ex)
+
+DIR_LFS_DOCS = REPO_ROOT / 'doc' / 'source' / '_static' / 'docs'
+assert DIR_LFS_DOCS.is_dir()
+print(f'Print content {DIR_LFS_DOCS}')
+for f in os.scandir(DIR_LFS_DOCS):
+    path = pathlib.Path(f.path)
+    if path.is_file():
+        size_bytes = path.stat().st_size
+        print(f'{path}: {size_bytes / 1024} KB')
 
 # from now on, always assume that we are building on RTD
 
