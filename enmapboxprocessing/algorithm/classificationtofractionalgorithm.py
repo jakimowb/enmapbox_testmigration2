@@ -106,7 +106,7 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
             # calculate category fractions
             categories = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
             x10IdArray = RasterReader(classification).array()[0]
-            maskArray = np.full((grid.height(), grid.width()), True, dtype=np.bool)
+            maskArray = np.full((grid.height(), grid.width()), True, dtype=bool)
             arrays = list()
             for i, category in enumerate(categories):
 

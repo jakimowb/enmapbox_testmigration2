@@ -22,7 +22,6 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
     P_GRID = 'grid'
     P_COVERAGE = 'coverage'
     P_MAJORITY_VOTING = 'majorityVoting'
-    P_CREATION_PROFILE = 'creationProfile'
     P_OUTPUT_RASTER = 'outRaster'
 
     def displayName(self):
@@ -42,7 +41,6 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
             (self.P_COVERAGE, 'Exclude all pixel where (polygon) coverage is smaller than given threshold.'),
             (self.P_MAJORITY_VOTING, 'Whether to use majority voting. '
                                      'Turn off to use simple vector burning, which is much faster.'),
-            (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
             (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
@@ -54,7 +52,6 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_GRID, 'Grid')
         self.addParameterInt(self.P_COVERAGE, 'Minimum pixel coverage', 0, False, 0, 100, advanced=True)
         self.addParameterBoolean(self.P_MAJORITY_VOTING, 'Majority voting', True, False, advanced=True)
-        self.addParameterCreationProfile(self.P_CREATION_PROFILE, advanced=True)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output classification')
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
@@ -67,7 +64,6 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         minCoverage = self.parameterAsInt(parameters, self.P_COVERAGE, context) / 100.
         majorityVoting = self.parameterAsBoolean(parameters, self.P_MAJORITY_VOTING, context)
-        format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
@@ -124,7 +120,8 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
                 array = RasterReader(classification).array()
                 marray = RasterReader(coverageRaster).array()[0] < minCoverage
                 array[0][marray] = 0
-                Driver(filename, format, options, feedback2).createFromArray(array, grid.extent(), grid.crs())
+                driver = Driver(filename, self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions, feedback2)
+                driver.createFromArray(array, grid.extent(), grid.crs())
 
             # setup renderer
             layer = QgsRasterLayer(filename)

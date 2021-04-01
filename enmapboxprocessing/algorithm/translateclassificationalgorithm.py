@@ -16,7 +16,6 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
     P_CLASSIFICATION = 'classification'
     P_GRID = 'grid'
     P_MAJORITY_VOTING = 'majorityVoting'
-    P_CREATION_PROFILE = 'creationProfile'
     P_OUTPUT_RASTER = 'outRaster'
 
     def displayName(self):
@@ -33,7 +32,6 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
             (self.P_GRID, self.helpParameterGrid()),
             (self.P_MAJORITY_VOTING, 'Whether to use majority voting. ',
                                      'Turn off to use simple nearest neighbour resampling, which is much faster.'),
-            (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
             (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
@@ -47,7 +45,6 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_CLASSIFICATION, 'Classification')
         self.addParameterRasterLayer(self.P_GRID, 'Grid')
         self.addParameterBoolean(self.P_MAJORITY_VOTING, 'Majority voting', True, False, advanced=True)
-        self.addParameterCreationProfile(self.P_CREATION_PROFILE, allowVrt=True)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER)
 
     def processAlgorithm(
@@ -56,7 +53,6 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
         classification = self.parameterAsRasterLayer(parameters, self.P_CLASSIFICATION, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         majorityVoting = self.parameterAsBoolean(parameters, self.P_MAJORITY_VOTING, context)
-        creationProfile = self.parameterAsEnum(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
@@ -76,7 +72,7 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_GRID: grid,
                     alg.P_RESAMPLE_ALG: self.NearestNeighbourResampleAlg,
                     alg.P_COPY_STYLE: True,
-                    alg.P_CREATION_PROFILE: creationProfile,
+                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: filename
                 }
                 Processing.runAlgorithm(alg, parameters, None, feedback2, context)
@@ -117,7 +113,7 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_GRID: grid,
                     alg.P_RESAMPLE_ALG: alg.ModeResampleAlg,
                     alg.P_COPY_STYLE: True,
-                    alg.P_CREATION_PROFILE: creationProfile,
+                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: filename
                 }
                 Processing.runAlgorithm(alg, parameters, None, feedback2, context)

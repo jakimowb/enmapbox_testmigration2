@@ -51,6 +51,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     Byte, Int16, UInt16, Int32, UInt32, Float32, Float64 = range(len(O_DATA_TYPE))
     SkipOutput = '[Skip output]'
 
+    _MAXIMUM_MEMORY_USAGE = 'Maximum memory usage'
+
     def createInstance(self):
         return type(self)()
 
@@ -240,7 +242,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         return parameters.get(name, None) is None
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
-        return super().checkParameterValues(parameters, context)
+        valid, message = super().checkParameterValues(parameters, context)
+        return valid, message
 
     def checkParameterVectorClassification(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
@@ -288,16 +291,19 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def helpParameters(self) -> List[Tuple[str, str]]:
         return []
 
+    @classmethod
     def helpParameterRaster(self):
         return 'Source raster layer.'
 
-    def helpParameterMapClassification(self):
-        return 'Source raster or vector layer styled with a paletted/unique values (raster) ' \
-               'or categorized symbol (vector) renderer.'
+    @classmethod
+    def helpParameterMapClassification(cls):
+        return 'Source raster or vector layer styled with a paletted/unique values (raster) or categorized symbol (vector) renderer.'
 
+    @classmethod
     def helpParameterRasterClassification(self):
         return 'Source raster layer styled with a paletted/unique values renderer.'
 
+    @classmethod
     def helpParameterMapMask(self):
         return 'Source raster or vector layer interpreted as binary mask. ' \
                'In case of a raster, all no data (zero, if missing), inf and nan pixel evaluate to false, ' \
@@ -306,41 +312,53 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
                'all other to true. ' \
                'Note that only the first raster band used by the renderer is considered.'
 
+    @classmethod
     def helpParameterRasterMask(self):
         return 'Source raster interpreted as binary mask. All no data (zero, if missing), ' \
                'inf and nan pixel evaluate to false, all other to true. ' \
                'Note that only the first band used by the renderer is considered.'
 
+    @classmethod
     def helpParameterVector(self):
         return 'Source vector layer.'
 
+    @classmethod
     def helpParameterVectorClassification(self):
         return 'Source vector layer styled with a categorized symbol renderer.'
 
+    @classmethod
     def helpParameterClassifier(self):
         return 'Source classifier file (*.pkl).'
 
+    @classmethod
     def helpParameterGrid(self):
         return 'Source raster layer defining the destination extent, resolution and coordinate reference system.'
 
+    @classmethod
     def helpParameterMaximumMemoryUsage(self):
         return 'Maximum amount of memory (as bytes) for processing (defaults to 5 % of total memory).'
 
+    @classmethod
     def helpParameterDataType(self):
         return 'Output data type.'
 
+    @classmethod
     def helpParameterNoDataValue(self):
         return 'Output no data value.'
 
+    @classmethod
     def helpParameterRasterDestination(self):
         return 'Output raster destination.'
 
+    @classmethod
     def helpParameterVectorDestination(self):
         return 'Output vector destination.'
 
+    @classmethod
     def helpParameterReportDestination(self):
         return 'Output report destination.'
 
+    @classmethod
     def helpParameterCreationProfile(self):
         return 'Output format and creation options.'
 
@@ -352,16 +370,9 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         if self.helpHeader() is not None:
             title, text2 = self.helpHeader()
             text += f' <i><h3>{title}</h3> </i><p>{text2}</p>'
-        if len(self.helpCookbookUrls()) > 0:
-            text += '<p>Used in the Cookbook Recipes: '
-            text += ', '.join(
-                [f'<a href="{url}">{name}</a>' for name, url in
-                 self.helpCookbookUrls()]
-            )
-            text += '</p>\n\n'
         for name, text2 in self.helpParameters():
-            parameter = self.parameterDefinition(name)
-            text += f'<h3>{parameter.description()}</h3><p>{text2}</p>'
+            #parameter = name  # self.parameterDefinition(name)
+            text += f'<h3>{name}</h3><p>{text2}</p>'
         return text
 
     def helpString(self):
@@ -434,7 +445,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.flagParameterAsAdvanced(name, advanced)
 
     def addParameterRasterDestination(
-            self, name: str, description='Output Raster', defaultValue=None, optional=False, createByDefault=True,
+            self, name: str, description='Output raster', defaultValue=None, optional=False, createByDefault=True,
             advanced=False
     ):
         self.addParameter(
@@ -443,7 +454,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.flagParameterAsAdvanced(name, advanced)
 
     def addParameterVectorDestination(
-            self, name: str, description='Output Vector', type=QgsProcessing.TypeVectorAnyGeometry, defaultValue=None,
+            self, name: str, description='Output vector', type=QgsProcessing.TypeVectorAnyGeometry, defaultValue=None,
             optional=False, createByDefault=True, advanced=False
     ):
         self.addParameter(
@@ -543,17 +554,17 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.flagParameterAsAdvanced(name, advanced)
 
     def addParameterDataType(
-            self, name: str, description='Data Type', defaultValue: int = None, optional=False,
+            self, name: str, description='Data type', defaultValue: int = None, optional=False,
             advanced=False
     ):
         options = self.O_DATA_TYPE
         self.addParameterEnum(name, description, options, False, defaultValue, optional, advanced)
 
-    def addParameterMaximumMemoryUsage(self, name: str, description='Maximum Memory Usage', advanced=False):
+    def addParameterMaximumMemoryUsage(self, name: str, description=_MAXIMUM_MEMORY_USAGE, advanced=False):
         self.addParameterInt(name, description, gdal.GetCacheMax(), True, 0, None, advanced)
 
     def addParameterCreationProfile(
-            self, name: str, description='Output Options', defaultValue=0, advanced=False, allowVrt=False
+            self, name: str, description='Output options', defaultValue=0, advanced=False, allowVrt=False
     ):
         if allowVrt:
             options = self.O_CREATION_PROFILE
@@ -562,7 +573,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameterEnum(name, description, options, False, defaultValue=defaultValue, advanced=advanced)
 
     def addParameterResampleAlg(
-            self, name: str, description='Resample Algorithm', defaultValue=0, optional=False, advanced=False
+            self, name: str, description='Resample algorithm', defaultValue=0, optional=False, advanced=False
     ):
         options = self.O_RESAMPLE_ALG
         self.addParameterEnum(name, description, options, False, defaultValue, optional, advanced)
@@ -607,6 +618,20 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         feedbackChildAlgo = ProcessingFeedback(feedback, logfile=logfile, isChildFeedback=True, silenced=True)
         return feedbackMainAlgo, feedbackChildAlgo
 
+    @classmethod
+    def htmlItalic(cls, text: str) -> str:
+        return f'<i>{text}</i>'
+
+    @classmethod
+    def htmlBold(cls, text: str) -> str:
+        return f'<b>{text}</b>'
+
+    @classmethod
+    def htmlLink(cls, link: str, text: str=None) -> str:
+        if text is None:
+            text = link
+        return '<a href="' + link + '">' + text + '</a>'
+
     def tic(self, feedback: ProcessingFeedback, parameters: Dict[str, Any], context: QgsProcessingContext):
         feedback.pushPythonCommand(self.asPythonCommand(parameters, context) + '\n')
         feedback.pushConsoleCommand(self.asConsoleCommand(parameters, context) + '\n')
@@ -622,19 +647,19 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
 
 
 class Group(Enum):
-    AccuracyAssessment = 'Accuracy Assessment'
+    AccuracyAssessment = 'Accuracy assessment'
     Auxilliary = 'Auxilliary'
-    ConvolutionMorphologyAndFiltering = 'Convolution, Morphology and Filtering'
-    CreateRaster = 'Raster Creation'
-    CreateVector = 'Vector Creation'
+    ConvolutionMorphologyAndFiltering = 'Convolution, morphology and filtering'
+    CreateRaster = 'Raster creation'
+    CreateVector = 'Vector creation'
     Classification = 'Classification'
     Clustering = 'Clustering'
-    ImportData = 'Import Data'
+    ImportData = 'Import data'
     Masking = 'Masking'
     Options = 'Options'
-    Preprocessing = 'Pre-Processing'
-    Postprocessing = 'Post-Processing'
-    ResamplingAndSubsetting = 'Resampling and Subsetting'
+    Preprocessing = 'Pre-processing'
+    Postprocessing = 'Post-processing'
+    ResamplingAndSubsetting = 'Resampling and subsetting'
     Regression = 'Regression'
     Sampling = 'Sampling'
     Test = 'TEST/'

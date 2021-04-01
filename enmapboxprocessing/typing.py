@@ -3,7 +3,7 @@ from typing import Union, List, Dict, Optional, NamedTuple
 import numpy as np
 from osgeo import gdal
 from qgis._core import QgsRasterDataProvider, QgsRasterLayer
-from sklearn.base import ClassifierMixin
+from sklearn.base import ClassifierMixin, RegressorMixin
 
 from typeguard import typechecked
 
@@ -34,14 +34,48 @@ Categories = List[Category]
 SampleX = Array2d
 SampleY = Array2d
 
+Classifier = ClassifierMixin
+Regressor = RegressorMixin
+
 
 @typechecked
 class ClassifierDump(NamedTuple):
-    classifier: Optional[ClassifierMixin] = None
-    categories: Categories = None
-    features: Optional[List[str]] = None
-    X: Optional[SampleX] = None
-    y: Optional[SampleY] = None
+    categories: Categories
+    features: List[str]
+    X: SampleX
+    y: SampleY
+    classifier: Optional[Classifier] = None
+
+    def withClassifier(self, classifier):
+        asdict = self._asdict()
+        asdict['classifier'] = classifier
+        return ClassifierDump(**asdict)
+
+    def withSample(self, X, y):
+        asdict = self._asdict()
+        asdict['X'] = X
+        asdict['y'] = y
+        return ClassifierDump(**asdict)
+
+
+@typechecked
+class RegressionDump(NamedTuple):
+    targets: List[str]
+    features: List[str]
+    X: SampleX
+    y: SampleY
+    regressor: Optional[Regressor] = None
+
+    def withRegressor(self, regressor):
+        asdict = self._asdict()
+        asdict['regressor'] = regressor
+        return RegressionDump(**asdict)
+
+    def withSample(self, X, y):
+        asdict = self._asdict()
+        asdict['X'] = X
+        asdict['y'] = y
+        return RegressionDump(**asdict)
 
 
 @typechecked

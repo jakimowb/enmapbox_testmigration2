@@ -97,7 +97,7 @@ class Utils(object):
 
     @staticmethod
     def numpyDataTypeToQgisDataType(dataType: NumpyDataType) -> Qgis.DataType:
-        if dataType in [np.bool, np.uint8]:
+        if dataType in [bool, np.uint8]:
             return Qgis.Byte
         elif dataType == np.float32:
             return Qgis.Float32
@@ -197,7 +197,7 @@ class Utils(object):
 
     @classmethod
     def categoriesFromPalettedRasterRenderer(cls, renderer: QgsPalettedRasterRenderer) -> Categories:
-        categories = [Category(c.value, c.label, c.color.name()) for c in renderer.classes()]
+        categories = [Category(int(c.value), c.label, c.color.name()) for c in renderer.classes()]
         return categories
 
     @classmethod

@@ -157,7 +157,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
                 arrayStratification = RasterReader(stratification).array()[0]
                 categoriesStratification = Utils.categoriesFromPalettedRasterRenderer(stratification.renderer())
             # - get valid reference location
-            valid = np.full_like(arrayReference, False, np.bool)
+            valid = np.full_like(arrayReference, False, bool)
             for category in categoriesReference:
                 id, name, color = category
                 np.logical_or(valid, arrayReference == id, out=valid)

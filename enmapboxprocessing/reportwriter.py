@@ -15,8 +15,11 @@ class HtmlReportWriter(object):
     def writeSubHeader(self, value):
         self.file.writelines(['<h2>', value, '</h2>', '\n'])
 
-    def writeParagraph(self,value):
+    def writeParagraph(self, value):
         self.file.writelines(['<p>', value, '</p>', '\n'])
+
+    def writeImage(self, value):
+        self.file.writelines(['<p><img src="', value, '"/></p>', '\n'])
 
     def writeTable(
             self, values: List[List], caption: str = None, columnHeaders: List[str] = None,
@@ -44,9 +47,9 @@ class HtmlReportWriter(object):
         self._writeTableEnd()
 
     def _writeTableStart(self, caption: str = None):
-        self.file.writelines(['<p><table border="1" cellspacing="0" cellpadding="10">'])
+        self.file.writelines(['<p><table border="1" cellspacing="0" cellpadding="10" style="white-space:nowrap;">'])
         if caption is not None:
-            self.file.writelines([f'<caption style="text-align:center">{caption}</caption>'])
+            self.file.writelines([f'<caption style="text-align:left">{caption}</caption>'])
 
     def _writeTableEnd(self):
         self.file.writelines(['</table></p>'])
@@ -89,6 +92,9 @@ class CsvReportWriter(object):
 
     def writeParagraph(self,value):
         self.file.writelines([value, '\n'])
+
+    def writeImage(self, *args, **kwargs):
+        pass
 
     def writeTable(
             self, values: List[List], caption: str = None, columnHeaders: List[str] = None,
@@ -152,9 +158,14 @@ class MultiReportWriter(object):
         for report in self.reports:
             report.writeSubHeader(value)
 
-    def writeParagraph(self, value):
+    def writeParagraph(self, *value):
+        value = ' '.join(map(str, value))
         for report in self.reports:
             report.writeParagraph(value)
+
+    def writeImage(self, value):
+        for report in self.reports:
+            report.writeImage(value)
 
     def writeTable(
             self, values: List[List], caption: str = None, columnHeaders: List[str] = None,
@@ -162,3 +173,5 @@ class MultiReportWriter(object):
     ):
         for report in self.reports:
             report.writeTable(values, caption, columnHeaders, rowHeaders, columnMainHeaders)
+
+

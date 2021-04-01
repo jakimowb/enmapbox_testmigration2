@@ -186,7 +186,7 @@ class RasterReader(object):
         maskArray = list()
         for i, a in enumerate(array):
             bandNo = i + 1
-            m = np.full_like(a, True, dtype=np.bool)
+            m = np.full_like(a, True, dtype=bool)
             if self.provider.sourceHasNoDataValue(bandNo) and self.provider.useSourceNoDataValue(bandNo):
                 noDataValue = self.provider.sourceNoDataValue(bandNo)
                 if not isnan(noDataValue):
