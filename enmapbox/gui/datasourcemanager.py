@@ -560,7 +560,7 @@ class DataSourceSizesTreeNode(TreeNode):
                 value.append(f'{dataSource.nSamples()}'
                              f'x{dataSource.nLines()}'
                              f'x{dataSource.nBands()}'
-                             f'x{dp.dataTypeSize(1)}')
+                             f'x{dp.dataTypeSize(1)} Byte')
                 childs += [TreeNode('Samples', value=dataSource.nSamples(), toolTip='Samples/columns in X direction'),
                            TreeNode('Lines', value=dataSource.nLines(), toolTip='Lines/rows in Y direction'),
                            TreeNode('Bands', value=dataSource.nBands(), toolTip='Raster bands'),
