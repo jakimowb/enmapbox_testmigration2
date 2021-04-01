@@ -174,6 +174,20 @@ class DataSourceTests(EnMAPBoxTestCase):
                 self.assertIsInstance(source.spatialExtent(), SpatialExtent)
                 self.assertIsInstance(source.mProvider, str)
 
+    def test_csv(self):
+
+        path_csv = pathlib.Path(enmap).parent / 'library_berlin.csv'
+        self.assertTrue(path_csv.is_file())
+        self.assertTrue(DataSourceFactory.isVectorSource(path_csv))
+        source = DataSourceFactory.create(path_csv)
+        self.assertTrue(source, DataSourceVector)
+
+        mimeData = QMimeData()
+        mimeData.setUrls(QUrl.fromLocalFile(path_csv.as_posix()))
+
+
+
+
     def test_speclibs(self):
 
         ds = DataSourceFactory.create(library)

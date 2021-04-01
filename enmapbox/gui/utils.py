@@ -20,6 +20,40 @@
 
 from ..externals.qps.utils import *
 
+from qgis.core import Qgis
+
+QGIS_DATATYPE_INFO = {
+    Qgis.UnknownDataType: ('UnknownDataType', 'Unknown or unspecified type'),
+    Qgis.Byte: ('Byte', 'Eight bit unsigned integer (quint8)'),
+    Qgis.UInt16: ('UInt16', 'Sixteen bit unsigned integer (quint16)'),
+    Qgis.Int16: ('Int16', 'Sixteen bit signed integer (qint16)'),
+    Qgis.UInt32: ('UInt32', 'Thirty two bit unsigned integer (quint32)'),
+    Qgis.Int32: ('Int32', 'Thirty two bit signed integer (qint32)'),
+    Qgis.Float32: ('Float32', 'Thirty two bit floating point (float)'),
+    Qgis.Float64: ('Float64', 'Sixty four bit floating point (double)'),
+    Qgis.CInt16: ('CInt16', 'Complex Int16.'),
+    Qgis.CInt32: ('CInt32', 'Complex Int32.'),
+    Qgis.CFloat32: ('CFloat32', 'Complex Float32.'),
+    Qgis.CFloat64: ('CFloat64', 'Complex Float64.'),
+    Qgis.ARGB32: ('ARGB32', 'Color, alpha, red, green, blue, 4 bytes the same as QImage::Format_ARGB32.'),
+    Qgis.ARGB32_Premultiplied: ('ARGB32_Premultiplied',
+                                'Color, alpha, red, green, blue, 4 bytes the same as QImage::Format_ARGB32_Premultiplied.')
+}
+
+
+def dataTypeName(dataType: Qgis.DataType, verbose: bool = False):
+    """
+    Returns a description for a Qgis.DataType
+    """
+    assert isinstance(dataType, Qgis.DataType)
+    if dataType in QGIS_DATATYPE_INFO.keys():
+        if verbose:
+            return QGIS_DATATYPE_INFO[dataType][1]
+        else:
+            return QGIS_DATATYPE_INFO[dataType][0]
+    else:
+        return 'Unknown'
+
 
 def enmapboxUiPath(name: str) -> pathlib.Path:
     """
@@ -49,7 +83,7 @@ def guessDataProvider(src: str) -> str:
     # probably a spectral library
     elif re.search(r'\.(sli|esl|asd|asd.txt)$', src, re.I):
         return 'enmapbox_speclib'
-    elif re.search(r'\.(shp|gpkg|kml)$', src, re.I):  # probably a vector file
+    elif re.search(r'\.(shp|gpkg|kml|csv)$', src, re.I):  # probably a vector file
         return 'ogr'
     elif re.search(r'\.(txt|csv)$', src, re.I):  # probably normal text file
         return 'enmapbox_textfile'
