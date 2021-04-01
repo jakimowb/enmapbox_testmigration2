@@ -265,7 +265,7 @@ def collectEnMAPBoxAlgorithms() -> typing.List[QgsProcessingAlgorithm]:
                 traceback.print_stack()
                 messageLog(str(ex2), Qgis.Warning)
     except Exception as ex:
-        traceback.print_stack()
+        traceback.print_exc()
         info = 'Unable to load enmapboxgeoalgorithms.algorithms'
         info += '\n' + str(ex)
         messageLog(info, Qgis.Critical)
