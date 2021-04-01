@@ -19,6 +19,7 @@
 import os
 import sys
 import site
+import pathlib
 import warnings
 import typing
 from qgis.gui import QgisInterface
@@ -38,11 +39,10 @@ class EnMAPBoxPlugin(object):
             os.environ['JOBLIB_MULTIPROCESSING'] = '0'
 
         pathes = sys.path[:]
-        dirPlugin = os.path.dirname(__file__)
+        dirPlugin = pathlib.Path(__file__).parent
         site.addsitedir(dirPlugin)
+        site.addsitedir(dirPlugin / 'site-packages')
         import enmapbox
-
-        site.addsitedir(enmapbox.DIR_SITEPACKAGES)
 
         # run a minimum dependency check
         self.initialDependencyCheck()

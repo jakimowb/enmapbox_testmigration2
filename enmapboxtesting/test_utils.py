@@ -15,16 +15,14 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 import unittest
 import pickle
 import xmlrunner
-from qgis import *
-from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsPointXY
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from osgeo import gdal, ogr, osr
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QMenu
+from osgeo import gdal
+
+from enmapbox.externals.qps.utils import gdalDataset, displayBandNames, SpatialPoint, geo2px, layerGeoTransform
+from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsPointXY, Qgis
 from enmapbox.testing import EnMAPBoxTestCase
-
-
 from enmapbox.gui.utils import *
+
 from enmapboxtestdata import enmap
 
 
@@ -64,6 +62,12 @@ class testClassUtils(EnMAPBoxTestCase):
         self.assertIsInstance(ds1, gdal.Dataset)
         ds2 = gdalDataset(ds1)
         self.assertEqual(ds1, ds2)
+
+
+    def test_dataTypeName(self):
+
+        self.assertEqual(dataTypeName(Qgis.Byte), 'Byte')
+        self.assertEqual(dataTypeName(Qgis.ARGB32_Premultiplied), 'ARGB32_Premultiplied')
 
 
     def test_bandNames(self):

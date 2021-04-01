@@ -179,7 +179,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         QgsProject.instance()
         qgis.utils.iface.actionSaveProject().trigger()
 
-
         self.showGui([EMB.ui, qgis.utils.iface.mainWindow()])
 
 

@@ -62,7 +62,7 @@ def rasterProvider(uri: str) -> str:
 
 def vectorProvider(uri: str) -> str:
     """
-    Returns the vector data provider keys whith which the uri can be opened as QgsVectorLayer
+    Returns the vector data provider keys with which the uri can be opened as QgsVectorLayer
     :param uri: str
     :return: str, Provider key, e.g. "ogr"
     """

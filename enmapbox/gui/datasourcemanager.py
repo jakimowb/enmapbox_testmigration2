@@ -27,9 +27,12 @@ import collections
 import uuid
 import webbrowser
 import numpy as np
-from qgis.PyQt.QtCore import *
+from PyQt5.QtCore import Qt, QMimeData, QModelIndex, QSize, QUrl, QObject
+from PyQt5.QtGui import QIcon, QContextMenuEvent, QPixmap
+from PyQt5.QtWidgets import QAbstractItemView, QDockWidget, QStyle, QAction, QTreeView, QFileDialog, QDialog
+from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtWidgets import QApplication, QMenu
 from qgis.core import \
     QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsCoordinateReferenceSystem, \
     QgsRasterRenderer, QgsProject, QgsUnitTypes, QgsWkbTypes, \
@@ -43,7 +46,7 @@ from enmapbox.gui import \
     qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, KeepRefs, \
     SpatialExtent, SpatialPoint, fileSizeString, file_search, defaultBands, defaultRasterRenderer, loadUi
 from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB
-from enmapbox.gui.utils import enmapboxUiPath
+from enmapbox.gui.utils import enmapboxUiPath, dataTypeName
 from enmapbox.gui.mimedata import \
     MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
     QGIS_URILIST_MIMETYPE, MDF_URILIST, extractMapLayers
@@ -551,11 +554,20 @@ class DataSourceSizesTreeNode(TreeNode):
                        ]
 
         if isinstance(dataSource, DataSourceRaster):
-            value.append(f'{dataSource.nSamples()}x{dataSource.nLines()}x{dataSource.nBands()}')
-            childs += [TreeNode('Samples', value=dataSource.nSamples(), toolTip='Samples/columns in X direction'),
-                       TreeNode('Lines', value=dataSource.nLines(), toolTip='Lines/rows in Y direction'),
-                       TreeNode('Bands', value=dataSource.nBands(), toolTip='Raster bands')
-                       ]
+            if isinstance(dataSource.mLayer, QgsRasterLayer) and \
+                    isinstance(dataSource.mLayer.dataProvider(), QgsRasterDataProvider):
+                dp: QgsRasterDataProvider = dataSource.mLayer.dataProvider()
+                value.append(f'{dataSource.nSamples()}'
+                             f'x{dataSource.nLines()}'
+                             f'x{dataSource.nBands()}'
+                             f'x{dp.dataTypeSize(1)} Byte')
+                childs += [TreeNode('Samples', value=dataSource.nSamples(), toolTip='Samples/columns in X direction'),
+                           TreeNode('Lines', value=dataSource.nLines(), toolTip='Lines/rows in Y direction'),
+                           TreeNode('Bands', value=dataSource.nBands(), toolTip='Raster bands'),
+                           TreeNode('Data Type',
+                                    value=dataTypeName(dp.dataType(1)),
+                                    toolTip=dataTypeName(dp.dataType(1), verbose=True))
+                           ]
         if isinstance(dataSource, DataSourceVector):
             value.append('{} features'.format(dataSource.mLayer.featureCount()))
 
@@ -689,6 +701,8 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
                 self.setIcon(QIcon(r':/images/themes/default/mIconLineLayer.svg'))
             elif re.search('point', wkbType, re.I):
                 self.setIcon(QIcon(r':/images/themes/default/mIconPointLayer.svg'))
+            elif lyr.wkbType() in [QgsWkbTypes.NoGeometry, QgsWkbTypes.Unknown]:
+                self.setIcon(QIcon(r':/enmapbox/gui/ui/icons/mActionOpenTable.svg'))
 
             self.nodeWKBType.setValue(wkbType)
             self.nodeGeomType.setValue(geomType)
@@ -864,7 +878,7 @@ class FileDataSourceTreeNode(DataSourceTreeNode):
         :return:
         """
         super().populateContextMenu(menu)
-        
+
         path = self.mDataSource.uri()
         if re.search('(html|json)$', path):
             a = menu.addAction('Open in Browser')
@@ -872,7 +886,6 @@ class FileDataSourceTreeNode(DataSourceTreeNode):
         else:
             a = menu.addAction('Open in Editor')
             a.triggered.connect(lambda *args, p=path: webbrowser.open(path))
-
 
 
 class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
@@ -956,7 +969,6 @@ class HubFlowPyObjectTreeNode(PyObjectTreeNode):
         super().__init__(*args, **kwds)
 
     def populateContextMenu(self, menu: QMenu):
-
         def copyToClipboard():
             state = np.get_printoptions()['threshold']
             np.set_printoptions(threshold=np.inf)
@@ -1109,30 +1121,39 @@ class DataSourceTreeView(TreeView):
                     sub.setEnabled(False)
 
             if isinstance(src, DataSourceVector):
-                a = m.addAction('Open in new map')
-                a.triggered.connect(lambda *args, s=src: self.openInMap(s, None))
+                if isinstance(src.mapLayer(), QgsVectorLayer):
+                    if src.mapLayer().wkbType() != QgsWkbTypes.NoGeometry:
+                        a = m.addAction('Open in new map')
+                        a.triggered.connect(lambda *args, s=src: self.openInMap(s, None))
 
-                sub = m.addMenu('Open in existing map...')
-                if len(mapDocks) > 0:
-                    for mapDock in mapDocks:
-                        assert isinstance(mapDock, MapDock)
-                        a = sub.addAction(mapDock.title())
-                        a.triggered.connect(
-                            lambda checked, s=src, d=mapDock:
-                            self.openInMap(s, d))
-                else:
-                    sub.setEnabled(False)
+                        sub = m.addMenu('Open in existing map...')
+                        if len(mapDocks) > 0:
+                            for mapDock in mapDocks:
+                                assert isinstance(mapDock, MapDock)
+                                a = sub.addAction(mapDock.title())
+                                a.triggered.connect(
+                                    lambda checked, s=src, d=mapDock:
+                                    self.openInMap(s, d))
+                        else:
+                            sub.setEnabled(False)
 
-                a = m.addAction('Open in QGIS')
-                if isinstance(qgis.utils.iface, QgisInterface):
-                    a.triggered.connect(lambda *args, s=src:
-                                        self.openInMap(s, QgsProject.instance()))
-                else:
-                    a.setEnabled(False)
+                    a = m.addAction('Open Attribute Table')
+                    a.triggered.connect(lambda *args, s=src.mapLayer(): self.openInAttributeEditor(s))
+
+                    a = m.addAction('Open in QGIS')
+                    if isinstance(qgis.utils.iface, QgisInterface):
+                        a.triggered.connect(lambda *args, s=src:
+                                            self.openInMap(s, QgsProject.instance()))
+                    else:
+                        a.setEnabled(False)
 
             if isinstance(src, DataSourceSpectralLibrary):
                 a = m.addAction('Open Editor')
-                a.triggered.connect(lambda *args, s=src: self.onOpenSpeclib(s.speclib()))
+                a.triggered.connect(lambda *args, s=src: self.openInSpeclibEditor(s.speclib()))
+
+            if isinstance(src, DataSourceFile):
+                s = ""
+                pass
 
         if isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
@@ -1229,14 +1250,20 @@ class DataSourceTreeView(TreeView):
         model.dataSourceManager.clear()
         s = ""
 
-    def onOpenSpeclib(self, speclib: SpectralLibrary):
+    def openInSpeclibEditor(self, speclib: SpectralLibrary):
         """
         Opens a SpectralLibrary in a new SpectralLibraryDock
         :param speclib: SpectralLibrary
 
         """
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        EnMAPBox.instance().dockManager().createDock('SPECLIB', speclib=speclib)
+        from enmapbox.gui.docks import SpectralLibraryDock
+        EnMAPBox.instance().dockManager().createDock(SpectralLibraryDock, speclib=speclib)
+
+    def openInAttributeEditor(self, vectorLayer: QgsVectorLayer):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        from enmapbox.gui.docks import AttributeTableDock
+        EnMAPBox.instance().dockManager().createDock(AttributeTableDock, layer=vectorLayer)
 
 
 class DataSourcePanelUI(QDockWidget):
