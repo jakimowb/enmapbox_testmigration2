@@ -46,7 +46,7 @@ from enmapbox.gui import \
     qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, KeepRefs, \
     SpatialExtent, SpatialPoint, fileSizeString, file_search, defaultBands, defaultRasterRenderer, loadUi
 from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB
-from enmapbox.gui.utils import enmapboxUiPath
+from enmapbox.gui.utils import enmapboxUiPath, dataTypeName
 from enmapbox.gui.mimedata import \
     MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
     QGIS_URILIST_MIMETYPE, MDF_URILIST, extractMapLayers
@@ -554,11 +554,20 @@ class DataSourceSizesTreeNode(TreeNode):
                        ]
 
         if isinstance(dataSource, DataSourceRaster):
-            value.append(f'{dataSource.nSamples()}x{dataSource.nLines()}x{dataSource.nBands()}')
-            childs += [TreeNode('Samples', value=dataSource.nSamples(), toolTip='Samples/columns in X direction'),
-                       TreeNode('Lines', value=dataSource.nLines(), toolTip='Lines/rows in Y direction'),
-                       TreeNode('Bands', value=dataSource.nBands(), toolTip='Raster bands')
-                       ]
+            if isinstance(dataSource.mLayer, QgsRasterLayer) and \
+                    isinstance(dataSource.mLayer.dataProvider(), QgsRasterDataProvider):
+                dp: QgsRasterDataProvider = dataSource.mLayer.dataProvider()
+                value.append(f'{dataSource.nSamples()}'
+                             f'x{dataSource.nLines()}'
+                             f'x{dataSource.nBands()}'
+                             f'x{dp.dataTypeSize(1)}')
+                childs += [TreeNode('Samples', value=dataSource.nSamples(), toolTip='Samples/columns in X direction'),
+                           TreeNode('Lines', value=dataSource.nLines(), toolTip='Lines/rows in Y direction'),
+                           TreeNode('Bands', value=dataSource.nBands(), toolTip='Raster bands'),
+                           TreeNode('Data Type',
+                                    value=dataTypeName(dp.dataType(1)),
+                                    toolTip=dataTypeName(dp.dataType(1), verbose=True))
+                           ]
         if isinstance(dataSource, DataSourceVector):
             value.append('{} features'.format(dataSource.mLayer.featureCount()))
 
