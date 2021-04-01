@@ -692,6 +692,8 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
                 self.setIcon(QIcon(r':/images/themes/default/mIconLineLayer.svg'))
             elif re.search('point', wkbType, re.I):
                 self.setIcon(QIcon(r':/images/themes/default/mIconPointLayer.svg'))
+            elif lyr.wkbType() in [QgsWkbTypes.NoGeometry, QgsWkbTypes.Unknown]:
+                self.setIcon(QIcon(r':/enmapbox/gui/ui/icons/mActionOpenTable.svg'))
 
             self.nodeWKBType.setValue(wkbType)
             self.nodeGeomType.setValue(geomType)
@@ -867,7 +869,7 @@ class FileDataSourceTreeNode(DataSourceTreeNode):
         :return:
         """
         super().populateContextMenu(menu)
-        
+
         path = self.mDataSource.uri()
         if re.search('(html|json)$', path):
             a = menu.addAction('Open in Browser')
@@ -875,7 +877,6 @@ class FileDataSourceTreeNode(DataSourceTreeNode):
         else:
             a = menu.addAction('Open in Editor')
             a.triggered.connect(lambda *args, p=path: webbrowser.open(path))
-
 
 
 class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
@@ -959,7 +960,6 @@ class HubFlowPyObjectTreeNode(PyObjectTreeNode):
         super().__init__(*args, **kwds)
 
     def populateContextMenu(self, menu: QMenu):
-
         def copyToClipboard():
             state = np.get_printoptions()['threshold']
             np.set_printoptions(threshold=np.inf)
@@ -1112,30 +1112,35 @@ class DataSourceTreeView(TreeView):
                     sub.setEnabled(False)
 
             if isinstance(src, DataSourceVector):
-                a = m.addAction('Open in new map')
-                a.triggered.connect(lambda *args, s=src: self.openInMap(s, None))
+                if isinstance(src.mapLayer(), QgsVectorLayer):
+                    if src.mapLayer().wkbType() != QgsWkbTypes.NoGeometry:
+                        a = m.addAction('Open in new map')
+                        a.triggered.connect(lambda *args, s=src: self.openInMap(s, None))
 
-                sub = m.addMenu('Open in existing map...')
-                if len(mapDocks) > 0:
-                    for mapDock in mapDocks:
-                        assert isinstance(mapDock, MapDock)
-                        a = sub.addAction(mapDock.title())
-                        a.triggered.connect(
-                            lambda checked, s=src, d=mapDock:
-                            self.openInMap(s, d))
-                else:
-                    sub.setEnabled(False)
+                        sub = m.addMenu('Open in existing map...')
+                        if len(mapDocks) > 0:
+                            for mapDock in mapDocks:
+                                assert isinstance(mapDock, MapDock)
+                                a = sub.addAction(mapDock.title())
+                                a.triggered.connect(
+                                    lambda checked, s=src, d=mapDock:
+                                    self.openInMap(s, d))
+                        else:
+                            sub.setEnabled(False)
 
-                a = m.addAction('Open in QGIS')
-                if isinstance(qgis.utils.iface, QgisInterface):
-                    a.triggered.connect(lambda *args, s=src:
-                                        self.openInMap(s, QgsProject.instance()))
-                else:
-                    a.setEnabled(False)
+                    a = m.addAction('Open Attribute Table')
+                    a.triggered.connect(lambda *args, s=src.mapLayer(): self.openInAttributeEditor(s))
+
+                    a = m.addAction('Open in QGIS')
+                    if isinstance(qgis.utils.iface, QgisInterface):
+                        a.triggered.connect(lambda *args, s=src:
+                                            self.openInMap(s, QgsProject.instance()))
+                    else:
+                        a.setEnabled(False)
 
             if isinstance(src, DataSourceSpectralLibrary):
                 a = m.addAction('Open Editor')
-                a.triggered.connect(lambda *args, s=src: self.onOpenSpeclib(s.speclib()))
+                a.triggered.connect(lambda *args, s=src: self.openInSpeclibEditor(s.speclib()))
 
             if isinstance(src, DataSourceFile):
                 s = ""
@@ -1236,14 +1241,20 @@ class DataSourceTreeView(TreeView):
         model.dataSourceManager.clear()
         s = ""
 
-    def onOpenSpeclib(self, speclib: SpectralLibrary):
+    def openInSpeclibEditor(self, speclib: SpectralLibrary):
         """
         Opens a SpectralLibrary in a new SpectralLibraryDock
         :param speclib: SpectralLibrary
 
         """
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        EnMAPBox.instance().dockManager().createDock('SPECLIB', speclib=speclib)
+        from enmapbox.gui.docks import SpectralLibraryDock
+        EnMAPBox.instance().dockManager().createDock(SpectralLibraryDock, speclib=speclib)
+
+    def openInAttributeEditor(self, vectorLayer: QgsVectorLayer):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        from enmapbox.gui.docks import AttributeTableDock
+        EnMAPBox.instance().dockManager().createDock(AttributeTableDock, layer=vectorLayer)
 
 
 class DataSourcePanelUI(QDockWidget):

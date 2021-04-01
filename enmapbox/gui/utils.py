@@ -49,7 +49,7 @@ def guessDataProvider(src: str) -> str:
     # probably a spectral library
     elif re.search(r'\.(sli|esl|asd|asd.txt)$', src, re.I):
         return 'enmapbox_speclib'
-    elif re.search(r'\.(shp|gpkg|kml)$', src, re.I):  # probably a vector file
+    elif re.search(r'\.(shp|gpkg|kml|csv)$', src, re.I):  # probably a vector file
         return 'ogr'
     elif re.search(r'\.(txt|csv)$', src, re.I):  # probably normal text file
         return 'enmapbox_textfile'

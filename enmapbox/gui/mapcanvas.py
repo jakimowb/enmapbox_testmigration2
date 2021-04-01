@@ -16,29 +16,30 @@
 *                                                                         *
 ***************************************************************************
 """
-import warnings, pathlib
-from qgis.core import *
-from qgis.gui import *
-from qgis.core import QgsCoordinateReferenceSystem, QgsMapLayer, \
-    QgsRectangle, QgsMapLayerProxyModel, QgsVectorLayerTools, \
-    QgsMapLayer, QgsRasterLayer, QgsRasterLayer, QgsPointXY, \
-    QgsProject, Qgis, QgsMapSettings
-from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapMouseEvent, \
-    QgsMapToolZoom, QgsAdvancedDigitizingDockWidget, QgsMapLayerComboBox, \
-    QgsProjectionSelectionWidget, QgsMapToolIdentify, QgsMapTool, QgsMapToolPan, QgsMapToolCapture, QgsMapMouseEvent
-
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
+import os
 import time
+import warnings
 
+import typing
+from PyQt5.QtCore import Qt, QObject, QCoreApplication, pyqtSignal, QEvent, QPointF, QMimeData, QTimer, QSize, \
+    QSettings, QModelIndex, QAbstractListModel
+from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent
+from PyQt5.QtWidgets import QAction, QToolButton, QFileDialog, QHBoxLayout, QFrame, QMenu, QLabel, QApplication, \
+    QWidgetAction, QGridLayout, QSpacerItem, QSizePolicy, QDialog, QVBoxLayout, QComboBox
+
+from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent, qgisAppQgisInterface
 from enmapbox.gui import MapTools, MapToolCenter, PixelScaleExtentMapTool, \
     CursorLocationMapTool, FullExtentMapTool, QgsMapToolAddFeature, QgsMapToolSelect, \
     CrosshairDialog, CrosshairStyle, CrosshairMapCanvasItem
-from enmapbox.gui.utils import *
-from enmapbox.gui.mimedata import *
 from enmapbox.gui.docks import Dock, DockLabel
+from enmapbox.gui.mimedata import containsMapLayers, extractMapLayers
+from qgis.PyQt import sip
 
+from qgis.core import QgsCoordinateReferenceSystem, QgsRectangle, QgsMapLayerProxyModel, QgsVectorLayerTools, \
+    QgsMapLayer, QgsRasterLayer, QgsPointXY, \
+    QgsProject, Qgis, QgsMapSettings
+from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapToolZoom, QgsAdvancedDigitizingDockWidget, QgsMapLayerComboBox, \
+    QgsProjectionSelectionWidget, QgsMapToolIdentify, QgsMapTool, QgsMapToolPan, QgsMapToolCapture, QgsMapMouseEvent
 
 LINK_ON_SCALE = 'SCALE'
 LINK_ON_CENTER = 'CENTER'
@@ -1171,7 +1172,7 @@ class MapCanvas(QgsMapCanvas):
         from enmapbox import enmapboxSettings
         settings = enmapboxSettings()
         lastDir = settings.value('EMB_SAVE_IMG_DIR', os.path.expanduser('~'))
-        path = jp(lastDir, 'screenshot.{}'.format(fileType.lower()))
+        path = os.path.join(lastDir, 'screenshot.{}'.format(fileType.lower()))
 
         path, filter = QFileDialog.getSaveFileName(self, 'Save map as {}'.format(fileType), path)
 
@@ -1432,7 +1433,6 @@ class MapDock(Dock):
     A dock to visualize geodata that can be mapped
     """
     # sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
-    from enmapbox.gui.utils import SpatialPoint, SpatialExtent
     # sigCursorLocationRequest = pyqtSignal(SpatialPoint)
     # sigSpectrumRequest = pyqtSignal(SpatialPoint)
     sigLayersAdded = pyqtSignal(list)

@@ -1,15 +1,15 @@
-import pickle, uuid, json
-from qgis.core import *
-
+import pickle
+import uuid
+from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsProject, QgsReadWriteContext, \
+    QgsMimeDataUtils, QgsLayerTree, QgsLayerTreeLayer
 from PyQt5.QtCore import *
 from PyQt5.QtXml import *
-import re
-from qgis.gui import *
-from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpatial, DataSourceSpectralLibrary
-from enmapbox.gui.datasources import DataSource, DataSourceSpatial
-from ..externals.qps.layerproperties import defaultRasterRenderer, defaultBands
-from enmapbox.gui import SpectralLibrary
+
 from enmapbox import debugLog
+from enmapbox.gui import SpectralLibrary
+from enmapbox.gui.datasources import DataSource, DataSourceSpatial
+from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpectralLibrary
+from ..externals.qps.layerproperties import defaultRasterRenderer
 
 MDF_RASTERBANDS = 'application/enmapbox.rasterbanddata'
 

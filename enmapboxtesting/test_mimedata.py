@@ -12,14 +12,16 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
+import sys
 import unittest
 import xmlrunner
 import pathlib
 import time
 import os
-from qgis import *
 
-from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer
+
+from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsMimeDataUtils, QgsWkbTypes
+from qgis.gui import QgsMapCanvas
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
@@ -152,8 +154,22 @@ class MimeDataTests(EnMAPBoxTestCase):
         self.assertTrue(path_csv.is_file())
 
         mimeData = QMimeData()
-        mimeData.setUrls(QUrl.fromLocalFile(path_csv.as_posix()))
+        mimeData.setUrls([QUrl.fromLocalFile(path_csv.as_posix())])
 
+        layers = mimedata.extractMapLayers(mimeData)
+        self.assertTrue(len(layers) > 0)
+        self.assertIsInstance(layers[0], QgsVectorLayer)
+
+        vl = layers[0]
+
+        self.assertTrue(vl.wkbType() == QgsWkbTypes.NoGeometry)
+        QgsProject.instance().addMapLayer(vl)
+
+        self.assertTrue(vl.isValid())
+        canvas = QgsMapCanvas()
+        canvas.setLayers([vl])
+
+        s = ""
 
 
     @unittest.SkipTest
