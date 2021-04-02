@@ -65,16 +65,16 @@ try:
         fetch(PROJECT_ROOT_DIR, verbose=2)
 except Exception as ex:
     print('Warning: Failed to fetch git-lfs files')
-    DIR_LFS_DOCS = REPO_ROOT / 'doc' / 'source' / '_static' / 'docs'
-    assert DIR_LFS_DOCS.is_dir()
-    print(f'Compare file sizes in {DIR_LFS_DOCS}:')
-    for f in os.scandir(DIR_LFS_DOCS):
-        path = pathlib.Path(f.path)
-        if path.is_file():
-            size_bytes = path.stat().st_size
-            print(f'\t{size_bytes / 1024} KB: {path}')
-
     print(ex)
+
+DIR_LFS_DOCS = REPO_ROOT / 'doc' / 'source' / '_static' / 'docs'
+assert DIR_LFS_DOCS.is_dir()
+print(f'Compare file sizes in {DIR_LFS_DOCS}:')
+for f in os.scandir(DIR_LFS_DOCS):
+    path = pathlib.Path(f.path)
+    if path.is_file():
+        size_bytes = path.stat().st_size
+        print(f'\t{size_bytes / 1024} KB: {path}')
 
 
 # from now on, always assume that we are building on RTD
@@ -94,7 +94,7 @@ from PyQt5.QtGui import QImage
 
 def convert2png(pathSVG: str):
     if os.path.isfile(pathSVG) and pathSVG.endswith('.svg'):
-        pathPNG = re.sub('\.svg$', '.png', pathSVG)
+        pathPNG = re.sub(r'\.svg$', '.png', pathSVG)
         image = QImage(pathSVG)
         image.save(pathPNG)
 
