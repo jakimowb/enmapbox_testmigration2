@@ -58,7 +58,7 @@
           <item>
            <widget class="QToolButton" name="toolButton">
             <property name="text">
-             <string>categorized map and feature raster</string>
+             <string>Categorized map and feature raster</string>
             </property>
             <property name="icon">
              <iconset>
@@ -72,7 +72,7 @@
           <item>
            <widget class="QToolButton" name="toolButton_3">
             <property name="text">
-             <string>categorized vector</string>
+             <string>Categorized vector</string>
             </property>
             <property name="icon">
              <iconset>
@@ -86,7 +86,7 @@
           <item>
            <widget class="QToolButton" name="toolButton_2">
             <property name="text">
-             <string>vector table</string>
+             <string>Vector table</string>
             </property>
             <property name="icon">
              <iconset>
@@ -100,7 +100,7 @@
           <item>
            <widget class="QToolButton" name="toolButton_4">
             <property name="text">
-             <string>text files</string>
+             <string>Text files</string>
             </property>
             <property name="icon">
              <iconset>
@@ -133,22 +133,19 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="1">
-         <widget class="QgsFileWidget" name="mQgsFileWidget">
-          <property name="dialogTitle">
-           <string/>
-          </property>
-          <property name="filter">
-           <string>pkl</string>
-          </property>
-         </widget>
-        </item>
         <item row="3" column="1">
          <layout class="QHBoxLayout" name="horizontalLayout_9">
           <item>
+           <widget class="QLabel" name="label_12">
+            <property name="text">
+             <string>use as</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QToolButton" name="toolButton_5">
             <property name="text">
-             <string>use as training sample</string>
+             <string>train sample</string>
             </property>
             <property name="icon">
              <iconset>
@@ -162,7 +159,7 @@
           <item>
            <widget class="QToolButton" name="toolButton_6">
             <property name="text">
-             <string>use as validation sample</string>
+             <string>test sample</string>
             </property>
             <property name="icon">
              <iconset>
@@ -188,20 +185,6 @@
            </widget>
           </item>
           <item>
-           <widget class="QToolButton" name="toolButton_10">
-            <property name="text">
-             <string>subsample</string>
-            </property>
-            <property name="icon">
-             <iconset>
-              <normaloff>:/images/themes/default/symbologyAdd.svg</normaloff>:/images/themes/default/symbologyAdd.svg</iconset>
-            </property>
-            <property name="toolButtonStyle">
-             <enum>Qt::ToolButtonTextBesideIcon</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
            <spacer name="horizontalSpacer_3">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -216,67 +199,231 @@
           </item>
          </layout>
         </item>
-        <item row="6" column="0">
-         <widget class="QLabel" name="label_11">
-          <property name="text">
-           <string>Training sample</string>
-          </property>
-         </widget>
+        <item row="6" column="1">
+         <widget class="QgsFileWidget" name="mQgsFileWidget_5"/>
         </item>
         <item row="7" column="0">
          <widget class="QLabel" name="label_13">
           <property name="text">
-           <string>Validation sample</string>
+           <string>Test sample</string>
           </property>
          </widget>
         </item>
-        <item row="6" column="1">
-         <widget class="QgsFileWidget" name="mQgsFileWidget_5"/>
-        </item>
         <item row="7" column="1">
          <widget class="QgsFileWidget" name="mQgsFileWidget_6"/>
+        </item>
+        <item row="6" column="0">
+         <widget class="QLabel" name="label_11">
+          <property name="text">
+           <string>Train sample</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QgsFileWidget" name="mQgsFileWidget_7">
+            <property name="dialogTitle">
+             <string/>
+            </property>
+            <property name="filter">
+             <string>*.pkl</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="uiType1Dialog_">
+            <property name="toolTip">
+             <string>change classification scheme</string>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>:/images/themes/default/rendererCategorizedSymbol.svg</normaloff>:/images/themes/default/rendererCategorizedSymbol.svg</iconset>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
       <widget class="QWidget" name="tab_3">
        <attribute name="title">
-        <string>Feature Selection (optional)</string>
+        <string>Feature Clustering (optional)</string>
        </attribute>
-       <widget class="QgsFileWidget" name="mQgsFileWidget_4">
-        <property name="geometry">
-         <rect>
-          <x>90</x>
-          <y>80</y>
-          <width>991</width>
-          <height>20</height>
-         </rect>
-        </property>
-       </widget>
-       <widget class="QToolButton" name="toolButton_8">
-        <property name="geometry">
-         <rect>
-          <x>140</x>
-          <y>20</y>
-          <width>204</width>
-          <height>22</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>feature clustering</string>
-        </property>
-        <property name="icon">
-         <iconset>
-          <normaloff>:/images/themes/default/processingAlgorithm.svg</normaloff>:/images/themes/default/processingAlgorithm.svg</iconset>
-        </property>
-        <property name="toolButtonStyle">
-         <enum>Qt::ToolButtonTextBesideIcon</enum>
-        </property>
-       </widget>
+       <layout class="QFormLayout" name="formLayout_5">
+        <item row="0" column="1">
+         <widget class="QToolButton" name="toolButton_8">
+          <property name="text">
+           <string>Hierarchical feature clustering</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>:/images/themes/default/processingAlgorithm.svg</normaloff>:/images/themes/default/processingAlgorithm.svg</iconset>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonTextBesideIcon</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_14">
+          <property name="text">
+           <string>Feature Subset</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="lineEdit"/>
+        </item>
+        <item row="3" column="1">
+         <layout class="QHBoxLayout" name="horizontalLayout_10">
+          <item>
+           <widget class="QLabel" name="label_18">
+            <property name="text">
+             <string>subset</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="toolButton_9">
+            <property name="text">
+             <string>train sample</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>:/images/themes/default/symbologyAdd.svg</normaloff>:/images/themes/default/symbologyAdd.svg</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="toolButton_13">
+            <property name="text">
+             <string>test sample</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>:/images/themes/default/symbologyAdd.svg</normaloff>:/images/themes/default/symbologyAdd.svg</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="toolButton_14">
+            <property name="text">
+             <string>train / test split</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>:/images/themes/default/symbologyAdd.svg</normaloff>:/images/themes/default/symbologyAdd.svg</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_4">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
       </widget>
       <widget class="QWidget" name="tab_4">
        <attribute name="title">
         <string>Model Fit</string>
        </attribute>
+       <layout class="QFormLayout" name="formLayout_2">
+        <item row="0" column="1">
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QToolButton" name="toolButton_12">
+            <property name="text">
+             <string>Fit classifier</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>:/images/themes/default/processingAlgorithm.svg</normaloff>:/images/themes/default/processingAlgorithm.svg</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="uiClassifier_">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_16">
+          <property name="text">
+           <string>Classifier</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QgsFileWidget" name="mQgsFileWidget_9"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_2">
+       <attribute name="title">
+        <string>Feature Importance (optional)</string>
+       </attribute>
+       <layout class="QFormLayout" name="formLayout_7">
+        <item row="0" column="1">
+         <widget class="QToolButton" name="toolButton_11">
+          <property name="text">
+           <string>Permutation feature importance</string>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>:/images/themes/default/processingAlgorithm.svg</normaloff>:/images/themes/default/processingAlgorithm.svg</iconset>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonTextBesideIcon</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_17">
+          <property name="text">
+           <string>Result sample</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QgsFileWidget" name="mQgsFileWidget_10"/>
+        </item>
+       </layout>
       </widget>
       <widget class="QWidget" name="tab_5">
        <attribute name="title">
@@ -307,10 +454,10 @@
          <x>0</x>
          <y>0</y>
          <width>817</width>
-         <height>660</height>
+         <height>439</height>
         </rect>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,1,0,0">
+       <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,1,0,0">
         <property name="leftMargin">
          <number>0</number>
         </property>
@@ -342,291 +489,6 @@
          </widget>
         </item>
         <item>
-         <widget class="QGroupBox" name="groupBox_2">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="title">
-           <string>Sampling</string>
-          </property>
-          <layout class="QVBoxLayout" name="uiSamplingLayout_">
-           <property name="spacing">
-            <number>7</number>
-           </property>
-           <property name="bottomMargin">
-            <number>11</number>
-           </property>
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_7" stretch="0,0,0,0,0">
-             <property name="spacing">
-              <number>7</number>
-             </property>
-             <item>
-              <widget class="QLabel" name="label_8">
-               <property name="text">
-                <string>Sample size </string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QComboBox" name="uiSampeMode_">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <item>
-                <property name="text">
-                 <string>Percent</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Pixel</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item>
-              <widget class="QStackedWidget" name="uiStacked_">
-               <property name="enabled">
-                <bool>true</bool>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>100</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="lineWidth">
-                <number>0</number>
-               </property>
-               <property name="currentIndex">
-                <number>0</number>
-               </property>
-               <widget class="QWidget" name="page">
-                <layout class="QHBoxLayout" name="horizontalLayout">
-                 <property name="spacing">
-                  <number>0</number>
-                 </property>
-                 <property name="leftMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="rightMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QSpinBox" name="uiSampleSizePercent_">
-                   <property name="enabled">
-                    <bool>true</bool>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>100</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="suffix">
-                    <string>%</string>
-                   </property>
-                   <property name="maximum">
-                    <number>100</number>
-                   </property>
-                   <property name="value">
-                    <number>100</number>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-               <widget class="QWidget" name="page_2">
-                <layout class="QHBoxLayout" name="horizontalLayout_5">
-                 <property name="spacing">
-                  <number>0</number>
-                 </property>
-                 <property name="leftMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="rightMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QSpinBox" name="uiSampleSizePixel_">
-                   <property name="enabled">
-                    <bool>true</bool>
-                   </property>
-                   <property name="maximumSize">
-                    <size>
-                     <width>100</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="suffix">
-                    <string> px</string>
-                   </property>
-                   <property name="prefix">
-                    <string/>
-                   </property>
-                   <property name="maximum">
-                    <number>999999999</number>
-                   </property>
-                   <property name="value">
-                    <number>0</number>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="uiApply_">
-               <property name="text">
-                <string>Apply</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>40</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <widget class="QScrollArea" name="uiScrollArea_1">
-             <property name="frameShape">
-              <enum>QFrame::NoFrame</enum>
-             </property>
-             <property name="frameShadow">
-              <enum>QFrame::Plain</enum>
-             </property>
-             <property name="verticalScrollBarPolicy">
-              <enum>Qt::ScrollBarAsNeeded</enum>
-             </property>
-             <property name="horizontalScrollBarPolicy">
-              <enum>Qt::ScrollBarAsNeeded</enum>
-             </property>
-             <property name="widgetResizable">
-              <bool>true</bool>
-             </property>
-             <widget class="QWidget" name="uiScrollWidget_1">
-              <property name="geometry">
-               <rect>
-                <x>0</x>
-                <y>0</y>
-                <width>797</width>
-                <height>69</height>
-               </rect>
-              </property>
-              <layout class="QVBoxLayout" name="verticalLayout_3">
-               <property name="spacing">
-                <number>0</number>
-               </property>
-               <property name="leftMargin">
-                <number>0</number>
-               </property>
-               <property name="topMargin">
-                <number>0</number>
-               </property>
-               <property name="rightMargin">
-                <number>0</number>
-               </property>
-               <property name="bottomMargin">
-                <number>0</number>
-               </property>
-               <item>
-                <layout class="QVBoxLayout" name="layout_">
-                 <item>
-                  <widget class="QWidget" name="widget_" native="true">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="minimumSize">
-                    <size>
-                     <width>30</width>
-                     <height>30</height>
-                    </size>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-              </layout>
-             </widget>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="uiTotalSampleSize_">
-             <property name="text">
-              <string>Total sample size = 0</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <layout class="QFormLayout" name="formLayout_2">
-             <item row="0" column="0">
-              <widget class="QCheckBox" name="checkBox_2">
-               <property name="text">
-                <string>Save sample</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QgsFileWidget" name="uiSampledClassificationFilename_">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>22</height>
-                </size>
-               </property>
-               <property name="defaultRoot">
-                <string/>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
          <widget class="QGroupBox" name="groupBox_6">
           <property name="minimumSize">
            <size>
@@ -638,27 +500,6 @@
            <string>Training</string>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_5">
-           <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_10" stretch="0,1">
-             <item>
-              <widget class="QLabel" name="label_16">
-               <property name="text">
-                <string>Classifier</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QComboBox" name="uiClassifier_">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
            <item>
             <widget class="QgsCollapsibleGroupBox" name="mGroupBox_5">
              <property name="sizePolicy">
@@ -1048,38 +889,6 @@ p, li { white-space: pre-wrap; }
     <hint type="destinationlabel">
      <x>403</x>
      <y>731</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>checkBox_2</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>uiSampledClassificationFilename_</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>104</x>
-     <y>331</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>432</x>
-     <y>336</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>uiSampeMode_</sender>
-   <signal>currentIndexChanged(int)</signal>
-   <receiver>uiStacked_</receiver>
-   <slot>setCurrentIndex(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>149</x>
-     <y>209</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>256</x>
-     <y>209</y>
     </hint>
    </hints>
   </connection>
