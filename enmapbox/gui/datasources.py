@@ -43,7 +43,7 @@ from qgis.gui import QgsSublayersDialog
 from enmapbox.gui.utils import SpatialExtent, SpatialPoint, guessDataProvider
 from enmapbox.gui import subLayerDefinitions, openRasterLayerSilent, \
     SpectralLibrary, ClassificationScheme, AbstractSpectralLibraryIO
-
+from enmapbox import debugLog
 from ..externals.qps.layerproperties import defaultRasterRenderer
 from ..externals.qps.utils import parseWavelength
 
@@ -883,18 +883,19 @@ class DataSourceFactory(object):
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str) and os.path.exists(src):
             pkl_obj = None
-            if src.endswith('.pkl'):
-                try:
+
+            try:
+                if src.endswith('.pkl'):
                     with open(src, 'rb') as f:
                         pkl_obj = pickle.load(f)
-                except Exception:
-                    pass
-            elif src.endswith('.json'):
-                try:
+                elif src.endswith('.json'):
                     with open(src, 'r', encoding='utf-8') as f:
                         pkl_obj = json.load(f)
-                except Exception:
-                    pass
+
+            except Exception as ex:
+                msg = f'isHubFlowObj:: Unable to load {src}'
+                debugLog(msg)
+
             if pkl_obj is not None:
                 return True, pkl_obj
         return False, None

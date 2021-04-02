@@ -155,13 +155,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
     def test_instance_coreapps(self):
         EMB = EnMAPBox(load_core_apps=True, load_other_apps=False)
-
-        algo = 'enmapbox:CreateTestClassifierRandomForest'
-        from processing.gui.AlgorithmDialog import AlgorithmDialog
-        alg = QgsApplication.processingRegistry().algorithmById(algo)
-        dlg = AlgorithmDialog(alg.create(), in_place=False, parent=EMB.ui)
-        dlg.runButton().click()
-
         self.showGui(EMB.ui)
 
     def test_instance_coreapps_and_data(self):
