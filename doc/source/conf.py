@@ -12,22 +12,17 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import datetime
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
-import datetime
 import pathlib
 import sys
+import re
 import mock
 import numpy as np
-from PyQt5 import uic, QtCore, QtGui, QtWidgets, QtXml
-import PyQt5
-
-# sys.modules['qgis.PyQt'] = PyQt5
-# for m in [uic, QtCore, QtGui, QtWidgets, QtXml]:
-#    sys.modules['qgis.PyQt.{}'.format(m.__name__.split('.')[-1])] = m
 
 if True:
     MOCK_MODULES = ['qgis', 'qgis.core', 'qgis.gui', 'qgis.utils', 'osgeo',
@@ -47,6 +42,9 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 REPO_ROOT = pathlib.Path(__file__).parents[2].absolute()
 print(f'REPO ROOT={REPO_ROOT}')
+print('ENVIRONMENT:')
+for k in sorted(os.environ.keys()):
+    print(f'{k}={os.environ[k]}')
 
 try:
     # enable readthedocs to load git-lfs files
@@ -56,7 +54,7 @@ try:
     on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
     if on_rtd:
-        print('Fetching files with git_lfs')
+        print('Fetching files with ...')
         DOC_SOURCES_DIR = os.path.dirname(os.path.abspath(__file__))
         PROJECT_ROOT_DIR = os.path.dirname(os.path.dirname(DOC_SOURCES_DIR))
         sys.path.insert(0, DOC_SOURCES_DIR)
@@ -64,9 +62,20 @@ try:
 
         from git_lfs import fetch
 
-        fetch(PROJECT_ROOT_DIR)
+        fetch(PROJECT_ROOT_DIR, verbose=2)
 except Exception as ex:
+    print('Warning: Failed to fetch git-lfs files')
     print(ex)
+
+DIR_LFS_DOCS = REPO_ROOT / 'doc' / 'source' / '_static' / 'docs'
+assert DIR_LFS_DOCS.is_dir()
+print(f'Compare file sizes in {DIR_LFS_DOCS}:')
+for f in os.scandir(DIR_LFS_DOCS):
+    path = pathlib.Path(f.path)
+    if path.is_file():
+        size_bytes = path.stat().st_size
+        print(f'\t{size_bytes / 1024} KB: {path}')
+
 
 # from now on, always assume that we are building on RTD
 
@@ -79,15 +88,13 @@ autodoc_mock_imports = ['vrtbuilder',
                         ]
 autodoc_warningiserror = False
 
-import os, sys, re
+
 from PyQt5.QtGui import QImage
-from PyQt5.QtCore import *
-from PyQt5.QtSvg import *
 
 
 def convert2png(pathSVG: str):
     if os.path.isfile(pathSVG) and pathSVG.endswith('.svg'):
-        pathPNG = re.sub('\.svg$', '.png', pathSVG)
+        pathPNG = re.sub(r'\.svg$', '.png', pathSVG)
         image = QImage(pathSVG)
         image.save(pathPNG)
 

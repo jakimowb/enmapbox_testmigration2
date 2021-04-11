@@ -156,11 +156,9 @@ class TestEnMAPBox(EnMAPBoxTestCase):
     def test_instance_coreapps(self):
         EMB = EnMAPBox(load_core_apps=True, load_other_apps=False)
 
-        algo = 'enmapbox:CreateTestClassifierRandomForest'
-        from processing.gui.AlgorithmDialog import AlgorithmDialog
-        alg = QgsApplication.processingRegistry().algorithmById(algo)
-        dlg = AlgorithmDialog(alg.create(), in_place=False, parent=EMB.ui)
-        dlg.runButton().click()
+        for f in os.scandir(self.createTestOutputDirectory()):
+            if os.path.isfile(f.path):
+                EMB.addSource(f.path)
 
         self.showGui(EMB.ui)
 

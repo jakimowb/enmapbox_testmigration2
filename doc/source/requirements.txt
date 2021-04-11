@@ -8,5 +8,5 @@ PyQt5
 mock>=2.0.0
 numpy>=1.14.5
 scikit-learn>=0.19.2
-git_lfs
+git-lfs
 https://bitbucket.org/hu-geomatics/enmap-box/downloads/pyqtgraph-0.11.0.dev0.zip
