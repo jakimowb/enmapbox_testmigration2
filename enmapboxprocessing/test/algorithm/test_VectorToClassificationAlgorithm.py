@@ -5,7 +5,7 @@ from qgis._core import QgsRasterLayer, QgsVectorLayer, QgsPalettedRasterRenderer
 
 import numpy as np
 
-from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import VectorToClassificationAlgorithm
+from enmapboxprocessing.algorithm.vectortoclassificationalgorithm import VectorToClassificationAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.utils import Utils
@@ -17,7 +17,7 @@ writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
-class TestRasterizeClassificationAlgorithm(TestCase):
+class TestVectorToClassificationAlgorithm(TestCase):
 
     def test_pythonCommand(self):
         alg = VectorToClassificationAlgorithm()

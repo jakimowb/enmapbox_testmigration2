@@ -1,5 +1,6 @@
 from enum import Enum
-from os.path import isabs, join
+from os import makedirs
+from os.path import isabs, join, dirname, exists
 from time import time
 from typing import Any, Dict, Iterable, Optional, List, Tuple, TextIO
 
@@ -130,8 +131,11 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         else:
             return fields[0]
 
-    def parameterAsFile(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> str:
-        return super().parameterAsFile(parameters, name, context)
+    def parameterAsFile(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> Optional[str]:
+        filename = super().parameterAsFile(parameters, name, context)
+        if filename == '':
+            return None
+        return filename
 
     def parameterAsEnum(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> int:
         return super().parameterAsEnum(parameters, name, context)
@@ -139,8 +143,11 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsEnums(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> List[int]:
         return super().parameterAsEnums(parameters, name, context)
 
-    def parameterAsString(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> str:
-        return super().parameterAsString(parameters, name, context)
+    def parameterAsString(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> Optional[str]:
+        string = super().parameterAsString(parameters, name, context)
+        if string == '':
+            return None
+        return string
 
     def parameterAsDouble(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
@@ -161,15 +168,20 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     ) -> Optional[List[int]]:
         ints = super().parameterAsInts(parameters, name, context)
         if len(ints) == 0:
-            if isinstance(parameters.get(name), str):
-                try:
-                    sints = parameters.get(name).strip().replace(',', ' ').split()
-                    ints = [int(sint) for sint in sints]
-                except:
-                    ints = None
-            else:
-                ints = None
+            ints = None
         return ints
+
+    def parameterAsValues(
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
+    ) -> Optional[List[Any]]:
+        string = self.parameterAsString(parameters, name, context)
+        if string is None:
+            return None
+        values = eval(string)
+        if not isinstance(values, (tuple, list)):
+            values = [values]
+        values = list(values)
+        return values
 
     def parameterAsBool(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> bool:
         return super().parameterAsBool(parameters, name, context)
@@ -187,6 +199,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             return None
         if not isabs(filename):
             filename = join(QgsProcessingUtils.tempFolder(), filename)
+        if not exists(dirname(filename)):
+            makedirs(dirname(filename))
         return filename
 
     def parameterAsRange(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> List[float]:

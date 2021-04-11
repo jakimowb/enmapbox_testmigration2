@@ -66,7 +66,7 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         return valid, 'Number of bands (score) not matching number of categories (style)'
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
-        valid, message = self.checkParameterMapClassification(parameters, self.P_CLASSIFICATION, context)
+        valid, message = self.checkParameterMapClassification(parameters, self.P_STYLE, context)
         if not valid:
             return False, message
         valid, message = self.checkParameterFractionAndStyle(parameters, context)
@@ -93,7 +93,7 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         if maximumMemoryUsage is None:
             maximumMemoryUsage = gdal.GetCacheMax()
         reader = RasterReader(raster)
-        driver = Driver(filename, 'GTiff', options=self.TiledAndCompressedGTiff, feedback=feedback)
+        driver = Driver(filename, 'GTiff', options=self.TiledAndCompressedGTiffCreationOptions, feedback=feedback)
         writer = driver.createLike(reader, Qgis.Byte, 3)
         lineMemoryUsage = reader.lineMemoryUsage()
         lineMemoryUsage += reader.lineMemoryUsage(3, Qgis.Float32)

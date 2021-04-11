@@ -138,7 +138,6 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
                 parameters = {
                     alg.P_VECTOR: reference,
                     alg.P_GRID: classification,
-                    alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'reference.tif')
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)

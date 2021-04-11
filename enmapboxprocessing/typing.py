@@ -40,11 +40,21 @@ Regressor = RegressorMixin
 
 @typechecked
 class ClassifierDump(NamedTuple):
-    categories: Categories
-    features: List[str]
-    X: SampleX
-    y: SampleY
+    categories: Optional[Categories]
+    features: Optional[List[str]]
+    X: Optional[SampleX]
+    y: Optional[SampleY]
     classifier: Optional[Classifier] = None
+
+    def withCategories(self, categories):
+        asdict = self._asdict()
+        asdict['categories'] = categories
+        return ClassifierDump(**asdict)
+
+    def withFeatures(self, features):
+        asdict = self._asdict()
+        asdict['features'] = features
+        return ClassifierDump(**asdict)
 
     def withClassifier(self, classifier):
         asdict = self._asdict()

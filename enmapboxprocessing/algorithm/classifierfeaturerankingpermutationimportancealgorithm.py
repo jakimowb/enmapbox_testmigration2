@@ -14,9 +14,10 @@ from typeguard import typechecked
 
 
 @typechecked
-class ClassifierPermutationFeatureImportanceAlgorithm(EnMAPProcessingAlgorithm):
+class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgorithm):
     P_CLASSIFIER, _CLASSIFIER = 'classifier', 'Classifier'
-    P_SAMPLE, _SAMPLE = 'sample', 'Sample'
+    P_TRAIN_SAMPLE, _TRAIN_SAMPLE = 'sampleTrain', 'Train sample'
+    P_TEST_SAMPLE, _TEST_SAMPLE = 'sampleTest', 'Test sample'
     P_SCORING, _SCORING = 'scoring', 'Scoring'
     O_SCORING = ['accuracy', 'balanced_accuracy', 'top_k_accuracy', 'average_precision', 'neg_brier_score', 'f1',
                  'f1_micro', 'f1_macro', 'f1_weighted', 'f1_samples', 'neg_log_loss', 'precision', 'recall', 'jaccard',
@@ -27,8 +28,12 @@ class ClassifierPermutationFeatureImportanceAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._CLASSIFIER, 'Classifier (*.pkl) file.'),
-            (self._SAMPLE, 'Sample (*.pkl) file.'),
+            (self._CLASSIFIER, 'Classifier (*.pkl) file. '
+                               'In case of unfitted classifier, also specify a training sample.'),
+            (self._TRAIN_SAMPLE, 'Training sample (*.pkl) file used for (re-)fitting the classifier. '
+                                 'Can be skipped in case of fitted classifier.'),
+            (self._TEST_SAMPLE, 'Testing sample (*.pkl) file used for performance evaluation. '
+                                'If skipped, the training sample is used.'),
             (self._SCORING,
              f'Scorer to use. See {self.htmlLink("https://scikit-learn.org/stable/modules/model_evaluation.html#scoring-parameter", "The scoring parameter: defining model evaluation rules")} for further information.'),
             (self._REPEATS, 'Number of times to permute a feature.'),
@@ -37,7 +42,7 @@ class ClassifierPermutationFeatureImportanceAlgorithm(EnMAPProcessingAlgorithm):
         ]
 
     def displayName(self) -> str:
-        return 'Classifier permutation feature importance'
+        return 'Classifier feature ranking (permutation importance)'
 
     def shortDescription(self) -> str:
         return 'Permutation feature importance is a model inspection technique that is especially useful for non-linear or opaque estimators. ' \
@@ -51,7 +56,8 @@ class ClassifierPermutationFeatureImportanceAlgorithm(EnMAPProcessingAlgorithm):
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterFile(self.P_CLASSIFIER, self._CLASSIFIER, extension='pkl')
-        self.addParameterFile(self.P_SAMPLE, self._SAMPLE, extension='pkl')
+        self.addParameterFile(self.P_TRAIN_SAMPLE, self._TRAIN_SAMPLE, extension='pkl', optional=True, advanced=True)
+        self.addParameterFile(self.P_TEST_SAMPLE, self._TEST_SAMPLE, extension='pkl', optional=True, advanced=True)
         self.addParameterEnum(
             self.P_SCORING, self._SCORING, self.O_SCORING, False, self.O_SCORING.index('f1_macro'), advanced=True
         )
@@ -63,7 +69,8 @@ class ClassifierPermutationFeatureImportanceAlgorithm(EnMAPProcessingAlgorithm):
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
         filenameClassifier = self.parameterAsFile(parameters, self.P_CLASSIFIER, context)
-        filenameSample = self.parameterAsFile(parameters, self.P_SAMPLE, context)
+        filenameTrainSample = self.parameterAsFile(parameters, self.P_TRAIN_SAMPLE, context)
+        filenameTestSample = self.parameterAsFile(parameters, self.P_TEST_SAMPLE, context)
         scoring = self.O_SCORING[self.parameterAsInt(parameters, self.P_SCORING, context)]
         repeats = self.parameterAsInt(parameters, self.P_REPEATS, context)
         seed = self.parameterAsInt(parameters, self.P_SEED, context)
@@ -73,12 +80,26 @@ class ClassifierPermutationFeatureImportanceAlgorithm(EnMAPProcessingAlgorithm):
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
 
-            classifier = ClassifierDump(**Utils.pickleLoad(filenameClassifier)).classifier
-            dump = ClassifierDump(**Utils.pickleLoad(filenameSample))
-            X, y, features = dump.X, dump.y, dump.features
+            if filenameTrainSample is None:
+                filenameTrainSample = filenameClassifier
+            if filenameTestSample is None:
+                filenameTestSample = filenameTrainSample
+            refit = filenameTrainSample != filenameClassifier
 
+            classifier = ClassifierDump(**Utils.pickleLoad(filenameClassifier)).classifier
             feedback.pushInfo(f'Load classifier: {classifier}')
-            feedback.pushInfo(f'Load sample data: X=array{list(X.shape)} y=array{list(dump.y.shape)}')
+
+            if refit:
+                dump = ClassifierDump(**Utils.pickleLoad(filenameTrainSample))
+                X, y, features = dump.X, dump.y, dump.features
+                feedback.pushInfo(f'Load training sample data: X=array{list(X.shape)} y=array{list(dump.y.shape)}')
+                feedback.pushInfo(f'Fit classifier')
+                classifier.fit(X, y)
+
+            # load test sample
+            dump = ClassifierDump(**Utils.pickleLoad(filenameTestSample))
+            X, y, features = dump.X, dump.y, dump.features
+            feedback.pushInfo(f'Load test sample data: X=array{list(X.shape)} y=array{list(dump.y.shape)}')
 
             feedback.pushInfo('Evaluate permutation feature importance')
             r = permutation_importance(
@@ -87,7 +108,7 @@ class ClassifierPermutationFeatureImportanceAlgorithm(EnMAPProcessingAlgorithm):
             ordered = r.importances_mean.argsort()  # [::-1]
 
             # create plot
-            figsizeX = 20
+            figsizeX = 10
             figsizeY = len(features) * 0.15 + 1
             fig, ax = plt.subplots(figsize=(figsizeX, figsizeY))
             plt.xlabel(f'decrease in {scoring} score')
@@ -122,5 +143,15 @@ class ClassifierPermutationFeatureImportanceAlgorithm(EnMAPProcessingAlgorithm):
 
             result = {self.P_OUTPUT_REPORT: filename}
             self.toc(feedback, result)
+
+            feature_subset_hierarchy = list()
+            subset = list()
+            for index in ordered:
+                subset.append(int(index))
+                feature_subset_hierarchy.append(subset.copy())
+
+            dumpJson = {'features': features, 'feature_subset_hierarchy': feature_subset_hierarchy}
+            Utils.jsonDump(dumpJson, filename + '.json')
+
 
         return result

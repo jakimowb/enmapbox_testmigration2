@@ -1,4 +1,4 @@
-from enmapboxprocessing.algorithm.hierarchicalfeatureclusteringalgorithm import HierarchicalFeatureClusteringAlgorithm
+from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import FeatureClusteringHierarchicalAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxunittestdata import classifierDumpPkl
 
@@ -6,10 +6,10 @@ writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
-class TestHierarchicalFeatureClusteringAlgorithm(TestCase):
+class TestFeatureClusteringHierarchicalAlgorithm(TestCase):
 
     def test_reportOnly(self):
-        alg = HierarchicalFeatureClusteringAlgorithm()
+        alg = FeatureClusteringHierarchicalAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_SAMPLE: classifierDumpPkl,
@@ -18,7 +18,7 @@ class TestHierarchicalFeatureClusteringAlgorithm(TestCase):
         self.runalg(alg, parameters)
 
     def test_withSubsetting(self):
-        alg = HierarchicalFeatureClusteringAlgorithm()
+        alg = FeatureClusteringHierarchicalAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_SAMPLE: classifierDumpPkl,
@@ -29,7 +29,7 @@ class TestHierarchicalFeatureClusteringAlgorithm(TestCase):
         self.runalg(alg, parameters)
 
     def test_david(self):
-        alg = HierarchicalFeatureClusteringAlgorithm()
+        alg = FeatureClusteringHierarchicalAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_SAMPLE: 'C:\\Users\\janzandr\\Downloads\\ALL\\all_sample.pkl',
@@ -39,7 +39,7 @@ class TestHierarchicalFeatureClusteringAlgorithm(TestCase):
         self.runalg(alg, parameters)
 
     def test_david2(self):
-        alg = HierarchicalFeatureClusteringAlgorithm()
+        alg = FeatureClusteringHierarchicalAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_SAMPLE: 'C:\\Users\\janzandr\\Downloads\\berlin\\sample.pkl',

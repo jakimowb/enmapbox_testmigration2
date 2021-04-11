@@ -2,7 +2,6 @@ from collections import defaultdict, OrderedDict
 from os.path import basename
 from typing import Dict, Any, List, Tuple
 
-#import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt, mpld3
 import numpy as np
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback)

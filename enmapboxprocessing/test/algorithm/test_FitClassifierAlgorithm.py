@@ -1,13 +1,18 @@
 from sklearn.base import ClassifierMixin
 
 from sklearn.base import ClassifierMixin
+from sklearn.exceptions import NotFittedError
+from sklearn.utils.validation import check_is_fitted
 
 from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
 from enmapboxprocessing.algorithm.fitgaussianprocessclassifier import FitGaussianProcessClassifierAlgorithm
+from enmapboxprocessing.algorithm.fitgenericclassifier import FitGenericClassifier
 from enmapboxprocessing.algorithm.fitlinearsvcalgorithm import FitLinearSvcAlgorithm
 from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitsvcalgorithm import FitSvcAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
+from enmapboxprocessing.typing import ClassifierDump
+from enmapboxprocessing.utils import Utils
 from enmapboxunittestdata import (classifierDumpPkl)
 
 writeToDisk = True
@@ -33,10 +38,26 @@ class FitTestClassifierAlgorithm(FitClassifierAlgorithmBase):
 
 class TestFitClassifierAlgorithm(TestCase):
 
-    def test_pklSample(self):
+    def test_fitted(self):
         alg = FitTestClassifierAlgorithm()
         parameters = {
             alg.P_SAMPLE: classifierDumpPkl,
+            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+        }
+        self.runalg(alg, parameters)
+
+    def test_unfitted(self):
+        alg = FitTestClassifierAlgorithm()
+        parameters = {
+            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+        }
+        self.runalg(alg, parameters)
+
+    def test_code(self):
+        alg = FitGenericClassifier()
+        parameters = {
+            alg.P_CODE: 'from sklearn.linear_model import LogisticRegression\n'
+                        'classifier = LogisticRegression(max_iter=1000)',
             alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
         }
         self.runalg(alg, parameters)
@@ -50,3 +71,4 @@ class TestFitClassifierAlgorithm(TestCase):
             print(alg.displayName())
             alg.initAlgorithm()
             alg.shortHelpString()
+

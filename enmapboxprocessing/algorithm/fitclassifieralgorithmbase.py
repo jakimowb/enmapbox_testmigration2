@@ -18,7 +18,8 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._SAMPLE, f'Training data sample (*.pkl) file.'),
+            (self._SAMPLE, f'Training data sample (*.pkl) file used for fitting the classifier. '
+                           f'If not specified, an unfitted classifier is created.'),
             (self._CODE, self.helpParameterCode()),
             (self._OUTPUT_CLASSIFIER, 'Output classifier model destination *.pkl file.')
         ]
@@ -39,7 +40,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         return Group.Test.value + Group.Classification.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterFile(self.P_SAMPLE, self._SAMPLE, extension='pkl')
+        self.addParameterFile(self.P_SAMPLE, self._SAMPLE, extension='pkl', optional=True)
         self.addParameterString(self.P_CODE, self._CODE, self.defaultCodeAsString(), True)
         self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, self._OUTPUT_CLASSIFIER, 'Output model file (*.pkl)')
 
@@ -77,11 +78,14 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
 
-            dump = ClassifierDump(**Utils.pickleLoad(filenameSample))
-            feedback.pushInfo(f'Load sample data: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
-
-            feedback.pushInfo('Fit classifier')
-            classifier.fit(dump.X, dump.y.ravel())
+            if filenameSample is not None:
+                dump = ClassifierDump(**Utils.pickleLoad(filenameSample))
+                feedback.pushInfo(f'Load sample data: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
+                feedback.pushInfo('Fit classifier')
+                classifier.fit(dump.X, dump.y.ravel())
+            else:
+                feedback.pushInfo('Store unfitted classifier')
+                dump = ClassifierDump(None, None, None, None, classifier)
 
             dump = dump.withClassifier(classifier=classifier)
             Utils.pickleDump(dump._asdict(), filename)
