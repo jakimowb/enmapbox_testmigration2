@@ -2,25 +2,24 @@ from math import ceil
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
+from qgis._core import QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer
 
 from enmapboxprocessing.algorithm.randompointsinstratificationalgorithm import RandomPointsInStratificationAlgorithm
 from enmapboxprocessing.driver import Driver
-from enmapboxprocessing.typing import Category
-from typeguard import typechecked
-from qgis._core import QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer
-
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
+from enmapboxprocessing.typing import Category
 from enmapboxprocessing.utils import Utils
+from typeguard import typechecked
 
 
 @typechecked
 class RandomPointsInMaskAlgorithm(EnMAPProcessingAlgorithm):
-    P_MASK = 'mask'
-    P_N = 'n'
-    P_DISTANCE = 'distance'
-    P_SEED = 'seed'
-    P_OUTPUT_VECTOR = 'outVector'
+    P_MASK, _MASK = 'mask', 'Mask'
+    P_N, _N = 'n', 'Number of points'
+    P_DISTANCE, _DISTANCE = 'distance', 'Minimum distance between points (in meters)'
+    P_SEED, _SEED = 'seed', 'Random seed'
+    P_OUTPUT_VECTOR, _OUTPUT_VECTOR = 'outputVector', 'Output points'
 
     @classmethod
     def displayName(cls) -> str:
@@ -32,13 +31,13 @@ class RandomPointsInMaskAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_MASK, self.helpParameterRasterMask()),
-            (self.P_N, 'Number of points to be drawn.'),
-            (self.P_DISTANCE,
+            (self._MASK, self.helpParameterRasterMask()),
+            (self._N, 'Number of points to be drawn.'),
+            (self._DISTANCE,
              'A minimum distance between points can be specified. A point will not be added if there is an already '
              'generated point within this (Euclidean) distance from the generated location.'),
-            (self.P_SEED, 'The seed for the random generator can be provided.'),
-            (self.P_OUTPUT_VECTOR, self.helpParameterVectorDestination())
+            (self._SEED, 'The seed for the random generator can be provided.'),
+            (self._OUTPUT_VECTOR, self.helpParameterVectorDestination())
         ]
 
     def group(self):
@@ -48,11 +47,11 @@ class RandomPointsInMaskAlgorithm(EnMAPProcessingAlgorithm):
         return True, ''
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_MASK, 'Mask')
-        self.addParameterInt(self.P_N, 'Number of points', None, False, 1)
-        self.addParameterInt(self.P_DISTANCE, 'Minimum distance between points (in meters)', 0, False, 0)
-        self.addParameterInt(self.P_SEED, 'Random seed', None, True, 1)
-        self.addParameterVectorDestination(self.P_OUTPUT_VECTOR, 'Output points')
+        self.addParameterRasterLayer(self.P_MASK, self._MASK)
+        self.addParameterInt(self.P_N, self._N, None, False, 1)
+        self.addParameterInt(self.P_DISTANCE, self._DISTANCE, 0, False, 0)
+        self.addParameterInt(self.P_SEED, self._SEED, None, True, 1)
+        self.addParameterVectorDestination(self.P_OUTPUT_VECTOR, self._OUTPUT_VECTOR)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
@@ -85,7 +84,7 @@ class RandomPointsInMaskAlgorithm(EnMAPProcessingAlgorithm):
             stratification.saveDefaultStyle()
 
             # draw ponts
-            alg =  RandomPointsInStratificationAlgorithm()
+            alg = RandomPointsInStratificationAlgorithm()
             alg.initAlgorithm()
             parameters = {
                 alg.P_STRATIFICATION: stratification,
@@ -98,7 +97,6 @@ class RandomPointsInMaskAlgorithm(EnMAPProcessingAlgorithm):
             result = {self.P_OUTPUT_VECTOR: filename}
             self.toc(feedback, result)
         return result
-
 
     @classmethod
     def makeKernel(cls, xres: float, yres: float, radius: float) -> np.ndarray:

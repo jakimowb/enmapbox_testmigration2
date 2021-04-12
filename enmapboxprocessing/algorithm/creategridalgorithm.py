@@ -1,21 +1,22 @@
 from typing import Dict, Any, List, Tuple
 
-from enmapboxprocessing.driver import Driver
-from typeguard import typechecked
 from qgis._core import QgsProcessingContext, QgsProcessingFeedback, Qgis
+
+from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
+from typeguard import typechecked
 
 
 @typechecked
 class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
-    P_CRS = 'crs'
-    P_EXTENT = 'extent'
+    P_CRS, _CRS = 'crs', 'CRS'
+    P_EXTENT, _EXTENT = 'extent', 'Extent'
+    P_UNIT, _UNIT = 'unit', 'Size units'
     O_UNIT = ['Pixels', 'Georeferenced units']
     PixelUnits, GeoreferencedUnits = range(2)
-    P_UNIT = 'unit'
-    P_WIDTH = 'width'
-    P_HEIGHT = 'hight'
-    P_OUTPUT_RASTER = 'outRaster'
+    P_WIDTH, _WIDTH = 'width', 'Width / horizontal resolution'
+    P_HEIGHT, _HEIGHT = 'hight', 'Height / vertical resolution'
+    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outRaster', 'Output VRT raster'
 
     def displayName(self):
         return 'Create Grid'
@@ -25,26 +26,26 @@ class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_CRS, 'Target coordinate reference system.'),
-            (self.P_EXTENT, 'Target extent.'),
-            (self.P_UNIT, 'Units to use when defining target raster size/resolution.'),
-            (self.P_WIDTH, f'Target width if size units is {self.PixelUnits}, '
-                           f'or horizontal resolution if size units is {self.GeoreferencedUnits}.'),
-            (self.P_HEIGHT, f'Target height if size units is {self.PixelUnits}, '
-                            f'or vertical resolution if size units is {self.GeoreferencedUnits}.'),
-            (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._CRS, 'Target coordinate reference system.'),
+            (self._EXTENT, 'Target extent.'),
+            (self._UNIT, 'Units to use when defining target raster size/resolution.'),
+            (self._WIDTH, f'Target width if size units is {self.PixelUnits}, '
+                          f'or horizontal resolution if size units is {self.GeoreferencedUnits}.'),
+            (self._HEIGHT, f'Target height if size units is {self.PixelUnits}, '
+                           f'or vertical resolution if size units is {self.GeoreferencedUnits}.'),
+            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
     def group(self):
         return Group.Test.value + Group.CreateRaster.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterCrs(self.P_CRS, 'CRS')
-        self.addParameterExtent(self.P_EXTENT, 'Extent')
-        self.addParameterEnum(self.P_UNIT, 'Size units', self.O_UNIT)
-        self.addParameterFloat(self.P_WIDTH, 'Width / horizontal resolution', 0, minValue=0)
-        self.addParameterFloat(self.P_HEIGHT, 'Height / vertical resolution', 0, minValue=0)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER)
+        self.addParameterCrs(self.P_CRS, self._CRS)
+        self.addParameterExtent(self.P_EXTENT, self._EXTENT)
+        self.addParameterEnum(self.P_UNIT, self._UNIT, self.O_UNIT)
+        self.addParameterFloat(self.P_WIDTH, self._WIDTH, 0, minValue=0)
+        self.addParameterFloat(self.P_HEIGHT, self._HEIGHT, 0, minValue=0)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         unit = self.parameterAsEnum(parameters, self.P_UNIT, context)

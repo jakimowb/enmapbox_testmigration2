@@ -18,7 +18,8 @@ class SelectFeatureSubsetFromSampleAlgorithm(EnMAPProcessingAlgorithm):
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
             (self._SAMPLE, f'Sample (*.pkl) file.'),
-            (self.P_FEATURE_LIST, "List of selected features given by name (e.g. 'Feature 1') or position (integer >=1)."),
+            (self._FEATURE_LIST,
+             'List of selected features given by name (e.g. ´Feature 1´) or position (integer >=1).'),
             (self._OUTPUT_SAMPLE, 'Output sample *.pkl file.')
         ]
 

@@ -1,36 +1,30 @@
-from os.path import basename
 from typing import Dict, Any, List, Tuple
 
 from PyQt5.QtCore import QVariant
 from osgeo import gdal
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsProcessingParameterField, Qgis,
+                        QgsVectorFileWriter,
+                        QgsProject, QgsCoordinateTransform, QgsField)
 
 from enmapboxprocessing.driver import Driver
-from enmapboxprocessing.processingfeedback import ProcessingFeedback
-from enmapboxprocessing.rasterwriter import RasterWriter
-from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
+from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRectangle,
-                        QgsCoordinateReferenceSystem, QgsProcessingParameterField, Qgis, QgsVectorFileWriter,
-                        QgsProject, QgsCoordinateTransform, QgsField, QgsFields, QgsRasterLayer)
-
-from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
 
 @typechecked
 class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
-    P_VECTOR = 'vector'
-    P_GRID = 'grid'
-    P_INIT_VALUE = 'initValue'
-    P_BURN_VALUE = 'burnValue'
-    P_BURN_ATTRIBUTE = 'burnAttribute'
-    P_BURN_FID = 'burnFid'
-    P_RESAMPLE_ALG = 'resampleAlg'
-    P_ALL_TOUCHED = 'allTouched'
-    P_ADD_VALUE = 'addValue'
-    P_DATA_TYPE = 'dataType'
-    P_CREATION_PROFILE = 'creationProfile'
-    P_OUTPUT_RASTER = 'outraster'
+    P_VECTOR, _VECTOR = 'vector', 'Vector'
+    P_GRID, _GRID = 'grid', 'Grid'
+    P_INIT_VALUE, _INIT_VALUE = 'initValue', 'Init value'
+    P_BURN_VALUE, _BURN_VALUE = 'burnValue', 'Burn value'
+    P_BURN_ATTRIBUTE, _BURN_ATTRIBUTE = 'burnAttribute', 'Burn attribute'
+    P_BURN_FID, _BURN_FID = 'burnFid', 'Burn feature ID'
+    P_RESAMPLE_ALG, _RESAMPLE_ALG = 'resampleAlg', 'Aggregation algorithm'
+    P_ALL_TOUCHED, _ALL_TOUCHED = 'allTouched', 'All touched'
+    P_ADD_VALUE, _ADD_VALUE = 'addValue', 'Add value'
+    P_DATA_TYPE, _DATA_TYPE = 'dataType', 'Data type'
+    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outraster', 'Output raster'
 
     def displayName(self):
         return 'Rasterize vector'
@@ -40,47 +34,45 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_VECTOR, self.helpParameterVector()),
-            (self.P_GRID, self.helpParameterGrid()),
-            (self.P_INIT_VALUE, 'Pre-initialization value for the output raster.'),
-            (self.P_BURN_VALUE, 'Fixed value to burn into each pixel, which is touched (point, line) '
-                                'or where the center is covered (polygon) by a feature.'),
-            (self.P_BURN_ATTRIBUTE, 'Numeric vector field to use as burn values.'),
-            (self.P_BURN_FID, 'Whether to use the feature ID as burn values. Initial value is set to -1. '
-                              'Data type is set to Int32.'),
-            (self.P_RESAMPLE_ALG,
+            (self._VECTOR, self.helpParameterVector()),
+            (self._GRID, self.helpParameterGrid()),
+            (self._INIT_VALUE, 'Pre-initialization value for the output raster.'),
+            (self._BURN_VALUE, 'Fixed value to burn into each pixel, which is touched (point, line) '
+                               'or where the center is covered (polygon) by a feature.'),
+            (self._BURN_ATTRIBUTE, 'Numeric vector field to use as burn values.'),
+            (self._BURN_FID, 'Whether to use the feature ID as burn values. Initial value is set to -1. '
+                             'Data type is set to Int32.'),
+            (self._RESAMPLE_ALG,
              'If selected, burn at a x10 finer resolution and aggregate values back to target resolution. '
              'For example, use <i>Mode</i> aggregation for categorical attributes to burn the '
              'category with highest pixel coverage (i.e. majority voting). '
              'For continuous attributes use <i>Average</i> to calculate a weighted average.'),
-            (self.P_ALL_TOUCHED, 'Enables the ALL_TOUCHED rasterization option so that all pixels touched by lines or '
-                                 'polygons will be updated, not just those on the line render path, or whose center '
-                                 'point is within the polygon.'),
-            (self.P_ADD_VALUE, 'Whether to add up existing values instead of replacing them.'),
-            (self.P_DATA_TYPE, self.helpParameterDataType()),
-            (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
-            (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._ALL_TOUCHED, 'Enables the ALL_TOUCHED rasterization option so that all pixels touched by lines or '
+                                'polygons will be updated, not just those on the line render path, or whose center '
+                                'point is within the polygon.'),
+            (self._ADD_VALUE, 'Whether to add up existing values instead of replacing them.'),
+            (self._DATA_TYPE, self.helpParameterDataType()),
+            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
     def group(self):
         return Group.Test.value + Group.CreateRaster.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterVectorLayer(self.P_VECTOR, 'Vector')
-        self.addParameterRasterLayer(self.P_GRID, 'Grid')
-        self.addParameterFloat(self.P_INIT_VALUE, 'Init value', defaultValue=0)
-        self.addParameterFloat(self.P_BURN_VALUE, 'Burn value', defaultValue=1)
+        self.addParameterVectorLayer(self.P_VECTOR, self._VECTOR)
+        self.addParameterRasterLayer(self.P_GRID, self._GRID)
+        self.addParameterFloat(self.P_INIT_VALUE, self._INIT_VALUE, defaultValue=0)
+        self.addParameterFloat(self.P_BURN_VALUE, self._BURN_VALUE, defaultValue=1)
         self.addParameterField(
-            self.P_BURN_ATTRIBUTE, 'Burn attribute', type=QgsProcessingParameterField.Numeric,
+            self.P_BURN_ATTRIBUTE, self._BURN_ATTRIBUTE, type=QgsProcessingParameterField.Numeric,
             parentLayerParameterName=self.P_VECTOR, optional=True
         )
-        self.addParameterBoolean(self.P_BURN_FID, 'Burn feature ID', defaultValue=False)
-        self.addParameterResampleAlg(self.P_RESAMPLE_ALG, 'Aggregation algorithm', optional=True)
-        self.addParameterBoolean(self.P_ADD_VALUE, 'Add value', defaultValue=False)
-        self.addParameterBoolean(self.P_ALL_TOUCHED, 'All touched', defaultValue=False)
-        self.addParameterDataType(self.P_DATA_TYPE, defaultValue=self.Float32)
-        self.addParameterCreationProfile(self.P_CREATION_PROFILE)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER)
+        self.addParameterBoolean(self.P_BURN_FID, self._BURN_FID, defaultValue=False)
+        self.addParameterResampleAlg(self.P_RESAMPLE_ALG, self._RESAMPLE_ALG, optional=True)
+        self.addParameterBoolean(self.P_ADD_VALUE, self._ADD_VALUE, defaultValue=False)
+        self.addParameterBoolean(self.P_ALL_TOUCHED, self._ALL_TOUCHED, defaultValue=False)
+        self.addParameterDataType(self.P_DATA_TYPE, self._DATA_TYPE, defaultValue=self.Float32)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         return True, ''
@@ -98,7 +90,7 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
         resampleAlg = self.parameterAsGdalResampleAlg(parameters, self.P_RESAMPLE_ALG, context)
         addValue = self.parameterAsBoolean(parameters, self.P_ADD_VALUE, context)
         allTouched = self.parameterAsBoolean(parameters, self.P_ALL_TOUCHED, context)
-        format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
+        format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
         if resampleAlg == gdal.GRA_NearestNeighbour:
             oversampling = 1
@@ -182,7 +174,8 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
             del tmpWriter
 
             # for aggregation we use Warp instead of Translate, because it supports more ResamplAlgs!
-            resampleAlgString = Utils.gdalResampleAlgToGdalWarpFormat(resampleAlg)  # use string to avoid a bug in gdalwarp
+            resampleAlgString = Utils.gdalResampleAlgToGdalWarpFormat(
+                resampleAlg)  # use string to avoid a bug in gdalwarp
             gdalDataType = Utils.qgisDataTypeToGdalDataType(dataType)
             warpOptions = gdal.WarpOptions(
                 width=grid.width(), height=grid.height(), resampleAlg=resampleAlgString, outputType=gdalDataType,

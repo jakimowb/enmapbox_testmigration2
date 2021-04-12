@@ -1,22 +1,21 @@
 from typing import Dict, Any, List, Tuple
 
 from processing.core.Processing import Processing
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer)
 
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
+from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer)
-
-from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
 
 @typechecked
 class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
-    P_CLASSIFICATION = 'classification'
-    P_GRID = 'grid'
-    P_MAJORITY_VOTING = 'majorityVoting'
-    P_OUTPUT_RASTER = 'outRaster'
+    P_CLASSIFICATION, _CLASSIFICATION = 'classification', 'Classification'
+    P_GRID, _GRID = 'grid', 'Grid'
+    P_MAJORITY_VOTING, _MAJORITY_VOTING = 'majorityVoting', 'Majority voting'
+    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRaster', 'Output raster'
 
     def displayName(self):
         return 'Translate classification'
@@ -28,11 +27,12 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_CLASSIFICATION, self.helpParameterRasterClassification()),
-            (self.P_GRID, self.helpParameterGrid()),
-            (self.P_MAJORITY_VOTING, 'Whether to use majority voting. ',
-                                     'Turn off to use simple nearest neighbour resampling, which is much faster.'),
-            (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._CLASSIFICATION, self.helpParameterRasterClassification()),
+            (self._GRID, self.helpParameterGrid()),
+            (self._MAJORITY_VOTING, 'Whether to use majority voting. '
+                                    'Turn off to use simple nearest neighbour resampling, which is much faster, '
+                                    'but may result in highly inaccurate decisions.'),
+            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
@@ -42,10 +42,10 @@ class TranslateClassificationAlgorithm(EnMAPProcessingAlgorithm):
         return Group.Test.value + Group.CreateRaster.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_CLASSIFICATION, 'Classification')
-        self.addParameterRasterLayer(self.P_GRID, 'Grid')
-        self.addParameterBoolean(self.P_MAJORITY_VOTING, 'Majority voting', True, False, advanced=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER)
+        self.addParameterRasterLayer(self.P_CLASSIFICATION, self._CLASSIFICATION)
+        self.addParameterRasterLayer(self.P_GRID, self._GRID)
+        self.addParameterBoolean(self.P_MAJORITY_VOTING, self._MAJORITY_VOTING, True, False, advanced=True)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback

@@ -18,11 +18,11 @@ from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
 @typechecked
 class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
-    P_VECTOR = 'vector'
-    P_GRID = 'grid'
-    P_COVERAGE = 'coverage'
-    P_MAJORITY_VOTING = 'majorityVoting'
-    P_OUTPUT_RASTER = 'outRaster'
+    P_VECTOR,_VECTOR = 'vector', 'Vector'
+    P_GRID,_GRID = 'grid', 'Grid'
+    P_COVERAGE,_COVERAGE = 'coverage', 'Minimum pixel coverage'
+    P_MAJORITY_VOTING,_MAJORITY_VOTING = 'majorityVoting', 'Majority voting'
+    P_OUTPUT_RASTER,_OUTPUT_RASTER = 'outputRaster', 'Output classification'
 
     def displayName(self):
         return 'Vector to classification'
@@ -36,23 +36,23 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_VECTOR, self.helpParameterVectorClassification()),
-            (self.P_GRID, self.helpParameterGrid()),
-            (self.P_COVERAGE, 'Exclude all pixel where (polygon) coverage is smaller than given threshold.'),
-            (self.P_MAJORITY_VOTING, 'Whether to use majority voting. '
-                                     'Turn off to use simple vector burning, which is much faster.'),
-            (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._VECTOR, self.helpParameterVectorClassification()),
+            (self._GRID, self.helpParameterGrid()),
+            (self._COVERAGE, 'Exclude all pixel where (polygon) coverage is smaller than given threshold.'),
+            (self._MAJORITY_VOTING, 'Whether to use majority voting. '
+                                    'Turn off to use simple vector burning, which is much faster.'),
+            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
     def group(self):
         return Group.Test.value + Group.CreateRaster.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterVectorLayer(self.P_VECTOR, 'Vector')
-        self.addParameterRasterLayer(self.P_GRID, 'Grid')
-        self.addParameterInt(self.P_COVERAGE, 'Minimum pixel coverage', 0, False, 0, 100, advanced=True)
-        self.addParameterBoolean(self.P_MAJORITY_VOTING, 'Majority voting', True, False, advanced=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output classification')
+        self.addParameterVectorLayer(self.P_VECTOR, self._VECTOR)
+        self.addParameterRasterLayer(self.P_GRID, self._GRID)
+        self.addParameterInt(self.P_COVERAGE, self._COVERAGE, 0, False, 0, 100, advanced=True)
+        self.addParameterBoolean(self.P_MAJORITY_VOTING, self._MAJORITY_VOTING, True, False, advanced=True)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         return self.checkParameterVectorClassification(parameters, self.P_VECTOR, context)

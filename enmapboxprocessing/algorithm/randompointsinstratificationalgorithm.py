@@ -3,24 +3,25 @@ from typing import Dict, Any, List, Tuple
 
 import numpy as np
 import processing
+from qgis._core import QgsProcessingContext, QgsProcessingFeedback
 
 from enmapboxprocessing.driver import Driver
-from typeguard import typechecked
-from qgis._core import QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer
-
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.utils import Utils
+from typeguard import typechecked
 
 
 @typechecked
 class RandomPointsInStratificationAlgorithm(EnMAPProcessingAlgorithm):
-    P_STRATIFICATION = 'stratification'
-    P_N = 'n'
-    P_DISTANCE_GLOBAL = 'distanceGlobal'
-    P_DISTANCE_STRATUM = 'distanceStatum'
-    P_SEED = 'seed'
-    P_OUTPUT_VECTOR = 'outVector'
+    P_STRATIFICATION, _STRATIFICATION = 'stratification', 'Categories'
+    P_N, _N = 'n', 'Number of points per category'
+    P_DISTANCE_GLOBAL, _DISTANCE_GLOBAL = 'distanceGlobal', \
+                                          'Minimum distance between points (in meters)'
+    P_DISTANCE_STRATUM, _DISTANCE_STRATUM = 'distanceStatum', \
+                                            'Minimum distance between points inside category (in meters)'
+    P_SEED, _SEED = 'seed', 'Random seed'
+    P_OUTPUT_VECTOR, _OUTPUT_VECTOR = 'outputVector', 'Output points'
 
     @classmethod
     def displayName(cls) -> str:
@@ -32,19 +33,16 @@ class RandomPointsInStratificationAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_STRATIFICATION, self.helpParameterRasterClassification()),
-            (self.P_N, 'Number of points to be drawn from each category. '
-                       'Set a single value N to draw N points for each category. '
-                       'Set a comma separated list of values N1, N2, ... Ni, ... to draw Ni points for category i.'),
-            (self.P_DISTANCE_GLOBAL,
-             'A minimum distance between points can be specified. A point will not be added if there is an already '
-             'generated point within this (Euclidean) distance from the generated location.'),
-            (self.P_DISTANCE_STRATUM,
-             'A minimum distance between points in a category can be specified. '
-             'A point will not be added for a category if there is an already generated point in that category within '
-             'this (Euclidean) distance from the generated location.'),
-            (self.P_SEED, 'The seed for the random generator can be provided.'),
-            (self.P_OUTPUT_VECTOR, self.helpParameterVectorDestination())
+            (self._STRATIFICATION, self.helpParameterRasterClassification()),
+            (self._N, 'Number of points to be drawn from each category. '
+                      'Set a single value N to draw N points for each category. '
+                      'Set a list of values N1, N2, ... Ni, ... to draw Ni points for category i.'),
+            (self._DISTANCE_GLOBAL,
+             'A minimum (Euclidean) distance between points can be specified.'),
+            (self._DISTANCE_STRATUM,
+             'A minimum (Euclidean) distance between points in a category can be specified.'),
+            (self._SEED, 'The seed for the random generator can be provided.'),
+            (self._OUTPUT_VECTOR, self.helpParameterVectorDestination())
         ]
 
     def group(self):
@@ -71,13 +69,12 @@ class RandomPointsInStratificationAlgorithm(EnMAPProcessingAlgorithm):
         return True, ''
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_STRATIFICATION, 'Categories')
-        self.addParameterString(self.P_N, 'Number of points per category')
-        self.addParameterInt(self.P_DISTANCE_GLOBAL, 'Minimum distance between points (in meters)', 0, False, 0)
-        self.addParameterInt(
-            self.P_DISTANCE_STRATUM, 'Minimum distance between points inside category (in meters)', 0, False, 0)
-        self.addParameterInt(self.P_SEED, 'Random seed', None, True, 1)
-        self.addParameterVectorDestination(self.P_OUTPUT_VECTOR, 'Output points')
+        self.addParameterRasterLayer(self.P_STRATIFICATION, self._STRATIFICATION)
+        self.addParameterString(self.P_N, self._N)
+        self.addParameterInt(self.P_DISTANCE_GLOBAL, self._DISTANCE_GLOBAL, 0, False, 0)
+        self.addParameterInt(self.P_DISTANCE_STRATUM, self._DISTANCE_STRATUM, 0, False, 0)
+        self.addParameterInt(self.P_SEED, self._SEED, None, True, 1)
+        self.addParameterVectorDestination(self.P_OUTPUT_VECTOR, self._OUTPUT_VECTOR)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
@@ -117,7 +114,7 @@ class RandomPointsInStratificationAlgorithm(EnMAPProcessingAlgorithm):
             noData = min(-9999, np.min([c.value for c in categories]) - 1)
             arrayStrata = np.full((ysize + 2 * yborder, xsize + 2 * xborder), noData)
             arrayStrata[yborder: yborder + ysize, xborder: xborder + xsize] = \
-            RasterReader(stratification).array(bandList=[stratification.renderer().band()])[0]
+                RasterReader(stratification).array(bandList=[stratification.renderer().band()])[0]
             ysize2, xsize2 = arrayStrata.shape
 
             masks = list()
@@ -174,7 +171,6 @@ class RandomPointsInStratificationAlgorithm(EnMAPProcessingAlgorithm):
             result = {self.P_OUTPUT_VECTOR: filename}
             self.toc(feedback, result)
         return result
-
 
     @classmethod
     def makeKernel(cls, xres: float, yres: float, radius: float) -> np.ndarray:

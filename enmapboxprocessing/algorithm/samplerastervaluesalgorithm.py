@@ -1,40 +1,36 @@
 from typing import Dict, Any, List, Tuple
 
 import processing
-#from processing.algs.qgis.RasterSampling import RasterSampling
+# from processing.algs.qgis.RasterSampling import RasterSampling
 from PyQt5.QtCore import QVariant
-from processing.core.Processing import Processing
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
+                        QgsFeature, QgsField, QgsProcessingFeatureSourceDefinition, QgsApplication,
+                        QgsVectorDataProvider, QgsRasterDataProvider, QgsPoint)
+from qgis.core.additions.edit import edit
 
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.driver import Driver
-from enmapboxprocessing.processingfeedback import ProcessingFeedback
-from typeguard import typechecked
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
-                        QgsFeature, QgsField, QgsProcessingFeatureSourceDefinition, QgsApplication,
-                        QgsVectorDataProvider, QgsProcessingOutputLayerDefinition, QgsRasterDataProvider, QgsPoint,
-                        QgsGeometry)
-
-from qgis.core.additions.edit import edit
-
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group, AlgorithmCanceledException
+from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.utils import Utils
+from typeguard import typechecked
 
 
 @typechecked
 class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
-    P_RASTER = 'raster'
-    P_VECTOR = 'vector'
-    P_COVERAGE_RANGE = 'coverageRange'
-    P_OUTPUT_SAMPLE = 'outSample'
+    P_RASTER, _RASTER = 'raster', 'Raster'
+    P_VECTOR, _VECTOR = 'vector', 'Locations'
+    P_COVERAGE_RANGE, _COVERAGE_RANGE = 'coverageRange', 'Pixel Coverage (%)'
+    P_OUTPUT_SAMPLE, _OUTPUT_SAMPLE = 'outSample', 'Output Sample'
 
     def displayName(self) -> str:
         return 'Sample raster values'
 
     def shortDescription(self) -> str:
         return 'Creates a new point vector layer with the same attributes of the input layer and the ' \
-               'raster values corresponding to the pixels covered by polygons or point location. '\
+               'raster values corresponding to the pixels covered by polygons or point location. ' \
                '\nThe resulting point vector contains ' \
                '1) all input attributes from the Locations vector,  ' \
                '2) attributes SAMPLE_{i}, one for each input raster band, ' \
@@ -46,21 +42,21 @@ class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_RASTER, self.helpParameterRaster()),
-            (self.P_VECTOR, self.helpParameterVector()),
-            (self.P_COVERAGE_RANGE, 'Samples with polygon pixel coverage outside the given range are excluded. '
-                                    'This parameter has no effect in case of point locations.'),
-            (self.P_OUTPUT_SAMPLE, self.helpParameterVectorDestination())
+            (self._RASTER, self.helpParameterRaster()),
+            (self._VECTOR, self.helpParameterVector()),
+            (self._COVERAGE_RANGE, 'Samples with polygon pixel coverage outside the given range are excluded. '
+                                   'This parameter has no effect in case of point locations.'),
+            (self._OUTPUT_SAMPLE, self.helpParameterVectorDestination())
         ]
 
     def group(self):
         return Group.Test.value + Group.Sampling.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_RASTER, 'Raster')
-        self.addParameterVectorLayer(self.P_VECTOR, 'Locations')
-        self.addParameterIntRange(self.P_COVERAGE_RANGE, 'Pixel Coverage (%)', [50, 100], advanced=True)
-        self.addParameterVectorDestination(self.P_OUTPUT_SAMPLE, 'Output Sample')
+        self.addParameterRasterLayer(self.P_RASTER, self._RASTER)
+        self.addParameterVectorLayer(self.P_VECTOR, self._VECTOR)
+        self.addParameterIntRange(self.P_COVERAGE_RANGE, self._COVERAGE_RANGE, [50, 100], advanced=True)
+        self.addParameterVectorDestination(self.P_OUTPUT_SAMPLE, self._OUTPUT_SAMPLE)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback

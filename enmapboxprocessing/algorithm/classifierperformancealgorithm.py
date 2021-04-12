@@ -1,8 +1,8 @@
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
-from sklearn.model_selection import cross_val_predict
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer)
+from sklearn.model_selection import cross_val_predict
 
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
@@ -54,7 +54,6 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
-
 
             classifier = ClassifierDump(**Utils.pickleLoad(filenameClassifier)).classifier
             sample = ClassifierDump(**Utils.pickleLoad(filenameSample))

@@ -12,6 +12,7 @@ from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import 
 from enmapboxprocessing.algorithm.fitgaussianprocessclassifier import FitGaussianProcessClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitgenericclassifier import FitGenericClassifier
 from enmapboxprocessing.algorithm.fitlinearsvcalgorithm import FitLinearSvcAlgorithm
+from enmapboxprocessing.algorithm.fitlogisticregressionralgorithm import FitLogisticRegressionAlgorithm
 from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitsvcalgorithm import FitSvcAlgorithm
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
@@ -45,6 +46,7 @@ def algorithms():
         FitGaussianProcessClassifierAlgorithm(),
         FitGenericClassifier(),
         FitLinearSvcAlgorithm(),
+        FitLogisticRegressionAlgorithm(),
         FitRandomForestClassifierAlgorithm(),
         FitSvcAlgorithm(),
         FeatureClusteringHierarchicalAlgorithm(),

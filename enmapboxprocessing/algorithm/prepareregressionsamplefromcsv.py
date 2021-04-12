@@ -1,13 +1,10 @@
-from random import randint
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
-from PyQt5.QtGui import QColor
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsCategorizedSymbolRenderer,
-                        QgsFeature, QgsProcessingParameterField)
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-from enmapboxprocessing.typing import checkSampleShape, Category, ClassifierDump, RegressionDump
+from enmapboxprocessing.typing import RegressionDump
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
@@ -28,8 +25,10 @@ class PrepareRegressionSampleFromCsv(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._FEATURES, 'Text file with plain feature values (no headers). One row represents the feature vector of one sample.'),
-            (self._LABELS, 'Text file with plain label values (no headers). One row represents the class label of one sample.'),
+            (self._FEATURES,
+             'Text file with plain feature values (no headers). One row represents the feature vector of one sample.'),
+            (self._LABELS,
+             'Text file with plain label values (no headers). One row represents the class label of one sample.'),
             (self._OUTPUT_SAMPLE, 'Output sample destination *.pkl file.')
         ]
 

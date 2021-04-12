@@ -29,7 +29,7 @@ class SubsampleClassificationSampleAlgorithm(EnMAPProcessingAlgorithm):
             (self._REPLACE, 'Whether to draw samples with replacement.'),
             (self._PROPORTIONAL,
              'Whether to interprete number of samples N or Ni as percentage to be drawn from each category.'),
-            (self.P_SEED, 'The seed for the random generator can be provided.'),
+            (self._SEED, 'The seed for the random generator can be provided.'),
             (self._OUTPUT_SAMPLE, 'Output sample *.pkl file including sampled data.'),
             (self._OUTPUT_COMPLEMENT, 'Output sample *.pkl file including all data not sampled (i.e. complement).')
         ]

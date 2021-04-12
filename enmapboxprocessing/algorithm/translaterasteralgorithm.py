@@ -2,32 +2,31 @@ from math import isnan
 from typing import Dict, Any, List, Tuple
 
 from osgeo import gdal
-
-from enmapboxprocessing.rasterwriter import RasterWriter
-from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRectangle, QgsRasterLayer,
                         QgsRasterDataProvider, QgsPoint, QgsPointXY)
 
-from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.utils import Utils
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
+from enmapboxprocessing.rasterreader import RasterReader
+from enmapboxprocessing.rasterwriter import RasterWriter
+from enmapboxprocessing.utils import Utils
+from typeguard import typechecked
 
 
 @typechecked
 class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
-    P_RASTER = 'raster'
-    P_BAND_LIST = 'bandList'
-    P_GRID = 'grid'
-    P_EXTENT = 'extent'
-    P_SOURCE_COLUMNS = 'sourceColumns'
-    P_SOURCE_ROWS = 'sourceRows'
-    P_EXCLUDE_BAD_BANDS = 'excludeBadBands'
-    P_RESAMPLE_ALG = 'resampleAlg'
-    P_DATA_TYPE = 'dataType'
-    P_COPY_METADATA = 'copyMetadata'
-    P_COPY_STYLE = 'copyStyle'
-    P_CREATION_PROFILE = 'creationProfile'
-    P_OUTPUT_RASTER = 'outRaster'
+    P_RASTER, _RASTER = 'raster', 'Raster'
+    P_BAND_LIST, _BAND_LIST = 'bandList', 'Selected bands'
+    P_GRID, _GRID = 'grid', 'Grid'
+    P_COPY_METADATA, _COPY_METADATA = 'copyMetadata', 'Copy metadata'
+    P_COPY_STYLE, _COPY_STYLE = 'copyStyle', 'Copy style'
+    P_EXTENT, _EXTENT = 'extent', 'Spatial extent'
+    P_SOURCE_COLUMNS, _SOURCE_COLUMNS = 'sourceColumns', 'Column subset'
+    P_SOURCE_ROWS, _SOURCE_ROWS = 'sourceRows', 'Row subset'
+    P_EXCLUDE_BAD_BANDS, _EXCLUDE_BAD_BANDS = 'excludeBadBands', 'Exclude bad bands'
+    P_RESAMPLE_ALG, _RESAMPLE_ALG = 'resampleAlg', 'Resample algorithm'
+    P_DATA_TYPE, _DATA_TYPE = 'dataType', 'Data type'
+    P_CREATION_PROFILE, _CREATION_PROFILE = 'creationProfile', 'Output options'
+    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRaster', 'Output raster'
 
     def displayName(self):
         return 'Translate raster'
@@ -49,30 +48,30 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_RASTER, self.helpParameterRaster()),
-            (self.P_BAND_LIST, 'Bands to subset and rearrange. '
-                               'Note that an empty selection (default) will select all bands in native order.'),
-            (self.P_GRID, self.helpParameterGrid()),
-            (self.P_EXTENT, 'Spatial extent for clipping the destination grid, '
-                            'which is given by the source Raster or the selected Grid. '
-                            'In both cases, the extent is aligned with the actual pixel grid '
-                            'to avoid subpixel shifts.'),
-            (self.P_SOURCE_COLUMNS, 'Column subset range in pixels to extract.'),
-            (self.P_SOURCE_ROWS, 'Rows subset range in pixels to extract.'),
-            (self.P_EXCLUDE_BAD_BANDS, 'Whether to exclude bad bands (given by BBL metadata item inside ENVI domain). '
-                                       'Also see The ENVI Header Format for more details: '
-                                       'https://www.l3harrisgeospatial.com/docs/ENVIHeaderFiles.html '),
-            (self.P_COPY_METADATA, 'Whether to copy metadata from source to destination. '
-                                   'Special care is taken of ENVI list items containing band information. '
-                                   'The following list items will be properly subsetted according to the selected '
-                                   'bands: <i>band names, bbl, data_gain_values, data_offset_values, '
-                                   'data_reflectance_gain_values, data_reflectance_offset_values, fwhm, '
-                                   'wavelength.</i>'),
-            (self.P_COPY_STYLE, 'Whether to copy style from source to destination.'),
-            (self.P_RESAMPLE_ALG, 'Spatial resample algorithm.'),
-            (self.P_DATA_TYPE, self.helpParameterDataType()),
-            (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
-            (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._RASTER, self.helpParameterRaster()),
+            (self._BAND_LIST, 'Bands to subset and rearrange. '
+                              'Note that an empty selection (default) will select all bands in native order.'),
+            (self._GRID, self.helpParameterGrid()),
+            (self._EXTENT, 'Spatial extent for clipping the destination grid, '
+                           'which is given by the source Raster or the selected Grid. '
+                           'In both cases, the extent is aligned with the actual pixel grid '
+                           'to avoid subpixel shifts.'),
+            (self._SOURCE_COLUMNS, 'Column subset range in pixels to extract.'),
+            (self._SOURCE_ROWS, 'Rows subset range in pixels to extract.'),
+            (self._EXCLUDE_BAD_BANDS, 'Whether to exclude bad bands (given by BBL metadata item inside ENVI domain). '
+                                      'Also see The ENVI Header Format for more details: '
+                                      'https://www.l3harrisgeospatial.com/docs/ENVIHeaderFiles.html '),
+            (self._COPY_METADATA, 'Whether to copy metadata from source to destination. '
+                                  'Special care is taken of ENVI list items containing band information. '
+                                  'The following list items will be properly subsetted according to the selected '
+                                  'bands: <i>band names, bbl, data_gain_values, data_offset_values, '
+                                  'data_reflectance_gain_values, data_reflectance_offset_values, fwhm, '
+                                  'wavelength.</i>'),
+            (self._COPY_STYLE, 'Whether to copy style from source to destination.'),
+            (self._RESAMPLE_ALG, 'Spatial resample algorithm.'),
+            (self._DATA_TYPE, self.helpParameterDataType()),
+            (self._CREATION_PROFILE, self.helpParameterCreationProfile()),
+            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
@@ -110,21 +109,21 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         return Group.Test.value + Group.CreateRaster.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_RASTER, 'Raster')
+        self.addParameterRasterLayer(self.P_RASTER, self._RASTER)
         self.addParameterBandList(
-            self.P_BAND_LIST, 'Selected bands', parentLayerParameterName=self.P_RASTER, optional=True
+            self.P_BAND_LIST, self._BAND_LIST, parentLayerParameterName=self.P_RASTER, optional=True
         )
-        self.addParameterRasterLayer(self.P_GRID, 'Grid', optional=True)
-        self.addParameterBoolean(self.P_COPY_METADATA, 'Copy metadata', defaultValue=False)
-        self.addParameterBoolean(self.P_COPY_STYLE, 'Copy style', defaultValue=False)
-        self.addParameterExtent(self.P_EXTENT, 'Spatial extent', optional=True, advanced=True)
-        self.addParameterIntRange(self.P_SOURCE_COLUMNS, 'Column subset', optional=True, advanced=True)
-        self.addParameterIntRange(self.P_SOURCE_ROWS, 'Row subset', optional=True, advanced=True)
-        self.addParameterBoolean(self.P_EXCLUDE_BAD_BANDS, 'Exclude bad bands', defaultValue=False, advanced=True)
-        self.addParameterResampleAlg(self.P_RESAMPLE_ALG, advanced=True)
-        self.addParameterDataType(self.P_DATA_TYPE, optional=True, advanced=True)
-        self.addParameterCreationProfile(self.P_CREATION_PROFILE, allowVrt=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER)
+        self.addParameterRasterLayer(self.P_GRID, self._GRID, optional=True)
+        self.addParameterBoolean(self.P_COPY_METADATA, self._COPY_METADATA, defaultValue=False)
+        self.addParameterBoolean(self.P_COPY_STYLE, self._COPY_STYLE, defaultValue=False)
+        self.addParameterExtent(self.P_EXTENT, self._EXTENT, optional=True, advanced=True)
+        self.addParameterIntRange(self.P_SOURCE_COLUMNS, self._SOURCE_COLUMNS, optional=True, advanced=True)
+        self.addParameterIntRange(self.P_SOURCE_ROWS, self._SOURCE_ROWS, optional=True, advanced=True)
+        self.addParameterBoolean(self.P_EXCLUDE_BAD_BANDS, self._EXCLUDE_BAD_BANDS, defaultValue=False, advanced=True)
+        self.addParameterResampleAlg(self.P_RESAMPLE_ALG, self._RESAMPLE_ALG, advanced=True)
+        self.addParameterDataType(self.P_DATA_TYPE, self._DATA_TYPE, optional=True, advanced=True)
+        self.addParameterCreationProfile(self.P_CREATION_PROFILE, self._CREATION_PROFILE, allowVrt=True)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback

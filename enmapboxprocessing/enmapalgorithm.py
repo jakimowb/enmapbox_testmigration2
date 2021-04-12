@@ -42,7 +42,6 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     EnviBilCreationOptions = 'INTERLEAVE=BIL'.split()
     EnviBipCreationOptions = 'INTERLEAVE=BIP'.split()
     VrtCreationOptions = ['']
-
     O_RESAMPLE_ALG = 'NearestNeighbour Bilinear Cubic CubicSpline Lanczos Average Mode Min Q1 Med Q3 Max'.split()
     NearestNeighbourResampleAlg, BilinearResampleAlg, CubicResampleAlg, CubicSplineResampleAlg, LanczosResampleAlg, \
     AverageResampleAlg, ModeResampleAlg, MinResampleAlg, Q1ResampleAlg, MedResampleAlg, Q3ResampleAlg, \
@@ -574,9 +573,6 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         options = self.O_DATA_TYPE
         self.addParameterEnum(name, description, options, False, defaultValue, optional, advanced)
 
-    def addParameterMaximumMemoryUsage(self, name: str, description=_MAXIMUM_MEMORY_USAGE, advanced=False):
-        self.addParameterInt(name, description, gdal.GetCacheMax(), True, 0, None, advanced)
-
     def addParameterCreationProfile(
             self, name: str, description='Output options', defaultValue=0, advanced=False, allowVrt=False
     ):
@@ -676,7 +672,7 @@ class Group(Enum):
     ResamplingAndSubsetting = 'Resampling and subsetting'
     Regression = 'Regression'
     Sampling = 'Sampling'
-    Test = 'TEST/'
+    Test = 'TEST_'
     Testdata = 'Testdata'
     Transformation = 'Transformation'
 

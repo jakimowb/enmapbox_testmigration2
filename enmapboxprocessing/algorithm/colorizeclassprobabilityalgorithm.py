@@ -4,21 +4,20 @@ from typing import Dict, Any, List, Tuple
 import numpy as np
 from PyQt5.QtGui import QColor
 from osgeo import gdal
-from enmapboxprocessing.driver import Driver
-from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer, Qgis)
 
+from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.utils import Utils
+from typeguard import typechecked
 
 
 @typechecked
 class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
-    P_SCORE = 'score'
-    P_STYLE = 'style'
-    P_MAXIMUM_MEMORY_USAGE = 'maximumMemoryUsage'
-    P_OUTPUT_RASTER = 'outRaster'
+    P_SCORE, _SCORE = 'score', 'Score'
+    P_STYLE, _STYLE = 'style', 'Style'
+    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outRaster', 'Output RGB raster'
 
     def displayName(self):
         return 'Colorize Class Scores'
@@ -36,20 +35,18 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_SCORE, 'Source raster layer with bands matching categories given by style.'),
-            (self.P_STYLE, self.helpParameterMapClassification()),
-            (self.P_MAXIMUM_MEMORY_USAGE, self.helpParameterMaximumMemoryUsage()),
-            (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._SCORE, 'Source raster layer with bands matching categories given by style.'),
+            (self._STYLE, self.helpParameterMapClassification()),
+            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
     def group(self):
         return Group.Test.value + Group.Postprocessing.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_SCORE, 'Score')
-        self.addParameterMapLayer(self.P_STYLE, 'Style')
-        self.addParameterMaximumMemoryUsage(self.P_MAXIMUM_MEMORY_USAGE, advanced=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output RGB raster')
+        self.addParameterRasterLayer(self.P_SCORE, self._SCORE)
+        self.addParameterMapLayer(self.P_STYLE, self._STYLE)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def checkParameterFractionAndStyle(
             self, parameters: Dict[str, Any], context: QgsProcessingContext
@@ -79,8 +76,8 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         raster = self.parameterAsRasterLayer(parameters, self.P_SCORE, context)
         style = self.parameterAsLayer(parameters, self.P_STYLE, context)
-        maximumMemoryUsage = self.parameterAsInt(parameters, self.P_MAXIMUM_MEMORY_USAGE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        maximumMemoryUsage = gdal.GetCacheMax()
 
         if isinstance(style, QgsVectorLayer):
             categories = Utils.categoriesFromCategorizedSymbolRenderer(style.renderer())
@@ -90,8 +87,6 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
             raise TypeError(self.P_STYLE)
         colors = [QColor(c[2]).rgb() for c in categories]
 
-        if maximumMemoryUsage is None:
-            maximumMemoryUsage = gdal.GetCacheMax()
         reader = RasterReader(raster)
         driver = Driver(filename, 'GTiff', options=self.TiledAndCompressedGTiffCreationOptions, feedback=feedback)
         writer = driver.createLike(reader, Qgis.Byte, 3)

@@ -1,57 +1,50 @@
 from math import ceil
 from typing import Dict, Any, List, Tuple
+
 import numpy as np
 from osgeo import gdal
-from sklearn.base import ClassifierMixin
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
+                        Qgis)
 
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
+from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.typing import Categories, CreationOptions, ClassifierDump
+from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
-                        QgsMapLayer, Qgis)
-
-from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
 
 @typechecked
 class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
-    P_RASTER = 'raster'
-    P_MASK = 'mask'
-    P_CLASSIFIER = 'classification'
-    P_MAXIMUM_MEMORY_USAGE = 'maximumMemoryUsage'
-    P_CREATION_PROFILE = 'creationProfile'
-    P_OUTPUT_RASTER = 'outProbability'
+    P_RASTER, _RASTER = 'raster', 'Raster'
+    P_MASK, _MASK = 'mask', 'Mask'
+    P_CLASSIFIER, _CLASSIFIER = 'classifier', 'Classifier'
+    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRaster', 'Output class probability'
 
     def displayName(self) -> str:
-        return 'Predict class probabilities'
+        return 'Predict class probability'
 
     def shortDescription(self) -> str:
-        return 'Applies a classifier to a raster to predict class probabilities. '
+        return 'Applies a classifier to a raster to predict class probability.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_RASTER, self.helpParameterRaster()),
-            (self.P_CLASSIFIER, self.helpParameterClassifier()),
-            (self.P_MASK, self.helpParameterMapMask()),
-            (self.P_MAXIMUM_MEMORY_USAGE, self.helpParameterMaximumMemoryUsage()),
-            (self.P_CREATION_PROFILE, self.helpParameterCreationProfile()),
-            (self.P_OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._RASTER, self.helpParameterRaster()),
+            (self._CLASSIFIER, self.helpParameterClassifier()),
+            (self._MASK, self.helpParameterMapMask()),
+            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
     def group(self):
         return Group.Test.value + Group.Classification.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_RASTER, 'Raster')
-        self.addParameterFile(self.P_CLASSIFIER, 'Classifier', fileFilter='Model file (*.pkl)')
-        self.addParameterMapLayer(self.P_MASK, 'Mask', optional=True, advanced=True)
-        self.addParameterMaximumMemoryUsage(self.P_MAXIMUM_MEMORY_USAGE, advanced=True)
-        self.addParameterCreationProfile(self.P_CREATION_PROFILE, advanced=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output classification')
+        self.addParameterRasterLayer(self.P_RASTER, self._RASTER)
+        self.addParameterFile(self.P_CLASSIFIER, self._CLASSIFIER, fileFilter='Model file (*.pkl)')
+        self.addParameterMapLayer(self.P_MASK, self._MASK, optional=True, advanced=True)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         try:
@@ -68,9 +61,9 @@ class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         mask = self.parameterAsLayer(parameters, self.P_MASK, context)
         dump = ClassifierDump(**Utils.pickleLoad(self.parameterAsFile(parameters, self.P_CLASSIFIER, context)))
-        maximumMemoryUsage = self.parameterAsInt(parameters, self.P_MAXIMUM_MEMORY_USAGE, context)
-        format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
+        format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        maximumMemoryUsage = gdal.GetCacheMax()
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -102,8 +95,6 @@ class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
                 mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER])
             assert isinstance(mask, (type(None), QgsRasterLayer))
 
-            if maximumMemoryUsage is None:
-                maximumMemoryUsage = gdal.GetCacheMax()
             rasterReader = RasterReader(raster)
             if mask is not None:
                 maskReader = RasterReader(mask)
@@ -111,7 +102,7 @@ class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
             dataType = Qgis.Float32
             gdalDataType = Utils.qgisDataTypeToNumpyDataType(dataType)
             writer = Driver(filename, format, options, feedback).createLike(rasterReader, dataType, nBands)
-            lineMemoryUsage = rasterReader.lineMemoryUsage() + rasterReader.lineMemoryUsage(nBands, 32//4)
+            lineMemoryUsage = rasterReader.lineMemoryUsage() + rasterReader.lineMemoryUsage(nBands, 32 // 4)
             blockSizeY = min(raster.height(), ceil(maximumMemoryUsage / lineMemoryUsage))
             blockSizeX = raster.width()
             for block in rasterReader.walkGrid(blockSizeX, blockSizeY, feedback):

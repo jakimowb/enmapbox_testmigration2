@@ -1,18 +1,18 @@
 from typing import Dict, Any, List, Tuple
 
-from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import \
-    ClassificationPerformanceStratifiedAlgorithm
-from typeguard import typechecked
 from qgis._core import QgsProcessingContext, QgsProcessingFeedback
 
+from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import \
+    ClassificationPerformanceStratifiedAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
+from typeguard import typechecked
 
 
 @typechecked
 class ClassificationPerformanceSimpleAlgorithm(EnMAPProcessingAlgorithm):
-    P_CLASSIFICATION = 'classification'
-    P_REFERENCE = 'reference'
-    P_OUTPUT_REPORT = 'outReport'
+    P_CLASSIFICATION, _CLASSIFICATION = 'classification', 'Classification'
+    P_REFERENCE, _REFERENCE = 'reference', 'Reference sample'
+    P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outReport', 'Output report'
 
     @classmethod
     def displayName(cls) -> str:
@@ -28,20 +28,20 @@ class ClassificationPerformanceSimpleAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_CLASSIFICATION, self.helpParameterRasterClassification()),
-            (self.P_REFERENCE, 'Random reference sample. '
-                               f'{self.helpParameterMapClassification()} '),
-            (self.P_OUTPUT_REPORT, self.helpParameterReportDestination())
+            (self._CLASSIFICATION, self.helpParameterRasterClassification()),
+            (self._REFERENCE, 'Random reference sample. '
+                              f'{self.helpParameterMapClassification()} '),
+            (self._OUTPUT_REPORT, self.helpParameterReportDestination())
         ]
 
     def group(self):
         return Group.Test.value + Group.AccuracyAssessment.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_CLASSIFICATION, 'Classification')
-        self.addParameterMapLayer(self.P_REFERENCE, 'Reference sample')
+        self.addParameterRasterLayer(self.P_CLASSIFICATION, self._CLASSIFICATION)
+        self.addParameterMapLayer(self.P_REFERENCE, self._REFERENCE)
         self.addParameterFileDestination(
-            self.P_OUTPUT_REPORT, 'Classification performance report', 'HTML file (*.html)'
+            self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, 'HTML file (*.html)'
         )
 
     def processAlgorithm(

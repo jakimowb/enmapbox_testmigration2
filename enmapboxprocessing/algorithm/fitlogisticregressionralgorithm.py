@@ -3,23 +3,22 @@ from typeguard import typechecked
 
 
 @typechecked
-class FitRandomForestClassifierAlgorithm(FitClassifierAlgorithmBase):
+class FitLogisticRegressionAlgorithm(FitClassifierAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Fit RandomForestClassifier'
+        return 'Fit LogisticRegression'
 
     def shortDescription(self) -> str:
-        return 'A random forest classifier.' \
-               '\nA random forest is a meta estimator that fits a number of decision tree classifiers on various ' \
-               'sub-samples of the dataset and uses averaging to improve the predictive accuracy and control ' \
-               'over-fitting. The sub-sample size is controlled with the max_samples parameter if bootstrap=True ' \
-               '(default), otherwise the whole dataset is used to build each tree.'
+        return 'Logistic Regression (aka logit, MaxEnt) classifier.' \
+               '\nIn the multiclass case, the training algorithm uses the one-vs-rest (OvR) scheme if the ' \
+               '‘multi_class’ option is set to ‘ovr’, and uses the cross-entropy loss if the ‘multi_class’ option ' \
+               'is set to ‘multinomial’.'
 
     def helpParameterCode(self) -> str:
         return 'Scikit-learn python code. ' \
                'See <a href="' \
-               'http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html' \
-               '">RandomForestClassifier</a> for information on different parameters.'
+               'https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html' \
+               '">LogisticRegression</a> for information on different parameters.'
 
     def code(cls):
         from sklearn.linear_model import LogisticRegression

@@ -3,11 +3,10 @@ from typing import Dict, Any, List, Tuple
 
 import numpy as np
 from PyQt5.QtGui import QColor
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsCategorizedSymbolRenderer,
-                        QgsFeature, QgsProcessingParameterField)
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-from enmapboxprocessing.typing import checkSampleShape, Category, ClassifierDump
+from enmapboxprocessing.typing import Category, ClassifierDump
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
@@ -16,7 +15,6 @@ from typeguard import typechecked
 class PrepareClassificationSampleFromCsv(EnMAPProcessingAlgorithm):
     P_FEATURES, _FEATURES = 'features', 'Text file with features'
     P_LABELS, _LABELS = 'labels', 'Text file with labels'
-    # todo: add parameters to specify categories and feature names
     P_OUTPUT_SAMPLE, _OUTPUT_SAMPLE = 'outputSample', 'Output classification sample'
 
     @classmethod
@@ -29,8 +27,10 @@ class PrepareClassificationSampleFromCsv(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._FEATURES, 'Text file with plain feature values (no headers). One row represents the feature vector of one sample.'),
-            (self._LABELS, 'Text file with plain label values (no headers). One row represents the class label of one sample.'),
+            (self._FEATURES,
+             'Text file with plain feature values (no headers). One row represents the feature vector of one sample.'),
+            (self._LABELS,
+             'Text file with plain label values (no headers). One row represents the class label of one sample.'),
             (self._OUTPUT_SAMPLE, 'Output sample destination *.pkl file.')
         ]
 
@@ -69,7 +69,7 @@ class PrepareClassificationSampleFromCsv(EnMAPProcessingAlgorithm):
 
             # prepare categories
             values = np.unique(y)
-            categories = [Category(int(v), f'class {i+1}', QColor(randint(0, 2**24 - 1)).name())
+            categories = [Category(int(v), f'class {i + 1}', QColor(randint(0, 2 ** 24 - 1)).name())
                           for i, v in enumerate(values)]
 
             dump = ClassifierDump(categories=categories, features=features, X=X, y=y)

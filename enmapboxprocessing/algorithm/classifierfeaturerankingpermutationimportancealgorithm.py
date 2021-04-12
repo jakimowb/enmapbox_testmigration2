@@ -153,5 +153,4 @@ class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgo
             dumpJson = {'features': features, 'feature_subset_hierarchy': feature_subset_hierarchy}
             Utils.jsonDump(dumpJson, filename + '.json')
 
-
         return result

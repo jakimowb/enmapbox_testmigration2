@@ -5,25 +5,24 @@ from os.path import exists, dirname
 from typing import Dict, Any, List, Tuple, NamedTuple, Iterable
 
 import numpy as np
-
-from enmapboxprocessing.typing import Category
-from typeguard import typechecked
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer, QgsUnitTypes)
 
-from enmapboxprocessing.reportwriter import HtmlReportWriter, CsvReportWriter, MultiReportWriter
-from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.algorithm.vectortoclassificationalgorithm import VectorToClassificationAlgorithm
+from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
+from enmapboxprocessing.reportwriter import HtmlReportWriter, CsvReportWriter, MultiReportWriter
+from enmapboxprocessing.typing import Category
 from enmapboxprocessing.utils import Utils
+from typeguard import typechecked
 
 
 @typechecked
 class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
-    P_CLASSIFICATION = 'classification'
-    P_REFERENCE = 'reference'
-    P_STRATIFICATION = 'stratification'
-    P_USE_MAP_STRATA = 'useMapStrata'
-    P_OUTPUT_REPORT = 'outReport'
+    P_CLASSIFICATION, _CLASSIFICATION = 'classification', 'Classification'
+    P_REFERENCE, _REFERENCE = 'reference', 'Reference sample'
+    P_STRATIFICATION, _STRATIFICATION = 'stratification', 'Sample strata'
+    P_USE_MAP_STRATA, _USE_MAP_STRATA = 'useMapStrata', 'Use map strata as sample strata'
+    P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outReport', 'Output report'
 
     @classmethod
     def displayName(cls) -> str:
@@ -36,13 +35,13 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self.P_CLASSIFICATION, self.helpParameterRasterClassification()),
-            (self.P_REFERENCE, 'Stratified random reference sample. '
-                               f'{self.helpParameterMapClassification()} '),
-            (self.P_STRATIFICATION, 'Sample strata. '
-                                    f'{self.helpParameterRasterClassification()}.'),
-            (self.P_USE_MAP_STRATA, 'Whether to use map classes as sample strata, if sample strata are not selected.'),
-            (self.P_OUTPUT_REPORT, self.helpParameterReportDestination())
+            (self._CLASSIFICATION, self.helpParameterRasterClassification()),
+            (self._REFERENCE, 'Stratified random reference sample. '
+                              f'{self.helpParameterMapClassification()} '),
+            (self._STRATIFICATION, 'Sample strata. '
+                                   f'{self.helpParameterRasterClassification()}.'),
+            (self._USE_MAP_STRATA, 'Whether to use map classes as sample strata, if sample strata are not selected.'),
+            (self._OUTPUT_REPORT, self.helpParameterReportDestination())
         ]
 
     def group(self):
@@ -108,12 +107,11 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
         return True, ''
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_CLASSIFICATION, 'Classification')
-        self.addParameterMapLayer(self.P_REFERENCE, 'Reference sample')
-        self.addParameterMapLayer(self.P_STRATIFICATION, 'Sample strata', optional=True)
-        self.addParameterBoolean(self.P_USE_MAP_STRATA, 'Use map strata as sample strata', True, advanced=True)
-        self.addParameterFileDestination(
-            self.P_OUTPUT_REPORT, 'Classification performance report', 'HTML file (*.html)'
+        self.addParameterRasterLayer(self.P_CLASSIFICATION, self._CLASSIFICATION)
+        self.addParameterMapLayer(self.P_REFERENCE, self._REFERENCE)
+        self.addParameterMapLayer(self.P_STRATIFICATION, self._STRATIFICATION, optional=True)
+        self.addParameterBoolean(self.P_USE_MAP_STRATA, self._USE_MAP_STRATA, True, advanced=True)
+        self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, 'HTML file (*.html)'
         )
 
     def processAlgorithm(
