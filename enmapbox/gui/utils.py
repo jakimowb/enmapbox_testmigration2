@@ -71,8 +71,8 @@ def enmapboxUiPath(name: str) -> pathlib.Path:
 
 def guessDataProvider(src: str) -> str:
     """
-    Get an uri and guesses the QgsDataProvider for
-    :param uri: str
+    Get an str and guesses the QgsDataProvider for
+    :param str: str
     :return: str, provider key like 'gdal', 'ogr' or None
     """
     # GDAL / GDAL-subdataset
