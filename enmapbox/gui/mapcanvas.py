@@ -1292,7 +1292,7 @@ class MapCanvas(QgsMapCanvas):
         :param event: QDropEvent
         """
 
-        if event.dropAction() == Qt.CopyAction:
+        if event.dropAction() in [Qt.CopyAction, Qt.MoveAction]:
             mimeData = event.mimeData()
             assert isinstance(mimeData, QMimeData)
 
