@@ -353,10 +353,15 @@ class DockLabel(pgDockLabel):
     sigNormalClicked = pyqtSignal()
     sigContextMenuRequest = pyqtSignal(QContextMenuEvent)
 
-    def __init__(self, dock, title: str = None, allow_floating: bool = True, showClosebutton: bool = True):
+    def __init__(self,
+                 dock,
+                 title: str = None,
+                 allow_floating: bool = True,
+                 showClosebutton: bool = True,
+                 fontSize: int = 8):
         if title is None:
             title = self.dock.title()
-        super(DockLabel, self).__init__(title, dock, showClosebutton)
+        super(DockLabel, self).__init__(title, dock, showClosebutton, fontSize)
 
         self.mButtons = list()  # think from right to left
 

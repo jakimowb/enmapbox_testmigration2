@@ -5,7 +5,7 @@ Version 3.8
 * rename layers, map views and spectral library views with F2
 * model browser: improved visualization (#645, #646, #647), array values can be copied to clipboard (#520)
 * layers can be moved between maps (#437)
-
+* updated pyqtgraph to 0.12.1
 
 Version 3.7
 -----------
