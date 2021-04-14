@@ -1090,6 +1090,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         selectedLayerNodes = list(set(self.mDockTreeView.selectedLayerNodes()))
         if isinstance(node, (DockTreeNode, QgsLayerTreeLayer)):
             actionEdit = menu.addAction('Rename')
+            actionEdit.setShortcut(Qt.Key_F2)
             actionEdit.triggered.connect(lambda *args, idx=cidx: self.mDockTreeView.edit(idx))
 
         if type(node) is QgsLayerTreeLayer:

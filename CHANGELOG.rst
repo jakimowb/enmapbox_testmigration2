@@ -1,5 +1,12 @@
 CHANGELOG
 =========
+Version 3.8
+-----------
+* rename layers, map views and spectral library views with F2
+* improved visualization model browser (#645, #646, #647)
+* layers can be moved between maps (#437)
+
+
 Version 3.7
 -----------
 
