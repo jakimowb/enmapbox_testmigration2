@@ -961,7 +961,7 @@ class DockTreeView(QgsLayerTreeView):
 
         self.setHeaderHidden(False)
         self.header().setStretchLastSection(True)
-        self.header().setResizeMode(QHeaderView.ResizeToContents)
+        self.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         # self.header().setResizeMode(1, QHeaderView.ResizeToContents)
         self.currentLayerChanged.connect(self.onCurrentLayerChanged)
         self.setEditTriggers(QAbstractItemView.EditKeyPressed)
