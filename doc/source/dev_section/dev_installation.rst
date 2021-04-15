@@ -273,13 +273,11 @@ It was tested successfully on Windows 10, Ubuntu 18 and macOS.
         (qgis_stable) ..\enmap-box>python enmapbox
 
 
-
 Other Tools
 ===========
 
 The Qt company provides several tools to that help to create Qt applications and are useful for PyQt and PyQGIS users
 as well.
-
 
 .. _dev_qt_assistant:
 
@@ -372,6 +370,90 @@ Qt version used by QGIS.
            (see https://stackoverflow.com/questions/33240137/git-clone-pull-continually-freezing-at-store-key-in-cache)
            to solve it, start putty and connect try to the server once per SSH (e.g. to bitbucket.org). puty will save its fingerprint
         7. now you can call git push using ssh authentification in background
+
+OSGeo4W for Devs
+================
+
+If you work on windows and want to test your code based on nightly builds of the upcoming QGIS
+version, or like to inspect/debug the QGIS C++ API at runtime, you might use the OSGeo4W
+installer to setup your development environment:
+
+Setup Environment
+-----------------
+
+1. Download the (new) OSGeo4W installer (`osgeo4w-setup.exe` from https://www.qgis.org/en/site/forusers/download.html )
+
+2. Install the nightly build branch `qgis-dev` and related debug symbols `qgis-dev-pdb`.
+
+3. Install other required packages, e.g. pip3 etc. Later on.
+   In case of missing packages, search and install via OSGeo4W installer first. If not available there, use
+   the OSGeo4W shell and call `pip`.
+
+4. Create a `qgis-dev-env.bat` to setup your QGIS environment
+
+    .. code-block:: bash
+
+        set OSGEO4W_ROOT=D:\OSGeo4W
+        set QGISDISTR=qgis-dev
+        set DIR_GIT=C:\Program Files\Git\cmd
+        set DIR_LFS=C:\Program Files\Git LFS
+        :: add GIT and LFS to path
+
+        call "%OSGEO4W_ROOT%\bin\o4w_env.bat"
+        path %OSGEO4W_ROOT%\apps\%QGISDISTR%\bin;%DIR_GIT%;%DIR_LFS%;%PATH%
+
+        set QGIS_PREFIX_PATH=%OSGEO4W_ROOT:\=/%/apps/%QGISDISTR%
+        set GDAL_FILENAME_IS_UTF8=YES
+        rem Set VSI cache to be used as buffer, see #6448
+        set VSI_CACHE=TRUE
+        set VSI_CACHE_SIZE=1000000
+        set QT_PLUGIN_PATH=%OSGEO4W_ROOT%\apps\%QGISDISTR%\qtplugins;%OSGEO4W_ROOT%\apps\qt5\plugins
+        set PYTHONPATH=%OSGEO4W_ROOT%\apps\%QGISDISTR%\python;%OSGEO4W_ROOT%\apps\%QGISDISTR%\python\plugins;%PYTHONPATH%
+
+    Don't forget to make git and git-lfs available in this environment.
+
+5. Create a `qgis-dev-pycharm.bat` in the same folder as `qgis-dev.bat` that starts PyCharm
+
+    .. code-block:: bash
+
+        call "%~dp0\QGIS-dev.bat"
+        set PYCHARM_EXE="C:\Program Files (x86)\JetBrains\PyCharm 2020.3.4\bin\pycharm64.exe"
+
+        start "PYCHARM" /B %PYCHARM_EXE%
+
+        :: uncomment to start QGIS
+        :: start "QGIS" /B "%OSGEO4W_ROOT%\bin%QGISDISTR%-bin.exe" %*
+
+6. Call `qgis-dev-pycharm.bat` to start PyCharm and set your project settings to:
+
+* Project Interpreter: `<OSGEO4W>\bin\python.exe`
+
+* Terminal Shell Path: `cmd.exe "/K" <your path to>\qgis-dev.bat`
+  (this is why we created two batch files. `qgis-dev.bat` setups the environment, but does not start any app)
+
+* add `<OSGEO4W>\apps\qgis-dev\python` and
+  `<OSGEO4W>\apps\qgis-dev\python\plugins` as source folders
+
+
+Debug QGIS
+----------
+
+
+1. Clone the QGIS repo and checkout the latest master
+
+2. Install Visual Studio and open the QGIS repo
+
+3. Start a QGIS desktop, e.g. with `qgis-dev` from the OSGeo4W shell
+
+4. Attach the Visual Studio debugger to a QGIS desktop instance
+
+* Open Debug > Attach to Process (CTRL+ALT+P)
+
+* Filter available processes by 'QGIS' and, e.g., select `qgis-dev-bin.exe`
+
+* Press the Attach button
+
+
 
 
 
