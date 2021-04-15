@@ -60,7 +60,7 @@ EnMAP-Box repository:
 3. Create a QGIS conda environment
 ==================================
 
-The following setup bases on `this description <http://planet.qgis.org/planet/user/22/tag/conda/>`_ and
+The following setup bases on `this description <https://plugins.qgis.org/planet/tag/conda/>`_ and
 installs QGIS into a `Conda`_ environment.
 It was tested successfully on Windows 10, Ubuntu 18 and macOS.
 
