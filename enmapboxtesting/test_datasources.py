@@ -15,6 +15,7 @@ import tempfile
 import unittest
 import time
 import xmlrunner
+from qgis.PyQt import sip
 from qgis.core import *
 from qgis.gui import *
 from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsRasterRenderer

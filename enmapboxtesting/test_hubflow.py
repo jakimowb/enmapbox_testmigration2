@@ -1,6 +1,8 @@
 import unittest
 import os
 import pathlib
+import warnings
+
 from osgeo import gdal
 import pickle
 import json
@@ -85,6 +87,10 @@ class HUBFlowTests(TestCase):
             a = FitRandomForestClassifierAlgorithm()
             aid = f'enmapbox:{a.id()}'
             alg: FitRandomForestClassifierAlgorithm = procReg.algorithmById(aid)
+            if not isinstance(alg, QgsProcessingAlgorithm):
+                warnings.warn(f'Algorithm not added to registered processing provider: {aid}')
+                alg = a
+
             self.assertIsInstance(alg, QgsProcessingAlgorithm)
             self.assertIsInstance(alg, FitRandomForestClassifierAlgorithm)
 
