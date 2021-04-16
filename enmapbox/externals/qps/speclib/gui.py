@@ -430,7 +430,7 @@ class SpectralProfilePlotDataItem(PlotDataItem):
 
                 # 1. convert to numpy arrays
                 if not isinstance(y, np.ndarray):
-                    y = np.asarray(y, dtype=np.float)
+                    y = np.asarray(y, dtype=float)
                 if not isinstance(x, np.ndarray):
                     x = np.asarray(x)
 
@@ -1764,8 +1764,7 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
                 b = self.speclib().isEditable()
                 self.speclib().startEditing()
                 self.speclib().addSpeclib(speclib)
-                if not b:
-                    self.speclib().commitChanges()
+                self.speclib().commitChanges(stopEditing=not b)
             event.accept()
         else:
             super().dropEvent(event)
@@ -2413,6 +2412,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.actionExportSpeclib.triggered.connect(self.onExportSpectra)
 
         self.tbSpeclibAction = QToolBar('Spectral Profiles')
+        self.tbSpeclibAction.setObjectName('SpectralLibraryToolbar')
         self.tbSpeclibAction.addAction(self.actionSelectProfilesFromMap)
         self.tbSpeclibAction.addAction(self.actionAddProfiles)
         self.tbSpeclibAction.addAction(self.actionImportSpeclib)
@@ -2572,9 +2572,9 @@ class SpectralLibraryWidget(AttributeTableWidget):
             info = 'Add {} profiles from {} ...'.format(len(speclib), speclib.name())
             sl.beginEditCommand(info)
             sl.addSpeclib(speclib)
+            sl.commitChanges(stopEditing=not wasEditable)
             sl.endEditCommand()
-            if not wasEditable:
-                sl.commitChanges()
+            s = ""
         except Exception as ex:
             print(ex, file=sys.stderr)
             pass
