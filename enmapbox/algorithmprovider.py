@@ -17,18 +17,19 @@
 ***************************************************************************
 """
 
-import os, pathlib
+import os
+import pathlib
+import sys
+import site
+import qgis
 
 from enmapbox import __version__, messageLog
-from qgis.core import QgsProcessingProvider, QgsProcessingAlgorithm, QgsApplication
+from qgis.core import QgsProcessingProvider, QgsProcessingAlgorithm, QgsApplication, QgsRuntimeProfiler
 from qgis.PyQt.QtGui import QIcon
 
 try:
     from processing.core.ProcessingConfig import ProcessingConfig, Setting
 except ModuleNotFoundError as merr:
-
-    import qgis, sys, site
-
     path = pathlib.Path(qgis.__file__)
     pathPlugins = os.path.abspath(path / '../../plugins')
     site.addsitedir(pathPlugins)
@@ -38,6 +39,10 @@ ID = 'enmapbox'
 NAME = 'EnMAP-Box'
 LONG_NAME = 'EnMAP-Box (build {})'.format(__version__)
 
+class EnMAPBoxProcessingProviderKeys(object):
+
+    ACTIVATE = 'ENMAPBOX_ACTIVATE'
+    OUTPUTFOLDER = 'ENMAPBOX_OUTPUTFOLDER'
 
 class EnMAPBoxProcessingProvider(QgsProcessingProvider):
     """
@@ -56,6 +61,32 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         #    hubflow.signals.sigFileCreated.connect(self.onHubFlowFileCreated)
         #except Exception as ex:
         #    messageLog(ex)
+
+    def load(self):
+        with QgsRuntimeProfiler.profile('OTB Provider'):
+            group = self.name()
+            ProcessingConfig.settingIcons[group] = self.icon()
+            ProcessingConfig.addSetting(Setting(group, EnMAPBoxProcessingProviderKeys.ACTIVATE, self.tr('Activate'), True))
+            ProcessingConfig.addSetting(Setting(group, EnMAPBoxProcessingProviderKeys.OUTPUTFOLDER,
+                                                self.tr("EnMAP-Box output folder"),
+                                                (pathlib.Path('~').expanduser() / 'enmapboxoutputs').as_posix(),
+                                                ))
+
+            # todo: add more settings
+            ProcessingConfig.readSettings()
+            self.refreshAlgorithms()
+
+        return True
+
+    def unload(self):
+        ProcessingConfig.removeSetting(EnMAPBoxProcessingProviderKeys.ACTIVATE)
+        ProcessingConfig.removeSetting(EnMAPBoxProcessingProviderKeys.OUTPUTFOLDER)
+
+    def isActive(self):
+        return ProcessingConfig.getSetting(EnMAPBoxProcessingProviderKeys.ACTIVATE)
+
+    def setActive(self, active):
+        ProcessingConfig.setSettingValue(EnMAPBoxProcessingProviderKeys.ACTIVATE, active)
 
     def onHubFlowFileCreated(self, file):
         """
@@ -94,15 +125,6 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         # import processing.core.ProcessingConfig
         # processing.core.ProcessingConfig.settingsWatcher.settingsChanged.emit()
         self.algorithmsLoaded.emit()
-
-    def getName(self):
-        raise DeprecationWarning('Use id() instead')
-
-    def getDescription(self):
-        raise DeprecationWarning('Use name()')
-
-    def getIcon(self):
-        raise DeprecationWarning('Use icon()')
 
     def id(self) -> str:
         """
@@ -149,14 +171,6 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
 
     def supportsNonFileBasedOutput(self) -> bool:
         return False
-
-    def load(self):
-        """
-        Loads the provider.
-        :return: bool
-        """
-        self.refreshAlgorithms()
-        return True
 
     def containsAlgorithm(self, algorithm: QgsProcessingAlgorithm) -> bool:
         """
