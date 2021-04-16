@@ -843,7 +843,7 @@ class ClassificationScheme(QAbstractTableModel):
         self.insertClasses(classes)
 
     def addClasses(self, classes, index=None):
-        warnings.warn('use insertClasses()', DeprecationWarning)
+        warnings.warn('use insertClasses()', DeprecationWarning, stacklevel=2)
         self.insertClasses(classes, index=index)
 
     def insertClasses(self, classes, index=None):

@@ -22,6 +22,8 @@ import site
 import pathlib
 import warnings
 import typing
+
+from qgis.core import Qgis
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QOperatingSystemVersion
 from qgis.PyQt.QtWidgets import QAction
@@ -54,8 +56,7 @@ class EnMAPBoxPlugin(object):
 
     def initialDependencyCheck(self):
         """
-        Runs a check for availability of package dependencies and give an readible error message
-        :return:
+        Runs a check for availability of package dependencies and summarized error messages
         :return:
         """
         from enmapbox import DEPENDENCIES, messageLog, DIR_REPO
@@ -64,6 +65,7 @@ class EnMAPBoxPlugin(object):
         if len(missing) > 0:
             info = missingPackageInfo(missing, html=False)
             warnings.warn(info, ImportWarning)
+            messageLog(info, level=Qgis.Warning)
 
     def initGui(self):
 
