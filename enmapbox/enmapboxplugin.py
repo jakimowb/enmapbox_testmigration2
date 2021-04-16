@@ -81,6 +81,14 @@ class EnMAPBoxPlugin(object):
         else:
             print('EnMAPBoxPlugin.initGui() called without iface')
 
+    def initProcessing(self):
+        """
+        Init enmapbox for processing provider only
+        :return:
+        :rtype:
+        """
+        import enmapbox
+
     def run(self):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         self.enmapBox = EnMAPBox.instance()
