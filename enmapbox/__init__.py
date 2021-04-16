@@ -35,7 +35,7 @@ import typing
 import subprocess
 import qgis
 import site
-from qgis.gui import QgisInterface
+from qgis.gui import QgisInterface, QgsMapLayerConfigWidgetFactory
 from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider, QgsProcessingAlgorithm
 from qgis.PyQt.QtCore import QSettings, QResource
 from qgis.PyQt.QtGui import QIcon
@@ -142,6 +142,7 @@ DIR_UNITTESTS = os.path.join(DIR_REPO, 'enmapboxtesting')
 ENMAP_BOX_KEY = 'EnMAP-Box'
 
 _ENMAPBOX_PROCESSING_PROVIDER: QgsProcessingProvider = None
+_ENMAPBOX_MAPLAYER_CONFIG_WIDGET_FACTORIES: typing.List[QgsMapLayerConfigWidgetFactory] = []
 
 gdal.SetConfigOption('GDAL_VRT_ENABLE_PYTHON', 'YES')
 
@@ -158,10 +159,11 @@ settings = enmapboxSettings()
 DEBUG = str(os.environ.get('DEBUG', False)).lower() in ['1', 'true']
 site.addsitedir(DIR_SITEPACKAGES)
 
-# test PyQtGraph
+# test if PyQtGraph is available
 try:
     import pyqtgraph
 except:
+    # use PyQtGraph brought by QPS
     pSrc = pathlib.Path(DIR_ENMAPBOX) / 'externals' / 'qps' / 'externals'
     assert pSrc.is_dir()
     site.addsitedir(pSrc)
@@ -241,7 +243,7 @@ def registerEditorWidgets():
 
 def unregisterEditorWidgets():
     """
-
+    just for convenience. So far editor widgets can not be unregistered
     :return:
     :rtype:
     """
@@ -321,45 +323,65 @@ def unregisterEnMAPBoxProcessingProvider():
 
 
 def registerMapLayerConfigWidgetFactories():
+    """
+    Registers widgets to be shown into the QGIS layer properties dialog
+    """
     debugLog('started initMapLayerConfigWidgetFactories')
+    global _ENMAPBOX_MAPLAYER_CONFIG_WIDGET_FACTORIES
+    from .externals.qps import mapLayerConfigWidgetFactories, registerMapLayerConfigWidgetFactory
 
-    from .externals.qps import registerMapLayerConfigWidgetFactories, mapLayerConfigWidgetFactories
-    registerMapLayerConfigWidgetFactories()
-    for factory in mapLayerConfigWidgetFactories():
-        qgis.utils.iface.registerMapLayerConfigWidgetFactory(factory)
+    from .externals.qps.layerconfigwidgets.rasterbands import RasterBandConfigWidgetFactory
+    from .externals.qps.layerconfigwidgets.gdalmetadata import GDALMetadataConfigWidgetFactory
+    for factory in [RasterBandConfigWidgetFactory(),
+                    GDALMetadataConfigWidgetFactory()]:
+
+        registered = registerMapLayerConfigWidgetFactory(factory)
+        if isinstance(registered, QgsMapLayerConfigWidgetFactory):
+            _ENMAPBOX_MAPLAYER_CONFIG_WIDGET_FACTORIES.append(registered)
 
     debugLog('finished initMapLayerConfigWidgetFactories')
 
 
 def unregisterMapLayerConfigWidgetFactories():
-    from .externals.qps import unregisterMapLayerConfigWidgetFactory, mapLayerConfigWidgetFactories
-    for factory in mapLayerConfigWidgetFactories():
+    """
+    Removes MapLayerConfigWidgetFactories which had been registered with the EnMAP-Box
+    """
+    from .externals.qps import unregisterMapLayerConfigWidgetFactory
+    for factory in _ENMAPBOX_MAPLAYER_CONFIG_WIDGET_FACTORIES:
         unregisterMapLayerConfigWidgetFactory(factory)
 
 
 def registerExpressionFunctions():
+    """
+    Adds Expression functions for the QGIS expression editor
+    """
     from .externals.qps.speclib.qgsfunctions import registerQgsExpressionFunctions
     registerQgsExpressionFunctions()
 
 
 def unregisterExpressionFunctions():
+    """
+    Removes added expression functions
+    """
     from .externals.qps.speclib.qgsfunctions import unregisterQgsExpressionFunctions
     unregisterQgsExpressionFunctions()
 
 
-def initAll(processing=True):
+def initAll():
     """
     Calls other init routines required to run the EnMAP-Box properly
     """
     initEnMAPBoxResources()
     registerEditorWidgets()
     registerExpressionFunctions()
-    if processing:
-        registerEnMAPBoxProcessingProvider()
+    registerEnMAPBoxProcessingProvider()
     registerMapLayerConfigWidgetFactories()
 
 
 def unloadAll():
+    """
+    Reomves all registered factories etc.
+    """
     unregisterEditorWidgets()
     unregisterExpressionFunctions()
     unregisterMapLayerConfigWidgetFactories()
