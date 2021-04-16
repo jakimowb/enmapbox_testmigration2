@@ -54,7 +54,7 @@ class test_dependencycheck(EnMAPBoxTestCase):
 
     def test_pippackage(self):
 
-        pkg = PIPPackage('gdal', pipCmd='GDAL>=3.0')
+        pkg = PIPPackage('osgeo.gdal', pipCmd='GDAL>=3.0')
 
         self.assertTrue(pkg.isInstalled())
         self.assertIsInstance(pkg.installCommand(), str)

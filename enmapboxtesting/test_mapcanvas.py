@@ -11,6 +11,7 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
+import pathlib
 import unittest
 import xmlrunner
 from qgis import *
@@ -18,6 +19,8 @@ from qgis.gui import *
 from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsPointXY, QgsProject
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+
+from enmapbox.gui.mimedata import fromLayerList
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 
 from enmapboxtestdata import enmap, hires, landcover_polygons, library

@@ -19,6 +19,7 @@
 import os
 import sys
 import site
+import pathlib
 import warnings
 import typing
 from qgis.gui import QgisInterface
@@ -38,11 +39,10 @@ class EnMAPBoxPlugin(object):
             os.environ['JOBLIB_MULTIPROCESSING'] = '0'
 
         pathes = sys.path[:]
-        dirPlugin = os.path.dirname(__file__)
+        dirPlugin = pathlib.Path(__file__).parent
         site.addsitedir(dirPlugin)
+        site.addsitedir(dirPlugin / 'site-packages')
         import enmapbox
-
-        site.addsitedir(enmapbox.DIR_SITEPACKAGES)
 
         # run a minimum dependency check
         self.initialDependencyCheck()
@@ -81,6 +81,14 @@ class EnMAPBoxPlugin(object):
         else:
             print('EnMAPBoxPlugin.initGui() called without iface')
 
+    def initProcessing(self):
+        """
+        Init enmapbox for processing provider only
+        :return:
+        :rtype:
+        """
+        import enmapbox
+
     def run(self):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         self.enmapBox = EnMAPBox.instance()
@@ -100,7 +108,7 @@ class EnMAPBoxPlugin(object):
                 iface.removeToolBarIcon(action)
 
         import enmapbox
-        enmapbox.removeEnMAPBoxProcessingProvider()
+        enmapbox.unloadAll()
 
         if isinstance(EnMAPBox.instance(), EnMAPBox):
             EnMAPBox.instance().close()

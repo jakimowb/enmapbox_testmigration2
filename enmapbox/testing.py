@@ -63,9 +63,10 @@ def start_app(*args, loadProcessingFramework: bool = True, **kwds) -> QgsApplica
         import enmapbox
         enmapbox.initEnMAPBoxResources()
         if loadProcessingFramework:
-            enmapbox.initEnMAPBoxProcessingProvider()
-        enmapbox.initEditorWidgets()
-        enmapbox.initMapLayerConfigWidgetFactories()
+            enmapbox.registerEnMAPBoxProcessingProvider()
+        enmapbox.registerEditorWidgets()
+        enmapbox.registerExpressionFunctions()
+        enmapbox.registerMapLayerConfigWidgetFactories()
         return app
 
 

@@ -17,18 +17,19 @@
 ***************************************************************************
 """
 
-import os, pathlib
+import os
+import pathlib
+import sys
+import site
+import qgis
 
 from enmapbox import __version__, messageLog
-from qgis.core import QgsProcessingProvider, QgsProcessingAlgorithm, QgsApplication
+from qgis.core import QgsProcessingProvider, QgsProcessingAlgorithm, QgsApplication, QgsRuntimeProfiler
 from qgis.PyQt.QtGui import QIcon
 
 try:
     from processing.core.ProcessingConfig import ProcessingConfig, Setting
 except ModuleNotFoundError as merr:
-
-    import qgis, sys, site
-
     path = pathlib.Path(qgis.__file__)
     pathPlugins = os.path.abspath(path / '../../plugins')
     site.addsitedir(pathPlugins)

@@ -25,7 +25,6 @@ from qgis.core import QgsVectorLayer
 from enmapbox.gui import SpectralLibraryWidget, SpectralLibrary
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
-from enmapbox.gui.utils import KeepRefs
 from ..externals.qps.externals.pyqtgraph.dockarea import DockArea as pgDockArea
 from ..externals.qps.externals.pyqtgraph.dockarea.DockArea import TempAreaWindow
 from ..externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
@@ -431,9 +430,13 @@ class MimeDataTextEdit(QTextEdit):
         super(MimeDataTextEdit, self).__init__(*args, **kwargs)
         # self.setLineWrapMode(QTextEdit.FixedColumnWidth)
         self.setOverwriteMode(False)
+        self.mCurrentMimeData: QMimeData = QMimeData()
 
     def canInsertFromMimeData(self, QMimeData) -> bool:
         return True
+
+    def currentMimeData(self) -> QMimeData:
+        return self.mCurrentMimeData
 
     def insertFromMimeData(self, mimeData: QMimeData):
         """
@@ -442,6 +445,7 @@ class MimeDataTextEdit(QTextEdit):
         """
         assert isinstance(mimeData, QMimeData)
         formats = [str(f) for f in mimeData.formats()]
+        self.mCurrentMimeData = mimeData
         self.clear()
 
         def append(txt):
