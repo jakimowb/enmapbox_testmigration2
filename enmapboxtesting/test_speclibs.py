@@ -61,7 +61,7 @@ class testClassUtils(EnMAPBoxTestCase):
         path = r'C:\Users\geo_beja\Downloads\tm7.gpkg'
         pathDst = r'C:\Users\geo_beja\Downloads\destination.sli'
         if os.path.isfile(path):
-            speclib = SpectralLibrary(uri=path)
+            speclib = SpectralLibrary(path=path)
             self.assertTrue(len(speclib) > 0)
             results = EnviSpectralLibraryIO.write(speclib=speclib, path=pathDst)
             self.assertTrue(len(results) > 0)
