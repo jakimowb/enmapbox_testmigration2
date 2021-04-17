@@ -33,6 +33,8 @@ import pathlib
 import traceback
 import typing
 import subprocess
+import warnings
+
 import qgis
 import site
 from qgis.gui import QgisInterface, QgsMapLayerConfigWidgetFactory
@@ -198,13 +200,15 @@ def messageLog(msg, level=Qgis.Info, notifyUser:bool = True):
                                     level=level,
                                     notifyUser=notifyUser)
         from qgis.utils import iface
-        if isinstance(iface, QgisInterface):
+        if isinstance(iface, QgisInterface) and level == Qgis.Critical:
             iface.openMessageLog()
             title = msg.split('\n')[0]
-            iface.messageBar().pushCritical(title, msg)
+            iface.messageBar().pushMessage(title, msg, msg, level=level)
     else:
         if level == Qgis.Critical:
             print(msg, file=sys.stderr)
+        elif level == Qgis.Warning:
+            warnings.warn(msg, stacklevel=2)
         else:
             print(msg)
 

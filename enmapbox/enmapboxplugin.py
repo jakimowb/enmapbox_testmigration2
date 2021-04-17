@@ -64,7 +64,7 @@ class EnMAPBoxPlugin(object):
         missing = [p for p in requiredPackages() if not p.isInstalled()]
         if len(missing) > 0:
             info = missingPackageInfo(missing, html=False)
-            warnings.warn(info, ImportWarning)
+            # warnings.warn(info, ImportWarning)
             messageLog(info, level=Qgis.Warning)
 
     def initGui(self):
