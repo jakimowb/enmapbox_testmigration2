@@ -89,7 +89,6 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_VECTOR: map,
                     alg.P_GRID: gridOversampled,
                     alg.P_MAJORITY_VOTING: False,
-                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.x10.tif')
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)

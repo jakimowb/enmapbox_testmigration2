@@ -19,7 +19,7 @@ if __name__ == '__main__':
         widget = ClassificationWorkflowGui(enmapBox.ui)
         widget.show()
         #widget.mClassifierFitted.setFilePath(classifierDumpPkl)
-        #widget.mSample.setFilePath(classifierDumpPkl)
+        widget.mSample.setFilePath(classifierDumpPkl)
         #widget.onSampleChanged()
         qgsApp.exec_()
         qgsApp.exitQgis()

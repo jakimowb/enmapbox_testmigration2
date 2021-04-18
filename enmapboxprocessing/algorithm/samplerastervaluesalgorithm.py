@@ -150,7 +150,6 @@ class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
             alg.P_VECTOR: vector,
             alg.P_GRID: x10Grid,
             alg.P_BURN_FID: True,
-            alg.P_CREATION_PROFILE: alg.TiledAndCompressedGTiffProfile,
             alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'fid.x10.tif'),
         }
         result = processing.run(alg, parameters, None, feedback2, context, True)

@@ -1,14 +1,15 @@
 import traceback
 import webbrowser
 from functools import wraps, partial
-from os.path import join, dirname, exists, basename, relpath, abspath, isabs
+from os.path import join, dirname, exists, basename, relpath, isabs
 from tempfile import gettempdir
-from typing import Tuple
+from typing import Tuple, Dict
 
 import numpy as np
 from PyQt5.QtGui import QFont, QColor, QTextCursor
 from PyQt5.QtWidgets import (QMainWindow, QToolButton, QProgressBar, QComboBox, QPlainTextEdit, QCheckBox, QDialog,
-                             QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem, QLabel, QRadioButton, QTextEdit)
+                             QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem, QLabel, QRadioButton, QTextEdit,
+                             QLineEdit)
 from PyQt5.uic import loadUi
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 from qgis._core import QgsMapLayerProxyModel, Qgis, QgsProcessingFeedback, QgsRasterLayer, QgsProject
@@ -33,6 +34,7 @@ from enmapboxprocessing.algorithm.prepareclassificationsamplefromvectorandfields
     PrepareClassificationSampleFromVectorAndFields
 from enmapboxprocessing.algorithm.selectfeaturesubsetfromsamplealgorithm import SelectFeatureSubsetFromSampleAlgorithm
 from enmapboxprocessing.algorithm.subsampleclassificationsamplealgorithm import SubsampleClassificationSampleAlgorithm
+from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm
 from enmapboxprocessing.typing import ClassifierDump, Category
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
@@ -40,6 +42,46 @@ from typeguard import typechecked
 
 class MissingParameterError(Exception):
     """Methodes decorated with @errorHandled should raise this error to indicate a missing parameter."""
+
+
+class MissingParameterSample(MissingParameterError):
+    pass
+
+
+class MissingParameterTestSample(MissingParameterError):
+    pass
+
+
+class MissingParameterClassifier(MissingParameterError):
+    pass
+
+
+class MissingParameterClassifierFitted(MissingParameterError):
+    pass
+
+
+class MissingParameterRaster(MissingParameterError):
+    pass
+
+
+class MissingParameterClassification(MissingParameterError):
+    pass
+
+
+class MissingParameterGroundTruth(MissingParameterError):
+    pass
+
+
+class MissingParameterClustering(MissingParameterError):
+    pass
+
+
+class MissingParameterRanking(MissingParameterError):
+    pass
+
+
+class CancelError(Exception):
+    """Methodes decorated with @errorHandled should raise this error to indicate cancelation by the user."""
 
 
 def errorHandled(func=None, *, successMessage: str = None):
@@ -54,7 +96,27 @@ def errorHandled(func=None, *, successMessage: str = None):
         gui.mMessageBar.clearWidgets()
         try:
             result = func(gui, *argsTail, **kwargs)
-        except MissingParameterError:
+        except MissingParameterError as error:
+            if isinstance(error, MissingParameterSample):
+                gui.pushParameterMissing('Sample', runAlgo='Import from *')
+            elif isinstance(error, MissingParameterTestSample):
+                gui.pushParameterMissing('Test Sample', runAlgo='Split sample')
+            elif isinstance(error, MissingParameterClassifier):
+                gui.pushParameterMissing('Classifier', runAlgo='Create classifier')
+            elif isinstance(error, MissingParameterClassifierFitted):
+                gui.pushParameterMissing('Classifier (fitted)', runAlgo='Fit classifier')
+            elif isinstance(error, MissingParameterRaster):
+                gui.pushParameterMissingLayer('Raster')
+            elif isinstance(error, MissingParameterClassification):
+                gui.pushParameterMissingLayer('Classification')
+            elif isinstance(error, MissingParameterGroundTruth):
+                gui.pushParameterMissingLayer('Ground truth')
+            elif isinstance(error, MissingParameterClustering):
+                gui.pushParameterMissing('Clustering', runAlgo='Cluster features *')
+            elif isinstance(error, MissingParameterRanking):
+                gui.pushParameterMissing('Ranking', runAlgo='Rank features *')
+            return
+        except CancelError:
             return
         except Exception as error:
             message = traceback.format_exc()
@@ -291,12 +353,12 @@ class ClassificationWorkflowGui(QMainWindow):
             label.hide()
 
         # update default roots when working directory changed
-        #self.mWorkingDirectory.fileChanged.connect(self.onWorkingDirectoryChanged)
+        # self.mWorkingDirectory.fileChanged.connect(self.onWorkingDirectoryChanged)
 
-        #self.mSample.fileChanged.connect(self.onFileChanged)
+        # self.mSample.fileChanged.connect(self.onFileChanged)
 
     def onFileChanged(self, absPath):
-        assert 0 # todo fix relative storage
+        assert 0  # todo fix relative storage
         # assure that the relative path to the default directory is visible
         if isabs(absPath):
             mFile: QgsFileWidget = self.sender()
@@ -313,21 +375,43 @@ class ClassificationWorkflowGui(QMainWindow):
     def initClassifier(self):
         pass
 
-    def _createAlgorithmDialogWrapper(self, onFinish=None, onCancel=None):
+    def _createAlgorithmDialogWrapper(self):
         class AlgorithmDialogWrapper(AlgorithmDialog):
+            def __init__(self_, *args, **kwargs):
+                AlgorithmDialog.__init__(self_, *args, **kwargs)
+                self_.finishedSuccessful = False
+                self_.finishResult = None
+
             def finish(self_, successful, result, context, feedback, in_place=False):
                 super().finish(successful, result, context, feedback, in_place)
+                self_.finishedSuccessful = successful
+                self_.finishResult = result
                 if successful:
                     if self.mDialogAutoClose.isChecked():
                         self_.close()
-                    if onFinish is not None:
-                        onFinish(result, context, feedback)
                         feedback: QgsProcessingFeedback = self_.feedback
                         self.mLog.moveCursor(QTextCursor.End)
                         self.mLog.insertPlainText(feedback.textLog() + '\n##########\n\n')
                         self.mLog.verticalScrollBar().setValue(self.mLog.verticalScrollBar().maximum())
 
         return AlgorithmDialogWrapper
+
+    def showAlgorithmDialog(self, alg: EnMAPProcessingAlgorithm, parameters: Dict = None, autoRun: bool = None) -> Dict:
+        if autoRun is None:
+            autoRun = self.mDialogAutoRun.isChecked()
+        wrapper = self._createAlgorithmDialogWrapper()
+        dialog = self.enmapBox.showProcessingAlgorithmDialog(
+            alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper, autoRun=autoRun
+        )
+
+        if dialog.finishedSuccessful:
+            if self.mDialogAutoOpen.isChecked():
+                for value in dialog.finishResult.values():
+                    if isinstance(value, str) and value.endswith('.html'):
+                        self.openWebbrowser(value)
+            return dialog.finishResult
+        else:
+            raise CancelError()
 
     @errorHandled(successMessage='performed quick mapping')
     def runQuickMapping(self, *args):
@@ -363,21 +447,16 @@ class ClassificationWorkflowGui(QMainWindow):
 
         if parameters is None:
             parameters = dict()
-        parameters[alg.P_OUTPUT_SAMPLE] = join(self.mWorkingDirectory.filePath(), self.mSampleBasename.text() + '.pkl')
+        parameters[alg.P_OUTPUT_SAMPLE] = self.createFilename(self.mSampleBasename, '.pkl')
 
-        wrapper = self._createAlgorithmDialogWrapper(
-            onFinish=lambda result, *args: self.mSample.setFilePath(result[alg.P_OUTPUT_SAMPLE])
-        )
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper, autoRun=autoRun
-        )
+        result = self.showAlgorithmDialog(alg, parameters, autoRun=autoRun)
+        self.mSample.setFilePath(result[alg.P_OUTPUT_SAMPLE])
 
     @errorHandled(successMessage='splitted sample')
     def runSplitSample(self, *args):
         filename = self.mSample.filePath()
         if filename == '':
-            self.pushParameterMissingSample()
-            raise MissingParameterError()
+            raise MissingParameterSample()
 
         trainNs = list()
         testNs = list()
@@ -389,33 +468,22 @@ class ClassificationWorkflowGui(QMainWindow):
 
         # draw train sample
         alg = SubsampleClassificationSampleAlgorithm()
-
-        def onFinish(result, *args):
-            self.mTrainSample.setFilePath(result[alg.P_OUTPUT_SAMPLE])
-            self.mTestSample.setFilePath(result[alg.P_OUTPUT_COMPLEMENT])  # store complement here...
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
-        parameters = {alg.P_SAMPLE: filename, alg.P_N: str(trainNs)}
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        parameters = {alg.P_SAMPLE: filename,
+                      alg.P_N: str(trainNs),
+                      alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTrainSampleBasename, '.pkl')}
+        result = self.showAlgorithmDialog(alg, parameters)
+        self.mTrainSample.setFilePath(result[alg.P_OUTPUT_SAMPLE])
+        filenameComplement = result[alg.P_OUTPUT_COMPLEMENT]
 
         # draw test sample from complement
         if sum(testNs) == 0:
             self.mTestSample.setFilePath('')
         else:
-            filenameComplement = self.mTestSample.filePath()  # ... and get it back
-
-            def onFinish(result, *args):
-                self.mTestSample.setFilePath(result[alg.P_OUTPUT_SAMPLE])  # now, set the actual test sample
-
-            wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
-            parameters = {alg.P_SAMPLE: filenameComplement, alg.P_N: str(testNs)}
-            self.enmapBox.showProcessingAlgorithmDialog(
-                alg, parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-                autoRun=self.mDialogAutoRun.isChecked()
-            )
+            parameters = {alg.P_SAMPLE: filenameComplement,
+                          alg.P_N: str(testNs),
+                          alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTestSampleBasename, '.pkl')}
+            result = self.showAlgorithmDialog(alg, parameters)
+            self.mTestSample.setFilePath(result[alg.P_OUTPUT_SAMPLE])
 
         if sum(trainNs) == 0:
             self.mTrainSample.setFilePath('')
@@ -423,16 +491,11 @@ class ClassificationWorkflowGui(QMainWindow):
     @errorHandled(successMessage='created (unfitted) classifier')
     def runClassifierCreate(self, *args):
 
-        def onFinish(result, *args):
-            self.mClassifier.setFilePath(result[alg.P_OUTPUT_CLASSIFIER])
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
         alg = FitGenericClassifier()
-        parameters = {alg.P_CODE: self.mCode.toPlainText()}
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        parameters = {alg.P_CODE: self.mCode.toPlainText(),
+                      alg.P_OUTPUT_CLASSIFIER: self.createFilename(self.mClassifierBasename, '.pkl')}
+        result = self.showAlgorithmDialog(alg, parameters)
+        self.mClassifier.setFilePath(result[alg.P_OUTPUT_CLASSIFIER])
 
     @errorHandled(successMessage=None)
     def getSampleFilenamesForClustering(self, *args):
@@ -470,78 +533,63 @@ class ClassificationWorkflowGui(QMainWindow):
             filename = self.mClassifier.filePath()
         return filename
 
+    @errorHandled(successMessage=None)
+    def getClusteringFilename(self, *args):
+        return self.mFeatureClustering.filePath()
+
+    @errorHandled(successMessage=None)
+    def getRankingFilename(self, *args):
+        return self.mFeatureRanking.filePath()
+
     @errorHandled(successMessage='clustered features')
     def runFeatureClustering(self, *args):
 
         filenameTrain, filenameTest = self.getSampleFilenamesForClustering()
         if filenameTrain == '':
-            self.pushParameterMissingSample()
-            raise MissingParameterError()
+            raise MissingParameterSample()
 
-        def onFinish(result, *args):
-            self.mFeatureClustering.setFilePath(result[alg.P_OUTPUT_REPORT])
-            if self.mDialogAutoOpen.isChecked():
-                self.openWebbrowser(result[alg.P_OUTPUT_REPORT])
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
         alg = FeatureClusteringHierarchicalAlgorithm()
-        parameters = {alg.P_SAMPLE: filenameTrain}
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        parameters = {alg.P_SAMPLE: filenameTrain,
+                      alg.P_OUTPUT_REPORT: self.createFilename(self.mFeatureClusteringBasename, '.html')}
+        result = self.showAlgorithmDialog(alg, parameters)
+        self.mFeatureClustering.setFilePath(result[alg.P_OUTPUT_REPORT])
 
     @errorHandled(successMessage='selected most representative features')
     def runFeatureClusteringSelect(self, *args):
-        self.mMessageBar.clearWidgets()
 
-        if self.mFeatureClustering.filePath() == '':
-            self.pushParameterMissing('Clustering', runAlgo='Cluster features *')
-            raise MissingParameterError()
+        filenameClustering = self.getClusteringFilename()
+        if filenameClustering == '':
+            raise MissingParameterClustering()
 
         filenameTrain, filenameTest = self.getSampleFilenamesForClustering()
         if filenameTrain == '':
-            self.pushParameterMissingSample()
-            raise MissingParameterError()
+            raise MissingParameterSample()
 
-        if self.mFeatureClusteringN.value() == 0:
+        n = self.mFeatureClusteringN.value()
+        if n == 0:
             self.pushParameterWrongValue('n', 'select cluster hierarchy level n>0')
             raise MissingParameterError()
 
         # get feature subset
-        dump = Utils.jsonLoad(self.mFeatureClustering.filePath() + '.json')
-        featureList = [index + 1 for index in dump['feature_subset_hierarchy'][self.mFeatureClusteringN.value() - 1]]
+        dump = Utils.jsonLoad(filenameClustering + '.json')
+        featureList = [index + 1 for index in dump['feature_subset_hierarchy'][n - 1]]
 
         # subset train sample
-        def onFinish(result, *args):
-            self.mTrainSampleClustered.setFilePath(result[alg.P_OUTPUT_SAMPLE])
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
         alg = SelectFeatureSubsetFromSampleAlgorithm()
-        parameters = {
-            alg.P_SAMPLE: self.mTrainSample.filePath(),
-            alg.P_FEATURE_LIST: str(featureList)
-        }
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        parameters = {alg.P_SAMPLE: filenameTrain,
+                      alg.P_FEATURE_LIST: str(featureList),
+                      alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTrainSampleClusteredBasename, '.pkl')}
+        result = self.showAlgorithmDialog(alg, parameters)
+        self.mTrainSampleClustered.setFilePath(result[alg.P_OUTPUT_SAMPLE])
 
         # subset test sample
-        if self.mTestSample.filePath() != '':
-            def onFinish(result, *args):
-                self.mTestSampleClustered.setFilePath(result[alg.P_OUTPUT_SAMPLE])
-
-            wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
+        if filenameTest != '':
             alg = SelectFeatureSubsetFromSampleAlgorithm()
-            parameters = {
-                alg.P_SAMPLE: self.mTestSample.filePath(),
-                alg.P_FEATURE_LIST: str(featureList)
-            }
-            self.enmapBox.showProcessingAlgorithmDialog(
-                alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-                autoRun=self.mDialogAutoRun.isChecked()
-            )
+            parameters = {alg.P_SAMPLE: filenameTest,
+                          alg.P_FEATURE_LIST: str(featureList),
+                          alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTestSampleClusteredBasename, '.pkl')}
+            result = self.showAlgorithmDialog(alg, parameters)
+            self.mTestSampleClustered.setFilePath(result[alg.P_OUTPUT_SAMPLE])
 
     @errorHandled(successMessage='clustered features')
     def runFeatureRankingInternal(self, *args):
@@ -552,30 +600,19 @@ class ClassificationWorkflowGui(QMainWindow):
 
         filenameTrain, filenameTest = self.getSampleFilenamesForRanking()
         if filenameTrain == '':
-            self.pushParameterMissingSample()
-            raise MissingParameterError()
+            raise MissingParameterSample()
 
-        filenameClassifier = self.mClassifier.filePath()
+        filenameClassifier = self.getClassifierFilename()
         if filenameClassifier == '':
-            self.pushParameterMissingClassifier()
-            raise MissingParameterError()
+            raise MissingParameterClassifier()
 
-        def onFinish(result, *args):
-            self.mFeatureRanking.setFilePath(result[alg.P_OUTPUT_REPORT])
-            if self.mDialogAutoOpen.isChecked():
-                self.openWebbrowser(result[alg.P_OUTPUT_REPORT])
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
         alg = ClassifierFeatureRankingPermutationImportanceAlgorithm()
-        parameters = {
-            alg.P_TRAIN_SAMPLE: filenameTrain,
-            alg.P_TEST_SAMPLE: filenameTest,
-            alg.P_CLASSIFIER: self.mClassifier.filePath()
-        }
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        parameters = {alg.P_TRAIN_SAMPLE: filenameTrain,
+                      alg.P_TEST_SAMPLE: filenameTest,
+                      alg.P_CLASSIFIER: filenameClassifier,
+                      alg.P_OUTPUT_REPORT: self.createFilename(self.mFeatureRankingBasename, '.html')}
+        result = self.showAlgorithmDialog(alg, parameters)
+        self.mFeatureRanking.setFilePath(result[alg.P_OUTPUT_REPORT])
 
     @errorHandled(successMessage='clustered features')
     def runFeatureRankingRFE(self, *args):
@@ -591,109 +628,77 @@ class ClassificationWorkflowGui(QMainWindow):
 
     @errorHandled(successMessage='selected most important features')
     def runFeatureRankingSelect(self, *args):
-        if self.mFeatureRanking.filePath() == '':
-            self.pushParameterMissing('Ranking', runAlgo='Rank features *')
-            return
+        filenameRanking = self.getRankingFilename()
+        if filenameRanking == '':
+            raise MissingParameterRanking()
 
         filenameTrain, filenameTest = self.getSampleFilenamesForRanking()
         if filenameTrain == '':
-            self.pushParameterMissingSample()
-            raise MissingParameterError()
+            raise MissingParameterSample()
 
-        if self.mFeatureRankingN.value() == 0:
+        n = self.mFeatureRankingN.value()
+        if n == 0:
             self.pushParameterWrongValue('n', 'select number of features (n>0) to subset')
             raise MissingParameterError()
 
         # get feature subset
-        dump = Utils.jsonLoad(self.mFeatureRanking.filePath() + '.json')
-        featureList = [index + 1 for index in dump['feature_subset_hierarchy'][self.mFeatureRankingN.value() - 1]]
+        dump = Utils.jsonLoad(filenameRanking + '.json')
+        featureList = [index + 1 for index in dump['feature_subset_hierarchy'][n - 1]]
 
         # subset train sample
-        def onFinish(result, *args):
-            self.mTrainSampleRanked.setFilePath(result[alg.P_OUTPUT_SAMPLE])
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
         alg = SelectFeatureSubsetFromSampleAlgorithm()
-        parameters = {
-            alg.P_SAMPLE: filenameTrain,
-            alg.P_FEATURE_LIST: str(featureList)
-        }
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        parameters = {alg.P_SAMPLE: filenameTrain,
+                      alg.P_FEATURE_LIST: str(featureList),
+                      alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTrainSampleRankedBasename, '.pkl')}
+        result = self.showAlgorithmDialog(alg, parameters)
+        self.mTrainSampleRanked.setFilePath(result[alg.P_OUTPUT_SAMPLE])
 
         # subset test sample
         if filenameTest != '':
-            def onFinish(result, *args):
-                self.mTestSampleRanked.setFilePath(result[alg.P_OUTPUT_SAMPLE])
-
-            wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
             alg = SelectFeatureSubsetFromSampleAlgorithm()
-            parameters = {
-                alg.P_SAMPLE: filenameTest,
-                alg.P_FEATURE_LIST: str(featureList)
-            }
-            self.enmapBox.showProcessingAlgorithmDialog(
-                alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-                autoRun=self.mDialogAutoRun.isChecked()
-            )
+            parameters = {alg.P_SAMPLE: filenameTest,
+                          alg.P_FEATURE_LIST: str(featureList),
+                          alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTestSampleRankedBasename, '.pkl')}
+            result = self.showAlgorithmDialog(alg, parameters)
+            self.mTestSampleRanked.setFilePath(result[alg.P_OUTPUT_SAMPLE])
 
     @errorHandled(successMessage='fitted classifier')
     def runClassifierFit(self, *args):
 
-        filenameTrain, _ = self.getSampleFilenamesForRanking()
+        filenameTrain, _ = self.getSampleFilenamesForFitting()
         if filenameTrain == '':
-            self.pushParameterMissingSample()
-            raise MissingParameterError()
+            raise MissingParameterSample()
 
-        def onFinish(result, *args):
-            self.mClassifierFitted.setFilePath(result[alg.P_OUTPUT_CLASSIFIER])
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
         alg = FitGenericClassifier()
-        parameters = {
-            alg.P_SAMPLE: filenameTrain,
-            alg.P_CODE: self.mCode.toPlainText()
-        }
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        parameters = {alg.P_SAMPLE: filenameTrain,
+                      alg.P_CODE: self.mCode.toPlainText(),
+                      alg.P_OUTPUT_CLASSIFIER: self.createFilename(self.mClassifierFittedBasename, '.pkl')
+                      }
+        result = self.showAlgorithmDialog(alg, parameters)
+        self.mClassifierFitted.setFilePath(result[alg.P_OUTPUT_CLASSIFIER])
 
     @errorHandled(successMessage='estimated classifier test performance')
     def runValidation(self, *args):
 
-        _, filenameTest = self.getSampleFilenamesForRanking()
+        _, filenameTest = self.getSampleFilenamesForFitting()
         if filenameTest == '':
-            self.pushParameterMissingTestSample()
-            raise MissingParameterError()
+            raise MissingParameterTestSample()
 
         filenameClassifier = self.getClassifierFittedFilename()
         if filenameClassifier == '':
-            self.pushParameterMissingClassifierFitted()
-            raise MissingParameterError()
+            raise MissingParameterClassifierFitted()
 
-        def onFinish(result, *args):
-            self.mClassifierPerformance.setFilePath(result[alg.P_OUTPUT_REPORT])
-            if self.mDialogAutoOpen.isChecked():
-                self.openWebbrowser(result[alg.P_OUTPUT_REPORT])
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
         alg = ClassifierPerformanceAlgorithm()
-        parameters = {
-            alg.P_CLASSIFIER: filenameClassifier,
-            alg.P_SAMPLE: filenameTest
-        }
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        parameters = {alg.P_CLASSIFIER: filenameClassifier,
+                      alg.P_SAMPLE: filenameTest,
+                      alg.P_OUTPUT_REPORT: self.createFilename(self.mClassifierPerformanceBasename, '.html')}
+        result = self.showAlgorithmDialog(alg, parameters)
+        self.mClassifierPerformance.setFilePath(result[alg.P_OUTPUT_REPORT])
 
     @errorHandled(successMessage='estimated classifier cross-validation performance')
     def runCrossValidation(self, *args):
 
-        filenameTrain, _ = self.getSampleFilenamesForRanking()
+        filenameTrain, _ = self.getSampleFilenamesForFitting()
         if filenameTrain == '':
             self.pushParameterMissingSample()
             raise MissingParameterError()
@@ -703,45 +708,27 @@ class ClassificationWorkflowGui(QMainWindow):
             self.pushParameterMissingClassifier()
             raise MissingParameterError()
 
-        def onFinish(result, *args):
-            self.mClassifierPerformance.setFilePath(result[alg.P_OUTPUT_REPORT])
-            if self.mDialogAutoOpen.isChecked():
-                self.openWebbrowser(result[alg.P_OUTPUT_REPORT])
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
         alg = ClassifierPerformanceAlgorithm()
-        parameters = {
-            alg.P_CLASSIFIER: filenameClassifier,
-            alg.P_SAMPLE: filenameTrain,
-            alg.P_NFOLD: self.mNFold.value()
-        }
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        parameters = {alg.P_CLASSIFIER: filenameClassifier,
+                      alg.P_SAMPLE: filenameTrain,
+                      alg.P_NFOLD: self.mNFold.value(),
+                      alg.P_OUTPUT_REPORT: self.createFilename(self.mClassifierPerformanceBasename, '.html')}
+        result = self.showAlgorithmDialog(alg, parameters)
+        self.mClassifierPerformance.setFilePath(result[alg.P_OUTPUT_REPORT])
 
     @errorHandled(successMessage='predicted maps')
     def runPredict(self, *args):
 
-        filenameClassifier = self.getClassifierFilename()
+        filenameClassifier = self.getClassifierFittedFilename()
         if filenameClassifier == '':
-            self.pushParameterMissingClassifier()
-            raise MissingParameterError()
+            raise MissingParameterClassifierFitted()
 
         raster: QgsRasterLayer = self.mRaster.currentLayer()
         if raster is None:
-            self.pushParameterMissingRaster()
-            raise MissingParameterError()
+            raise MissingParameterRaster()
 
         # classification
-        filenameClassification = join(self.mWorkingDirectory.filePath(), self.mClassificationBasename.text() + '.tif')
-
-        def onFinish(result, *args):
-            layer = QgsRasterLayer(filenameClassification, basename(filenameClassification))
-            QgsProject.instance().addMapLayer(layer)
-            self.mClassification.setLayer(layer)
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
+        filenameClassification = self.createFilename(self.mClassificationBasename, '.tif')
         alg = PredictClassificationAlgorithm()
         parameters = {
             alg.P_CLASSIFIER: filenameClassifier,
@@ -749,23 +736,16 @@ class ClassificationWorkflowGui(QMainWindow):
             alg.P_MASK: self.mMask.currentLayer(),
             alg.P_OUTPUT_RASTER: filenameClassification
         }
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        result = self.showAlgorithmDialog(alg, parameters)
+        layer = QgsRasterLayer(filenameClassification, basename(filenameClassification))
+        QgsProject.instance().addMapLayer(layer)
+        self.mClassification.setLayer(layer)
 
         if not self.mProbabilityCheck.isChecked():
             return
 
         # probability
-        filenameProbability = join(self.mWorkingDirectory.filePath(), self.mProbabilityBasename.text() + '.tif')
-
-        def onFinish(result, *args):
-            layer = QgsRasterLayer(filenameProbability, basename(filenameProbability))
-            QgsProject.instance().addMapLayer(layer)
-            self.mProbability.setLayer(layer)
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
+        filenameProbability = self.createFilename(self.mProbabilityBasename, '.tif')
         alg = PredictClassPropabilityAlgorithm()
         parameters = {
             alg.P_CLASSIFIER: filenameClassifier,
@@ -773,60 +753,57 @@ class ClassificationWorkflowGui(QMainWindow):
             alg.P_MASK: self.mMask.currentLayer(),
             alg.P_OUTPUT_RASTER: filenameProbability
         }
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        result = self.showAlgorithmDialog(alg, parameters)
+        layer = QgsRasterLayer(filenameProbability, basename(filenameProbability))
+        QgsProject.instance().addMapLayer(layer)
+        self.mProbability.setLayer(layer)
 
         # colorize probability as RGB
-        filenameRgb = join(self.mWorkingDirectory.filePath(), self.mProbabilityBasename.text() + '_rgb.tif')
-
-        wrapper = self._createAlgorithmDialogWrapper()
+        filenameRgb = self.createFilename(self.mProbabilityBasename, '.tif', suffix='_rgb')
         alg = ColorizeClassProbabilityAlgorithm()
         parameters = {
             alg.P_SCORE: filenameProbability,
             alg.P_STYLE: filenameClassification,
             alg.P_OUTPUT_RASTER: filenameRgb
         }
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        result = self.showAlgorithmDialog(alg, parameters)
+        layer = QgsRasterLayer(filenameRgb, basename(filenameProbability))
+        QgsProject.instance().addMapLayer(layer)
 
     @errorHandled(successMessage='predicted maps')
     def runMapValidation(self, *args):
 
         classification = self.mClassification.currentLayer()
         if classification is None:
-            self.pushParameterMissingLayer('Classification map')
-            raise MissingParameterError()
+            raise MissingParameterClassification()
 
         reference = self.mGroundTruth.currentLayer()
         if reference is None:
-            self.pushParameterMissingLayer('Ground truth')
-            raise MissingParameterError()
+            raise MissingParameterGroundTruth()
 
-        filenameReport = join(
-            self.mWorkingDirectory.filePath(), self.mClassificationPerformanceBasename.text() + '.html'
-        )
-
-        def onFinish(result, *args):
-            self.mClassificationPerformance.setFilePath(filenameReport)
-            if self.mDialogAutoOpen.isChecked():
-                self.openWebbrowser(result[alg.P_OUTPUT_REPORT])
-
-        wrapper = self._createAlgorithmDialogWrapper(onFinish=onFinish)
         alg = ClassificationPerformanceStratifiedAlgorithm()
-        parameters = {
-            alg.P_CLASSIFICATION: classification,
-            alg.P_REFERENCE: reference,
-            alg.P_STRATIFICATION: classification,
-            alg.P_OUTPUT_REPORT: filenameReport
-        }
-        self.enmapBox.showProcessingAlgorithmDialog(
-            alg, parameters=parameters, show=True, modal=True, parent=self, wrapper=wrapper,
-            autoRun=self.mDialogAutoRun.isChecked()
-        )
+        parameters = {alg.P_CLASSIFICATION: classification,
+                      alg.P_REFERENCE: reference,
+                      alg.P_STRATIFICATION: classification,
+                      alg.P_OUTPUT_REPORT: self.createFilename(self.mClassificationPerformanceBasename, '.html')}
+        result = self.showAlgorithmDialog(alg, parameters)
+        self.mClassificationPerformance.setFilePath(result[alg.P_OUTPUT_REPORT])
+
+    def createFilename(self, mBasename: QLineEdit, extension: str, suffix='') -> str:
+        name = mBasename.text()
+        filename = join(self.mWorkingDirectory.filePath(), name + suffix + extension)
+        if not exists(filename):
+            return filename
+
+        # give it a unique number
+        i = 2
+        while True:
+            filename = join(self.mWorkingDirectory.filePath(), name + suffix + f'_{i}' + extension)
+            if not exists(filename):
+                break
+            i += 1
+
+        return filename
 
     def updateSampleInfo(self, file: QgsFileWidget, label: QLabel):
         filename = file.filePath()
@@ -842,11 +819,11 @@ class ClassificationWorkflowGui(QMainWindow):
     def onWorkingDirectoryChanged(self, *args):
         wd = self.mWorkingDirectory.filePath()
         for mFile in [self.mSample, self.mTrainSample, self.mTestSample,
-                     self.mTrainSampleClustered, self.mTestSampleClustered,
-                     self.mTrainSampleRanked, self.mTestSampleRanked,
-                     self.mClassifier, self.mClassifierFitted,
-                     self.mFeatureClustering, self.mFeatureRanking,
-                     self.mClassifierPerformance, self.mClassificationPerformance]:
+                      self.mTrainSampleClustered, self.mTestSampleClustered,
+                      self.mTrainSampleRanked, self.mTestSampleRanked,
+                      self.mClassifier, self.mClassifierFitted,
+                      self.mFeatureClustering, self.mFeatureRanking,
+                      self.mClassifierPerformance, self.mClassificationPerformance]:
             mFile.setDefaultRoot(wd)
 
     @errorHandled
@@ -1000,23 +977,8 @@ class ClassificationWorkflowGui(QMainWindow):
             message = f"run '{runAlgo}' algorithm first"
         self.mMessageBar.pushInfo(f'Missing parameter ({name})', message)
 
-    def pushParameterMissingSample(self):
-        self.pushParameterMissing('Sample', runAlgo='Import from *')
-
-    def pushParameterMissingTestSample(self):
-        self.pushParameterMissing('Test Sample', runAlgo='Split sample')
-
-    def pushParameterMissingClassifier(self):
-        self.pushParameterMissing('Classifier', runAlgo='Create classifier')
-
-    def pushParameterMissingClassifierFitted(self):
-        self.pushParameterMissing('Classifier (fitted)', runAlgo='Fit classifier')
-
     def pushParameterMissingLayer(self, name):
         self.pushParameterMissing(name, message='select layer first')
-
-    def pushParameterMissingRaster(self):
-        self.pushParameterMissingLayer('Raster')
 
     def pushParameterWrongValue(self, name, message):
         self.mMessageBar.pushInfo(f'Wrong parameter value ({name})', message)

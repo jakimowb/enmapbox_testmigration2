@@ -86,7 +86,6 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_DATA_TYPE: self.O_DATA_TYPE.index(Utils.qgisDataTypeName(dataType)),
                     alg.P_BURN_ATTRIBUTE: fieldName,
                     alg.P_RESAMPLE_ALG: self.NearestNeighbourResampleAlg,  # simple burn
-                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: filename
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)
@@ -98,7 +97,6 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_DATA_TYPE: self.O_DATA_TYPE.index(Utils.qgisDataTypeName(dataType)),
                     alg.P_BURN_ATTRIBUTE: fieldName,
                     alg.P_RESAMPLE_ALG: self.ModeResampleAlg,  # use 10x oversampling
-                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'rasterized.tif')
                 }
                 classification = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER]
@@ -110,7 +108,6 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_VECTOR: tmpVector,
                     alg.P_DATA_TYPE: self.Float32,
                     alg.P_RESAMPLE_ALG: self.AverageResampleAlg,
-                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'coverage.tif')
                 }
                 coverageRaster = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER]

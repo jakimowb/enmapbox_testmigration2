@@ -6,13 +6,13 @@ from qgis._core import QgsProcessingParameterDefinition, QgsProcessingDestinatio
 
 from enmapboxgeoalgorithms.algorithms import ALGORITHMS
 from enmapboxgeoalgorithms.provider import EnMAPAlgorithm as EnMAPAlgorithmV1, Help as HelpV1, Cookbook as CookbookV1
-from hubdsm.processing.enmapalgorithm import EnMAPAlgorithm as EnMAPAlgorithmV2, Help as HelpV2
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm
+from hubdsm.processing.enmapalgorithm import EnMAPAlgorithm as EnMAPAlgorithmV2, Help as HelpV2
+
 
 def generateRST():
-
     # create folder
-    root = abspath(join(dirname(__file__), '..', 'doc', 'source', 'processing_algorithms'))
+    root = abspath(join(dirname(__file__), '..', 'doc', 'source', 'usr_section', 'usr_manual', 'processing_algorithms'))
     print(root)
 
     if exists(root):
@@ -24,7 +24,7 @@ def generateRST():
 
     nalg = 0
     for alg in ALGORITHMS:
-        #print(alg.displayName())
+        # print(alg.displayName())
         if alg.group() not in groups:
             groups[alg.group()] = dict()
         groups[alg.group()][alg.displayName()] = alg
@@ -93,7 +93,7 @@ def generateRST():
             else:
                 print(f'skip {alg}')
                 continue
-                #assert 0
+                # assert 0
 
             filename = join(groupFolder, '{}.rst'.format(algoId))
             for c in r'/()':
@@ -156,6 +156,7 @@ def v1(alg, text):
                 text += '    Default: *{}*\n\n'.format(pd.defaultValue())
     return text
 
+
 def v2(alg, text):
     if isinstance(alg.description(), str):
         text += alg.description() + '\n\n'
@@ -205,8 +206,8 @@ def v2(alg, text):
                 text += '    Default: *{}*\n\n'.format(pd.defaultValue())
     return text
 
-def v3(alg: EnMAPProcessingAlgorithm, text):
 
+def v3(alg: EnMAPProcessingAlgorithm, text):
     try:
         helpParameters = {k: v for k, v in alg.helpParameters()}
     except:
@@ -237,9 +238,6 @@ def v3(alg: EnMAPProcessingAlgorithm, text):
             text += '    {}\n'.format(line)
 
         text += '\n'
-
-
-
 
         # if pd.type() == 'fileDestination':
         #    a=1

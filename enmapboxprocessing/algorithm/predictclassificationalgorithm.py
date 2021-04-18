@@ -91,7 +91,6 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_INIT_VALUE: 0,
                     alg.P_BURN_VALUE: 1,
                     alg.P_DATA_TYPE: self.Byte,
-                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'mask.tif')
                 }
                 mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER])
