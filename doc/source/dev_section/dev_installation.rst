@@ -60,82 +60,55 @@ EnMAP-Box repository:
 3. Create a QGIS conda environment
 ==================================
 
-The following setup bases on `this description <https://plugins.qgis.org/planet/tag/conda/>`_ and
-installs QGIS into a `Conda`_ environment.
-It was tested successfully on Windows 10, Ubuntu 18 and macOS.
+1. Make sure `conda <https://docs.conda.io/en/latest/miniconda.html>`_ is installed on your system.
 
-1.  `Create <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands>`_
-    a new conda environment *qgis_stable* and install qgis from the conda-forge channel
+In the EnMAP-Box repo you will find a YAML file which defines a conda environment where all necessary dependencies for the EnMAP-Box are included:
 
-    .. code-block:: bat
+.. literalinclude:: /../../conda_environment.yml
+   :caption: conda_environment.yml
+   :language: yaml
 
-         $>conda create -n qgis-stable -c conda-forge qgis
+2. To create a new conda environment named *qgis_stable* as specified in the YAML file open the conda shell and type:
 
+.. code-block:: batch
 
-2.  `Activate <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#activating-an-environment>`_
+   conda env create --name qgis_stable --file https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/conda_environment.yml
+
+.. tip::
+
+   Depending on the components and applications you like to use, it might be required to install more packages.
+   If you cloned the EnMAP-Box repository you can also point to the local :file:`conda_environment.yml`.
+   Edit the ``--name`` or the YAML file itself as you wish. For more information on creating and managing conda environments visit the `conda documentation <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file>`_
+
+3.  `Activate <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#activating-an-environment>`_
     the new environment
 
-    .. code-block:: bat
+    .. code-block:: batch
 
-        $>conda activate qgis_stable
+       conda activate qgis_stable
 
 
-
-3.  Install other required packages, e.g. that listed in ``enmap-box/requirements.txt`` and ``enmap-box/requirements_developers.txt``.
+4.  Now you can start :ref:`QGIS`, the :ref:`dev_qt_designer` and :ref:`dev_qt_assistant` from your conda shell:
 
     .. code-block:: batch
 
-         (qgis_stable) $>conda install scikit-learn --channel=conda-forge
-         (qgis_stable) $>conda install matplotlib --channel=conda-forge
-
-    Some python packages which are not available as conda package can be installed directly with pip_.
-
-    .. code-block:: batch
-
-        (qgis_stable) $>pip install gitpython
-        (qgis_stable) $>pip install git-lfs
-
-    .. admonition:: Note
-
-        Depending on the components and applications you like to use, it might be required to install more packages.
-
-
-
-4.  Now you can start `QGIS`_, the :ref:`dev_qt_designer` and :ref:`dev_qt_assistant` from your conda shell:
-
-    .. code-block:: batch
-
-        (qgis_stable) $>qgis
-        (qgis_stable) $>designer
-        (qgis_stable) $>assistant
+       qgis
+       designer
+       assistant
 
     .. admonition:: macOS Users
 
-            If you are using macOS and calling `qgis` does not show any application window, it might be necessary to set:
+            If you are using macOS and calling ``qgis`` does not show any application window, it might be necessary to set:
 
-            .. code-block:: batch
+            .. code-block:: bash
 
-                `export QT_MAC_WANTS_LAYER=1`
+               export QT_MAC_WANTS_LAYER=1
 
-            This can be done permanently for the `qgis_stable` environment by:
+            This can be done permanently for the environment by:
 
-            .. code-block:: batch
+            .. code-block:: bash
 
-                `(qgis_stable) conda env config vars set QT_MAC_WANTS_LAYER=1`
-
-
-
-5.  Start python and check it's version. It should be a Python >= 3.7.
-    Calling ``quit()`` will close the python interpreter and return you to the conda shell:
-
-    .. code-block:: batch
-
-        (qgis_stable) C:\>python
-        Python 3.8.1 | packaged by conda-forge | (default, Jan  5 2020, 20:17:16) [MSC v.1916 64 bit (AMD64)] on win32
-        Type "help", "copyright", "credits" or "license" for more information.
-        >>> quit()
-
-        (qgis_stable) C:\>
+               conda env config vars set QT_MAC_WANTS_LAYER=1
 
 
 
