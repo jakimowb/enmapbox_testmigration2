@@ -2,6 +2,7 @@ import json
 import pickle
 from os import makedirs
 from os.path import join, dirname, basename, exists
+from random import randint
 from typing import Tuple, Optional, Callable, List, Any
 from warnings import warn
 
@@ -226,6 +227,16 @@ class Utils(object):
     def categoriesFromCategorizedSymbolRenderer(cls, renderer: QgsCategorizedSymbolRenderer) -> Categories:
         c: QgsRendererCategory
         categories = [Category(c.value(), c.label(), c.symbol().color().name()) for c in renderer.categories()]
+        return categories
+
+    @classmethod
+    def categoriesFromRasterBand(cls, raster: QgsRasterLayer, bandNo: int) -> Categories:
+        from enmapboxprocessing.rasterreader import RasterReader
+        reader = RasterReader(raster)
+        array = reader.array(bandList=[bandNo])
+        noDataValue = reader.noDataValue(bandNo)
+        values = [v for v in np.unique(array) if v != noDataValue]
+        categories = [Category(int(v), str(v), QColor(randint(0, 2**24)).name()) for v in values]
         return categories
 
     @classmethod

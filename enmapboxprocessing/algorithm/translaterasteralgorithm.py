@@ -50,7 +50,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         return [
             (self._RASTER, self.helpParameterRaster()),
             (self._BAND_LIST, 'Bands to subset and rearrange. '
-                              'Note that an empty selection (default) will select all bands in native order.'),
+                              'An empty selection defaults to all bands in native order.'),
             (self._GRID, self.helpParameterGrid()),
             (self._EXTENT, 'Spatial extent for clipping the destination grid, '
                            'which is given by the source Raster or the selected Grid. '

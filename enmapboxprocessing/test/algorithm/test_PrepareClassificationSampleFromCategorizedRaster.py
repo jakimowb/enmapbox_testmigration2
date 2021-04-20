@@ -1,21 +1,24 @@
+from enmapboxprocessing.algorithm.prepareclassificationsamplefromcategorizedraster import \
+    PrepareClassificationSampleFromCategorizedRaster
 from enmapboxprocessing.algorithm.prepareclassificationsamplefrommapandraster import \
     PrepareClassificationSampleFromMapAndRaster
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
 from enmapboxtestdata import enmap, landcover_polygons, landcover_points
+from enmapboxunittestdata import landcover_raster_30m
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
-class TestPrepareClassificationSampleFromMapAndRaster(TestCase):
+class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
 
-    def test_polygon(self):
-        alg = PrepareClassificationSampleFromMapAndRaster()
+    def test_styled(self):
+        alg = PrepareClassificationSampleFromCategorizedRaster()
         parameters = {
-            alg.P_RASTER: enmap,
-            alg.P_MAP: landcover_polygons,
+            alg.P_FEATURE_RASTER: enmap,
+            alg.P_CATEGORIZED_RASTER: landcover_raster_30m,
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
         }
         self.runalg(alg, parameters)

@@ -19,16 +19,19 @@ from typeguard import typechecked
 
 @typechecked
 class PrepareClassificationSampleFromMapAndRaster(EnMAPProcessingAlgorithm):
-    P_MAP, _MAP = 'map', 'Categorized map layer'
+    P_MAP, _MAP = 'map', 'Categorized layer'
     P_RASTER, _RASTER = 'raster', 'Raster layer with features'
-    P_OUTPUT_SAMPLE, _OUTPUT_SAMPLE = 'outputSample', 'Output classification sample'
+    P_BAND_LIST, _BAND_LIST = 'bandList', 'Selected bands/features'
+    P_CLASS_FIELD, _CLASS_FIELD = 'classField', 'Field with class label'
+    P_CLASS_BAND, _CLASS_BAND = 'classBand', 'Band with class label'
+    P_OUTPUT_DATASET, _OUTPUT_DATASET = 'outputClassificationDataset', 'Output dataset'
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Prepare classification sample (from categorized map and feature raster)'
+        return 'Prepare classification dataset (from categorized layer and feature raster)'
 
     def shortDescription(self) -> str:
-        return 'Sample all labeled pixels and store the result as a binary Pickle (*.pkl) file.'
+        return 'Sample all labeled pixels and store the result as a pickle file.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
@@ -36,16 +39,21 @@ class PrepareClassificationSampleFromMapAndRaster(EnMAPProcessingAlgorithm):
              f'Locations with categorical labels. {self.helpParameterMapClassification()} '
              f'The layer is resampled, reprojected and rasterized internally to match the raster grid, if required.\n'),
             (self._RASTER, 'Raster used for sampling feature values.'),
-            (self._OUTPUT_SAMPLE, 'Output sample destination *.pkl file.')
+            (self._BAND_LIST, 'Bands to subset and rearrange. '
+                              'An empty selection defaults to all bands in native order.'),
+            (self._OUTPUT_DATASET, 'Output dataset destination pickle file.')
         ]
 
     def group(self):
-        return Group.Test.value + Group.Classification.value
+        return Group.Test.value + Group.DatasetPreparation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterMapLayer(self.P_MAP, self._MAP)
         self.addParameterRasterLayer(self.P_RASTER, self._RASTER)
-        self.addParameterFileDestination(self.P_OUTPUT_SAMPLE, self._OUTPUT_SAMPLE, 'Pickle (*.pkl)')
+        self.addParameterBandList(
+            self.P_BAND_LIST, self._BAND_LIST, parentLayerParameterName=self.P_RASTER, optional=True
+        )
+        self.addParameterFileDestination(self.P_OUTPUT_DATASET, self._OUTPUT_DATASET, self.PickleFileFilter)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         valid, message = self.checkParameterMapClassification(parameters, self.P_MAP, context)
@@ -58,7 +66,8 @@ class PrepareClassificationSampleFromMapAndRaster(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         classification = self.parameterAsLayer(parameters, self.P_MAP, context)
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_SAMPLE, context)
+        bandList = self.parameterAsInts(parameters, self.P_BAND_LIST, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_DATASET, context)
         maximumMemoryUsage = None
 
         with open(filename + '.log', 'w') as logfile:
@@ -101,7 +110,7 @@ class PrepareClassificationSampleFromMapAndRaster(EnMAPProcessingAlgorithm):
             dumpDict = dump._asdict()
             Utils.pickleDump(dumpDict, filename)
 
-            result = {self.P_OUTPUT_SAMPLE: filename}
+            result = {self.P_OUTPUT_DATASET: filename}
             self.toc(feedback, result)
         return result
 

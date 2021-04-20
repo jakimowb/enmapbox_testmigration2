@@ -46,12 +46,11 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     NearestNeighbourResampleAlg, BilinearResampleAlg, CubicResampleAlg, CubicSplineResampleAlg, LanczosResampleAlg, \
     AverageResampleAlg, ModeResampleAlg, MinResampleAlg, Q1ResampleAlg, MedResampleAlg, Q3ResampleAlg, \
     MaxResampleAlg = range(12)
-
     O_DATA_TYPE = 'Byte Int16 UInt16 Int32 UInt32 Float32 Float64'.split()
     Byte, Int16, UInt16, Int32, UInt32, Float32, Float64 = range(len(O_DATA_TYPE))
-    SkipOutput = '[Skip output]'
 
-    _MAXIMUM_MEMORY_USAGE = 'Maximum memory usage'
+    PickleFileFilter = 'Pickle (*.pkl)'
+
 
     def createInstance(self):
         return type(self)()
@@ -664,6 +663,7 @@ class Group(Enum):
     CreateVector = 'Vector creation'
     Classification = 'Classification'
     Clustering = 'Clustering'
+    DatasetPreparation = 'Dataset preparation'
     ImportData = 'Import data'
     Masking = 'Masking'
     Options = 'Options'

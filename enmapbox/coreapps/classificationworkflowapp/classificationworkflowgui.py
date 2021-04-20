@@ -447,10 +447,10 @@ class ClassificationWorkflowGui(QMainWindow):
 
         if parameters is None:
             parameters = dict()
-        parameters[alg.P_OUTPUT_SAMPLE] = self.createFilename(self.mSampleBasename, '.pkl')
+        parameters[alg.P_OUTPUT_DATASET] = self.createFilename(self.mSampleBasename, '.pkl')
 
         result = self.showAlgorithmDialog(alg, parameters, autoRun=autoRun)
-        self.mSample.setFilePath(result[alg.P_OUTPUT_SAMPLE])
+        self.mSample.setFilePath(result[alg.P_OUTPUT_DATASET])
 
     @errorHandled(successMessage='splitted sample')
     def runSplitSample(self, *args):
