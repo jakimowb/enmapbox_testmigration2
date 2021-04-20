@@ -428,12 +428,27 @@ Setup Environment
 
 * Project Interpreter: `<OSGEO4W>\bin\python.exe`
 
+    .. figure:: img/pycharm_osgeo4w_interpreter.png
+         :width: 100%
+
+         Using the OSGeo4W python as project interpreter.
+
 * Terminal Shell Path: `cmd.exe "/K" <your path to>\qgis-dev.bat`
   (this is why we created two batch files. `qgis-dev.bat` setups the environment, but does not start any app)
+
+    .. figure:: img/pycharm_osgeo4w_terminal.png
+         :width: 100%
+
+         The `qgis-dev.bat` will be called when starting the terminal
+
 
 * add `<OSGEO4W>\apps\qgis-dev\python` and
   `<OSGEO4W>\apps\qgis-dev\python\plugins` as source folders
 
+    .. figure:: img/pycharm_osgeo4w_content_roots.png
+         :width: 100%
+
+         Adding the QGIS `python` and `python\plugins` folder as content roots.
 
 Debug QGIS
 ----------

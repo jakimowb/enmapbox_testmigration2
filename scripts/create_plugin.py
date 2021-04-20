@@ -59,7 +59,7 @@ MD.mTracker = enmapbox.ISSUE_TRACKER
 MD.mRepository = enmapbox.REPOSITORY
 MD.mQgisMinimumVersion = enmapbox.MIN_VERSION_QGIS
 MD.mEmail = 'enmapbox@enmap.org'
-MD.mHasProcessingProvider=True
+MD.mHasProcessingProvider = True
 
 ########## End of config section
 
@@ -117,14 +117,13 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     compileEnMAPBoxResources()
 
     # copy python and other resource files
-    pattern = re.compile(r'\.(sli|hdr|py|svg|png|txt|ui|tif|qml|md|js|css|json|aux\.xml|pth)$')
+    pattern = re.compile(r'\.(sli|hdr|py|svg|png|txt|ui|tif|qml|md|js|css|json|aux\.xml)$')
     files = list(scantree(DIR_REPO / 'enmapbox', pattern=pattern))
     files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdc', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdsm', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
-    files.extend(list(scantree(DIR_REPO / 'enmapboxprocessing', pattern=pattern)))
 
     # add special files required by EnMAP-Box Applications
     files.extend(list(scantree(DIR_REPO / 'enmapbox' / 'apps' / 'lmuvegetationapps',
