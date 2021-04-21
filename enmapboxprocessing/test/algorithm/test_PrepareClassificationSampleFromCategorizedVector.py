@@ -1,22 +1,24 @@
 from enmapboxprocessing.algorithm.prepareclassificationsamplefromcategorizedraster import \
     PrepareClassificationSampleFromCategorizedRaster
+from enmapboxprocessing.algorithm.prepareclassificationsamplefromcategorizedvector import \
+    PrepareClassificationSampleFromCategorizedVector
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapboxtestdata import enmap
+from enmapboxtestdata import enmap, landcover_polygons, landcover_points
 from enmapboxunittestdata import landcover_raster_30m
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
-class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
+class TestPrepareClassificationSampleFromCategorizedVector(TestCase):
 
-    def test_styled(self):
-        alg = PrepareClassificationSampleFromCategorizedRaster()
+    def test_styled_poly(self):
+        alg = PrepareClassificationSampleFromCategorizedVector()
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
-            alg.P_CATEGORIZED_RASTER: landcover_raster_30m,
+            alg.P_CATEGORIZED_VECTOR: landcover_polygons,
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
         }
         self.runalg(alg, parameters)
@@ -30,12 +32,11 @@ class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
             ['roof', 'pavement', 'low vegetation', 'tree', 'soil', 'water'], [c.name for c in dump.categories]
         )
 
-    def test_byBand(self):
-        alg = PrepareClassificationSampleFromCategorizedRaster()
+    def test_styled_point(self):
+        alg = PrepareClassificationSampleFromCategorizedVector()
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
-            alg.P_CATEGORIZED_RASTER: landcover_raster_30m,
-            alg.P_CATEGORY_BAND: 0,
+            alg.P_CATEGORIZED_VECTOR: landcover_points,
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
         }
         self.runalg(alg, parameters)
@@ -45,5 +46,28 @@ class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
         self.assertEqual(177, len(dump.features))
         self.assertEqual(['band 8 (0.460000 Micrometers)', 'band 9 (0.465000 Micrometers)'], dump.features[:2])
         self.assertListEqual([1, 2, 3, 4, 5, 6], [c.value for c in dump.categories])
-        self.assertListEqual(['1', '2', '3', '4', '5', '6'], [c.name for c in dump.categories])
+        self.assertListEqual(
+            ['roof', 'pavement', 'low vegetation', 'tree', 'soil', 'water'], [c.name for c in dump.categories]
+        )
+
+
+    def test_field_poly(self):
+        alg = PrepareClassificationSampleFromCategorizedVector()
+        parameters = {
+            alg.P_FEATURE_RASTER: enmap,
+            alg.P_CATEGORIZED_VECTOR: landcover_polygons,
+            alg.P_CATEGORY_FIELD: 'level_3',
+            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+        }
+        self.runalg(alg, parameters)
+        dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
+        self.assertEqual((1924, 177), dump.X.shape)
+        self.assertEqual((1924, 1), dump.y.shape)
+        self.assertEqual(177, len(dump.features))
+        self.assertEqual(['band 8 (0.460000 Micrometers)', 'band 9 (0.465000 Micrometers)'], dump.features[:2])
+        self.assertListEqual([1, 2, 3, 4, 5, 6], [c.value for c in dump.categories])
+        self.assertListEqual(
+            ['low vegetation', 'pavement', 'roof', 'soil', 'tree', 'water'],
+            [c.name for c in dump.categories]
+        )
 

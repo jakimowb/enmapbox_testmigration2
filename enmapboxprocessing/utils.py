@@ -11,7 +11,8 @@ from PyQt5.QtGui import QColor
 from osgeo import gdal
 from qgis._core import (QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRasterRenderer,
                         QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsRectangle, QgsRasterLayer,
-                        QgsRasterDataProvider, QgsPointXY, QgsPoint, Qgis, QgsWkbTypes, QgsSymbol, QgsVectorLayer)
+                        QgsRasterDataProvider, QgsPointXY, QgsPoint, Qgis, QgsWkbTypes, QgsSymbol, QgsVectorLayer,
+                        QgsFeature)
 import numpy as np
 from sklearn.base import ClassifierMixin
 
@@ -237,6 +238,24 @@ class Utils(object):
         mask = reader.maskArray(array, bandList=[bandNo], defaultNoDataValue=0)
         values = np.unique(array[0][mask[0]])
         categories = [Category(int(v), str(v), QColor(randint(0, 2**24)).name()) for v in values]
+        return categories
+
+    @classmethod
+    def categoriesFromVectorField(cls, vector: QgsVectorLayer, field: str) -> Categories:
+        feature: QgsFeature
+        values = list()
+        for feature in vector.getFeatures():
+            value = feature.attribute(field)
+            if isinstance(value, (int, float, str)):
+                values.append(value)
+        values = np.unique(values)
+        categories = list()
+        for value in values:
+            color = QColor(randint(0, 2**24)).name()
+            name = str(value)
+            if not isinstance(value, str):
+                value = int(value)
+            categories.append(Category(value, name, color))
         return categories
 
     @classmethod
