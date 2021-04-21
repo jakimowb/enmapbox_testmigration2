@@ -6,9 +6,8 @@ from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer, QgsPalettedRasterRenderer,
                         QgsProcessingParameterField, QgsCategorizedSymbolRenderer, QgsVectorLayer)
 
-from enmapboxprocessing.algorithm.prepareclassificationsamplefromcategorizedraster import \
-    PrepareClassificationSampleFromCategorizedRaster
-from enmapboxprocessing.algorithm.translateclassificationalgorithm import TranslateClassificationAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import \
+    PrepareClassificationDatasetFromCategorizedRaster
 from enmapboxprocessing.algorithm.vectortoclassificationalgorithm import VectorToClassificationAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
@@ -18,7 +17,7 @@ from typeguard import typechecked
 
 
 @typechecked
-class PrepareClassificationSampleFromCategorizedVector(EnMAPProcessingAlgorithm):
+class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm):
     P_CATEGORIZED_VECTOR, _CATEGORIZED_VECTOR = 'categorizedVector', 'Categorized vector layer'
     P_FEATURE_RASTER, _FEATURE_RASTER = 'featureRaster', 'Raster layer with features'
     P_CATEGORY_FIELD, _CATEGORY_FIELD = 'categoryField', 'Field with class values'
@@ -110,7 +109,7 @@ class PrepareClassificationSampleFromCategorizedVector(EnMAPProcessingAlgorithm)
                 classification = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
                 categories = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
                 feedback.pushInfo('Sample data')
-                X, y = PrepareClassificationSampleFromCategorizedRaster.sampleData(
+                X, y = PrepareClassificationDatasetFromCategorizedRaster.sampleData(
                     raster, classification, 1, categories, feedback2
                 )
 

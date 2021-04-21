@@ -17,9 +17,11 @@ from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitR
 from enmapboxprocessing.algorithm.fitsvcalgorithm import FitSvcAlgorithm
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import  \
+    PrepareClassificationDatasetFromCategorizedRaster
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvector import   \
+    PrepareClassificationDatasetFromCategorizedVector
 from enmapboxprocessing.algorithm.prepareclassificationsamplefromcsv import PrepareClassificationSampleFromCsv
-from enmapboxprocessing.algorithm.prepareclassificationsamplefrommapandraster import \
-    PrepareClassificationSampleFromMapAndRaster
 from enmapboxprocessing.algorithm.prepareclassificationsamplefromtable import PrepareClassificationSampleFromTable
 from enmapboxprocessing.algorithm.prepareclassificationsamplefromvectorandfields import \
     PrepareClassificationSampleFromVectorAndFields
@@ -53,7 +55,8 @@ def algorithms():
         PredictClassificationAlgorithm(),
         PredictClassPropabilityAlgorithm(),
         PrepareClassificationSampleFromCsv(),
-        PrepareClassificationSampleFromMapAndRaster(),
+        PrepareClassificationDatasetFromCategorizedRaster(),
+        PrepareClassificationDatasetFromCategorizedVector(),
         PrepareClassificationSampleFromTable(),
         PrepareClassificationSampleFromVectorAndFields(),
         RandomPointsInMaskAlgorithm(),

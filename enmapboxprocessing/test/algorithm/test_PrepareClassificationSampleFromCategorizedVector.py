@@ -1,7 +1,7 @@
 from enmapboxprocessing.algorithm.prepareclassificationsamplefromcategorizedraster import \
-    PrepareClassificationSampleFromCategorizedRaster
+    PrepareClassificationDatasetFromCategorizedRaster
 from enmapboxprocessing.algorithm.prepareclassificationsamplefromcategorizedvector import \
-    PrepareClassificationSampleFromCategorizedVector
+    PrepareClassificationDatasetFromCategorizedVector
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
@@ -15,7 +15,7 @@ c = ['', 'c:'][int(writeToDisk)]
 class TestPrepareClassificationSampleFromCategorizedVector(TestCase):
 
     def test_styled_poly(self):
-        alg = PrepareClassificationSampleFromCategorizedVector()
+        alg = PrepareClassificationDatasetFromCategorizedVector()
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_polygons,
@@ -33,7 +33,7 @@ class TestPrepareClassificationSampleFromCategorizedVector(TestCase):
         )
 
     def test_styled_point(self):
-        alg = PrepareClassificationSampleFromCategorizedVector()
+        alg = PrepareClassificationDatasetFromCategorizedVector()
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_points,
@@ -52,7 +52,7 @@ class TestPrepareClassificationSampleFromCategorizedVector(TestCase):
 
 
     def test_field_poly(self):
-        alg = PrepareClassificationSampleFromCategorizedVector()
+        alg = PrepareClassificationDatasetFromCategorizedVector()
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_polygons,
@@ -70,4 +70,3 @@ class TestPrepareClassificationSampleFromCategorizedVector(TestCase):
             ['low vegetation', 'pavement', 'roof', 'soil', 'tree', 'water'],
             [c.name for c in dump.categories]
         )
-

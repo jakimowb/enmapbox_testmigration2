@@ -1,5 +1,5 @@
 from enmapboxprocessing.algorithm.prepareclassificationsamplefromcategorizedraster import \
-    PrepareClassificationSampleFromCategorizedRaster
+    PrepareClassificationDatasetFromCategorizedRaster
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
@@ -13,7 +13,7 @@ c = ['', 'c:'][int(writeToDisk)]
 class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
 
     def test_styled(self):
-        alg = PrepareClassificationSampleFromCategorizedRaster()
+        alg = PrepareClassificationDatasetFromCategorizedRaster()
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_RASTER: landcover_raster_30m,
@@ -31,7 +31,7 @@ class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
         )
 
     def test_byBand(self):
-        alg = PrepareClassificationSampleFromCategorizedRaster()
+        alg = PrepareClassificationDatasetFromCategorizedRaster()
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_RASTER: landcover_raster_30m,

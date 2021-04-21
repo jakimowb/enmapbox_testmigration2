@@ -14,7 +14,7 @@ from typeguard import typechecked
 
 
 @typechecked
-class PrepareClassificationSampleFromCategorizedRaster(EnMAPProcessingAlgorithm):
+class PrepareClassificationDatasetFromCategorizedRaster(EnMAPProcessingAlgorithm):
     P_CATEGORIZED_RASTER, _CATEGORIZED_RASTER = 'categorizedRaster', 'Categorized raster layer'
     P_FEATURE_RASTER, _FEATURE_RASTER = 'featureRaster', 'Raster layer with features'
     P_CATEGORY_BAND, _CATEGORY_BAND = 'categoryBand', 'Band with class values'
