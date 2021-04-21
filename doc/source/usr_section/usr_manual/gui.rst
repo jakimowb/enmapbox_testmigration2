@@ -216,7 +216,6 @@ Crosshair
 
   .. image:: ../../img/crosshair_style.png
 
-|
 
 Spectral Library Window |viewlist_spectrumdock|
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -239,52 +238,51 @@ means spectra can be directly collected from an image. Furthermore, external lib
 
 .. list-table::
    :widths: auto
-   :align: left
    :header-rows: 1
 
    * - Button
      - Description
    * - |plus_green|
-     - | Adds currently overlaid profiles
-       | to the spectral library
+     - Adds currently overlaid profiles
+       to the spectral library
    * - |profile_add_auto|
-     - | Activate to add profiles automatically
-       | into the spectral library
+     - Activate to add profiles automatically
+       into the spectral library
    * - |speclib_add|
-     - | Import Spectral Library
+     - Import Spectral Library
    * - |speclib_save|
-     - | Save Spectral Library
+     - Save Spectral Library
    * - |mActionSelectAll|
-     - | Selects all elements in
-       | the spectral library
+     - Selects all elements in
+       the spectral library
    * - |mActionInvertSelection|
-     - | Inverts the current selection
+     - Inverts the current selection
    * - |mActionDeselectAll|
-     - | Remove selection (deselect everything)
+     - Remove selection (deselect everything)
    * - |mActionReload|
-     - | Reload the table
+     - Reload the table
    * - |mActionToggleEditing|
-     - | Toggle editing mode
+     - Toggle editing mode
    * - |mActionEditCut|
-     - | Cut selected rows to clipboard
+     - Cut selected rows to clipboard
    * - |mActionEditCopy|
-     - | Copy selected rows to clipboard
+     - Copy selected rows to clipboard
    * - |mActionEditPaste|
-     - | Paste features from clipboard
+     - Paste features from clipboard
    * - |mActionDeleteSelected|
-     - | Delete selected features
+     - Delete selected features
    * - |mActionSaveAllEdits|
-     - | Save edits
+     - Save edits
    * - |mActionNewAttribute|
-     - | Add New field
+     - Add New field
    * - |mActionDeleteAttribute|
-     - | Delete field
+     - Delete field
    * - |system|
-     - | Enter the Spectral Library Layer Properties
+     - Enter the Spectral Library Layer Properties
    * - |mActionFormView|
-     - | Switch to form view
+     - Switch to form view
    * - |mActionOpenTable|
-     - | Switch to table view
+     - Switch to table view
 
 
 **Collecting spectra:**
@@ -295,6 +293,8 @@ means spectra can be directly collected from an image. Furthermore, external lib
   the plot in the Library Window. Mind that this will only visualize the spectrum, but nothing is saved at this point.
 * To add/save a selected spectrum to the library, click the |plus_green| button. Mind the new table entry on the right of the window.
   If spectra should be directly added to the library while a pixel is selected/clicked, enable the |profile_add_auto| button.
+
+|
 
 .. tip::
 

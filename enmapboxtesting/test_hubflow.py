@@ -1,6 +1,8 @@
 import unittest
 import os
 import pathlib
+import warnings
+
 from osgeo import gdal
 import pickle
 import json
@@ -62,6 +64,8 @@ class HUBFlowTests(TestCase):
 
         configuration = {}
 
+
+
         def onFeedbackProgress(v: float):
             print(f'Progress {v}')
 
@@ -73,18 +77,23 @@ class HUBFlowTests(TestCase):
         initAll()
         procReg = QgsApplication.instance().processingRegistry()
         assert isinstance(procReg, QgsProcessingRegistry)
-        alg_ids = [a.id() for a in procReg.algorithms()]
-        from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
-        a = FitRandomForestClassifierAlgorithm()
-        aid = f'enmapbox:{a.id()}'
-        alg: FitRandomForestClassifierAlgorithm = procReg.algorithmById(aid)
-        self.assertIsInstance(alg, QgsProcessingAlgorithm)
-        self.assertIsInstance(alg, FitRandomForestClassifierAlgorithm)
 
         DIR_TMP = self.createTestOutputDirectory()
         path_rfc_pkl = DIR_TMP / 'test_rfc.pkl'
 
         if not path_rfc_pkl.is_file():
+            from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import \
+                FitRandomForestClassifierAlgorithm
+            a = FitRandomForestClassifierAlgorithm()
+            aid = f'enmapbox:{a.id()}'
+            alg: FitRandomForestClassifierAlgorithm = procReg.algorithmById(aid)
+            if not isinstance(alg, QgsProcessingAlgorithm):
+                warnings.warn(f'Algorithm not added to registered processing provider: {aid}')
+                alg = a
+
+            self.assertIsInstance(alg, QgsProcessingAlgorithm)
+            self.assertIsInstance(alg, FitRandomForestClassifierAlgorithm)
+
             parameters = {FitRandomForestClassifierAlgorithm.P_RASTER: enmapboxtestdata.enmap,
                           FitRandomForestClassifierAlgorithm.P_CLASSIFICATION: enmapboxtestdata.landcover_points,
                           FitRandomForestClassifierAlgorithm.P_OUTPUT_CLASSIFIER: path_rfc_pkl.as_posix()}
@@ -101,19 +110,34 @@ class HUBFlowTests(TestCase):
 
         self.assertTrue(path_pkl.is_file())
 
-        with open(path_pkl, 'rb') as f:
-            obj = pickle.load(f)
-
-            s = ""
-
         ds = DataSourceManager()
         dm = DataSourceManagerTreeModel(None, ds)
         dtv = DataSourceTreeView()
         dtv.setModel(dm)
 
-        sources = ds.addSource(path_pkl)
-        self.assertTrue(len(sources) > 0)
-        s = ""
+        path_sample_pkl = DIR_TMP / 'sample.pkl'
+        path_D_json = DIR_TMP / 'example.json'
+        path_D_pkl = DIR_TMP / 'example.pkl'
+        D = {'String': 'A',
+             'List': ['b', 'B', {'a': 'subdictionary'}],
+             'Tuple': tuple([f'arg {i}' for i in range(26)]),
+             }
+        # D['Recursive'] = [D]
+
+        D2 = D.copy()
+        D2['Array'] = np.ones(shape=(64,24), dtype=float)
+
+        with open(path_D_json, 'w', encoding='utf-8') as f:
+            json.dump(D, f)
+        with open(path_D_pkl, 'wb') as f:
+            pickle.dump(D2, f)
+
+        for p in [path_sample_pkl, path_pkl, path_D_json, path_D_pkl]:
+            if p.is_file():
+                sources = ds.addSource(p)
+                self.assertTrue(len(sources) > 0)
+
+        self.showGui(dtv)
 
 
 if __name__ == '__main__':

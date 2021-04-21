@@ -60,82 +60,55 @@ EnMAP-Box repository:
 3. Create a QGIS conda environment
 ==================================
 
-The following setup bases on `this description <http://planet.qgis.org/planet/user/22/tag/conda/>`_ and
-installs QGIS into a `Conda`_ environment.
-It was tested successfully on Windows 10, Ubuntu 18 and macOS.
+1. Make sure `conda <https://docs.conda.io/en/latest/miniconda.html>`_ is installed on your system.
 
-1.  `Create <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands>`_
-    a new conda environment *qgis_stable* and install qgis from the conda-forge channel
+In the EnMAP-Box repo you will find a YAML file which defines a conda environment where all necessary dependencies for the EnMAP-Box are included:
 
-    .. code-block:: bat
+.. literalinclude:: /../../conda_environment.yml
+   :caption: conda_environment.yml
+   :language: yaml
 
-         $>conda create -n qgis-stable -c conda-forge qgis
+2. To create a new conda environment named *qgis_stable* as specified in the YAML file open the conda shell and type:
 
+.. code-block:: batch
 
-2.  `Activate <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#activating-an-environment>`_
+   conda env create --name qgis_stable --file https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/conda_environment.yml
+
+.. tip::
+
+   Depending on the components and applications you like to use, it might be required to install more packages.
+   If you cloned the EnMAP-Box repository you can also point to the local :file:`conda_environment.yml`.
+   Edit the ``--name`` or the YAML file itself as you wish. For more information on creating and managing conda environments visit the `conda documentation <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file>`_
+
+3.  `Activate <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#activating-an-environment>`_
     the new environment
 
-    .. code-block:: bat
+    .. code-block:: batch
 
-        $>conda activate qgis_stable
+       conda activate qgis_stable
 
 
-
-3.  Install other required packages, e.g. that listed in ``enmap-box/requirements.txt`` and ``enmap-box/requirements_developers.txt``.
+4.  Now you can start :ref:`QGIS`, the :ref:`dev_qt_designer` and :ref:`dev_qt_assistant` from your conda shell:
 
     .. code-block:: batch
 
-         (qgis_stable) $>conda install scikit-learn --channel=conda-forge
-         (qgis_stable) $>conda install matplotlib --channel=conda-forge
-
-    Some python packages which are not available as conda package can be installed directly with pip_.
-
-    .. code-block:: batch
-
-        (qgis_stable) $>pip install gitpython
-        (qgis_stable) $>pip install git-lfs
-
-    .. admonition:: Note
-
-        Depending on the components and applications you like to use, it might be required to install more packages.
-
-
-
-4.  Now you can start `QGIS`_, the :ref:`dev_qt_designer` and :ref:`dev_qt_assistant` from your conda shell:
-
-    .. code-block:: batch
-
-        (qgis_stable) $>qgis
-        (qgis_stable) $>designer
-        (qgis_stable) $>assistant
+       qgis
+       designer
+       assistant
 
     .. admonition:: macOS Users
 
-            If you are using macOS and calling `qgis` does not show any application window, it might be necessary to set:
+            If you are using macOS and calling ``qgis`` does not show any application window, it might be necessary to set:
 
-            .. code-block:: batch
+            .. code-block:: bash
 
-                `export QT_MAC_WANTS_LAYER=1`
+               export QT_MAC_WANTS_LAYER=1
 
-            This can be done permanently for the `qgis_stable` environment by:
+            This can be done permanently for the environment by:
 
-            .. code-block:: batch
+            .. code-block:: bash
 
-                `(qgis_stable) conda env config vars set QT_MAC_WANTS_LAYER=1`
-
-
-
-5.  Start python and check it's version. It should be a Python >= 3.7.
-    Calling ``quit()`` will close the python interpreter and return you to the conda shell:
-
-    .. code-block:: batch
-
-        (qgis_stable) C:\>python
-        Python 3.8.1 | packaged by conda-forge | (default, Jan  5 2020, 20:17:16) [MSC v.1916 64 bit (AMD64)] on win32
-        Type "help", "copyright", "credits" or "license" for more information.
-        >>> quit()
-
-        (qgis_stable) C:\>
+               conda env config vars set QT_MAC_WANTS_LAYER=1
 
 
 
@@ -273,13 +246,11 @@ It was tested successfully on Windows 10, Ubuntu 18 and macOS.
         (qgis_stable) ..\enmap-box>python enmapbox
 
 
-
 Other Tools
 ===========
 
 The Qt company provides several tools to that help to create Qt applications and are useful for PyQt and PyQGIS users
 as well.
-
 
 .. _dev_qt_assistant:
 
@@ -372,6 +343,105 @@ Qt version used by QGIS.
            (see https://stackoverflow.com/questions/33240137/git-clone-pull-continually-freezing-at-store-key-in-cache)
            to solve it, start putty and connect try to the server once per SSH (e.g. to bitbucket.org). puty will save its fingerprint
         7. now you can call git push using ssh authentification in background
+
+OSGeo4W for Devs
+================
+
+If you work on windows and want to test your code based on nightly builds of the upcoming QGIS
+version, or like to inspect/debug the QGIS C++ API at runtime, you might use the OSGeo4W
+installer to setup your development environment:
+
+Setup Environment
+-----------------
+
+1. Download the (new) OSGeo4W installer (`osgeo4w-setup.exe` from https://www.qgis.org/en/site/forusers/download.html )
+
+2. Install the nightly build branch `qgis-dev` and related debug symbols `qgis-dev-pdb`.
+
+3. Install other required packages, e.g. pip3 etc. Later on.
+   In case of missing packages, search and install via OSGeo4W installer first. If not available there, use
+   the OSGeo4W shell and call `pip`.
+
+4. Create a `qgis-dev-env.bat` to setup your QGIS environment
+
+    .. code-block:: bash
+
+        set OSGEO4W_ROOT=D:\OSGeo4W
+        set QGISDISTR=qgis-dev
+        set DIR_GIT=C:\Program Files\Git\cmd
+        set DIR_LFS=C:\Program Files\Git LFS
+        :: add GIT and LFS to path
+
+        call "%OSGEO4W_ROOT%\bin\o4w_env.bat"
+        path %OSGEO4W_ROOT%\apps\%QGISDISTR%\bin;%DIR_GIT%;%DIR_LFS%;%PATH%
+
+        set QGIS_PREFIX_PATH=%OSGEO4W_ROOT:\=/%/apps/%QGISDISTR%
+        set GDAL_FILENAME_IS_UTF8=YES
+        rem Set VSI cache to be used as buffer, see #6448
+        set VSI_CACHE=TRUE
+        set VSI_CACHE_SIZE=1000000
+        set QT_PLUGIN_PATH=%OSGEO4W_ROOT%\apps\%QGISDISTR%\qtplugins;%OSGEO4W_ROOT%\apps\qt5\plugins
+        set PYTHONPATH=%OSGEO4W_ROOT%\apps\%QGISDISTR%\python;%OSGEO4W_ROOT%\apps\%QGISDISTR%\python\plugins;%PYTHONPATH%
+
+    Don't forget to make git and git-lfs available in this environment.
+
+5. Create a `qgis-dev-pycharm.bat` in the same folder as `qgis-dev.bat` that starts PyCharm
+
+    .. code-block:: bash
+
+        call "%~dp0\QGIS-dev.bat"
+        set PYCHARM_EXE="C:\Program Files (x86)\JetBrains\PyCharm 2020.3.4\bin\pycharm64.exe"
+
+        start "PYCHARM" /B %PYCHARM_EXE%
+
+        :: uncomment to start QGIS
+        :: start "QGIS" /B "%OSGEO4W_ROOT%\bin%QGISDISTR%-bin.exe" %*
+
+6. Call `qgis-dev-pycharm.bat` to start PyCharm and set your project settings to:
+
+* Project Interpreter: `<OSGEO4W>\bin\python.exe`
+
+    .. figure:: img/pycharm_osgeo4w_interpreter.png
+         :width: 100%
+
+         Using the OSGeo4W python as project interpreter.
+
+* Terminal Shell Path: `cmd.exe "/K" <your path to>\qgis-dev.bat`
+  (this is why we created two batch files. `qgis-dev.bat` setups the environment, but does not start any app)
+
+    .. figure:: img/pycharm_osgeo4w_terminal.png
+         :width: 100%
+
+         The `qgis-dev.bat` will be called when starting the terminal
+
+
+* add `<OSGEO4W>\apps\qgis-dev\python` and
+  `<OSGEO4W>\apps\qgis-dev\python\plugins` as source folders
+
+    .. figure:: img/pycharm_osgeo4w_content_roots.png
+         :width: 100%
+
+         Adding the QGIS `python` and `python\plugins` folder as content roots.
+
+Debug QGIS
+----------
+
+
+1. Clone the QGIS repo and checkout the latest master
+
+2. Install Visual Studio and open the QGIS repo
+
+3. Start a QGIS desktop, e.g. with `qgis-dev` from the OSGeo4W shell
+
+4. Attach the Visual Studio debugger to a QGIS desktop instance
+
+* Open Debug > Attach to Process (CTRL+ALT+P)
+
+* Filter available processes by 'QGIS' and, e.g., select `qgis-dev-bin.exe`
+
+* Press the Attach button
+
+
 
 
 

@@ -11,6 +11,7 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
+import pathlib
 import unittest
 import xmlrunner
 from qgis import *
@@ -18,6 +19,8 @@ from qgis.gui import *
 from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsPointXY, QgsProject
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+
+from enmapbox.gui.mimedata import fromLayerList
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 
 from enmapboxtestdata import enmap, hires, landcover_polygons, library
@@ -150,7 +153,7 @@ class MapCanvasTests(EnMAPBoxTestCase):
         md = QMimeData()
         md.setUrls([QUrl.fromLocalFile(f) for f in allFiles])
 
-        #drop URLs
+        # drop URLs
         mapCanvas.setLayers([])
         mapCanvas.dropEvent(TestObjects.createDropEvent(md))
         #self.assertTrue(len(self.mapCanvas.layerPaths()) == len(spatialFiles))
@@ -159,7 +162,7 @@ class MapCanvasTests(EnMAPBoxTestCase):
         for p in spatialFiles:
             self.assertTrue(pathlib.Path(p) in layerPaths)
 
-        #drop layertree
+        # drop layertree
 
         layers = [QgsVectorLayer(landcover_polygons), QgsRasterLayer(enmap)]
         md = fromLayerList(layers)
@@ -170,7 +173,7 @@ class MapCanvasTests(EnMAPBoxTestCase):
         for p in mapCanvas.layerPaths():
             self.assertTrue(p in spatialFiles)
 
-        #drop registered layers
+        # drop registered layers
         layers = [QgsVectorLayer(landcover_polygons), QgsRasterLayer(enmap)]
         QgsProject.instance().addMapLayers(layers)
 

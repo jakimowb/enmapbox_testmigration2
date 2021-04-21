@@ -54,15 +54,15 @@ try:
     on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
     if on_rtd:
-        print('Fetching files with ...')
-        DOC_SOURCES_DIR = os.path.dirname(os.path.abspath(__file__))
-        PROJECT_ROOT_DIR = os.path.dirname(os.path.dirname(DOC_SOURCES_DIR))
-        sys.path.insert(0, DOC_SOURCES_DIR)
-        print('PROJECT_ROOT_DIR', PROJECT_ROOT_DIR)
-
-        from git_lfs import fetch
-
-        fetch(PROJECT_ROOT_DIR, verbose=2)
+        # Workaround to install and execute git-lfs on Read the Docs
+        # thanks to https://github.com/readthedocs/readthedocs.org/issues/1846#issuecomment-477184259
+        if not os.path.exists('./git-lfs'):
+            os.system(
+                'wget https://github.com/git-lfs/git-lfs/releases/download/v2.13.3/git-lfs-linux-amd64-v2.13.3.tar.gz')
+            os.system('tar xvfz git-lfs-linux-amd64-v2.13.3.tar.gz')
+            os.system('./git-lfs install')  # make lfs available in current repository
+            os.system('./git-lfs fetch')  # download content from remote
+            os.system('./git-lfs checkout')  # make local files to have the real content on them
 except Exception as ex:
     print('Warning: Failed to fetch git-lfs files')
     print(ex)

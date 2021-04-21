@@ -60,11 +60,13 @@ you need to allow your macOS to install it:
 
 
 .. image:: ../img/macos/install_qgis1.png
+   :width: 65%
 
 
 Now open the disk image (double click) and copy the QGIS.app to your applications folder
 
 .. image:: ../img/macos/install_qgis2.png
+   :width: 50%
 
 
 ....
@@ -177,8 +179,6 @@ Linux
 
 Mac
 ***
-
-Most packages required by the EnMAP-Box, like scikit-learn, are already a part of the QGIS.app environment.
 
 Since QGIS 3.16, the `packaging mechanism <https://www.lutraconsulting.co.uk/blog/2020/10/01/qgis-macos-package/>`_,
 allows to install additional package with pip as followed::

@@ -1337,7 +1337,7 @@ class EnMAPBox(QgisInterface, QObject):
                     counts[app] = n_counts + 1
 
             self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Warning, html=True)
-
+            messageLog(title+'\n'+'\n'.join(info), level=Qgis.Warning)
         settings.setValue(KEY_COUNTS, counts)
 
     def settings(self) -> QSettings:

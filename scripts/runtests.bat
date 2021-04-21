@@ -3,7 +3,8 @@
 ::
 @echo off
 set CI=True
-
+set PYTHONPATH=%~dp0/..;%PYTHONPATH%
+set PYTHONPATH
 WHERE python3 >nul 2>&1 && (
     echo Found "python3" command
     set PYTHON=python3
@@ -18,7 +19,6 @@ WHERE python3 >nul 2>&1 && (
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_crosshair.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_cursorlocationsvalues.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasources.py
-%PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_datasourcesV2.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_dependencycheck.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_docksanddatasources.py
 %PYTHON% -m coverage run --rcfile=.coveragec --append  enmapboxtesting/test_enmapbox.py
