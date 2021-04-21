@@ -6,6 +6,8 @@ from typing import Any, Dict, Iterable, Optional, List, Tuple, TextIO
 
 import numpy as np
 from osgeo import gdal
+
+from enmapboxprocessing.glossary import injectGlossaryLinks
 from typeguard import typechecked
 from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
                         QgsProcessingParameterRasterDestination, QgsProcessingContext, QgsProcessingFeedback,
@@ -378,13 +380,12 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         return None
 
     def shortHelpString(self):
-        text = '<p>' + self.shortDescription() + '</p>'
+        text = '<p>' + injectGlossaryLinks(self.shortDescription()) + '</p>'
         if self.helpHeader() is not None:
             title, text2 = self.helpHeader()
-            text += f' <i><h3>{title}</h3> </i><p>{text2}</p>'
+            text += f' <i><h3>{title}</h3> </i><p>{injectGlossaryLinks(text2)}</p>'
         for name, text2 in self.helpParameters():
-            #parameter = name  # self.parameterDefinition(name)
-            text += f'<h3>{name}</h3><p>{text2}</p>'
+            text += f'<h3>{name}</h3><p>{injectGlossaryLinks(text2)}</p>'
         return text
 
     def helpString(self):

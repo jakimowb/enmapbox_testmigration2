@@ -30,11 +30,13 @@ class PrepareClassificationSampleFromCategorizedRaster(EnMAPProcessingAlgorithm)
         return 'Prepare classification dataset (from categorized layer and feature raster)'
 
     def shortDescription(self) -> str:
-        return 'Sample data according to the given categories (and only those categories) and store the result as a pickle file. ' \
+        return 'Sample data according to the given categories (and only those categories) and store the result as a pickle file.\n' \
                'If the layer is not categorized, or the band with class values is selected manually, ' \
-               'categories are derived from the data itself. Or to be more precise, class values are derived ' \
-               '(no data and zero data pixel are excluded), non zero, non no data ' \
-               'class names are set equal to the class values, and class colors are picked randomly.'
+               'categories are derived from the data itself. ' \
+               'To be more precise: ' \
+               'i) class values are derived from unique raster band values (after excluding no data and zero data pixel), ' \
+               'ii) class names are set equal to the class values, ' \
+               'and iii) class colors are picked randomly.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [

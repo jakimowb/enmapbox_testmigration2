@@ -234,8 +234,8 @@ class Utils(object):
         from enmapboxprocessing.rasterreader import RasterReader
         reader = RasterReader(raster)
         array = reader.array(bandList=[bandNo])
-        noDataValue = reader.noDataValue(bandNo)
-        values = [v for v in np.unique(array) if v != noDataValue]
+        mask = reader.maskArray(array, bandList=[bandNo], defaultNoDataValue=0)
+        values = np.unique(array[0][mask[0]])
         categories = [Category(int(v), str(v), QColor(randint(0, 2**24)).name()) for v in values]
         return categories
 
