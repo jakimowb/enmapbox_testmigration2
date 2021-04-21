@@ -11,10 +11,13 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
+import os
 import tempfile
 import unittest
 import time
 import xmlrunner
+import json
+import pickle
 from qgis.PyQt import sip
 from qgis.core import *
 from qgis.gui import *
@@ -563,6 +566,7 @@ class DataSourceTests(EnMAPBoxTestCase):
         from enmapbox.gui.datasources import HubFlowDataSource
 
         dirTmp = self.createTestOutputDirectory() / 'hubflowtypetest'
+        os.makedirs(dirTmp, exist_ok=True)
         from hubflow.testdata import outdir
         print(outdir)
 
@@ -571,32 +575,40 @@ class DataSourceTests(EnMAPBoxTestCase):
         dtv = DataSourceTreeView()
         dtv.setModel(dm)
 
-        n_tested = 0
-        for name in dir(hubflow.testdata):
-            obj1 = getattr(hubflow.testdata, name)
+        root = dm.rootNode()
+        DATA_MEM = {'AAA':
+                {'RootNode': root,
+                 'B2': {'DDD': root},
+                 'NP': np.arange(256),
+                 'Array2': np.asarray([[1,2,3],[4,5,6]]),
+                 'Model': dm},
+                'CA': QgsMapCanvas(),
+                }
 
-            if callable(obj1):
-                n_tested += 1
-                obj1 = obj1()
-                obj1: hubflow.core.FlowObject
-                self.assertIsInstance(obj1, hubflow.core.FlowObject)
-                pathTmp = jp(dirTmp, 'test.{}.pkl'.format(name))
-                obj1.pickle(pathTmp)
+        DATA_PKL = {'AAA':
+                        {'Array1': np.arange(256),
+                         'Array2': np.asarray([[1, 2, 3], [4, 5, 6]]),
+                         },
+                    }
 
-                self.assertTrue(len(ds) == 1), 'Failed to open {}'.format(obj1)
-                self.assertIsInstance(ds[0], HubFlowDataSource)
-                dm.addDataSource(ds[0])
+        DATA_JSON = {'AAA':
+                        {'List': np.arange(256).tolist(),
+                         },
+                    }
 
-                ds = DataSourceFactory.create(pathTmp)
 
-                obj3 = hubflow.core.FlowObject.unpickle(pathTmp)
-                obj2 = ds[0].flowObject()
-                self.assertIsInstance(obj2, hubflow.core.FlowObject)
-                self.assertIsInstance(obj3, hubflow.core.FlowObject)
-                # self.assertEqual(obj1, obj2)
-                # self.assertEqual(obj1, obj3)
+        path_json = dirTmp / 'test.json'
+        path_pkl = dirTmp / 'test.pkl'
 
-        self.assertTrue(n_tested > 0)
+        with open(path_json, 'w', encoding='utf8') as f:
+            json.dump(DATA_JSON, f)
+
+        with open(path_pkl, 'wb') as f:
+            pickle.dump(DATA_PKL, f)
+
+        for s in [path_json, path_pkl]:
+            source = ds.addSource(s)
+
         self.showGui(dtv)
 
     def test_issue478(self):
