@@ -3,7 +3,7 @@ import pickle
 from os import makedirs
 from os.path import join, dirname, basename, exists
 from random import randint
-from typing import Tuple, Optional, Callable, List, Any
+from typing import Tuple, Optional, Callable, List, Any, Dict
 from warnings import warn
 
 from PyQt5.QtCore import QTimer
@@ -241,22 +241,79 @@ class Utils(object):
         return categories
 
     @classmethod
-    def categoriesFromVectorField(cls, vector: QgsVectorLayer, field: str) -> Categories:
+    def categoriesFromVectorField(
+            cls, vector: QgsVectorLayer, valueField: str, nameField: str = None, colorField: str = None
+    ) -> Categories:
         feature: QgsFeature
         values = list()
+        names = dict()
+        colors = dict()
         for feature in vector.getFeatures():
-            value = feature.attribute(field)
+            value = feature.attribute(valueField)
             if isinstance(value, (int, float, str)):
                 values.append(value)
+                if nameField is not None:
+                    names[value] = feature.attribute(nameField)  # only keep the last occurrence!
+                if colorField is not None:
+                    colors[value] = feature.attribute(colorField)  # only keep the last occurrence!
+
         values = np.unique(values)
         categories = list()
         for value in values:
-            color = QColor(randint(0, 2**24)).name()
-            name = str(value)
-            if not isinstance(value, str):
-                value = int(value)
+            color = colors.get(value, QColor(randint(0, 2**24 - 1)))
+            color = cls.parseColor(color).name()
+            name = names.get(value, str(value))
             categories.append(Category(value, name, color))
         return categories
+
+    @classmethod
+    def parseColor(cls, obj):
+        if isinstance(obj, QColor):
+            return obj
+
+        if isinstance(obj, str):
+            if QColor(obj).isValid():
+                return QColor(obj)
+            try:  # try to evaluate ...
+                obj = eval(obj)
+            except:
+                raise ValueError(f'invalid color: {obj}')
+
+        if isinstance(obj, int):
+            return QColor(obj)
+
+        if isinstance(obj, (list, tuple)):
+            return QColor(*obj)
+
+        raise ValueError('invalid color')
+
+    @classmethod
+    def prepareCategories(
+            cls, categories: Categories, valuesToInt=False, removeLastIfEmpty=False
+    ) -> Tuple[Categories, Dict]:
+
+        categoriesOrig = categories
+        if removeLastIfEmpty:
+            if categories[-1].name == '':
+                categories = categories[:-1]
+
+        if valuesToInt:
+            def castValueToInt(category: Category, index: int) -> Category:
+                if str(category.value).isdecimal():
+                    return Category(int(category.value), category.name, category.color)
+                else:
+                    return Category(index+1, category.name, category.color)
+            categories = [castValueToInt(c, i) for i, c in enumerate(categories)]
+
+        namesOrig = [c.name for c in categoriesOrig]
+        valueLookup = dict()
+        for c in categories:
+            index = namesOrig.index(c.name)
+            valueOrig = categoriesOrig[index].value
+            valueNew = c.value
+            valueLookup[valueOrig] = valueNew
+
+        return categories, valueLookup
 
     @classmethod
     def smallesUIntDataType(cls, value: int) -> QgisDataType:

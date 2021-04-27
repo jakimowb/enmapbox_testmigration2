@@ -1,4 +1,4 @@
-from enmapboxprocessing.algorithm.prepareclassificationsamplefromcsv import PrepareClassificationSampleFromCsv
+from enmapboxprocessing.algorithm.prepareclassificationsamplefromcsv import PrepareClassificationDatasetFromFiles
 from enmapboxprocessing.algorithm.prepareregressionsamplefromcsv import PrepareRegressionSampleFromCsv
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
@@ -12,7 +12,7 @@ c = ['', 'c:'][int(writeToDisk)]
 class TestPrepareRegressionSampleFromTable(TestCase):
 
     def test(self):
-        alg = PrepareClassificationSampleFromCsv()
+        alg = PrepareClassificationDatasetFromFiles()
         parameters = {
             alg.P_FEATURES: classificationSampleAsCsv[0],
             alg.P_LABELS: classificationSampleAsCsv[1],
@@ -35,7 +35,7 @@ class TestPrepareRegressionSampleFromTable(TestCase):
         self.runalg(alg, parameters)
 
     def test_david2(self):
-        alg = PrepareClassificationSampleFromCsv()
+        alg = PrepareClassificationDatasetFromFiles()
         parameters = {
             alg.P_FEATURES: r'C:\Users\janzandr\Downloads\berlin\features.txt',
             alg.P_LABELS: r'C:\Users\janzandr\Downloads\berlin\response.txt',

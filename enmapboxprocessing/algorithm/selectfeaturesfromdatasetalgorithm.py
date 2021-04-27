@@ -1,6 +1,5 @@
 from typing import Dict, Any, List, Tuple
 
-import numpy as np
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
@@ -10,47 +9,48 @@ from typeguard import typechecked
 
 
 @typechecked
-class SelectFeatureSubsetFromSampleAlgorithm(EnMAPProcessingAlgorithm):
-    P_SAMPLE, _SAMPLE = 'sample', 'Sample'
+class SelectFeaturesFromDatasetAlgorithm(EnMAPProcessingAlgorithm):
+    P_DATASET, _DATASET = 'dataset', 'Dataset'
     P_FEATURE_LIST, _FEATURE_LIST = 'featureList', 'Selected features'
-    P_OUTPUT_SAMPLE, _OUTPUT_SAMPLE = 'outputSample', 'Output sample'
+    P_OUTPUT_DATASET, _OUTPUT_DATASET = 'outputDatasetFeatureSubset', 'Output dataset'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._SAMPLE, f'Sample (*.pkl) file.'),
+            (self._DATASET, f'Dataset pickle file to select features from.'),
             (self._FEATURE_LIST,
-             'List of selected features given by name (e.g. ´Feature 1´) or position (integer >=1).'),
-            (self._OUTPUT_SAMPLE, 'Output sample *.pkl file.')
+             'Comma separated list of feature names or positions. '
+             "E.g. use <code>1, 'Feature 2', 3</code> to select the first three features."),
+            (self._OUTPUT_DATASET, self.PickleFileDestination)
         ]
 
     def displayName(self) -> str:
-        return 'Select feature subset from classification sample'
+        return 'Select features from dataset'
 
     def shortDescription(self) -> str:
-        return 'Select a feature subset from given sample.'
+        return 'Subset and/or reorder features in feature data X.'
 
     def group(self):
-        return Group.Test.value + Group.Classification.value
+        return Group.Test.value + Group.DatasetPreparation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterFile(self.P_SAMPLE, self._SAMPLE, extension='pkl')
+        self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension)
         self.addParameterString(self.P_FEATURE_LIST, self._FEATURE_LIST)
-        self.addParameterFileDestination(self.P_OUTPUT_SAMPLE, self._OUTPUT_SAMPLE, 'Output sample file (*.pkl)')
+        self.addParameterFileDestination(self.P_OUTPUT_DATASET, self._OUTPUT_DATASET, self.PickleFileFilter)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        filenameSample = self.parameterAsFile(parameters, self.P_SAMPLE, context)
+        filenameDataset = self.parameterAsFile(parameters, self.P_DATASET, context)
         values = self.parameterAsValues(parameters, self.P_FEATURE_LIST, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_SAMPLE, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_DATASET, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
 
-            dump = ClassifierDump(**Utils.pickleLoad(filenameSample))
+            dump = ClassifierDump(**Utils.pickleLoad(filenameDataset))
             feedback.pushInfo(
-                f'Load sample data: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
+                f'Load feature data: X=array{list(dump.X.shape)}')
 
             indices = list()
             for value in values:

@@ -25,24 +25,24 @@ class PrepareClassificationDatasetFromCategorizedRaster(EnMAPProcessingAlgorithm
         return 'Prepare classification dataset (from categorized raster layer and feature raster)'
 
     def shortDescription(self) -> str:
-        return 'Sample data according to the given categories (and only those categories) and store the result as a pickle file.\n' \
+        return 'Sample data for pixels that match the given categories and store the result as a pickle file. \n' \
                'If the layer is not categorized, or the band with class values is selected manually, ' \
                'categories are derived from sampled data itself. ' \
                'To be more precise: ' \
-               'i) class values are derived from unique raster band values (after excluding no data and zero data pixel), ' \
-               'ii) class names are set equal to the class values, ' \
-               'and iii) class colors are picked randomly.'
+               'i) category values are derived from unique raster band values (after excluding no data or zero data pixel), ' \
+               'ii) category names are set equal to the category values, ' \
+               'and iii) category colors are picked randomly.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
             (self._CATEGORIZED_RASTER,
-             f'Categorized raster layer with samples. {self.helpParameterMapClassification()} '
+             f'Categorized raster layer specifying sample locations and target data y. '
              f'If required, the layer is reprojected and resampled internally to match the feature raster grid.\n'),
-            (self._FEATURE_RASTER, 'Raster layer used for sampling feature values.'),
-            (self._CATEGORY_BAND, 'Band used for sampling class values. '
+            (self._FEATURE_RASTER, 'Raster layer used for sampling feature data X.'),
+            (self._CATEGORY_BAND, 'Band with class values. '
                                   'If not selected, the band defined by the renderer is used. '
                                   'If that is also not specified, the first band is used.'),
-            (self._OUTPUT_DATASET, 'Output dataset destination pickle file.')
+            (self._OUTPUT_DATASET, self.PickleFileDestination)
         ]
 
     def group(self):

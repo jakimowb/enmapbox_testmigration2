@@ -17,17 +17,17 @@ from typeguard import typechecked
 
 @typechecked
 class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
-    P_RASTER, _RASTER = 'raster', 'Raster'
-    P_MASK, _MASK = 'mask', 'Mask'
+    P_RASTER, _RASTER = 'raster', 'Raster layer with features'
     P_CLASSIFIER, _CLASSIFIER = 'classifier', 'Classifier'
-    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRaster', 'Output classification'
+    P_MASK, _MASK = 'mask', 'Mask layer'
+    P_OUTPUT_CLASSIFICATION, _OUTPUT_CLASSIFICATION = 'outputClassification', 'Output classification layer'
 
     def displayName(self) -> str:
-        return 'Predict classification'
+        return 'Predict classification layer'
 
     def shortDescription(self) -> str:
-        return 'Applies a classifier to a raster to predict class labels. ' \
-               '\nUsed in the Cookbook Recipes: <a href="' \
+        return 'Uses a fitted classifier to predict a classification layer from a raster layer with features. \n' \
+               'Used in the Cookbook Recipes: <a href="' \
                'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/classification.html' \
                '">Classification</a>, <a href="' \
                'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/graphical_modeler.html' \
@@ -35,10 +35,11 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._RASTER, self.helpParameterRaster()),
-            (self._MASK, self.helpParameterMapMask()),
-            (self._CLASSIFIER, self.helpParameterClassifier()),
-            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._RASTER, 'A raster layer with bands used as features. '
+                           'Classifier features and raster bands are matched by name.'),
+            (self._CLASSIFIER, 'A fitted classifier.'),
+            (self._MASK, 'A mask layer.'),
+            (self._OUTPUT_CLASSIFICATION, self.RasterFileDestination)
         ]
 
     def group(self):
@@ -48,7 +49,7 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_RASTER, self._RASTER)
         self.addParameterMapLayer(self.P_MASK, self._MASK, optional=True, advanced=True)
         self.addParameterFile(self.P_CLASSIFIER, self._CLASSIFIER, fileFilter='Model file (*.pkl)')
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
+        self.addParameterRasterDestination(self.P_OUTPUT_CLASSIFICATION, self._OUTPUT_CLASSIFICATION)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         try:
@@ -64,7 +65,7 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
         mask = self.parameterAsLayer(parameters, self.P_MASK, context)
         dump = ClassifierDump(**Utils.pickleLoad(self.parameterAsFile(parameters, self.P_CLASSIFIER, context)))
         format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_CLASSIFICATION, context)
         maximumMemoryUsage = gdal.GetCacheMax()
 
         with open(filename + '.log', 'w') as logfile:

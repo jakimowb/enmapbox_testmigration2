@@ -16,30 +16,17 @@ from typeguard import typechecked
 @typechecked
 class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgorithm):
     P_CLASSIFIER, _CLASSIFIER = 'classifier', 'Classifier'
-    P_TRAIN_SAMPLE, _TRAIN_SAMPLE = 'sampleTrain', 'Train sample'
-    P_TEST_SAMPLE, _TEST_SAMPLE = 'sampleTest', 'Test sample'
-    P_SCORING, _SCORING = 'scoring', 'Scoring'
-    O_SCORING = ['accuracy', 'balanced_accuracy', 'top_k_accuracy', 'average_precision', 'neg_brier_score', 'f1',
-                 'f1_micro', 'f1_macro', 'f1_weighted', 'f1_samples', 'neg_log_loss', 'precision', 'recall', 'jaccard',
-                 'roc_auc', 'roc_auc_ovr', 'roc_auc_ovo', 'roc_auc_ovr_weighted', 'roc_auc_ovo_weighted']
-    P_REPEATS, _REPEATS = 'repeats', 'Number of repeats'
+    P_TRAIN_DATASET, _TRAIN_DATASET = 'trainDataset', 'Training dataset'
+    P_TEST_DATASET, _TEST_DATASET = 'testDataset', 'Test dataset'
+    P_EVALUATION_METRIC, _EVALUATION_METRIC = 'evaluationMetric', 'Evaluation metric'
+    O_EVALUATION_METRIC = [
+        'accuracy', 'balanced_accuracy', 'top_k_accuracy', 'average_precision', 'neg_brier_score', 'f1', 'f1_micro',
+        'f1_macro', 'f1_weighted', 'f1_samples', 'neg_log_loss', 'precision', 'recall', 'jaccard', 'roc_auc',
+        'roc_auc_ovr', 'roc_auc_ovo', 'roc_auc_ovr_weighted', 'roc_auc_ovo_weighted'
+    ]
+    P_REPEATS, _REPEATS = 'repeats', 'Number of repetitions'
     P_SEED, _SEED = 'seed', 'Random seed'
-    P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outputReport', 'Output report'
-
-    def helpParameters(self) -> List[Tuple[str, str]]:
-        return [
-            (self._CLASSIFIER, 'Classifier (*.pkl) file. '
-                               'In case of unfitted classifier, also specify a training sample.'),
-            (self._TRAIN_SAMPLE, 'Training sample (*.pkl) file used for (re-)fitting the classifier. '
-                                 'Can be skipped in case of fitted classifier.'),
-            (self._TEST_SAMPLE, 'Testing sample (*.pkl) file used for performance evaluation. '
-                                'If skipped, the training sample is used.'),
-            (self._SCORING,
-             f'Scorer to use. See {self.htmlLink("https://scikit-learn.org/stable/modules/model_evaluation.html#scoring-parameter", "The scoring parameter: defining model evaluation rules")} for further information.'),
-            (self._REPEATS, 'Number of times to permute a feature.'),
-            (self._SEED, 'The seed for the random generator can be provided.'),
-            (self._OUTPUT_REPORT, 'Output report *.html file.')
-        ]
+    P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outputPermutationImportanceRanking', 'Output report'
 
     def displayName(self) -> str:
         return 'Classifier feature ranking (permutation importance)'
@@ -49,29 +36,57 @@ class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgo
                'The permutation feature importance is defined to be the decrease in a model score when a single feature value is randomly shuffled. ' \
                'This procedure breaks the relationship between the feature and the target, thus the drop in the model score is indicative of how much the model depends on the feature. ' \
                'This technique benefits from being model agnostic and can be calculated many times with different permutations of the feature.\n' \
-               f'See {self.htmlLink("https://scikit-learn.org/stable/modules/permutation_importance.html#permutation-importance", "Permutation feature importance")} for further information.'
+               f'See Permutation feature importance for further information.'
+
+    def helpParameters(self) -> List[Tuple[str, str]]:
+        return [
+            (self._CLASSIFIER, 'Classifier pickle file. '
+                               'In case of an unfitted classifier, also specify a training dataset.'),
+            (self._TRAIN_DATASET, 'Training dataset pickle file used for (re-)fitting the classifier. '
+                                  'Can be skipped in case of a fitted classifier.'),
+            (self._TEST_DATASET, 'Test dataset pickle file used for performance evaluation. '
+                                 'If skipped, the training dataset is used.'),
+            (self._EVALUATION_METRIC,
+             f'An evaluation metric to use. '
+             f'See Metrics and scoring: quantifying the quality of predictions for further information.'),
+            (self._REPEATS, 'Number of times to permute a feature.'),
+            (self._SEED, 'The seed for the random generator can be provided.'),
+            (self._OUTPUT_REPORT, self.ReportFileDestination)
+        ]
+
+    def helpLinks(self) -> List[Tuple[str, str]]:
+        return [
+            ('Metrics and scoring: quantifying the quality of predictions',
+             'https://scikit-learn.org/stable/modules/model_evaluation.html#scoring-parameter'),
+            ('Permutation feature importance', 'https://scikit-learn.org/stable/modules/permutation_importance.html#permutation-importance')
+        ]
 
     def group(self):
-        return Group.Test.value + Group.Classification.value
+        return Group.Test.value + Group.FeatureSelection.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterFile(self.P_CLASSIFIER, self._CLASSIFIER, extension='pkl')
-        self.addParameterFile(self.P_TRAIN_SAMPLE, self._TRAIN_SAMPLE, extension='pkl', optional=True, advanced=True)
-        self.addParameterFile(self.P_TEST_SAMPLE, self._TEST_SAMPLE, extension='pkl', optional=True, advanced=True)
-        self.addParameterEnum(
-            self.P_SCORING, self._SCORING, self.O_SCORING, False, self.O_SCORING.index('f1_macro'), advanced=True
+        self.addParameterFile(
+            self.P_TRAIN_DATASET, self._TRAIN_DATASET, extension=self.PickleFileExtension, optional=True, advanced=True
         )
-        self.addParameterInt(self.P_REPEATS, self._REPEATS, 10, False, 1, advanced=True)
-        self.addParameterInt(self.P_SEED, self._SEED, None, True, 1, advanced=True)
-        self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, 'Report file (*.html)')
+        self.addParameterFile(
+            self.P_TEST_DATASET, self._TEST_DATASET, extension=self.PickleFileExtension, optional=True, advanced=True
+        )
+        self.addParameterEnum(
+            self.P_EVALUATION_METRIC, self._EVALUATION_METRIC, self.O_EVALUATION_METRIC, False,
+            self.O_EVALUATION_METRIC.index('f1_macro'), False, True
+        )
+        self.addParameterInt(self.P_REPEATS, self._REPEATS, 10, False, 1, None, True)
+        self.addParameterInt(self.P_SEED, self._SEED, None, True, 1, None, True)
+        self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, self.ReportFileFilter)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
         filenameClassifier = self.parameterAsFile(parameters, self.P_CLASSIFIER, context)
-        filenameTrainSample = self.parameterAsFile(parameters, self.P_TRAIN_SAMPLE, context)
-        filenameTestSample = self.parameterAsFile(parameters, self.P_TEST_SAMPLE, context)
-        scoring = self.O_SCORING[self.parameterAsInt(parameters, self.P_SCORING, context)]
+        filenameTrainSample = self.parameterAsFile(parameters, self.P_TRAIN_DATASET, context)
+        filenameTestSample = self.parameterAsFile(parameters, self.P_TEST_DATASET, context)
+        scoring = self.O_SCORING[self.parameterAsInt(parameters, self.P_EVALUATION_METRIC, context)]
         repeats = self.parameterAsInt(parameters, self.P_REPEATS, context)
         seed = self.parameterAsInt(parameters, self.P_SEED, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_REPORT, context)
@@ -92,14 +107,14 @@ class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgo
             if refit:
                 dump = ClassifierDump(**Utils.pickleLoad(filenameTrainSample))
                 X, y, features = dump.X, dump.y, dump.features
-                feedback.pushInfo(f'Load training sample data: X=array{list(X.shape)} y=array{list(dump.y.shape)}')
+                feedback.pushInfo(f'Load training dataset: X=array{list(X.shape)} y=array{list(dump.y.shape)}')
                 feedback.pushInfo(f'Fit classifier')
                 classifier.fit(X, y)
 
             # load test sample
             dump = ClassifierDump(**Utils.pickleLoad(filenameTestSample))
             X, y, features = dump.X, dump.y, dump.features
-            feedback.pushInfo(f'Load test sample data: X=array{list(X.shape)} y=array{list(dump.y.shape)}')
+            feedback.pushInfo(f'Load test dataset: X=array{list(X.shape)} y=array{list(dump.y.shape)}')
 
             feedback.pushInfo('Evaluate permutation feature importance')
             r = permutation_importance(
@@ -129,7 +144,7 @@ class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgo
                 report = MultiReportWriter([HtmlReportWriter(fileHtml), CsvReportWriter(fileCsv)])
                 report.writeHeader('Permutation importances')
                 report.writeParagraph('Scoring function:', scoring)
-                report.writeParagraph('Number of repeats:', repeats)
+                report.writeParagraph('Number of repetitions:', repeats)
                 report.writeImage(basename(filenameFig))
                 report.writeTable(
                     values,

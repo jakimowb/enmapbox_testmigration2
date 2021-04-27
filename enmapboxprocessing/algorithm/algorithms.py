@@ -6,8 +6,9 @@ from enmapboxprocessing.algorithm.classificationtofractionalgorithm import Class
 from enmapboxprocessing.algorithm.classifierfeaturerankingpermutationimportancealgorithm import \
     ClassifierFeatureRankingPermutationImportanceAlgorithm
 from enmapboxprocessing.algorithm.classifierperformancealgorithm import ClassifierPerformanceAlgorithm
-from enmapboxprocessing.algorithm.colorizeclassprobabilityalgorithm import ColorizeClassProbabilityAlgorithm
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
+from enmapboxprocessing.algorithm.creatergbimagefromclassprobabilityalgorithm import \
+    CreateRgbImageFromClassProbabilityAlgorithm
 from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import FeatureClusteringHierarchicalAlgorithm
 from enmapboxprocessing.algorithm.fitgaussianprocessclassifier import FitGaussianProcessClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitgenericclassifier import FitGenericClassifier
@@ -17,20 +18,24 @@ from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitR
 from enmapboxprocessing.algorithm.fitsvcalgorithm import FitSvcAlgorithm
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import  \
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedlibrary import \
+    PrepareClassificationDatasetFromCategorizedLibrary
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import \
     PrepareClassificationDatasetFromCategorizedRaster
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvector import   \
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvector import \
     PrepareClassificationDatasetFromCategorizedVector
-from enmapboxprocessing.algorithm.prepareclassificationsamplefromcsv import PrepareClassificationSampleFromCsv
-from enmapboxprocessing.algorithm.prepareclassificationsamplefromtable import PrepareClassificationSampleFromTable
-from enmapboxprocessing.algorithm.prepareclassificationsamplefromvectorandfields import \
-    PrepareClassificationSampleFromVectorAndFields
-from enmapboxprocessing.algorithm.randompointsinmaskalgorithm import RandomPointsInMaskAlgorithm
-from enmapboxprocessing.algorithm.randompointsinstratificationalgorithm import RandomPointsInStratificationAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfields import \
+    PrepareClassificationDatasetFromCategorizedVectorAndFields
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromfiles import PrepareClassificationDatasetFromFiles
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtable import PrepareClassificationDatasetFromTable
+from enmapboxprocessing.algorithm.randompointsfromcategorizedrasteralgorithm import \
+    RandomPointsFromCategorizedRasterAlgorithm
+from enmapboxprocessing.algorithm.randompointsfrommaskrasteralgorithm import RandomPointsFromMaskRasterAlgorithm
+from enmapboxprocessing.algorithm.randomsamplesfromclassificationdatasetalgorithm import \
+    RandomSamplesFromClassificationDatasetAlgorithm
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.samplerastervaluesalgorithm import SampleRasterValuesAlgorithm
-from enmapboxprocessing.algorithm.selectfeaturesubsetfromsamplealgorithm import SelectFeatureSubsetFromSampleAlgorithm
-from enmapboxprocessing.algorithm.subsampleclassificationsamplealgorithm import SubsampleClassificationSampleAlgorithm
+from enmapboxprocessing.algorithm.selectfeaturesfromdatasetalgorithm import SelectFeaturesFromDatasetAlgorithm
 from enmapboxprocessing.algorithm.translateclassificationalgorithm import TranslateClassificationAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.algorithm.vectortoclassificationalgorithm import VectorToClassificationAlgorithm
@@ -43,8 +48,8 @@ def algorithms():
         ClassificationToFractionAlgorithm(),
         ClassifierPerformanceAlgorithm(),
         ClassifierFeatureRankingPermutationImportanceAlgorithm(),
-        ColorizeClassProbabilityAlgorithm(),
         CreateGridAlgorithm(),
+        CreateRgbImageFromClassProbabilityAlgorithm(),
         FitGaussianProcessClassifierAlgorithm(),
         FitGenericClassifier(),
         FitLinearSvcAlgorithm(),
@@ -54,18 +59,19 @@ def algorithms():
         FeatureClusteringHierarchicalAlgorithm(),
         PredictClassificationAlgorithm(),
         PredictClassPropabilityAlgorithm(),
-        PrepareClassificationSampleFromCsv(),
+        PrepareClassificationDatasetFromFiles(),
         PrepareClassificationDatasetFromCategorizedRaster(),
         PrepareClassificationDatasetFromCategorizedVector(),
-        PrepareClassificationSampleFromTable(),
-        PrepareClassificationSampleFromVectorAndFields(),
-        RandomPointsInMaskAlgorithm(),
-        RandomPointsInStratificationAlgorithm(),
-        VectorToClassificationAlgorithm(),
+        PrepareClassificationDatasetFromTable(),
+        PrepareClassificationDatasetFromCategorizedVectorAndFields(),
+        PrepareClassificationDatasetFromCategorizedLibrary(),
+        RandomPointsFromMaskRasterAlgorithm(),
+        RandomPointsFromCategorizedRasterAlgorithm(),
+        RandomSamplesFromClassificationDatasetAlgorithm(),
         RasterizeVectorAlgorithm(),
         SampleRasterValuesAlgorithm(),
-        SelectFeatureSubsetFromSampleAlgorithm(),
-        SubsampleClassificationSampleAlgorithm(),
+        SelectFeaturesFromDatasetAlgorithm(),
         TranslateClassificationAlgorithm(),
         TranslateRasterAlgorithm(),
+        VectorToClassificationAlgorithm(),
     ]

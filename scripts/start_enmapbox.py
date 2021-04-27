@@ -5,3 +5,4 @@ qgsApp = start_app()
 enmapBox = EnMAPBox(None)
 enmapBox.openExampleData()
 qgsApp.exec_()
+

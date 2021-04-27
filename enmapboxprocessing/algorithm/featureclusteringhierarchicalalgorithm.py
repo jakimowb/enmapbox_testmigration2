@@ -16,15 +16,15 @@ from typeguard import typechecked
 
 @typechecked
 class FeatureClusteringHierarchicalAlgorithm(EnMAPProcessingAlgorithm):
-    P_SAMPLE, _SAMPLE = 'sample', 'Sample'
-    P_NO_PLOT, _NO_PLOT = 'noPlot', 'Skip plotting'
-    P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outputReport', 'Output report'
+    P_DATASET, _DATASET = 'dataset', 'Dataset'
+    P_NO_PLOT, _NO_PLOT = 'noPlot', 'Do not report plots'
+    P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outputHierarchicalFeatureClustering', 'Output report'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._SAMPLE, 'Sample (*.pkl) file.'),
-            (self._NO_PLOT, 'Skip the creation of plots, which can take a lot of time for very big features sets.'),
-            (self._OUTPUT_REPORT, 'Output report *.html file.')
+            (self._DATASET, 'Dataset pickle file with feature data X to be evaluated.'),
+            (self._NO_PLOT, 'Skip the creation of plots, which can take a lot of time for large features sets.'),
+            (self._OUTPUT_REPORT, self.ReportFileDestination)
         ]
 
     def displayName(self) -> str:
@@ -32,20 +32,28 @@ class FeatureClusteringHierarchicalAlgorithm(EnMAPProcessingAlgorithm):
 
     def shortDescription(self) -> str:
         return 'Evaluate feature multicollinearity by performing hierarchical/agglomerative clustering with ' \
-               'Ward linkage using squared Spearman rank-order correlation as distance between features. '
+               'Ward linkage using squared Spearman rank-order correlation as distance between features. ' \
+               'The result report includes ' \
+               'i) pairwise squared Spearman rank-order correlation matrix, ' \
+               'ii) clustering dendrogram, ' \
+               'iii) inter-cluster correlation distribution, ' \
+               'iv) intra-cluster correlation distribution, and ' \
+               'v) a clustering hierarchy table detailing selected cluster representatives for each ' \
+               'cluster size n.\n' \
+               'For further analysis, all relevant results are also stored as a JSON sidecar file next to the report.'
 
     def group(self):
-        return Group.Test.value + Group.Classification.value
+        return Group.Test.value + Group.FeatureSelection.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterFile(self.P_SAMPLE, self._SAMPLE, extension='pkl')
+        self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension)
         self.addParameterBoolean(self.P_NO_PLOT, self._NO_PLOT, False, False, True)
-        self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, 'Report file (*.html)')
+        self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, self.ReportFileFilter)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        filenameSample = self.parameterAsFile(parameters, self.P_SAMPLE, context)
+        filenameDataset = self.parameterAsFile(parameters, self.P_DATASET, context)
         noPlot = self.parameterAsBoolean(parameters, self.P_NO_PLOT, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_REPORT, context)
 
@@ -53,10 +61,10 @@ class FeatureClusteringHierarchicalAlgorithm(EnMAPProcessingAlgorithm):
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
 
-            dump = Utils.pickleLoad(filenameSample)
+            dump = Utils.pickleLoad(filenameDataset)
             X = dump['X']
             features = dump['features']
-            feedback.pushInfo(f'Load sample data: X{list(X.shape)}')
+            feedback.pushInfo(f'Load feature data: X{list(X.shape)}')
             feedback.pushInfo('Performing hierarchical clustering')
             corr = spearmanr(X).correlation ** 2
             corr_linkage = hierarchy.ward(corr)
@@ -209,7 +217,7 @@ class FeatureClusteringHierarchicalAlgorithm(EnMAPProcessingAlgorithm):
                 rowHeaders[0] = 'n=1'
                 report.writeTable(
                     values,
-                    f'Selected features (zero-based index)',
+                    f'Selected features (zero-based indices)',
                     None,
                     rowHeaders,
                 )

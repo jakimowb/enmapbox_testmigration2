@@ -12,16 +12,16 @@ from typeguard import typechecked
 
 @typechecked
 class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
-    P_SAMPLE, _SAMPLE = 'sample', 'Sample'
-    P_CODE, _CODE = 'code', 'Code'
+    P_DATEST, _DATASET = 'dataset', 'Training dataset'
+    P_CLASSIFIER, _CLASSIFIER = 'classifier', 'Classifier'
     P_OUTPUT_CLASSIFIER, _OUTPUT_CLASSIFIER = 'outputClassifier', 'Output classifier'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._SAMPLE, f'Training data sample (*.pkl) file used for fitting the classifier. '
-                           f'If not specified, an unfitted classifier is created.'),
-            (self._CODE, self.helpParameterCode()),
-            (self._OUTPUT_CLASSIFIER, 'Output classifier model destination *.pkl file.')
+            (self._DATASET, f'Training dataset pickle file used for fitting the classifier. '
+                            f'If not specified, an unfitted classifier is created.'),
+            (self._CLASSIFIER, self.helpParameterCode()),
+            (self._OUTPUT_CLASSIFIER, self.PickleFileDestination)
         ]
 
     def displayName(self) -> str:
@@ -40,9 +40,9 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         return Group.Test.value + Group.Classification.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterFile(self.P_SAMPLE, self._SAMPLE, extension='pkl', optional=True)
-        self.addParameterString(self.P_CODE, self._CODE, self.defaultCodeAsString(), True)
-        self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, self._OUTPUT_CLASSIFIER, 'Output model file (*.pkl)')
+        self.addParameterFile(self.P_DATEST, self._DATASET, extension=self.PickleFileExtension, optional=True)
+        self.addParameterString(self.P_CLASSIFIER, self._CLASSIFIER, self.defaultCodeAsString(), True)
+        self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, self._OUTPUT_CLASSIFIER, self.PickleFileFilter)
 
     def defaultCodeAsString(self):
         lines = [line for line in inspect.getsource(self.code).split('\n')
@@ -70,17 +70,17 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        filenameSample = self.parameterAsFile(parameters, self.P_SAMPLE, context)
+        filenameDataset = self.parameterAsFile(parameters, self.P_DATEST, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_CLASSIFIER, context)
-        classifier = self.parameterAsClassifier(parameters, self.P_CODE, context)
+        classifier = self.parameterAsClassifier(parameters, self.P_CLASSIFIER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
 
-            if filenameSample is not None:
-                dump = ClassifierDump(**Utils.pickleLoad(filenameSample))
-                feedback.pushInfo(f'Load sample data: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
+            if filenameDataset is not None:
+                dump = ClassifierDump(**Utils.pickleLoad(filenameDataset))
+                feedback.pushInfo(f'Load training dataset: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
                 feedback.pushInfo('Fit classifier')
                 classifier.fit(dump.X, dump.y.ravel())
             else:

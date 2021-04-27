@@ -3,8 +3,8 @@ from typing import Dict, Any, List, Tuple
 
 import numpy as np
 from osgeo import gdal
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer, QgsPalettedRasterRenderer,
-                        QgsProcessingParameterField, QgsCategorizedSymbolRenderer, QgsVectorLayer)
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer, QgsProcessingParameterField,
+                        QgsCategorizedSymbolRenderer)
 
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import \
     PrepareClassificationDatasetFromCategorizedRaster
@@ -28,24 +28,24 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
         return 'Prepare classification dataset (from categorized vector layer and feature raster)'
 
     def shortDescription(self) -> str:
-        return 'Sample data according to the given categories (and only those categories) and store the result as a pickle file.\n' \
+        return 'Sample data for pixels that match the given categories and store the result as a pickle file.\n' \
                'If the layer is not categorized, or the field with class values is selected manually, ' \
-               'categories are derived from the sampled data itself. ' \
+               'categories are derived from the sampled target data y. ' \
                'To be more precise: ' \
-               'i) class values are derived from unique attribute values (after excluding no data and zero data values), ' \
-               'ii) class names are set equal to the class values, ' \
-               'and iii) class colors are picked randomly.'
+               'i) category values are derived from unique attribute values (after excluding no data or zero data values), ' \
+               'ii) category names are set equal to the category values, ' \
+               'and iii) category colors are picked randomly.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
             (self._CATEGORIZED_VECTOR,
-             f'Categorized vector layer with samples. {self.helpParameterVectorClassification()} '
+             f'Categorized vector layer specifying sample locations and target data y. '
              f'If required, the layer is reprojected and rasterized internally to match the feature raster grid.'),
-            (self._FEATURE_RASTER, 'Raster layer used for sampling feature values.'),
-            (self._CATEGORY_FIELD, 'Field used as class values. '
-                                  'If not selected, the field defined by the renderer is used. '
-                                  'If that is also not specified, an error is raised.'),
-            (self._OUTPUT_DATASET, 'Output dataset destination pickle file.')
+            (self._FEATURE_RASTER, 'Raster layer used for sampling feature data X.'),
+            (self._CATEGORY_FIELD, 'Field with class values used as target data y. '
+                                   'If not selected, the field defined by the renderer is used. '
+                                   'If that is also not specified, an error is raised.'),
+            (self._OUTPUT_DATASET, self.PickleFileDestination)
         ]
 
     def group(self):
@@ -93,25 +93,22 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
             renderer = Utils.categorizedSymbolRendererFromCategories(classField, categories)
             classification.setRenderer(renderer)
 
-            if Utils.isPointGeometry(classification.geometryType()):
-                assert 0
-                X, y, categories = self.samplePoints(raster, classification, feedback2)
-            else:
-                feedback.pushInfo('Rasterize categorized vector layer')
-                alg = VectorToClassificationAlgorithm()
-                alg.initAlgorithm()
-                parameters = {
-                    alg.P_VECTOR: classification,
-                    alg.P_GRID: raster,
-                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.tif')
-                }
-                result = self.runAlg(alg, parameters, None, feedback2, context, True)
-                classification = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
-                categories = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
-                feedback.pushInfo('Sample data')
-                X, y = PrepareClassificationDatasetFromCategorizedRaster.sampleData(
-                    raster, classification, 1, categories, feedback2
-                )
+            feedback.pushInfo('Rasterize categorized vector layer')
+            alg = VectorToClassificationAlgorithm()
+            alg.initAlgorithm()
+            parameters = {
+                alg.P_VECTOR: classification,
+                alg.P_GRID: raster,
+                alg.P_MAJORITY_VOTING: False,
+                alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.tif')
+            }
+            result = self.runAlg(alg, parameters, None, feedback2, context, True)
+            classification = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+            categories = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
+            feedback.pushInfo('Sample data')
+            X, y = PrepareClassificationDatasetFromCategorizedRaster.sampleData(
+                raster, classification, 1, categories, feedback2
+            )
 
             features = [RasterReader(raster).bandName(i + 1) for i in range(raster.bandCount())]
             feedback.pushInfo(f'Sampled data: X=array{list(X.shape)} y=array{list(y.shape)}')

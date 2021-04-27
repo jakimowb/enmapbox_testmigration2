@@ -13,28 +13,28 @@ from typeguard import typechecked
 
 
 @typechecked
-class RandomPointsInStratificationAlgorithm(EnMAPProcessingAlgorithm):
-    P_STRATIFICATION, _STRATIFICATION = 'stratification', 'Categories'
+class RandomPointsFromCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
+    P_STRATIFICATION, _STRATIFICATION = 'stratification', 'Categorized raster layer'
     P_N, _N = 'n', 'Number of points per category'
     P_DISTANCE_GLOBAL, _DISTANCE_GLOBAL = 'distanceGlobal', \
                                           'Minimum distance between points (in meters)'
     P_DISTANCE_STRATUM, _DISTANCE_STRATUM = 'distanceStatum', \
                                             'Minimum distance between points inside category (in meters)'
     P_SEED, _SEED = 'seed', 'Random seed'
-    P_OUTPUT_VECTOR, _OUTPUT_VECTOR = 'outputVector', 'Output points'
+    P_OUTPUT_VECTOR, _OUTPUT_VECTOR = 'outputPoints', 'Output point layer'
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Random points in (categorized) raster'
+        return 'Random points from categorized raster layer'
 
     def shortDescription(self) -> str:
         return 'This algorithm creates a new point layer with a given number of random points, ' \
-               'all of them within the categories of the given raster.'
+               'all of them within the categories of the given categorized raster layer.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._STRATIFICATION, self.helpParameterRasterClassification()),
-            (self._N, 'Number of points to be drawn from each category. '
+            (self._STRATIFICATION, 'A categorized raster layer to draw points from.'),
+            (self._N, 'Number of points to draw from each category. '
                       'Set a single value N to draw N points for each category. '
                       'Set a list of values N1, N2, ... Ni, ... to draw Ni points for category i.'),
             (self._DISTANCE_GLOBAL,
@@ -42,7 +42,7 @@ class RandomPointsInStratificationAlgorithm(EnMAPProcessingAlgorithm):
             (self._DISTANCE_STRATUM,
              'A minimum (Euclidean) distance between points in a category can be specified.'),
             (self._SEED, 'The seed for the random generator can be provided.'),
-            (self._OUTPUT_VECTOR, self.helpParameterVectorDestination())
+            (self._OUTPUT_VECTOR, self.VectorFileDestination)
         ]
 
     def group(self):

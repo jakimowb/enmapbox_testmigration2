@@ -12,42 +12,44 @@ from typeguard import typechecked
 
 
 @typechecked
-class PrepareClassificationSampleFromCsv(EnMAPProcessingAlgorithm):
-    P_FEATURES, _FEATURES = 'features', 'Text file with features'
-    P_LABELS, _LABELS = 'labels', 'Text file with labels'
-    P_OUTPUT_SAMPLE, _OUTPUT_SAMPLE = 'outputSample', 'Output classification sample'
+class PrepareClassificationDatasetFromFiles(EnMAPProcessingAlgorithm):
+    P_FEATURE_FILE, _FEATURE_FILE = 'featureFile', 'File with features'
+    P_VALUE_FILE, _VALUE_FILE = 'valueFile', 'File with class values'
+    P_OUTPUT_DATASET, _OUTPUT_DATASET = 'outputClassificationDataset', 'Output dataset'
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Prepare classification sample (from text files)'
+        return 'Prepare classification dataset (from text files)'
 
     def shortDescription(self) -> str:
-        return f'Read sample from two text file with tabulated values and store it as a binary Pickle (*.pkl) file. ' \
+        return 'Store tabulated data from text files into a pickle file.\n' \
                f'The format matches the output of the {self.htmlLink("https://force-eo.readthedocs.io/en/latest/components/higher-level/smp/index.html", "FORCE Higher Level Sampling Submodule")}.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._FEATURES,
-             'Text file with plain feature values (no headers). One row represents the feature vector of one sample.'),
-            (self._LABELS,
-             'Text file with plain label values (no headers). One row represents the class label of one sample.'),
-            (self._OUTPUT_SAMPLE, 'Output sample destination *.pkl file.')
+            (self._FEATURE_FILE,
+             'Text file with tabulated feature data X (no headers). '
+             'Each row represents the feature vector of a sample.'),
+            (self._VALUE_FILE,
+             'Text file with tabulated target data y (no headers). '
+             'Each row represents the class value of a sample.'),
+            (self._OUTPUT_DATASET, self.PickleFileDestination)
         ]
 
     def group(self):
-        return Group.Test.value + Group.Classification.value
+        return Group.Test.value + Group.DatasetPreparation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterFile(self.P_FEATURES, self._FEATURES)
-        self.addParameterFile(self.P_LABELS, self._LABELS)
-        self.addParameterFileDestination(self.P_OUTPUT_SAMPLE, self._OUTPUT_SAMPLE, 'Pickle (*.pkl)')
+        self.addParameterFile(self.P_FEATURE_FILE, self._FEATURE_FILE)
+        self.addParameterFile(self.P_VALUE_FILE, self._VALUE_FILE)
+        self.addParameterFileDestination(self.P_OUTPUT_DATASET, self._OUTPUT_DATASET, self.PickleFileFilter)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        filenameFeatures = self.parameterAsFile(parameters, self.P_FEATURES, context)
-        filenameLabels = self.parameterAsFile(parameters, self.P_LABELS, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_SAMPLE, context)
+        filenameFeatures = self.parameterAsFile(parameters, self.P_FEATURE_FILE, context)
+        filenameLabels = self.parameterAsFile(parameters, self.P_VALUE_FILE, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_DATASET, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -69,12 +71,11 @@ class PrepareClassificationSampleFromCsv(EnMAPProcessingAlgorithm):
 
             # prepare categories
             values = np.unique(y)
-            categories = [Category(int(v), f'class {i + 1}', QColor(randint(0, 2 ** 24 - 1)).name())
-                          for i, v in enumerate(values)]
+            categories = [Category(int(v), str(v), QColor(randint(0, 2 ** 24 - 1)).name()) for v in values]
 
             dump = ClassifierDump(categories=categories, features=features, X=X, y=y)
             Utils.pickleDump(dump._asdict(), filename)
 
-            result = {self.P_OUTPUT_SAMPLE: filename}
+            result = {self.P_OUTPUT_DATASET: filename}
             self.toc(feedback, result)
         return result

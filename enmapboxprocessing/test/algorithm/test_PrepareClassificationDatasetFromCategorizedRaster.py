@@ -1,4 +1,4 @@
-from enmapboxprocessing.algorithm.prepareclassificationsamplefromcategorizedraster import \
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import \
     PrepareClassificationDatasetFromCategorizedRaster
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
@@ -24,7 +24,7 @@ class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
         self.assertEqual((2028, 177), dump.X.shape)
         self.assertEqual((2028, 1), dump.y.shape)
         self.assertEqual(177, len(dump.features))
-        self.assertEqual(['band 8 (0.460000 Micrometers)', 'band 9 (0.465000 Micrometers)'], dump.features[:2])
+        self.assertListEqual(['band 8 (0.460000 Micrometers)', 'band 9 (0.465000 Micrometers)'], dump.features[:2])
         self.assertListEqual([1, 2, 3, 4, 5, 6], [c.value for c in dump.categories])
         self.assertListEqual(
             ['roof', 'pavement', 'low vegetation', 'tree', 'soil', 'water'], [c.name for c in dump.categories]

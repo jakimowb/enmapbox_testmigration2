@@ -89,5 +89,9 @@ class RegressionDump(NamedTuple):
 
 
 @typechecked
-def checkSampleShape(X: SampleX, y: SampleY) -> bool:
-    return (X.ndim == y.ndim == 2) and (X.shape[0] == y.shape)
+def checkSampleShape(X: SampleX, y: SampleY, raise_=False) -> bool:
+    if not (X.ndim == y.ndim == 2) and (X.shape[0] == y.shape[0]):
+        if raise_:
+            raise ValueError(f'X{list(X.shape)} and y{list(y.shape)} data not matching')
+        return False
+    return True

@@ -16,38 +16,39 @@ from typeguard import typechecked
 @typechecked
 class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
     P_CLASSIFIER, _CLASSIFIER = 'classifier', 'Classifier'
-    P_SAMPLE, _SAMPLE = 'sample', 'Test sample'
+    P_DATASET, _DATASET = 'dataset', 'Test dataset'
     P_NFOLD, _NFOLD = 'nfold', 'Number of cross-validation folds'
-    P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outputReport', 'Output report'
+    P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outputClassifierPerformance', 'Output report'
+
+    def displayName(self) -> str:
+        return 'Classifier performance report'
+
+    def shortDescription(self) -> str:
+        return 'Evaluates classifier performance.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._CLASSIFIER, f'Classifier (*.pkl) file.'),
-            (self._SAMPLE, f'Sample (*.pkl) file used for assessing the classifier performance.'),
-            (self._NFOLD, f'Specify the number of folds used for assessing classifier cross-validation performance.'),
-            (self._OUTPUT_REPORT, 'Output report *.html file.')
+            (self._CLASSIFIER, f'Classifier pickle file.'),
+            (self._DATASET, f'Test dataset pickle file used for assessing the classifier performance.'),
+            (self._NFOLD, 'The number of folds used for assessing cross-validation performance. '
+                          'If not specified (default), simple test performance is assessed.'),
+            (self._OUTPUT_REPORT, self.ReportFileDestination)
         ]
-
-    def displayName(self) -> str:
-        return 'Classifier performance'
-
-    def shortDescription(self) -> str:
-        return 'Evaluates classifier test or cross-validation performance.'
 
     def group(self):
         return Group.Test.value + Group.Classification.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterFile(self.P_CLASSIFIER, self._CLASSIFIER, extension='pkl')
-        self.addParameterFile(self.P_SAMPLE, self._SAMPLE, extension='pkl')
-        self.addParameterInt(self.P_NFOLD, self._NFOLD, None, True, 2, 100)
-        self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, 'Report file (*.html)')
+        self.addParameterFile(self.P_CLASSIFIER, self._CLASSIFIER, extension=self.PickleFileExtension)
+        self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension)
+        self.addParameterInt(self.P_NFOLD, self._NFOLD, None, True, 2, 100, True)
+        self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, self.ReportFileFilter)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
         filenameClassifier = self.parameterAsFile(parameters, self.P_CLASSIFIER, context)
-        filenameSample = self.parameterAsFile(parameters, self.P_SAMPLE, context)
+        filenameSample = self.parameterAsFile(parameters, self.P_DATASET, context)
         nfold = self.parameterAsInt(parameters, self.P_NFOLD, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_REPORT, context)
 

@@ -50,9 +50,13 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     MaxResampleAlg = range(12)
     O_DATA_TYPE = 'Byte Int16 UInt16 Int32 UInt32 Float32 Float64'.split()
     Byte, Int16, UInt16, Int32, UInt32, Float32, Float64 = range(len(O_DATA_TYPE))
-
     PickleFileFilter = 'Pickle (*.pkl)'
-
+    PickleFileExtension = 'pkl'
+    PickleFileDestination = 'Output destination pickle file.'
+    RasterFileDestination = 'Output raster file destination.'
+    VectorFileDestination = 'Output vector file destination.'
+    ReportFileFilter = 'HTML (*.html)'
+    ReportFileDestination = 'Output report file destination.'
 
     def createInstance(self):
         return type(self)()
@@ -304,77 +308,6 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return []
-
-    @classmethod
-    def helpParameterRaster(self):
-        return 'Source raster layer.'
-
-    @classmethod
-    def helpParameterMapClassification(cls):
-        return 'Source raster or vector layer styled with a paletted/unique values (raster) or categorized symbol (vector) renderer.'
-
-    @classmethod
-    def helpParameterRasterClassification(self):
-        return 'Source raster layer styled with a paletted/unique values renderer.'
-
-    @classmethod
-    def helpParameterMapMask(self):
-        return 'Source raster or vector layer interpreted as binary mask. ' \
-               'In case of a raster, all no data (zero, if missing), inf and nan pixel evaluate to false, ' \
-               'all other to true. ' \
-               'In case of a vector, all pixel with pixel center not covered by a feature geometry evaluate to false,' \
-               'all other to true. ' \
-               'Note that only the first raster band used by the renderer is considered.'
-
-    @classmethod
-    def helpParameterRasterMask(self):
-        return 'Source raster interpreted as binary mask. All no data (zero, if missing), ' \
-               'inf and nan pixel evaluate to false, all other to true. ' \
-               'Note that only the first band used by the renderer is considered.'
-
-    @classmethod
-    def helpParameterVector(self):
-        return 'Source vector layer.'
-
-    @classmethod
-    def helpParameterVectorClassification(self):
-        return 'Source vector layer styled with a categorized symbol renderer.'
-
-    @classmethod
-    def helpParameterClassifier(self):
-        return 'Source classifier file (*.pkl).'
-
-    @classmethod
-    def helpParameterGrid(self):
-        return 'Source raster layer defining the destination extent, resolution and coordinate reference system.'
-
-    @classmethod
-    def helpParameterMaximumMemoryUsage(self):
-        return 'Maximum amount of memory (as bytes) for processing (defaults to 5 % of total memory).'
-
-    @classmethod
-    def helpParameterDataType(self):
-        return 'Output data type.'
-
-    @classmethod
-    def helpParameterNoDataValue(self):
-        return 'Output no data value.'
-
-    @classmethod
-    def helpParameterRasterDestination(self):
-        return 'Output raster destination.'
-
-    @classmethod
-    def helpParameterVectorDestination(self):
-        return 'Output vector destination.'
-
-    @classmethod
-    def helpParameterReportDestination(self):
-        return 'Output report destination.'
-
-    @classmethod
-    def helpParameterCreationProfile(self):
-        return 'Output format and creation options.'
 
     def helpHeader(self) -> Optional[Tuple[str, str]]:
         return None
@@ -665,6 +598,7 @@ class Group(Enum):
     Classification = 'Classification'
     Clustering = 'Clustering'
     DatasetPreparation = 'Dataset preparation'
+    FeatureSelection = 'Feature selection'
     ImportData = 'Import data'
     Masking = 'Masking'
     Options = 'Options'

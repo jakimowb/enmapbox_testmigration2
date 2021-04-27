@@ -10,49 +10,47 @@ from typeguard import typechecked
 
 
 @typechecked
-class SubsampleClassificationSampleAlgorithm(EnMAPProcessingAlgorithm):
-    P_SAMPLE, _SAMPLE = 'sample', 'Sample'
+class RandomSamplesFromClassificationDatasetAlgorithm(EnMAPProcessingAlgorithm):
+    P_DATASET, _DATASET = 'dataset', 'Classification dataset'
     P_N, _N = 'n', 'Number of samples per category'
-    P_REPLACE, _REPLACE = 'replace', 'With replacement'
-    P_PROPORTIONAL, _PROPORTIONAL = 'proportional', 'Proportional'
+    P_REPLACE, _REPLACE = 'replace', 'Draw with replacement'
+    P_PROPORTIONAL, _PROPORTIONAL = 'proportional', 'Draw proportional'
     P_SEED, _SEED = 'seed', 'Random seed'
-    P_OUTPUT_SAMPLE, _OUTPUT_SAMPLE = 'outputSample', 'Output sample'
-    P_OUTPUT_COMPLEMENT, _OUTPUT_COMPLEMENT = 'outputComplement', 'Output sample complement'
+    P_OUTPUT_DATASET, _OUTPUT_DATASET = 'outputDatasetRandomSample', 'Output dataset'
+    P_OUTPUT_COMPLEMENT, _OUTPUT_COMPLEMENT = 'outputDatasetRandomSampleComplement', 'Output dataset complement'
+
+    def displayName(self) -> str:
+        return 'Random samples from classification dataset'
+
+    def shortDescription(self) -> str:
+        return 'Split a dataset by randomly drawing samples.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._SAMPLE, f'Sample (*.pkl) file.'),
+            (self._DATASET, f'Classification dataset pickle file with feature data X and target data y to draw from.'),
             (self._N,
-             'Number of samples to be drawn from each category. '
+             'Number of samples to draw from each category. '
              'Set a single value N to draw N points for each category. '
              'Set a list of values N1, N2, ... Ni, ... to draw Ni points for category i.'),
             (self._REPLACE, 'Whether to draw samples with replacement.'),
             (self._PROPORTIONAL,
              'Whether to interprete number of samples N or Ni as percentage to be drawn from each category.'),
             (self._SEED, 'The seed for the random generator can be provided.'),
-            (self._OUTPUT_SAMPLE, 'Output sample *.pkl file including sampled data.'),
-            (self._OUTPUT_COMPLEMENT, 'Output sample *.pkl file including all data not sampled (i.e. complement).')
+            (self._OUTPUT_DATASET, self.PickleFileDestination + 'Stores sampled data.'),
+            (self._OUTPUT_COMPLEMENT, self.PickleFileDestination + 'Stores remaining data that was not sampled.')
         ]
 
-    def displayName(self) -> str:
-        return 'Subsample classification sample'
-
-    def shortDescription(self) -> str:
-        return 'Draw a random subsample.'
-
     def group(self):
-        return Group.Test.value + Group.Classification.value
+        return Group.Test.value + Group.DatasetPreparation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterFile(self.P_SAMPLE, self._SAMPLE, extension='pkl')
+        self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension)
         self.addParameterString(self.P_N, self._N)
         self.addParameterBoolean(self.P_REPLACE, self._REPLACE, False, advanced=True)
         self.addParameterBoolean(self.P_PROPORTIONAL, self._PROPORTIONAL, False, advanced=True)
         self.addParameterInt(self.P_SEED, self._SEED, None, True, 1, advanced=True)
-        self.addParameterFileDestination(self.P_OUTPUT_SAMPLE, self._OUTPUT_SAMPLE, 'Output sample file (*.pkl)')
-        self.addParameterFileDestination(
-            self.P_OUTPUT_COMPLEMENT, self._OUTPUT_COMPLEMENT, 'Output sample file (*.pkl)'
-        )
+        self.addParameterFileDestination(self.P_OUTPUT_DATASET, self._OUTPUT_DATASET, self.PickleFileFilter)
+        self.addParameterFileDestination(self.P_OUTPUT_COMPLEMENT, self._OUTPUT_COMPLEMENT, self.PickleFileFilter)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
@@ -71,7 +69,7 @@ class SubsampleClassificationSampleAlgorithm(EnMAPProcessingAlgorithm):
 
             dump = ClassifierDump(**Utils.pickleLoad(filenameSample))
             feedback.pushInfo(
-                f'Load sample data: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
+                f'Load dataset: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
 
             # draw samples
             if seed is not None:
@@ -81,7 +79,8 @@ class SubsampleClassificationSampleAlgorithm(EnMAPProcessingAlgorithm):
             if len(N) == 1:
                 N = N * len(dump.categories)
             if len(N) != len(dump.categories):
-                raise QgsProcessingException(f'Number of sample sizes ({len(N)}) not matching number of categories ({len(dump.categories)}).')
+                raise QgsProcessingException(
+                    f'Number of sample sizes ({len(N)}) not matching number of categories ({len(dump.categories)}).')
             for c, Ni in zip(dump.categories, N):
                 valid = np.where(dump.y == c.value)[0]
                 n = len(valid)
@@ -105,7 +104,7 @@ class SubsampleClassificationSampleAlgorithm(EnMAPProcessingAlgorithm):
             dump2 = dump.withSample(dump.X[indices2], dump.y[indices2]).withClassifier(None)
             Utils.pickleDump(dump2._asdict(), filename2)
 
-            result = {self.P_OUTPUT_SAMPLE: filename, self.P_OUTPUT_COMPLEMENT: filename2}
+            result = {self.P_OUTPUT_DATASET: filename, self.P_OUTPUT_COMPLEMENT: filename2}
             self.toc(feedback, result)
 
         return result

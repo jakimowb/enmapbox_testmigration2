@@ -26,12 +26,12 @@ from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import 
 from enmapboxprocessing.algorithm.fitgenericclassifier import FitGenericClassifier
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
-from enmapboxprocessing.algorithm.prepareclassificationsamplefromcsv import PrepareClassificationSampleFromCsv
+from enmapboxprocessing.algorithm.prepareclassificationsamplefromcsv import PrepareClassificationDatasetFromFiles
 from enmapboxprocessing.algorithm.prepareclassificationsamplefrommapandraster import \
     PrepareClassificationSampleFromMapAndRaster
-from enmapboxprocessing.algorithm.prepareclassificationsamplefromtable import PrepareClassificationSampleFromTable
+from enmapboxprocessing.algorithm.prepareclassificationsamplefromtable import PrepareClassificationDatasetFromTable
 from enmapboxprocessing.algorithm.prepareclassificationsamplefromvectorandfields import \
-    PrepareClassificationSampleFromVectorAndFields
+    PrepareClassificationDatasetFromCategorizedVectorAndFields
 from enmapboxprocessing.algorithm.selectfeaturesubsetfromsamplealgorithm import SelectFeatureSubsetFromSampleAlgorithm
 from enmapboxprocessing.algorithm.subsampleclassificationsamplealgorithm import SubsampleClassificationSampleAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm
@@ -282,13 +282,13 @@ class ClassificationWorkflowGui(QMainWindow):
             lambda: self.runImportFromAlg(PrepareClassificationSampleFromMapAndRaster(), None)
         )
         self.mRunImportFromVectorLayer.clicked.connect(
-            lambda: self.runImportFromAlg(PrepareClassificationSampleFromVectorAndFields(), None)
+            lambda: self.runImportFromAlg(PrepareClassificationDatasetFromCategorizedVectorAndFields(), None)
         )
         self.mRunImportFromVectorTable.clicked.connect(
-            lambda: self.runImportFromAlg(PrepareClassificationSampleFromTable(), None)
+            lambda: self.runImportFromAlg(PrepareClassificationDatasetFromTable(), None)
         )
         self.mRunImportFromTextFile.clicked.connect(
-            lambda: self.runImportFromAlg(PrepareClassificationSampleFromCsv(), None)
+            lambda: self.runImportFromAlg(PrepareClassificationDatasetFromFiles(), None)
         )
         self.mRunSplitSample.clicked.connect(self.runSplitSample)
         self.mSample.fileChanged.connect(self.onSampleChanged)

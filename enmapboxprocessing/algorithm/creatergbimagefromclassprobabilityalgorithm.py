@@ -14,29 +14,30 @@ from typeguard import typechecked
 
 
 @typechecked
-class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
-    P_SCORE, _SCORE = 'score', 'Score'
-    P_STYLE, _STYLE = 'style', 'Style'
-    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outRaster', 'Output RGB raster'
+class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
+    P_PROBABILITY, _PROBABILITY = 'probability', 'Class probability/fraction layer'
+    P_COLORS, _COLORS = 'colors', 'Colors'
+    P_COLORS_LAYER, _COLORS_LAYER = 'colorsLayer', 'Colors from categorized layer'
+    P_COLORS_FILE, _COLORS_FILE = 'colorsFile', 'Colors from pickle file'
+    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRGBImage', 'Output RGB image'
 
     def displayName(self):
-        return 'Colorize Class Scores'
+        return 'Create RGB image from class probability/fraction layer'
 
     def shortDescription(self):
-        return 'Converts multiband class scores (e.g. class cover fractions or probabilies) ' \
-               'into a RGB visualization concidering all classes at ones. ' \
-               'The RGB color is the weighted mean of class colors given by the style, ' \
-               'and weights are given by class scores. Note that scores must range between 0 and 1, ' \
-               'and outlieres are trimmed beforehand! ' \
-               '\nFor example, pure pixels with score of 1 (e.g. class cover fraction equal 100%) ' \
-               'appear in its pure class color. ' \
-               'A two class mixture pixel with 50% of class red (255, 0, 0) and 50% of class green (0, 255, 0) ' \
-               'appears in a dull yellow (127, 127, 0).'
+        return 'Create an RGB image from a class fraction/probability layer.' \
+               'The RGB pixel color of a single pixel is given by the weighted mean of the given category colors.' \
+               'The weights are given by class fractions/probabilities (i.e. values between 0 and 1).\n' \
+               '\nFor example, pure pixels with cover fractions of 1 appear in its pure category color. ' \
+               'A mixed-pixel with a 50% fractions in two categories colored in red and green,' \
+               'appears in a dull yellow ( 0.5 x (255, 0, 0) + 0.5 x (0, 255, 0) = (127, 127, 0) ).'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._SCORE, 'Source raster layer with bands matching categories given by style.'),
-            (self._STYLE, self.helpParameterMapClassification()),
+            (self._PROBABILITY, 'A class fraction layer or class probability layer used as weights for calculating '
+                                'final pixel colors.'),
+            (self._COLORS, 'Comma separated list of hex-colors representing (pure) category colors, '
+                           'one color for each band in the given class probability/fraction layer.'),
             (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
         ]
 
@@ -44,8 +45,8 @@ class ColorizeClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         return Group.Test.value + Group.Postprocessing.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterRasterLayer(self.P_SCORE, self._SCORE)
-        self.addParameterMapLayer(self.P_STYLE, self._STYLE)
+        self.addParameterRasterLayer(self.P_PROBABILITY, self._PROBABILITY)
+        self.addParameterMapLayer(self.P_COLORS_LAYER, self._COLORS_LAYER)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def checkParameterFractionAndStyle(

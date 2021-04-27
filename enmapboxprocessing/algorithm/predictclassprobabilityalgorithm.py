@@ -18,23 +18,24 @@ from typeguard import typechecked
 
 @typechecked
 class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
-    P_RASTER, _RASTER = 'raster', 'Raster'
-    P_MASK, _MASK = 'mask', 'Mask'
+    P_RASTER, _RASTER = 'raster', 'Raster layer with features'
     P_CLASSIFIER, _CLASSIFIER = 'classifier', 'Classifier'
-    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRaster', 'Output class probability'
+    P_MASK, _MASK = 'mask', 'Mask layer'
+    P_OUTPUT_PROBABILITY, _OUTPUT_PROBABILITY = 'outputProbability', 'Output class probability layer'
 
     def displayName(self) -> str:
-        return 'Predict class probability'
+        return 'Predict class probability layer'
 
     def shortDescription(self) -> str:
-        return 'Applies a classifier to a raster to predict class probability.'
+        return 'Uses a fitted classifier to predict class probability layer from a raster layer with features.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._RASTER, self.helpParameterRaster()),
-            (self._CLASSIFIER, self.helpParameterClassifier()),
-            (self._MASK, self.helpParameterMapMask()),
-            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._RASTER, 'A raster layer with bands used as features. '
+                           'Classifier features and raster bands are matched by name.'),
+            (self._CLASSIFIER, 'A fitted classifier.'),
+            (self._MASK, 'A mask layer.'),
+            (self._OUTPUT_PROBABILITY, self.RasterFileDestination)
         ]
 
     def group(self):
@@ -44,7 +45,7 @@ class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_RASTER, self._RASTER)
         self.addParameterFile(self.P_CLASSIFIER, self._CLASSIFIER, fileFilter='Model file (*.pkl)')
         self.addParameterMapLayer(self.P_MASK, self._MASK, optional=True, advanced=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
+        self.addParameterRasterDestination(self.P_OUTPUT_PROBABILITY, self._OUTPUT_PROBABILITY)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         try:
