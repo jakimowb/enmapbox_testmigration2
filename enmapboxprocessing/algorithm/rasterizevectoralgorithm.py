@@ -14,7 +14,7 @@ from typeguard import typechecked
 
 @typechecked
 class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
-    P_VECTOR, _VECTOR = 'vector', 'Vector'
+    P_VECTOR, _VECTOR = 'vector', 'Vector layer'
     P_GRID, _GRID = 'grid', 'Grid'
     P_INIT_VALUE, _INIT_VALUE = 'initValue', 'Init value'
     P_BURN_VALUE, _BURN_VALUE = 'burnValue', 'Burn value'
@@ -24,39 +24,39 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
     P_ALL_TOUCHED, _ALL_TOUCHED = 'allTouched', 'All touched'
     P_ADD_VALUE, _ADD_VALUE = 'addValue', 'Add value'
     P_DATA_TYPE, _DATA_TYPE = 'dataType', 'Data type'
-    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outraster', 'Output raster'
+    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRasterizedVector', 'Output raster layer'
 
     def displayName(self):
-        return 'Rasterize vector'
+        return 'Rasterize vector layer'
 
     def shortDescription(self):
         return 'Converts vector geometries (points, lines and polygons) into a raster grid.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._VECTOR, self.helpParameterVector()),
-            (self._GRID, self.helpParameterGrid()),
-            (self._INIT_VALUE, 'Pre-initialization value for the output raster.'),
+            (self._VECTOR, 'A vector layer to be rasterized.'),
+            (self._GRID, 'The target grid.'),
+            (self._INIT_VALUE, 'Pre-initialization value for the output raster layer.'),
             (self._BURN_VALUE, 'Fixed value to burn into each pixel, which is touched (point, line) '
-                               'or where the center is covered (polygon) by a feature.'),
+                               'or where the center is covered (polygon) by a geometry.'),
             (self._BURN_ATTRIBUTE, 'Numeric vector field to use as burn values.'),
             (self._BURN_FID, 'Whether to use the feature ID as burn values. Initial value is set to -1. '
                              'Data type is set to Int32.'),
             (self._RESAMPLE_ALG,
              'If selected, burn at a x10 finer resolution and aggregate values back to target resolution. '
-             'For example, use <i>Mode</i> aggregation for categorical attributes to burn the '
+             'For example, use Mode aggregation for categorical attributes to burn the '
              'category with highest pixel coverage (i.e. majority voting). '
-             'For continuous attributes use <i>Average</i> to calculate a weighted average.'),
+             'For continuous attributes use Average to calculate a weighted average.'),
             (self._ALL_TOUCHED, 'Enables the ALL_TOUCHED rasterization option so that all pixels touched by lines or '
                                 'polygons will be updated, not just those on the line render path, or whose center '
                                 'point is within the polygon.'),
             (self._ADD_VALUE, 'Whether to add up existing values instead of replacing them.'),
-            (self._DATA_TYPE, self.helpParameterDataType()),
-            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._DATA_TYPE, 'Output data type.'),
+            (self._OUTPUT_RASTER, self.RasterFileDestination)
         ]
 
     def group(self):
-        return Group.Test.value + Group.CreateRaster.value
+        return Group.Test.value + Group.RasterCreation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterVectorLayer(self.P_VECTOR, self._VECTOR)
@@ -124,7 +124,7 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
             # reproject if needed
             sourceFilename, layerName = Utils.splitQgsVectorLayerSourceString(vector.source())
             if vector.crs() != grid.crs():
-                feedback.pushInfo('Reproject source vector to target crs')
+                feedback.pushInfo('Reproject source vector layer to target crs')
                 tmpFilename = Utils.tmpFilename(filename, 'reprojected.gpkg')
                 transformContext = QgsProject.instance().transformContext()
                 coordinateTransform = QgsCoordinateTransform(vector.crs(), grid.crs(), QgsProject.instance())

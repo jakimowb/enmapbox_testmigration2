@@ -7,7 +7,7 @@ from typing import Dict, Any, List, Tuple, NamedTuple, Iterable
 import numpy as np
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer, QgsUnitTypes)
 
-from enmapboxprocessing.algorithm.vectortoclassificationalgorithm import VectorToClassificationAlgorithm
+from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.reportwriter import HtmlReportWriter, CsvReportWriter, MultiReportWriter
@@ -126,7 +126,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
 
             if isinstance(reference, QgsVectorLayer):
                 feedback.pushInfo('Rasterize observed category layer')
-                alg = VectorToClassificationAlgorithm()
+                alg = RasterizeCategorizedVectorAlgorithm()
                 alg.initAlgorithm()
                 parameters = {
                     alg.P_VECTOR: reference,

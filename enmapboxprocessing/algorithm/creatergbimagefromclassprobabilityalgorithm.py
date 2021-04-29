@@ -19,7 +19,7 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
     P_PROBABILITY, _PROBABILITY = 'probability', 'Class probability/fraction layer'
     P_COLORS, _COLORS = 'colors', 'Colors'
     P_COLORS_LAYER, _COLORS_LAYER = 'colorsLayer', 'Colors from categorized layer'
-    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRGBImage', 'Output RGB image'
+    P_OUTPUT_RGB, _OUTPUT_RGB = 'outputRGBImage', 'Output RGB image'
 
     def displayName(self):
         return 'Create RGB image from class probability/fraction layer'
@@ -38,7 +38,7 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
                                 'final pixel colors.'),
             (self._COLORS, 'Comma separated list of hex-colors representing (pure) category colors, '
                            'one color for each band in the given class probability/fraction layer.'),
-            (self._OUTPUT_RASTER, self.RasterFileDestination)
+            (self._OUTPUT_RGB, self.RasterFileDestination)
         ]
 
     def group(self):
@@ -48,7 +48,7 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_PROBABILITY, self._PROBABILITY)
         self.addParameterString(self.P_COLORS, self._COLORS, None, False, True, False)
         self.addParameterMapLayer(self.P_COLORS_LAYER, self._COLORS_LAYER, None, True, False)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
+        self.addParameterRasterDestination(self.P_OUTPUT_RGB, self._OUTPUT_RGB)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
@@ -56,7 +56,7 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         probability = self.parameterAsRasterLayer(parameters, self.P_PROBABILITY, context)
         styledLayer = self.parameterAsLayer(parameters, self.P_COLORS_LAYER, context)
         colors = self.parameterAsValues(parameters, self.P_COLORS, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RGB, context)
         maximumMemoryUsage = gdal.GetCacheMax()
 
         categories = None
@@ -89,4 +89,4 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
                     a[:] += arrayScore * v
             writer.writeArray(arrayRgb, block.xOffset, block.yOffset)
 
-        return {self.P_OUTPUT_RASTER: filename}
+        return {self.P_OUTPUT_RGB: filename}

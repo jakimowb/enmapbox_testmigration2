@@ -16,28 +16,28 @@ class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
     PixelUnits, GeoreferencedUnits = range(2)
     P_WIDTH, _WIDTH = 'width', 'Width / horizontal resolution'
     P_HEIGHT, _HEIGHT = 'hight', 'Height / vertical resolution'
-    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outRaster', 'Output VRT raster'
+    P_OUTPUT_GRID, _OUTPUT_GRID = 'outputGrid', 'Output grid'
 
     def displayName(self):
-        return 'Create Grid'
+        return 'Create grid'
 
     def shortDescription(self):
-        return 'Create an empty (VRT) raster that can be used as a pixel grid.'
+        return 'Create an empty raster that can be used as a grid.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
             (self._CRS, 'Target coordinate reference system.'),
             (self._EXTENT, 'Target extent.'),
             (self._UNIT, 'Units to use when defining target raster size/resolution.'),
-            (self._WIDTH, f'Target width if size units is {self.PixelUnits}, '
-                          f'or horizontal resolution if size units is {self.GeoreferencedUnits}.'),
-            (self._HEIGHT, f'Target height if size units is {self.PixelUnits}, '
-                           f'or vertical resolution if size units is {self.GeoreferencedUnits}.'),
-            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._WIDTH, f'Target width if size units is "Pixels", '
+                          f'or horizontal resolution if size units is "Georeferenced units".'),
+            (self._HEIGHT, f'Target height if size units is "Pixels", '
+                           f'or vertical resolution if size units is "Georeferenced units".'),
+            (self._OUTPUT_GRID, self.RasterFileDestination)
         ]
 
     def group(self):
-        return Group.Test.value + Group.CreateRaster.value
+        return Group.Test.value + Group.RasterCreation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterCrs(self.P_CRS, self._CRS)
@@ -45,7 +45,7 @@ class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterEnum(self.P_UNIT, self._UNIT, self.O_UNIT)
         self.addParameterFloat(self.P_WIDTH, self._WIDTH, 0, minValue=0)
         self.addParameterFloat(self.P_HEIGHT, self._HEIGHT, 0, minValue=0)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
+        self.addParameterRasterDestination(self.P_OUTPUT_GRID, self._OUTPUT_GRID)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         unit = self.parameterAsEnum(parameters, self.P_UNIT, context)
@@ -68,7 +68,7 @@ class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
         crs = self.parameterAsCrs(parameters, self.P_CRS, context)
         extent = self.parameterAsExtent(parameters, self.P_EXTENT, context, crs=crs)
         unit = self.parameterAsEnum(parameters, self.P_UNIT, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_GRID, context)
         if unit == self.PixelUnits:
             width = self.parameterAsInt(parameters, self.P_WIDTH, context)
             height = self.parameterAsInt(parameters, self.P_HEIGHT, context)
@@ -84,7 +84,7 @@ class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
             Driver(filename, self.VrtFormat, None, feedback).create(Qgis.Byte, width, height, 1, extent, crs)
-            result = {self.P_OUTPUT_RASTER: filename}
+            result = {self.P_OUTPUT_GRID: filename}
             self.toc(feedback, result)
 
         return result

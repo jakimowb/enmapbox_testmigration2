@@ -23,5 +23,5 @@ class FitRandomForestClassifierAlgorithm(FitClassifierAlgorithmBase):
 
     def code(cls):
         from sklearn.ensemble import RandomForestClassifier
-        classifier = RandomForestClassifier(n_estimators=100, bootstrap=True, oob_score=True, max_samples=None)
+        classifier = RandomForestClassifier(n_estimators=100, oob_score=True)
         return classifier

@@ -5,7 +5,7 @@ import numpy as np
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer, QgsPalettedRasterRenderer)
 
-from enmapboxprocessing.algorithm.translateclassificationalgorithm import TranslateClassificationAlgorithm
+from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.typing import SampleX, SampleY, Categories, checkSampleShape, ClassifierDump
@@ -85,7 +85,7 @@ class PrepareClassificationDatasetFromCategorizedRaster(EnMAPProcessingAlgorithm
                 feedback.pushInfo(f'Derive categories from selected band: {categories}')
 
             # resample classification and set renderer
-            alg = TranslateClassificationAlgorithm()
+            alg = TranslateCategorizedRasterAlgorithm()
             alg.initAlgorithm()
             parameters = {
                 alg.P_CLASSIFICATION: classification,

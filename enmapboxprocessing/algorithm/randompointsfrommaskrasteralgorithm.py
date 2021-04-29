@@ -18,7 +18,7 @@ class RandomPointsFromMaskRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_N, _N = 'n', 'Number of points'
     P_DISTANCE, _DISTANCE = 'distance', 'Minimum distance between points (in meters)'
     P_SEED, _SEED = 'seed', 'Random seed'
-    P_OUTPUT_VECTOR, _OUTPUT_VECTOR = 'outputPoints', 'Output point layer'
+    P_OUTPUT_POINTS, _OUTPUT_POINTS = 'outputPoints', 'Output point layer'
 
     @classmethod
     def displayName(cls) -> str:
@@ -36,11 +36,11 @@ class RandomPointsFromMaskRasterAlgorithm(EnMAPProcessingAlgorithm):
              'A minimum distance between points can be specified. A point will not be added if there is an already '
              'generated point within this (Euclidean) distance from the generated location.'),
             (self._SEED, 'The seed for the random generator can be provided.'),
-            (self._OUTPUT_VECTOR, self.VectorFileDestination)
+            (self._OUTPUT_POINTS, self.VectorFileDestination)
         ]
 
     def group(self):
-        return Group.Test.value + Group.CreateVector.value
+        return Group.Test.value + Group.VectorCreation.value
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         return True, ''
@@ -50,7 +50,7 @@ class RandomPointsFromMaskRasterAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterInt(self.P_N, self._N, None, False, 1)
         self.addParameterInt(self.P_DISTANCE, self._DISTANCE, 0, False, 0)
         self.addParameterInt(self.P_SEED, self._SEED, None, True, 1)
-        self.addParameterVectorDestination(self.P_OUTPUT_VECTOR, self._OUTPUT_VECTOR)
+        self.addParameterVectorDestination(self.P_OUTPUT_POINTS, self._OUTPUT_POINTS)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
@@ -59,7 +59,7 @@ class RandomPointsFromMaskRasterAlgorithm(EnMAPProcessingAlgorithm):
         N = self.parameterAsInts(parameters, self.P_N, context)
         distance = self.parameterAsInt(parameters, self.P_DISTANCE, context)
         seed = self.parameterAsInt(parameters, self.P_SEED, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_VECTOR, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_POINTS, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -90,9 +90,9 @@ class RandomPointsFromMaskRasterAlgorithm(EnMAPProcessingAlgorithm):
                 alg.P_N: N,
                 alg.P_DISTANCE_GLOBAL: distance,
                 alg.P_SEED: seed,
-                alg.P_OUTPUT_VECTOR: filename,
+                alg.P_OUTPUT_POINTS: filename,
             }
             self.runAlg(alg, parameters, None, feedback2, context, True)
-            result = {self.P_OUTPUT_VECTOR: filename}
+            result = {self.P_OUTPUT_POINTS: filename}
             self.toc(feedback, result)
         return result

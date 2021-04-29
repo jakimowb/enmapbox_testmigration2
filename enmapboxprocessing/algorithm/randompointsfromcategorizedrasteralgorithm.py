@@ -21,7 +21,7 @@ class RandomPointsFromCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_DISTANCE_STRATUM, _DISTANCE_STRATUM = 'distanceStatum', \
                                             'Minimum distance between points inside category (in meters)'
     P_SEED, _SEED = 'seed', 'Random seed'
-    P_OUTPUT_VECTOR, _OUTPUT_VECTOR = 'outputPoints', 'Output point layer'
+    P_OUTPUT_POINTS, _OUTPUT_POINTS = 'outputPoints', 'Output point layer'
 
     @classmethod
     def displayName(cls) -> str:
@@ -42,11 +42,11 @@ class RandomPointsFromCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
             (self._DISTANCE_STRATUM,
              'A minimum (Euclidean) distance between points in a category can be specified.'),
             (self._SEED, 'The seed for the random generator can be provided.'),
-            (self._OUTPUT_VECTOR, self.VectorFileDestination)
+            (self._OUTPUT_POINTS, self.VectorFileDestination)
         ]
 
     def group(self):
-        return Group.Test.value + Group.CreateVector.value
+        return Group.Test.value + Group.VectorCreation.value
 
     def checkN(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         stratification = self.parameterAsRasterLayer(parameters, self.P_STRATIFICATION, context)
@@ -74,7 +74,7 @@ class RandomPointsFromCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterInt(self.P_DISTANCE_GLOBAL, self._DISTANCE_GLOBAL, 0, False, 0)
         self.addParameterInt(self.P_DISTANCE_STRATUM, self._DISTANCE_STRATUM, 0, False, 0)
         self.addParameterInt(self.P_SEED, self._SEED, None, True, 1)
-        self.addParameterVectorDestination(self.P_OUTPUT_VECTOR, self._OUTPUT_VECTOR)
+        self.addParameterVectorDestination(self.P_OUTPUT_POINTS, self._OUTPUT_POINTS)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
@@ -84,7 +84,7 @@ class RandomPointsFromCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
         distanceGlobal = self.parameterAsInt(parameters, self.P_DISTANCE_GLOBAL, context)
         distanceStratum = self.parameterAsInt(parameters, self.P_DISTANCE_STRATUM, context)
         seed = self.parameterAsInt(parameters, self.P_SEED, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_VECTOR, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_POINTS, context)
         categories = Utils.categoriesFromPalettedRasterRenderer(stratification.renderer())
         if len(N) == 1:
             N = N * len(categories)
@@ -168,7 +168,7 @@ class RandomPointsFromCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
                 'RASTER_BAND': 1
             }
             processing.run('native:pixelstopoints', parameters, None, feedback2, context, True)
-            result = {self.P_OUTPUT_VECTOR: filename}
+            result = {self.P_OUTPUT_POINTS: filename}
             self.toc(feedback, result)
         return result
 

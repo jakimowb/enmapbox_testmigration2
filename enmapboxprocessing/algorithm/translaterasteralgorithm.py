@@ -14,7 +14,7 @@ from typeguard import typechecked
 
 @typechecked
 class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
-    P_RASTER, _RASTER = 'raster', 'Raster'
+    P_RASTER, _RASTER = 'raster', 'Raster layer'
     P_BAND_LIST, _BAND_LIST = 'bandList', 'Selected bands'
     P_GRID, _GRID = 'grid', 'Grid'
     P_COPY_METADATA, _COPY_METADATA = 'copyMetadata', 'Copy metadata'
@@ -26,10 +26,10 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_RESAMPLE_ALG, _RESAMPLE_ALG = 'resampleAlg', 'Resample algorithm'
     P_DATA_TYPE, _DATA_TYPE = 'dataType', 'Data type'
     P_CREATION_PROFILE, _CREATION_PROFILE = 'creationProfile', 'Output options'
-    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRaster', 'Output raster'
+    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputTranslatedRaster', 'Output raster layer'
 
     def displayName(self):
-        return 'Translate raster'
+        return 'Translate raster layer'
 
     def shortDescription(self):
         return 'Convert raster data between different formats, ' \
@@ -38,7 +38,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpHeader(self) -> Tuple[str, str]:
         return (
-            'Source No Data Value Handling',
+            'Source no data value handling',
             'The used source no data value can be modified by properly setting up the "No Data Value" section in '
             'the "Transparency" tab inside the "Layer Styling" panel. Use one of the following options:'
             '\n1. Check "No data value" to use the source no data value.'
@@ -48,10 +48,10 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._RASTER, self.helpParameterRaster()),
+            (self._RASTER, 'Source raster layer.'),
             (self._BAND_LIST, 'Bands to subset and rearrange. '
                               'An empty selection defaults to all bands in native order.'),
-            (self._GRID, self.helpParameterGrid()),
+            (self._GRID, 'The target grid.'),
             (self._EXTENT, 'Spatial extent for clipping the destination grid, '
                            'which is given by the source Raster or the selected Grid. '
                            'In both cases, the extent is aligned with the actual pixel grid '
@@ -64,14 +64,14 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             (self._COPY_METADATA, 'Whether to copy metadata from source to destination. '
                                   'Special care is taken of ENVI list items containing band information. '
                                   'The following list items will be properly subsetted according to the selected '
-                                  'bands: <i>band names, bbl, data_gain_values, data_offset_values, '
+                                  'bands: band names, bbl, data_gain_values, data_offset_values, '
                                   'data_reflectance_gain_values, data_reflectance_offset_values, fwhm, '
-                                  'wavelength.</i>'),
+                                  'wavelength.'),
             (self._COPY_STYLE, 'Whether to copy style from source to destination.'),
             (self._RESAMPLE_ALG, 'Spatial resample algorithm.'),
-            (self._DATA_TYPE, self.helpParameterDataType()),
-            (self._CREATION_PROFILE, self.helpParameterCreationProfile()),
-            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._DATA_TYPE, 'Output data type.'),
+            (self._CREATION_PROFILE, 'Output format and creation options.'),
+            (self._OUTPUT_RASTER, self.RasterFileDestination)
         ]
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
@@ -106,7 +106,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         return QgsRectangle(QgsPointXY(p1), QgsPointXY(p2))
 
     def group(self):
-        return Group.Test.value + Group.CreateRaster.value
+        return Group.Test.value + Group.RasterCreation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_RASTER, self._RASTER)

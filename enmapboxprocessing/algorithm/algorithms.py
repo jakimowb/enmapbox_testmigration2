@@ -36,9 +36,9 @@ from enmapboxprocessing.algorithm.randomsamplesfromclassificationdatasetalgorith
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.samplerastervaluesalgorithm import SampleRasterValuesAlgorithm
 from enmapboxprocessing.algorithm.selectfeaturesfromdatasetalgorithm import SelectFeaturesFromDatasetAlgorithm
-from enmapboxprocessing.algorithm.translateclassificationalgorithm import TranslateClassificationAlgorithm
+from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
-from enmapboxprocessing.algorithm.vectortoclassificationalgorithm import VectorToClassificationAlgorithm
+from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 
 
 def algorithms():
@@ -68,10 +68,10 @@ def algorithms():
         RandomPointsFromMaskRasterAlgorithm(),
         RandomPointsFromCategorizedRasterAlgorithm(),
         RandomSamplesFromClassificationDatasetAlgorithm(),
+        RasterizeCategorizedVectorAlgorithm(),
         RasterizeVectorAlgorithm(),
         SampleRasterValuesAlgorithm(),
         SelectFeaturesFromDatasetAlgorithm(),
-        TranslateClassificationAlgorithm(),
-        TranslateRasterAlgorithm(),
-        VectorToClassificationAlgorithm(),
+        TranslateCategorizedRasterAlgorithm(),
+        TranslateRasterAlgorithm()
     ]

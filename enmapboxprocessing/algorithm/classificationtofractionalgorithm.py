@@ -4,8 +4,8 @@ import numpy as np
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer)
 
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
-from enmapboxprocessing.algorithm.translateclassificationalgorithm import TranslateClassificationAlgorithm
-from enmapboxprocessing.algorithm.vectortoclassificationalgorithm import VectorToClassificationAlgorithm
+from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
+from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group, AlgorithmCanceledException
 from enmapboxprocessing.rasterreader import RasterReader
@@ -15,42 +15,43 @@ from typeguard import typechecked
 
 @typechecked
 class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
-    P_MAP, _MAP = 'map', 'Classification'
+    P_CATEGORIZED_LAYER, _CATEGORIZED_LAYER = 'categorizedLayer', 'Categorized layer'
     P_GRID, _GRID = 'grid', 'Grid'
-    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outRaster', 'Output raster'
+    P_OUTPUT_FRACTION, _OUTPUT_FRACTION = 'outputClassFraction', 'Output class fraction layer'
 
     def displayName(self):
-        return 'Classification to fraction'
+        return 'Categorized layer to class fraction layer'
 
     def shortDescription(self):
-        return 'Converts a classification (raster or vector) into a multiband class cover fraction raster. ' \
+        return 'Aggregates a (single-band) categorized layer into a (multiband) class fraction raster, ' \
+               'by resampling into the given grid. ' \
                'Output band order and naming are given by the renderer categories.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._MAP, self.helpParameterMapClassification()),
-            (self._GRID, self.helpParameterGrid()),
-            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
+            (self._CATEGORIZED_LAYER, 'A categorized layer with categories to be aggregated into fractions.'),
+            (self._GRID, 'The target grid.'),
+            (self._OUTPUT_FRACTION, self.RasterFileDestination)
         ]
 
     def group(self):
-        return Group.Test.value + Group.CreateRaster.value
+        return Group.Test.value + Group.RasterCreation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterMapLayer(self.P_MAP, self._MAP)
+        self.addParameterMapLayer(self.P_CATEGORIZED_LAYER, self._CATEGORIZED_LAYER)
         self.addParameterRasterLayer(self.P_GRID, self._GRID)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
+        self.addParameterRasterDestination(self.P_OUTPUT_FRACTION, self._OUTPUT_FRACTION)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
-        return self.checkParameterMapClassification(parameters, self.P_MAP, context)
+        return self.checkParameterMapClassification(parameters, self.P_CATEGORIZED_LAYER, context)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        map = self.parameterAsLayer(parameters, self.P_MAP, context)
+        map = self.parameterAsLayer(parameters, self.P_CATEGORIZED_LAYER, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_FRACTION, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -72,7 +73,7 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
 
             # create x10 classification
             if isinstance(map, QgsRasterLayer):
-                alg = TranslateClassificationAlgorithm()
+                alg = TranslateCategorizedRasterAlgorithm()
                 parameters = {
                     alg.P_CLASSIFICATION: map,
                     alg.P_GRID: gridOversampled,
@@ -83,7 +84,7 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
                 self.runAlg(alg, parameters, None, feedback2, context, True)
                 classification = QgsRasterLayer(parameters[alg.P_OUTPUT_RASTER])
             elif isinstance(map, QgsVectorLayer):
-                alg = VectorToClassificationAlgorithm()
+                alg = RasterizeCategorizedVectorAlgorithm()
                 alg.initAlgorithm()
                 parameters = {
                     alg.P_VECTOR: map,
@@ -131,7 +132,7 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
             for bandNo, category in enumerate(categories, 1):
                 writer.setBandName(category.name, bandNo)
 
-            result = {self.P_OUTPUT_RASTER: filename}
+            result = {self.P_OUTPUT_FRACTION: filename}
             self.toc(feedback, result)
 
         return result

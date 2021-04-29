@@ -8,7 +8,7 @@ from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLa
 
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import \
     PrepareClassificationDatasetFromCategorizedRaster
-from enmapboxprocessing.algorithm.vectortoclassificationalgorithm import VectorToClassificationAlgorithm
+from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.typing import SampleX, SampleY, Categories, checkSampleShape, ClassifierDump
@@ -94,7 +94,7 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
             classification.setRenderer(renderer)
 
             feedback.pushInfo('Rasterize categorized vector layer')
-            alg = VectorToClassificationAlgorithm()
+            alg = RasterizeCategorizedVectorAlgorithm()
             alg.initAlgorithm()
             parameters = {
                 alg.P_VECTOR: classification,

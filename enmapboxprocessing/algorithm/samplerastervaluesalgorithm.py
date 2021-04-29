@@ -1,7 +1,6 @@
 from typing import Dict, Any, List, Tuple
 
 import processing
-# from processing.algs.qgis.RasterSampling import RasterSampling
 from PyQt5.QtCore import QVariant
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
                         QgsFeature, QgsField, QgsProcessingFeatureSourceDefinition, QgsApplication,
@@ -20,43 +19,43 @@ from typeguard import typechecked
 
 @typechecked
 class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
-    P_RASTER, _RASTER = 'raster', 'Raster'
-    P_VECTOR, _VECTOR = 'vector', 'Locations'
-    P_COVERAGE_RANGE, _COVERAGE_RANGE = 'coverageRange', 'Pixel Coverage (%)'
-    P_OUTPUT_SAMPLE, _OUTPUT_SAMPLE = 'outSample', 'Output Sample'
+    P_RASTER, _RASTER = 'raster', 'Raster layer'
+    P_VECTOR, _VECTOR = 'vector', 'Vector layer'
+    P_COVERAGE_RANGE, _COVERAGE_RANGE = 'coverageRange', 'Pixel coverage (%)'
+    P_OUTPUT_POINTS, _OUTPUT_POINTS = 'outputPointsData', 'Output point layer'
 
     def displayName(self) -> str:
-        return 'Sample raster values'
+        return 'Sample raster layer values'
 
     def shortDescription(self) -> str:
-        return 'Creates a new point vector layer with the same attributes of the input layer and the ' \
+        return 'Creates a new point layer with the same attributes of the input layer and the ' \
                'raster values corresponding to the pixels covered by polygons or point location. ' \
                '\nThe resulting point vector contains ' \
                '1) all input attributes from the Locations vector,  ' \
                '2) attributes SAMPLE_{i}, one for each input raster band, ' \
                '3) two attributes PIXEL_X, PIXEL_Y for storing the raster pixel locations (zero-based),' \
-               'and 4), in case of polygon locations, an attribute COVER for storing the pixel coverage (%). ' \
-               '\nNote that we assume non-overlapping feature geometries! ' \
+               'and 4), in case of polygon locations, an attribute COVER for storing the pixel coverage (%).\n' \
+               'Note that we assume non-overlapping feature geometries! ' \
                'In case of overlapping geometries, split the Locations layer into non-overlapping subsets, ' \
                'perform the sampling for each subset individually, and finally concatenate the results.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._RASTER, self.helpParameterRaster()),
-            (self._VECTOR, self.helpParameterVector()),
+            (self._RASTER, 'A raster layer to sample data from.'),
+            (self._VECTOR, 'A vector layer defining the locations to sample.'),
             (self._COVERAGE_RANGE, 'Samples with polygon pixel coverage outside the given range are excluded. '
                                    'This parameter has no effect in case of point locations.'),
-            (self._OUTPUT_SAMPLE, self.helpParameterVectorDestination())
+            (self._OUTPUT_POINTS, self.VectorFileDestination)
         ]
 
     def group(self):
-        return Group.Test.value + Group.Sampling.value
+        return Group.Test.value + Group.VectorCreation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_RASTER, self._RASTER)
         self.addParameterVectorLayer(self.P_VECTOR, self._VECTOR)
-        self.addParameterIntRange(self.P_COVERAGE_RANGE, self._COVERAGE_RANGE, [50, 100], advanced=True)
-        self.addParameterVectorDestination(self.P_OUTPUT_SAMPLE, self._OUTPUT_SAMPLE)
+        self.addParameterIntRange(self.P_COVERAGE_RANGE, self._COVERAGE_RANGE, [50, 100], False, True)
+        self.addParameterVectorDestination(self.P_OUTPUT_POINTS, self._OUTPUT_POINTS)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
@@ -233,7 +232,6 @@ class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
         parameters = {
             'LAYERS': sampleVectors,
             'CRS': vector.crs(),
-
             'OUTPUT': filename
         }
         processing.run(alg, parameters, None, feedback, context, True)

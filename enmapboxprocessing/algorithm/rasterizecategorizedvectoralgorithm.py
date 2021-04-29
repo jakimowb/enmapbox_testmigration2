@@ -1,70 +1,73 @@
 from typing import Dict, Any, List, Tuple
 
-from PyQt5.QtCore import QVariant
-from qgis.core import edit
 import processing
-from enmapboxprocessing.driver import Driver
-from enmapboxprocessing.rasterreader import RasterReader
-from typeguard import typechecked
+from PyQt5.QtCore import QVariant
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRectangle,
                         QgsCoordinateReferenceSystem, QgsVectorFileWriter,
                         QgsProject, QgsField, QgsCoordinateTransform, QgsRasterLayer, QgsProcessingException)
+from qgis.core import edit
 
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
+from enmapboxprocessing.driver import Driver
+from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
+from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.typing import HexColor, Category
 from enmapboxprocessing.utils import Utils
-from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
+from typeguard import typechecked
 
 
 @typechecked
-class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
-    P_VECTOR,_VECTOR = 'vector', 'Vector'
-    P_GRID,_GRID = 'grid', 'Grid'
-    P_COVERAGE,_COVERAGE = 'coverage', 'Minimum pixel coverage'
-    P_MAJORITY_VOTING,_MAJORITY_VOTING = 'majorityVoting', 'Majority voting'
-    P_OUTPUT_RASTER,_OUTPUT_RASTER = 'outputRaster', 'Output classification'
+class RasterizeCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
+    P_CATEGORIZED_VECTOR, _CATEGORIZED_VECTOR = 'categorizedVector', 'Categorized vector layer'
+    P_GRID, _GRID = 'grid', 'Grid'
+    P_COVERAGE, _COVERAGE = 'coverage', 'Minimum pixel coverage'
+    P_MAJORITY_VOTING, _MAJORITY_VOTING = 'majorityVoting', 'Majority voting'
+    P_OUTPUT_CATEGORIZED_RASTER, _OUTPUT_CATEGORIZED_RASTER = 'outputRasterizedCategories', \
+                                                              'Output categorized raster layer'
 
     def displayName(self):
-        return 'Vector to classification'
+        return 'Rasterize categorized vector layer'
 
     def shortDescription(self):
-        return 'Converts a categorized vector into a classification by evaluating renderer categories. ' \
-               'Output class ids run from 1 to number of categories, in the order of the given categories. ' \
-               'Class names and colors are given by the category legend and symbol color. ' \
-               '\nRasterization is done by class majority voting at x10 oversampled resolution, using 100 classified ' \
-               'subpixel to be accurate to the percent.'
+        return 'Rasterize a categorized vector layer into a categorized raster layer. ' \
+               'Output category names and colors are given by the source layer.\n' \
+               'Resampling is done via a two-step majority voting approach. ' \
+               'First, the categorized raster layer is resampled at x10 finer resolution, ' \
+               'and subsequently aggregated back to the target resolution using majority voting. ' \
+               'This approach leads to pixel-wise class decisions that are accurate to the percent.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._VECTOR, self.helpParameterVectorClassification()),
-            (self._GRID, self.helpParameterGrid()),
+            (self._CATEGORIZED_VECTOR, 'A categorized vector layer to be rasterized.'),
+            (self._GRID, 'The target grid.'),
             (self._COVERAGE, 'Exclude all pixel where (polygon) coverage is smaller than given threshold.'),
             (self._MAJORITY_VOTING, 'Whether to use majority voting. '
-                                    'Turn off to use simple vector burning, which is much faster.'),
-            (self._OUTPUT_RASTER, self.helpParameterRasterDestination())
+                                    'Turn off to use simple nearest neighbour resampling, which is much faster, '
+                                    'but may result in highly inaccurate decisions.'),
+            (self._OUTPUT_CATEGORIZED_RASTER, self.RasterFileDestination)
         ]
 
     def group(self):
-        return Group.Test.value + Group.CreateRaster.value
+        return Group.Test.value + Group.RasterCreation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterVectorLayer(self.P_VECTOR, self._VECTOR)
+        self.addParameterVectorLayer(self.P_CATEGORIZED_VECTOR, self._CATEGORIZED_VECTOR)
         self.addParameterRasterLayer(self.P_GRID, self._GRID)
         self.addParameterInt(self.P_COVERAGE, self._COVERAGE, 0, False, 0, 100, advanced=True)
         self.addParameterBoolean(self.P_MAJORITY_VOTING, self._MAJORITY_VOTING, True, False, advanced=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
+        self.addParameterRasterDestination(self.P_OUTPUT_CATEGORIZED_RASTER, self._OUTPUT_CATEGORIZED_RASTER)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
-        return self.checkParameterVectorClassification(parameters, self.P_VECTOR, context)
+        return self.checkParameterVectorClassification(parameters, self.P_CATEGORIZED_VECTOR, context)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        vector = self.parameterAsVectorLayer(parameters, self.P_VECTOR, context)
+        vector = self.parameterAsVectorLayer(parameters, self.P_CATEGORIZED_VECTOR, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         minCoverage = self.parameterAsInt(parameters, self.P_COVERAGE, context) / 100.
         majorityVoting = self.parameterAsBoolean(parameters, self.P_MAJORITY_VOTING, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_CATEGORIZED_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -86,7 +89,7 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_DATA_TYPE: self.O_DATA_TYPE.index(Utils.qgisDataTypeName(dataType)),
                     alg.P_BURN_ATTRIBUTE: fieldName,
                     alg.P_RESAMPLE_ALG: self.NearestNeighbourResampleAlg,  # simple burn
-                    alg.P_OUTPUT_RASTER: filename
+                    alg.P_OUTPUT_CATEGORIZED_RASTER: filename
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)
             else:
@@ -97,9 +100,9 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_DATA_TYPE: self.O_DATA_TYPE.index(Utils.qgisDataTypeName(dataType)),
                     alg.P_BURN_ATTRIBUTE: fieldName,
                     alg.P_RESAMPLE_ALG: self.ModeResampleAlg,  # use 10x oversampling
-                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'rasterized.tif')
+                    alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'rasterized.tif')
                 }
-                classification = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER]
+                classification = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_CATEGORIZED_RASTER]
 
                 feedback.pushInfo('Calculate pixel coverage')
                 alg = RasterizeVectorAlgorithm()
@@ -108,9 +111,9 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_VECTOR: tmpVector,
                     alg.P_DATA_TYPE: self.Float32,
                     alg.P_RESAMPLE_ALG: self.AverageResampleAlg,
-                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'coverage.tif')
+                    alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'coverage.tif')
                 }
-                coverageRaster = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER]
+                coverageRaster = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_CATEGORIZED_RASTER]
 
                 info = 'Mask pixel with low coverage'
                 feedback.pushInfo(info)
@@ -129,7 +132,7 @@ class VectorToClassificationAlgorithm(EnMAPProcessingAlgorithm):
             if not success:
                 raise QgsProcessingException(message)
 
-            result = {self.P_OUTPUT_RASTER: filename}
+            result = {self.P_OUTPUT_CATEGORIZED_RASTER: filename}
             self.toc(feedback, result)
 
         return result
