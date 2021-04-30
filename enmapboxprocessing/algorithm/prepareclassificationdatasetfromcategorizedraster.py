@@ -22,7 +22,7 @@ class PrepareClassificationDatasetFromCategorizedRaster(EnMAPProcessingAlgorithm
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Prepare classification dataset (from categorized raster layer and feature raster)'
+        return 'Classification dataset (from categorized raster layer and feature raster)'
 
     def shortDescription(self) -> str:
         return 'Sample data for pixels that match the given categories and store the result as a pickle file. \n' \

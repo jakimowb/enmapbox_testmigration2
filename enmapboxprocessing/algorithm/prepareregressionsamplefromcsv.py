@@ -17,7 +17,7 @@ class PrepareRegressionSampleFromCsv(EnMAPProcessingAlgorithm):
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Prepare regression sample (from text files)'
+        return 'Regression sample (from text files)'
 
     def shortDescription(self) -> str:
         return f'Read sample from two text file with tabulated values and store it as a binary Pickle (*.pkl) file. ' \

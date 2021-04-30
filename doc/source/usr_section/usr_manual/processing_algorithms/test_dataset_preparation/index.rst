@@ -1,6 +1,6 @@
-.. _TEST_Accuracy assessment:
+.. _TEST_Dataset preparation:
 
-TEST_Accuracy assessment
+TEST_Dataset preparation
 ========================
 
 .. toctree::

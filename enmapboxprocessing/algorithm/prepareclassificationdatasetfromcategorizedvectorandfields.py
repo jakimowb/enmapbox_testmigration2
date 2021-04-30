@@ -19,7 +19,7 @@ class PrepareClassificationDatasetFromCategorizedVectorAndFields(EnMAPProcessing
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Prepare classification dataset (from categorized vector layer with feature fields)'
+        return 'Classification dataset (from categorized vector layer with feature fields)'
 
     def shortDescription(self) -> str:
         return 'Store attribute table rows that matches the given categories into a pickle file.\n' \

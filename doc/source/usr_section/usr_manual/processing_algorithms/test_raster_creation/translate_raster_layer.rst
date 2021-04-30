@@ -1,28 +1,28 @@
-.. _Translate raster:
+.. _Translate raster layer:
 
-****************
-Translate raster
-****************
+**********************
+Translate raster layer
+**********************
 
 Convert raster data between different formats, potentially performing some operations like spatial subsetting, spatial resampling, reprojection, band subsettings, band reordering and data type conversion.
 
 **Parameters**
 
 
-:guilabel:`Raster` [raster]
+:guilabel:`Raster layer` [raster]
     Source raster layer.
 
 
 :guilabel:`Selected bands` [band]
-    Bands to subset and rearrange. Note that an empty selection (default) will select all bands in native order.
+    Bands to subset and rearrange. An empty selection defaults to all bands in native order.
 
 
 :guilabel:`Grid` [raster]
-    Source raster layer defining the destination extent, resolution and coordinate reference system.
+    The target grid.
 
 
 :guilabel:`Copy metadata` [boolean]
-    Whether to copy metadata from source to destination. Special care is taken of ENVI list items containing band information. The following list items will be properly subsetted according to the selected bands: <i>band names, bbl, data_gain_values, data_offset_values, data_reflectance_gain_values, data_reflectance_offset_values, fwhm, wavelength.</i>
+    Whether to copy metadata from source to destination. Special care is taken of ENVI list items containing band information. The following list items will be properly subsetted according to the selected bands: band names, bbl, data_gain_values, data_offset_values, data_reflectance_gain_values, data_reflectance_offset_values, fwhm, wavelength.
 
     Default: *False*
 
@@ -69,6 +69,6 @@ Convert raster data between different formats, potentially performing some opera
 **Outputs**
 
 
-:guilabel:`Output raster` [rasterDestination]
-    Output raster destination.
+:guilabel:`Output raster layer` [rasterDestination]
+    Output raster file destination.
 

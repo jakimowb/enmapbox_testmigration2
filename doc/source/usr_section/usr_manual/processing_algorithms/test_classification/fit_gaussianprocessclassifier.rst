@@ -12,11 +12,11 @@ See <a href="http://scikit-learn.org/stable/modules/gaussian_process.html">Gauss
 **Parameters**
 
 
-:guilabel:`Sample` [file]
-    Training data sample (*.pkl) file used for fitting the classifier. If not specified, an unfitted classifier is created.
+:guilabel:`Training dataset` [file]
+    Training dataset pickle file used for fitting the classifier. If not specified, an unfitted classifier is created.
 
 
-:guilabel:`Code` [string]
+:guilabel:`Classifier` [string]
     Scikit-learn python code. See <a href="http://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessClassifier.html">GaussianProcessClassifier</a> for information on different parameters.
 
     Default::
@@ -31,5 +31,5 @@ See <a href="http://scikit-learn.org/stable/modules/gaussian_process.html">Gauss
 
 
 :guilabel:`Output classifier` [fileDestination]
-    Output classifier model destination *.pkl file.
+    Output destination pickle file.
 

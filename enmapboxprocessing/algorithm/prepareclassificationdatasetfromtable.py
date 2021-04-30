@@ -22,7 +22,7 @@ class PrepareClassificationDatasetFromTable(EnMAPProcessingAlgorithm):
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Prepare classification dataset (from table with categories and feature fields)'
+        return 'Classification dataset (from table with categories and feature fields)'
 
     def shortDescription(self) -> str:
         return 'Store attribute table data into a pickle file.\n' \

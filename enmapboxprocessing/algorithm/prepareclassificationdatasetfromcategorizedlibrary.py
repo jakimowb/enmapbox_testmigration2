@@ -21,7 +21,7 @@ class PrepareClassificationDatasetFromCategorizedLibrary(EnMAPProcessingAlgorith
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Prepare classification dataset (from categorized spectral library)'
+        return 'Classification dataset (from categorized spectral library)'
 
     def shortDescription(self) -> str:
         return 'Store spectral profiles that matches the given categories into a pickle file.\n' \

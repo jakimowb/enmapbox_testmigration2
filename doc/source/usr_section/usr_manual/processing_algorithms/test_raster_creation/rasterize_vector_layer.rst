@@ -1,30 +1,30 @@
-.. _Rasterize vector:
+.. _Rasterize vector layer:
 
-****************
-Rasterize vector
-****************
+**********************
+Rasterize vector layer
+**********************
 
 Converts vector geometries (points, lines and polygons) into a raster grid.
 
 **Parameters**
 
 
-:guilabel:`Vector` [vector]
-    Source vector layer.
+:guilabel:`Vector layer` [vector]
+    A vector layer to be rasterized.
 
 
 :guilabel:`Grid` [raster]
-    Source raster layer defining the destination extent, resolution and coordinate reference system.
+    The target grid.
 
 
 :guilabel:`Init value` [number]
-    Pre-initialization value for the output raster.
+    Pre-initialization value for the output raster layer.
 
     Default: *0*
 
 
 :guilabel:`Burn value` [number]
-    Fixed value to burn into each pixel, which is touched (point, line) or where the center is covered (polygon) by a feature.
+    Fixed value to burn into each pixel, which is touched (point, line) or where the center is covered (polygon) by a geometry.
 
     Default: *1*
 
@@ -40,7 +40,7 @@ Converts vector geometries (points, lines and polygons) into a raster grid.
 
 
 :guilabel:`Aggregation algorithm` [enum]
-    If selected, burn at a x10 finer resolution and aggregate values back to target resolution. For example, use <i>Mode</i> aggregation for categorical attributes to burn the category with highest pixel coverage (i.e. majority voting). For continuous attributes use <i>Average</i> to calculate a weighted average.
+    If selected, burn at a x10 finer resolution and aggregate values back to target resolution. For example, use Mode aggregation for categorical attributes to burn the category with highest pixel coverage (i.e. majority voting). For continuous attributes use Average to calculate a weighted average.
 
     Default: *0*
 
@@ -65,6 +65,6 @@ Converts vector geometries (points, lines and polygons) into a raster grid.
 **Outputs**
 
 
-:guilabel:`Output raster` [rasterDestination]
-    Output raster destination.
+:guilabel:`Output raster layer` [rasterDestination]
+    Output raster file destination.
 

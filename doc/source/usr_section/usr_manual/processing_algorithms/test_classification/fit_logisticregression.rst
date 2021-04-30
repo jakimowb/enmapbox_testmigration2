@@ -10,11 +10,11 @@ In the multiclass case, the training algorithm uses the one-vs-rest (OvR) scheme
 **Parameters**
 
 
-:guilabel:`Sample` [file]
-    Training data sample (*.pkl) file used for fitting the classifier. If not specified, an unfitted classifier is created.
+:guilabel:`Training dataset` [file]
+    Training dataset pickle file used for fitting the classifier. If not specified, an unfitted classifier is created.
 
 
-:guilabel:`Code` [string]
+:guilabel:`Classifier` [string]
     Scikit-learn python code. See <a href="https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html">LogisticRegression</a> for information on different parameters.
 
     Default::
@@ -28,5 +28,5 @@ In the multiclass case, the training algorithm uses the one-vs-rest (OvR) scheme
 
 
 :guilabel:`Output classifier` [fileDestination]
-    Output classifier model destination *.pkl file.
+    Output destination pickle file.
 

@@ -9,11 +9,11 @@ A generic classifier.
 **Parameters**
 
 
-:guilabel:`Sample` [file]
-    Training data sample (*.pkl) file used for fitting the classifier. If not specified, an unfitted classifier is created.
+:guilabel:`Training dataset` [file]
+    Training dataset pickle file used for fitting the classifier. If not specified, an unfitted classifier is created.
 
 
-:guilabel:`Code` [string]
+:guilabel:`Classifier` [string]
     Scikit-learn python code.
 
     Default::
@@ -24,5 +24,5 @@ A generic classifier.
 
 
 :guilabel:`Output classifier` [fileDestination]
-    Output classifier model destination *.pkl file.
+    Output destination pickle file.
 

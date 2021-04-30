@@ -19,7 +19,7 @@ class PrepareClassificationDatasetFromFiles(EnMAPProcessingAlgorithm):
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Prepare classification dataset (from text files)'
+        return 'Classification dataset (from text files)'
 
     def shortDescription(self) -> str:
         return 'Store tabulated data from text files into a pickle file.\n' \

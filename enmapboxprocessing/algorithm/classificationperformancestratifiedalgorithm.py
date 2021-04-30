@@ -72,6 +72,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
         reference = self.parameterAsLayer(parameters, self.P_REFERENCE, context)
         stratification = self.parameterAsRasterLayer(parameters, self.P_STRATIFICATION, context)
         if isinstance(reference, QgsRasterLayer):
+            assert 0  # todo don't check, but always warp to avoid problems!!!
             if not all(
                     [
                         reference.extent() == classification.extent(),
@@ -81,6 +82,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
             ):
                 return False, 'Pixel grids are not matching.'
         if stratification is not None:
+            assert 0  # todo don't check, but always warp to avoid problems!!!
             if not all(
                     [
                         stratification.extent() == classification.extent(),

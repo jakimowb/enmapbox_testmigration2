@@ -18,11 +18,11 @@ Processing Algorithms
     random/index.rst
     regression/index.rst
     resampling_and_subsetting/index.rst
-    test_accuracy_assessment/index.rst
     test_classification/index.rst
+    test_dataset_preparation/index.rst
+    test_feature_selection/index.rst
     test_post-processing/index.rst
     test_raster_creation/index.rst
-    test_sampling/index.rst
     test_vector_creation/index.rst
     testdata/index.rst
     transformation/index.rst

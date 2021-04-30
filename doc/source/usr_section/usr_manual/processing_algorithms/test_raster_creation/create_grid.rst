@@ -1,10 +1,10 @@
-.. _Create Grid:
+.. _Create grid:
 
 ***********
-Create Grid
+Create grid
 ***********
 
-Create an empty (VRT) raster that can be used as a pixel grid.
+Create an empty raster that can be used as a grid.
 
 **Parameters**
 
@@ -22,19 +22,19 @@ Create an empty (VRT) raster that can be used as a pixel grid.
 
 
 :guilabel:`Width / horizontal resolution` [number]
-    Target width if size units is 0, or horizontal resolution if size units is 1.
+    Target width if size units is "Pixels", or horizontal resolution if size units is "Georeferenced units".
 
     Default: *0*
 
 
 :guilabel:`Height / vertical resolution` [number]
-    Target height if size units is 0, or vertical resolution if size units is 1.
+    Target height if size units is "Pixels", or vertical resolution if size units is "Georeferenced units".
 
     Default: *0*
 
 **Outputs**
 
 
-:guilabel:`Output VRT raster` [rasterDestination]
-    Output raster destination.
+:guilabel:`Output grid` [rasterDestination]
+    Output raster file destination.
 
