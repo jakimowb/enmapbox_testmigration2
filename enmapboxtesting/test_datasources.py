@@ -589,8 +589,8 @@ class DataSourceTests(EnMAPBoxTestCase):
 
         DATA_PKL = {'D1':
                         {'Array1D': np.random.rand(256),
-                         'Array2D': np.random.rand(64,256),
-                         'Array3D': np.random.rand(32,64,256),
+                         'Array2D': np.random.rand(64, 32),
+                         'Array3D': np.random.rand(32, 16, 3),
                          },
                     }
 
