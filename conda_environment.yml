@@ -22,3 +22,5 @@ dependencies:
   - pip:
     - sphinx-rtd-theme
     - enpt-enmapboxapp
+variables:
+  QT_MAC_WANTS_LAYER: 1
