@@ -157,3 +157,35 @@ rasterize the vector dataset.
    :width: 100%
 
    Result of the Classification from Vector algorithm (right) and the input grid (left) and polygon dataset (middle)
+
+Use the Spectral Library
+########################
+
+In this section, we will use the spectral library to characterize and compare spectra of different surfaces.
+In the following, the :file:`enmap_berlin.bsq` is used to explain how to collect spectra and edit their properties.
+
+* Open the spectral library window via :menuselection:`View --> Add Spectral Library Window`
+* Now you should see an empty window where all spectra can now be collected.
+
+  .. image:: ../img/SpectralLibrary.png
+
+* If not activated yet, enable the |profile| button in the menu bar and open a raster you want to collect spectra
+  from in a Map Window.
+* Now you can generate spectra from the image by using the left mouse button and clicking in the opened image.
+* To display multiple spectra at the same time in the same spectral library, activate the *Add profiles automatically* |profile_add_auto|
+  button in the |plus_green| drop-down list.
+
+  .. image:: ../img/AddProfiles.png
+
+**Add information to the attribute table:**
+
+* You can manage your spectra and add information, e.g. class name or description of the property.
+* Enable the **Editing mode** by activating the  |mActionToggleEditing|
+* Add a new field via |mActionNewAttribute|
+
+  .. figure:: ../img/speclib_add_field.png
+
+     Example: Add a new text field (maximum 100 characters)
+
+* After the new column is added, you can add information by double-clicking it.
+* To delete a column, use the :guilabel:`Delete field button` |mActionDeleteAttribute|
