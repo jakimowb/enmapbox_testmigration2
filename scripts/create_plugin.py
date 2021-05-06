@@ -125,6 +125,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdc', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdsm', pattern=pattern)))
+    files.extend(list(scantree(DIR_REPO / 'enmapboxprocessing', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
 
     # add special files required by EnMAP-Box Applications

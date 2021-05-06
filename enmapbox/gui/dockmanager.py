@@ -344,7 +344,6 @@ class MapDockTreeNode(DockTreeNode):
 
     def __init__(self, dock):
         super(MapDockTreeNode, self).__init__(dock)
-        # KeepRefs.__init__(self)
         assert isinstance(self.dock, MapDock)
         self.setIcon(QIcon(':/enmapbox/gui/ui/icons/viewlist_mapdock.svg'))
         self.addedChildren.connect(self.onAddedChildren)
@@ -1512,13 +1511,16 @@ class MapCanvasBridge(QgsLayerTreeMapCanvasBridge):
 
     def __init__(self, root, canvas, parent=None):
         super(MapCanvasBridge, self).__init__(root, canvas)
+        self.setAutoSetupOnFirstLayer(False)
         assert isinstance(root, MapDockTreeNode)
         assert isinstance(canvas, MapCanvas)
 
         self.mRootNode = root
         self.mCanvas = canvas
         assert self.mCanvas == self.mapCanvas()
+
         self.mapCanvas().layersChanged.connect(self.setLayerTreeLayers)
+
         self.mCanvas.sigLayersCleared.connect(self.mRootNode.clear)
 
     def setLayerTreeLayers(self):
@@ -1540,14 +1542,6 @@ class MapCanvasBridge(QgsLayerTreeMapCanvasBridge):
             lNode = self.rootGroup().findLayer(lid)
             if isinstance(lNode, QgsLayerTreeLayer):
                 lNode.setItemVisibilityChecked(Qt.Checked)
-
-        if False:
-            # layers to hide?
-            for lid in treeNodeLayerIds:
-                if isinstance(lid, QgsMapLayer) and lid not in canvasLayers:
-                    lnode = self.rootGroup().findLayer(lid.id())
-                    if isinstance(lnode, QgsLayerTreeLayer):
-                        lnode.setItemVisibilityChecked(Qt.Unchecked)
 
 
 def createDockTreeNode(dock: Dock) -> DockTreeNode:

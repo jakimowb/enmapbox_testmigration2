@@ -296,7 +296,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui = EnMAPBoxUI()
         self.ui.closeEvent = self.closeEvent
 
-        self.mHiddenLayerGroup : QgsLayerTreeGroup = None
+        self.mHiddenLayerGroup: QgsLayerTreeGroup = None
 
         self.initQgisInterfaceVariables()
         if not isinstance(iface, QgisInterface):
@@ -574,7 +574,7 @@ class EnMAPBox(QgisInterface, QObject):
         w.addPackages(requiredPackages())
         w.show()
 
-    def showHiddenLayersNode(self, visibility:bool):
+    def showHiddenLayersNode(self, visibility: bool):
 
         b = self.ui.optionShowHiddenLayersNode.isChecked()
         if visibility != b:
@@ -752,6 +752,7 @@ class EnMAPBox(QgisInterface, QObject):
             currentGroupNode = qgis.utils.iface.layerTreeView().currentGroupNode()
             if currentGroupNode == grp:
                 qgis.utils.iface.layerTreeView().setCurrentIndex(QModelIndex())
+
 
     def removeMapLayer(self, layer: QgsMapLayer, remove_from_project: bool = True):
         self.removeMapLayers([layer], remove_from_project=remove_from_project)
@@ -1434,16 +1435,8 @@ class EnMAPBox(QgisInterface, QObject):
                             if not ext.isNull() and ext.width() > 0:
                                 lyrs.append(lyr)
 
-                # choose first none-geographic raster CRS as map CRS
-                for lyr in lyrs:
-                    if isinstance(lyr, QgsRasterLayer) and isinstance(lyr.crs(),
-                                                                      QgsCoordinateReferenceSystem) and not lyr.crs().isGeographic():
-                        dock.mapCanvas().setDestinationCrs(lyr.crs())
-
-                        break
-
-                dock.addLayers(lyrs)
-                QTimer.singleShot(2000, lambda *args, mc=dock.mapCanvas(): mc.zoomToFullExtent())
+                dock.mapCanvas().setLayers(lyrs[0:1])
+                # QTimer.singleShot(2000, lambda *args, mc=dock.mapCanvas(): mc.zoomToFullExtent())
 
     def onDataSourceRemoved(self, dataSource: DataSource):
         """
@@ -2409,6 +2402,8 @@ class EnMAPBox(QgisInterface, QObject):
             if isinstance(ext, SpatialExtent):
                 canvas.setExtent(ext)
                 canvas.refresh()
+        else:
+            debugLog(f'zoomToExtent problem: extent={extent} currentMapCanvas={canvas}')
 
     def panToPoint(self, point: SpatialPoint):
         """
