@@ -1206,6 +1206,10 @@ class MapCanvas(QgsMapCanvas):
         CanvasLink.applyLinking(self)
         self.sigSpatialExtentChanged.emit(SpatialExtent.fromMapCanvas(self))
 
+    def fullExtent(self) -> QgsRectangle:
+
+        # workaround https://github.com/qgis/QGIS/issues/43097
+        return self.mapSettings().fullExtent()
 
     def zoomToFeatureExtent(self, spatialExtent):
         assert isinstance(spatialExtent, SpatialExtent)
