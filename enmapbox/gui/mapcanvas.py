@@ -1083,7 +1083,7 @@ class MapCanvas(QgsMapCanvas):
 
         action = menu.addAction('Zoom Full')
         action.setIcon(QIcon(':/images/themes/default/mActionZoomFullExtent.svg'))
-        action.triggered.connect(lambda: self.setExtent(self.fullExtent()))
+        action.triggered.connect(self.zoomToFullExtent)
 
         action = menu.addAction('Zoom Native Resolution')
         action.setIcon(QIcon(':/images/themes/default/mActionZoomActual.svg'))

@@ -1436,6 +1436,7 @@ class EnMAPBox(QgisInterface, QObject):
                                 lyrs.append(lyr)
 
                 dock.mapCanvas().setLayers(lyrs[0:1])
+                dock.mapCanvas().zoomToFullExtent()
                 # QTimer.singleShot(2000, lambda *args, mc=dock.mapCanvas(): mc.zoomToFullExtent())
 
     def onDataSourceRemoved(self, dataSource: DataSource):
