@@ -17,7 +17,6 @@
 ***************************************************************************
 """
 
-
 from typing import Optional, Dict, Union
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 import enmapbox
@@ -178,7 +177,7 @@ class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
         if 'widget' in kwds.keys():
             widget = kwds.pop('widget')
 
-        #assert isinstance(canvas, QgsMapCanvas)
+        # assert isinstance(canvas, QgsMapCanvas)
         super().__init__(*args, **kwds)
         self.setUseLayerName(False)
 
@@ -454,14 +453,7 @@ class EnMAPBox(QgisInterface, QObject):
         # finally, let this be the EnMAP-Box Singleton
         EnMAPBox._instance = self
 
-        debugLog('Finish splashscreen')
         splash.finish(self.ui)
-
-        debugLog('call QApplication.processEvents()')
-        QApplication.processEvents()
-
-        # debugLog('add QProject.instance()')
-        # self.addProject(QgsProject.instance())
 
         debugLog('Load settings from QgsProject.instance()')
         self.onReloadProject()
@@ -532,7 +524,6 @@ class EnMAPBox(QgisInterface, QObject):
                 lyr = node.layerNode().layer()
                 dlg = QgsSymbolSelectorDialog(symbol, QgsStyle.defaultStyle(), lyr, self.ui)
 
-
                 context = QgsSymbolWidgetContext()
                 context.setMapCanvas(self.currentMapCanvas())
                 context.setMessageBar(self.messageBar())
@@ -546,7 +537,7 @@ class EnMAPBox(QgisInterface, QObject):
         elif mode == 1:
             # open attribute table
             filterMode = settings.enumValue('qgis/attributeTableBehavior', QgsAttributeTableFilterModel.ShowAll)
-            self.showAttributeTable(self.currentLayer(), filterMode = filterMode)
+            self.showAttributeTable(self.currentLayer(), filterMode=filterMode)
             pass
         elif mode == 2:
             # open layer styling dock
@@ -562,7 +553,6 @@ class EnMAPBox(QgisInterface, QObject):
             dock = self.createDock(SpectralLibraryDock, speclib=lyr)
         elif isinstance(lyr, QgsVectorLayer):
             dock = self.createDock(AttributeTableDock, layer=lyr)
-
 
     def showPackageInstaller(self):
         """
@@ -582,7 +572,6 @@ class EnMAPBox(QgisInterface, QObject):
         else:
             # call to change
             n = self.hiddenLayerGroup()
-
 
     def showResourceBrowser(self, *args):
         """
@@ -649,10 +638,10 @@ class EnMAPBox(QgisInterface, QObject):
         root = dom.documentElement()
 
         # save time series
-        #self.timeSeries().writeXml(node, dom)
+        # self.timeSeries().writeXml(node, dom)
 
         # save map views
-        #self.mapWidget().writeXml(node, dom)
+        # self.mapWidget().writeXml(node, dom)
         root.appendChild(node)
 
     def onReadProject(self, doc: QDomDocument) -> bool:
@@ -752,7 +741,6 @@ class EnMAPBox(QgisInterface, QObject):
             currentGroupNode = qgis.utils.iface.layerTreeView().currentGroupNode()
             if currentGroupNode == grp:
                 qgis.utils.iface.layerTreeView().setCurrentIndex(QModelIndex())
-
 
     def removeMapLayer(self, layer: QgsMapLayer, remove_from_project: bool = True):
         self.removeMapLayers([layer], remove_from_project=remove_from_project)
@@ -892,6 +880,9 @@ class EnMAPBox(QgisInterface, QObject):
 
         except Exception as ex:
             print(ex, file=sys.stderr)
+
+        self.ui.resizeDocks([self.ui.dataSourcePanel, self.ui.dockPanel, self.ui.spectralProfileSourcePanel],
+                            [40, 50, 10], Qt.Vertical)
 
     def addApplication(self, app):
         """
@@ -1116,7 +1107,6 @@ class EnMAPBox(QgisInterface, QObject):
         """
         if ok:
             if isinstance(results, dict):
-
                 self.addSources(list(results.values()))
 
     def onDockAdded(self, dock):
@@ -1130,7 +1120,7 @@ class EnMAPBox(QgisInterface, QObject):
             slw.plotWidget().backgroundBrush().setColor(QColor('black'))
             self.spectralProfileBridge().addDestination(slw)
             slw.sigFilesCreated.connect(self.addSources)
-            #self.dataSourceManager().addSource(slw.speclib())
+            # self.dataSourceManager().addSource(slw.speclib())
             # self.mapLayerStore().addMapLayer(slw.speclib(), addToLegend=False)
 
         if isinstance(dock, MapDock):
@@ -1151,6 +1141,11 @@ class EnMAPBox(QgisInterface, QObject):
             node.sigRemovedLayers.connect(self.sigMapLayersRemoved[list].emit)
             self.sigMapCanvasAdded.emit(canvas)
 
+            if len(self.docks()) == 1:
+                # dirty hack for #488 (zoom to full extent does not work if map dock is the first of all docks)
+                QApplication.processEvents(QEventLoop.ExcludeUserInputEvents | QEventLoop.ExcludeSocketNotifiers)
+                # QTimer.singleShot(1000, lambda *args, mc=dock.mapCanvas(): mc.zoomToFullExtent())
+
         if isinstance(dock, AttributeTableDock):
             dock.attributeTableWidget.setVectorLayerTools(self.mVectorLayerTools)
 
@@ -1168,9 +1163,9 @@ class EnMAPBox(QgisInterface, QObject):
 
         if isinstance(dock, SpectralLibraryDock):
             self.spectralProfileBridge().removeDestination(dock.speclibWidget())
-           # lid = dock.speclib().id()
-           # if self.mapLayerStore().mapLayer(lid):
-           #     self.mapLayerStore().removeMapLayer(lid)
+        # lid = dock.speclib().id()
+        # if self.mapLayerStore().mapLayer(lid):
+        #     self.mapLayerStore().removeMapLayer(lid)
 
     @pyqtSlot(SpatialPoint, QgsMapCanvas)
     def loadCurrentMapSpectra(self, spatialPoint: SpatialPoint, mapCanvas: QgsMapCanvas = None, runAsync: bool = None):
@@ -1338,7 +1333,7 @@ class EnMAPBox(QgisInterface, QObject):
                     counts[app] = n_counts + 1
 
             self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Warning, html=True)
-            messageLog(title+'\n'+'\n'.join(info), level=Qgis.Warning)
+            messageLog(title + '\n' + '\n'.join(info), level=Qgis.Warning)
         settings.setValue(KEY_COUNTS, counts)
 
     def settings(self) -> QSettings:
@@ -1413,14 +1408,17 @@ class EnMAPBox(QgisInterface, QObject):
             dir = os.path.dirname(enmapboxtestdata.__file__)
             files = list(
                 file_search(dir, re.compile('.*(bsq|bil|bip|tif|gpkg|sli|img|shp|pkl)$', re.I), recursive=True))
+            files = [pathlib.Path(file).as_posix() for file in files]
 
-            added = self.addSources(files)
+            self.addSources(files)
+            exampleSources = [s for s in self.dataSourceManager().sources()
+                              if isinstance(s, DataSourceSpatial) and s.uri() in files]
 
             for n in range(mapWindows):
                 dock: MapDock = self.createDock('MAP')
                 assert isinstance(dock, MapDock)
                 lyrs = []
-                for src in added:
+                for src in exampleSources:
                     if isinstance(src, DataSourceSpatial):
                         lyr = src.createUnregisteredMapLayer()
                         if isinstance(lyr, QgsRasterLayer):
@@ -1435,9 +1433,32 @@ class EnMAPBox(QgisInterface, QObject):
                             if not ext.isNull() and ext.width() > 0:
                                 lyrs.append(lyr)
 
-                dock.mapCanvas().setLayers(lyrs[0:1])
-                dock.mapCanvas().zoomToFullExtent()
-                # QTimer.singleShot(2000, lambda *args, mc=dock.mapCanvas(): mc.zoomToFullExtent())
+                # sort layers by type and spatial extent (to not hide vectors by rasters etc.)
+                canvas = dock.mapCanvas()
+
+                def niceLayerOrder(lyr: QgsMapLayer) -> (int, int):
+                    oType = 0
+                    area = 0
+
+                    if isinstance(lyr, QgsVectorLayer):
+                        gt = lyr.geometryType()
+                        if gt == QgsWkbTypes.LineGeometry:
+                            oType = 1
+                        elif gt == QgsWkbTypes.PolygonGeometry:
+                            oType = 2
+                        else:
+                            oType = 0
+
+                    elif isinstance(lyr, QgsRasterLayer):
+                        oType = 3
+                    try:
+                        area = SpatialExtent.fromLayer(lyr).toCrs(canvas.mapSettings().destinationCrs()).area()
+                    except:
+                        pass
+                    return oType, area
+
+                lyrs = sorted(lyrs, reverse=True, key=niceLayerOrder)
+                dock.mapCanvas().setLayers(lyrs)
 
     def onDataSourceRemoved(self, dataSource: DataSource):
         """
@@ -1785,7 +1806,7 @@ class EnMAPBox(QgisInterface, QObject):
         ltv_model = ltv.model()
 
         # takes care of differences between 3.16 an 3.18
-        #if isinstance(ltv_model, QSortFilterProxyModel):
+        # if isinstance(ltv_model, QSortFilterProxyModel):
         #    index = ltv_model.mapFromSource(index)
 
         grp.setItemVisibilityChecked(False)
@@ -2168,7 +2189,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def showProcessingAlgorithmDialog(
             self, algorithmName: Union[str, QgsProcessingAlgorithm], parameters: Dict = None, show=True, modal=False,
-            wrapper: AlgorithmDialog=None, autoRun=False, parent=None
+            wrapper: AlgorithmDialog = None, autoRun=False, parent=None
     ) -> AlgorithmDialog:
         """
         Create an algorithm dialog.

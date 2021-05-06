@@ -1397,6 +1397,11 @@ class DockManager(QObject):
             name = '{} #{}'.format(baseName, n)
         kwds['name'] = name
 
+        dockArea = kwds.get('dockArea', self.currentDockArea())
+        assert isinstance(dockArea, DockArea), 'DockManager not connected to any DockArea yet. \n' \
+                                               'Add DockAreas with connectDockArea(self, dockArea)'
+        kwds['area'] = dockArea
+        # kwds['parent'] = dockArea
         dock = None
         if cls == MapDock:
             dock = MapDock(*args, **kwds)
@@ -1430,22 +1435,15 @@ class DockManager(QObject):
                 dock.attributeTableWidget.setMainMessageBar(self.mMessageBar)
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
-
-        dock.setVisible(True)
-
-        dockArea = kwds.get('dockArea', self.currentDockArea())
-        if not isinstance(dockArea, DockArea):
-            warnings.warn(
-                'DockManager not connected to any DockArea yet. \nAdd DockAreas with connectDockArea(self, dockArea)')
-        else:
-            dockArea.addDock(dock, *args, **kwds)
-
+        # dock.setParent(dockArea)
+        dockArea.addDock(dock, *args, **kwds)
         dock.setVisible(True)
 
         if dock not in self.mDocks:
             dock.sigClosed.connect(self.removeDock)
             self.mDocks.append(dock)
             self.sigDockAdded.emit(dock)
+
         return dock
 
     def onSpeclibWillBeDeleted(self, lyr):
