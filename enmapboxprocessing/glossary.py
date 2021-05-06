@@ -3,6 +3,7 @@ from os.path import join, abspath
 filename = abspath(join(__file__, '../../doc/source/general/glossary.rst'))
 baselink = r'C:\source\QGISPlugIns\enmap-box\doc\build\html\general\glossary.html'
 baselink = 'file:///C:/source/QGISPlugIns/enmap-box/doc/build/html/general/glossary.html'
+baselink = 'https://enmap-box.readthedocs.io/en/latest/general/glossary.html'
 
 glossary = dict()
 with open(filename) as file:

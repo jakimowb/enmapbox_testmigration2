@@ -1,6 +1,7 @@
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMenu, QAction
 
+from classificationworkflowapp.classificationworkflowgui import ClassificationWorkflowGui
 from enmapbox.gui.applications import EnMAPBoxApplication
 
 def enmapboxApplicationFactory(enmapBox):
