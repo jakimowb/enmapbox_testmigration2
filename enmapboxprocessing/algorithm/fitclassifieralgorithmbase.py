@@ -62,7 +62,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
             return valid, message
         # check code
         try:
-            self.parameterAsClassifier(parameters, self.P_CODE, context)
+            self.parameterAsClassifier(parameters, self.P_CLASSIFIER, context)
         except:
             return False, traceback.format_exc()
         return True, ''

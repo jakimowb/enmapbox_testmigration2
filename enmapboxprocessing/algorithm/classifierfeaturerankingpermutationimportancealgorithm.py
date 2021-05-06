@@ -86,7 +86,7 @@ class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgo
         filenameClassifier = self.parameterAsFile(parameters, self.P_CLASSIFIER, context)
         filenameTrainSample = self.parameterAsFile(parameters, self.P_TRAIN_DATASET, context)
         filenameTestSample = self.parameterAsFile(parameters, self.P_TEST_DATASET, context)
-        scoring = self.O_SCORING[self.parameterAsInt(parameters, self.P_EVALUATION_METRIC, context)]
+        scoring = self.O_EVALUATION_METRIC[self.parameterAsInt(parameters, self.P_EVALUATION_METRIC, context)]
         repeats = self.parameterAsInt(parameters, self.P_REPEATS, context)
         seed = self.parameterAsInt(parameters, self.P_SEED, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_REPORT, context)

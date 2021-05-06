@@ -125,7 +125,7 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
             outraster.setRenderer(renderer)
             outraster.saveDefaultStyle()
 
-            result = {self.P_OUTPUT_RASTER: filename}
+            result = {self.P_OUTPUT_CLASSIFICATION: filename}
             self.toc(feedback, result)
 
         return result

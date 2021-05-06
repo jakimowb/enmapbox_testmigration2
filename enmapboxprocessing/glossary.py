@@ -58,5 +58,5 @@ def test():
     #text = '"No data value"'
     print(injectGlossaryLinks(text))
 
-test()
+#test()
 

@@ -18,7 +18,7 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterExtent, QgsCoordinateReferenceSystem, QgsRectangle,
                         QgsProcessingParameterFileDestination, QgsProcessingParameterFile, QgsProcessingParameterRange,
                         QgsProcessingParameterCrs, QgsProcessingParameterVectorDestination, QgsProcessing,
-                        QgsProcessingUtils)
+                        QgsProcessingUtils, QgsProcessingParameterMultipleLayers)
 import processing
 
 from enmapboxprocessing.processingfeedback import ProcessingFeedback
@@ -337,6 +337,13 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterRasterLayer(name, description, defaultValue, optional))
         self.flagParameterAsAdvanced(name, advanced)
 
+    def addParameterMultipleLayers(
+            self, name: str, description: str, layerType: QgsProcessing.SourceType = QgsProcessing.TypeMapLayer,
+            defaultValue=None, optional=False, advanced=False
+    ):
+        self.addParameter(QgsProcessingParameterMultipleLayers(name, description, layerType, defaultValue, optional))
+        self.flagParameterAsAdvanced(name, advanced)
+
     def addParameterBand(
             self, name: str, description: str, defaultValue: int = None, parentLayerParameterName: str = None,
             optional=False, allowMultiple=False, advanced=False
@@ -597,7 +604,7 @@ class Group(Enum):
     VectorCreation = 'Vector creation'
     Classification = 'Classification'
     Clustering = 'Clustering'
-    DatasetPreparation = 'Dataset preparation'
+    DatasetCreation = 'Dataset creation'
     FeatureSelection = 'Feature selection'
     ImportData = 'Import data'
     Masking = 'Masking'

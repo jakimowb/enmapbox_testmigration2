@@ -89,7 +89,7 @@ class RasterizeCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_DATA_TYPE: self.O_DATA_TYPE.index(Utils.qgisDataTypeName(dataType)),
                     alg.P_BURN_ATTRIBUTE: fieldName,
                     alg.P_RESAMPLE_ALG: self.NearestNeighbourResampleAlg,  # simple burn
-                    alg.P_OUTPUT_CATEGORIZED_RASTER: filename
+                    alg.P_OUTPUT_RASTER: filename
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)
             else:
@@ -100,9 +100,9 @@ class RasterizeCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_DATA_TYPE: self.O_DATA_TYPE.index(Utils.qgisDataTypeName(dataType)),
                     alg.P_BURN_ATTRIBUTE: fieldName,
                     alg.P_RESAMPLE_ALG: self.ModeResampleAlg,  # use 10x oversampling
-                    alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'rasterized.tif')
+                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'rasterized.tif')
                 }
-                classification = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_CATEGORIZED_RASTER]
+                classification = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER]
 
                 feedback.pushInfo('Calculate pixel coverage')
                 alg = RasterizeVectorAlgorithm()
@@ -111,9 +111,9 @@ class RasterizeCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_VECTOR: tmpVector,
                     alg.P_DATA_TYPE: self.Float32,
                     alg.P_RESAMPLE_ALG: self.AverageResampleAlg,
-                    alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'coverage.tif')
+                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'coverage.tif')
                 }
-                coverageRaster = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_CATEGORIZED_RASTER]
+                coverageRaster = processing.run(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER]
 
                 info = 'Mask pixel with low coverage'
                 feedback.pushInfo(info)

@@ -63,7 +63,7 @@ class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
         mask = self.parameterAsLayer(parameters, self.P_MASK, context)
         dump = ClassifierDump(**Utils.pickleLoad(self.parameterAsFile(parameters, self.P_CLASSIFIER, context)))
         format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_PROBABILITY, context)
         maximumMemoryUsage = gdal.GetCacheMax()
 
         with open(filename + '.log', 'w') as logfile:
@@ -124,7 +124,7 @@ class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
                 writer.setBandName(label, bandNo)
             writer.setNoDataValue(-1)
 
-            result = {self.P_OUTPUT_RASTER: filename}
+            result = {self.P_OUTPUT_PROBABILITY: filename}
             self.toc(feedback, result)
 
         return result

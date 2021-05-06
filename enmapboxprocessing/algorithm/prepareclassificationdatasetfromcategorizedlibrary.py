@@ -48,7 +48,7 @@ class PrepareClassificationDatasetFromCategorizedLibrary(EnMAPProcessingAlgorith
         ]
 
     def group(self):
-        return Group.Test.value + Group.DatasetPreparation.value
+        return Group.Test.value + Group.DatasetCreation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterVectorLayer(self.P_CATEGORIZED_LIBRARY, self._CATEGORIZED_LIBRARY)

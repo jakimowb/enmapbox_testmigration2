@@ -10,6 +10,7 @@ from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLa
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
+from enmapboxprocessing.typing import Category
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
@@ -63,16 +64,15 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
 
         categories = None
         if colors is not None:
-            raise NotImplementedError()
+            categories = [Category(value, str(value), color) for value, color in enumerate(colors, 1)]
         if isinstance(styledLayer, QgsVectorLayer):
             categories = Utils.categoriesFromCategorizedSymbolRenderer(styledLayer.renderer())
         if isinstance(styledLayer, QgsRasterLayer):
             categories = Utils.categoriesFromPalettedRasterRenderer(styledLayer.renderer())
         if categories is None:
             raise QgsProcessingException('Category colors not specified.')
-        if probability.bandCount() == len(categories):
+        if probability.bandCount() != len(categories):
             raise QgsProcessingException( 'Number of bands not matching number of categories.')
-        colors = [QColor(c.color).rgb() for c in categories]
 
         reader = RasterReader(probability)
         driver = Driver(filename, 'GTiff', options=self.TiledAndCompressedGTiffCreationOptions, feedback=feedback)
@@ -83,11 +83,12 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         blockSizeX = reader.width()
         for block in reader.walkGrid(blockSizeX, blockSizeY, feedback):
             arrayRgb = np.zeros((3, block.height, block.width), np.float32)
-            for bandNo, color in enumerate(colors, 1):
+            for bandNo, category in enumerate(categories, 1):
                 arrayScore = np.clip(reader.arrayFromBlock(block, [bandNo])[0], 0, 1)
                 np.clip(reader.arrayFromBlock(block, [bandNo])[0], 0, 1, arrayScore)
-                assert 0 # todo check color
-                for a, v in zip(arrayRgb, color):
+                color = QColor(category.color)
+                rgb = [color.red(), color.green(), color.blue()]
+                for a, v in zip(arrayRgb, rgb):
                     a[:] += arrayScore * v
             writer.writeArray(arrayRgb, block.xOffset, block.yOffset)
 

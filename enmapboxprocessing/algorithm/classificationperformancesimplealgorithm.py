@@ -1,10 +1,14 @@
 from typing import Dict, Any, List, Tuple
 
-from qgis._core import QgsProcessingContext, QgsProcessingFeedback
+from processing.algs.gdal.gdalcalc import gdalcalc
+from qgis._core import QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer
 
 from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import \
     ClassificationPerformanceStratifiedAlgorithm
+from enmapboxprocessing.algorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
+from enmapboxprocessing.typing import Category
+from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
 
@@ -49,12 +53,26 @@ class ClassificationPerformanceSimpleAlgorithm(EnMAPProcessingAlgorithm):
         reference = self.parameterAsLayer(parameters, self.P_REFERENCE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_REPORT, context)
 
-        assert 0 # todo create a (pseudo) stratification with only one stratum
-
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
 
+            # create (pseudo) stratification with only one stratum
+            alg = RasterMathAlgorithm()
+            alg.initAlgorithm()
+            parameters = {
+                alg.P_RASTER_LIST: [classification],
+                alg.P_EXPRESSION: 'A@1*0+1',
+                alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'pseudo-stratification.tif')
+            }
+            result = self.runAlg(alg, parameters, None, feedback2, context, True)
+            stratification = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+            categories = [Category(1, 'Stratum 1', '#FF0000')]
+            renderer = Utils.palettedRasterRendererFromCategories(stratification.dataProvider(), 1, categories)
+            stratification.setRenderer(renderer)
+            stratification.saveDefaultStyle()
+
+            # run stratified version
             alg = ClassificationPerformanceStratifiedAlgorithm()
             alg.initAlgorithm()
             parameters = {

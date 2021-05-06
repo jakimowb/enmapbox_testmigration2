@@ -199,9 +199,12 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                     format=format, width=width, height=height, creationOptions=options, resampleAlg=resampleAlg,
                     projWin=projWin, bandList=bandList, outputType=gdalDataType, callback=callback, noData=noDataValue
                 )
-                outGdalDataset: gdal.Dataset = gdal.Translate(
-                    destName=filename, srcDS=gdalDataset, options=translateOptions
-                )
+                try:
+                    outGdalDataset: gdal.Dataset = gdal.Translate(
+                        destName=filename, srcDS=gdalDataset, options=translateOptions
+                    )
+                except:
+                    a=1
                 assert outGdalDataset is not None
 
                 # need to explicitely set the GeoTransform tuple, because gdal.Translate extent may deviate slightly

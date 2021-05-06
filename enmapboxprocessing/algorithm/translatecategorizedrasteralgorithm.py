@@ -39,7 +39,7 @@ class TranslateCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
         ]
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
-        return self.checkParameterRasterClassification(parameters, self.P_CLASSIFICATION, context)
+        return self.checkParameterRasterClassification(parameters, self.P_CATEGORIZED_RASTER, context)
 
     def group(self):
         return Group.Test.value + Group.RasterCreation.value
@@ -53,7 +53,7 @@ class TranslateCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        classification = self.parameterAsRasterLayer(parameters, self.P_CLASSIFICATION, context)
+        classification = self.parameterAsRasterLayer(parameters, self.P_CATEGORIZED_RASTER, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         majorityVoting = self.parameterAsBoolean(parameters, self.P_MAJORITY_VOTING, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_CATEGORIZED_RASTER, context)
@@ -76,7 +76,7 @@ class TranslateCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_RESAMPLE_ALG: self.NearestNeighbourResampleAlg,
                     alg.P_COPY_STYLE: True,
                     alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
-                    alg.P_OUTPUT_CATEGORIZED_RASTER: filename
+                    alg.P_OUTPUT_RASTER: filename
                 }
                 Processing.runAlgorithm(alg, parameters, None, feedback2, context)
             else:
@@ -89,10 +89,10 @@ class TranslateCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_UNIT: alg.PixelUnits,
                     alg.P_WIDTH: grid.width() * 10,
                     alg.P_HEIGHT: grid.height() * 10,
-                    alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'grid.x10.vrt')
+                    alg.P_OUTPUT_GRID: Utils.tmpFilename(filename, 'grid.x10.vrt')
                 }
                 result = Processing.runAlgorithm(alg, parameters, None, feedback2, context)
-                oversamplingGrid = QgsRasterLayer(result[alg.P_OUTPUT_CATEGORIZED_RASTER])
+                oversamplingGrid = QgsRasterLayer(result[alg.P_OUTPUT_GRID])
 
                 # translate into oversampling grid
                 alg = TranslateRasterAlgorithm()
@@ -103,10 +103,10 @@ class TranslateCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_RESAMPLE_ALG: alg.NearestNeighbourResampleAlg,
                     alg.P_COPY_STYLE: True,
                     alg.P_CREATION_PROFILE: alg.VrtProfile,
-                    alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'classification.x10.vrt')
+                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.x10.vrt')
                 }
                 result = Processing.runAlgorithm(alg, parameters, None, feedback2, context)
-                oversamplingClassification = QgsRasterLayer(result[alg.P_OUTPUT_CATEGORIZED_RASTER])
+                oversamplingClassification = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
 
                 # final majority voting
                 alg = TranslateRasterAlgorithm()

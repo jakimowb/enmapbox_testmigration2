@@ -30,7 +30,7 @@ class SelectFeaturesFromDatasetAlgorithm(EnMAPProcessingAlgorithm):
         return 'Subset and/or reorder features in feature data X.'
 
     def group(self):
-        return Group.Test.value + Group.DatasetPreparation.value
+        return Group.Test.value + Group.DatasetCreation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension)
@@ -74,7 +74,7 @@ class SelectFeaturesFromDatasetAlgorithm(EnMAPProcessingAlgorithm):
             dumpDict['features'] = [dump.features[index] for index in indices]
             Utils.pickleDump(dumpDict, filename)
 
-            result = {self.P_OUTPUT_SAMPLE: filename}
+            result = {self.P_OUTPUT_DATASET: filename}
             self.toc(feedback, result)
 
         return result

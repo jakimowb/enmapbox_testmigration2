@@ -1,39 +1,52 @@
+from PyQt5.QtCore import QUrl
+from PyQt5.QtWebKitWidgets import QWebView
 import traceback
 import webbrowser
 from functools import wraps, partial
-from os.path import join, dirname, exists, basename, relpath, isabs
+from os.path import join, dirname, exists, basename, relpath, isabs, abspath, splitext
 from tempfile import gettempdir
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 
 import numpy as np
 from PyQt5.QtGui import QFont, QColor, QTextCursor
 from PyQt5.QtWidgets import (QMainWindow, QToolButton, QProgressBar, QComboBox, QPlainTextEdit, QCheckBox, QDialog,
                              QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem, QLabel, QRadioButton, QTextEdit,
-                             QLineEdit)
+                             QWidget)
 from PyQt5.uic import loadUi
 from processing.gui.AlgorithmDialog import AlgorithmDialog
-from qgis._core import QgsMapLayerProxyModel, Qgis, QgsProcessingFeedback, QgsRasterLayer, QgsProject
+from qgis._core import QgsMapLayerProxyModel, Qgis, QgsProcessingFeedback, QgsRasterLayer, QgsProject, QgsVectorLayer
 from qgis._gui import QgsFileWidget, QgsMapLayerComboBox, QgsSpinBox, QgsMessageBar, QgsColorButton, QgsDoubleSpinBox
 
 from enmapbox import EnMAPBox
+from enmapboxprocessing.algorithm.algorithms import algorithms
+from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
+    ClassificationPerformanceSimpleAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import \
     ClassificationPerformanceStratifiedAlgorithm
 from enmapboxprocessing.algorithm.classifierfeaturerankingpermutationimportancealgorithm import \
     ClassifierFeatureRankingPermutationImportanceAlgorithm
 from enmapboxprocessing.algorithm.classifierperformancealgorithm import ClassifierPerformanceAlgorithm
-from enmapboxprocessing.algorithm.colorizeclassprobabilityalgorithm import ColorizeClassProbabilityAlgorithm
+from enmapboxprocessing.algorithm.creatergbimagefromclassprobabilityalgorithm import \
+    CreateRgbImageFromClassProbabilityAlgorithm
 from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import FeatureClusteringHierarchicalAlgorithm
+from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
 from enmapboxprocessing.algorithm.fitgenericclassifier import FitGenericClassifier
+from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
-from enmapboxprocessing.algorithm.prepareclassificationsamplefromcsv import PrepareClassificationDatasetFromFiles
-from enmapboxprocessing.algorithm.prepareclassificationsamplefrommapandraster import \
-    PrepareClassificationSampleFromMapAndRaster
-from enmapboxprocessing.algorithm.prepareclassificationsamplefromtable import PrepareClassificationDatasetFromTable
-from enmapboxprocessing.algorithm.prepareclassificationsamplefromvectorandfields import \
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedlibrary import \
+    PrepareClassificationDatasetFromCategorizedLibrary
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import \
+    PrepareClassificationDatasetFromCategorizedRaster
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvector import \
+    PrepareClassificationDatasetFromCategorizedVector
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfields import \
     PrepareClassificationDatasetFromCategorizedVectorAndFields
-from enmapboxprocessing.algorithm.selectfeaturesubsetfromsamplealgorithm import SelectFeatureSubsetFromSampleAlgorithm
-from enmapboxprocessing.algorithm.subsampleclassificationsamplealgorithm import SubsampleClassificationSampleAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromfiles import PrepareClassificationDatasetFromFiles
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtable import PrepareClassificationDatasetFromTable
+from enmapboxprocessing.algorithm.randomsamplesfromclassificationdatasetalgorithm import \
+    RandomSamplesFromClassificationDatasetAlgorithm
+from enmapboxprocessing.algorithm.selectfeaturesfromdatasetalgorithm import SelectFeaturesFromDatasetAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm
 from enmapboxprocessing.typing import ClassifierDump, Category
 from enmapboxprocessing.utils import Utils
@@ -42,43 +55,6 @@ from typeguard import typechecked
 
 class MissingParameterError(Exception):
     """Methodes decorated with @errorHandled should raise this error to indicate a missing parameter."""
-
-
-class MissingParameterSample(MissingParameterError):
-    pass
-
-
-class MissingParameterTestSample(MissingParameterError):
-    pass
-
-
-class MissingParameterClassifier(MissingParameterError):
-    pass
-
-
-class MissingParameterClassifierFitted(MissingParameterError):
-    pass
-
-
-class MissingParameterRaster(MissingParameterError):
-    pass
-
-
-class MissingParameterClassification(MissingParameterError):
-    pass
-
-
-class MissingParameterGroundTruth(MissingParameterError):
-    pass
-
-
-class MissingParameterClustering(MissingParameterError):
-    pass
-
-
-class MissingParameterRanking(MissingParameterError):
-    pass
-
 
 class CancelError(Exception):
     """Methodes decorated with @errorHandled should raise this error to indicate cancelation by the user."""
@@ -97,24 +73,6 @@ def errorHandled(func=None, *, successMessage: str = None):
         try:
             result = func(gui, *argsTail, **kwargs)
         except MissingParameterError as error:
-            if isinstance(error, MissingParameterSample):
-                gui.pushParameterMissing('Sample', runAlgo='Import from *')
-            elif isinstance(error, MissingParameterTestSample):
-                gui.pushParameterMissing('Test Sample', runAlgo='Split sample')
-            elif isinstance(error, MissingParameterClassifier):
-                gui.pushParameterMissing('Classifier', runAlgo='Create classifier')
-            elif isinstance(error, MissingParameterClassifierFitted):
-                gui.pushParameterMissing('Classifier (fitted)', runAlgo='Fit classifier')
-            elif isinstance(error, MissingParameterRaster):
-                gui.pushParameterMissingLayer('Raster')
-            elif isinstance(error, MissingParameterClassification):
-                gui.pushParameterMissingLayer('Classification')
-            elif isinstance(error, MissingParameterGroundTruth):
-                gui.pushParameterMissingLayer('Ground truth')
-            elif isinstance(error, MissingParameterClustering):
-                gui.pushParameterMissing('Clustering', runAlgo='Cluster features *')
-            elif isinstance(error, MissingParameterRanking):
-                gui.pushParameterMissing('Ranking', runAlgo='Rank features *')
             return
         except CancelError:
             return
@@ -160,98 +118,106 @@ class ClassificationWorkflowGui(QMainWindow):
     mLog: QTextEdit
     mLogClear: QToolButton
 
-    # quick mapping
+    # todo quick mapping
     mQuickLabels: QgsMapLayerComboBox
     mQuickFeatures: QgsMapLayerComboBox
+    mQuickFeatures2: QgsMapLayerComboBox
     mQuickClassifier: QComboBox
     mRunQuickMapping: QToolButton
 
-    # sample
-    mRunImportFromMapLayer: QToolButton
-    mRunImportFromVectorLayer: QToolButton
-    mRunImportFromVectorTable: QToolButton
-    mRunImportFromTextFile: QToolButton
-    mRunSplitSample: QToolButton
-    mSample: QgsFileWidget
-    mViewSample: QToolButton
-    mSampleInfo: QLabel
-    mSamplesSizeRelative: QRadioButton
-    mSamplesSizeAbsolute: QRadioButton
-    mSamplesSizeRelativeValue: QgsDoubleSpinBox
-    mSamplesSizeAbsoluteValue: QgsSpinBox
+    # dataset
+    # - import
+    mAlgoDataset: QComboBox
+    mFileDataset: QgsFileWidget
+    mViewDataset: QToolButton
+    mInfoDataset: QLabel
+    mRunImportDataset: QToolButton
+    # - preparation
+    mRelativeSizeCheck: QRadioButton
+    mAbsoluteSizeCheck: QRadioButton
+    mRelativeSizeValue: QgsDoubleSpinBox
+    mAbsoluteSizeValue: QgsSpinBox
     mSetTrainSize: QToolButton
     mSetTestSize: QToolButton
     mSetSplitSize: QToolButton
-    mSampleTable: QTableWidget
-    mSampleTable2: QTableWidget
-    mSampleTableRevert: QToolButton
-    mSampleTableSave: QToolButton
-    mTrainSample: QgsFileWidget
-    mViewTrainSample: QToolButton
-    mTrainSampleInfo: QLabel
-    mTestSample: QgsFileWidget
-    mViewTestSample: QToolButton
-    mTestSampleInfo: QLabel
+    mCategoryTable: QTableWidget
+    mFeaturesTable: QTableWidget
+    mTableRevert: QToolButton
+    mTableSave: QToolButton
+    mFileTrainingDataset: QgsFileWidget
+    mViewTrainingDataset: QToolButton
+    mInfoTrainingDataset: QLabel
+    mFileTestDataset: QgsFileWidget
+    mViewTestDataset: QToolButton
+    mInfoTestDataset: QLabel
+    mRunSplitDataset: QToolButton
 
     # classifier
-    mPredefined: QComboBox
-    mCode: QPlainTextEdit
-    mRunClassifierCreate: QToolButton
-    mClassifier: QgsFileWidget
+    mComboClassifier: QComboBox
+    mCodeClassifier: QPlainTextEdit
+    mFileClassifier: QgsFileWidget
     mViewClassifier: QToolButton
+    mRunCreateClassifier: QToolButton
 
     # feature selection
     # - clustering
-    mRunFeatureClustering: QToolButton
-    mViewFeatureClustering: QToolButton
-    mFeatureClustering: QgsFileWidget
-    mFeatureClusteringN: QgsSpinBox
-    mRunFeatureClusteringSelect: QToolButton
-    mTrainSampleClustered: QgsFileWidget
-    mViewTrainSampleClustered: QToolButton
-    mTrainSampleClusteredInfo: QLabel
-    mTestSampleClustered: QgsFileWidget
-    mViewTestSampleClustered: QToolButton
-    mTestSampleClusteredInfo: QLabel
-
+    #   - analysis
+    mDataClustering: QComboBox
+    mAlgoClustering: QComboBox
+    mFileClusteringReport: QgsFileWidget
+    mViewClusteringReport: QToolButton
+    mRunClustering: QToolButton
+    #   - subset selection
+    mNClustering: QgsSpinBox
+    mFileTrainingDatasetClustered: QgsFileWidget
+    mViewTrainingDatasetClustered: QToolButton
+    mInfoTrainingDatasetClustered: QLabel
+    mFileTestDatasetClustered: QgsFileWidget
+    mViewTestDatasetClustered: QToolButton
+    mInfoTestDatasetClustered: QLabel
+    mRunClusteringSelect: QToolButton
     # - ranking
-    mRunFeatureRankingInternal: QToolButton  #
-    mRunFeatureRankingPermutation: QToolButton
-    mRunFeatureRankingRFE: QToolButton  # sklearn.feature_selection.RFE
-    mRunFeatureRankingSFSForward: QToolButton  # sklearn.feature_selection.SequentialFeatureSelector
-    mRunFeatureRankingSFSBackward: QToolButton  # sklearn.feature_selection.SequentialFeatureSelector
-    mFeatureRanking: QgsFileWidget
-    mViewFeatureRanking: QToolButton
-    mFeatureRankingN: QgsSpinBox
-    mRunFeatureRankingSelect: QToolButton
-    mTrainSampleRanked: QgsFileWidget
-    mViewTrainSampleRanked: QToolButton
-    mTrainSampleRankedInfo: QLabel
-    mTestSampleRanked: QgsFileWidget
-    mViewTestSampleRanked: QToolButton
-    mTestSampleRankedInfo: QLabel
+    #   - analysis
+    mDataRanking: QComboBox
+    mAlgoRanking: QComboBox
+    mFileRankingReport: QgsFileWidget
+    mViewRankingReport: QToolButton
+    mRunRanking: QToolButton
+    #   - subset selection
+    mNRanking: QgsSpinBox
+    mFileTrainingDatasetRanked: QgsFileWidget
+    mViewTrainingDatasetRanked: QToolButton
+    mInfoTrainingDatasetRanked: QLabel
+    mFileTestDatasetRanked: QgsFileWidget
+    mViewTestDatasetRanked: QToolButton
+    mInfoTestDatasetRanked: QLabel
+    mRunRankingSelect: QToolButton
 
-    # fit
-    mRunClassifierFit: QToolButton
-    mClassifierFitted: QgsFileWidget
+    # model
+    # - fit
+    mDataFit: QComboBox
+    mFileClassifierFitted: QgsFileWidget
     mViewClassifierFitted: QToolButton
-    mRunValidation: QToolButton
-    mRunCrossValidation: QToolButton
-    mNFold: QgsSpinBox
-    mClassifierPerformance: QgsFileWidget
-    mViewClassifierPerformance: QToolButton
+    mRunClassifierFit: QToolButton
+    # - performance
+    mAlgoClassifierPerformance: QComboBox
+    mFileClassifierPerformanceReport: QgsFileWidget
+    mViewClassifierPerformanceReport: QToolButton
+    mRunClassifierPerformance: QToolButton
 
-    # mapping
-    mRaster: QgsMapLayerComboBox
-    mMask: QgsMapLayerComboBox
+    # classification
+    # - predict
+    mPredictFeatures: QgsMapLayerComboBox
+    mCheckPredictedClassification: QCheckBox
+    mCheckPredictedProbability: QCheckBox
+    mFilePredictedClassification: QgsFileWidget
+    mFilePredictedProbability: QgsFileWidget
     mRunPredict: QToolButton
-    mRunPredictProba: QToolButton
-    mClassification: QgsMapLayerComboBox
-    mProbability: QgsMapLayerComboBox
-    mRunMapValidation: QToolButton
-    mGroundTruth: QgsMapLayerComboBox
-    mClassificationPerformance: QgsFileWidget
-    mViewClassificationPerformance: QToolButton
+    # - performance
+    mObservedClassification: QgsMapLayerComboBox
+    mFileClassificationPerformanceReport: QgsFileWidget
+    mViewClassificationPerformanceReport: QToolButton
+    mRunClassificationPerformance: QToolButton
 
     # settings
     mWorkingDirectory: QgsFileWidget
@@ -259,9 +225,17 @@ class ClassificationWorkflowGui(QMainWindow):
     mDialogAutoRun: QCheckBox
     mDialogAutoOpen: QCheckBox
 
+    # help
+    mWebView: QWebView
+    mWebHome: QToolButton
+    mWebBack: QToolButton
+    mWebForward: QToolButton
+    mWebReadTheDocs: QToolButton
+
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
         loadUi(join(dirname(__file__), 'main.ui'), self)
+        self.url = QUrl('https://enmap-box.readthedocs.io/en/latest/index.html')
         self.mMessageBar = QgsMessageBar()
         self.mMessageBar.setMaximumSize(9999999, 50)
         self.centralWidget().layout().addWidget(self.mMessageBar)
@@ -275,106 +249,147 @@ class ClassificationWorkflowGui(QMainWindow):
         self.mLogClear.clicked.connect(lambda: self.mLog.clear())
 
         # quick mapping
+        self.mQuickClassifier.currentIndexChanged.connect(self.onClassifierChanged)
         self.mRunQuickMapping.clicked.connect(self.runQuickMapping)
 
-        # sample
-        self.mRunImportFromMapLayer.clicked.connect(
-            lambda: self.runImportFromAlg(PrepareClassificationSampleFromMapAndRaster(), None)
-        )
-        self.mRunImportFromVectorLayer.clicked.connect(
-            lambda: self.runImportFromAlg(PrepareClassificationDatasetFromCategorizedVectorAndFields(), None)
-        )
-        self.mRunImportFromVectorTable.clicked.connect(
-            lambda: self.runImportFromAlg(PrepareClassificationDatasetFromTable(), None)
-        )
-        self.mRunImportFromTextFile.clicked.connect(
-            lambda: self.runImportFromAlg(PrepareClassificationDatasetFromFiles(), None)
-        )
-        self.mRunSplitSample.clicked.connect(self.runSplitSample)
-        self.mSample.fileChanged.connect(self.onSampleChanged)
+        # dataset
+        # - creation
+        self.mFileDataset.fileChanged.connect(self.onDatasetChanged)
+        self.mViewDataset.clicked.connect(self.onViewFile)
+        self.mRunImportDataset.clicked.connect(self.runImportDataset)
+        # - style and split
         self.mSetTrainSize.clicked.connect(self.onSetTrainSize)
         self.mSetTestSize.clicked.connect(self.onSetTestSize)
         self.mSetSplitSize.clicked.connect(self.onSetSplitSize)
-        self.mSampleTableRevert.clicked.connect(self.onSampleChanged)  # just reload the sample
-        self.mSampleTableSave.clicked.connect(self.onSampleTableSave)
+        self.mTableRevert.clicked.connect(self.onDatasetChanged)  # just reload the sample
+        self.mTableSave.clicked.connect(self.onDatasetTableSave)
+        self.mViewTrainingDataset.clicked.connect(self.onViewFile)
+        self.mViewTestDataset.clicked.connect(self.onViewFile)
+        self.mRunSplitDataset.clicked.connect(self.runSplitDataset)
 
         # classifier
-        self.mRunClassifierCreate.clicked.connect(self.runClassifierCreate)
+        self.mViewClassifier.clicked.connect(self.onViewFile)
+        self.mRunCreateClassifier.clicked.connect(self.runCreateClassifier)
 
         # feature selection
         # - clustering
-        self.mRunFeatureClustering.clicked.connect(self.runFeatureClustering)
-        self.mRunFeatureClusteringSelect.clicked.connect(self.runFeatureClusteringSelect)
+        #   - analysis
+        self.mViewClusteringReport.clicked.connect(self.onViewFile)
+        self.mRunClustering.clicked.connect(self.runFeatureClustering)
+        #   - subset selection
+        self.mViewTrainingDatasetClustered.clicked.connect(self.onViewFile)
+        self.mViewTestDatasetClustered.clicked.connect(self.onViewFile)
+        self.mRunClusteringSelect.clicked.connect(self.runFeatureClusteringSelect)
+
         # - ranking
-        self.mRunFeatureRankingInternal.clicked.connect(self.runFeatureRankingInternal)
-        self.mRunFeatureRankingPermutation.clicked.connect(self.runFeatureRankingPermutation)
-        self.mRunFeatureRankingRFE.clicked.connect(self.runFeatureRankingRFE)
-        self.mRunFeatureRankingSFSForward.clicked.connect(self.runFeatureRankingSFSForward)
-        self.mRunFeatureRankingSFSBackward.clicked.connect(self.runFeatureRankingSFSBackward)
-        self.mRunFeatureRankingSelect.clicked.connect(self.runFeatureRankingSelect)
+        #   - analysis
+        self.mViewRankingReport.clicked.connect(self.onViewFile)
+        self.mRunRanking.clicked.connect(self.runFeatureRanking)
+        #   - subset selection
+        self.mViewTrainingDatasetRanked.clicked.connect(self.onViewFile)
+        self.mViewTestDatasetRanked.clicked.connect(self.onViewFile)
+        self.mRunRankingSelect.clicked.connect(self.runFeatureRankingSelect)
 
-        # fit
+        # model
+        # - fit
         self.mRunClassifierFit.clicked.connect(self.runClassifierFit)
-        self.mRunValidation.clicked.connect(self.runValidation)
-        self.mRunCrossValidation.clicked.connect(self.runCrossValidation)
+        # - performance
+        self.mRunClassifierPerformance.clicked.connect(self.runClassifierPerformance)
 
-        # mapping
+        # classification
+        # - predict
         self.mRunPredict.clicked.connect(self.runPredict)
-        self.mRunMapValidation.clicked.connect(self.runMapValidation)
+        # - performance
+        self.mRunClassificationPerformance.clicked.connect(self.runClassificationPerformance)
+        self.mViewClassificationPerformanceReport.clicked.connect(self.onViewFile)
 
-        # view files
-        self.mViewSample.clicked.connect(self.onViewFile)
-        self.mViewTrainSample.clicked.connect(self.onViewFile)
-        self.mViewTestSample.clicked.connect(self.onViewFile)
-        self.mViewClassifier.clicked.connect(self.onViewFile)
-        self.mViewFeatureClustering.clicked.connect(self.onViewFile)
-        self.mViewTrainSampleClustered.clicked.connect(self.onViewFile)
-        self.mViewTestSampleClustered.clicked.connect(self.onViewFile)
-        self.mViewFeatureRanking.clicked.connect(self.onViewFile)
-        self.mViewTrainSampleRanked.clicked.connect(self.onViewFile)
-        self.mViewTestSampleRanked.clicked.connect(self.onViewFile)
-        self.mViewClassifierFitted.clicked.connect(self.onViewFile)
-        self.mViewClassifierPerformance.clicked.connect(self.onViewFile)
-        self.mViewClassificationPerformance.clicked.connect(self.onViewFile)
+        # help
+        self.mWebHome.clicked.connect(lambda: self.mWebView.setUrl(self.url))
+        self.mWebBack.clicked.connect(self.mWebView.back)
+        self.mWebForward.clicked.connect(self.mWebView.forward)
+        self.mWebReadTheDocs.clicked.connect(lambda: webbrowser.open_new_tab(self.url.toString()))
 
-        # update sample description labels
-        self.mTrainSample.fileChanged.connect(lambda: self.updateSampleInfo(self.mTrainSample, self.mTrainSampleInfo))
-        self.mTrainSampleClustered.fileChanged.connect(
-            lambda: self.updateSampleInfo(self.mTrainSampleClustered, self.mTrainSampleClusteredInfo))
-        self.mTrainSampleRanked.fileChanged.connect(
-            lambda: self.updateSampleInfo(self.mTrainSampleRanked, self.mTrainSampleRankedInfo))
-        self.mTestSample.fileChanged.connect(lambda: self.updateSampleInfo(self.mTestSample, self.mTestSampleInfo))
-        self.mTestSampleClustered.fileChanged.connect(
-            lambda: self.updateSampleInfo(self.mTestSampleClustered, self.mTestSampleClusteredInfo))
-        self.mTestSampleRanked.fileChanged.connect(
-            lambda: self.updateSampleInfo(self.mTestSampleRanked, self.mTestSampleRankedInfo))
-        for label in [self.mTrainSampleInfo, self.mTrainSampleClusteredInfo, self.mTrainSampleRankedInfo,
-                      self.mTestSampleInfo, self.mTestSampleClusteredInfo, self.mTestSampleRankedInfo]:
+        # update dataset description labels
+        self.mFileDataset.fileChanged.connect(
+            lambda: self.updateDatasetInfo(self.mFileDataset, self.mInfoDataset)
+        )
+        self.mFileTrainingDataset.fileChanged.connect(
+            lambda: self.updateDatasetInfo(self.mFileTrainingDataset, self.mInfoTrainingDataset)
+        )
+        self.mFileTrainingDatasetClustered.fileChanged.connect(
+            lambda: self.updateDatasetInfo(self.mFileTrainingDatasetClustered, self.mInfoTrainingDatasetClustered)
+        )
+        self.mFileTrainingDatasetRanked.fileChanged.connect(
+            lambda: self.updateDatasetInfo(self.mFileTrainingDatasetRanked, self.mInfoTrainingDatasetRanked)
+        )
+        self.mFileTestDataset.fileChanged.connect(
+            lambda: self.updateDatasetInfo(self.mFileTestDataset, self.mInfoTestDataset)
+        )
+        self.mFileTestDatasetClustered.fileChanged.connect(
+            lambda: self.updateDatasetInfo(self.mFileTestDatasetClustered, self.mInfoTestDatasetClustered)
+        )
+        self.mFileTestDatasetRanked.fileChanged.connect(
+            lambda: self.updateDatasetInfo(self.mFileTestDatasetRanked, self.mInfoTestDatasetRanked)
+        )
+        for label in [self.mInfoDataset,
+                      self.mInfoTrainingDataset, self.mInfoTrainingDatasetClustered, self.mInfoTrainingDatasetRanked,
+                      self.mInfoTestDataset, self.mInfoTestDatasetClustered, self.mInfoTestDatasetRanked]:
             label.hide()
 
         # update default roots when working directory changed
-        # self.mWorkingDirectory.fileChanged.connect(self.onWorkingDirectoryChanged)
-
-        # self.mSample.fileChanged.connect(self.onFileChanged)
-
-    def onFileChanged(self, absPath):
-        assert 0  # todo fix relative storage
-        # assure that the relative path to the default directory is visible
-        if isabs(absPath):
-            mFile: QgsFileWidget = self.sender()
-            relPath = relpath(absPath, mFile.defaultRoot())
-            mFile.setFilePath(relPath)
+        self.mWorkingDirectory.fileChanged.connect(self.onWorkingDirectoryChanged)
 
     def initFiles(self):
+        self.mWebView.setUrl(self.url)
         self.mWorkingDirectory.setFilePath(join(gettempdir(), 'EnMAPBox', 'ClassificationWorkflow'))
         self.onWorkingDirectoryChanged()
+        self.defaultBasenames = {
+            self.mFileDataset.objectName(): 'dataset.pkl',
+            self.mFileTrainingDataset.objectName(): 'training_dataset.pkl',
+            self.mFileTestDataset.objectName(): 'test_dataset.pkl',
+            self.mFileTrainingDatasetClustered.objectName(): 'training_dataset_clustered.pkl',
+            self.mFileTestDatasetClustered.objectName(): 'test_dataset_clustered.pkl',
+            self.mFileTrainingDatasetRanked.objectName(): 'training_dataset_ranked.pkl',
+            self.mFileTestDatasetRanked.objectName(): 'test_dataset_ranked.pkl',
+            self.mFileClassifier.objectName(): 'classifier_unfitted.pkl',
+            self.mFileClassifierFitted.objectName(): 'classifier_fitted.pkl',
+            self.mFileClusteringReport.objectName(): 'clustering_report.html',
+            self.mFileRankingReport.objectName(): 'ranking_report.html',
+            self.mFileClassifierPerformanceReport.objectName(): 'classifier_performance_report.html',
+            self.mFilePredictedClassification.objectName(): 'classification.tif',
+            self.mFilePredictedProbability.objectName(): 'probability.tif',
+            self.mFileClassificationPerformanceReport.objectName(): 'classification_performance_report.html',
+        }
+
+        for objectName, name in self.defaultBasenames.items():
+            getattr(self, objectName).setFilePath(name)
 
     def initLayers(self):
-        self.mClassification.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mPredictFeatures.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mQuickFeatures.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mQuickFeatures2.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
     def initClassifier(self):
-        pass
-
+        self.classifierNames = list()
+        self.classifierCodes = list()
+        alg: FitClassifierAlgorithmBase
+        i = 0
+        for alg in algorithms():
+            if not isinstance(alg, FitClassifierAlgorithmBase):
+                continue
+            if isinstance(alg, FitGenericClassifier):
+                continue
+            if isinstance(alg, FitRandomForestClassifierAlgorithm):
+                index = i
+            i += 1
+            self.classifierNames.append(alg.displayName().replace('Fit ', ''))
+            self.classifierCodes.append(alg.defaultCodeAsString())
+        self.mQuickClassifier.addItems(self.classifierNames)
+        self.mComboClassifier.addItems(self.classifierNames)
+        self.mCodeClassifier.setPlainText(FitRandomForestClassifierAlgorithm().defaultCodeAsString())
+        self.mQuickClassifier.setCurrentIndex(index)
+        self.mComboClassifier.setCurrentIndex(index)
+        
     def _createAlgorithmDialogWrapper(self):
         class AlgorithmDialogWrapper(AlgorithmDialog):
             def __init__(self_, *args, **kwargs):
@@ -415,7 +430,6 @@ class ClassificationWorkflowGui(QMainWindow):
 
     @errorHandled(successMessage='performed quick mapping')
     def runQuickMapping(self, *args):
-
         # create sample
         labels = self.mQuickLabels.currentLayer()
         if labels is None:
@@ -426,387 +440,484 @@ class ClassificationWorkflowGui(QMainWindow):
             self.pushParameterMissingLayer('Raster with features')
             raise MissingParameterError()
 
-        parameters = {
-            PrepareClassificationSampleFromMapAndRaster.P_MAP: self.mQuickLabels.currentLayer(),
-            PrepareClassificationSampleFromMapAndRaster.P_RASTER: self.mQuickFeatures.currentLayer()
-        }
-        self.runImportFromAlg(PrepareClassificationSampleFromMapAndRaster(), parameters, autoRun=True)
+        if isinstance(labels, QgsRasterLayer):
+            self.mAlgoDataset.setCurrentIndex(1)
+            Alg = PrepareClassificationDatasetFromCategorizedRaster
+            parameters = {Alg.P_CATEGORIZED_RASTER: labels,
+                          Alg.P_FEATURE_RASTER: features}
+        elif isinstance(labels, QgsVectorLayer):
+            self.mAlgoDataset.setCurrentIndex(2)
+            Alg = PrepareClassificationDatasetFromCategorizedVector
+            parameters = {Alg.P_CATEGORIZED_VECTOR: labels,
+                          Alg.P_FEATURE_RASTER: features}
+        else:
+            assert 0
+        self.runImportDataset(parameters=parameters, autoRun=True)
 
         # fit classifier
-        self.mRunClassifierCreate.clicked.emit()
+        self.mDataFit.setCurrentIndex(1)  # (original) dataset
+        self.mRunCreateClassifier.clicked.emit()
         self.mRunClassifierFit.clicked.emit()
 
         # mapping
-        self.mRaster.setLayer(self.mQuickFeatures.currentLayer())
+        self.mPredictFeatures.setLayer(features)
+        if self.mQuickFeatures.currentLayer() is not None:
+            self.mPredictFeatures.setLayer(self.mQuickFeatures.currentLayer())
         self.mRunPredict.clicked.emit()
-        self.mGroundTruth.setLayer(self.mQuickGroundTruth.currentLayer())
-        self.mRunMapValidation.clicked.emit()
 
-    @errorHandled(successMessage='imported sample')
-    def runImportFromAlg(self, alg, parameters, *args, autoRun=False):
+    @errorHandled(successMessage='created dataset')
+    def runImportDataset(self, *args, parameters=None, autoRun=False):
+
+        if self.mAlgoDataset.currentIndex() < 1:
+            self.pushParameterMissing('Source', 'select source first')
+            raise MissingParameterError()
+
+        Algs = [None,
+                PrepareClassificationDatasetFromCategorizedRaster,
+                PrepareClassificationDatasetFromCategorizedVector,
+                PrepareClassificationDatasetFromCategorizedVectorAndFields,
+                PrepareClassificationDatasetFromCategorizedLibrary,
+                PrepareClassificationDatasetFromTable,
+                PrepareClassificationDatasetFromFiles]
+        Alg = Algs[self.mAlgoDataset.currentIndex()]
+        alg = Alg()
 
         if parameters is None:
             parameters = dict()
-        parameters[alg.P_OUTPUT_DATASET] = self.createFilename(self.mSampleBasename, '.pkl')
-
+        parameters[alg.P_OUTPUT_DATASET] = self.createOutputFilename(self.mFileDataset, '.pkl')
         result = self.showAlgorithmDialog(alg, parameters, autoRun=autoRun)
-        self.mSample.setFilePath(result[alg.P_OUTPUT_DATASET])
+        self.mFileDataset.setFilePath(result[alg.P_OUTPUT_DATASET])
+
+    def getDataset(self) -> str:
+        filename = self.createInputFilename(self.mFileDataset)
+        if filename is None:
+            self.pushParameterMissing(self.tabPath(self.mFileDataset), '', self.mRunImportDataset.text())
+            raise MissingParameterError()
+        return filename
+
+    def getTrainingDataset(self) -> str:
+        filename = self.createInputFilename(self.mFileTrainingDataset)
+        if filename is None:
+            self.pushParameterMissing(self.tabPath(self.mFileTrainingDataset), '', self.mRunSplitDataset.text())
+            raise MissingParameterError()
+        return filename
+
+    def getTrainingDatasetClustered(self) -> str:
+        filename = self.createInputFilename(self.mFileTrainingDatasetClustered)
+        if filename is None:
+            self.pushParameterMissing(
+                self.tabPath(self.mFileTrainingDatasetClustered), '', self.mRunClusteringSelect.text()
+            )
+            raise MissingParameterError()
+        return filename
+
+    def getTrainingDatasetRanked(self) -> str:
+        filename = self.createInputFilename(self.mFileTrainingDatasetRanked)
+        if filename is None:
+            self.pushParameterMissing(
+                self.tabPath(self.mFileTrainingDatasetRanked), '', self.mRunRankingSelect.text()
+            )
+            raise MissingParameterError()
+        return filename
+
+    def getTestDataset(self, allowEmpty=True) -> Optional[str]:
+        filename = self.createInputFilename(self.mFileTestDataset)
+        if filename is None and not allowEmpty:
+            self.pushParameterMissing(self.tabPath(self.mFileTestDataset), '', self.mRunSplitDataset.text())
+            raise MissingParameterError()
+        return filename
+
+    def getTestDatasetClustered(self, allowEmpty=True) -> Optional[str]:
+        filename = self.createInputFilename(self.mFileTestDatasetClustered)
+        if filename is None and not allowEmpty:
+            self.pushParameterMissing(
+                self.tabPath(self.mFileTestDatasetClustered), '', self.mRunClusteringSelect.text()
+            )
+            raise MissingParameterError()
+        return filename
+
+    def getTestDatasetRanked(self, allowEmpty=True) -> Optional[str]:
+        filename = self.createInputFilename(self.mFileTestDatasetRanked)
+        if filename is None and not allowEmpty:
+            self.pushParameterMissing(
+                self.tabPath(self.mFileTestDatasetRanked), '', self.mRunRankingSelect.text()
+            )
+            raise MissingParameterError()
+        return filename
+
+    def getTrainingDatasetByIndex(self, index) -> str:
+        if index == 1:
+            return self.getDataset()
+        if index == 2:
+            return self.getTrainingDataset()
+        if index == 3:
+            return self.getTrainingDatasetClustered()
+        if index == 4:
+            return self.getTrainingDatasetRanked()
+        self.pushParameterMissing('Dataset', 'select dataset first')
+        raise MissingParameterError()
+
+    def getTestDatasetByIndex(self, index, allowEmpty=True) -> Optional[str]:
+        if index == 1:
+            if allowEmpty:
+                return self.createInputFilename(self.mFileDataset)
+            else:
+                return self.getDataset()
+        if index == 2:
+            return self.getTestDataset(allowEmpty)
+        if index == 3:
+            return self.getTestDatasetClustered(allowEmpty)
+        if index == 4:
+            return self.getTestDatasetRanked(allowEmpty)
+        self.pushParameterMissing('Dataset', 'select dataset first')
+        raise MissingParameterError()
+
+    def getClusteringReport(self) -> str:
+        filename = self.createInputFilename(self.mFileClusteringReport)
+        if filename is None:
+            self.pushParameterMissing(
+                self.tabPath(self.mFileClusteringReport), '', self.mRunClustering.text()
+            )
+            raise MissingParameterError()
+        return filename
+
+    def getRankingReport(self) -> str:
+        filename = self.createInputFilename(self.mFileRankingReport)
+        if filename is None:
+            self.pushParameterMissing(
+                self.tabPath(self.mFileRankingReport), '', self.mRunRanking.text()
+            )
+            raise MissingParameterError()
+        return filename
+
+    def getClusteringN(self) -> int:
+        n = self.mNClustering.value()
+        if n == 0:
+            self.pushParameterWrongValue('Number of features', 'select value greater 0')
+            raise MissingParameterError()
+        return n
+
+    def getRankingN(self) -> int:
+        n = self.mNRanking.value()
+        if n == 0:
+            self.pushParameterWrongValue('Number of features', 'select value greater 0')
+            raise MissingParameterError()
+        return n
+
+    def getClassifier(self) -> str:
+        filename = self.createInputFilename(self.mFileClassifier)
+        if filename is None:
+            filename = self.createInputFilename(self.mFileClassifierFitted)
+        if filename is None:
+            self.pushParameterMissing(
+                self.tabPath(self.mFileClassifier), '', self.mRunCreateClassifier.text()
+            )
+            raise MissingParameterError()
+        return filename
+
+    def getClassifierFitted(self) -> str:
+        filename = self.createInputFilename(self.mFileClassifierFitted)
+        if filename is None:
+            self.pushParameterMissing(
+                self.tabPath(self.mFileClassifierFitted), '', self.mRunClassifierFit.text()
+            )
+            raise MissingParameterError()
+        return filename
+
+    def getPredictedClassification(self, allowEmpty=False) -> str:
+        filename = self.createInputFilename(self.mFilePredictedClassification)
+        if allowEmpty:
+            return filename
+        if filename is None:
+            self.pushParameterMissing(
+                self.tabPath(self.mFilePredictedClassification), '', self.mRunPredict.text()
+            )
+            raise MissingParameterError()
+        return filename
 
     @errorHandled(successMessage='splitted sample')
-    def runSplitSample(self, *args):
-        filename = self.mSample.filePath()
-        if filename == '':
-            raise MissingParameterSample()
-
+    def runSplitDataset(self, *args):
+        filename = self.getDataset()
         trainNs = list()
         testNs = list()
-        for i in range(self.mSampleTable.rowCount()):
-            trainN: QgsSpinBox = self.mSampleTable.cellWidget(i, 4)
-            testN: QgsSpinBox = self.mSampleTable.cellWidget(i, 5)
+        for i in range(self.mCategoryTable.rowCount()):
+            trainN: QgsSpinBox = self.mCategoryTable.cellWidget(i, 4)
+            testN: QgsSpinBox = self.mCategoryTable.cellWidget(i, 5)
             trainNs.append(trainN.value())
             testNs.append(testN.value())
 
         # draw train sample
-        alg = SubsampleClassificationSampleAlgorithm()
-        parameters = {alg.P_SAMPLE: filename,
+        alg = RandomSamplesFromClassificationDatasetAlgorithm()
+        parameters = {alg.P_DATASET: filename,
                       alg.P_N: str(trainNs),
-                      alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTrainSampleBasename, '.pkl')}
+                      alg.P_OUTPUT_DATASET: self.createOutputFilename(self.mFileTrainingDataset, '.pkl')}
         result = self.showAlgorithmDialog(alg, parameters)
-        self.mTrainSample.setFilePath(result[alg.P_OUTPUT_SAMPLE])
+        self.mFileTrainingDataset.setFilePath(result[alg.P_OUTPUT_DATASET])
         filenameComplement = result[alg.P_OUTPUT_COMPLEMENT]
 
         # draw test sample from complement
         if sum(testNs) == 0:
-            self.mTestSample.setFilePath('')
+            self.mFileTestDataset.setFilePath('')
         else:
-            parameters = {alg.P_SAMPLE: filenameComplement,
+            parameters = {alg.P_DATASET: filenameComplement,
                           alg.P_N: str(testNs),
-                          alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTestSampleBasename, '.pkl')}
+                          alg.P_OUTPUT_DATASET: self.createOutputFilename(self.mFileTestDataset, '.pkl')}
             result = self.showAlgorithmDialog(alg, parameters)
-            self.mTestSample.setFilePath(result[alg.P_OUTPUT_SAMPLE])
+            self.mFileTestDataset.setFilePath(result[alg.P_OUTPUT_DATASET])
 
         if sum(trainNs) == 0:
-            self.mTrainSample.setFilePath('')
+            self.mFileTrainingDataset.setFilePath('')
 
     @errorHandled(successMessage='created (unfitted) classifier')
-    def runClassifierCreate(self, *args):
+    def runCreateClassifier(self, *args):
 
         alg = FitGenericClassifier()
-        parameters = {alg.P_CODE: self.mCode.toPlainText(),
-                      alg.P_OUTPUT_CLASSIFIER: self.createFilename(self.mClassifierBasename, '.pkl')}
+        parameters = {alg.P_CLASSIFIER: self.mCodeClassifier.toPlainText(),
+                      alg.P_OUTPUT_CLASSIFIER: self.createOutputFilename(self.mFileClassifier, '.pkl')}
         result = self.showAlgorithmDialog(alg, parameters)
-        self.mClassifier.setFilePath(result[alg.P_OUTPUT_CLASSIFIER])
-
-    @errorHandled(successMessage=None)
-    def getSampleFilenamesForClustering(self, *args):
-        filenameTrain = self.mTrainSample.filePath()
-        filenameTest = self.mTestSample.filePath()
-        if filenameTrain == '':
-            filenameTrain = self.mSample.filePath()
-            filenameTest = ''
-        return filenameTrain, filenameTest
-
-    @errorHandled(successMessage=None)
-    def getSampleFilenamesForRanking(self, *args):
-        filenameTrain = self.mTrainSampleClustered.filePath()
-        filenameTest = self.mTestSampleClustered.filePath()
-        if filenameTrain == '':
-            filenameTrain, filenameTest = self.getSampleFilenamesForClustering()
-        return filenameTrain, filenameTest
-
-    @errorHandled(successMessage=None)
-    def getSampleFilenamesForFitting(self, *args):
-        filenameTrain = self.mTrainSampleRanked.filePath()
-        filenameTest = self.mTestSampleRanked.filePath()
-        if filenameTrain == '':
-            filenameTrain, filenameTest = self.getSampleFilenamesForRanking()
-        return filenameTrain, filenameTest
-
-    @errorHandled(successMessage=None)
-    def getClassifierFittedFilename(self, *args):
-        return self.mClassifierFitted.filePath()
-
-    @errorHandled(successMessage=None)
-    def getClassifierFilename(self, *args):
-        filename = self.getClassifierFittedFilename()
-        if filename == '':
-            filename = self.mClassifier.filePath()
-        return filename
-
-    @errorHandled(successMessage=None)
-    def getClusteringFilename(self, *args):
-        return self.mFeatureClustering.filePath()
-
-    @errorHandled(successMessage=None)
-    def getRankingFilename(self, *args):
-        return self.mFeatureRanking.filePath()
+        self.mFileClassifier.setFilePath(result[alg.P_OUTPUT_CLASSIFIER])
 
     @errorHandled(successMessage='clustered features')
     def runFeatureClustering(self, *args):
 
-        filenameTrain, filenameTest = self.getSampleFilenamesForClustering()
-        if filenameTrain == '':
-            raise MissingParameterSample()
+        filenameTrain = self.getTrainingDatasetByIndex(self.mDataClustering.currentIndex())
 
-        alg = FeatureClusteringHierarchicalAlgorithm()
-        parameters = {alg.P_SAMPLE: filenameTrain,
-                      alg.P_OUTPUT_REPORT: self.createFilename(self.mFeatureClusteringBasename, '.html')}
+        if self.mAlgoClustering.currentIndex() > 0:
+            Alg = [None, FeatureClusteringHierarchicalAlgorithm][self.mAlgoClustering.currentIndex()]
+            alg = Alg()
+        else:
+            self.pushParameterMissing('Algorithm', 'select algorithm first')
+            raise MissingParameterError()
+
+        parameters = {alg.P_DATASET: filenameTrain,
+                      alg.P_OUTPUT_REPORT: self.createOutputFilename(self.mFileClusteringReport, '.html')}
         result = self.showAlgorithmDialog(alg, parameters)
-        self.mFeatureClustering.setFilePath(result[alg.P_OUTPUT_REPORT])
+        self.mFileClusteringReport.setFilePath(result[alg.P_OUTPUT_REPORT])
 
     @errorHandled(successMessage='selected most representative features')
     def runFeatureClusteringSelect(self, *args):
 
-        filenameClustering = self.getClusteringFilename()
-        if filenameClustering == '':
-            raise MissingParameterClustering()
-
-        filenameTrain, filenameTest = self.getSampleFilenamesForClustering()
-        if filenameTrain == '':
-            raise MissingParameterSample()
-
-        n = self.mFeatureClusteringN.value()
-        if n == 0:
-            self.pushParameterWrongValue('n', 'select cluster hierarchy level n>0')
-            raise MissingParameterError()
-
+        filenameTrain = self.getTrainingDatasetByIndex(self.mDataClustering.currentIndex())
+        filenameTest = self.getTestDatasetByIndex(self.mDataClustering.currentIndex())
+        filenameClustering = self.getClusteringReport()
+        n = self.getClusteringN()
         # get feature subset
         dump = Utils.jsonLoad(filenameClustering + '.json')
         featureList = [index + 1 for index in dump['feature_subset_hierarchy'][n - 1]]
 
         # subset train sample
-        alg = SelectFeatureSubsetFromSampleAlgorithm()
-        parameters = {alg.P_SAMPLE: filenameTrain,
+        alg = SelectFeaturesFromDatasetAlgorithm()
+        parameters = {alg.P_DATASET: filenameTrain,
                       alg.P_FEATURE_LIST: str(featureList),
-                      alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTrainSampleClusteredBasename, '.pkl')}
+                      alg.P_OUTPUT_DATASET: self.createOutputFilename(self.mFileTrainingDatasetClustered, '.pkl')}
         result = self.showAlgorithmDialog(alg, parameters)
-        self.mTrainSampleClustered.setFilePath(result[alg.P_OUTPUT_SAMPLE])
+        self.mFileTrainingDatasetClustered.setFilePath(result[alg.P_OUTPUT_DATASET])
 
         # subset test sample
-        if filenameTest != '':
-            alg = SelectFeatureSubsetFromSampleAlgorithm()
-            parameters = {alg.P_SAMPLE: filenameTest,
+        if filenameTest is not None:
+            alg = SelectFeaturesFromDatasetAlgorithm()
+            parameters = {alg.P_DATASET: filenameTest,
                           alg.P_FEATURE_LIST: str(featureList),
-                          alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTestSampleClusteredBasename, '.pkl')}
+                          alg.P_OUTPUT_DATASET: self.createOutputFilename(self.mFileTestDatasetClustered, '.pkl')}
             result = self.showAlgorithmDialog(alg, parameters)
-            self.mTestSampleClustered.setFilePath(result[alg.P_OUTPUT_SAMPLE])
-
-    @errorHandled(successMessage='clustered features')
-    def runFeatureRankingInternal(self, *args):
-        pass
+            self.mFileTestDatasetClustered.setFilePath(result[alg.P_OUTPUT_DATASET])
 
     @errorHandled(successMessage='ranked features')
-    def runFeatureRankingPermutation(self, *args):
+    def runFeatureRanking(self, *args):
 
-        filenameTrain, filenameTest = self.getSampleFilenamesForRanking()
-        if filenameTrain == '':
-            raise MissingParameterSample()
+        filenameTrain = self.getTrainingDatasetByIndex(self.mDataRanking.currentIndex())
+        filenameTest = self.getTestDatasetByIndex(self.mDataRanking.currentIndex())
+        filenameClassifier = self.getClassifier()
 
-        filenameClassifier = self.getClassifierFilename()
-        if filenameClassifier == '':
-            raise MissingParameterClassifier()
+        if self.mAlgoRanking.currentIndex() > 0:
+            Alg = [
+                None,
+                None,
+                ClassifierFeatureRankingPermutationImportanceAlgorithm,
+                None,
+                None,
+                None
+            ][self.mAlgoRanking.currentIndex()]
+            if Alg is None:
+               raise NotImplementedError()  # todo implement all algos!
+            alg = Alg()
+        else:
+            self.pushParameterMissing('Algorithm', 'select algorithm first')
+            raise MissingParameterError()
 
-        alg = ClassifierFeatureRankingPermutationImportanceAlgorithm()
-        parameters = {alg.P_TRAIN_SAMPLE: filenameTrain,
-                      alg.P_TEST_SAMPLE: filenameTest,
+        parameters = {alg.P_TRAIN_DATASET: filenameTrain,
+                      alg.P_TEST_DATASET: filenameTest,
                       alg.P_CLASSIFIER: filenameClassifier,
-                      alg.P_OUTPUT_REPORT: self.createFilename(self.mFeatureRankingBasename, '.html')}
+                      alg.P_REPEATS: 10,
+                      alg.P_OUTPUT_REPORT: self.createOutputFilename(self.mFileRankingReport, '.html')}
         result = self.showAlgorithmDialog(alg, parameters)
-        self.mFeatureRanking.setFilePath(result[alg.P_OUTPUT_REPORT])
-
-    @errorHandled(successMessage='clustered features')
-    def runFeatureRankingRFE(self, *args):
-        pass
-
-    @errorHandled(successMessage='clustered features')
-    def runFeatureRankingSFSForward(self, *args):
-        pass
-
-    @errorHandled(successMessage='clustered features')
-    def runFeatureRankingSFSBackward(self, *args):
-        pass
+        self.mFileRankingReport.setFilePath(result[alg.P_OUTPUT_REPORT])
 
     @errorHandled(successMessage='selected most important features')
     def runFeatureRankingSelect(self, *args):
-        filenameRanking = self.getRankingFilename()
-        if filenameRanking == '':
-            raise MissingParameterRanking()
-
-        filenameTrain, filenameTest = self.getSampleFilenamesForRanking()
-        if filenameTrain == '':
-            raise MissingParameterSample()
-
-        n = self.mFeatureRankingN.value()
-        if n == 0:
-            self.pushParameterWrongValue('n', 'select number of features (n>0) to subset')
-            raise MissingParameterError()
+        filenameTrain = self.getTrainingDatasetByIndex(self.mDataRanking.currentIndex())
+        filenameTest = self.getTestDatasetByIndex(self.mDataRanking.currentIndex())
+        filenameRanking = self.getRankingReport()
+        n = self.getRankingN()
 
         # get feature subset
         dump = Utils.jsonLoad(filenameRanking + '.json')
         featureList = [index + 1 for index in dump['feature_subset_hierarchy'][n - 1]]
 
         # subset train sample
-        alg = SelectFeatureSubsetFromSampleAlgorithm()
-        parameters = {alg.P_SAMPLE: filenameTrain,
+        alg = SelectFeaturesFromDatasetAlgorithm()
+        parameters = {alg.P_DATASET: filenameTrain,
                       alg.P_FEATURE_LIST: str(featureList),
-                      alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTrainSampleRankedBasename, '.pkl')}
+                      alg.P_OUTPUT_DATASET: self.createOutputFilename(self.mFileTrainingDatasetRanked, '.pkl')}
         result = self.showAlgorithmDialog(alg, parameters)
-        self.mTrainSampleRanked.setFilePath(result[alg.P_OUTPUT_SAMPLE])
+        self.mFileTrainingDatasetRanked.setFilePath(result[alg.P_OUTPUT_DATASET])
 
         # subset test sample
-        if filenameTest != '':
-            alg = SelectFeatureSubsetFromSampleAlgorithm()
-            parameters = {alg.P_SAMPLE: filenameTest,
+        if filenameTest is not None:
+            alg = SelectFeaturesFromDatasetAlgorithm()
+            parameters = {alg.P_DATASET: filenameTest,
                           alg.P_FEATURE_LIST: str(featureList),
-                          alg.P_OUTPUT_SAMPLE: self.createFilename(self.mTestSampleRankedBasename, '.pkl')}
+                          alg.P_OUTPUT_DATASET: self.createOutputFilename(self.mFileTestDatasetRanked, '.pkl')}
             result = self.showAlgorithmDialog(alg, parameters)
-            self.mTestSampleRanked.setFilePath(result[alg.P_OUTPUT_SAMPLE])
+            self.mFileTestDatasetRanked.setFilePath(result[alg.P_OUTPUT_DATASET])
 
     @errorHandled(successMessage='fitted classifier')
     def runClassifierFit(self, *args):
-
-        filenameTrain, _ = self.getSampleFilenamesForFitting()
-        if filenameTrain == '':
-            raise MissingParameterSample()
+        filenameTrain = self.getTrainingDatasetByIndex(self.mDataFit.currentIndex())
 
         alg = FitGenericClassifier()
-        parameters = {alg.P_SAMPLE: filenameTrain,
-                      alg.P_CODE: self.mCode.toPlainText(),
-                      alg.P_OUTPUT_CLASSIFIER: self.createFilename(self.mClassifierFittedBasename, '.pkl')
+        parameters = {alg.P_DATEST: filenameTrain,
+                      alg.P_CLASSIFIER: self.mCodeClassifier.toPlainText(),
+                      alg.P_OUTPUT_CLASSIFIER: self.createOutputFilename(self.mFileClassifierFitted, '.pkl')
                       }
         result = self.showAlgorithmDialog(alg, parameters)
-        self.mClassifierFitted.setFilePath(result[alg.P_OUTPUT_CLASSIFIER])
+        self.mFileClassifierFitted.setFilePath(result[alg.P_OUTPUT_CLASSIFIER])
 
-    @errorHandled(successMessage='estimated classifier test performance')
-    def runValidation(self, *args):
-
-        _, filenameTest = self.getSampleFilenamesForFitting()
-        if filenameTest == '':
-            raise MissingParameterTestSample()
-
-        filenameClassifier = self.getClassifierFittedFilename()
-        if filenameClassifier == '':
-            raise MissingParameterClassifierFitted()
+    @errorHandled(successMessage='assessed classifier performance')
+    def runClassifierPerformance(self, *args):
+        filenameTrain = self.getTrainingDatasetByIndex(self.mDataFit.currentIndex())
+        filenameClassifier = self.getClassifier()
 
         alg = ClassifierPerformanceAlgorithm()
         parameters = {alg.P_CLASSIFIER: filenameClassifier,
-                      alg.P_SAMPLE: filenameTest,
-                      alg.P_OUTPUT_REPORT: self.createFilename(self.mClassifierPerformanceBasename, '.html')}
-        result = self.showAlgorithmDialog(alg, parameters)
-        self.mClassifierPerformance.setFilePath(result[alg.P_OUTPUT_REPORT])
+                      alg.P_OUTPUT_REPORT: self.createOutputFilename(self.mFileClassifierPerformanceReport, '.html')}
 
-    @errorHandled(successMessage='estimated classifier cross-validation performance')
-    def runCrossValidation(self, *args):
-
-        filenameTrain, _ = self.getSampleFilenamesForFitting()
-        if filenameTrain == '':
-            self.pushParameterMissingSample()
+        if self.mAlgoClassifierPerformance.currentIndex() == 0:
+            self.pushParameterMissing('Algorithm', 'select algorithm first')
             raise MissingParameterError()
 
-        filenameClassifier = self.getClassifierFilename()
-        if filenameClassifier == '':
-            self.pushParameterMissingClassifier()
-            raise MissingParameterError()
+        if self.mAlgoClassifierPerformance.currentIndex() == 1:  # cross-validation performance
+            parameters[alg.P_DATASET] = filenameTrain
+            parameters[alg.P_NFOLD] = 10
 
-        alg = ClassifierPerformanceAlgorithm()
-        parameters = {alg.P_CLASSIFIER: filenameClassifier,
-                      alg.P_SAMPLE: filenameTrain,
-                      alg.P_NFOLD: self.mNFold.value(),
-                      alg.P_OUTPUT_REPORT: self.createFilename(self.mClassifierPerformanceBasename, '.html')}
+        if self.mAlgoClassifierPerformance.currentIndex() == 2:  # test dataset performance
+            filenameTest = self.getTestDatasetByIndex(self.mDataFit.currentIndex(), allowEmpty=False)
+            parameters[alg.P_DATASET] = filenameTest
+
+        if self.mAlgoClassifierPerformance.currentIndex() == 3:  # training dataset performance
+            parameters[alg.P_DATASET] = filenameTrain
+
         result = self.showAlgorithmDialog(alg, parameters)
-        self.mClassifierPerformance.setFilePath(result[alg.P_OUTPUT_REPORT])
+        self.mFileClassifierPerformanceReport.setFilePath(result[alg.P_OUTPUT_REPORT])
 
     @errorHandled(successMessage='predicted maps')
     def runPredict(self, *args):
 
-        filenameClassifier = self.getClassifierFittedFilename()
-        if filenameClassifier == '':
-            raise MissingParameterClassifierFitted()
-
-        raster: QgsRasterLayer = self.mRaster.currentLayer()
+        filenameClassifier = self.getClassifierFitted()
+        raster: QgsRasterLayer = self.mPredictFeatures.currentLayer()
         if raster is None:
-            raise MissingParameterRaster()
+            self.pushParameterMissingLayer('Raster layer with features')
+            raise MissingParameterError()
 
-        # classification
-        filenameClassification = self.createFilename(self.mClassificationBasename, '.tif')
-        alg = PredictClassificationAlgorithm()
-        parameters = {
-            alg.P_CLASSIFIER: filenameClassifier,
-            alg.P_RASTER: raster,
-            alg.P_MASK: self.mMask.currentLayer(),
-            alg.P_OUTPUT_RASTER: filenameClassification
-        }
-        result = self.showAlgorithmDialog(alg, parameters)
-        layer = QgsRasterLayer(filenameClassification, basename(filenameClassification))
-        QgsProject.instance().addMapLayer(layer)
-        self.mClassification.setLayer(layer)
+        if self.mCheckPredictedClassification.isChecked():
+            # classification
+            filenameClassification = self.createOutputFilename(self.mFilePredictedClassification, '.tif')
+            alg = PredictClassificationAlgorithm()
+            parameters = {
+                alg.P_CLASSIFIER: filenameClassifier,
+                alg.P_RASTER: raster,
+                alg.P_OUTPUT_CLASSIFICATION: filenameClassification
+            }
+            result = self.showAlgorithmDialog(alg, parameters)
+            self.mFilePredictedClassification.setFilePath(filenameClassification)
 
-        if not self.mProbabilityCheck.isChecked():
-            return
+        if self.mCheckPredictedProbability.isChecked():
+            # probability
+            filenameProbability = self.createOutputFilename(self.mFilePredictedProbability, '.tif')
+            filenameRgb = self.createOutputFilename(self.mFilePredictedProbability, '.tif', suffix='_rgb')
+            alg = PredictClassPropabilityAlgorithm()
+            parameters = {
+                alg.P_CLASSIFIER: filenameClassifier,
+                alg.P_RASTER: raster,
+                alg.P_OUTPUT_PROBABILITY: filenameProbability
+            }
+            result = self.showAlgorithmDialog(alg, parameters)
+            self.mFilePredictedProbability.setFilePath(filenameProbability)
 
-        # probability
-        filenameProbability = self.createFilename(self.mProbabilityBasename, '.tif')
-        alg = PredictClassPropabilityAlgorithm()
-        parameters = {
-            alg.P_CLASSIFIER: filenameClassifier,
-            alg.P_RASTER: raster,
-            alg.P_MASK: self.mMask.currentLayer(),
-            alg.P_OUTPUT_RASTER: filenameProbability
-        }
-        result = self.showAlgorithmDialog(alg, parameters)
-        layer = QgsRasterLayer(filenameProbability, basename(filenameProbability))
-        QgsProject.instance().addMapLayer(layer)
-        self.mProbability.setLayer(layer)
-
-        # colorize probability as RGB
-        filenameRgb = self.createFilename(self.mProbabilityBasename, '.tif', suffix='_rgb')
-        alg = ColorizeClassProbabilityAlgorithm()
-        parameters = {
-            alg.P_SCORE: filenameProbability,
-            alg.P_STYLE: filenameClassification,
-            alg.P_OUTPUT_RASTER: filenameRgb
-        }
-        result = self.showAlgorithmDialog(alg, parameters)
-        layer = QgsRasterLayer(filenameRgb, basename(filenameProbability))
-        QgsProject.instance().addMapLayer(layer)
+            # probability as RGB
+            colors = str([c.color for c in ClassifierDump(**Utils.pickleLoad(filenameClassifier)).categories])
+            alg = CreateRgbImageFromClassProbabilityAlgorithm()
+            parameters = {
+                alg.P_PROBABILITY: filenameProbability,
+                alg.P_COLORS: colors,
+                alg.P_OUTPUT_RGB: filenameRgb
+            }
+            result = self.showAlgorithmDialog(alg, parameters)
 
     @errorHandled(successMessage='predicted maps')
-    def runMapValidation(self, *args):
+    def runClassificationPerformance(self, *args):
+        predicted = self.getPredictedClassification()
+        observed: QgsRasterLayer = self.mObservedClassification.currentLayer()
+        if observed is None:
+            self.pushParameterMissingLayer('Observed categorized layer')
+            raise MissingParameterError()
 
-        classification = self.mClassification.currentLayer()
-        if classification is None:
-            raise MissingParameterClassification()
-
-        reference = self.mGroundTruth.currentLayer()
-        if reference is None:
-            raise MissingParameterGroundTruth()
-
-        alg = ClassificationPerformanceStratifiedAlgorithm()
-        parameters = {alg.P_CLASSIFICATION: classification,
-                      alg.P_REFERENCE: reference,
-                      alg.P_STRATIFICATION: classification,
-                      alg.P_OUTPUT_REPORT: self.createFilename(self.mClassificationPerformanceBasename, '.html')}
+        alg = ClassificationPerformanceSimpleAlgorithm()
+        parameters = {alg.P_CLASSIFICATION: predicted,
+                      alg.P_REFERENCE: observed,
+                      alg.P_OUTPUT_REPORT: self.createOutputFilename(self.mFileClassificationPerformanceReport, '.html')}
         result = self.showAlgorithmDialog(alg, parameters)
-        self.mClassificationPerformance.setFilePath(result[alg.P_OUTPUT_REPORT])
+        self.mFileClassificationPerformanceReport.setFilePath(result[alg.P_OUTPUT_REPORT])
 
-    def createFilename(self, mBasename: QLineEdit, extension: str, suffix='') -> str:
-        name = mBasename.text()
-        filename = join(self.mWorkingDirectory.filePath(), name + suffix + extension)
+    def createOutputFilename(self, mFile: QgsFileWidget, extension: str, suffix='') -> str:
+
+        defaultBasename = splitext(self.defaultBasenames[mFile.objectName()])[0]
+
+        if mFile.filePath() == '':
+            filename = join(self.mWorkingDirectory.filePath(), defaultBasename + suffix + extension)
+        else:
+            filename = mFile.filePath()
+
+        if not isabs(filename):
+            filename = abspath(join(self.mWorkingDirectory.filePath(), filename))
+
+        if not filename.endswith(extension):
+            filename += extension
+
         if not exists(filename):
+            return filename
+
+        if not basename(filename).startswith(defaultBasename):
             return filename
 
         # give it a unique number
         i = 2
         while True:
-            filename = join(self.mWorkingDirectory.filePath(), name + suffix + f'_{i}' + extension)
+            filename = join(dirname(filename), defaultBasename + suffix + f'_{i}' + extension)
             if not exists(filename):
                 break
             i += 1
 
         return filename
 
-    def updateSampleInfo(self, file: QgsFileWidget, label: QLabel):
-        filename = file.filePath()
+    def createInputFilename(self, mFile: QgsFileWidget) -> Optional[str]:
+        filename = mFile.filePath()
+        if not exists(filename):
+            return None
+        return filename
+
+    def updateDatasetInfo(self, mFile: QgsFileWidget, label: QLabel):
+        filename = mFile.filePath()
         if exists(filename) and filename.endswith('.pkl'):
             dump = ClassifierDump(**Utils.pickleLoad(filename))
             label.setText(f'{dump.X.shape[0]} samples {dump.X.shape[1]} features  {len(dump.categories)} categories')
@@ -816,30 +927,36 @@ class ClassificationWorkflowGui(QMainWindow):
             label.hide()
 
     @errorHandled
+    def onClassifierChanged(self, index: int):
+        self.mQuickClassifier.setCurrentIndex(index)
+        self.mComboClassifier.setCurrentIndex(index)
+        self.mCodeClassifier.setPlainText(self.classifierCodes[index])
+
+    @errorHandled
     def onWorkingDirectoryChanged(self, *args):
         wd = self.mWorkingDirectory.filePath()
-        for mFile in [self.mSample, self.mTrainSample, self.mTestSample,
-                      self.mTrainSampleClustered, self.mTestSampleClustered,
-                      self.mTrainSampleRanked, self.mTestSampleRanked,
-                      self.mClassifier, self.mClassifierFitted,
-                      self.mFeatureClustering, self.mFeatureRanking,
-                      self.mClassifierPerformance, self.mClassificationPerformance]:
+        for mFile in [self.mFileDataset, self.mFileTrainingDataset, self.mFileTestDataset,
+                      self.mFileTrainingDatasetClustered, self.mFileTestDatasetClustered,
+                      self.mFileTrainingDatasetRanked, self.mFileTestDatasetRanked,
+                      self.mFileClassifier, self.mFileClassifierFitted,
+                      self.mFileClusteringReport, self.mFileRankingReport,
+                      self.mFileClassifierPerformanceReport, self.mFileClassificationPerformanceReport]:
             mFile.setDefaultRoot(wd)
 
     @errorHandled
-    def onSampleChanged(self, *args):
-        filename = self.mSample.filePath()
+    def onDatasetChanged(self, *args):
+        filename = self.mFileDataset.filePath()
         if exists(filename) and filename.endswith('.pkl'):
             dump = ClassifierDump(**Utils.pickleLoad(filename))
         else:
             dump = ClassifierDump(categories=[], features=[], X=np.zeros((0, 0)), y=np.zeros((0, 1)))
 
-        self.updateSampleInfo(self.mSample, self.mSampleInfo)
+        self.updateDatasetInfo(self.mFileDataset, self.mInfoDataset)
 
         def makeSpinBoxes(c: Category) -> Tuple[int, QgsSpinBox, QgsSpinBox]:
             n = int(np.sum(dump.y == c.value))
-            trainN = QgsSpinBox(self.mSampleTable)
-            testN = QgsSpinBox(self.mSampleTable)
+            trainN = QgsSpinBox(self.mCategoryTable)
+            testN = QgsSpinBox(self.mCategoryTable)
             trainN.setMinimum(0)
             trainN.setMaximum(n)
             trainN.setValue(n)
@@ -851,42 +968,42 @@ class ClassificationWorkflowGui(QMainWindow):
             return n, trainN, testN
 
         # setup categories
-        self.mSampleTable.setRowCount(len(dump.categories))
+        self.mCategoryTable.setRowCount(len(dump.categories))
         headers = list()
         for i, category in enumerate(dump.categories):
-            colorButton = QgsColorButton(self.mSampleTable)
+            colorButton = QgsColorButton(self.mCategoryTable)
             colorButton.setColor(QColor(category.color))
             colorButton.setShowMenu(False)
             colorButton.setAutoRaise(True)
             n, trainN, testN = makeSpinBoxes(category)
-            self.mSampleTable.setCellWidget(i, 0, QLabel(f'  {category.value}  ', self.mSampleTable))
-            self.mSampleTable.setItem(i, 1, QTableWidgetItem(category.name))
-            self.mSampleTable.setCellWidget(i, 2, colorButton)
+            self.mCategoryTable.setCellWidget(i, 0, QLabel(f'  {category.value}  ', self.mCategoryTable))
+            self.mCategoryTable.setItem(i, 1, QTableWidgetItem(category.name))
+            self.mCategoryTable.setCellWidget(i, 2, colorButton)
             if len(dump.y) > 0:
                 size = f'  {n} / {np.round(np.divide(n, len(dump.y)) * 100, 1)}%  '
             else:
                 size = f'  {n}  '
-            self.mSampleTable.setCellWidget(i, 3, QLabel(size, self.mSampleTable))
-            self.mSampleTable.setCellWidget(i, 4, trainN)
-            self.mSampleTable.setCellWidget(i, 5, testN)
+            self.mCategoryTable.setCellWidget(i, 3, QLabel(size, self.mCategoryTable))
+            self.mCategoryTable.setCellWidget(i, 4, trainN)
+            self.mCategoryTable.setCellWidget(i, 5, testN)
             # headers.append(f'{category.value}: {category.name} [{n}] ({round(n / len(dump.y) * 100, 1)}%)')
-            headers.append(f'{i + 1}:')
-        self.mSampleTable.setVerticalHeaderLabels(headers)
-        self.mSampleTable.resizeColumnsToContents()
+            headers.append(f'Category {i + 1}')
+        self.mCategoryTable.setVerticalHeaderLabels(headers)
+        self.mCategoryTable.resizeColumnsToContents()
 
         # setup features
-        self.mSampleTable2.setRowCount(len(dump.features))
+        self.mFeaturesTable.setRowCount(len(dump.features))
         headers = list()
         for i, feature in enumerate(dump.features):
-            self.mSampleTable2.setItem(i, 0, QTableWidgetItem(feature))
+            self.mFeaturesTable.setItem(i, 0, QTableWidgetItem(feature))
             # headers.append(f'{i + 1}: {feature}')
-            headers.append(f'{i + 1}:')
-        self.mSampleTable2.setVerticalHeaderLabels(headers)
-        self.mSampleTable2.resizeColumnsToContents()
+            headers.append(f'Feature {i + 1}')
+        self.mFeaturesTable.setVerticalHeaderLabels(headers)
+        self.mFeaturesTable.resizeColumnsToContents()
 
     @errorHandled(successMessage='updated sample categories')
-    def onSampleTableSave(self, *args):
-        filename = self.mSample.filePath()
+    def onDatasetTableSave(self, *args):
+        filename = self.mFileDataset.filePath()
         if filename == '':
             self.pushParameterMissingSample()
             raise MissingParameterError()
@@ -895,13 +1012,13 @@ class ClassificationWorkflowGui(QMainWindow):
 
         categories = list()
         for i, origCategory in enumerate(dump.categories):
-            name: QTableWidgetItem = self.mSampleTable.item(i, 1)
-            color: QgsColorButton = self.mSampleTable.cellWidget(i, 2)
+            name: QTableWidgetItem = self.mCategoryTable.item(i, 1)
+            color: QgsColorButton = self.mCategoryTable.cellWidget(i, 2)
             categories.append(Category(origCategory.value, name.text(), color.color().name()))
 
         features = list()
         for i, origFeature in enumerate(dump.features):
-            name: QTableWidgetItem = self.mSampleTable.item(i, 0)
+            name: QTableWidgetItem = self.mFeaturesTable.item(i, 0).text()
             features.append(name)
 
         # overwrite sample
@@ -910,50 +1027,50 @@ class ClassificationWorkflowGui(QMainWindow):
 
     @errorHandled(successMessage=None)
     def onSetTrainSize(self, *args):
-        n = self.mSamplesSizeAbsoluteValue.value()
-        p = self.mSamplesSizeRelativeValue.value() / 100.
-        for i in range(self.mSampleTable.rowCount()):
-            box: QgsSpinBox = self.mSampleTable.cellWidget(i, 4)
+        n = self.mAbsoluteSizeValue.value()
+        p = self.mRelativeSizeValue.value() / 100.
+        for i in range(self.mCategoryTable.rowCount()):
+            box: QgsSpinBox = self.mCategoryTable.cellWidget(i, 4)
             ni = n
-            if self.mSamplesSizeRelative.isChecked():
+            if self.mRelativeSizeCheck.isChecked():
                 ni = int(round(p * box.maximum()))
             box.setValue(ni)
 
     @errorHandled(successMessage=None)
     def onSetTestSize(self, *args):
-        n = self.mSamplesSizeAbsoluteValue.value()
-        p = self.mSamplesSizeRelativeValue.value() / 100.
-        for i in range(self.mSampleTable.rowCount()):
-            box: QgsSpinBox = self.mSampleTable.cellWidget(i, 5)
+        n = self.mAbsoluteSizeValue.value()
+        p = self.mRelativeSizeValue.value() / 100.
+        for i in range(self.mCategoryTable.rowCount()):
+            box: QgsSpinBox = self.mCategoryTable.cellWidget(i, 5)
             ni = n
-            if self.mSamplesSizeRelative.isChecked():
+            if self.mRelativeSizeCheck.isChecked():
                 ni = int(round(p * box.maximum()))
             box.setValue(ni)
 
     @errorHandled(successMessage=None)
     def onSetSplitSize(self, *args):
         # assign all samples for testing first...
-        for i in range(self.mSampleTable.rowCount()):
-            box: QgsSpinBox = self.mSampleTable.cellWidget(i, 5)
+        for i in range(self.mCategoryTable.rowCount()):
+            box: QgsSpinBox = self.mCategoryTable.cellWidget(i, 5)
             box.setValue(box.maximum())
         # ...and finally set the correct train sizes, which will correct the test sizes
         self.onSetTrainSize()
 
     def onViewFile(self):
         files = {
-            self.mViewSample: self.mSample,
-            self.mViewTrainSample: self.mTrainSample,
-            self.mViewTestSample: self.mTestSample,
-            self.mViewClassifier: self.mClassifier,
-            self.mViewFeatureClustering: self.mFeatureClustering,
-            self.mViewTrainSampleClustered: self.mTrainSampleClustered,
-            self.mViewTestSampleClustered: self.mTestSampleClustered,
-            self.mViewFeatureRanking: self.mFeatureRanking,
-            self.mViewTrainSampleRanked: self.mTrainSampleRanked,
-            self.mViewTestSampleRanked: self.mTestSampleRanked,
-            self.mViewClassifierFitted: self.mClassifierFitted,
-            self.mViewClassifierPerformance: self.mClassifierPerformance,
-            self.mViewClassificationPerformance: self.mClassificationPerformance
+            self.mViewDataset: self.mFileDataset,
+            self.mViewTrainingDataset: self.mFileTrainingDataset,
+            self.mViewTestDataset: self.mFileTestDataset,
+            self.mViewClassifier: self.mFileClassifier,
+            self.mViewClusteringReport: self.mFileClusteringReport,
+            self.mViewTrainingDatasetClustered: self.mFileTrainingDatasetClustered,
+            self.mViewTestDatasetClustered: self.mFileTestDatasetClustered,
+            self.mViewRankingReport: self.mFileRankingReport,
+            self.mViewTrainingDatasetRanked: self.mFileTrainingDatasetRanked,
+            self.mViewTestDatasetRanked: self.mFileTestDatasetRanked,
+            self.mViewClassifierFitted: self.mFileClassifierFitted,
+            self.mViewClassifierPerformanceReport: self.mFileClassifierPerformanceReport,
+            self.mViewClassificationPerformanceReport: self.mFileClassificationPerformanceReport
         }
 
         file: QgsFileWidget = files[self.sender()]
@@ -982,3 +1099,20 @@ class ClassificationWorkflowGui(QMainWindow):
 
     def pushParameterWrongValue(self, name, message):
         self.mMessageBar.pushInfo(f'Wrong parameter value ({name})', message)
+
+    def tabPath(self, mObj: QWidget) -> str:
+        lookup = {
+            self.mFileDataset.objectName(): 'Dataset/Creation/Output dataset',
+            self.mFileTrainingDataset.objectName(): 'Dataset/Style and Split/Output training dataset',
+            self.mFileTestDataset.objectName(): 'Dataset/Style and Split/Output test dataset',
+            self.mFileTrainingDatasetClustered.objectName(): 'Feature Selection/Clustering/Selection/Output training dataset (clustered)',
+            self.mFileTestDatasetClustered.objectName(): 'Feature Selection/Clustering/Selection/Output test dataset (clustered)',
+            self.mFileTrainingDatasetRanked.objectName(): 'Feature Selection/Ranking/Selection/Output training dataset (ranked)',
+            self.mFileTestDatasetRanked.objectName(): 'Feature Selection/Ranking/Selection/Output test dataset (ranked)',
+            self.mFileClassifier.objectName(): 'Classifier/Output classifier',
+            self.mFileClusteringReport.objectName(): 'Feature Selection/Feature Clustering/Cluster Analysis/Output report',
+            self.mFileRankingReport.objectName(): 'Feature Selection/Feature Ranking/Rank Analysis/Output report',
+            self.mFilePredictedClassification.objectName(): 'Classification/Predict/Predicted classification layer'
+        }
+        path = lookup.get(mObj.objectName(), '<unknown location>')
+        return path

@@ -41,7 +41,7 @@ class RandomSamplesFromClassificationDatasetAlgorithm(EnMAPProcessingAlgorithm):
         ]
 
     def group(self):
-        return Group.Test.value + Group.DatasetPreparation.value
+        return Group.Test.value + Group.DatasetCreation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension)
@@ -55,12 +55,12 @@ class RandomSamplesFromClassificationDatasetAlgorithm(EnMAPProcessingAlgorithm):
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        filenameSample = self.parameterAsFile(parameters, self.P_SAMPLE, context)
+        filenameSample = self.parameterAsFile(parameters, self.P_DATASET, context)
         N = self.parameterAsValues(parameters, self.P_N, context)
         replace = self.parameterAsBoolean(parameters, self.P_REPLACE, context)
         proportional = self.parameterAsBoolean(parameters, self.P_PROPORTIONAL, context)
         seed = self.parameterAsInt(parameters, self.P_SEED, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_SAMPLE, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_DATASET, context)
         filename2 = self.parameterAsFileOutput(parameters, self.P_OUTPUT_COMPLEMENT, context)
 
         with open(filename + '.log', 'w') as logfile:

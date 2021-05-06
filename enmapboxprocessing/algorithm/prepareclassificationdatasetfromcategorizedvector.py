@@ -49,7 +49,7 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
         ]
 
     def group(self):
-        return Group.Test.value + Group.DatasetPreparation.value
+        return Group.Test.value + Group.DatasetCreation.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterVectorLayer(self.P_CATEGORIZED_VECTOR, self._CATEGORIZED_VECTOR)
@@ -97,13 +97,13 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
             alg = RasterizeCategorizedVectorAlgorithm()
             alg.initAlgorithm()
             parameters = {
-                alg.P_VECTOR: classification,
+                alg.P_CATEGORIZED_VECTOR: classification,
                 alg.P_GRID: raster,
                 alg.P_MAJORITY_VOTING: False,
-                alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.tif')
+                alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'classification.tif')
             }
             result = self.runAlg(alg, parameters, None, feedback2, context, True)
-            classification = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+            classification = QgsRasterLayer(result[alg.P_OUTPUT_CATEGORIZED_RASTER])
             categories = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
             feedback.pushInfo('Sample data')
             X, y = PrepareClassificationDatasetFromCategorizedRaster.sampleData(

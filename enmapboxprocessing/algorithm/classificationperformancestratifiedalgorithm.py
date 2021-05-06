@@ -8,6 +8,8 @@ import numpy as np
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer, QgsUnitTypes)
 
 from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
+from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
+from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.reportwriter import HtmlReportWriter, CsvReportWriter, MultiReportWriter
@@ -67,38 +69,11 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
             return False, f'Predicted category "{nameP}" not found in observed categories.'
         return False, 'Empty category list.'
 
-    def checkPixelGrids(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
-        classification = self.parameterAsRasterLayer(parameters, self.P_CLASSIFICATION, context)
-        reference = self.parameterAsLayer(parameters, self.P_REFERENCE, context)
-        stratification = self.parameterAsRasterLayer(parameters, self.P_STRATIFICATION, context)
-        if isinstance(reference, QgsRasterLayer):
-            assert 0  # todo don't check, but always warp to avoid problems!!!
-            if not all(
-                    [
-                        reference.extent() == classification.extent(),
-                        reference.width() == classification.width(),
-                        reference.height() == classification.height(),
-                    ]
-            ):
-                return False, 'Pixel grids are not matching.'
-        if stratification is not None:
-            assert 0  # todo don't check, but always warp to avoid problems!!!
-            if not all(
-                    [
-                        stratification.extent() == classification.extent(),
-                        stratification.width() == classification.width(),
-                        stratification.height() == classification.height(),
-                    ]
-            ):
-                return False, 'Pixel grids are not matching.'
-        return True, ''
-
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         checks = [
             self.checkParameterRasterClassification(parameters, self.P_CLASSIFICATION, context),
             self.checkParameterMapClassification(parameters, self.P_REFERENCE, context),
             self.checkParameterRasterClassification(parameters, self.P_STRATIFICATION, context),
-            self.checkPixelGrids(parameters, context),
             self.checkCategories(parameters, context)
         ]
         for valid, message in checks:
@@ -126,17 +101,41 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
 
+            # resample reference
             if isinstance(reference, QgsVectorLayer):
                 feedback.pushInfo('Rasterize observed category layer')
                 alg = RasterizeCategorizedVectorAlgorithm()
                 alg.initAlgorithm()
                 parameters = {
-                    alg.P_VECTOR: reference,
+                    alg.P_CATEGORIZED_VECTOR: reference,
                     alg.P_GRID: classification,
-                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'observation.tif')
+                    alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'observation.tif')
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)
-                reference = QgsRasterLayer(parameters[alg.P_OUTPUT_RASTER])
+                reference = QgsRasterLayer(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER])
+            elif isinstance(reference, QgsRasterLayer):
+                alg = TranslateCategorizedRasterAlgorithm()
+                alg.initAlgorithm()
+                parameters = {
+                    alg.P_CATEGORIZED_RASTER: reference,
+                    alg.P_GRID: classification,
+                    alg.P_MAJORITY_VOTING: False,
+                    alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'observation.tif')
+                }
+                self.runAlg(alg, parameters, None, feedback2, context, True)
+                reference = QgsRasterLayer(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER])
+
+            # resample stratification
+            alg = TranslateCategorizedRasterAlgorithm()
+            alg.initAlgorithm()
+            parameters = {
+                alg.P_CATEGORIZED_RASTER: stratification,
+                alg.P_GRID: classification,
+                alg.P_MAJORITY_VOTING: False,
+                alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'stratification.tif')
+            }
+            self.runAlg(alg, parameters, None, feedback2, context, True)
+            stratification = QgsRasterLayer(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER])
 
             feedback.pushInfo('Read data')
             # Note that we can be sure that all pixel grids match!

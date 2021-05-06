@@ -41,7 +41,8 @@ class TestFitClassifierAlgorithm(TestCase):
     def test_fitted(self):
         alg = FitTestClassifierAlgorithm()
         parameters = {
-            alg.P_SAMPLE: classifierDumpPkl,
+            alg.P_DATEST: classifierDumpPkl,
+            alg.P_CLASSIFIER: alg.defaultCodeAsString(),
             alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
         }
         self.runalg(alg, parameters)
