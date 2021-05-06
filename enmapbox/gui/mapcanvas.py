@@ -23,7 +23,7 @@ import warnings
 import typing
 from PyQt5.QtCore import Qt, QObject, QCoreApplication, pyqtSignal, QEvent, QPointF, QMimeData, QTimer, QSize, \
     QSettings, QModelIndex, QAbstractListModel
-from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent
+from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent
 from PyQt5.QtWidgets import QAction, QToolButton, QFileDialog, QHBoxLayout, QFrame, QMenu, QLabel, QApplication, \
     QWidgetAction, QGridLayout, QSpacerItem, QSizePolicy, QDialog, QVBoxLayout, QComboBox
 
@@ -443,7 +443,6 @@ class CanvasLinkTargetWidget(QFrame):
     def eventFilter(self, obj, event):
 
         if event.type() == QEvent.Resize:
-            s = ""
             self.updatePosition()
         return False
 
@@ -847,7 +846,6 @@ class MapCanvas(QgsMapCanvas):
     def instances():
         return list(MapCanvas._instances)
 
-    # sigContextMenuEvent = pyqtSignal(QContextMe7nuEvent)
     sigSpatialExtentChanged = pyqtSignal(SpatialExtent)
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
 
@@ -872,7 +870,7 @@ class MapCanvas(QgsMapCanvas):
         self.setWindowTitle(self._id)
         self.setProperty(KEY_LAST_CLICKED, time.time())
         MapCanvas._cnt += 1
-
+        self.mFirstCrs: QgsCoordinateReferenceSystem = None
         self.acceptDrops()
         self.setExtent(QgsRectangle(-1, -1, 1, 1))
 
@@ -890,23 +888,11 @@ class MapCanvas(QgsMapCanvas):
         self.scaleChanged.connect(self.onScaleChanged)
         self.extentsChanged.connect(self.onExtentsChanged)
 
-        self.layersChanged.connect(self.onLayersChanged)
         self.destinationCrsChanged.connect(lambda: self.sigCrsChanged.emit(self.mapSettings().destinationCrs()))
         # activate default map tool
         self.setMapTool(QgsMapToolPan(self))
         self.mMapMouseEvent = None
         MapCanvas._instances.add(self)
-
-    def onLayersChanged(self):
-
-        crs = self.mapSettings().destinationCrs()
-        if not (isinstance(crs, QgsCoordinateReferenceSystem) and crs.isValid()) and len(self.layers()) > 0:
-            for l in self.layers():
-                if isinstance(l, QgsMapLayer) \
-                        and isinstance(l.crs(), QgsCoordinateReferenceSystem) \
-                        and l.crs().isValid():
-                    self.setDestinationCrs(l.crs())
-                    self.setExtent(self.fullExtent())
 
     def mousePressEvent(self, event: QMouseEvent):
 
@@ -953,9 +939,9 @@ class MapCanvas(QgsMapCanvas):
         self.mMapMouseEvent = QgsMapMouseEvent(self, event)
         return super(MapCanvas, self).mouseMoveEvent(event)
 
-    def resizeEvent(self, *args):
+    def resizeEvent(self, event: QResizeEvent):
         self.setScaleLocked(True)
-        super().resizeEvent(*args)
+        super().resizeEvent(event)
         self.setScaleLocked(False)
 
     def refresh(self, force=False):
@@ -1217,9 +1203,9 @@ class MapCanvas(QgsMapCanvas):
         pass
 
     def onExtentsChanged(self):
-
         CanvasLink.applyLinking(self)
         self.sigSpatialExtentChanged.emit(SpatialExtent.fromMapCanvas(self))
+
 
     def zoomToFeatureExtent(self, spatialExtent):
         assert isinstance(spatialExtent, SpatialExtent)
@@ -1302,7 +1288,6 @@ class MapCanvas(QgsMapCanvas):
             if len(mapLayers) > 0:
                 self.setLayers(mapLayers + self.layers())
                 event.accept()
-            # event.acceptProposedAction()
 
     def setExtent(self, rectangle):
         """
@@ -1362,7 +1347,7 @@ class MapCanvas(QgsMapCanvas):
             for canvas in cLink.canvases:
                 canvas.removeCanvasLink(cLink)
 
-    def setLayers(self, mapLayers):
+    def setLayers(self, mapLayers: typing.List[QgsMapLayer]):
         """
         Sets the list of mapLayers to show in the map canvas
         :param mapLayers: QgsMapLayer or [list-of-QgsMapLayers]
@@ -1379,6 +1364,14 @@ class MapCanvas(QgsMapCanvas):
 
         super(MapCanvas, self).setLayers(mapLayers)
 
+        if not isinstance(self.mFirstCrs, QgsCoordinateReferenceSystem):
+            for lyr in mapLayers:
+                if lyr.crs().isValid():
+                    self.setDestinationCrs(lyr.crs())
+                    self.zoomToFullExtent()
+                    self.mFirstCrs = lyr.crs()
+                    break
+
         self.setRenderFlag(True)
         self.refreshAllLayers()
 
@@ -1390,6 +1383,7 @@ class MapCanvas(QgsMapCanvas):
             self.sigLayersRemoved[list].emit(removedLayers)
         if len(addedLayers) > 0:
             self.sigLayersAdded[list].emit(addedLayers)
+
         return self
 
 

@@ -236,9 +236,6 @@ class DockArea(pgDockArea):
 
         s = ""
 
-    def closeEvent(self, closeEvent):
-        assert isinstance(closeEvent, QCloseEvent)
-        s = ""
 
     def makeContainer(self, typ):
         c = super(DockArea, self).makeContainer(typ)
