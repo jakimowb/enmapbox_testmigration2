@@ -5,7 +5,7 @@ from qgis._core import QgsRasterLayer, QgsVectorLayer, QgsPalettedRasterRenderer
 
 import numpy as np
 
-from enmapboxprocessing.algorithm.vectortoclassificationalgorithm import RasterizeCategorizedVectorAlgorithm
+from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.utils import Utils

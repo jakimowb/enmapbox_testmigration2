@@ -280,7 +280,7 @@ class EnMAPBoxClassificationWorkflowApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
         super().__init__(enmapBox, parent=parent)
 
-        self.name = 'ClassificationWorkflowApp'
+        self.name = 'ClassificationWorkflowClassicApp'
         self.version = 'dev'
         self.licence = 'GNU GPL-3'
 
@@ -289,7 +289,7 @@ class EnMAPBoxClassificationWorkflowApp(EnMAPBoxApplication):
 
     def menu(self, appMenu):
         assert isinstance(appMenu, QMenu)
-        a = appMenu.addAction('Classification Workflow')
+        a = appMenu.addAction('Classification Workflow Classic')
         assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
