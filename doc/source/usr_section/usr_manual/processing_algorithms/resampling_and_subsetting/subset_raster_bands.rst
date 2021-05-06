@@ -4,27 +4,25 @@
 Subset Raster Bands
 *******************
 
-Subset raster bands by the given list of band numbers.
+Subset raster bands by band numbers, band number ranges and wavelength ranges.
 
 **Parameters**
 
 
 :guilabel:`Raster` [raster]
-    Specify input raster.
+    
 
 
 :guilabel:`Band subset` [string]
-    List of bands to subset. E.g. 1, 2, -1 will select the first, the second and the last band.
+    List of bands, band ranges or waveband ranges to subset. E.g. 1, 2, 4 6, 900. 1200. will select the first band, the second band, bands between 4 to 6, and wavebands between 900 to 1200 nanometers.
 
 
-:guilabel:`Invert list` [boolean]
-    Wether to invert the list of bands. E.g. 1, 2, -1 will selecting all bands but the first, the second and the last.
-
-    Default: *0*
+:guilabel:`Exclude Bad Bands` [boolean]
+    Wether to exclude bad bands.
 
 **Outputs**
 
 
 :guilabel:`Output Raster` [rasterDestination]
-    Specify output path for raster.
+    Specify output path.
 

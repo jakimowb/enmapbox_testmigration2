@@ -18,8 +18,8 @@
 """
 
 
-from typing import Optional
-
+from typing import Optional, Dict, Union
+from processing.gui.AlgorithmDialog import AlgorithmDialog
 import enmapbox
 from qgis import utils as qgsUtils
 import qgis.utils
@@ -2165,16 +2165,27 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.addDockWidget(area, dockWidget, orientation=orientation)
 
-    def showProcessingAlgorithmDialog(self, algorithmName: typing.Union[str, QgsProcessingAlgorithm]) -> QWidget:
+    def showProcessingAlgorithmDialog(
+            self, algorithmName: Union[str, QgsProcessingAlgorithm], parameters: Dict = None, show=True, modal=False,
+            wrapper: AlgorithmDialog=None, autoRun=False, parent=None
+    ) -> AlgorithmDialog:
         """
-        :param algorithmName:
-        :type algorithmName:
-        :return:
-        :rtype: processing.gui.AlgorithmDialog.AlgorithmDialog
-        """
-        """Opens the dialog to start an QgsProcessingAlgorithm"""
+        Create an algorithm dialog.
 
-        from processing.gui.AlgorithmDialog import AlgorithmDialog
+        Optionally, provide a wrapper class to get full control over individual components like the feedback or results.
+        E.g. to get a handle on the results do something like that:
+
+        .. code-block:: python
+
+            class Wrapper(AlgorithmDialog):
+                def finish(self, successful, result, context, feedback, in_place=False):
+                    super().finish(successful, result, context, feedback, in_place=False)
+                    if successful:
+                        # do something useful
+
+        """
+        if parent is None:
+            parent = self.ui
 
         algorithm = None
         all_names = []
@@ -2196,10 +2207,27 @@ class EnMAPBox(QgisInterface, QObject):
         if not isinstance(algorithm, QgsProcessingAlgorithm):
             raise Exception('Algorithm {} not found in QGIS Processing Registry'.format(algorithmName))
 
-        dlg = alg.createCustomParametersWidget(self.ui)
+        dlg = alg.createCustomParametersWidget(parent)
         if not dlg:
-            dlg = AlgorithmDialog(alg.create(), parent=self.ui)
-        dlg.show()
+            if wrapper is None:
+                dlg = AlgorithmDialog(alg.create(), parent=parent)
+            else:
+                dlg = wrapper(alg.create(), parent=parent)
+        else:
+            assert wrapper is None  # todo: dialog wrapper for custom parameter widget
+        dlg.setModal(modal)
+
+        if parameters is not None:
+            dlg.setParameters(parameters)
+
+        # auto-running the algorithm is useful, if all required parameters are filled in
+        if autoRun:
+            dlg.runButton().animateClick(500)
+
+        if show and not modal:
+            dlg.show()
+        if show and modal:
+            dlg.exec_()
         return dlg
 
     def addLayerMenu(self):

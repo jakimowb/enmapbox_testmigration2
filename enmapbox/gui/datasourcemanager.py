@@ -967,6 +967,7 @@ class HubFlowPyObjectTreeNode(PyObjectTreeNode):
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
+        self.setValue(str(self.mPyObject))
 
     def populateContextMenu(self, menu: QMenu):
         def copyToClipboard():
