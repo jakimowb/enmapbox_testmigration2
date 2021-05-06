@@ -1,18 +1,5 @@
-from typing import Dict, Any, List, Tuple
-
-import processing
-from osgeo import gdal
-from sklearn.base import ClassifierMixin
-
 from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
-from enmapboxprocessing.algorithm.rasterizeclassificationalgorithm import RasterizeClassificationAlgorithm
-from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRectangle,
-                        QgsCoordinateReferenceSystem, QgsRasterLayer, QgsPalettedRasterRenderer, QgsMapLayer,
-                        QgsCategorizedSymbolRenderer)
-
-from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 
 
 @typechecked
@@ -34,8 +21,7 @@ class FitRandomForestClassifierAlgorithm(FitClassifierAlgorithmBase):
                'http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html' \
                '">RandomForestClassifier</a> for information on different parameters.'
 
-    def code(self) -> ClassifierMixin:
+    def code(cls):
         from sklearn.ensemble import RandomForestClassifier
-        classifier = RandomForestClassifier(n_estimators=100, bootstrap=True, oob_score=True, max_samples=None)
+        classifier = RandomForestClassifier(n_estimators=100, oob_score=True)
         return classifier
-

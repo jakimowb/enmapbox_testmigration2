@@ -9,12 +9,20 @@ Processing Algorithms
     auxilliary/index.rst
     classification/index.rst
     clustering/index.rst
-    convolution,_morphology_and_filtering/index.rst
+    convolution__morphology_and_filtering/index.rst
     create_raster/index.rst
     create_sample/index.rst
+    import_data/index.rst
     masking/index.rst
     post-processing/index.rst
     random/index.rst
     regression/index.rst
     resampling_and_subsetting/index.rst
+    test_classification/index.rst
+    test_dataset_preparation/index.rst
+    test_feature_selection/index.rst
+    test_post-processing/index.rst
+    test_raster_creation/index.rst
+    test_vector_creation/index.rst
+    testdata/index.rst
     transformation/index.rst

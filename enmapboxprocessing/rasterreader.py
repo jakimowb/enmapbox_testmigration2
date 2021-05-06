@@ -70,6 +70,9 @@ class RasterReader(object):
             bandNo = 1
         return self.gdalDataset.GetRasterBand(bandNo).GetNoDataValue()
 
+    def bandName(self, bandNo: int):
+        return self.gdalBand(bandNo).GetDescription()
+
     def setUserNoDataValue(self, bandNo: int, noData: Iterable[QgsRasterRange]):
         return self.provider.setUserNoDataValue(bandNo, noData)
 
@@ -174,18 +177,23 @@ class RasterReader(object):
             array = self.arrayFromBoundingBoxAndSize(boundingBox, width, height, bandList, feedback)
         return array
 
-    def maskArray(self, array: Array3d, bandList: List[int] = None, maskNotFinite=True) -> Array3d:
+    def maskArray(
+            self, array: Array3d, bandList: List[int] = None, maskNotFinite=True, defaultNoDataValue: float = None
+    ) -> Array3d:
         if bandList is None:
             bandList = range(1, self.provider.bandCount() + 1)
         assert len(bandList) == len(array)
         maskArray = list()
         for i, a in enumerate(array):
             bandNo = i + 1
-            m = np.full_like(a, True, dtype=np.bool)
+            m = np.full_like(a, True, dtype=bool)
             if self.provider.sourceHasNoDataValue(bandNo) and self.provider.useSourceNoDataValue(bandNo):
                 noDataValue = self.provider.sourceNoDataValue(bandNo)
                 if not isnan(noDataValue):
                     m[a == noDataValue] = False
+            else:
+                if defaultNoDataValue is not None:
+                    m[a == defaultNoDataValue] = False
             rasterRange: QgsRasterRange
             for rasterRange in self.provider.userNoDataValues(bandNo):
                 if rasterRange.bounds() == QgsRasterRange.IncludeMinAndMax:

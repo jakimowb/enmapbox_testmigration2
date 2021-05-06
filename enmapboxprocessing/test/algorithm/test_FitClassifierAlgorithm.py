@@ -1,14 +1,19 @@
-import numpy as np
-from qgis._core import QgsRasterLayer, QgsVectorLayer
 from sklearn.base import ClassifierMixin
 
+from sklearn.base import ClassifierMixin
+from sklearn.exceptions import NotFittedError
+from sklearn.utils.validation import check_is_fitted
+
 from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
-from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
-from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
-from enmapboxprocessing.rasterreader import RasterReader
+from enmapboxprocessing.algorithm.fitgaussianprocessclassifier import FitGaussianProcessClassifierAlgorithm
+from enmapboxprocessing.algorithm.fitgenericclassifier import FitGenericClassifier
+from enmapboxprocessing.algorithm.fitlinearsvcalgorithm import FitLinearSvcAlgorithm
+from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
+from enmapboxprocessing.algorithm.fitsvcalgorithm import FitSvcAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
+from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapboxtestdata import enmap, landcover_polygons
+from enmapboxunittestdata import (classifierDumpPkl)
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -31,46 +36,40 @@ class FitTestClassifierAlgorithm(FitClassifierAlgorithmBase):
         return classifier
 
 
-class TestClassifierAlgorithm(TestCase):
+class TestFitClassifierAlgorithm(TestCase):
 
-    def test_default(self):
-        global c
+    def test_fitted(self):
         alg = FitTestClassifierAlgorithm()
-        alg.initAlgorithm()
         parameters = {
-            alg.P_RASTER: QgsRasterLayer(enmap),
-            alg.P_CLASSIFICATION: QgsVectorLayer(landcover_polygons),
-            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl'
+            alg.P_DATEST: classifierDumpPkl,
+            alg.P_CLASSIFIER: alg.defaultCodeAsString(),
+            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
         }
-        result = self.runalg(alg, parameters)
-        classifier, categories = Utils.pickleLoad(result[alg.P_OUTPUT_CLASSIFIER])
-        assert isinstance(classifier, ClassifierMixin)
-        self.assertListEqual([1, 2, 3, 4, 5, 6], [c[0] for c in categories])
-        self.assertListEqual(
-            ['roof', 'pavement', 'low vegetation', 'tree', 'soil', 'water'],
-            [c[1] for c in categories]
-        )
-        self.assertListEqual(
-            ['#e60000', '#9c9c9c', '#98e600', '#267300', '#a87000', '#0064ff'],
-            [c[2].name() for c in categories])
+        self.runalg(alg, parameters)
 
-        alg2 = PredictClassificationAlgorithm()
-        alg2.initAlgorithm()
-        parameters2 = {
-            alg2.P_RASTER: QgsRasterLayer(enmap),
-            alg2.P_CLASSIFIER: result[alg.P_OUTPUT_CLASSIFIER],
-            alg2.P_OUTPUT_RASTER: c + '/vsimem/classification.tif'
+    def test_unfitted(self):
+        alg = FitTestClassifierAlgorithm()
+        parameters = {
+            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
         }
-        result2 = self.runalg(alg2, parameters2)
-        self.assertEqual(193260, RasterReader(result2[alg2.P_OUTPUT_RASTER]).array()[0].sum())
+        self.runalg(alg, parameters)
 
-        alg3 = PredictClassPropabilityAlgorithm()
-        alg3.initAlgorithm()
-        parameters3 = {
-            alg3.P_RASTER: QgsRasterLayer(enmap),
-            alg3.P_CLASSIFIER: result[alg.P_OUTPUT_CLASSIFIER],
-            alg3.P_OUTPUT_RASTER: c + '/vsimem/probability.tif'
+    def test_code(self):
+        alg = FitGenericClassifier()
+        parameters = {
+            alg.P_CODE: 'from sklearn.linear_model import LogisticRegression\n'
+                        'classifier = LogisticRegression(max_iter=1000)',
+            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
         }
-        result3 = self.runalg(alg3, parameters3)
-        return
-        self.assertEqual(193721, np.sum(RasterReader(result3[alg2.P_OUTPUT_RASTER]).array()))
+        self.runalg(alg, parameters)
+
+    def test_classifiers(self):
+        algs = [
+            FitRandomForestClassifierAlgorithm(), FitGaussianProcessClassifierAlgorithm(), FitLinearSvcAlgorithm(),
+            FitSvcAlgorithm(),
+        ]
+        for alg in algs:
+            print(alg.displayName())
+            alg.initAlgorithm()
+            alg.shortHelpString()
+
