@@ -30,6 +30,7 @@ import numpy as np
 from PyQt5.QtCore import Qt, QMimeData, QModelIndex, QSize, QUrl, QObject
 from PyQt5.QtGui import QIcon, QContextMenuEvent, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QDockWidget, QStyle, QAction, QTreeView, QFileDialog, QDialog
+
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import QApplication, QMenu
@@ -38,7 +39,7 @@ from qgis.core import \
     QgsRasterRenderer, QgsProject, QgsUnitTypes, QgsWkbTypes, \
     QgsLayerTreeGroup, QgsLayerTreeLayer, QgsRasterDataProvider, Qgis, QgsField, QgsFieldModel
 from qgis.gui import \
-    QgisInterface, QgsMapCanvas
+    QgisInterface, QgsMapCanvas, QgsDockWidget
 import qgis.utils
 from enmapbox import DIR_TESTDATA, messageLog
 from enmapbox.gui import \
@@ -967,6 +968,7 @@ class HubFlowPyObjectTreeNode(PyObjectTreeNode):
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
+        self.setValue(str(self.mPyObject))
 
     def populateContextMenu(self, menu: QMenu):
         def copyToClipboard():
@@ -1266,7 +1268,7 @@ class DataSourceTreeView(TreeView):
         EnMAPBox.instance().dockManager().createDock(AttributeTableDock, layer=vectorLayer)
 
 
-class DataSourcePanelUI(QDockWidget):
+class DataSourcePanelUI(QgsDockWidget):
     def __init__(self, parent=None):
         super(DataSourcePanelUI, self).__init__(parent)
         loadUi(enmapboxUiPath('datasourcepanel.ui'), self)

@@ -30,6 +30,8 @@ import sys
 import typing
 import site
 import io
+from os.path import join
+
 site.addsitedir(pathlib.Path(__file__).parents[1])
 import enmapbox
 from enmapbox import DIR_REPO, __version__
@@ -123,6 +125,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdc', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'hubdsm', pattern=pattern)))
+    files.extend(list(scantree(DIR_REPO / 'enmapboxprocessing', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
 
     # add special files required by EnMAP-Box Applications
@@ -138,6 +141,9 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     files.append(DIR_REPO / 'LICENSE.txt')
     files.append(DIR_REPO / 'requirements.txt')
     files.append(DIR_REPO / 'requirements_developer.txt')
+
+    # add glossary RST
+    files.append(DIR_REPO / 'doc/source/general/glossary.rst')
 
     for fileSrc in files:
         assert fileSrc.is_file()

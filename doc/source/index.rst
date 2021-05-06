@@ -82,6 +82,7 @@ Two Presentations by EnMAP-Box developers Andreas Rabe and Benjamin Jakimow at t
     general/faq_trouble.rst
     general/contribute.rst
     general/roadmap.rst
+    general/glossary.rst
 
 ..  toctree::
     :maxdepth: 2
