@@ -1543,13 +1543,6 @@ class MapCanvasBridge(QgsLayerTreeMapCanvasBridge):
             if isinstance(lNode, QgsLayerTreeLayer):
                 lNode.setItemVisibilityChecked(Qt.Checked)
 
-        if False:
-            # layers to hide?
-            for lid in treeNodeLayerIds:
-                if isinstance(lid, QgsMapLayer) and lid not in canvasLayers:
-                    lnode = self.rootGroup().findLayer(lid.id())
-                    if isinstance(lnode, QgsLayerTreeLayer):
-                        lnode.setItemVisibilityChecked(Qt.Unchecked)
 
 def createDockTreeNode(dock: Dock) -> DockTreeNode:
     """
