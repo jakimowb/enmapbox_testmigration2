@@ -403,11 +403,11 @@ class DockLabel(pgDockLabel):
         assert isinstance(event, QContextMenuEvent)
         self.sigContextMenuRequest.emit(event)
 
-    def mouseMoveEvent(self, ev):
-        if not self.startedDrag and hasattr(self, 'pressPos'):
-            super(DockLabel, self).mouseMoveEvent(ev)
-        else:
-            ev.accept()
+    # def mouseMoveEvent(self, ev):
+    #    if not self.startedDrag and hasattr(self, 'pressPos'):
+    #        super(DockLabel, self).mouseMoveEvent(ev)
+    #    else:
+    #        ev.accept()
 
     def resizeEvent(self, ev: QResizeEvent):
         if self.orientation == 'vertical':
