@@ -4,21 +4,18 @@ from os import makedirs
 from os.path import join, dirname, basename, exists
 from random import randint
 from typing import Tuple, Optional, Callable, List, Any, Dict
-from warnings import warn
 
-from PyQt5.QtCore import QTimer
+import numpy as np
 from PyQt5.QtGui import QColor
 from osgeo import gdal
 from qgis._core import (QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRasterRenderer,
                         QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsRectangle, QgsRasterLayer,
                         QgsRasterDataProvider, QgsPointXY, QgsPoint, Qgis, QgsWkbTypes, QgsSymbol, QgsVectorLayer,
                         QgsFeature)
-import numpy as np
-from sklearn.base import ClassifierMixin
 
 from enmapboxprocessing.enmapalgorithm import AlgorithmCanceledException
 from enmapboxprocessing.typing import (NumpyDataType, MetadataValue, GdalDataType, QgisDataType, MetadataDomain,
-                                       GdalResamplingAlgorithm, Categories, SampleX, SampleY, Category)
+                                       GdalResamplingAlgorithm, Categories, Category)
 from typeguard import typechecked
 
 
@@ -227,7 +224,9 @@ class Utils(object):
     @classmethod
     def categoriesFromCategorizedSymbolRenderer(cls, renderer: QgsCategorizedSymbolRenderer) -> Categories:
         c: QgsRendererCategory
-        categories = [Category(c.value(), c.label(), c.symbol().color().name()) for c in renderer.categories()]
+        categories = [Category(c.value(), c.label(), c.symbol().color().name())
+                      for c in renderer.categories()
+                      if c.value() is not None]
         return categories
 
     @classmethod
@@ -237,7 +236,7 @@ class Utils(object):
         array = reader.array(bandList=[bandNo])
         mask = reader.maskArray(array, bandList=[bandNo], defaultNoDataValue=0)
         values = np.unique(array[0][mask[0]])
-        categories = [Category(int(v), str(v), QColor(randint(0, 2**24)).name()) for v in values]
+        categories = [Category(int(v), str(v), QColor(randint(0, 2 ** 24)).name()) for v in values]
         return categories
 
     @classmethod
@@ -260,7 +259,7 @@ class Utils(object):
         values = np.unique(values)
         categories = list()
         for value in values:
-            color = colors.get(value, QColor(randint(0, 2**24 - 1)))
+            color = colors.get(value, QColor(randint(0, 2 ** 24 - 1)))
             color = cls.parseColor(color).name()
             name = names.get(value, str(value))
             categories.append(Category(value, name, color))
@@ -302,7 +301,8 @@ class Utils(object):
                 if str(category.value).isdecimal():
                     return Category(int(category.value), category.name, category.color)
                 else:
-                    return Category(index+1, category.name, category.color)
+                    return Category(index + 1, category.name, category.color)
+
             categories = [castValueToInt(c, i) for i, c in enumerate(categories)]
 
         namesOrig = [c.name for c in categoriesOrig]
@@ -393,6 +393,7 @@ class Utils(object):
                 return obj.__dict__
             else:
                 return str(obj)
+
         return json.dumps(obj, default=default, indent=2)
 
     @classmethod
