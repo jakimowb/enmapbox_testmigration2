@@ -37,10 +37,12 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         return [
             (self._PROBABILITY, 'A class fraction layer or class probability layer used as weights for calculating '
                                 'final pixel colors.'),
-            (self._COLORS, 'Comma separated list of hex-colors representing (pure) category colors, '
-                           'one color for each band in the given class probability/fraction layer.'),
+            (self._COLORS, "Comma separated list of hex-color strings (e.g. '#FF0000' for red) representing (pure) category colors, "
+                           'one color for each band in the given class probability/fraction layer. '
+                           'If not specified, colors have to be specified by a categorized layer (Colors from categorized layer).'),
             (self._COLORS_LAYER, 'A categorized layer with (pure) category colors, '
-                                 'one category for each band in the given class probability/fraction layer.'),
+                                 'one category for each band in the given class probability/fraction layer. '
+                                 'If not specified, colors have to be specified by list (Colors).'),
             (self._OUTPUT_RGB, self.RasterFileDestination)
         ]
 
