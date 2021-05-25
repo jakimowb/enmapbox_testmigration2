@@ -4,7 +4,7 @@ from typing import Dict, Any, List, Tuple
 import numpy as np
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer, QgsProcessingParameterField,
-                        QgsCategorizedSymbolRenderer)
+                        QgsCategorizedSymbolRenderer, QgsProcessingException)
 
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import \
     PrepareClassificationDatasetFromCategorizedRaster
@@ -80,10 +80,9 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
                     classField = renderer.classAttribute()
                     feedback.pushInfo(f'Use categories from style: {categories}')
                 else:
-                    feedback.reportError(
-                        'Select either a categorited vector layer, or a field with class values.',
-                        fatalError=True
-                    )
+                    message = 'Select either a categorited vector layer, or a field with class values.'
+                    feedback.reportError(message, fatalError=True)
+                    raise QgsProcessingException(message)
             else:
                 categories = Utils.categoriesFromVectorField(classification, classField)
                 feedback.pushInfo(f'Derive categories from selected field: {categories}')
