@@ -146,9 +146,9 @@ class RasterizeCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
 
         # make copy of layer (class attribute only)
         categories = Utils.categoriesFromCategorizedSymbolRenderer(vector.renderer())
-        values = [c[0] for c in categories if c[1] != '']
-        names = [c[1] for c in categories if c[1] != '']
-        colors = [c[2] for c in categories if c[1] != '']
+        values = [c.value for c in categories if c.name != '']
+        names = [c.name for c in categories if c.name != '']
+        colors = [c.color for c in categories if c.name != '']
         classFieldName = vector.renderer().classAttribute()
         fieldIndex = vector.fields().indexOf(classFieldName)
         options = QgsVectorFileWriter.SaveVectorOptions()

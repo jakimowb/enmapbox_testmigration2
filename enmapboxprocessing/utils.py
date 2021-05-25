@@ -203,7 +203,7 @@ class Utils(object):
     def palettedRasterRendererFromCategories(
             cls, provider: QgsRasterDataProvider, bandNumber: int, categories: Categories
     ) -> QgsPalettedRasterRenderer:
-        classes = [QgsPalettedRasterRenderer.Class(value, QColor(color), label) for value, label, color in categories]
+        classes = [QgsPalettedRasterRenderer.Class(c.value, QColor(c.color), c.name) for c in categories]
         renderer = QgsPalettedRasterRenderer(provider, bandNumber, classes)
         return renderer
 
@@ -212,10 +212,10 @@ class Utils(object):
             cls, fieldName: str, categories: Categories
     ) -> QgsCategorizedSymbolRenderer:
         rendererCategories = list()
-        for value, label, color in categories:
+        for c in categories:
             symbol = QgsSymbol.defaultSymbol(QgsWkbTypes.geometryType(QgsWkbTypes.Point))
-            symbol.setColor(QColor(color))
-            category = QgsRendererCategory(value, symbol, label)
+            symbol.setColor(QColor(c.color))
+            category = QgsRendererCategory(c.value, symbol, c.name)
             rendererCategories.append(category)
 
         renderer = QgsCategorizedSymbolRenderer(fieldName, rendererCategories)

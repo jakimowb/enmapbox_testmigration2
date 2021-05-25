@@ -66,10 +66,10 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
                 alg.P_UNIT: alg.PixelUnits,
                 alg.P_WIDTH: grid.width() * 10,
                 alg.P_HEIGHT: grid.height() * 10,
-                alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'grid.x10.vrt')
+                alg.P_OUTPUT_GRID: Utils.tmpFilename(filename, 'grid.x10.vrt')
             }
             self.runAlg(alg, parameters, None, feedback2, context, True)
-            gridOversampled = QgsRasterLayer(parameters[alg.P_OUTPUT_RASTER])
+            gridOversampled = QgsRasterLayer(parameters[alg.P_OUTPUT_GRID])
 
             # create x10 classification
             if isinstance(map, QgsRasterLayer):
@@ -79,21 +79,21 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_GRID: gridOversampled,
                     alg.P_MAJORITY_VOTING: False,
                     alg.P_CREATION_PROFILE: alg.VrtProfile,
-                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.x10.vrt')
+                    alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'classification.x10.vrt')
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)
-                classification = QgsRasterLayer(parameters[alg.P_OUTPUT_RASTER])
+                classification = QgsRasterLayer(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER])
             elif isinstance(map, QgsVectorLayer):
                 alg = RasterizeCategorizedVectorAlgorithm()
                 alg.initAlgorithm()
                 parameters = {
-                    alg.P_VECTOR: map,
+                    alg.P_CATEGORIZED_VECTOR: map,
                     alg.P_GRID: gridOversampled,
                     alg.P_MAJORITY_VOTING: False,
-                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.x10.tif')
+                    alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'classification.x10.tif')
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)
-                classification = QgsRasterLayer(parameters[alg.P_OUTPUT_RASTER])
+                classification = QgsRasterLayer(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER])
             else:
                 assert 0
 

@@ -142,8 +142,8 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
         for block in rasterReader.walkGrid(blockSizeX, blockSizeY, feedback):
             blockClassification = classificationReader.arrayFromBlock(block, [classBandNo])[0]
             labeled = np.full_like(blockClassification, False, bool)
-            for value, label, color in categories:
-                np.logical_or(labeled, blockClassification == value, out=labeled)
+            for c in categories:
+                np.logical_or(labeled, blockClassification == c.value, out=labeled)
             blockY = blockClassification[labeled]
             blockX = list()
             for bandNo in range(1, rasterReader.bandCount() + 1):
