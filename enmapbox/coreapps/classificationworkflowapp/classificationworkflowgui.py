@@ -221,6 +221,7 @@ class ClassificationWorkflowGui(QMainWindow):
 
     # settings
     mWorkingDirectory: QgsFileWidget
+    mOpenWorkingDirectory: QToolButton
     mDialogAutoClose: QCheckBox
     mDialogAutoRun: QCheckBox
     mDialogAutoOpen: QCheckBox
@@ -338,6 +339,7 @@ class ClassificationWorkflowGui(QMainWindow):
 
         # update default roots when working directory changed
         self.mWorkingDirectory.fileChanged.connect(self.onWorkingDirectoryChanged)
+        self.mOpenWorkingDirectory.clicked.connect(lambda: webbrowser.open_new(self.mWorkingDirectory.filePath()))
 
     def initFiles(self):
         self.mWebView.setUrl(self.url)

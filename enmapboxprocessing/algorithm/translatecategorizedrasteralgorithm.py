@@ -117,7 +117,7 @@ class TranslateCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_RESAMPLE_ALG: alg.ModeResampleAlg,
                     alg.P_COPY_STYLE: True,
                     alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
-                    alg.P_OUTPUT_CATEGORIZED_RASTER: filename
+                    alg.P_OUTPUT_RASTER: filename
                 }
                 Processing.runAlgorithm(alg, parameters, None, feedback2, context)
 

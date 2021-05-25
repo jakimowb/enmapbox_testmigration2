@@ -10,14 +10,14 @@ with open(filename) as file:
     for line in file.readlines():
         if line[:4] == '    ' and line[4] not in ' .:':
             line = line.strip()
-            glossary[line] = f'{baselink}#term-{line.replace(" ", "-")}'
+            glossary[line] = f'{baselink}#term-{line.replace(" ", "-").lower()}'  # term-* anchor needs to be lower case
+
 
 def injectGlossaryLinks(text: str):
     terms = list()
-    letter = 'abcdefghijklmnopqrstuvwxyz'
-    letterWithoutS = 'abcdefghijklmnopqrtuvwxyz'
-    for k in reversed(
-            sorted(glossary.keys(), key=len)):  # longest terms first to avoid short terms corrupting long terms
+    letter = '_abcdefghijklmnopqrstuvwxyz'
+    letterWithoutS = '_abcdefghijklmnopqrtuvwxyz'
+    for k in reversed(sorted(glossary.keys(), key=len)):  # long terms first to avoid term corruption
         url = glossary[k]
         ilast = 0
         while True:
@@ -34,6 +34,39 @@ def injectGlossaryLinks(text: str):
             if text[i0 + len(k)].lower() in letterWithoutS:
                 continue
 
+            # handle some special cases
+            if k.lower() == 'output':
+                if text[i0:].lower().startswith('output data type'):
+                    continue
+                if text[i0:].lower().startswith('output format'):
+                    continue
+                if text[i0:].lower().startswith('output raster'):
+                    continue
+                if text[i0:].lower().startswith('output report'):
+                    continue
+                if text[i0:].lower().startswith('output destination'):
+                    continue
+                if text[i0:].lower().startswith('output category'):
+                    continue
+                if text[i0:].lower().startswith('output vector'):
+                    continue
+                if text[i0:].lower().startswith('output _'):
+                    continue
+
+            if k.lower() == 'target':
+                if text[i0:].lower().startswith('target coordinate reference system'):
+                    continue
+                if text[i0:].lower().startswith('target extent'):
+                    continue
+                if text[i0:].lower().startswith('target raster'):
+                    continue
+                if text[i0:].lower().startswith('target width'):
+                    continue
+                if text[i0:].lower().startswith('target height'):
+                    continue
+                if text[i0:].lower().startswith('target grid'):
+                    continue
+
             k2 = f'_{len(terms)}_'
             terms.append((k, k2, url))
             text = text[:i0] + k2 + text[i0 + len(k):]  # mark term
@@ -41,7 +74,7 @@ def injectGlossaryLinks(text: str):
             break  # only link first appearence
 
     for k, k2, url in terms:
-        #url = f'https://scikit-learn.org/stable/glossary.html#term-dimensionality'
+        # url = f'https://scikit-learn.org/stable/glossary.html#term-dimensionality'
         link = f'<a href="{url}">{k}</a>'
         text = text.replace(k2, link)  # inject link
 
@@ -56,8 +89,7 @@ def test():
            'No data valueE \n' \
            '"No data values"'
 
-    #text = '"No data value"'
+    # text = '"No data value"'
     print(injectGlossaryLinks(text))
 
-#test()
-
+# test()
