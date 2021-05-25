@@ -1,13 +1,16 @@
-from qgis._core import QgsVectorLayer
-
 from qgis.testing import start_app
 
 qgis_app = start_app()
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout
 from qgis.gui import QgsMapCanvas, QgsLayerTreeMapCanvasBridge, QgsLayerTreeView
-from qgis.core import QgsRasterLayer, QgsProject, QgsCoordinateReferenceSystem, QgsLayerTree, QgsLayerTreeModel, \
+from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsProject, \
+    QgsCoordinateReferenceSystem, QgsLayerTree, QgsLayerTreeModel, \
     QgsApplication
 import pathlib
+
+# see also:
+# https://github.com/qgis/QGIS/issues/27139
+# https://github.com/qgis/QGIS/issues/27516
 
 # initialize  the main QGIS QgsMapCanvas with a layer and the QgsProject.instance() CRS
 path_world = pathlib.Path(QgsApplication.pkgDataPath()) / 'resources' / 'data' / 'world_map.gpkg'

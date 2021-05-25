@@ -297,6 +297,8 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.mSpeclibWidget = dock.mSpeclibWidget
         assert isinstance(self.mSpeclibWidget, SpectralLibraryWidget)
 
+        self.speclibNode = QgsLayerTreeLayer(self.speclib())
+        self.addChildNode(self.speclibNode)
         speclib = self.speclib()
         if isinstance(speclib, SpectralLibrary):
             speclib.committedFeaturesAdded.connect(self.updateNodes)
@@ -936,9 +938,9 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                 while mapDockNode is not None and not isinstance(mapDockNode, MapDockTreeNode):
                     mapDockNode = mapDockNode.parent()
 
-                assert isinstance(mapDockNode, MapDockTreeNode)
-                mapDockNode.updateCanvas()
-                result = True
+                if isinstance(mapDockNode, MapDockTreeNode):
+                    mapDockNode.updateCanvas()
+                    result = True
             if role == Qt.EditRole:
                 if isinstance(node, QgsLayerTreeLayer):
                     node.setName(value)
@@ -1095,57 +1097,57 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         if type(node) is QgsLayerTreeLayer:
             # get parent dock node -> related map canvas
             mapNode = findParent(node, MapDockTreeNode)
-            assert isinstance(mapNode, MapDockTreeNode)
-            assert isinstance(mapNode.dock, MapDock)
-            canvas = mapNode.dock.mCanvas
+            if isinstance(mapNode, MapDockTreeNode):
+                assert isinstance(mapNode.dock, MapDock)
+                canvas = mapNode.dock.mCanvas
 
-            lyr = node.layer()
+                lyr = node.layer()
 
-            actionPasteStyle = menu.addAction('Paste Style')
-            actionPasteStyle.triggered.connect(lambda: pasteStyleFromClipboard(lyr))
-            actionPasteStyle.setEnabled(MDF_QGIS_LAYER_STYLE in QApplication.clipboard().mimeData().formats())
+                actionPasteStyle = menu.addAction('Paste Style')
+                actionPasteStyle.triggered.connect(lambda: pasteStyleFromClipboard(lyr))
+                actionPasteStyle.setEnabled(MDF_QGIS_LAYER_STYLE in QApplication.clipboard().mimeData().formats())
 
-            actionCopyStyle = menu.addAction('Copy Style')
-            actionCopyStyle.triggered.connect(lambda: pasteStyleToClipboard(lyr))
+                actionCopyStyle = menu.addAction('Copy Style')
+                actionCopyStyle.triggered.connect(lambda: pasteStyleToClipboard(lyr))
 
-            menu.addSeparator()
-            b = isinstance(canvas, QgsMapCanvas)
-            action = menu.addAction('Zoom to layer')
-            action.triggered.connect(lambda *args, l=lyr, c=canvas: self.onZoomToLayer(l, c))
-            action.setEnabled(b)
+                menu.addSeparator()
+                b = isinstance(canvas, QgsMapCanvas)
+                action = menu.addAction('Zoom to layer')
+                action.triggered.connect(lambda *args, l=lyr, c=canvas: self.onZoomToLayer(l, c))
+                action.setEnabled(b)
 
-            action = menu.addAction('Set layer CRS to map canvas')
-            action.triggered.connect(lambda: canvas.setDestinationCrs(lyr.crs()))
-            action.setEnabled(b)
+                action = menu.addAction('Set layer CRS to map canvas')
+                action.triggered.connect(lambda: canvas.setDestinationCrs(lyr.crs()))
+                action.setEnabled(b)
 
-            action = menu.addAction('Copy layer path')
-            action.triggered.connect(lambda: QApplication.clipboard().setText(lyr.source()))
+                action = menu.addAction('Copy layer path')
+                action.triggered.connect(lambda: QApplication.clipboard().setText(lyr.source()))
 
-            menu.addSeparator()
+                menu.addSeparator()
 
-            action = menu.addAction('Remove layer')
-            action.setToolTip('Remove layer from map canvas')
-            action.triggered.connect(
-                lambda *arg, nodes=selectedLayerNodes: self.mDockTreeView.layerTreeModel().removeNodes(nodes))
+                action = menu.addAction('Remove layer')
+                action.setToolTip('Remove layer from map canvas')
+                action.triggered.connect(
+                    lambda *arg, nodes=selectedLayerNodes: self.mDockTreeView.layerTreeModel().removeNodes(nodes))
 
-            if isinstance(lyr, QgsVectorLayer):
-                action = menu.addAction('Open Attribute Table')
-                action.setToolTip('Opens the layer attribute table')
-                action.triggered.connect(lambda *args, l=lyr: self.openAttributeTable(l))
+                if isinstance(lyr, QgsVectorLayer):
+                    action = menu.addAction('Open Attribute Table')
+                    action.setToolTip('Opens the layer attribute table')
+                    action.triggered.connect(lambda *args, l=lyr: self.openAttributeTable(l))
 
-            # add some processing algorithm shortcuts
-            menu.addSeparator()
-            if isinstance(lyr, QgsRasterLayer):
-                action = menu.addAction('Image Statistics')
-                action.triggered.connect(lambda: self.runImageStatistics(lyr))
-                if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
-                    action = menu.addAction('Classification Statistics')
-                    action.triggered.connect(lambda: self.runClassificationStatistics(lyr))
+                # add some processing algorithm shortcuts
+                menu.addSeparator()
+                if isinstance(lyr, QgsRasterLayer):
+                    action = menu.addAction('Image Statistics')
+                    action.triggered.connect(lambda: self.runImageStatistics(lyr))
+                    if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
+                        action = menu.addAction('Classification Statistics')
+                        action.triggered.connect(lambda: self.runClassificationStatistics(lyr))
 
-            menu.addSeparator()
-            action = menu.addAction('Layer properties')
-            action.setToolTip('Set layer properties')
-            action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
+                menu.addSeparator()
+                action = menu.addAction('Layer properties')
+                action.setToolTip('Set layer properties')
+                action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
 
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
@@ -1397,6 +1399,11 @@ class DockManager(QObject):
             name = '{} #{}'.format(baseName, n)
         kwds['name'] = name
 
+        dockArea = kwds.get('dockArea', self.currentDockArea())
+        assert isinstance(dockArea, DockArea), 'DockManager not connected to any DockArea yet. \n' \
+                                               'Add DockAreas with connectDockArea(self, dockArea)'
+        kwds['area'] = dockArea
+        # kwds['parent'] = dockArea
         dock = None
         if cls == MapDock:
             dock = MapDock(*args, **kwds)
@@ -1430,22 +1437,15 @@ class DockManager(QObject):
                 dock.attributeTableWidget.setMainMessageBar(self.mMessageBar)
         else:
             raise Exception('Unknown dock type: {}'.format(dockType))
-
-        dock.setVisible(True)
-
-        dockArea = kwds.get('dockArea', self.currentDockArea())
-        if not isinstance(dockArea, DockArea):
-            warnings.warn(
-                'DockManager not connected to any DockArea yet. \nAdd DockAreas with connectDockArea(self, dockArea)')
-        else:
-            dockArea.addDock(dock, *args, **kwds)
-
+        # dock.setParent(dockArea)
+        dockArea.addDock(dock, *args, **kwds)
         dock.setVisible(True)
 
         if dock not in self.mDocks:
             dock.sigClosed.connect(self.removeDock)
             self.mDocks.append(dock)
             self.sigDockAdded.emit(dock)
+
         return dock
 
     def onSpeclibWillBeDeleted(self, lyr):

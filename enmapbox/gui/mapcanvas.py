@@ -1083,7 +1083,7 @@ class MapCanvas(QgsMapCanvas):
 
         action = menu.addAction('Zoom Full')
         action.setIcon(QIcon(':/images/themes/default/mActionZoomFullExtent.svg'))
-        action.triggered.connect(lambda: self.setExtent(self.fullExtent()))
+        action.triggered.connect(self.zoomToFullExtent)
 
         action = menu.addAction('Zoom Native Resolution')
         action.setIcon(QIcon(':/images/themes/default/mActionZoomActual.svg'))
@@ -1206,6 +1206,9 @@ class MapCanvas(QgsMapCanvas):
         CanvasLink.applyLinking(self)
         self.sigSpatialExtentChanged.emit(SpatialExtent.fromMapCanvas(self))
 
+    def fullExtent(self) -> QgsRectangle:
+        # workaround https://github.com/qgis/QGIS/issues/43097
+        return self.mapSettings().fullExtent()
 
     def zoomToFeatureExtent(self, spatialExtent):
         assert isinstance(spatialExtent, SpatialExtent)

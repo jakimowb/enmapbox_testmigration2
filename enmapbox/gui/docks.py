@@ -312,15 +312,15 @@ class DockArea(pgDockArea):
     sigDockAdded = pyqtSignal(Dock)
     sigDockRemoved = pyqtSignal(Dock)
 
-    def addDock(self, enmapboxdock, position='bottom', relativeTo=None, **kwds) -> Dock:
-        assert enmapboxdock is not None
-        # assert isinstance(enmapboxdock, Dock)
+    def addDock(self, dock, position='bottom', relativeTo=None, **kwds) -> Dock:
+        assert dock is not None
+
         v = None
         try:
-            visibility = enmapboxdock.isVisible()
-            v = super(DockArea, self).addDock(dock=enmapboxdock, position=position, relativeTo=relativeTo, **kwds)
-            enmapboxdock.setVisible(visibility)
-            self.sigDockAdded.emit(enmapboxdock)
+            visibility = dock.isVisible()
+            v = super(DockArea, self).addDock(dock=dock, position=position, relativeTo=relativeTo, **kwds)
+            dock.setVisible(visibility)
+            self.sigDockAdded.emit(dock)
         except:
             pass
         return v
@@ -403,11 +403,11 @@ class DockLabel(pgDockLabel):
         assert isinstance(event, QContextMenuEvent)
         self.sigContextMenuRequest.emit(event)
 
-    def mouseMoveEvent(self, ev):
-        if not self.startedDrag and hasattr(self, 'pressPos'):
-            super(DockLabel, self).mouseMoveEvent(ev)
-        else:
-            ev.accept()
+    # def mouseMoveEvent(self, ev):
+    #    if not self.startedDrag and hasattr(self, 'pressPos'):
+    #        super(DockLabel, self).mouseMoveEvent(ev)
+    #    else:
+    #        ev.accept()
 
     def resizeEvent(self, ev: QResizeEvent):
         if self.orientation == 'vertical':
