@@ -72,4 +72,10 @@ class TestFitClassifierAlgorithm(TestCase):
             print(alg.displayName())
             alg.initAlgorithm()
             alg.shortHelpString()
+            parameters = {
+                alg.P_DATEST: classifierDumpPkl,
+                alg.P_CLASSIFIER: alg.defaultCodeAsString(),
+                alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+            }
+            self.runalg(alg, parameters)
 

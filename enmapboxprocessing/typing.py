@@ -4,6 +4,7 @@ import numpy as np
 from osgeo import gdal
 from qgis._core import QgsRasterDataProvider, QgsRasterLayer
 from sklearn.base import ClassifierMixin, RegressorMixin
+from sklearn.pipeline import Pipeline
 
 from typeguard import typechecked
 
@@ -44,7 +45,7 @@ class ClassifierDump(NamedTuple):
     features: Optional[List[str]]
     X: Optional[SampleX]
     y: Optional[SampleY]
-    classifier: Optional[Classifier] = None
+    classifier: Optional[Union[Classifier, Pipeline]] = None
 
     def withCategories(self, categories):
         asdict = self._asdict()
