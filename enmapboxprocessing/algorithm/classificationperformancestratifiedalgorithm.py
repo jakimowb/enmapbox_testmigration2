@@ -1,5 +1,6 @@
 import json
 from collections import defaultdict
+from dataclasses import dataclass
 from os import makedirs
 from os.path import exists, dirname
 from typing import Dict, Any, List, Tuple, NamedTuple, Iterable
@@ -282,7 +283,8 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
 
 
 @typechecked()
-class StratifiedAccuracyAssessmentResult(NamedTuple):
+@dataclass
+class StratifiedAccuracyAssessmentResult(object):
     N: float  # total area sum(N_h)
     n: int  # sample size
     class_names: List[str]

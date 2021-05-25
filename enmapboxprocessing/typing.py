@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Union, List, Dict, Optional, NamedTuple
 
 import numpy as np
@@ -25,7 +26,8 @@ HexColor = str
 
 
 @typechecked
-class Category(NamedTuple):
+@dataclass
+class Category(object):
     value: Union[int, str]
     name: str
     color: HexColor
@@ -40,7 +42,8 @@ Regressor = RegressorMixin
 
 
 @typechecked
-class ClassifierDump(NamedTuple):
+@dataclass
+class ClassifierDump(object):
     categories: Optional[Categories]
     features: Optional[List[str]]
     X: Optional[SampleX]
@@ -70,7 +73,8 @@ class ClassifierDump(NamedTuple):
 
 
 @typechecked
-class RegressionDump(NamedTuple):
+@dataclass
+class RegressionDump(object):
     targets: List[str]
     features: List[str]
     X: SampleX
