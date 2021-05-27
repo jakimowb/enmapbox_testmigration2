@@ -1,5 +1,6 @@
 import json
 from collections import defaultdict
+from dataclasses import dataclass
 from os import makedirs
 from os.path import exists, dirname
 from typing import Dict, Any, List, Tuple, NamedTuple, Iterable
@@ -57,16 +58,16 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
         else:
             assert 0
         categoriesPrediction = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
-        for idR, nameR, colorR in categoriesReference:
-            for idP, nameP, colorP in categoriesPrediction:
-                if nameR == nameP:
+        for cR in categoriesReference:
+            for cP in categoriesPrediction:
+                if cR.name == cP.name:
                     return True, ''  # good, we found the reference class
-            return False, f'Observed category "{nameR}" not found in predicted categories.'
-        for idP, nameP, colorP in categoriesPrediction:
-            for idR, nameR, colorR in categoriesReference:
-                if nameR == nameP:
+            return False, f'Observed category "{cR.name}" not found in predicted categories.'
+        for cP in categoriesPrediction:
+            for cR in categoriesReference:
+                if cR.name == cP.name:
                     return True, ''  # good, we found the map class
-            return False, f'Predicted category "{nameP}" not found in observed categories.'
+            return False, f'Predicted category "{cP.name}" not found in observed categories.'
         return False, 'Empty category list.'
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
@@ -154,10 +155,10 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
             yMap = arrayPrediction[valid].astype(np.float32)
             # - remap class ids by name
             yMapRemapped = np.zeros_like(yMap)
-            for idP, nameP, colorP in categoriesPrediction:
-                for idR, nameR, colorR in categoriesReference:
-                    if nameR == nameP:
-                        yMapRemapped[yMap == idP] = idR
+            for cP in categoriesPrediction:
+                for cR in categoriesReference:
+                    if cR.name == cP.name:
+                        yMapRemapped[yMap == cP.value] = cR.value
             yMap = yMapRemapped
             # - prepare strata
             stratum = arrayStratification[valid]
@@ -282,7 +283,8 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
 
 
 @typechecked()
-class StratifiedAccuracyAssessmentResult(NamedTuple):
+@dataclass
+class StratifiedAccuracyAssessmentResult(object):
     N: float  # total area sum(N_h)
     n: int  # sample size
     class_names: List[str]

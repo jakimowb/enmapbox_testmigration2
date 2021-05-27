@@ -19,7 +19,7 @@ Processing Algorithms
     regression/index.rst
     resampling_and_subsetting/index.rst
     test_classification/index.rst
-    test_dataset_preparation/index.rst
+    test_dataset_creation/index.rst
     test_feature_selection/index.rst
     test_post-processing/index.rst
     test_raster_creation/index.rst

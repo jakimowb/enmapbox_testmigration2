@@ -13,20 +13,6 @@ c = ['', 'c:'][int(writeToDisk)]
 
 class TestSampleRasterValuesAlgorithm(TestCase):
 
-    def test_pythonCommand(self):
-        alg = SampleRasterValuesAlgorithm()
-        alg.initAlgorithm()
-        parameters = {
-            alg.P_RASTER: QgsRasterLayer(enmap),
-            alg.P_VECTOR: QgsVectorLayer(landcover_polygons),
-            alg.P_OUTPUT_SAMPLE: c + '/vsimem/sample_vectorPolygon.gpkg'
-        }
-        processing
-        cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
-        print(cmd)
-        eval(cmd)
-        webbrowser.open_new(parameters[alg.P_OUTPUT_SAMPLE] + '.log')
-
     def test_sampleFromVectorPoints(self):
         global c
         alg = SampleRasterValuesAlgorithm()
@@ -34,7 +20,7 @@ class TestSampleRasterValuesAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap),
             alg.P_VECTOR: QgsVectorLayer(landcover_points_singlepart_epsg3035),
-            alg.P_OUTPUT_SAMPLE: c + '/vsimem/sample_vectorPoint.gpkg'
+            alg.P_OUTPUT_POINTS: c + '/vsimem/sample_vectorPoint.gpkg'
         }
         result = self.runalg(alg, parameters)
 
@@ -45,7 +31,7 @@ class TestSampleRasterValuesAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap_uncompressed),
             alg.P_VECTOR: QgsVectorLayer(landcover_polygons),
-            alg.P_OUTPUT_SAMPLE: c + '/vsimem/sample_vectorPolygons.gpkg'
+            alg.P_OUTPUT_POINTS: c + '/vsimem/sample_vectorPolygons.gpkg'
 
         }
         result = self.runalg(alg, parameters)
@@ -58,7 +44,7 @@ class TestSampleRasterValuesAlgorithm(TestCase):
             alg.P_RASTER: QgsRasterLayer(enmap_uncompressed),
             alg.P_VECTOR: QgsVectorLayer(landcover_polygons),
             alg.P_COVERAGE_RANGE: [70, 100],
-            alg.P_OUTPUT_SAMPLE: c + '/vsimem/sample_70p_pure.gpkg'
+            alg.P_OUTPUT_POINTS: c + '/vsimem/sample_70p_pure.gpkg'
 
         }
         result = self.runalg(alg, parameters)

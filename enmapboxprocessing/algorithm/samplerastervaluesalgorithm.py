@@ -54,7 +54,7 @@ class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_RASTER, self._RASTER)
         self.addParameterVectorLayer(self.P_VECTOR, self._VECTOR)
-        self.addParameterIntRange(self.P_COVERAGE_RANGE, self._COVERAGE_RANGE, [50, 100], False, True)
+        self.addParameterIntRange(self.P_COVERAGE_RANGE, self._COVERAGE_RANGE, [50, 100], True, True)
         self.addParameterVectorDestination(self.P_OUTPUT_POINTS, self._OUTPUT_POINTS)
 
     def processAlgorithm(
@@ -63,7 +63,7 @@ class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         vector = self.parameterAsVectorLayer(parameters, self.P_VECTOR, context)
         coverageMin, coverageMax = self.parameterAsInts(parameters, self.P_COVERAGE_RANGE, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_SAMPLE, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_POINTS, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -76,7 +76,7 @@ class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
                     filename, raster, vector, selectedFeaturesOnly, coverageMin, coverageMax, feedback, feedback2,
                     context
                 )
-            result = {self.P_OUTPUT_SAMPLE: filename}
+            result = {self.P_OUTPUT_POINTS: filename}
             self.toc(feedback, result)
 
         return result
@@ -134,10 +134,10 @@ class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
             alg.P_UNIT: alg.PixelUnits,
             alg.P_WIDTH: raster.width() * 10,
             alg.P_HEIGHT: raster.height() * 10,
-            alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'grid.x10.vrt')
+            alg.P_OUTPUT_GRID: Utils.tmpFilename(filename, 'grid.x10.vrt')
         }
         result = processing.run(alg, parameters, None, feedback2, context, True)
-        x10Grid = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+        x10Grid = QgsRasterLayer(result[alg.P_OUTPUT_GRID])
 
         if feedback.isCanceled():
             raise AlgorithmCanceledException()
