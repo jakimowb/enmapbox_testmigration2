@@ -34,7 +34,7 @@ Related websites
 
 - `Environmental Mapping and Analysis Program (EnMAP) <http://www.enmap.org/>`_
 - `Source code repository <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/>`_
-- `HYPERedu on eo-college <https://eo-college.org/now-online-hyperedu-educational-resources-on-imaging-spectroscopy/>`_
+- `HYPERedu on eo-college <https://eo-college.org/resource-spectrum/hyperspectral//>`_
 
 
 News
