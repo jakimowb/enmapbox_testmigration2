@@ -88,12 +88,12 @@ class PrepareClassificationDatasetFromCategorizedRaster(EnMAPProcessingAlgorithm
             alg = TranslateCategorizedRasterAlgorithm()
             alg.initAlgorithm()
             parameters = {
-                alg.P_CLASSIFICATION: classification,
+                alg.P_CATEGORIZED_RASTER: classification,
                 alg.P_GRID: raster,
-                alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.tif')
+                alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'classification.tif')
             }
             self.runAlg(alg, parameters, None, feedback2, context, True)
-            classification = QgsRasterLayer(parameters[alg.P_OUTPUT_RASTER])
+            classification = QgsRasterLayer(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER])
             renderer = Utils.palettedRasterRendererFromCategories(classification.dataProvider(), 1, categories)
             classification.setRenderer(renderer)
             classification.saveDefaultStyle()
@@ -103,7 +103,7 @@ class PrepareClassificationDatasetFromCategorizedRaster(EnMAPProcessingAlgorithm
             feedback.pushInfo(f'Sampled data: X=array{list(X.shape)} y=array{list(y.shape)}')
 
             dump = ClassifierDump(categories=categories, features=features, X=X, y=y)
-            dumpDict = dump._asdict()
+            dumpDict = dump.__dict__
             Utils.pickleDump(dumpDict, filename)
 
             result = {self.P_OUTPUT_DATASET: filename}

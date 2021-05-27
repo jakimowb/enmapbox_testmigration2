@@ -1399,8 +1399,8 @@ class EnMAPBox(QgisInterface, QObject):
         Opens the example data
         :param mapWindows: number of new MapDocks to be opened
         """
-        from enmapbox.dependencycheck import missingTestData, outdatedTestData, installTestData
-        if missingTestData() or outdatedTestData():
+        from enmapbox.dependencycheck import missingTestData, installTestData
+        if missingTestData():
             installTestData()
 
         if not missingTestData():

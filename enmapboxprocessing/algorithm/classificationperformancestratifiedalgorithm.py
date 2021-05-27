@@ -148,9 +148,8 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
             categoriesStratification = Utils.categoriesFromPalettedRasterRenderer(stratification.renderer())
             # - get valid reference location
             valid = np.full_like(arrayReference, False, bool)
-            for category in categoriesReference:
-                id, name, color = category
-                np.logical_or(valid, arrayReference == id, out=valid)
+            for c in categoriesReference:
+                np.logical_or(valid, arrayReference == c.value, out=valid)
             yReference = arrayReference[valid].astype(np.float32)
             yMap = arrayPrediction[valid].astype(np.float32)
             # - remap class ids by name
@@ -180,7 +179,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
             self.writeReport(filename, stats, pixelUnits=pixelUnits, pixelArea=pixelArea)
             # dump json
             with open(filename + '.json', 'w') as file:
-                file.write(json.dumps(stats._asdict(), indent=4))
+                file.write(json.dumps(stats.__dict__, indent=4))
             result = {self.P_OUTPUT_REPORT: filename}
             self.toc(feedback, result)
 

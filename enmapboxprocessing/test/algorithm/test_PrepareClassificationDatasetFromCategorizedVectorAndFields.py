@@ -3,7 +3,7 @@ from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvec
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapboxunittestdata import classificationSampleAsVector
+from enmapboxunittestdata import classificationDatasetAsVector
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -14,7 +14,7 @@ class TestPrepareClassificationDatasetFromVectorAndFields(TestCase):
     def test(self):
         alg = PrepareClassificationDatasetFromCategorizedVectorAndFields()
         parameters = {
-            alg.P_CATEGORIZED_VECTOR: classificationSampleAsVector,
+            alg.P_CATEGORIZED_VECTOR: classificationDatasetAsVector,
             alg.P_FEATURE_FIELDS: [f'Sample__{i + 1}' for i in range(177)],
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
         }

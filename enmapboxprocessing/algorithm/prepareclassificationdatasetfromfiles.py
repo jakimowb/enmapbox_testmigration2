@@ -74,7 +74,7 @@ class PrepareClassificationDatasetFromFiles(EnMAPProcessingAlgorithm):
             categories = [Category(int(v), str(v), QColor(randint(0, 2 ** 24 - 1)).name()) for v in values]
 
             dump = ClassifierDump(categories=categories, features=features, X=X, y=y)
-            Utils.pickleDump(dump._asdict(), filename)
+            Utils.pickleDump(dump.__dict__, filename)
 
             result = {self.P_OUTPUT_DATASET: filename}
             self.toc(feedback, result)

@@ -22,8 +22,9 @@ class Test_aa_stratified(TestCase):
         stratum =   ['1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2', '3', '3', '3', '3', '3', '3', '3', '3', '3', '3', '4', '4', '4', '4', '4', '4', '4', '4', '4', '4']
         h = ['1', '2', '3', '4']
         N_h = [40000, 30000, 20000, 10000]
-
-        stats = stratifiedAccuracyAssessment(stratum, reference, map, h, N_h)
+        classValues = ['A', 'B', 'C', 'D']
+        classNames = ['Class A', 'Class B', 'Class C', 'Class D']
+        stats = stratifiedAccuracyAssessment(stratum, reference, map, h, N_h, classValues, classNames)
 
         cm = [[9.2,  1.6, 1.6, 0.0],
               [4.8, 10.8, 3.2, 0.0],
@@ -74,8 +75,9 @@ class Test_aa_stratified(TestCase):
         stratum =   ['1', '1', '2']
         h = ['1', '2']
         N_h = [10, 20]
-
-        result = stratifiedAccuracyAssessment(stratum, reference, map, h, N_h)
+        classValues = ['A', 'B', 'C']
+        classNames = ['Class A', 'Class B', 'Class C']
+        result = stratifiedAccuracyAssessment(stratum, reference, map, h, N_h, classValues, classNames)
         self.assertEqual(1., result.overall_accuracy)
         self.assertTrue(np.isnan(result.overall_accuracy_se))
 
@@ -92,7 +94,7 @@ class TestClassificationPerformanceAlgorithm(TestCase):
             alg.P_OUTPUT_REPORT: c + '/vsimem/report.html',
         }
         self.runalg(alg, parameters)
-        webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT])
+        #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT])
         #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT] + '.csv')
 
     def test_withoutStratification(self):
@@ -105,5 +107,5 @@ class TestClassificationPerformanceAlgorithm(TestCase):
             alg.P_OUTPUT_REPORT: c + '/vsimem/report.html',
         }
         result = self.runalg(alg, parameters)
-        webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT])
+        #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT])
         #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT] + '.log')

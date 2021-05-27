@@ -481,39 +481,11 @@ def missingTestData() -> bool:
         return True
 
 
-def outdatedTestData() -> bool:
-    """Returns whether testdata is outdated."""
-
-    try:
-        import warnings
-        import enmapboxtestdata
-        from enmapbox import MIN_VERSION_TESTDATA
-
-        def version_parse(version: str):
-            """Return comparable version string"""
-            return '.'.join(number.zfill(10) for number in version.split('.'))
-
-        testDataOutdated = version_parse(enmapboxtestdata.__version__) < version_parse(MIN_VERSION_TESTDATA)
-        boxOutdated = version_parse(enmapboxtestdata.__version__) > version_parse(MIN_VERSION_TESTDATA)
-
-        if boxOutdated:
-            warnings.warn('Testdata version {} required by EnMAP-Box, but installed version {} is newer. '
-                          'Installed EnMAP-Box is outdated and may have problems correctly processing the testdata. '
-                          'Consider updating the EnMAP-Box.'
-                          ''.format(MIN_VERSION_TESTDATA, enmapboxtestdata.__version__))
-
-        return testDataOutdated
-
-    except Exception as ex:
-        print(ex, file=sys.stderr)
-        return True
-
-
 def installTestData(overwrite_existing=False, ask=True):
     """
     Downloads and installs the EnMAP-Box Example Data
     """
-    if not missingTestData() and not outdatedTestData() and not overwrite_existing:
+    if not missingTestData() and not overwrite_existing:
         print('Testdata already installed and up to date.')
         return
 

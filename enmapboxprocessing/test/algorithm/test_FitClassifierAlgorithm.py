@@ -41,7 +41,7 @@ class TestFitClassifierAlgorithm(TestCase):
     def test_fitted(self):
         alg = FitTestClassifierAlgorithm()
         parameters = {
-            alg.P_DATEST: classifierDumpPkl,
+            alg.P_DATASET: classifierDumpPkl,
             alg.P_CLASSIFIER: alg.defaultCodeAsString(),
             alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
         }
@@ -57,8 +57,9 @@ class TestFitClassifierAlgorithm(TestCase):
     def test_code(self):
         alg = FitGenericClassifier()
         parameters = {
-            alg.P_CODE: 'from sklearn.linear_model import LogisticRegression\n'
+            alg.P_CLASSIFIER: 'from sklearn.linear_model import LogisticRegression\n'
                         'classifier = LogisticRegression(max_iter=1000)',
+            alg.P_DATASET: classifierDumpPkl,
             alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
         }
         self.runalg(alg, parameters)
@@ -73,7 +74,7 @@ class TestFitClassifierAlgorithm(TestCase):
             alg.initAlgorithm()
             alg.shortHelpString()
             parameters = {
-                alg.P_DATEST: classifierDumpPkl,
+                alg.P_DATASET: classifierDumpPkl,
                 alg.P_CLASSIFIER: alg.defaultCodeAsString(),
                 alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
             }

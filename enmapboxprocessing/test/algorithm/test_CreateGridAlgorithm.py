@@ -24,13 +24,13 @@ class TestCreateGridAlgorithm(TestCase):
             alg.P_UNIT: alg.PixelUnits,
             alg.P_WIDTH: raster.width(),
             alg.P_HEIGHT: raster.height(),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/grid.tif'
+            alg.P_OUTPUT_GRID: c + '/vsimem/grid.tif'
         }
         processing, QgsCoordinateReferenceSystem
         cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
         print(cmd)
         eval(cmd)
-        webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
+        #webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
 
     def test_pixelUnits(self):
         raster = QgsRasterLayer(enmap)
@@ -42,10 +42,10 @@ class TestCreateGridAlgorithm(TestCase):
             alg.P_UNIT: alg.PixelUnits,
             alg.P_WIDTH: raster.width(),
             alg.P_HEIGHT: raster.height(),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/gridPixelUnits.tif'
+            alg.P_OUTPUT_GRID: c + '/vsimem/gridPixelUnits.tif'
         }
         result = self.runalg(alg, parameters)
-        grid = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+        grid = QgsRasterLayer(result[alg.P_OUTPUT_GRID])
         for gold, lead in [
             (raster.crs(), grid.crs()), (raster.extent(), grid.extent()), (raster.width(), grid.width()),
             (raster.height(), grid.height())
@@ -62,10 +62,10 @@ class TestCreateGridAlgorithm(TestCase):
             alg.P_UNIT: alg.GeoreferencedUnits,
             alg.P_WIDTH: raster.rasterUnitsPerPixelX(),
             alg.P_HEIGHT: raster.rasterUnitsPerPixelY(),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/gridGeoreferencedUnits.tif'
+            alg.P_OUTPUT_GRID: c + '/vsimem/gridGeoreferencedUnits.tif'
         }
         result = self.runalg(alg, parameters)
-        grid = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
+        grid = QgsRasterLayer(result[alg.P_OUTPUT_GRID])
         for gold, lead in [
             (raster.crs(), grid.crs()), (raster.extent(), grid.extent()), (raster.width(), grid.width()),
             (raster.height(), grid.height())

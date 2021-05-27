@@ -788,7 +788,7 @@ class ClassificationWorkflowGui(QMainWindow):
         filenameTrain = self.getTrainingDatasetByIndex(self.mDataFit.currentIndex())
 
         alg = FitGenericClassifier()
-        parameters = {alg.P_DATEST: filenameTrain,
+        parameters = {alg.P_DATASET: filenameTrain,
                       alg.P_CLASSIFIER: self.mCodeClassifier.toPlainText(),
                       alg.P_OUTPUT_CLASSIFIER: self.createOutputFilename(self.mFileClassifierFitted, '.pkl')
                       }
