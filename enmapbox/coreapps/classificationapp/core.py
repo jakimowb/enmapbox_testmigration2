@@ -1,9 +1,8 @@
-import inspect
 import tempfile
 import traceback
+from random import randint
 
 from PyQt5.uic import loadUi
-from qgis._core import QgsPalettedRasterRenderer
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
@@ -11,17 +10,16 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from enmapbox.externals.qps.speclib.core import SpectralLibrary
-from hubdsm.core.color import Color as HubdsmColor
-from hubdsm.core.gdalraster import GdalRaster
+#from hubdsm.core.gdalraster import GdalRaster
 from hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
 from hubdsm.processing.savelayerasclassification import saveLayerAsClassification
 from hubflow.core import *
-from enmapboxapplications.classificationapp.script import classificationWorkflow, ProgressBar
+from classificationapp.script import classificationWorkflow, ProgressBar
 
 pathUi = join(dirname(__file__), 'ui')
 
 
-class ClassificationWorkflowApp(QMainWindow):
+class ClassificationWorkflowGui(QMainWindow):
     uiTrainingType_: QComboBox
     uiType0Raster_: QgsMapLayerComboBox
     uiType0Classification_: QgsMapLayerComboBox
@@ -165,8 +163,7 @@ class ClassificationWorkflowApp(QMainWindow):
                     categories = list()
                     for value in uniqueValues:
                         name = str(value)
-                        color = HubdsmColor.fromRandom()
-                        color = QColor(color.red, color.green, color.blue).name()
+                        color = QColor(randint(1, 2**24)).name()
                         symbol = QgsMarkerSymbol.createSimple(
                         {'color': color, 'size': '2', 'outline_color': 'black'})
                         categories.append(QgsRendererCategory(value, symbol, name, True))
