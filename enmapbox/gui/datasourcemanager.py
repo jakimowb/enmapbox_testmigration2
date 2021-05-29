@@ -1198,7 +1198,7 @@ class DataSourceTreeView(TreeView):
         if not isinstance(dataSource, DataSourceSpatial):
             return
 
-        LOAD_DEFAULT_STYLE: bool = re.search('DEFAULT', rgb, re.I) is not None
+        LOAD_DEFAULT_STYLE: bool = isinstance(rgb, str) and re.search('DEFAULT', rgb, re.I)
 
         if target is None:
             from enmapbox.gui.enmapboxgui import EnMAPBox

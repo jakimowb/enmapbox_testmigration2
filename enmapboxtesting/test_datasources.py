@@ -189,7 +189,7 @@ class DataSourceTests(EnMAPBoxTestCase):
         self.assertTrue(source, DataSourceVector)
 
         mimeData = QMimeData()
-        mimeData.setUrls(QUrl.fromLocalFile(path_csv.as_posix()))
+        mimeData.setUrls([QUrl.fromLocalFile(path_csv.as_posix())])
 
 
 

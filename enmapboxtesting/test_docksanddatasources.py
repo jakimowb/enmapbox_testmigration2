@@ -165,8 +165,7 @@ class testDataSources(EnMAPBoxTestCase):
         da = DockArea()
         dock = MimeDataDock()
         da.addDock(dock)
-        da.show()
-        self.showGui(da)
+        # self.showGui(da)
 
     def test_TextDock(self):
         da = DockArea()
