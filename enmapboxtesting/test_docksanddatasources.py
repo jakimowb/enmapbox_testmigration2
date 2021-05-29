@@ -141,6 +141,8 @@ class testDataSources(EnMAPBoxTestCase):
 
         w = DockPanelUI()
         DM = DockManager()
+        dockArea = DockArea()
+        DM.connectDockArea(dockArea)
         self.assertIsInstance(w, DockPanelUI)
         self.assertIsInstance(DM, DockManager)
         w.connectDockManager(DM)

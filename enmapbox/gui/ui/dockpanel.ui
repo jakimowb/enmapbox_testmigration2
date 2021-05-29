@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>367</width>
-    <height>258</height>
+    <width>377</width>
+    <height>314</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -73,13 +73,29 @@
        </widget>
       </item>
       <item>
+       <widget class="QgsFilterLineEdit" name="tbFilterText">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>1</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="placeholderText">
+         <string>Filter</string>
+        </property>
+        <property name="qgisRelation" stdset="0">
+         <string notr="true"/>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>40</width>
+          <width>0</width>
           <height>20</height>
          </size>
         </property>
@@ -137,6 +153,11 @@
   </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>QgsFilterLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>qgsfilterlineedit.h</header>
+  </customwidget>
   <customwidget>
    <class>DockTreeView</class>
    <extends>QTreeView</extends>

@@ -22,6 +22,10 @@ import uuid
 import typing
 import warnings
 import time
+
+from qgis._core import Qgis
+from qgis._gui import QgsLayerTreeProxyModel
+
 from processing import Processing
 from qgis.PyQt.QtWidgets import QWidget, QHeaderView, QMenu, QAbstractItemView, QApplication
 from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
@@ -954,6 +958,13 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         return result
 
 
+class DockManagerTreeProxyModel(QSortFilterProxyModel):
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+
+
+
 class DockTreeView(QgsLayerTreeView):
     sigPopulateContextMenu = pyqtSignal(QMenu)
 
@@ -1238,7 +1249,7 @@ class DockManager(QObject):
     def spectraLibraryDocks(self) -> typing.List[SpectralLibraryDock]:
         return [d for d in self if isinstance(d, SpectralLibraryDock)]
 
-    def connectDockArea(self, dockArea):
+    def connectDockArea(self, dockArea: DockArea):
         assert isinstance(dockArea, DockArea)
 
         dockArea.sigDragEnterEvent.connect(lambda event: self.onDockAreaDragDropEvent(dockArea, event))
@@ -1475,8 +1486,15 @@ class DockPanelUI(QgsDockWidget):
         self.dockManager = None
         self.mDockManagerTreeModel: DockManagerTreeModel = None
         assert isinstance(self.dockTreeView, DockTreeView)
-
+        self.tbFilterText.textChanged.connect(self.setFilter)
         self.initActions()
+
+    def setFilter(self, pattern: str):
+        if Qgis.QGIS_VERSION < '3.18':
+            return
+        proxyModel = self.dockTreeView.proxyModel()
+        if isinstance(proxyModel, QgsLayerTreeProxyModel):
+            proxyModel.setFilterText(pattern)
 
     def initActions(self):
         self.btnCollapse.setDefaultAction(self.actionCollapseTreeNodes)
@@ -1494,6 +1512,7 @@ class DockPanelUI(QgsDockWidget):
         assert isinstance(dockManager, DockManager)
         self.dockManager = dockManager
         self.mDockManagerTreeModel = DockManagerTreeModel(self.dockManager)
+        # self.mDockManagerProxyModel.setSourceModel(self.mDockManagerTreeModel)
         self.dockTreeView.setModel(self.mDockManagerTreeModel)
 
         m = self.dockTreeView.layerTreeModel()
