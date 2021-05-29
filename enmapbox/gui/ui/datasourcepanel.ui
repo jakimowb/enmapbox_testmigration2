@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>429</width>
-    <height>388</height>
+    <width>273</width>
+    <height>336</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,7 +18,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>172</width>
+    <width>204</width>
     <height>178</height>
    </size>
   </property>
@@ -154,13 +154,29 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>225</width>
+          <width>0</width>
           <height>20</height>
          </size>
         </property>
        </spacer>
       </item>
      </layout>
+    </item>
+    <item>
+     <widget class="QgsFilterLineEdit" name="tbFilterText">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>1</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="placeholderText">
+       <string>Filter</string>
+      </property>
+      <property name="qgisRelation" stdset="0">
+       <string notr="true"/>
+      </property>
+     </widget>
     </item>
     <item>
      <widget class="DataSourceTreeView" name="dataSourceTreeView">
@@ -260,6 +276,11 @@
   </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>QgsFilterLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>qgsfilterlineedit.h</header>
+  </customwidget>
   <customwidget>
    <class>DataSourceTreeView</class>
    <extends>QTreeView</extends>

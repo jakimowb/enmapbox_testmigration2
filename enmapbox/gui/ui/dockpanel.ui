@@ -73,22 +73,6 @@
        </widget>
       </item>
       <item>
-       <widget class="QgsFilterLineEdit" name="tbFilterText">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>1</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="placeholderText">
-         <string>Filter</string>
-        </property>
-        <property name="qgisRelation" stdset="0">
-         <string notr="true"/>
-        </property>
-       </widget>
-      </item>
-      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -102,6 +86,22 @@
        </spacer>
       </item>
      </layout>
+    </item>
+    <item>
+     <widget class="QgsFilterLineEdit" name="tbFilterText">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>1</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="placeholderText">
+       <string>Filter</string>
+      </property>
+      <property name="qgisRelation" stdset="0">
+       <string notr="true"/>
+      </property>
+     </widget>
     </item>
     <item>
      <widget class="DockTreeView" name="dockTreeView">

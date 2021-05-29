@@ -298,6 +298,15 @@ class DataSourceTests(EnMAPBoxTestCase):
         dsm.addSources([p2, p1])
         self.assertTrue(len(dsm) == 1)
 
+    def test_DataSourcePanelUI(self):
+
+        dsm = DataSourceManager()
+        panel = DataSourcePanelUI()
+        panel.connectDataSourceManager(dsm)
+        uris = [library, enmap, landcover_polygons]
+        dsm.addSources(uris)
+        self.showGui(panel)
+
     def test_datasourcemanager(self):
         reg = QgsProject.instance()
         reg.removeAllMapLayers()
@@ -337,21 +346,18 @@ class DataSourceTests(EnMAPBoxTestCase):
 
         reg.removeAllMapLayers()
 
-        # test doubles input
+        # test doubled input
         l = len(dsm)
         try:
-
             p1 = str(pathlib.WindowsPath(pathlib.Path(enmap)))
             p2 = str(pathlib.Path(enmap).as_posix())
-
             dsm.addSources(p1)
             dsm.addSources(p2)
-
             self.assertTrue(len(dsm) == l, msg='DataSourceManager should not contain the same source multiple times')
         except:
             pass
 
-        # rmeove
+        # remove
         dsm = DataSourceManager()
         lyr = TestObjects.createVectorLayer()
         dsm.addSource(lyr)
