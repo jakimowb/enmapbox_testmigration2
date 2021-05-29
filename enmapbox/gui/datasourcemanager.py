@@ -31,6 +31,7 @@ from PyQt5.QtCore import Qt, QMimeData, QModelIndex, QSize, QUrl, QObject
 from PyQt5.QtGui import QIcon, QContextMenuEvent, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QDockWidget, QStyle, QAction, QTreeView, QFileDialog, QDialog
 
+from enmapbox.externals.qps.utils import bandClosestToWavelength
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import QApplication, QMenu
@@ -1194,6 +1195,8 @@ class DataSourceTreeView(TreeView):
         if not isinstance(dataSource, DataSourceSpatial):
             return
 
+        LOAD_DEFAULT_STYLE: bool = re.search('DEFAULT', rgb, re.I) is not None
+
         if target is None:
             from enmapbox.gui.enmapboxgui import EnMAPBox
             emb = EnMAPBox.instance()
@@ -1208,17 +1211,19 @@ class DataSourceTreeView(TreeView):
 
         assert isinstance(target, (QgsMapCanvas, QgsProject))
 
+        # loads the layer with default style (wherever it is defined)
         lyr = dataSource.createUnregisteredMapLayer()
 
-        from enmapbox.gui.utils import bandClosestToWavelength, defaultBands
         if isinstance(lyr, QgsRasterLayer) \
+                and not LOAD_DEFAULT_STYLE \
                 and isinstance(lyr.dataProvider(), QgsRasterDataProvider) \
                 and lyr.dataProvider().name() == 'gdal':
+
             r = lyr.renderer()
             if isinstance(r, QgsRasterRenderer):
                 bandIndices: typing.List[int] = None
                 if isinstance(rgb, str):
-                    if re.search('DEFAULT', rgb):
+                    if LOAD_DEFAULT_STYLE:
                         bandIndices = defaultBands(lyr)
                     else:
                         bandIndices = [bandClosestToWavelength(lyr, s) for s in rgb.split(',')]
