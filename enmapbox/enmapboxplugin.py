@@ -27,6 +27,7 @@ from qgis.core import Qgis
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QOperatingSystemVersion
 from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtGui import QIcon
 
 
 class EnMAPBoxPlugin(object):
@@ -34,7 +35,8 @@ class EnMAPBoxPlugin(object):
     def __init__(self, iface):
         # make site-packages available to python
 
-        self.toolbarActions: typing.List[QAction] = []
+        self.pluginToolbarActions: typing.List[QAction] = []
+        self.rasterMenuActions: typing.List[QAction] = []
         if QOperatingSystemVersion.current().name() == 'macOS':
             # os.environ['SKLEARN_SITE_JOBLIB']='True'True
             # fix for issue #221
@@ -72,16 +74,29 @@ class EnMAPBoxPlugin(object):
         import enmapbox
         from qgis.utils import iface
         if isinstance(iface, QgisInterface):
-            action = QAction(enmapbox.icon(), 'EnMAP-Box', iface)
-            action.triggered.connect(self.run)
-            iface.addPluginToRasterMenu('EnMAP-Box', action)
             self.enmapBox = None
-            self.toolbarActions.append(action)
 
-            for action in self.toolbarActions:
+            actionStartBox = QAction(enmapbox.icon(), 'EnMAP-Box', iface)
+            actionStartBox.triggered.connect(self.run)
+            actionAbout = QAction(QIcon(':/enmapbox/gui/ui/icons/metadata.svg'),
+                                  'About')
+            actionAbout.triggered.connect(self.showAboutDialog)
+            self.rasterMenuActions.append(actionStartBox)
+            self.rasterMenuActions.append(actionAbout)
+            self.pluginToolbarActions.append(actionStartBox)
+
+            for action in self.rasterMenuActions:
+                iface.addPluginToRasterMenu('EnMAP-Box', action)
+
+            for action in self.pluginToolbarActions:
                 iface.addToolBarIcon(action)
         else:
             print('EnMAPBoxPlugin.initGui() called without iface')
+
+    def showAboutDialog(self):
+        from enmapbox.gui.about import AboutDialog
+        d = AboutDialog()
+        d.exec()
 
     def initProcessing(self):
         """
@@ -103,11 +118,15 @@ class EnMAPBoxPlugin(object):
             self.enmapBox.ui.show()
 
     def unload(self):
-        from enmapbox.gui.enmapboxgui import EnMAPBox
+        from enmapbox.gui.enmapboxgui import EnMAPBox, messageLog
         from qgis.utils import iface
         if isinstance(iface, QgisInterface):
-            for action in self.toolbarActions:
+
+            for action in self.pluginToolbarActions:
                 iface.removeToolBarIcon(action)
+
+            for action in self.rasterMenuActions:
+                iface.removePluginRasterMenu('EnMAP-Box', action)
 
         import enmapbox
         enmapbox.unloadAll()
