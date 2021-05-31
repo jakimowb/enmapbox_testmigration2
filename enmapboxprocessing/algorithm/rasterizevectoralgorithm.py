@@ -164,6 +164,13 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
                 burnValues = None
             if callback is None:
                 callback = gdal.TermProgress_nocb
+
+            if addValue is not None:  # check if installed GDAL supports "add" option
+                try:
+                    gdal.RasterizeOptions(add=False)
+                except TypeError:
+                    addValue = None
+
             kwds = dict(burnValues=burnValues, attribute=burnAttribute, allTouched=allTouched, add=addValue)
             kwds = {k: v for k, v in kwds.items() if v is not None}
             rasterizeOptions = gdal.RasterizeOptions(callback=callback, **kwds)
