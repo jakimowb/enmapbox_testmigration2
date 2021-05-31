@@ -184,8 +184,8 @@ Linux
 Mac
 ***
 
-Since QGIS 3.16, the `packaging mechanism <https://www.lutraconsulting.co.uk/blog/2020/10/01/qgis-macos-package/>`_,
-allows to install additional package with pip as followed::
+Since QGIS 3.16, the `packaging mechanism <https://www.lutraconsulting.co.uk/blog/2020/10/01/qgis-macos-package/>`_ for Mac builds changed.
+Additional packages can be installed with pip as follows::
 
    /Applications/QGIS.app/Contents/MacOS/bin/pip3 install astropy
 
