@@ -91,7 +91,7 @@ except ModuleNotFoundError as ex:
 
             print(ex)
 
-__version__ = '3.7'  # subsub-version information is added during build process
+__version__ = '3.8'  # subsub-version information is added during build process
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
