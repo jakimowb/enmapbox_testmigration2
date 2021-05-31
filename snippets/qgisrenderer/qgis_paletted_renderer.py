@@ -9,8 +9,9 @@ from qgis.core import QgsRasterLayer, QgsPalettedRasterRenderer
 array = np.asarray([[1, 2, 3, 2],
                     [0, 1, 1, 2]]).astype(np.uint8)
 
-path = '/vsimem/myimage.tif'
-ds: gdal.Dataset = gdal_array.SaveArray(array, path)
+path = '/vsimem/myimage.bsq'
+
+ds: gdal.Dataset = gdal_array.SaveArray(array, path, format='ENVI')
 band: gdal.Band = ds.GetRasterBand(1)
 band.SetCategoryNames(['none', 'A', 'B', 'C', 'D'])
 
