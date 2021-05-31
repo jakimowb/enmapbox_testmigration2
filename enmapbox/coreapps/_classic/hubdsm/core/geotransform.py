@@ -2,8 +2,8 @@
 from dataclasses import dataclass
 from typing import NamedTuple
 
-from hubdsm.core.location import Location
-from hubdsm.core.resolution import Resolution
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.resolution import Resolution
 
 
 @dataclass

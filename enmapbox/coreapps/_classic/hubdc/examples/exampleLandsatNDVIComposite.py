@@ -1,6 +1,6 @@
 from osgeo import gdal
-from hubdc import PixelGrid, Applier, ApplierInput, ApplierOutput, ApplierOperator
-from hubdc.landsat.LandsatArchiveParser import LandsatArchiveParser
+from _classic.hubdc import PixelGrid, Applier, ApplierInput, ApplierOutput, ApplierOperator
+from _classic.hubdc.landsat.LandsatArchiveParser import LandsatArchiveParser
 
 def script():
 

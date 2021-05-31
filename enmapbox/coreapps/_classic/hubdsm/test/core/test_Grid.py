@@ -2,15 +2,15 @@ from unittest.case import TestCase
 
 import numpy as np
 
-from hubdsm.core.extent import Extent
-from hubdsm.core.geotransform import GeoTransform
-from hubdsm.core.grid import Grid
-from hubdsm.core.location import Location
-from hubdsm.core.pixellocation import PixelLocation
-from hubdsm.core.projection import Projection, WGS84_PROJECTION
-from hubdsm.core.resolution import Resolution
-from hubdsm.core.shape import GridShape
-from hubdsm.core.size import Size
+from _classic.hubdsm.core.extent import Extent
+from _classic.hubdsm.core.geotransform import GeoTransform
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.pixellocation import PixelLocation
+from _classic.hubdsm.core.projection import Projection, WGS84_PROJECTION
+from _classic.hubdsm.core.resolution import Resolution
+from _classic.hubdsm.core.shape import GridShape
+from _classic.hubdsm.core.size import Size
 
 
 class TestGrid(TestCase):

@@ -1,4 +1,4 @@
-from hubdc import PixelGrid, Applier, ApplierOperator
+from _classic.hubdc import PixelGrid, Applier, ApplierOperator
 
 def script():
 

@@ -2,9 +2,9 @@ from unittest import TestCase
 
 import numpy as np
 
-from hubdsm.algorithm.aggregatebands import aggregateBands
-from hubdsm.core.gdaldriver import MEM_DRIVER
-from hubdsm.core.raster import Raster
+from _classic.hubdsm.algorithm.aggregatebands import aggregateBands
+from _classic.hubdsm.core.gdaldriver import MEM_DRIVER
+from _classic.hubdsm.core.raster import Raster
 
 
 class TestAggregateBands(TestCase):

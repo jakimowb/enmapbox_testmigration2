@@ -6,7 +6,7 @@ import time
 try: import pyqtgraph
 except: pass
 
-from hubflow.html import Table, TableRow, TableCell
+from _classic.hubflow.html import Table, TableRow, TableCell
 
 class Report():
 

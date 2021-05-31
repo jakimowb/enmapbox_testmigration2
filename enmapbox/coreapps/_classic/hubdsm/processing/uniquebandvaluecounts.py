@@ -1,6 +1,6 @@
-from hubdsm.processing.enmapalgorithm import *
-from hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
-from hubdsm.core.raster import Raster
+from _classic.hubdsm.processing.enmapalgorithm import *
+from _classic.hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
+from _classic.hubdsm.core.raster import Raster
 
 
 class UniqueBandValueCounts(EnMAPAlgorithm):

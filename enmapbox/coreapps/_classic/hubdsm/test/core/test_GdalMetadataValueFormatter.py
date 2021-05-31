@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from hubdsm.core.gdalmetadatavalueformatter import GdalMetadataValueFormatter
+from _classic.hubdsm.core.gdalmetadatavalueformatter import GdalMetadataValueFormatter
 
 
 class TestGdalMetadataValueFormatter(TestCase):

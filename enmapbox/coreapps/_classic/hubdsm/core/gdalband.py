@@ -6,12 +6,12 @@ import numpy as np
 from osgeo import gdal
 from osgeo.gdal import GDALRasterizeOptions
 
-from hubdsm.core.category import Category
-from hubdsm.core.color import Color
-from hubdsm.core.grid import Grid
-from hubdsm.core.gdalmetadatavalueformatter import GdalMetadataValueFormatter
-from hubdsm.core.error import ProjectionMismatchError
-from hubdsm.core.ogrlayer import OgrLayer
+from _classic.hubdsm.core.category import Category
+from _classic.hubdsm.core.color import Color
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.gdalmetadatavalueformatter import GdalMetadataValueFormatter
+from _classic.hubdsm.core.error import ProjectionMismatchError
+from _classic.hubdsm.core.ogrlayer import OgrLayer
 
 
 @dataclass(frozen=True)
@@ -28,7 +28,7 @@ class GdalBand(object):
 
     @staticmethod
     def open(filenameOrGdalRaster: Union[str, 'GdalRaster'], number: int, access: int = gdal.GA_ReadOnly) -> 'GdalBand':
-        from hubdsm.core.gdalraster import GdalRaster
+        from _classic.hubdsm.core.gdalraster import GdalRaster
         if isinstance(filenameOrGdalRaster, str):
             gdalRaster = GdalRaster.open(filenameOrGdalRaster, access=access)
         else:
@@ -44,7 +44,7 @@ class GdalBand(object):
     @property
     def raster(self) -> 'GdalRaster':
         """Return raster dataset."""
-        from hubdsm.core.gdalraster import GdalRaster
+        from _classic.hubdsm.core.gdalraster import GdalRaster
         return GdalRaster(gdalDataset=self.gdalDataset)
 
     @property

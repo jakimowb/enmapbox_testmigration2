@@ -3,9 +3,9 @@ from unittest.case import TestCase
 import numpy as np
 
 from enmapboxtestdata import enmap
-from hubdsm.core.error import ProjectionMismatchError
-from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.core.gdaldriver import MEM_DRIVER, GdalDriver
+from _classic.hubdsm.core.error import ProjectionMismatchError
+from _classic.hubdsm.core.gdalraster import GdalRaster
+from _classic.hubdsm.core.gdaldriver import MEM_DRIVER, GdalDriver
 
 
 class TestGdalRaster(TestCase):

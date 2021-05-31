@@ -3,12 +3,12 @@ from unittest.case import TestCase
 from osgeo import ogr
 
 from enmapboxtestdata import landcover_polygons
-from hubdsm.core.geometry import Geometry
-from hubdsm.core.location import Location
-from hubdsm.core.ogrdriver import MEMORY_DRIVER
-from hubdsm.core.ogrlayer import OgrLayer
-from hubdsm.core.ogrvector import OgrVector
-from hubdsm.core.projection import WGS84_PROJECTION
+from _classic.hubdsm.core.geometry import Geometry
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.ogrdriver import MEMORY_DRIVER
+from _classic.hubdsm.core.ogrlayer import OgrLayer
+from _classic.hubdsm.core.ogrvector import OgrVector
+from _classic.hubdsm.core.projection import WGS84_PROJECTION
 
 
 class TestOgrVector(TestCase):

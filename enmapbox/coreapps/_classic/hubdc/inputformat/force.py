@@ -1,4 +1,4 @@
-from hubdc.core2 import *
+from _classic.hubdc.core2 import *
 import fnmatch
 
 LANDSAT_SENSORS = ('LND04', 'LND05', 'LND07', 'LND08')

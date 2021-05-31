@@ -4,7 +4,7 @@ from PyQt5.QtGui import QColor
 from dataclasses import dataclass
 from qgis._core import QgsPalettedRasterRenderer, QgsCategorizedSymbolRenderer
 
-from hubdsm.core.color import Color
+from _classic.hubdsm.core.color import Color
 
 
 @dataclass(frozen=True)

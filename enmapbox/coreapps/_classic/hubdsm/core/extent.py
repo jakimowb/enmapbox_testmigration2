@@ -2,11 +2,11 @@
 from dataclasses import dataclass
 from typing import Optional, List
 
-from hubdsm.core.base import DataClassArray
-from hubdsm.core.coordinatetransformation import CoordinateTransformation
-from hubdsm.core.geometry import Geometry
-from hubdsm.core.location import Location
-from hubdsm.core.size import Size
+from _classic.hubdsm.core.base import DataClassArray
+from _classic.hubdsm.core.coordinatetransformation import CoordinateTransformation
+from _classic.hubdsm.core.geometry import Geometry
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.size import Size
 
 
 @dataclass(frozen=True)

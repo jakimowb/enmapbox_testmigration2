@@ -6,9 +6,9 @@ from qgis._core import QgsVectorLayer, QgsRasterLayer
 
 from enmapbox.externals.qps.speclib.core import SpectralLibrary
 from enmapboxtestdata import enmap, landcover_points
-from hubdsm.algorithm.estimatorpredict import estimatorPredict
-from hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
-from hubdsm.core.raster import Raster
+from _classic.hubdsm.algorithm.estimatorpredict import estimatorPredict
+from _classic.hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
+from _classic.hubdsm.core.raster import Raster
 
 
 class TestEstimatorFit(TestCase):

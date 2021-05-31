@@ -9,12 +9,12 @@ from typing import Tuple, Sequence, Union, Iterator, Optional, List
 import numpy as np
 from osgeo import gdal
 
-from hubdsm.core.band import Band
-from hubdsm.core.gdaldriver import VRT_DRIVER
-from hubdsm.core.mask import Mask
-from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.core.grid import Grid
-from hubdsm.core.table import Table
+from _classic.hubdsm.core.band import Band
+from _classic.hubdsm.core.gdaldriver import VRT_DRIVER
+from _classic.hubdsm.core.mask import Mask
+from _classic.hubdsm.core.gdalraster import GdalRaster
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.table import Table
 
 
 @dataclass(frozen=True)

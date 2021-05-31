@@ -17,13 +17,13 @@ except Exception as error:
 
 from PyQt5.QtGui import QColor
 
-from hubdc.progressbar import ProgressBar
-from hubdc.core import *
-import hubdc.applier
-from hubdc.applier import ApplierOutputRaster
-from hubflow.report import *
-from hubflow.errors import *
-import hubflow.signals
+from _classic.hubdc.progressbar import ProgressBar
+from _classic.hubdc.core import *
+import _classic.hubdc.applier
+from _classic.hubdc.applier import ApplierOutputRaster
+from _classic.hubflow.report import *
+from _classic.hubflow.errors import *
+import _classic.hubflow.signals
 
 
 class ApplierOptions(dict):
@@ -33,10 +33,10 @@ class ApplierOptions(dict):
             (k, v) for k, v in locals().items() if v is not None and not k.startswith('_') and k != 'self'))
 
 
-class Applier(hubdc.applier.Applier):
+class Applier(_classic.hubdc.applier.Applier):
     def __init__(self, defaultGrid=None, **kwargs):
         controls = kwargs.get('controls', ApplierControls())
-        hubdc.applier.Applier.__init__(self, controls=controls)
+        _classic.hubdc.applier.Applier.__init__(self, controls=controls)
 
         grid = kwargs.get('grid', defaultGrid)
         if isinstance(grid, Raster):
@@ -51,23 +51,23 @@ class Applier(hubdc.applier.Applier):
         self.kwargs = kwargs
 
     def apply(self, operatorType=None, description=None, *ufuncArgs, **ufuncKwargs):
-        results = hubdc.applier.Applier.apply(self, operatorType=operatorType, description=description,
+        results = _classic.hubdc.applier.Applier.apply(self, operatorType=operatorType, description=description,
             overwrite=self.kwargs.get('overwrite', True), *ufuncArgs, **ufuncKwargs)
         for raster in self.outputRaster.flatRasters():
             if self.controls.emitFileCreated():
-                hubflow.signals.sigFileCreated.emit(raster.filename())
+                _classic.hubflow.signals.sigFileCreated.emit(raster.filename())
         return results
 
     def setOutputRaster(self, name, filename):
         driver = self.kwargs.get(name + 'Driver', None)
         creationOptions = self.kwargs.get(name + 'Options', None)
-        raster = hubdc.applier.ApplierOutputRaster(filename=filename, driver=driver, creationOptions=creationOptions)
+        raster = _classic.hubdc.applier.ApplierOutputRaster(filename=filename, driver=driver, creationOptions=creationOptions)
         self.outputRaster.setRaster(key=name, value=raster)
 
     def setFlowRaster(self, name, raster):
         if isinstance(raster, Raster):
             self.inputRaster.setRaster(key=name,
-                value=hubdc.applier.ApplierInputRaster(filename=raster.filename()))
+                value=_classic.hubdc.applier.ApplierInputRaster(filename=raster.filename()))
         # elif isinstance(raster, RasterStack):
         #    rasterStack = raster
         #    group = hubdc.applier.ApplierInputRasterGroup()
@@ -131,7 +131,7 @@ class Applier(hubdc.applier.Applier):
 
     def setFlowVector(self, name, vector):
         if isinstance(vector, (Vector, VectorClassification)):
-            self.inputVector.setVector(key=name, value=hubdc.applier.ApplierInputVector(filename=vector.filename(),
+            self.inputVector.setVector(key=name, value=_classic.hubdc.applier.ApplierInputVector(filename=vector.filename(),
                 layerNameOrIndex=vector.layer()))
         else:
             raise errors.TypeError(vector)
@@ -145,7 +145,7 @@ class Applier(hubdc.applier.Applier):
             raise errors.TypeError(input)
 
 
-class ApplierOperator(hubdc.applier.ApplierOperator):
+class ApplierOperator(_classic.hubdc.applier.ApplierOperator):
     def flowRasterArray(self, name, raster, indices=None, overlap=0):
 
         if indices is not None:
@@ -474,7 +474,7 @@ class ApplierOperator(hubdc.applier.ApplierOperator):
             return maskArray
 
 
-class ApplierControls(hubdc.applier.ApplierControls):
+class ApplierControls(_classic.hubdc.applier.ApplierControls):
 
     def setEmitFileCreated(self, bool):
         self._emitFileCreated = bool
@@ -523,7 +523,7 @@ class FlowObject(object):
             pickle.dump(obj=self, file=f, protocol=1)
 
         if emit:
-            hubflow.signals.sigFileCreated.emit(filename)
+            _classic.hubflow.signals.sigFileCreated.emit(filename)
 
         if progressBar is not None:
             assert isinstance(progressBar, ProgressBar)

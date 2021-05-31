@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 from osgeo import gdal
 
-from hubdsm.core.grid import Grid
+from _classic.hubdsm.core.grid import Grid
 
 
 @dataclass
@@ -12,7 +12,7 @@ class Mask(object):
     invert: bool = False
 
     def __post_init__(self):
-        from hubdsm.core.band import Band
+        from _classic.hubdsm.core.band import Band
         assert isinstance(self.band, Band)
         assert isinstance(self.invert, bool)
 

@@ -4,8 +4,8 @@ from typing import NamedTuple, Any, Dict
 from PyQt5.QtGui import QColor
 from qgis._core import QgsVectorLayer, QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol
 
-from hubdsm.core.category import Category
-from hubdsm.core.color import Color
+from _classic.hubdsm.core.category import Category
+from _classic.hubdsm.core.color import Color
 
 
 class QgsVectorClassificationScheme(NamedTuple):

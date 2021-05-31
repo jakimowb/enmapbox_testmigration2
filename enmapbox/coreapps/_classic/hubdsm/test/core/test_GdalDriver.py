@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from hubdsm.core.gdaldriver import (GdalDriver, MEM_DRIVER, ENVI_BSQ_DRIVER, ENVI_BIL_DRIVER,
+from _classic.hubdsm.core.gdaldriver import (GdalDriver, MEM_DRIVER, ENVI_BSQ_DRIVER, ENVI_BIL_DRIVER,
                                     ENVI_BIP_DRIVER, GTIFF_DRIVER, ERDAS_DRIVER, VRT_DRIVER)
 
 

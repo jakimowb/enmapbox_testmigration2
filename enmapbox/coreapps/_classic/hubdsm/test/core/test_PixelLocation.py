@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from hubdsm.core.pixellocation import PixelLocation
+from _classic.hubdsm.core.pixellocation import PixelLocation
 
 
 class TestPixelLocation(TestCase):

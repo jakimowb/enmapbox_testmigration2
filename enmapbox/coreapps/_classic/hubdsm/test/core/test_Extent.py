@@ -1,10 +1,10 @@
 from unittest.case import TestCase
 
-from hubdsm.core.coordinatetransformation import CoordinateTransformation
-from hubdsm.core.extent import Extent
-from hubdsm.core.location import Location
-from hubdsm.core.projection import Projection
-from hubdsm.core.size import Size
+from _classic.hubdsm.core.coordinatetransformation import CoordinateTransformation
+from _classic.hubdsm.core.extent import Extent
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.projection import Projection
+from _classic.hubdsm.core.size import Size
 
 
 class TestExtent(TestCase):

@@ -2,7 +2,7 @@ from typing import List, Any
 
 from osgeo.gdal_array import GDALTypeCodeToNumericTypeCode
 
-from hubdsm.core.raster import Raster
+from _classic.hubdsm.core.raster import Raster
 
 
 def allOneProfile(raster: Raster) -> List[Any]:

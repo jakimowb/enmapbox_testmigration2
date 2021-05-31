@@ -4,7 +4,7 @@ from unittest import TestCase
 from qgis._core import QgsVectorLayer
 
 from enmapboxtestdata import landcover_points
-from hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
+from _classic.hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
 
 
 class TestQgsVectorClassificationScheme(TestCase):

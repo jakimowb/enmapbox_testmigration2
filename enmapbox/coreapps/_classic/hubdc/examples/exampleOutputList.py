@@ -1,5 +1,5 @@
 from osgeo import gdal
-from hubdc import PixelGrid, Applier, ApplierInput, ApplierOutput, ApplierOperator
+from _classic.hubdc import PixelGrid, Applier, ApplierInput, ApplierOutput, ApplierOperator
 
 def script():
 

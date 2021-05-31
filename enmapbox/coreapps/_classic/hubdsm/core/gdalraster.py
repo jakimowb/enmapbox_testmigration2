@@ -6,13 +6,13 @@ from os.path import exists
 import numpy as np
 from osgeo import gdal
 
-from hubdsm.core.error import ProjectionMismatchError
-from hubdsm.core.gdalband import GdalBand
-from hubdsm.core.geotransform import GeoTransform, GdalGeoTransform
-from hubdsm.core.grid import Grid
-from hubdsm.core.gdalmetadatavalueformatter import GdalMetadataValueFormatter
-from hubdsm.core.projection import Projection
-from hubdsm.core.shape import RasterShape, GridShape
+from _classic.hubdsm.core.error import ProjectionMismatchError
+from _classic.hubdsm.core.gdalband import GdalBand
+from _classic.hubdsm.core.geotransform import GeoTransform, GdalGeoTransform
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.gdalmetadatavalueformatter import GdalMetadataValueFormatter
+from _classic.hubdsm.core.projection import Projection
+from _classic.hubdsm.core.shape import RasterShape, GridShape
 
 
 @dataclass(frozen=True)
@@ -45,7 +45,7 @@ class GdalRaster(object):
 
     @property
     def driver(self) -> 'GdalDriver':
-        from hubdsm.core.gdaldriver import GdalDriver
+        from _classic.hubdsm.core.gdaldriver import GdalDriver
         gdalDriver: gdal.Driver = self.gdalDataset.GetDriver()
         return GdalDriver(name=gdalDriver.ShortName)
 
@@ -64,7 +64,7 @@ class GdalRaster(object):
 
     @staticmethod
     def create(grid: Grid, bands=1, gdt: int = None, filename: str = None, gco: List[str] = None) -> 'GdalRaster':
-        from hubdsm.core.gdaldriver import GdalDriver
+        from _classic.hubdsm.core.gdaldriver import GdalDriver
         driver = GdalDriver.fromFilename(filename=filename)
         return driver.createRaster(grid=grid, bands=bands, gdt=gdt, filename=filename, gco=gco)
 
@@ -72,7 +72,7 @@ class GdalRaster(object):
     def createFromArray(
             array: np.ndarray, grid: Optional[Grid] = None, filename: str = None, gco: List[str] = None
     ) -> 'GdalRaster':
-        from hubdsm.core.gdaldriver import GdalDriver
+        from _classic.hubdsm.core.gdaldriver import GdalDriver
         driver = GdalDriver.fromFilename(filename=filename)
         return driver.createFromArray(array=array, grid=grid, filename=filename, gco=gco)
 
@@ -224,7 +224,7 @@ class GdalRaster(object):
             gra: int = None, **kwargs
     ):
         '''Return translated raster.'''
-        from hubdsm.core.gdaldriver import GdalDriver
+        from _classic.hubdsm.core.gdaldriver import GdalDriver
 
         if grid is None:
             grid = self.grid

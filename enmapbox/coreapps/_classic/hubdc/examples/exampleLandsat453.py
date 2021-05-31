@@ -5,8 +5,8 @@ Create a Landsat 4-5-3 band stack.
 import tempfile
 import os
 import numpy
-from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster
-from hubdc.testdata import LT51940232010189KIS01, BrandenburgDistricts
+from _classic.hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster
+from _classic.hubdc.testdata import LT51940232010189KIS01, BrandenburgDistricts
 
 applier = Applier()
 applier.inputRaster.setRaster(key='b3', value=ApplierInputRaster(filename=LT51940232010189KIS01.band3))

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from random import randint
 
-from hubdsm.core.base import DataClassIterable
+from _classic.hubdsm.core.base import DataClassIterable
 
 
 @dataclass(frozen=True)

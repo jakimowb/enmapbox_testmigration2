@@ -2,17 +2,17 @@ import numpy as np
 from PyQt5.QtGui import QColor
 from qgis._core import QgsRasterLayer, QgsPalettedRasterRenderer
 
-from hubdsm.core.category import Category  # needed for eval
-from hubdsm.core.color import Color  # needed for eval
-from hubdsm.core.extent import Extent
-from hubdsm.core.grid import Grid
-from hubdsm.core.location import Location
-from hubdsm.core.projection import Projection
-from hubdsm.core.raster import Raster
-from hubdsm.core.resolution import Resolution
-from hubdsm.core.size import Size
-from hubdsm.processing.classificationstatistics import ClassificationStatistics, ClassificationStatisticsPlot
-from hubdsm.test.processing.testcase import TestCase
+from _classic.hubdsm.core.category import Category  # needed for eval
+from _classic.hubdsm.core.color import Color  # needed for eval
+from _classic.hubdsm.core.extent import Extent
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.projection import Projection
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.core.resolution import Resolution
+from _classic.hubdsm.core.size import Size
+from _classic.hubdsm.processing.classificationstatistics import ClassificationStatistics, ClassificationStatisticsPlot
+from _classic.hubdsm.test.processing.testcase import TestCase
 
 
 class TestClassificationStatistics(TestCase):

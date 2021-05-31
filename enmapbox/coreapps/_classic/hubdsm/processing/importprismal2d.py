@@ -1,5 +1,5 @@
-from hubdsm.algorithm.importprismal2d import importPrismaL2D
-from hubdsm.processing.enmapalgorithm import *
+from _classic.hubdsm.algorithm.importprismal2d import importPrismaL2D
+from _classic.hubdsm.processing.enmapalgorithm import *
 
 
 class ImportPrismaL2D(EnMAPAlgorithm):

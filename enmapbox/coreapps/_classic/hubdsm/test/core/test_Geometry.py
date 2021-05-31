@@ -2,11 +2,11 @@ from unittest.case import TestCase
 
 import numpy as np
 
-from hubdsm.core.coordinatetransformation import CoordinateTransformation
-from hubdsm.core.geometry import Geometry, Envelope
-from hubdsm.core.location import Location
-from hubdsm.core.projection import Projection
-from hubdsm.core.size import Size
+from _classic.hubdsm.core.coordinatetransformation import CoordinateTransformation
+from _classic.hubdsm.core.geometry import Geometry, Envelope
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.projection import Projection
+from _classic.hubdsm.core.size import Size
 
 
 class TestGeometry(TestCase):

@@ -1,5 +1,5 @@
-from hubdsm.processing.importenmapl1c import ImportEnmapL1C
-from hubdsm.test.processing.testcase import TestCase
+from _classic.hubdsm.processing.importenmapl1c import ImportEnmapL1C
+from _classic.hubdsm.test.processing.testcase import TestCase
 
 
 class TestImportEnmapL1C(TestCase):

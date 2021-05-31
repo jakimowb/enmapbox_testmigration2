@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import QApplication, QProgressBar
 from _classic.hubflow.core import *
+import _classic.hubdc.progressbar
 
-
-class ProgressBar(hubdc.progressbar.CUIProgressBar):
+class ProgressBar(_classic.hubdc.progressbar.CUIProgressBar):
 
     def __init__(self, bar):
         assert isinstance(bar, QProgressBar)

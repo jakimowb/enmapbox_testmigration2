@@ -2,7 +2,7 @@ from osgeo import gdal, gdal_array
 from multiprocessing import Process, Queue
 from time import sleep
 import numpy as np
-from hubdc.core import RasterDataset, RasterBandDataset, RasterDriver
+from _classic.hubdc.core import RasterDataset, RasterBandDataset, RasterDriver
 
 class Writer():
     WRITE_ARRAY, WRITE_BANDARRAY, CALL_RASTERMETHOD, CALL_BANDMETHOD, CLOSE_RASTERS, CLOSE_WRITER = range(6)

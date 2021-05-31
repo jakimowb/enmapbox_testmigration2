@@ -2,9 +2,9 @@ from unittest.case import TestCase
 
 import numpy as np
 
-from hubdsm.core.gdaldriver import MEM_DRIVER
-from hubdsm.core.raster import Raster
-from hubdsm.core.rastercollection import RasterCollection
+from _classic.hubdsm.core.gdaldriver import MEM_DRIVER
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.core.rastercollection import RasterCollection
 
 
 class TestRasterCollection(TestCase):

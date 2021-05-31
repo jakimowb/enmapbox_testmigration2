@@ -3,11 +3,11 @@ from unittest import TestCase
 import numpy as np
 from osgeo import gdal
 
-from hubdsm.algorithm.convertraster import convertRaster
-from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.gdaldriver import MEM_DRIVER
-from hubdsm.core.raster import Raster
-from hubdsm.core.shape import GridShape
+from _classic.hubdsm.algorithm.convertraster import convertRaster
+from _classic.hubdsm.algorithm.processingoptions import ProcessingOptions
+from _classic.hubdsm.core.gdaldriver import MEM_DRIVER
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.core.shape import GridShape
 
 
 class TestConvertRaster(TestCase):

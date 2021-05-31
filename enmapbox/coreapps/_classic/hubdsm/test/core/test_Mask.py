@@ -2,9 +2,9 @@ from unittest import TestCase
 
 import numpy as np
 
-from hubdsm.core.band import Band
-from hubdsm.core.mask import Mask
-from hubdsm.core.gdaldriver import MEM_DRIVER
+from _classic.hubdsm.core.band import Band
+from _classic.hubdsm.core.mask import Mask
+from _classic.hubdsm.core.gdaldriver import MEM_DRIVER
 
 outdir = r'c:\unittests\hubdsm'
 

@@ -4,10 +4,10 @@ from typing import Union, List
 import numpy as np
 from osgeo.gdal_array import GDALTypeCodeToNumericTypeCode
 
-from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.gdaldriver import GdalDriver, ENVI_DRIVER, ENVI_BSQ_DRIVER, ENVI_BIL_DRIVER, ENVI_BIP_DRIVER
-from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.core.raster import Raster
+from _classic.hubdsm.algorithm.processingoptions import ProcessingOptions
+from _classic.hubdsm.core.gdaldriver import GdalDriver, ENVI_DRIVER, ENVI_BSQ_DRIVER, ENVI_BIL_DRIVER, ENVI_BIP_DRIVER
+from _classic.hubdsm.core.gdalraster import GdalRaster
+from _classic.hubdsm.core.raster import Raster
 
 
 def saveAsEnvi(gdalRaster: GdalRaster, filename: str = None) -> GdalRaster:

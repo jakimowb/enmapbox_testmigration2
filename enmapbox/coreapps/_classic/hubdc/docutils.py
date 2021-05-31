@@ -16,7 +16,7 @@ def createDocPrint(pyfile):
     return print
 
 def createReportSaveHTML():
-    from hubflow.report import Report
+    from _classic.hubflow.report import Report
     oldSaveHTML = Report.saveHTML
 
     def saveHTML(self, filename, open=False):
@@ -26,7 +26,7 @@ def createReportSaveHTML():
     return saveHTML
 
 def createPyPlotSavefig(filename):
-    from hubflow.core import plt
+    from _classic.hubflow.core import plt
     oldSavefig = plt.savefig
 
     def savefig(*args):

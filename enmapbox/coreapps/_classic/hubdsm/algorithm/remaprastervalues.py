@@ -3,9 +3,9 @@ from typing import List, Dict, Any, Union
 import numpy as np
 from osgeo.gdal_array import NumericTypeCodeToGDALTypeCode
 
-from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.gdaldriver import GdalDriver
-from hubdsm.core.raster import Raster
+from _classic.hubdsm.algorithm.processingoptions import ProcessingOptions
+from _classic.hubdsm.core.gdaldriver import GdalDriver
+from _classic.hubdsm.core.raster import Raster
 
 
 def remapRasterValues(

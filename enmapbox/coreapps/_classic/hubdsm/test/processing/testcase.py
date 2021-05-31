@@ -1,6 +1,6 @@
 import unittest
 
-from hubdsm.processing.enmapalgorithm import EnMAPAlgorithm
+from _classic.hubdsm.processing.enmapalgorithm import EnMAPAlgorithm
 
 from qgis.core import *
 

@@ -4,19 +4,19 @@ from PyQt5.QtGui import QColor
 from osgeo import gdal, ogr
 from qgis._core import QgsPalettedRasterRenderer, QgsRendererCategory, QgsSymbol
 
-from hubdsm.algorithm.importenmapl1b import importEnmapL1B
-from hubdsm.algorithm.remaprastervalues import remapRasterValues
-from hubdsm.core.category import Category
-from hubdsm.core.color import Color
-from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.core.gdaldriver import GdalDriver, VRT_DRIVER
-from hubdsm.core.grid import Grid
-from hubdsm.core.ogrdriver import MEMORY_DRIVER
-from hubdsm.core.ogrlayer import OgrLayer
-from hubdsm.core.ogrvector import OgrVector
-from hubdsm.core.typing import GdalCreationOptions
-from hubdsm.processing.enmapalgorithm import *
-from hubdsm.core.raster import Raster
+from _classic.hubdsm.algorithm.importenmapl1b import importEnmapL1B
+from _classic.hubdsm.algorithm.remaprastervalues import remapRasterValues
+from _classic.hubdsm.core.category import Category
+from _classic.hubdsm.core.color import Color
+from _classic.hubdsm.core.gdalraster import GdalRaster
+from _classic.hubdsm.core.gdaldriver import GdalDriver, VRT_DRIVER
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.ogrdriver import MEMORY_DRIVER
+from _classic.hubdsm.core.ogrlayer import OgrLayer
+from _classic.hubdsm.core.ogrvector import OgrVector
+from _classic.hubdsm.core.typing import GdalCreationOptions
+from _classic.hubdsm.processing.enmapalgorithm import *
+from _classic.hubdsm.core.raster import Raster
 
 
 class SaveLayerAsClassification(EnMAPAlgorithm):

@@ -1,7 +1,7 @@
 from osgeo import gdal
 import numpy
-from hubdc.applier import Applier
-from hubdc.applier import ApplierOperator
+from _classic.hubdc.applier import Applier
+from _classic.hubdc.applier import ApplierOperator
 
 def script():
 

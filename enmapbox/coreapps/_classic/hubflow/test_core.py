@@ -5,22 +5,22 @@ from sklearn.cross_decomposition import PLSRegression
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import enmapboxtestdata
-from hubdc.progressbar import CUIProgressBar
-from hubflow.core import *
-import hubflow.testdata
+from _classic.hubdc.progressbar import CUIProgressBar
+from _classic.hubflow.core import *
+import _classic.hubflow.testdata
 
 CUIProgressBar.SILENT = False
 overwrite = not True
-vector = hubflow.testdata.vector()
-enmap = hubflow.testdata.enmap()
+vector = _classic.hubflow.testdata.vector()
+enmap = _classic.hubflow.testdata.enmap()
 
-enmapClassification = hubflow.testdata.enmapClassification(overwrite=overwrite)
-vectorClassification = hubflow.testdata.vectorClassification()
-vectorRegression = hubflow.testdata.vectorRegression()
-vectorMask = hubflow.testdata.vectorMask()
-vectorPoints = hubflow.testdata.vectorPoints()
-enmapFraction = hubflow.testdata.enmapFraction(overwrite=overwrite)
-enmapRegression = hubflow.testdata.enmapRegression(overwrite=overwrite)
+enmapClassification = _classic.hubflow.testdata.enmapClassification(overwrite=overwrite)
+vectorClassification = _classic.hubflow.testdata.vectorClassification()
+vectorRegression = _classic.hubflow.testdata.vectorRegression()
+vectorMask = _classic.hubflow.testdata.vectorMask()
+vectorPoints = _classic.hubflow.testdata.vectorPoints()
+enmapFraction = _classic.hubflow.testdata.enmapFraction(overwrite=overwrite)
+enmapRegression = _classic.hubflow.testdata.enmapRegression(overwrite=overwrite)
 enmapMask = enmapClassification.asMask()
 speclib = EnviSpectralLibrary(filename=enmapboxtestdata.library)
 # speclib2 = EnviSpectralLibrary(filename=enmapboxtestdata.speclib2)
@@ -30,10 +30,10 @@ rasterMaps = [enmap, enmapClassification, enmapRegression, enmapFraction, enmapM
 vectorsMaps = [vector, vectorClassification, vectorMask]
 maps = rasterMaps + vectorsMaps
 
-enmapSample = hubflow.testdata.enmapSample()
-enmapClassificationSample = hubflow.testdata.enmapClassificationSample()
-enmapRegressionSample = hubflow.testdata.enmapRegressionSample()
-enmapFractionSample = hubflow.testdata.enmapFractionSample()
+enmapSample = _classic.hubflow.testdata.enmapSample()
+enmapClassificationSample = _classic.hubflow.testdata.enmapClassificationSample()
+enmapRegressionSample = _classic.hubflow.testdata.enmapRegressionSample()
+enmapFractionSample = _classic.hubflow.testdata.enmapFractionSample()
 
 samples = [enmapSample, enmapClassificationSample, enmapRegressionSample, enmapFractionSample]
 

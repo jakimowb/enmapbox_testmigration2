@@ -2,11 +2,11 @@ from __future__ import print_function
 import sys
 
 from osgeo import gdal, ogr
-from hubdc import Applier, ApplierOperator, ApplierInput, ApplierOutput
-from hubdc.gis.mgrs import getMGRSPixelGridsByShape
-from hubdc.gis.wrs2 import getWRS2NamesInsidePixelGrid, getWRS2FootprintsGeometry
-from hubdc.landsat.LandsatArchiveParser import LandsatArchiveParser
-from multiprocessing.pool import ThreadPool
+from _classic.hubdc import Applier, ApplierOperator, ApplierInput, ApplierOutput
+from _classic.hubdc.gis.mgrs import getMGRSPixelGridsByShape
+from _classic.hubdc.gis.wrs2 import getWRS2NamesInsidePixelGrid, getWRS2FootprintsGeometry
+from _classic.hubdc.landsat.LandsatArchiveParser import LandsatArchiveParser
+from _classic.multiprocessing.pool import ThreadPool
 
 LANDSAT_ANCHOR = (15, 15)
 

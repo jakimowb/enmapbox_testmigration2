@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from osgeo import osr
 
-from hubdsm.core.projection import Projection
+from _classic.hubdsm.core.projection import Projection
 
 
 @dataclass(frozen=True)

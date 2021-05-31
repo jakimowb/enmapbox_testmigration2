@@ -2,10 +2,10 @@ from qgis._core import QgsRasterLayer
 
 import numpy as np
 
-from hubdsm.core.gdaldriver import ENVI_DRIVER
-from hubdsm.core.raster import Raster
-from hubdsm.processing.aggregatebands import AggregateBands
-from hubdsm.test.processing.testcase import TestCase
+from _classic.hubdsm.core.gdaldriver import ENVI_DRIVER
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.processing.aggregatebands import AggregateBands
+from _classic.hubdsm.test.processing.testcase import TestCase
 
 
 class TestAggregateBands(TestCase):

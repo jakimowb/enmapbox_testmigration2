@@ -3,11 +3,11 @@ from unittest.case import TestCase
 
 import numpy as np
 
-from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
-from hubdsm.core.gdaldriver import MEM_DRIVER
-from hubdsm.core.raster import Raster
-from hubdsm.core.shape import GridShape
+from _classic.hubdsm.algorithm.processingoptions import ProcessingOptions
+from _classic.hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
+from _classic.hubdsm.core.gdaldriver import MEM_DRIVER
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.core.shape import GridShape
 
 
 class TestUniqueBandValueCounts(TestCase):

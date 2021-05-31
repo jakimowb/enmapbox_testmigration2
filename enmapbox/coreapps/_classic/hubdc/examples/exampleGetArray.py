@@ -1,4 +1,4 @@
-from hubdc.applier import Applier, ApplierOperator
+from _classic.hubdc.applier import Applier, ApplierOperator
 
 def script():
 

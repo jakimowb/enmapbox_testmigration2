@@ -317,7 +317,7 @@ class ClassificationWorkflowApp(QMainWindow):
         self.uiTotalSampleSize_.setText('Total sample size = {}'.format(total))
 
     def initClassifier(self):
-        from enmapboxgeoalgorithms.algorithms import ALGORITHMS, ClassifierFit
+        from _classic.enmapboxgeoalgorithms.algorithms import ALGORITHMS, ClassifierFit
         self.classifiers = [alg for alg in ALGORITHMS if isinstance(alg, ClassifierFit)]
         self.classifierNames = [alg.name()[3:] for alg in self.classifiers]
         self.uiClassifier_.addItems(self.classifierNames)

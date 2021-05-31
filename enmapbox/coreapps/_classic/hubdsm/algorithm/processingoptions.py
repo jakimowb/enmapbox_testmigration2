@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Callable
 
-from hubdsm.core.shape import GridShape
+from _classic.hubdsm.core.shape import GridShape
 
 
 def callbackStartDefault(name: str) -> datetime:

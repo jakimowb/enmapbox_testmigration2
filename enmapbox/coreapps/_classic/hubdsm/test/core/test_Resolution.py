@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from hubdsm.core.resolution import Resolution
+from _classic.hubdsm.core.resolution import Resolution
 
 
 class TestResolution(TestCase):

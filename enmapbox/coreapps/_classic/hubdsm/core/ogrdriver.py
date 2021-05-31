@@ -8,11 +8,11 @@ import numpy as np
 from osgeo import gdal, gdal_array, ogr
 from osgeo.gdal_array import NumericTypeCodeToGDALTypeCode
 
-from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.core.grid import Grid
-from hubdsm.core.ogrvector import OgrVector
-from hubdsm.core.projection import Projection
-from hubdsm.core.shape import RasterShape
+from _classic.hubdsm.core.gdalraster import GdalRaster
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.ogrvector import OgrVector
+from _classic.hubdsm.core.projection import Projection
+from _classic.hubdsm.core.shape import RasterShape
 
 
 @dataclass

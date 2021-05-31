@@ -3,8 +3,8 @@ from typing import  Dict
 
 import numpy as np
 
-from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.band import Band
+from _classic.hubdsm.algorithm.processingoptions import ProcessingOptions
+from _classic.hubdsm.core.band import Band
 
 
 def uniqueBandValueCounts(band: Band, po=ProcessingOptions()) -> Dict[int, int]:

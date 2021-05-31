@@ -5,9 +5,9 @@ from dataclasses import dataclass
 from typing import Tuple, Union, Dict, Optional
 
 import numpy as np
-from hubdsm.core.grid import Grid
-from hubdsm.core.raster import Raster
-from hubdsm.core.table import Table
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.core.table import Table
 
 
 @dataclass(frozen=True)

@@ -4,14 +4,14 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QMainWindow, QComboBox, QPlainTextEdit
 from PyQt5.uic import loadUi
 
-from hubdsm.core.size import Size
+from _classic.hubdsm.core.size import Size
 from pyqtgraph import AxisItem
 from pyqtgraph.widgets.PlotWidget import PlotWidget as PlotWidget_
 
-from hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
-from hubdsm.core.category import Category
-from hubdsm.core.raster import Raster
-from hubdsm.processing.enmapalgorithm import *
+from _classic.hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
+from _classic.hubdsm.core.category import Category
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.processing.enmapalgorithm import *
 
 
 class ClassificationStatistics(EnMAPAlgorithm):

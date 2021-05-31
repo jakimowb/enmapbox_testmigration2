@@ -3,9 +3,9 @@ from unittest import TestCase
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
-from hubdsm.algorithm.estimatorpredict import estimatorPredict
-from hubdsm.core.raster import Raster
-from hubdsm.core.rastercollection import RasterCollection
+from _classic.hubdsm.algorithm.estimatorpredict import estimatorPredict
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.core.rastercollection import RasterCollection
 
 
 class TestEstimatorPredict(TestCase):

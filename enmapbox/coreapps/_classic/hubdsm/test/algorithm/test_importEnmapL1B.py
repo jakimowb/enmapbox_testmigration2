@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from osgeo import gdal
 
-from hubdsm.algorithm.importenmapl1b import importEnmapL1B, isEnmapL1BProduct
+from _classic.hubdsm.algorithm.importenmapl1b import importEnmapL1B, isEnmapL1BProduct
 
 
 class TestImportEnmapL1B(TestCase):

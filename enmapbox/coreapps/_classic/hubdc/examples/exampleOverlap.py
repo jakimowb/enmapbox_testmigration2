@@ -2,8 +2,8 @@ import tempfile
 import os
 from scipy.ndimage import uniform_filter
 
-from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierOutputRaster
-from hubdc.examples.testdata import LT51940232010189KIS01
+from _classic.hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierOutputRaster
+from _classic.hubdc.examples.testdata import LT51940232010189KIS01
 
 applier = Applier()
 applier.inputRaster.setRaster(key='image', value=ApplierInputRaster(filename=LT51940232010189KIS01.band3))

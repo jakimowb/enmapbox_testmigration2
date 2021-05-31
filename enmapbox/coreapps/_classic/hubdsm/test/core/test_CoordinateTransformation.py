@@ -1,9 +1,9 @@
 from unittest.case import TestCase
 
-from hubdsm.core.coordinatetransformation import CoordinateTransformation
-from hubdsm.core.geometry import Geometry
-from hubdsm.core.location import Location
-from hubdsm.core.projection import Projection
+from _classic.hubdsm.core.coordinatetransformation import CoordinateTransformation
+from _classic.hubdsm.core.geometry import Geometry
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.projection import Projection
 
 
 class TestCoordinateTransformation(TestCase):

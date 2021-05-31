@@ -5,8 +5,8 @@ Calculate Normalized Difference Vegetation Index (NDVI) for a Landsat 5 scene an
 import tempfile
 import os
 import numpy
-from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierInputRasterIndex, ApplierInputRasterGroup
-from hubdc.testdata import LT51940232010189KIS01, BrandenburgDistricts
+from _classic.hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierInputVector, ApplierOutputRaster, ApplierInputRasterIndex, ApplierInputRasterGroup
+from _classic.hubdc.testdata import LT51940232010189KIS01, BrandenburgDistricts
 
 # Set up input and output filenames.
 applier = Applier()

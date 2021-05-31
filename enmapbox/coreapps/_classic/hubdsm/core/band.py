@@ -5,10 +5,10 @@ from typing import Optional, List, Union
 import numpy as np
 from osgeo import gdal
 
-from hubdsm.core.gdalband import GdalBand
-from hubdsm.core.grid import Grid
-from hubdsm.core.mask import Mask
-from hubdsm.core.table import Table
+from _classic.hubdsm.core.gdalband import GdalBand
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.mask import Mask
+from _classic.hubdsm.core.table import Table
 
 
 @dataclass
@@ -85,7 +85,7 @@ class Band(object):
             xPixel: str = None, yPixel: str = None, xMap: str = None, yMap: str = None,
     ) -> Union[Table, Optional[Table]]:
 
-        from hubdsm.core.raster import Raster
+        from _classic.hubdsm.core.raster import Raster
         if grid is None:
             grid = self.gdalBand.grid
 

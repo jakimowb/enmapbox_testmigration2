@@ -1,5 +1,5 @@
-from hubdsm.algorithm.importdesisl2a import importDesisL2A
-from hubdsm.processing.enmapalgorithm import *
+from _classic.hubdsm.algorithm.importdesisl2a import importDesisL2A
+from _classic.hubdsm.processing.enmapalgorithm import *
 
 
 class ImportDesisL2A(EnMAPAlgorithm):

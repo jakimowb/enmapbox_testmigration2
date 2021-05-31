@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from hubdsm.algorithm.importdesisl2a import isDesisL2AProduct, importDesisL2A
+from _classic.hubdsm.algorithm.importdesisl2a import isDesisL2AProduct, importDesisL2A
 
 
 class TestImportDesisL2A(TestCase):

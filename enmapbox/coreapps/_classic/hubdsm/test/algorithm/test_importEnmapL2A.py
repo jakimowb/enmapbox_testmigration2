@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from hubdsm.algorithm.importenmapl2a import importEnmapL2A, isEnmapL2AProduct
+from _classic.hubdsm.algorithm.importenmapl2a import importEnmapL2A, isEnmapL2AProduct
 
 
 class TestImportEnmapL2A(TestCase):

@@ -1,6 +1,6 @@
 from unittest.case import TestCase
 
-from hubdsm.core.color import Color
+from _classic.hubdsm.core.color import Color
 
 
 class TestColor(TestCase):

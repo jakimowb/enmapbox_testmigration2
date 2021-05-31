@@ -1,4 +1,4 @@
-from hubdc.applier import Grid, Applier, ApplierOperator, CUIProgressBar, SilentProgressBar
+from _classic.hubdc.applier import Grid, Applier, ApplierOperator, CUIProgressBar, SilentProgressBar
 
 def script():
 

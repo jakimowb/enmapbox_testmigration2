@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from math import floor, ceil
 
-from hubdsm.core.location import Location
+from _classic.hubdsm.core.location import Location
 
 
 @dataclass(frozen=True)

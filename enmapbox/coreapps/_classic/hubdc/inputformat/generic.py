@@ -1,4 +1,4 @@
-from hubdc.core2 import *
+from _classic.hubdc.core2 import *
 
 def raster(filename, wavelength=None, date=None):
     rasterDataset = openRasterDataset(filename=filename)

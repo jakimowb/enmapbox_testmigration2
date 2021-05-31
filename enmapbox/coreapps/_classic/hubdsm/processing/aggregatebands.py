@@ -2,9 +2,9 @@ from collections import OrderedDict
 
 import numpy as np
 
-from hubdsm.algorithm.aggregatebands import aggregateBands
-from hubdsm.core.raster import Raster
-from hubdsm.processing.enmapalgorithm import *
+from _classic.hubdsm.algorithm.aggregatebands import aggregateBands
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.processing.enmapalgorithm import *
 
 
 class AggregateBands(EnMAPAlgorithm):

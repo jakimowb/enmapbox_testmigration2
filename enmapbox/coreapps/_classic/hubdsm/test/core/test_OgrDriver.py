@@ -3,8 +3,8 @@ from unittest import TestCase
 
 import numpy as np
 
-from hubdsm.core.ogrdriver import (OgrDriver, MEMORY_DRIVER, SHAPEFILE_DRIVER, GEOPACKAGE_DRIVER)
-from hubdsm.core.ogrvector import OgrVector
+from _classic.hubdsm.core.ogrdriver import (OgrDriver, MEMORY_DRIVER, SHAPEFILE_DRIVER, GEOPACKAGE_DRIVER)
+from _classic.hubdsm.core.ogrvector import OgrVector
 
 
 class TestOgrDriver(TestCase):

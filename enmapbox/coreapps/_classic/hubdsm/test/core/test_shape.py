@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from hubdsm.core.shape import GridShape, RasterShape
+from _classic.hubdsm.core.shape import GridShape, RasterShape
 
 
 class TestGridShape(TestCase):

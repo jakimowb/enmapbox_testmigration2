@@ -3,14 +3,14 @@ from unittest import TestCase
 import numpy as np
 from osgeo import gdal
 
-from hubdsm.algorithm.saveasenvi import saveAsEnvi
-from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.category import Category
-from hubdsm.core.color import Color
-from hubdsm.core.gdaldriver import MEM_DRIVER
-from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.core.raster import Raster
-from hubdsm.core.shape import GridShape
+from _classic.hubdsm.algorithm.saveasenvi import saveAsEnvi
+from _classic.hubdsm.algorithm.processingoptions import ProcessingOptions
+from _classic.hubdsm.core.category import Category
+from _classic.hubdsm.core.color import Color
+from _classic.hubdsm.core.gdaldriver import MEM_DRIVER
+from _classic.hubdsm.core.gdalraster import GdalRaster
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.core.shape import GridShape
 
 
 class TestSaveAsEnvi(TestCase):

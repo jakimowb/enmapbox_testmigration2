@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from hubdsm.core.base import DataClassArray
+from _classic.hubdsm.core.base import DataClassArray
 
 
 @dataclass(frozen=True)

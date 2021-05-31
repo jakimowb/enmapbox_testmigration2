@@ -5,13 +5,13 @@ from dataclasses import dataclass
 
 from osgeo import ogr, gdal
 
-from hubdsm.core.extent import Extent
-from hubdsm.core.geometry import Geometry
-from hubdsm.core.grid import Grid
-from hubdsm.core.location import Location
-from hubdsm.core.projection import Projection
-from hubdsm.core.size import Size
-from hubdsm.core.typing import Number
+from _classic.hubdsm.core.extent import Extent
+from _classic.hubdsm.core.geometry import Geometry
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.projection import Projection
+from _classic.hubdsm.core.size import Size
+from _classic.hubdsm.core.typing import Number
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,7 @@ class OgrLayer(object):
 
     @staticmethod
     def open(filename: str, layerNameOrIndex=None) -> 'OgrLayer':
-        from hubdsm.core.ogrvector import OgrVector
+        from _classic.hubdsm.core.ogrvector import OgrVector
         if layerNameOrIndex is None:
             if '|' in filename:
                 filename, tmp = filename.split('|')
@@ -35,7 +35,7 @@ class OgrLayer(object):
     @property
     def vector(self) -> 'OgrVector':
         """Return OGR vector."""
-        from hubdsm.core.ogrvector import OgrVector
+        from _classic.hubdsm.core.ogrvector import OgrVector
         return OgrVector(ogrDataSource=self.ogrDataSource)
 
     @property
@@ -137,7 +137,7 @@ class OgrLayer(object):
             burnAttribute: str = None, allTouched=False, filterSQL: str = None, filename: str = None,
             gco: List[str] = None
     ) -> 'GdalRaster':
-        from hubdsm.core.gdaldriver import GdalDriver
+        from _classic.hubdsm.core.gdaldriver import GdalDriver
         assert isinstance(grid, Grid)
         if gdt is None:
             gdt = gdal.GDT_Float32

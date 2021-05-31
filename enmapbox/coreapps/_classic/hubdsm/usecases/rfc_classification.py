@@ -3,13 +3,13 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
 from enmapboxtestdata import enmap, hires, landcover_polygons
-from hubdsm.algorithm.estimatorpredict import estimatorPredict
-from hubdsm.core.category import Category
-from hubdsm.core.color import Color
-from hubdsm.core.raster import Raster
+from _classic.hubdsm.algorithm.estimatorpredict import estimatorPredict
+from _classic.hubdsm.core.category import Category
+from _classic.hubdsm.core.color import Color
+from _classic.hubdsm.core.raster import Raster
 
 # prepare features (e.g. raster with different resolutions)
-from hubdsm.core.rastercollection import RasterCollection
+from _classic.hubdsm.core.rastercollection import RasterCollection
 
 enmapRaster = Raster.open(enmap)
 hiresRaster = Raster.open(hires)

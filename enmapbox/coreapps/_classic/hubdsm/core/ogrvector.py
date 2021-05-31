@@ -4,8 +4,8 @@ from typing import Union, Sequence
 
 from osgeo import gdal, ogr, osr
 
-from hubdsm.core.ogrlayer import OgrLayer
-from hubdsm.core.projection import Projection, WGS84_PROJECTION
+from _classic.hubdsm.core.ogrlayer import OgrLayer
+from _classic.hubdsm.core.projection import Projection, WGS84_PROJECTION
 
 
 @dataclass(frozen=True)

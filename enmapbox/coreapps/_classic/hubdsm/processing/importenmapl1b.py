@@ -1,5 +1,5 @@
-from hubdsm.algorithm.importenmapl1b import importEnmapL1B
-from hubdsm.processing.enmapalgorithm import *
+from _classic.hubdsm.algorithm.importenmapl1b import importEnmapL1B
+from _classic.hubdsm.processing.enmapalgorithm import *
 
 
 class ImportEnmapL1B(EnMAPAlgorithm):

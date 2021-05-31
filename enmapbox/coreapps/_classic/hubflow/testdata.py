@@ -7,7 +7,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from osgeo import gdal
-from hubflow.core import *
+from _classic.hubflow.core import *
 import hubdc.progressbar
 import enmapboxtestdata
 

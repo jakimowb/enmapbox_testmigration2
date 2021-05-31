@@ -1,8 +1,8 @@
 from osgeo import gdal, ogr
-from hubdc import Applier, ApplierOperator, ApplierInput, ApplierOutput
-from hubdc.gis.mgrs import getMGRSPixelGridsByShape
-from hubdc.gis.wrs2 import getWRS2NamesInsidePixelGrid
-from hubdc.landsat.LandsatArchiveParser import LandsatArchiveParser
+from _classic.hubdc import Applier, ApplierOperator, ApplierInput, ApplierOutput
+from _classic.hubdc.gis.mgrs import getMGRSPixelGridsByShape
+from _classic.hubdc.gis.wrs2 import getWRS2NamesInsidePixelGrid
+from _classic.hubdc.landsat.LandsatArchiveParser import LandsatArchiveParser
 
 LANDSAT_ANCHOR = (15, 15)
 

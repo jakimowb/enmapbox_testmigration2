@@ -5,8 +5,8 @@ Reads the ENVI/wavelength metadata item from an input dataset and passes it to a
 import tempfile
 import os
 import numpy
-from hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierOutputRaster
-from hubdc.examples.testdata import LT51940232010189KIS01
+from _classic.hubdc.applier import Applier, ApplierOperator, ApplierInputRaster, ApplierOutputRaster
+from _classic.hubdc.examples.testdata import LT51940232010189KIS01
 
 applier = Applier()
 applier.inputRaster.setRaster(key='image', value=ApplierInputRaster(filename=LT51940232010189KIS01.band3))

@@ -2,10 +2,10 @@ import numpy as np
 from qgis._core import QgsRasterLayer
 
 from enmapboxtestdata import enmap
-from hubdsm.core.gdaldriver import MEM_DRIVER
-from hubdsm.core.raster import Raster
-from hubdsm.processing.subsetrasterbands import SubsetRasterBands
-from hubdsm.test.processing.testcase import TestCase
+from _classic.hubdsm.core.gdaldriver import MEM_DRIVER
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.processing.subsetrasterbands import SubsetRasterBands
+from _classic.hubdsm.test.processing.testcase import TestCase
 
 
 class TestSubsetRasterBands(TestCase):

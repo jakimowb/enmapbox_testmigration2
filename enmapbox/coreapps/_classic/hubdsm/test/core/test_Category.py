@@ -7,9 +7,9 @@ from qgis._core import QgsRasterLayer, QgsPalettedRasterRenderer, QgsSingleBandG
 
 import numpy as np
 
-from hubdsm.core.category import Category
-from hubdsm.core.color import Color
-from hubdsm.core.raster import Raster
+from _classic.hubdsm.core.category import Category
+from _classic.hubdsm.core.color import Color
+from _classic.hubdsm.core.raster import Raster
 
 
 class TestCategory(TestCase):

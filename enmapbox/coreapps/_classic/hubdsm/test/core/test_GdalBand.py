@@ -4,21 +4,21 @@ import numpy as np
 from osgeo import gdal, ogr
 
 from enmapboxtestdata import enmap, landcover_polygons
-from hubdsm.core.category import Category
-from hubdsm.core.color import Color
-from hubdsm.core.error import ProjectionMismatchError
-from hubdsm.core.extent import Extent
-from hubdsm.core.gdalband import GdalBand
-from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.core.grid import Grid
-from hubdsm.core.location import Location
-from hubdsm.core.gdaldriver import MEM_DRIVER, ENVI_DRIVER
-from hubdsm.core.ogrlayer import OgrLayer
-from hubdsm.core.pixellocation import PixelLocation
-from hubdsm.core.projection import Projection
-from hubdsm.core.resolution import Resolution
-from hubdsm.core.shape import GridShape
-from hubdsm.core.size import Size
+from _classic.hubdsm.core.category import Category
+from _classic.hubdsm.core.color import Color
+from _classic.hubdsm.core.error import ProjectionMismatchError
+from _classic.hubdsm.core.extent import Extent
+from _classic.hubdsm.core.gdalband import GdalBand
+from _classic.hubdsm.core.gdalraster import GdalRaster
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.gdaldriver import MEM_DRIVER, ENVI_DRIVER
+from _classic.hubdsm.core.ogrlayer import OgrLayer
+from _classic.hubdsm.core.pixellocation import PixelLocation
+from _classic.hubdsm.core.projection import Projection
+from _classic.hubdsm.core.resolution import Resolution
+from _classic.hubdsm.core.shape import GridShape
+from _classic.hubdsm.core.size import Size
 
 
 class TestGdalBand(TestCase):

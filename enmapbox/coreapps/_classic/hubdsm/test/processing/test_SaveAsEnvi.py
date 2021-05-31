@@ -1,11 +1,11 @@
 import numpy as np
 from qgis._core import QgsRasterLayer
 
-from hubdsm.core.category import Category
-from hubdsm.core.color import Color
-from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.processing.saveasenvi import SaveAsEnvi
-from hubdsm.test.processing.testcase import TestCase
+from _classic.hubdsm.core.category import Category
+from _classic.hubdsm.core.color import Color
+from _classic.hubdsm.core.gdalraster import GdalRaster
+from _classic.hubdsm.processing.saveasenvi import SaveAsEnvi
+from _classic.hubdsm.test.processing.testcase import TestCase
 
 
 class TestSaveAsEnvi(TestCase):

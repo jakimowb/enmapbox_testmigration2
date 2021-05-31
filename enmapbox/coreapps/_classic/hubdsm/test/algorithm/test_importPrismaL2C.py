@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from hubdsm.algorithm.importprismal2c import isPrismaL2CProduct, importPrismaL2C
+from _classic.hubdsm.algorithm.importprismal2c import isPrismaL2CProduct, importPrismaL2C
 
 
 class TestImportEnmapL2A(TestCase):

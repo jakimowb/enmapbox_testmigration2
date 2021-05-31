@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from hubdsm.algorithm.processingoptions import ProcessingOptions
-from hubdsm.core.shape import GridShape
+from _classic.hubdsm.algorithm.processingoptions import ProcessingOptions
+from _classic.hubdsm.core.shape import GridShape
 
 
 class TestProcessingOptions(TestCase):

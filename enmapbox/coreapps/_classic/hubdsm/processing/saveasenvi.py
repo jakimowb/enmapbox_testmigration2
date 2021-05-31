@@ -1,7 +1,7 @@
-from hubdsm.algorithm.importenmapl2a import importEnmapL2A
-from hubdsm.algorithm.saveasenvi import saveAsEnvi
-from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.processing.enmapalgorithm import *
+from _classic.hubdsm.algorithm.importenmapl2a import importEnmapL2A
+from _classic.hubdsm.algorithm.saveasenvi import saveAsEnvi
+from _classic.hubdsm.core.gdalraster import GdalRaster
+from _classic.hubdsm.processing.enmapalgorithm import *
 
 
 class SaveAsEnvi(EnMAPAlgorithm):

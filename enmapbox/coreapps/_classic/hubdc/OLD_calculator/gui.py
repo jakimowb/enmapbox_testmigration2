@@ -9,10 +9,10 @@ from PyQt4.Qsci import *
 
 import numpy
 
-from hubdc.model import Open, OpenLayer, Dataset, Layer
-from hubdc.calculator.calculator import *
-import hubdc.const
-import hubdc.progressbar
+from _classic.hubdc.model import Open, OpenLayer, Dataset, Layer
+from _classic.hubdc.calculator.calculator import *
+import _classic.hubdc.const
+import _classic.hubdc.progressbar
 
 #gdal.UseExceptions()
 

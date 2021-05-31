@@ -4,7 +4,7 @@ from typing import Optional
 
 import numpy as np
 
-from hubdsm.core.base import DataClassArray
+from _classic.hubdsm.core.base import DataClassArray
 
 
 @dataclass(frozen=True)

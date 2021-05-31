@@ -11,11 +11,11 @@ from os.path import splitdrive, split, splitext, join
 from timeit import default_timer as now
 import numpy
 from osgeo.gdal_array import NumericTypeCodeToGDALTypeCode
-from hubdc.core import *
+from _classic.hubdc.core import *
 import hubdc.core  # needed for sphinx
-from hubdc.writer import Writer, WriterProcess, QueueMock
-from hubdc.progressbar import CUIProgressBar
-import hubdc.hubdcerrors as errors
+from _classic.hubdc.writer import Writer, WriterProcess, QueueMock
+from _classic.hubdc.progressbar import CUIProgressBar
+import _classic.hubdc.hubdcerrors as errors
 
 class ApplierOptions(object):
     '''Enumeration types.'''

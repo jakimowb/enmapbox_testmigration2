@@ -2,8 +2,8 @@ from sys import version_info
 from unittest import TestCase, skipIf
 
 import enmapboxtestdata
-from hubdc.algorithm.sampling import sample_points, sample_polygons
-from hubdc.core import openRasterDataset, openVectorDataset
+from _classic.hubdc.algorithm.sampling import sample_points, sample_polygons
+from _classic.hubdc.core import openRasterDataset, openVectorDataset
 
 min_version = 30000 + 600
 this_version = version_info.major * 10000 + version_info.minor * 100

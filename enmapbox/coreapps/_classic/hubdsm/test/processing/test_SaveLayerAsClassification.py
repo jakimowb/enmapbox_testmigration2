@@ -5,12 +5,12 @@ import numpy as np
 from qgis._core import QgsRasterLayer, QgsVectorLayer
 
 from enmapboxtestdata import landcover_points, enmap
-from hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
-from hubdsm.core.category import Category
-from hubdsm.core.color import Color
-from hubdsm.core.raster import Raster
-from hubdsm.processing.savelayerasclassification import SaveLayerAsClassification
-from hubdsm.test.processing.testcase import TestCase
+from _classic.hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
+from _classic.hubdsm.core.category import Category
+from _classic.hubdsm.core.color import Color
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.processing.savelayerasclassification import SaveLayerAsClassification
+from _classic.hubdsm.test.processing.testcase import TestCase
 
 
 class TestSaveLayerAsClassification(TestCase):

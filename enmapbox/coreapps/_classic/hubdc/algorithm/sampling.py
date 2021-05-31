@@ -7,7 +7,7 @@ from typing import List, Dict, Tuple, Any
 import numpy as np
 from osgeo import ogr, gdal
 
-from hubdc.core import RasterDataset, VectorDataset, Point, Pixel, Geometry, Extent, MemDriver, GeoPackageDriver
+from _classic.hubdc.core import RasterDataset, VectorDataset, Point, Pixel, Geometry, Extent, MemDriver, GeoPackageDriver
 
 
 def sample_points(raster: RasterDataset, vector: VectorDataset, idField=None) -> Dict[str, List[Pixel]]:

@@ -2,8 +2,8 @@ from osgeo import gdal
 from osgeo.gdal_array import GDALTypeCodeToNumericTypeCode
 
 from enmapboxtestdata import enmap, hires
-from hubdsm.core.raster import Raster
-from hubdsm.core.resolution import Resolution
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.core.resolution import Resolution
 
 # use first three bands of EnMAP and the tree RGB bands from HyMap
 enmapRaster = Raster.open(enmap).select([1, 2, 3])

@@ -5,13 +5,13 @@ import numpy as np
 from osgeo import gdal
 from qgis._core import QgsRasterLayer, QgsRectangle, QgsCoordinateReferenceSystem
 
-from hubdsm.core.extent import Extent
-from hubdsm.core.grid import Grid
-from hubdsm.core.location import Location
-from hubdsm.core.projection import Projection
-from hubdsm.core.raster import Raster
-from hubdsm.core.resolution import Resolution
-from hubdsm.core.size import Size
+from _classic.hubdsm.core.extent import Extent
+from _classic.hubdsm.core.grid import Grid
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.projection import Projection
+from _classic.hubdsm.core.raster import Raster
+from _classic.hubdsm.core.resolution import Resolution
+from _classic.hubdsm.core.size import Size
 
 
 def importPrismaL2C(filenameHe5: str, filenameSpectral: str = None) -> gdal.Dataset:

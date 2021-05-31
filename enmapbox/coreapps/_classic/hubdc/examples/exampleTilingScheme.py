@@ -1,5 +1,5 @@
-from hubdc import PixelGrid, Applier, ApplierOperator, ApplierOutput
-from hubdc.gis.mgrs import getMGRSPixelGridsByNames
+from _classic.hubdc import PixelGrid, Applier, ApplierOperator, ApplierOutput
+from _classic.hubdc.gis.mgrs import getMGRSPixelGridsByNames
 
 LANDSAT_ANCHOR = (15, 15)
 SENTINEL_ANCHOR = (0, 0)

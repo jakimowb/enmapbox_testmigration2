@@ -1,8 +1,8 @@
 import numpy as np
 from osgeo import gdal
 
-from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.processing.enmapalgorithm import *
+from _classic.hubdsm.core.gdalraster import GdalRaster
+from _classic.hubdsm.processing.enmapalgorithm import *
 
 
 class SubsetRasterBands(EnMAPAlgorithm):

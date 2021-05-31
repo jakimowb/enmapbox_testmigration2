@@ -4,9 +4,9 @@ from dataclasses import dataclass
 
 from osgeo import ogr
 
-from hubdsm.core.coordinatetransformation import CoordinateTransformation
-from hubdsm.core.location import Location
-from hubdsm.core.size import Size
+from _classic.hubdsm.core.coordinatetransformation import CoordinateTransformation
+from _classic.hubdsm.core.location import Location
+from _classic.hubdsm.core.size import Size
 
 
 @dataclass(frozen=True)
