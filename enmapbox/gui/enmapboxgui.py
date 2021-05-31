@@ -1421,12 +1421,7 @@ class EnMAPBox(QgisInterface, QObject):
                 for src in exampleSources:
                     if isinstance(src, DataSourceSpatial):
                         lyr = src.createUnregisteredMapLayer()
-                        if isinstance(lyr, QgsRasterLayer):
-                            r = defaultRasterRenderer(lyr)
-                            r.setInput(lyr.dataProvider())
-                            lyr.setRenderer(r)
-                            lyrs.append(lyr)
-                        elif isinstance(lyr, QgsVectorLayer):
+                        if isinstance(lyr, QgsVectorLayer):
                             lyr.updateExtents()
 
                             ext = lyr.extent()
