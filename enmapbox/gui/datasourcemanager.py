@@ -558,12 +558,19 @@ class DataSourceSizesTreeNode(TreeNode):
         if isinstance(dataSource, DataSourceRaster):
             if isinstance(dataSource.mLayer, QgsRasterLayer) and \
                     isinstance(dataSource.mLayer.dataProvider(), QgsRasterDataProvider):
+                lyr = dataSource.mLayer
                 dp: QgsRasterDataProvider = dataSource.mLayer.dataProvider()
                 value.append(f'{dataSource.nSamples()}'
                              f'x{dataSource.nLines()}'
                              f'x{dataSource.nBands()}'
                              f'x{dp.dataTypeSize(1)} Byte')
-                childs += [TreeNode('Samples', value=dataSource.nSamples(), toolTip='Samples/columns in X direction'),
+
+                childs += [TreeNode('Pixel',
+                                    value=f'{lyr.rasterUnitsPerPixelX()}x'
+                                          f'{lyr.rasterUnitsPerPixelY()} '
+                                          f'{QgsUnitTypes.encodeUnit(lyr.crs().mapUnits())}',
+                                    toolTip='Size of single pixel / ground sampling resolution'),
+                           TreeNode('Samples', value=dataSource.nSamples(), toolTip='Samples/columns in X direction'),
                            TreeNode('Lines', value=dataSource.nLines(), toolTip='Lines/rows in Y direction'),
                            TreeNode('Bands', value=dataSource.nBands(), toolTip='Raster bands'),
                            TreeNode('Data Type',
@@ -836,12 +843,6 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
     def __init__(self, *args, **kwds):
         # extents in pixel
         super().__init__(*args, **kwds)
-
-        self.mNodeExtXpx: TreeNode = TreeNode('Samples', toolTip='Data Source Width in Pixel')
-        self.mNodeExtYpx: TreeNode = TreeNode('Lines', toolTip='Data Source Height in Pixel')
-
-        self.mNodePxSize: TreeNode = TreeNode('Pixel', toolTip='Spatial size of single pixel')
-        self.mNodeSize.appendChildNodes([self.mNodeExtXpx, self.mNodeExtXpx, self.mNodePxSize])
 
         self.mNodeBands: TreeNode = TreeNode('Bands', toolTip='Number of Raster Bands')
         self.appendChildNodes(self.mNodeBands)
