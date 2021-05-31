@@ -41,7 +41,7 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
         algFit = FitTestClassifierAlgorithm()
         algFit.initAlgorithm()
         parametersFit = {
-            algFit.P_DATEST: classifierDumpPkl,
+            algFit.P_DATASET: classifierDumpPkl,
             algFit.P_CLASSIFIER: algFit.defaultCodeAsString(),
             algFit.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
         }
@@ -74,7 +74,7 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
             alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
         }
         result = self.runalg(alg, parameters)
-        self.assertEqual(20284282, np.sum(RasterReader(result[alg.P_OUTPUT_RGB]).array()))
+        self.assertEqual(16826968, np.sum(RasterReader(result[alg.P_OUTPUT_RGB]).array()))
 
         # test colors from list
         colors = str([c.color for c in ClassifierDump(**Utils.pickleLoad(classifierDumpPkl)).categories])
@@ -84,4 +84,4 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
             alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
         }
         result = self.runalg(alg, parameters)
-        self.assertEqual(20284282, np.sum(RasterReader(result[alg.P_OUTPUT_RGB]).array()))
+        self.assertEqual(16826968, np.sum(RasterReader(result[alg.P_OUTPUT_RGB]).array()))

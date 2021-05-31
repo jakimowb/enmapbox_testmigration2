@@ -102,7 +102,6 @@ DOCUMENTATION = 'https://enmap-box.readthedocs.io/'
 URL_TESTDATA = r'https://bitbucket.org/hu-geomatics/enmap-box-testdata/get/master.zip'
 URL_INSTALLATION = r'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages'
 URL_QGIS_RESOURCES = r'https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip'
-MIN_VERSION_TESTDATA = '0.12'
 MIN_VERSION_QGIS = '3.16'
 
 PLUGIN_DEPENDENCIES = ['vrtbuilderplugin>=0.9']

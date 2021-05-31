@@ -17,7 +17,7 @@ writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
-class TestVectorToClassificationAlgorithm(TestCase):
+class TestRasterizeCategorizedVectorAlgorithm(TestCase):
 
     def test_pythonCommand(self):
         alg = RasterizeCategorizedVectorAlgorithm()
@@ -31,7 +31,7 @@ class TestVectorToClassificationAlgorithm(TestCase):
         cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
         print(cmd)
         eval(cmd)
-        webbrowser.open_new(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER] + '.log')
+        #webbrowser.open_new(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER] + '.log')
 
     def test_numberClassAttribute(self):
         alg = RasterizeCategorizedVectorAlgorithm()
@@ -48,7 +48,7 @@ class TestVectorToClassificationAlgorithm(TestCase):
                 Utils.categoriesFromCategorizedSymbolRenderer(parameters[alg.P_CATEGORIZED_VECTOR].renderer()),
                 Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
         ):
-            self.assertEqual((c1[1], c1[2]), (c2[1], c2[2]))
+            self.assertEqual((c1.name, c1.color), (c2.name, c2.color))
 
         self.assertEqual(1381, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))
 
@@ -67,7 +67,7 @@ class TestVectorToClassificationAlgorithm(TestCase):
                 Utils.categoriesFromCategorizedSymbolRenderer(parameters[alg.P_CATEGORIZED_VECTOR].renderer()),
                 Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
         ):
-            self.assertEqual((c1[1], c1[2]), (c2[1], c2[2]))
+            self.assertEqual((c1.name, c1.color), (c2.name, c2.color))
         self.assertEqual(4832, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))
 
     def test_withNoneMatching_crs(self):

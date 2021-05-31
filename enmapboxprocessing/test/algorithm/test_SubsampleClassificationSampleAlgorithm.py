@@ -55,7 +55,9 @@ class TestSubsampleClassificationSampleAlgorithm(TestCase):
             alg.P_N: 10,
             alg.P_PROPORTIONAL: True,
             alg.P_REPLACE: True,
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl',
+            alg.P_OUTPUT_COMPLEMENT: c + '/vsimem/sample_complement.pkl'
+
         }
         self.runalg(alg, parameters)
         self.assertEqual(193, len(Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET])['X']))

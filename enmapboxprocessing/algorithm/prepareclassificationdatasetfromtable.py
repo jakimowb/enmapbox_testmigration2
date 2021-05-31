@@ -97,7 +97,7 @@ class PrepareClassificationDatasetFromTable(EnMAPProcessingAlgorithm):
             checkSampleShape(X, y)
 
             dump = ClassifierDump(categories=categories, features=featureFields, X=X, y=y)
-            dumpDict = dump._asdict()
+            dumpDict = dump.__dict__
             Utils.pickleDump(dumpDict, filename)
 
             result = {self.P_OUTPUT_DATASET: filename}

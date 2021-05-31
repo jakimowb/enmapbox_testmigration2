@@ -236,7 +236,7 @@ class ClassificationWorkflowGui(QMainWindow):
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
         loadUi(join(dirname(__file__), 'main.ui'), self)
-        self.url = QUrl('https://enmap-box.readthedocs.io/en/latest/index.html')
+        self.url = QUrl('https://enmap-box.readthedocs.io/en/latest/usr_section/usr_manual/applications.html#classification-workflow')
         self.mMessageBar = QgsMessageBar()
         self.mMessageBar.setMaximumSize(9999999, 50)
         self.centralWidget().layout().addWidget(self.mMessageBar)
@@ -343,6 +343,7 @@ class ClassificationWorkflowGui(QMainWindow):
 
     def initFiles(self):
         self.mWebView.setUrl(self.url)
+        self.mWebHome.clicked.emit()
         self.mWorkingDirectory.setFilePath(join(gettempdir(), 'EnMAPBox', 'ClassificationWorkflow'))
         self.onWorkingDirectoryChanged()
         self.defaultBasenames = {
@@ -788,7 +789,7 @@ class ClassificationWorkflowGui(QMainWindow):
         filenameTrain = self.getTrainingDatasetByIndex(self.mDataFit.currentIndex())
 
         alg = FitGenericClassifier()
-        parameters = {alg.P_DATEST: filenameTrain,
+        parameters = {alg.P_DATASET: filenameTrain,
                       alg.P_CLASSIFIER: self.mCodeClassifier.toPlainText(),
                       alg.P_OUTPUT_CLASSIFIER: self.createOutputFilename(self.mFileClassifierFitted, '.pkl')
                       }

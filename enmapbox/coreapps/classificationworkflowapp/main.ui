@@ -33,7 +33,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <property name="documentMode">
        <bool>true</bool>
@@ -287,7 +287,7 @@
            </sizepolicy>
           </property>
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
           <property name="documentMode">
            <bool>true</bool>
@@ -2640,7 +2640,7 @@ p, li { white-space: pre-wrap; }
             </property>
             <property name="icon">
              <iconset>
-              <normaloff>../../../../../../Users/janzandr/.designer/backup/web_home.svg</normaloff>../../../../../../Users/janzandr/.designer/backup/web_home.svg</iconset>
+              <normaloff>web_home.svg</normaloff>web_home.svg</iconset>
             </property>
             <property name="iconSize">
              <size>

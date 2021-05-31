@@ -75,10 +75,9 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
             if isinstance(map, QgsRasterLayer):
                 alg = TranslateCategorizedRasterAlgorithm()
                 parameters = {
-                    alg.P_CLASSIFICATION: map,
+                    alg.P_CATEGORIZED_RASTER: map,
                     alg.P_GRID: gridOversampled,
                     alg.P_MAJORITY_VOTING: False,
-                    alg.P_CREATION_PROFILE: alg.VrtProfile,
                     alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'classification.x10.vrt')
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)

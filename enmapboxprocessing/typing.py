@@ -51,26 +51,25 @@ class ClassifierDump(object):
     classifier: Optional[Union[Classifier, Pipeline]] = None
 
     def withCategories(self, categories):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['categories'] = categories
         return ClassifierDump(**asdict)
 
     def withFeatures(self, features):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['features'] = features
         return ClassifierDump(**asdict)
 
     def withClassifier(self, classifier):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['classifier'] = classifier
         return ClassifierDump(**asdict)
 
     def withSample(self, X, y):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['X'] = X
         asdict['y'] = y
         return ClassifierDump(**asdict)
-
 
 @typechecked
 @dataclass
@@ -82,12 +81,12 @@ class RegressionDump(object):
     regressor: Optional[Regressor] = None
 
     def withRegressor(self, regressor):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['regressor'] = regressor
         return RegressionDump(**asdict)
 
     def withSample(self, X, y):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['X'] = X
         asdict['y'] = y
         return RegressionDump(**asdict)

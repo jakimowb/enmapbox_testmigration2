@@ -193,10 +193,10 @@ For :guilabel:`Map accuracy and area estimation` select a :guilabel:`Ground trut
 Settings
 --------
 
-In the **Settings** section you can specify the :guilabel:`Output directory` (e.g. `C:\Users\USERNAME\AppData\Local\Temp\EnMAPBox\ClassificationWorkflow`),
+In the **Settings** section you can specify the :guilabel:`Output directory` (e.g. `C:/Users/USERNAME/AppData/Local/Temp/EnMAPBox/ClassificationWorkflow`),
 that is used as the default file destination path, when creating file outputs.
 Note that each output file wigdet (e.g. :guilabel:`Output dataset`) has a default basename (e.g. `dataset.pkl`),
-that is used to create a default file destination (e.g. `C:\Users\USERNAME\AppData\Local\Temp\EnMAPBox\ClassificationWorkflow\dataset.pkl`).
+that is used to create a default file destination (e.g. `C:/Users/USERNAME/AppData/Local/Temp/EnMAPBox/ClassificationWorkflow/dataset.pkl`).
 If the default file destination already exists, the basename is enumerated (e.g. `.dataset_2.pkl`) to avoid overwriting existing outputs.
 
 Log

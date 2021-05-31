@@ -2,7 +2,7 @@ from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtable import P
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapboxunittestdata import classificationSampleAsTable
+from enmapboxunittestdata import classificationDatasetAsCsv
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -13,7 +13,7 @@ class TestPrepareClassificationDatasetFromTable(TestCase):
     def test_minimallySpecified_numberValues(self):
         alg = PrepareClassificationDatasetFromTable()
         parameters = {
-            alg.P_TABLE: classificationSampleAsTable,
+            alg.P_TABLE: classificationDatasetAsCsv,
             alg.P_FEATURE_FIELDS: [f'Band_{i + 1}' for i in range(177)],
             alg.P_VALUE_FIELD: 'level_1_id',
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
@@ -31,7 +31,7 @@ class TestPrepareClassificationDatasetFromTable(TestCase):
     def test_minimallySpecified_stringValues(self):
         alg = PrepareClassificationDatasetFromTable()
         parameters = {
-            alg.P_TABLE: classificationSampleAsTable,
+            alg.P_TABLE: classificationDatasetAsCsv,
             alg.P_FEATURE_FIELDS: [f'Band_{i + 1}' for i in range(177)],
             alg.P_VALUE_FIELD: 'level_1',
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
@@ -49,7 +49,7 @@ class TestPrepareClassificationDatasetFromTable(TestCase):
     def test_fullySpecified(self):
         alg = PrepareClassificationDatasetFromTable()
         parameters = {
-            alg.P_TABLE: classificationSampleAsTable,
+            alg.P_TABLE: classificationDatasetAsCsv,
             alg.P_FEATURE_FIELDS: [f'Band_{i + 1}' for i in range(177)],
             alg.P_VALUE_FIELD: 'level_1_id',
             alg.P_NAME_FIELD: 'level_1',

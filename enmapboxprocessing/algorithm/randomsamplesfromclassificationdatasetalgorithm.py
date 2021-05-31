@@ -96,13 +96,13 @@ class RandomSamplesFromClassificationDatasetAlgorithm(EnMAPProcessingAlgorithm):
 
             # store sample
             dump2 = dump.withSample(dump.X[indices], dump.y[indices]).withClassifier(None)
-            Utils.pickleDump(dump2._asdict(), filename)
+            Utils.pickleDump(dump2.__dict__, filename)
 
             # store conmplement
             indices2 = np.full((dump.X.shape[0],), True, bool)
             indices2[indices] = False
             dump2 = dump.withSample(dump.X[indices2], dump.y[indices2]).withClassifier(None)
-            Utils.pickleDump(dump2._asdict(), filename2)
+            Utils.pickleDump(dump2.__dict__, filename2)
 
             result = {self.P_OUTPUT_DATASET: filename, self.P_OUTPUT_COMPLEMENT: filename2}
             self.toc(feedback, result)

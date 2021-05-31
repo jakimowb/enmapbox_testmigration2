@@ -28,7 +28,7 @@ class TestTranslateClassificationAlgorithm(TestCase):
         cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
         print(cmd)
         eval(cmd)
-        webbrowser.open_new(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER] + '.log')
+        #webbrowser.open_new(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER] + '.log')
 
     def test_default(self):
         alg = TranslateCategorizedRasterAlgorithm()

@@ -113,7 +113,8 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
             feedback.pushInfo(f'Sampled data: X=array{list(X.shape)} y=array{list(y.shape)}')
 
             dump = ClassifierDump(categories=categories, features=features, X=X, y=y)
-            dumpDict = dump._asdict()
+            dumpDict = dump.__dict__
+
             Utils.pickleDump(dumpDict, filename)
 
             result = {self.P_OUTPUT_DATASET: filename}

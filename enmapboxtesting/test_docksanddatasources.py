@@ -141,6 +141,8 @@ class testDataSources(EnMAPBoxTestCase):
 
         w = DockPanelUI()
         DM = DockManager()
+        dockArea = DockArea()
+        DM.connectDockArea(dockArea)
         self.assertIsInstance(w, DockPanelUI)
         self.assertIsInstance(DM, DockManager)
         w.connectDockManager(DM)
@@ -163,8 +165,7 @@ class testDataSources(EnMAPBoxTestCase):
         da = DockArea()
         dock = MimeDataDock()
         da.addDock(dock)
-        da.show()
-        self.showGui(da)
+        # self.showGui(da)
 
     def test_TextDock(self):
         da = DockArea()

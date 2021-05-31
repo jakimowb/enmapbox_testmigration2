@@ -27,7 +27,7 @@ class TestRasterizeAlgorithm(TestCase):
         cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
         print(cmd)
         eval(cmd)
-        webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
+        #webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
 
     def test_default(self):
         alg = RasterizeVectorAlgorithm()
@@ -45,7 +45,6 @@ class TestRasterizeAlgorithm(TestCase):
         parameters = {
             alg.P_GRID: QgsRasterLayer(enmap),
             alg.P_VECTOR: QgsVectorLayer(landcover_polygons_3classes_epsg4326),
-            alg.P_CREATION_PROFILE: alg.VrtProfile,
             alg.P_OUTPUT_RASTER: c + '/vsimem/mask.vrt'
         }
         result = self.runalg(alg, parameters)

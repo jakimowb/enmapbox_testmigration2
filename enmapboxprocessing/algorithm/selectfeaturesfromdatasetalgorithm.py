@@ -69,7 +69,7 @@ class SelectFeaturesFromDatasetAlgorithm(EnMAPProcessingAlgorithm):
                     )
                 indices.append(index)
 
-            dumpDict = dump._asdict()
+            dumpDict = dump.__dict__.copy()
             dumpDict['X'] = dump.X[:, indices]
             dumpDict['features'] = [dump.features[index] for index in indices]
             Utils.pickleDump(dumpDict, filename)
