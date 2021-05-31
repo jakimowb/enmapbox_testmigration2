@@ -1,7 +1,7 @@
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMenu, QAction
 
-from _classic.classificationapp.core import ClassificationWorkflowGui
+from _classic.classificationapp.core import ClassificationWorkflowApp
 from enmapbox.gui.applications import EnMAPBoxApplication
 
 def enmapboxApplicationFactory(enmapBox):
@@ -30,5 +30,5 @@ class ClassificationWorkflowClassicApp(EnMAPBoxApplication):
         return []
 
     def startGUI(self, *args):
-        w = ClassificationWorkflowGui(parent=self.enmapbox.ui)
+        w = ClassificationWorkflowApp(parent=self.enmapbox.ui)
         w.show()

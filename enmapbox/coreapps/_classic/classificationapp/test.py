@@ -1,6 +1,6 @@
 from enmapbox import EnMAPBox
 from enmapbox.testing import initQgisApplication
-from _classic.classificationapp.core import ClassificationWorkflowGui
+from _classic.classificationapp.core import ClassificationWorkflowApp
 
 if __name__ == '__main__':
 
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     #    enmapBox.addSource(source=source)
 
     try:
-        widget = ClassificationWorkflowGui()
+        widget = ClassificationWorkflowApp()
         widget.show()
 
         qgsApp.exec_()

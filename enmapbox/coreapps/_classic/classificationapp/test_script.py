@@ -6,10 +6,10 @@ from qgis._core import QgsVectorLayer, QgsRasterLayer
 
 from enmapbox.externals.qps.speclib.core import SpectralLibrary
 from _classic.classificationapp.script import classificationWorkflow
-from hubdsm.core.gdalraster import GdalRaster
-from hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
-from hubdsm.processing.savelayerasclassification import saveLayerAsClassification
-from hubflow.core import EnviSpectralLibrary, Classification, ClassificationSample, Classifier, Raster, ClassDefinition
+from _classic.hubdsm.core.gdalraster import GdalRaster
+from _classic.hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
+from _classic.hubdsm.processing.savelayerasclassification import saveLayerAsClassification
+from _classic.hubflow.core import EnviSpectralLibrary, Classification, ClassificationSample, Classifier, Raster, ClassDefinition
 
 def test_enviSpeclib():
     from sklearn.ensemble import RandomForestClassifier

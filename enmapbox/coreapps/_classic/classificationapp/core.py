@@ -1,8 +1,9 @@
+import inspect
 import tempfile
 import traceback
-from random import randint
 
 from PyQt5.uic import loadUi
+from qgis._core import QgsPalettedRasterRenderer
 from qgis.core import *
 from qgis.gui import *
 from PyQt5.QtCore import *
@@ -10,6 +11,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from enmapbox.externals.qps.speclib.core import SpectralLibrary
+from _classic.hubdsm.core.color import Color as HubdsmColor
 from _classic.hubdsm.core.gdalraster import GdalRaster
 from _classic.hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
 from _classic.hubdsm.processing.savelayerasclassification import saveLayerAsClassification
@@ -19,7 +21,7 @@ from _classic.classificationapp.script import classificationWorkflow, ProgressBa
 pathUi = join(dirname(__file__), 'ui')
 
 
-class ClassificationWorkflowGui(QMainWindow):
+class ClassificationWorkflowApp(QMainWindow):
     uiTrainingType_: QComboBox
     uiType0Raster_: QgsMapLayerComboBox
     uiType0Classification_: QgsMapLayerComboBox
@@ -163,7 +165,8 @@ class ClassificationWorkflowGui(QMainWindow):
                     categories = list()
                     for value in uniqueValues:
                         name = str(value)
-                        color = QColor(randint(1, 2**24)).name()
+                        color = HubdsmColor.fromRandom()
+                        color = QColor(color.red, color.green, color.blue).name()
                         symbol = QgsMarkerSymbol.createSimple(
                         {'color': color, 'size': '2', 'outline_color': 'black'})
                         categories.append(QgsRendererCategory(value, symbol, name, True))
@@ -314,8 +317,7 @@ class ClassificationWorkflowGui(QMainWindow):
         self.uiTotalSampleSize_.setText('Total sample size = {}'.format(total))
 
     def initClassifier(self):
-        return
-        from enmapboxgeoalgorithms.algorithms import ALGORITHMS
+        from enmapboxgeoalgorithms.algorithms import ALGORITHMS, ClassifierFit
         self.classifiers = [alg for alg in ALGORITHMS if isinstance(alg, ClassifierFit)]
         self.classifierNames = [alg.name()[3:] for alg in self.classifiers]
         self.uiClassifier_.addItems(self.classifierNames)
