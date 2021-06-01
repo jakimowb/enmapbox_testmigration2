@@ -483,6 +483,29 @@ class EnMAPBox(QgisInterface, QObject):
         :return:
         """
         a = QAction(button_text)
+    def showMessage(self, msg:str, title:str='Message', html:bool=False):
+        viewer = QgsMessageViewer()
+        viewer.setWindowTitle(title)
+        if html:
+            viewer.setMessageAsHtml(msg)
+        else:
+            viewer.setMessageAsPlainText(msg)
+        viewer.showMessage(blocking=True)
+
+    def addMessageBarTextBoxItem(self, title: str, text: str,
+                                 level: Qgis.MessageLevel = Qgis.Info,
+                                 buttonTitle='Show more',
+                                 html=False):
+        """
+        Adds a message to the message bar that can be shown in detail using a text browser.
+        :param title:
+        :param text:
+        :param level:
+        :param buttonTitle:
+        :param html:
+        :return:
+        """
+        a = QAction(buttonTitle)
         btn = QToolButton()
         btn.setStyleSheet("background-color: rgba(255, 255, 255, 0); color: black; text-decoration: underline;")
         btn.setCursor(Qt.PointingHandCursor)
@@ -1343,6 +1366,19 @@ class EnMAPBox(QgisInterface, QObject):
                 QgsApplication.instance().messageLog().logMessage(info, 'EnMAP-Box',
                                                                   level=Qgis.Warning,
                                                                   notifyUser=False)
+                    n_errors_to_show += 1
+                    info.append(r'<br /><b>{}:</b>'.format(app))
+                    info.append('<p>')
+                    if v == False:
+                        info.append(r'"{}" did not return any EnMAPBoxApplication\n'.format(v))
+                    elif isinstance(v, str):
+                        info.append('<code>{}</code>'.format(v.replace('\n', '<br />\n')))
+                    info.append('</p>')
+                    counts[app] = n_counts + 1
+            if n_errors_to_show > 0:
+                self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Warning, html=True)
+            else:
+                messageLog(title + '\n' + '\n'.join(info), level=Qgis.Info)
         settings.setValue(KEY_COUNTS, counts)
 
     def settings(self) -> QSettings:
