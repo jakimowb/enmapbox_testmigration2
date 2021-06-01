@@ -1366,19 +1366,7 @@ class EnMAPBox(QgisInterface, QObject):
                 QgsApplication.instance().messageLog().logMessage(info, 'EnMAP-Box',
                                                                   level=Qgis.Warning,
                                                                   notifyUser=False)
-                    n_errors_to_show += 1
-                    info.append(r'<br /><b>{}:</b>'.format(app))
-                    info.append('<p>')
-                    if v == False:
-                        info.append(r'"{}" did not return any EnMAPBoxApplication\n'.format(v))
-                    elif isinstance(v, str):
-                        info.append('<code>{}</code>'.format(v.replace('\n', '<br />\n')))
-                    info.append('</p>')
-                    counts[app] = n_counts + 1
-            if n_errors_to_show > 0:
-                self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Warning, html=True)
-            else:
-                messageLog(title + '\n' + '\n'.join(info), level=Qgis.Info)
+
         settings.setValue(KEY_COUNTS, counts)
 
     def settings(self) -> QSettings:
