@@ -44,7 +44,7 @@ def generateRST():
 
         # create group folder
         groupId = gkey.lower()
-        for c in ' ,':
+        for c in ' ,*':
             groupId = groupId.replace(c, '_')
         groupFolder = join(root, groupId)
         makedirs(groupFolder)
