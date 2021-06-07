@@ -16,7 +16,7 @@
 *                                                                         *
 ***************************************************************************
 """
-
+import re
 from typing import Optional, Dict, Union
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 import enmapbox
@@ -458,6 +458,40 @@ class EnMAPBox(QgisInterface, QObject):
         debugLog('Load settings from QgsProject.instance()')
         self.onReloadProject()
 
+    def showMessage(self, msg:str, title:str='Message', html:bool=False):
+        viewer = QgsMessageViewer()
+        viewer.setWindowTitle(title)
+        if html:
+            viewer.setMessageAsHtml(msg)
+        else:
+            viewer.setMessageAsPlainText(msg)
+        viewer.showMessage(blocking=True)
+
+    def addMessageBarTextBoxItem(self,
+                                 title: str,
+                                 text: str,
+                                 level: Qgis.MessageLevel = Qgis.Info,
+                                 button_text: str = 'Show more',
+                                 html: bool = False):
+        """
+        Adds a message to the message bar that can be shown in detail using a text browser.
+        :param title:
+        :param text:
+        :param level:
+        :param button_text:
+        :param html:
+        :return:
+        """
+        a = QAction(button_text)
+    def showMessage(self, msg:str, title:str='Message', html:bool=False):
+        viewer = QgsMessageViewer()
+        viewer.setWindowTitle(title)
+        if html:
+            viewer.setMessageAsHtml(msg)
+        else:
+            viewer.setMessageAsPlainText(msg)
+        viewer.showMessage(blocking=True)
+
     def addMessageBarTextBoxItem(self, title: str, text: str,
                                  level: Qgis.MessageLevel = Qgis.Info,
                                  buttonTitle='Show more',
@@ -471,16 +505,6 @@ class EnMAPBox(QgisInterface, QObject):
         :param html:
         :return:
         """
-
-        def showMessage(msg):
-            viewer = QgsMessageViewer()
-            viewer.setWindowTitle(title)
-            if html:
-                viewer.setMessageAsHtml(msg)
-            else:
-                viewer.setMessageAsPlainText(msg)
-            viewer.showMessage(blocking=True)
-
         a = QAction(buttonTitle)
         btn = QToolButton()
         btn.setStyleSheet("background-color: rgba(255, 255, 255, 0); color: black; text-decoration: underline;")
@@ -488,7 +512,8 @@ class EnMAPBox(QgisInterface, QObject):
         btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
         btn.addAction(a)
         btn.setDefaultAction(a)
-        btn.triggered.connect(lambda *args, msg=text: showMessage(msg))
+        btn.triggered.connect(lambda *args, msg=text, tit=title, showHTML=html:
+                              self.showMessage(msg, html=showHTML, title=tit))
         btn.triggered.connect(btn.deleteLater)
 
         item = QgsMessageBarItem(title, '', btn, level, 200)
@@ -1316,24 +1341,32 @@ class EnMAPBox(QgisInterface, QObject):
             for app in to_remove:
                 counts.pop(app)
 
+            n_errors_to_show = 0
             for app in errorApps:
 
                 v = self.applicationRegistry.mAppInitializationMessages[app]
 
                 n_counts = counts.get(app, 0)
                 if n_counts < MAX_MISSING_DEPENDENCY_WARNINGS:
-
-                    info.append(r'</br><b>{}:</b>'.format(app))
-                    info.append('<p>')
-                    if v == False:
-                        info.append(r'"{}" did not return any EnMAPBoxApplication\n'.format(v))
-                    elif isinstance(v, str):
-                        info.append('<code>{}</code>'.format(v.replace('\n', '<br />\n')))
-                    info.append('</p>')
+                    n_errors_to_show += 1
                     counts[app] = n_counts + 1
 
-            self.addMessageBarTextBoxItem(title, '\n'.join(info), level=Qgis.Warning, html=True)
-            messageLog(title + '\n' + '\n'.join(info), level=Qgis.Warning)
+                info.append(r'<br /><b>{}:</b>'.format(app))
+                info.append('<p>')
+                if v == False:
+                    info.append(r'"{}" did not return any EnMAPBoxApplication\n'.format(v))
+                elif isinstance(v, str):
+                    info.append('<code>{}</code>'.format(v.replace('\n', '<br />\n')))
+                info.append('</p>')
+
+            info = '\n'.join(info)
+            if n_errors_to_show > 0:
+                self.addMessageBarTextBoxItem(title, info, level=Qgis.Warning, html=True)
+            else:
+                QgsApplication.instance().messageLog().logMessage(info, 'EnMAP-Box',
+                                                                  level=Qgis.Warning,
+                                                                  notifyUser=False)
+
         settings.setValue(KEY_COUNTS, counts)
 
     def settings(self) -> QSettings:
@@ -1378,8 +1411,10 @@ class EnMAPBox(QgisInterface, QObject):
             duration = 200
         else:
             duration = 50
-
-        mbar.pushMessage(tag, line1, showMore, level, duration)
+        # self.showMessage()
+        # mbar.pushMessage(tag, line1, showMore, level, duration)
+        contains_html = re.search(r'<(html|br|a|p/?>)', message) is not None
+        self.addMessageBarTextBoxItem(line1, message, level=level, html=contains_html)
 
     def onDataDropped(self, droppedData):
         assert isinstance(droppedData, list)
@@ -1424,6 +1459,7 @@ class EnMAPBox(QgisInterface, QObject):
                         if isinstance(lyr, QgsVectorLayer):
                             lyr.updateExtents()
 
+                        if isinstance(lyr, QgsMapLayer):
                             ext = lyr.extent()
                             if not ext.isNull() and ext.width() > 0:
                                 lyrs.append(lyr)
