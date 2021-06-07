@@ -15,11 +15,11 @@ For example, pure pixels with cover fractions of 1 appear in its pure category c
 
 
 :guilabel:`Colors` [string]
-    Comma separated list of hex-colors representing (pure) category colors, one color for each band in the given class probability/fraction layer.
+    Comma separated list of hex-color strings (e.g. '#FF0000' for red) representing (pure) category colors, one color for each band in the given class probability/fraction layer. If not specified, colors have to be specified by a categorized layer (Colors from categorized layer).
 
 
 :guilabel:`Colors from categorized layer` [layer]
-    A categorized layer with (pure) category colors, one category for each band in the given class probability/fraction layer.
+    A categorized layer with (pure) category colors, one category for each band in the given class probability/fraction layer. If not specified, colors have to be specified by list (Colors).
 
 **Outputs**
 

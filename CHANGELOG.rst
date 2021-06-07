@@ -2,6 +2,7 @@ CHANGELOG
 =========
 Version 3.8
 -----------
+
 * rename layers, map views and spectral library views with F2
 * model browser: improved visualization (#645, #646, #647), array values can be copied to clipboard (#520)
 * layers can be moved between maps (#437)
@@ -9,6 +10,7 @@ Version 3.8
 
 Version 3.7
 -----------
+* introduced a Glossary explaining common terms
 
 * added EnMAP L1B, L1C and L2A product reader
 * added PRISMA L2D product import
