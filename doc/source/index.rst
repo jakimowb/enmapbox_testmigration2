@@ -105,8 +105,9 @@ Two Presentations by EnMAP-Box developers Andreas Rabe and Benjamin Jakimow at t
     dev_section/dev_publish_enmapbox.rst
     dev_section/dev_cookbook/dev_cookbook.rst
     dev_section/dev_guide.rst
-    dev_section/api/modules.rst
     dev_section/programming_tutorials/index.rst
+..    dev_section/api/modules.rst
+
 
 
 
