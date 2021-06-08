@@ -1026,7 +1026,7 @@ class ClassificationWorkflowGui(QMainWindow):
 
         # overwrite sample
         dump = dump.withCategories(categories).withFeatures(features)
-        Utils.pickleDump(dump._asdict(), filename)
+        Utils.pickleDump(dump.__dict__, filename)
 
     @errorHandled(successMessage=None)
     def onSetTrainSize(self, *args):
