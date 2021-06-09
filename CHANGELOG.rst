@@ -2,6 +2,25 @@ CHANGELOG
 =========
 Version 3.8
 -----------
+* introduced a Glossary explaining common terms
+* overhauled Classification Workflow app; old version is still available as Classification Workflow (Classic)
+* overhauled several processing algorithms related to classification fit, predict, accuracy accessment and random sub-sampling
+* overhauled processing algorithms show command line and Python commands for re-executing the algorithms with same inputs
+* added a processing algorithm for calculating a classification change map from two classifications
+* overhauled existing and introduced new processing algorithms for prepare classification (training/testing) datasets;
+  currently we support classification data from raster/vector layers, from table; from text file; from spectral library
+* added processing algorithm for supervised classifier feature ranking using permutation importances
+* added processing algorithm for unsupervised feature clustering
+* overhauled processing algorithm for creating RGB images from class probability or class fraction layer
+* added processing algorithm for creating a grid (i.e. an empty raster layer) by specifying target CRS, extent and size
+* added processing algorithm for doing raster math with a list of input raster layers
+* added processing algorithm for rasterizing categoriezed vector layers
+* overhauled processing algorithm for rasterizing vector layers (improved performance)
+* added processing algorithm for translating categorized raster layers
+* overhauled processing algorithm for translating raster layers
+* added processing algorithms for creating random points from mask and categorized raster layers
+* added processing algorithm for sampling of raster layer values
+* added processing algorithm for decorrelation stretching
 * rename layers, map views and spectral library views with F2
 * model browser: improved visualization (#645, #646, #647), array values can be copied to clipboard (#520)
 * layers can be moved between maps (#437)
@@ -9,7 +28,6 @@ Version 3.8
 
 Version 3.7
 -----------
-
 * added EnMAP L1B, L1C and L2A product reader
 * added PRISMA L2D product import
 * added DESIS L2A product reader

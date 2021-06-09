@@ -169,9 +169,13 @@ Linux
 1. Close QGIS, if it is open.
 2. Open the terminal and install all missing packages using pip:
 
+   .. hint:: Make sure to execute the pip command in the python environment QGIS is using (usually you can find out where
+             python is located by running ``import sys; sys.executable`` in the QGIS Python Console). You then might have
+             to change the ``python3`` part in the snippet below with the explicit QGIS python path.
+
    .. code-block:: bash
 
-      pip3 install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
+      python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
 |
 
@@ -180,8 +184,8 @@ Linux
 Mac
 ***
 
-Since QGIS 3.16, the `packaging mechanism <https://www.lutraconsulting.co.uk/blog/2020/10/01/qgis-macos-package/>`_,
-allows to install additional package with pip as followed::
+Since QGIS 3.16, the `packaging mechanism <https://www.lutraconsulting.co.uk/blog/2020/10/01/qgis-macos-package/>`_ for Mac builds changed.
+Additional packages can be installed with pip as follows::
 
    /Applications/QGIS.app/Contents/MacOS/bin/pip3 install astropy
 

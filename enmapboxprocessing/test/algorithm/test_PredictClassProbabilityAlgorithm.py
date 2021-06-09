@@ -2,16 +2,13 @@ import numpy as np
 from sklearn.base import ClassifierMixin
 
 from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
-from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, landcover_polygons, landcover_points
-from enmapboxunittestdata import landcover_raster_30m
+from enmapboxtestdata import enmap, landcover_polygons
+from enmapboxunittestdata import landcover_raster_30m, classifierDumpPkl
 
 writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
-
 
 class FitTestClassifierAlgorithm(FitClassifierAlgorithmBase):
 
@@ -33,13 +30,12 @@ class FitTestClassifierAlgorithm(FitClassifierAlgorithmBase):
 class TestPredictClassProbabilityAlgorithm(TestCase):
 
     def test_default(self):
-        global c
         algFit = FitTestClassifierAlgorithm()
         algFit.initAlgorithm()
         parametersFit = {
-            algFit.P_RASTER: enmap,
-            algFit.P_CLASSIFICATION: landcover_points,
-            algFit.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+            algFit.P_DATASET: classifierDumpPkl,
+            algFit.P_CLASSIFIER: algFit.defaultCodeAsString(),
+            algFit.P_OUTPUT_CLASSIFIER: 'c:/vsimem/classifier.pkl',
         }
         self.runalg(algFit, parametersFit)
 
@@ -48,18 +44,18 @@ class TestPredictClassProbabilityAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: enmap,
             alg.P_CLASSIFIER: parametersFit[algFit.P_OUTPUT_CLASSIFIER],
-            alg.P_OUTPUT_RASTER: c + '/vsimem/probability.tif'
+            alg.P_OUTPUT_PROBABILITY: 'c:/vsimem/probability.tif'
         }
         result = self.runalg(alg, parameters)
-        self.assertEqual(-13052, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array())))
+        self.assertEqual(-13052, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_PROBABILITY]).array())))
 
     def test_rasterMask(self):
         algFit = FitTestClassifierAlgorithm()
         algFit.initAlgorithm()
         parametersFit = {
-            algFit.P_RASTER: enmap,
-            algFit.P_CLASSIFICATION: landcover_points,
-            algFit.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+            algFit.P_DATASET: classifierDumpPkl,
+            algFit.P_CLASSIFIER: algFit.defaultCodeAsString(),
+            algFit.P_OUTPUT_CLASSIFIER: 'c:/vsimem/classifier.pkl',
         }
         self.runalg(algFit, parametersFit)
 
@@ -69,18 +65,18 @@ class TestPredictClassProbabilityAlgorithm(TestCase):
             alg.P_RASTER: enmap,
             alg.P_CLASSIFIER: parametersFit[algFit.P_OUTPUT_CLASSIFIER],
             alg.P_MASK: landcover_raster_30m,
-            alg.P_OUTPUT_RASTER: c + '/vsimem/probability.tif'
+            alg.P_OUTPUT_PROBABILITY: 'c:/vsimem/probability.tif'
         }
         result = self.runalg(alg, parameters)
-        self.assertEqual(-427832, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array())))
+        self.assertEqual(-427832, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_PROBABILITY]).array())))
 
     def test_vectorMask(self):
         algFit = FitTestClassifierAlgorithm()
         algFit.initAlgorithm()
         parametersFit = {
-            algFit.P_RASTER: enmap,
-            algFit.P_CLASSIFICATION: landcover_points,
-            algFit.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+            algFit.P_DATASET: classifierDumpPkl,
+            algFit.P_CLASSIFIER: algFit.defaultCodeAsString(),
+            algFit.P_OUTPUT_CLASSIFIER: 'c:/vsimem/classifier.pkl',
         }
         self.runalg(algFit, parametersFit)
 
@@ -90,7 +86,7 @@ class TestPredictClassProbabilityAlgorithm(TestCase):
             alg.P_RASTER: enmap,
             alg.P_CLASSIFIER: parametersFit[algFit.P_OUTPUT_CLASSIFIER],
             alg.P_MASK: landcover_polygons,
-            alg.P_OUTPUT_RASTER: c + '/vsimem/probability.tif'
+            alg.P_OUTPUT_PROBABILITY: 'c:/vsimem/probability.tif'
         }
         result = self.runalg(alg, parameters)
-        self.assertEqual(-427832, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array())))
+        self.assertEqual(-427832, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_PROBABILITY]).array())))

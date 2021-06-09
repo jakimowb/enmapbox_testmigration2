@@ -120,8 +120,8 @@ class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
                     aY[valid] = y[:, i]
                     writer.writeArray2d(aY, i + 1, xOffset=block.xOffset, yOffset=block.yOffset)
 
-            for bandNo, (value, label, color) in enumerate(dump.categories, 1):
-                writer.setBandName(label, bandNo)
+            for bandNo, c in enumerate(dump.categories, 1):
+                writer.setBandName(c.name, bandNo)
             writer.setNoDataValue(-1)
 
             result = {self.P_OUTPUT_PROBABILITY: filename}

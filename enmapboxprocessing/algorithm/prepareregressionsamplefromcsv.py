@@ -69,7 +69,7 @@ class PrepareRegressionSampleFromCsv(EnMAPProcessingAlgorithm):
             targets = ['target 1']
 
             dump = RegressionDump(targets=targets, features=features, X=X, y=y)
-            Utils.pickleDump(dump._asdict(), filename)
+            Utils.pickleDump(dump.__dict__, filename)
 
             result = {self.P_OUTPUT_SAMPLE: filename}
             self.toc(feedback, result)

@@ -27,7 +27,7 @@ class TestTranslateAlgorithm(TestCase):
         cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
         print(cmd)
         eval(cmd)
-        webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
+        #webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
 
     def test_default(self):
         alg = TranslateRasterAlgorithm()
@@ -139,7 +139,6 @@ class TestTranslateAlgorithm(TestCase):
         for key in gold:
             self.assertEqual(gold[key], lead[key])
         gold = RasterReader(enmap).metadataDomain('ENVI')
-        gold.pop('file_compression')
         lead = RasterReader(result[alg.P_OUTPUT_RASTER]).metadataDomain('ENVI')
         for key in gold:
             self.assertEqual(gold[key], lead[key])

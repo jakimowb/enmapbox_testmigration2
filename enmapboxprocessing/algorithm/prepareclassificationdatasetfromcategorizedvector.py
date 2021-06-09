@@ -4,7 +4,7 @@ from typing import Dict, Any, List, Tuple
 import numpy as np
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer, QgsProcessingParameterField,
-                        QgsCategorizedSymbolRenderer)
+                        QgsCategorizedSymbolRenderer, QgsProcessingException)
 
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import \
     PrepareClassificationDatasetFromCategorizedRaster
@@ -80,10 +80,9 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
                     classField = renderer.classAttribute()
                     feedback.pushInfo(f'Use categories from style: {categories}')
                 else:
-                    feedback.reportError(
-                        'Select either a categorited vector layer, or a field with class values.',
-                        fatalError=True
-                    )
+                    message = 'Select either a categorited vector layer, or a field with class values.'
+                    feedback.reportError(message, fatalError=True)
+                    raise QgsProcessingException(message)
             else:
                 categories = Utils.categoriesFromVectorField(classification, classField)
                 feedback.pushInfo(f'Derive categories from selected field: {categories}')
@@ -114,7 +113,8 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
             feedback.pushInfo(f'Sampled data: X=array{list(X.shape)} y=array{list(y.shape)}')
 
             dump = ClassifierDump(categories=categories, features=features, X=X, y=y)
-            dumpDict = dump._asdict()
+            dumpDict = dump.__dict__
+
             Utils.pickleDump(dumpDict, filename)
 
             result = {self.P_OUTPUT_DATASET: filename}
@@ -143,8 +143,8 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
         for block in rasterReader.walkGrid(blockSizeX, blockSizeY, feedback):
             blockClassification = classificationReader.arrayFromBlock(block, [classBandNo])[0]
             labeled = np.full_like(blockClassification, False, bool)
-            for value, label, color in categories:
-                np.logical_or(labeled, blockClassification == value, out=labeled)
+            for c in categories:
+                np.logical_or(labeled, blockClassification == c.value, out=labeled)
             blockY = blockClassification[labeled]
             blockX = list()
             for bandNo in range(1, rasterReader.bandCount() + 1):

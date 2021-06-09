@@ -139,7 +139,7 @@ class PrepareClassificationDatasetFromCategorizedLibrary(EnMAPProcessingAlgorith
 
             features = [f'Band {i + 1}' for i in range(X.shape[1])]
             dump = ClassifierDump(categories=categories, features=features, X=X, y=y)
-            dumpDict = dump._asdict()
+            dumpDict = dump.__dict__
             Utils.pickleDump(dumpDict, filename)
 
             result = {self.P_OUTPUT_DATASET: filename}

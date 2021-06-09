@@ -100,7 +100,7 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
             rasterReader = RasterReader(raster)
             if mask is not None:
                 maskReader = RasterReader(mask)
-            dataType = Utils.smallesUIntDataType(max([c[0] for c in dump.categories]))
+            dataType = Utils.smallesUIntDataType(max([c.value for c in dump.categories]))
             writer = Driver(filename, format, options, feedback).createLike(rasterReader, dataType, 1)
             lineMemoryUsage = rasterReader.lineMemoryUsage()
             blockSizeY = min(raster.height(), ceil(maximumMemoryUsage / lineMemoryUsage))

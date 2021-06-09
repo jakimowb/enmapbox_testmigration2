@@ -13,7 +13,7 @@ class TestClassifierPerformanceAlgorithm(TestCase):
         alg.initAlgorithm()
         parameters = {
             alg.P_CLASSIFIER: classifierDumpPkl,
-            alg.P_NFOLD: 1,
+            alg.P_DATASET: classifierDumpPkl,
             alg.P_OUTPUT_REPORT: c + '/vsimem/report.html'
         }
         self.runalg(alg, parameters)
@@ -24,6 +24,7 @@ class TestClassifierPerformanceAlgorithm(TestCase):
         alg.initAlgorithm()
         parameters = {
             alg.P_CLASSIFIER: classifierDumpPkl,
+            alg.P_DATASET: classifierDumpPkl,
             alg.P_NFOLD: 3,
             alg.P_OUTPUT_REPORT: c + '/vsimem/report.html'
         }

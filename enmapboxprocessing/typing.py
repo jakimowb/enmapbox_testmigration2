@@ -1,9 +1,11 @@
+from dataclasses import dataclass
 from typing import Union, List, Dict, Optional, NamedTuple
 
 import numpy as np
 from osgeo import gdal
 from qgis._core import QgsRasterDataProvider, QgsRasterLayer
 from sklearn.base import ClassifierMixin, RegressorMixin
+from sklearn.pipeline import Pipeline
 
 from typeguard import typechecked
 
@@ -24,7 +26,8 @@ HexColor = str
 
 
 @typechecked
-class Category(NamedTuple):
+@dataclass
+class Category(object):
     value: Union[int, str]
     name: str
     color: HexColor
@@ -39,37 +42,38 @@ Regressor = RegressorMixin
 
 
 @typechecked
-class ClassifierDump(NamedTuple):
+@dataclass
+class ClassifierDump(object):
     categories: Optional[Categories]
     features: Optional[List[str]]
     X: Optional[SampleX]
     y: Optional[SampleY]
-    classifier: Optional[Classifier] = None
+    classifier: Optional[Union[Classifier, Pipeline]] = None
 
     def withCategories(self, categories):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['categories'] = categories
         return ClassifierDump(**asdict)
 
     def withFeatures(self, features):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['features'] = features
         return ClassifierDump(**asdict)
 
     def withClassifier(self, classifier):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['classifier'] = classifier
         return ClassifierDump(**asdict)
 
     def withSample(self, X, y):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['X'] = X
         asdict['y'] = y
         return ClassifierDump(**asdict)
 
-
 @typechecked
-class RegressionDump(NamedTuple):
+@dataclass
+class RegressionDump(object):
     targets: List[str]
     features: List[str]
     X: SampleX
@@ -77,12 +81,12 @@ class RegressionDump(NamedTuple):
     regressor: Optional[Regressor] = None
 
     def withRegressor(self, regressor):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['regressor'] = regressor
         return RegressionDump(**asdict)
 
     def withSample(self, X, y):
-        asdict = self._asdict()
+        asdict = self.__dict__.copy()
         asdict['X'] = X
         asdict['y'] = y
         return RegressionDump(**asdict)

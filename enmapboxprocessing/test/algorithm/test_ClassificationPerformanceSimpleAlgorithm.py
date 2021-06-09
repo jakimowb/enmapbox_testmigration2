@@ -24,5 +24,5 @@ class TestClassificationPerformanceSimpleAlgorithm(TestCase):
             alg.P_OUTPUT_REPORT: c + '/vsimem/report.html',
         }
         self.runalg(alg, parameters)
-        webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT])
+        #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT])
         #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT] + '.csv')

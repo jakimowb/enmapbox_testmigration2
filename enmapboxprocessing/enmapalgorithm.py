@@ -597,7 +597,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
 
 
 class Group(Enum):
-    AccuracyAssessment = 'Accuracy assessment'
+    AccuracyAssessment = 'Accuracy Assessment'
     Auxilliary = 'Auxilliary'
     ConvolutionMorphologyAndFiltering = 'Convolution, morphology and filtering'
     RasterCreation = 'Raster creation'
@@ -614,7 +614,7 @@ class Group(Enum):
     ResamplingAndSubsetting = 'Resampling and subsetting'
     Regression = 'Regression'
     Sampling = 'Sampling'
-    Test = 'TEST_'
+    Test = '*'  # 'TEST_'
     Testdata = 'Testdata'
     Transformation = 'Transformation'
 

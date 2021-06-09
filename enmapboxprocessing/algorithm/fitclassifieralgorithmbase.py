@@ -12,7 +12,7 @@ from typeguard import typechecked
 
 @typechecked
 class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
-    P_DATEST, _DATASET = 'dataset', 'Training dataset'
+    P_DATASET, _DATASET = 'dataset', 'Training dataset'
     P_CLASSIFIER, _CLASSIFIER = 'classifier', 'Classifier'
     P_OUTPUT_CLASSIFIER, _OUTPUT_CLASSIFIER = 'outputClassifier', 'Output classifier'
 
@@ -40,7 +40,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         return Group.Test.value + Group.Classification.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterFile(self.P_DATEST, self._DATASET, extension=self.PickleFileExtension, optional=True)
+        self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension, optional=True)
         self.addParameterString(self.P_CLASSIFIER, self._CLASSIFIER, self.defaultCodeAsString(), True)
         self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, self._OUTPUT_CLASSIFIER, self.PickleFileFilter)
 
@@ -70,7 +70,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        filenameDataset = self.parameterAsFile(parameters, self.P_DATEST, context)
+        filenameDataset = self.parameterAsFile(parameters, self.P_DATASET, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_CLASSIFIER, context)
         classifier = self.parameterAsClassifier(parameters, self.P_CLASSIFIER, context)
 
@@ -88,7 +88,7 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
                 dump = ClassifierDump(None, None, None, None, classifier)
 
             dump = dump.withClassifier(classifier=classifier)
-            Utils.pickleDump(dump._asdict(), filename)
+            Utils.pickleDump(dump.__dict__, filename)
 
             result = {self.P_OUTPUT_CLASSIFIER: filename}
             self.toc(feedback, result)

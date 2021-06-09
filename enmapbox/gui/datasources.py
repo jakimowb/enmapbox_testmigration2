@@ -531,7 +531,7 @@ class DataSourceRaster(DataSourceSpatial):
             self.mWaveLengths = []
             self.mWaveLengthUnits = []
 
-        hasClassInfo = False
+        hasClassInfo = isinstance(ClassificationScheme.fromMapLayer(self.mLayer), ClassificationScheme)
 
         if self.mProvider == 'gdal':
             ds = gdal.Open(self.mUri)
@@ -641,6 +641,14 @@ class DataSourceRaster(DataSourceSpatial):
 
         loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
         lyr = QgsRasterLayer(self.mUri, self.mName, self.mProvider, options=loptions)
+
+        msg, success = lyr.loadDefaultStyle()
+        if not success:
+            # no default style defined? Find one based on the raster data properties
+            # set default renderer
+            r = defaultRasterRenderer(lyr)
+            r.setInput(lyr.dataProvider())
+            lyr.setRenderer(r)
 
         if False:
             if isinstance(self.mapLayer(), QgsRasterLayer) and not isinstance(self.mDefaultRenderer, QgsRasterRenderer):
