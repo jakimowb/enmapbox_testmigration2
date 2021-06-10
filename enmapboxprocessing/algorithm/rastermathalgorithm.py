@@ -9,7 +9,6 @@ from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRaste
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.rasterwriter import RasterWriter
 from typeguard import typechecked
 
 
@@ -26,13 +25,23 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     def shortDescription(self) -> str:
         return 'Create a raster layer by evaluating an expression with numpy syntax. ' \
                'Use any basic arithmetic and logical operators supported by numpy arrays. ' \
+               'The numpy modul is imported as np.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
             (self._RASTER_LIST, 'List of raster layers that are mapped to variables A, B, C, ... .\n'
                                 'Individual bands are mapped to variables A@1, A@2, ..., B@1, B@2, ... .'),
             (self._EXPRESSION, 'The expression to be evaluated. '
-                               'Must result in a (multiband) 3d numpy array, a (singl-band) 2d numpy array or a list of 2d numpy arrays.'),
+                               'Must result in a (multiband) 3d numpy array, a (single-band) 2d numpy array or a list of 2d numpy arrays.\n'
+                               'Example 1 - add up two bands: <pre>A@1 + B@1</pre>\n'
+                               'Example 2 - add up two rasters (with same number of bands) band-wise: <pre>A + B</pre>\n'
+                               'Example 3 - use a numpy function to calculate the exponential of all values in a raster: <pre>np.exp(A)</pre>\n'
+                               'Example 4 - build a band stack with all bands from three raster layers:'
+                               '<pre>list(A) + list(B) + list(C)</pre>\n'
+                               'More complex expressions can be splitted into multiple lines for defining temporary variables or import modules. '
+                               'Here the last line is evaluated as the final result.\n'
+                               'Example 5 - use a multiple line code block to calculate a vegetation index:'
+                               '<pre>nir = np.float32(A@4)<br>red = np.float32(A@3)<br>ndvi = (nir - red) / (nir + red)<br>ndvi</pre>'),
             (self._GRID, 'The target grid. If not specified, the grid of the first raster layer is used.'),
             (self._OUTPUT_RASTER, self.RasterFileDestination)
         ]
@@ -92,9 +101,16 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                 if letter in tmp:
                     namespace[letter] = np.array(reader.array())
 
-            # evaluate expression
             namespace['np'] = np
-            array = eval(expression2, namespace)
+
+            lines = expression2.split('\n')
+            lines[-1] = '_result = ' + lines[-1]
+
+            code = '\n'.join(lines)
+
+            # execute all lines but the last
+            exec(code, namespace)
+            array = namespace['_result']
             if not isinstance(array, (list, np.ndarray)):
                 raise QgsProcessingException('expression result is not valid')
 
