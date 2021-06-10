@@ -332,7 +332,7 @@ Exercise C: Urban spectral libraries
 * Close all Map and Spectral Library Windows from the previous exercise.
 * To load the urban spectral library, click on the |viewlist_spectrumdock| icon to open a new Spectral Library Window and drag :file:`library_berlin.sli` from the :guilabel:`Data Sources` panel into SpectralLibrary #1. Get familiar with the representation of the spectral library and the attribute table.
 * By default, only 64 spectra will be displayed at once in the plot window. To change this number, right-click in the plot
-  area, go to :guilabel:`Profiles` and enter a higher number, e.g. ``75`` (total number of spectra in :file:`library_berlin.sli`)
+  area, go to :menuselection:`Others --> Max. Profiles` and enter a higher number, e.g. ``75`` (total number of spectra in :file:`library_berlin.sli`)
 * To display a subset of spectra in a separate Library Window…
 
   * Select the spectra of interest by clicking on their corresponding row numbers (use :kbd:`Ctrl` or :kbd:`Shift` to select multiple rows). To select spectra with the same attributes, prior sorting of the attribute table by clicking on the corresponding column header is recommended. You can also select the spectra directly in the plot window.
