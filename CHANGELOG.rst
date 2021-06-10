@@ -3,6 +3,7 @@ CHANGELOG
 Version 3.8
 -----------
 * introduced a Glossary explaining common terms
+* added processing algorithm for creating default style (QML sidecar file) with given categories
 * overhauled Classification Workflow app; old version is still available as Classification Workflow (Classic)
 * overhauled several processing algorithms related to classification fit, predict, accuracy accessment and random sub-sampling
 * overhauled processing algorithms show command line and Python commands for re-executing the algorithms with same inputs

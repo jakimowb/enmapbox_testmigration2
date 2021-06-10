@@ -6,6 +6,8 @@ from enmapboxprocessing.algorithm.classificationtofractionalgorithm import Class
 from enmapboxprocessing.algorithm.classifierfeaturerankingpermutationimportancealgorithm import \
     ClassifierFeatureRankingPermutationImportanceAlgorithm
 from enmapboxprocessing.algorithm.classifierperformancealgorithm import ClassifierPerformanceAlgorithm
+from enmapboxprocessing.algorithm.createdefaultpalettedrasterrendereralgorithm import \
+    CreateDefaultPalettedRasterRendererAlgorithm
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
 from enmapboxprocessing.algorithm.creatergbimagefromclassprobabilityalgorithm import \
     CreateRgbImageFromClassProbabilityAlgorithm
@@ -49,6 +51,7 @@ def algorithms():
         ClassificationToFractionAlgorithm(),
         ClassifierPerformanceAlgorithm(),
         ClassifierFeatureRankingPermutationImportanceAlgorithm(),
+        CreateDefaultPalettedRasterRendererAlgorithm(),
         CreateGridAlgorithm(),
         CreateRgbImageFromClassProbabilityAlgorithm(),
         FitGaussianProcessClassifierAlgorithm(),

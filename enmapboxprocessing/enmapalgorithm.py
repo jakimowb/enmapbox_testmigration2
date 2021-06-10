@@ -181,6 +181,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         string = self.parameterAsString(parameters, name, context)
         if string is None:
             return None
+        string = string.replace('\n', '')
         values = eval(string)
         if not isinstance(values, (tuple, list)):
             values = [values]
