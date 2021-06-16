@@ -69,7 +69,7 @@ Graphical Modeler
 
 #. After saving, your model will also appear in the Processing Toolbox:
 
-   .. image:: ../../img/screenshot_toolbox_models.PNG
+   .. image:: ../../img/screenshot_toolbox_models.png
 
 
    ... and can be openend as a regular processing algorithm:

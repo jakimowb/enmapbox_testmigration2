@@ -96,7 +96,7 @@ reference information.
    Spectral library; :file:`library_berlin.sli`; Urban spectral library with 75 pure surface materials categorized in a hierarchical class scheme. The Library was developed from the HyMap image and spectrally resampled to the EnMAP sensor (ENVI spectral library ``sli`` with metadata extensions ``csv`` & ``json``)
    Vector; :file:`landcover_berlin.shp`; Detailed land cover reference information categorized in a hierarchical class scheme (ESRI Shapefile ``shp`` with QGIS layer style file ``qml`` and metadata extension ``json``)
 
-.. .. image:: tut_img/data_table.PNG
+.. .. image:: tut_img/data_table.png
 
 The tutorial dataset is a subset extracted from the Berlin-Urban-Gradient dataset [4]_.
 Please cite the dataset as follows:

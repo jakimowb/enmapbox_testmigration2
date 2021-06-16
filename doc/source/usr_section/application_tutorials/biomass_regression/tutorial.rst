@@ -114,7 +114,7 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
   a **Menu** and a **Toolbar**, panels for **Data Sources** and **Data Views**, and the **QGIS Processing Toolbox**
   including the EnMAP-Box algorithms.
 
-.. image:: img/Slide1_BoxScreenCap.PNG
+.. image:: img/Slide1_BoxScreenCap.png
 
 2. Load data
 ============
@@ -126,7 +126,7 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
   into the :guilabel:`Data Sources` panel.
 * All data currently open in the EnMAP-Box will appear in the :guilabel:`Data Sources` panel.
 
-  .. image:: img/Slide2_DataLoaded.PNG
+  .. image:: img/Slide2_DataLoaded.png
 
 
 3. Visualize raster data
@@ -154,7 +154,7 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
 * Display :file:`enmap_sonoma.bsq` as true color composite. Under :guilabel:`Min/Max Value Settings`, select the radio button for
   :guilabel:`Cumulative count cut` and set the stretch to 2-98%. Select :guilabel:`OK`.
 
-  .. image:: img/Slide3_RasterSymbology.PNG
+  .. image:: img/Slide3_RasterSymbology.png
 
 
 4. Basic navigation tools
@@ -188,12 +188,12 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
 
 
 
-.. .. image:: img/Slide4_MovingMultipleViews.PNG
+.. .. image:: img/Slide4_MovingMultipleViews.png
 
 * Display :file:`enmap_sonoma.bsq` as a true color composite Map #1 and as an RGB composite of your choice in Map #2.
   Move the map views to best fit the orientation of the data.
 
-.. image:: img/Slide5_LinkingMultipleViews.PNG
+.. image:: img/Slide5_LinkingMultipleViews.png
 
 .. tip::
 
@@ -224,7 +224,7 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
 * Press :guilabel:`Classify` and then :guilabel:`OK` to display the relative biomass values associated with each point.
   Explore the different ways you can display this information using the QGIS symbology functionality.
 
-.. image:: img/Slide6_VectorSymbology.PNG
+.. image:: img/Slide6_VectorSymbology.png
 
 * Use the |metadata| tool on the toolbar to view displayed raster and vector data. When activated,
   a new Cursor Location Values window will open displaying data from the selected pixel or
@@ -252,7 +252,7 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
 * In the Exercise B, you will learn how to create and apply regression models based on this
   information to predict biomass across the whole image.
 
-.. image:: img/Slide7_SpecLibColored.PNG
+.. image:: img/Slide7_SpecLibColored.png
 
 
 .. admonition:: Learning Activities
@@ -291,7 +291,7 @@ Exercise B: Regression based mapping of aboveground forest biomass
   for selecting the regression algorithm used for model Training, and for specifying the
   Mapping and Cross-validation parameters.
 
-.. image:: img/Slide8_RegressionWorkflow.PNG
+.. image:: img/Slide8_RegressionWorkflow.png
 
 2. Inputs
 =========
@@ -396,7 +396,7 @@ Exercise B: Regression based mapping of aboveground forest biomass
   * :guilabel:`Prediction`: :file:`biomass_estimation.bsq`
   * :guilabel:`Reference`: :file:`biomassSample_compliment.bsq`
 
-.. image:: img/Slide12_RegressionPerformance.PNG
+.. image:: img/Slide12_RegressionPerformance.png
 
 * After selecting :guilabel:`Run`, an HTML report with scatterplots and statistical measures will open in your
   default browser. Make yourself familiar with the HTML report.
@@ -441,7 +441,7 @@ Exercise C: Introduction to ImageMath
   * :guilabel:`Log Window`: Displays the status (and error messages) of executed code
   * Additionally, a tab for :guilabel:`Routines` allows users to select a number of common python-based tools for manipulating spatial datasets with linked documentation.
 
-.. image:: img/Slide14_ImageMathEmpty.PNG
+.. image:: img/Slide14_ImageMathEmpty.png
 
 .. attention::
 
@@ -502,7 +502,7 @@ Exercise C: Introduction to ImageMath
 
 .. todo add link to imagemath manual and/or cookbook
 
-.. image:: img/Slide15_ImageMathNDVI.PNG
+.. image:: img/Slide15_ImageMathNDVI.png
 
 * A new raster dataset :file:`NDVI.bsq` will appear in the :guilabel:`Data Sources` panel.
   Open this in a new Map Viewer and link to the biomass estimates (see Exercise A5).
