@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>367</width>
-    <height>258</height>
+    <width>377</width>
+    <height>314</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -39,7 +39,7 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <property name="spacing">
-       <number>2</number>
+       <number>0</number>
       </property>
       <property name="topMargin">
        <number>0</number>
@@ -50,7 +50,7 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/mActionCollapseTree.svg</normaloff>:/images/themes/default/mActionCollapseTree.svg</iconset>
         </property>
         <property name="autoRaise">
@@ -64,7 +64,7 @@
          <string>...</string>
         </property>
         <property name="icon">
-         <iconset resource="../../../../../QGIS/images/images.qrc">
+         <iconset>
           <normaloff>:/images/themes/default/mActionExpandTree.svg</normaloff>:/images/themes/default/mActionExpandTree.svg</iconset>
         </property>
         <property name="autoRaise">
@@ -79,7 +79,7 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>40</width>
+          <width>0</width>
           <height>20</height>
          </size>
         </property>
@@ -88,7 +88,29 @@
      </layout>
     </item>
     <item>
+     <widget class="QgsFilterLineEdit" name="tbFilterText">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>1</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="placeholderText">
+       <string>Filter</string>
+      </property>
+      <property name="qgisRelation" stdset="0">
+       <string notr="true"/>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="DockTreeView" name="dockTreeView">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>2</verstretch>
+       </sizepolicy>
+      </property>
       <property name="editTriggers">
        <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
       </property>
@@ -113,7 +135,7 @@
   </widget>
   <action name="actionCollapseTreeNodes">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionCollapseTree.svg</normaloff>:/images/themes/default/mActionCollapseTree.svg</iconset>
    </property>
    <property name="text">
@@ -122,7 +144,7 @@
   </action>
   <action name="actionExpandTreeNodes">
    <property name="icon">
-    <iconset resource="../../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionExpandTree.svg</normaloff>:/images/themes/default/mActionExpandTree.svg</iconset>
    </property>
    <property name="text">
@@ -131,6 +153,11 @@
   </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>QgsFilterLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>qgsfilterlineedit.h</header>
+  </customwidget>
   <customwidget>
    <class>DockTreeView</class>
    <extends>QTreeView</extends>

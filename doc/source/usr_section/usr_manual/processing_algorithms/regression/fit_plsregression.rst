@@ -33,8 +33,14 @@ See the following Cookbook Recipes on how to use regressors:
 
     Default::
 
+        from sklearn.pipeline import make_pipeline
+        from sklearn.model_selection import GridSearchCV
         from sklearn.cross_decomposition import PLSRegression
-        estimator = PLSRegression(n_components=3, scale=True)
+        
+        plsr = PLSRegression(scale=True)
+        max_components = 3
+        param_grid = {'n_components': [i+1 for i in range(max_components)]}
+        estimator = GridSearchCV(cv=3, estimator=plsr, scoring='neg_mean_absolute_error', param_grid=param_grid)
         
 **Outputs**
 

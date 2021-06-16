@@ -73,13 +73,13 @@ class TestRasterMaskReader(TestCase):
         self.reader = RasterReader(self.provider)
 
     def test_without_noData(self):
-        gold = np.full_like(self.array, True, dtype=np.bool)
+        gold = np.full_like(self.array, True, dtype=bool)
         lead = self.reader.maskArray(self.array)
         self.assertArrayEqual(lead, gold)
 
     def test_withSource_noData(self):
         self.provider.setNoDataValue(bandNo=1, noDataValue=0)
-        gold = np.full_like(self.array, True, dtype=np.bool)
+        gold = np.full_like(self.array, True, dtype=bool)
         gold[0, 0, 0] = False
         lead = self.reader.maskArray(self.array)
         self.assertArrayEqual(lead, gold)
@@ -91,7 +91,7 @@ class TestRasterMaskReader(TestCase):
             QgsRasterRange(1, 2, QgsRasterRange.IncludeMax),  # add 2
             QgsRasterRange(2, 4, QgsRasterRange.Exclusive),  # add 3
         ])
-        gold = np.full_like(self.array, True, dtype=np.bool)
+        gold = np.full_like(self.array, True, dtype=bool)
         gold[0, 0, 0:4] = False
         lead = self.reader.maskArray(self.array)
         self.assertArrayEqual(lead, gold)
@@ -104,7 +104,7 @@ class TestRasterMaskReader(TestCase):
             QgsRasterRange(1, 2, QgsRasterRange.IncludeMax),  # add 2
             QgsRasterRange(2, 4, QgsRasterRange.Exclusive),  # add 3
         ])
-        gold = np.full_like(self.array, True, dtype=np.bool)
+        gold = np.full_like(self.array, True, dtype=bool)
         gold[0, 0, 0:5] = False
         lead = self.reader.maskArray(self.array)
         self.assertArrayEqual(lead, gold)

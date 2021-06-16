@@ -15,6 +15,8 @@ import os
 import tempfile
 import unittest
 import time
+
+import numpy as np
 import xmlrunner
 import json
 import pickle
@@ -187,7 +189,7 @@ class DataSourceTests(EnMAPBoxTestCase):
         self.assertTrue(source, DataSourceVector)
 
         mimeData = QMimeData()
-        mimeData.setUrls(QUrl.fromLocalFile(path_csv.as_posix()))
+        mimeData.setUrls([QUrl.fromLocalFile(path_csv.as_posix())])
 
 
 
@@ -296,6 +298,15 @@ class DataSourceTests(EnMAPBoxTestCase):
         dsm.addSources([p2, p1])
         self.assertTrue(len(dsm) == 1)
 
+    def test_DataSourcePanelUI(self):
+
+        dsm = DataSourceManager()
+        panel = DataSourcePanelUI()
+        panel.connectDataSourceManager(dsm)
+        uris = [library, enmap, landcover_polygons]
+        dsm.addSources(uris)
+        self.showGui(panel)
+
     def test_datasourcemanager(self):
         reg = QgsProject.instance()
         reg.removeAllMapLayers()
@@ -335,21 +346,18 @@ class DataSourceTests(EnMAPBoxTestCase):
 
         reg.removeAllMapLayers()
 
-        # test doubles input
+        # test doubled input
         l = len(dsm)
         try:
-
             p1 = str(pathlib.WindowsPath(pathlib.Path(enmap)))
             p2 = str(pathlib.Path(enmap).as_posix())
-
             dsm.addSources(p1)
             dsm.addSources(p2)
-
             self.assertTrue(len(dsm) == l, msg='DataSourceManager should not contain the same source multiple times')
         except:
             pass
 
-        # rmeove
+        # remove
         dsm = DataSourceManager()
         lyr = TestObjects.createVectorLayer()
         dsm.addSource(lyr)
@@ -585,9 +593,10 @@ class DataSourceTests(EnMAPBoxTestCase):
                 'CA': QgsMapCanvas(),
                 }
 
-        DATA_PKL = {'AAA':
-                        {'Array1': np.arange(256),
-                         'Array2': np.asarray([[1, 2, 3], [4, 5, 6]]),
+        DATA_PKL = {'D1':
+                        {'Array1D': np.random.rand(256),
+                         'Array2D': np.random.rand(64, 32),
+                         'Array3D': np.random.rand(32, 16, 3),
                          },
                     }
 
@@ -599,6 +608,8 @@ class DataSourceTests(EnMAPBoxTestCase):
 
         path_json = dirTmp / 'test.json'
         path_pkl = dirTmp / 'test.pkl'
+        path_not_a_json = dirTmp / 'test_not_a.json'
+        path_not_a_pkl = dirTmp / 'test_not_a.pkl'
 
         with open(path_json, 'w', encoding='utf8') as f:
             json.dump(DATA_JSON, f)
@@ -606,8 +617,23 @@ class DataSourceTests(EnMAPBoxTestCase):
         with open(path_pkl, 'wb') as f:
             pickle.dump(DATA_PKL, f)
 
+        # test crashed data:
+        with open(path_not_a_json, 'w') as f:
+            f.write('[no a json')
+
+        with open(path_not_a_pkl, 'wb') as f:
+            f.write(bytes(b'not a pkl'))
+
+        for s in [path_not_a_json, path_not_a_pkl]:
+            sources = ds.addSource(s)
+            for source in sources:
+                self.assertIsInstance(source, DataSourceFile)
+
         for s in [path_json, path_pkl]:
-            source = ds.addSource(s)
+            sources = ds.addSource(s)
+            for source in sources:
+                self.assertIsInstance(source, DataSource)
+
 
         self.showGui(dtv)
 

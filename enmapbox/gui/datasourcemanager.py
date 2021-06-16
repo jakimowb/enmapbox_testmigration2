@@ -27,9 +27,11 @@ import collections
 import uuid
 import webbrowser
 import numpy as np
-from PyQt5.QtCore import Qt, QMimeData, QModelIndex, QSize, QUrl, QObject
+from PyQt5.QtCore import Qt, QMimeData, QModelIndex, QSize, QUrl, QObject, QSortFilterProxyModel
 from PyQt5.QtGui import QIcon, QContextMenuEvent, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QDockWidget, QStyle, QAction, QTreeView, QFileDialog, QDialog
+
+from enmapbox.externals.qps.utils import bandClosestToWavelength
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import QApplication, QMenu
@@ -38,7 +40,7 @@ from qgis.core import \
     QgsRasterRenderer, QgsProject, QgsUnitTypes, QgsWkbTypes, \
     QgsLayerTreeGroup, QgsLayerTreeLayer, QgsRasterDataProvider, Qgis, QgsField, QgsFieldModel
 from qgis.gui import \
-    QgisInterface, QgsMapCanvas
+    QgisInterface, QgsMapCanvas, QgsDockWidget
 import qgis.utils
 from enmapbox import DIR_TESTDATA, messageLog
 from enmapbox.gui import \
@@ -556,12 +558,19 @@ class DataSourceSizesTreeNode(TreeNode):
         if isinstance(dataSource, DataSourceRaster):
             if isinstance(dataSource.mLayer, QgsRasterLayer) and \
                     isinstance(dataSource.mLayer.dataProvider(), QgsRasterDataProvider):
+                lyr = dataSource.mLayer
                 dp: QgsRasterDataProvider = dataSource.mLayer.dataProvider()
                 value.append(f'{dataSource.nSamples()}'
                              f'x{dataSource.nLines()}'
                              f'x{dataSource.nBands()}'
                              f'x{dp.dataTypeSize(1)} Byte')
-                childs += [TreeNode('Samples', value=dataSource.nSamples(), toolTip='Samples/columns in X direction'),
+
+                childs += [TreeNode('Pixel',
+                                    value=f'{lyr.rasterUnitsPerPixelX()}x'
+                                          f'{lyr.rasterUnitsPerPixelY()} '
+                                          f'{QgsUnitTypes.encodeUnit(lyr.crs().mapUnits())}',
+                                    toolTip='Size of single pixel / ground sampling resolution'),
+                           TreeNode('Samples', value=dataSource.nSamples(), toolTip='Samples/columns in X direction'),
                            TreeNode('Lines', value=dataSource.nLines(), toolTip='Lines/rows in Y direction'),
                            TreeNode('Bands', value=dataSource.nBands(), toolTip='Raster bands'),
                            TreeNode('Data Type',
@@ -835,12 +844,6 @@ class RasterDataSourceTreeNode(SpatialDataSourceTreeNode):
         # extents in pixel
         super().__init__(*args, **kwds)
 
-        self.mNodeExtXpx: TreeNode = TreeNode('Samples', toolTip='Data Source Width in Pixel')
-        self.mNodeExtYpx: TreeNode = TreeNode('Lines', toolTip='Data Source Height in Pixel')
-
-        self.mNodePxSize: TreeNode = TreeNode('Pixel', toolTip='Spatial size of single pixel')
-        self.mNodeSize.appendChildNodes([self.mNodeExtXpx, self.mNodeExtXpx, self.mNodePxSize])
-
         self.mNodeBands: TreeNode = TreeNode('Bands', toolTip='Number of Raster Bands')
         self.appendChildNodes(self.mNodeBands)
 
@@ -967,6 +970,7 @@ class HubFlowPyObjectTreeNode(PyObjectTreeNode):
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
+        self.setValue(str(self.mPyObject))
 
     def populateContextMenu(self, menu: QMenu):
         def copyToClipboard():
@@ -1033,8 +1037,7 @@ class DataSourceTreeView(TreeView):
         assert isinstance(event, QContextMenuEvent)
 
         col = idx.column()
-        model = self.model()
-        assert isinstance(model, DataSourceManagerTreeModel)
+
 
         selectedNodes = self.selectedNodes()
         node = self.selectedNode()
@@ -1043,6 +1046,10 @@ class DataSourceTreeView(TreeView):
 
         from enmapbox.gui.enmapboxgui import EnMAPBox
         enmapbox = EnMAPBox.instance()
+
+        DSM: DataSourceManager = self.model().sourceModel().dataSourceManager
+        if not isinstance(DSM, DataSourceManager):
+            return
 
         mapDocks = []
         if isinstance(enmapbox, EnMAPBox):
@@ -1055,16 +1062,16 @@ class DataSourceTreeView(TreeView):
             a = m.addAction('Remove')
             assert isinstance(a, QAction)
             a.setToolTip('Removes all datasources from this node')
-            a.triggered.connect(lambda *args, node=node, model=model:
-                                model.dataSourceManager.removeSources(node.dataSources()))
+            a.triggered.connect(lambda *args, node=node, dsm=DSM:
+                                DSM.removeSources(node.dataSources()))
 
         if isinstance(node, DataSourceTreeNode):
             src = node.mDataSource
 
             if isinstance(src, DataSource):
                 a = m.addAction('Remove')
-                a.triggered.connect(lambda *args, dataSources=dataSources:
-                                    model.dataSourceManager.removeSources(dataSources))
+                a.triggered.connect(lambda *args, dataSources=dataSources, dsm=DSM:
+                                    dsm.removeSources(dataSources))
                 a = m.addAction('Copy URI / path')
                 a.triggered.connect(lambda *args, srcURIs=srcURIs:
                                     QApplication.clipboard().setText('\n'.join(srcURIs)))
@@ -1192,6 +1199,8 @@ class DataSourceTreeView(TreeView):
         if not isinstance(dataSource, DataSourceSpatial):
             return
 
+        LOAD_DEFAULT_STYLE: bool = isinstance(rgb, str) and re.search('DEFAULT', rgb, re.I)
+
         if target is None:
             from enmapbox.gui.enmapboxgui import EnMAPBox
             emb = EnMAPBox.instance()
@@ -1206,17 +1215,19 @@ class DataSourceTreeView(TreeView):
 
         assert isinstance(target, (QgsMapCanvas, QgsProject))
 
+        # loads the layer with default style (wherever it is defined)
         lyr = dataSource.createUnregisteredMapLayer()
 
-        from enmapbox.gui.utils import bandClosestToWavelength, defaultBands
         if isinstance(lyr, QgsRasterLayer) \
+                and not LOAD_DEFAULT_STYLE \
                 and isinstance(lyr.dataProvider(), QgsRasterDataProvider) \
                 and lyr.dataProvider().name() == 'gdal':
+
             r = lyr.renderer()
             if isinstance(r, QgsRasterRenderer):
                 bandIndices: typing.List[int] = None
                 if isinstance(rgb, str):
-                    if re.search('DEFAULT', rgb):
+                    if LOAD_DEFAULT_STYLE:
                         bandIndices = defaultBands(lyr)
                     else:
                         bandIndices = [bandClosestToWavelength(lyr, s) for s in rgb.split(',')]
@@ -1241,14 +1252,15 @@ class DataSourceTreeView(TreeView):
             target.addMapLayer(lyr)
 
     def onSaveAs(self, dataSource):
-
+        """
+        Todo: save raster / vector sources
+        """
         pass
 
     def onRemoveAllDataSources(self):
-        model = self.model()
-        assert isinstance(model, DataSourceManagerTreeModel)
-        model.dataSourceManager.clear()
-        s = ""
+        model = self.model().sourceModel()
+        if isinstance(model, DataSourceManagerTreeModel):
+            model.dataSourceManager.clear()
 
     def openInSpeclibEditor(self, speclib: SpectralLibrary):
         """
@@ -1266,11 +1278,13 @@ class DataSourceTreeView(TreeView):
         EnMAPBox.instance().dockManager().createDock(AttributeTableDock, layer=vectorLayer)
 
 
-class DataSourcePanelUI(QDockWidget):
+class DataSourcePanelUI(QgsDockWidget):
     def __init__(self, parent=None):
         super(DataSourcePanelUI, self).__init__(parent)
         loadUi(enmapboxUiPath('datasourcepanel.ui'), self)
-        self.mDataSourceManager = None
+        self.mDataSourceManager: DataSourceManager = None
+        self.mDataSourceTreeModel: DataSourceManagerTreeModel = None
+        self.mDataSourceProxyModel: DataSourceManagerProxyModel = DataSourceManagerProxyModel()
         assert isinstance(self.dataSourceTreeView, DataSourceTreeView)
 
         self.dataSourceTreeView.setDragDropMode(QAbstractItemView.DragDrop)
@@ -1284,10 +1298,14 @@ class DataSourcePanelUI(QDockWidget):
         # self.mDataSourceManager.exportSourcesToQGISRegistry(showLayers=True)
         self.actionSyncWithQGIS.triggered.connect(self.onSyncToQGIS)
 
+        self.tbFilterText.textChanged.connect(self.setFilter)
         hasQGIS = qgisAppQgisInterface() is not None
         self.actionSyncWithQGIS.setEnabled(hasQGIS)
 
         self.initActions()
+
+    def setFilter(self, pattern:str):
+        self.mDataSourceProxyModel.setFilterWildcard(pattern)
 
     def onSyncToQGIS(self, *args):
         if isinstance(self.mDataSourceManager, DataSourceManager):
@@ -1321,7 +1339,8 @@ class DataSourcePanelUI(QDockWidget):
         assert isinstance(dataSourceManager, DataSourceManager)
         self.mDataSourceManager = dataSourceManager
         self.mDataSourceTreeModel = DataSourceManagerTreeModel(self, self.mDataSourceManager)
-        self.dataSourceTreeView.setModel(self.mDataSourceTreeModel)
+        self.mDataSourceProxyModel.setSourceModel(self.mDataSourceTreeModel)
+        self.dataSourceTreeView.setModel(self.mDataSourceProxyModel)
         self.dataSourceTreeView.selectionModel().selectionChanged.connect(self.onSelectionChanged)
 
     def onSelectionChanged(self, selected, deselected):
@@ -1334,16 +1353,15 @@ class DataSourcePanelUI(QDockWidget):
         :return: [list-of-selected-DataSources]
         """
         sources = []
-        model = self.mDataSourceTreeModel
-        assert isinstance(model, DataSourceManagerTreeModel)
+        model = self.dataSourceTreeView.model()
         for idx in self.dataSourceTreeView.selectionModel().selectedIndexes():
             assert isinstance(idx, QModelIndex)
-            n = model.idx2node(idx)
-            if isinstance(n, DataSourceTreeNode):
-                if n.dataSource() not in sources:
-                    sources.append(n.dataSource())
-            elif isinstance(n, DataSourceGroupTreeNode):
-                for s in n.dataSources():
+            node = idx.data(Qt.UserRole)
+            if isinstance(node, DataSourceTreeNode):
+                if node.dataSource() not in sources:
+                    sources.append(node.dataSource())
+            elif isinstance(node, DataSourceGroupTreeNode):
+                for s in node.dataSources():
                     if s not in sources:
                         sources.append(s)
         return sources
@@ -1642,6 +1660,13 @@ class DataSourceManagerTreeModel(TreeModel):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         EnMAPBox.instance().dockManager().createDock('WEBVIEW', url=pathHTML)
 
+
+class DataSourceManagerProxyModel(QSortFilterProxyModel):
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        self.setRecursiveFilteringEnabled(True)
+        self.setFilterCaseSensitivity(Qt.CaseInsensitive)
 
 def createNodeFromDataSource(dataSource: DataSource, parent: TreeNode = None) -> DataSourceTreeNode:
     """

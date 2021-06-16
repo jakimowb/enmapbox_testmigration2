@@ -1,19 +1,21 @@
+import json
 import pickle
-from os.path import join, dirname, basename
-from typing import Tuple, Optional, Callable, List, Any
-from warnings import warn
+from os import makedirs
+from os.path import join, dirname, basename, exists
+from random import randint
+from typing import Tuple, Optional, Callable, List, Any, Dict
 
-from PyQt5.QtCore import QTimer
-from osgeo import gdal
-from qgis._core import (Qgis, QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRasterRenderer,
-                        QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsSymbol, QgsRectangle, QgsRasterLayer,
-                        QgsRasterDataProvider, QgsPointXY, QgsReferencedPointXY, QgsPoint)
 import numpy as np
-from sklearn.base import ClassifierMixin
+from PyQt5.QtGui import QColor
+from osgeo import gdal
+from qgis._core import (QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRasterRenderer,
+                        QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsRectangle, QgsRasterLayer,
+                        QgsRasterDataProvider, QgsPointXY, QgsPoint, Qgis, QgsWkbTypes, QgsSymbol, QgsVectorLayer,
+                        QgsFeature)
 
 from enmapboxprocessing.enmapalgorithm import AlgorithmCanceledException
 from enmapboxprocessing.typing import (NumpyDataType, MetadataValue, GdalDataType, QgisDataType, MetadataDomain,
-                                       Category, GdalResamplingAlgorithm, Categories)
+                                       GdalResamplingAlgorithm, Categories, Category)
 from typeguard import typechecked
 
 
@@ -60,11 +62,18 @@ class Utils(object):
             raise Exception(f'unsupported data type: {dataType}')
 
     @staticmethod
-    def qgisDataTypeName(dataType: Qgis.DataType) -> str:
+    def qgisDataTypeName(dataType: QgisDataType) -> str:
         for name in ('Byte', 'Float32', 'Float64', 'Int16', 'Int32', 'UInt16', 'UInt32'):
             if getattr(Qgis, name) == dataType:
                 return name
         raise Exception(f'unsupported data type: {dataType}')
+
+    @staticmethod
+    def gdalResampleAlgName(resampleAlg: GdalResamplingAlgorithm) -> str:
+        for name in 'NearestNeighbour Bilinear Cubic CubicSpline Lanczos Average Mode Min Q1 Med Q3 Max'.split():
+            if getattr(gdal, 'GRA_' + name) == resampleAlg:
+                return name
+        raise Exception(f'unsupported resampling algorithm: {resampleAlg}')
 
     @staticmethod
     def gdalDataTypeToQgisDataType(dataType: GdalDataType) -> QgisDataType:
@@ -87,7 +96,7 @@ class Utils(object):
 
     @staticmethod
     def numpyDataTypeToQgisDataType(dataType: NumpyDataType) -> Qgis.DataType:
-        if dataType in [np.bool, np.uint8]:
+        if dataType in [bool, np.uint8]:
             return Qgis.Byte
         elif dataType == np.float32:
             return Qgis.Float32
@@ -187,22 +196,124 @@ class Utils(object):
 
     @classmethod
     def categoriesFromPalettedRasterRenderer(cls, renderer: QgsPalettedRasterRenderer) -> Categories:
-        categories = [(c.value, c.label, c.color) for c in renderer.classes()]
+        categories = [Category(int(c.value), c.label, c.color.name()) for c in renderer.classes()]
         return categories
 
     @classmethod
     def palettedRasterRendererFromCategories(
             cls, provider: QgsRasterDataProvider, bandNumber: int, categories: Categories
     ) -> QgsPalettedRasterRenderer:
-        classes = [QgsPalettedRasterRenderer.Class(value, color, label) for value, label, color in categories]
+        classes = [QgsPalettedRasterRenderer.Class(c.value, QColor(c.color), c.name) for c in categories]
         renderer = QgsPalettedRasterRenderer(provider, bandNumber, classes)
+        return renderer
+
+    @classmethod
+    def categorizedSymbolRendererFromCategories(
+            cls, fieldName: str, categories: Categories
+    ) -> QgsCategorizedSymbolRenderer:
+        rendererCategories = list()
+        for c in categories:
+            symbol = QgsSymbol.defaultSymbol(QgsWkbTypes.geometryType(QgsWkbTypes.Point))
+            symbol.setColor(QColor(c.color))
+            category = QgsRendererCategory(c.value, symbol, c.name)
+            rendererCategories.append(category)
+
+        renderer = QgsCategorizedSymbolRenderer(fieldName, rendererCategories)
         return renderer
 
     @classmethod
     def categoriesFromCategorizedSymbolRenderer(cls, renderer: QgsCategorizedSymbolRenderer) -> Categories:
         c: QgsRendererCategory
-        categories = [(c.value(), c.label(), c.symbol().color()) for c in renderer.categories()]
+        categories = [Category(c.value(), c.label(), c.symbol().color().name())
+                      for c in renderer.categories()
+                      if c.value() is not None]
         return categories
+
+    @classmethod
+    def categoriesFromRasterBand(cls, raster: QgsRasterLayer, bandNo: int) -> Categories:
+        from enmapboxprocessing.rasterreader import RasterReader
+        reader = RasterReader(raster)
+        array = reader.array(bandList=[bandNo])
+        mask = reader.maskArray(array, bandList=[bandNo], defaultNoDataValue=0)
+        values = np.unique(array[0][mask[0]])
+        categories = [Category(int(v), str(v), QColor(randint(0, 2 ** 24)).name()) for v in values]
+        return categories
+
+    @classmethod
+    def categoriesFromVectorField(
+            cls, vector: QgsVectorLayer, valueField: str, nameField: str = None, colorField: str = None
+    ) -> Categories:
+        feature: QgsFeature
+        values = list()
+        names = dict()
+        colors = dict()
+        for feature in vector.getFeatures():
+            value = feature.attribute(valueField)
+            if isinstance(value, (int, float, str)):
+                values.append(value)
+                if nameField is not None:
+                    names[value] = feature.attribute(nameField)  # only keep the last occurrence!
+                if colorField is not None:
+                    colors[value] = feature.attribute(colorField)  # only keep the last occurrence!
+
+        values = np.unique(values)
+        categories = list()
+        for value in values:
+            color = colors.get(value, QColor(randint(0, 2 ** 24 - 1)))
+            color = cls.parseColor(color).name()
+            name = names.get(value, str(value))
+            categories.append(Category(value, name, color))
+        return categories
+
+    @classmethod
+    def parseColor(cls, obj):
+        if isinstance(obj, QColor):
+            return obj
+
+        if isinstance(obj, str):
+            if QColor(obj).isValid():
+                return QColor(obj)
+            try:  # try to evaluate ...
+                obj = eval(obj)
+            except:
+                raise ValueError(f'invalid color: {obj}')
+
+        if isinstance(obj, int):
+            return QColor(obj)
+
+        if isinstance(obj, (list, tuple)):
+            return QColor(*obj)
+
+        raise ValueError('invalid color')
+
+    @classmethod
+    def prepareCategories(
+            cls, categories: Categories, valuesToInt=False, removeLastIfEmpty=False
+    ) -> Tuple[Categories, Dict]:
+
+        categoriesOrig = categories
+        if removeLastIfEmpty:
+            if categories[-1].name == '':
+                categories = categories[:-1]
+
+        if valuesToInt:
+            def castValueToInt(category: Category, index: int) -> Category:
+                if str(category.value).isdecimal():
+                    return Category(int(category.value), category.name, category.color)
+                else:
+                    return Category(index + 1, category.name, category.color)
+
+            categories = [castValueToInt(c, i) for i, c in enumerate(categories)]
+
+        namesOrig = [c.name for c in categoriesOrig]
+        valueLookup = dict()
+        for c in categories:
+            index = namesOrig.index(c.name)
+            valueOrig = categoriesOrig[index].value
+            valueNew = c.value
+            valueLookup[valueOrig] = valueNew
+
+        return categories, valueLookup
 
     @classmethod
     def smallesUIntDataType(cls, value: int) -> QgisDataType:
@@ -256,44 +367,52 @@ class Utils(object):
         return resampleAlgStrings[resampleAlg]
 
     @classmethod
-    def tmpFilename(cls, filename: str, tail: str, head: str = '.tmp'):
-        return join(dirname(filename), f'{head}.{basename(filename)}.{tail}')
+    def tmpFilename(cls, filename: str, tail: str):
+        tmpDirname = join(dirname(filename), f'_temp_{basename(filename)}')
+        if not exists(tmpDirname):
+            makedirs(tmpDirname)
+        tmpFilename = join(tmpDirname, tail)
+        return tmpFilename
 
-    @classmethod
-    def tmpFilenameDelete(cls, filename: str, head: str = '.tmp'):
-
-        if not basename(filename).startswith(head):
-            return
-
-        def deleteLater(filename):
-            try:
-                gdal.Unlink(filename)
-                print('DELETED', filename)
-            except RuntimeError:
-                warn(f"Couldn't delete temp file: {filename}")
-
-        QTimer.singleShot(1000, lambda: deleteLater(filename))
-
-    @classmethod
-    def _pickleDump(cls, obj: Any, filename: str):
-        with open(filename, 'wb') as file:
-            pickle.dump(obj, file)
     @classmethod
     def pickleDump(cls, obj: Any, filename: str):
-        import bz2
-        with bz2.BZ2File(filename, 'w') as file:
+        with open(filename, 'wb') as file:
             pickle.dump(obj, file)
 
     @classmethod
     def pickleLoad(cls, filename: str) -> Any:
-        import bz2
-        with bz2.BZ2File(filename, 'r') as file:
+        with open(filename, 'rb') as file:
             return pickle.load(file)
 
     @classmethod
-    def pickleDumpClassifier(cls, classifier: ClassifierMixin, categories: Categories, filename: str):
-        cls.pickleDump((classifier, categories), filename)
+    def jsonDumps(cls, obj: Any) -> str:
+        def default(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif hasattr(obj, '__dict__'):
+                return obj.__dict__
+            else:
+                return str(obj)
+
+        return json.dumps(obj, default=default, indent=2)
 
     @classmethod
-    def pickleLoadClassifier(cls, filename: str) -> Tuple[ClassifierMixin, Categories]:
-        return cls.pickleLoad(filename)
+    def jsonDump(cls, obj: Any, filename: str):
+        with open(filename, 'w') as file:
+            text = Utils.jsonDumps(obj)
+            file.write(text)
+
+    @classmethod
+    def jsonLoad(cls, filename: str) -> Any:
+        with open(filename) as file:
+            return json.load(file)
+
+    @classmethod
+    def isPolygonGeometry(cls, wkbType: int) -> bool:
+        types = [value for key, value in QgsWkbTypes.__dict__.items() if 'Polygon' in key]
+        return wkbType in types
+
+    @classmethod
+    def isPointGeometry(cls, wkbType: int) -> bool:
+        types = [value for key, value in QgsWkbTypes.__dict__.items() if 'Point' in key]
+        return wkbType in types

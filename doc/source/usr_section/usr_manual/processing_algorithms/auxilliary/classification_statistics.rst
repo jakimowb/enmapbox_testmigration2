@@ -4,11 +4,11 @@
 Classification Statistics
 *************************
 
-This algorithm returns class count statistics. The output will be shown in the log window and can the copied from there accordingly.
+Show classification statistics plot.
 
 **Parameters**
 
 
 :guilabel:`Classification` [raster]
-    Specify input raster.
+    Select a classification layer.
 

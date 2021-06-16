@@ -531,7 +531,7 @@ class DataSourceRaster(DataSourceSpatial):
             self.mWaveLengths = []
             self.mWaveLengthUnits = []
 
-        hasClassInfo = False
+        hasClassInfo = isinstance(ClassificationScheme.fromMapLayer(self.mLayer), ClassificationScheme)
 
         if self.mProvider == 'gdal':
             ds = gdal.Open(self.mUri)
@@ -641,6 +641,14 @@ class DataSourceRaster(DataSourceSpatial):
 
         loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
         lyr = QgsRasterLayer(self.mUri, self.mName, self.mProvider, options=loptions)
+
+        msg, success = lyr.loadDefaultStyle()
+        if not success:
+            # no default style defined? Find one based on the raster data properties
+            # set default renderer
+            r = defaultRasterRenderer(lyr)
+            r.setInput(lyr.dataProvider())
+            lyr.setRenderer(r)
 
         if False:
             if isinstance(self.mapLayer(), QgsRasterLayer) and not isinstance(self.mDefaultRenderer, QgsRasterRenderer):
@@ -883,7 +891,7 @@ class DataSourceFactory(object):
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str) and os.path.exists(src):
             pkl_obj = None
-
+            error = None
             try:
                 if src.endswith('.pkl'):
                     with open(src, 'rb') as f:
@@ -891,14 +899,17 @@ class DataSourceFactory(object):
                 elif src.endswith('.json'):
                     with open(src, 'r', encoding='utf-8') as f:
                         pkl_obj = json.load(f)
-
+            except pickle.UnpicklingError as ex1:
+                error = f'isHubFlowObj:: UnpicklingError: Unable to unpickle {src}:\nReason:{ex1}'
             except Exception as ex:
-                msg = f'isHubFlowObj:: Unable to load {src}: {ex}'
+                error = f'isHubFlowObj:: Unable to load {src}: {ex}'
+
+            if error:
                 if src.endswith('.pkl'):
                     # in case of *.pkl it is very likely that we should be able to open them with pickle.load
-                    messageLog(msg, level=Qgis.Warning)
+                    messageLog(error, level=Qgis.Warning)
                 else:
-                    debugLog(msg)
+                    debugLog(error)
 
             if pkl_obj is not None:
                 return True, pkl_obj
@@ -963,7 +974,7 @@ class DataSourceFactory(object):
                 src = str(src)
             elif type(src) in [str, QUrl]:
                 src = DataSourceFactory.srcToString(src)
-                if False: # acticate to add in-memory layers
+                if False: # activate to add in-memory layers
                     lyr = QgsProject.instance().mapLayers().get(src)
                     if isinstance(lyr, QgsMapLayer):
                         return DataSourceFactory.create(lyr)

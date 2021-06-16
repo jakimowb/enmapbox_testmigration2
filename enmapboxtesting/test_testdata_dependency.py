@@ -11,10 +11,6 @@ from enmapbox.testing import EnMAPBoxTestCase
 
 class Test(EnMAPBoxTestCase):
 
-    def test_version(self):
-        from enmapbox.dependencycheck import outdatedTestData
-        self.assertFalse(outdatedTestData())
-
     def test_signals(self):
         def myslot():
             print('signaled')
