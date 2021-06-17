@@ -144,7 +144,7 @@ Windows
 
    .. code-block:: batch
 
-      pip3 install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
+      python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt
 
 
    Now all packages will be installed automatically. After completion, the shell should show something like this:
