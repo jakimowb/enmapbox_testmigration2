@@ -196,7 +196,9 @@ class Utils(object):
 
     @classmethod
     def categoriesFromPalettedRasterRenderer(cls, renderer: QgsPalettedRasterRenderer) -> Categories:
-        categories = [Category(int(c.value), c.label, c.color.name()) for c in renderer.classes()]
+        categories = [Category(int(c.value), c.label, c.color.name())
+                      for c in renderer.classes()
+                      if c.label != '']
         return categories
 
     @classmethod
@@ -226,7 +228,7 @@ class Utils(object):
         c: QgsRendererCategory
         categories = [Category(c.value(), c.label(), c.symbol().color().name())
                       for c in renderer.categories()
-                      if c.value() is not None]
+                      if c.label() != '']
         return categories
 
     @classmethod
