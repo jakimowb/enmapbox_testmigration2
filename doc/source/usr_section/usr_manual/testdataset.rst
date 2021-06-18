@@ -55,7 +55,7 @@ File name: :file:`library_berlin.sli`
 
 Spectral library with 75 spectra (material level, level 2 and level 3 class information)
 
-.. figure:: ../../img/testdata_speclib.PNG
+.. figure:: ../../img/testdata_speclib.png
    :width: 100%
 
    library_berlin.sli opened in the EnMAP-Box Spectral Library Window

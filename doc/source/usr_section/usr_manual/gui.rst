@@ -143,17 +143,17 @@ You may change the name of a Window by double-clicking onto the name in the list
 
 **Buttons of the Data Views panel:**
 
-.. list-table::
-   :widths: auto
-   :align: left
+.. csv-table::
    :header-rows: 1
+   :widths: auto
 
-   * - Button
-     - Description
-   * - |mActionCollapseTree|
-     - Collapses the whole menu tree, so that only layer type groups are shown.
-   * - |mActionExpandTree|
-     - Expands menu tree to show all branches.
+   Button, Description
+   |mActionCollapseTree|,  Collapses the whole menu tree, so that only layer type groups are shown.
+   |mActionExpandTree|, Expands menu tree to show all branches.
+
+
+**Organization of the Data Views panel:**
+
 
 .. figure:: ../../img/example_data_views.png
    :width: 100%
@@ -215,120 +215,6 @@ Crosshair
 * You can alter the style of the crosshair by right-clicking into a Map Window and select :menuselection:`Crosshair --> Style`
 
   .. image:: ../../img/crosshair_style.png
-
-
-Spectral Library Window |viewlist_spectrumdock|
-~~~~~~~~~~~~~~~~~~~~~~~
-
-The Spectral Library Window can be used to visualize, collect and label spectra. It directly interacts with the Map Window(s), which
-means spectra can be directly collected from an image. Furthermore, external libraries (ENVI Spectral Library) can be imported.
-
-* Add a new Spectral Library Window using the |viewlist_spectrumdock| :sup:`Add Spectral Library Window` button in the toolbar or from the menu bar
-  :menuselection:`View --> Add Spectral Library Window`
-
-* You can import and open existing libraries using the |speclib_add| :sup:`Import Spectral Library` button
-
-.. figure:: ../../img/spectral_lib_window.png
-   :width: 100%
-
-   Spectral Library Window with several collected and labeled spectra
-
-
-**Buttons of the Spectral Library Window:**
-
-.. list-table::
-   :widths: auto
-   :header-rows: 1
-
-   * - Button
-     - Description
-   * - |plus_green|
-     - Adds currently overlaid profiles
-       to the spectral library
-   * - |profile_add_auto|
-     - Activate to add profiles automatically
-       into the spectral library
-   * - |speclib_add|
-     - Import Spectral Library
-   * - |speclib_save|
-     - Save Spectral Library
-   * - |mActionSelectAll|
-     - Selects all elements in
-       the spectral library
-   * - |mActionInvertSelection|
-     - Inverts the current selection
-   * - |mActionDeselectAll|
-     - Remove selection (deselect everything)
-   * - |mActionReload|
-     - Reload the table
-   * - |mActionToggleEditing|
-     - Toggle editing mode
-   * - |mActionEditCut|
-     - Cut selected rows to clipboard
-   * - |mActionEditCopy|
-     - Copy selected rows to clipboard
-   * - |mActionEditPaste|
-     - Paste features from clipboard
-   * - |mActionDeleteSelected|
-     - Delete selected features
-   * - |mActionSaveAllEdits|
-     - Save edits
-   * - |mActionNewAttribute|
-     - Add New field
-   * - |mActionDeleteAttribute|
-     - Delete field
-   * - |system|
-     - Enter the Spectral Library Layer Properties
-   * - |mActionFormView|
-     - Switch to form view
-   * - |mActionOpenTable|
-     - Switch to table view
-
-
-**Collecting spectra:**
-
-* Make sure to enable the |profile| button in the menu bar and open a raster you want to collect spectra
-  from in a Map Window.
-* Click in a desired location in the Map Window. The pixels spectral profile at this location will now be shown in
-  the plot in the Library Window. Mind that this will only visualize the spectrum, but nothing is saved at this point.
-* To add/save a selected spectrum to the library, click the |plus_green| button. Mind the new table entry on the right of the window.
-  If spectra should be directly added to the library while a pixel is selected/clicked, enable the |profile_add_auto| button.
-
-|
-
-.. tip::
-
-   Have a look at the :ref:`Spectral Profile Sources <spectral_profile_sources>` window for more advanced settings for
-   collecting spectra.
-
-
-**Managing spectra:**
-
-* You can add additional fields to the table, for example in order to add information to every spectrum
-  (id, name, classification label, ...). To do so, enable the editing mode by clicking the |mActionToggleEditing|
-  :sup:`Toggle Editing Mode` button. Now you can use the |mActionNewAttribute| :sup:`New field` button to add a new field (mind the type!).
-  After the new field is added, click inside a cell to alter/add its content. To delete a field use the |mActionDeleteAttribute| :sup:`Delete Field` button.
-
-  .. figure:: ../../img/speclib_add_field.png
-
-     Example: Add a new text field (maximum 100 characters)
-
-* Location of spectra (if available) can be visualized as a point layer by right-clicking into a map window, and selecting :guilabel:`Add Spectral Library`
-* Spectra can be selected in the table and in the plot window itself. Selected spectra will be highlighted (blue background
-  in the table; thicker line in the plot window). Hold the :kbd:`Shift` key to select multiple spectra. A selection can be removed
-  by clicking the |mActionDeselectAll| :sup:`Deselect All` button.
-* Remove spectra using the |mActionDeleteSelected| :sup:`Remove Spectrum` button.
-* You can save the collected spectra using the  |speclib_save| :sup:`Save Profiles in spectral library` button.
-
-**Colorize spectra by attribute:**
-
-* Open the Spectral Library Properties using the |system| button on the lower right.
-* Switch to the |symbology| :guilabel:`Symbology` tab and select the :guilabel:`Categorized` renderer at the top
-* In the :guilabel:`Column` droplist select the desired column and click :guilabel:`Classify`
-
-  .. image:: ../../img/speclib_properties.png
-
-* Confirm with :guilabel:`Apply` and close the window.
 
 
 
