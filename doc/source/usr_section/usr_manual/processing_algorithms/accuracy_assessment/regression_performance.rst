@@ -36,5 +36,3 @@ Assesses the performance of a regression.
 :guilabel:`HTML Report` [fileDestination]
     Specify output path for HTML report file (.html).
 
-    Default: *outReport.html*
-
