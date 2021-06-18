@@ -50,6 +50,8 @@ The workshop aims to demonstrate the current state of the EnMAP-Box by way of pr
 Registration for up to 250 participants is now open at the `workshop website <https://bitbucket.org/hu-geomatics/enmap-box/wiki/events/Workshop_2021>`_.
 
 
+.. figure:: img/events/workshop2021.banner.png
+    :align: center
 
 FOSSGIS 2021
 ============

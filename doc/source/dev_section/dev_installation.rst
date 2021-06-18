@@ -62,13 +62,7 @@ EnMAP-Box repository:
 
 1. Make sure `conda <https://docs.conda.io/en/latest/miniconda.html>`_ is installed on your system.
 
-In the EnMAP-Box repo you will find a YAML file which defines a conda environment where all necessary dependencies for the EnMAP-Box are included:
-
-.. literalinclude:: /../../conda_environment.yml
-   :caption: conda_environment.yml
-   :language: yaml
-
-2. To create a new conda environment named *qgis_stable* as specified in the YAML file open the conda shell and type:
+2. Create a new conda environment named *qgis_stable* as specified in `conda_environment.yml`:
 
 .. code-block:: batch
 
@@ -79,6 +73,34 @@ In the EnMAP-Box repo you will find a YAML file which defines a conda environmen
    Depending on the components and applications you like to use, it might be required to install more packages.
    If you cloned the EnMAP-Box repository you can also point to the local :file:`conda_environment.yml`.
    Edit the ``--name`` or the YAML file itself as you wish. For more information on creating and managing conda environments visit the `conda documentation <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file>`_
+
+..
+    .. tip::
+
+       To inspect the The `conda_environment.yml` is part of the EnMAP-Box repo you will find a YAML file which defines a conda environment where all necessary dependencies for the EnMAP-Box are included:
+
+       .. literalinclude:: /../../conda_environment.yml
+          :caption: conda_environment.yml
+          :language: yaml
+
+
+
+    .. admonition:: macOS Users
+
+            If you are using macOS and calling ``qgis`` does not show any application window, it might be necessary to set:
+
+            .. code-block:: bash
+
+               export QT_MAC_WANTS_LAYER=1
+
+            This can be done permanently for the active conda environment by:
+
+            .. code-block:: bash
+
+               conda env config vars set QT_MAC_WANTS_LAYER=1
+
+
+
 
 3.  `Activate <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#activating-an-environment>`_
     the new environment
@@ -96,51 +118,39 @@ In the EnMAP-Box repo you will find a YAML file which defines a conda environmen
        designer
        assistant
 
-    A shell script that is loaded during activation of the conda environment allows you to add other applications and
-    environmental variables. For example, to be able starting PyCharm from the conda environment:
+5. To easily start applications like PyCharm in this environment, which have not been installed by conda, you might
+   define an alias during the activation of the environment.
 
-    1. Create a shell script `pycharm-activate` in:
+    * Create an activation script and define an alias for PyCharm:
 
-       Windows: ``<your conda installation>/envs/qgis_stable/etc/conda/activate.d/others-activate.bat.``
+      Windows: *<your conda installation>/envs/qgis_stable/etc/conda/activate.d/pycharm-activate.bat*
 
-       MacOS/Linux: ``<your conda installation>/envs/qgis_stable/etc.conda/activate.d/others-activate.sh``
+      .. code-block:: batch
 
-    2. Define an PyCharm alias in the `pycharm-activate` script, e.g. like:
-
-       Windows: ``doskey pycharm="<path to pycharm executable>"``
-
-       MacOS: ``alias pycharm=`open -a PyCharm\ CE.app``` (`\ ` denotes a white space in the *.app name)
-
-    3. For completeness, also create a `pycharm-deactivate` script that is called during deactivation of your conda environment.
-
-       Windows: ``<your conda installation>/envs/qgis_stable/etc/conda/activate.d/others-deactivate.bat.``
-       MacOS/Linux: ``<your conda installation>/envs/qgis_stable/etc.conda/activate.d/others-deactivate.sh``
+         @echo off
+         doskey pycharm="<path to pycharm executable>"
 
 
+      MacOS: *<your conda installation>/envs/qgis_stable/etc.conda/activate.d/pycharm-activate.sh*
 
+      .. code-block:: bash
 
+         alias pycharm='open -a PyCharm\ CE.app'
 
+    * For completeness, also create a deactivation script:
 
+      Windows: *<your conda installation>/envs/qgis_stable/etc/conda/deactivate.d/others-deactivate.bat*
 
+      .. code-block:: batch
 
+        @echo off
+        doskey pycharm=
 
+      MacOS/Linux: *<your conda installation>/envs/qgis_stable/etc.conda/deactivate.d/pycharm-deactivate.sh*
 
+      .. code-block:: bash
 
-
-
-    .. admonition:: macOS Users
-
-            If you are using macOS and calling ``qgis`` does not show any application window, it might be necessary to set:
-
-            .. code-block:: bash
-
-               export QT_MAC_WANTS_LAYER=1
-
-            This can be done permanently for the active conda environment by:
-
-            .. code-block:: bash
-
-               conda env config vars set QT_MAC_WANTS_LAYER=1
+        alias pycharm=
 
 
 
