@@ -5,7 +5,7 @@ Fit LinearSVC
 *************
 
 Linear Support Vector Classification. 
-Similar to SVC with parameter kernel=’linear’, but implemented in terms of liblinear rather than libsvm, so it has more flexibility in the choice of penalties and loss functions and should scale better to large numbers of samples. 
+Similar to SVC with parameter kernel=â€™linearâ€™, but implemented in terms of liblinear rather than libsvm, so it has more flexibility in the choice of penalties and loss functions and should scale better to large numbers of samples. 
 This class supports both dense and sparse input and the multiclass support is handled according to a one-vs-the-rest scheme.
 
 **Parameters**

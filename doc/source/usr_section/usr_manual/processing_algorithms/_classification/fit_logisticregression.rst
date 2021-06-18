@@ -5,7 +5,7 @@ Fit LogisticRegression
 **********************
 
 Logistic Regression (aka logit, MaxEnt) classifier.
-In the multiclass case, the training algorithm uses the one-vs-rest (OvR) scheme if the ‘multi_class’ option is set to ‘ovr’, and uses the cross-entropy loss if the ‘multi_class’ option is set to ‘multinomial’.
+In the multiclass case, the training algorithm uses the one-vs-rest (OvR) scheme if the â€˜multi_classâ€™ option is set to â€˜ovrâ€™, and uses the cross-entropy loss if the â€˜multi_classâ€™ option is set to â€˜multinomialâ€™.
 
 **Parameters**
 

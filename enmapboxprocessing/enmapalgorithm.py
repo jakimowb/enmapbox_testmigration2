@@ -606,6 +606,7 @@ class Group(Enum):
     Classification = 'Classification'
     Clustering = 'Clustering'
     DatasetCreation = 'Dataset creation'
+    Experimental = 'Experimental'
     FeatureSelection = 'Feature selection'
     ImportData = 'Import data'
     Masking = 'Masking'

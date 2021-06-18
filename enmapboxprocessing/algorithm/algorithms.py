@@ -1,3 +1,4 @@
+from enmapboxprocessing.algorithm._experimental_customcolor import ExperimentalCustomColor
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import \
@@ -78,5 +79,7 @@ def algorithms():
         SampleRasterValuesAlgorithm(),
         SelectFeaturesFromDatasetAlgorithm(),
         TranslateCategorizedRasterAlgorithm(),
-        TranslateRasterAlgorithm()
+        TranslateRasterAlgorithm(),
+        # ExperimentalCustomColor()
     ]
+
