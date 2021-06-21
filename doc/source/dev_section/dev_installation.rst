@@ -191,9 +191,11 @@ EnMAP-Box repository:
 
 4.  Switch to *Project Structure* and add
 
-    * (Linux/Win) ``<your conda installation>/envs/qgis_stable/Library/python`` as additional project content root.
+    * Win: ``<your conda installation>/envs/qgis_stable/Library/python`` as additional project content root.
 
-    * (macOS) ``<your conda installation>/envs/qgis_stable/QGIS.app/Contents/MacOS/../Resources/python``
+    * Linux: ``<your conda installation>/envs/qgis_stable/share/qgis/python``
+
+    * macOS: ``<your conda installation>/envs/qgis_stable/QGIS.app/Contents/MacOS/../Resources/python``
 
     Right-click on the ``plugins`` subfolder and select :guilabel:`Sources`. Now the PyQGIS API is available to your Python installation.
 
