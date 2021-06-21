@@ -210,9 +210,7 @@ EnMAP-Box repository:
         Use ``qgis_stable/Library/python`` as additional content root
 
 
-5.  (Windows + macOS) set the QGIS_PREFIX_PATH variable
-
-    PyCharm and PyQGIS need the environmental variable ``QGIS_PREFIX_PATH``.
+5.  PyCharm and PyQGIS need the environmental variable ``QGIS_PREFIX_PATH``, which typically is:
 
     Typical paths are:
 
@@ -220,11 +218,11 @@ EnMAP-Box repository:
     OS       QGIS_PREFIX_PATH
     ======== ===============================================================================
     Windows  `<your conda installation>\\envs\\qgis_stable\\Library`
-    Linux    `<your conda installation>/envs/qgis_stable/Library`
+    Linux    `<your conda installation>/envs/qgis_stable`
     macOS    `<your conda installation>/envs/qgis_stable/QGIS.app/Contents/Resources`
     ======== ===============================================================================
 
-
+    If not already set in the environment from which you started PyCharm, you can set it explicitly.
     Open *Run > Debug ... > Edit Configurations* and add the *QGIS_PREFIX_PATH* to the User environmental variables.
     This way PyCharm runs python files in a environment with *QGIS_PREFIX_PATH* defined.
 
