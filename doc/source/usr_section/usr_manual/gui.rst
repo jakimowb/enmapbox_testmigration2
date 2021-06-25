@@ -48,7 +48,7 @@ In the toolbar you can find the most common tasks. See table below for informati
      - Zoom to the native resolution
    * - |mActionZoomFullExtent|
      - Zoom to full extent
-     - Changes the zoom level of the map you click to show the full extent of all layers visualized in it.
+     - Changes the zoom level of the map you click to show the full extent of all layers visualized in it
    * - |select_location|
      - Identify
      - Identify loactions on the map where you click. Use the three options on the right to specify what to identify
