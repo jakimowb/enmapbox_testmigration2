@@ -11,8 +11,27 @@ The wavelength information needs to be defined similar to the ENVI metadata stan
 
 2. *wavelength* defines the band values in *wavelength units*, e.g. 450 nm.
 
-The wavelength information needs to be accessible by the GDAL metadata model.
+The wavelength information is read via the GDAL metadata model:
 
-The wavelength information needs to be defined in the image metadata and for each band.
 
+.. code-block:: python
+
+    from osgeo import gdal
+    path = r'path to image'
+    dataset: gdal.DataSet = gdal.Open(path)
+    print(dataset.GetMetadataItem('wavelength_units', 'ENVI'))
+    print(dataset.GetMetadataItem('wavelengths', 'ENVI'))
+
+
+Wavelength information can be set in the same way:
+
+.. code-block:: python
+
+    from osgeo import gdal
+    path = r'path to image'
+    dataset: gdal.DataSet = gdal.Open(path)
+    print(dataset.SetMetadataItem('wavelength_units', 'nm', 'ENVI'))
+    print(dataset.SetMetadataItem('wavelengths', '{490, 560, 665}', 'ENVI'))
+    dataset.FlushCache()
+    del dataset
 
