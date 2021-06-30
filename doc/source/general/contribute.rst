@@ -8,7 +8,7 @@ and particularly developed to handle data from the EnMAP sensor.
 
 The EnMAP-Box source code is hosted in a public git repository at https://bitbucket.org/hu-geomatics/enmap-box.
 
-Approved `QGIS plugin <www.qgis.org>`_ versions (“production releases”) are available in the QGIS Plugin Repository https://plugins.qgis.org/plugins/enmap-box.
+Approved `QGIS plugin <www.qgis.org>`_ versions (“production releases”) are available in the QGIS Plugin Repository https://plugins.qgis.org/plugins/enmapboxplugin/.
 
 
 The development of the EnMAP-Box is funded within the EnMAP scientific preparation program under the
@@ -30,7 +30,7 @@ following rules before submitting:
 
 *  Verify that your issue is not being currently addressed by other
    `issues <https://bitbucket.org/hu-geomatics/enmap-box/issues?q=>`_
-   or `pull requests <https://bitbucket.org/hu-geomatics/enmap-box/pull-requests?>`_.
+   or `pull requests <https://bitbucket.org/hu-geomatics/enmap-box/pull-requests/>`_.
 
 *  If you are submitting a bug report, please:
 

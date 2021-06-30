@@ -342,7 +342,11 @@
    :width: 28px
 .. |iconClearConsole| image:: /img/icons/iconClearConsole.svg
    :width: 28px
+.. |mAction| image:: /img/icons/mAction.svg
+   :width: 28px
 .. |mActionAddRasterLayer| image:: /img/icons/mActionAddRasterLayer.svg
+   :width: 28px
+.. |mActionConditionalFormatting| image:: /img/icons/mActionConditionalFormatting.svg
    :width: 28px
 .. |mActionDataSourceManager| image:: /img/icons/mActionDataSourceManager.svg
    :width: 28px
@@ -360,11 +364,19 @@
    :width: 28px
 .. |mActionFileSaveAs| image:: /img/icons/mActionFileSaveAs.svg
    :width: 28px
+.. |mActionFilter2| image:: /img/icons/mActionFilter2.svg
+   :width: 28px
 .. |mActionFormView| image:: /img/icons/mActionFormView.svg
    :width: 28px
 .. |mActionInvertSelection| image:: /img/icons/mActionInvertSelection.svg
    :width: 28px
+.. |mActionMultiEdit| image:: /img/icons/mActionMultiEdit.svg
+   :width: 28px
 .. |mActionNewAttribute| image:: /img/icons/mActionNewAttribute.svg
+   :width: 28px
+.. |mActionNewTableRow| image:: /img/icons/mActionNewTableRow.svg
+   :width: 28px
+.. |mActionPanToSelected| image:: /img/icons/mActionPanToSelected.svg
    :width: 28px
 .. |mActionReload| image:: /img/icons/mActionReload.svg
    :width: 28px
@@ -372,11 +384,15 @@
    :width: 28px
 .. |mActionSelectAll| image:: /img/icons/mActionSelectAll.svg
    :width: 28px
+.. |mActionSelectedToTop| image:: /img/icons/mActionSelectedToTop.svg
+   :width: 28px
 .. |mActionSetProjection| image:: /img/icons/mActionSetProjection.svg
    :width: 28px
 .. |mActionToggleEditing| image:: /img/icons/mActionToggleEditing.svg
    :width: 28px
 .. |mIconEditableEdits| image:: /img/icons/mIconEditableEdits.svg
+   :width: 28px
+.. |mIconExpressionSelect| image:: /img/icons/mIconExpressionSelect.svg
    :width: 28px
 .. |plot_style| image:: /img/icons/plot_style.svg
    :width: 28px

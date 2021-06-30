@@ -21,7 +21,7 @@ Introduction
    :align: right
    :width: 30%
 
-This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/now-online-hyperedu-educational-resources-on-imaging-spectroscopy/>`_,
+This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/resource-spectrum/hyperspectral/>`_,
 an education initiative within the `EnMAP mission <https://www.enmap.org/>`_ hosted
 on EO College. HYPERedu provides annotated slide collections and hands-on tutorials using the open-source EnMAP-Box software,
 targeting basic principles, methods as well as applications of imaging spectroscopy.

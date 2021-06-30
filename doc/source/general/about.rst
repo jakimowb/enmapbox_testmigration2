@@ -4,7 +4,7 @@ About
 
 The EnMAP-Box is a free and open source plug-in for `QGIS <https://www.qgis.org/en/site/#>`_.
 It is designed to process imaging spectroscopy data and
-particularly developed to handle data from the upcoming `EnMAP <http://www.enmap.org/>`_ sensor. The two main goals of
+particularly developed to handle data from the upcoming `EnMAP <https://www.enmap.org/>`_ sensor. The two main goals of
 the development are to provide
 (i) state-of-the-art applications for the processing of high dimensional spectral and temporal remote sensing data and
 (ii) a graphical user interface (GUI) that enhances the GIS oriented visualization capabilities in QGIS by applications
