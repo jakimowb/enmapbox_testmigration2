@@ -74,12 +74,21 @@ If your are not an EnMAP-Box core developer, the preferred way to contribute you
 1. Create a fork on Bitbucket
 .............................
 
-Forking the EnMAP-box repository allows you to modify the EnMAP-Box code as you like and backup your contributions on a separated
-Bitbucket repository
+Forking the EnMAP-box repository allows you to modify the EnMAP-Box code as you like and backup your contributions in a
+separated Bitbucket repository. To create a fork,
+
+1. log in to bitbucket.org and visit https://bitbucket.org/hu-geomatics/enmap-box
+
+2. Click '+' and `Fork this repository`
+
+3. Select a name and workspace for your EnMAP-Box fork, hereafter called *enmapbox-fork*
+
+.. image:: ../img/forking.1.create.fork.apng
 
 Please read https://confluence.atlassian.com/bitbucket/forking-a-repository-221449527.html for details how you can create your own fork
 of the EnMAP-Box repository.
 
+Please note that forking in bitbucket.org does not copy git lfs tracked files: https://support.atlassian.com/bitbucket-cloud/docs/current-limitations-for-git-lfs-with-bitbucket/#Git-LFS-files-are-not-copied-when-a-repo-is-forked
 
 .. _contribute_clone:
 
@@ -88,14 +97,26 @@ of the EnMAP-Box repository.
 
 Clone the forked EnMAP-Box repository *myfork* to your local disk::
 
-    $ git clone git@bitbucket.com/myusername/myfork.git
-    $ cd enmapbox
+    $git clone git@bitbucket.com/myusername/myfork.git -n
 
-Now install python requirements and run the initial setup for the EnMAP-Box repository, as described in :ref:`dev_installation`
+
+Go into the repository folder and checkout the *develop* branch.
+To ignore git lfs smudge errors, use option ``-f``::
+
+    $cd myfork
+    $git checkout develop -f
 
 Add the EnMAP-Box repository as *upstream* repository::
 
-    $ git remote add upstream https://bitbucket.org/hu-geomatics/enmap-box
+    $git remote add upstream https://bitbucket.org/hu-geomatics/enmap-box
+
+
+Fetch git lfs objects from upstream directory::
+
+    $git lfs fetch --all upstream
+
+Now install python requirements and run the initial setup for the EnMAP-Box repository, as described in :ref:`dev_installation`
+
 
 
 .. note::
