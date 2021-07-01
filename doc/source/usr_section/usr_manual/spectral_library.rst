@@ -1,15 +1,17 @@
 .. include:: /icon_links.rst
 
+.. _spectral_libraries:
+
 Spectral Libraries
 ==================
 A *Spectral Library* is a collection of profiles with arbitrary profile-wise data and metadata,
 stored as pickled dictionaries inside (multiple) binary fields. Dictionary items are:
 
-  * x: list of x values (e.g. wavelength)
-  * y: list of y values (e.g. surface reflectance)
-  * xUnit: x value units (e.g. nanometers)
-  * yUnit: y value units (e.g. ???)
-  * bbl: the bad bands list
+* x: list of x values (e.g. wavelength)
+* y: list of y values (e.g. surface reflectance)
+* xUnit: x value units (e.g. nanometers)
+* yUnit: y value units (e.g. ???)
+* bbl: the bad bands list
 
 
 Spectral Library Window |viewlist_spectrumdock|
@@ -218,14 +220,14 @@ This menu manages the connection between raster sources and spectral library win
 
 Spectral Library Formats
 ~~~~~~~~~~
-The EnMAP-Box supports the ENVI standard spectral library format (.sli + .hdr file). Spectral libraries can be imported
-as single line raster using the processing algorithm :menuselection:`Auxillary --> Import Library`.
 
-.. todo:: Support for further formats will be implemented soon (e.g. import spectral library from ASD field spectrometer)
+The EnMAP-Box supports several external spectral library formats, e.g. the ENVI standard spectral library format (:file:`.sli` + :file:`.hdr`).
 
-.. screenshot von der tetslibrary im speclib viewer
+Click the |mIconCollapse| button next to |speclib_add| :sup:`Import spectral profiles` to open the import dialog:
 
-.. Auxillary -> Import Library
+.. figure:: /img/speclib_import_dialog.png
+
+   Import dialog in the spectral library window
 
 
 Labelled Spectral Library

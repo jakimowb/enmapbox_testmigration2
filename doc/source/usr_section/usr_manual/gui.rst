@@ -200,7 +200,7 @@ created links by clicking |link_open|.
 
 .. raw:: html
 
-   <div><video width="550px" controls><source src="../../_static/maplinking.webm" type="video/webm">Your browser does not support HTML5 video.</video>
+   <div><video width="90%" controls><source src="../../_static/videos/maplinking.webm" type="video/webm">Your browser does not support HTML5 video.</video>
    <p><i>Demonstration of linking two Map Windows</i></p></div>
 
 
@@ -217,6 +217,10 @@ Crosshair
   .. image:: ../../img/crosshair_style.png
 
 
+Spectral Library Window |viewlist_spectrumdock|
+~~~~~~~~~~~~~~~~~~~~~~~
+
+See section on :ref:`Spectral Libaries <spectral_libraries>`
 
 Text Window |viewlist_textview|
 ~~~~~~~~~~~
