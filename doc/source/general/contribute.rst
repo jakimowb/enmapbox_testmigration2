@@ -123,14 +123,13 @@ Now fetch git lfs objects from upstream directory::
 Now install python requirements and run the initial setup for the EnMAP-Box repository, as described in :ref:`dev_installation`
 
 
-
 .. note::
     From now on, you can synchronize the develop branch of your forked repository with that of the EnMAP-Box repository by::
 
-    $ git checkout develop
-    $ git fetch upstream develop
-    $ git merge upstream/develop
-    $ git push origin develop
+
+    $ git fetch upstream
+    $ git merge upstream
+
 
 
 .. _contribute_modify:
