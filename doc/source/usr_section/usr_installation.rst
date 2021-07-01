@@ -133,11 +133,14 @@ Windows
 
 3. Activate the Python 3 environment by entering:
 
+
    .. code-block:: batch
 
       py3_env
 
    .. image:: ../img/shell_callpy3env.png
+
+   .. note:: In more recent versions of QGIS the ``py3_env`` call might not be necessary or will simply not work. If so, just continue with the following step (4).
 
 
 4. Install required python packages by entering:
