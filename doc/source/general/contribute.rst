@@ -81,9 +81,14 @@ separated Bitbucket repository. To create a fork,
 
 2. Click '+' and `Fork this repository`
 
-3. Select a name and workspace for your EnMAP-Box fork, hereafter called *enmapbox-fork*
+3. Select a name and workspace for your EnMAP-Box fork, hereafter called *enmap-box-fork*
 
-.. image:: ../img/forking.1.create.fork.apng
+  .. raw:: html
+
+     <div><video width="90%" controls muted><source src="../_static/videos/forking.1.create.fork.mp4"
+                type="video/mp4">Your browser does not support HTML5 video.</video>
+     <p><i>Create an EnMAP-Box fork in bitbucket.org</i></p></div>
+
 
 Please read https://confluence.atlassian.com/bitbucket/forking-a-repository-221449527.html for details how you can create your own fork
 of the EnMAP-Box repository.
@@ -95,35 +100,37 @@ Please note that forking in bitbucket.org does not copy git lfs tracked files: h
 2. Clone the forked EnMAP-Box repository
 ........................................
 
-Clone the forked EnMAP-Box repository *myfork* to your local disk::
+Clone *enmap-box-fork* to your local disk::
 
-    $git clone git@bitbucket.com/myusername/myfork.git -n
+    git clone git@bitbucket.com/myusername/enmap-box-fork.git
 
+You might see some git lfs errors. Ignore them.
 
-Go into the repository folder and checkout the *develop* branch.
-To ignore git lfs smudge errors, use option ``-f``::
+Go into the repository folder and force to checkout the *develop* branch.
 
-    $cd myfork
-    $git checkout develop -f
+    cd enmap-box-fork
+    git checkout develop -f
 
 Add the EnMAP-Box repository as *upstream* repository::
 
-    $git remote add upstream https://bitbucket.org/hu-geomatics/enmap-box
+    git remote add upstream https://bitbucket.org/hu-geomatics/enmap-box
 
 
-Fetch git lfs objects from upstream directory::
+Now fetch git lfs objects from upstream directory::
 
-    $git lfs fetch --all upstream
+    git lfs fetch upstream
 
 Now install python requirements and run the initial setup for the EnMAP-Box repository, as described in :ref:`dev_installation`
 
 
 
 .. note::
-    From now on, you can synchronize the master branch of your forked repository with the EnMAP-Box repository by::
+    From now on, you can synchronize the develop branch of your forked repository with that of the EnMAP-Box repository by::
 
-    $ git checkout master
-    $ git pull upstream master
+    $ git checkout develop
+    $ git fetch upstream develop
+    $ git merge upstream/develop
+    $ git push origin develop
 
 
 .. _contribute_modify:
