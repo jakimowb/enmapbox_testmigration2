@@ -111,24 +111,33 @@ Go into the repository folder and force to checkout the *develop* branch.
     cd enmap-box-fork
     git checkout develop -f
 
+You can ignore *smuge errors*.
 Add the EnMAP-Box repository as *upstream* repository::
 
     git remote add upstream https://bitbucket.org/hu-geomatics/enmap-box
 
 
-Now fetch git lfs objects from upstream directory::
+Now fetch *git lfs* files from the upstream directory::
 
     git lfs fetch upstream
+
+
+.. note::
+
+    From now on, you can synchronize your fork with the EnMAP-Box repository by::
+
+        $git fetch upstream develop
+        $git merge upstream/develop
+
+    to get the latest updates from the *develop* branch. Call::
+
+        $git push
+
+    to upload them to the remote bitbucket.com/myusername/enmap-box-fork.git
 
 Now install python requirements and run the initial setup for the EnMAP-Box repository, as described in :ref:`dev_installation`
 
 
-.. note::
-    From now on, you can synchronize the develop branch of your forked repository with that of the EnMAP-Box repository by::
-
-
-    $ git fetch upstream
-    $ git merge upstream
 
 
 
@@ -137,7 +146,7 @@ Now install python requirements and run the initial setup for the EnMAP-Box repo
 3. Modify the local repository
 ..............................
 
-Now you can start your own feature branch 'my_modifications'::
+As you like, you can continue modifying the EnMAP-Box code in the *develop* branch or create a new one 'my_modifications'::
 
     $ git checkout -b my_modifications
 
@@ -160,7 +169,7 @@ Even better, use GnuPG-signed commits (-S).
 5. Push changes back to your fork
 .................................
 
-The pull request informs us on the changes you like to bring into the EnMAP-Box::
+A push will upload your changes to bitbucket.com/myusername/enmap-box-fork.git::
 
     $ git push
 
@@ -183,9 +192,11 @@ Before you create a pull request, please check the following:
 
 * make sure your name is listed in the :code:`CONTRIBUTORS.md`
 
-* update your feature branch to the  current EnMAP-Box master branch::
+* update your feature branch to the current EnMAP-Box *develop* branch::
 
-        git fetch origin
+        git fetch upstream develop
+        git merge upstream/develop
+
 
 * rebase your changes and push them to your forked repository::
 
