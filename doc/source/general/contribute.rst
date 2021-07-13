@@ -102,7 +102,7 @@ Please note that forking in bitbucket.org does not copy git lfs tracked files: h
 
 Clone *enmap-box-fork* to your local disk::
 
-    git clone git@bitbucket.com/myusername/enmap-box-fork.git
+    git clone git@bitbucket.com/myusername/enmap-box-fork.git -n
 
 You might see some git lfs errors. Ignore them.
 
