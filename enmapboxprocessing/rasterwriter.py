@@ -17,14 +17,16 @@ class RasterWriter(object):
         self.gdalDataset = gdalDataset
         self._source: str = self.gdalDataset.GetDescription()
 
-    def writeArray(self, array: Array3d, xOffset=0, yOffset=0, bandList: List[int] = None):
+    def writeArray(self, array: Array3d, xOffset=0, yOffset=0, bandList: List[int] = None, overlap: int = None):
         if bandList is None:
             assert len(array) == self.bandCount()
             bandList = range(1, self.bandCount() + 1)
         for bandNo, array2d in zip(bandList, array):
-            self.writeArray2d(array2d, bandNo, xOffset, yOffset)
+            self.writeArray2d(array2d, bandNo, xOffset, yOffset, overlap)
 
-    def writeArray2d(self, array: Array2d, bandNo: int, xOffset=0, yOffset=0):
+    def writeArray2d(self, array: Array2d, bandNo: int, xOffset=0, yOffset=0, overlap: int = None):
+        if overlap is not None:
+            array = array[overlap:-overlap, overlap:-overlap]
         gdalBand: gdal.Band = self.gdalDataset.GetRasterBand(bandNo)
         gdalBand.WriteArray(array, xOffset, yOffset)
 
@@ -91,6 +93,12 @@ class RasterWriter(object):
             bandNo = 1
         dataType = self.gdalDataset.GetRasterBand(bandNo).DataType
         return Utils.gdalDataTypeToQgisDataType(dataType)
+
+    def width(self) -> int:
+        return self.gdalDataset.RasterXSize
+
+    def height(self) -> int:
+        return self.gdalDataset.RasterYSize
 
     def _gdalObject(self, bandNo: int = None) -> Union[gdal.Dataset, gdal.Band]:
         if bandNo is None:

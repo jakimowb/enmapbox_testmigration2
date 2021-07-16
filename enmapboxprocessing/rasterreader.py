@@ -123,15 +123,31 @@ class RasterReader(object):
             height = min(blockSizeY, int(round((blockExtent.yMaximum() - blockExtent.yMinimum()) / pixelSizeY)))
             yield RasterBlockInfo(blockExtent, xOffset, yOffset, width, height)
 
-    def arrayFromBlock(self, block: RasterBlockInfo, bandList: List[int] = None, feedback: QgsRasterBlockFeedback = None):
-        return self.arrayFromBoundingBoxAndSize(block.extent, block.width, block.height, bandList, feedback)
+    def arrayFromBlock(
+            self, block: RasterBlockInfo, bandList: List[int] = None, overlap: int = None,
+            feedback: QgsRasterBlockFeedback = None
+    ):
+        return self.arrayFromBoundingBoxAndSize(
+            block.extent, block.width, block.height, bandList, overlap, feedback
+        )
 
     def arrayFromBoundingBoxAndSize(
             self, boundingBox: QgsRectangle, width: int, height: int, bandList: List[int] = None,
-            feedback: QgsRasterBlockFeedback = None
+            overlap: int = None, feedback: QgsRasterBlockFeedback = None
     ) -> Array3d:
         if bandList is None:
             bandList = range(1, self.provider.bandCount() + 1)
+        if overlap is not None:
+            xres = boundingBox.width() / width
+            yres = boundingBox.height() / height
+            boundingBox = QgsRectangle(
+                boundingBox.xMinimum() - overlap * xres,
+                boundingBox.yMinimum() - overlap * yres,
+                boundingBox.xMaximum() + overlap * xres,
+                boundingBox.yMaximum() + overlap * yres
+            )
+            width = width + 2 * overlap
+            height = height + 2 * overlap
         arrays = list()
         for bandNo in bandList:
             assert 0 < bandNo <= self.bandCount()
@@ -141,7 +157,7 @@ class RasterReader(object):
         return arrays
 
     def arrayFromPixelOffsetAndSize(
-            self, xOffset: int, yOffset: int, width: int, height: int, bandList: List[int] = None,
+            self, xOffset: int, yOffset: int, width: int, height: int, bandList: List[int] = None, overlap: int = None,
             feedback: QgsRasterBlockFeedback = None
     ) -> Array3d:
         p1 = QgsPointXY(
@@ -152,11 +168,12 @@ class RasterReader(object):
                 QgsPoint(xOffset + width, yOffset + height), QgsRasterDataProvider.TransformImageToLayer)
         )
         boundingBox = QgsRectangle(p1, p2)
-        return self.arrayFromBoundingBoxAndSize(boundingBox, width, height, bandList, feedback)
+        return self.arrayFromBoundingBoxAndSize(boundingBox, width, height, bandList, overlap, feedback)
 
     def array(
             self, xOffset: int = None, yOffset: int = None, width: int = None, height: int = None,
-            bandList: List[int] = None, boundingBox: QgsRectangle = None, feedback: QgsRasterBlockFeedback = None
+            bandList: List[int] = None, boundingBox: QgsRectangle = None, overlap: int = None,
+            feedback: QgsRasterBlockFeedback = None
     ) -> Array3d:
 
         if boundingBox is None:
@@ -166,7 +183,7 @@ class RasterReader(object):
             if yOffset is None and height is None:
                 yOffset = 0
                 height = self.provider.ySize()
-            array = self.arrayFromPixelOffsetAndSize(xOffset, yOffset, width, height, bandList, feedback)
+            array = self.arrayFromPixelOffsetAndSize(xOffset, yOffset, width, height, bandList, overlap, feedback)
         else:
             rasterUnitsPerPixelX = self.provider.extent().width() / self.provider.xSize()
             rasterUnitsPerPixelY = self.provider.extent().height() / self.provider.ySize()
@@ -174,7 +191,7 @@ class RasterReader(object):
                 width = int(round(boundingBox.width() / rasterUnitsPerPixelX))
             if height is None:
                 height = int(round(boundingBox.height() / rasterUnitsPerPixelY))
-            array = self.arrayFromBoundingBoxAndSize(boundingBox, width, height, bandList, feedback)
+            array = self.arrayFromBoundingBoxAndSize(boundingBox, width, height, bandList, overlap, feedback)
         return array
 
     def maskArray(

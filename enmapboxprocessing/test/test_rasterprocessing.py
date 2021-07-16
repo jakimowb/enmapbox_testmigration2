@@ -1,5 +1,5 @@
 from enmapboxprocessing.driver import Driver
-from enmapboxprocessing.raster import RasterReader
+from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.testcase import TestCase
 from enmapboxtestdata import enmap
 
@@ -13,6 +13,19 @@ class TestRasterProcessing(TestCase):
         outraster = Driver('c:/vsimem/enmap.tif', options=options).createFromArray(array)
         outraster.setNoDataValue(raster.noDataValue())
         outraster.setMetadata(raster.metadata())
+
+    def test_multiband_io_with_overlap(self):
+        raster = RasterReader(enmap)
+        overlap = 100
+        array = raster.array(overlap=overlap)
+        options = ['COMPRESS=LZW', 'INTERLEAVE=BAND']
+        outraster = Driver('c:/vsimem/enmap.tif', options=options).createFromArray(array, overlap=overlap)
+        outraster.setNoDataValue(raster.noDataValue())
+        outraster.setMetadata(raster.metadata())
+        self.assertEqual(array[0].shape,
+                         (raster.height() + 2 * overlap, raster.width() + 2 * overlap))
+        self.assertEqual(outraster.width(), raster.width())
+        self.assertEqual(outraster.height(), raster.height())
 
     def test_blockwise_multiband_io(self):
         raster = RasterReader(enmap)
@@ -37,7 +50,6 @@ class TestRasterProcessing(TestCase):
 
         outraster.setNoDataValue(raster.noDataValue())
         outraster.setMetadata(raster.metadata())
-
 
     def test_nativeBlocks(self):
         raster = RasterReader(enmap)

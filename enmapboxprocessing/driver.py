@@ -57,19 +57,21 @@ class Driver(object):
         return RasterWriter(gdalDataset)
 
     def createFromArray(
-            self, array: Array3d, extent: QgsRectangle = None,
-            crs: QgsCoordinateReferenceSystem = None,
+            self, array: Array3d, extent: QgsRectangle = None, crs: QgsCoordinateReferenceSystem = None,
+            overlap: int = None
     ) -> RasterWriter:
         nBands = len(array)
         height, width = array[0].shape
+        if overlap is not None:
+            height -= 2 * overlap
+            width -= 2 * overlap
         dataType = Utils.numpyDataTypeToQgisDataType(array[0].dtype)
         raster = self.create(dataType=dataType, width=width, height=height, nBands=nBands, extent=extent, crs=crs)
-        raster.writeArray(array)
+        raster.writeArray(array, overlap=overlap)
         return raster
 
     def createLike(
-            self, raster: RasterReader, dataType: QgisDataType = None,
-            nBands: int = None
+            self, raster: RasterReader, dataType: QgisDataType = None, nBands: int = None
     ) -> RasterWriter:
         provider = raster.provider
         if nBands is None:
