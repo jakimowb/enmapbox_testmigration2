@@ -21,6 +21,12 @@ from typeguard import typechecked
 
 @typechecked
 class Utils(object):
+
+    @staticmethod
+    def maximumMemoryUsage() -> int:
+        """Return maximum memory usage in bytes."""
+        return gdal.GetCacheMax()
+
     @staticmethod
     def qgisDataTypeToNumpyDataType(dataType: Qgis.DataType) -> type:
         if dataType == Qgis.Byte:

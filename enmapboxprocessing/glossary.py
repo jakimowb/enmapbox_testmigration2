@@ -16,7 +16,9 @@ with open(filename) as file:
 def injectGlossaryLinks(text: str):
     terms = list()
     letter = '_abcdefghijklmnopqrstuvwxyz'
+    letter = letter + letter.upper()
     letterWithoutS = '_abcdefghijklmnopqrtuvwxyz'
+    letterWithoutS = letterWithoutS + letterWithoutS.upper()
     for k in reversed(sorted(glossary.keys(), key=len)):  # long terms first to avoid term corruption
         url = glossary[k]
         ilast = 0
@@ -33,6 +35,10 @@ def injectGlossaryLinks(text: str):
                     continue
             if text[i0 + len(k)].lower() in letterWithoutS:
                 continue
+            else:
+                if len(text) - 1 >= i0 + len(k) + 1:
+                    if text[i0 + len(k) + 1].lower() in letter:
+                        continue
 
             # handle some special cases
             if k.lower() == 'output':
@@ -67,6 +73,8 @@ def injectGlossaryLinks(text: str):
                 if text[i0:].lower().startswith('target grid'):
                     continue
 
+            if k.lower() == 'grid':
+                a=1
             k2 = f'_{len(terms)}_'
             terms.append((k, k2, url))
             text = text[:i0] + k2 + text[i0 + len(k):]  # mark term
@@ -74,7 +82,6 @@ def injectGlossaryLinks(text: str):
             break  # only link first appearence
 
     for k, k2, url in terms:
-        # url = f'https://scikit-learn.org/stable/glossary.html#term-dimensionality'
         link = f'<a href="{url}">{k}</a>'
         text = text.replace(k2, link)  # inject link
 
