@@ -6,7 +6,7 @@ from typeguard import typechecked
 class SpatialConvolutionGaussian2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution 2D gaussian filter'
+        return 'Spatial convolution gaussian filter'
 
     def shortDescription(self) -> str:
         return '2D gaussian filter.\n' \

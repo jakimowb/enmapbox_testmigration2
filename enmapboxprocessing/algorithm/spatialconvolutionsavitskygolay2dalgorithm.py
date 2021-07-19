@@ -9,7 +9,7 @@ from typeguard import typechecked
 class SpatialConvolutionSavitskyGolay2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution 2D savitsky-golay filter'
+        return 'Spatial convolution savitsky-golay filter'
 
     def shortDescription(self) -> str:
         link = self.htmlLink(

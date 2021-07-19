@@ -6,7 +6,7 @@ from typeguard import typechecked
 class SpectralConvolutionRickerWavelet1DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spectral convolution 1D ricker wavelet filter'
+        return 'Spectral convolution ricker wavelet filter'
 
     def shortDescription(self) -> str:
         return '1D ricker wavelet filter kernel (sometimes known as a mexican hat kernel).\n' \

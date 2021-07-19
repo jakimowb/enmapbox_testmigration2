@@ -6,7 +6,7 @@ from typeguard import typechecked
 class SpatialConvolutionCustom2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution 2D custom filter'
+        return 'Spatial convolution custom filter'
 
     def shortDescription(self) -> str:
         return 'Create a spatial 2D filter kernel from list or array.'

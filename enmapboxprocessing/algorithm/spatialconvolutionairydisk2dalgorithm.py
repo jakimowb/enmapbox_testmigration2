@@ -6,7 +6,7 @@ from typeguard import typechecked
 class SpatialConvolutionAiryDisk2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution 2D airy disk filter'
+        return 'Spatial convolution airy disk filter'
 
     def shortDescription(self) -> str:
         return '2D airy disk filter.\n' \

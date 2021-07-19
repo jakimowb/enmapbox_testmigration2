@@ -6,7 +6,7 @@ from typeguard import typechecked
 class SpectralConvolutionBox1DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spectral convolution 1D box filter'
+        return 'Spectral convolution box filter'
 
     def shortDescription(self) -> str:
         return '1D box filter.\n' \

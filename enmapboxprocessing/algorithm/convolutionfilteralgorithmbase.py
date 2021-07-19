@@ -123,14 +123,10 @@ class ConvolutionFilterAlgorithmBase(EnMAPProcessingAlgorithm):
                 feedback.setProgress(block.yOffset / rasterReader.height() * 100)
                 array = rasterReader.arrayFromBlock(block, overlap=overlap)
                 mask = rasterReader.maskArray(array)
-                try:
-                    outarray = convolve(
-                        array, kernel, fill_value=np.nan, nan_treatment=nan_treatment,
-                        normalize_kernel=normalize_kernel, mask=np.logical_not(mask)
-                    )
-                except:
-                    print(self.displayName())
-                    exit()
+                outarray = convolve(
+                    array, kernel, fill_value=np.nan, nan_treatment=nan_treatment,
+                    normalize_kernel=normalize_kernel, mask=np.logical_not(mask)
+                )
                 noDataValue = float(np.finfo(np.float32).min)
                 outarray[np.isnan(outarray)] = noDataValue
                 writer.writeArray(outarray, block.xOffset, block.yOffset, overlap=overlap)

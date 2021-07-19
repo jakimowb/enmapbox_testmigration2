@@ -6,7 +6,7 @@ from typeguard import typechecked
 class SpectralConvolutionTrapezoid1DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spectral convolution 1D trapezoid filter'
+        return 'Spectral convolution trapezoid filter'
 
     def shortDescription(self) -> str:
         return '1D trapezoid filter.'

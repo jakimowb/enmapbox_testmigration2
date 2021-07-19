@@ -6,7 +6,7 @@ from typeguard import typechecked
 class SpatialConvolutionRing2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution 2D ring filter'
+        return 'Spatial convolution ring filter'
 
     def shortDescription(self) -> str:
         return '2D ring filter.\n' \

@@ -6,7 +6,7 @@ from typeguard import typechecked
 class SpatialConvolutionRickerWavelet2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution 2D ricker wavelet filter'
+        return 'Spatial convolution ricker wavelet filter'
 
     def shortDescription(self) -> str:
         return '2D ricker wavelet filter kernel (sometimes known as a Mexican Hat kernel).\n' \

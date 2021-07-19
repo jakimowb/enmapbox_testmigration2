@@ -6,7 +6,7 @@ from typeguard import typechecked
 class SpatialConvolutionMoffat2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution 2D moffat filter'
+        return 'Spatial convolution moffat filter'
 
     def shortDescription(self) -> str:
         return '2D moffat filter.\n' \

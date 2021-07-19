@@ -53,6 +53,30 @@ from enmapboxprocessing.algorithm.spatialconvolutionsavitskygolay2dalgorithm imp
 from enmapboxprocessing.algorithm.spatialconvolutiontophat2dalgorithm import SpatialConvolutionTophat2DAlgorithm
 from enmapboxprocessing.algorithm.spatialconvolutiontrapezoiddisk2dalgorithm import \
     SpatialConvolutionTrapezoidDisk2DAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalbinaryclosingalgorithm import \
+    SpatialMorphologicalBinaryClosingAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalbinarydilationalgorithm import \
+    SpatialMorphologicalBinaryDilationAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalbinaryerosionalgorithm import \
+    SpatialMorphologicalBinaryErosionAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalbinaryfillholesalgorithm import \
+    SpatialMorphologicalBinaryFillHolesAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalbinaryopeningalgorithm import \
+    SpatialMorphologicalBinaryOpeningAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalbinarypropagationalgorithm import \
+    SpatialMorphologicalBinaryPropagationAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalblacktophatalgorithm import \
+    SpatialMorphologicalBlackTophatAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalgradientalgorithm import SpatialMorphologicalGradientAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalgreydilationalgorithm import \
+    SpatialMorphologicalGreyDilationAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalgreyerosionalgorithm import \
+    SpatialMorphologicalGreyErosionAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalgreyopeningalgorithm import \
+    SpatialMorphologicalGreyOpeningAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicallaplacealgorithm import SpatialMorphologicalLaplaceAlgorithm
+from enmapboxprocessing.algorithm.spatialmorphologicalwhitetophatalgorithm import \
+    SpatialMorphologicalWhiteTophatAlgorithm
 from enmapboxprocessing.algorithm.spectralconvolutionbox1dalgorithm import SpectralConvolutionBox1DAlgorithm
 from enmapboxprocessing.algorithm.spectralconvolutiongaussian1dalgorithm import SpectralConvolutionGaussian1DAlgorithm
 from enmapboxprocessing.algorithm.spectralconvolutionrickerwavelet1dalgorithm import \
@@ -108,6 +132,19 @@ def algorithms():
         SpatialConvolutionSavitskyGolay2DAlgorithm(),
         SpatialConvolutionTophat2DAlgorithm(),
         SpatialConvolutionTrapezoidDisk2DAlgorithm(),
+        SpatialMorphologicalBinaryClosingAlgorithm(),
+        SpatialMorphologicalBinaryDilationAlgorithm(),
+        SpatialMorphologicalBinaryErosionAlgorithm(),
+        SpatialMorphologicalBinaryFillHolesAlgorithm(),
+        SpatialMorphologicalBinaryOpeningAlgorithm(),
+        SpatialMorphologicalBinaryPropagationAlgorithm(),
+        SpatialMorphologicalBlackTophatAlgorithm(),
+        SpatialMorphologicalGradientAlgorithm(),
+        SpatialMorphologicalGreyDilationAlgorithm(),
+        SpatialMorphologicalGreyErosionAlgorithm(),
+        SpatialMorphologicalGreyOpeningAlgorithm(),
+        SpatialMorphologicalLaplaceAlgorithm(),
+        SpatialMorphologicalWhiteTophatAlgorithm(),
         SpectralConvolutionBox1DAlgorithm(),
         SpectralConvolutionGaussian1DAlgorithm(),
         SpectralConvolutionRickerWavelet1DAlgorithm(),

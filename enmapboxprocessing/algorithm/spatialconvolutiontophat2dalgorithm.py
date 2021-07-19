@@ -6,7 +6,7 @@ from typeguard import typechecked
 class SpatialConvolutionTophat2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution 2D tophat filter'
+        return 'Spatial convolution tophat filter'
 
     def shortDescription(self) -> str:
         return '2D tophat filter.\n' \

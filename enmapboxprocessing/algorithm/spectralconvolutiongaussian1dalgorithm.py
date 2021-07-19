@@ -6,7 +6,7 @@ from typeguard import typechecked
 class SpectralConvolutionGaussian1DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spectral convolution 1D gaussian filter'
+        return 'Spectral convolution gaussian filter'
 
     def shortDescription(self) -> str:
         return '1D gaussian filter.\n' \
