@@ -23,9 +23,6 @@ from hubflow.core import *
 from enmapboxgeoalgorithms.provider import (EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, Help, Link, Cookbook,
                                             ALGORITHMS)
 from enmapboxgeoalgorithms.estimators import parseClassifiers, parseClusterers, parseRegressors, parseTransformers
-from enmapboxgeoalgorithms.filters.convolution import parseSpatialKernel, parseSpectralKernel
-from enmapboxgeoalgorithms.filters.morphology import parseMorphology
-from enmapboxgeoalgorithms.filters.other import parseOtherFilter
 
 ALGORITHMS.append(UniqueBandValueCounts())
 ALGORITHMS.append(ImportEnmapL1B())
@@ -724,61 +721,6 @@ class RasterFromVector(EnMAPAlgorithm):
 ALGORITHMS.append(RasterFromVector())
 
 
-class RasterCalculate(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Raster Calculate'
-
-    def description(self):
-        return 'Evaluates a numpy expression on the raster data. Use "a" as identifier, e.g. "a * 2" to scale all values by the factor two.'
-
-    def group(self):
-        return self.GROUP_CREATE_RASTER
-
-    P_INIT_VALUE = 'initValue'
-    P_BURN_VALUE = 'burnValue'
-    P_BURN_ATTRIBUTE = 'burnAttribute'
-    P_ALL_TOUCHED = 'allTouched'
-    P_FILTER_SQL = 'filterSQL'
-
-    def defineCharacteristics(self):
-        self.addParameterGrid()
-        self.addParameterVector()
-        self.addParameterFloat(self.P_INIT_VALUE, 'Init Value', defaultValue=0,
-            help='Pre-initialization value for the output raster before burning. Note that this value is not marked as the nodata value in the output raster.')
-        self.addParameterFloat(self.P_BURN_VALUE, 'Burn Value', defaultValue=1,
-            help='Fixed value to burn into each pixel, which is covered by a feature (point, line or polygon).')
-        self.addParameterField(self.P_BURN_ATTRIBUTE, 'Burn Attribute', type=QgsProcessingParameterField.Numeric,
-            parentLayerParameterName=self.P_VECTOR, optional=True,
-            help='Specify numeric vector field to use as burn values.')
-        self.addParameterBoolean(self.P_ALL_TOUCHED, 'All touched', defaultValue=False,
-            help='Enables the ALL_TOUCHED rasterization option so that all pixels touched by lines or polygons will be updated, not just those on the line render path, or whose center point is within the polygon.')
-        self.addParameterString(self.P_FILTER_SQL, 'Filter SQL', defaultValue='', optional=True,
-            help='Create SQL based feature selection, so that only selected features will be used for burning.\n'
-                 "Example: Level_2 = 'Roof' will only burn geometries where the Level_2 attribute value is equal to 'Roof', others will be ignored. This allows you to subset the vector dataset on-the-fly.")
-        self.addParameterDataType()
-        self.addParameterNoDataValue(optional=True)
-        self.addParameterOutputRaster()
-
-    def processAlgorithm_(self):
-        grid = self.getParameterGrid()
-        filterSQL = self.getParameterString(self.P_FILTER_SQL)
-        if filterSQL == '':
-            filterSQL = None
-        vector = self.getParameterVector(initValue=self.getParameterFloat(self.P_INIT_VALUE),
-            burnValue=self.getParameterFloat(self.P_BURN_VALUE),
-            burnAttribute=self.getParameterField(self.P_BURN_ATTRIBUTE),
-            allTouched=self.getParameterBoolean(self.P_ALL_TOUCHED),
-            filterSQL=filterSQL,
-            dtype=self.getParameterDataType())
-
-        filename = self.getParameterOutputRaster()
-        Raster.fromVector(filename=filename, vector=vector, grid=grid, noDataValue=self.getParameterNoDataValue(),
-            progressBar=self._progressBar)
-        return {self.P_OUTPUT_RASTER: filename}
-
-
-ALGORITHMS.append(RasterCalculate())
-
 class RasterApplySpatial(EnMAPAlgorithm):
     def __init__(self, name, name2, code, helpAlg, helpCode, postCode):
         self._name = name
@@ -832,16 +774,6 @@ class RasterApplySpatial(EnMAPAlgorithm):
 
     def cookbookDescription(self):
         return 'See the following Cookbook Recipes on how to apply filters:'
-
-
-for name, (code, helpAlg, helpCode, postCode) in parseMorphology().items():
-    ALGORITHMS.append(
-        RasterApplySpatial(name=name, name2='Morphological', code=code, helpAlg=helpAlg, helpCode=helpCode,
-            postCode=postCode))
-
-for name, (code, helpAlg, helpCode, postCode) in parseOtherFilter().items():
-    ALGORITHMS.append(
-        RasterApplySpatial(name=name, name2='', code=code, helpAlg=helpAlg, helpCode=helpCode, postCode=postCode))
 
 
 class RasterUniqueValues(EnMAPAlgorithm):

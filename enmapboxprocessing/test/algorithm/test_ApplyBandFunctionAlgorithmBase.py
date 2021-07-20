@@ -1,4 +1,11 @@
 from enmapboxprocessing.algorithm.applybandfunctionalgorithmbase import ApplyBandFunctionAlgorithmBase
+from enmapboxprocessing.algorithm.spatialgaussiangradientmagnitudealgorithm import \
+    SpatialGaussianGradientMagnitudeAlgorithm
+from enmapboxprocessing.algorithm.spatialgenericfilteralgorithm import SpatialGenericAlgorithm
+from enmapboxprocessing.algorithm.spatiallaplacealgorithm import SpatialLaplaceAlgorithm
+from enmapboxprocessing.algorithm.spatialmaximumalgorithm import SpatialMaximumAlgorithm
+from enmapboxprocessing.algorithm.spatialmedianalgorithm import SpatialMedianAlgorithm
+from enmapboxprocessing.algorithm.spatialminimumalgorithm import SpatialMinimumAlgorithm
 from enmapboxprocessing.algorithm.spatialmorphologicalbinaryclosingalgorithm import \
     SpatialMorphologicalBinaryClosingAlgorithm
 from enmapboxprocessing.algorithm.spatialmorphologicalbinarydilationalgorithm import \
@@ -23,6 +30,9 @@ from enmapboxprocessing.algorithm.spatialmorphologicalgreyopeningalgorithm impor
 from enmapboxprocessing.algorithm.spatialmorphologicallaplacealgorithm import SpatialMorphologicalLaplaceAlgorithm
 from enmapboxprocessing.algorithm.spatialmorphologicalwhitetophatalgorithm import \
     SpatialMorphologicalWhiteTophatAlgorithm
+from enmapboxprocessing.algorithm.spatialpercentilealgorithm import SpatialPercentileAlgorithm
+from enmapboxprocessing.algorithm.spatialprewittalgorithm import SpatialPrewittAlgorithm
+from enmapboxprocessing.algorithm.spatialsobelalgorithm import SpatialSobelAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxtestdata import hires
 
@@ -76,7 +86,16 @@ class TestApplyBandFunctionAlgorithm(TestCase):
             SpatialMorphologicalGreyErosionAlgorithm(),
             SpatialMorphologicalGreyOpeningAlgorithm(),
             SpatialMorphologicalLaplaceAlgorithm(),
-            SpatialMorphologicalWhiteTophatAlgorithm()
+            SpatialMorphologicalWhiteTophatAlgorithm(),
+            SpatialGaussianGradientMagnitudeAlgorithm(),
+            SpatialSobelAlgorithm(),
+            SpatialPercentileAlgorithm(),
+            SpatialPrewittAlgorithm(),
+            SpatialMinimumAlgorithm(),
+            SpatialMaximumAlgorithm(),
+            SpatialMedianAlgorithm(),
+            SpatialLaplaceAlgorithm(),
+            #SpatialGenericAlgorithm(),
         ]
         for alg in algs:
             print(alg.displayName())

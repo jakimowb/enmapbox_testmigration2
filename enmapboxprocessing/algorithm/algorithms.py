@@ -53,6 +53,13 @@ from enmapboxprocessing.algorithm.spatialconvolutionsavitskygolay2dalgorithm imp
 from enmapboxprocessing.algorithm.spatialconvolutiontophat2dalgorithm import SpatialConvolutionTophat2DAlgorithm
 from enmapboxprocessing.algorithm.spatialconvolutiontrapezoiddisk2dalgorithm import \
     SpatialConvolutionTrapezoidDisk2DAlgorithm
+from enmapboxprocessing.algorithm.spatialgaussiangradientmagnitudealgorithm import \
+    SpatialGaussianGradientMagnitudeAlgorithm
+from enmapboxprocessing.algorithm.spatialgenericfilteralgorithm import SpatialGenericAlgorithm
+from enmapboxprocessing.algorithm.spatiallaplacealgorithm import SpatialLaplaceAlgorithm
+from enmapboxprocessing.algorithm.spatialmaximumalgorithm import SpatialMaximumAlgorithm
+from enmapboxprocessing.algorithm.spatialmedianalgorithm import SpatialMedianAlgorithm
+from enmapboxprocessing.algorithm.spatialminimumalgorithm import SpatialMinimumAlgorithm
 from enmapboxprocessing.algorithm.spatialmorphologicalbinaryclosingalgorithm import \
     SpatialMorphologicalBinaryClosingAlgorithm
 from enmapboxprocessing.algorithm.spatialmorphologicalbinarydilationalgorithm import \
@@ -77,6 +84,9 @@ from enmapboxprocessing.algorithm.spatialmorphologicalgreyopeningalgorithm impor
 from enmapboxprocessing.algorithm.spatialmorphologicallaplacealgorithm import SpatialMorphologicalLaplaceAlgorithm
 from enmapboxprocessing.algorithm.spatialmorphologicalwhitetophatalgorithm import \
     SpatialMorphologicalWhiteTophatAlgorithm
+from enmapboxprocessing.algorithm.spatialpercentilealgorithm import SpatialPercentileAlgorithm
+from enmapboxprocessing.algorithm.spatialprewittalgorithm import SpatialPrewittAlgorithm
+from enmapboxprocessing.algorithm.spatialsobelalgorithm import SpatialSobelAlgorithm
 from enmapboxprocessing.algorithm.spectralconvolutionbox1dalgorithm import SpectralConvolutionBox1DAlgorithm
 from enmapboxprocessing.algorithm.spectralconvolutiongaussian1dalgorithm import SpectralConvolutionGaussian1DAlgorithm
 from enmapboxprocessing.algorithm.spectralconvolutionrickerwavelet1dalgorithm import \
@@ -132,6 +142,7 @@ def algorithms():
         SpatialConvolutionSavitskyGolay2DAlgorithm(),
         SpatialConvolutionTophat2DAlgorithm(),
         SpatialConvolutionTrapezoidDisk2DAlgorithm(),
+        SpatialGaussianGradientMagnitudeAlgorithm(),
         SpatialMorphologicalBinaryClosingAlgorithm(),
         SpatialMorphologicalBinaryDilationAlgorithm(),
         SpatialMorphologicalBinaryErosionAlgorithm(),
@@ -145,6 +156,14 @@ def algorithms():
         SpatialMorphologicalGreyOpeningAlgorithm(),
         SpatialMorphologicalLaplaceAlgorithm(),
         SpatialMorphologicalWhiteTophatAlgorithm(),
+        SpatialSobelAlgorithm(),
+        SpatialPrewittAlgorithm(),
+        SpatialPercentileAlgorithm(),
+        SpatialMinimumAlgorithm(),
+        SpatialMaximumAlgorithm(),
+        SpatialMedianAlgorithm(),
+        SpatialLaplaceAlgorithm(),
+        SpatialGenericAlgorithm(),
         SpectralConvolutionBox1DAlgorithm(),
         SpectralConvolutionGaussian1DAlgorithm(),
         SpectralConvolutionRickerWavelet1DAlgorithm(),
