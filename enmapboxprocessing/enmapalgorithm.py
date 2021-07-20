@@ -8,6 +8,7 @@ import numpy as np
 from osgeo import gdal
 
 from enmapboxprocessing.glossary import injectGlossaryLinks
+from enmapboxprocessing.widget.codeeditwidget import CodeEditWidgetWrapper
 from typeguard import typechecked
 from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
                         QgsProcessingParameterRasterDestination, QgsProcessingContext, QgsProcessingFeedback,
@@ -505,6 +506,15 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             self, name: str, description: str, defaultValue=None, multiLine=False, optional=False, advanced=False
     ):
         self.addParameter(QgsProcessingParameterString(name, description, defaultValue, multiLine, optional))
+        self.flagParameterAsAdvanced(name, advanced)
+
+    def addParameterCode(
+            self, name: str, description: str, defaultValue=None, optional=False, advanced=False
+    ):
+        options_param = QgsProcessingParameterString(name, description, optional=optional)
+        options_param.setMetadata({'widget_wrapper': {'class': CodeEditWidgetWrapper}})
+        options_param.setDefaultValue(defaultValue)
+        self.addParameter(options_param)
         self.flagParameterAsAdvanced(name, advanced)
 
     def addParameterDataType(
