@@ -1,10 +1,10 @@
-from enmapboxprocessing.algorithm.applybandfunctionalgorithmbase import ApplyBandFunctionAlgorithmBase
+from enmapboxprocessing.algorithm.spatialfilterfunctionalgorithmbase import SpatialFilterFunctionAlgorithmBase
 from enmapboxprocessing.enmapalgorithm import Group
 from typeguard import typechecked
 
 
 @typechecked
-class SpatialSobelAlgorithm(ApplyBandFunctionAlgorithmBase):
+class SpatialSobelAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
         return 'Spatial sobel filter'

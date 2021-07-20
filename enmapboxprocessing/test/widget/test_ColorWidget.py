@@ -1,4 +1,4 @@
-from enmapboxprocessing.algorithm._experimental_customcolor import ExperimentalCustomColor
+from enmapboxprocessing.widget.colorwidget import TestCustomWidgetsAlgorithm
 
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 
@@ -9,7 +9,7 @@ c = ['', 'c:'][int(writeToDisk)]
 class Test_ExperimentalCustomColor(TestCase):
 
     def test(self):
-        alg = ExperimentalCustomColor()
+        alg = TestCustomWidgetsAlgorithm()
         alg.initAlgorithm()
         parameters = {alg.P_COLOR: '#FF0000'}
         self.runalg(alg, parameters)

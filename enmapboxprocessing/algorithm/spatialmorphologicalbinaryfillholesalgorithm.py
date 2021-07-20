@@ -1,10 +1,10 @@
-from enmapboxprocessing.algorithm.applybandfunctionalgorithmbase import ApplyBandFunctionAlgorithmBase
+from enmapboxprocessing.algorithm.spatialfilterfunctionalgorithmbase import SpatialFilterFunctionAlgorithmBase
 from enmapboxprocessing.enmapalgorithm import Group
 from typeguard import typechecked
 
 
 @typechecked
-class SpatialMorphologicalBinaryFillHolesAlgorithm(ApplyBandFunctionAlgorithmBase):
+class SpatialMorphologicalBinaryFillHolesAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
         return 'Spatial morphological binary fill holes filter'

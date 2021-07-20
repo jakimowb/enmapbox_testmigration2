@@ -1,4 +1,3 @@
-from enmapboxprocessing.algorithm._experimental_customcolor import ExperimentalCustomColor
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import \
@@ -10,6 +9,7 @@ from enmapboxprocessing.algorithm.classifierperformancealgorithm import Classifi
 from enmapboxprocessing.algorithm.createdefaultpalettedrasterrendereralgorithm import \
     CreateDefaultPalettedRasterRendererAlgorithm
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
+from enmapboxprocessing.algorithm.createmaskalgorithm import CreateMaskAlgorithm
 from enmapboxprocessing.algorithm.creatergbimagefromclassprobabilityalgorithm import \
     CreateRgbImageFromClassProbabilityAlgorithm
 from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import FeatureClusteringHierarchicalAlgorithm
@@ -36,6 +36,7 @@ from enmapboxprocessing.algorithm.randompointsfromcategorizedrasteralgorithm imp
 from enmapboxprocessing.algorithm.randompointsfrommaskrasteralgorithm import RandomPointsFromMaskRasterAlgorithm
 from enmapboxprocessing.algorithm.randomsamplesfromclassificationdatasetalgorithm import \
     RandomSamplesFromClassificationDatasetAlgorithm
+from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.algorithm.samplerastervaluesalgorithm import SampleRasterValuesAlgorithm
@@ -96,7 +97,6 @@ from enmapboxprocessing.algorithm.spectralconvolutionsavitskygolay1dalgorithm im
 from enmapboxprocessing.algorithm.spectralconvolutiontrapezoid1dalgorithm import SpectralConvolutionTrapezoid1DAlgorithm
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
-from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 
 
 def algorithms():
@@ -108,6 +108,7 @@ def algorithms():
         ClassifierFeatureRankingPermutationImportanceAlgorithm(),
         CreateDefaultPalettedRasterRendererAlgorithm(),
         CreateGridAlgorithm(),
+        CreateMaskAlgorithm(),
         CreateRgbImageFromClassProbabilityAlgorithm(),
         FitGaussianProcessClassifierAlgorithm(),
         FitGenericClassifier(),
@@ -171,6 +172,6 @@ def algorithms():
         SpectralConvolutionTrapezoid1DAlgorithm(),
         TranslateCategorizedRasterAlgorithm(),
         TranslateRasterAlgorithm(),
-        # ExperimentalCustomColor()
+        # ExperimentalCustomColor(),
+        # TestCodeEditWidgetAlgorithm()
     ]
-

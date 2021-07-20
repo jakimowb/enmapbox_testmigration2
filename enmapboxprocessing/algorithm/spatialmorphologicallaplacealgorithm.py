@@ -1,10 +1,10 @@
-from enmapboxprocessing.algorithm.applybandfunctionalgorithmbase import ApplyBandFunctionAlgorithmBase
+from enmapboxprocessing.algorithm.spatialfilterfunctionalgorithmbase import SpatialFilterFunctionAlgorithmBase
 from enmapboxprocessing.enmapalgorithm import Group
 from typeguard import typechecked
 
 
 @typechecked
-class SpatialMorphologicalLaplaceAlgorithm(ApplyBandFunctionAlgorithmBase):
+class SpatialMorphologicalLaplaceAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
         return 'Spatial morphological laplace filter'
@@ -18,8 +18,9 @@ class SpatialMorphologicalLaplaceAlgorithm(ApplyBandFunctionAlgorithmBase):
 
     def helpParameterCode(self) -> str:
         links = ', '.join([
-            self.htmlLink('https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.morphological_laplace.html',
-                            'morphological_laplace')
+            self.htmlLink(
+                'https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.morphological_laplace.html',
+                'morphological_laplace')
         ])
         return f'Python code. See {links} for information on different parameters.'
 

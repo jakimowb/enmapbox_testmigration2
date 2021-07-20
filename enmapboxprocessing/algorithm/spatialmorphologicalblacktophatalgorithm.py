@@ -1,10 +1,10 @@
-from enmapboxprocessing.algorithm.applybandfunctionalgorithmbase import ApplyBandFunctionAlgorithmBase
+from enmapboxprocessing.algorithm.spatialfilterfunctionalgorithmbase import SpatialFilterFunctionAlgorithmBase
 from enmapboxprocessing.enmapalgorithm import Group
 from typeguard import typechecked
 
 
 @typechecked
-class SpatialMorphologicalBlackTophatAlgorithm(ApplyBandFunctionAlgorithmBase):
+class SpatialMorphologicalBlackTophatAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
         return 'Spatial morphological black top-hat filter'

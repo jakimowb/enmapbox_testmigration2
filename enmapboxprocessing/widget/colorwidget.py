@@ -62,15 +62,15 @@ class ColorWidgetWrapper(WidgetWrapper):
 
 
 @typechecked
-class ExperimentalCustomColor(EnMAPProcessingAlgorithm):
+class TestColorWidget(EnMAPProcessingAlgorithm):
     P_COLOR, _COLOR = 'color', 'Color'
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Custom Color'
+        return 'ColorWidget'
 
     def shortDescription(self) -> str:
-        return 'Custom color widget'
+        return 'Color widget'
 
     def group(self):
         return Group.Test.value + Group.Experimental.value

@@ -1,10 +1,10 @@
-from enmapboxprocessing.algorithm.applybandfunctionalgorithmbase import ApplyBandFunctionAlgorithmBase
+from enmapboxprocessing.algorithm.spatialfilterfunctionalgorithmbase import SpatialFilterFunctionAlgorithmBase
 from enmapboxprocessing.enmapalgorithm import Group
 from typeguard import typechecked
 
 
 @typechecked
-class SpatialGaussianGradientMagnitudeAlgorithm(ApplyBandFunctionAlgorithmBase):
+class SpatialGaussianGradientMagnitudeAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
         return 'Spatial gaussian gradient magnitude filter'
@@ -17,8 +17,9 @@ class SpatialGaussianGradientMagnitudeAlgorithm(ApplyBandFunctionAlgorithmBase):
 
     def helpParameterCode(self) -> str:
         links = ', '.join([
-            self.htmlLink('https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_gradient_magnitude.html',
-                          'binary_closing')])
+            self.htmlLink(
+                'https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_gradient_magnitude.html',
+                'binary_closing')])
         return f'Python code. See {links} for information on different parameters.'
 
     def code(cls):

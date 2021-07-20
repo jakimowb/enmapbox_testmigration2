@@ -1,10 +1,10 @@
-from enmapboxprocessing.algorithm.applybandfunctionalgorithmbase import ApplyBandFunctionAlgorithmBase
+from enmapboxprocessing.algorithm.spatialfilterfunctionalgorithmbase import SpatialFilterFunctionAlgorithmBase
 from enmapboxprocessing.enmapalgorithm import Group
 from typeguard import typechecked
 
 
 @typechecked
-class SpatialMorphologicalGradientAlgorithm(ApplyBandFunctionAlgorithmBase):
+class SpatialMorphologicalGradientAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
         return 'Spatial morphological gradient filter'
@@ -18,8 +18,9 @@ class SpatialMorphologicalGradientAlgorithm(ApplyBandFunctionAlgorithmBase):
 
     def helpParameterCode(self) -> str:
         links = ', '.join([
-            self.htmlLink('https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.morphological_gradient.html',
-                          'binary_closing'),
+            self.htmlLink(
+                'https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.morphological_gradient.html',
+                'binary_closing'),
             self.htmlLink(
                 'https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.generate_binary_structure.html',
                 'generate_binary_structure'),

@@ -1,10 +1,10 @@
-from enmapboxprocessing.algorithm.applybandfunctionalgorithmbase import ApplyBandFunctionAlgorithmBase
+from enmapboxprocessing.algorithm.spatialfilterfunctionalgorithmbase import SpatialFilterFunctionAlgorithmBase
 from enmapboxprocessing.enmapalgorithm import Group
 from typeguard import typechecked
 
 
 @typechecked
-class SpatialGenericAlgorithm(ApplyBandFunctionAlgorithmBase):
+class SpatialGenericAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
         return 'Spatial generic filter'
@@ -14,6 +14,7 @@ class SpatialGenericAlgorithm(ApplyBandFunctionAlgorithmBase):
 
     def shortDescription(self) -> str:
         return f'Spatial generic (user-defined) filter.'
+
     def helpParameterCode(self) -> str:
         links = ', '.join([
             self.htmlLink('https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.generic_filter.html',

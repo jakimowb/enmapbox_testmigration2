@@ -1,7 +1,7 @@
 import inspect
 import traceback
 from math import ceil
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List, Tuple
 
 import numpy as np
 from astropy.convolution import Kernel
@@ -50,15 +50,14 @@ class ConvolutionFilterAlgorithmBase(EnMAPProcessingAlgorithm):
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_RASTER, self._RASTER)
-        self.addParameterString(self.P_KERNEL, self._KERNEL, self.defaultCodeAsString(), True)
+        self.addParameterCode(self.P_KERNEL, self._KERNEL, self.defaultCodeAsString())
         self.addParameterBoolean(self.P_NORMALIZE, self._NORMALIZE, False, False, True)
         self.addParameterBoolean(self.P_INTERPOLATE, self._INTERPOLATE, True, False, True)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def defaultCodeAsString(self):
-        lines = [line for line in inspect.getsource(self.code).split('\n')
-                 if not line.strip().startswith('def') and line != ''][:-1]
-        lines = '\n'.join([line[8:] for line in lines])
+        lines = [line[8:] for line in inspect.getsource(self.code).split('\n')][1:-2]
+        lines = '\n'.join(lines)
         return lines
 
     def parameterAsKernel(self, parameters: Dict[str, Any], name, context: QgsProcessingContext):
