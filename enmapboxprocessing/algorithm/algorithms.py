@@ -19,6 +19,7 @@ from enmapboxprocessing.algorithm.fitlinearsvcalgorithm import FitLinearSvcAlgor
 from enmapboxprocessing.algorithm.fitlogisticregressionralgorithm import FitLogisticRegressionAlgorithm
 from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitsvcalgorithm import FitSvcAlgorithm
+from enmapboxprocessing.algorithm.layertomaskalgorithm import LayerToMaskAlgorithm
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedlibrary import \
@@ -117,6 +118,7 @@ def algorithms():
         FitRandomForestClassifierAlgorithm(),
         FitSvcAlgorithm(),
         FeatureClusteringHierarchicalAlgorithm(),
+        LayerToMaskAlgorithm(),
         PredictClassificationAlgorithm(),
         PredictClassPropabilityAlgorithm(),
         PrepareClassificationDatasetFromFiles(),

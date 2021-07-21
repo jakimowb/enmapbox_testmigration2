@@ -390,40 +390,6 @@ class CreateTestTransformer(EnMAPAlgorithm):
 ALGORITHMS.append(CreateTestTransformer())
 
 
-class MaskBuildFromRaster(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Build Mask from Raster'
-
-    def description(self):
-        return 'Builds a mask from a raster based on user defined values and value ranges.'
-
-    def group(self):
-        return self.GROUP_MASKING
-
-    P_TRUE = 'true'
-    P_FALSE = 'false'
-
-    def defineCharacteristics(self):
-        self.addParameterRaster()
-        self.addParameterList(self.P_TRUE, 'Foreground values',
-            help='List of values and ranges that are mapped to True, e.g. [1, 2, 5, range(5, 10)].')
-        self.addParameterList(self.P_FALSE, 'Background values',
-            help='List of values and ranges that are mapped to False, e.g. [-9999, range(-10, 0)].')
-        self.addParameterOutputMask()
-
-    def processAlgorithm_(self):
-        filename = self.getParameterOutputMask()
-        Mask.fromRaster(filename=filename,
-            raster=self.getParameterRaster(),
-            true=self.getParameterList(self.P_TRUE),
-            false=self.getParameterList(self.P_FALSE),
-            progressBar=self._progressBar)
-        return {self.P_OUTPUT_MASK: filename}
-
-
-ALGORITHMS.append(MaskBuildFromRaster())
-
-
 class ImportLibrary(EnMAPAlgorithm):
     def displayName(self):
         return 'Import Library'
