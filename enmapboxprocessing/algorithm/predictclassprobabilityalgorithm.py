@@ -4,8 +4,9 @@ from typing import Dict, Any, List, Tuple
 import numpy as np
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer,
-                        Qgis, QgsProcessingException)
+                        Qgis, QgsProcessingException, QgsMapLayer)
 
+from enmapboxprocessing.algorithm.layertomaskalgorithm import LayerToMaskAlgorithm
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
@@ -70,29 +71,15 @@ class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
 
-            if isinstance(mask, QgsRasterLayer):
+            if isinstance(mask, QgsMapLayer):
                 feedback.pushInfo('Prepare mask')
-                alg = TranslateRasterAlgorithm()
+                alg = LayerToMaskAlgorithm()
                 parameters = {
-                    alg.P_RASTER: mask,
+                    alg.P_LAYER: mask,
                     alg.P_GRID: raster,
-                    alg.P_CREATION_PROFILE: self.VrtProfile,
-                    alg.P_BAND_LIST: [mask.renderer().usesBands()[0]],
-                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'mask.vrt')
+                    alg.P_OUTPUT_MASK: Utils.tmpFilename(filename, 'mask.vrt')
                 }
-                mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER])
-            if isinstance(mask, QgsVectorLayer):
-                feedback.pushInfo('Prepare mask')
-                alg = RasterizeVectorAlgorithm()
-                parameters = {
-                    alg.P_VECTOR: mask,
-                    alg.P_GRID: raster,
-                    alg.P_INIT_VALUE: 0,
-                    alg.P_BURN_VALUE: 1,
-                    alg.P_DATA_TYPE: self.Byte,
-                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'mask.tif')
-                }
-                mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER])
+                mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_MASK])
             assert isinstance(mask, (type(None), QgsRasterLayer))
 
             rasterReader = RasterReader(raster)
