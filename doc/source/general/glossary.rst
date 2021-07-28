@@ -291,7 +291,6 @@ GIS and Remote Sensing
         A :term:`spectral library`, where each profile represents the :term:`spectral response function` of a :term:`spectral band`.
 
         .. image:: img/spectral_response_function_library.png
-            :width: 24%
 
     stratification layer
         A :term:`classification layer` that is used to stratify an area into distinct subareas.
