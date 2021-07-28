@@ -19,7 +19,7 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterExtent, QgsCoordinateReferenceSystem, QgsRectangle,
                         QgsProcessingParameterFileDestination, QgsProcessingParameterFile, QgsProcessingParameterRange,
                         QgsProcessingParameterCrs, QgsProcessingParameterVectorDestination, QgsProcessing,
-                        QgsProcessingUtils, QgsProcessingParameterMultipleLayers)
+                        QgsProcessingUtils, QgsProcessingParameterMultipleLayers, QgsProcessingException)
 import processing
 
 from enmapboxprocessing.processingfeedback import ProcessingFeedback
@@ -108,6 +108,24 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         layer = super().parameterAsRasterLayer(parameters, name, context)
         if isinstance(layer, QgsRasterLayer) and isinstance(parameters[name], str):
             layer.loadDefaultStyle()
+        return layer
+
+    def parameterAsSpectralRasterLayer(
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext, checkWavelength=True,
+            checkFwhm=False
+    ) -> Optional[QgsRasterLayer]:
+        from enmapboxprocessing.rasterreader import RasterReader
+
+        layer = self.parameterAsRasterLayer(parameters, name, context)
+        if layer is not None:
+            if checkWavelength:
+                if not RasterReader(layer).isSpectralRasterLayer():
+                    message = f'Missing wavelength definition for spectral raster layer: {name}'
+                    raise QgsProcessingException(message)
+            if checkFwhm:
+                if not RasterReader(layer).isSpectralRasterLayer():
+                    message = f'Missing FWHM definition for spectral raster layer: {name}'
+                    raise QgsProcessingException(message)
         return layer
 
     def parameterAsVectorLayer(

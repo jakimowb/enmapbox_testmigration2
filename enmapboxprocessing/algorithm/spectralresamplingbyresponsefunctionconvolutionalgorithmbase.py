@@ -71,7 +71,7 @@ class SpectralResamplingByResponseFunctionConvolutionAlgorithmBase(EnMAPProcessi
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
+        raster = self.parameterAsSpectralRasterLayer(parameters, self.P_RASTER, context)
         format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
         responses = self.parameterAsResponses(parameters, self.P_CODE, context)
         saveResponseFunction = self.parameterAsBoolean(parameters, self.P_SAVE_RESPONSE_FUNCTION, context)

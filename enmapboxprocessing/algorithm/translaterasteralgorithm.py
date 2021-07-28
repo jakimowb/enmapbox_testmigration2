@@ -123,7 +123,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_GRID, self._GRID, optional=True)
         self.addParameterBoolean(self.P_COPY_METADATA, self._COPY_METADATA, defaultValue=False)
         self.addParameterBoolean(self.P_COPY_STYLE, self._COPY_STYLE, defaultValue=False)
-        self.addParameterRasterLayer(self.P_SPECTRAL_RASTER, self._SPECTRAL_RASTER, True, True)
+        self.addParameterRasterLayer(self.P_SPECTRAL_RASTER, self._SPECTRAL_RASTER, None, True, True)
         self.addParameterBandList(
             self.P_SPECTRAL_BAND_LIST, self._SPECTRAL_BAND_LIST, None, self.P_SPECTRAL_RASTER, True, True
         )
@@ -139,13 +139,13 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
+        raster = self.parameterAsSpectralRasterLayer(parameters, self.P_RASTER, context)
         provider: QgsRasterDataProvider = raster.dataProvider()
         bandList = self.parameterAsInts(parameters, self.P_BAND_LIST, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         if grid is None:
             grid = raster
-        spectralRaster = self.parameterAsRasterLayer(parameters, self.P_SPECTRAL_RASTER, context)
+        spectralRaster = self.parameterAsSpectralRasterLayer(parameters, self.P_SPECTRAL_RASTER, context)
         spectralBandList = self.parameterAsInts(parameters, self.P_SPECTRAL_BAND_LIST, context)
         extent = self.parameterAsExtent(parameters, self.P_EXTENT, context, crs=grid.crs())
         if not extent.isEmpty():
@@ -185,15 +185,6 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             # spectral subset
             if spectralRaster is not None:
                 spectralReader = RasterReader(spectralRaster)
-                if not spectralReader.isSpectralRasterLayer():
-                    message = f'Not a spectral raster layer: {self._SPECTRAL_RASTER}'
-                    feedback.reportError(message, True)
-                    raise QgsProcessingException(message)
-
-                if not reader.isSpectralRasterLayer():
-                    message = f'Not a spectral raster layer: {self._RASTER}'
-                    feedback.reportError(message, True)
-                    raise QgsProcessingException(message)
 
                 if bandList is None:
                     bandList = [i + 1 for i in range(reader.bandCount())]

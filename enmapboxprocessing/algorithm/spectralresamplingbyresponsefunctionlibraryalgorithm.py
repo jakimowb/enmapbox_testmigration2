@@ -53,8 +53,8 @@ class SpectralResamplingByResponseFunctionLibraryAlgorithm(EnMAPProcessingAlgori
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
-        library = self.parameterAsLayer(parameters, self.P_LIBRARY, context)
+        raster = self.parameterAsSpectralRasterLayer(parameters, self.P_RASTER, context)
+        library = self.parameterAsVectorLayer(parameters, self.P_LIBRARY, context)
         binaryField = self.parameterAsField(parameters, self.P_FIELD, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
 
