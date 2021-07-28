@@ -18,7 +18,7 @@ class CreateMaskAlgorithm(ApplyBandFunctionAlgorithmBase):
         return Group.Test.value + Group.Masking.value
 
     def shortDescription(self) -> str:
-        return f'Create a mask raster layer by applying a user-defined evaluation function to a source raster layer.'
+        return f'Create a mask raster layer by applying a user-defined evaluation function band-wise to a source raster layer. '
 
     def helpParameterCode(self) -> str:
         return f'Python code defining the evaluation function. ' \

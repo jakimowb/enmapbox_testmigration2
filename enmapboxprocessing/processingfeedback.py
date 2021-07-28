@@ -30,6 +30,11 @@ class ProcessingFeedback(QgsProcessingFeedback):
         self._logfile = logfile
         self._isChildFeedback = isChildFeedback
 
+    def getQgsFeedback(self):
+        if isinstance(self.feedback, ProcessingFeedback):
+            return self.feedback.getQgsFeedback()
+        return self.feedback
+
     def isCanceled(self):
         return super().isCanceled()
 

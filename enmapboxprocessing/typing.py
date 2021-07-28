@@ -13,6 +13,7 @@ GdalDataType = int
 GdalResamplingAlgorithm = int
 NumpyDataType = np.dtype
 QgisDataType = int
+Array1d = np.ndarray
 Array2d = np.ndarray
 Array3d = Union[np.ndarray, List[Array2d]]
 MetadataScalarValue = Optional[Union[str, int, float]]
@@ -23,7 +24,7 @@ Metadata = Dict[str, MetadataDomain]
 RasterSource = Union[str, QgsRasterLayer, QgsRasterDataProvider, gdal.Dataset]
 CreationOptions = List[str]
 HexColor = str
-
+Number = Union[int, float]
 
 @typechecked
 @dataclass

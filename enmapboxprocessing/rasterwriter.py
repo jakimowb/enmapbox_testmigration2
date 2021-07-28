@@ -3,7 +3,8 @@ from typing import List, Union, Optional
 from PyQt5.QtGui import QColor
 from osgeo import gdal
 
-from enmapboxprocessing.typing import Array3d, Array2d, MetadataValue, MetadataDomain, Metadata, QgisDataType, Category
+from enmapboxprocessing.typing import Array3d, Array2d, MetadataValue, MetadataDomain, Metadata, QgisDataType, Category, \
+    Number
 from typeguard import typechecked
 from qgis._core import QgsRasterDataProvider, QgsRectangle, QgsPointXY, QgsPoint, QgsRasterLayer, QgsFeedback
 
@@ -81,6 +82,16 @@ class RasterWriter(object):
         for i, color in enumerate(colors):
             colorTable.SetColorEntry(i, (color.red(), color.green(), color.blue()))
         gdalBand.SetColorTable(colorTable)
+
+    def setWavelength(self, wavelength: Union[List[Number], Number] = None, bandNo: int = None):
+        if bandNo is None:
+            self.setMetadataItem('wavelength', wavelength, 'ENVI')
+            self.setMetadataItem('wavelength units', 'nanometers', 'ENVI')
+            for i in range(self.bandCount()):
+                self.setWavelength(wavelength[i], i + 1)
+        else:
+            self.setMetadataItem('wavelength', wavelength, '', bandNo)
+            self.setMetadataItem('wavelength units', 'nanometers', '', bandNo)
 
     def bandCount(self) -> int:
         return self.gdalDataset.RasterCount

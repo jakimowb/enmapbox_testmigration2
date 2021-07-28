@@ -8,7 +8,7 @@ import numpy as np
 from osgeo import gdal
 
 from enmapboxprocessing.glossary import injectGlossaryLinks
-from enmapboxprocessing.widget.codeeditwidget import CodeEditWidgetWrapper
+from enmapboxprocessing.widget.processingparametercodeeditwidget import ProcessingParameterCodeEditWidgetWrapper
 from typeguard import typechecked
 from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
                         QgsProcessingParameterRasterDestination, QgsProcessingContext, QgsProcessingFeedback,
@@ -512,7 +512,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             self, name: str, description: str, defaultValue=None, optional=False, advanced=False
     ):
         options_param = QgsProcessingParameterString(name, description, optional=optional)
-        options_param.setMetadata({'widget_wrapper': {'class': CodeEditWidgetWrapper}})
+        options_param.setMetadata({'widget_wrapper': {'class': ProcessingParameterCodeEditWidgetWrapper}})
         options_param.setDefaultValue(defaultValue)
         self.addParameter(options_param)
         self.flagParameterAsAdvanced(name, advanced)
@@ -623,7 +623,7 @@ class Group(Enum):
     Options = 'Options'
     Preprocessing = 'Pre-processing'
     Postprocessing = 'Post-processing'
-    ResamplingAndSubsetting = 'Resampling and subsetting'
+    SpectralResampling = 'Spectral resampling'
     Regression = 'Regression'
     Sampling = 'Sampling'
     Test = '*'  # 'TEST_'

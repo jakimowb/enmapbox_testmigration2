@@ -65,13 +65,10 @@ class RasterReader(object):
     def extent(self) -> QgsRectangle:
         return self.provider.extent()
 
-    def noDataValue(self, bandNo: int = None):
+    def noDataValue(self, bandNo: int = None) -> Optional[float]:
         if bandNo is None:
             bandNo = 1
         return self.gdalDataset.GetRasterBand(bandNo).GetNoDataValue()
-
-    def bandName(self, bandNo: int):
-        return self.gdalBand(bandNo).GetDescription()
 
     def setUserNoDataValue(self, bandNo: int, noData: Iterable[QgsRasterRange]):
         return self.provider.setUserNoDataValue(bandNo, noData)
@@ -253,6 +250,46 @@ class RasterReader(object):
     def metadata(self, bandNo: int = None) -> Metadata:
         domains = self._gdalObject(bandNo).GetMetadataDomainList()
         return {domain: self.metadataDomain(domain, bandNo) for domain in domains}
+
+    def wavelength(self, bandNo: int) -> Optional[float]:
+        """Return band center wavelength in nanometers."""
+        wavelength = self.metadataItem('wavelength', '', bandNo)
+        if wavelength is None:
+            wavelengths = self.metadataItem('wavelength', 'ENVI')
+            if wavelengths is None:
+                return None
+            else:
+                wavelength = wavelengths[bandNo - 1]
+                wavelength_units = self.metadataItem('wavelength_units', 'ENVI')
+        else:
+            wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
+        if wavelength_units.lower() in ['micrometers', 'um']:
+            scale = 1000.
+        elif wavelength_units.lower() in ['nanometers', 'nm']:
+            scale = 1.
+        else:
+            raise ValueError(f'unsupported wavelength units: {wavelength_units}')
+        return float(wavelength) * scale
+
+    def fwhm(self, bandNo: int) -> Optional[float]:
+        """Return band FWHM in nanometers."""
+        fwhm = self.metadataItem('fwhm', '', bandNo)
+        if fwhm is None:
+            fwhms = self.metadataItem('fwhm', 'ENVI')
+            if fwhms is None:
+                return None
+            else:
+                fwhm = fwhms[bandNo - 1]
+                wavelength_units = self.metadataItem('wavelength_units', 'ENVI')
+        else:
+            wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
+        if wavelength_units.lower() in ['micrometers', 'um']:
+            scale = 1000.
+        elif wavelength_units.lower() in ['nanometers', 'nm']:
+            scale = 1.
+        else:
+            raise ValueError(f'unsupported wavelength units: {wavelength_units}')
+        return float(fwhm) * scale
 
     def lineMemoryUsage(self, nBands: int = None, dataTypeSize: int = None) -> int:
         if nBands is None:

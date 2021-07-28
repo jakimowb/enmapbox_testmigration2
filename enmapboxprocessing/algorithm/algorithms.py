@@ -1,3 +1,4 @@
+from enmapboxprocessing.algorithm.applymaskalgorithm import ApplyMaskAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import \
@@ -96,12 +97,24 @@ from enmapboxprocessing.algorithm.spectralconvolutionrickerwavelet1dalgorithm im
 from enmapboxprocessing.algorithm.spectralconvolutionsavitskygolay1dalgorithm import \
     SpectralConvolutionSavitskyGolay1DAlgorithm
 from enmapboxprocessing.algorithm.spectralconvolutiontrapezoid1dalgorithm import SpectralConvolutionTrapezoid1DAlgorithm
+from enmapboxprocessing.algorithm.spectralresamplingbyresponsefunctionlibraryalgorithm import \
+    SpectralResamplingByResponseFunctionLibraryAlgorithm
+from enmapboxprocessing.algorithm.spectralresamplingtocustomsensoralgorithm import \
+    SpectralResamplingToCustomSensorAlgorithm
+from enmapboxprocessing.algorithm.spectralresamplingtodesisalgorithm import SpectralResamplingToDesisAlgorithm
+from enmapboxprocessing.algorithm.spectralresamplingtoenmapalgorithm import SpectralResamplingToEnmapAlgorithm
+from enmapboxprocessing.algorithm.spectralresamplingtolandsat5algorithm import SpectralResamplingToLandsat5Algorithm
+from enmapboxprocessing.algorithm.spectralresamplingtolandsat7algorithm import SpectralResamplingToLandsat7Algorithm
+from enmapboxprocessing.algorithm.spectralresamplingtolandsat8algorithm import SpectralResamplingToLandsat8Algorithm
+from enmapboxprocessing.algorithm.spectralresamplingtoprismaalgorithm import SpectralResamplingToPrismaAlgorithm
+from enmapboxprocessing.algorithm.spectralresamplingtosentinel2algorithm import SpectralResamplingToSentinel2Algorithm
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 
 
 def algorithms():
     return [
+        ApplyMaskAlgorithm(),
         ClassificationPerformanceSimpleAlgorithm(),
         ClassificationPerformanceStratifiedAlgorithm(),
         ClassificationToFractionAlgorithm(),
@@ -172,6 +185,15 @@ def algorithms():
         SpectralConvolutionRickerWavelet1DAlgorithm(),
         SpectralConvolutionSavitskyGolay1DAlgorithm(),
         SpectralConvolutionTrapezoid1DAlgorithm(),
+        SpectralResamplingByResponseFunctionLibraryAlgorithm(),
+        SpectralResamplingToCustomSensorAlgorithm(),
+        SpectralResamplingToDesisAlgorithm(),
+        SpectralResamplingToEnmapAlgorithm(),
+        SpectralResamplingToLandsat5Algorithm(),
+        SpectralResamplingToLandsat7Algorithm(),
+        SpectralResamplingToLandsat8Algorithm(),
+        SpectralResamplingToPrismaAlgorithm(),
+        SpectralResamplingToSentinel2Algorithm(),
         TranslateCategorizedRasterAlgorithm(),
         TranslateRasterAlgorithm(),
         # ExperimentalCustomColor(),

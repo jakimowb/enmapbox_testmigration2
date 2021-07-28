@@ -2,7 +2,6 @@ from os.path import join, abspath
 
 filename = abspath(join(__file__, '../../doc/source/general/glossary.rst'))
 baselink = r'C:\source\QGISPlugIns\enmap-box\doc\build\html\general\glossary.html'
-baselink = 'file:///C:/source/QGISPlugIns/enmap-box/doc/build/html/general/glossary.html'
 baselink = 'https://enmap-box.readthedocs.io/en/latest/general/glossary.html'
 
 glossary = dict()
@@ -14,6 +13,7 @@ with open(filename) as file:
 
 
 def injectGlossaryLinks(text: str):
+    text = text + ' '
     terms = list()
     letter = '_abcdefghijklmnopqrstuvwxyz'
     letter = letter + letter.upper()
@@ -35,10 +35,10 @@ def injectGlossaryLinks(text: str):
                     continue
             if text[i0 + len(k)].lower() in letterWithoutS:
                 continue
-            else:
-                if len(text) - 1 >= i0 + len(k) + 1:
-                    if text[i0 + len(k) + 1].lower() in letter:
-                        continue
+
+            if text[i0 + len(k)].lower() in letter:
+                print(text[i0 + len(k) + 1].lower(), letter)
+                continue
 
             # handle some special cases
             if k.lower() == 'output':
@@ -96,7 +96,8 @@ def test():
            'No data valueE \n' \
            '"No data values"'
 
+
     # text = '"No data value"'
     print(injectGlossaryLinks(text))
 
-# test()
+#test()

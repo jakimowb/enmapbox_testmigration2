@@ -77,7 +77,7 @@ class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
                 parameters = {
                     alg.P_LAYER: mask,
                     alg.P_GRID: raster,
-                    alg.P_OUTPUT_MASK: Utils.tmpFilename(filename, 'mask.vrt')
+                    alg.P_OUTPUT_MASK: Utils.tmpFilename(filename, 'mask.tif')
                 }
                 mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_MASK])
             assert isinstance(mask, (type(None), QgsRasterLayer))
