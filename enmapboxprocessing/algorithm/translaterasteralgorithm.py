@@ -1,9 +1,10 @@
 from math import isnan
 from typing import Dict, Any, List, Tuple
 
+import numpy as np
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRectangle, QgsRasterLayer,
-                        QgsRasterDataProvider, QgsPoint, QgsPointXY)
+                        QgsRasterDataProvider, QgsPoint, QgsPointXY, QgsProcessingException)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
@@ -17,6 +18,8 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_RASTER, _RASTER = 'raster', 'Raster layer'
     P_BAND_LIST, _BAND_LIST = 'bandList', 'Selected bands'
     P_GRID, _GRID = 'grid', 'Grid'
+    P_SPECTRAL_RASTER, _SPECTRAL_RASTER = 'spectralSubset', 'Spectral raster layer (for band subsetting)'
+    P_SPECTRAL_BAND_LIST, _SPECTRAL_BAND_LIST = 'spectralBandList', 'Selected spectral bands'
     P_COPY_METADATA, _COPY_METADATA = 'copyMetadata', 'Copy metadata'
     P_COPY_STYLE, _COPY_STYLE = 'copyStyle', 'Copy style'
     P_EXTENT, _EXTENT = 'extent', 'Spatial extent'
@@ -52,6 +55,10 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             (self._BAND_LIST, 'Bands to subset and rearrange. '
                               'An empty selection defaults to all bands in native order.'),
             (self._GRID, 'The target grid.'),
+            (self._SPECTRAL_RASTER, 'A spectral raster layer used for specifying a band subset '
+                                    'by matching the center wavelength.'),
+            (self._SPECTRAL_BAND_LIST, 'Spectral bands used to match source raster bands.'
+                                       'An empty selection defaults to all bands in native order.'),
             (self._EXTENT, 'Spatial extent for clipping the destination grid, '
                            'which is given by the source Raster or the selected Grid. '
                            'In both cases, the extent is aligned with the actual pixel grid '
@@ -116,6 +123,10 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_GRID, self._GRID, optional=True)
         self.addParameterBoolean(self.P_COPY_METADATA, self._COPY_METADATA, defaultValue=False)
         self.addParameterBoolean(self.P_COPY_STYLE, self._COPY_STYLE, defaultValue=False)
+        self.addParameterRasterLayer(self.P_SPECTRAL_RASTER, self._SPECTRAL_RASTER, True, True)
+        self.addParameterBandList(
+            self.P_SPECTRAL_BAND_LIST, self._SPECTRAL_BAND_LIST, None, self.P_SPECTRAL_RASTER, True, True
+        )
         self.addParameterExtent(self.P_EXTENT, self._EXTENT, optional=True, advanced=True)
         self.addParameterIntRange(self.P_SOURCE_COLUMNS, self._SOURCE_COLUMNS, optional=True, advanced=True)
         self.addParameterIntRange(self.P_SOURCE_ROWS, self._SOURCE_ROWS, optional=True, advanced=True)
@@ -134,6 +145,8 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         if grid is None:
             grid = raster
+        spectralRaster = self.parameterAsRasterLayer(parameters, self.P_SPECTRAL_RASTER, context)
+        spectralBandList = self.parameterAsInts(parameters, self.P_SPECTRAL_BAND_LIST, context)
         extent = self.parameterAsExtent(parameters, self.P_EXTENT, context, crs=grid.crs())
         if not extent.isEmpty():
             extent = Utils.snapExtentToRaster(extent, grid)
@@ -160,12 +173,38 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
 
             reader = RasterReader(raster)
             gdalDataType = Utils.qgisDataTypeToGdalDataType(dataType)
+
+            # bad bands subset
             if excludeBadBands and reader.metadataItem('bbl', 'ENVI') is not None:
                 bbl = [bool(v) for v in reader.metadataItem('bbl', 'ENVI')]
                 if bandList is None:
                     bandList = [bandNo for bandNo, isGoodBand in enumerate(bbl, 1) if isGoodBand]
                 else:
                     bandList = [bandNo for bandNo, isGoodBand in enumerate(bbl, 1) if isGoodBand and bandNo in bandList]
+
+            # spectral subset
+            if spectralRaster is not None:
+                spectralReader = RasterReader(spectralRaster)
+                if not spectralReader.isSpectralRasterLayer():
+                    message = f'Not a spectral raster layer: {self._SPECTRAL_RASTER}'
+                    feedback.reportError(message, True)
+                    raise QgsProcessingException(message)
+
+                if not reader.isSpectralRasterLayer():
+                    message = f'Not a spectral raster layer: {self._RASTER}'
+                    feedback.reportError(message, True)
+                    raise QgsProcessingException(message)
+
+                if bandList is None:
+                    bandList = [i + 1 for i in range(reader.bandCount())]
+
+                if spectralBandList is None:
+                    spectralBandList = [i + 1 for i in range(spectralRaster.bandCount())]
+
+                wavelength = np.array([reader.wavelength(bandNo) for bandNo in bandList])
+                bandList = [np.argmin(np.abs(wavelength - spectralReader.wavelength(bandNo))) + 1
+                            for bandNo in spectralBandList]
+
             if bandList is None:
                 nBands = raster.bandCount()
             else:

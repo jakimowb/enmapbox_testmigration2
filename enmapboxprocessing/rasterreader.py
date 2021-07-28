@@ -251,6 +251,13 @@ class RasterReader(object):
         domains = self._gdalObject(bandNo).GetMetadataDomainList()
         return {domain: self.metadataDomain(domain, bandNo) for domain in domains}
 
+    def isSpectralRasterLayer(self):
+        try:
+            self.wavelength(1)
+        except:
+            return False
+        return True
+
     def wavelength(self, bandNo: int) -> Optional[float]:
         """Return band center wavelength in nanometers."""
         wavelength = self.metadataItem('wavelength', '', bandNo)

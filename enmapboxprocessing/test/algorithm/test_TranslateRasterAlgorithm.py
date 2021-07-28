@@ -283,3 +283,15 @@ class TestTranslateAlgorithm(TestCase):
         layer = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
         renderer: QgsRasterRenderer = layer.renderer()
         self.assertListEqual([38, 23, 5], renderer.usesBands())
+
+    def test_subsetBySpectralRaster(self):
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: enmap,
+            alg.P_SPECTRAL_RASTER: hires,
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/enmapSubsetToHires.tif'
+        }
+        result = self.runalg(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(3, reader.bandCount())
+        self.assertListEqual([665.0, 559.0, 489.0], [reader.wavelength(i+1) for i in range(reader.bandCount())])
