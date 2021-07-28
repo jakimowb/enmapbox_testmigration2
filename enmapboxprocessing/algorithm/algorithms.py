@@ -99,6 +99,8 @@ from enmapboxprocessing.algorithm.spectralconvolutionsavitskygolay1dalgorithm im
 from enmapboxprocessing.algorithm.spectralconvolutiontrapezoid1dalgorithm import SpectralConvolutionTrapezoid1DAlgorithm
 from enmapboxprocessing.algorithm.spectralresamplingbyresponsefunctionlibraryalgorithm import \
     SpectralResamplingByResponseFunctionLibraryAlgorithm
+from enmapboxprocessing.algorithm.spectralresamplingbyspectralrasterwavelengthandfwhmalgorithm import \
+    SpectralResamplingBySpectralRasterWavelengthAndFwhmAlgorithm
 from enmapboxprocessing.algorithm.spectralresamplingtocustomsensoralgorithm import \
     SpectralResamplingToCustomSensorAlgorithm
 from enmapboxprocessing.algorithm.spectralresamplingtodesisalgorithm import SpectralResamplingToDesisAlgorithm
@@ -186,6 +188,7 @@ def algorithms():
         SpectralConvolutionSavitskyGolay1DAlgorithm(),
         SpectralConvolutionTrapezoid1DAlgorithm(),
         SpectralResamplingByResponseFunctionLibraryAlgorithm(),
+        SpectralResamplingBySpectralRasterWavelengthAndFwhmAlgorithm(),
         SpectralResamplingToCustomSensorAlgorithm(),
         SpectralResamplingToDesisAlgorithm(),
         SpectralResamplingToEnmapAlgorithm(),
