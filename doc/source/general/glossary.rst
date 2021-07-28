@@ -284,6 +284,15 @@ GIS and Remote Sensing
 
         .. image:: img/spectral_profile.png
 
+    spectral response function
+        The spectral response describes the sensitivity of a sensor to optical radiation of different wavelengths.
+
+    spectral response function library
+        A :term:`spectral library`, where each profile represents the :term:`spectral response function` of a :term:`spectral band`.
+
+        .. image:: img/spectral_response_function_library.png
+            :width: 24%
+
     stratification layer
         A :term:`classification layer` that is used to stratify an area into distinct subareas.
 
@@ -338,18 +347,21 @@ Raster Metadata
         For historical reasons we store that information in ENVI format and domain.
         Accessible via `gdal.Dataset.GetMetadataItem('fwhm', 'ENVI')`.
 
+        We also store that information band-wise in the default domain.
+        Accessible via `gdal.Band.GetMetadataItem('fwhm')`.
+
     no data value
         Defined by GDAL data model. Accessible via `gdal.Band.GetNoDataValue()`.
-
-    spectral response function
-        todo
 
     wavelength
         List of center wavelength values of each :term:`band`.
         Units should be the same as those used for the :term:`fwhm` and set in the :term:`wavelength units` parameter.
 
-       For historical reasons we store that information in ENVI format and domain.
-       Accessible via `gdal.Dataset.GetMetadataItem('wavelength', 'ENVI')`.
+        For historical reasons we store that information in ENVI format and domain.
+        Accessible via `gdal.Dataset.GetMetadataItem('wavelength', 'ENVI')`.
+
+        We also store that information band-wise in the default domain.
+        Accessible via `gdal.Band.GetMetadataItem('wavelength')`.
 
     wavelength units
         Text string indicating one of the following wavelength units:
@@ -357,6 +369,9 @@ Raster Metadata
 
         For historical reasons we store that information in ENVI format and domain.
         Accessible via `gdal.Dataset.GetMetadataItem('wavelength units', 'ENVI')`.
+
+        We also store that information band-wise in the default domain.
+        Accessible via `gdal.Band.GetMetadataItem('wavelength units')`.
 
 
 
