@@ -14,6 +14,7 @@ dependencies:
   - numba
   - pyopengl
   - netcdf4
+  - h5py
   - gitpython
   - git-lfs
   - sphinx=1.8.5
