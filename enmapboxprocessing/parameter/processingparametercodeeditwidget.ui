@@ -45,7 +45,7 @@
   <customwidget>
    <class>CodeEditWidget</class>
    <extends>QWidget</extends>
-   <header>enmapboxprocessing.widget.processingparametercodeeditwidget</header>
+   <header>enmapboxprocessing.parameter.processingparametercodeeditwidget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
