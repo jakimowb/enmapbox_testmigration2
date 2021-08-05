@@ -65,7 +65,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
 
         if grid is None:
             grid = rasters[0]
-        format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
+        format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         maximumMemoryUsage = gdal.GetCacheMax()
 
         with open(filename + '.log', 'w') as logfile:

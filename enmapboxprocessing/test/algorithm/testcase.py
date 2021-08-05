@@ -9,6 +9,9 @@ from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm
 
 qgsApp = start_app()
 
+class ProcessingFeedback(QgsProcessingFeedback):
+    def setProgress(self, progress):
+        print(progress, flush=True)
 
 class TestCase(unittest.TestCase):
 
@@ -19,4 +22,4 @@ class TestCase(unittest.TestCase):
         print(alg.__class__.__name__,
             '({} -> {}), {}, {}'.format(alg.group(), alg.displayName(), alg.groupId(), alg.name()))
         print('parameters = {}'.format(repr(parameters)))
-        return Processing.runAlgorithm(alg, parameters=parameters, feedback=QgsProcessingFeedback())
+        return Processing.runAlgorithm(alg, parameters=parameters, feedback=ProcessingFeedback())

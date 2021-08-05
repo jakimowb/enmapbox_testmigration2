@@ -50,7 +50,7 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         map = self.parameterAsLayer(parameters, self.P_CATEGORIZED_LAYER, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
-        format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
+        format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_FRACTION, context)
 
         with open(filename + '.log', 'w') as logfile:
@@ -98,7 +98,7 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
 
             # calculate category fractions
             categories = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
-            x10IdArray = RasterReader(classification).array()[0]
+            x10IdArray = RasterReader(classification).array()[0]  # DEBUG Exception: unsupported data type: 0
             maskArray = np.full((grid.height(), grid.width()), True, dtype=bool)
             arrays = list()
             for i, category in enumerate(categories):

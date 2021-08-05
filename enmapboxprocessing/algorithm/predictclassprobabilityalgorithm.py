@@ -63,7 +63,7 @@ class PredictClassPropabilityAlgorithm(EnMAPProcessingAlgorithm):
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         mask = self.parameterAsLayer(parameters, self.P_MASK, context)
         dump = ClassifierDump(**Utils.pickleLoad(self.parameterAsFile(parameters, self.P_CLASSIFIER, context)))
-        format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
+        format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_PROBABILITY, context)
         maximumMemoryUsage = gdal.GetCacheMax()
 

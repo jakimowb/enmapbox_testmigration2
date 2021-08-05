@@ -62,7 +62,7 @@ class ApplyBandFunctionAlgorithmBase(EnMAPProcessingAlgorithm):
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         function = self.parameterAsFunction(parameters, self.P_FUNCTION, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
-        format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
+        format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)

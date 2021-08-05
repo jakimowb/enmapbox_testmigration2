@@ -77,7 +77,7 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
             raise QgsProcessingException( 'Number of bands not matching number of categories.')
 
         reader = RasterReader(probability)
-        driver = Driver(filename, 'GTiff', options=self.TiledAndCompressedGTiffCreationOptions, feedback=feedback)
+        driver = Driver(filename, 'GTiff', options=self.DefaultGTiffCreationOptions, feedback=feedback)
         writer = driver.createLike(reader, Qgis.Byte, 3)
         lineMemoryUsage = reader.lineMemoryUsage()
         lineMemoryUsage += reader.lineMemoryUsage(3, Qgis.Float32)

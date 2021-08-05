@@ -153,7 +153,7 @@ class RandomPointsFromCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
             # cut off border and store as raster
             arrayStrata = [arrayStrata[yborder: yborder + ysize, xborder: xborder + xsize]]
             driver = Driver(Utils.tmpFilename(
-                filename, 'sample.tif'), self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
+                filename, 'sample.tif'), self.GTiffFormat, self.DefaultGTiffCreationOptions
             )
             writer = driver.createFromArray(arrayStrata, stratification.extent(), stratification.crs())
             writer.setNoDataValue(noData)
