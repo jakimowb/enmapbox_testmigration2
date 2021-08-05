@@ -6,6 +6,7 @@ from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLa
                         QgsVectorFileWriter,
                         QgsProject, QgsCoordinateTransform, QgsField)
 
+from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.utils import Utils
@@ -21,10 +22,13 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
     P_BURN_ATTRIBUTE, _BURN_ATTRIBUTE = 'burnAttribute', 'Burn attribute'
     P_BURN_FID, _BURN_FID = 'burnFid', 'Burn feature ID'
     P_RESAMPLE_ALG, _RESAMPLE_ALG = 'resampleAlg', 'Aggregation algorithm'
+    O_RESAMPLE_ALG = TranslateRasterAlgorithm.O_RESAMPLE_ALG
     P_ALL_TOUCHED, _ALL_TOUCHED = 'allTouched', 'All touched'
     P_ADD_VALUE, _ADD_VALUE = 'addValue', 'Add value'
     P_DATA_TYPE, _DATA_TYPE = 'dataType', 'Data type'
     P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRasterizedVector', 'Output raster layer'
+
+
 
     def displayName(self):
         return 'Rasterize vector layer'
@@ -71,7 +75,7 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterResampleAlg(self.P_RESAMPLE_ALG, self._RESAMPLE_ALG, optional=True)
         self.addParameterBoolean(self.P_ADD_VALUE, self._ADD_VALUE, defaultValue=False)
         self.addParameterBoolean(self.P_ALL_TOUCHED, self._ALL_TOUCHED, defaultValue=False)
-        self.addParameterDataType(self.P_DATA_TYPE, self._DATA_TYPE, defaultValue=self.Float32)
+        self.addParameterDataType(self.P_DATA_TYPE, self._DATA_TYPE, defaultValue=TranslateRasterAlgorithm.Float32)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:

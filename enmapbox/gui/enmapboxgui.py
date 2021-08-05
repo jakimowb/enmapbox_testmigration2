@@ -17,6 +17,7 @@
 ***************************************************************************
 """
 import re
+import traceback
 from typing import Optional, Dict, Union
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 import enmapbox

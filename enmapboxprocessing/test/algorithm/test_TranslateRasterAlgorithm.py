@@ -1,7 +1,7 @@
 import webbrowser
 
 import processing
-from qgis._core import QgsRasterLayer, QgsRasterRenderer, QgsProcessingContext
+from qgis._core import QgsRasterLayer, QgsRasterRenderer, QgsProcessingContext, Qgis
 import numpy as np
 
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
@@ -41,13 +41,13 @@ class TestTranslateAlgorithm(TestCase):
         self.assertEqual(gold[0].dtype, lead[0].dtype)
         self.assertEqual(np.sum(gold), np.sum(lead))
 
-    def test_tmpFilesAndVrt(self):
+    def test_vrt(self):
         alg = TranslateRasterAlgorithm()
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap),
             alg.P_GRID: QgsRasterLayer(landcover_raster_30m_epsg3035),
             alg.P_BAND_LIST: [5],
-            alg.P_CREATION_PROFILE: alg.VrtProfile,
+            alg.P_CREATION_PROFILE: alg.VrtFormat,
             alg.P_OUTPUT_RASTER: c + '/vsimem/raster.vrt'
         }
         result = self.runalg(alg, parameters)
@@ -295,3 +295,50 @@ class TestTranslateAlgorithm(TestCase):
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
         self.assertEqual(3, reader.bandCount())
         self.assertListEqual([665.0, 559.0, 489.0], [reader.wavelength(i+1) for i in range(reader.bandCount())])
+
+    def test_scalingTo100(self):
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: enmap,
+            alg.P_BAND_LIST: [1],
+            alg.P_OFFSET: 0,
+            alg.P_SCALE: 1e-4 * 100,
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/enmapScaled.tif'
+        }
+        result = self.runalg(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        array = reader.array()[0]
+        self.assertEqual(-1356439.5, reader.array()[0].sum())
+
+    def test_unsetScrNoData(self):
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: enmap,
+            alg.P_UNSET_SOURCE_NODATA: True,
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
+        }
+        result = self.runalg(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertIsNone(reader.noDataValue())
+
+    def test_unsetDstNoData(self):
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: enmap,
+            alg.P_UNSET_NODATA: True,
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
+        }
+        result = self.runalg(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertIsNone(reader.noDataValue())
+
+    def test_setDstNoData(self):
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: enmap,
+            alg.P_NODATA: -123,
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
+        }
+        result = self.runalg(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(-123, reader.noDataValue())

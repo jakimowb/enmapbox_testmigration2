@@ -68,7 +68,13 @@ class RasterReader(object):
     def noDataValue(self, bandNo: int = None) -> Optional[float]:
         if bandNo is None:
             bandNo = 1
-        return self.gdalDataset.GetRasterBand(bandNo).GetNoDataValue()
+        return self.gdalBand(bandNo).GetNoDataValue()
+
+    def offset(self, bandNo) -> Optional[float]:
+        return self.gdalBand(bandNo).GetOffset()
+
+    def scale(self, bandNo) -> Optional[float]:
+        return self.gdalBand(bandNo).GetScale()
 
     def setUserNoDataValue(self, bandNo: int, noData: Iterable[QgsRasterRange]):
         return self.provider.setUserNoDataValue(bandNo, noData)
@@ -157,13 +163,15 @@ class RasterReader(object):
             self, xOffset: int, yOffset: int, width: int, height: int, bandList: List[int] = None, overlap: int = None,
             feedback: QgsRasterBlockFeedback = None
     ) -> Array3d:
-        p1 = QgsPointXY(
-            self.provider.transformCoordinates(QgsPoint(xOffset, yOffset), QgsRasterDataProvider.TransformImageToLayer)
-        )
-        p2 = QgsPointXY(
-            self.provider.transformCoordinates(
-                QgsPoint(xOffset + width, yOffset + height), QgsRasterDataProvider.TransformImageToLayer)
-        )
+        if self.crs().isValid():
+            p1 = QgsPoint(xOffset, yOffset)
+            p2 = QgsPoint(xOffset + width, yOffset + height)
+            p1 = QgsPointXY(self.provider.transformCoordinates(p1, QgsRasterDataProvider.TransformImageToLayer))
+            p2 = QgsPointXY(self.provider.transformCoordinates(p2, QgsRasterDataProvider.TransformImageToLayer))
+        else:
+            assert self.rasterUnitsPerPixel() == QSizeF(1, 1)
+            p1 = QgsPointXY(xOffset, - yOffset)
+            p2 = QgsPointXY(xOffset + width, -(yOffset + height))
         boundingBox = QgsRectangle(p1, p2)
         return self.arrayFromBoundingBoxAndSize(boundingBox, width, height, bandList, overlap, feedback)
 

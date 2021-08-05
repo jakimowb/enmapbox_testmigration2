@@ -1,7 +1,7 @@
 import json
 import pickle
 from os import makedirs
-from os.path import join, dirname, basename, exists
+from os.path import join, dirname, basename, exists, splitext
 from random import randint
 from typing import Tuple, Optional, Callable, List, Any, Dict
 
@@ -381,6 +381,12 @@ class Utils(object):
             makedirs(tmpDirname)
         tmpFilename = join(tmpDirname, tail)
         return tmpFilename
+
+    @classmethod
+    def sidecarFilename(cls, filename: str, tail: str, replaceExtension=True):
+        if replaceExtension:
+            filename = splitext(filename)[0]
+        return filename + tail
 
     @classmethod
     def pickleDump(cls, obj: Any, filename: str):

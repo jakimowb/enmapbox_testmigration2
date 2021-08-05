@@ -20,6 +20,14 @@ from enmapboxprocessing.algorithm.fitlinearsvcalgorithm import FitLinearSvcAlgor
 from enmapboxprocessing.algorithm.fitlogisticregressionralgorithm import FitLogisticRegressionAlgorithm
 from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitsvcalgorithm import FitSvcAlgorithm
+from enmapboxprocessing.algorithm.importdesisl1balgorithm import ImportDesisL1BAlgorithm
+from enmapboxprocessing.algorithm.importdesisl1calgorithm import ImportDesisL1CAlgorithm
+from enmapboxprocessing.algorithm.importdesisl2aalgorithm import ImportDesisL2AAlgorithm
+from enmapboxprocessing.algorithm.importenmapl1balgorithm import ImportEnmapL1BAlgorithm
+from enmapboxprocessing.algorithm.importenmapl1calgorithm import ImportEnmapL1CAlgorithm
+from enmapboxprocessing.algorithm.importenmapl2aalgorithm import ImportEnmapL2AAlgorithm
+from enmapboxprocessing.algorithm.importprismal1algorithm import ImportPrismaL1Algorithm
+from enmapboxprocessing.algorithm.importprismal2dalgorithm import ImportPrismaL2DAlgorithm
 from enmapboxprocessing.algorithm.layertomaskalgorithm import LayerToMaskAlgorithm
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
@@ -112,6 +120,7 @@ from enmapboxprocessing.algorithm.spectralresamplingtoprismaalgorithm import Spe
 from enmapboxprocessing.algorithm.spectralresamplingtosentinel2algorithm import SpectralResamplingToSentinel2Algorithm
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
+from enmapboxprocessing.algorithm.geolocaterasteralgorithm import GeolocateRasterAlgorithm
 
 
 def algorithms():
@@ -133,6 +142,15 @@ def algorithms():
         FitRandomForestClassifierAlgorithm(),
         FitSvcAlgorithm(),
         FeatureClusteringHierarchicalAlgorithm(),
+        GeolocateRasterAlgorithm(),
+        ImportDesisL1BAlgorithm(),
+        ImportDesisL1CAlgorithm(),
+        ImportDesisL2AAlgorithm(),
+        ImportEnmapL1BAlgorithm(),
+        ImportEnmapL1CAlgorithm(),
+        ImportEnmapL2AAlgorithm(),
+        ImportPrismaL1Algorithm(),
+        ImportPrismaL2DAlgorithm(),
         LayerToMaskAlgorithm(),
         PredictClassificationAlgorithm(),
         PredictClassPropabilityAlgorithm(),
@@ -199,6 +217,7 @@ def algorithms():
         SpectralResamplingToSentinel2Algorithm(),
         TranslateCategorizedRasterAlgorithm(),
         TranslateRasterAlgorithm(),
+
         # ExperimentalCustomColor(),
         # TestCodeEditWidgetAlgorithm()
     ]

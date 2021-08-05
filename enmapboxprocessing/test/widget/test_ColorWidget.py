@@ -1,4 +1,4 @@
-from enmapboxprocessing.widget.colorwidget import TestCustomWidgetsAlgorithm
+from enmapboxprocessing.parameter.colorwidget import TestCustomWidgetsAlgorithm
 
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 

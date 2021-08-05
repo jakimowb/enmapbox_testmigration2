@@ -4,7 +4,7 @@ from qgis._core import QgsProcessingParameterString, QgsProcessingFeedback, QgsP
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxprocessing.widget.processingparametercodeeditwidget import CodeEditWidgetWrapper
+from enmapboxprocessing.parameter.processingparametercodeeditwidget import CodeEditWidgetWrapper
 from typeguard import typechecked
 
 @typechecked

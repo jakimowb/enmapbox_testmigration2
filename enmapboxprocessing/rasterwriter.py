@@ -28,8 +28,7 @@ class RasterWriter(object):
     def writeArray2d(self, array: Array2d, bandNo: int, xOffset=0, yOffset=0, overlap: int = None):
         if overlap is not None:
             array = array[overlap:-overlap, overlap:-overlap]
-        gdalBand: gdal.Band = self.gdalDataset.GetRasterBand(bandNo)
-        gdalBand.WriteArray(array, xOffset, yOffset)
+        self.gdalBand(bandNo).WriteArray(array, xOffset, yOffset)
 
     def fill(self, value: float, bandNo: int = None):
         if bandNo is None:
@@ -44,9 +43,33 @@ class RasterWriter(object):
             return
         if bandNo is None:
             for bandNo in range(1, self.bandCount() + 1):
-                self.gdalDataset.GetRasterBand(bandNo).SetNoDataValue(noDataValue)
+                self.gdalBand(bandNo).SetNoDataValue(noDataValue)
         else:
-            self.gdalDataset.GetRasterBand(bandNo).SetNoDataValue(noDataValue)
+            self.gdalBand(bandNo).SetNoDataValue(noDataValue)
+
+    def setOffset(self, offset: float = None, bandNo: int = None, overwrite=False):
+        if offset is None:
+            return
+        if bandNo is None:
+            for bandNo in range(1, self.bandCount() + 1):
+                self.setOffset(offset, bandNo, overwrite)
+        else:
+            if not overwrite:
+                if self.gdalBand(bandNo).GetOffset() is not None:
+                    offset += self.gdalBand(bandNo).GetOffset()
+            self.gdalBand(bandNo).SetOffset(offset)
+
+    def setScale(self, scale: float = None, bandNo: int = None, overwrite=False):
+        if scale is None:
+            return
+        if bandNo is None:
+            for bandNo in range(1, self.bandCount() + 1):
+                self.setScale(scale, bandNo, overwrite)
+        else:
+            if not overwrite:
+                if self.gdalBand(bandNo).GetScale() is not None:
+                    scale *= self.gdalBand(bandNo).GetScale()
+            self.gdalBand(bandNo).SetScale(scale)
 
     def setMetadataItem(self, key: str, value: MetadataValue, domain: str = '', bandNo: int = None):
         if value is None:
@@ -91,6 +114,16 @@ class RasterWriter(object):
                 self.setWavelength(wavelength[i], i + 1)
         else:
             self.setMetadataItem('wavelength', wavelength, '', bandNo)
+            self.setMetadataItem('wavelength units', 'nanometers', '', bandNo)
+
+    def setFwhm(self, fwhm: Union[List[Number], Number] = None, bandNo: int = None):
+        if bandNo is None:
+            self.setMetadataItem('fwhm', fwhm, 'ENVI')
+            self.setMetadataItem('wavelength units', 'nanometers', 'ENVI')
+            for i in range(self.bandCount()):
+                self.setWavelength(fwhm[i], i + 1)
+        else:
+            self.setMetadataItem('fwhm', fwhm, '', bandNo)
             self.setMetadataItem('wavelength units', 'nanometers', '', bandNo)
 
     def bandCount(self) -> int:
