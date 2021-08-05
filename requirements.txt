@@ -15,6 +15,7 @@ scipy>=1.1
 scikit-learn>=0.19.2
 astropy # required for convolution
 PyOpenGL # required by ImageCube app
+h5py # required for PRISMA import
 
 # required by parts of EnMAP-Box Applications
 numba # <=0.47 ; platform_system != "Linux" # required by EnSoMAP, causes problems on Linux (miniconda)
