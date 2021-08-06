@@ -94,13 +94,12 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
         resampleAlg = self.parameterAsGdalResampleAlg(parameters, self.P_RESAMPLE_ALG, context)
         addValue = self.parameterAsBoolean(parameters, self.P_ADD_VALUE, context)
         allTouched = self.parameterAsBoolean(parameters, self.P_ALL_TOUCHED, context)
-        format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
+        format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
         if resampleAlg == gdal.GRA_NearestNeighbour:
             oversampling = 1
         else:
             oversampling = 10
-        noDataValue = None
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -153,13 +152,13 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
             # - init raster
             tmpFilename = Utils.tmpFilename(filename, 'oversampled.tif')
             tmpFormat = self.GTiffFormat
-            tmpCreationOptions = self.TiledAndCompressedGTiffCreationOptions
+            tmpCreationOptions = self.DefaultGTiffCreationOptions
             tmpWidth = int(round(grid.width() * oversampling))
             tmpHeight = int(round(grid.height() * oversampling))
             tmpDriver = Driver(tmpFilename, tmpFormat, tmpCreationOptions, feedback2)
             tmpWriter = tmpDriver.create(Qgis.Float32, tmpWidth, tmpHeight, 1, grid.extent(), grid.crs())
-            tmpWriter.fill(initValue)
-            tmpWriter.setNoDataValue(noDataValue)
+            #tmpWriter.fill(initValue)
+            tmpWriter.setNoDataValue(initValue)  # this is faster than fill with initValue first
             # - prepare rasterize options and rasterize
             callback = Utils.qgisFeedbackToGdalCallback(feedback2)
             if burnAttribute is None:
@@ -182,18 +181,18 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
                 destNameOrDestDS=tmpWriter.gdalDataset, srcDS=vector.source(), options=rasterizeOptions
             )
             assert success == 1
+            #tmpWriter.setNoDataValue('none')
             del tmpWriter
-
             # for aggregation we use Warp instead of Translate, because it supports more ResamplAlgs!
             resampleAlgString = Utils.gdalResampleAlgToGdalWarpFormat(
                 resampleAlg)  # use string to avoid a bug in gdalwarp
             gdalDataType = Utils.qgisDataTypeToGdalDataType(dataType)
             warpOptions = gdal.WarpOptions(
                 width=grid.width(), height=grid.height(), resampleAlg=resampleAlgString, outputType=gdalDataType,
-                format=format, creationOptions=options, callback=callback, multithread=True
+                format=format, creationOptions=options, callback=callback, multithread=True,
+                srcNodata='none' # do not use the init value from above!
             )
             gdal.Warp(destNameOrDestDS=filename, srcDSOrSrcDSTab=tmpFilename, options=warpOptions)
-
             result = {self.P_OUTPUT_RASTER: filename}
             self.toc(feedback, result)
         return result

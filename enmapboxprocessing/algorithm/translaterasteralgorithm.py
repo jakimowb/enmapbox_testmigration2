@@ -77,7 +77,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             (self._RESAMPLE_ALG, 'Spatial resample algorithm.'),
             (self._SOURCE_NODATA, 'The value to be used instead of the original raster layer no data value.'),
             (self._NODATA, 'The value to be used instead of the default destination no data value.'),
-            (self._UNSET_SOURCE_NODATA, 'Whether to unset the source no data value.'),
+            (self._UNSET_SOURCE_NODATA, 'Whether to unset (i.e. not use) the source no data value.'),
             (self._UNSET_NODATA, 'Whether to unset the destination no data value.'),
             (self._DATA_TYPE, 'Output data type.'),
             (self._CREATION_PROFILE, 'Output format and creation options.'),

@@ -31,3 +31,13 @@ class TestClassificationToFractionAlgorithm(TestCase):
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(-84958, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_FRACTION]).array()[0])))
+
+    def test_debug(self):
+        alg = ClassificationToFractionAlgorithm()
+        parameters = {
+            alg.P_CATEGORIZED_LAYER: r'C:\Users\Andreas\Downloads\testtraining4.shp',
+            alg.P_GRID: r'C:\Users\Andreas\Downloads\stack2020.tif',
+            alg.P_OUTPUT_FRACTION: c + '/vsimem/fractionBig.tif'
+        }
+        result = self.runalg(alg, parameters)
+        self.assertEqual(-84958, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_FRACTION]).array()[0])))
