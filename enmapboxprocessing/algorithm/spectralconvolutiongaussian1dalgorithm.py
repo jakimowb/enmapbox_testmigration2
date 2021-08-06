@@ -6,11 +6,11 @@ from typeguard import typechecked
 class SpectralConvolutionGaussian1DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spectral convolution gaussian filter'
+        return 'Spectral convolution Gaussian filter'
 
     def shortDescription(self) -> str:
-        return '1D gaussian filter.\n' \
-               'The gaussian filter is a filter with great smoothing properties. ' \
+        return '1D Gaussian filter.\n' \
+               'The Gaussian filter is a filter with great smoothing properties. ' \
                'It is isotropic and does not produce artifacts.'
 
     def helpParameterCode(self) -> str:

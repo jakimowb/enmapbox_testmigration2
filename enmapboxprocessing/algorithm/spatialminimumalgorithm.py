@@ -7,13 +7,13 @@ from typeguard import typechecked
 class SpatialMinimumAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial minimum filter'
+        return 'Spatial Minimum filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
-        return f'Spatial minimum filter.'
+        return f'Spatial Minimum filter.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

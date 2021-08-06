@@ -6,10 +6,10 @@ from typeguard import typechecked
 class SpatialConvolutionTrapezoidDisk2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution trapezoid filter'
+        return 'Spatial convolution Trapezoid filter'
 
     def shortDescription(self) -> str:
-        return '2D trapezoid filter.'
+        return '2D Trapezoid filter.'
 
     def helpParameterCode(self) -> str:
         link = self.htmlLink('http://docs.astropy.org/en/stable/api/astropy.convolution.TrapezoidDisk2DKernel.html',

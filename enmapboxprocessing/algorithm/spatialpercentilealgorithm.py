@@ -7,13 +7,13 @@ from typeguard import typechecked
 class SpatialPercentileAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial percentile filter'
+        return 'Spatial Percentile filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
-        return f'Spatial percentile filter.'
+        return f'Spatial Percentile filter.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

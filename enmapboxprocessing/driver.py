@@ -1,7 +1,8 @@
 from os.path import splitext
+from typing import Union
 
 from osgeo import gdal
-from qgis._core import QgsRectangle, QgsCoordinateReferenceSystem, QgsProcessingFeedback
+from qgis._core import QgsRectangle, QgsCoordinateReferenceSystem, QgsProcessingFeedback, QgsRasterLayer
 
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.rasterwriter import RasterWriter

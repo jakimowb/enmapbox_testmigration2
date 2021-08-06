@@ -7,13 +7,13 @@ from typeguard import typechecked
 class SpatialMedianAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial median filter'
+        return 'Spatial Median filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
-        return f'Spatial median filter.'
+        return f'Spatial Median filter.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

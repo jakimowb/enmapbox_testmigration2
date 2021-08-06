@@ -6,10 +6,10 @@ from typeguard import typechecked
 class SpatialConvolutionAiryDisk2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution airy disk filter'
+        return 'Spatial convolution Airy Disk filter'
 
     def shortDescription(self) -> str:
-        return '2D airy disk filter.\n' \
+        return '2D Airy Disk filter.\n' \
                'This kernel models the diffraction pattern of a circular aperture. ' \
                'This kernel is normalized to a peak value of 1'
 

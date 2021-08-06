@@ -9,8 +9,8 @@ class SpatialConvolutionRing2DAlgorithm(ConvolutionFilterAlgorithmBase):
         return 'Spatial convolution ring filter'
 
     def shortDescription(self) -> str:
-        return '2D ring filter.\n' \
-               'The ring filter kernel is the difference between two tophat kernels of different width. ' \
+        return '2D Ring filter.\n' \
+               'The Ring filter kernel is the difference between two Top-Hat kernels of different width. ' \
                'This kernel is useful for, e.g., background estimation.'
 
     def helpParameterCode(self) -> str:

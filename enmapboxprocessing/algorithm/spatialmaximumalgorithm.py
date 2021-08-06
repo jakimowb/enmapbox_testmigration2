@@ -7,13 +7,13 @@ from typeguard import typechecked
 class SpatialMaximumAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial maximum filter'
+        return 'Spatial Maximum filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
-        return f'Spatial maximum filter.'
+        return f'Spatial Maximum filter.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

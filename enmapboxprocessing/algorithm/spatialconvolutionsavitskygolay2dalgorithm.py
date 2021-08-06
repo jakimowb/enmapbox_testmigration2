@@ -9,14 +9,14 @@ from typeguard import typechecked
 class SpatialConvolutionSavitskyGolay2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution savitsky-golay filter'
+        return 'Spatial convolution Savitsky-Golay filter'
 
     def shortDescription(self) -> str:
         link = self.htmlLink(
             'https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter#Two-dimensional_convolution_coefficients',
             'wikipedia'
         )
-        return '2D savitsky-golay filter.\n' \
+        return '2D Savitsky-Golay filter.\n' \
                f'See {link} for details.'
 
     def helpParameterCode(self) -> str:

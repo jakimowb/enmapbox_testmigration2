@@ -7,14 +7,14 @@ from typeguard import typechecked
 class SpatialLaplaceAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial laplace filter'
+        return 'Spatial Laplace filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
         link = self.htmlLink('https://en.wikipedia.org/wiki/Discrete_Laplace_operator#Image_Processing', 'Wikipedia')
-        return f'Spatial laplace filter. See {link} for general information.'
+        return f'Spatial Laplace filter. See {link} for general information.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

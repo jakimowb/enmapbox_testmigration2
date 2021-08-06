@@ -6,11 +6,11 @@ from typeguard import typechecked
 class SpatialConvolutionBox2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution box filter'
+        return 'Spatial convolution Box filter'
 
     def shortDescription(self) -> str:
-        return '2D box filter.\n' \
-               'The box filter or running mean is a smoothing filter. It is not isotropic and can produce artifact, ' \
+        return '2D Box filter.\n' \
+               'The Box filter or running mean is a smoothing filter. It is not isotropic and can produce artifact, ' \
                'when applied repeatedly to the same data.'
 
     def helpParameterCode(self) -> str:

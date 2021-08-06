@@ -7,13 +7,13 @@ from typeguard import typechecked
 class SpatialMorphologicalBinaryFillHolesAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial morphological binary fill holes filter'
+        return 'Spatial morphological Binary Fill Holes filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
-        return f'Spatial morphological binary fill holes filter.'
+        return f'Spatial morphological Binary Fill Holes filter.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

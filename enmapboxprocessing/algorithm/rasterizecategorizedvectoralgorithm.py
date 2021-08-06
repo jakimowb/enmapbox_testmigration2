@@ -170,7 +170,7 @@ class RasterizeCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
         with edit(vector2):
             vector2.addAttribute(QgsField(fieldName, QVariant.Int))
             vector2.updateFields()
-            for i, feature in enumerate(vector2.getFeatures()):
+            for i, feature in enumerate(vector2.getFeatures(), 1):
                 feedback.setProgress(i / n * 100)
                 feature.setAttribute(feature.fieldNameIndex(fieldName), idOfValue.get(str(feature[fieldIndex]), 0))
                 vector2.updateFeature(feature)

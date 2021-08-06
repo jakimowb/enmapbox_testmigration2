@@ -6,12 +6,12 @@ from typeguard import typechecked
 class SpatialConvolutionRickerWavelet2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution ricker wavelet filter'
+        return 'Spatial convolution Ricker Wavelet filter'
 
     def shortDescription(self) -> str:
-        return '2D ricker wavelet filter kernel (sometimes known as a Mexican Hat kernel).\n' \
-               'The ricker wavelet, or inverted Gaussian-Laplace filter, is a bandpass filter. ' \
-               'It smooths the data and removes slowly varying or constant structures (e.g. Background). ' \
+        return '2D Ricker Wavelet filter kernel (sometimes known as a Mexican Hat kernel).\n' \
+               'The Ricker Wavelet, or inverted Gaussian-Laplace filter, is a bandpass filter. ' \
+               'It smooths the data and removes slowly varying or constant structures (e.g. background). ' \
                'It is useful for peak or multi-scale detection.'
 
     def helpParameterCode(self) -> str:

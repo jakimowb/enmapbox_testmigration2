@@ -6,11 +6,11 @@ from typeguard import typechecked
 class SpatialConvolutionTophat2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution tophat filter'
+        return 'Spatial convolution Top-Hat filter'
 
     def shortDescription(self) -> str:
-        return '2D tophat filter.\n' \
-               'The tophat filter is an isotropic smoothing filter. ' \
+        return '2D Top-Hat filter.\n' \
+               'The Top-Hat filter is an isotropic smoothing filter. ' \
                'It can produce artifacts when applied repeatedly on the same data.'
 
     def helpParameterCode(self) -> str:

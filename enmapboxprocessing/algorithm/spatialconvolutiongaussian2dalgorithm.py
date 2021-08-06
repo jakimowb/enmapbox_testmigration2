@@ -6,11 +6,11 @@ from typeguard import typechecked
 class SpatialConvolutionGaussian2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution gaussian filter'
+        return 'Spatial convolution Gaussian filter'
 
     def shortDescription(self) -> str:
-        return '2D gaussian filter.\n' \
-               'The gaussian filter is a filter with great smoothing properties. ' \
+        return '2D Gaussian filter.\n' \
+               'The Gaussian filter is a filter with great smoothing properties. ' \
                'It is isotropic and does not produce artifacts.'
 
     def helpParameterCode(self) -> str:

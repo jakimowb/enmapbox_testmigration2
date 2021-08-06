@@ -6,10 +6,10 @@ from typeguard import typechecked
 class SpatialConvolutionMoffat2DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial convolution moffat filter'
+        return 'Spatial convolution Moffat filter'
 
     def shortDescription(self) -> str:
-        return '2D moffat filter.\n' \
+        return '2D Moffat filter.\n' \
                'This kernel is a typical model for a seeing limited PSF.'
 
     def helpParameterCode(self) -> str:

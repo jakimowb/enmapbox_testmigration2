@@ -7,14 +7,14 @@ from typeguard import typechecked
 class SpatialPrewittAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial prewitt filter'
+        return 'Spatial Prewitt filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
         link = self.htmlLink('https://en.wikipedia.org/wiki/Prewitt_operator', 'Wikipedia')
-        return f'Spatial morphological binary closing filter. See {link} for general information.'
+        return f'Spatial Prewitt filter. See {link} for general information.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

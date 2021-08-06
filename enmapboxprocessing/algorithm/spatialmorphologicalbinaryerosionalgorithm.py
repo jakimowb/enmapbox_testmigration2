@@ -7,14 +7,14 @@ from typeguard import typechecked
 class SpatialMorphologicalBinaryErosionAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial morphological binary erosion filter'
+        return 'Spatial morphological Binary Erosion filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
         link = self.htmlLink('https://en.wikipedia.org/wiki/Erosion_(morphology)', 'Wikipedia')
-        return f'Spatial morphological binary erosion filter. See {link} for general information.'
+        return f'Spatial morphological Binary Erosion filter. See {link} for general information.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

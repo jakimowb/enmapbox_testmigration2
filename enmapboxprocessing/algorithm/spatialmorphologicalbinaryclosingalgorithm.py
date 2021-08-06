@@ -7,14 +7,14 @@ from typeguard import typechecked
 class SpatialMorphologicalBinaryClosingAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial morphological binary closing filter'
+        return 'Spatial morphological Binary Closing filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
         link = self.htmlLink('https://en.wikipedia.org/wiki/Closing_(morphology)', 'Wikipedia')
-        return f'Spatial morphological binary closing filter. See {link} for general information.'
+        return f'Spatial morphological Binary Closing filter. See {link} for general information.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

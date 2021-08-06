@@ -7,14 +7,14 @@ from typeguard import typechecked
 class SpatialMorphologicalGradientAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial morphological gradient filter'
+        return 'Spatial morphological Gradient filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
         link = self.htmlLink('https://en.wikipedia.org/wiki/Morphological_gradient', 'Wikipedia')
-        return f'Spatial morphological gradient filter. See {link} for general information.'
+        return f'Spatial morphological Gradient filter. See {link} for general information.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

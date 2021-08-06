@@ -6,11 +6,11 @@ from typeguard import typechecked
 class SpectralConvolutionSavitskyGolay1DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spectral convolution savitsky-golay filter'
+        return 'Spectral convolution Savitsky-Golay filter'
 
     def shortDescription(self) -> str:
         link = self.htmlLink('https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter', 'wikipedia')
-        return '1D savitsky-golay filter.\n' \
+        return '1D Savitsky-Golay filter.\n' \
                f'See {link} for details.'
 
     def helpParameterCode(self) -> str:

@@ -6,10 +6,10 @@ from typeguard import typechecked
 class SpectralConvolutionTrapezoid1DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spectral convolution trapezoid filter'
+        return 'Spectral convolution Trapezoid filter'
 
     def shortDescription(self) -> str:
-        return '1D trapezoid filter.'
+        return '1D Trapezoid filter.'
 
     def helpParameterCode(self) -> str:
         link = self.htmlLink('http://docs.astropy.org/en/stable/api/astropy.convolution.Trapezoid1DKernel.html',

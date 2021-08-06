@@ -7,14 +7,14 @@ from typeguard import typechecked
 class SpatialMorphologicalWhiteTophatAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial morphological white top-hat filter'
+        return 'Spatial morphological White Top-Hat filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
         link = self.htmlLink('https://en.wikipedia.org/wiki/Top-hat_transform', 'Wikipedia')
-        return f'Spatial morphological top-hat filter. See {link} for general information.'
+        return f'Spatial morphological White Top-Hat filter. See {link} for general information.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

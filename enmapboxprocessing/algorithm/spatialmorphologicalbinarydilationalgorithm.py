@@ -7,14 +7,14 @@ from typeguard import typechecked
 class SpatialMorphologicalBinaryDilationAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial morphological binary dilation filter'
+        return 'Spatial morphological Binary Dilation filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
         link = self.htmlLink('https://en.wikipedia.org/wiki/Dilation_(morphology)', 'Wikipedia')
-        return f'Spatial morphological binary dilation filter. See {link} for general information.'
+        return f'Spatial morphological Binary Dilation filter. See {link} for general information.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

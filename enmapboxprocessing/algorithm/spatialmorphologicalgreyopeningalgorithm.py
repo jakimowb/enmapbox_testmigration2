@@ -7,14 +7,14 @@ from typeguard import typechecked
 class SpatialMorphologicalGreyOpeningAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial morphological grey opening filter'
+        return 'Spatial morphological Grey Opening filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
         link = self.htmlLink('https://en.wikipedia.org/wiki/Opening_(morphology)', 'Wikipedia')
-        return f'Spatial morphological grey opening filter. See {link} for general information.'
+        return f'Spatial morphological Grey Opening filter. See {link} for general information.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([

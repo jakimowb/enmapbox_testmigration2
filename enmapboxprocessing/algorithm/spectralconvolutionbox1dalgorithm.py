@@ -6,11 +6,11 @@ from typeguard import typechecked
 class SpectralConvolutionBox1DAlgorithm(ConvolutionFilterAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spectral convolution box filter'
+        return 'Spectral convolution Box filter'
 
     def shortDescription(self) -> str:
-        return '1D box filter.\n' \
-               'The box filter or running mean is a smoothing filter. ' \
+        return '1D Box filter.\n' \
+               'The Box filter or running mean is a smoothing filter. ' \
                'It is not isotropic and can produce artifacts, when applied repeatedly to the same data.'
 
     def helpParameterCode(self) -> str:

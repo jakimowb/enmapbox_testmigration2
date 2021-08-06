@@ -7,13 +7,13 @@ from typeguard import typechecked
 class SpatialMorphologicalBinaryPropagationAlgorithm(SpatialFilterFunctionAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Spatial morphological binary propagation filter'
+        return 'Spatial morphological Binary Propagation filter'
 
     def group(self):
         return Group.Test.value + Group.ConvolutionMorphologyAndFiltering.value
 
     def shortDescription(self) -> str:
-        return f'Spatial morphological binary propagation filter.'
+        return f'Spatial morphological Binary Propagation filter.'
 
     def helpParameterCode(self) -> str:
         links = ', '.join([
