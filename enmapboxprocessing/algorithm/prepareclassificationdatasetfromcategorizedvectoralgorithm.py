@@ -6,8 +6,8 @@ from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer, QgsProcessingParameterField,
                         QgsCategorizedSymbolRenderer, QgsProcessingException)
 
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import \
-    PrepareClassificationDatasetFromCategorizedRaster
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedrasteralgorithm import \
+    PrepareClassificationDatasetFromCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
@@ -17,7 +17,7 @@ from typeguard import typechecked
 
 
 @typechecked
-class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm):
+class PrepareClassificationDatasetFromCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
     P_CATEGORIZED_VECTOR, _CATEGORIZED_VECTOR = 'categorizedVector', 'Categorized vector layer'
     P_FEATURE_RASTER, _FEATURE_RASTER = 'featureRaster', 'Raster layer with features'
     P_CATEGORY_FIELD, _CATEGORY_FIELD = 'categoryField', 'Field with class values'
@@ -28,7 +28,8 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
         return 'Classification dataset (from categorized vector layer and feature raster)'
 
     def shortDescription(self) -> str:
-        return 'Sample data for pixels that match the given categories and store the result as a pickle file.\n' \
+        return 'Create a classification dataset by sampling data for pixels that match the given categories ' \
+               'and store the result as a pickle file.\n' \
                'If the layer is not categorized, or the field with class values is selected manually, ' \
                'categories are derived from the sampled target data y. ' \
                'To be more precise: ' \
@@ -105,7 +106,7 @@ class PrepareClassificationDatasetFromCategorizedVector(EnMAPProcessingAlgorithm
             classification = QgsRasterLayer(result[alg.P_OUTPUT_CATEGORIZED_RASTER])
             categories = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
             feedback.pushInfo('Sample data')
-            X, y = PrepareClassificationDatasetFromCategorizedRaster.sampleData(
+            X, y = PrepareClassificationDatasetFromCategorizedRasterAlgorithm.sampleData(
                 raster, classification, 1, categories, feedback2
             )
 

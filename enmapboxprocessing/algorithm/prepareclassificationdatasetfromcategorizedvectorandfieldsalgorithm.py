@@ -11,7 +11,7 @@ from typeguard import typechecked
 
 
 @typechecked
-class PrepareClassificationDatasetFromCategorizedVectorAndFields(EnMAPProcessingAlgorithm):
+class PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm(EnMAPProcessingAlgorithm):
     P_CATEGORIZED_VECTOR, _CATEGORIZED_VECTOR = 'categorizedVector', 'Categorized vector layer'
     P_FEATURE_FIELDS, _FEATURE_FIELDS = 'featureFields', 'Fields with features'
     P_CATEGORY_FIELD, _CATEGORY_FIELD = 'categoryField', 'Field with class values'
@@ -22,7 +22,8 @@ class PrepareClassificationDatasetFromCategorizedVectorAndFields(EnMAPProcessing
         return 'Classification dataset (from categorized vector layer with feature fields)'
 
     def shortDescription(self) -> str:
-        return 'Store attribute table rows that matches the given categories into a pickle file.\n' \
+        return 'Create a classification dataset from attribute table rows that matches the given categories ' \
+               'and store the result as a pickle file. \n' \
                'If the layer is not categorized, or the field with class values is selected manually, ' \
                'categories are derived from the target data y. ' \
                'To be more precise: ' \

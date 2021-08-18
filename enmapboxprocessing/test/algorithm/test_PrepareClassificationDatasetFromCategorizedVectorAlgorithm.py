@@ -1,5 +1,5 @@
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvector import \
-    PrepareClassificationDatasetFromCategorizedVector
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectoralgorithm import \
+    PrepareClassificationDatasetFromCategorizedVectorAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
@@ -9,10 +9,10 @@ writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
-class TestPrepareClassificationSampleFromCategorizedVector(TestCase):
+class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
 
     def test_styled_poly(self):
-        alg = PrepareClassificationDatasetFromCategorizedVector()
+        alg = PrepareClassificationDatasetFromCategorizedVectorAlgorithm()
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_polygons,
@@ -30,7 +30,7 @@ class TestPrepareClassificationSampleFromCategorizedVector(TestCase):
         )
 
     def test_styled_point(self):
-        alg = PrepareClassificationDatasetFromCategorizedVector()
+        alg = PrepareClassificationDatasetFromCategorizedVectorAlgorithm()
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_points,
@@ -48,7 +48,7 @@ class TestPrepareClassificationSampleFromCategorizedVector(TestCase):
         )
 
     def test_field_poly(self):
-        alg = PrepareClassificationDatasetFromCategorizedVector()
+        alg = PrepareClassificationDatasetFromCategorizedVectorAlgorithm()
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_polygons,

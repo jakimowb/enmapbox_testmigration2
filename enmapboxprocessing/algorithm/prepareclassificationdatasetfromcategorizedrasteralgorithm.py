@@ -14,7 +14,7 @@ from typeguard import typechecked
 
 
 @typechecked
-class PrepareClassificationDatasetFromCategorizedRaster(EnMAPProcessingAlgorithm):
+class PrepareClassificationDatasetFromCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_CATEGORIZED_RASTER, _CATEGORIZED_RASTER = 'categorizedRaster', 'Categorized raster layer'
     P_FEATURE_RASTER, _FEATURE_RASTER = 'featureRaster', 'Raster layer with features'
     P_CATEGORY_BAND, _CATEGORY_BAND = 'categoryBand', 'Band with class values'
@@ -25,7 +25,8 @@ class PrepareClassificationDatasetFromCategorizedRaster(EnMAPProcessingAlgorithm
         return 'Classification dataset (from categorized raster layer and feature raster)'
 
     def shortDescription(self) -> str:
-        return 'Sample data for pixels that match the given categories and store the result as a pickle file. \n' \
+        return 'Create a classification dataset by sampling data for pixels that match the given categories ' \
+               'and store the result as a pickle file. \n' \
                'If the layer is not categorized, or the band with class values is selected manually, ' \
                'categories are derived from sampled data itself. ' \
                'To be more precise: ' \

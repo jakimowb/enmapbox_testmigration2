@@ -1,5 +1,5 @@
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfields import  \
-    PrepareClassificationDatasetFromCategorizedVectorAndFields
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfieldsalgorithm import  \
+    PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
@@ -9,10 +9,10 @@ writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
-class TestPrepareClassificationDatasetFromVectorAndFields(TestCase):
+class TestPrepareClassificationDatasetFromVectorAndFieldsAlgorithm(TestCase):
 
     def test(self):
-        alg = PrepareClassificationDatasetFromCategorizedVectorAndFields()
+        alg = PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm()
         parameters = {
             alg.P_CATEGORIZED_VECTOR: classificationDatasetAsVector,
             alg.P_FEATURE_FIELDS: [f'Sample__{i + 1}' for i in range(177)],

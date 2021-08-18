@@ -1,7 +1,5 @@
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedlibrary import \
-    PrepareClassificationDatasetFromCategorizedLibrary
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfields import  \
-    PrepareClassificationDatasetFromCategorizedVectorAndFields
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedlibraryalgorithm import \
+    PrepareClassificationDatasetFromCategorizedLibraryAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
@@ -14,7 +12,7 @@ c = ['', 'c:'][int(writeToDisk)]
 class TestPrepareClassificationDatasetFromCategorizedLibrary(TestCase):
 
     def test_default(self):
-        alg = PrepareClassificationDatasetFromCategorizedLibrary()
+        alg = PrepareClassificationDatasetFromCategorizedLibraryAlgorithm()
         parameters = {
             alg.P_CATEGORIZED_LIBRARY: library,
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
@@ -26,7 +24,7 @@ class TestPrepareClassificationDatasetFromCategorizedLibrary(TestCase):
         self.assertEqual(177, len(dump.features))
 
     def test_selectBinaryField(self):
-        alg = PrepareClassificationDatasetFromCategorizedLibrary()
+        alg = PrepareClassificationDatasetFromCategorizedLibraryAlgorithm()
         parameters = {
             alg.P_CATEGORIZED_LIBRARY: library,
             alg.P_FIELD: 'values',

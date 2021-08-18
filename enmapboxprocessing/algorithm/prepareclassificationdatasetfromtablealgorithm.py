@@ -12,7 +12,7 @@ from typeguard import typechecked
 
 
 @typechecked
-class PrepareClassificationDatasetFromTable(EnMAPProcessingAlgorithm):
+class PrepareClassificationDatasetFromTableAlgorithm(EnMAPProcessingAlgorithm):
     P_TABLE, _TABLE = 'table', 'Table'
     P_FEATURE_FIELDS, _FEATURE_FIELDS = 'featureFields', 'Fields with features'
     P_VALUE_FIELD, _VALUE_FIELD = 'valueField', 'Field with class values'
@@ -25,7 +25,8 @@ class PrepareClassificationDatasetFromTable(EnMAPProcessingAlgorithm):
         return 'Classification dataset (from table with categories and feature fields)'
 
     def shortDescription(self) -> str:
-        return 'Store attribute table data into a pickle file.\n' \
+        return 'Create a classification dataset from attribute table rows that match the given categories ' \
+               'and store the result as a pickle file. \n' \
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
@@ -75,9 +76,7 @@ class PrepareClassificationDatasetFromTable(EnMAPProcessingAlgorithm):
             feedback.pushInfo('Read data')
             # prepare categories
             categories_ = Utils.categoriesFromVectorField(table, classField, nameField, colorField)
-            categories = Utils.prepareCategories(categories_, valuesToInt=True, removeLastIfEmpty=True)
-            values = [c.value for c in categories_]
-            valueLookup = {c.value: categories[values.index(c.value)].value for c in categories_}
+            categories, valueLookup = Utils.prepareCategories(categories_, valuesToInt=True, removeLastIfEmpty=True)
             # prepare data
             n = table.featureCount()
             X = np.zeros(shape=(n, len(featureFields)), dtype=np.float32)

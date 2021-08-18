@@ -1,4 +1,4 @@
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromfiles import PrepareClassificationDatasetFromFiles
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromfilesalgorithm import PrepareClassificationDatasetFromFilesAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
@@ -8,10 +8,10 @@ writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
-class TestPrepareClassificationDatasetFromFiles(TestCase):
+class TestPrepareClassificationDatasetFromFilesAlgorithm(TestCase):
 
     def test(self):
-        alg = PrepareClassificationDatasetFromFiles()
+        alg = PrepareClassificationDatasetFromFilesAlgorithm()
         parameters = {
             alg.P_FEATURE_FILE: classificationSampleAsCsv[0],
             alg.P_VALUE_FILE: classificationSampleAsCsv[1],
@@ -26,21 +26,3 @@ class TestPrepareClassificationDatasetFromFiles(TestCase):
         self.assertEqual(['feature 1', 'feature 2'], dump.features[:2])
         self.assertListEqual([1, 2, 3, 4, 5, 6], [c.value for c in dump.categories])
         self.assertListEqual(['1', '2', '3', '4', '5', '6'], [c.name for c in dump.categories])
-
-    def _test_david(self):
-        alg = PrepareClassificationDatasetFromFiles()
-        parameters = {
-            alg.P_FEATURES: r'C:\Users\janzandr\Downloads\ALL\all_features.txt',
-            alg.P_LABELS: r'C:\Users\janzandr\Downloads\ALL\all_response.txt',
-            alg.P_OUTPUT_SAMPLE: r'C:\Users\janzandr\Downloads\ALL\all_sample.pkl'
-        }
-        self.runalg(alg, parameters)
-
-    def _test_david2(self):
-        alg = PrepareClassificationDatasetFromFiles()
-        parameters = {
-            alg.P_FEATURES: r'C:\Users\janzandr\Downloads\berlin\features.txt',
-            alg.P_LABELS: r'C:\Users\janzandr\Downloads\berlin\response.txt',
-            alg.P_OUTPUT_SAMPLE: r'C:\Users\janzandr\Downloads\berlin\sample.pkl'
-        }
-        self.runalg(alg, parameters)

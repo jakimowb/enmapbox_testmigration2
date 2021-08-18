@@ -1,4 +1,4 @@
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtable import PrepareClassificationDatasetFromTable
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtablealgorithm import PrepareClassificationDatasetFromTableAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
@@ -8,10 +8,10 @@ writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
-class TestPrepareClassificationDatasetFromTable(TestCase):
+class TestPrepareClassificationDatasetFromTableAlgorithm(TestCase):
 
     def test_minimallySpecified_numberValues(self):
-        alg = PrepareClassificationDatasetFromTable()
+        alg = PrepareClassificationDatasetFromTableAlgorithm()
         parameters = {
             alg.P_TABLE: classificationDatasetAsCsv,
             alg.P_FEATURE_FIELDS: [f'Band_{i + 1}' for i in range(177)],
@@ -29,7 +29,7 @@ class TestPrepareClassificationDatasetFromTable(TestCase):
         self.assertListEqual(['1', '2', '3', '4'], [c.name for c in dump.categories])
 
     def test_minimallySpecified_stringValues(self):
-        alg = PrepareClassificationDatasetFromTable()
+        alg = PrepareClassificationDatasetFromTableAlgorithm()
         parameters = {
             alg.P_TABLE: classificationDatasetAsCsv,
             alg.P_FEATURE_FIELDS: [f'Band_{i + 1}' for i in range(177)],
@@ -47,7 +47,7 @@ class TestPrepareClassificationDatasetFromTable(TestCase):
         self.assertListEqual(['impervious', 'soil', 'vegetation', 'water'], [c.name for c in dump.categories])
 
     def test_fullySpecified(self):
-        alg = PrepareClassificationDatasetFromTable()
+        alg = PrepareClassificationDatasetFromTableAlgorithm()
         parameters = {
             alg.P_TABLE: classificationDatasetAsCsv,
             alg.P_FEATURE_FIELDS: [f'Band_{i + 1}' for i in range(177)],

@@ -13,7 +13,7 @@ from typeguard import typechecked
 
 
 @typechecked
-class PrepareClassificationDatasetFromCategorizedLibrary(EnMAPProcessingAlgorithm):
+class PrepareClassificationDatasetFromCategorizedLibraryAlgorithm(EnMAPProcessingAlgorithm):
     P_CATEGORIZED_LIBRARY, _CATEGORIZED_LIBRARY = 'categorizedLibrary', 'Categorized spectral library'
     P_FIELD, _FIELD = 'field', 'Field with spectral profiles used as features'
     P_CATEGORY_FIELD, _CATEGORY_FIELD = 'categoryField', 'Field with class values'
@@ -24,7 +24,8 @@ class PrepareClassificationDatasetFromCategorizedLibrary(EnMAPProcessingAlgorith
         return 'Classification dataset (from categorized spectral library)'
 
     def shortDescription(self) -> str:
-        return 'Store spectral profiles that matches the given categories into a pickle file.\n' \
+        return 'Create a classification dataset from spectral profiles that matches the given categories ' \
+               'and store the result as a pickle file.\n' \
                'If the spectral library is not categorized, or the field with class values is selected manually, ' \
                'categories are derived from target data y. ' \
                'To be more precise: ' \
@@ -82,10 +83,9 @@ class PrepareClassificationDatasetFromCategorizedLibrary(EnMAPProcessingAlgorith
                     classField = renderer.classAttribute()
                     feedback.pushInfo(f'Use categories from style: {categories}')
                 else:
-                    feedback.reportError(
-                        'Select either a categorited spectral library or a field with class values.',
-                        fatalError=True
-                    )
+                    message = 'Select either a categorized spectral library or a field with class values.'
+                    feedback.reportError(message, fatalError=True)
+                    raise QgsProcessingException(message)
             else:
                 categories = Utils.categoriesFromVectorField(library, classField)
                 feedback.pushInfo(f'Derive categories from selected field: {categories}')
