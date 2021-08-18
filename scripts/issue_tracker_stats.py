@@ -6,12 +6,12 @@ import json
 import datetime
 import csv
 # 1. open bitbucket,
-# goto repository settings -> issues
+# goto repository settings -> issues -> Import & export
 # 2. export issues, extract zip file and copy db-2.0.json to JSON_DIR (defaults to <repo>/tmp)
 # 3. set report period with start_date / end_date
 JSON_DIR = pathlib.Path(__file__).parents[1] / 'tmp'
-start_date = datetime.date(2020, 10, 29)
-end_date = datetime.date(2021, 3, 15)
+start_date = datetime.date(2021, 1, 1)
+end_date = datetime.date(2021, 6, 30)
 
 
 
@@ -61,10 +61,10 @@ with open(PATH_REPORT, 'w', encoding='utf-8', newline='') as f:
     ROW2 = {'action': 'updated'}
 
     for s in states:
-        total_created += len(CREATED_BY_STATUS.get(s, 0))
-        total_updated += len(UPDATED_BY_STATUS.get(s, 0))
-        ROW1[s] = len(CREATED_BY_STATUS[s])
-        ROW2[s] = len(UPDATED_BY_STATUS[s])
+        total_created += len(CREATED_BY_STATUS.get(s, []))
+        total_updated += len(UPDATED_BY_STATUS.get(s, []))
+        ROW1[s] = len(CREATED_BY_STATUS.get(s, []))
+        ROW2[s] = len(UPDATED_BY_STATUS.get(s, []))
     ROW1['total'] = total_created
     ROW2['total'] = total_updated
     writer.writerow(ROW1)
