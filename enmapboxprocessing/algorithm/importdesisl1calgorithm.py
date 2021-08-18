@@ -39,6 +39,15 @@ class ImportDesisL1CAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterFile(self.P_FILE, self._FILE, extension='xml')
         self.addParameterVrtDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
+    def isValidFile(self, file: str) -> bool:
+        return basename(file).startswith('DESIS-HSI-L1C') & basename(file).endswith('METADATA.xml')
+
+    def  defaultParameters(self, xmlFilename: str):
+        return {
+                    self.P_FILE: xmlFilename,
+                    self.P_OUTPUT_RASTER: xmlFilename.replace('METADATA.xml', 'SPECTRAL_IMAGE.vrt'),
+                }
+
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
@@ -51,8 +60,7 @@ class ImportDesisL1CAlgorithm(EnMAPProcessingAlgorithm):
 
             # check filename
             # e.g. 'DESIS-HSI-L1C-DT1203190212_025-20191203T021128-V0210-METADATA.xml'
-            if not (basename(xmlFilename).startswith('DESIS-HSI-L1C') &
-                    basename(xmlFilename).endswith('METADATA.xml')):
+            if not self.isValidFile(xmlFilename):
                 message = f'not a valid DESIS L1C product: {xmlFilename}'
                 feedback.reportError(message, True)
                 raise QgsProcessingException(message)

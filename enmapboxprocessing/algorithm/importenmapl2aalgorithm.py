@@ -19,7 +19,7 @@ class ImportEnmapL2AAlgorithm(EnMAPProcessingAlgorithm):
 
     def shortDescription(self):
         return 'Prepare a spectral raster layer from the given product. ' \
-               'Wavelength and FWHM information is set and data is scaled according to data gain/offset values.'
+               'Wavelength and FWHM information is set and data is scaled into the 0 to 10000 range.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
@@ -34,6 +34,17 @@ class ImportEnmapL2AAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterFile(self.P_FILE, self._FILE, extension='xml')
         self.addParameterVrtDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
+    def isValidFile(self, file: str) -> bool:
+        return basename(file).startswith('ENMAP') & \
+               basename(file).endswith('METADATA.XML') & \
+               ('L2A' in basename(file))
+
+    def defaultParameters(self, xmlFilename: str):
+        return {
+            self.P_FILE: xmlFilename,
+            self.P_OUTPUT_RASTER: xmlFilename.replace('METADATA.XML', 'SPECTRAL_IMAGE.vrt'),
+        }
+
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
@@ -46,9 +57,7 @@ class ImportEnmapL2AAlgorithm(EnMAPProcessingAlgorithm):
 
             # check filename
             # e.g. 'ENMAP01-____L2A-DT000326721_20170626T102020Z_001_V000204_20200406T201930Z-METADATA.XML'
-            if not (basename(xmlFilename).startswith('ENMAP') &
-                    basename(xmlFilename).endswith('METADATA.XML') &
-                    ('L2A' in basename(xmlFilename))):
+            if not self.isValidFile(xmlFilename):
                 message = f'not a valid EnMAP L2A product: {xmlFilename}'
                 feedback.reportError(message, True)
                 raise QgsProcessingException(message)
@@ -63,7 +72,7 @@ class ImportEnmapL2AAlgorithm(EnMAPProcessingAlgorithm):
 
             # create VRTs
             ds = gdal.Open(xmlFilename.replace('-METADATA.XML', '-SPECTRAL_IMAGE.TIF'))
-            options = gdal.TranslateOptions(format='VRT')
+            options = gdal.TranslateOptions(format='VRT', outputType=gdal.GDT_Int16)
             ds: gdal.Dataset = gdal.Translate(destName=filename, srcDS=ds, options=options)
             ds.SetMetadataItem('wavelength', '{' + ', '.join(wavelength[:ds.RasterCount]) + '}', 'ENVI')
             ds.SetMetadataItem('wavelength_units', 'nanometers', 'ENVI')
@@ -72,7 +81,7 @@ class ImportEnmapL2AAlgorithm(EnMAPProcessingAlgorithm):
             rasterBands = [ds.GetRasterBand(i + 1) for i in range(ds.RasterCount)]
             rasterBand: gdal.Band
             for i, rasterBand in enumerate(rasterBands):
-                rasterBand.SetScale(float(gains[i]))
+                rasterBand.SetScale(float(gains[i]) * 1e4)
                 rasterBand.SetOffset(float(offsets[i]))
                 rasterBand.FlushCache()
 

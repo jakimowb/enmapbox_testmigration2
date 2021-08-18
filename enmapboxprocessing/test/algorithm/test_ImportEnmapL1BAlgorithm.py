@@ -16,5 +16,9 @@ class TestImportEnmapL1BAlgorithm(TestCase):
             alg.P_OUTPUT_SWIR_RASTER: 'c:/vsimem/enmapL1BSwir.vrt',
         }
         result = self.runalg(alg, parameters)
-        self.assertEqual(49240, round(np.sum(RasterReader(result[alg.P_OUTPUT_VNIR_RASTER]).array(bandList=[1]))))
-        self.assertEqual(15407, round(np.sum(RasterReader(result[alg.P_OUTPUT_SWIR_RASTER]).array(bandList=[1]))))
+        self.assertEqual(
+            64496114, round(np.sum(RasterReader(result[alg.P_OUTPUT_VNIR_RASTER]).array(bandList=[1]), dtype=float))
+        )
+        self.assertEqual(
+            137227175, round(np.sum(RasterReader(result[alg.P_OUTPUT_SWIR_RASTER]).array(bandList=[1]), dtype=float))
+        )

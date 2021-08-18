@@ -1,6 +1,5 @@
 import numpy as np
 
-from enmapboxprocessing.algorithm.importenmapl2aalgorithm import ImportEnmapL2AAlgorithm
 from enmapboxprocessing.algorithm.importprismal2dalgorithm import ImportPrismaL2DAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase

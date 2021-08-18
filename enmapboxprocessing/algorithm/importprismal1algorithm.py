@@ -36,6 +36,16 @@ class ImportPrismaL1Algorithm(EnMAPProcessingAlgorithm):
         self.addParameterFile(self.P_FILE, self._FILE, extension='he5')
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
+    def isValidFile(self, file: str) -> bool:
+        return basename(file).startswith('PRS_L1') & \
+               basename(file).endswith('.he5')
+
+    def defaultParameters(self, xmlFilename: str):
+        return {
+            self.P_FILE: xmlFilename,
+            self.P_OUTPUT_RASTER: xmlFilename.replace('.he5', '_SR.tif'),
+        }
+
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
@@ -48,8 +58,7 @@ class ImportPrismaL1Algorithm(EnMAPProcessingAlgorithm):
 
             # check filename
             # e.g. 'PRS_L1_STD_OFFL_20201107101404_20201107101408_0001.he5'
-            if not (basename(he5Filename).startswith('PRS_L1') &
-                    basename(he5Filename).endswith('.he5')):
+            if not self.isValidFile(he5Filename):
                 message = f'not a valid PRISMA L1 product: {he5Filename}'
                 feedback.reportError(message, True)
                 raise QgsProcessingException(message)
@@ -97,8 +106,9 @@ class ImportPrismaL1Algorithm(EnMAPProcessingAlgorithm):
 
             assert len(wavelength) == len(array)
             assert len(fwhm) == len(array)
-            writer.setWavelength(wavelength)
-            writer.setFwhm(fwhm)
+            for bandNo in range(1, writer.bandCount() + 1):
+                writer.setWavelength(wavelength[bandNo - 1], bandNo)
+                writer.setFwhm(fwhm[bandNo - 1], bandNo)
             writer.setNoDataValue(noDataValue)
             result = {self.P_OUTPUT_RASTER: filename}
             self.toc(feedback, result)

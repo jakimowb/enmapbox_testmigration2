@@ -14,4 +14,6 @@ class TestImportDesisL2AAlgorithm(TestCase):
             alg.P_OUTPUT_RASTER: 'c:/vsimem/desisL2A.vrt',
         }
         result = self.runalg(alg, parameters)
-        self.assertEqual(-34922692608, round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(bandList=[1]))))
+        self.assertEqual(
+            -34920251152, round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(bandList=[1]), dtype=float))
+        )

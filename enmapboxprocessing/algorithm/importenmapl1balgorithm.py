@@ -38,6 +38,18 @@ class ImportEnmapL1BAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterVrtDestination(self.P_OUTPUT_VNIR_RASTER, self._OUTPUT_VNIR_RASTER)
         self.addParameterVrtDestination(self.P_OUTPUT_SWIR_RASTER, self._OUTPUT_SWIR_RASTER)
 
+    def isValidFile(self, file: str) -> bool:
+        return basename(file).startswith('ENMAP') & \
+               basename(file).endswith('METADATA.XML') & \
+               ('L1B' in basename(file))
+
+    def  defaultParameters(self, xmlFilename: str):
+        return {
+                    self.P_FILE: xmlFilename,
+                    self.P_OUTPUT_VNIR_RASTER: xmlFilename.replace('METADATA.XML', 'SPECTRAL_IMAGE_VNIR.vrt'),
+                    self.P_OUTPUT_SWIR_RASTER: xmlFilename.replace('METADATA.XML', 'SPECTRAL_IMAGE_SWIR.vrt'),
+        }
+
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
@@ -51,9 +63,7 @@ class ImportEnmapL1BAlgorithm(EnMAPProcessingAlgorithm):
 
             # check filename
             # e.g. 'ENMAP01-____L1B-DT000400126_20170218T110119Z_003_V000204_20200508T124425Z-METADATA.XML'
-            if not (basename(xmlFilename).startswith('ENMAP') &
-                    basename(xmlFilename).endswith('METADATA.XML') &
-                    ('L1B' in basename(xmlFilename))):
+            if not self.isValidFile(xmlFilename):
                 message = f'not a valid EnMAP L1B product: {xmlFilename}'
                 feedback.reportError(message, True)
                 raise QgsProcessingException(message)

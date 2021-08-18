@@ -21,7 +21,7 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
 
     def shortDescription(self):
         return 'Prepare a spectral raster layer from the given product. ' \
-               'Wavelength and FWHM information is set and data is scaled according to data gain/offset values.'
+               'Wavelength and FWHM information is set and data is scaled into the 0 to 10000 range.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
@@ -36,6 +36,16 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterFile(self.P_FILE, self._FILE, extension='he5')
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
+    def  defaultParameters(self, file: str):
+        return {
+                    self.P_FILE: file,
+                    self.P_OUTPUT_RASTER: file.replace('.he5', '_SR.tif'),
+                }
+
+    def isValidFile(self, file: str) -> bool:
+        return basename(file).startswith('PRS_L2D') & \
+               basename(file).endswith('.he5')
+
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
@@ -48,8 +58,7 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
 
             # check filename
             # e.g. 'PRS_L2D_STD_20201107101404_20201107101408_0001.he5'
-            if not (basename(he5Filename).startswith('PRS_L2D') &
-                    basename(he5Filename).endswith('.he5')):
+            if not self.isValidFile(he5Filename):
                 message = f'not a valid PRISMA L2D product: {he5Filename}'
                 feedback.reportError(message, True)
                 raise QgsProcessingException(message)
@@ -111,8 +120,9 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
 
             assert len(wavelength) == len(array)
             assert len(fwhm) == len(array)
-            writer.setWavelength(wavelength)
-            writer.setFwhm(fwhm)
+            for bandNo in range(1, writer.bandCount() + 1):
+                writer.setWavelength(wavelength[bandNo - 1], bandNo)
+                writer.setFwhm(fwhm[bandNo - 1], bandNo)
             writer.setNoDataValue(noDataValue)
             result = {self.P_OUTPUT_RASTER: filename}
             self.toc(feedback, result)
