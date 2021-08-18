@@ -107,3 +107,5 @@ class TestApplyBandFunctionAlgorithm(TestCase):
                 alg.P_OUTPUT_RASTER: 'c:/vsimem/result.tif',
             }
             self.runalg(alg, parameters)
+
+            break  # comment out to check all filter algos

@@ -88,6 +88,9 @@ GIS and Remote Sensing
     categories
         A category has a value, a name and a :term:`color`.
 
+    class
+        Synonym for :term:`category`.
+
     classification layer
         A :term:`categorized raster layer` that is assumed to represent a mapping of a contiguous area.
 
@@ -330,9 +333,19 @@ Raster Metadata
     band name
         Defined by GDAL data model. Accessible via `gdal.Band.GetDescription()`.
 
+    bad band multiplier
+        The bad band multiplier value is indicating whether a :term:`band` is usable (1) or not (0).
+        Also see :term:`bad bands list` for details.
+
     bbl
     bad bands list
-        List of bad band multiplier values of each :term:`band`, typically 0 for bad bands and 1 for good bands.
+        List of :term:`bad band multiplier` values of each :term:`band`, typically 0 for bad bands and 1 for good bands.
+
+        Historically that information is stored in ENVI format and domain.
+        Accessible via `gdal.Dataset.GetMetadataItem('fwhm', 'ENVI')`.
+
+        We store that information band-wise in the default domain.
+        Accessible via `gdal.Band.GetMetadataItem('bad band multiplier')`.
 
 
     center wavelength
@@ -343,10 +356,10 @@ Raster Metadata
         List of full-width-half-maximum (FWHM) values of each :term:`band`.
         Units should be the same as those used for :term:`wavelength` and set in the :term:`wavelength units` parameter.
 
-        For historical reasons we store that information in ENVI format and domain.
+        Historically that information is stored in ENVI format and domain.
         Accessible via `gdal.Dataset.GetMetadataItem('fwhm', 'ENVI')`.
 
-        We also store that information band-wise in the default domain.
+        We store that information band-wise in the default domain.
         Accessible via `gdal.Band.GetMetadataItem('fwhm')`.
 
     no data value
@@ -356,20 +369,20 @@ Raster Metadata
         List of center wavelength values of each :term:`band`.
         Units should be the same as those used for the :term:`fwhm` and set in the :term:`wavelength units` parameter.
 
-        For historical reasons we store that information in ENVI format and domain.
+        Historically that information is stored in ENVI format and domain.
         Accessible via `gdal.Dataset.GetMetadataItem('wavelength', 'ENVI')`.
 
-        We also store that information band-wise in the default domain.
+        We store that information band-wise in the default domain.
         Accessible via `gdal.Band.GetMetadataItem('wavelength')`.
 
     wavelength units
         Text string indicating one of the following wavelength units:
         `Micrometers`, `um`, `Nanometers`, `nm`, `Index`, `Unknown`
 
-        For historical reasons we store that information in ENVI format and domain.
+        Historically that information is stored in ENVI format and domain.
         Accessible via `gdal.Dataset.GetMetadataItem('wavelength units', 'ENVI')`.
 
-        We also store that information band-wise in the default domain.
+        We store that information band-wise in the default domain.
         Accessible via `gdal.Band.GetMetadataItem('wavelength units')`.
 
 

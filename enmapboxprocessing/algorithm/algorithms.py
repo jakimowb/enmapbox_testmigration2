@@ -26,21 +26,24 @@ from enmapboxprocessing.algorithm.importdesisl2aalgorithm import ImportDesisL2AA
 from enmapboxprocessing.algorithm.importenmapl1balgorithm import ImportEnmapL1BAlgorithm
 from enmapboxprocessing.algorithm.importenmapl1calgorithm import ImportEnmapL1CAlgorithm
 from enmapboxprocessing.algorithm.importenmapl2aalgorithm import ImportEnmapL2AAlgorithm
+from enmapboxprocessing.algorithm.importlandsatl2algorithm import ImportLandsatL2Algorithm
 from enmapboxprocessing.algorithm.importprismal1algorithm import ImportPrismaL1Algorithm
 from enmapboxprocessing.algorithm.importprismal2dalgorithm import ImportPrismaL2DAlgorithm
+from enmapboxprocessing.algorithm.importsentinel2l2aalgorithm import ImportSentinel2L2AAlgorithm
 from enmapboxprocessing.algorithm.layertomaskalgorithm import LayerToMaskAlgorithm
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedlibrary import \
-    PrepareClassificationDatasetFromCategorizedLibrary
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import \
-    PrepareClassificationDatasetFromCategorizedRaster
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvector import \
-    PrepareClassificationDatasetFromCategorizedVector
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfields import \
-    PrepareClassificationDatasetFromCategorizedVectorAndFields
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromfiles import PrepareClassificationDatasetFromFiles
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtable import PrepareClassificationDatasetFromTable
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedlibraryalgorithm import \
+    PrepareClassificationDatasetFromCategorizedLibraryAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedrasteralgorithm import \
+    PrepareClassificationDatasetFromCategorizedRasterAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectoralgorithm import \
+    PrepareClassificationDatasetFromCategorizedVectorAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfieldsalgorithm import \
+    PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcodealgorithm import PrepareClassificationDatasetFromCodeAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromfilesalgorithm import PrepareClassificationDatasetFromFilesAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtablealgorithm import PrepareClassificationDatasetFromTableAlgorithm
 from enmapboxprocessing.algorithm.randompointsfromcategorizedrasteralgorithm import \
     RandomPointsFromCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.randompointsfrommaskrasteralgorithm import RandomPointsFromMaskRasterAlgorithm
@@ -149,17 +152,20 @@ def algorithms():
         ImportEnmapL1BAlgorithm(),
         ImportEnmapL1CAlgorithm(),
         ImportEnmapL2AAlgorithm(),
+        ImportLandsatL2Algorithm(),
         ImportPrismaL1Algorithm(),
         ImportPrismaL2DAlgorithm(),
+        ImportSentinel2L2AAlgorithm(),
         LayerToMaskAlgorithm(),
         PredictClassificationAlgorithm(),
         PredictClassPropabilityAlgorithm(),
-        PrepareClassificationDatasetFromFiles(),
-        PrepareClassificationDatasetFromCategorizedRaster(),
-        PrepareClassificationDatasetFromCategorizedVector(),
-        PrepareClassificationDatasetFromTable(),
-        PrepareClassificationDatasetFromCategorizedVectorAndFields(),
-        PrepareClassificationDatasetFromCategorizedLibrary(),
+        PrepareClassificationDatasetFromFilesAlgorithm(),
+        PrepareClassificationDatasetFromCategorizedRasterAlgorithm(),
+        PrepareClassificationDatasetFromCategorizedVectorAlgorithm(),
+        PrepareClassificationDatasetFromTableAlgorithm(),
+        PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm(),
+        PrepareClassificationDatasetFromCategorizedLibraryAlgorithm(),
+        PrepareClassificationDatasetFromCodeAlgorithm(),
         RandomPointsFromMaskRasterAlgorithm(),
         RandomPointsFromCategorizedRasterAlgorithm(),
         RandomSamplesFromClassificationDatasetAlgorithm(),

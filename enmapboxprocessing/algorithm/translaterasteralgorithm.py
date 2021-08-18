@@ -295,8 +295,18 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                 raster.saveDefaultStyle()
 
             writer = RasterWriter(outGdalDataset)
+            reader = RasterReader(raster)
             if copyMetadata:
-                self.copyMetadata(raster, writer, bandList)
+                metadata = reader.metadata()
+                metadata = {key: value for key, value in metadata.items() if not key.startswith('Band_')}
+                writer.setMetadata(metadata)
+                if bandList is None:
+                    bandList = range(1, reader.bandCount() + 1)
+                for dstBandNo, srcBandNo in enumerate(bandList, 1):
+                    writer.setMetadata(reader.metadata(srcBandNo), dstBandNo)
+                    writer.setWavelength(reader.wavelength(srcBandNo), dstBandNo)
+                    writer.setFwhm(reader.fwhm(srcBandNo), dstBandNo)
+                    writer.setBadBandMultiplier(reader.badBandMultiplier(srcBandNo), dstBandNo)
 
             if copyStyle:
                 renderer = raster.renderer().clone()
@@ -311,29 +321,3 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             self.toc(feedback, result)
 
         return result
-
-    @classmethod
-    def copyMetadata(cls, raster: QgsRasterLayer, writer: RasterWriter, bandList: List[int] = None):
-        reader = RasterReader(raster)
-        if bandList is None:
-            bandList = list(range(1, reader.bandCount() + 1))
-        # fix ENVI domain
-        enviMetadata = Utils.subsetEnviDomainBandwiseMetadata(
-            reader.metadataDomain('ENVI'),
-            RasterReader(writer.gdalDataset).metadataDomain('ENVI'),
-            bandList
-        )
-        writer.setMetadataDomain(enviMetadata, 'ENVI')
-        writer.setMetadataDomain({}, '')
-        # fix default domain
-        defaultMetadata = reader.metadataDomain('')
-        writer.setMetadataDomain({}, '')
-        for key, value in defaultMetadata.items():
-            if not key.startswith('Band'):
-                writer.setMetadataItem(key, value)
-        # band metadata
-        for i, bandNo in enumerate(bandList):
-            writer.setMetadata(reader.metadata(bandNo), i + 1)
-        # this needs to come last, otherwise GDAL will mess up the 'Band_*' items!
-        for i, bandNo in enumerate(bandList):
-            writer.setMetadataItem(f'Band_{i + 1}', defaultMetadata.get(f'Band_{bandNo}'))

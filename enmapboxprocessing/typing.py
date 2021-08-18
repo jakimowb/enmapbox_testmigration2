@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Union, List, Dict, Optional, NamedTuple
+from typing import Union, List, Dict, Optional
 
 import numpy as np
 from osgeo import gdal
@@ -11,8 +11,9 @@ from typeguard import typechecked
 
 GdalDataType = int
 GdalResamplingAlgorithm = int
-NumpyDataType = np.dtype
+NumpyDataType = Union[type, np.dtype]
 QgisDataType = int
+Number = Union[int, float]
 Array1d = np.ndarray
 Array2d = np.ndarray
 Array3d = Union[np.ndarray, List[Array2d]]
@@ -24,7 +25,7 @@ Metadata = Dict[str, MetadataDomain]
 RasterSource = Union[str, QgsRasterLayer, QgsRasterDataProvider, gdal.Dataset]
 CreationOptions = List[str]
 HexColor = str
-Number = Union[int, float]
+
 
 @typechecked
 @dataclass
@@ -35,8 +36,8 @@ class Category(object):
 
 
 Categories = List[Category]
-SampleX = Array2d
-SampleY = Array2d
+SampleX = np.array
+SampleY = np.array
 
 Classifier = ClassifierMixin
 Regressor = RegressorMixin
@@ -71,6 +72,7 @@ class ClassifierDump(object):
         asdict['X'] = X
         asdict['y'] = y
         return ClassifierDump(**asdict)
+
 
 @typechecked
 @dataclass

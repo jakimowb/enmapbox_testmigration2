@@ -75,7 +75,6 @@ class TranslateCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_GRID: grid,
                     alg.P_RESAMPLE_ALG: self.NearestNeighbourResampleAlg,
                     alg.P_COPY_STYLE: True,
-                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: filename
                 }
                 Processing.runAlgorithm(alg, parameters, None, feedback2, context)
@@ -102,7 +101,6 @@ class TranslateCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_GRID: oversamplingGrid,
                     alg.P_RESAMPLE_ALG: alg.NearestNeighbourResampleAlg,
                     alg.P_COPY_STYLE: True,
-                    alg.P_CREATION_PROFILE: alg.VrtProfile,
                     alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'classification.x10.vrt')
                 }
                 result = Processing.runAlgorithm(alg, parameters, None, feedback2, context)
@@ -116,7 +114,6 @@ class TranslateCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
                     alg.P_GRID: grid,
                     alg.P_RESAMPLE_ALG: alg.ModeResampleAlg,
                     alg.P_COPY_STYLE: True,
-                    alg.P_CREATION_PROFILE: self.TiledAndCompressedGTiffProfile,
                     alg.P_OUTPUT_RASTER: filename
                 }
                 Processing.runAlgorithm(alg, parameters, None, feedback2, context)

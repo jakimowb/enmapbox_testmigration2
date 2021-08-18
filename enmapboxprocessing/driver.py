@@ -74,6 +74,7 @@ class Driver(object):
     def createLike(
             self, raster: RasterReader, dataType: QgisDataType = None, nBands: int = None
     ) -> RasterWriter:
+
         provider = raster.provider
         if nBands is None:
             nBands = provider.bandCount()

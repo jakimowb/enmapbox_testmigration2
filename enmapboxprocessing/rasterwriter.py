@@ -106,25 +106,22 @@ class RasterWriter(object):
             colorTable.SetColorEntry(i, (color.red(), color.green(), color.blue()))
         gdalBand.SetColorTable(colorTable)
 
-    def setWavelength(self, wavelength: Union[List[Number], Number] = None, bandNo: int = None):
+    def setWavelength(self, wavelength: Optional[Number], bandNo: int):
         if bandNo is None:
-            self.setMetadataItem('wavelength', wavelength, 'ENVI')
-            self.setMetadataItem('wavelength units', 'nanometers', 'ENVI')
-            for i in range(self.bandCount()):
-                self.setWavelength(wavelength[i], i + 1)
-        else:
-            self.setMetadataItem('wavelength', wavelength, '', bandNo)
-            self.setMetadataItem('wavelength units', 'nanometers', '', bandNo)
+            return
+        self.setMetadataItem('wavelength', wavelength, '', bandNo)
+        self.setMetadataItem('wavelength_units', 'nanometers', '', bandNo)
 
-    def setFwhm(self, fwhm: Union[List[Number], Number] = None, bandNo: int = None):
+    def setFwhm(self, fwhm: Optional[Number], bandNo: int):
         if bandNo is None:
-            self.setMetadataItem('fwhm', fwhm, 'ENVI')
-            self.setMetadataItem('wavelength units', 'nanometers', 'ENVI')
-            for i in range(self.bandCount()):
-                self.setWavelength(fwhm[i], i + 1)
-        else:
-            self.setMetadataItem('fwhm', fwhm, '', bandNo)
-            self.setMetadataItem('wavelength units', 'nanometers', '', bandNo)
+            return
+        self.setMetadataItem('fwhm', fwhm, '', bandNo)
+        self.setMetadataItem('wavelength_units', 'nanometers', '', bandNo)
+
+    def setBadBandMultiplier(self, badBandMultiplier: Optional[int], bandNo: int):
+        if bandNo is None:
+            return
+        self.setMetadataItem('bad_band_multiplier', badBandMultiplier, '', bandNo)
 
     def bandCount(self) -> int:
         return self.gdalDataset.RasterCount
@@ -135,8 +132,15 @@ class RasterWriter(object):
     def dataType(self, bandNo: int = None) -> QgisDataType:
         if bandNo is None:
             bandNo = 1
-        dataType = self.gdalDataset.GetRasterBand(bandNo).DataType
-        return Utils.gdalDataTypeToQgisDataType(dataType)
+        gdalDataType = self.gdalDataset.GetRasterBand(bandNo).DataType
+        return Utils.gdalDataTypeToQgisDataType(gdalDataType)
+
+    def dataTypeSize(self, bandNo: int = None) -> int:
+        if bandNo is None:
+            bandNo = 1
+        qgisDataType = self.dataType(bandNo)
+        dtype = Utils.qgisDataTypeToNumpyDataType(qgisDataType)
+        return dtype().itemsize
 
     def width(self) -> int:
         return self.gdalDataset.RasterXSize

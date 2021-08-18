@@ -306,6 +306,17 @@ class RasterReader(object):
             raise ValueError(f'unsupported wavelength units: {wavelength_units}')
         return float(fwhm) * scale
 
+    def badBandMultiplier(self, bandNo: int) -> Optional[int]:
+        """Return bad band multiplier, typically 0 for bad bands and 1 for good bands."""
+        badBandMultiplier = self.metadataItem('bad band multiplier', '', bandNo)
+        if badBandMultiplier is None:
+            bbl = self.metadataItem('bbl', 'ENVI')
+            if bbl is None:
+                return 1
+            else:
+                badBandMultiplier = bbl[bandNo - 1]
+        return int(badBandMultiplier)
+
     def lineMemoryUsage(self, nBands: int = None, dataTypeSize: int = None) -> int:
         if nBands is None:
             nBands = self.bandCount()

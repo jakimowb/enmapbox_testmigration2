@@ -6,15 +6,8 @@ from typing import Any, Dict, Iterable, Optional, List, Tuple, TextIO
 
 import numpy as np
 from osgeo import gdal
-
-from enmapboxprocessing.glossary import injectGlossaryLinks
-from enmapboxprocessing.parameter.processingparametercodeeditwidget import ProcessingParameterCodeEditWidgetWrapper
-from enmapboxprocessing.parameter.processingparametercreationprofilewidget import \
-    ProcessingParameterCreationProfileWidgetWrapper
-from enmapboxprocessing.parameter.processingparameterrasterdestination import ProcessingParameterRasterDestination
-from typeguard import typechecked
 from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
-                        QgsProcessingParameterRasterDestination, QgsProcessingContext, QgsProcessingFeedback,
+                        QgsProcessingContext, QgsProcessingFeedback,
                         QgsRasterLayer, QgsVectorLayer, QgsProcessingParameterNumber, QgsProcessingParameterDefinition,
                         QgsProcessingParameterField, QgsProcessingParameterBoolean, QgsProcessingParameterEnum, Qgis,
                         QgsProcessingParameterString, QgsProcessingParameterBand, QgsCategorizedSymbolRenderer,
@@ -23,10 +16,16 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterFileDestination, QgsProcessingParameterFile, QgsProcessingParameterRange,
                         QgsProcessingParameterCrs, QgsProcessingParameterVectorDestination, QgsProcessing,
                         QgsProcessingUtils, QgsProcessingParameterMultipleLayers, QgsProcessingException)
-import processing
 
+import processing
+from enmapboxprocessing.glossary import injectGlossaryLinks
+from enmapboxprocessing.parameter.processingparametercodeeditwidget import ProcessingParameterCodeEditWidgetWrapper
+from enmapboxprocessing.parameter.processingparametercreationprofilewidget import \
+    ProcessingParameterCreationProfileWidgetWrapper
+from enmapboxprocessing.parameter.processingparameterrasterdestination import ProcessingParameterRasterDestination
 from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
+from typeguard import typechecked
 
 
 class AlgorithmCanceledException(Exception):
@@ -50,9 +49,14 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     ReportFileDestination = 'Output report file destination.'
 
     VrtFormat = 'VRT'
+    DefaultVrtCreationOptions = ''.split()
+    DefaultVrtCreationProfile = VrtFormat + ' ' + ' '.join(DefaultVrtCreationOptions)
     GTiffFormat = 'GTiff'
     DefaultGTiffCreationOptions = 'INTERLEAVE=BAND COMPRESS=LZW PREDICTOR=2 TILED=YES BIGTIFF=YES'.split()
-    DefaultGTiffCreationProfile = 'GTiff ' + ' '.join(DefaultGTiffCreationOptions)
+    DefaultGTiffCreationProfile = GTiffFormat + ' ' + ' '.join(DefaultGTiffCreationOptions)
+    EnviFormat = 'ENVI'
+    DefaultEnviCreationOptions = 'INTERLEAVE=BSQ'.split()
+    DefaultEnviCreationProfile = EnviFormat + ' ' + ' '.join(DefaultEnviCreationOptions)
 
     def createInstance(self):
         return type(self)()
@@ -96,6 +100,17 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         if isinstance(layer, QgsMapLayer) and isinstance(parameters[name], str):
             layer.loadDefaultStyle()
         return layer
+
+    def parameterAsLayerList(
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
+    ) -> Optional[List[QgsMapLayer]]:
+        layers = super().parameterAsLayerList(parameters, name, context)
+        if layers is None or len(layers) == 0:
+            return None
+        #for layer in layers:
+        #    if isinstance(layer, QgsMapLayer) and isinstance(parameters[name], str):
+        #        layer.loadDefaultStyle()
+        return layers
 
     def parameterAsRasterLayer(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
@@ -267,18 +282,18 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         if text is None:
             extension = splitext(filename)[1].lower()
             defaultCreationProfilesByExtension = {
-                '.tif': 'GTiff INTERLEAVE=BAND',
+                '.tif': self.DefaultGTiffCreationProfile,
                 '.bsq': 'ENVI INTERLEAVE=BSQ',
                 '.bil': 'ENVI INTERLEAVE=BIL',
                 '.bip': 'ENVI INTERLEAVE=BIP',
-                '.vrt': 'VRT',
+                '.vrt': self.DefaultVrtCreationProfile,
             }
             text = defaultCreationProfilesByExtension[extension]
         format, *options = text.split()
 
         # check that extension is correct
         extension = splitext(filename)[1]
-        extensions = {'VRT' : '.vrt', 'ENVI': '.bsq .bil .bip', 'GTiff': '.tif'}[format].split()
+        extensions = {'VRT': '.vrt', 'ENVI': '.bsq .bil .bip', 'GTiff': '.tif'}[format].split()
         if extension not in extensions:
             extensions = ' '.join([f'{extension}' for extension in extensions])
             message = f'unsupported file extension ({extension}) for format ({format}), ' \
@@ -627,7 +642,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         return f'<b>{text}</b>'
 
     @classmethod
-    def htmlLink(cls, link: str, text: str=None) -> str:
+    def htmlLink(cls, link: str, text: str = None) -> str:
         if text is None:
             text = link
         return '<a href="' + link + '">' + text + '</a>'

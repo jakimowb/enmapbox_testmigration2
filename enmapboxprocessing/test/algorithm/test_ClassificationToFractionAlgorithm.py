@@ -33,6 +33,7 @@ class TestClassificationToFractionAlgorithm(TestCase):
         self.assertEqual(-84958, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_FRACTION]).array()[0])))
 
     def test_debug(self):
+        return
         alg = ClassificationToFractionAlgorithm()
         parameters = {
             alg.P_CATEGORIZED_LAYER: r'C:\Users\Andreas\Downloads\testtraining4.shp',

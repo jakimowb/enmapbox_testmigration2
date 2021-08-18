@@ -69,7 +69,7 @@ class RandomSamplesFromClassificationDatasetAlgorithm(EnMAPProcessingAlgorithm):
 
             dump = ClassifierDump(**Utils.pickleLoad(filenameSample))
             feedback.pushInfo(
-                f'Load dataset: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
+                f'Load dataset: X=array{list(np.shape(dump.X))} y=array{list(np.shape(dump.y))} categories={[c.name for c in dump.categories]}')
 
             # draw samples
             if seed is not None:

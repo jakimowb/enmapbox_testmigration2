@@ -51,7 +51,7 @@ class LayerToMaskAlgorithm(EnMAPProcessingAlgorithm):
                 raise QgsProcessingException(message)
             grid = layer
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_MASK, context)
-        format, options = self.GTiffFormat, self.CompressedGTiffCreationOptions
+        format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -63,7 +63,7 @@ class LayerToMaskAlgorithm(EnMAPProcessingAlgorithm):
                 parameters = {
                     alg.P_RASTER: layer,
                     alg.P_GRID: grid,
-                    alg.P_CREATION_PROFILE: self.VrtProfile,
+                    alg.P_CREATION_PROFILE: self.DefaultVrtCreationProfile,
                     alg.P_BAND_LIST: [layer.renderer().usesBands()[0]],
                     alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'band.vrt')
                 }

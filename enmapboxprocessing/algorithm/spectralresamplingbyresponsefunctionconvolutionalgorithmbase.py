@@ -149,7 +149,9 @@ class SpectralResamplingByResponseFunctionConvolutionAlgorithmBase(EnMAPProcessi
                     )
                 )
 
-            writer.setWavelength(outputWavelength)
+            for bandNo in range(1, writer.bandCount() + 1):
+                writer.setWavelength(outputWavelength[bandNo - 1], bandNo)
+
             for bandNo, bandName in enumerate(responses, 1):
                 writer.setBandName(bandName, bandNo)
             writer.setNoDataValue(outputNoDataValue, bandNo)

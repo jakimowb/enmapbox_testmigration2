@@ -30,7 +30,7 @@ class CodeEditWidget(QsciScintilla):
 
         #self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
         #                               QSizePolicy.Expanding))
-        #self.setMinimumSize(0, 300)
+        self.setMinimumSize(0, 300)
 
     def setToolTip(self, *args, **kwargs):
         pass

@@ -28,9 +28,9 @@ if __name__ == '__main__':
     try:
         widget = ClassificationWorkflowGui(enmapBox.ui)
         widget.show()
-        # widget.mClassifierFitted.setFilePath(classifierDumpPkl)
-        widget.mFileDataset.setFilePath(classifierDumpPkl)
-        widget.onDatasetChanged()
+        #widget.mFileClassifierFitted.setFilePath(classifierDumpPkl)
+        #widget.mFileDataset.setFilePath(classifierDumpPkl)
+        #widget.onDatasetChanged()
         qgsApp.exec_()
         qgsApp.exitQgis()
     except:

@@ -14,6 +14,7 @@ class TestSpectralResamplingByResponseFunctionLibraryAlgorithmBase(TestCase):
         parameters = {
             alg.P_RASTER: enmap,
             alg.P_RESPONSE_RASTER: enmap,
+            alg.P_SAVE_RESPONSE_FUNCTION: True,
             alg.P_OUTPUT_RASTER: 'C:/vsimem/resampled.tif'
         }
         result = self.runalg(alg, parameters)

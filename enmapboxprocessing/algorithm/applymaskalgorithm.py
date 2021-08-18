@@ -43,7 +43,7 @@ class ApplyMaskAlgorithm(EnMAPProcessingAlgorithm):
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         mask = self.parameterAsLayer(parameters, self.P_MASK, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
-        format, options = self.GTiffFormat, self.CompressedGTiffCreationOptions
+        format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)

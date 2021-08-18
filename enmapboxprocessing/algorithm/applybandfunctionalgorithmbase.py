@@ -1,4 +1,5 @@
 import inspect
+from inspect import signature
 from typing import Dict, Any, List, Tuple, Optional
 
 import numpy as np
@@ -76,8 +77,11 @@ class ApplyBandFunctionAlgorithmBase(EnMAPProcessingAlgorithm):
                 bandList = [i + 1]
                 self.array = self.reader.array(bandList=bandList)[0]
                 self.prepareInput()
-                self.marray = self.reader.maskArray(self.array[None], bandList=bandList)
-                self.outarray = function(self.array, self.reader.noDataValue(i + 1))
+                self.marray = self.reader.maskArray(self.array[None], bandList=bandList)[0]
+                if len(signature(function).parameters) == 1:
+                    self.outarray = function(self.array)
+                else:
+                    self.outarray = function(self.array, self.reader.noDataValue(i + 1))
                 self.prepareOutput()
                 self.writer.writeArray(self.outarray[None], bandList=bandList)
 

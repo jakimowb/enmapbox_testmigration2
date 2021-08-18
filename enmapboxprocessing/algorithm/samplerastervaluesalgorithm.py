@@ -176,7 +176,7 @@ class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
                 percentArray[percentArray > coverageMax] = 0
 
             driver = Driver(
-                Utils.tmpFilename(filename, f'cover{fid}.tif'), 'GTiff', cls.CompressedGTiffCreationOptions, feedback2
+                Utils.tmpFilename(filename, f'cover{fid}.tif'), 'GTiff', cls.DefaultGTiffCreationOptions, feedback2
             )
             coverRaster = driver.createFromArray([percentArray], raster.extent(), raster.crs())
             coverRaster.setNoDataValue(0)
