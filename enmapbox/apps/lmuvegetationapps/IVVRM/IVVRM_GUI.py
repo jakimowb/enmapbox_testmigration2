@@ -195,7 +195,7 @@ class IVVRM:
         self.gui.lblCanth.setText(u'[µg/cm²]')
         self.gui.lblCp.setText(u'[g/cm²]')
         self.gui.lblLAI.setText(u'[m²/m²]')
-        self.gui.lblCbc.setText(u'[g²/cm²]')
+        self.gui.lblCbc.setText(u'[g/cm²]')
 
     def initial_values(self):
         self.lop = "prospectD"
