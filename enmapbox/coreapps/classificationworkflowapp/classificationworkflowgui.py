@@ -33,7 +33,7 @@ from enmapboxprocessing.algorithm.creatergbimagefromclassprobabilityalgorithm im
     CreateRgbImageFromClassProbabilityAlgorithm
 from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import FeatureClusteringHierarchicalAlgorithm
 from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
-from enmapboxprocessing.algorithm.fitgenericclassifier import FitGenericClassifier
+from enmapboxprocessing.algorithm.fitgenericclassifieralgorithm import FitGenericClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
@@ -387,7 +387,7 @@ class ClassificationWorkflowGui(QMainWindow):
         for alg in algorithms():
             if not isinstance(alg, FitClassifierAlgorithmBase):
                 continue
-            if isinstance(alg, FitGenericClassifier):
+            if isinstance(alg, FitGenericClassifierAlgorithm):
                 continue
             if isinstance(alg, FitRandomForestClassifierAlgorithm):
                 index = i
@@ -682,7 +682,7 @@ class ClassificationWorkflowGui(QMainWindow):
     @errorHandled(successMessage='created (unfitted) classifier')
     def runCreateClassifier(self, *args):
 
-        alg = FitGenericClassifier()
+        alg = FitGenericClassifierAlgorithm()
         parameters = {alg.P_CLASSIFIER: self.mCodeClassifier.toPlainText(),
                       alg.P_OUTPUT_CLASSIFIER: self.createOutputFilename(self.mFileClassifier, '.pkl')}
         result = self.showAlgorithmDialog(alg, parameters)
@@ -796,7 +796,7 @@ class ClassificationWorkflowGui(QMainWindow):
     def runClassifierFit(self, *args):
         filenameTrain = self.getTrainingDatasetByIndex(self.mDataFit.currentIndex())
 
-        alg = FitGenericClassifier()
+        alg = FitGenericClassifierAlgorithm()
         parameters = {alg.P_DATASET: filenameTrain,
                       alg.P_CLASSIFIER: self.mCodeClassifier.toPlainText(),
                       alg.P_OUTPUT_CLASSIFIER: self.createOutputFilename(self.mFileClassifierFitted, '.pkl')

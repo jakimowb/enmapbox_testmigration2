@@ -5,8 +5,8 @@ from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
 
 from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
-from enmapboxprocessing.algorithm.fitgaussianprocessclassifier import FitGaussianProcessClassifierAlgorithm
-from enmapboxprocessing.algorithm.fitgenericclassifier import FitGenericClassifier
+from enmapboxprocessing.algorithm.fitgaussianprocessclassifieralgorithm import FitGaussianProcessClassifierAlgorithm
+from enmapboxprocessing.algorithm.fitgenericclassifieralgorithm import FitGenericClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitlinearsvcalgorithm import FitLinearSvcAlgorithm
 from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitsvcalgorithm import FitSvcAlgorithm
@@ -55,7 +55,7 @@ class TestFitClassifierAlgorithm(TestCase):
         self.runalg(alg, parameters)
 
     def test_code(self):
-        alg = FitGenericClassifier()
+        alg = FitGenericClassifierAlgorithm()
         parameters = {
             alg.P_CLASSIFIER: 'from sklearn.linear_model import LogisticRegression\n'
                         'classifier = LogisticRegression(max_iter=1000)',

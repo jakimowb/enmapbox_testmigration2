@@ -3,7 +3,7 @@ from typeguard import typechecked
 
 
 @typechecked
-class FitGenericClassifier(FitClassifierAlgorithmBase):
+class FitGenericClassifierAlgorithm(FitClassifierAlgorithmBase):
 
     def displayName(self) -> str:
         return 'Fit generic classifier'

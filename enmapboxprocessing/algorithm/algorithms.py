@@ -14,12 +14,13 @@ from enmapboxprocessing.algorithm.createmaskalgorithm import CreateMaskAlgorithm
 from enmapboxprocessing.algorithm.creatergbimagefromclassprobabilityalgorithm import \
     CreateRgbImageFromClassProbabilityAlgorithm
 from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import FeatureClusteringHierarchicalAlgorithm
-from enmapboxprocessing.algorithm.fitgaussianprocessclassifier import FitGaussianProcessClassifierAlgorithm
-from enmapboxprocessing.algorithm.fitgenericclassifier import FitGenericClassifier
+from enmapboxprocessing.algorithm.fitgaussianprocessclassifieralgorithm import FitGaussianProcessClassifierAlgorithm
+from enmapboxprocessing.algorithm.fitgenericclassifieralgorithm import FitGenericClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitlinearsvcalgorithm import FitLinearSvcAlgorithm
 from enmapboxprocessing.algorithm.fitlogisticregressionralgorithm import FitLogisticRegressionAlgorithm
 from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitsvcalgorithm import FitSvcAlgorithm
+from enmapboxprocessing.algorithm.geolocaterasteralgorithm import GeolocateRasterAlgorithm
 from enmapboxprocessing.algorithm.importdesisl1balgorithm import ImportDesisL1BAlgorithm
 from enmapboxprocessing.algorithm.importdesisl1calgorithm import ImportDesisL1CAlgorithm
 from enmapboxprocessing.algorithm.importdesisl2aalgorithm import ImportDesisL2AAlgorithm
@@ -41,9 +42,12 @@ from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvec
     PrepareClassificationDatasetFromCategorizedVectorAlgorithm
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfieldsalgorithm import \
     PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcodealgorithm import PrepareClassificationDatasetFromCodeAlgorithm
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromfilesalgorithm import PrepareClassificationDatasetFromFilesAlgorithm
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtablealgorithm import PrepareClassificationDatasetFromTableAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcodealgorithm import \
+    PrepareClassificationDatasetFromCodeAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromfilesalgorithm import \
+    PrepareClassificationDatasetFromFilesAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtablealgorithm import \
+    PrepareClassificationDatasetFromTableAlgorithm
 from enmapboxprocessing.algorithm.randompointsfromcategorizedrasteralgorithm import \
     RandomPointsFromCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.randompointsfrommaskrasteralgorithm import RandomPointsFromMaskRasterAlgorithm
@@ -121,13 +125,13 @@ from enmapboxprocessing.algorithm.spectralresamplingtolandsat7algorithm import S
 from enmapboxprocessing.algorithm.spectralresamplingtolandsat8algorithm import SpectralResamplingToLandsat8Algorithm
 from enmapboxprocessing.algorithm.spectralresamplingtoprismaalgorithm import SpectralResamplingToPrismaAlgorithm
 from enmapboxprocessing.algorithm.spectralresamplingtosentinel2algorithm import SpectralResamplingToSentinel2Algorithm
+from enmapboxprocessing.algorithm.synthmixalgorithm import SynthMixAlgorithm
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
-from enmapboxprocessing.algorithm.geolocaterasteralgorithm import GeolocateRasterAlgorithm
 
 
 def algorithms():
-    return [
+    algos = [
         ApplyMaskAlgorithm(),
         ClassificationPerformanceSimpleAlgorithm(),
         ClassificationPerformanceStratifiedAlgorithm(),
@@ -139,7 +143,7 @@ def algorithms():
         CreateMaskAlgorithm(),
         CreateRgbImageFromClassProbabilityAlgorithm(),
         FitGaussianProcessClassifierAlgorithm(),
-        FitGenericClassifier(),
+        FitGenericClassifierAlgorithm(),
         FitLinearSvcAlgorithm(),
         FitLogisticRegressionAlgorithm(),
         FitRandomForestClassifierAlgorithm(),
@@ -221,9 +225,14 @@ def algorithms():
         SpectralResamplingToLandsat8Algorithm(),
         SpectralResamplingToPrismaAlgorithm(),
         SpectralResamplingToSentinel2Algorithm(),
+        SynthMixAlgorithm(),
         TranslateCategorizedRasterAlgorithm(),
-        TranslateRasterAlgorithm(),
-
-        # ExperimentalCustomColor(),
-        # TestCodeEditWidgetAlgorithm()
+        TranslateRasterAlgorithm()
     ]
+    if not True:  # include test algos for custom processing parameters
+        pass
+    # ExperimentalCustomColor(),
+    # algos.append(TestCodeEditWidgetAlgorithm())
+    # algos.append(TestRasterMathCodeEditWidgetAlgorithm())
+
+    return algos

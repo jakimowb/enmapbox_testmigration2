@@ -3,9 +3,10 @@ from typing import Dict, Any
 from qgis._core import QgsProcessingParameterString, QgsProcessingFeedback, QgsProcessingContext
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
+from enmapboxprocessing.parameter.processingparametercodeeditwidget import ProcessingParameterCodeEditWidgetWrapper
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxprocessing.parameter.processingparametercodeeditwidget import CodeEditWidgetWrapper
 from typeguard import typechecked
+
 
 @typechecked
 class TestCodeEditWidgetAlgorithm(EnMAPProcessingAlgorithm):
@@ -23,7 +24,7 @@ class TestCodeEditWidgetAlgorithm(EnMAPProcessingAlgorithm):
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         options_param = QgsProcessingParameterString(self.P_CODE, 'Code')
-        options_param.setMetadata({'widget_wrapper': {'class': CodeEditWidgetWrapper}})
+        options_param.setMetadata({'widget_wrapper': {'class': ProcessingParameterCodeEditWidgetWrapper}})
         self.addParameter(options_param)
 
     def processAlgorithm(
@@ -34,7 +35,7 @@ class TestCodeEditWidgetAlgorithm(EnMAPProcessingAlgorithm):
         return {}
 
 
-class Test_ExperimentalCustomColor(TestCase):
+class Test_CodeEditWidgetAlgorithm(TestCase):
 
     def test(self):
         alg = TestCodeEditWidgetAlgorithm()
