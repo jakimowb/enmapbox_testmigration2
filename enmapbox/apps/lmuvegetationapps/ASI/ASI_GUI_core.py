@@ -28,6 +28,8 @@ retrieval of biochemical vegetation traits. International Journal of Applied Ear
 93, 102219
 https://doi.org/10.1016/j.jag.2020.102219
 """
+from qgis._gui import QgsMapLayerComboBox
+from qgis._core import QgsMapLayerProxyModel
 
 from hubflow.core import *
 import numpy as np
@@ -45,10 +47,12 @@ pathUI2 = os.path.join(APP_DIR, 'Resources/UserInterfaces/Nodat.ui')
 pathUI_prg = os.path.join(APP_DIR, 'Resources/UserInterfaces/ProgressBar.ui')
 
 class ASI_GUI(QDialog):
+    mLayer: QgsMapLayerComboBox
     def __init__(self, parent=None):
         super(ASI_GUI, self).__init__(parent)
         loadUi(pathUI, self)
         QApplication.instance().installEventFilter(self)
+        self.mLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
         # fix the sendHoverEvent crash by replacing the slot function
         self.rangeView.scene().sendHoverEvents = self.onHoverEvent
@@ -137,9 +141,12 @@ class ASI:
         self.calc_crs_flag = False
         self.calc_3band_flag = False
         self.out_path = None
+        self.addItem = []
+        self.gui.mLayer.setLayer(None)
 
     def connections(self):
-        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="image"))
+        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="imgSelect"))
+        self.gui.mLayer.layerChanged.connect(lambda: self.open_file(mode="imgDropdown"))
         self.gui.cmdOutputImage.clicked.connect(lambda: self.open_file(mode="output"))
 
         self.gui.lowWaveEdit.returnPressed.connect(lambda: self.limits_changed(self.gui.lowWaveEdit))
@@ -158,41 +165,60 @@ class ASI:
         self.gui.pushClose.clicked.connect(lambda: self.gui.close())
 
     def open_file(self, mode):
-        if mode == "image":
-            bsq_input, _filter = QFileDialog.getOpenFileName(None, 'Select Input Image', '.', "ENVI Image (*.bsq)")
-            if not bsq_input:
-                return
+        if mode == "imgSelect":
             if self.image is not None:
                 self.reset()
+            bsq_input = QFileDialog.getOpenFileName(caption='Select Input Image', filter="ENVI Image (*.bsq)")[0]
+            if not bsq_input:
+                return
+            self.addItem.append(bsq_input)
+            self.gui.mLayer.setAdditionalItems(self.addItem)
+            self.gui.mLayer.setCurrentText(bsq_input)
+
             self.image = bsq_input
-            self.image = self.image.replace("\\", "/")
-            try:
-                meta = self.get_image_meta(image=self.image, image_type="Input Image")
-                self.dtype = meta[4]
-                if self.dtype < 4 or self.dtype > 9:
-                    QMessageBox.information(self.gui, "Integer Input",
-                                        "Tool requires float [0.0-1.0]:\nDivision factor set to 10000")
-                    self.division_factor = 10000
-                    self.gui.spinDivisionFactor.setText(str(self.division_factor))
-            except ValueError as e:
-                self.abort(message=str(e))
-                return
-            if None in meta:
-                self.image = None
-                self.nodat[0] = None
-                self.gui.lblInputImage.setText("")
-                return
+            self.image_read()
+
+        elif mode == "imgDropdown":
+            if self.image is not None:
+                self.reset()
+            if self.gui.mLayer.currentLayer() is not None:
+                input = self.gui.mLayer.currentLayer()
+                bsq_input = input.source()
+            elif len(self.gui.mLayer.currentText()) > 0:
+                bsq_input = self.gui.mLayer.currentText()
             else:
-                self.gui.lblInputImage.setText(bsq_input)
-                self.gui.lblNodatImage.setText(str(meta[0]))
-                self.gui.txtNodatOutput.setText(str(meta[0]))
-                self.nodat[0] = meta[0]
+                self.reset()
+                return
+            self.image = bsq_input
+            self.image_read()
 
         elif mode == "output":
-            result = QFileDialog.getSaveFileName(caption='Specify Output File', filter="ENVI Image (*.bsq)")[0]
+            result = QFileDialog.getSaveFileName(caption='Specify Output File',
+                                                 filter="ENVI Image (*.bsq)")[0]
             self.out_path = result
             self.out_path = self.out_path.replace("\\", "/")
             self.gui.txtOutputImage.setText(result)
+
+    def image_read(self):
+        try:
+            meta = self.get_image_meta(image=self.image, image_type="Input Image")
+            self.dtype = meta[4]
+            if self.dtype < 4 or self.dtype > 9:
+                QMessageBox.information(self.gui, "Integer Input",
+                                        "Integer input image:\nTool requires float [0.0-1.0]:\nDivision factor set to 10000")
+                self.division_factor = 10000
+                self.gui.spinDivisionFactor.setText(str(self.division_factor))
+        except ValueError as e:
+            self.abort(message=str(e))
+            return
+        if None in meta:
+            self.image = None
+            self.nodat[0] = None
+            return
+        else:
+            self.gui.lblNodatImage.setText(str(meta[0]))
+            self.gui.txtNodatOutput.setText(str(meta[0]))
+            self.nodat[0] = meta[0]
 
 
     def get_image_meta(self, image, image_type):
@@ -219,8 +245,9 @@ class ASI:
                 return self.main.nodat_widget.nodat, nbands, nrows, ncols, dtype
 
     def reset(self):
-        self.max_ndvi_pos = None 
+        self.max_ndvi_pos = None
         self.init_plot()
+        self.image = None
 
     def limits_changed(self, textfeld):
         if self.image is None:
@@ -1053,6 +1080,7 @@ class ASI_core:
         cr_absorb_area[cr_absorb_area <= 0] = 0
         res3band[0, :, :] = cr_absorb_area[0, :, :] / max_[0]
         res3band[1, :, :] = cr_absorb_area[1, :, :] / max_[1]
+        #res3band[2, :, :] = cr_absorb_area[2, :, :] / max_[2]
         res3band[2, :, :] = absorb_area[2, :, :] / max_hull_2[2]
         res3band[res3band < 0] = 0
         res3band[~np.isfinite(res3band)] = self.nodat[1]
@@ -1087,7 +1115,7 @@ class ASI_core:
 
         NDVI_closest = [self.find_closest_wl(lambd=827), self.find_closest_wl(lambd=668)]
         self.NDVI_bands = [i for i, x in enumerate(self.wl) if x in NDVI_closest]
-        print(self.NDVI_bands)
+        in_raster = in_raster / self.division_factor
 
         for row in range(np.shape(in_raster)[1]):
             for col in range(np.shape(in_raster)[2]):
@@ -1095,19 +1123,24 @@ class ASI_core:
                     R827 = in_raster[self.NDVI_bands[1], row, col]
                     R668 = in_raster[self.NDVI_bands[0], row, col]
                     if R827 or R668 > 0.0:
-                        try:
-                            NDVI = float(R827 - R668) / float(R827 + R668)
-                        except ZeroDivisionError:
-                            NDVI = 0
+                        if R827 > 0.4:
+                            try:
+                                NDVI = float(R827 - R668) / float(R827 + R668)
+                                if NDVI > 0.85:
+                                    self.NDVI = NDVI
+                                    self.row = row
+                                    self.col = col
+                                    self.ndvi_spec = in_raster[:, row, col]
+                                    break
+                            except ZeroDivisionError:
+                                continue
+                                # NDVI = 0
+                        else:
+                            continue
                     else:
                         continue
                     self.prgbar_process(pixel_no=row * self.ncols + col)
-                    if NDVI > 0.85 and NDVI < 0.9:
-                        self.NDVI = NDVI
-                        self.row = row
-                        self.col = col
-                        self.ndvi_spec = in_raster[:, row, col]
-                        break
+
                 else:
                     continue
             else:
@@ -1153,10 +1186,13 @@ class Nodat:
         if self.gui.txtNodat.text() == "":
             QMessageBox.critical(self.gui, "No Data", "A no data value must be supplied for this image!")
             return
+        if self.gui.txtNodat.text() == "NaN":
+            nodat = np.nan
         else:
             try:
                 nodat = int(self.gui.txtNodat.text())
             except:
+
                 QMessageBox.critical(self.gui, "No number", "'%s' is not a valid number" % self.gui.txtNodat.text())
                 self.gui.txtNodat.setText("")
                 return

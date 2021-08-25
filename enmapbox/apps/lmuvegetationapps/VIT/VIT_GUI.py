@@ -4,8 +4,12 @@
 
 import sys
 import os
+
+from qgis._gui import QgsMapLayerComboBox
+from qgis._core import QgsMapLayerProxyModel
+
 from qgis.PyQt.QtWidgets import *
-from osgeo import gdal
+from hubflow.core import *
 import lmuvegetationapps.VIT.VIT_core
 from lmuvegetationapps import APP_DIR
 from enmapbox.gui.utils import loadUi
@@ -16,9 +20,13 @@ pathUI_prgbar = os.path.join(APP_DIR, 'Resources/UserInterfaces/ProgressBar.ui')
 
 
 class VIT_GUI(QDialog):
+    mLayer: QgsMapLayerComboBox
     def __init__(self, parent=None):
+
         super(VIT_GUI, self).__init__(parent)
         loadUi(pathUI_vit, self)
+
+        self.mLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
 class NodatGUI(QDialog):
     def __init__(self, parent=None):
@@ -52,7 +60,7 @@ class VIT:
         self.initial_values()
 
     def initial_values(self):
-        self.in_file, self.outFileName, self.outExtension, self.outDir = None, None, None, None
+        self.image, self.outFileName, self.outExtension, self.outDir = None, None, None, None
         self.interpolation_type = 1  # Interpolation type: 1: NN, 2: linear, 3: IDW
         self.idw_exp = 2  # exponent of IDW interpolation
         self.out_single = 1  # 1: output to single file; else: output to individual files
@@ -64,13 +72,16 @@ class VIT:
         self.flIndices = [-1] * 4
         self.nodat = [-999, -999]  # nodat[0] = in, nodat[1] = out
         self.division_factor = 1.0
+        self.addItem = []
+        self.gui.mLayer.setLayer(None)
 
     def connections(self):
         self.gui.cmdSelectAll.clicked.connect(lambda: self.check(bool_check=True))
         self.gui.cmdDeselectAll.clicked.connect(lambda: self.check(bool_check=False))
         self.gui.cmdOK.clicked.connect(lambda: self.run_vit())
-        self.gui.cmdInput.clicked.connect(lambda: self.open_image(io="in"))
-        self.gui.cmdOutput.clicked.connect(lambda: self.open_image(io="out"))
+        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="imgSelect"))
+        self.gui.mLayer.layerChanged.connect(lambda: self.open_file(mode="imgDropdown"))
+        self.gui.cmdOutputImage.clicked.connect(lambda: self.open_file(mode="output"))
         self.gui.cmdCancel.clicked.connect(lambda: self.exit_gui())
 
         self.gui.radNN.toggled.connect(lambda: self.toggle_interpol())
@@ -179,73 +190,101 @@ class VIT:
         else:
             self.out_single = 0
 
-    def open_image(self, io):
-        # Handles the "Open File Dialog" for defining input and output of the tool
-        if io == "in":
-            in_file = str(QFileDialog.getOpenFileName(caption='Select Input Image File')[0])
-            if not in_file:
-                return  # cancel button is hit
-
-            dataset = gdal.Open(in_file)
-            if dataset is None:
-                QMessageBox.critical(self.gui, "error",
-                                     'Image could not be read. Please make sure it is a valid ENVI image')
+    def open_file(self, mode):
+        if mode == "imgSelect":
+            if self.image is not None:
+                self.image = None
+            bsq_input = QFileDialog.getOpenFileName(caption='Select Input Image', filter="ENVI Image (*.bsq)")[0]
+            if not bsq_input:
                 return
+            self.addItem.append(bsq_input)
+            self.gui.mLayer.setAdditionalItems(self.addItem)
+            self.gui.mLayer.setCurrentText(bsq_input)
 
-            try:
-                # get wavelengths from input file
-                wavelengths = "".join(dataset.GetMetadataItem('wavelength', 'ENVI').split())
-                wavelengths = wavelengths.replace("{", "")
-                wavelengths = wavelengths.replace("}", "")
-                wavelengths = wavelengths.split(",")
-            except (ValueError, AttributeError):
-                QMessageBox.critical(self.gui, "Error", 'Wavelengths could not be read from header file')
-                return
+            self.image = bsq_input
+            self.image_read()
 
-            # find wavelength unit and set conversion if necessary
-            if dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['nanometers', 'nm', 'nanometer']:
-                wave_convert = 1
-                self.wunit = u'nm'
-            elif dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['micrometers', 'µm', 'micrometer']:
-                wave_convert = 1000
-                self.wunit = u"\u03bcm"
+        elif mode == "imgDropdown":
+            if self.image is not None:
+                self.image = None
+            if self.gui.mLayer.currentLayer() is not None:
+                input = self.gui.mLayer.currentLayer()
+                bsq_input = input.source()
+            elif len(self.gui.mLayer.currentText()) > 0:
+                bsq_input = self.gui.mLayer.currentText()
             else:
-                QMessageBox.critical(self.gui, "Error", 'No wavelength units supplied in header file')
+                self.image = None
                 return
+            self.image = bsq_input
+            self.image_read()
 
-            self.wl = [float(item) * wave_convert for item in wavelengths]  # valid wavelengths of input dataset
-
-            try:
-                # get nodata-Value
-                nodata = int("".join(dataset.GetMetadataItem('data_ignore_value', 'ENVI').split()))
-                self.nodat[0] = nodata
-            except:  # open the nodata-dialog if nodata is not supplied
-                self.main.nodat_widget.init(image=in_file)
-                self.main.nodat_widget.gui.setModal(True)  # parent window is blocked
-                self.main.nodat_widget.gui.exec_()  # exec instead of "show" to stop python from processing further code
-
-            self.in_file = in_file
-            self.gui.lblInputImage.setText(self.in_file)
-            self.gui.lblNodatImage.setText(str(self.nodat[0]))
-
-        elif io == "out":
+        elif mode == "output":
             out_file = QFileDialog.getSaveFileName(caption='Select Output File', filter="ENVI Image (*.bsq)")[0]
             if not out_file:
                 return
-            self.gui.txtOutput.setText(out_file)
+            self.gui.txtOutputImage.setText(out_file)
             try:
                 _, self.outExtension = os.path.splitext(out_file)
                 self.outFileName = os.path.basename(out_file)
             except:
                 self.outExtension = '.bsq'
                 self.outFileName = os.path.basename(out_file)
+                print(self.outFileName)
             self.outDir = os.path.dirname(out_file) + "/"  # outDir ends with / so that a filename can be string-added
+
+    def image_read(self):
+        try:
+            meta = self.get_image_meta(image=self.image, image_type="Input Image")
+            self.dtype = meta[4]
+            if self.dtype < 4 or self.dtype > 9:
+                QMessageBox.information(self.gui, "Integer Input",
+                                        "Integer input image:\nTool requires float [0.0-1.0]:\nDivision factor set to 10000")
+                self.division_factor = 10000
+                self.gui.txtDivisionFactor.setText(str(self.division_factor))
+        except ValueError as e:
+            self.abort(message=str(e))
+            return
+        if None in meta:
+            self.image = None
+            self.nodat[0] = None
+            return
+        else:
+            self.gui.lblNodatImage.setText(str(meta[0]))
+            self.gui.txtNodatOutput.setText(str(meta[0]))
+            self.nodat[0] = meta[0]
+
+
+    def get_image_meta(self, image, image_type):
+        dataset = openRasterDataset(image)
+        if dataset is None:
+            raise ValueError(
+                '%s could not be read. Please make sure it is a valid ENVI image' % image_type)
+        else:
+            metadict = dataset.metadataDict()
+
+            nrows = int(metadict['ENVI']['lines'])
+            ncols = int(metadict['ENVI']['samples'])
+            nbands = int(metadict['ENVI']['bands'])
+            dtype = int(metadict['ENVI']['data type'])
+            if nbands < 2:
+                raise ValueError("Input is not a multi-band image")
+            try:
+                nodata = int(metadict['ENVI']['data ignore value'])
+                return nodata, nbands, nrows, ncols, dtype
+            except:
+                self.main.nodat_widget.init(image_type=image_type, image=image)
+                self.main.nodat_widget.gui.setModal(True)  # parent window is blocked
+                self.main.nodat_widget.gui.exec_()  # unlike .show(), .exec_() waits with execution of the code, until the app is closed
+                return self.main.nodat_widget.nodat, nbands, nrows, ncols, dtype
 
     def exit_gui(self):
         self.gui.close()  # I wonder what this does...
 
+    def abort(self, message):
+        QMessageBox.critical(self.gui, "Error", message)
+
     def run_vit(self):
-        if self.in_file is None:
+        if self.image is None:
             QMessageBox.critical(self.gui, "No image selected", "Please select an image to continue!")
             return
         elif self.outFileName is None:
@@ -268,19 +307,29 @@ class VIT:
                                  self.gui.txtDivisionFactor.text())
             return
 
+        # initialize VIT
+        vit = lmuvegetationapps.VIT.VIT_core.VIT(interpolation_type=self.interpolation_type, idw_exp=self.idw_exp,
+                                                 nodat=self.nodat, division_factor=self.division_factor)
+
+        # check and pass all indices that were selected
+        vit.toggle_indices(StructIndices=self.structIndices, ChlIndices=self.chlIndices, CarIndices=self.carIndices,
+                           WatIndices=self.watIndices, DmIndices=self.dmIndices, FlIndices=self.flIndices)
+
+        if not vit.n_indices > 0:
+            QMessageBox.critical(self.gui, "No index selected", "Please select at least one index to continue!")
+            return
+
         # show progressbar - window
         self.main.prg_widget.gui.lblCaption_l.setText("Vegetation Indices Toolbox")
         self.main.prg_widget.gui.lblCaption_r.setText("Reading Input Image...this may take several minutes")
         self.main.prg_widget.gui.prgBar.setValue(0)
         self.main.prg_widget.gui.setModal(True)
         self.main.prg_widget.gui.show()
+        self.main.prg_widget.gui.allow_cancel = True  # The window may be cancelled
         self.main.qgis_app.processEvents()
 
         try:
-            # initialize VIT
-            vit = lmuvegetationapps.VIT.VIT_core.VIT(interpolation_type=self.interpolation_type, idw_exp=self.idw_exp,
-                                                     nodat=self.nodat, division_factor=self.division_factor)
-            image_in_matrix = vit.read_image(self.in_file)  # read the image
+            image_in_matrix = vit.read_image(self.image)  # read the image
         except ValueError as e:
             QMessageBox.critical(self.gui, 'error', str(e))
             self.main.prg_widget.gui.allow_cancel = True  # The window may be cancelled
@@ -291,16 +340,10 @@ class VIT:
             QMessageBox.critical(self.gui, "Image unreadable", "The image file could not be read.")
             return
 
+        vit.prepare_indices()
+
         self.main.prg_widget.gui.lblCaption_r.setText("Preparing Indices")
         self.main.qgis_app.processEvents()
-
-        # check and pass all indices that were selected
-        vit.toggle_indices(StructIndices=self.structIndices, ChlIndices=self.chlIndices, CarIndices=self.carIndices,
-                           WatIndices=self.watIndices, DmIndices=self.dmIndices, FlIndices=self.flIndices)
-
-        if not vit.n_indices > 0:
-            QMessageBox.critical(self.gui, "No index selected", "Please select at least one index to continue!")
-            return
 
         try:
             index_out_matrix = vit.calculate_VIT(prg_widget=self.main.prg_widget,
@@ -314,18 +357,18 @@ class VIT:
         self.main.prg_widget.gui.lblCaption_r.setText("Writing Output-File")
         self.main.qgis_app.processEvents()
 
-        try:
-            vit.write_out(index_out_matrix=index_out_matrix, out_dir=self.outDir, out_filename=self.outFileName,
-                          out_extension=self.outExtension, out_single=self.out_single)
-        except:
-            QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
-            self.main.prg_widget.gui.allow_cancel = True
-            return
+        # try:
+        vit.write_out(index_out_matrix=index_out_matrix, out_dir=self.outDir, out_filename=self.outFileName,
+                      out_single=self.out_single)
+        # except:
+        #     QMessageBox.critical(self.gui, 'error', "An unspecific error occured while trying to write image data")
+        #     self.main.prg_widget.gui.allow_cancel = True
+        #     return
 
         self.main.prg_widget.gui.allow_cancel = True
         self.main.prg_widget.gui.close()
         QMessageBox.information(self.gui, "Finish", "Calculation of indices finished")
-        self.gui.close()
+        # self.gui.close()
 
 
 # GUI-specifications for NoData-Dialog
@@ -336,8 +379,8 @@ class Nodat:
         self.connections()
         self.image = None
 
-    def init(self, image):
-        topstring = 'Input-Image @ %s' % image
+    def init(self, image_type, image):
+        topstring = '%s @ %s' % (image_type, image)
         self.gui.lblSource.setText(topstring)
         self.gui.txtNodat.setText("")
         self.image = image
@@ -359,7 +402,7 @@ class Nodat:
                                      "'%s' is not a valid number" % self.gui.txtNodat.text())
                 self.gui.txtNodat.setText("")
                 return
-        self.main.vit.nodat[0] = nodat
+        self.nodat = nodat
         self.gui.close()
 
 

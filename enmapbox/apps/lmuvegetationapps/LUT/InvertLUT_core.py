@@ -203,8 +203,8 @@ class RTMInversion:
         elif noise_type == 3:  # inverse multiplicative noise
             ref_noisy = 1 - (1 - ref_array) * (1 + np.random.normal(loc=0.0, scale=sigma))
 
-        else:
-            return None
+        else:  # do nothing
+            ref_noisy = ref_array
 
         # replace np.nans and negative values which may occur by adding noise to the data
         ref_noisy[np.isnan(ref_noisy)] = 0
