@@ -2262,12 +2262,12 @@ class EnMAPBox(QgisInterface, QObject):
         if not isinstance(algorithm, QgsProcessingAlgorithm):
             raise Exception('Algorithm {} not found in QGIS Processing Registry'.format(algorithmName))
 
-        dlg = alg.createCustomParametersWidget(parent)
+        dlg = algorithm.createCustomParametersWidget(parent)
         if not dlg:
             if wrapper is None:
-                dlg = AlgorithmDialog(alg.create(), parent=parent)
+                dlg = AlgorithmDialog(algorithm.create(), parent=parent)
             else:
-                dlg = wrapper(alg.create(), parent=parent)
+                dlg = wrapper(algorithm.create(), parent=parent)
         else:
             assert wrapper is None  # todo: dialog wrapper for custom parameter widget
         dlg.setModal(modal)

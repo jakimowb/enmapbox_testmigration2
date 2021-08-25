@@ -77,11 +77,11 @@ class ClassifierDump(object):
 @typechecked
 @dataclass
 class RegressionDump(object):
-    targets: List[str]
-    features: List[str]
-    X: SampleX
-    y: SampleY
-    regressor: Optional[Regressor] = None
+    targets: Optional[List[str]]
+    features: Optional[List[str]]
+    X: Optional[SampleX]
+    y: Optional[SampleY]
+    regressor: Optional[Union[Regressor, Pipeline]] = None
 
     def withRegressor(self, regressor):
         asdict = self.__dict__.copy()

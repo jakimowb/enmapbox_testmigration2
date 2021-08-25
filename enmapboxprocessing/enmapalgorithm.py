@@ -15,7 +15,8 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterExtent, QgsCoordinateReferenceSystem, QgsRectangle,
                         QgsProcessingParameterFileDestination, QgsProcessingParameterFile, QgsProcessingParameterRange,
                         QgsProcessingParameterCrs, QgsProcessingParameterVectorDestination, QgsProcessing,
-                        QgsProcessingUtils, QgsProcessingParameterMultipleLayers, QgsProcessingException)
+                        QgsProcessingUtils, QgsProcessingParameterMultipleLayers, QgsProcessingException,
+                        QgsProcessingParameterFolderDestination)
 
 import processing
 from enmapboxprocessing.glossary import injectGlossaryLinks
@@ -42,11 +43,12 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     Byte, Int16, UInt16, Int32, UInt32, Float32, Float64 = range(len(O_DATA_TYPE))
     PickleFileFilter = 'Pickle (*.pkl)'
     PickleFileExtension = 'pkl'
-    PickleFileDestination = 'Output destination pickle file.'
-    RasterFileDestination = 'Output raster file destination.'
-    VectorFileDestination = 'Output vector file destination.'
+    PickleFileDestination = 'Destination pickle file.'
+    RasterFileDestination = 'Raster file destination.'
+    VectorFileDestination = 'Vector file destination.'
     ReportFileFilter = 'HTML (*.html)'
     ReportFileDestination = 'Output report file destination.'
+    FolderDestination = 'Folder destination.'
 
     VrtFormat = 'VRT'
     DefaultVrtCreationOptions = ''.split()
@@ -179,6 +181,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsString(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> Optional[str]:
         string = super().parameterAsString(parameters, name, context)
         if string == '':
+            if isinstance(parameters.get(name), str):  # workaround a QGIS bug, where super().parameterAsString would return an empty string instead of the actual string
+                return parameters.get(name)
             return None
         return string
 
@@ -490,6 +494,17 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFileDestination(
                 name, description, fileFilter, defaultValue, optional, createByDefault
+            )
+        )
+        self.flagParameterAsAdvanced(name, advanced)
+
+    def addParameterFolderDestination(
+            self, name: str, description: str, defaultValue=None, optional=False, createByDefault=True,
+            advanced=False
+    ):
+        self.addParameter(
+            QgsProcessingParameterFolderDestination(
+                name, description, defaultValue, optional, createByDefault
             )
         )
         self.flagParameterAsAdvanced(name, advanced)
