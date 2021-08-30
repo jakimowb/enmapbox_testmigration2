@@ -39,10 +39,11 @@ ID = 'enmapbox'
 NAME = 'EnMAP-Box'
 LONG_NAME = 'EnMAP-Box (build {})'.format(__version__)
 
-class EnMAPBoxProcessingProviderKeys(object):
 
+class EnMAPBoxProcessingProviderKeys(object):
     ACTIVATE = 'ENMAPBOX_ACTIVATE'
     OUTPUTFOLDER = 'ENMAPBOX_OUTPUTFOLDER'
+
 
 class EnMAPBoxProcessingProvider(QgsProcessingProvider):
     """
@@ -56,17 +57,18 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         self.mAlgorithms = []
         self.mSettingsPrefix = self.id().upper().replace(' ', '_')
 
-        #try:
+        # try:
         #    import hubflow.signals
         #    hubflow.signals.sigFileCreated.connect(self.onHubFlowFileCreated)
-        #except Exception as ex:
+        # except Exception as ex:
         #    messageLog(ex)
 
     def load(self):
         with QgsRuntimeProfiler.profile('OTB Provider'):
             group = self.name()
             ProcessingConfig.settingIcons[group] = self.icon()
-            ProcessingConfig.addSetting(Setting(group, EnMAPBoxProcessingProviderKeys.ACTIVATE, self.tr('Activate'), True))
+            ProcessingConfig.addSetting(
+                Setting(group, EnMAPBoxProcessingProviderKeys.ACTIVATE, self.tr('Activate'), True))
             ProcessingConfig.addSetting(Setting(group, EnMAPBoxProcessingProviderKeys.OUTPUTFOLDER,
                                                 self.tr("EnMAP-Box output folder"),
                                                 (pathlib.Path('~').expanduser() / 'enmapboxoutputs').as_posix(),
