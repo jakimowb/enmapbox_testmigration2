@@ -26,8 +26,8 @@ class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._CRS, 'Target coordinate reference system.'),
-            (self._EXTENT, 'Target extent.'),
+            (self._CRS, 'Destination coordinate reference system.'),
+            (self._EXTENT, 'Destination extent.'),
             (self._UNIT, 'Units to use when defining target raster size/resolution.'),
             (self._WIDTH, f'Target width if size units is "Pixels", '
                           f'or horizontal resolution if size units is "Georeferenced units".'),

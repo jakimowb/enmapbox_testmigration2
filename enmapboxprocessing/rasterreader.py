@@ -65,13 +65,16 @@ class RasterReader(object):
     def extent(self) -> QgsRectangle:
         return self.provider.extent()
 
-    def noDataValue(self, bandNo: int = None):
+    def noDataValue(self, bandNo: int = None) -> Optional[float]:
         if bandNo is None:
             bandNo = 1
-        return self.gdalDataset.GetRasterBand(bandNo).GetNoDataValue()
+        return self.gdalBand(bandNo).GetNoDataValue()
 
-    def bandName(self, bandNo: int):
-        return self.gdalBand(bandNo).GetDescription()
+    def offset(self, bandNo) -> Optional[float]:
+        return self.gdalBand(bandNo).GetOffset()
+
+    def scale(self, bandNo) -> Optional[float]:
+        return self.gdalBand(bandNo).GetScale()
 
     def setUserNoDataValue(self, bandNo: int, noData: Iterable[QgsRasterRange]):
         return self.provider.setUserNoDataValue(bandNo, noData)
@@ -123,15 +126,31 @@ class RasterReader(object):
             height = min(blockSizeY, int(round((blockExtent.yMaximum() - blockExtent.yMinimum()) / pixelSizeY)))
             yield RasterBlockInfo(blockExtent, xOffset, yOffset, width, height)
 
-    def arrayFromBlock(self, block: RasterBlockInfo, bandList: List[int] = None, feedback: QgsRasterBlockFeedback = None):
-        return self.arrayFromBoundingBoxAndSize(block.extent, block.width, block.height, bandList, feedback)
+    def arrayFromBlock(
+            self, block: RasterBlockInfo, bandList: List[int] = None, overlap: int = None,
+            feedback: QgsRasterBlockFeedback = None
+    ):
+        return self.arrayFromBoundingBoxAndSize(
+            block.extent, block.width, block.height, bandList, overlap, feedback
+        )
 
     def arrayFromBoundingBoxAndSize(
             self, boundingBox: QgsRectangle, width: int, height: int, bandList: List[int] = None,
-            feedback: QgsRasterBlockFeedback = None
+            overlap: int = None, feedback: QgsRasterBlockFeedback = None
     ) -> Array3d:
         if bandList is None:
             bandList = range(1, self.provider.bandCount() + 1)
+        if overlap is not None:
+            xres = boundingBox.width() / width
+            yres = boundingBox.height() / height
+            boundingBox = QgsRectangle(
+                boundingBox.xMinimum() - overlap * xres,
+                boundingBox.yMinimum() - overlap * yres,
+                boundingBox.xMaximum() + overlap * xres,
+                boundingBox.yMaximum() + overlap * yres
+            )
+            width = width + 2 * overlap
+            height = height + 2 * overlap
         arrays = list()
         for bandNo in bandList:
             assert 0 < bandNo <= self.bandCount()
@@ -141,22 +160,25 @@ class RasterReader(object):
         return arrays
 
     def arrayFromPixelOffsetAndSize(
-            self, xOffset: int, yOffset: int, width: int, height: int, bandList: List[int] = None,
+            self, xOffset: int, yOffset: int, width: int, height: int, bandList: List[int] = None, overlap: int = None,
             feedback: QgsRasterBlockFeedback = None
     ) -> Array3d:
-        p1 = QgsPointXY(
-            self.provider.transformCoordinates(QgsPoint(xOffset, yOffset), QgsRasterDataProvider.TransformImageToLayer)
-        )
-        p2 = QgsPointXY(
-            self.provider.transformCoordinates(
-                QgsPoint(xOffset + width, yOffset + height), QgsRasterDataProvider.TransformImageToLayer)
-        )
+        if self.crs().isValid():
+            p1 = QgsPoint(xOffset, yOffset)
+            p2 = QgsPoint(xOffset + width, yOffset + height)
+            p1 = QgsPointXY(self.provider.transformCoordinates(p1, QgsRasterDataProvider.TransformImageToLayer))
+            p2 = QgsPointXY(self.provider.transformCoordinates(p2, QgsRasterDataProvider.TransformImageToLayer))
+        else:
+            assert self.rasterUnitsPerPixel() == QSizeF(1, 1)
+            p1 = QgsPointXY(xOffset, - yOffset)
+            p2 = QgsPointXY(xOffset + width, -(yOffset + height))
         boundingBox = QgsRectangle(p1, p2)
-        return self.arrayFromBoundingBoxAndSize(boundingBox, width, height, bandList, feedback)
+        return self.arrayFromBoundingBoxAndSize(boundingBox, width, height, bandList, overlap, feedback)
 
     def array(
             self, xOffset: int = None, yOffset: int = None, width: int = None, height: int = None,
-            bandList: List[int] = None, boundingBox: QgsRectangle = None, feedback: QgsRasterBlockFeedback = None
+            bandList: List[int] = None, boundingBox: QgsRectangle = None, overlap: int = None,
+            feedback: QgsRasterBlockFeedback = None
     ) -> Array3d:
 
         if boundingBox is None:
@@ -166,7 +188,7 @@ class RasterReader(object):
             if yOffset is None and height is None:
                 yOffset = 0
                 height = self.provider.ySize()
-            array = self.arrayFromPixelOffsetAndSize(xOffset, yOffset, width, height, bandList, feedback)
+            array = self.arrayFromPixelOffsetAndSize(xOffset, yOffset, width, height, bandList, overlap, feedback)
         else:
             rasterUnitsPerPixelX = self.provider.extent().width() / self.provider.xSize()
             rasterUnitsPerPixelY = self.provider.extent().height() / self.provider.ySize()
@@ -174,7 +196,7 @@ class RasterReader(object):
                 width = int(round(boundingBox.width() / rasterUnitsPerPixelX))
             if height is None:
                 height = int(round(boundingBox.height() / rasterUnitsPerPixelY))
-            array = self.arrayFromBoundingBoxAndSize(boundingBox, width, height, bandList, feedback)
+            array = self.arrayFromBoundingBoxAndSize(boundingBox, width, height, bandList, overlap, feedback)
         return array
 
     def maskArray(
@@ -236,6 +258,64 @@ class RasterReader(object):
     def metadata(self, bandNo: int = None) -> Metadata:
         domains = self._gdalObject(bandNo).GetMetadataDomainList()
         return {domain: self.metadataDomain(domain, bandNo) for domain in domains}
+
+    def isSpectralRasterLayer(self):
+        try:
+            self.wavelength(1)
+        except:
+            return False
+        return True
+
+    def wavelength(self, bandNo: int) -> Optional[float]:
+        """Return band center wavelength in nanometers."""
+        wavelength = self.metadataItem('wavelength', '', bandNo)
+        if wavelength is None:
+            wavelengths = self.metadataItem('wavelength', 'ENVI')
+            if wavelengths is None:
+                return None
+            else:
+                wavelength = wavelengths[bandNo - 1]
+                wavelength_units = self.metadataItem('wavelength_units', 'ENVI')
+        else:
+            wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
+        if wavelength_units.lower() in ['micrometers', 'um']:
+            scale = 1000.
+        elif wavelength_units.lower() in ['nanometers', 'nm']:
+            scale = 1.
+        else:
+            raise ValueError(f'unsupported wavelength units: {wavelength_units}')
+        return float(wavelength) * scale
+
+    def fwhm(self, bandNo: int) -> Optional[float]:
+        """Return band FWHM in nanometers."""
+        fwhm = self.metadataItem('fwhm', '', bandNo)
+        if fwhm is None:
+            fwhms = self.metadataItem('fwhm', 'ENVI')
+            if fwhms is None:
+                return None
+            else:
+                fwhm = fwhms[bandNo - 1]
+                wavelength_units = self.metadataItem('wavelength_units', 'ENVI')
+        else:
+            wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
+        if wavelength_units.lower() in ['micrometers', 'um']:
+            scale = 1000.
+        elif wavelength_units.lower() in ['nanometers', 'nm']:
+            scale = 1.
+        else:
+            raise ValueError(f'unsupported wavelength units: {wavelength_units}')
+        return float(fwhm) * scale
+
+    def badBandMultiplier(self, bandNo: int) -> Optional[int]:
+        """Return bad band multiplier, typically 0 for bad bands and 1 for good bands."""
+        badBandMultiplier = self.metadataItem('bad band multiplier', '', bandNo)
+        if badBandMultiplier is None:
+            bbl = self.metadataItem('bbl', 'ENVI')
+            if bbl is None:
+                return 1
+            else:
+                badBandMultiplier = bbl[bandNo - 1]
+        return int(badBandMultiplier)
 
     def lineMemoryUsage(self, nBands: int = None, dataTypeSize: int = None) -> int:
         if nBands is None:

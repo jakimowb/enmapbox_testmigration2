@@ -48,7 +48,7 @@ In the toolbar you can find the most common tasks. See table below for informati
      - Zoom to the native resolution
    * - |mActionZoomFullExtent|
      - Zoom to full extent
-     - Changes the zoom level so that the image is displayed in full extent
+     - Changes the zoom level of the map you click to show the full extent of all layers visualized in it
    * - |select_location|
      - Identify
      - Identify loactions on the map where you click. Use the three options on the right to specify what to identify
@@ -200,7 +200,7 @@ created links by clicking |link_open|.
 
 .. raw:: html
 
-   <div><video width="550px" controls><source src="../../_static/maplinking.webm" type="video/webm">Your browser does not support HTML5 video.</video>
+   <div><video width="90%" controls><source src="../../_static/videos/maplinking.webm" type="video/webm">Your browser does not support HTML5 video.</video>
    <p><i>Demonstration of linking two Map Windows</i></p></div>
 
 
@@ -217,6 +217,10 @@ Crosshair
   .. image:: ../../img/crosshair_style.png
 
 
+Spectral Library Window |viewlist_spectrumdock|
+~~~~~~~~~~~~~~~~~~~~~~~
+
+See section on :ref:`Spectral Libaries <spectral_libraries>`
 
 Text Window |viewlist_textview|
 ~~~~~~~~~~~

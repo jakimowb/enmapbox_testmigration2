@@ -3,7 +3,8 @@ from typing import List, Union, Optional
 from PyQt5.QtGui import QColor
 from osgeo import gdal
 
-from enmapboxprocessing.typing import Array3d, Array2d, MetadataValue, MetadataDomain, Metadata, QgisDataType, Category
+from enmapboxprocessing.typing import Array3d, Array2d, MetadataValue, MetadataDomain, Metadata, QgisDataType, Category, \
+    Number
 from typeguard import typechecked
 from qgis._core import QgsRasterDataProvider, QgsRectangle, QgsPointXY, QgsPoint, QgsRasterLayer, QgsFeedback
 
@@ -17,16 +18,17 @@ class RasterWriter(object):
         self.gdalDataset = gdalDataset
         self._source: str = self.gdalDataset.GetDescription()
 
-    def writeArray(self, array: Array3d, xOffset=0, yOffset=0, bandList: List[int] = None):
+    def writeArray(self, array: Array3d, xOffset=0, yOffset=0, bandList: List[int] = None, overlap: int = None):
         if bandList is None:
             assert len(array) == self.bandCount()
             bandList = range(1, self.bandCount() + 1)
         for bandNo, array2d in zip(bandList, array):
-            self.writeArray2d(array2d, bandNo, xOffset, yOffset)
+            self.writeArray2d(array2d, bandNo, xOffset, yOffset, overlap)
 
-    def writeArray2d(self, array: Array2d, bandNo: int, xOffset=0, yOffset=0):
-        gdalBand: gdal.Band = self.gdalDataset.GetRasterBand(bandNo)
-        gdalBand.WriteArray(array, xOffset, yOffset)
+    def writeArray2d(self, array: Array2d, bandNo: int, xOffset=0, yOffset=0, overlap: int = None):
+        if overlap is not None:
+            array = array[overlap:-overlap, overlap:-overlap]
+        self.gdalBand(bandNo).WriteArray(array, xOffset, yOffset)
 
     def fill(self, value: float, bandNo: int = None):
         if bandNo is None:
@@ -41,9 +43,33 @@ class RasterWriter(object):
             return
         if bandNo is None:
             for bandNo in range(1, self.bandCount() + 1):
-                self.gdalDataset.GetRasterBand(bandNo).SetNoDataValue(noDataValue)
+                self.gdalBand(bandNo).SetNoDataValue(noDataValue)
         else:
-            self.gdalDataset.GetRasterBand(bandNo).SetNoDataValue(noDataValue)
+            self.gdalBand(bandNo).SetNoDataValue(noDataValue)
+
+    def setOffset(self, offset: float = None, bandNo: int = None, overwrite=False):
+        if offset is None:
+            return
+        if bandNo is None:
+            for bandNo in range(1, self.bandCount() + 1):
+                self.setOffset(offset, bandNo, overwrite)
+        else:
+            if not overwrite:
+                if self.gdalBand(bandNo).GetOffset() is not None:
+                    offset += self.gdalBand(bandNo).GetOffset()
+            self.gdalBand(bandNo).SetOffset(offset)
+
+    def setScale(self, scale: float = None, bandNo: int = None, overwrite=False):
+        if scale is None:
+            return
+        if bandNo is None:
+            for bandNo in range(1, self.bandCount() + 1):
+                self.setScale(scale, bandNo, overwrite)
+        else:
+            if not overwrite:
+                if self.gdalBand(bandNo).GetScale() is not None:
+                    scale *= self.gdalBand(bandNo).GetScale()
+            self.gdalBand(bandNo).SetScale(scale)
 
     def setMetadataItem(self, key: str, value: MetadataValue, domain: str = '', bandNo: int = None):
         if value is None:
@@ -80,6 +106,23 @@ class RasterWriter(object):
             colorTable.SetColorEntry(i, (color.red(), color.green(), color.blue()))
         gdalBand.SetColorTable(colorTable)
 
+    def setWavelength(self, wavelength: Optional[Number], bandNo: int):
+        if bandNo is None:
+            return
+        self.setMetadataItem('wavelength', wavelength, '', bandNo)
+        self.setMetadataItem('wavelength_units', 'nanometers', '', bandNo)
+
+    def setFwhm(self, fwhm: Optional[Number], bandNo: int):
+        if bandNo is None:
+            return
+        self.setMetadataItem('fwhm', fwhm, '', bandNo)
+        self.setMetadataItem('wavelength_units', 'nanometers', '', bandNo)
+
+    def setBadBandMultiplier(self, badBandMultiplier: Optional[int], bandNo: int):
+        if bandNo is None:
+            return
+        self.setMetadataItem('bad_band_multiplier', badBandMultiplier, '', bandNo)
+
     def bandCount(self) -> int:
         return self.gdalDataset.RasterCount
 
@@ -89,8 +132,21 @@ class RasterWriter(object):
     def dataType(self, bandNo: int = None) -> QgisDataType:
         if bandNo is None:
             bandNo = 1
-        dataType = self.gdalDataset.GetRasterBand(bandNo).DataType
-        return Utils.gdalDataTypeToQgisDataType(dataType)
+        gdalDataType = self.gdalDataset.GetRasterBand(bandNo).DataType
+        return Utils.gdalDataTypeToQgisDataType(gdalDataType)
+
+    def dataTypeSize(self, bandNo: int = None) -> int:
+        if bandNo is None:
+            bandNo = 1
+        qgisDataType = self.dataType(bandNo)
+        dtype = Utils.qgisDataTypeToNumpyDataType(qgisDataType)
+        return dtype().itemsize
+
+    def width(self) -> int:
+        return self.gdalDataset.RasterXSize
+
+    def height(self) -> int:
+        return self.gdalDataset.RasterYSize
 
     def _gdalObject(self, bandNo: int = None) -> Union[gdal.Dataset, gdal.Band]:
         if bandNo is None:

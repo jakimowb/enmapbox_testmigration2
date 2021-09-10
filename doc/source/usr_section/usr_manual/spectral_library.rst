@@ -1,15 +1,17 @@
 .. include:: /icon_links.rst
 
+.. _spectral_libraries:
+
 Spectral Libraries
 ==================
 A *Spectral Library* is a collection of profiles with arbitrary profile-wise data and metadata,
 stored as pickled dictionaries inside (multiple) binary fields. Dictionary items are:
 
-  * x: list of x values (e.g. wavelength)
-  * y: list of y values (e.g. surface reflectance)
-  * xUnit: x value units (e.g. nanometers)
-  * yUnit: y value units (e.g. ???)
-  * bbl: the bad bands list
+* x: list of x values (e.g. wavelength)
+* y: list of y values (e.g. surface reflectance)
+* xUnit: x value units (e.g. nanometers)
+* yUnit: y value units (e.g. ???)
+* bbl: the bad bands list
 
 
 Spectral Library Window |viewlist_spectrumdock|
@@ -23,7 +25,7 @@ means spectra can be directly collected from an image. Furthermore, external lib
 
 * You can import and open existing libraries using the |speclib_add| :sup:`Import Spectral Library` button
 
-.. figure:: C:/Users/PC/Desktop/EnMap/SpectralLibrary.png
+.. figure:: /img/SpectralLibrary.png
    :width: 100%
 
    Spectral Library Window with several collected and labeled spectra
@@ -47,6 +49,30 @@ means spectra can be directly collected from an image. Furthermore, external lib
      - Import Spectral Library
    * - |speclib_save|
      - Save Spectral Library
+   * - |speclib_usevectorrenderer|
+     - Activate to use colors from map vector symbology
+   * - |system|
+     - Enter the Spectral Library Layer Properties
+   * - |mActionToggleEditing|
+     - Toggle editing mode
+   * - |mActionMultiEdit|
+     - Toggle multi editing mode
+   * - |mActionSaveAllEdits|
+     - Save edits
+   * - |mActionRefresh|
+     - Reload the table
+   * - |mActionNewTableRow|
+     - Add feature
+   * - |mActionDeleteSelected|
+     - Delete selected features
+   * - |mActionEditCut|
+     - Cut selected rows to clipboard
+   * - |mActionEditCopy|
+     - Copy selected rows to clipboard
+   * - |mActionEditPaste|
+     - Paste features from clipboard
+   * - |mIconExpressionSelect|
+     - Select by Expression
    * - |mActionSelectAll|
      - Selects all elements in
        the spectral library
@@ -54,42 +80,27 @@ means spectra can be directly collected from an image. Furthermore, external lib
      - Inverts the current selection
    * - |mActionDeselectAll|
      - Remove selection (deselect everything)
-   * - |mActionRefresh|
-     - Reload the table
-   * - |mActionToggleEditing|
-     - Toggle editing mode
-   * - |mActionEditCut|
-     - Cut selected rows to clipboard
-   * - |mActionEditCopy|
-     - Copy selected rows to clipboard
-   * - |mActionEditPaste|
-     - Paste features from clipboard
-   * - |mActionDeleteSelected|
-     - Delete selected features
-   * - |mActionSaveAllEdits|
-     - Save edits
+   * - |mActionSelectedToTop|
+     - Move selection to the top
+   * - |mActionFilter2|
+     - Select / filter features using form
+   * - |mActionPanToSelected|
+     - Pan map to selected rows
+   * - |mActionZoomToSelected|
+     - Zoom map to selected rows
    * - |mActionNewAttribute|
      - Add New field
    * - |mActionDeleteAttribute|
      - Delete field
-   * - |system|
-     - Enter the Spectral Library Layer Properties
+   * - |mActionConditionalFormatting|
+     - Conditional formatting
+   * - |mAction|
+     - Actions
    * - |mActionFormView|
      - Switch to form view
    * - |mActionOpenTable|
      - Switch to table view
-   * - |mActionPanToSelected|
-     - Pan map to selected rows
-   * - |mActionFilter2|
-     - Select / filter features using form
-   * - |mActionZoomToSelected|
-     - Zoom map to selected rows
-   * - |mActionConditionalFormatting|
-     - Conditional formatting
-   * - |speclib_usevectorrenderer|
-     - Activate to use colors from map vector symbology
-   * - |mActionSelectedToTop|
-     - Move selection to the top
+
 
 **Collecting spectra:**
 
@@ -140,6 +151,8 @@ means spectra can be directly collected from an image. Furthermore, external lib
 
 * Spectra can be removed by using the |mActionDeleteSelected| button.
 * Save the collected spectra with the *Save Profiles in spectral library* |speclib_save| button.
+
+.. tip:: You can inspect an individual value of a spectrum by holding the :kbd:`Alt` key and clicking some position along the spectrum
 
 **Colorize spectra by attribute:**
 
@@ -207,14 +220,14 @@ This menu manages the connection between raster sources and spectral library win
 
 Spectral Library Formats
 ~~~~~~~~~~
-The EnMAP-Box supports the ENVI standard spectral library format (.sli + .hdr file). Spectral libraries can be imported
-as single line raster using the processing algorithm :menuselection:`Auxillary --> Import Library`.
 
-.. todo:: Support for further formats will be implemented soon (e.g. import spectral library from ASD field spectrometer)
+The EnMAP-Box supports several external spectral library formats, e.g. the ENVI standard spectral library format (:file:`.sli` + :file:`.hdr`).
 
-.. screenshot von der tetslibrary im speclib viewer
+Click the |mIconCollapse| button next to |speclib_add| :sup:`Import spectral profiles` to open the import dialog:
 
-.. Auxillary -> Import Library
+.. figure:: /img/speclib_import_dialog.png
+
+   Import dialog in the spectral library window
 
 
 Labelled Spectral Library

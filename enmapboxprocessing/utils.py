@@ -1,7 +1,8 @@
 import json
 import pickle
+import re
 from os import makedirs
-from os.path import join, dirname, basename, exists
+from os.path import join, dirname, basename, exists, splitext
 from random import randint
 from typing import Tuple, Optional, Callable, List, Any, Dict
 
@@ -21,8 +22,14 @@ from typeguard import typechecked
 
 @typechecked
 class Utils(object):
+
     @staticmethod
-    def qgisDataTypeToNumpyDataType(dataType: Qgis.DataType) -> type:
+    def maximumMemoryUsage() -> int:
+        """Return maximum memory usage in bytes."""
+        return gdal.GetCacheMax()
+
+    @staticmethod
+    def qgisDataTypeToNumpyDataType(dataType: QgisDataType) -> NumpyDataType:
         if dataType == Qgis.Byte:
             return np.uint8
         elif dataType == Qgis.Float32:
@@ -41,7 +48,12 @@ class Utils(object):
             raise Exception(f'unsupported data type: {dataType}')
 
     @staticmethod
-    def qgisDataTypeToGdalDataType(dataType: Optional[Qgis.DataType]) -> Optional[int]:
+    def gdalDataTypeToNumpyDataType(dataType: GdalDataType) -> NumpyDataType:
+        qgisDataType = Utils.gdalDataTypeToQgisDataType(dataType)
+        return Utils.qgisDataTypeToNumpyDataType(qgisDataType)
+
+    @staticmethod
+    def qgisDataTypeToGdalDataType(dataType: Optional[QgisDataType]) -> Optional[int]:
         if dataType is None:
             return None
         elif dataType == Qgis.Byte:
@@ -77,6 +89,25 @@ class Utils(object):
 
     @staticmethod
     def gdalDataTypeToQgisDataType(dataType: GdalDataType) -> QgisDataType:
+        if dataType == gdal.GDT_Byte:
+            return Qgis.Byte
+        elif dataType == gdal.GDT_Float32:
+            return Qgis.Float32
+        elif dataType == gdal.GDT_Float64:
+            return Qgis.Float64
+        elif dataType == gdal.GDT_Int16:
+            return Qgis.Int16
+        elif dataType == gdal.GDT_Int32:
+            return Qgis.Int32
+        elif dataType == gdal.GDT_UInt16:
+            return Qgis.UInt16
+        elif dataType == gdal.GDT_UInt32:
+            return Qgis.UInt32
+        else:
+            raise Exception(f'unsupported data type: {dataType}')
+
+    @staticmethod
+    def gdalDataTypeToNumpyDataType(dataType: GdalDataType) -> QgisDataType:
         if dataType == gdal.GDT_Byte:
             return Qgis.Byte
         elif dataType == gdal.GDT_Float32:
@@ -171,32 +202,10 @@ class Utils(object):
         return callback
 
     @classmethod
-    def subsetEnviDomainBandwiseMetadata(
-            cls, metadata1: MetadataDomain, metadata2: MetadataDomain, bandList: List[int]
-    ):
-        keys = [
-            'band names', 'bbl', 'data_gain_values', 'data_offset_values', 'data_reflectance_gain_values',
-            'data_reflectance_offset_values', 'fwhm', 'wavelength'
-        ]
-        metadata = metadata1.copy()
-        for key in metadata:
-            if key in keys:
-                values = metadata1[key]
-                metadata[key] = [values[bandNo - 1] for bandNo in bandList]
-            if key in [
-                'bands', 'byte_order', 'data_type', 'file_type', 'header_offset', 'interleave', 'lines', 'samples'
-            ]:
-                metadata[key] = metadata2.get(key)
-        return metadata
-
-    @classmethod
-    def cleanDefaultDomainMetadata(cls, metadata: MetadataDomain):
-        metadata = {key: value for key, value in metadata.items() if not key.startswith('Band_')}
-        return metadata
-
-    @classmethod
     def categoriesFromPalettedRasterRenderer(cls, renderer: QgsPalettedRasterRenderer) -> Categories:
-        categories = [Category(int(c.value), c.label, c.color.name()) for c in renderer.classes()]
+        categories = [Category(int(c.value), c.label, c.color.name())
+                      for c in renderer.classes()
+                      if c.label != '']
         return categories
 
     @classmethod
@@ -226,7 +235,7 @@ class Utils(object):
         c: QgsRendererCategory
         categories = [Category(c.value(), c.label(), c.symbol().color().name())
                       for c in renderer.categories()
-                      if c.value() is not None]
+                      if c.label() != '']
         return categories
 
     @classmethod
@@ -375,6 +384,12 @@ class Utils(object):
         return tmpFilename
 
     @classmethod
+    def sidecarFilename(cls, filename: str, tail: str, replaceExtension=True):
+        if replaceExtension:
+            filename = splitext(filename)[0]
+        return filename + tail
+
+    @classmethod
     def pickleDump(cls, obj: Any, filename: str):
         with open(filename, 'wb') as file:
             pickle.dump(obj, file)
@@ -416,3 +431,12 @@ class Utils(object):
     def isPointGeometry(cls, wkbType: int) -> bool:
         types = [value for key, value in QgsWkbTypes.__dict__.items() if 'Point' in key]
         return wkbType in types
+
+    @classmethod
+    def makeIdentifier(cls, string):
+        s = string.lower()
+        s = s.strip()
+        s = re.sub('[\\s\\t\\n]+', '_', s)
+        s = re.sub('[^0-9a-zA-Z_]', '', s)
+        s = re.sub('^[^a-zA-Z_]+', '', s)
+        return s

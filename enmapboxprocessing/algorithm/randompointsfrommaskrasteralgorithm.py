@@ -71,7 +71,7 @@ class RandomPointsFromMaskRasterAlgorithm(EnMAPProcessingAlgorithm):
             array = reader.array(bandList=bandList)
             marray = reader.maskArray(array, bandList=bandList, defaultNoDataValue=0.)
             driver = Driver(
-                Utils.tmpFilename(filename, 'mask.tif'), self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions,
+                Utils.tmpFilename(filename, 'mask.tif'), self.GTiffFormat, self.DefaultGTiffCreationOptions,
                 feedback
             )
             writer = driver.createFromArray(marray, mask.extent(), mask.crs())

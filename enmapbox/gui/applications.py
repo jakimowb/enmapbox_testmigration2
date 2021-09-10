@@ -19,6 +19,7 @@
 
 import inspect
 import site
+import traceback
 
 from qgis.core import QgsProcessingAlgorithm
 from qgis.gui import QgisInterface
@@ -307,6 +308,7 @@ class ApplicationRegistry(QObject):
             except Exception as ex:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 tbLines = traceback.format_tb(exc_traceback)
+                traceback.print_exc()  # AR: also print the traceback to the console for better PyCharm debugging
                 tbLines = ''.join(tbLines)
                 info = '{}:{}\nTraceback:\n{}'.format(ex.__class__.__name__, ex, tbLines)
                 # return Error with Traceback

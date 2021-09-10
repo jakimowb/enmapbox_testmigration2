@@ -6,7 +6,7 @@ from qgis._core import QgsProcessingParameterDefinition, QgsProcessingDestinatio
 
 from enmapboxgeoalgorithms.algorithms import ALGORITHMS
 from enmapboxgeoalgorithms.provider import EnMAPAlgorithm as EnMAPAlgorithmV1, Help as HelpV1, Cookbook as CookbookV1
-from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm
+from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from hubdsm.processing.enmapalgorithm import EnMAPAlgorithm as EnMAPAlgorithmV2, Help as HelpV2
 
 
@@ -25,6 +25,8 @@ def generateRST():
     nalg = 0
     for alg in ALGORITHMS:
         # print(alg.displayName())
+        if Group.Experimental.name in alg.group():
+            raise RuntimeError('Remove experimental algorithms from final release!')
         if alg.group() not in groups:
             groups[alg.group()] = dict()
         groups[alg.group()][alg.displayName()] = alg
@@ -62,7 +64,7 @@ def generateRST():
    *
 '''.format(gkey, gkey, '=' * len(gkey))
         filename = join(groupFolder, 'index.rst')
-        with open(filename, mode='w') as f:
+        with open(filename, mode='w', encoding='utf-8') as f:
             f.write(text)
 
         for akey in groups[gkey]:
@@ -98,11 +100,11 @@ def generateRST():
             filename = join(groupFolder, '{}.rst'.format(algoId))
             for c in r'/()':
                 filename = filename.replace(c, '_')
-            with open(filename, mode='w') as f:
+            with open(filename, mode='w', encoding='utf-8') as f:
                 f.write(text)
 
     filename = join(root, 'processing_algorithms.rst')
-    with open(filename, mode='w') as f:
+    with open(filename, mode='w', encoding='utf-8') as f:
         f.write(textProcessingAlgorithmsRst)
     print('created RST file: ', filename)
 

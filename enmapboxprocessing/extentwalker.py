@@ -19,7 +19,7 @@ class ExtentWalker(object):
 
     def __iter__(self):
         n = self.nBlocksX() * self.nBlocksY()
-        i = 0
+        i = 1
         for y in range(self.nBlocksY()):
             for x in range(self.nBlocksX()):
                 if self.feedback is not None:

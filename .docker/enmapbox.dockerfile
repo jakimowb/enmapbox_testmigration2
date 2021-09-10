@@ -10,8 +10,18 @@ LABEL Description="Docker container with QGIS" Vendor="QGIS.org"
 # build timeout in seconds, so no timeout by default
 ARG BUILD_TIMEOUT=360000
 
-RUN apt-get update && \
-    apt-get -y install wget && \
-    apt-get -y install unzip && \
-    apt-get -y install xvfb && \
-    apt-get -y install git-lfs
+COPY ../. enmap-box
+
+ENV QT_QPA_PLATFORM=offscreen
+
+RUN cd enmap-box && \
+    python3 -m pip install -r requirements.txt && \
+    python3 scripts/setup_repository.py && \
+    python3 scripts/create_plugin.py && \
+    mkdir -p ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins && \
+    cp -r deploy/enmapboxplugin ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins && \
+    cp -r enmapboxtestdata ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/enmapboxplugin && \
+    qgis_process plugins enable enmapboxplugin
+
+RUN rm -rf enmap-box
+CMD ["qgis_process"]

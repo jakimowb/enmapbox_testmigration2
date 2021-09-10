@@ -5,7 +5,6 @@ channels:
   - conda-forge
 dependencies:
   - qgis>=3.18
-  - python>=3.7
   - pip
   - numpy
   - scipy
@@ -15,6 +14,7 @@ dependencies:
   - numba
   - pyopengl
   - netcdf4
+  - h5py
   - gitpython
   - git-lfs
   - sphinx=1.8.5

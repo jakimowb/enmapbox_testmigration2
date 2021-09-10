@@ -17,7 +17,19 @@
 ***************************************************************************
 """
 import re
+import traceback
 from typing import Optional, Dict, Union
+
+from enmapboxprocessing.algorithm.importdesisl1balgorithm import ImportDesisL1BAlgorithm
+from enmapboxprocessing.algorithm.importdesisl1calgorithm import ImportDesisL1CAlgorithm
+from enmapboxprocessing.algorithm.importdesisl2aalgorithm import ImportDesisL2AAlgorithm
+from enmapboxprocessing.algorithm.importenmapl1balgorithm import ImportEnmapL1BAlgorithm
+from enmapboxprocessing.algorithm.importenmapl1calgorithm import ImportEnmapL1CAlgorithm
+from enmapboxprocessing.algorithm.importenmapl2aalgorithm import ImportEnmapL2AAlgorithm
+from enmapboxprocessing.algorithm.importlandsatl2algorithm import ImportLandsatL2Algorithm
+from enmapboxprocessing.algorithm.importprismal1algorithm import ImportPrismaL1Algorithm
+from enmapboxprocessing.algorithm.importprismal2dalgorithm import ImportPrismaL2DAlgorithm
+from enmapboxprocessing.algorithm.importsentinel2l2aalgorithm import ImportSentinel2L2AAlgorithm
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 import enmapbox
 from qgis import utils as qgsUtils
@@ -42,11 +54,6 @@ from enmapbox.gui.datasources import *
 from enmapbox import DEBUG, DIR_ENMAPBOX
 from enmapbox.gui.mapcanvas import *
 from enmapbox.dependencycheck import requiredPackages, missingPackageInfo
-from hubdsm.processing.importdesisl2a import ImportDesisL2A
-from hubdsm.processing.importenmapl1b import ImportEnmapL1B
-from hubdsm.processing.importenmapl1c import ImportEnmapL1C
-from hubdsm.processing.importenmapl2a import ImportEnmapL2A
-from hubdsm.processing.importprismal2d import ImportPrismaL2D
 from enmapbox.externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.externals.qps.maptools import QgsMapToolSelectionHandler
@@ -1036,30 +1043,25 @@ class EnMAPBox(QgisInterface, QObject):
         assert isinstance(separator, QAction)
 
         # add more product import actions hereafter
-        a = QAction('EnMAP L1B', parent=menu)
-        a.setToolTip('Import EnMAP L1B product')
-        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportEnmapL1B()))
-        menu.insertAction(separator, a)
-
-        a = QAction('EnMAP L1C', parent=menu)
-        a.setToolTip('Import EnMAP L1C product')
-        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportEnmapL1C()))
-        menu.insertAction(separator, a)
-
-        a = QAction('EnMAP L2A', parent=menu)
-        a.setToolTip('Import EnMAP L2A product')
-        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportEnmapL2A()))
-        menu.insertAction(separator, a)
-
-        a = QAction('DESIS L2A', parent=menu)
-        a.setToolTip('Import DESIS L2A product')
-        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportDesisL2A()))
-        menu.insertAction(separator, a)
-
-        a = QAction('PRISMA L2D', parent=menu)
-        a.setToolTip('Import PRISMA L2D product')
-        a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(ImportPrismaL2D()))
-        menu.insertAction(separator, a)
+        algs = [
+            ImportDesisL1BAlgorithm(),
+            ImportDesisL1CAlgorithm(),
+            ImportDesisL2AAlgorithm(),
+            ImportEnmapL1BAlgorithm(),
+            ImportEnmapL1CAlgorithm(),
+            ImportEnmapL2AAlgorithm(),
+            ImportLandsatL2Algorithm(),
+            ImportPrismaL1Algorithm(),
+            ImportPrismaL2DAlgorithm(),
+            ImportSentinel2L2AAlgorithm(),
+        ]
+        for alg in algs:
+            name = alg.displayName()[7:-8]  # remove "Import " and " product" parts
+            tooltip = alg.shortDescription()
+            a = QAction(name, parent=menu)
+            a.setToolTip(tooltip)
+            a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(alg))
+            menu.insertAction(separator, a)
 
     def _mapToolButton(self, action) -> Optional[QToolButton]:
         for toolBar in self.ui.findChildren(QToolBar):
@@ -2260,12 +2262,12 @@ class EnMAPBox(QgisInterface, QObject):
         if not isinstance(algorithm, QgsProcessingAlgorithm):
             raise Exception('Algorithm {} not found in QGIS Processing Registry'.format(algorithmName))
 
-        dlg = alg.createCustomParametersWidget(parent)
+        dlg = algorithm.createCustomParametersWidget(parent)
         if not dlg:
             if wrapper is None:
-                dlg = AlgorithmDialog(alg.create(), parent=parent)
+                dlg = AlgorithmDialog(algorithm.create(), parent=parent)
             else:
-                dlg = wrapper(alg.create(), parent=parent)
+                dlg = wrapper(algorithm.create(), parent=parent)
         else:
             assert wrapper is None  # todo: dialog wrapper for custom parameter widget
         dlg.setModal(modal)

@@ -5,6 +5,7 @@ Processing Algorithms
     :maxdepth: 1
        
 
+    _auxilliary/index.rst
     _classification/index.rst
     _dataset_creation/index.rst
     _feature_selection/index.rst

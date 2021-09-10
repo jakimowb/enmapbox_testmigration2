@@ -1,7 +1,8 @@
+from math import ceil
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer)
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer, Qgis)
 
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
@@ -50,7 +51,7 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         map = self.parameterAsLayer(parameters, self.P_CATEGORIZED_LAYER, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
-        format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
+        format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_FRACTION, context)
 
         with open(filename + '.log', 'w') as logfile:
@@ -98,35 +99,46 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
 
             # calculate category fractions
             categories = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
-            x10IdArray = RasterReader(classification).array()[0]
-            maskArray = np.full((grid.height(), grid.width()), True, dtype=bool)
-            arrays = list()
-            for i, category in enumerate(categories):
+            reader = RasterReader(classification)
+            driver = Driver(filename, format, options, feedback)
+            writer = driver.createLike(RasterReader(grid), Qgis.Float32, len(categories))
+            lineMemoryUsage = reader.lineMemoryUsage() * 2
+            blockSizeY = min(reader.height(), ceil(Utils.maximumMemoryUsage() / lineMemoryUsage))
+            blockSizeY = max(10, blockSizeY)
+            blockSizeY = ceil(blockSizeY / 10) * 10  # need to ensure factors of 10!
+            blockSizeX = reader.width()
+            for block in reader.walkGrid(blockSizeX, blockSizeY, feedback):
 
-                if feedback.isCanceled():
-                    raise AlgorithmCanceledException()
+                feedback.setProgress(block.yOffset / gridOversampled.height() * 100)
 
-                feedback.pushInfo(f"Calculate '{category.name}' cover fraction")
-                feedback.setProgress(i / len(categories))
+                x10IdArray = reader.arrayFromBlock(block)[0]
+                maskArray = np.full((block.height // 10, block.width //10), True, dtype=bool)
 
-                # calculate cover fraction
-                x10MaskArray = x10IdArray == category.value
-                percentArray = x10MaskArray.reshape(
-                    (grid.height(), 10, grid.width(), 10)
-                ).sum(axis=3, dtype=np.float32).sum(axis=1, dtype=np.float32)
-                percentArray /= 100
+                arrays = list()
+                for i, category in enumerate(categories):
 
-                # update global mask
-                np.logical_and(maskArray, percentArray == 0, out=maskArray)
+                    if feedback.isCanceled():
+                        raise AlgorithmCanceledException()
 
-                arrays.append(percentArray)
+                    # calculate cover fraction
+                    x10MaskArray = np.equal(x10IdArray, category.value)
+                    percentArray = x10MaskArray.reshape(
+                        (block.height // 10, 10, block.width // 10, 10)
+                    ).sum(axis=3, dtype=np.float32).sum(axis=1, dtype=np.float32)
+                    percentArray /= 100
 
-            # apply global mask
-            noDataValue = -1
-            for array in arrays:
-                array[maskArray] = noDataValue
+                    # update global mask
+                    np.logical_and(maskArray, percentArray == 0, out=maskArray)
 
-            writer = Driver(filename, format, options).createFromArray(arrays, grid.extent(), grid.crs())
+                    arrays.append(percentArray)
+
+                # apply global mask
+                noDataValue = -1
+                for array in arrays:
+                    array[maskArray] = noDataValue
+
+                writer.writeArray(arrays, block.xOffset // 10, block.yOffset // 10)
+
             writer.setNoDataValue(noDataValue)
             for bandNo, category in enumerate(categories, 1):
                 writer.setBandName(category.name, bandNo)
@@ -135,16 +147,3 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
             self.toc(feedback, result)
 
         return result
-
-
-def _calculatePurePython(classes, counts, notCovered, oversampling, indexByClass):
-    height, width = notCovered.shape
-    for y in range(height):
-        for x in range(width):
-            for y2 in range(oversampling):
-                for x2 in range(oversampling):
-                    c = classes[y * oversampling + y2, x * oversampling + x2]
-                    index = indexByClass[c]
-                    if index != -1:
-                        counts[index, y, x] += 1
-                        notCovered[y, x] = False

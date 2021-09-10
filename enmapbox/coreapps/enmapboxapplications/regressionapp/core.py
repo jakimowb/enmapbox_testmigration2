@@ -183,7 +183,8 @@ class RegressionWorkflowApp(QMainWindow):
             vrange = None
         vbins = self.uiStrata_.value()
         histo = regression.statistics(
-            bandIndices=[0], calcHistogram=True, histogramRanges=[vrange], histogramBins=[vbins])[0].histo
+            bandIndices=[0], calcHistogram=True, histogramRanges=[vrange], histogramBins=[vbins]
+        )[0].histo
         self.counts = histo.hist
         self.uiStrataMin_.setText(str(round(histo.bin_edges[0], 2)))
         self.uiStrataMax_.setText(str(round(histo.bin_edges[-1], 2)))

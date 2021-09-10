@@ -19,12 +19,8 @@ class FitLinearSvcAlgorithm(FitClassifierAlgorithmBase):
     def helpParameterCode(self) -> str:
         return 'Scikit-learn python code. ' \
                'See ' \
-               '<a href="' \
-               'http://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html' \
-               '">LinearSVC</a>, ' \
-               '<a href="' \
-               'http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html' \
-               '">GridSearchCV</a>, ' \
+               '<a href="http://scikit-learn.org/stable/modules/generated/sklearn.svm.LinearSVC.html">LinearSVC</a>, ' \
+               '<a href="http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html">GridSearchCV</a>, ' \
                '<a href="' \
                'http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html' \
                '">StandardScaler</a> for information on different parameters.'

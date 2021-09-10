@@ -13,6 +13,9 @@ from PyQt5.QtWidgets import (QMainWindow, QToolButton, QProgressBar, QComboBox, 
                              QHBoxLayout, QPushButton, QTableWidget, QTableWidgetItem, QLabel, QRadioButton, QTextEdit,
                              QWidget)
 from PyQt5.uic import loadUi
+
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcodealgorithm import \
+    PrepareClassificationDatasetFromCodeAlgorithm
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 from qgis._core import QgsMapLayerProxyModel, Qgis, QgsProcessingFeedback, QgsRasterLayer, QgsProject, QgsVectorLayer
 from qgis._gui import QgsFileWidget, QgsMapLayerComboBox, QgsSpinBox, QgsMessageBar, QgsColorButton, QgsDoubleSpinBox
@@ -30,20 +33,20 @@ from enmapboxprocessing.algorithm.creatergbimagefromclassprobabilityalgorithm im
     CreateRgbImageFromClassProbabilityAlgorithm
 from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import FeatureClusteringHierarchicalAlgorithm
 from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
-from enmapboxprocessing.algorithm.fitgenericclassifier import FitGenericClassifier
+from enmapboxprocessing.algorithm.fitgenericclassifieralgorithm import FitGenericClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import PredictClassPropabilityAlgorithm
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedlibrary import \
-    PrepareClassificationDatasetFromCategorizedLibrary
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedraster import \
-    PrepareClassificationDatasetFromCategorizedRaster
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvector import \
-    PrepareClassificationDatasetFromCategorizedVector
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfields import \
-    PrepareClassificationDatasetFromCategorizedVectorAndFields
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromfiles import PrepareClassificationDatasetFromFiles
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtable import PrepareClassificationDatasetFromTable
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedlibraryalgorithm import \
+    PrepareClassificationDatasetFromCategorizedLibraryAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedrasteralgorithm import \
+    PrepareClassificationDatasetFromCategorizedRasterAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectoralgorithm import \
+    PrepareClassificationDatasetFromCategorizedVectorAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfieldsalgorithm import \
+    PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromfilesalgorithm import PrepareClassificationDatasetFromFilesAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtablealgorithm import PrepareClassificationDatasetFromTableAlgorithm
 from enmapboxprocessing.algorithm.randomsamplesfromclassificationdatasetalgorithm import \
     RandomSamplesFromClassificationDatasetAlgorithm
 from enmapboxprocessing.algorithm.selectfeaturesfromdatasetalgorithm import SelectFeaturesFromDatasetAlgorithm
@@ -119,8 +122,10 @@ class ClassificationWorkflowGui(QMainWindow):
     mLogClear: QToolButton
 
     # todo quick mapping
-    mQuickLabels: QgsMapLayerComboBox
-    mQuickFeatures: QgsMapLayerComboBox
+    mQuickMapFeatures: QgsMapLayerComboBox
+    mQuickMapTargets: QgsMapLayerComboBox
+    mQuickLibrary: QgsMapLayerComboBox
+    mQuickTable: QgsMapLayerComboBox
     mQuickFeatures2: QgsMapLayerComboBox
     mQuickClassifier: QComboBox
     mRunQuickMapping: QToolButton
@@ -293,8 +298,10 @@ class ClassificationWorkflowGui(QMainWindow):
 
         # model
         # - fit
+        self.mViewClassifierFitted.clicked.connect(self.onViewFile)
         self.mRunClassifierFit.clicked.connect(self.runClassifierFit)
         # - performance
+        self.mViewClassifierPerformanceReport.clicked.connect(self.onViewFile)
         self.mRunClassifierPerformance.clicked.connect(self.runClassifierPerformance)
 
         # classification
@@ -369,7 +376,7 @@ class ClassificationWorkflowGui(QMainWindow):
 
     def initLayers(self):
         self.mPredictFeatures.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.mQuickFeatures.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mQuickMapFeatures.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mQuickFeatures2.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
     def initClassifier(self):
@@ -380,7 +387,7 @@ class ClassificationWorkflowGui(QMainWindow):
         for alg in algorithms():
             if not isinstance(alg, FitClassifierAlgorithmBase):
                 continue
-            if isinstance(alg, FitGenericClassifier):
+            if isinstance(alg, FitGenericClassifierAlgorithm):
                 continue
             if isinstance(alg, FitRandomForestClassifierAlgorithm):
                 index = i
@@ -445,12 +452,12 @@ class ClassificationWorkflowGui(QMainWindow):
 
         if isinstance(labels, QgsRasterLayer):
             self.mAlgoDataset.setCurrentIndex(1)
-            Alg = PrepareClassificationDatasetFromCategorizedRaster
+            Alg = PrepareClassificationDatasetFromCategorizedRasterAlgorithm
             parameters = {Alg.P_CATEGORIZED_RASTER: labels,
                           Alg.P_FEATURE_RASTER: features}
         elif isinstance(labels, QgsVectorLayer):
             self.mAlgoDataset.setCurrentIndex(2)
-            Alg = PrepareClassificationDatasetFromCategorizedVector
+            Alg = PrepareClassificationDatasetFromCategorizedVectorAlgorithm
             parameters = {Alg.P_CATEGORIZED_VECTOR: labels,
                           Alg.P_FEATURE_RASTER: features}
         else:
@@ -476,12 +483,13 @@ class ClassificationWorkflowGui(QMainWindow):
             raise MissingParameterError()
 
         Algs = [None,
-                PrepareClassificationDatasetFromCategorizedRaster,
-                PrepareClassificationDatasetFromCategorizedVector,
-                PrepareClassificationDatasetFromCategorizedVectorAndFields,
-                PrepareClassificationDatasetFromCategorizedLibrary,
-                PrepareClassificationDatasetFromTable,
-                PrepareClassificationDatasetFromFiles]
+                PrepareClassificationDatasetFromCategorizedRasterAlgorithm,
+                PrepareClassificationDatasetFromCategorizedVectorAlgorithm,
+                PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm,
+                PrepareClassificationDatasetFromCategorizedLibraryAlgorithm,
+                PrepareClassificationDatasetFromTableAlgorithm,
+                PrepareClassificationDatasetFromFilesAlgorithm,
+                PrepareClassificationDatasetFromCodeAlgorithm]
         Alg = Algs[self.mAlgoDataset.currentIndex()]
         alg = Alg()
 
@@ -674,7 +682,7 @@ class ClassificationWorkflowGui(QMainWindow):
     @errorHandled(successMessage='created (unfitted) classifier')
     def runCreateClassifier(self, *args):
 
-        alg = FitGenericClassifier()
+        alg = FitGenericClassifierAlgorithm()
         parameters = {alg.P_CLASSIFIER: self.mCodeClassifier.toPlainText(),
                       alg.P_OUTPUT_CLASSIFIER: self.createOutputFilename(self.mFileClassifier, '.pkl')}
         result = self.showAlgorithmDialog(alg, parameters)
@@ -788,7 +796,7 @@ class ClassificationWorkflowGui(QMainWindow):
     def runClassifierFit(self, *args):
         filenameTrain = self.getTrainingDatasetByIndex(self.mDataFit.currentIndex())
 
-        alg = FitGenericClassifier()
+        alg = FitGenericClassifierAlgorithm()
         parameters = {alg.P_DATASET: filenameTrain,
                       alg.P_CLASSIFIER: self.mCodeClassifier.toPlainText(),
                       alg.P_OUTPUT_CLASSIFIER: self.createOutputFilename(self.mFileClassifierFitted, '.pkl')
@@ -923,7 +931,8 @@ class ClassificationWorkflowGui(QMainWindow):
         filename = mFile.filePath()
         if exists(filename) and filename.endswith('.pkl'):
             dump = ClassifierDump(**Utils.pickleLoad(filename))
-            label.setText(f'{dump.X.shape[0]} samples {dump.X.shape[1]} features  {len(dump.categories)} categories')
+            label.setText(f'{np.array(dump.X).shape[0]} '
+                          f'samples {np.array(dump.X).shape[1]} features  {len(dump.categories)} categories')
             label.show()
         else:
             label.setText('')
@@ -957,7 +966,7 @@ class ClassificationWorkflowGui(QMainWindow):
         self.updateDatasetInfo(self.mFileDataset, self.mInfoDataset)
 
         def makeSpinBoxes(c: Category) -> Tuple[int, QgsSpinBox, QgsSpinBox]:
-            n = int(np.sum(dump.y == c.value))
+            n = int(np.sum(np.equal(dump.y, c.value)))
             trainN = QgsSpinBox(self.mCategoryTable)
             testN = QgsSpinBox(self.mCategoryTable)
             trainN.setMinimum(0)

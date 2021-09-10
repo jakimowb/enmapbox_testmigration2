@@ -28,6 +28,8 @@ ANNs are implemented, but the structure is flexible so that new algorithms can a
 add a model selection frame to the GUI in QtDesigner then.
 
 """
+from qgis._gui import QgsMapLayerComboBox
+from qgis._core import QgsMapLayerProxyModel
 
 import sys
 # ensure to call QGIS before PyQtGraph
@@ -45,8 +47,14 @@ pathUI_prgbar = os.path.join(APP_DIR, 'Resources/UserInterfaces/ProgressBar.ui')
 class MLInversionGUI(QDialog):
     
     def __init__(self, parent=None):
+        mLayerImage: QgsMapLayerComboBox
+        mLayerGeometry: QgsMapLayerComboBox
+        mLayerMask: QgsMapLayerComboBox
         super(MLInversionGUI, self).__init__(parent)
         loadUi(pathUI_processor, self)
+        self.mLayerImage.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mLayerGeometry.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mLayerMask.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
 
 class NodatGUI(QDialog):
@@ -97,6 +105,11 @@ class MLInversion:
 
         self.conversion_factor = None  # convert spectral image (boost) to reach the same scale as the machines
 
+        self.addItemImage, self.addItemGeometry, self.addItemMask = ([], [], [])
+        self.gui.mLayerImage.setLayer(None)
+        self.gui.mLayerGeometry.setLayer(None)
+        self.gui.mLayerMask.setLayer(None)
+
         # Initial Model is set to EnMAP as default
         self.model_meta_file = os.path.join(APP_DIR, 'Resources/Processor/EnMAP.meta')
         meta_dict = self._get_processor_meta(file=self.model_meta_file)
@@ -114,8 +127,10 @@ class MLInversion:
         self.gui.cmdNewModel.clicked.connect(lambda: self.open_train_gui())
 
         # Input Images
-        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="image"))
-        self.gui.cmdInputMask.clicked.connect(lambda: self.open_file(mode="mask"))
+        self.gui.mLayerImage.layerChanged.connect(lambda: self.open_file(mode="imgDropdown"))
+        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="imgSelect"))
+        self.gui.mLayerMask.layerChanged.connect(lambda: self.open_file(mode="maskDropdown"))
+        self.gui.cmdInputMask.clicked.connect(lambda: self.open_file(mode="maskSelect"))
 
         # Output Images
         self.gui.cmdOutputImage.clicked.connect(lambda: self.open_file(mode="output"))
@@ -123,7 +138,8 @@ class MLInversion:
         self.gui.radOutIndividual.clicked.connect(lambda: self.select_outputmode(mode="individual"))
 
         # Geometry
-        self.gui.cmdGeoFromFile.clicked.connect(lambda: self.open_file(mode="geo"))
+        self.gui.mLayerGeometry.layerChanged.connect(lambda: self.open_file(mode="geoDropdown"))
+        self.gui.cmdGeoFromFile.clicked.connect(lambda: self.open_file(mode="geoSelect"))
         self.gui.radGeoFromFile.clicked.connect(lambda: self.select_geo(mode="file"))
         self.gui.radGeoFix.clicked.connect(lambda: self.select_geo(mode="fix"))
 
@@ -137,6 +153,170 @@ class MLInversion:
         self.gui.cmdClose.clicked.connect(lambda: self.gui.close())
 
     def open_file(self, mode):
+        if mode == "imgSelect":
+            if self.image is not None:
+                self.image = None
+            bsq_input = QFileDialog.getOpenFileName(caption='Select Input Image', filter="ENVI Image (*.bsq)")[0]
+            if not bsq_input:
+                return
+            self.addItemImage.append(bsq_input)
+            self.gui.mLayerImage.setAdditionalItems(self.addItemImage)
+            self.gui.mLayerImage.setCurrentText(bsq_input)
+
+            self.image = bsq_input
+            try:
+                meta = self.get_image_meta(image=self.image, image_type="Input Image")  # get metadata of image
+            except ValueError as e:
+                self.abort(message=str(e))
+                return
+            if None in meta:
+                self.image = None
+                self.nodat[0] = None
+                return
+            else:
+                self.gui.lblNodatImage.setText(str(meta[0]))
+                self.gui.txtNodatOutput.setText(str(meta[0]))
+                self.nodat[0] = meta[0]
+
+        elif mode == "imgDropdown":
+            if self.image is not None:
+                self.image = None
+            if self.gui.mLayerImage.currentLayer() is not None:
+                input = self.gui.mLayerImage.currentLayer()
+                bsq_input = input.source()
+            elif len(self.gui.mLayerImage.currentText()) > 0:
+                bsq_input = self.gui.mLayerImage.currentText()
+            else:
+                self.image = None
+                return
+            self.image = bsq_input
+            try:
+                meta = self.get_image_meta(image=self.image, image_type="Input Image")  # get metadata of image
+            except ValueError as e:
+                self.abort(message=str(e))
+                return
+            if None in meta:
+                self.image = None
+                self.nodat[0] = None
+                return
+            else:
+                self.gui.lblNodatImage.setText(str(meta[0]))
+                self.gui.txtNodatOutput.setText(str(meta[0]))
+                self.nodat[0] = meta[0]
+
+        elif mode == "output":
+            result = QFileDialog.getSaveFileName(caption='Specify Output File',
+                                                 filter="ENVI Image (*.bsq)")[0]
+            self.out_path = result
+            self.out_path = self.out_path.replace("\\", "/")
+            self.gui.txtOutputImage.setText(result)
+
+        elif mode == "lut":  # file open is a lut-metafile
+            result = str(QFileDialog.getOpenFileName(caption='Select LUT meta-file', filter="LUT-file (*.lut)")[0])
+            if not result:
+                return
+            self.lut_path = result
+            self.gui.lblInputLUT.setText(result)
+            with open(self.lut_path, 'r') as metafile:
+                metacontent = metafile.readlines()
+                metacontent = [line.rstrip('\n') for line in metacontent]
+            if metacontent[4].split("=")[1] == "None":  # if LUT is Prospect only (no canopy_arch), disable geos
+                self.gui.radGeoFix.setDisabled(True)
+                self.gui.radGeoFromFile.setDisabled(True)
+                self.gui.radGeoOff.setChecked(True)
+                self.select_geo(mode="off")
+            else:
+                self.gui.radGeoFix.setDisabled(False)
+                self.gui.radGeoFromFile.setDisabled(False)
+
+        elif mode == "geoSelect":  # open file is a geometry file
+            result = str(QFileDialog.getOpenFileName(caption='Select Geometry Image')[0])
+            if not result:
+                return
+            self.geo_file = result
+            meta = self.get_image_meta(image=self.geo_file, image_type="Geometry Image")
+            if None in meta:
+                self.geo_file = None
+                self.nodat[1] = -999
+                return
+            else:
+                self.gui.lblNodatGeoImage.setText(str(meta[0]))
+                self.gui.chkMeanCalc.setDisabled(False)
+                self.gui.chkMeanCalc.setChecked(True)
+                self.nodat[1] = meta[0]
+
+                self.addItemGeometry.append(result)
+                self.gui.mLayerGeometry.setAdditionalItems(self.addItemGeometry)
+                self.gui.mLayerGeometry.setCurrentText(result)
+
+        elif mode == "geoDropdown":
+            if self.geo_file is not None:
+                self.geo_file = None
+            if self.gui.mLayerGeometry.currentLayer() is not None:
+                ginput = self.gui.mLayerGeometry.currentLayer()
+                geo_input = ginput.source()
+            elif len(self.gui.mLayerGeometry.currentText()) > 0:
+                geo_input = self.gui.mLayerGeometry.currentText()
+            else:
+                self.geo_file = None
+                return
+            self.geo_file = geo_input
+            meta = self.get_image_meta(image=self.geo_file, image_type="Geometry Image")
+            if None in meta:
+                self.geo_file = None
+                self.nodat[1] = -999
+                return
+            else:
+                self.gui.lblNodatGeoImage.setText(str(meta[0]))
+                self.gui.chkMeanCalc.setDisabled(False)
+                self.gui.chkMeanCalc.setChecked(True)
+                self.nodat[1] = meta[0]
+
+        elif mode == "maskSelect":  # open file of type mask image (0 and 1)
+            result = str(QFileDialog.getOpenFileName(caption='Select Mask Image')[0])
+            if not result:
+                return
+            self.mask_image = result
+            meta = self.get_image_meta(image=self.mask_image, image_type="Mask Image")
+            if meta[1] is None:  # No Data is unimportant for mask file, but dimensions must exist (image readable)
+                self.mask_image = None
+                return
+            else:
+                self.addItemMask.append(result)
+                self.gui.mLayerMask.setAdditionalItems(self.addItemMask)
+                self.gui.mLayerMask.setCurrentText(result)
+
+        elif mode == "maskDropdown":
+            if self.mask_image is not None:
+                self.mask_image = None
+            if self.gui.mLayerMask.currentLayer() is not None:
+                minput = self.gui.mLayerMask.currentLayer()
+                mask_input = minput.source()
+            elif len(self.gui.mLayerMask.currentText()) > 0:
+                mask_input = self.gui.mLayerMask.currentText()
+            else:
+                self.mask_image = None
+                return
+            self.mask_image = mask_input
+            meta = self.get_image_meta(image=self.mask_image, image_type="Mask Image")
+            if meta[1] is None:  # No Data is unimportant for mask file, but dimensions must exist (image readable)
+                self.mask_image = None
+                return
+
+        elif mode == "model":  # Select algorithm for inversion my picking its Meta-file (*.meta)
+            result = str(QFileDialog.getOpenFileName(caption='Select Machine Learning Model',
+                                                     filter="Processor META File (*.meta)")[0])
+            if not result:
+                return
+            meta_dict = self._get_processor_meta(file=result)
+            if not meta_dict:
+                return
+            self.model_meta_file = result
+            self.model_name = os.path.splitext(os.path.basename(result))[0]
+            # The name of the meta-file == name of the model
+            self.gui.lblModel.setText(os.path.splitdrive(result)[0] + "\\...\\" + self.model_name + ".meta")
+
+    def open_file_old(self, mode):
         if mode == "image":  # open file is a spectral image
             result = str(QFileDialog.getOpenFileName(caption='Select Input Image')[0])
             if not result:
@@ -218,13 +398,16 @@ class MLInversion:
     def select_geo(self, mode):
         # sets objects in the GUI according to the Geo-mode: is geometry read from file or fixed manually?
         if mode == "file":
-            self.gui.lblGeoFromFile.setDisabled(False)
+            self.gui.chkMeanCalc.setDisabled(False)
+            self.gui.mLayerGeometry.setDisabled(False)
             self.gui.cmdGeoFromFile.setDisabled(False)
             self.gui.txtSZA.setDisabled(True)
             self.gui.txtOZA.setDisabled(True)
             self.gui.txtRAA.setDisabled(True)
         if mode == "fix":
-            self.gui.lblGeoFromFile.setDisabled(True)
+            self.gui.chkMeanCalc.setDisabled(True)
+            self.gui.mLayerGeometry.setDisabled(True)
+            self.gui.mLayerGeometry.setLayer(None)
             self.gui.cmdGeoFromFile.setDisabled(True)
             self.gui.txtSZA.setDisabled(False)
             self.gui.txtOZA.setDisabled(False)
@@ -344,7 +527,7 @@ class MLInversion:
 
             try:  # try and get no data value and convert it to integer
                 nodata = int(metadict['ENVI']['data ignore value'])
-            except (AttributeError, ValueError):
+            except:
                 # no dat not found or cannot be interpreted as intereg! No worries, the user can add it manually!
                 self.main.nodat_widget.init(image_type=image_type, image=image)
                 self.main.nodat_widget.gui.setModal(True)  # parent window is blocked

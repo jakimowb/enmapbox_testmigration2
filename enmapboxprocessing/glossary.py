@@ -2,7 +2,6 @@ from os.path import join, abspath
 
 filename = abspath(join(__file__, '../../doc/source/general/glossary.rst'))
 baselink = r'C:\source\QGISPlugIns\enmap-box\doc\build\html\general\glossary.html'
-baselink = 'file:///C:/source/QGISPlugIns/enmap-box/doc/build/html/general/glossary.html'
 baselink = 'https://enmap-box.readthedocs.io/en/latest/general/glossary.html'
 
 glossary = dict()
@@ -14,9 +13,12 @@ with open(filename) as file:
 
 
 def injectGlossaryLinks(text: str):
+    text = text + ' '
     terms = list()
     letter = '_abcdefghijklmnopqrstuvwxyz'
+    letter = letter + letter.upper()
     letterWithoutS = '_abcdefghijklmnopqrtuvwxyz'
+    letterWithoutS = letterWithoutS + letterWithoutS.upper()
     for k in reversed(sorted(glossary.keys(), key=len)):  # long terms first to avoid term corruption
         url = glossary[k]
         ilast = 0
@@ -32,6 +34,10 @@ def injectGlossaryLinks(text: str):
                 if text[i0 - 1].lower() in letter:
                     continue
             if text[i0 + len(k)].lower() in letterWithoutS:
+                continue
+
+            if text[i0 + len(k)].lower() in letter:
+                print(text[i0 + len(k) + 1].lower(), letter)
                 continue
 
             # handle some special cases
@@ -67,6 +73,8 @@ def injectGlossaryLinks(text: str):
                 if text[i0:].lower().startswith('target grid'):
                     continue
 
+            if k.lower() == 'grid':
+                a=1
             k2 = f'_{len(terms)}_'
             terms.append((k, k2, url))
             text = text[:i0] + k2 + text[i0 + len(k):]  # mark term
@@ -74,7 +82,6 @@ def injectGlossaryLinks(text: str):
             break  # only link first appearence
 
     for k, k2, url in terms:
-        # url = f'https://scikit-learn.org/stable/glossary.html#term-dimensionality'
         link = f'<a href="{url}">{k}</a>'
         text = text.replace(k2, link)  # inject link
 
@@ -89,7 +96,8 @@ def test():
            'No data valueE \n' \
            '"No data values"'
 
+
     # text = '"No data value"'
     print(injectGlossaryLinks(text))
 
-# test()
+#test()

@@ -41,13 +41,12 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension, optional=True)
-        self.addParameterString(self.P_CLASSIFIER, self._CLASSIFIER, self.defaultCodeAsString(), True)
+        self.addParameterCode(self.P_CLASSIFIER, self._CLASSIFIER, self.defaultCodeAsString())
         self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, self._OUTPUT_CLASSIFIER, self.PickleFileFilter)
 
     def defaultCodeAsString(self):
-        lines = [line for line in inspect.getsource(self.code).split('\n')
-                 if not line.strip().startswith('def') and line != ''][:-1]
-        lines = '\n'.join([line[8:] for line in lines])
+        lines = [line[8:] for line in inspect.getsource(self.code).split('\n')][1:-2]
+        lines = '\n'.join(lines)
         return lines
 
     def parameterAsClassifier(self, parameters: Dict[str, Any], name, context: QgsProcessingContext):

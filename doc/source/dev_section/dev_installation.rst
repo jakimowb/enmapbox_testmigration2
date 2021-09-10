@@ -14,9 +14,9 @@ If you like to develop an EnMAP-Box application, or more general, a QGIS and Qt 
 a state-of-the-art Integrated Development Environment (IDE) like `PyCharm`_. It offers run-time debugging,
 code completion, spell-checking, syntax highlighting, SCM support, unit-testing and many other helpful things.
 
-Furthermore, we recommend to install QGIS within a conda / anaconda environment. The installation is (almost) the
-same on macOS, windows or linux, it is much easier to install additional python packages and admin rights are
-not required, e.g. to update QGIS.
+Furthermore, we recommend to install QGIS within a `conda <https://docs.conda.io>`_ /
+`anaconda <https://www.anaconda.com/>`_ environment. The installation is (almost) the same on macOS, windows or linux,
+it is much easier to install additional python packages and does not require admin rights.
 
 1. Have Git installed
 =====================
@@ -62,13 +62,7 @@ EnMAP-Box repository:
 
 1. Make sure `conda <https://docs.conda.io/en/latest/miniconda.html>`_ is installed on your system.
 
-In the EnMAP-Box repo you will find a YAML file which defines a conda environment where all necessary dependencies for the EnMAP-Box are included:
-
-.. literalinclude:: /../../conda_environment.yml
-   :caption: conda_environment.yml
-   :language: yaml
-
-2. To create a new conda environment named *qgis_stable* as specified in the YAML file open the conda shell and type:
+2. Create a new conda environment named *qgis_stable* as specified in `conda_environment.yml`:
 
 .. code-block:: batch
 
@@ -79,6 +73,34 @@ In the EnMAP-Box repo you will find a YAML file which defines a conda environmen
    Depending on the components and applications you like to use, it might be required to install more packages.
    If you cloned the EnMAP-Box repository you can also point to the local :file:`conda_environment.yml`.
    Edit the ``--name`` or the YAML file itself as you wish. For more information on creating and managing conda environments visit the `conda documentation <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file>`_
+
+..
+    .. tip::
+
+       To inspect the The `conda_environment.yml` is part of the EnMAP-Box repo you will find a YAML file which defines a conda environment where all necessary dependencies for the EnMAP-Box are included:
+
+       .. literalinclude:: /../../conda_environment.yml
+          :caption: conda_environment.yml
+          :language: yaml
+
+
+
+    .. admonition:: macOS Users
+
+            If you are using macOS and calling ``qgis`` does not show any application window, it might be necessary to set:
+
+            .. code-block:: bash
+
+               export QT_MAC_WANTS_LAYER=1
+
+            This can be done permanently for the active conda environment by:
+
+            .. code-block:: bash
+
+               conda env config vars set QT_MAC_WANTS_LAYER=1
+
+
+
 
 3.  `Activate <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#activating-an-environment>`_
     the new environment
@@ -96,19 +118,39 @@ In the EnMAP-Box repo you will find a YAML file which defines a conda environmen
        designer
        assistant
 
-    .. admonition:: macOS Users
+5. To easily start applications like PyCharm in this environment, which have not been installed by conda, you might
+   define an alias during the activation of the environment.
 
-            If you are using macOS and calling ``qgis`` does not show any application window, it might be necessary to set:
+    * Create an activation script and define an alias for PyCharm:
 
-            .. code-block:: bash
+      Windows: *<your conda installation>/envs/qgis_stable/etc/conda/activate.d/pycharm-activate.bat*
 
-               export QT_MAC_WANTS_LAYER=1
+      .. code-block:: batch
 
-            This can be done permanently for the environment by:
+         @echo off
+         doskey pycharm="<path to pycharm executable>"
 
-            .. code-block:: bash
 
-               conda env config vars set QT_MAC_WANTS_LAYER=1
+      MacOS: *<your conda installation>/envs/qgis_stable/etc.conda/activate.d/pycharm-activate.sh*
+
+      .. code-block:: bash
+
+         alias pycharm='open -a PyCharm\ CE.app'
+
+    * For completeness, also create a deactivation script:
+
+      Windows: *<your conda installation>/envs/qgis_stable/etc/conda/deactivate.d/others-deactivate.bat*
+
+      .. code-block:: batch
+
+        @echo off
+        doskey pycharm=
+
+      MacOS/Linux: *<your conda installation>/envs/qgis_stable/etc.conda/deactivate.d/pycharm-deactivate.sh*
+
+      .. code-block:: bash
+
+        alias pycharm=
 
 
 
@@ -149,9 +191,11 @@ In the EnMAP-Box repo you will find a YAML file which defines a conda environmen
 
 4.  Switch to *Project Structure* and add
 
-    * (Linux/Win) ``<your conda installation>/envs/qgis_stable/Library/python`` as additional project content root.
+    * Win: ``<your conda installation>/envs/qgis_stable/Library/python`` as additional project content root.
 
-    * (macOS) ``<your conda installation>/envs/qgis_stable/QGIS.app/Contents/MacOS/../Resources/python``
+    * Linux: ``<your conda installation>/envs/qgis_stable/share/qgis/python``
+
+    * macOS: ``<your conda installation>/envs/qgis_stable/QGIS.app/Contents/MacOS/../Resources/python``
 
     Right-click on the ``plugins`` subfolder and select :guilabel:`Sources`. Now the PyQGIS API is available to your Python installation.
 
@@ -166,9 +210,7 @@ In the EnMAP-Box repo you will find a YAML file which defines a conda environmen
         Use ``qgis_stable/Library/python`` as additional content root
 
 
-5.  (Windows + macOS) set the QGIS_PREFIX_PATH variable
-
-    PyCharm and PyQGIS need the environmental variable ``QGIS_PREFIX_PATH``.
+5.  PyCharm and PyQGIS need the environmental variable ``QGIS_PREFIX_PATH``, which typically is:
 
     Typical paths are:
 
@@ -176,11 +218,11 @@ In the EnMAP-Box repo you will find a YAML file which defines a conda environmen
     OS       QGIS_PREFIX_PATH
     ======== ===============================================================================
     Windows  `<your conda installation>\\envs\\qgis_stable\\Library`
-    Linux    `<your conda installation>/envs/qgis_stable/Library`
+    Linux    `<your conda installation>/envs/qgis_stable`
     macOS    `<your conda installation>/envs/qgis_stable/QGIS.app/Contents/Resources`
     ======== ===============================================================================
 
-
+    If not already set in the environment from which you started PyCharm, you can set it explicitly.
     Open *Run > Debug ... > Edit Configurations* and add the *QGIS_PREFIX_PATH* to the User environmental variables.
     This way PyCharm runs python files in a environment with *QGIS_PREFIX_PATH* defined.
 

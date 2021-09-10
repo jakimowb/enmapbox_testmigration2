@@ -21,7 +21,7 @@ Introduction
    :align: right
    :width: 30%
 
-This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/now-online-hyperedu-educational-resources-on-imaging-spectroscopy/>`_,
+This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/resource-spectrum/hyperspectral/>`_,
 an education initiative within the `EnMAP mission <https://www.enmap.org/>`_ hosted
 on EO College. HYPERedu provides annotated slide collections and hands-on tutorials using the open-source EnMAP-Box software,
 targeting basic principles, methods as well as applications of imaging spectroscopy.
@@ -245,9 +245,10 @@ Exercise A: Remote sensing of terrestrial ecosystems with the EnMAP-Box
   automatically built based on the geographic location of each point in the vector file. The associated
   attribute information is displayed in the table on the right.
 * Change the spectral profile colors to reflect the biomass values associated with them.
-  Do this by selecting |system| in lower right corner of the Spectral Library Viewer. Then use the QGIS
+  Do this by selecting |system| in the lower right corner of the Spectral Library Viewer. Then use the QGIS
   symbology functionality to change the color scheme of the spectral profiles to reflect the
-  associated biomass values in the attribute table (see Exercise A6 if needed).
+  associated biomass values in the attribute table (see Exercise A6 if needed). Make sure to activate the |speclib_usevectorrenderer|
+  button in order to use the colors from map vector symbology.
 * In the Exercise B, you will learn how to create and apply regression models based on this
   information to predict biomass across the whole image.
 

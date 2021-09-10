@@ -3,10 +3,10 @@ from typing import Dict, Any, List, Tuple
 
 import numpy as np
 from osgeo import gdal
-from qgis._core import QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer,
+                        QgsProcessingException, QgsMapLayer)
 
-from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
-from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
+from enmapboxprocessing.algorithm.layertomaskalgorithm import LayerToMaskAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
@@ -36,7 +36,9 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
             (self._RASTER, 'A raster layer with bands used as features. '
-                           'Classifier features and raster bands are matched by name.'),
+                           'Classifier features and raster bands are matched by name to allow for classifiers trained '
+                           'on a subset of the raster bands. If raster bands and classifier features are not matching by name, '
+                           'but overall number of bands and features do match, raster bands are used in original order.'),
             (self._CLASSIFIER, 'A fitted classifier.'),
             (self._MASK, 'A mask layer.'),
             (self._OUTPUT_CLASSIFICATION, self.RasterFileDestination)
@@ -64,40 +66,41 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         mask = self.parameterAsLayer(parameters, self.P_MASK, context)
         dump = ClassifierDump(**Utils.pickleLoad(self.parameterAsFile(parameters, self.P_CLASSIFIER, context)))
-        format, options = self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions
+        format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_CLASSIFICATION, context)
-        maximumMemoryUsage = gdal.GetCacheMax()
+        maximumMemoryUsage = Utils.maximumMemoryUsage()
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
 
-            if isinstance(mask, QgsRasterLayer):
+            if isinstance(mask, QgsMapLayer):
                 feedback.pushInfo('Prepare mask')
-                alg = TranslateRasterAlgorithm()
+                alg = LayerToMaskAlgorithm()
                 parameters = {
-                    alg.P_RASTER: mask,
+                    alg.P_LAYER: mask,
                     alg.P_GRID: raster,
-                    alg.P_CREATION_PROFILE: self.VrtProfile,
-                    alg.P_BAND_LIST: [mask.renderer().usesBands()[0]],
-                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'mask.vrt')
+                    alg.P_OUTPUT_MASK: Utils.tmpFilename(filename, 'mask.tif')
                 }
-                mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER])
-            if isinstance(mask, QgsVectorLayer):
-                feedback.pushInfo('Prepare mask')
-                alg = RasterizeVectorAlgorithm()
-                parameters = {
-                    alg.P_VECTOR: mask,
-                    alg.P_GRID: raster,
-                    alg.P_INIT_VALUE: 0,
-                    alg.P_BURN_VALUE: 1,
-                    alg.P_DATA_TYPE: self.Byte,
-                    alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'mask.tif')
-                }
-                mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER])
+                mask = QgsRasterLayer(self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_MASK])
+
             assert isinstance(mask, (type(None), QgsRasterLayer))
 
             rasterReader = RasterReader(raster)
+            bandNames = [rasterReader.bandName(i + 1) for i in range(rasterReader.bandCount())]
+
+            # match classifier features with raster band names
+            try:  # try to find matching bands ...
+                bandList = [bandNames.index(feature) + 1 for feature in dump.features]
+            except ValueError:
+                bandList = None
+
+            # ... if not possible, use original bands, if overall number of bands and features do match
+            if bandList is None and len(bandNames) != len(dump.features):
+                message = f'classifier features ({dump.features}) not matching raster bands ({bandNames})'
+                feedback.reportError(message, fatalError=True)
+                raise QgsProcessingException(message)
+
             if mask is not None:
                 maskReader = RasterReader(mask)
             dataType = Utils.smallesUIntDataType(max([c.value for c in dump.categories]))
@@ -106,8 +109,8 @@ class PredictClassificationAlgorithm(EnMAPProcessingAlgorithm):
             blockSizeY = min(raster.height(), ceil(maximumMemoryUsage / lineMemoryUsage))
             blockSizeX = raster.width()
             for block in rasterReader.walkGrid(blockSizeX, blockSizeY, feedback):
-                arrayX = rasterReader.arrayFromBlock(block)
-                valid = np.all(rasterReader.maskArray(arrayX), axis=0)
+                arrayX = rasterReader.arrayFromBlock(block, bandList)
+                valid = np.all(rasterReader.maskArray(arrayX, bandList), axis=0)
                 if mask is not None:
                     marray = maskReader.arrayFromBlock(block)
                     np.logical_and(valid, maskReader.maskArray(marray, defaultNoDataValue=0.)[0], out=valid)

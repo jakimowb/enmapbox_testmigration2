@@ -1,5 +1,5 @@
 import numpy as np
-from qgis._core import QgsRasterRange, QgsRasterLayer
+from qgis._core import QgsRasterRange
 
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
@@ -50,6 +50,11 @@ class TestRasterReader(TestCase):
                 lead = self.reader.arrayFromPixelOffsetAndSize(xOffset, yOffset, width=1, height=1)
                 gold = self.array[:, yOffset:yOffset + 1, xOffset:xOffset + 1]
                 self.assertArrayEqual(lead, gold)
+
+    def test_readWithOverlap(self):
+        lead = self.reader.array(10, 10, self.reader.width() - 20, self.reader.height() - 20, overlap=10)
+        gold = self.array
+        self.assertArrayEqual(lead, gold)
 
 
 class TestRasterMetadataReader(TestCase):

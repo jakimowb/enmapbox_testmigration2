@@ -1,9 +1,11 @@
 from math import isnan
 from typing import Dict, Any, List, Tuple
 
+import numpy as np
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRectangle, QgsRasterLayer,
-                        QgsRasterDataProvider, QgsPoint, QgsPointXY)
+                        QgsRasterDataProvider, QgsPoint, QgsPointXY, QgsProcessingException,
+                        QgsProcessingParameterString, QgsProcessingParameterDefinition)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
@@ -17,6 +19,10 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_RASTER, _RASTER = 'raster', 'Raster layer'
     P_BAND_LIST, _BAND_LIST = 'bandList', 'Selected bands'
     P_GRID, _GRID = 'grid', 'Grid'
+    P_SPECTRAL_RASTER, _SPECTRAL_RASTER = 'spectralSubset', 'Spectral raster layer for band subsetting'
+    P_SPECTRAL_BAND_LIST, _SPECTRAL_BAND_LIST = 'spectralBandList', 'Selected spectral bands'
+    P_OFFSET, _OFFSET = 'offset', 'Data offset value'
+    P_SCALE, _SCALE = 'scale', 'Data gain/scale value'
     P_COPY_METADATA, _COPY_METADATA = 'copyMetadata', 'Copy metadata'
     P_COPY_STYLE, _COPY_STYLE = 'copyStyle', 'Copy style'
     P_EXTENT, _EXTENT = 'extent', 'Spatial extent'
@@ -24,6 +30,10 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_SOURCE_ROWS, _SOURCE_ROWS = 'sourceRows', 'Row subset'
     P_EXCLUDE_BAD_BANDS, _EXCLUDE_BAD_BANDS = 'excludeBadBands', 'Exclude bad bands'
     P_RESAMPLE_ALG, _RESAMPLE_ALG = 'resampleAlg', 'Resample algorithm'
+    P_SOURCE_NODATA, _SOURCE_NODATA = 'sourceNoData', 'Source no data value'
+    P_NODATA, _NODATA = 'noData', 'No data value'
+    P_UNSET_SOURCE_NODATA, _UNSET_SOURCE_NODATA = 'unsetSourceNoData', 'Unset source no data value'
+    P_UNSET_NODATA, _UNSET_NODATA = 'unsetNoData', 'Unset no data value'
     P_DATA_TYPE, _DATA_TYPE = 'dataType', 'Data type'
     P_CREATION_PROFILE, _CREATION_PROFILE = 'creationProfile', 'Output options'
     P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputTranslatedRaster', 'Output raster layer'
@@ -34,24 +44,20 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     def shortDescription(self):
         return 'Convert raster data between different formats, ' \
                'potentially performing some operations like spatial subsetting, spatial resampling, reprojection, ' \
-               'band subsettings, band reordering and data type conversion.'
-
-    def helpHeader(self) -> Tuple[str, str]:
-        return (
-            'Source no data value handling',
-            'The used source no data value can be modified by properly setting up the "No Data Value" section in '
-            'the "Transparency" tab inside the "Layer Styling" panel. Use one of the following options:'
-            '\n1. Check "No data value" to use the source no data value.'
-            '\n2. Uncheck "No data value" to not use the source no data value.'
-            '\n3. Uncheck "No data value" and set an "Additional no data value" to overwrite the source no data value.'
-        )
+               'band subsetting, band reordering, data scaling, no data value specification, and data type conversion.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
             (self._RASTER, 'Source raster layer.'),
             (self._BAND_LIST, 'Bands to subset and rearrange. '
                               'An empty selection defaults to all bands in native order.'),
-            (self._GRID, 'The target grid.'),
+            (self._GRID, 'The destination grid.'),
+            (self._SPECTRAL_RASTER, 'A spectral raster layer used for specifying a band subset '
+                                    'by matching the center wavelength.'),
+            (self._SPECTRAL_BAND_LIST, 'Spectral bands used to match source raster bands.'
+                                       'An empty selection defaults to all bands in native order.'),
+            (self._OFFSET, 'A data offset value applied to each band.'),
+            (self._SCALE, 'A data gain/scale value applied to each band.'),
             (self._EXTENT, 'Spatial extent for clipping the destination grid, '
                            'which is given by the source Raster or the selected Grid. '
                            'In both cases, the extent is aligned with the actual pixel grid '
@@ -69,6 +75,10 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                                   'wavelength.'),
             (self._COPY_STYLE, 'Whether to copy style from source to destination.'),
             (self._RESAMPLE_ALG, 'Spatial resample algorithm.'),
+            (self._SOURCE_NODATA, 'The value to be used instead of the original raster layer no data value.'),
+            (self._NODATA, 'The value to be used instead of the default destination no data value.'),
+            (self._UNSET_SOURCE_NODATA, 'Whether to unset (i.e. not use) the source no data value.'),
+            (self._UNSET_NODATA, 'Whether to unset the destination no data value.'),
             (self._DATA_TYPE, 'Output data type.'),
             (self._CREATION_PROFILE, 'Output format and creation options.'),
             (self._OUTPUT_RASTER, self.RasterFileDestination)
@@ -116,14 +126,24 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_GRID, self._GRID, optional=True)
         self.addParameterBoolean(self.P_COPY_METADATA, self._COPY_METADATA, defaultValue=False)
         self.addParameterBoolean(self.P_COPY_STYLE, self._COPY_STYLE, defaultValue=False)
+        self.addParameterRasterLayer(self.P_SPECTRAL_RASTER, self._SPECTRAL_RASTER, None, True, True)
+        self.addParameterBandList(
+            self.P_SPECTRAL_BAND_LIST, self._SPECTRAL_BAND_LIST, None, self.P_SPECTRAL_RASTER, True, True
+        )
+        self.addParameterFloat(self.P_OFFSET, self._OFFSET, None, True, None, None, True)
+        self.addParameterFloat(self.P_SCALE, self._SCALE, None, True, None, None, True)
         self.addParameterExtent(self.P_EXTENT, self._EXTENT, optional=True, advanced=True)
         self.addParameterIntRange(self.P_SOURCE_COLUMNS, self._SOURCE_COLUMNS, optional=True, advanced=True)
         self.addParameterIntRange(self.P_SOURCE_ROWS, self._SOURCE_ROWS, optional=True, advanced=True)
         self.addParameterBoolean(self.P_EXCLUDE_BAD_BANDS, self._EXCLUDE_BAD_BANDS, defaultValue=False, advanced=True)
         self.addParameterResampleAlg(self.P_RESAMPLE_ALG, self._RESAMPLE_ALG, advanced=True)
+        self.addParameterFloat(self.P_SOURCE_NODATA, self._SOURCE_NODATA, None, True, None, None, True)
+        self.addParameterFloat(self.P_NODATA, self._NODATA, None, True, None, None, True)
+        self.addParameterBoolean(self.P_UNSET_SOURCE_NODATA, self._UNSET_SOURCE_NODATA, False, False, True)
+        self.addParameterBoolean(self.P_UNSET_NODATA, self._UNSET_NODATA, False, False, True)
         self.addParameterDataType(self.P_DATA_TYPE, self._DATA_TYPE, optional=True, advanced=True)
-        self.addParameterCreationProfile(self.P_CREATION_PROFILE, self._CREATION_PROFILE, allowVrt=True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
+        self.addParameterCreationProfile(self.P_CREATION_PROFILE, self._CREATION_PROFILE, '', True, True)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER, allowEnvi=True, allowVrt=True)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
@@ -134,6 +154,10 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         if grid is None:
             grid = raster
+        spectralRaster = self.parameterAsSpectralRasterLayer(parameters, self.P_SPECTRAL_RASTER, context)
+        spectralBandList = self.parameterAsInts(parameters, self.P_SPECTRAL_BAND_LIST, context)
+        offset = self.parameterAsFloat(parameters, self.P_OFFSET, context)
+        scale = self.parameterAsFloat(parameters, self.P_SCALE, context)
         extent = self.parameterAsExtent(parameters, self.P_EXTENT, context, crs=grid.crs())
         if not extent.isEmpty():
             extent = Utils.snapExtentToRaster(extent, grid)
@@ -145,11 +169,15 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             extent = grid.extent()
         excludeBadBands = self.parameterAsBoolean(parameters, self.P_EXCLUDE_BAD_BANDS, context)
         resampleAlg = self.parameterAsGdalResampleAlg(parameters, self.P_RESAMPLE_ALG, context)
+        srcNoDataValue = self.parameterAsFloat(parameters, self.P_SOURCE_NODATA, context)
+        dstNoDataValue = self.parameterAsFloat(parameters, self.P_NODATA, context)
+        unsetSrcNoDataValue = self.parameterAsBoolean(parameters, self.P_UNSET_SOURCE_NODATA, context)
+        unsetDstNoDataValue = self.parameterAsBoolean(parameters, self.P_UNSET_NODATA, context)
         dataType = self.parameterAsQgsDataType(parameters, self.P_DATA_TYPE, context, default=provider.dataType(1))
         copyMetadata = self.parameterAsBoolean(parameters, self.P_COPY_METADATA, context)
         copyStyle = self.parameterAsBoolean(parameters, self.P_COPY_STYLE, context)
-        format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context, filename)
         width = int(round(extent.width() / grid.rasterUnitsPerPixelX()))
         height = int(round(extent.height() / grid.rasterUnitsPerPixelY()))
         crs = grid.crs()
@@ -160,24 +188,49 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
 
             reader = RasterReader(raster)
             gdalDataType = Utils.qgisDataTypeToGdalDataType(dataType)
+
+            # bad bands subset
             if excludeBadBands and reader.metadataItem('bbl', 'ENVI') is not None:
                 bbl = [bool(v) for v in reader.metadataItem('bbl', 'ENVI')]
                 if bandList is None:
                     bandList = [bandNo for bandNo, isGoodBand in enumerate(bbl, 1) if isGoodBand]
                 else:
                     bandList = [bandNo for bandNo, isGoodBand in enumerate(bbl, 1) if isGoodBand and bandNo in bandList]
+
+            # spectral subset
+            if spectralRaster is not None:
+                spectralReader = RasterReader(spectralRaster)
+
+                if bandList is None:
+                    bandList = [i + 1 for i in range(reader.bandCount())]
+
+                if spectralBandList is None:
+                    spectralBandList = [i + 1 for i in range(spectralRaster.bandCount())]
+
+                wavelength = np.array([reader.wavelength(bandNo) for bandNo in bandList])
+                bandList = [np.argmin(np.abs(wavelength - spectralReader.wavelength(bandNo))) + 1
+                            for bandNo in spectralBandList]
+
             if bandList is None:
                 nBands = raster.bandCount()
             else:
                 nBands = len(bandList)
-            if reader.sourceHasNoDataValue() and reader.useSourceNoDataValue():
-                noDataValue = None  # use default no data value
-            else:
-                rasterRanges = reader.userNoDataValues()
-                if len(rasterRanges) == 1:
-                    noDataValue = rasterRanges[0].min()  # use user no data value
+
+            # derive source and destination no data values
+            if srcNoDataValue is None:
+                # get no data value from QGIS layer and layer properties
+                if reader.sourceHasNoDataValue() and reader.useSourceNoDataValue():
+                    srcNoDataValue = None  # use default no data value
                 else:
-                    noDataValue = 'none'  # unset no data value
+                    rasterRanges = reader.userNoDataValues()
+                    if len(rasterRanges) == 1:
+                        srcNoDataValue = rasterRanges[0].min()  # use user no data value
+                    else:
+                        srcNoDataValue = 'none'  # unset no data value
+            if unsetSrcNoDataValue:
+                srcNoDataValue = 'none'  # unset no data value
+            if unsetDstNoDataValue:
+                dstNoDataValue = 'none'  # unset no data value
 
             infoTail = f' [{width}x{height}x{nBands}]({Utils.qgisDataTypeName(dataType)})'
             if format is not None:
@@ -192,19 +245,20 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             callback = Utils.qgisFeedbackToGdalCallback(feedback)
             resampleAlgSupportedByGdalTranslate = resampleAlg not in [gdal.GRA_Min, gdal.GRA_Q1, gdal.GRA_Med,
                                                                       gdal.GRA_Q3, gdal.GRA_Max]
-            if raster.crs() == crs and resampleAlgSupportedByGdalTranslate:
+            useGdalTranslate = raster.crs() == crs and \
+                               resampleAlgSupportedByGdalTranslate and \
+                               dstNoDataValue is None
+            if useGdalTranslate:
                 feedback.pushInfo('Translate raster' + infoTail)
                 projWin = (extent.xMinimum(), extent.yMaximum(), extent.xMaximum(), extent.yMinimum())
                 translateOptions = gdal.TranslateOptions(
                     format=format, width=width, height=height, creationOptions=options, resampleAlg=resampleAlg,
-                    projWin=projWin, bandList=bandList, outputType=gdalDataType, callback=callback, noData=noDataValue
+                    projWin=projWin, bandList=bandList, outputType=gdalDataType, callback=callback,
+                    noData=srcNoDataValue
                 )
-                try:
-                    outGdalDataset: gdal.Dataset = gdal.Translate(
+                outGdalDataset: gdal.Dataset = gdal.Translate(
                         destName=filename, srcDS=gdalDataset, options=translateOptions
                     )
-                except:
-                    a=1
                 assert outGdalDataset is not None
 
                 # need to explicitely set the GeoTransform tuple, because gdal.Translate extent may deviate slightly
@@ -213,12 +267,12 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                 yres = (uly - lry) / height
                 geoTransform = (ulx, xres, 0., uly, 0., -yres)
                 outGdalDataset.SetGeoTransform(geoTransform)
-            else:
+            else:  # use gdal warp
                 if bandList is not None:
                     tmpFilename = Utils.tmpFilename(filename, 'bandSubset.vrt')
                     tmpGdalDataset = gdal.Translate(
                         destName=tmpFilename, srcDS=gdalDataset, format=self.VrtFormat, bandList=bandList,
-                        noData=noDataValue, callback=callback
+                        noData=srcNoDataValue, callback=callback
                     )
                 else:
                     tmpGdalDataset = gdalDataset
@@ -229,8 +283,8 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                 resampleAlgString = Utils.gdalResampleAlgToGdalWarpFormat(resampleAlg)
                 warpOptions = gdal.WarpOptions(
                     format=format, width=width, height=height, creationOptions=options, resampleAlg=resampleAlgString,
-                    outputBounds=outputBounds, outputType=gdalDataType, dstSRS=dstSRS, srcNodata=noDataValue,
-                    callback=callback
+                    outputBounds=outputBounds, outputType=gdalDataType, dstSRS=dstSRS, srcNodata=srcNoDataValue,
+                    dstNodata=dstNoDataValue, callback=callback
                 )
                 outGdalDataset: gdal.Dataset = gdal.Warp(
                     filename, tmpGdalDataset, options=warpOptions
@@ -241,8 +295,18 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                 raster.saveDefaultStyle()
 
             writer = RasterWriter(outGdalDataset)
+            reader = RasterReader(raster)
             if copyMetadata:
-                self.copyMetadata(raster, writer, bandList)
+                metadata = reader.metadata()
+                metadata = {key: value for key, value in metadata.items() if not key.startswith('Band_')}
+                writer.setMetadata(metadata)
+                if bandList is None:
+                    bandList = range(1, reader.bandCount() + 1)
+                for dstBandNo, srcBandNo in enumerate(bandList, 1):
+                    writer.setMetadata(reader.metadata(srcBandNo), dstBandNo)
+                    writer.setWavelength(reader.wavelength(srcBandNo), dstBandNo)
+                    writer.setFwhm(reader.fwhm(srcBandNo), dstBandNo)
+                    writer.setBadBandMultiplier(reader.badBandMultiplier(srcBandNo), dstBandNo)
 
             if copyStyle:
                 renderer = raster.renderer().clone()
@@ -250,33 +314,10 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                 outraster.setRenderer(renderer)
                 outraster.saveDefaultStyle()
 
+            writer.setOffset(offset, overwrite=False)
+            writer.setScale(scale, overwrite=False)
+
             result = {self.P_OUTPUT_RASTER: filename}
             self.toc(feedback, result)
 
         return result
-
-    @classmethod
-    def copyMetadata(cls, raster: QgsRasterLayer, writer: RasterWriter, bandList: List[int] = None):
-        reader = RasterReader(raster)
-        if bandList is None:
-            bandList = list(range(1, reader.bandCount() + 1))
-        # fix ENVI domain
-        enviMetadata = Utils.subsetEnviDomainBandwiseMetadata(
-            reader.metadataDomain('ENVI'),
-            RasterReader(writer.gdalDataset).metadataDomain('ENVI'),
-            bandList
-        )
-        writer.setMetadataDomain(enviMetadata, 'ENVI')
-        writer.setMetadataDomain({}, '')
-        # fix default domain
-        defaultMetadata = reader.metadataDomain('')
-        writer.setMetadataDomain({}, '')
-        for key, value in defaultMetadata.items():
-            if not key.startswith('Band'):
-                writer.setMetadataItem(key, value)
-        # band metadata
-        for i, bandNo in enumerate(bandList):
-            writer.setMetadata(reader.metadata(bandNo), i + 1)
-        # this needs to come last, otherwise GDAL will mess up the 'Band_*' items!
-        for i, bandNo in enumerate(bandList):
-            writer.setMetadataItem(f'Band_{i + 1}', defaultMetadata.get(f'Band_{bandNo}'))

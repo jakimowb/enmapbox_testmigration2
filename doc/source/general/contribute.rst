@@ -8,7 +8,7 @@ and particularly developed to handle data from the EnMAP sensor.
 
 The EnMAP-Box source code is hosted in a public git repository at https://bitbucket.org/hu-geomatics/enmap-box.
 
-Approved `QGIS plugin <www.qgis.org>`_ versions (“production releases”) are available in the QGIS Plugin Repository https://plugins.qgis.org/plugins/enmap-box.
+Approved `QGIS plugin <www.qgis.org>`_ versions (“production releases”) are available in the QGIS Plugin Repository https://plugins.qgis.org/plugins/enmapboxplugin/.
 
 
 The development of the EnMAP-Box is funded within the EnMAP scientific preparation program under the
@@ -30,7 +30,7 @@ following rules before submitting:
 
 *  Verify that your issue is not being currently addressed by other
    `issues <https://bitbucket.org/hu-geomatics/enmap-box/issues?q=>`_
-   or `pull requests <https://bitbucket.org/hu-geomatics/enmap-box/pull-requests?>`_.
+   or `pull requests <https://bitbucket.org/hu-geomatics/enmap-box/pull-requests/>`_.
 
 *  If you are submitting a bug report, please:
 
@@ -74,35 +74,71 @@ If your are not an EnMAP-Box core developer, the preferred way to contribute you
 1. Create a fork on Bitbucket
 .............................
 
-Forking the EnMAP-box repository allows you to modify the EnMAP-Box code as you like and backup your contributions on a separated
-Bitbucket repository
+Forking the EnMAP-box repository allows you to modify the EnMAP-Box code as you like and backup your contributions in a
+separated Bitbucket repository. To create a fork,
+
+1. log in to bitbucket.org and visit https://bitbucket.org/hu-geomatics/enmap-box
+
+2. Click '+' and `Fork this repository`
+
+3. Select a name and workspace for your EnMAP-Box fork, hereafter called *enmap-box-fork*
+
+  .. raw:: html
+
+     <div><video width="90%" controls muted><source src="../_static/videos/forking.1.create.fork.mp4"
+                type="video/mp4">Your browser does not support HTML5 video.</video>
+     <p><i>Create an EnMAP-Box fork in bitbucket.org</i></p></div>
+
 
 Please read https://confluence.atlassian.com/bitbucket/forking-a-repository-221449527.html for details how you can create your own fork
 of the EnMAP-Box repository.
 
+Please note that forking in bitbucket.org does not copy git lfs tracked files: https://support.atlassian.com/bitbucket-cloud/docs/current-limitations-for-git-lfs-with-bitbucket/#Git-LFS-files-are-not-copied-when-a-repo-is-forked
 
 .. _contribute_clone:
 
 2. Clone the forked EnMAP-Box repository
 ........................................
 
-Clone the forked EnMAP-Box repository *myfork* to your local disk::
+Clone *enmap-box-fork* to your local disk::
 
-    $ git clone git@bitbucket.com/myusername/myfork.git
-    $ cd enmapbox
+    git clone git@bitbucket.com/myusername/enmap-box-fork.git -n
 
-Now install python requirements and run the initial setup for the EnMAP-Box repository, as described in :ref:`dev_installation`
+You might see some git lfs errors. Ignore them.
 
+Go into the repository folder and force to checkout the *develop* branch.
+
+    cd enmap-box-fork
+    git checkout develop -f
+
+You can ignore *smuge errors*.
 Add the EnMAP-Box repository as *upstream* repository::
 
-    $ git remote add upstream https://bitbucket.org/hu-geomatics/enmap-box
+    git remote add upstream https://bitbucket.org/hu-geomatics/enmap-box
+
+
+Now fetch *git lfs* files from the upstream directory::
+
+    git lfs fetch upstream
 
 
 .. note::
-    From now on, you can synchronize the master branch of your forked repository with the EnMAP-Box repository by::
 
-    $ git checkout master
-    $ git pull upstream master
+    From now on, you can synchronize your fork with the EnMAP-Box repository by::
+
+        $git fetch upstream develop
+        $git merge upstream/develop
+
+    to get the latest updates from the *develop* branch. Call::
+
+        $git push
+
+    to upload them to the remote bitbucket.com/myusername/enmap-box-fork.git
+
+Now install python requirements and run the initial setup for the EnMAP-Box repository, as described in :ref:`dev_installation`
+
+
+
 
 
 .. _contribute_modify:
@@ -110,7 +146,7 @@ Add the EnMAP-Box repository as *upstream* repository::
 3. Modify the local repository
 ..............................
 
-Now you can start your own feature branch 'my_modifications'::
+As you like, you can continue modifying the EnMAP-Box code in the *develop* branch or create a new one 'my_modifications'::
 
     $ git checkout -b my_modifications
 
@@ -133,7 +169,7 @@ Even better, use GnuPG-signed commits (-S).
 5. Push changes back to your fork
 .................................
 
-The pull request informs us on the changes you like to bring into the EnMAP-Box::
+A push will upload your changes to bitbucket.com/myusername/enmap-box-fork.git::
 
     $ git push
 
@@ -156,9 +192,11 @@ Before you create a pull request, please check the following:
 
 * make sure your name is listed in the :code:`CONTRIBUTORS.md`
 
-* update your feature branch to the  current EnMAP-Box master branch::
+* update your feature branch to the current EnMAP-Box *develop* branch::
 
-        git fetch origin
+        git fetch upstream develop
+        git merge upstream/develop
+
 
 * rebase your changes and push them to your forked repository::
 

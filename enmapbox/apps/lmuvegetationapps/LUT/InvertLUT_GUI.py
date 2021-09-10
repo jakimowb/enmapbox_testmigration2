@@ -22,6 +22,8 @@
     along with this software. If not, see <http://www.gnu.org/licenses/>.
 ***************************************************************************
 """
+from qgis._gui import QgsMapLayerComboBox
+from qgis._core import QgsMapLayerProxyModel
 
 import sys
 import os
@@ -39,11 +41,15 @@ pathUI_prgbar = os.path.join(APP_DIR, 'Resources/UserInterfaces/ProgressBar.ui')
 
 
 class GlobalInversionGUI(QDialog):
-
+    mLayerImage: QgsMapLayerComboBox
+    mLayerGeometry: QgsMapLayerComboBox
+    mLayerMask: QgsMapLayerComboBox
     def __init__(self, parent=None):
         super(GlobalInversionGUI, self).__init__(parent)
         loadUi(pathUI_inversion, self)
-
+        self.mLayerImage.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mLayerGeometry.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mLayerMask.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
 class SelectWavelengthsGUI(QDialog):
 
@@ -108,12 +114,18 @@ class GlobalInversion:
 
         self.lut_path = None
         self.wl = None
+        self.addItemImage, self.addItemGeometry, self.addItemMask = ([], [], [])
+        self.gui.mLayerImage.setLayer(None)
+        self.gui.mLayerGeometry.setLayer(None)
+        self.gui.mLayerMask.setLayer(None)
 
     def connections(self):
         # Input Images
-        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="image"))
+        self.gui.mLayerImage.layerChanged.connect(lambda: self.open_file(mode="imgDropdown"))
+        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="imgSelect"))
         self.gui.cmdInputLUT.clicked.connect(lambda: self.open_file(mode="lut"))
-        self.gui.cmdInputMask.clicked.connect(lambda: self.open_file(mode="mask"))
+        self.gui.mLayerMask.layerChanged.connect(lambda: self.open_file(mode="maskDropdown"))
+        self.gui.cmdInputMask.clicked.connect(lambda: self.open_file(mode="maskSelect"))
 
         # Output Images
         self.gui.cmdOutputImage.clicked.connect(lambda: self.open_file(mode="output"))
@@ -121,7 +133,8 @@ class GlobalInversion:
         self.gui.radOutIndividual.clicked.connect(lambda: self.select_outputmode(mode="individual"))
 
         # Geometry
-        self.gui.cmdGeoFromFile.clicked.connect(lambda: self.open_file(mode="geo"))
+        self.gui.mLayerGeometry.layerChanged.connect(lambda: self.open_file(mode="geoDropdown"))
+        self.gui.cmdGeoFromFile.clicked.connect(lambda: self.open_file(mode="geoSelect"))
         self.gui.radGeoFromFile.clicked.connect(lambda: self.select_geo(mode="file"))
         self.gui.radGeoFix.clicked.connect(lambda: self.select_geo(mode="fix"))
         self.gui.chkMeanCalc.clicked.connect(lambda: self.geo_mean_calc())
@@ -145,32 +158,39 @@ class GlobalInversion:
         self.gui.cmdClose.clicked.connect(lambda: self.gui.close())
 
     def open_file(self, mode):
-        if mode == "image":  # open file is a spectral image
-            result = str(QFileDialog.getOpenFileName(caption='Select Input Image')[0])
-            if not result:
-                return
-            self.image = result
-            try:
-                meta = self.get_image_meta(image=self.image, image_type="Input Image")  # get metadata of image
-                self.nodat[0], self.nbands, self.nrows, self.ncols, self.wl, self.wunit = meta
-            except ValueError as e:
-                self.abort(message=str(e))
-                return
-            if None in meta:  # something went wrong, go back to default
+        if mode == "imgSelect":
+            if self.image is not None:
                 self.image = None
-                self.nodat[0] = -999
-                self.gui.lblInputImage.setText("")
+            bsq_input = QFileDialog.getOpenFileName(caption='Select Input Image', filter="ENVI Image (*.bsq)")[0]
+            if not bsq_input:
                 return
+            self.addItemImage.append(bsq_input)
+            self.gui.mLayerImage.setAdditionalItems(self.addItemImage)
+            self.gui.mLayerImage.setCurrentText(bsq_input)
+
+            self.image = bsq_input
+            self.image_read()
+
+        elif mode == "imgDropdown":
+            if self.image is not None:
+                self.image = None
+            if self.gui.mLayerImage.currentLayer() is not None:
+                input = self.gui.mLayerImage.currentLayer()
+                bsq_input = input.source()
+            elif len(self.gui.mLayerImage.currentText()) > 0:
+                bsq_input = self.gui.mLayerImage.currentText()
             else:
-                self.gui.lblInputImage.setText(result)
-                self.gui.lblNodatImage.setText(str(self.nodat[0]))
-                # default wavelength ranges to be excluded are defined in __init__ and now with the metadata
-                # of the spectral image, the respective "exclude bands" can be found
-                self.exclude_bands = [i for i in range(len(self.wl)) if self.wl[i] < 400 or self.wl[i] > 2500
-                                      or self.exclude_wavelengths[0][0] <= self.wl[i] <= self.exclude_wavelengths[0][1]
-                                      or self.exclude_wavelengths[1][0] <= self.wl[i] <= self.exclude_wavelengths[1][1]]
-                self.gui.txtExclude.setText(" ".join(str(i) for i in self.exclude_bands))  # join to string for lineEdit
-                self.gui.txtExclude.setCursorPosition(0)
+                self.image = None
+                return
+            self.image = bsq_input
+            self.image_read()
+
+        elif mode == "output":
+            result = QFileDialog.getSaveFileName(caption='Specify Output File',
+                                                 filter="ENVI Image (*.bsq)")[0]
+            self.out_path = result
+            self.out_path = self.out_path.replace("\\", "/")
+            self.gui.txtOutputImage.setText(result)
 
         elif mode == "lut":  # file open is a lut-metafile
             result = str(QFileDialog.getOpenFileName(caption='Select LUT meta-file', filter="LUT-file (*.lut)")[0])
@@ -190,14 +210,7 @@ class GlobalInversion:
                 self.gui.radGeoFix.setDisabled(False)
                 self.gui.radGeoFromFile.setDisabled(False)
 
-        elif mode == "output":  # open file for output raster
-            result = QFileDialog.getSaveFileName(caption='Specify Output-file(s)', filter="ENVI Image (*.bsq)")[0]
-            if not result:
-                return
-            self.out_path = result
-            self.gui.txtOutputImage.setText(result)
-
-        elif mode == "geo":  # open file is a geometry file
+        elif mode == "geoSelect":  # open file is a geometry file
             result = str(QFileDialog.getOpenFileName(caption='Select Geometry Image')[0])
             if not result:
                 return
@@ -206,16 +219,41 @@ class GlobalInversion:
             if None in meta:
                 self.geo_file = None
                 self.nodat[1] = -999
-                self.gui.lblGeoFromFile.setText("")
                 return
             else:
-                self.gui.lblGeoFromFile.setText(result)
                 self.gui.lblNodatGeoImage.setText(str(meta[0]))
                 self.gui.chkMeanCalc.setDisabled(False)
                 self.gui.chkMeanCalc.setChecked(True)
                 self.nodat[1] = meta[0]
 
-        elif mode == "mask":  # open file of type mask image (0 and 1)
+                self.addItemGeometry.append(result)
+                self.gui.mLayerGeometry.setAdditionalItems(self.addItemGeometry)
+                self.gui.mLayerGeometry.setCurrentText(result)
+
+        elif mode == "geoDropdown":
+            if self.geo_file is not None:
+                self.geo_file = None
+            if self.gui.mLayerGeometry.currentLayer() is not None:
+                ginput = self.gui.mLayerGeometry.currentLayer()
+                geo_input = ginput.source()
+            elif len(self.gui.mLayerGeometry.currentText()) > 0:
+                geo_input = self.gui.mLayerGeometry.currentText()
+            else:
+                self.geo_file = None
+                return
+            self.geo_file = geo_input
+            meta = self.get_image_meta(image=self.geo_file, image_type="Geometry Image")
+            if None in meta:
+                self.geo_file = None
+                self.nodat[1] = -999
+                return
+            else:
+                self.gui.lblNodatGeoImage.setText(str(meta[0]))
+                self.gui.chkMeanCalc.setDisabled(False)
+                self.gui.chkMeanCalc.setChecked(True)
+                self.nodat[1] = meta[0]
+
+        elif mode == "maskSelect":  # open file of type mask image (0 and 1)
             result = str(QFileDialog.getOpenFileName(caption='Select Mask Image')[0])
             if not result:
                 return
@@ -223,10 +261,49 @@ class GlobalInversion:
             meta = self.get_image_meta(image=self.mask_image, image_type="Mask Image")
             if meta[1] is None:  # No Data is unimportant for mask file, but dimensions must exist (image readable)
                 self.mask_image = None
-                self.gui.lblInputMask.setText("")
                 return
             else:
-                self.gui.lblInputMask.setText(result)
+                self.addItemMask.append(result)
+                self.gui.mLayerMask.setAdditionalItems(self.addItemMask)
+                self.gui.mLayerMask.setCurrentText(result)
+
+        elif mode == "maskDropdown":
+            if self.mask_image is not None:
+                self.mask_image = None
+            if self.gui.mLayerMask.currentLayer() is not None:
+                minput = self.gui.mLayerMask.currentLayer()
+                mask_input = minput.source()
+            elif len(self.gui.mLayerMask.currentText()) > 0:
+                mask_input = self.gui.mLayerMask.currentText()
+            else:
+                self.mask_image = None
+                return
+            self.mask_image = mask_input
+            meta = self.get_image_meta(image=self.mask_image, image_type="Mask Image")
+            if meta[1] is None:  # No Data is unimportant for mask file, but dimensions must exist (image readable)
+                self.mask_image = None
+                return
+
+    def image_read(self):
+        try:
+            meta = self.get_image_meta(image=self.image, image_type="Input Image")  # get metadata of image
+            self.nodat[0], self.nbands, self.nrows, self.ncols, self.wl, self.wunit = meta
+        except ValueError as e:
+            self.abort(message=str(e))
+            return
+        if None in meta:
+            self.image = None
+            self.nodat[0] = None
+            return
+        else:
+            self.gui.lblNodatImage.setText(str(meta[0]))
+            self.gui.txtNodatOutput.setText(str(meta[0]))
+            self.nodat[0] = meta[0]
+            self.exclude_bands = [i for i in range(len(self.wl)) if self.wl[i] < 400 or self.wl[i] > 2500
+                                  or self.exclude_wavelengths[0][0] <= self.wl[i] <= self.exclude_wavelengths[0][1]
+                                  or self.exclude_wavelengths[1][0] <= self.wl[i] <= self.exclude_wavelengths[1][1]]
+            self.gui.txtExclude.setText(" ".join(str(i) for i in self.exclude_bands))  # join to string for lineEdit
+            self.gui.txtExclude.setCursorPosition(0)
 
     def select_outputmode(self, mode):
         self.out_mode = mode
@@ -234,13 +311,16 @@ class GlobalInversion:
     def select_geo(self, mode):
         # sets objects in the GUI according to the Geo-mode: is geometry read from file or fixed manually?
         if mode == "file":
-            self.gui.lblGeoFromFile.setDisabled(False)
+            self.gui.chkMeanCalc.setDisabled(False)
+            self.gui.mLayerGeometry.setDisabled(False)
             self.gui.cmdGeoFromFile.setDisabled(False)
             self.gui.txtSZA.setDisabled(True)
             self.gui.txtOZA.setDisabled(True)
             self.gui.txtRAA.setDisabled(True)
         if mode == "fix":
-            self.gui.lblGeoFromFile.setDisabled(True)
+            self.gui.chkMeanCalc.setDisabled(True)
+            self.gui.mLayerGeometry.setDisabled(True)
+            self.gui.mLayerGeometry.setLayer(None)
             self.gui.cmdGeoFromFile.setDisabled(True)
             self.gui.txtSZA.setDisabled(False)
             self.gui.txtOZA.setDisabled(False)

@@ -79,8 +79,8 @@ class FeatureClusteringHierarchicalAlgorithm(EnMAPProcessingAlgorithm):
             cluster_hierarchy = list()
             feature_subset_hierarchy = list()
             n = len(corr_linkage)
-            for i, t in enumerate(reversed(corr_linkage[:, 2])):
-                feedback.setProgress(i / n)
+            for i, t in enumerate(reversed(corr_linkage[:, 2]), 1):
+                feedback.setProgress(i / n * 100)
                 # print(round(i/n*100,1), end='%..', flush=True)
 
                 # cluster hierarchy

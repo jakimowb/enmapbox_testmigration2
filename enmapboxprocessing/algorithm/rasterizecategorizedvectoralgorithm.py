@@ -120,7 +120,7 @@ class RasterizeCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
                 array = RasterReader(classification).array()
                 marray = RasterReader(coverageRaster).array()[0] < minCoverage
                 array[0][marray] = 0
-                driver = Driver(filename, self.GTiffFormat, self.TiledAndCompressedGTiffCreationOptions, feedback2)
+                driver = Driver(filename, self.GTiffFormat, self.DefaultGTiffCreationOptions, feedback2)
                 driver.createFromArray(array, grid.extent(), grid.crs())
 
             # setup renderer
@@ -170,8 +170,8 @@ class RasterizeCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
         with edit(vector2):
             vector2.addAttribute(QgsField(fieldName, QVariant.Int))
             vector2.updateFields()
-            for i, feature in enumerate(vector2.getFeatures()):
-                feedback.setProgress(i / n)
+            for i, feature in enumerate(vector2.getFeatures(), 1):
+                feedback.setProgress(i / n * 100)
                 feature.setAttribute(feature.fieldNameIndex(fieldName), idOfValue.get(str(feature[fieldIndex]), 0))
                 vector2.updateFeature(feature)
 

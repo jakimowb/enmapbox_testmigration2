@@ -1,16 +1,13 @@
 from enum import Enum
 from os import makedirs
-from os.path import isabs, join, dirname, exists
+from os.path import isabs, join, dirname, exists, splitext
 from time import time
 from typing import Any, Dict, Iterable, Optional, List, Tuple, TextIO
 
 import numpy as np
 from osgeo import gdal
-
-from enmapboxprocessing.glossary import injectGlossaryLinks
-from typeguard import typechecked
 from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
-                        QgsProcessingParameterRasterDestination, QgsProcessingContext, QgsProcessingFeedback,
+                        QgsProcessingContext, QgsProcessingFeedback,
                         QgsRasterLayer, QgsVectorLayer, QgsProcessingParameterNumber, QgsProcessingParameterDefinition,
                         QgsProcessingParameterField, QgsProcessingParameterBoolean, QgsProcessingParameterEnum, Qgis,
                         QgsProcessingParameterString, QgsProcessingParameterBand, QgsCategorizedSymbolRenderer,
@@ -18,11 +15,18 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterExtent, QgsCoordinateReferenceSystem, QgsRectangle,
                         QgsProcessingParameterFileDestination, QgsProcessingParameterFile, QgsProcessingParameterRange,
                         QgsProcessingParameterCrs, QgsProcessingParameterVectorDestination, QgsProcessing,
-                        QgsProcessingUtils, QgsProcessingParameterMultipleLayers)
-import processing
+                        QgsProcessingUtils, QgsProcessingParameterMultipleLayers, QgsProcessingException,
+                        QgsProcessingParameterFolderDestination)
 
+import processing
+from enmapboxprocessing.glossary import injectGlossaryLinks
+from enmapboxprocessing.parameter.processingparametercodeeditwidget import ProcessingParameterCodeEditWidgetWrapper
+from enmapboxprocessing.parameter.processingparametercreationprofilewidget import \
+    ProcessingParameterCreationProfileWidgetWrapper
+from enmapboxprocessing.parameter.processingparameterrasterdestination import ProcessingParameterRasterDestination
 from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
+from typeguard import typechecked
 
 
 class AlgorithmCanceledException(Exception):
@@ -31,19 +35,6 @@ class AlgorithmCanceledException(Exception):
 
 @typechecked
 class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
-    O_CREATION_PROFILE = ['GeoTiff', 'Compressed GeoTiff', 'Tiled GeoTiff', 'Tiled and compressed GeoTiff',
-                          'ENVI BSQ', 'ENVI BIL', 'ENVI BIP', 'Virtual Raster']
-    GTiffProfile, CompressedGTiffProfile, TiledGTiffProfile, TiledAndCompressedGTiffProfile, EnviBsqProfile, \
-    EnviBilProfile, EnviBipProfile, VrtProfile = range(8)
-    GTiffFormat, EnviFormat, VrtFormat = ['GTiff', 'ENVI', 'VRT']
-    GTiffCreationOptions = ['INTERLEAVE=BAND']
-    CompressedGTiffCreationOptions = 'INTERLEAVE=BAND COMPRESS=LZW PREDICTOR=2 BIGTIFF=YES'.split()
-    TiledGTiffCreationOptions = 'INTERLEAVE=BAND TILED=YES'.split()
-    TiledAndCompressedGTiffCreationOptions = 'INTERLEAVE=BAND COMPRESS=LZW PREDICTOR=2 TILED=YES BIGTIFF=YES'.split()
-    EnviBsqCreationOptions = 'INTERLEAVE=BSQ'.split()
-    EnviBilCreationOptions = 'INTERLEAVE=BIL'.split()
-    EnviBipCreationOptions = 'INTERLEAVE=BIP'.split()
-    VrtCreationOptions = ['']
     O_RESAMPLE_ALG = 'NearestNeighbour Bilinear Cubic CubicSpline Lanczos Average Mode Min Q1 Med Q3 Max'.split()
     NearestNeighbourResampleAlg, BilinearResampleAlg, CubicResampleAlg, CubicSplineResampleAlg, LanczosResampleAlg, \
     AverageResampleAlg, ModeResampleAlg, MinResampleAlg, Q1ResampleAlg, MedResampleAlg, Q3ResampleAlg, \
@@ -52,11 +43,22 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     Byte, Int16, UInt16, Int32, UInt32, Float32, Float64 = range(len(O_DATA_TYPE))
     PickleFileFilter = 'Pickle (*.pkl)'
     PickleFileExtension = 'pkl'
-    PickleFileDestination = 'Output destination pickle file.'
-    RasterFileDestination = 'Output raster file destination.'
-    VectorFileDestination = 'Output vector file destination.'
+    PickleFileDestination = 'Destination pickle file.'
+    RasterFileDestination = 'Raster file destination.'
+    VectorFileDestination = 'Vector file destination.'
     ReportFileFilter = 'HTML (*.html)'
     ReportFileDestination = 'Output report file destination.'
+    FolderDestination = 'Folder destination.'
+
+    VrtFormat = 'VRT'
+    DefaultVrtCreationOptions = ''.split()
+    DefaultVrtCreationProfile = VrtFormat + ' ' + ' '.join(DefaultVrtCreationOptions)
+    GTiffFormat = 'GTiff'
+    DefaultGTiffCreationOptions = 'INTERLEAVE=BAND COMPRESS=LZW PREDICTOR=2 TILED=YES BIGTIFF=YES'.split()
+    DefaultGTiffCreationProfile = GTiffFormat + ' ' + ' '.join(DefaultGTiffCreationOptions)
+    EnviFormat = 'ENVI'
+    DefaultEnviCreationOptions = 'INTERLEAVE=BSQ'.split()
+    DefaultEnviCreationProfile = EnviFormat + ' ' + ' '.join(DefaultEnviCreationOptions)
 
     def createInstance(self):
         return type(self)()
@@ -101,12 +103,41 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             layer.loadDefaultStyle()
         return layer
 
+    def parameterAsLayerList(
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
+    ) -> Optional[List[QgsMapLayer]]:
+        layers = super().parameterAsLayerList(parameters, name, context)
+        if layers is None or len(layers) == 0:
+            return None
+        #for layer in layers:
+        #    if isinstance(layer, QgsMapLayer) and isinstance(parameters[name], str):
+        #        layer.loadDefaultStyle()
+        return layers
+
     def parameterAsRasterLayer(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsRasterLayer]:
         layer = super().parameterAsRasterLayer(parameters, name, context)
         if isinstance(layer, QgsRasterLayer) and isinstance(parameters[name], str):
             layer.loadDefaultStyle()
+        return layer
+
+    def parameterAsSpectralRasterLayer(
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext, checkWavelength=True,
+            checkFwhm=False
+    ) -> Optional[QgsRasterLayer]:
+        from enmapboxprocessing.rasterreader import RasterReader
+
+        layer = self.parameterAsRasterLayer(parameters, name, context)
+        if layer is not None:
+            if checkWavelength:
+                if not RasterReader(layer).isSpectralRasterLayer():
+                    message = f'Missing wavelength definition for spectral raster layer: {name}'
+                    raise QgsProcessingException(message)
+            if checkFwhm:
+                if not RasterReader(layer).isSpectralRasterLayer():
+                    message = f'Missing FWHM definition for spectral raster layer: {name}'
+                    raise QgsProcessingException(message)
         return layer
 
     def parameterAsVectorLayer(
@@ -150,6 +181,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsString(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> Optional[str]:
         string = super().parameterAsString(parameters, name, context)
         if string == '':
+            if isinstance(parameters.get(name), str):  # workaround a QGIS bug, where super().parameterAsString would return an empty string instead of the actual string
+                return parameters.get(name)
             return None
         return string
 
@@ -160,6 +193,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             return self.parameterDefinition(name).defaultValue()
         else:
             return super().parameterAsDouble(parameters, name, context)
+
+    parameterAsFloat = parameterAsDouble
 
     def parameterAsInt(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> Optional[int]:
         if self.parameterIsNone(parameters, name):
@@ -181,6 +216,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         string = self.parameterAsString(parameters, name, context)
         if string is None:
             return None
+        string = string.replace('\n', '')
         values = eval(string)
         if not isinstance(values, (tuple, list)):
             values = [values]
@@ -213,7 +249,10 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsCrs(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> QgsCoordinateReferenceSystem:
-        return super().parameterAsCrs(parameters, name, context)
+        if self.parameterIsNone(parameters, name):
+            return self.parameterDefinition(name).defaultValue()
+        else:
+            return super().parameterAsCrs(parameters, name, context)
 
     def parameterAsExtent(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext,
@@ -241,20 +280,30 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         return getattr(gdal, f'GRA_{label}')
 
     def parameterAsCreationProfile(
-            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext, filename: str
     ) -> Tuple[str, CreationOptions]:
-        index = self.parameterAsInt(parameters, name, context)
-        format, options = [
-            ('GTiff', 'INTERLEAVE=BAND'),
-            ('GTiff', 'INTERLEAVE=BAND COMPRESS=LZW PREDICTOR=2 BIGTIFF=YES'),
-            ('GTiff', 'INTERLEAVE=BAND TILED=YES'),
-            ('GTiff', 'INTERLEAVE=BAND COMPRESS=LZW PREDICTOR=2 TILED=YES BIGTIFF=YES'),
-            ('ENVI', 'INTERLEAVE=BSQ'),
-            ('ENVI', 'INTERLEAVE=BIL'),
-            ('ENVI', 'INTERLEAVE=BIP'),
-            ('VRT', '')
-        ][index]
-        return format, options.split()
+        text = self.parameterAsString(parameters, name, context)
+        if text is None:
+            extension = splitext(filename)[1].lower()
+            defaultCreationProfilesByExtension = {
+                '.tif': self.DefaultGTiffCreationProfile,
+                '.bsq': 'ENVI INTERLEAVE=BSQ',
+                '.bil': 'ENVI INTERLEAVE=BIL',
+                '.bip': 'ENVI INTERLEAVE=BIP',
+                '.vrt': self.DefaultVrtCreationProfile,
+            }
+            text = defaultCreationProfilesByExtension[extension]
+        format, *options = text.split()
+
+        # check that extension is correct
+        extension = splitext(filename)[1]
+        extensions = {'VRT': '.vrt', 'ENVI': '.bsq .bil .bip', 'GTiff': '.tif'}[format].split()
+        if extension not in extensions:
+            extensions = ' '.join([f'{extension}' for extension in extensions])
+            message = f'unsupported file extension ({extension}) for format ({format}), ' \
+                      f'use {extensions} instead'
+            raise QgsProcessingException(message)
+        return format, options
 
     def parameterIsNone(self, parameters: Dict[str, Any], name: str):
         return parameters.get(name, None) is None
@@ -398,11 +447,22 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.flagParameterAsAdvanced(name, advanced)
 
     def addParameterRasterDestination(
-            self, name: str, description='Output raster', defaultValue=None, optional=False, createByDefault=True,
-            advanced=False
+            self, name: str, description: str, defaultValue=None, optional=False, createByDefault=True,
+            allowTif=True, allowEnvi=False, allowVrt=False, advanced=False
     ):
         self.addParameter(
-            QgsProcessingParameterRasterDestination(name, description, defaultValue, optional, createByDefault)
+            ProcessingParameterRasterDestination(
+                name, description, defaultValue, optional, createByDefault, allowTif, allowEnvi, allowVrt
+            )
+        )
+        self.flagParameterAsAdvanced(name, advanced)
+
+    def addParameterVrtDestination(
+            self, name: str, description: str, defaultValue=None, optional=False, createByDefault=True,
+            advanced=False
+    ):
+        self.addParameterRasterDestination(
+            name, description, defaultValue, optional, createByDefault, False, False, True, advanced
         )
         self.flagParameterAsAdvanced(name, advanced)
 
@@ -434,6 +494,17 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFileDestination(
                 name, description, fileFilter, defaultValue, optional, createByDefault
+            )
+        )
+        self.flagParameterAsAdvanced(name, advanced)
+
+    def addParameterFolderDestination(
+            self, name: str, description: str, defaultValue=None, optional=False, createByDefault=True,
+            advanced=False
+    ):
+        self.addParameter(
+            QgsProcessingParameterFolderDestination(
+                name, description, defaultValue, optional, createByDefault
             )
         )
         self.flagParameterAsAdvanced(name, advanced)
@@ -506,6 +577,15 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterString(name, description, defaultValue, multiLine, optional))
         self.flagParameterAsAdvanced(name, advanced)
 
+    def addParameterCode(
+            self, name: str, description: str, defaultValue=None, optional=False, advanced=False
+    ):
+        param = QgsProcessingParameterString(name, description, optional=optional)
+        param.setMetadata({'widget_wrapper': {'class': ProcessingParameterCodeEditWidgetWrapper}})
+        param.setDefaultValue(defaultValue)
+        self.addParameter(param)
+        self.flagParameterAsAdvanced(name, advanced)
+
     def addParameterDataType(
             self, name: str, description='Data type', defaultValue: int = None, optional=False,
             advanced=False
@@ -514,13 +594,13 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameterEnum(name, description, options, False, defaultValue, optional, advanced)
 
     def addParameterCreationProfile(
-            self, name: str, description='Output options', defaultValue=0, advanced=False, allowVrt=False
+            self, name: str, description='Output options', defaultValue: str = None, optional=False, advanced=False
     ):
-        if allowVrt:
-            options = self.O_CREATION_PROFILE
-        else:
-            options = self.O_CREATION_PROFILE[:-1]
-        self.addParameterEnum(name, description, options, False, defaultValue=defaultValue, advanced=advanced)
+        param = QgsProcessingParameterString(name, description, optional=optional)
+        param.setMetadata({'widget_wrapper': {'class': ProcessingParameterCreationProfileWidgetWrapper}})
+        param.setDefaultValue(defaultValue)
+        self.addParameter(param)
+        self.flagParameterAsAdvanced(name, advanced)
 
     def addParameterResampleAlg(
             self, name: str, description='Resample algorithm', defaultValue=0, optional=False, advanced=False
@@ -577,7 +657,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         return f'<b>{text}</b>'
 
     @classmethod
-    def htmlLink(cls, link: str, text: str=None) -> str:
+    def htmlLink(cls, link: str, text: str = None) -> str:
         if text is None:
             text = link
         return '<a href="' + link + '">' + text + '</a>'
@@ -605,16 +685,17 @@ class Group(Enum):
     Classification = 'Classification'
     Clustering = 'Clustering'
     DatasetCreation = 'Dataset creation'
+    Experimental = 'Experimental'
     FeatureSelection = 'Feature selection'
     ImportData = 'Import data'
     Masking = 'Masking'
     Options = 'Options'
     Preprocessing = 'Pre-processing'
     Postprocessing = 'Post-processing'
-    ResamplingAndSubsetting = 'Resampling and subsetting'
+    SpectralResampling = 'Spectral resampling'
     Regression = 'Regression'
     Sampling = 'Sampling'
-    Test = '*'  # 'TEST_'
+    Test = 'TEST_'
     Testdata = 'Testdata'
     Transformation = 'Transformation'
 
