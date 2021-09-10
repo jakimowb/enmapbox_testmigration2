@@ -214,7 +214,7 @@ Install from QGIS plugin repository
 #. In the search bar enter ``enmap`` or ``EnMAP-Box 3``
 #. Now the EnMAP-Box should be listed in the plugin list:
 
-   .. figure:: ../img/pluginmanager_all.PNG
+   .. figure:: ../img/pluginmanager_all.png
 
    Select it and click :guilabel:`Install plugin` (or :guilabel:`Upgrade` in case you update to a new version)
 #. Start the EnMAP-Box via the |icon| icon or from the menubar :menuselection:`Raster --> EnMAP-Box`
