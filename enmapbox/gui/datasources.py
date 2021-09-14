@@ -42,7 +42,7 @@ from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer, \
 from qgis.gui import QgsSublayersDialog
 from enmapbox.gui.utils import SpatialExtent, SpatialPoint, guessDataProvider
 from enmapbox.gui import subLayerDefinitions, openRasterLayerSilent, \
-    SpectralLibrary, ClassificationScheme, AbstractSpectralLibraryIO
+    SpectralLibrary, ClassificationScheme
 from enmapbox import debugLog, messageLog
 from ..externals.qps.layerproperties import defaultRasterRenderer
 from ..externals.qps.utils import parseWavelength

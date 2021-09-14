@@ -58,7 +58,9 @@ from enmapbox.externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.externals.qps.maptools import QgsMapToolSelectionHandler
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
-from enmapbox.gui.spectralprofilesources import SpectralProfileSourcePanel, SpectralProfileBridge, SpectralProfileSource
+from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
+from enmapbox.externals.qps.speclib.gui.spectralprofilesources import SpectralProfileSourcePanel, SpectralProfileSource, SpectralProfileBridge
+from enmapbox.externals.qps.speclib.gui.spectrallibrarywidget import SpectralLibraryWidget
 
 HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
 
@@ -1111,8 +1113,8 @@ class EnMAPBox(QgisInterface, QObject):
             if isinstance(mapCanvas, MapCanvas) and mapCanvas != sender:
                 mapCanvas.setCrosshairPosition(spatialPoint, emitSignal=False)
 
-    def spectralProfileBridge(self) -> SpectralProfileBridge:
-        return self.ui.spectralProfileSourcePanel.bridge()
+    def spectralProfileBridge(self) -> SpectralProfileSourcePanel:
+        return self.ui.spectralProfileSourcePanel
 
     def onTaskAdded(self, taskID: int):
         """
@@ -1145,7 +1147,7 @@ class EnMAPBox(QgisInterface, QObject):
             slw = dock.speclibWidget()
             assert isinstance(slw, SpectralLibraryWidget)
             slw.plotWidget().backgroundBrush().setColor(QColor('black'))
-            self.spectralProfileBridge().addDestination(slw)
+            self.spectralProfileBridge().addSpectralLibraryWidgets(slw)
             slw.sigFilesCreated.connect(self.addSources)
             # self.dataSourceManager().addSource(slw.speclib())
             # self.mapLayerStore().addMapLayer(slw.speclib(), addToLegend=False)
