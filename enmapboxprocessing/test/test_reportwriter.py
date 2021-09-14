@@ -7,8 +7,8 @@ from enmapboxprocessing.reportwriter import HtmlReportWriter, CsvReportWriter, M
 class TestReportWriter(TestCase):
 
     def test(self):
-        filenameHtml = 'c:/vsimem/report.html'
-        filenameCsv = 'c:/vsimem/report.csv'
+        filenameHtml = 'c:/vsimem/reportWriter.html'
+        filenameCsv = 'c:/vsimem/reportWriter.csv'
         with open(filenameHtml, 'w') as fileHtml, open(filenameCsv, 'w') as fileCsv:
             report = MultiReportWriter([HtmlReportWriter(fileHtml), CsvReportWriter(fileCsv)])
             report.writeHeader('Header 1')

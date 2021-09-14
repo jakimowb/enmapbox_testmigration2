@@ -1,9 +1,6 @@
-from qgis._core import QgsCoordinateReferenceSystem, Qgis
-
 import numpy as np
 
 from enmapboxprocessing.driver import Driver
-from enmapboxprocessing.raster import RasterReader
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.testcase import TestCase
 
@@ -11,7 +8,8 @@ from enmapboxprocessing.test.testcase import TestCase
 class TestRasterMetadataEditor(TestCase):
 
     def setUp(self):
-        self.raster = Driver().createFromArray(np.zeros((3,1,1)))
+        self.filename = 'c:/vsimem/raster.tif'
+        self.raster = Driver(self.filename).createFromArray(np.zeros((3, 1, 1)))
 
     def reopen(self):
         uri = self.raster.source()

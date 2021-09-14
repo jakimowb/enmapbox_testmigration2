@@ -17,6 +17,6 @@ class TestImportSentinel2L2AAlgorithm(TestCase):
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(
-            -20444949162,
-            np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(bandList=[1]), dtype=float)
+            8774,
+            round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(5000, 5000, 1, 1), dtype=float))
         )

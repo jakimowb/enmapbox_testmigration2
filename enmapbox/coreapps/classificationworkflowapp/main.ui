@@ -108,7 +108,7 @@
                <bool>false</bool>
               </property>
               <property name="currentRow">
-               <number>-1</number>
+               <number>0</number>
               </property>
               <item>
                <property name="text">
@@ -3101,8 +3101,8 @@ p, li { white-space: pre-wrap; }
    <slot>setCurrentIndex(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>210</x>
-     <y>126</y>
+     <x>199</x>
+     <y>120</y>
     </hint>
     <hint type="destinationlabel">
      <x>378</x>

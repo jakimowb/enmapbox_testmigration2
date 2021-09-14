@@ -203,11 +203,14 @@ class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
 
             # add polygon attributes to each point (extremly redundant, but we want all data in one table)
             provider: QgsVectorDataProvider = locationVector.dataProvider()
-            fields = [QgsField(field) for field in vector.fields()]
+            fields = [QgsField(field) for field in vector.fields()
+                      if field.name() not in ['fid', 'temp_fid']]
             refs.append(fields)
             provider.addAttributes(fields)
             locationVector.updateFields()
-            polygonFeatureAttributes = polygonFeature.attributes()
+
+            polygonFeatureAttributes = [value for field, value in zip(vector.fields(), polygonFeature.attributes())
+                                        if field.name() not in ['fid', 'temp_fid']]
             with edit(locationVector):
                 pointFeature: QgsFeature
                 for pointFeature in locationVector.getFeatures():

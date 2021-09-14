@@ -10,10 +10,10 @@ class TestExtentWalker(TestCase):
 
     def test_walkGrid_byLinewise(self):
         size = QSize(3, 2)
-        pixelSize = QSizeF(30, 30)
-        extent = QgsRectangle(0, 0, size.width() * pixelSize.width(), size.height() * pixelSize.height())
-        blockSize = QSize(3, 1)
-        gridWalker = GridWalker(extent, blockSize, pixelSize)
+        pixelSizeX, pixelSizeY = 30, 30
+        extent = QgsRectangle(0, 0, size.width() * pixelSizeX, size.height() * pixelSizeY)
+        blockSizeX, blockSizeY = 3, 1
+        gridWalker = GridWalker(extent, blockSizeX, blockSizeY, pixelSizeX, pixelSizeY)
         self.assertEqual(gridWalker.nBlocksX(), 1)
         self.assertEqual(gridWalker.nBlocksY(), 2)
         gold = '[<QgsRectangle: 0 30, 90 60>, <QgsRectangle: 0 0, 90 30>]'

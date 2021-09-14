@@ -40,6 +40,7 @@ class ProcessingFeedback(QgsProcessingFeedback):
 
     def pushInfo(self, info):
         if self._pushInfo:
+            info = str(info)
             self.feedback.pushInfo(info)
             self.log(info)
         else:

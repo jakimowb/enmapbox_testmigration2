@@ -14,4 +14,6 @@ class TestImportEnmapL1CAlgorithm(TestCase):
             alg.P_OUTPUT_RASTER: 'c:/vsimem/enmapL1C.vrt',
         }
         result = self.runalg(alg, parameters)
-        self.assertEqual(68448, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(bandList=[1]), dtype=float))
+        self.assertEqual(
+            68448, round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(bandList=[1]), dtype=float))
+        )

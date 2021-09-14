@@ -128,6 +128,7 @@ from enmapboxprocessing.algorithm.spectralresamplingtosentinel2algorithm import 
 from enmapboxprocessing.algorithm.synthmixalgorithm import SynthMixAlgorithm
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
+from enmapboxprocessing.test.parameter.test_RasterMathCodeEditWidget import TestRasterMathCodeEditWidgetAlgorithm
 
 
 def algorithms():
@@ -229,10 +230,10 @@ def algorithms():
         TranslateCategorizedRasterAlgorithm(),
         TranslateRasterAlgorithm()
     ]
-    if not True:  # include test algos for custom processing parameters
+    if True:  # include test algos for custom processing parameters
         pass
-    # ExperimentalCustomColor(),
-    # algos.append(TestCodeEditWidgetAlgorithm())
-    # algos.append(TestRasterMathCodeEditWidgetAlgorithm())
+        # ExperimentalCustomColor(),
+        #algos.append(TestCodeEditWidgetAlgorithm())
+        algos.append(TestRasterMathCodeEditWidgetAlgorithm())
 
     return algos

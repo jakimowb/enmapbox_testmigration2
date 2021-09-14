@@ -39,7 +39,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     NearestNeighbourResampleAlg, BilinearResampleAlg, CubicResampleAlg, CubicSplineResampleAlg, LanczosResampleAlg, \
     AverageResampleAlg, ModeResampleAlg, MinResampleAlg, Q1ResampleAlg, MedResampleAlg, Q3ResampleAlg, \
     MaxResampleAlg = range(12)
-    O_DATA_TYPE = 'Byte Int16 UInt16 Int32 UInt32 Float32 Float64'.split()
+    O_DATA_TYPE = 'Byte Int16 UInt16 UInt32 Int32 Float32 Float64'.split()
     Byte, Int16, UInt16, Int32, UInt32, Float32, Float64 = range(len(O_DATA_TYPE))
     PickleFileFilter = 'Pickle (*.pkl)'
     PickleFileExtension = 'pkl'
@@ -55,6 +55,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     DefaultVrtCreationProfile = VrtFormat + ' ' + ' '.join(DefaultVrtCreationOptions)
     GTiffFormat = 'GTiff'
     DefaultGTiffCreationOptions = 'INTERLEAVE=BAND COMPRESS=LZW PREDICTOR=2 TILED=YES BIGTIFF=YES'.split()
+    DefaultGTiffFloat64CreationOptions = 'INTERLEAVE=BAND COMPRESS=LZW TILED=YES BIGTIFF=YES'.split()
     DefaultGTiffCreationProfile = GTiffFormat + ' ' + ' '.join(DefaultGTiffCreationOptions)
     EnviFormat = 'ENVI'
     DefaultEnviCreationOptions = 'INTERLEAVE=BSQ'.split()
@@ -200,7 +201,10 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         if self.parameterIsNone(parameters, name):
             return self.parameterDefinition(name).defaultValue()
         else:
-            return super().parameterAsInt(parameters, name, context)
+            if isinstance(parameters[name], int):
+                return parameters[name]
+            else:
+                return super().parameterAsInt(parameters, name, context)
 
     def parameterAsInts(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
@@ -413,8 +417,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         self.flagParameterAsAdvanced(name, advanced)
 
     def addParameterVectorLayer(
-            self, name: str, description: str, types: Iterable[int] = None, defaultValue=None, optional=False,
-            advanced=False
+            self, name: str, description: str, types=(QgsProcessing.TypeVectorAnyGeometry, ), defaultValue=None,
+            optional=False, advanced=False
     ):
         if types is None:
             types = []
