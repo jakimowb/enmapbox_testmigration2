@@ -1,76 +1,41 @@
 import traceback
+from collections import OrderedDict, defaultdict
 from math import ceil
-from typing import Dict, Any, List, Tuple, Optional
+from os.path import basename, splitext, join, dirname
+from random import randint
+from re import finditer, Match
+from typing import Dict, Any, List, Tuple, Optional, Iterable, Union
 
 import numpy
 import numpy as np
 from mock import Mock
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsProcessing)
+from osgeo import gdal
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsProcessing,
+                        QgsProcessingParameterString, QgsProject, QgsRasterLayer, QgsProcessingParameterField,
+                        QgsProcessingParameterVectorLayer, Qgis, QgsMapLayer, QgsVectorLayer, QgsFields)
 
+from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
+from enmapboxprocessing.parameter.processingparameterrastermathcodeeditwidget import \
+    ProcessingParameterRasterMathCodeEditWidgetWrapper
+from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from enmapboxprocessing.rasterblockinfo import RasterBlockInfo
 from enmapboxprocessing.rasterreader import RasterReader
+from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.utils import Utils
-from processing import getTempFilename
+from processing import getTempFilename, Processing
 from typeguard import typechecked
 
 
 @typechecked
 class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
-    P_A = 'A'
-    P_B = 'B'
-    P_C = 'C'
-    P_D = 'D'
-    P_E = 'E'
-    P_F = 'F'
-    P_G = 'G'
-    P_H = 'H'
-    P_I = 'I'
-    P_J = 'J'
-    P_K = 'K'
-    P_L = 'L'
-    P_M = 'M'
-    P_N = 'N'
-    P_O = 'O'
-    P_P = 'P'
-    P_Q = 'Q'
-    P_R = 'R'
-    P_S = 'S'
-    P_T = 'T'
-    P_U = 'U'
-    P_V = 'V'
-    P_W = 'W'
-    P_X = 'X'
-    P_Y = 'Y'
-    P_Z = 'Z'
-    P_A_BAND = 'bandA'
-    P_B_BAND = 'bandB'
-    P_C_BAND = 'bandC'
-    P_D_BAND = 'bandD'
-    P_E_BAND = 'bandE'
-    P_F_BAND = 'bandF'
-    P_G_BAND = 'bandG'
-    P_H_BAND = 'bandH'
-    P_I_BAND = 'bandI'
-    P_J_BAND = 'bandJ'
-    P_K_BAND = 'bandK'
-    P_L_BAND = 'bandL'
-    P_M_BAND = 'bandM'
-    P_N_BAND = 'bandN'
-    P_O_BAND = 'bandO'
-    P_P_BAND = 'bandP'
-    P_Q_BAND = 'bandQ'
-    P_R_BAND = 'bandR'
-    P_S_BAND = 'bandS'
-    P_T_BAND = 'bandT'
-    P_U_BAND = 'bandU'
-    P_V_BAND = 'bandV'
-    P_W_BAND = 'bandW'
-    P_X_BAND = 'bandX'
-    P_Y_BAND = 'bandY'
-    P_Z_BAND = 'bandZ'
+    P_CODE, _CODE = 'code', 'Code'
+    P_GRID, _GRID = 'grid', 'Grid'
+    P_OVERLAP, _OVERLAP = 'overlap', 'Block overlap'
+    P_MONOLITHIC, _MONOLITHIC = 'monolithic', 'Monolithic processing'
+    P_RS, _RS = 'rasters', 'Raster layers '
     P_R1 = 'R1'
     P_R2 = 'R2'
     P_R3 = 'R3'
@@ -81,12 +46,17 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     P_R8 = 'R8'
     P_R9 = 'R9'
     P_R10 = 'R10'
-    P_CODE, _CODE = 'code', 'Code'
-    P_GRID, _GRID = 'grid', 'Grid'
-    P_OVERLAP, _OVERLAP = 'overlap', 'Block overlap'
-    P_MONOLITHIC, _MONOLITHIC = 'monolithic', 'Monolithic processing'
-    P_INPUTS, _INPUTS = 'inputs', 'INPUTS'
-
+    P_V1 = 'V1'
+    P_V2 = 'V2'
+    P_V3 = 'V3'
+    P_V4 = 'V4'
+    P_V5 = 'V5'
+    P_V6 = 'V6'
+    P_V7 = 'V7'
+    P_V8 = 'V8'
+    P_V9 = 'V9'
+    P_V10 = 'V10'
+    P_OUTPUT_RASTER = 'outputRaster'
 
     def displayName(self) -> str:
         return 'Raster math'
@@ -168,7 +138,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                              f'mask no data regions. Note that all no data, inf and nan values evaluate to False, '
                              f'and all other to True.'),
             ('Selected band', 'If specified, only the selected band is mapped with shape (1, height, width).'),
-            (self._INPUTS, 'Additional input raster layers arranged as a list of numpy arrays mapped to the '
+            (self._RS, 'Additional input raster layers arranged as a list of numpy arrays mapped to the '
                            'variable named INPUTS.\n'
                            f'The associated {linkReader} objects are stored in a variable named INPUTS_.'),
             ('R1, R2, ..., R10', 'Raster file destinations for writing the created output variables '
@@ -188,231 +158,461 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     def group(self):
         return Group.Test.value + Group.RasterCreation.value
 
-    def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterCode(self.P_CODE, self._CODE, None)
-        self.addParameterMultipleLayers(self.P_INPUTS, self._INPUTS, QgsProcessing.TypeRaster, None, True)
-        self.addParameterRasterLayer(self.P_GRID, self._GRID, optional=True)
-        self.letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        for letter in self.letters:
-            self.addParameterRasterLayer(letter, letter, None, True, False)
-            self.addParameterBand('band' + letter, 'Selected band', None, letter, True, False, False)
+    def addParameterMathCode(
+            self, name: str, description: str, defaultValue=None, optional=False, advanced=False
+    ):
+        param = QgsProcessingParameterString(name, description, optional=optional)
+        param.setMetadata({'widget_wrapper': {'class': ProcessingParameterRasterMathCodeEditWidgetWrapper}})
+        param.setDefaultValue(defaultValue)
+        self.addParameter(param)
+        self.flagParameterAsAdvanced(name, advanced)
+
+    def inputRasterNames(self):
         for i in range(1, 11):
-            self.addParameterRasterDestination(f'R{i}', f'R{i}', None, True, True)
+            yield getattr(self, f'P_R{i}'), f'Raster layer mapped to R{i}'
+
+    def inputVectorNames(self):
+        for i in range(1, 11):
+            yield getattr(self, f'P_V{i}'), f'Vector layer mapped to V{i}'
+
+    def inputRasterListNames(self):
+        i = 11  # first R1...R10 are reserved for manual selected raster layers
+        while True:
+            yield f'R{i}'
+            i += 1
+
+    def initAlgorithm(self, configuration: Dict[str, Any] = None):
+        self.addParameterMathCode(self.P_CODE, self._CODE, None)
+        self.addParameterRasterLayer(self.P_GRID, self._GRID, optional=True)
         self.addParameterInt(self.P_OVERLAP, self._OVERLAP, None, True, 0)
         self.addParameterBoolean(self.P_MONOLITHIC, self._MONOLITHIC, False, True)
+        self.addParameterMultipleLayers(self.P_RS, self._RS, QgsProcessing.TypeRaster, None, True, True)
+        for name, description in self.inputRasterNames():
+            self.addParameterRasterLayer(name, description, None, True, True)
+        for name, description in self.inputVectorNames():
+            self.addParameterVectorLayer(name, description, None, None, True, True)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output raster', None, False, True)
+
+    def prepareAlgorithm(
+            self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
+    ) -> bool:
+        self.mapLayers = {k:v for k,v in QgsProject.instance().mapLayers().items() if k in parameters[self.P_CODE]}
+        print('###', self.mapLayers)
+        return True
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
-        self.code = self.parameterAsString(parameters, self.P_CODE, context)
-        self.rasters = [self.parameterAsRasterLayer(parameters, letter, context) for letter in self.letters]
-        self.bandLists = [self.parameterAsInt(parameters, 'band' + letter, context) for letter in self.letters]
-        rasterList = self.parameterAsLayerList(parameters, self.P_INPUTS, context)
-        if rasterList is not None:
-            self.rasters.extend(rasterList)
-            self.bandLists.extend([None] * len(rasterList))
-        self.grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
-        self.filenames = [self.parameterAsFileOutput(parameters, f'R{i}', context) for i in range(1, 11)]
-        self.overlap = self.parameterAsInt(parameters, self.P_OVERLAP, context)
-        self.monolithic = self.parameterAsBoolean(parameters, self.P_MONOLITHIC, context)
+        code = self.parameterAsString(parameters, self.P_CODE, context)
+        grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
+        overlap = self.parameterAsInt(parameters, self.P_OVERLAP, context)
+        monolithic = self.parameterAsBoolean(parameters, self.P_MONOLITHIC, context)
+        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
 
-        if self.grid is None:
-            for raster in self.rasters:
+        with open(filename + '.log', 'w') as logfile:
+            feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
+            self.tic(feedback, parameters, context)
+
+            rasters = OrderedDict()  # original rasters
+            rasters2 = OrderedDict()  # resampled rasters
+
+            # get all Ri raster layers R1, ..., R10
+            for rasterName, _ in self.inputRasterNames():
+                raster = self.parameterAsRasterLayer(parameters, rasterName, context)
                 if raster is not None:
-                    self.grid = raster
-        if self.grid is None:
-            message = 'Select either a Grid or at least one input A, ..., Z or INPUTS.'
-            feedback.reportError(message, True)
-            raise QgsProcessingException()
+                    rasters[rasterName] = self.parameterAsRasterLayer(parameters, rasterName, context)
 
-        self.grid = RasterReader(self.grid)
+            # get all RS raster layers R11, ...
+            rs = self.parameterAsLayerList(parameters, self.P_RS, context)
+            if rs is not None:
+                for raster, rasterName in zip(rs, self.inputRasterListNames()):
+                    assert isinstance(raster, QgsRasterLayer)
+                    rasters[rasterName] = raster
 
-        self.format, self.options = self.GTiffFormat, self.DefaultGTiffCreationOptions
-        self.maximumMemoryUsage = Utils.maximumMemoryUsage()
+            # get all hard coded raster layer from comments
+            # <name> := QgsRasterLayer(<uri>)
+            for line in code.splitlines():
+                if line.strip().startswith('#') and ':=' in line:
+                    layerName, value = line.split(':=')
+                    layerName = layerName.strip('# ')
+                    raster = eval(value.strip())
+                    if isinstance(raster, QgsRasterLayer):
+                        rasters[layerName] = raster
 
-        logFilename = None
-        for filename in self.filenames:
-            if filename is not None:
-                logFilename = filename + '.log'
-                break
-        if logFilename is None:
-            logFilename = getTempFilename(ext='log')
+            # derive grid
+            if grid is None:
+                for raster in rasters.values():
+                    grid = raster
+                    break  # use first raster found as grid
+            if grid is None:
+                raise QgsProcessingException(f'Missing parameter value: {self._GRID}')
 
-        with open(logFilename, 'w') as logfile:
-            self.feedback, self.feedback2 = self.createLoggingFeedback(feedback, logfile)
-            self.tic(self.feedback, parameters, context)
+            # get all Vi vector layers
+            vectors = dict()
+            for vectorName, fieldName in self.inputVectorNames():
+                vector = self.parameterAsVectorLayer(parameters, vectorName, context)
+                if vector is None:
+                    continue
+                vectors[vectorName] = vector
 
-            self.initReader()
+            # get all hard coded vector layer from comments
+            # <name> := QgsVectorLayer(<uri>), <field name>
+            for line in code.splitlines():
+                if line.strip().startswith('#') and ':=' in line:
+                    layerName, value = line.split(':=')
+                    layerName = layerName.strip('# ')
+                    vector = eval(value.strip())
+                    if isinstance(raster, QgsVectorLayer):
+                        vectors[layerName] = vector
 
-            # prepare code snippet
-            lines = self.code.split('\n')
-            lines = [line for line in lines if line.strip() != '']
-            if len(lines) == 1:
-                lines[-1] = '_result = ' + lines[-1]  # this allows for simple expressions
-            self.code = '\n'.join(lines)
+            # rasterize vectors to grid
+            for vectorName in vectors:
+                vector = vectors[vectorName]
+                fields: QgsFields = vector.fields()
+                filenames = list()
+                fieldNames = list()
+                for fieldName in fields.names() + [None]:
+                    if f'{vectorName}@"{fieldName}"' not in code:
+                        if fieldName is not None:
+                            continue
 
-            self.initWriter()
+                    alg = RasterizeVectorAlgorithm()
+                    parameters = {
+                        alg.P_VECTOR: vector,
+                        alg.P_GRID: grid,
+                        alg.P_DATA_TYPE: alg.Float32,
+                        alg.P_BURN_ATTRIBUTE: fieldName,
+                        alg.P_OUTPUT_RASTER: Utils.tmpFilename(
+                            filename, f'{vectorName}_{Utils.makeBasename(str(fieldName))}.tif'
+                        )
+                    }
+                    result = self.runAlg(alg, parameters, None, feedback2, context, True)
+                    filenames.append(result[alg.P_OUTPUT_RASTER])
+                    fieldNames.append(str(fieldName))
+                stackFilename = Utils.tmpFilename(filename, f'{vectorName}.vrt')
+                ds: gdal.Dataset = gdal.BuildVRT(
+                    stackFilename, filenames, separate=True
+                )
+                writer = RasterWriter(ds)
+                for bandNo, fieldName in enumerate(fieldNames, 1):
+                    writer.setBandName(fieldName, bandNo)
+                del ds, writer
+                raster = QgsRasterLayer(stackFilename)
+                rasters[vectorName] = raster
 
-            # get block size
-            blockSizeY = min(self.grid.height(), ceil(self.maximumMemoryUsage / self.lineMemoryUsage))
-            blockSizeX = self.grid.width()
-            if self.monolithic:
-                blockSizeY = self.grid.height()
-                blockSizeX = self.grid.width()
-
-            # process
-            for block in self.grid.walkGrid(blockSizeX, blockSizeY, self.feedback):
-
-                results = self.processBlock(block)
-
-                for result, writer in zip(results, self.writers):
-                    if result is not None:
-                        writer.writeArray(result, block.xOffset, block.yOffset, overlap=self.overlap)
-
-            result = dict()
-            for i, (filename, writer) in enumerate(zip(self.filenames, self.writers), 1):
-                key = f'R{i}'
-                if writer is not None:
-                    result[key] = filename
-            self.toc(self.feedback, result)
-
-        return result
-
-    def initReader(self):
-        self.readers = list()  # original
-        self.readers2 = list()  # resampled to target grid
-        self.lineMemoryUsage = 0
-        for i, (raster, bandList) in enumerate(zip(self.rasters, self.bandLists), 1):
-            if raster is None:
-                reader = None
-                reader2 = None
-            else:
-                reader = RasterReader(raster)
-                # resample to target grid
-                if self.grid.crs() == raster.crs():
-                    reader2 = reader
-                else:
+            # translate raster layers to grid
+            for rasterName, raster in rasters.items():
+                if raster.crs() != grid.crs():
                     alg = TranslateRasterAlgorithm()
                     parameters = {
                         alg.P_RASTER: raster,
-                        alg.P_GRID: self.grid.source(),
-                        alg.P_RESAMPLE_ALG: self.NearestNeighbourResampleAlg,
+                        alg.P_GRID: grid,
                         alg.P_CREATION_PROFILE: self.DefaultVrtCreationProfile,
-                        alg.P_OUTPUT_RASTER: f'/vsimem/RasterMathAlgorithm/{i}.vrt'
+                        alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, f'{rasterName}.vrt')
                     }
-                    raster2 = self.runAlg(
-                        alg, parameters, None, self.feedback2, self.context, True
-                    )[alg.P_OUTPUT_RASTER]
-                    reader2 = RasterReader(raster2)
-                if bandList is None:
-                    self.lineMemoryUsage += reader2.lineMemoryUsage()
+                    raster2 = self.runAlg(alg, parameters, None, feedback2, context, True)[alg.P_OUTPUT_RASTER]
                 else:
-                    self.lineMemoryUsage += reader2.lineMemoryUsage(1)
-            self.readers.append(reader)
-            self.readers2.append(reader2)
+                    raster2 = raster
+                rasters2[rasterName] = raster2
 
-    def initWriter(self):
-        # derive output data types, bandCount und output size,
-        # by executing the code on a minimal extent (i.e. one pixel),
-        # and create output raster
-        self.writers = list()
-        for block in self.grid.walkGrid(1, 1, None):
-            results = self.processBlock(block, dryRun=True)
-            for result, filename in zip(results, self.filenames):
-                if result is None:
-                    writer = None
-                else:
-                    dataType = Utils.numpyDataTypeToQgisDataType(result.dtype)
-                    bandCount = len(result)
-                    driver = Driver(filename, self.format, self.options, self.feedback)
-                    writer = driver.createLike(self.grid, dataType, result.shape[0])
-                    self.lineMemoryUsage += self.grid.lineMemoryUsage(bandCount, writer.dataTypeSize())
-                self.writers.append(writer)
-            break
+            grid = RasterReader(grid)
+            readers = {rasterName: RasterReader(raster) for rasterName, raster in rasters.items()}
+            readers2 = {rasterName: RasterReader(raster) for rasterName, raster in rasters2.items()}
 
-    def processBlock(self, block: RasterBlockInfo, dryRun=False) -> List[Optional[np.ndarray]]:
+            # find alias identifiers and assign reader
+            for line in code.splitlines():
+                if not line.startswith('#'):
+                    continue
+                if ' is an alias for ' in line:
+                    a, b = line.strip('# ').split(' is an alias for ')
+                    readers[a] = readers[b]
+                    readers2[a] = readers2[b]
 
-        # load data into namespace
+            # init output raster layer
+            writers = self.makeWriter(code, filename, grid, readers, readers2, feedback)
+
+            # get block size
+            lineMemoryUsage = 0
+            for reader in readers.values():
+                lineMemoryUsage += grid.lineMemoryUsage(reader.bandCount(), reader.dataTypeSize())
+            for writer in writers.values():
+                lineMemoryUsage += grid.lineMemoryUsage(writer.bandCount(), writer.dataTypeSize())
+            blockSizeY = min(grid.height(), ceil(Utils.maximumMemoryUsage() / lineMemoryUsage))
+            blockSizeX = grid.width()
+            if monolithic:
+                blockSizeY = grid.height()
+                blockSizeX = grid.width()
+
+            #blockSizeY = 100
+
+            # process
+            if overlap is None:
+                overlap = 0
+            for block in grid.walkGrid(blockSizeX, blockSizeY, feedback):
+                results = self.processBlock(
+                    code, block, readers, readers2, writers, overlap, feedback
+                )
+                for key in results:
+                    writer = writers[key]
+                    result = results[key]
+                    writer.writeArray(result, block.xOffset, block.yOffset, overlap=overlap)
+
+            # prepare results
+            result = {self.P_OUTPUT_RASTER: None}
+            for key, writer in writers.items():
+                if key == splitext(basename(filename))[0]:  # if identifier matches the output basename, ...
+                    key = self.P_OUTPUT_RASTER              # ... map the result to the name of the output
+                result[key] = writer.source()
+            self.toc(feedback, result)
+
+        return result
+
+    def makeWriter(
+            self, code: str, filename: str, grid: RasterReader, readers: Dict[str, RasterReader],
+            readers2: Dict[str, RasterReader], feedback: ProcessingFeedback
+    ) -> Dict[str, Union[RasterWriter, Mock]]:
+        # We derive output data types and band counts by executing the code on a minimal extent (i.e. one pixel).
+        # We call this a dry-run.
+
+        # Find writer objects by parsing for set-methods.
+        writers = dict()  # we have no writers
+        for method in RasterWriter.__dict__:
+            if method.startswith('set'):
+                match: Match
+                pattern = '\w*.' + method
+                for match in finditer(pattern, code):
+                    substring = code[match.start(): match.end()]
+                    identifier = substring.split('.')[0]
+                    writers[identifier] = Mock()  # silently ignore all writer interaction
+
+        for block in grid.walkGrid(1, 1, None):
+            results = self.processBlock(code, block, readers, readers2, writers, 0, feedback, dryRun=True)
+            break  # stop after processing the first pixel
+
+        for name, result in results.items():
+            if name == self.P_OUTPUT_RASTER:
+                newFilename = filename
+            else:
+                newFilename = join(dirname(filename), name + '.tif')
+            dataType = Utils.numpyDataTypeToQgisDataType(result.dtype)
+            bandCount = len(result)
+            format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
+            if dataType == Qgis.Float64:
+                options = self.DefaultGTiffFloat64CreationOptions
+            driver = Driver(newFilename, format, options, feedback)
+            writer = driver.createLike(grid, dataType, bandCount)
+            writers[name] = writer
+
+        return writers
+
+    def processBlock(
+            self, code: str, block: RasterBlockInfo, readers: Dict[str, RasterReader],
+            readers2: Dict[str, RasterReader], writers: Dict[str, Union[RasterWriter, Mock]],
+            overlap: int, feedback: ProcessingFeedback, dryRun=False
+    ) -> Dict[str, np.ndarray]:
+
+        # add modules
         namespace = dict()
         namespace['np'] = np
         namespace['numpy'] = numpy
-        namespace['INPUTS'] = list()
-        namespace['INPUTS_'] = list()
-        namespace['INPUT_MASKS'] = list()
 
+        # add special variables
         if dryRun:
             namespace['feedback'] = Mock()  # silently ignore all feedback
         else:
-            namespace['feedback'] = self.feedback
-        for i, (reader, reader2, bandList) in enumerate(zip(self.readers, self.readers2, self.bandLists)):
-            if reader is None:
-                continue
-            if bandList is not None:
-                bandList = [bandList]
-            # add data
-            array = np.array(reader2.arrayFromBlock(block, bandList, self.overlap))
-            if i < len(self.letters):
-                letter = self.letters[i]
-                if letter in self.code:
-                    namespace[letter] = array
-                    namespace[letter + '_'] = reader
-                # add mask
-                if letter + 'M' in self.code:
-                    namespace[letter + 'M'] = np.array(reader2.maskArray(array, bandList))
-            else:
-                namespace['INPUTS'].append(array)
-                namespace['INPUTS_'].append(reader)
-                if 'INPUT_MASKS' in self.code:
-                    namespace['INPUT_MASKS'].append(np.array(reader2.maskArray(array, bandList)))
+            namespace['feedback'] = feedback
+        namespace['block'] = block
+        namespace['dryRun'] = dryRun
 
-        # add writer
-        for i in range(1, 11):
-            if dryRun:
-                namespace[f'R{i}_'] = Mock()  # silently ignore all writer interaction
+        # add data arrays and readers
+        atIdentifiers = list()  # collect all @identifiers that need to be substitution with valid identifier
+        for rasterName in readers:
+            reader = readers[rasterName]  # used for querying metadata etc.
+            reader2 = readers2[rasterName]  # used for reading the resampled data
+
+            # only read all the data if really required, maybe we just need single bands indicated by the usage of'@'
+            needAllData = False
+
+            # - check if we use the actual array
+            match: Match
+            for line in code.splitlines():
+                if line.startswith('#'):
+                    continue
+                line += '    '  # add some space for avoiding index errors when checking
+                for match in finditer(rasterName, line):
+                    if line[match.end()] in '@.':
+                        continue  # not using the actual array, but only a single band or the reader
+                needAllData = True
+
+            # - check if we use the actual mask array
+            match: Match
+            for line in code.splitlines():
+                if line.startswith('#'):
+                    continue
+                line += '    '  # add some space for avoiding index errors when checking
+                for match in finditer(rasterName + 'Mask', line):
+                    if line[match.end()] in '@':
+                        continue  # not using the actual mask array, but only a single band
+                needAllData = True
+
+            if needAllData:
+                # check if the raster is a rasterized vector ...
+                isRasterizedVector = reader.bandName(reader.bandCount()) == 'None'
+                if isRasterizedVector: # ... if so, we just assign the 0/1 mask, instead of all burned fields
+                    array = np.array(reader2.arrayFromBlock(block, [reader.bandCount()], overlap))
+                    namespace[rasterName] = array
+                    namespace[rasterName + 'Mask'] = array == 1
+                else:
+                    array = np.array(reader2.arrayFromBlock(block, None, overlap))
+                    namespace[rasterName] = array
+                    namespace[rasterName + 'Mask'] = np.array(reader2.maskArray(array, None))
+
+            #  find single band usages indicated by '@'
+            atBands: Dict[Tuple, List[str]] = defaultdict(list)
+            match: Match
+            for line in code.splitlines():
+                if line.startswith('#'):
+                    continue
+                line += '    '  # add some space for avoiding index errors when checking
+                matches = list()
+                matches.extend(finditer(rasterName + '@"[^"]+"', line))
+                matches.extend(finditer(rasterName + '@[0-9:|^]+', line))
+                matches.extend(finditer(rasterName + 'Mask@"[^"]+"', line))
+                matches.extend(finditer(rasterName + 'Mask@[0-9:|^]+', line))
+
+                for match in matches:
+                    text = line[match.start(): match.end()]
+                    atIdentifiers.append(text)  # need to make the @identifier a valid identifier later
+                    if line[match.end(): match.end() + 2] == 'nm':  # waveband mode
+                        unit = 'nm'
+                    else:
+                        unit = ''
+                    if line[match.end() - 1] == '"':  # band name mode
+                        bandName = text.split('"')[1]
+                        bandNos = (reader.findBandName(bandName), )
+                    else:  # band number mode
+                        subtext = text.split('@')[1]
+                        groups = subtext.split('|')
+                        bandsToUse = list()
+                        bandsToExclude = list()
+                        for group in groups:
+                            if ':' in group:
+                                a, b = group.split(':')
+                            else:
+                                a, b = group, None
+                            toBeExcluded = a.startswith('^')
+                            if toBeExcluded:
+                                a = a[1:]
+                            a = int(a)
+                            if unit == 'nm':
+                                a = reader.findWavelength(a)
+                                if b is not None:
+                                    b = reader.findWavelength(b)
+                            if b is None:
+                                b = a + 1
+                            b = int(b)
+                            if toBeExcluded:
+                                bandsToExclude.extend(range(a, b))
+                            else:
+                                bandsToUse.extend(range(a, b))
+                        if len(bandsToUse) == 0:
+                            bandsToUse = range(1, reader.bandCount() + 1)
+                        bandNos = tuple(set(bandsToUse).difference(bandsToExclude))
+
+                    identifier = text.replace('Mask@', '@') + unit
+                    atBands[bandNos].append(identifier)  # collect all identifiers for each band
+
+            # add single band data
+            for bandNos, identifiers in atBands.items():
+                array = np.array(reader2.arrayFromBlock(block, list(bandNos), overlap))
+                marray = np.array(reader2.maskArray(array, list(bandNos)))
+                for identifier in identifiers:
+                    tmp = identifier.split('@')
+                    namespace[Utils.makeIdentifier(tmp[0] + 'At' + tmp[1])] = array
+                    namespace[Utils.makeIdentifier(tmp[0] + 'MaskAt' + tmp[1])] = marray
+
+            namespace[rasterName + '_'] = reader
+
+        namespace['RS'] = list()
+        namespace['RS_'] = list()
+        namespace['RSMask'] = list()
+        for rasterName in self.inputRasterListNames():
+            if rasterName in namespace:
+                namespace['RS'].append(namespace[rasterName])
+                namespace['RS_'].append(namespace[rasterName + '_'])
+                namespace['RSMask'].append(namespace[rasterName + 'Mask'])
             else:
-                namespace[f'R{i}_'] = self.writers[i - 1]
+                break
+
+        # add writers
+        for rasterName, writer in writers.items():
+            namespace[rasterName + '_'] = writer
+
+        # inject writer objects
+        for rasterName in writers:
+            code = code.replace(rasterName + '.set', rasterName + '_.set', )
+
+        # inject reader objects
+        for rasterName in readers:
+            for method in RasterReader.__dict__:
+                code = code.replace(rasterName + '.' + method, rasterName + '_.' + method)
+
+        # strip empty lines
+        code = code.strip()
+
+        # remove all comments
+        code = '\n'.join([line for line in code.splitlines() if not line.strip().startswith('#')])
+
+        # substitute all @"<band name>" identifier with valid identifier
+        for atIdentifier in set(atIdentifiers):
+            code = code.replace(atIdentifier, Utils.makeIdentifier(atIdentifier.replace('@', 'At')))
+
+        # enable single line expressions
+        isSingleLineCode = '\n' not in code
+        if isSingleLineCode:
+            code = self.P_OUTPUT_RASTER + ' = ' + code  # make it a statement
+
+        # replace @
+        code = code.replace('@', 'At')
 
         # execute code
         try:
-            exec(self.code, namespace)
+            exec(code, namespace)
         except Exception as error:
             traceback.print_exc()
             text = traceback.format_exc()
             text = text[text.index('File "<string>"'):]
-            self.feedback.reportError(text)
+            feedback.reportError(text)
             raise QgsProcessingException(str(error))
 
         # prepare output data
-        isExpression = True
-        isExpression &= self.code.count('\n') == 0  # only single line code can be an expression
-        results = list()
-        for i in range(1, 11):
-            key = f'R{i}'
-            if key in namespace:
-                result = np.array(namespace[key])
-                isExpression = False
-            else:
-                result = None
-            results.append(result)
-        if isExpression:
-            results[0] = np.array(namespace['_result'])
-        # check outputs
-        for i, result in enumerate(results):
-            if result is None:
+        results = dict()
+        for key, value in namespace.items():
+            if key in readers:  # skip all input arrays
                 continue
-            if result.ndim != 3:
-                message = f'expected 3d array-like, got ndim(R{i}) = {result.ndim}'
-                self.feedback.reportError(message, True)
-                raise QgsProcessingException(message)
-            if self.overlap is None:
-                expected = (block.height, block.width)
-            else:
-                expected = (block.height + 2 * self.overlap, block.width + 2 * self.overlap)
 
-            if result.ndim != 3 or result.shape[1:] != expected:
-                message = f'spatial shape mismatch for result R{i + 1} with shape {result.shape[1:]}, ' \
-                          f'expected {expected}'
-                self.feedback.reportError(message, True)
-                raise QgsProcessingException(message)
+            removeItem = False
+            for reader  in readers:  # skip all input arrays with @ syntax
+                if key.startswith(reader + 'At'):
+                    removeItem = True
+            if removeItem:
+                continue
 
+            if key.endswith('Mask') and key[:-4] in readers:  # skip all input mask arrays
+                continue
+            if 'MaskAt' in key:  # skip all input mask arrays with @ syntax
+                continue
+            if not isinstance(value, np.ndarray):  # skip all non-arrays
+                continue
+            if value.ndim == 2:  # if single band array ...
+                value = value[None]  # ... add third dimension
+            if value.ndim != 3:  # skip all non-3d-arrays
+                continue
+            if value.shape[1:] != (block.height + 2 * overlap, block.width + 2 * overlap): # skip mismatching arrays
+                continue
+            results[key] = value
+
+        # Check if single line was already a statement. If so, remove the default output from the results.
+        if isSingleLineCode and len(results) > 1:
+            results.pop(self.P_OUTPUT_RASTER)
         return results
