@@ -61,8 +61,8 @@ class ClassificationPerformanceSimpleAlgorithm(EnMAPProcessingAlgorithm):
             alg = RasterMathAlgorithm()
             alg.initAlgorithm()
             parameters = {
-                alg.P_RASTER_LIST: [classification],
-                alg.P_EXPRESSION: 'A@1*0+1',
+                alg.P_R1: classification,
+                alg.P_CODE: 'R1*0 + 1',
                 alg.P_OUTPUT_RASTER: Utils.tmpFilename(filename, 'pseudo-stratification.tif')
             }
             result = self.runAlg(alg, parameters, None, feedback2, context, True)

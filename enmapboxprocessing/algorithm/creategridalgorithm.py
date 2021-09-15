@@ -45,7 +45,7 @@ class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterEnum(self.P_UNIT, self._UNIT, self.O_UNIT)
         self.addParameterFloat(self.P_WIDTH, self._WIDTH, 0, minValue=0)
         self.addParameterFloat(self.P_HEIGHT, self._HEIGHT, 0, minValue=0)
-        self.addParameterRasterDestination(self.P_OUTPUT_GRID, self._OUTPUT_GRID)
+        self.addParameterVrtDestination(self.P_OUTPUT_GRID, self._OUTPUT_GRID)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:
         unit = self.parameterAsEnum(parameters, self.P_UNIT, context)

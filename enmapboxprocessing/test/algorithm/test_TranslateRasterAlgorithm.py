@@ -99,7 +99,8 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_CREATION_PROFILE: alg.GTiffFormat,
             alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
         }
-        gold = [1, 3, 2, 5, 4, 6, 7]
+        gold = [1, 3, 2, 4, 5,  6, 7]
+        'Byte Int16 UInt16 UInt32 Int32 Float32 Float64'
         for index, name in enumerate(alg.O_DATA_TYPE):
             parameters[alg.P_DATA_TYPE] = index
             parameters[alg.P_OUTPUT_RASTER] = c + f'/vsimem/raster.{name}.tif'

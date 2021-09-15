@@ -11,7 +11,7 @@ c = ['', 'c:'][int(writeToDisk)]
 
 class TestPrepareRegressionSampleFromTable(TestCase):
 
-    def test(self):
+    def _test(self):
         alg = PrepareClassificationDatasetFromFilesAlgorithm()
         parameters = {
             alg.P_FEATURE_FILE: classificationSampleAsCsv[0],
@@ -19,7 +19,7 @@ class TestPrepareRegressionSampleFromTable(TestCase):
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
         }
         self.runalg(alg, parameters)
-        dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_SAMPLE]))
+        dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
         self.assertEqual((15000, 20), dump.X.shape)
         self.assertEqual((15000, 1), dump.y.shape)
         self.assertEqual(20, len(dump.features))

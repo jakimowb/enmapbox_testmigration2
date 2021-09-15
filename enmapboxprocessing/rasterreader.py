@@ -266,6 +266,26 @@ class RasterReader(object):
             return False
         return True
 
+    def findBandName(self, bandName: str) -> int:
+        for bandNo in range(1, self.bandCount() + 1):
+            if self.bandName(bandNo) == bandName:
+                return bandNo
+        raise ValueError(f'unknown band name: {bandName}')
+
+    def findWavelength(self, wavelength: Optional[float]) -> int:
+        bandNos = list()
+        distances = list()
+        for bandNo in range(1, self.bandCount() + 1):
+            wavelength_ = self.wavelength(bandNo)
+            if wavelength is None:
+                continue
+            bandNos.append(bandNo)
+            distances.append(abs(wavelength_ - wavelength))
+        if len(bandNos) == 0:
+            return None
+
+        return bandNos[np.argmin(distances)]
+
     def wavelength(self, bandNo: int) -> Optional[float]:
         """Return band center wavelength in nanometers."""
         wavelength = self.metadataItem('wavelength', '', bandNo)

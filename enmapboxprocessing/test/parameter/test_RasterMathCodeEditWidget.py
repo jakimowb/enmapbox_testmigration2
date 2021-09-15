@@ -3,10 +3,8 @@ from typing import Dict, Any
 from qgis._core import QgsProcessingParameterString, QgsProcessingFeedback, QgsProcessingContext
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-from enmapboxprocessing.parameter.processingparametercodeeditwidget import ProcessingParameterCodeEditWidgetWrapper
 from enmapboxprocessing.parameter.processingparameterrastermathcodeeditwidget import \
     ProcessingParameterRasterMathCodeEditWidgetWrapper
-from enmapboxprocessing.test.algorithm.testcase import TestCase
 from typeguard import typechecked
 
 
@@ -35,12 +33,3 @@ class TestRasterMathCodeEditWidgetAlgorithm(EnMAPProcessingAlgorithm):
         color = self.parameterAsString(parameters, self.P_CODE, context)
         print(color)
         return {}
-
-
-class Test_CodeEditWidgetAlgorithm(TestCase):
-
-    def test(self):
-        alg = TestRasterMathCodeEditWidgetAlgorithm()
-        alg.initAlgorithm()
-        parameters = {alg.P_CODE: 'def f(x):\n    return 2*x'}
-        self.runalg(alg, parameters)

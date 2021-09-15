@@ -1,4 +1,3 @@
-from os.path import basename, dirname
 from random import randint
 from typing import Dict, Any, List, Tuple
 
@@ -9,7 +8,6 @@ from qgis._core import (QgsProcessingContext, QgsProcessingFeedback)
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.typing import Category, ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapboxtestdata import landcover_points, dataset_x_csv, dataset_y1_csv
 from typeguard import typechecked
 
 
@@ -28,12 +26,10 @@ class PrepareClassificationDatasetFromFilesAlgorithm(EnMAPProcessingAlgorithm):
             "https://force-eo.readthedocs.io/en/latest/components/higher-level/smp/index.html",
             "FORCE Higher Level Sampling Submodule"
         )
-        file1 = self.htmlLink('file:///' + dataset_x_csv, basename(dataset_x_csv))
-        file2 = self.htmlLink('file:///' + dataset_y1_csv, basename(dataset_y1_csv))
         return 'Create a classification dataset from tabulated text files ' \
                'and store the result as a pickle file. \n' \
                f'The format matches that of the {link}.\n' \
-               f'Example files ({file1}, {file2}) can be found in the EnMAP-Box testdata folder).'
+               f'Example files (force_features.csv and force_labels.csv) can be found in the EnMAP-Box testdata folder).'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
