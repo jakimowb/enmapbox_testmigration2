@@ -10,7 +10,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from enmapbox.externals.qps.speclib.core import SpectralLibrary
+from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
 from _classic.hubdsm.core.color import Color as HubdsmColor
 from _classic.hubdsm.core.gdalraster import GdalRaster
 from _classic.hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme

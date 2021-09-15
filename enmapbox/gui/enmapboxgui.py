@@ -59,7 +59,8 @@ from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.externals.qps.maptools import QgsMapToolSelectionHandler
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
 from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
-from enmapbox.externals.qps.speclib.gui.spectralprofilesources import SpectralProfileSourcePanel, SpectralProfileSource, SpectralProfileBridge
+from enmapbox.externals.qps.speclib.gui.spectralprofilesources import SpectralProfileSourcePanel, SpectralProfileSource, \
+    SpectralProfileBridge, MapCanvasLayerProfileSource
 from enmapbox.externals.qps.speclib.gui.spectrallibrarywidget import SpectralLibraryWidget
 
 HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
@@ -904,7 +905,17 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.cursorLocationValuePanel = self.addPanel(area, CursorLocationInfoDock(self.ui), show=False)
         self.ui.cursorLocationValuePanel.mLocationInfoModel.setCountFromZero(False)
 
-        self.ui.spectralProfileSourcePanel = self.addPanel(area, SpectralProfileSourcePanel(self.ui))
+        self.ui.spectralProfileSourcePanel: SpectralProfileSourcePanel = \
+            self.addPanel(area, SpectralProfileSourcePanel(self.ui))
+
+        sources = [
+            MapCanvasLayerProfileSource(mode=MapCanvasLayerProfileSource.MODE_FIRST_LAYER),
+            MapCanvasLayerProfileSource(mode=MapCanvasLayerProfileSource.MODE_BOTTOM_LAYER)
+        ]
+
+        self.ui.spectralProfileSourcePanel.addSources(sources)
+        self.ui.spectralProfileSourcePanel.setDefaultSource(sources[0])
+
         area = Qt.RightDockWidgetArea
 
         try:
@@ -1113,7 +1124,7 @@ class EnMAPBox(QgisInterface, QObject):
             if isinstance(mapCanvas, MapCanvas) and mapCanvas != sender:
                 mapCanvas.setCrosshairPosition(spatialPoint, emitSignal=False)
 
-    def spectralProfileBridge(self) -> SpectralProfileSourcePanel:
+    def spectralProfileSourcePanel(self) -> SpectralProfileSourcePanel:
         return self.ui.spectralProfileSourcePanel
 
     def onTaskAdded(self, taskID: int):
@@ -1147,7 +1158,7 @@ class EnMAPBox(QgisInterface, QObject):
             slw = dock.speclibWidget()
             assert isinstance(slw, SpectralLibraryWidget)
             slw.plotWidget().backgroundBrush().setColor(QColor('black'))
-            self.spectralProfileBridge().addSpectralLibraryWidgets(slw)
+            self.spectralProfileSourcePanel().addSpectralLibraryWidgets(slw)
             slw.sigFilesCreated.connect(self.addSources)
             # self.dataSourceManager().addSource(slw.speclib())
             # self.mapLayerStore().addMapLayer(slw.speclib(), addToLegend=False)
@@ -1191,7 +1202,7 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigMapCanvasRemoved.emit(dock.mapCanvas())
 
         if isinstance(dock, SpectralLibraryDock):
-            self.spectralProfileBridge().removeDestination(dock.speclibWidget())
+            self.spectralProfileSourcePanel().removeSpectralLibraryWidgets(dock.speclibWidget())
         # lid = dock.speclib().id()
         # if self.mapLayerStore().mapLayer(lid):
         #     self.mapLayerStore().removeMapLayer(lid)
@@ -1204,10 +1215,14 @@ class EnMAPBox(QgisInterface, QObject):
         :param mapCanvas: QgsMapCanvas
         """
 
+        panel: SpectralProfileSourcePanel = self.spectralProfileSourcePanel()
         if len(self.docks(SpectralLibraryDock)) == 0:
             self.createDock(SpectralLibraryDock)
 
-        self.ui.spectralProfileSourcePanel.loadCurrentMapSpectra(spatialPoint, mapCanvas=mapCanvas, runAsync=runAsync)
+        if len(panel.mBridge) == 0:
+            panel.createRelation()
+
+        panel.loadCurrentMapSpectra(spatialPoint, mapCanvas=mapCanvas, runAsync=runAsync)
 
     def setMapTool(self, mapToolKey: MapTools, *args, canvases=None, **kwds):
         """
@@ -1512,7 +1527,7 @@ class EnMAPBox(QgisInterface, QObject):
         if isinstance(dataSource, DataSourceRaster):
             self.sigRasterSourceRemoved[str].emit(dataSource.uri())
             self.sigRasterSourceRemoved[DataSourceRaster].emit(dataSource)
-            self.spectralProfileBridge().removeSource(dataSource.uri())
+            self.spectralProfileSourcePanel().removeSources(dataSource.uri())
 
         if isinstance(dataSource, DataSourceSpectralLibrary):
             to_remove = [d for d in self.dockManager().docks() \
@@ -1543,8 +1558,7 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigRasterSourceAdded[str].emit(dataSource.uri())
             self.sigRasterSourceAdded[DataSourceRaster].emit(dataSource)
 
-            src = SpectralProfileSource(dataSource.uri(), dataSource.name(), dataSource.provider())
-            self.spectralProfileBridge().addSource(src)
+            self.spectralProfileSourcePanel().addSources(dataSource.createUnregisteredMapLayer())
 
         if isinstance(dataSource, DataSourceVector):
             self.sigVectorSourceAdded[str].emit(dataSource.uri())
@@ -1600,33 +1614,13 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.mCurrentMapLocation
 
-    def setCurrentSpectra(self, spectra: list):
-        """
-        Sets the list of SpectralProfiles to be considered as current spectra
-        :param spectra: [list-of-SpectralProfiles]
-        """
-        warnings.warn(DeprecationWarning(''))
-
-        """        
-        b = len(self.mCurrentSpectra) == 0
-        self.mCurrentSpectra = spectra[:]
-
-        # check if any SPECLIB window was opened
-        if len(self.dockManager().docks('SPECLIB')) == 0:
-            #and getattr(self, '_initialSpeclibDockCreated', False) == False:
-            dock = self.createDock('SPECLIB')
-            assert isinstance(dock, SpectralLibraryDock)
-
-        self.sigCurrentSpectraChanged.emit(self.mCurrentSpectra[:])
-        """
-
     def currentSpectra(self) -> list:
         """
         Returns the spectra currently selected using the profile tool.
 
         :return: [list-of-spectra]
         """
-        return self.spectralProfileBridge().currentProfiles()
+        return self.spectralProfileSourcePanel().currentProfiles()
 
     def version(self) -> str:
         """

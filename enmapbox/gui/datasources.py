@@ -45,6 +45,7 @@ from enmapbox.gui import subLayerDefinitions, openRasterLayerSilent, \
     SpectralLibrary, ClassificationScheme
 from enmapbox import debugLog, messageLog
 from ..externals.qps.layerproperties import defaultRasterRenderer
+from ..externals.qps.speclib.core import is_spectral_library
 from ..externals.qps.utils import parseWavelength
 
 
@@ -864,12 +865,9 @@ class DataSourceFactory(object):
 
             if isinstance(src, str):
                 if os.path.exists(src):
-
-                    for cls in AbstractSpectralLibraryIO.__subclasses__():
-                        if cls.canRead(src):
-                            uri = src
-                            break
-
+                    lyr = QgsVectorLayer(src)
+                    if is_spectral_library(lyr):
+                        uri = src
                 else:
                     s = ""
         return uri, None
