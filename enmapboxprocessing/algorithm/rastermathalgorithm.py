@@ -379,7 +379,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
         for method in RasterWriter.__dict__:
             if method.startswith('set'):
                 match: Match
-                pattern = '\w*.' + method
+                pattern = r'\w*.' + method
                 for match in finditer(pattern, code):
                     substring = code[match.start(): match.end()]
                     identifier = substring.split('.')[0]
