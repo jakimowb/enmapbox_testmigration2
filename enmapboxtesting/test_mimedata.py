@@ -125,7 +125,7 @@ class MimeDataTests(EnMAPBoxTestCase):
 
     def test_dropping_files_empty_dockarea(self):
         files = []
-        nMax = 50
+        nMax = 25
         for root, dirs, f in os.walk(DIR_TESTDATA):
             if len(files) >= nMax:
                 break
@@ -137,6 +137,7 @@ class MimeDataTests(EnMAPBoxTestCase):
         dockManager = EB.dockManager()
         dockArea = dockManager.currentDockArea()
         for path in files:
+            print(f'Drop {path}...', flush=True)
             dockManager.onDockAreaDragDropEvent(dockArea, self.file2DropEvent(path))
             QApplication.processEvents()
             for d in dockManager.docks():
@@ -146,6 +147,7 @@ class MimeDataTests(EnMAPBoxTestCase):
             QgsProject.instance().removeAllMapLayers()
             QApplication.processEvents()
 
+        print('Done!')
         EB.close()
 
     def test_csv_drop(self):

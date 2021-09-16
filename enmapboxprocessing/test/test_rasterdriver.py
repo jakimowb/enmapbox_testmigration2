@@ -4,8 +4,8 @@ from qgis._core import QgsCoordinateReferenceSystem, Qgis, QgsRasterLayer
 import numpy as np
 
 from enmapboxprocessing.driver import Driver
-from enmapboxprocessing.raster import RasterReader
 from enmapboxprocessing.rasterreader import RasterReader
+from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.test.testcase import TestCase
 from enmapboxtestdata import enmap
 
@@ -21,48 +21,57 @@ class TestDriver(TestCase):
         outraster.setMetadataItem('a', 42)
 
     def test_createSinglePixel_3Band_PseudoRaster(self):
-        shape = (3, 5, 5)
+        shape = (3, 1, 1)
         array = np.array(list(range(np.product(shape)))).reshape(shape)
         array[:, 0, 0] = -1
-        outraster = Driver('c:/vsimem/raster.bsq').createFromArray(array)
-        outraster.setNoDataValue(1, -1)
-        outraster.setMetadataItem('a', 42)
-        return
-        raster = RasterReader(outraster.source())
+        filename = 'c:/vsimem/raster.bsq'
+        Driver(filename).createFromArray(array)
+        raster = RasterReader(filename)
 
         crs: QgsCoordinateReferenceSystem = raster.crs()
-        self.assertFalse(crs.isValid())
-        self.assertEqual(1, raster.xSize())
-        self.assertEqual(1, raster.ySize())
+        self.assertFalse(crs == QgsCoordinateReferenceSystem.fromEpsgId(4326))
+        self.assertEqual(1, raster.width())
+        self.assertEqual(1, raster.height())
         self.assertEqual(3, raster.bandCount())
         self.assertArrayEqual(raster.array(), array)
 
     def test_createRaster_withDifferentDataTypes(self):
+        filename = 'c:/vsimem/raster1.tif'
         for dtype in [np.uint8, np.float32, np.float64, np.int16, np.int32, np.uint16, np.uint32]:
             array = np.array([[[0]]], dtype=dtype)
-            raster = Driver().createFromArray(array)
+            Driver(filename).createFromArray(array)
+            raster = RasterReader(filename)
             self.assertEqual(raster.array()[0].dtype, array.dtype)
 
     def test_createRaster_withDifferentFormats(self):
+        filename = 'c:/vsimem/raster1.tif'
         for format in ['ENVI', 'GTiff']:
             array = np.array([[[1]], [[2]], [[3]]])
-            raster = Driver(format=format).createFromArray(array)
+            Driver(filename, format=format).createFromArray(array)
+            raster = RasterReader(filename)
             lead = raster.array()
             self.assertEqual(lead[0].dtype, array.dtype)
             self.assertArrayEqual(lead, array)
 
     def test_createRaster_likeExistingRaster(self):
         shape = 3, 5, 6
-        raster1 = Driver().createFromArray(np.zeros(shape))
-        raster2 = Driver().createLike(raster1)
+        filename1 = 'c:/vsimem/raster1.tif'
+        filename2 = 'c:/vsimem/raster2.tif'
+        Driver(filename1).createFromArray(np.zeros(shape))
+        raster1 = RasterReader(filename1)
+        Driver('c:/vsimem/raster2.tif').createLike(raster1)
+        raster2 = RasterReader(filename2)
         self.assertEqual(raster1.extent(), raster2.extent())
-        self.assertEqual(raster1.xSize(), raster2.xSize())
-        self.assertEqual(raster1.ySize(), raster2.ySize())
+        self.assertEqual(raster1.width(), raster2.width())
+        self.assertEqual(raster1.height(), raster2.height())
         self.assertEqual(raster1.bandCount(), raster2.bandCount())
 
     def test_createRaster_likeExistingRaster_butDifferentBandCount_andDataType(self):
         shape = 3, 5, 6
-        raster1 = Driver().createFromArray(np.zeros(shape))
-        raster2 = Driver().createLike(raster1, nBands=1, dataType=Qgis.Byte)
+        filename1 = 'c:/vsimem/raster1.tif'
+        filename2 = 'c:/vsimem/raster2.tif'
+        Driver(filename1).createFromArray(np.zeros(shape))
+        Driver(filename2).createLike(RasterReader(filename1), nBands=1, dataType=Qgis.Byte)
+        raster2 = RasterReader(filename2)
         self.assertEqual(1, raster2.bandCount())
         self.assertEqual(Qgis.Byte, raster2.dataType(1))

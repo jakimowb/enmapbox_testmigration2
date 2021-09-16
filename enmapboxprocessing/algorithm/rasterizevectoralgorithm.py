@@ -1,13 +1,11 @@
 from typing import Dict, Any, List, Tuple
 
 from PyQt5.QtCore import QVariant
-from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsProcessingParameterField, Qgis,
                         QgsVectorFileWriter,
                         QgsProject, QgsCoordinateTransform, QgsField)
 
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
-from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
@@ -21,14 +19,10 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
     P_BURN_VALUE, _BURN_VALUE = 'burnValue', 'Burn value'
     P_BURN_ATTRIBUTE, _BURN_ATTRIBUTE = 'burnAttribute', 'Burn attribute'
     P_BURN_FID, _BURN_FID = 'burnFid', 'Burn feature ID'
-    P_RESAMPLE_ALG, _RESAMPLE_ALG = 'resampleAlg', 'Aggregation algorithm'
-    O_RESAMPLE_ALG = TranslateRasterAlgorithm.O_RESAMPLE_ALG
     P_ALL_TOUCHED, _ALL_TOUCHED = 'allTouched', 'All touched'
     P_ADD_VALUE, _ADD_VALUE = 'addValue', 'Add value'
     P_DATA_TYPE, _DATA_TYPE = 'dataType', 'Data type'
     P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRasterizedVector', 'Output raster layer'
-
-
 
     def displayName(self):
         return 'Rasterize vector layer'
@@ -72,7 +66,6 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
             parentLayerParameterName=self.P_VECTOR, optional=True
         )
         self.addParameterBoolean(self.P_BURN_FID, self._BURN_FID, defaultValue=False)
-        self.addParameterResampleAlg(self.P_RESAMPLE_ALG, self._RESAMPLE_ALG, optional=True)
         self.addParameterBoolean(self.P_ADD_VALUE, self._ADD_VALUE, defaultValue=False)
         self.addParameterBoolean(self.P_ALL_TOUCHED, self._ALL_TOUCHED, defaultValue=False)
         self.addParameterDataType(self.P_DATA_TYPE, self._DATA_TYPE, defaultValue=TranslateRasterAlgorithm.Float32)
@@ -86,20 +79,15 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         vector = self.parameterAsVectorLayer(parameters, self.P_VECTOR, context)
-        dataType = self.parameterAsQgsDataType(parameters, self.P_DATA_TYPE, context, default=Qgis.Float32)
+        qgsDataType = self.parameterAsEnum(parameters, self.P_DATA_TYPE, context)
         initValue = self.parameterAsDouble(parameters, self.P_INIT_VALUE, context)
         burnValue = self.parameterAsDouble(parameters, self.P_BURN_VALUE, context)
         burnAttribute = self.parameterAsField(parameters, self.P_BURN_ATTRIBUTE, context)
         burnFid = self.parameterAsBoolean(parameters, self.P_BURN_FID, context)
-        resampleAlg = self.parameterAsGdalResampleAlg(parameters, self.P_RESAMPLE_ALG, context)
         addValue = self.parameterAsBoolean(parameters, self.P_ADD_VALUE, context)
         allTouched = self.parameterAsBoolean(parameters, self.P_ALL_TOUCHED, context)
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
-        if resampleAlg == gdal.GRA_NearestNeighbour:
-            oversampling = 1
-        else:
-            oversampling = 10
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -146,53 +134,27 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
                 assert error == QgsVectorFileWriter.NoError, f'Fail error {error}:{message}'
                 vector = QgsVectorLayer(tmpFilename)
 
-            # oversampled burn
-            info = f'Burn vector geometries'
-            feedback.pushInfo(info)
-            # - init raster
-            tmpFilename = Utils.tmpFilename(filename, 'oversampled.tif')
-            tmpFormat = self.GTiffFormat
-            tmpCreationOptions = self.DefaultGTiffCreationOptions
-            tmpWidth = int(round(grid.width() * oversampling))
-            tmpHeight = int(round(grid.height() * oversampling))
-            tmpDriver = Driver(tmpFilename, tmpFormat, tmpCreationOptions, feedback2)
-            tmpWriter = tmpDriver.create(Qgis.Float32, tmpWidth, tmpHeight, 1, grid.extent(), grid.crs())
-            #tmpWriter.fill(initValue)
-            tmpWriter.setNoDataValue(initValue)  # this is faster than fill with initValue first
-            # - prepare rasterize options and rasterize
-            callback = Utils.qgisFeedbackToGdalCallback(feedback2)
-            if burnAttribute is None:
-                burnValues = [burnValue]
-            else:
-                burnValues = None
-            if callback is None:
-                callback = gdal.TermProgress_nocb
+            extra = ''
+            if allTouched:
+                extra += '-at '
+            if addValue:
+                extra += '-add '
 
-            if addValue is not None:  # check if installed GDAL supports "add" option
-                try:
-                    gdal.RasterizeOptions(add=False)
-                except TypeError:
-                    addValue = None
+            alg = 'gdal:rasterize'
+            parameters = {
+                'INPUT': vector,
+                'FIELD': burnAttribute,
+                'BURN': burnValue,
+                'INIT': initValue,
+                'UNITS': 0,  # size in pixels
+                'WIDTH': grid.width(), 'HEIGHT': grid.height(),
+                'EXTENT': grid.extent(),
+                'DATA_TYPE': qgsDataType,  # we can use the same index here!
+                'EXTRA': extra,
+                'OPTIONS': '|'.join(options),
+                'OUTPUT': filename}
+            self.runAlg(alg, parameters, None, feedback2, context, True)
 
-            kwds = dict(burnValues=burnValues, attribute=burnAttribute, allTouched=allTouched, add=addValue)
-            kwds = {k: v for k, v in kwds.items() if v is not None}
-            rasterizeOptions = gdal.RasterizeOptions(callback=callback, **kwds)
-            success = gdal.Rasterize(
-                destNameOrDestDS=tmpWriter.gdalDataset, srcDS=vector.source(), options=rasterizeOptions
-            )
-            assert success == 1
-            #tmpWriter.setNoDataValue('none')
-            del tmpWriter
-            # for aggregation we use Warp instead of Translate, because it supports more ResamplAlgs!
-            resampleAlgString = Utils.gdalResampleAlgToGdalWarpFormat(
-                resampleAlg)  # use string to avoid a bug in gdalwarp
-            gdalDataType = Utils.qgisDataTypeToGdalDataType(dataType)
-            warpOptions = gdal.WarpOptions(
-                width=grid.width(), height=grid.height(), resampleAlg=resampleAlgString, outputType=gdalDataType,
-                format=format, creationOptions=options, callback=callback, multithread=True,
-                srcNodata='none' # do not use the init value from above!
-            )
-            gdal.Warp(destNameOrDestDS=filename, srcDSOrSrcDSTab=tmpFilename, options=warpOptions)
             result = {self.P_OUTPUT_RASTER: filename}
             self.toc(feedback, result)
         return result

@@ -326,7 +326,7 @@ class SpeclibDockTreeNode(DockTreeNode):
                 PROFILES = dict()
                 n_total = 0
                 tt = []
-                for field in sl.spectralValueFields():
+                for field in sl.spectralProfileFields():
                     n = 0
                     for f in sl.getFeatures(f'"{field.name()}" is not NULL'):
                         if f.id() >= 0:

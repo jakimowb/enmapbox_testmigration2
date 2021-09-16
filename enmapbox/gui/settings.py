@@ -323,13 +323,13 @@ class SettingsDialog(QDialog):
         # self.tableViewGlobalSettings.verticalHeader().setMovable(True)
         self.tableViewGlobalSettings.verticalHeader().setDragEnabled(True)
         self.tableViewGlobalSettings.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
-        self.tableViewGlobalSettings.horizontalHeader().setResizeMode(QHeaderView.Interactive)
+        # self.tableViewGlobalSettings.horizontalHeader().setResizeMode(QHeaderView.Interactive)
         self.tableViewGlobalSettings.resizeColumnsToContents()
 
         # self.tableViewProjectSettings.verticalHeader().setMovable(True)
         self.tableViewProjectSettings.verticalHeader().setDragEnabled(True)
         self.tableViewProjectSettings.verticalHeader().setDragDropMode(QAbstractItemView.InternalMove)
-        self.tableViewProjectSettings.horizontalHeader().setResizeMode(QHeaderView.Interactive)
+        # self.tableViewProjectSettings.horizontalHeader().setResizeMode(QHeaderView.Interactive)
         self.synQgsProjectSettings()
 
         self.buttonBox.button(QDialogButtonBox.Ok).clicked.connect(self.onAccepted)

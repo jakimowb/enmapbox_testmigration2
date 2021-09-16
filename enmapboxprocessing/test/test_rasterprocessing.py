@@ -44,9 +44,8 @@ class TestRasterProcessing(TestCase):
         outraster = Driver('c:/vsimem/enmap.tif', options=options).createLike(raster)
         for block in raster.walkGrid(50, 50):
             for bandNo in range(1, raster.bandCount() + 1):
-                array = raster.array2d(bandNo, block.xOffset, block.yOffset, None, block.width, block.height)
-                outraster.writeArray2d(array, bandNo, block.xOffset, block.yOffset)
-                print(bandNo, array.shape)
+                array = raster.array(block.xOffset, block.yOffset, block.width, block.height, [bandNo])
+                outraster.writeArray2d(array[0], bandNo, block.xOffset, block.yOffset)
 
         outraster.setNoDataValue(raster.noDataValue())
         outraster.setMetadata(raster.metadata())

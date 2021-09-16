@@ -434,9 +434,19 @@ class Utils(object):
 
     @classmethod
     def makeIdentifier(cls, string):
-        s = string.lower()
-        s = s.strip()
+        s = string.strip()
         s = re.sub('[\\s\\t\\n]+', '_', s)
-        s = re.sub('[^0-9a-zA-Z_]', '', s)
-        s = re.sub('^[^a-zA-Z_]+', '', s)
+        s = re.sub('[^0-9a-zA-Z_]', '_', s)
+        s = re.sub('^[^a-zA-Z_]+', '_', s)
         return s
+
+    @classmethod
+    def makeBasename(cls, string):
+        def sub(c: str):
+            if c.isalnum():
+                return c
+            if c in ' :._- ':
+                return c
+            return '_'
+
+        return ''.join([sub(c) for c in string])

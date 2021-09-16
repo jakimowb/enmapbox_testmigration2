@@ -29,7 +29,7 @@ class ImportSentinel2L2AAlgorithm(EnMAPProcessingAlgorithm):
         'B11, SWIR (1614 Nanometers)[20 Meter]',
         'B12, SWIR (2202 Nanometers)[20 Meter]'
     ]
-    D_BAND_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 11, 12]
+    D_BAND_LIST = list(range(len(P_BAND_LIST)))  # [1, 2, 3, 4, 5, 6, 7, 8, 11, 12]
     P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputSentinel2L2ARaster', 'Output raster layer'
 
     def displayName(self):

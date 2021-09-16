@@ -19,38 +19,25 @@ c = ['', 'c:'][int(writeToDisk)]
 
 class TestRasterizeCategorizedVectorAlgorithm(TestCase):
 
-    def test_pythonCommand(self):
-        alg = RasterizeCategorizedVectorAlgorithm()
-        alg.initAlgorithm()
-        parameters = {
-            alg.P_CATEGORIZED_VECTOR: QgsVectorLayer(landcover_polygons_3classes_id),
-            alg.P_GRID: QgsRasterLayer(enmap),
-            alg.P_OUTPUT_CATEGORIZED_RASTER: c + '/vsimem/landcover_polygons.tif'
-        }
-        processing
-        cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
-        print(cmd)
-        eval(cmd)
-        #webbrowser.open_new(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER] + '.log')
-
     def test_numberClassAttribute(self):
         alg = RasterizeCategorizedVectorAlgorithm()
         alg.initAlgorithm()
         parameters = {
-            alg.P_CATEGORIZED_VECTOR: QgsVectorLayer(landcover_polygons_3classes_id),
-            alg.P_GRID: QgsRasterLayer(enmap),
+            alg.P_CATEGORIZED_VECTOR: landcover_polygons_3classes_id,
+            alg.P_GRID: enmap,
             alg.P_OUTPUT_CATEGORIZED_RASTER: c + '/vsimem/landcover_polygons.tif'
         }
         result = self.runalg(alg, parameters)
         classification = QgsRasterLayer(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER])
         self.assertIsInstance(classification.renderer(), QgsPalettedRasterRenderer)
+        vector = QgsVectorLayer(parameters[alg.P_CATEGORIZED_VECTOR])
         for c1, c2 in zip(
-                Utils.categoriesFromCategorizedSymbolRenderer(parameters[alg.P_CATEGORIZED_VECTOR].renderer()),
+                Utils.categoriesFromCategorizedSymbolRenderer(vector.renderer()),
                 Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
         ):
             self.assertEqual((c1.name, c1.color), (c2.name, c2.color))
 
-        self.assertEqual(1381, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))
+        self.assertEqual(1678, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))
 
     def test_stringClassAttribute(self):
         alg = RasterizeCategorizedVectorAlgorithm()
@@ -68,7 +55,7 @@ class TestRasterizeCategorizedVectorAlgorithm(TestCase):
                 Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
         ):
             self.assertEqual((c1.name, c1.color), (c2.name, c2.color))
-        self.assertEqual(4832, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))
+        self.assertEqual(5108, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))
 
     def test_withNoneMatching_crs(self):
         alg = RasterizeCategorizedVectorAlgorithm()
@@ -79,7 +66,7 @@ class TestRasterizeCategorizedVectorAlgorithm(TestCase):
             alg.P_OUTPUT_CATEGORIZED_RASTER: c + '/vsimem/landcover_polygons.tif'
         }
         result = self.runalg(alg, parameters)
-        self.assertEqual(1381, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))
+        self.assertEqual(1678, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))
 
     def test_pointVector(self):
         alg = RasterizeCategorizedVectorAlgorithm()
@@ -103,4 +90,4 @@ class TestRasterizeCategorizedVectorAlgorithm(TestCase):
         }
 
         result = self.runalg(alg, parameters)
-        self.assertEqual(5260, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))
+        self.assertEqual(3816, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))

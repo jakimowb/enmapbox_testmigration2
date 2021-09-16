@@ -3,12 +3,9 @@ from typing import List, Union, Optional
 from PyQt5.QtGui import QColor
 from osgeo import gdal
 
-from enmapboxprocessing.typing import Array3d, Array2d, MetadataValue, MetadataDomain, Metadata, QgisDataType, Category, \
-    Number
-from typeguard import typechecked
-from qgis._core import QgsRasterDataProvider, QgsRectangle, QgsPointXY, QgsPoint, QgsRasterLayer, QgsFeedback
-
+from enmapboxprocessing.typing import Array3d, Array2d, MetadataValue, MetadataDomain, Metadata, QgisDataType, Number
 from enmapboxprocessing.utils import Utils
+from typeguard import typechecked
 
 
 @typechecked
@@ -27,7 +24,8 @@ class RasterWriter(object):
 
     def writeArray2d(self, array: Array2d, bandNo: int, xOffset=0, yOffset=0, overlap: int = None):
         if overlap is not None:
-            array = array[overlap:-overlap, overlap:-overlap]
+            height, width = array.shape
+            array = array[overlap:height - overlap, overlap:width - overlap]
         self.gdalBand(bandNo).WriteArray(array, xOffset, yOffset)
 
     def fill(self, value: float, bandNo: int = None):

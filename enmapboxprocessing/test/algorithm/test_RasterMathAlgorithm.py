@@ -1,9 +1,12 @@
+from os.path import normpath
+
 import numpy as np
+from qgis._core import QgsProject, QgsRasterLayer, QgsMapLayer
 
 from enmapboxprocessing.algorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, hires
+from enmapboxtestdata import enmap, hires, landcover_polygons
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -11,154 +14,222 @@ c = ['', 'c:'][int(writeToDisk)]
 
 class TestRasterMathAlgorithm(TestCase):
 
-    def test_copy_raster(self):
+    def test_writeToDefaultOutput1(self):
         alg = RasterMathAlgorithm()
+
         parameters = {
-            alg.P_A: enmap,
-            alg.P_CODE: 'A',
-            alg.P_R1: 'c:/vsimem/raster.tif'
+            alg.P_R1: enmap,
+            alg.P_CODE: alg.P_OUTPUT_RASTER + ' = R1',  # Option 1: use the default output raster name
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/enmap.tif'
         }
         result = self.runalg(alg, parameters)
-        gold = np.array(RasterReader(enmap).array())
-        lead = np.array(RasterReader(result[alg.P_R1]).array())
-        self.assertEqual(gold.dtype, lead.dtype)
-        self.assertEqual(np.sum(gold), np.sum(lead))
+        self.assertEqual(14908457369, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(), dtype=float))
+        self.assertEqual('c:/vsimem/enmap.tif', RasterReader(result[alg.P_OUTPUT_RASTER]).source())
 
-
-    def test_add_raster(self):
+    def test_writeToDefaultOutput2(self):
         alg = RasterMathAlgorithm()
+
         parameters = {
-            alg.P_A: enmap,
-            alg.P_B: enmap,
-            alg.P_CODE: 'A + B',
-            alg.P_R1: 'c:/vsimem/raster.tif'
+            alg.P_R1: enmap,
+            alg.P_CODE: 'enmap = R1',  # Option 2: use the selected output raster name, e.g. 'enmap'
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/enmap.tif'  # basename matches identifier
         }
         result = self.runalg(alg, parameters)
-        gold = np.array(RasterReader(enmap).array()) * 2
-        lead = np.array(RasterReader(result[alg.P_R1]).array())
-        self.assertEqual(gold.dtype, lead.dtype)
-        self.assertEqual(np.sum(gold), np.sum(lead))
+        self.assertEqual(14908457369, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(), dtype=float))
+        self.assertEqual(normpath('c:/vsimem/enmap.tif'), normpath(RasterReader(result[alg.P_OUTPUT_RASTER]).source()))
+        self.assertIsNone(result.get('enmap'))
 
-    def test_add_bands(self):
+    def test_writeToAdditionalOutputs(self):
         alg = RasterMathAlgorithm()
         parameters = {
-            alg.P_A: enmap,
-            alg.P_A_BAND: 1,
-            alg.P_B: hires,
-            alg.P_B_BAND: 1,
-            alg.P_CODE: 'A + B',
-            alg.P_R1: 'c:/vsimem/raster.tif'
+            alg.P_R1: enmap,
+            alg.P_CODE: 'test = R1\n'  # define new outputs by using an identifier, e.g. test -> test.tif
+                        'test2 = R1',
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'  # only used to define the folder!
         }
         result = self.runalg(alg, parameters)
-        lead = np.array(RasterReader(result[alg.P_R1]).array())
-        self.assertEqual(32355913, np.sum(lead))
+        self.assertEqual(14908457369, np.sum(RasterReader(result['test']).array(), dtype=float))
+        self.assertEqual(14908457369, np.sum(RasterReader(result['test2']).array(), dtype=float))
+        self.assertIsNone(result.get(alg.P_OUTPUT_RASTER))
+
+    def test_expression(self):
+        alg = RasterMathAlgorithm()
+        parameters = {
+            alg.P_R1: enmap,
+            alg.P_CODE: 'R1',
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/raster.tif'
+        }
+        result = self.runalg(alg, parameters)
+        self.assertEqual(14908457369, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(), dtype=float))
+        self.assertTrue(len(result) == 1)
+
+    def test_expression_withAt(self):
+        alg = RasterMathAlgorithm()
+        parameters = {
+            alg.P_R1: enmap,
+            alg.P_CODE: 'R1@1',
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/raster.tif'
+        }
+        result = self.runalg(alg, parameters)
+        self.assertEqual(29424494, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(), dtype=float))
+        self.assertTrue(len(result) == 1)
 
     def test_inputs_lists(self):
         alg = RasterMathAlgorithm()
         parameters = {
-            alg.P_INPUTS: [enmap, enmap],
-            alg.P_R1: 'c:/vsimem/sum.tif',
-            alg.P_R2: 'c:/vsimem/mask.tif',
-            alg.P_CODE: 'R1 = np.average(INPUTS, axis=0)\n'
-                        'R2 = np.all(INPUT_MASKS, axis=0)\n'
-                        'feedback.pushInfo(str(INPUTS_[0].noDataValue()))'
-        }
-        self.runalg(alg, parameters)
-
-    def test_add_bands_and_manually_mask(self):
-        alg = RasterMathAlgorithm()
-        parameters = {
-            alg.P_A: enmap,
-            alg.P_A_BAND: 1,
-            alg.P_B: hires,
-            alg.P_B_BAND: 1,
-            alg.P_CODE: 'R1 = A + B\n'
-                        'R1[~AM] = -99\n'
-                        'R1[~BM] = -99\n'
-                        'R1_.setNoDataValue(-99)\n'
-                        'R1_.setBandName("my band", bandNo=1)\n'
-                        'R1_.setMetadataItem("my key", 42, "MY DOMAIN")\n',
-            alg.P_R1: 'c:/vsimem/raster.tif'
+            alg.P_RS: [enmap, enmap],
+            alg.P_CODE: 'data = np.average(RS, axis=0)\n'
+                        'mask = np.all(RSMask, axis=0)',
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
         }
         result = self.runalg(alg, parameters)
-        raster = RasterReader(result[alg.P_R1])
-        self.assertEqual(-99, raster.noDataValue())
-        self.assertEqual('my band', raster.bandName(1))
-        self.assertEqual('42', raster.metadataItem('my key', 'MY DOMAIN'))
-        self.assertEqual(10797202, np.sum(RasterReader(result[alg.P_R1]).array()))
+        self.assertEqual(14908457369, np.sum(RasterReader(result['data']).array(), dtype=float))
+        self.assertEqual(12594966, np.sum(RasterReader(result['mask']).array(), dtype=float))
+
+    def test_input_list_metadata(self):
+        alg = RasterMathAlgorithm()
+        parameters = {
+            alg.P_RS: [enmap, enmap],
+            alg.P_CODE: 'for reader in RS_:\n'  # we have to use the explicite RS_ handle
+                        '    feedback.pushInfo(reader.noDataValue())',
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
+        }
+        result = self.runalg(alg, parameters)
+
+    def test_vector(self):
+        alg = RasterMathAlgorithm()
+        parameters = {
+            alg.P_GRID: enmap,
+            alg.P_V1: landcover_polygons,
+            alg.P_CODE: 'V1',  # use as a 0/1 mask
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/landcover_mask.tif'
+        }
+        result = self.runalg(alg, parameters)
+        self.assertEqual(2028, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
+        self.assertTrue(len(result) == 1)
+
+    def test_vector_withAt(self):
+        alg = RasterMathAlgorithm()
+        parameters = {
+            alg.P_GRID: enmap,
+            alg.P_V1: landcover_polygons,
+            alg.P_CODE: 'vector1 = V1@"None"\n'  # use as a 0/1 mask
+                        'vector2 = V1\n'  # The same mask!
+                        'vector3 = V1@"level_3_id"',
+
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
+        }
+        result = self.runalg(alg, parameters)
+        self.assertEqual(2028, np.sum(RasterReader(result['vector1']).array()))
+        self.assertEqual(2028, np.sum(RasterReader(result['vector2']).array()))
 
     def test_with_overlap(self):
         alg = RasterMathAlgorithm()
         parameters = {
-            alg.P_A: hires,
+            alg.P_R1: hires,
             alg.P_CODE: 'from scipy.ndimage import gaussian_filter\n'
-                        'R1 = gaussian_filter(A, sigma=3)\n',
-            alg.P_R1: 'c:/vsimem/raster.tif',
+                        'outputRaster = gaussian_filter(R1, sigma=3)\n',
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/raster.tif',
             alg.P_OVERLAP: 15
         }
         result = self.runalg(alg, parameters)
-        self.assertEqual(631432553, np.sum(RasterReader(result[alg.P_R1]).array()))
+        self.assertEqual(631209052, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(), dtype=float))
 
     def test_stats(self):
         alg = RasterMathAlgorithm()
         parameters = {
-            alg.P_A: enmap,
-            alg.P_CODE: 'hist, bin_edges = np.histogram(A, bins=10, range=(0, 10000))\n'
+            alg.P_R1: enmap,
+            alg.P_CODE: 'hist, bin_edges = np.histogram(R1, bins=10, range=(0, 10000))\n'
                         'for a, b, n in zip(bin_edges[:-1], bin_edges[1:], hist):\n'
                         "   feedback.pushInfo(f'[{a}, {b}]: {n}')\n",
-            alg.P_MONOLITHIC: True
+            alg.P_MONOLITHIC: True,
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/info.tif'
         }
         self.runalg(alg, parameters)
 
-    def test_add_raster_and_mask(self):
+    def test_getAndSetMetadata(self):
         alg = RasterMathAlgorithm()
+        orig = RasterReader(enmap)
         parameters = {
-            alg.P_A: enmap,
-            alg.P_B: enmap,
-            alg.P_CODE: 'A + B',
-            alg.P_R1: 'c:/vsimem/raster.tif'
+            alg.P_R1: enmap,
+            alg.P_CODE: 'raster = R1\n'
+                        'raster.setNoDataValue(R1.noDataValue())\n'
+                        'raster.setMetadata(R1.metadata())\n'
+                        'for bandNo in range(1, R1.bandCount() + 1):\n'
+                        '    raster.setBandName(R1.bandName(bandNo), bandNo)\n',
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/raster.tif'
         }
         result = self.runalg(alg, parameters)
-        gold = np.array(RasterReader(enmap).array()) * 2
-        lead = np.array(RasterReader(result[alg.P_R1]).array())
-        self.assertEqual(gold.dtype, lead.dtype)
-        self.assertEqual(np.sum(gold), np.sum(lead))
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(14908457369, np.sum(reader.array(), dtype=float))
+        self.assertEqual(orig.noDataValue(), reader.noDataValue())
+        self.assertEqual(orig.bandName(1), reader.bandName(1))
 
-    def test_copy_band(self):
+    def test_externalRasterLayer(self):
         alg = RasterMathAlgorithm()
         parameters = {
-            alg.P_A: enmap,
-            alg.P_EXPRESSION: 'np.add(A@1, A@2)',
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
+            alg.P_CODE: f"# enmap := QgsRasterLayer('{enmap}')\n"
+                        'enmap',
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/raster.tif'
         }
         result = self.runalg(alg, parameters)
-        gold = RasterReader(enmap).array(bandList=[1, 2])
-        lead = RasterReader(result[alg.P_OUTPUT_RASTER]).array()
-        self.assertEqual(gold[0].dtype, lead[0].dtype)
-        self.assertEqual(np.sum(gold), np.sum(lead))
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(14908457369, np.sum(reader.array(), dtype=float))
 
-    def test_build_stack(self):
+    def test_externalRasterLayer_withAt(self):
         alg = RasterMathAlgorithm()
         parameters = {
-            alg.P_RASTER_LIST: [enmap, enmap, enmap],
-            alg.P_EXPRESSION: 'list(A) + list(B) + list(C)',
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
-        }
-        result = self.runalg(alg, parameters)
-        gold = 3 * RasterReader(enmap).bandCount()
-        lead = RasterReader(result[alg.P_OUTPUT_RASTER]).bandCount()
-        self.assertEqual(gold, lead)
+            alg.P_CODE: f"# enmap := QgsRasterLayer('{enmap}')\n"
+                        'raster1 = enmap@42\n'  # band 42 by index
+                        'raster2 = enmapMask@42\n'
+                        'raster3 = enmap@685nm\n'  # band 42 by wavelength
+                        'raster4 = enmapMask@685nm\n'
+                        'raster5 = enmap@"band 49 (0.685000 Micrometers)"\n'  # band 42 by name
+                        'raster6 = enmapMask@"band 49 (0.685000 Micrometers)"\n'
+                        'raster7 = enmap@111|10:20|^15:100|^12\n'  # band list [10, 11, 13, 14, 111] by number ranges
+                        'raster8 = enmapMask@111|10:20|^15:100|^12\n'
+                        'raster9 = enmap@^10:100\n'  # band list [1,...,9, 100,...] by number ranges
+                        'raster10 = enmapMask@^10:100\n' 
+                        'dummy = enmap.noDataValue()',  # using the reader shall not trigger reading all data!
 
-    def test_multiline(self):
-        alg = RasterMathAlgorithm()
-        parameters = {
-            alg.P_RASTER_LIST: [enmap],
-            alg.P_EXPRESSION: 'nir = np.float32(A@64)\n'
-                              'red = np.float32(A@38)\n'
-                              'ndvi = (nir - red) / (nir + red)\n'
-                              'ndvi',
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
         }
         result = self.runalg(alg, parameters)
-        self.assertEqual(35297, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array())))
+        self.assertEqual(47481925, np.sum(RasterReader(result['raster1']).array()))
+        self.assertEqual(71158, np.sum(RasterReader(result['raster2']).array()))
+        self.assertEqual(47481925, np.sum(RasterReader(result['raster3']).array()))
+        self.assertEqual(71158, np.sum(RasterReader(result['raster4']).array()))
+        self.assertEqual(47481925, np.sum(RasterReader(result['raster5']).array()))
+        self.assertEqual(71158, np.sum(RasterReader(result['raster6']).array()))
+        self.assertEqual(np.sum(RasterReader(enmap).array(bandList=[10, 11, 13, 14, 111]), dtype=float),
+                         np.sum(RasterReader(result['raster7']).array(), dtype=float))
+        self.assertEqual(71158. * 5, np.sum(RasterReader(result['raster8']).array(), dtype=float))
+        bandList = list(range(1, 10)) + list(range(100, 178))
+        self.assertEqual(np.sum(RasterReader(enmap).array(bandList=bandList), dtype=float),
+                         np.sum(RasterReader(result['raster9']).array(), dtype=float))
+        self.assertEqual(71158. * len(bandList), np.sum(RasterReader(result['raster10']).array(), dtype=float))
+
+
+    def test_externalVectorLayer(self):
+        alg = RasterMathAlgorithm()
+        parameters = {
+            alg.P_CODE: f"# landcover := QgsVectorLayer('{landcover_polygons}')\n"
+                        'landcover@"level_3_id"',
+            alg.P_GRID: enmap,
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
+        }
+        result = self.runalg(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(5260, np.sum(reader.array(), dtype=float))
+
+    def test_alias(self):
+        alg = RasterMathAlgorithm()
+        parameters = {
+            alg.P_R1: enmap,
+            alg.P_CODE: '# raster is an alias for R1\n'
+                        'raster = R1\n'
+                        'raster.noDataValue()',
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/raster.tif'
+        }
+        result = self.runalg(alg, parameters)
 

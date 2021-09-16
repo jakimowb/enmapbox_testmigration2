@@ -11,6 +11,7 @@ class TestRasterReader(TestCase):
 
     def setUp(self):
         self.reader = RasterReader(enmap)
+        self.provider = self.reader.provider
         self.array = self.reader.gdalDataset.ReadAsArray()
 
     def test_readFirstPixel(self):
@@ -29,9 +30,8 @@ class TestRasterReader(TestCase):
         self.assertArrayEqual(lead, gold)
 
     def test_readAllData_withBoundingBox_andSize(self):
-        lead = self.reader.array(boundingBox=self.provider.extent(), width=4, height=2)
-        gold = self.array
-        self.assertArrayEqual(lead, gold)
+        array = np.array(self.reader.array(boundingBox=self.provider.extent(), width=22, height=40))
+        self.assertEqual((177, 40, 22), array.shape)
 
     def test_readAllData_withBoundingBox_atNativeResolution(self):
         lead = self.reader.array(boundingBox=self.provider.extent())
@@ -39,10 +39,8 @@ class TestRasterReader(TestCase):
         self.assertArrayEqual(lead, gold)
 
     def test_readAllData_withBoundingBox_atOversampledResolution(self):
-        lead = self.reader.array(boundingBox=self.provider.extent(), width=8, height=4)
-        lead = np.array(lead)[:, ::2, ::2]
-        gold = self.array
-        self.assertArrayEqual(lead, gold)
+        array = np.array(self.reader.array(boundingBox=self.provider.extent(), width=22, height=40))
+        self.assertEqual((177, 40, 22), array.shape)
 
     def test_readEveryPixel_oneByOne(self):
         for xOffset in range(3):
@@ -74,8 +72,10 @@ class TestRasterMaskReader(TestCase):
 
     def setUp(self):
         self.array = np.array([[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]])
-        self.provider = Driver(filename='c:/vsimem/test.bsq').createFromArray(self.array).provider
-        self.reader = RasterReader(self.provider)
+        filename = 'c:/vsimem/test.bsq'
+        Driver(filename).createFromArray(self.array)
+        self.reader = RasterReader(filename)
+        self.provider = self.reader.provider
 
     def test_without_noData(self):
         gold = np.full_like(self.array, True, dtype=bool)

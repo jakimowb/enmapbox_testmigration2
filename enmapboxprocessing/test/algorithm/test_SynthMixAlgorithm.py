@@ -5,7 +5,7 @@ from enmapboxunittestdata import (classifierDumpPkl)
 
 class TestFitClassifierAlgorithm(TestCase):
 
-    def test(self):
+    def _TODOtest(self):
         alg = SynthMixAlgorithm()
         parameters = {
             alg.P_DATASET: classifierDumpPkl,

@@ -1,5 +1,4 @@
 import numpy as np
-from osgeo import gdal
 
 from enmapboxprocessing.algorithm.importenmapl1balgorithm import ImportEnmapL1BAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
@@ -17,8 +16,8 @@ class TestImportEnmapL1BAlgorithm(TestCase):
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(
-            64496114, round(np.sum(RasterReader(result[alg.P_OUTPUT_VNIR_RASTER]).array(bandList=[1]), dtype=float))
+            49240, round(np.sum(RasterReader(result[alg.P_OUTPUT_VNIR_RASTER]).array(bandList=[1]), dtype=float))
         )
         self.assertEqual(
-            137227175, round(np.sum(RasterReader(result[alg.P_OUTPUT_SWIR_RASTER]).array(bandList=[1]), dtype=float))
+            15407, round(np.sum(RasterReader(result[alg.P_OUTPUT_SWIR_RASTER]).array(bandList=[1]), dtype=float))
         )

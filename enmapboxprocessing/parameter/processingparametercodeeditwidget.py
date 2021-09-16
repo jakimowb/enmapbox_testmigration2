@@ -1,6 +1,6 @@
 from PyQt5.Qsci import QsciScintilla, QsciLexerPython
-from PyQt5.QtGui import QFont, QFontMetrics, QColor
-from PyQt5.QtWidgets import QSizePolicy, QWidget
+from PyQt5.QtGui import QFont, QFontMetrics, QColor, QWheelEvent
+from PyQt5.QtWidgets import QWidget
 from PyQt5.uic import loadUi
 
 from processing.gui.wrappers import WidgetWrapper, DIALOG_MODELER, DIALOG_BATCH
@@ -28,7 +28,7 @@ class CodeEditWidget(QsciScintilla):
         self.setMarginLineNumbers(0, True)
         self.setMarginsBackgroundColor(QColor("#e3e3e3"))
 
-        #self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
+        # self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
         #                               QSizePolicy.Expanding))
         self.setMinimumSize(0, 300)
 
