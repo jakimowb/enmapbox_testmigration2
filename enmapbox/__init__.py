@@ -168,7 +168,7 @@ except:
     pSrc = pathlib.Path(DIR_ENMAPBOX) / 'externals' / 'qps' / 'externals'
     assert pSrc.is_dir()
     site.addsitedir(pSrc)
-    import pyqtgraph
+    #import pyqtgraph
 
 
 def icon() -> QIcon:
@@ -379,6 +379,8 @@ def initAll():
     registerExpressionFunctions()
     registerEnMAPBoxProcessingProvider()
     registerMapLayerConfigWidgetFactories()
+    from .externals.qps import initSpectralLibraryIOs
+    initSpectralLibraryIOs()
 
 
 def unloadAll():

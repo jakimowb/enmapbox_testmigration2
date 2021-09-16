@@ -3,8 +3,6 @@ from tempfile import gettempdir
 
 from qgis.core import *
 
-from enmapbox.externals.qps.speclib import EnviSpectralLibraryIO
-
 from enmapboxprocessing.algorithm.algorithms import algorithms
 from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.changemap import ChangeMap

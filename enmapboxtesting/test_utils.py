@@ -110,8 +110,14 @@ class testClassUtils(EnMAPBoxTestCase):
 
 
 
+    def test_wavelength_information(self):
 
+        from enmapboxtestdata import enmap
+        from enmapbox.gui.utils import parseWavelength, parseFWHM
+        wl, wlu = parseWavelength(enmap)
+        fwhm = parseFWHM(enmap)
 
+        s = ""
 
 
 
