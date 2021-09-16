@@ -2,30 +2,27 @@ import traceback
 from collections import OrderedDict, defaultdict
 from math import ceil
 from os.path import basename, splitext, join, dirname
-from random import randint
 from re import finditer, Match
-from typing import Dict, Any, List, Tuple, Optional, Iterable, Union
+from typing import Dict, Any, List, Tuple, Union
 
 import numpy
 import numpy as np
 from mock import Mock
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsProcessing,
-                        QgsProcessingParameterString, QgsProject, QgsRasterLayer, QgsProcessingParameterField,
-                        QgsProcessingParameterVectorLayer, Qgis, QgsMapLayer, QgsVectorLayer, QgsFields)
+                        QgsProcessingParameterString, QgsProject, QgsRasterLayer, Qgis, QgsVectorLayer, QgsFields)
 
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-from enmapboxprocessing.parameter.processingparameterrastermathcodeeditwidget import \
+from enmapboxprocessing.algorithm.rastermathalgorithm.parameter.processingparameterrastermathcodeeditwidget import \
     ProcessingParameterRasterMathCodeEditWidgetWrapper
 from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from enmapboxprocessing.rasterblockinfo import RasterBlockInfo
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.utils import Utils
-from processing import getTempFilename, Processing
 from typeguard import typechecked
 
 
@@ -56,19 +53,21 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     P_V8 = 'V8'
     P_V9 = 'V9'
     P_V10 = 'V10'
-    P_OUTPUT_RASTER = 'outputRaster'
+    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRaster', 'Output raster layer'
+
+    linkNumpy = EnMAPProcessingAlgorithm.htmlLink('https://numpy.org/doc/stable/reference/', 'NumPy')
+    linkTutorial = EnMAPProcessingAlgorithm.htmlLink(
+        'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_manual/applications.html#rastermath',
+        'RasterMath tutorial')
 
     def displayName(self) -> str:
         return 'Raster math'
 
     def shortDescription(self) -> str:
-        link1 = self.htmlLink('https://numpy.org/doc/stable/reference/', 'NumPy')
-        link2 = self.htmlLink('https://numpy.org/doc/stable/reference/arrays.ndarray.html', '3d NumPy arrays')
 
-        return 'Perform mathematical calculations on selected raster layer data. ' \
-               f'Use any {link1}-based arithmetic, or even arbitrary Python code.\n' \
-               f'Input raster data is mapped to {link2} A, B, ..., Z. ' \
-               'Result array variables R1, R2, ..., R10 are written to corresponding destination raster layer.'
+        return 'Perform mathematical calculations on raster layer and vector layer data. ' \
+               f'Use any {self.linkNumpy}-based arithmetic, or even arbitrary Python code.\n' \
+               f'See the {self.linkTutorial} for detailed usage instructions.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         linkReader = self.htmlLink(
@@ -84,15 +83,19 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             'feedback'
         )
         return [
-            (self._CODE, 'The mathematical calculation to be performed on the input arrays '
-                         'A, B, ..., Z, creating result arrays R1, R2, ..., R10. '
+            (self._CODE, 'The mathematical calculation to be performed on the selected input arrays.\n'
+                         'Select inputs in the available data sources section or use the raster/vector layer '
+                         'parameters R1, ..., R10 and V1, ..., V10.\n'
+                         'In the code snippets section you can find some prepdefined code snippets ready to use.\n'
+                         f'See the {self.linkTutorial} for detailed usage instructions.'),
+            ('DUMMY',    'R1,A, B, ..., Z, creating result arrays R1, R2, ..., R10. '
                          'All arrays are 3d with shape (bandCount, height, width).\n'
                          'When using a simple expression like A + B, the result is automatically assigned to R1.\n'
                          'Alternatively, use a statement to explicitely assign outputs like R1 = A + B.\n'
                          'To correctly handle no data regions use the AM, ..., ZM mask arrays:'
                          '<pre>'
                          'R1 = A + B<br>'
-                         'R1[~AM] = -99<br>'  
+                         'R1[~AM] = -99<br>'
                          'R1[~BM] = -99<br>'
                          '</pre>'
                          f'To properly set no data values, band names, metadata etc. use the R1_, ... R10_ '
@@ -127,32 +130,22 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                          'To allow for arbitrary many inputs, use the INPUTS parameters.'
                          'E.g. averaging a list of raster layer:'
                          '<pre>np.min(INPUTS, axis=0)</pre>'
-                         ),
-            (self._GRID, 'The target grid. If not specified, the grid of raster layer A is used.'),
-            ('A, B, ..., Z', 'Raster layers that are mapped to numpy array variables A, B, ..., Z '
-                             'with shape (bandCount, height, width).\n'
-                             f'Use the associated {linkReader} objects A_, B_, ..., Z_ to query additional '
-                             'information like metadata, no data values, band names, center wavelength '
-                             'and so on.\n'
-                             f'Additionally, you may use the associated boolean arrays AM, BM, ..., ZM to properly '
-                             f'mask no data regions. Note that all no data, inf and nan values evaluate to False, '
-                             f'and all other to True.'),
-            ('Selected band', 'If specified, only the selected band is mapped with shape (1, height, width).'),
-            (self._RS, 'Additional input raster layers arranged as a list of numpy arrays mapped to the '
-                           'variable named INPUTS.\n'
-                           f'The associated {linkReader} objects are stored in a variable named INPUTS_.'),
-            ('R1, R2, ..., R10', 'Raster file destinations for writing the created output variables '
-                                 'R1, R2, ..., R10. \n'
-                                 f'Use the associated {linkWriter} objects R1_, R2_, ..., R10_ to assign additional '
-                                 'information like metadata, no data values, band names, center wavelength '
-                                 'and so on.\n'),
+             ),
+            (self._GRID, 'The destination grid. If not specified, the grid of the first raster layer is used.'),
+            ('Raster layer mapped to R1, ..., R10',
+             'Additional raster layers mapped to individual numpy array variables Ri with shape (bandCount, blockHeight, blockWidth).'),
+            (self._RS, 'Additional list of raster layers mapped to a list variable RS.'),
             (self._OVERLAP, 'The number of columns and rows to read from the neighbouring blocks. '
-                             'Needs to be specified only when performing spatial operations, '
-                             'to avoid artifacts at block borders.'),
-            (self._MONOLITHIC, 'Whether to read all data for the full extent at once, instead of block-wise processing. '
-                               'This may be useful for some spatially unbound operations, '
-                               'like segmentation or region growing, when calculating global statistics, '
-                               'or if RAM is not an issue at all.')
+                            'Needs to be specified only when performing spatial operations, '
+                            'to avoid artifacts at block borders.'),
+            (
+            self._MONOLITHIC, 'Whether to read all data for the full extent at once, instead of block-wise processing. '
+                              'This may be useful for some spatially unbound operations, '
+                              'like segmentation or region growing, when calculating global statistics, '
+                              'or if RAM is not an issue at all.'),
+            (self._OUTPUT_RASTER, 'Raster file destination for writing the default output variable. '
+                                   'Additional outputs are written into the same directory. '
+                                   f'See the {self.linkTutorial} for detailed usage instructions.'),
         ]
 
     def group(self):
@@ -196,7 +189,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     def prepareAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> bool:
-        self.mapLayers = {k:v for k,v in QgsProject.instance().mapLayers().items() if k in parameters[self.P_CODE]}
+        self.mapLayers = {k: v for k, v in QgsProject.instance().mapLayers().items() if k in parameters[self.P_CODE]}
         print('###', self.mapLayers)
         return True
 
@@ -343,7 +336,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                 blockSizeY = grid.height()
                 blockSizeX = grid.width()
 
-            #blockSizeY = 100
+            # blockSizeY = 100
 
             # process
             if overlap is None:
@@ -361,7 +354,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             result = {self.P_OUTPUT_RASTER: None}
             for key, writer in writers.items():
                 if key == splitext(basename(filename))[0]:  # if identifier matches the output basename, ...
-                    key = self.P_OUTPUT_RASTER              # ... map the result to the name of the output
+                    key = self.P_OUTPUT_RASTER  # ... map the result to the name of the output
                 result[key] = writer.source()
             self.toc(feedback, result)
 
@@ -458,7 +451,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             if needAllData:
                 # check if the raster is a rasterized vector ...
                 isRasterizedVector = reader.bandName(reader.bandCount()) == 'None'
-                if isRasterizedVector: # ... if so, we just assign the 0/1 mask, instead of all burned fields
+                if isRasterizedVector:  # ... if so, we just assign the 0/1 mask, instead of all burned fields
                     array = np.array(reader2.arrayFromBlock(block, [reader.bandCount()], overlap))
                     namespace[rasterName] = array
                     namespace[rasterName + 'Mask'] = array == 1
@@ -489,7 +482,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                         unit = ''
                     if line[match.end() - 1] == '"':  # band name mode
                         bandName = text.split('"')[1]
-                        bandNos = (reader.findBandName(bandName), )
+                        bandNos = (reader.findBandName(bandName),)
                     else:  # band number mode
                         subtext = text.split('@')[1]
                         groups = subtext.split('|')
@@ -592,7 +585,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                 continue
 
             removeItem = False
-            for reader  in readers:  # skip all input arrays with @ syntax
+            for reader in readers:  # skip all input arrays with @ syntax
                 if key.startswith(reader + 'At'):
                     removeItem = True
             if removeItem:
@@ -608,7 +601,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                 value = value[None]  # ... add third dimension
             if value.ndim != 3:  # skip all non-3d-arrays
                 continue
-            if value.shape[1:] != (block.height + 2 * overlap, block.width + 2 * overlap): # skip mismatching arrays
+            if value.shape[1:] != (block.height + 2 * overlap, block.width + 2 * overlap):  # skip mismatching arrays
                 continue
             results[key] = value
 

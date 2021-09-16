@@ -1,16 +1,18 @@
 from collections import OrderedDict
 from functools import partial
-from os.path import splitext, basename
+from os.path import splitext, basename, exists
 from time import time
 from typing import Dict, Union
 
+from PyQt5 import QtGui, QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QTreeWidget, QTreeWidgetItem, QPushButton, \
-    QInputDialog, QMenu, QAction, QComboBox, QListWidget
+    QInputDialog, QMenu, QAction, QComboBox, QListWidget, QDialog
 from PyQt5.uic import loadUi
 from qgis._core import QgsProject, QgsRasterLayer, QgsVectorLayer, QgsFields, QgsField, QgsCoordinateReferenceSystem
 
+from enmapboxprocessing.algorithm.rastermathalgorithm.parameter.snippetdialog import SnippetDialog
 from enmapboxprocessing.parameter.processingparametercodeeditwidget import CodeEditWidget
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.utils import Utils
@@ -20,6 +22,7 @@ from processing.gui.wrappers import WidgetWrapper, DIALOG_MODELER, DIALOG_BATCH
 class ProcessingParameterRasterMathCodeEdit(QWidget):
     mCode: CodeEditWidget
     mSourcesTree: QTreeWidget
+    mSnippetsTree: QTreeWidget
     mInput: QComboBox
     mOutput: QComboBox
     mLandsat8: QListWidget
@@ -37,6 +40,7 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
         self.mSourcesTree.doubleClicked.connect(self.onSourceDoubleClicked)
         self.mSourcesTree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.mSourcesTree.customContextMenuRequested.connect(self.onContextMenuRequested)
+        self.mSnippetsTree.doubleClicked.connect(self.onSnippetDoubleClicked)
 
         self.mBiggerGui.clicked.connect(
             lambda: self.mCode.setMinimumSize(0, min(self.mCode.size().height() + 100, 1000))
@@ -92,6 +96,32 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
     def onSourceDoubleClicked(self):
         self.insertIdentifier()
         self.onSourceClicked()
+
+    def onSnippetDoubleClicked(self):
+        # workaround an issue, where on doubleClicked is triggered twice
+        t = time()
+        if (t - self._lastDoubleClickTime) < 0.1:
+            return
+        self._lastDoubleClickTime = t
+
+        item: QTreeWidgetItem = self.mSnippetsTree.currentItem()
+
+        if item.toolTip(0) == '':
+            return
+
+        filename = r'D:\source\QGISPlugIns\enmap-box\enmapboxprocessing\algorithm\rastermathalgorithm\snippet\Indices\ndvi.txt'
+        #filename = item.toolTip(0)
+        if not exists(filename):
+            return
+
+        with open(filename) as file:
+            snippet = file.read()
+        rasterNames = list(self.getRasterSources().keys())
+
+        dlg = SnippetDialog(snippet, rasterNames, self.parent())
+        if dlg.exec_():
+            code = dlg.values()
+            self.mCode.setText(code)
 
     def onContextMenuRequested(self, pos):
 
@@ -222,6 +252,11 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
             if identifier != '':
                 sources[identifier] = item.registryName
 
+        return sources
+
+    def getRasterSources(self) -> Dict:
+        sources = {k: v for k, v in self.getSources().items()
+                   if isinstance(QgsProject.instance().mapLayer(v), QgsRasterLayer)}
         return sources
 
     def insertIdentifier(self, identifier: str = None):
