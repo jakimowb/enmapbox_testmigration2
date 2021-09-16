@@ -4,8 +4,6 @@ from typing import Dict, Any, List, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback)
-from sklearn.inspection import permutation_importance
-
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.reportwriter import MultiReportWriter, HtmlReportWriter, CsvReportWriter
 from enmapboxprocessing.typing import ClassifierDump
@@ -116,6 +114,7 @@ class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgo
             feedback.pushInfo(f'Load test dataset: X=array{list(X.shape)} y=array{list(dump.y.shape)}')
 
             feedback.pushInfo('Evaluate permutation feature importance')
+            from sklearn.inspection import permutation_importance
             r = permutation_importance(
                 estimator=classifier, X=X, y=y.ravel(), scoring=scoring, n_repeats=repeats, random_state=seed
             )

@@ -21,7 +21,7 @@ class PrepareClassificationDatasetFromCategorizedLibraryAlgorithm(EnMAPProcessin
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Classification dataset (from categorized spectral library)'
+        return 'Create classification dataset (from categorized spectral library)'
 
     def shortDescription(self) -> str:
         return 'Create a classification dataset from spectral profiles that matches the given categories ' \

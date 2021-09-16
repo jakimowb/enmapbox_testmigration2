@@ -6,7 +6,6 @@ from collections import namedtuple
 from os import remove
 from os.path import basename, join
 from pathlib import Path
-from time import sleep
 from typing import Iterable
 from warnings import warn
 

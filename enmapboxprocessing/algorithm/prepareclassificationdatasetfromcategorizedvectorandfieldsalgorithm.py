@@ -19,7 +19,7 @@ class PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm(EnMAPP
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Classification dataset (from categorized vector layer with feature fields)'
+        return 'Create classification dataset (from categorized vector layer with feature fields)'
 
     def shortDescription(self) -> str:
         return 'Create a classification dataset from attribute table rows that matches the given categories ' \

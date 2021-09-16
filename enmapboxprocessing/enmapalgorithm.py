@@ -5,6 +5,7 @@ from time import time
 from typing import Any, Dict, Iterable, Optional, List, Tuple, TextIO
 
 import numpy as np
+from PyQt5.QtGui import QIcon
 from osgeo import gdal
 from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
                         QgsProcessingContext, QgsProcessingFeedback,
@@ -61,6 +62,9 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     DefaultEnviCreationOptions = 'INTERLEAVE=BSQ'.split()
     DefaultEnviCreationProfile = EnviFormat + ' ' + ' '.join(DefaultEnviCreationOptions)
 
+    def icon(self):
+        return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
+
     def createInstance(self):
         return type(self)()
 
@@ -100,7 +104,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsMapLayer]:
         layer = super().parameterAsLayer(parameters, name, context)
-        if isinstance(layer, QgsMapLayer) and isinstance(parameters[name], str):
+        if isinstance(layer, QgsMapLayer) and layer.renderer() is None:
             layer.loadDefaultStyle()
         return layer
 
@@ -110,16 +114,16 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         layers = super().parameterAsLayerList(parameters, name, context)
         if layers is None or len(layers) == 0:
             return None
-        #for layer in layers:
-        #    if isinstance(layer, QgsMapLayer) and isinstance(parameters[name], str):
-        #        layer.loadDefaultStyle()
+        for layer in layers:
+            if isinstance(layer, QgsMapLayer) and layer.renderer() is None:
+                layer.loadDefaultStyle()
         return layers
 
     def parameterAsRasterLayer(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsRasterLayer]:
         layer = super().parameterAsRasterLayer(parameters, name, context)
-        if isinstance(layer, QgsRasterLayer) and isinstance(parameters[name], str):
+        if isinstance(layer, QgsRasterLayer) and layer.renderer() is None:
             layer.loadDefaultStyle()
         return layer
 
@@ -145,7 +149,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsVectorLayer]:
         layer = super().parameterAsVectorLayer(parameters, name, context)
-        if isinstance(layer, QgsVectorLayer) and isinstance(parameters[name], str):
+        if isinstance(layer, QgsVectorLayer) and layer.renderer() is None:
             layer.loadDefaultStyle()
         return layer
 
@@ -319,7 +323,10 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def checkParameterVectorClassification(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Tuple[bool, str]:
-        renderer = self.parameterAsVectorLayer(parameters, name, context).renderer()
+        layer = self.parameterAsVectorLayer(parameters, name, context)
+        if layer is None:
+            return True, ''
+        renderer = layer.renderer()
         return (
             isinstance(renderer, QgsCategorizedSymbolRenderer),
             f'Invalid vector classification, '

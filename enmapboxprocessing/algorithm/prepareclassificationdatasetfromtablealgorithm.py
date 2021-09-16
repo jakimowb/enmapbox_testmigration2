@@ -22,7 +22,7 @@ class PrepareClassificationDatasetFromTableAlgorithm(EnMAPProcessingAlgorithm):
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Classification dataset (from table with categories and feature fields)'
+        return 'Create classification dataset (from table with categories and feature fields)'
 
     def shortDescription(self) -> str:
         return 'Create a classification dataset from attribute table rows that match the given categories ' \

@@ -2,7 +2,6 @@ from typing import Dict, Any, List, Tuple
 
 import numpy as np
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer)
-from sklearn.model_selection import cross_val_predict
 
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
@@ -89,6 +88,7 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
                 self.runAlg(alg, parameters, None, feedback2, context, True)
             else:
                 feedback.pushInfo('Evaluate cross-validation performance')
+                from sklearn.model_selection import cross_val_predict
                 y2 = cross_val_predict(classifier, X=sample.X, y=sample.y.ravel(), cv=nfold)
                 y2 = np.reshape(y2, (1, -1, 1))
                 # prepare raster layers

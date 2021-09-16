@@ -1,3 +1,5 @@
+from qgis._core import QgsVectorLayer, QgsRasterLayer
+
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectoralgorithm import \
     PrepareClassificationDatasetFromCategorizedVectorAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
@@ -66,3 +68,35 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
             ['low vegetation', 'pavement', 'roof', 'soil', 'tree', 'water'],
             [c.name for c in dump.categories]
         )
+
+    def test_debug(self):
+
+        alg = PrepareClassificationDatasetFromCategorizedVectorAlgorithm()
+        parameters = {
+            alg.P_FEATURE_RASTER: r'C:\Users\Andreas\Downloads\ANDREAS\Chandous_Khair_VV_VH_ratio_June_Oct_2021.dat',
+            alg.P_CATEGORIZED_VECTOR: r'C:\Users\Andreas\Downloads\ANDREAS\example.shp',
+            alg.P_OUTPUT_DATASET: 'c:/vsimem/sample.pkl'
+        }
+        self.runalg(alg, parameters)
+        dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
+        print(dump)
+
+    def test_debug2(self):
+        vector = QgsVectorLayer(r'C:\Users\Andreas\Downloads\ANDREAS\example.shp')
+        grid = QgsRasterLayer(r'C:\Users\Andreas\Downloads\ANDREAS\Chandous_Khair_VV_VH_ratio_June_Oct_2021.dat')
+        alg = 'gdal:rasterize'
+        parameters = {
+            'INPUT': vector,
+            'BURN': 1,
+            'INIT': 0,
+            'UNITS': 0,  # size in pixels
+            'WIDTH': grid.width(), 'HEIGHT': grid.height(),
+            'EXTENT': grid.extent(),
+            'OUTPUT': r'C:\Users\Andreas\Downloads\ANDREAS\rasterized.tif'}
+        result = self.runalg(alg, parameters)
+
+
+        print(vector.crs())
+        print(QgsRasterLayer(result['OUTPUT']).crs())
+        print(vector.crs().toProj())
+        print(QgsRasterLayer(result['OUTPUT']).crs().toProj())

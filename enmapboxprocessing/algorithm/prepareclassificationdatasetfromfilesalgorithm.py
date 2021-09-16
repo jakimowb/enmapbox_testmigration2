@@ -19,7 +19,7 @@ class PrepareClassificationDatasetFromFilesAlgorithm(EnMAPProcessingAlgorithm):
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Classification dataset (from text files)'
+        return 'Create classification dataset (from text files)'
 
     def shortDescription(self) -> str:
         link = self.htmlLink(

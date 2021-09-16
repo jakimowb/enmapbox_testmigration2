@@ -16,6 +16,8 @@ from PyQt5.uic import loadUi
 
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcodealgorithm import \
     PrepareClassificationDatasetFromCodeAlgorithm
+from enmapboxprocessing.parameter.processingparameterclassificationdatasetwidget import \
+    ProcessingParameterClassificationDatasetWidget
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 from qgis._core import QgsMapLayerProxyModel, Qgis, QgsProcessingFeedback, QgsRasterLayer, QgsProject, QgsVectorLayer
 from qgis._gui import QgsFileWidget, QgsMapLayerComboBox, QgsSpinBox, QgsMessageBar, QgsColorButton, QgsDoubleSpinBox
@@ -121,12 +123,9 @@ class ClassificationWorkflowGui(QMainWindow):
     mLog: QTextEdit
     mLogClear: QToolButton
 
-    # todo quick mapping
-    mQuickMapFeatures: QgsMapLayerComboBox
-    mQuickMapTargets: QgsMapLayerComboBox
-    mQuickLibrary: QgsMapLayerComboBox
-    mQuickTable: QgsMapLayerComboBox
-    mQuickFeatures2: QgsMapLayerComboBox
+    # quick mapping
+    mQuickDataset: ProcessingParameterClassificationDatasetWidget
+    mQuickFeatures: QgsMapLayerComboBox
     mQuickClassifier: QComboBox
     mRunQuickMapping: QToolButton
 
@@ -376,8 +375,7 @@ class ClassificationWorkflowGui(QMainWindow):
 
     def initLayers(self):
         self.mPredictFeatures.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.mQuickMapFeatures.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.mQuickFeatures2.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mQuickFeatures.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
     def initClassifier(self):
         self.classifierNames = list()
@@ -440,29 +438,9 @@ class ClassificationWorkflowGui(QMainWindow):
 
     @errorHandled(successMessage='performed quick mapping')
     def runQuickMapping(self, *args):
-        # create sample
-        labels = self.mQuickLabels.currentLayer()
-        if labels is None:
-            self.pushParameterMissingLayer('Map with class labels')
-            raise MissingParameterError()
-        features = self.mQuickFeatures.currentLayer()
-        if features is None:
-            self.pushParameterMissingLayer('Raster with features')
-            raise MissingParameterError()
 
-        if isinstance(labels, QgsRasterLayer):
-            self.mAlgoDataset.setCurrentIndex(1)
-            Alg = PrepareClassificationDatasetFromCategorizedRasterAlgorithm
-            parameters = {Alg.P_CATEGORIZED_RASTER: labels,
-                          Alg.P_FEATURE_RASTER: features}
-        elif isinstance(labels, QgsVectorLayer):
-            self.mAlgoDataset.setCurrentIndex(2)
-            Alg = PrepareClassificationDatasetFromCategorizedVectorAlgorithm
-            parameters = {Alg.P_CATEGORIZED_VECTOR: labels,
-                          Alg.P_FEATURE_RASTER: features}
-        else:
-            assert 0
-        self.runImportDataset(parameters=parameters, autoRun=True)
+        # set dataset
+        self.mFileDataset.setFilePath(self.mQuickDataset.value())
 
         # fit classifier
         self.mDataFit.setCurrentIndex(1)  # (original) dataset
@@ -470,9 +448,7 @@ class ClassificationWorkflowGui(QMainWindow):
         self.mRunClassifierFit.clicked.emit()
 
         # mapping
-        self.mPredictFeatures.setLayer(features)
-        if self.mQuickFeatures.currentLayer() is not None:
-            self.mPredictFeatures.setLayer(self.mQuickFeatures.currentLayer())
+        self.mPredictFeatures.setLayer(self.mQuickFeatures.currentLayer())
         self.mRunPredict.clicked.emit()
 
     @errorHandled(successMessage='created dataset')

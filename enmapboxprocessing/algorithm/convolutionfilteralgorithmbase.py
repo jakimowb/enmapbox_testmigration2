@@ -4,7 +4,6 @@ from math import ceil
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
-from astropy.convolution import Kernel
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, Qgis)
 
 from enmapboxprocessing.driver import Driver

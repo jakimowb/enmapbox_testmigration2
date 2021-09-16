@@ -55,7 +55,7 @@ from enmapboxprocessing.algorithm.randomsamplesfromclassificationdatasetalgorith
     RandomSamplesFromClassificationDatasetAlgorithm
 from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
-from enmapboxprocessing.algorithm.rastermathalgorithm import RasterMathAlgorithm
+from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.algorithm.samplerastervaluesalgorithm import SampleRasterValuesAlgorithm
 from enmapboxprocessing.algorithm.selectfeaturesfromdatasetalgorithm import SelectFeaturesFromDatasetAlgorithm
 from enmapboxprocessing.algorithm.spatialconvolutionairydisk2dalgorithm import SpatialConvolutionAiryDisk2DAlgorithm
@@ -233,7 +233,7 @@ def algorithms():
     if True:  # include test algos for custom processing parameters
         pass
         # ExperimentalCustomColor(),
-        #algos.append(TestCodeEditWidgetAlgorithm())
+        # algos.append(TestCodeEditWidgetAlgorithm())
         algos.append(TestRasterMathCodeEditWidgetAlgorithm())
 
     return algos

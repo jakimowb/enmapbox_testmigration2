@@ -1,11 +1,10 @@
 from typing import Dict, Any, List, Tuple
 
-from processing.algs.gdal.gdalcalc import gdalcalc
 from qgis._core import QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer
 
 from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import \
     ClassificationPerformanceStratifiedAlgorithm
-from enmapboxprocessing.algorithm.rastermathalgorithm import RasterMathAlgorithm
+from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.typing import Category
 from enmapboxprocessing.utils import Utils

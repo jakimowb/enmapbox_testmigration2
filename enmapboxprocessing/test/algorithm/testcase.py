@@ -20,8 +20,9 @@ class TestCase(unittest.TestCase):
     @staticmethod
     def runalg(alg: EnMAPProcessingAlgorithm, parameters: Dict):
         print(f'\n{"#" * 80}')
-        alg.initAlgorithm(configuration=None)
-        print(alg.__class__.__name__,
-            '({} -> {}), {}, {}'.format(alg.group(), alg.displayName(), alg.groupId(), alg.name()))
-        print('parameters = {}'.format(repr(parameters)))
+        if isinstance(alg, EnMAPProcessingAlgorithm):
+            alg.initAlgorithm(configuration=None)
+            print(alg.__class__.__name__,
+                '({} -> {}), {}, {}'.format(alg.group(), alg.displayName(), alg.groupId(), alg.name()))
+            print('parameters = {}'.format(repr(parameters)))
         return Processing.runAlgorithm(alg, parameters=parameters, feedback=ProcessingFeedback())
