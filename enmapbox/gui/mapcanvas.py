@@ -22,7 +22,7 @@ import warnings
 
 import typing
 from PyQt5.QtCore import Qt, QObject, QCoreApplication, pyqtSignal, QEvent, QPointF, QMimeData, QTimer, QSize, \
-    QSettings, QModelIndex, QAbstractListModel, QPoint
+    QSettings, QModelIndex, QAbstractListModel, QPoint; QgsMapToPixel
 from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent, QKeyEvent
 from PyQt5.QtWidgets import QAction, QToolButton, QFileDialog, QHBoxLayout, QFrame, QMenu, QLabel, QApplication, \
     QWidgetAction, QGridLayout, QSpacerItem, QSizePolicy, QDialog, QVBoxLayout, QComboBox
@@ -35,7 +35,7 @@ from enmapbox.gui import MapTools, MapToolCenter, PixelScaleExtentMapTool, \
 from enmapbox.gui.docks import Dock, DockLabel
 from enmapbox.gui.mimedata import containsMapLayers, extractMapLayers
 from qgis.PyQt import sip
-from qgis._core import QgsMapToPixel
+
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsRectangle, QgsMapLayerProxyModel, QgsVectorLayerTools, \
     QgsMapLayer, QgsRasterLayer, QgsPointXY, \
