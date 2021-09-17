@@ -22,7 +22,7 @@ import warnings
 
 import typing
 from PyQt5.QtCore import Qt, QObject, QCoreApplication, pyqtSignal, QEvent, QPointF, QMimeData, QTimer, QSize, \
-    QSettings, QModelIndex, QAbstractListModel, QPoint; QgsMapToPixel
+    QSettings, QModelIndex, QAbstractListModel, QPoint
 from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent, QKeyEvent
 from PyQt5.QtWidgets import QAction, QToolButton, QFileDialog, QHBoxLayout, QFrame, QMenu, QLabel, QApplication, \
     QWidgetAction, QGridLayout, QSpacerItem, QSizePolicy, QDialog, QVBoxLayout, QComboBox
@@ -39,7 +39,7 @@ from qgis.PyQt import sip
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsRectangle, QgsMapLayerProxyModel, QgsVectorLayerTools, \
     QgsMapLayer, QgsRasterLayer, QgsPointXY, \
-    QgsProject, Qgis, QgsMapSettings
+    QgsProject, Qgis, QgsMapSettings, QgsMapToPixel
 from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapToolZoom, QgsAdvancedDigitizingDockWidget, QgsMapLayerComboBox, \
     QgsProjectionSelectionWidget, QgsMapToolIdentify, QgsMapTool, QgsMapToolPan, QgsMapToolCapture, QgsMapMouseEvent
 
@@ -1147,7 +1147,7 @@ class MapCanvas(QgsMapCanvas):
 
         is_panning = bool(QApplication.mouseButtons() & Qt.MiddleButton)
         is_ctrl = bool(QApplication.keyboardModifiers() & Qt.CTRL)
-        print(f'panning: {is_panning} CTRL: {is_ctrl}')
+        # print(f'panning: {is_panning} CTRL: {is_ctrl}')
         if not is_panning and is_ctrl and e.key() in [Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down]:
             # find raster layer with a reference pixel grid
             rasterLayer: QgsRasterLayer = self.mCrosshairItem.rasterGridLayer()
