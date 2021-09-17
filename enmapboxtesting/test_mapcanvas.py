@@ -63,7 +63,7 @@ class MapCanvasTests(EnMAPBoxTestCase):
         actions = [a for a in menu.children() if isinstance(a, QAction)]
         self.assertTrue(len(actions) > 2)
 
-        #trigger all context menu actions
+        # trigger all context menu actions
         if False:
             for action in actions:
                 info = action.text()
@@ -75,6 +75,8 @@ class MapCanvasTests(EnMAPBoxTestCase):
                         action.trigger()
                     except Exception as ex:
                         self.fail('Failed to trigger QAction "{}\n\t{}"'.find(info, ex))
+
+        mapCanvas.mapTools().activate(MapTools.CursorLocation)
 
         self.showGui(mapCanvas)
 
