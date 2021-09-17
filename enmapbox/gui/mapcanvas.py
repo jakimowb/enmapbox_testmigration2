@@ -22,18 +22,20 @@ import warnings
 
 import typing
 from PyQt5.QtCore import Qt, QObject, QCoreApplication, pyqtSignal, QEvent, QPointF, QMimeData, QTimer, QSize, \
-    QSettings, QModelIndex, QAbstractListModel
-from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent
+    QSettings, QModelIndex, QAbstractListModel, QPoint
+from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent, QKeyEvent
 from PyQt5.QtWidgets import QAction, QToolButton, QFileDialog, QHBoxLayout, QFrame, QMenu, QLabel, QApplication, \
     QWidgetAction, QGridLayout, QSpacerItem, QSizePolicy, QDialog, QVBoxLayout, QComboBox
 
-from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent, qgisAppQgisInterface
+from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent, qgisAppQgisInterface, spatialPoint2px, \
+    px2spatialPoint
 from enmapbox.gui import MapTools, MapToolCenter, PixelScaleExtentMapTool, \
     CursorLocationMapTool, FullExtentMapTool, QgsMapToolAddFeature, QgsMapToolSelect, \
     CrosshairDialog, CrosshairStyle, CrosshairMapCanvasItem
 from enmapbox.gui.docks import Dock, DockLabel
 from enmapbox.gui.mimedata import containsMapLayers, extractMapLayers
 from qgis.PyQt import sip
+from qgis._core import QgsMapToPixel
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsRectangle, QgsMapLayerProxyModel, QgsVectorLayerTools, \
     QgsMapLayer, QgsRasterLayer, QgsPointXY, \
@@ -838,6 +840,9 @@ class MapCanvasMapTools(QObject):
             print('Unknown MapTool key: {}'.format(mapToolKey))
 
 
+
+
+
 class MapCanvas(QgsMapCanvas):
     from weakref import WeakSet
     _instances = WeakSet()
@@ -1137,6 +1142,64 @@ class MapCanvas(QgsMapCanvas):
     def clearLayers(self, *args):
         self.setLayers([])
         self.sigLayersCleared.emit()
+
+    def keyPressEvent(self, e: QKeyEvent):
+
+        is_panning = bool(QApplication.mouseButtons() & Qt.MiddleButton)
+        is_ctrl = bool(QApplication.keyboardModifiers() & Qt.CTRL)
+        # print(f'panning: {is_panning} CTRL: {is_ctrl}')
+        if not is_panning and is_ctrl and e.key() in [Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down]:
+            # find raster layer with a reference pixel grid
+            rasterLayer: QgsRasterLayer = self.mCrosshairItem.rasterGridLayer()
+            if not isinstance(rasterLayer, QgsRasterLayer):
+                for lyr in self.layers():
+                    if isinstance(lyr, QgsRasterLayer):
+                        rasterLayer = lyr
+                        break
+
+            if isinstance(rasterLayer, QgsRasterLayer):
+                # get the pixel grid cell at canvas center  in canvas coordinates
+                self.mCrosshairItem.isVisible()
+                settings: QgsMapSettings = self.mapSettings()
+                crs: QgsCoordinateReferenceSystem = settings.destinationCrs()
+
+                # ptA = SpatialPoint.fromMapCanvasCenter(self)
+                ptA = SpatialPoint(crs, self.mCrosshairItem.mPosition)
+                pxA = spatialPoint2px(rasterLayer, ptA)
+                pxR = QPoint(pxA.x()+1, pxA.y() + 1)
+                ptR = px2spatialPoint(rasterLayer, pxR).toCrs(self.mapSettings().destinationCrs())
+
+                if not isinstance(ptR, SpatialPoint):
+                    super(MapCanvas, self).keyPressEvent(e)
+                    return
+
+                # pixel size in units of the canvas CRS
+                dx = abs(ptA.x() - ptR.x())
+                dy = abs(ptA.y() - ptR.y())
+
+                ptB: QgsPointXY = None
+                if e.key() == Qt.Key_Left:
+                    ptB = QgsPointXY(ptA.x() - dx, ptA.y())
+                elif e.key() == Qt.Key_Right:
+                    ptB = QgsPointXY(ptA.x() + dx, ptA.y())
+                elif e.key() == Qt.Key_Up:
+                    ptB = QgsPointXY(ptA.x(), ptA.y() + dy)
+                elif e.key() == Qt.Key_Down:
+                    ptB = QgsPointXY(ptA.x(), ptA.y() - dy)
+                else:
+                    raise NotImplementedError()
+
+                if isinstance(ptB, QgsPointXY):
+                    # self.setCenter(ptB)
+                    self.mCrosshairItem.setPosition(ptB)
+                    m2p: QgsMapToPixel = settings.mapToPixel()
+                    localPos = m2p.transform(ptB)
+
+                    event = QMouseEvent(QEvent.MouseButtonPress, localPos.toQPointF(), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+                    self.mousePressEvent(event)
+                    return
+
+        super(MapCanvas, self).keyPressEvent(e)
 
     def layerPaths(self):
         """
