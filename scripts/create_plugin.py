@@ -80,7 +80,7 @@ def scantree(path, pattern=re.compile(r'.$')) -> typing.Iterator[pathlib.Path]:
             yield pathlib.Path(entry.path)
 
 
-def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False):
+def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False) -> pathlib.Path:
     DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
     assert (DIR_REPO / '.git').is_dir()
 
@@ -205,7 +205,8 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
         print('\n'.join(info))
 
-    print('Finished')
+    print(f'Finished building {BUILD_NAME}')
+    return PLUGIN_ZIP
 
 
 def createCHANGELOG(dirPlugin):
@@ -289,16 +290,17 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    create_enmapbox_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
+    path = create_enmapbox_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
 
-    message = '\nVery important checklist. Do not remove!!!' \
-              '\nChecklist for release:' \
-              '\n1. Change log up-to-date?' \
-              '\n2. ZIP containing branch information?' \
-              '\n3. Processing algo documentation up-to-date (run create_processing_rst)?.' \
-              '\n4. Version number increased? (enmapbox/__init__.py -> __version__)' \
-              '\n5. QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
-              '\n6. Plugin promotion (Slack, Email, ...)'
-    print(message)
+    if re.search(r'\.master\.', path.name):
+        message = '\nVery important checklist. Do not remove!!!' \
+                  '\nChecklist for release:' \
+                  '\n1. Change log up-to-date?' \
+                  '\n2. ZIP containing branch information?' \
+                  '\n3. Processing algo documentation up-to-date (run create_processing_rst)?.' \
+                  '\n4. Version number increased? (enmapbox/__init__.py -> __version__)' \
+                  '\n5. QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
+                  '\n6. Plugin promotion (Slack, Email, ...)'
+        print(message)
 
     exit()
