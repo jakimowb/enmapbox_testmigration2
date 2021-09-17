@@ -1147,7 +1147,7 @@ class MapCanvas(QgsMapCanvas):
 
         is_panning = bool(QApplication.mouseButtons() & Qt.MiddleButton)
         is_ctrl = bool(QApplication.keyboardModifiers() & Qt.CTRL)
-        # print(f'panning: {is_panning} CTRL: {is_ctrl}')
+        print(f'panning: {is_panning} CTRL: {is_ctrl}')
         if not is_panning and is_ctrl and e.key() in [Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down]:
             # find raster layer with a reference pixel grid
             rasterLayer: QgsRasterLayer = self.mCrosshairItem.rasterGridLayer()
