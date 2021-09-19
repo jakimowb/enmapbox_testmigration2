@@ -79,7 +79,7 @@ def scantree(path, pattern=re.compile(r'.$')) -> typing.Iterator[pathlib.Path]:
             yield pathlib.Path(entry.path)
 
 
-def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False):
+def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False) -> pathlib.Path:
     DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
     assert (DIR_REPO / '.git').is_dir()
 
@@ -204,7 +204,8 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
         print('\n'.join(info))
 
-    print('Finished')
+    print(f'Finished building {BUILD_NAME}')
+    return PLUGIN_ZIP
 
 
 def createCHANGELOG(dirPlugin):
