@@ -1,12 +1,10 @@
 from os.path import basename
 from typing import Dict, Any, List, Tuple
-from xml.etree import ElementTree
 
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-
 from typeguard import typechecked
 
 
@@ -38,11 +36,11 @@ class ImportDesisL1BAlgorithm(EnMAPProcessingAlgorithm):
     def isValidFile(self, file: str) -> bool:
         return (basename(file).startswith('DESIS-HSI-L1B') & basename(file).endswith('METADATA.xml'))
 
-    def  defaultParameters(self, xmlFilename: str):
+    def defaultParameters(self, xmlFilename: str):
         return {
-                    self.P_FILE: xmlFilename,
-                    self.P_OUTPUT_RASTER: xmlFilename.replace('METADATA.xml', 'SPECTRAL_IMAGE.vrt'),
-                }
+            self.P_FILE: xmlFilename,
+            self.P_OUTPUT_RASTER: xmlFilename.replace('METADATA.xml', 'SPECTRAL_IMAGE.vrt'),
+        }
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback

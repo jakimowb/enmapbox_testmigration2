@@ -1,11 +1,11 @@
+import webbrowser
 from typing import Dict, Any, List, Tuple
 
-from processing.algs.gdal.gdalcalc import gdalcalc
 from qgis._core import QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer
 
 from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import \
     ClassificationPerformanceStratifiedAlgorithm
-from enmapboxprocessing.algorithm.rastermathalgorithm import RasterMathAlgorithm
+from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.typing import Category
 from enmapboxprocessing.utils import Utils
@@ -16,6 +16,7 @@ from typeguard import typechecked
 class ClassificationPerformanceSimpleAlgorithm(EnMAPProcessingAlgorithm):
     P_CLASSIFICATION, _CLASSIFICATION = 'classification', 'Predicted classification layer'
     P_REFERENCE, _REFERENCE = 'reference', 'Observed categorized layer'
+    P_OPEN_REPORT, _OPEN_REPORT = 'openReport', 'Open output report in webbrowser after running algorithm'
     P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outClassificationPerformance', 'Output report'
 
     @classmethod
@@ -44,6 +45,7 @@ class ClassificationPerformanceSimpleAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_CLASSIFICATION, self._CLASSIFICATION)
         self.addParameterMapLayer(self.P_REFERENCE, self._REFERENCE)
+        self.addParameterBoolean(self.P_OPEN_REPORT, self._OPEN_REPORT, True)
         self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, self.ReportFileFilter)
 
     def processAlgorithm(
@@ -52,6 +54,7 @@ class ClassificationPerformanceSimpleAlgorithm(EnMAPProcessingAlgorithm):
         classification = self.parameterAsRasterLayer(parameters, self.P_CLASSIFICATION, context)
         reference = self.parameterAsLayer(parameters, self.P_REFERENCE, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_REPORT, context)
+        openReport = self.parameterAsBoolean(parameters, self.P_OPEN_REPORT, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -79,10 +82,17 @@ class ClassificationPerformanceSimpleAlgorithm(EnMAPProcessingAlgorithm):
                 alg.P_CLASSIFICATION: classification,
                 alg.P_REFERENCE: reference,
                 alg.P_STRATIFICATION: stratification,
+                alg.P_OPEN_REPORT: False,
                 alg.P_OUTPUT_REPORT: filename,
             }
             result = self.runAlg(alg, parameters, None, feedback2, context, True)
 
+            if openReport:
+                webbrowser.open_new_tab(filename)
+
             self.toc(feedback, result)
 
+
+
         return result
+

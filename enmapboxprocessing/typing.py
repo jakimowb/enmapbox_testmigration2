@@ -1,11 +1,17 @@
 from dataclasses import dataclass
-from typing import Union, List, Dict, Optional
+from typing import Union, List, Dict, Optional, Any
 
 import numpy as np
 from osgeo import gdal
 from qgis._core import QgsRasterDataProvider, QgsRasterLayer
-from sklearn.base import ClassifierMixin, RegressorMixin
-from sklearn.pipeline import Pipeline
+
+try:  # scikit-learn is optional
+    from sklearn.base import ClassifierMixin, RegressorMixin
+    from sklearn.pipeline import Pipeline
+except Exception as error:
+    ClassifierMixin = Any
+    RegressorMixin = Any
+    Pipeline = Any
 
 from typeguard import typechecked
 

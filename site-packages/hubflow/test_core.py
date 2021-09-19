@@ -1,7 +1,6 @@
 from unittest import TestCase
 from tempfile import gettempdir
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.cross_decomposition import PLSRegression
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import enmapboxtestdata
@@ -695,7 +694,6 @@ class TestRaster(TestCase):
 
     def test_calculate(self):
         def myFunc(a):
-            import scipy
             result = a > 500
             return result
 
@@ -809,7 +807,6 @@ class TestRegressionSample(TestCase):
     def test_fromArtmo(self):
         ''  # todo prepare new testdata
         return
-        from enmapboxtestdata.artmo import directional_reflectance, directional_reflectance_meta
         directional_reflectance = r'C:\Work\data\artmo\Directional_reflectance_PROSAIL1000_FVC.txt'
         directional_reflectance_meta = r'C:\Work\data\artmo\Directional_reflectance_PROSAIL1000_FVC_meta.txt'
 

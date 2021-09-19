@@ -2,9 +2,11 @@ import inspect
 import traceback
 from typing import Dict, Any, List, Tuple
 
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback)
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingParameterFile)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
+from enmapboxprocessing.parameter.processingparameterclassificationdatasetwidget import \
+    ProcessingParameterClassificationDatasetWidgetWrapper
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
@@ -39,9 +41,20 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
     def group(self):
         return Group.Test.value + Group.Classification.value
 
+    def addParameterClassificationDataset(
+            self, name: str, description: str, defaultValue=None, optional=False, advanced=False
+    ):
+        behavior = QgsProcessingParameterFile.File
+        extension = self.PickleFileExtension
+        param = QgsProcessingParameterFile(name, description, behavior, extension, defaultValue, optional)
+        param.setMetadata({'widget_wrapper': {'class': ProcessingParameterClassificationDatasetWidgetWrapper}})
+        param.setDefaultValue(defaultValue)
+        self.addParameter(param)
+        self.flagParameterAsAdvanced(name, advanced)
+
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension, optional=True)
         self.addParameterCode(self.P_CLASSIFIER, self._CLASSIFIER, self.defaultCodeAsString())
+        self.addParameterClassificationDataset(self.P_DATASET, self._DATASET, None, True)
         self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, self._OUTPUT_CLASSIFIER, self.PickleFileFilter)
 
     def defaultCodeAsString(self):

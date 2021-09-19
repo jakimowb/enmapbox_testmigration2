@@ -1,3 +1,4 @@
+import webbrowser
 from collections import defaultdict, OrderedDict
 from os.path import basename
 from typing import Dict, Any, List, Tuple
@@ -18,6 +19,7 @@ from typeguard import typechecked
 class FeatureClusteringHierarchicalAlgorithm(EnMAPProcessingAlgorithm):
     P_DATASET, _DATASET = 'dataset', 'Dataset'
     P_NO_PLOT, _NO_PLOT = 'noPlot', 'Do not report plots'
+    P_OPEN_REPORT, _OPEN_REPORT = 'openReport', 'Open output report in webbrowser after running algorithm'
     P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outputHierarchicalFeatureClustering', 'Output report'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
@@ -48,6 +50,7 @@ class FeatureClusteringHierarchicalAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension)
         self.addParameterBoolean(self.P_NO_PLOT, self._NO_PLOT, False, False, True)
+        self.addParameterBoolean(self.P_OPEN_REPORT, self._OPEN_REPORT, True)
         self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, self.ReportFileFilter)
 
     def processAlgorithm(
@@ -56,6 +59,7 @@ class FeatureClusteringHierarchicalAlgorithm(EnMAPProcessingAlgorithm):
         filenameDataset = self.parameterAsFile(parameters, self.P_DATASET, context)
         noPlot = self.parameterAsBoolean(parameters, self.P_NO_PLOT, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_REPORT, context)
+        openReport = self.parameterAsBoolean(parameters, self.P_OPEN_REPORT, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -225,6 +229,9 @@ class FeatureClusteringHierarchicalAlgorithm(EnMAPProcessingAlgorithm):
                 report.writeParagraph(
                     f'Report design was inspired by {self.htmlLink("https://scikit-learn.org/stable/auto_examples/inspection/plot_permutation_importance_multicollinear.html#sphx-glr-auto-examples-inspection-plot-permutation-importance-multicollinear-py", "Permutation Importance with Multicollinear or Correlated Features")}.'
                 )
+
+            if openReport:
+                webbrowser.open_new_tab(filename)
 
             result = {self.P_OUTPUT_REPORT: filename}
 

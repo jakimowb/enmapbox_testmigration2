@@ -13,6 +13,7 @@ class TestFeatureClusteringHierarchicalAlgorithm(TestCase):
         alg.initAlgorithm()
         parameters = {
             alg.P_DATASET: classifierDumpPkl,
+            alg.P_OPEN_REPORT: False,
             alg.P_OUTPUT_REPORT: c + '/vsimem/report.html'
         }
         self.runalg(alg, parameters)

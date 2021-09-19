@@ -18,20 +18,18 @@
 *                                                                         *
 ***************************************************************************
 """
-# noinspection PyPep8Naming
-import warnings
 import argparse
 import datetime
+import io
 import os
 import pathlib
 import re
 import shutil
+import site
 import sys
 import typing
-import site
-import io
-from os.path import join
-from warnings import warn
+# noinspection PyPep8Naming
+import warnings
 
 site.addsitedir(pathlib.Path(__file__).parents[1])
 import enmapbox
@@ -63,6 +61,7 @@ MD.mRepository = enmapbox.REPOSITORY
 MD.mQgisMinimumVersion = enmapbox.MIN_VERSION_QGIS
 MD.mEmail = 'enmapbox@enmap.org'
 MD.mHasProcessingProvider = True
+
 
 ########## End of config section
 
@@ -290,17 +289,17 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    path = create_enmapbox_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
+    create_enmapbox_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
 
-    if re.search(r'\.master\.', path.name):
-        message = '\nVery important checklist. Do not remove!!!' \
-                  '\nChecklist for release:' \
-                  '\n1. Change log up-to-date?' \
-                  '\n2. ZIP containing branch information?' \
-                  '\n3. Processing algo documentation up-to-date (run create_processing_rst)?.' \
-                  '\n4. Version number increased? (enmapbox/__init__.py -> __version__)' \
-                  '\n5. QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
-                  '\n6. Plugin promotion (Slack, Email, ...)'
-        print(message)
+    message = '\nVery important checklist. Do not remove!!!' \
+              '\nChecklist for release:' \
+              '\n1. Change log up-to-date?' \
+              '\n2. ZIP containing branch information?' \
+              '\n3. Processing algo documentation up-to-date (run create_processing_rst)?.' \
+              '\n4. Check if box runs without optional dependencies (see enmapboxtesting/non-blocking-dependencies/readme.txt).'\
+              '\n5. Version number increased? (enmapbox/__init__.py -> __version__)' \
+              '\n6. QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
+              '\n7. Plugin promotion (Slack, Email, ...)'
+    print(message)
 
     exit()

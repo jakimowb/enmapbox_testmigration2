@@ -25,7 +25,7 @@ class PrepareClassificationDatasetFromCategorizedVectorAlgorithm(EnMAPProcessing
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Classification dataset (from categorized vector layer and feature raster)'
+        return 'Create classification dataset (from categorized vector layer and feature raster)'
 
     def shortDescription(self) -> str:
         return 'Create a classification dataset by sampling data for pixels that match the given categories ' \

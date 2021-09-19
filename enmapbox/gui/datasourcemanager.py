@@ -34,7 +34,7 @@ from PyQt5.QtGui import QIcon, QContextMenuEvent, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QDockWidget, QStyle, QAction, QTreeView, QFileDialog, QDialog
 
 from enmapbox.externals.qps.utils import bandClosestToWavelength
-from enmapboxprocessing.algorithm.rastermathalgorithm import RasterMathAlgorithm
+from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.utils import Utils
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import *
@@ -1133,27 +1133,28 @@ class DataSourceTreeView(TreeView):
                     sub.setEnabled(False)
 
                 # AR: add some useful processing algo shortcuts
-                alg = RasterMathAlgorithm()
-                inputs = list()
-                for node in selectedNodes:
-                    if isinstance(node, RasterDataSourceTreeNode):
-                        inputs.append((node.dataSource().name(), node.dataSource().uri()))
-                code = list()
-                for i, (name, uri) in enumerate(inputs):
-                    identifier = Utils.makeIdentifier(splitext(name)[0])
-                    code.append(f'{identifier} = INPUTS[{i}]  # {name} ({uri})')
-                parameters = {
-                    alg.P_INPUTS: [uri for name, uri in inputs],
-                    alg.P_CODE: '\n'.join(code),
-                }
-                a: QAction = m.addAction('Raster math')
-                a.setIcon(QIcon(':/images/themes/default/processingAlgorithm.svg'))
-                a.setToolTip('Show Raster math algorithm dialog.')
-                a.triggered.connect(lambda src:
-                    EnMAPBox.instance().showProcessingAlgorithmDialog(
-                        alg, parameters, parent=self
+                if False:  # having RasterMath in the context menu is not really necessary any more -> lets dicuss with SL+BJ
+                    alg = RasterMathAlgorithm()
+                    inputs = list()
+                    for node in selectedNodes:
+                        if isinstance(node, RasterDataSourceTreeNode):
+                            inputs.append((node.dataSource().name(), node.dataSource().uri()))
+                    code = list()
+                    for i, (name, uri) in enumerate(inputs):
+                        identifier = Utils.makeIdentifier(splitext(name)[0])
+                        code.append(f'{identifier} = INPUTS[{i}]  # {name} ({uri})')
+                    parameters = {
+                        alg.P_INPUTS: [uri for name, uri in inputs],
+                        alg.P_CODE: '\n'.join(code),
+                    }
+                    a: QAction = m.addAction('Raster math')
+                    a.setIcon(QIcon(':/images/themes/default/processingAlgorithm.svg'))
+                    a.setToolTip('Show Raster math algorithm dialog.')
+                    a.triggered.connect(lambda src:
+                        EnMAPBox.instance().showProcessingAlgorithmDialog(
+                            alg, parameters, parent=self
+                        )
                     )
-                )
 
 
 

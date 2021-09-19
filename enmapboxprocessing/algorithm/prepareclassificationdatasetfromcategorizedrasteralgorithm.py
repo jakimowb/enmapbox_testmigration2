@@ -3,7 +3,8 @@ from typing import Dict, Any, List, Tuple
 
 import numpy as np
 from osgeo import gdal
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer, QgsPalettedRasterRenderer)
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer, QgsPalettedRasterRenderer,
+                        QgsRasterRenderer)
 
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
@@ -22,7 +23,7 @@ class PrepareClassificationDatasetFromCategorizedRasterAlgorithm(EnMAPProcessing
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Classification dataset (from categorized raster layer and feature raster)'
+        return 'Create classification dataset (from categorized raster layer and feature raster)'
 
     def shortDescription(self) -> str:
         return 'Create a classification dataset by sampling data for pixels that match the given categories ' \
@@ -77,13 +78,20 @@ class PrepareClassificationDatasetFromCategorizedRasterAlgorithm(EnMAPProcessing
                     feedback.pushInfo(f'Use categories from style: {categories}')
                     classBandNo = renderer.band()
                 else:
-                    classBandNo = 1
+                    classBandNo = renderer.usesBands()[0]
                     categories = Utils.categoriesFromRasterBand(classification, classBandNo)
-                    feedback.pushInfo(f'Derive categories from first band: {categories}')
+                    feedback.pushInfo(f'Derive categories from first renderer band: {categories}')
             else:
                 classBandNo = classBandIndex + 1
                 categories = Utils.categoriesFromRasterBand(classification, classBandNo)
                 feedback.pushInfo(f'Derive categories from selected band: {categories}')
+
+            # set renderer
+            renderer = Utils.palettedRasterRendererFromCategories(
+                classification.dataProvider(), classBandNo, categories
+            )
+            classification = classification.clone()  # do not alter input renderer
+            classification.setRenderer(renderer)
 
             # resample classification and set renderer
             alg = TranslateCategorizedRasterAlgorithm()
@@ -116,7 +124,7 @@ class PrepareClassificationDatasetFromCategorizedRasterAlgorithm(EnMAPProcessing
             cls, raster: QgsRasterLayer, classification: QgsRasterLayer, classBandNo: int, categories: Categories,
             feedback: QgsProcessingFeedback = None
     ) -> Tuple[SampleX, SampleY]:
-        assert raster.crs() == classification.crs()
+        # assert raster.crs() == classification.crs()
         assert raster.extent() == classification.extent()
         assert (raster.width(), raster.height()) == (classification.width(), classification.height())
 

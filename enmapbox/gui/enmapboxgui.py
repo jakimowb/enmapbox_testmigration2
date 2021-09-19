@@ -2218,7 +2218,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def showProcessingAlgorithmDialog(
             self, algorithmName: Union[str, QgsProcessingAlgorithm], parameters: Dict = None, show=True, modal=False,
-            wrapper: AlgorithmDialog = None, autoRun=False, parent=None
+            wrapper: type = None, autoRun=False, parent=None
     ) -> AlgorithmDialog:
         """
         Create an algorithm dialog.
