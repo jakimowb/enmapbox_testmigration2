@@ -1,3 +1,4 @@
+import webbrowser
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
@@ -17,6 +18,7 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
     P_CLASSIFIER, _CLASSIFIER = 'classifier', 'Classifier'
     P_DATASET, _DATASET = 'dataset', 'Test dataset'
     P_NFOLD, _NFOLD = 'nfold', 'Number of cross-validation folds'
+    P_OPEN_REPORT, _OPEN_REPORT = 'openReport', 'Open output report in webbrowser after running algorithm'
     P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outputClassifierPerformance', 'Output report'
 
     def displayName(self) -> str:
@@ -41,6 +43,7 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterFile(self.P_CLASSIFIER, self._CLASSIFIER, extension=self.PickleFileExtension)
         self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension)
         self.addParameterInt(self.P_NFOLD, self._NFOLD, None, True, 2, 100, True)
+        self.addParameterBoolean(self.P_OPEN_REPORT, self._OPEN_REPORT, True)
         self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, self.ReportFileFilter)
 
     def processAlgorithm(
@@ -50,6 +53,7 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
         filenameSample = self.parameterAsFile(parameters, self.P_DATASET, context)
         nfold = self.parameterAsInt(parameters, self.P_NFOLD, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_REPORT, context)
+        openReport = self.parameterAsBoolean(parameters, self.P_OPEN_REPORT, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -115,6 +119,10 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
                 self.runAlg(alg, parameters, None, feedback2, context, True)
 
             result = {self.P_OUTPUT_REPORT: filename}
+
+            if openReport:
+                webbrowser.open_new_tab(filename)
+
             self.toc(feedback, result)
 
         return result

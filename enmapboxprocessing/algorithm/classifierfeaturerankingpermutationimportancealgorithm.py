@@ -1,3 +1,4 @@
+import webbrowser
 from os.path import basename
 from typing import Dict, Any, List, Tuple
 
@@ -24,6 +25,7 @@ class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgo
     ]
     P_REPEATS, _REPEATS = 'repeats', 'Number of repetitions'
     P_SEED, _SEED = 'seed', 'Random seed'
+    P_OPEN_REPORT, _OPEN_REPORT = 'openReport', 'Open output report in webbrowser after running algorithm'
     P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outputPermutationImportanceRanking', 'Output report'
 
     def displayName(self) -> str:
@@ -75,6 +77,7 @@ class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgo
         )
         self.addParameterInt(self.P_REPEATS, self._REPEATS, 10, False, 1, None, True)
         self.addParameterInt(self.P_SEED, self._SEED, None, True, 1, None, True)
+        self.addParameterBoolean(self.P_OPEN_REPORT, self._OPEN_REPORT, True)
         self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, self.ReportFileFilter)
 
     def processAlgorithm(
@@ -87,6 +90,7 @@ class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgo
         repeats = self.parameterAsInt(parameters, self.P_REPEATS, context)
         seed = self.parameterAsInt(parameters, self.P_SEED, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_REPORT, context)
+        openReport = self.parameterAsBoolean(parameters, self.P_OPEN_REPORT, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -155,6 +159,10 @@ class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgo
                 )
 
             result = {self.P_OUTPUT_REPORT: filename}
+
+            if openReport:
+                webbrowser.open_new_tab(filename)
+
             self.toc(feedback, result)
 
             feature_subset_hierarchy = list()

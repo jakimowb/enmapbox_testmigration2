@@ -26,7 +26,6 @@ class TestRandomPointsFromCategorizedRasterAlgorithm(TestCase):
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(26317, QgsVectorLayer(parameters[alg.P_OUTPUT_POINTS]).featureCount())
-        # webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT] + '.log')
 
     def test_kernel(self):
         self.assertTrue(np.alltrue(np.equal([[0]], RandomPointsFromCategorizedRasterAlgorithm.makeKernel(30, 30, 0))))

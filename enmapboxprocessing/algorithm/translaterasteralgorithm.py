@@ -291,9 +291,6 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                 )
                 assert outGdalDataset is not None
 
-            if copyStyle:
-                raster.saveDefaultStyle()
-
             writer = RasterWriter(outGdalDataset)
             reader = RasterReader(raster)
             if copyMetadata:

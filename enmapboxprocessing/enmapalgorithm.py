@@ -123,8 +123,13 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsRasterLayer]:
         layer = super().parameterAsRasterLayer(parameters, name, context)
-        if isinstance(layer, QgsRasterLayer) and layer.renderer() is None:
+        if layer is None:
+            return None
+
+        # if layer is given by URI string or renderer is undefined, we need to manually load the default style
+        if isinstance(parameters.get(name), str) or layer.renderer() is None:
             layer.loadDefaultStyle()
+
         return layer
 
     def parameterAsSpectralRasterLayer(
@@ -149,8 +154,13 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsVectorLayer]:
         layer = super().parameterAsVectorLayer(parameters, name, context)
-        if isinstance(layer, QgsVectorLayer) and layer.renderer() is None:
+        if layer is None:
+            return None
+
+        # if layer is given by URI string or renderer is undefined, we need to manually load the default style
+        if isinstance(parameters.get(name), str) or layer.renderer() is None:
             layer.loadDefaultStyle()
+
         return layer
 
     def parameterAsFields(

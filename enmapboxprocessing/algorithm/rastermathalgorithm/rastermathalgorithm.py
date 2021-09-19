@@ -371,10 +371,10 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
         writers = dict()  # we have no writers
         for method in RasterWriter.__dict__:
             if method.startswith('set'):
-                match: Match
+                match_: Match
                 pattern = r'\w*.' + method
-                for match in finditer(pattern, code):
-                    substring = code[match.start(): match.end()]
+                for match_ in finditer(pattern, code):
+                    substring = code[match_.start(): match_.end()]
                     identifier = substring.split('.')[0]
                     writers[identifier] = Mock()  # silently ignore all writer interaction
 
@@ -427,24 +427,24 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             needAllData = False
 
             # - check if we use the actual array
-            match: Match
+            match_: Match
             for line in code.splitlines():
                 if line.startswith('#'):
                     continue
                 line += '    '  # add some space for avoiding index errors when checking
-                for match in finditer(rasterName, line):
-                    if line[match.end()] in '@.':
+                for match_ in finditer(rasterName, line):
+                    if line[match_.end()] in '@.':
                         continue  # not using the actual array, but only a single band or the reader
                 needAllData = True
 
             # - check if we use the actual mask array
-            match: Match
+            match_: Match
             for line in code.splitlines():
                 if line.startswith('#'):
                     continue
                 line += '    '  # add some space for avoiding index errors when checking
-                for match in finditer(rasterName + 'Mask', line):
-                    if line[match.end()] in '@':
+                for match_ in finditer(rasterName + 'Mask', line):
+                    if line[match_.end()] in '@':
                         continue  # not using the actual mask array, but only a single band
                 needAllData = True
 
@@ -462,7 +462,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
 
             #  find single band usages indicated by '@'
             atBands: Dict[Tuple, List[str]] = defaultdict(list)
-            match: Match
+            match_: Match
             for line in code.splitlines():
                 if line.startswith('#'):
                     continue
@@ -473,14 +473,14 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                 matches.extend(finditer(rasterName + 'Mask@"[^"]+"', line))
                 matches.extend(finditer(rasterName + 'Mask@[0-9:|^]+', line))
 
-                for match in matches:
-                    text = line[match.start(): match.end()]
+                for match_ in matches:
+                    text = line[match_.start(): match_.end()]
                     atIdentifiers.append(text)  # need to make the @identifier a valid identifier later
-                    if line[match.end(): match.end() + 2] == 'nm':  # waveband mode
+                    if line[match_.end(): match_.end() + 2] == 'nm':  # waveband mode
                         unit = 'nm'
                     else:
                         unit = ''
-                    if line[match.end() - 1] == '"':  # band name mode
+                    if line[match_.end() - 1] == '"':  # band name mode
                         bandName = text.split('"')[1]
                         bandNos = (reader.findBandName(bandName),)
                     else:  # band number mode

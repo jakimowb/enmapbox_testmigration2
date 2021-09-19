@@ -53,8 +53,8 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         self.flagParameterAsAdvanced(name, advanced)
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterClassificationDataset(self.P_DATASET, self._DATASET, None, True)
         self.addParameterCode(self.P_CLASSIFIER, self._CLASSIFIER, self.defaultCodeAsString())
+        self.addParameterClassificationDataset(self.P_DATASET, self._DATASET, None, True)
         self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, self._OUTPUT_CLASSIFIER, self.PickleFileFilter)
 
     def defaultCodeAsString(self):

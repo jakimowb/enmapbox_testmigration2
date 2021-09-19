@@ -91,11 +91,10 @@ class TestClassificationPerformanceAlgorithm(TestCase):
             alg.P_CLASSIFICATION: QgsRasterLayer(landcover_map_l3),
             alg.P_REFERENCE: QgsVectorLayer(landcover_polygons),
             alg.P_STRATIFICATION: QgsRasterLayer(landcover_map_l3),
+            alg.P_OPEN_REPORT: False,
             alg.P_OUTPUT_REPORT: c + '/vsimem/report.html',
         }
         self.runalg(alg, parameters)
-        #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT])
-        #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT] + '.csv')
 
     def test_withoutStratification(self):
         global c
@@ -104,8 +103,7 @@ class TestClassificationPerformanceAlgorithm(TestCase):
         parameters = {
             alg.P_CLASSIFICATION: QgsRasterLayer(landcover_map_l3),
             alg.P_REFERENCE: QgsVectorLayer(landcover_polygons),
+            alg.P_OPEN_REPORT: False,
             alg.P_OUTPUT_REPORT: c + '/vsimem/report.html',
         }
         result = self.runalg(alg, parameters)
-        #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT])
-        #webbrowser.open_new(parameters[alg.P_OUTPUT_REPORT] + '.log')

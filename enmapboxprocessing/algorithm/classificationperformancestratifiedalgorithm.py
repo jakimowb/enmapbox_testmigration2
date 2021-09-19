@@ -1,4 +1,5 @@
 import json
+import webbrowser
 from collections import defaultdict
 from dataclasses import dataclass
 from os import makedirs
@@ -24,6 +25,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
     P_CLASSIFICATION, _CLASSIFICATION = 'classification', 'Predicted classification layer'
     P_REFERENCE, _REFERENCE = 'reference', 'Observed categorized layer'
     P_STRATIFICATION, _STRATIFICATION = 'stratification', 'Stratification layer'
+    P_OPEN_REPORT, _OPEN_REPORT = 'openReport', 'Open output report in webbrowser after running algorithm'
     P_OUTPUT_REPORT, _OUTPUT_REPORT = 'outClassificationPerformance', 'Output report'
 
     @classmethod
@@ -86,6 +88,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_CLASSIFICATION, self._CLASSIFICATION)
         self.addParameterMapLayer(self.P_REFERENCE, self._REFERENCE)
         self.addParameterMapLayer(self.P_STRATIFICATION, self._STRATIFICATION, optional=True)
+        self.addParameterBoolean(self.P_OPEN_REPORT, self._OPEN_REPORT, True)
         self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, self.ReportFileFilter)
 
     def processAlgorithm(
@@ -97,6 +100,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
         if stratification is None:
             stratification = classification
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_REPORT, context)
+        openReport = self.parameterAsBoolean(parameters, self.P_OPEN_REPORT, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -110,6 +114,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
                 parameters = {
                     alg.P_CATEGORIZED_VECTOR: reference,
                     alg.P_GRID: classification,
+                    alg.P_MAJORITY_VOTING: False,  # simple NN resampling
                     alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'observation.tif')
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)
@@ -181,6 +186,10 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
             with open(filename + '.json', 'w') as file:
                 file.write(json.dumps(stats.__dict__, indent=4))
             result = {self.P_OUTPUT_REPORT: filename}
+
+            if openReport:
+                webbrowser.open_new_tab(filename)
+
             self.toc(feedback, result)
 
         return result
@@ -436,5 +445,8 @@ def aa_estimator_stratified_ratio(
         sxyh = np.cov(x_u[indices], y_u[indices], ddof=1)[0][1]
         R_VAR += N_h[i] ** 2 * f * (s2yh + R ** 2 * s2xh - 2 * R * sxyh) / n_h[i]
     R_VAR /= X ** 2
+
+    R_VAR = abs(R_VAR)  # fixes an issue with floating-point accuracies that resulted in near zero, but negative values
+
     R_SE = np.sqrt(R_VAR)
     return R, R_SE

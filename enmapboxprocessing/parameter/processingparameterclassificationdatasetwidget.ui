@@ -33,6 +33,9 @@
        <property name="fileWidgetButtonVisible">
         <bool>true</bool>
        </property>
+       <property name="filter">
+        <string>*.pkl</string>
+       </property>
       </widget>
      </item>
      <item>
