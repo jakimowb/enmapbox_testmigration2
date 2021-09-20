@@ -1352,9 +1352,9 @@ class SpectralProfileBridge(TreeModel):
                     band_mask = is_nodata[b, :, :]
                     if dp.sourceHasNoDataValue(band):
                         no_data = dp.sourceNoDataValue(band)
-                        band_mask = band_mask | array[b, :, :] == no_data
+                        band_mask = band_mask | (array[b, :, :] == no_data)
                     for no_data in dp.userNoDataValues(band):
-                        band_mask = band_mask | array[b, :, :] == no_data
+                        band_mask = band_mask | (array[b, :, :] == no_data)
                     is_nodata[b, :, :] = band_mask
                 if is_nodata.all():
                     continue
