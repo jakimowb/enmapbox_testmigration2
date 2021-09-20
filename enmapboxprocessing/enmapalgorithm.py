@@ -21,9 +21,6 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
 
 import processing
 from enmapboxprocessing.glossary import injectGlossaryLinks
-from enmapboxprocessing.parameter.processingparametercodeeditwidget import ProcessingParameterCodeEditWidgetWrapper
-from enmapboxprocessing.parameter.processingparametercreationprofilewidget import \
-    ProcessingParameterCreationProfileWidgetWrapper
 from enmapboxprocessing.parameter.processingparameterrasterdestination import ProcessingParameterRasterDestination
 from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
@@ -403,6 +400,19 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def helpUrl(self, *args, **kwargs):
         return 'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider/overview'
 
+    def addParameterClassificationDataset(
+            self, name: str, description: str, defaultValue=None, optional=False, advanced=False
+    ):
+        from enmapboxprocessing.parameter.processingparameterclassificationdatasetwidget import \
+            ProcessingParameterClassificationDatasetWidgetWrapper
+        behavior = QgsProcessingParameterFile.File
+        extension = self.PickleFileExtension
+        param = QgsProcessingParameterFile(name, description, behavior, extension, defaultValue, optional)
+        param.setMetadata({'widget_wrapper': {'class': ProcessingParameterClassificationDatasetWidgetWrapper}})
+        param.setDefaultValue(defaultValue)
+        self.addParameter(param)
+        self.flagParameterAsAdvanced(name, advanced)
+
     def addParameterMapLayer(self, name: str, description: str, defaultValue=None, optional=False, advanced=False):
         self.addParameter(QgsProcessingParameterMapLayer(name, description, defaultValue, optional))
         self.flagParameterAsAdvanced(name, advanced)
@@ -607,6 +617,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def addParameterCode(
             self, name: str, description: str, defaultValue=None, optional=False, advanced=False
     ):
+        from enmapboxprocessing.parameter.processingparametercodeeditwidget import \
+            ProcessingParameterCodeEditWidgetWrapper
         param = QgsProcessingParameterString(name, description, optional=optional)
         param.setMetadata({'widget_wrapper': {'class': ProcessingParameterCodeEditWidgetWrapper}})
         param.setDefaultValue(defaultValue)
@@ -623,6 +635,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def addParameterCreationProfile(
             self, name: str, description='Output options', defaultValue: str = None, optional=False, advanced=False
     ):
+        from enmapboxprocessing.parameter.processingparametercreationprofilewidget import \
+            ProcessingParameterCreationProfileWidgetWrapper
         param = QgsProcessingParameterString(name, description, optional=optional)
         param.setMetadata({'widget_wrapper': {'class': ProcessingParameterCreationProfileWidgetWrapper}})
         param.setDefaultValue(defaultValue)
