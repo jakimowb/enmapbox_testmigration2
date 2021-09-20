@@ -101,9 +101,10 @@ class ImportLandsatL2Algorithm(EnMAPProcessingAlgorithm):
             ds = gdal.BuildVRT(filename, filenames, options=options)
             ds.SetMetadataItem('wavelength', wavelength, 'ENVI')
             ds.SetMetadataItem('wavelength_units', 'nanometers', 'ENVI')
-            for bandNo, name in enumerate(bandNames, 1):
+            wavelength = wavelength[1:-1].split(',')
+            for bandNo, (name, wl) in enumerate(zip(bandNames, wavelength), 1):
                 rb: gdal.Band = ds.GetRasterBand(bandNo)
-                rb.SetDescription(name)
+                rb.SetDescription(name + f' ({wl} Nanometers)')
                 if gain is not None:
                     rb.SetScale(gain)
                 if offset is not None:

@@ -122,7 +122,7 @@ class ImportSentinel2L2AAlgorithm(EnMAPProcessingAlgorithm):
             options = gdal.BuildVRTOptions(separate=True, xRes=pixelSize, yRes=pixelSize)
 
             # create VRTs
-            ds = gdal.BuildVRT(filename, filenames, options=options)
+            ds: gdal.Dataset = gdal.BuildVRT(filename, filenames, options=options)
             ds.SetMetadataItem('wavelength', '{' + ', '.join(wavelength[:ds.RasterCount]) + '}', 'ENVI')
             ds.SetMetadataItem('wavelength_units', 'nanometers', 'ENVI')
             for bandNo, name in enumerate(bandNames, 1):
