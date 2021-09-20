@@ -3,7 +3,7 @@ from typing import Dict, Any
 from qgis._core import QgsProcessingParameterString, QgsProcessingFeedback, QgsProcessingContext
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-from enmapboxprocessing.algorithm.rastermathalgorithm.parameter.processingparameterrastermathcodeeditwidget import \
+from enmapboxprocessing.parameter.processingparameterrastermathcodeeditwidget import \
     ProcessingParameterRasterMathCodeEditWidgetWrapper
 from typeguard import typechecked
 

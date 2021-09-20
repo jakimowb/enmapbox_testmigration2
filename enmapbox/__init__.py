@@ -91,7 +91,7 @@ except ModuleNotFoundError as ex:
 
             print(ex)
 
-__version__ = '3.8'  # subsub-version information is added during build process
+__version__ = '3.9'  # subsub-version information is added during build process
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
@@ -99,7 +99,7 @@ ISSUE_TRACKER = 'https://bitbucket.org/hu-geomatics/enmap-box/issues'
 CREATE_ISSUE = 'https://bitbucket.org/hu-geomatics/enmap-box/issues/new'
 DEPENDENCIES = ['numpy', 'scipy', 'osgeo.gdal', 'PyQt5', 'sklearn', 'matplotlib']
 DOCUMENTATION = 'https://enmap-box.readthedocs.io/'
-URL_TESTDATA = r'https://bitbucket.org/hu-geomatics/enmap-box-testdata/get/master.zip'
+URL_TESTDATA = fr'https://bitbucket.org/hu-geomatics/enmap-box-testdata/get/{__version__}.zip'
 URL_INSTALLATION = r'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages'
 URL_QGIS_RESOURCES = r'https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip'
 MIN_VERSION_QGIS = '3.18'

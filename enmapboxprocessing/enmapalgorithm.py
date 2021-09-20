@@ -103,9 +103,15 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsLayer(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsMapLayer]:
+
         layer = super().parameterAsLayer(parameters, name, context)
-        if isinstance(layer, QgsMapLayer) and layer.renderer() is None:
+        if layer is None:
+            return None
+
+        # if layer is given by URI string or renderer is undefined, we need to manually load the default style
+        if isinstance(parameters.get(name), str) or layer.renderer() is None:
             layer.loadDefaultStyle()
+
         return layer
 
     def parameterAsLayerList(
