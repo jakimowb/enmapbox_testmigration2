@@ -122,9 +122,6 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     pattern = re.compile(r'\.(sli|hdr|py|svg|png|txt|ui|tif|qml|md|js|css|json|aux\.xml)$')
     files = list(scantree(DIR_REPO / 'enmapbox', pattern=pattern))
     files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
-    files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
-    files.extend(list(scantree(DIR_REPO / 'hubdc', pattern=pattern)))
-    files.extend(list(scantree(DIR_REPO / 'hubdsm', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxprocessing', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
 
@@ -289,18 +286,19 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    create_enmapbox_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
+    path = create_enmapbox_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
 
-    message = '\nVery important checklist. Do not remove!!!' \
-              '\nChecklist for release:' \
-              '\n1. Change log up-to-date?' \
-              '\n2. ZIP containing branch information?' \
-              '\n3. Processing algo documentation up-to-date (run create_processing_rst)?.' \
-              '\n4. Check if box runs without optional dependencies (see enmapboxtesting/non-blocking-dependencies/readme.txt).'\
-              '\n5. Version number increased? (enmapbox/__init__.py -> __version__)' \
-              '\n6. Create testdata tag with same version number. Try to download testdata!' \
-              '\n6. QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
-              '\n7. Plugin promotion (Slack, Email, ...)'
-    print(message)
+    if re.search(r'\.master\.', path.name):
+        message = '\nVery important checklist. Do not remove!!!' \
+                  '\nChecklist for release:' \
+                  '\n1. Change log up-to-date?' \
+                  '\n2. ZIP containing branch information?' \
+                  '\n3. Processing algo documentation up-to-date (run create_processing_rst)?.' \
+                  '\n4. Check if box runs without optional dependencies (see enmapboxtesting/non-blocking-dependencies/readme.txt).'\
+                  '\n5. Version number increased? (enmapbox/__init__.py -> __version__)' \
+                  '\n6. Create testdata tag with same version number. Try to download testdata!' \
+                  '\n6. QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
+                  '\n7. Plugin promotion (Slack, Email, ...)'
+        print(message)
 
     exit()
