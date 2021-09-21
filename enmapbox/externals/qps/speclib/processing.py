@@ -1376,6 +1376,7 @@ class SpectralProcessingAlgorithmModel(QgsProcessingToolboxProxyModel):
                  parent: QObject,
                  registry: QgsProcessingRegistry = None,
                  recentLog: QgsProcessingRecentAlgorithmLog = None):
+
         super().__init__(parent, registry, recentLog)
         self.setRecursiveFilteringEnabled(True)
 
