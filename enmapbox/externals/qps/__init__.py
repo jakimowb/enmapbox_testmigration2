@@ -120,14 +120,14 @@ def registerEditorWidgets():
         from .speclib.gui.spectralprofileeditor import registerSpectralProfileEditorWidget
         registerSpectralProfileEditorWidget()
     except Exception as ex:
-        print('Failed to call .speclib.gui.gui.registerSpectralProfileEditorWidget()', file=sys.stderr)
+        print('Failed to call registerSpectralProfileEditorWidget()', file=sys.stderr)
         print(ex, file=sys.stderr)
 
     try:
         from .classification.classificationscheme import registerClassificationSchemeEditorWidget
         registerClassificationSchemeEditorWidget()
     except Exception as ex:
-        print('Failed to call qps.classification.classificationscheme.registerClassificationSchemeEditorWidget()',
+        print('Failed to call registerClassificationSchemeEditorWidget()',
               file=sys.stderr)
         print(ex, file=sys.stderr)
 
@@ -153,6 +153,16 @@ def registerExpressionFunctions():
         print(ex, file=sys.stderr)
 
 
+def registerSpectralProfileSamplingModes():
+    from .speclib.gui.spectralprofilesources import initSamplingModes
+    initSamplingModes()
+
+
+def registerSpectralLibraryIOs():
+    from .speclib.core.spectrallibraryio import initSpectralLibraryIOs
+    initSpectralLibraryIOs()
+
+
 def unregisterExpressionFunctions():
     from .speclib.qgsfunctions import unregisterQgsExpressionFunctions as _unregisterQgsExpressionFunctions
     _unregisterQgsExpressionFunctions()
@@ -176,27 +186,16 @@ def initResources():
     initResourceFile(QPS_RESOURCE_FILE)
 
 
-def initSpectralLibraryIOs():
-    """
-    Initialized the IO options for the SpectralLibraryWidget
-    """
-    from .speclib.core.spectrallibraryio import initSpectralLibraryIOs as initIOs
-    initIOs()
-
-
 def initAll():
     initResources()
     registerEditorWidgets()
     registerExpressionFunctions()
     registerMapLayerConfigWidgetFactories()
-    initSpectralLibraryIOs()
+    registerSpectralProfileSamplingModes()
+    registerSpectralLibraryIOs()
+
 
 def unloadAll():
     unregisterEditorWidgets()
     unregisterExpressionFunctions()
     unregisterMapLayerConfigWidgetFactories()
-
-
-from .speclib.core.spectralprofile import SpectralProfile
-from .speclib.core.spectrallibrary import SpectralLibrary
-s = ""

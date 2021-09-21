@@ -920,9 +920,10 @@ class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
         self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
         sl: SpectralLibrary = self.speclib()
         if isinstance(sl, SpectralLibrary):
-
+            from ..externals.qps.speclib.core import profile_field_list
+            profile_fields = profile_field_list(sl)
             LUNodes = {n.name(): n for n in self.nodeProfiles.childNodes()}
-            LUFields = {f.name(): f for f in sl.spectralValueFields()}
+            LUFields = {f.name(): f for f in profile_fields}
 
             to_remove = [node for name, node in LUNodes.items() if name not in LUFields.keys()]
 
@@ -933,7 +934,7 @@ class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
             to_add = []
             n_features = sl.featureCount()
             n_profiles = 0
-            for field in sl.spectralValueFields():
+            for field in profile_fields:
                 n = 0
                 name = field.name()
                 for f in sl.getFeatures(f'"{name}" is not NULL'):

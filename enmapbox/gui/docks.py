@@ -20,6 +20,8 @@
 import codecs
 import typing
 import enum
+
+from qgis.PyQt import QtCore
 from qgis.core import QgsVectorLayer
 
 from enmapbox.gui import SpectralLibraryWidget, SpectralLibrary
@@ -730,7 +732,7 @@ class WebViewDock(Dock):
         super(WebViewDock, self).__init__(*args, **kwargs)
         # self.setLineWrapMode(QTextEdit.FixedColumnWidth)
 
-        from PyQt5.QtWebKit import QWebView
+        from PyQt5.QtWebKitWidgets import QWebView
         self.webView = QWebView(self)
         self.layout.addWidget(self.webView)
 

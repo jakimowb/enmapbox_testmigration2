@@ -32,6 +32,9 @@ Contact
 **E-Mail:** enmapbox@enmap.org
 
 
+**Newsletter**: Subscribe to the EnMAP mailing list to be informed about new EnMAP-Box releases and other EnMAP related news at https://www.enmap.org/contact/
+
+
 FAQ
 ===
 
