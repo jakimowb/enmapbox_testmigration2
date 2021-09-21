@@ -75,7 +75,7 @@ class RasterWriter(object):
         self._gdalObject(bandNo).SetMetadataItem(key, Utils.metadateValueToString(value), domain)
 
     def setMetadataDomain(self, metadata: MetadataDomain, domain: str = '', bandNo: int = None):
-        self.gdalDataset.SetMetadata({}, domain)  # clear existing domain first
+        self._gdalObject(bandNo).SetMetadata({}, domain)  # clear existing domain first
         for key, value in metadata.items():
             if key.replace(' ', '_') == 'file_compression':
                 continue
@@ -104,17 +104,21 @@ class RasterWriter(object):
             colorTable.SetColorEntry(i, (color.red(), color.green(), color.blue()))
         gdalBand.SetColorTable(colorTable)
 
-    def setWavelength(self, wavelength: Optional[Number], bandNo: int):
+    def setWavelength(self, wavelength: Optional[Number], bandNo: int, units: str = None):
         if bandNo is None:
             return
-        self.setMetadataItem('wavelength', wavelength, '', bandNo)
-        self.setMetadataItem('wavelength_units', 'nanometers', '', bandNo)
+        if units is None:
+            units = 'Nanometers'
+        self.setMetadataItem('wavelength', round(wavelength, 5), '', bandNo)
+        self.setMetadataItem('wavelength_units', units, '', bandNo)
 
-    def setFwhm(self, fwhm: Optional[Number], bandNo: int):
+    def setFwhm(self, fwhm: Optional[Number], bandNo: int, units: str = None):
         if bandNo is None:
             return
-        self.setMetadataItem('fwhm', fwhm, '', bandNo)
-        self.setMetadataItem('wavelength_units', 'nanometers', '', bandNo)
+        if units is None:
+            units = 'Nanometers'
+        self.setMetadataItem('fwhm', round(fwhm, 5), '', bandNo)
+        self.setMetadataItem('wavelength_units', units, '', bandNo)
 
     def setBadBandMultiplier(self, badBandMultiplier: Optional[int], bandNo: int):
         if bandNo is None:

@@ -1,8 +1,6 @@
 from math import isnan
 from typing import Iterable, List, Union, Optional
 
-from enmapboxprocessing.rasterblockinfo import RasterBlockInfo
-from typeguard import typechecked
 import numpy as np
 from PyQt5.QtCore import QSizeF
 from osgeo import gdal
@@ -10,15 +8,19 @@ from qgis._core import (QgsRasterLayer, QgsRasterDataProvider, QgsCoordinateRefe
                         QgsRasterRange, QgsPoint, QgsRasterBlockFeedback, QgsRasterBlock, QgsPointXY,
                         QgsProcessingFeedback)
 
+from enmapboxprocessing.gridwalker import GridWalker
+from enmapboxprocessing.rasterblockinfo import RasterBlockInfo
 from enmapboxprocessing.typing import (QgisDataType, RasterSource, Array3d, Metadata, MetadataValue,
                                        MetadataDomain)
 from enmapboxprocessing.utils import Utils
-
-from enmapboxprocessing.gridwalker import GridWalker
+from typeguard import typechecked
 
 
 @typechecked
 class RasterReader(object):
+
+    Nanometers = 'Nanometers'
+    Micrometers = 'Micrometers'
 
     def __init__(self, source: RasterSource):
 
@@ -272,7 +274,7 @@ class RasterReader(object):
                 return bandNo
         raise ValueError(f'unknown band name: {bandName}')
 
-    def findWavelength(self, wavelength: Optional[float]) -> int:
+    def findWavelength(self, wavelength: Optional[float]) -> Optional[int]:
         bandNos = list()
         distances = list()
         for bandNo in range(1, self.bandCount() + 1):
@@ -286,8 +288,24 @@ class RasterReader(object):
 
         return bandNos[np.argmin(distances)]
 
-    def wavelength(self, bandNo: int) -> Optional[float]:
-        """Return band center wavelength in nanometers."""
+    def wavelengthUnits(self, bandNo: int) -> Optional[str]:
+        """Return wavelength units."""
+        units = self.metadataItem('wavelength units', '', bandNo)
+        if units is None:
+            units = self.metadataItem('wavelength units', 'ENVI')
+            if units is None:
+                return None
+
+        # normalise string
+        if units.lower() in ['micrometers', 'um']:
+            return self.Micrometers
+        elif units.lower() in ['nanometers', 'nm']:
+            return self.Nanometers
+        else:
+            raise ValueError(f'unsupported wavelength units: {units}')
+
+    def wavelength(self, bandNo: int, units: str = None) -> Optional[float]:
+        """Return band center wavelength in nanometers. Optionally, specify destination units."""
         wavelength = self.metadataItem('wavelength', '', bandNo)
         if wavelength is None:
             wavelengths = self.metadataItem('wavelength', 'ENVI')
@@ -298,16 +316,30 @@ class RasterReader(object):
                 wavelength_units = self.metadataItem('wavelength_units', 'ENVI')
         else:
             wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
+
+        # convert to nanometers
         if wavelength_units.lower() in ['micrometers', 'um']:
             scale = 1000.
         elif wavelength_units.lower() in ['nanometers', 'nm']:
             scale = 1.
         else:
             raise ValueError(f'unsupported wavelength units: {wavelength_units}')
-        return float(wavelength) * scale
+        wavelength = float(wavelength) * scale
 
-    def fwhm(self, bandNo: int) -> Optional[float]:
-        """Return band FWHM in nanometers."""
+        # convert to destination units
+        if units is not None:
+            if units.lower() in ['micrometers', 'um']:
+                scale = 1 / 1000.
+            elif units.lower() in ['nanometers', 'nm']:
+                scale = 1.
+            else:
+                raise ValueError(f'unsupported wavelength units: {units}')
+            wavelength *= scale
+
+        return wavelength
+
+    def fwhm(self, bandNo: int, units: str = None) -> Optional[float]:
+        """Return band FWHM in nanometers. Optionally, specify destination units."""
         fwhm = self.metadataItem('fwhm', '', bandNo)
         if fwhm is None:
             fwhms = self.metadataItem('fwhm', 'ENVI')
@@ -318,13 +350,28 @@ class RasterReader(object):
                 wavelength_units = self.metadataItem('wavelength_units', 'ENVI')
         else:
             wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
+
+        # convert to nanometers
         if wavelength_units.lower() in ['micrometers', 'um']:
             scale = 1000.
         elif wavelength_units.lower() in ['nanometers', 'nm']:
             scale = 1.
         else:
             raise ValueError(f'unsupported wavelength units: {wavelength_units}')
-        return float(fwhm) * scale
+        fwhm = float(fwhm) * scale
+
+        # convert to destination units
+        if units is not None:
+            if units.lower() in ['micrometers', 'um']:
+                scale = 1 / 1000.
+            elif units.lower() in ['nanometers', 'nm']:
+                scale = 1.
+            else:
+                raise ValueError(f'unsupported wavelength units: {units}')
+            fwhm *= scale
+
+        return fwhm
+
 
     def badBandMultiplier(self, bandNo: int) -> Optional[int]:
         """Return bad band multiplier, typically 0 for bad bands and 1 for good bands."""

@@ -16,19 +16,6 @@ c = ['', 'c:'][int(writeToDisk)]
 
 class TestTranslateAlgorithm(TestCase):
 
-    def test_pythonCommand(self):
-        alg = TranslateRasterAlgorithm()
-        alg.initAlgorithm()
-        parameters = {
-            alg.P_RASTER: QgsRasterLayer(enmap),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
-        }
-        processing
-        cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
-        print(cmd)
-        eval(cmd)
-        #webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
-
     def test_default(self):
         alg = TranslateRasterAlgorithm()
         parameters = {
@@ -131,32 +118,17 @@ class TestTranslateAlgorithm(TestCase):
         alg = TranslateRasterAlgorithm()
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap),
-            #alg.P_BAND_LIST: [3],
+            alg.P_BAND_LIST: [3],
             alg.P_COPY_METADATA: True,
             alg.P_CREATION_PROFILE: alg.DefaultGTiffCreationProfile,
             alg.P_OUTPUT_RASTER: c + '/vsimem/enmap.tif'
         }
         result = self.runalg(alg, parameters)
-        gold = RasterReader(enmap).metadataDomain('')
-        lead = RasterReader(result[alg.P_OUTPUT_RASTER]).metadataDomain('')
-        return
-        for key in gold:
-            if key.startswith('Band_'):
-                continue
-            self.assertEqual(gold[key], lead[key])
-        gold = RasterReader(enmap).metadataDomain('ENVI')
-        lead = RasterReader(result[alg.P_OUTPUT_RASTER]).metadataDomain('ENVI')
-        for key, value in gold.items():
-            if key in ['file_compression']:
-                continue
-            if key == 'bands':
-                value = '1'
-            if key in [
-                'band names', 'bbl', 'data_gain_values', 'data_offset_values', 'data_reflectance_gain_values',
-                'data_reflectance_offset_values', 'fwhm', 'wavelength'
-            ]:
-                value = [value[bandNo - 1] for bandNo in parameters[alg.P_BAND_LIST]]
-            self.assertEqual(value, lead[key])
+
+        raster = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(470, int(raster.wavelength(1)))
+        self.assertEqual(5.8, raster.fwhm(1))
+        self.assertEqual(1, raster.badBandMultiplier(1))
 
     def test_clipSourceGrid_byFullExtent(self):
         raster = QgsRasterLayer(enmap)

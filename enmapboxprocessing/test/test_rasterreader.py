@@ -67,6 +67,15 @@ class TestRasterMetadataReader(TestCase):
         self.assertEqual(gold, self.reader.metadataItem('wavelength units'.upper(), 'ENVI'.lower()))
         self.assertIsNone(self.reader.metadataItem('abc', 'XYZ'))
 
+    def test_bandwise_metadata(self):
+        self.assertEqual(self.reader.Micrometers, self.reader.wavelengthUnits(1))
+        self.assertEqual(460.0, self.reader.wavelength(1))
+        self.assertEqual(460.0, self.reader.wavelength(1, self.reader.Nanometers))
+        self.assertEqual(0.460, self.reader.wavelength(1, self.reader.Micrometers))
+        self.assertEqual(5.8, self.reader.fwhm(1))
+        self.assertEqual(5.8, self.reader.fwhm(1, self.reader.Nanometers))
+        self.assertEqual(0.0058, self.reader.fwhm(1, self.reader.Micrometers))
+
 
 class TestRasterMaskReader(TestCase):
 
