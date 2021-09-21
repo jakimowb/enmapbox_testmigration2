@@ -1146,7 +1146,9 @@ class MapCanvas(QgsMapCanvas):
     def keyPressEvent(self, e: QKeyEvent):
 
         is_panning = bool(QApplication.mouseButtons() & Qt.MiddleButton)
-        is_ctrl = bool(QApplication.keyboardModifiers() & Qt.CTRL)
+        is_ctrl = bool(QApplication.keyboardModifiers() & Qt.ControlModifier)
+        is_shift = bool(QApplication.keyboardModifiers() & Qt.ShiftModifier)
+
         # print(f'panning: {is_panning} CTRL: {is_ctrl}')
         if not is_panning and is_ctrl and e.key() in [Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down]:
             # find raster layer with a reference pixel grid
@@ -1195,8 +1197,13 @@ class MapCanvas(QgsMapCanvas):
                     m2p: QgsMapToPixel = settings.mapToPixel()
                     localPos = m2p.transform(ptB)
 
+                    # simulate a left-button mouse-click
                     event = QMouseEvent(QEvent.MouseButtonPress, localPos.toQPointF(), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
                     self.mousePressEvent(event)
+
+                    if is_shift:
+                        event = QMouseEvent(QEvent.MouseButtonRelease, localPos.toQPointF(), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+                        self.mouseReleaseEvent(event)
                     return
 
         super(MapCanvas, self).keyPressEvent(e)
