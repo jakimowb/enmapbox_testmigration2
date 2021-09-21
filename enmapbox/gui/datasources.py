@@ -459,6 +459,7 @@ class DataSourceRaster(DataSourceSpatial):
         if not isinstance(layer, QgsRasterLayer):
             layer = self.createUnregisteredMapLayer()
         assert isinstance(layer, QgsRasterLayer)
+        assert layer.isValid()
         self.mLayer: QgsRasterLayer = layer
         self.mLayerId = self.mLayer.id()
         self.mLayer.setCustomProperty('ENMAPBOX_DATASOURCE', True)
@@ -1070,7 +1071,10 @@ class DataSourceFactory(object):
                             for ldef in d.selection():
                                 assert isinstance(ldef, QgsSublayersDialog.LayerDefinition)
                                 names.append(ldef.layerName)
-                                rasterUris.append(subLayers[ldef.layerId])
+                                subLayerUri = subLayers[ldef.layerId]
+                                parts = subLayerUri.split(lyr.dataProvider().sublayerSeparator())
+
+                                rasterUris.append(parts[0])
 
             else:
 
