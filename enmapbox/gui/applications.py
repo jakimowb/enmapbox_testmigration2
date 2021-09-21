@@ -20,7 +20,7 @@
 import inspect
 import site
 import traceback
-
+import collections
 from qgis.core import QgsProcessingAlgorithm
 from qgis.gui import QgisInterface
 from enmapbox import messageLog
