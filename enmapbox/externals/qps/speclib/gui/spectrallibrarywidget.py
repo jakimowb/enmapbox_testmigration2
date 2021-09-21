@@ -42,11 +42,13 @@ class SpectralLibraryWidget(AttributeTableWidget):
         super().__init__(speclib)
         # self.setAttribute(Qt.WA_DeleteOnClose, on=True)
         self.setWindowIcon(QIcon(':/qps/ui/icons/speclib.svg'))
-        self.mQgsStatusBar = QgsStatusBar(self.statusBar())
-        self.mQgsStatusBar.setParentStatusBar(self.statusBar())
-        self.mStatusLabel: SpectralLibraryInfoLabel = SpectralLibraryInfoLabel()
-        self.mStatusLabel.setTextFormat(Qt.RichText)
-        self.mQgsStatusBar.addPermanentWidget(self.mStatusLabel, 1, QgsStatusBar.AnchorLeft)
+        # self.mQgsStatusBar = QgsStatusBar()
+        # self.mQgsStatusBar
+        # self.mQgsStatusBar.setParentStatusBar(self.statusBar())
+        # self.mStatusLabel: SpectralLibraryInfoLabel = SpectralLibraryInfoLabel()
+        # self.mStatusLabel.setTextFormat(Qt.RichText)
+        # self.mQgsStatusBar.addPermanentWidget(self.mStatusLabel, 1, QgsStatusBar.AnchorLeft)
+        # self.mQgsStatusBar.setVisible(False)
 
         self.mIODialogs: typing.List[QWidget] = list()
 
@@ -56,8 +58,8 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.mSpeclibPlotWidget: SpectralLibraryPlotWidget = SpectralLibraryPlotWidget()
         assert isinstance(self.mSpeclibPlotWidget, SpectralLibraryPlotWidget)
         self.mSpeclibPlotWidget.setDualView(self.mMainView)
-        self.mStatusLabel.setPlotWidget(self.mSpeclibPlotWidget)
-        self.mSpeclibPlotWidget.plotWidget.mUpdateTimer.timeout.connect(self.mStatusLabel.update)
+        # self.mStatusLabel.setPlotWidget(self.mSpeclibPlotWidget)
+        # self.mSpeclibPlotWidget.plotWidget.mUpdateTimer.timeout.connect(self.mStatusLabel.update)
 
         self.pageProcessingWidget: SpectralProcessingWidget = SpectralProcessingWidget()
 
@@ -127,10 +129,16 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.tbSpeclibAction.addAction(self.actionImportSpeclib)
         self.tbSpeclibAction.addAction(self.actionExportSpeclib)
 
-        self.tbSpeclibAction.addSeparator()
-        self.cbXAxisUnit = self.mSpeclibPlotWidget.optionXUnit.createUnitComboBox()
-        self.tbSpeclibAction.addWidget(self.cbXAxisUnit)
-        self.tbSpeclibAction.addAction(self.mSpeclibPlotWidget.optionColorsFromFeatureRenderer)
+        # self.tbSpeclibAction.addSeparator()
+        # self.cbXAxisUnit = self.mSpeclibPlotWidget.optionXUnit.createUnitComboBox()
+        # self.tbSpeclibAction.addWidget(self.cbXAxisUnit)
+        # self.tbSpeclibAction.addAction(self.mSpeclibPlotWidget.optionColorsFromFeatureRenderer)
+
+        self.actionShowProfileView = QAction('Show Profile Plot')
+        self.actionShowProfileView.setCheckable(True)
+        self.actionShowProfileView.setChecked(True)
+        self.actionShowProfileView.setIcon(QIcon(':/images/themes/default/mActionLocalHistogramStretch.svg'))
+        self.actionShowProfileView.triggered.connect(self.setCenterView)
 
         self.actionShowFormView = QAction('Show Form View')
         self.actionShowFormView.setCheckable(True)
@@ -160,6 +168,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.addToolBar(self.tbSpectralProcessing)
 
         r = self.tbSpeclibAction.addSeparator()
+        self.tbSpeclibAction.addAction(self.actionShowProfileView)
         self.tbSpeclibAction.addAction(self.actionShowFormView)
         self.tbSpeclibAction.addAction(self.actionShowAttributeTable)
         self.tbSpeclibAction.addAction(self.actionShowProcessingWidget)
@@ -182,12 +191,17 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.centerBottomLayout.insertWidget(self.centerBottomLayout.indexOf(self.mAttributeViewButton),
                                              self.btnShowProperties)
 
+        # show attribute table by default
+        self.actionShowAttributeTable.trigger()
+
         # QIcon(':/images/themes/default/mActionMultiEdit.svg').pixmap(20,20).isNull()
         self.setAcceptDrops(True)
 
     def setCenterView(self, view: 'SpectralLibraryWidget.ViewType' = None):
 
         sender = self.sender()
+
+        self.widgetRight.setVisible(self.actionShowProfileView.isChecked())
 
         exclusive_actions = [self.actionShowAttributeTable,
                              self.actionShowFormView,
@@ -253,12 +267,15 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
     def addProfileStyleMenu(self, menu: QMenu):
         selectedFIDs = self.tableView().selectedFeaturesIds()
+        return
+
         n = len(selectedFIDs)
         menuProfileStyle = menu.addMenu('Profile Style')
         wa = QWidgetAction(menuProfileStyle)
 
         btnResetProfileStyles = QPushButton('Reset')
         btnApplyProfileStyle = QPushButton('Apply')
+
 
         plotStyle = self.plotWidget().profileRenderer().profileStyle
         if n == 0:
@@ -364,7 +381,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
         plotWidget: SpectralProfilePlotWidget = self.plotWidget()
 
         #  stop plot updates
-        plotWidget.mUpdateTimer.stop()
+        # plotWidget.mUpdateTimer.stop()
         restart_editing: bool = not speclib.startEditing()
         oldCurrentIDs = list(self.plotControl().mTemporaryProfileIDs)
         addAuto: bool = self.optionAddCurrentProfilesAutomatically.isChecked()
@@ -395,6 +412,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
             # give current spectra the current spectral style
             self.plotControl().mTemporaryProfileIDs.update(addedKeys)
         self.plotControl().updatePlot()
+        self.speclib().triggerRepaint()
 
     def currentProfiles(self) -> typing.List[SpectralProfile]:
         return self.mSpeclibPlotWidget.plotWidget.currentProfiles()

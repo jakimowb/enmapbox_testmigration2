@@ -379,7 +379,7 @@ def initAll():
     registerExpressionFunctions()
     registerEnMAPBoxProcessingProvider()
     registerMapLayerConfigWidgetFactories()
-    from .externals.qps import initSpectralLibraryIOs
+    from .externals.qps.speclib.core.spectrallibraryio import initSpectralLibraryIOs
     initSpectralLibraryIOs()
 
 
