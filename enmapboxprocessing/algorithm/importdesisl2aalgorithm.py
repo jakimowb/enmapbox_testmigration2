@@ -86,7 +86,6 @@ class ImportDesisL2AAlgorithm(EnMAPProcessingAlgorithm):
 
             # create VRTs
             ds = gdal.Open(xmlFilename.replace('-METADATA.xml', '-SPECTRAL_IMAGE.TIF'))
-            bandNames = [ds.GetRasterBand(i + 1).GetDescription() for i in range(ds.RasterCount)]
             options = gdal.TranslateOptions(format='VRT', outputType=gdal.GDT_Int16)
             ds: gdal.Dataset = gdal.Translate(destName=filename, srcDS=ds, options=options)
             ds.SetMetadataItem('wavelength', wavelength, 'ENVI')
@@ -94,8 +93,9 @@ class ImportDesisL2AAlgorithm(EnMAPProcessingAlgorithm):
             ds.SetMetadataItem('fwhm', fwhm, 'ENVI')
             rasterBands = [ds.GetRasterBand(i + 1) for i in range(ds.RasterCount)]
             rasterBand: gdal.Band
+            wavelength = wavelength[1:-1].split(',')
             for i, rasterBand in enumerate(rasterBands):
-                rasterBand.SetDescription(bandNames[i])
+                rasterBand.SetDescription(f'band {i + 1} ({wavelength[i]} Nanometers)')
                 rasterBand.SetScale(float(gains[i]) * 1e4)
                 rasterBand.SetOffset(float(offsets[i]))
                 rasterBand.FlushCache()

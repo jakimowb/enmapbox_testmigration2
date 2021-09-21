@@ -16,7 +16,7 @@ from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVecto
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-from enmapboxprocessing.algorithm.rastermathalgorithm.parameter.processingparameterrastermathcodeeditwidget import \
+from enmapboxprocessing.parameter.processingparameterrastermathcodeeditwidget import \
     ProcessingParameterRasterMathCodeEditWidgetWrapper
 from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from enmapboxprocessing.rasterblockinfo import RasterBlockInfo

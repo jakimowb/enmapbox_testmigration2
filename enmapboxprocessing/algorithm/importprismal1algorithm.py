@@ -107,7 +107,9 @@ class ImportPrismaL1Algorithm(EnMAPProcessingAlgorithm):
             assert len(wavelength) == len(array)
             assert len(fwhm) == len(array)
             for bandNo in range(1, writer.bandCount() + 1):
-                writer.setWavelength(wavelength[bandNo - 1], bandNo)
+                wl = wavelength[bandNo - 1]
+                writer.setBandName(f'band {bandNo} ({wl} Nanometers)', bandNo)
+                writer.setWavelength(wl, bandNo)
                 writer.setFwhm(fwhm[bandNo - 1], bandNo)
             writer.setNoDataValue(noDataValue)
             result = {self.P_OUTPUT_RASTER: filename}

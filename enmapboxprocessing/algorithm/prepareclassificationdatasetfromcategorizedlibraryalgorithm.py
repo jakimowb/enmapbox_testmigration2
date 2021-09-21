@@ -95,7 +95,7 @@ class PrepareClassificationDatasetFromCategorizedLibraryAlgorithm(EnMAPProcessin
                 binaryField = FIELD_VALUES
             feedback.pushInfo('Read data')
             try:
-                spectralLibrary = SpectralLibrary(library.source(), value_fields=[binaryField])
+                spectralLibrary = SpectralLibrary(library.source(), profile_fields=[binaryField])
             except Exception as error:
                 traceback.print_exc()
                 message = f"Couldn't open the selected spectral library: {error}"
@@ -109,7 +109,7 @@ class PrepareClassificationDatasetFromCategorizedLibraryAlgorithm(EnMAPProcessin
             n = spectralLibrary.featureCount()
             X = list()
             y = list()
-            for i, profile in enumerate(spectralLibrary.profiles()):
+            for i, profile in enumerate(spectralLibrary.profiles(profile_field=binaryField)):
                 feedback.setProgress(i / n * 100)
                 yi = valueLookup.get(profile.attribute(classField), None)
                 if yi is None:  # if category is not of interest ...

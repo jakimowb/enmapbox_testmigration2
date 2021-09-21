@@ -96,6 +96,7 @@ class ImportEnmapL1BAlgorithm(EnMAPProcessingAlgorithm):
             rasterBands.extend(dsSwir.GetRasterBand(i + 1) for i in range(dsSwir.RasterCount))
             rasterBand: gdal.Band
             for i, rasterBand in enumerate(rasterBands):
+                rasterBand.SetDescription(f'band {i + 1} ({wavelength[i]} Nanometers)')
                 rasterBand.SetScale(float(gains[i]))
                 rasterBand.SetOffset(float(offsets[i]))
                 rasterBand.FlushCache()

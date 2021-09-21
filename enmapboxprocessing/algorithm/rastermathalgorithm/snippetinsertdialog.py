@@ -13,13 +13,13 @@ class DialogUi(object):
 
         vbox = QVBoxLayout()
         dialog.setLayout(vbox)
-        for identifier, type in dialog.inputs.items():
-            vbox.addWidget(QLabel(f'Select source for identifier "{identifier}"'))
+        for placeholder, type in dialog.inputs.items():
+            vbox.addWidget(QLabel(f'Select source for placeholder "{placeholder}"'))
             comboBox = QComboBox()
             comboBox.addItems([''] + dialog.rasterNames)
             comboBox.currentIndexChanged.connect(dialog.onIndexChanged)
             vbox.addWidget(comboBox)
-            dialog.sources.append((comboBox, identifier))
+            dialog.sources.append((comboBox, placeholder))
 
         vbox.addWidget(QLabel(f'Code snippet preview'))
         self.mCode = CodeEditWidget()
@@ -36,7 +36,7 @@ class DialogUi(object):
 
 
 @typechecked
-class SnippetDialog(QDialog, DialogUi):
+class SnippetInsertDialog(QDialog, DialogUi):
     sources: List
     mCode: CodeEditWidget
 
@@ -50,7 +50,7 @@ class SnippetDialog(QDialog, DialogUi):
         self.sources = list()
 
         self.setupUi(self)
-        self.setWindowTitle('Select input sources')
+        self.setWindowTitle('Select sources')
 
     def onIndexChanged(self):
         code = self.code

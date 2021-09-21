@@ -66,4 +66,3 @@ class TestImportLandsatL2Algorithm(TestCase):
         result = self.runalg(alg, parameters)
         array = RasterReader(result[alg.P_OUTPUT_RASTER]).array(bandList=[1])
         self.assertEqual(31240899446, round(np.sum(array, dtype=float)))
-
