@@ -702,7 +702,12 @@ class DataSourceVector(DataSourceSpatial):
             QgsSettings().setValue(key, 'useProject')
 
         loptions = QgsVectorLayer.LayerOptions(True, False)
-        lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider, options=loptions)
+        if self.mProvider == 'memory':
+            # we cannot clone memory layers
+            # see https://github.com/qgis/QGIS/issues/34134
+            lyr = self.mLayer
+        else:
+            lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider, options=loptions)
 
         if isPrompt:
             QgsSettings().setValue(key, v)
@@ -748,8 +753,9 @@ class DataSourceSpectralLibrary(DataSourceVector):
         self.updateMetadata()
 
     def createUnregisteredMapLayer(self) -> SpectralLibrary:
+        return self.mapLayer()
 
-        return SpectralLibrary(path=self.mLayer.source(), baseName=self.name())
+        # return SpectralLibrary(path=self.mLayer.source(), baseName=self.name(), provider=self.mProvider)
 
     def updateMetadata(self, *args, **kwds):
 

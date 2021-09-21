@@ -294,7 +294,9 @@ class SpectralLibraryIO(object):
         profiles = SpectralLibraryIO.readProfilesFromUri(uri)
         if len(profiles) > 0:
             from .spectrallibrary import SpectralLibrary
-            speclib = SpectralLibrary(fields=profiles[0].fields())
+            referenceProfile = profiles[0]
+
+            speclib = SpectralLibrary(fields=referenceProfile.fields())
             speclib.startEditing()
             speclib.beginEditCommand('Add profiles')
             speclib.addFeatures(profiles)
@@ -319,6 +321,8 @@ class SpectralLibraryImportDialog(QDialog):
             source = dialog.source()
             propertyMap = dialog.fieldPropertyMap()
             format = dialog.currentImportWidget()
+            if not isinstance(format, SpectralLibraryImportWidget):
+                return False
             settings = format.importSettings({})
             io: SpectralLibraryIO = format.spectralLibraryIO()
             speclib: QgsVectorLayer = dialog.speclib()
@@ -567,6 +571,9 @@ class SpectralLibraryExportDialog(QDialog):
     def exportSettings(self) -> dict:
         settings = dict()
         w = self.currentExportWidget()
+        if not isinstance(w, SpectralLibraryExportWidget):
+            return None
+
         if w.supportsLayerName():
             settings['layer_name'] = self.tbLayerName.text()
 

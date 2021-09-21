@@ -298,6 +298,7 @@ if __name__ == "__main__":
               '\n3. Processing algo documentation up-to-date (run create_processing_rst)?.' \
               '\n4. Check if box runs without optional dependencies (see enmapboxtesting/non-blocking-dependencies/readme.txt).'\
               '\n5. Version number increased? (enmapbox/__init__.py -> __version__)' \
+              '\n6. Create testdata tag with same version number. Try to download testdata!' \
               '\n6. QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
               '\n7. Plugin promotion (Slack, Email, ...)'
     print(message)

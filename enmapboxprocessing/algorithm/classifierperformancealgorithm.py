@@ -41,7 +41,7 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterFile(self.P_CLASSIFIER, self._CLASSIFIER, extension=self.PickleFileExtension)
-        self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension)
+        self.addParameterClassificationDataset(self.P_DATASET, self._DATASET)
         self.addParameterInt(self.P_NFOLD, self._NFOLD, None, True, 2, 100, True)
         self.addParameterBoolean(self.P_OPEN_REPORT, self._OPEN_REPORT, True)
         self.addParameterFileDestination(self.P_OUTPUT_REPORT, self._OUTPUT_REPORT, self.ReportFileFilter)

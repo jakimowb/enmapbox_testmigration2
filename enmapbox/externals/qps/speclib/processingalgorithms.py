@@ -387,22 +387,26 @@ class SpectralProfileWriter(_AbstractSpectralAlgorithm):
             new_features = []
             if fids and mode != 'APPEND':
                 # block profiles with FIDs -> handle mode
-                FEATURE_DATA = {fid : ba for fid, ba in block.profileValueByteArrays()}
+                FEATURE_DATA = {fid : (ba, g) for fid, ba, g in block.profileValueByteArrays()}
                 request = QgsFeatureRequest()
                 request.setFilterFids(fids)
                 for f in speclib.getFeatures(request):
-                    speclib.changeAttributeValue(f.id(), i_field, FEATURE_DATA.pop(f.id()))
+                    ba, g = FEATURE_DATA.pop(f.id())
+                    speclib.changeGeometry(f.id(), g)
+                    speclib.changeAttributeValue(f.id(), i_field, ba)
 
                 # append remaining byte arrays as new features
-                for ba in FEATURE_DATA.values():
+                for (ba, g) in FEATURE_DATA.values():
                     f = QgsFeature(speclib.fields())
+                    f.setGeometry(g)
                     f.setAttribute(i_field, ba)
                     new_features.append(f)
 
             else:
                 # block profiles without FID -> just append new features
-                for ba in block.profileValueByteArrays():
+                for (fid, b, g) in block.profileValueByteArrays():
                     f = QgsFeature(speclib.fields())
+                    f.setGeometry(g)
                     f.setAttribute(i_field, ba)
                     new_features.append(f)
 
@@ -506,7 +510,7 @@ class SpectralPythonCodeProcessingAlgorithm(QgsProcessingAlgorithm):
                              ):
 
         result, msg = super().checkParameterValues(parameters, context)
-        if not self.parameterDefinition(self.INPUT).checkValueIsAcceptable(parameters[self.INPUT], context):
+        if not self.parameterDefinition(self.INPUT).checkValueIsAcceptable(parameters.get(self.INPUT), context):
             msg += f'Unable to read {self.INPUT}'
 
         code = self.parameterAsString(parameters, self.CODE, context)
@@ -584,7 +588,7 @@ class SpectralPythonCodeProcessingAlgorithm(QgsProcessingAlgorithm):
         else:
             try:
                 result = {'profiledata': kwds_local['profiledata']}
-                for k in ['x', 'x_unit', 'y_unit', 'bbl']:
+                for k in ['x', 'x_unit', 'y_unit', 'bbl', 'geodata']:
                     result[k] = kwds_local.get(k, kwds_global.get(k, None))
                 result_block = SpectralProfileBlock.fromVariantMap(result)
             except Exception as ex:

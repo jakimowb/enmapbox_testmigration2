@@ -194,6 +194,8 @@ def vsiSpeclibs() -> list:
     Returns the URIs pointing on VSIMEM in memory speclibs
     :return: [list-of-str]
     """
+    warnings.warn(
+        DeprecationWarning('SpectralLibrary are not stored in VSI Mem anymore and use the QGIS Memory driver'))
     visSpeclibs = []
 
     entry = gdal.ReadDir(VSI_DIR)
@@ -297,7 +299,7 @@ class SpectralLibrary(QgsVectorLayer):
         :param mimeData: QMimeData
         :return: SpectralLibrary
         """
-        #if MIMEDATA_SPECLIB_LINK in mimeData.formats():
+        # if MIMEDATA_SPECLIB_LINK in mimeData.formats():
         #    # extract from link
         #    sid = pickle.loads(mimeData.data(MIMEDATA_SPECLIB_LINK))
         #    global SPECLIB_CLIPBOARD
@@ -305,7 +307,7 @@ class SpectralLibrary(QgsVectorLayer):
         #    if isinstance(sl, SpectralLibrary) and id(sl) == sid:
         #        return sl
 
-        #if MIMEDATA_SPECLIB in mimeData.formats():
+        # if MIMEDATA_SPECLIB in mimeData.formats():
         #    sl = SpectralLibrary.readFromPickleDump(mimeData.data(MIMEDATA_SPECLIB))
         #    if isinstance(sl, SpectralLibrary) and len(sl) > 0:
         #        return sl
@@ -317,7 +319,7 @@ class SpectralLibrary(QgsVectorLayer):
                 if isinstance(sl, SpectralLibrary) and len(sl) > 0:
                     return sl
 
-        #if MIMEDATA_TEXT in mimeData.formats():
+        # if MIMEDATA_TEXT in mimeData.formats():
         #    txt = mimeData.text()
         #    from ..io.csvdata import CSVSpectralLibraryIO
         #    sl = CSVSpectralLibraryIO.fromString(txt)
@@ -791,12 +793,12 @@ class SpectralLibrary(QgsVectorLayer):
         from .spectrallibraryio import SpectralLibraryIO
         return SpectralLibraryIO.readSpeclibFromUri(uri, feedback=feedback)
 
-
     sigProgressInfo = pyqtSignal(int, int, str)
 
     def __init__(self,
                  path: str = None,
                  baseName: str = DEFAULT_NAME,
+                 provider: str = None,
                  options: QgsVectorLayer.LayerOptions = None,
                  fields: QgsFields = None,
                  profile_fields: typing.List[str] = [FIELD_VALUES],
@@ -820,12 +822,12 @@ class SpectralLibrary(QgsVectorLayer):
             options = QgsVectorLayer.LayerOptions(loadDefaultStyle=True, readExtentFromXml=True)
 
         create_new_speclib = path is None
-        provider = 'ogr'
+
         if create_new_speclib:
             # QGIS In-Memory Layer
             provider = 'memory'
             # path = "point?crs=epsg:4326&field=fid:integer"
-            path = "point?crs=epsg:4326"
+            path = f"point?crs={SPECLIB_EPSG_CODE}"
             # scratchLayer = QgsVectorLayer(uri, "Scratch point layer", "memory")
         assert isinstance(path, str)
         super(SpectralLibrary, self).__init__(path, baseName, provider, options)
@@ -862,6 +864,9 @@ class SpectralLibrary(QgsVectorLayer):
                     field = fields.at(i)
                     self.addAttribute(field)
                 self.endEditCommand()
+
+                # copy editor widget type
+
                 assert self.commitChanges(stopEditing=True)
 
         # self.attributeAdded.connect(self.onAttributeAdded)
@@ -873,7 +878,7 @@ class SpectralLibrary(QgsVectorLayer):
         success = super().addAttribute(field)
         if success:
             i = self.fields().lookupField(field.name())
-            if i > 0:
+            if i > -1:
                 self.setEditorWidgetSetup(i, field.editorWidgetSetup())
         return success
 
@@ -956,7 +961,7 @@ class SpectralLibrary(QgsVectorLayer):
         return []
 
     def addSpectralProfileField(self, name: str, comment: str = None) -> bool:
-        return self.addAttribute(create_profile_field(name, comment)),
+        return self.addAttribute(create_profile_field(name, comment))
 
     def addMissingFields(self, fields: QgsFields, copyEditorWidgetSetup: bool = True):
         """
@@ -1433,7 +1438,7 @@ class SpectralLibrary(QgsVectorLayer):
             if reoder:
                 attributes = [attributes[i] for i in order]
             feature.setAttributes(attributes)
-            feature.setAttribute(FIELD_FID, nextFID)
+            # feature.setAttribute(FIELD_FID, nextFID)
             feature.setGeometry(QgsGeometry.fromWkt(wkt))
             features.append(feature)
         self.addFeatures(features)

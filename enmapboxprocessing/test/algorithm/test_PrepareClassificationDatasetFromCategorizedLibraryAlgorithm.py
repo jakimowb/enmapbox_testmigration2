@@ -27,7 +27,7 @@ class TestPrepareClassificationDatasetFromCategorizedLibrary(TestCase):
         alg = PrepareClassificationDatasetFromCategorizedLibraryAlgorithm()
         parameters = {
             alg.P_CATEGORIZED_LIBRARY: library,
-            alg.P_FIELD: 'values',
+            alg.P_FIELD: 'profiles',
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
         }
         self.runalg(alg, parameters)

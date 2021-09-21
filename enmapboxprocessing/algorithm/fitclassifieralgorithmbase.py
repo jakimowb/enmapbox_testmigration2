@@ -2,11 +2,9 @@ import inspect
 import traceback
 from typing import Dict, Any, List, Tuple
 
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingParameterFile)
+from qgis._core import QgsProcessingContext, QgsProcessingFeedback
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-from enmapboxprocessing.parameter.processingparameterclassificationdatasetwidget import \
-    ProcessingParameterClassificationDatasetWidgetWrapper
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
@@ -40,17 +38,6 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
 
     def group(self):
         return Group.Test.value + Group.Classification.value
-
-    def addParameterClassificationDataset(
-            self, name: str, description: str, defaultValue=None, optional=False, advanced=False
-    ):
-        behavior = QgsProcessingParameterFile.File
-        extension = self.PickleFileExtension
-        param = QgsProcessingParameterFile(name, description, behavior, extension, defaultValue, optional)
-        param.setMetadata({'widget_wrapper': {'class': ProcessingParameterClassificationDatasetWidgetWrapper}})
-        param.setDefaultValue(defaultValue)
-        self.addParameter(param)
-        self.flagParameterAsAdvanced(name, advanced)
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterCode(self.P_CLASSIFIER, self._CLASSIFIER, self.defaultCodeAsString())
@@ -92,7 +79,8 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
 
             if filenameDataset is not None:
                 dump = ClassifierDump(**Utils.pickleLoad(filenameDataset))
-                feedback.pushInfo(f'Load training dataset: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
+                feedback.pushInfo(
+                    f'Load training dataset: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
                 feedback.pushInfo('Fit classifier')
                 classifier.fit(dump.X, dump.y.ravel())
             else:
