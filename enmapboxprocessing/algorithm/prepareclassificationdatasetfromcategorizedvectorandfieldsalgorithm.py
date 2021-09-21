@@ -49,7 +49,7 @@ class PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm(EnMAPP
         self.addParameterVectorLayer(self.P_CATEGORIZED_VECTOR, self._CATEGORIZED_VECTOR)
         self.addParameterField(
             self.P_FEATURE_FIELDS, self._FEATURE_FIELDS, None, self.P_CATEGORIZED_VECTOR,
-            QgsProcessingParameterField.Any, True
+            QgsProcessingParameterField.Numeric, True
         )
         self.addParameterField(
             self.P_CATEGORY_FIELD, self._CATEGORY_FIELD, None, self.P_CATEGORIZED_VECTOR,
@@ -122,13 +122,13 @@ class PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm(EnMAPP
             X = np.array(X, dtype=np.float32)
             X = X.reshape(-1, len(xFields))
         except Exception as error:
-            ValueError(f'invalid feature data: {error}')
+            raise ValueError(f'invalid feature data: {error}')
 
         try:
             y = np.array(y, dtype=np.float32)
             y = y.reshape(-1, 1)
         except Exception as error:
-            ValueError(f'invalid target data: {error}')
+            raise ValueError(f'invalid target data: {error}')
 
         checkSampleShape(X, y, raise_=True)
         return X, y, categories

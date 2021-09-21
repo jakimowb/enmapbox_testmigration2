@@ -304,7 +304,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext, filename: str
     ) -> Tuple[str, CreationOptions]:
         text = self.parameterAsString(parameters, name, context)
-        if text is None:
+        if text is None or text == '':
             extension = splitext(filename)[1].lower()
             defaultCreationProfilesByExtension = {
                 '.tif': self.DefaultGTiffCreationProfile,

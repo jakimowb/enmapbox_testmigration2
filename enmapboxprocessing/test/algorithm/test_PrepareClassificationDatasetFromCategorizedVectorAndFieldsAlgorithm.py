@@ -3,6 +3,7 @@ from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvec
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
+from enmapboxtestdata import landcover_polygons
 from enmapboxunittestdata import classificationDatasetAsVector
 
 writeToDisk = True
@@ -28,4 +29,3 @@ class TestPrepareClassificationDatasetFromVectorAndFieldsAlgorithm(TestCase):
         self.assertListEqual(
             ['impervious', 'low vegetation', 'tree', 'soil', 'water'], [c.name for c in dump.categories]
         )
-
