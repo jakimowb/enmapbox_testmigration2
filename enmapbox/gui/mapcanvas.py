@@ -36,7 +36,6 @@ from enmapbox.gui.docks import Dock, DockLabel
 from enmapbox.gui.mimedata import containsMapLayers, extractMapLayers
 from qgis.PyQt import sip
 
-
 from qgis.core import QgsCoordinateReferenceSystem, QgsRectangle, QgsMapLayerProxyModel, QgsVectorLayerTools, \
     QgsMapLayer, QgsRasterLayer, QgsPointXY, \
     QgsProject, Qgis, QgsMapSettings, QgsMapToPixel
@@ -840,9 +839,6 @@ class MapCanvasMapTools(QObject):
             print('Unknown MapTool key: {}'.format(mapToolKey))
 
 
-
-
-
 class MapCanvas(QgsMapCanvas):
     from weakref import WeakSet
     _instances = WeakSet()
@@ -1163,46 +1159,49 @@ class MapCanvas(QgsMapCanvas):
                 # get the pixel grid cell at canvas center  in canvas coordinates
                 self.mCrosshairItem.isVisible()
                 settings: QgsMapSettings = self.mapSettings()
-                crs: QgsCoordinateReferenceSystem = settings.destinationCrs()
+                canvasCrs: QgsCoordinateReferenceSystem = settings.destinationCrs()
+                layerCrs: QgsCoordinateReferenceSystem = rasterLayer.crs()
 
                 # ptA = SpatialPoint.fromMapCanvasCenter(self)
-                ptA = SpatialPoint(crs, self.mCrosshairItem.mPosition)
-                pxA = spatialPoint2px(rasterLayer, ptA)
-                pxR = QPoint(pxA.x()+1, pxA.y() + 1)
-                ptR = px2spatialPoint(rasterLayer, pxR).toCrs(self.mapSettings().destinationCrs())
+                ptA = SpatialPoint(canvasCrs, self.mCrosshairItem.mPosition).toCrs(layerCrs)
+                if not isinstance(ptA, SpatialPoint):
+                    return
+
+                dx = rasterLayer.rasterUnitsPerPixelX()
+                dy = rasterLayer.rasterUnitsPerPixelY()
+
+                ptB: SpatialPoint = None
+                if e.key() == Qt.Key_Left:
+                    ptB = SpatialPoint(canvasCrs, ptA.x() - dx, ptA.y())
+                elif e.key() == Qt.Key_Right:
+                    ptB = SpatialPoint(canvasCrs, ptA.x() + dx, ptA.y())
+                elif e.key() == Qt.Key_Up:
+                    ptB = SpatialPoint(canvasCrs, ptA.x(), ptA.y() + dy)
+                elif e.key() == Qt.Key_Down:
+                    ptB = SpatialPoint(canvasCrs, ptA.x(), ptA.y() - dy)
+                else:
+                    raise NotImplementedError()
+
+                ptR = ptB.toCrs(canvasCrs)
 
                 if not isinstance(ptR, SpatialPoint):
                     super(MapCanvas, self).keyPressEvent(e)
                     return
 
-                # pixel size in units of the canvas CRS
-                dx = abs(ptA.x() - ptR.x())
-                dy = abs(ptA.y() - ptR.y())
-
-                ptB: QgsPointXY = None
-                if e.key() == Qt.Key_Left:
-                    ptB = QgsPointXY(ptA.x() - dx, ptA.y())
-                elif e.key() == Qt.Key_Right:
-                    ptB = QgsPointXY(ptA.x() + dx, ptA.y())
-                elif e.key() == Qt.Key_Up:
-                    ptB = QgsPointXY(ptA.x(), ptA.y() + dy)
-                elif e.key() == Qt.Key_Down:
-                    ptB = QgsPointXY(ptA.x(), ptA.y() - dy)
-                else:
-                    raise NotImplementedError()
-
                 if isinstance(ptB, QgsPointXY):
                     # self.setCenter(ptB)
-                    self.mCrosshairItem.setPosition(ptB)
+                    self.mCrosshairItem.setPosition(ptR)
                     m2p: QgsMapToPixel = settings.mapToPixel()
-                    localPos = m2p.transform(ptB)
+                    localPos = m2p.transform(ptR)
 
                     # simulate a left-button mouse-click
-                    event = QMouseEvent(QEvent.MouseButtonPress, localPos.toQPointF(), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+                    event = QMouseEvent(QEvent.MouseButtonPress, localPos.toQPointF(), Qt.LeftButton, Qt.LeftButton,
+                                        Qt.NoModifier)
                     self.mousePressEvent(event)
 
                     if is_shift:
-                        event = QMouseEvent(QEvent.MouseButtonRelease, localPos.toQPointF(), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+                        event = QMouseEvent(QEvent.MouseButtonRelease, localPos.toQPointF(), Qt.LeftButton,
+                                            Qt.LeftButton, Qt.NoModifier)
                         self.mouseReleaseEvent(event)
                     return
 
@@ -1299,7 +1298,7 @@ class MapCanvas(QgsMapCanvas):
     def name(self):
         return self.windowTitle()
 
-    def zoomToPixelScale(self, spatialPoint: SpatialPoint = None, layer: QgsRasterLayer=None):
+    def zoomToPixelScale(self, spatialPoint: SpatialPoint = None, layer: QgsRasterLayer = None):
         unitsPxX = []
         unitsPxY = []
 
@@ -1580,4 +1579,3 @@ class MapDock(Dock):
             for mapDockTreeNode in enmapBox.dockManagerTreeModel().mapDockTreeNodes():
                 if mapDockTreeNode.dock is self:
                     mapDockTreeNode.insertLayer(idx=idx, layerSource=layerSource)
-
