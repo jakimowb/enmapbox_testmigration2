@@ -40,11 +40,6 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
             (self._BURN_ATTRIBUTE, 'Numeric vector field to use as burn values.'),
             (self._BURN_FID, 'Whether to use the feature ID as burn values. Initial value is set to -1. '
                              'Data type is set to Int32.'),
-            (self._RESAMPLE_ALG,
-             'If selected, burn at a x10 finer resolution and aggregate values back to target resolution. '
-             'For example, use Mode aggregation for categorical attributes to burn the '
-             'category with highest pixel coverage (i.e. majority voting). '
-             'For continuous attributes use Average to calculate a weighted average.'),
             (self._ALL_TOUCHED, 'Enables the ALL_TOUCHED rasterization option so that all pixels touched by lines or '
                                 'polygons will be updated, not just those on the line render path, or whose center '
                                 'point is within the polygon.'),

@@ -74,7 +74,10 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         if categories is None:
             raise QgsProcessingException('Category colors not specified.')
         if probability.bandCount() != len(categories):
-            raise QgsProcessingException( 'Number of bands not matching number of categories.')
+            raise QgsProcessingException(
+                f'Number of bands ({probability.bandCount()}) '
+                f'not matching number of category colors ({len(categories)})'
+            )
 
         reader = RasterReader(probability)
         driver = Driver(filename, 'GTiff', options=self.DefaultGTiffCreationOptions, feedback=feedback)
