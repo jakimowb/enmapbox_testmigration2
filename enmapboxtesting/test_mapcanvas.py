@@ -78,6 +78,16 @@ class MapCanvasTests(EnMAPBoxTestCase):
 
         mapCanvas.mapTools().activate(MapTools.CursorLocation)
 
+
+        def onLocationSelected():
+            print('Location Selected')
+
+        def onKeyPressed(e: QKeyEvent):
+            print('Key pressed')
+
+        mapCanvas.mapTools().mtCursorLocation.sigLocationRequest.connect(onLocationSelected)
+        mapCanvas.keyPressed.connect(onKeyPressed)
+
         self.showGui(mapCanvas)
 
     def test_canvaslinks(self):
