@@ -237,8 +237,15 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         string = self.parameterAsString(parameters, name, context)
         if string is None:
             return None
+        if string == '':
+            return None
+
         string = string.replace('\n', '')
-        values = eval(string)
+        try:
+            values = eval(string)
+        except:
+            raise QgsProcessingException(f'Invalid value list: {self.parameterDefinition(name).description()}')
+
         if not isinstance(values, (tuple, list)):
             values = [values]
         values = list(values)

@@ -206,11 +206,11 @@ class Raster(object):
             fieldNames = self.SampleFieldNames.bandNames
 
         if mode is self.SampleMode.strict:
-            maskArray = np.full(shape=grid.shape, fill_value=True, dtype=np.bool)
+            maskArray = np.full(shape=grid.shape, fill_value=True, dtype=bool)
             for ma in self.iterMaskArrays(grid=grid, gra=graMask):
                 maskArray = np.logical_and(maskArray, ma)
         elif mode is self.SampleMode.relaxed:
-            maskArray = np.full(shape=grid.shape, fill_value=False, dtype=np.bool)
+            maskArray = np.full(shape=grid.shape, fill_value=False, dtype=bool)
             for ma in self.iterMaskArrays(grid=grid, gra=graMask):
                 maskArray = np.logical_or(maskArray, ma)
         else:

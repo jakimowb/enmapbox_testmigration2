@@ -1,4 +1,5 @@
 import numpy as np
+from qgis._core import QgsProcessingException
 from sklearn.base import ClassifierMixin
 
 from enmapboxprocessing.algorithm.creatergbimagefromclassprobabilityalgorithm import \
@@ -85,3 +86,46 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(16826968, np.sum(RasterReader(result[alg.P_OUTPUT_RGB]).array()))
+
+        # test invalid colors
+        parameters = {
+            alg.P_PROBABILITY: parametersPredict2[algPredict2.P_OUTPUT_PROBABILITY],
+            alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
+        }
+        try:
+            self.runalg(alg, parameters)
+        except QgsProcessingException as error:
+            self.assertEqual('Category colors not specified.', str(error))
+
+        colors = ''
+        parameters = {
+            alg.P_PROBABILITY: parametersPredict2[algPredict2.P_OUTPUT_PROBABILITY],
+            alg.P_COLORS: colors,
+            alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
+        }
+        try:
+            self.runalg(alg, parameters)
+        except QgsProcessingException as error:
+            self.assertEqual('Category colors not specified.', str(error))
+
+        colors = 'dummy'
+        parameters = {
+            alg.P_PROBABILITY: parametersPredict2[algPredict2.P_OUTPUT_PROBABILITY],
+            alg.P_COLORS: colors,
+            alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
+        }
+        try:
+            self.runalg(alg, parameters)
+        except QgsProcessingException as error:
+            self.assertEqual('Invalid value list: Colors', str(error))
+
+        colors = "'#FF0000'"
+        parameters = {
+            alg.P_PROBABILITY: parametersPredict2[algPredict2.P_OUTPUT_PROBABILITY],
+            alg.P_COLORS: colors,
+            alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
+        }
+        try:
+            self.runalg(alg, parameters)
+        except QgsProcessingException as error:
+            self.assertEqual('Number of bands (5) not matching number of category colors (1)', str(error))

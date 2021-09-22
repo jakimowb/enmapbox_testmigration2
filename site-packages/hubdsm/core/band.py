@@ -64,7 +64,7 @@ class Band(object):
         noDataValue = self.gdalBand.noDataValue
         array = self.readAsArray(grid=grid, gra=gra)
         if noDataValue is None:
-            maskArray1 = np.full_like(array, fill_value=True, dtype=np.bool)
+            maskArray1 = np.full_like(array, fill_value=True, dtype=bool)
         elif np.isnan(noDataValue):
             maskArray1 = np.logical_not(np.isnan(array))
         else:
