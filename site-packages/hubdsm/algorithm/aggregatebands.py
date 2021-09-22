@@ -17,7 +17,7 @@ def aggregateBands(
 
     ones = np.reshape(np.array(allOneProfile(raster=raster)), (-1, 1, 1))
     numpyDataType = aggregationFunction(ones, axis=0).dtype
-    if numpyDataType == np.bool:
+    if numpyDataType == bool:
         numpyDataType = np.uint8
     gdalDataType = NumericTypeCodeToGDALTypeCode(numpyDataType)
 

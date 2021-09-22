@@ -251,8 +251,10 @@ class ScatterPlotApp(QMainWindow):
             if self.uiShowMinMaxLine().isChecked():
                 self.minMaxLine.setData([min1, max1], [min2, max2])
 
-            if plotActualData or plotFittedLine:
+            if plotActualData:
                 self.uiImageView().setSidePlotVisible(False)
+
+            if plotActualData or plotFittedLine:
                 self.progressBar().setPercentage(99)
 
                 ds1 = raster1.dataset().translate(grid=grid, bandList=[band1 + 1], filename='/vsimem/scatterplotapp/band1.vrt', driver=VrtDriver())

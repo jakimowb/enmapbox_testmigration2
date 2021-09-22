@@ -667,7 +667,7 @@ class Band(object):
             maskArray = maskArray[0]
         else:
             assert 0
-        return array, maskArray.view(dtype=np.bool8)
+        return array, maskArray.view(dtype=bool)
 
 
 class Operand(object):
@@ -724,7 +724,7 @@ class Operand(object):
         if isinstance(maskArray, list):
             assert isinstance(maskArray[0], np.ndarray), msg
             assert maskArray[0].ndim == 2, msg
-            assert maskArray[0].dtype == np.bool8, 'wrong mask array data type, expected numpy.bool8, check operator: {}'.format(operator)
+            assert maskArray[0].dtype == bool, 'wrong mask array data type, expected bool, check operator: {}'.format(operator)
         elif isinstance(maskArray, np.ndarray):
             assert maskArray.ndim == 3, msg
         else:
@@ -1109,7 +1109,7 @@ class ReduceToBands(ReduceOperator):
         for raster in collection.rasters():
             a, m = raster.arrays(grid=grid)
             array.extend(a)
-            maskArray.extend(np.ndarray.view(m, dtype=np.bool8))
+            maskArray.extend(np.ndarray.view(m, dtype=bool))
         return array, maskArray
 
     def bandName(self, index, collection):
@@ -1518,7 +1518,7 @@ class Raster(Operand):
         marray = list()
         for band in self.bands():
             if band.mask() is None:
-                m = np.full(shape=grid.shape(), fill_value=True, dtype=np.bool8)
+                m = np.full(shape=grid.shape(), fill_value=True, dtype=bool)
             else:
                 m = band.mask().array(grid=grid)
                 assert len(m) == 1
@@ -1766,7 +1766,7 @@ class RasterDataset(object):
 
         bands = len(array)
         dtype = array[0].dtype
-        if dtype == np.bool:
+        if dtype == bool:
             dtype = np.uint8
 
         gdalType = gdal_array.NumericTypeCodeToGDALTypeCode(dtype)

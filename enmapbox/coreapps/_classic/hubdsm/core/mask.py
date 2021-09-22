@@ -26,5 +26,5 @@ class Mask(object):
             array = self.band.readAsMaskArray(grid=grid, gra=gra)
         if self.invert:
             array = np.logical_not(array)
-        assert array.dtype == np.bool
+        assert array.dtype == bool
         return array
