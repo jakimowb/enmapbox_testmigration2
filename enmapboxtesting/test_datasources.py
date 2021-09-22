@@ -193,14 +193,15 @@ class DataSourceTests(EnMAPBoxTestCase):
 
 
 
-
     def test_speclibs(self):
 
         ds = DataSourceFactory.create(library)
         self.assertIsInstance(ds, list)
         self.assertTrue(len(ds) == 1)
         ds = ds[0]
-        self.assertIsInstance(ds, DataSourceSpectralLibrary)
+        self.assertIsInstance(ds, DataSourceVector)
+        self.assertTrue(ds.isSpectralLibrary())
+
 
         import enmapboxtestdata.asd.asd
         from enmapbox import scantree
@@ -536,14 +537,6 @@ class DataSourceTests(EnMAPBoxTestCase):
                     mapCanvas.dropEvent(createDropEvent(mimeData))
                     self.assertTrue(len(mapCanvas.layers()) == 1)
 
-                if isinstance(dNode, SpeclibDataSourceTreeNode):
-                    self.assertIsInstance(dNode.mDataSource, DataSourceSpectralLibrary)
-
-                    # drop speclib to mapcanvas
-                    n = len(mapCanvas.layers())
-                    mapCanvas.dropEvent(createDropEvent(mimeData))
-                    QApplication.processEvents()
-                    self.assertEqual(len(mapCanvas.layers()), n + 1)
 
                 if isinstance(dNode, HubFlowObjectTreeNode):
                     pass

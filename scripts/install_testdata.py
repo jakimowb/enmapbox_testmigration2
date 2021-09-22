@@ -9,6 +9,7 @@ from enmapbox import URL_TESTDATA, URL_QGIS_RESOURCES, DIR_REPO
 
 DIR_REPO = pathlib.Path(DIR_REPO)
 
+
 def install_zipfile(url: str, localPath: pathlib.Path, zip_root: str = None):
     assert isinstance(localPath, pathlib.Path)
     localPath = localPath.resolve()
@@ -39,12 +40,14 @@ def install_zipfile(url: str, localPath: pathlib.Path, zip_root: str = None):
             with open(dst, "wb") as f:
                 f.write(z.read(src))
 
-    #z.extractall(path=localPath, members=to_extract)
+    # z.extractall(path=localPath, members=to_extract)
     del response
+
 
 def install_enmapboxtestdata():
     localpath = DIR_REPO / 'enmapboxtestdata'
     install_zipfile(URL_TESTDATA, localpath, 'enmapboxtestdata')
+
 
 def install_qgisresources():
     localpath = DIR_REPO / 'qgisresources'

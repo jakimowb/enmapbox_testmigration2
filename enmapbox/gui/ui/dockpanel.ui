@@ -129,6 +129,9 @@
       <property name="defaultDropAction">
        <enum>Qt::MoveAction</enum>
       </property>
+      <property name="indentation">
+       <number>12</number>
+      </property>
      </widget>
     </item>
    </layout>
