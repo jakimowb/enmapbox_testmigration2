@@ -196,16 +196,16 @@ class TestEnMAPBox(EnMAPBoxTestCase):
                        enmapboxtestdata.landcover_polygons,
                        enmapboxtestdata.landcover_points,
                        enmapboxtestdata.library,
-                       # re.sub(r'\.sli$', '.gpkg', enmapboxtestdata.library),
+                       re.sub(r'\.sli$', '.gpkg', enmapboxtestdata.library),
                        enmapboxtestdata.enmap_srf_library
                        ]
-            dSources = EMB.addSources(sources)
 
-            mapdock: MapDock = EMB.createDock('MAP')
+            if True:
+                mapdock: MapDock = EMB.createDock('MAP')
+                dSources = EMB.addSources(sources)
+                layers = [ds.createUnregisteredMapLayer() for ds in dSources if isinstance(ds, DataSourceSpatial)]
 
-            layers = [ds.createUnregisteredMapLayer() for ds in dSources if isinstance(ds, DataSourceSpatial)]
-
-            mapdock.addLayers(layers)
+                mapdock.addLayers(layers)
 
         EMB.ui.show()
 
@@ -213,11 +213,12 @@ class TestEnMAPBox(EnMAPBoxTestCase):
             print(f'{i + 1}: {s}')
 
         EMB.dataSourceTreeView().onRemoveAllDataSources()
+        self.assertTrue(len(EMB.dataSources()) == 0)
         # import qgis.utils
         # QgsProject.instance()
         # qgis.utils.iface.actionSaveProject().trigger()
         # qgis.utils.iface.mainWindow()
-        self.showGui([EMB.ui])
+        # self.showGui([EMB.ui])
 
     def test_Qgis(self):
 
