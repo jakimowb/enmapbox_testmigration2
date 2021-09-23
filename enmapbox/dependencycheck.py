@@ -481,7 +481,7 @@ def missingTestData() -> bool:
         return True
 
 
-def installTestData(overwrite_existing=False, ask=True):
+def installTestData(overwrite_existing:bool=False, ask:bool=True):
     """
     Downloads and installs the EnMAP-Box Example Data
     """

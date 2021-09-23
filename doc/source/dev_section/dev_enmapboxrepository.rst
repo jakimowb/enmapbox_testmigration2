@@ -68,6 +68,8 @@ created during the development process. These are:
 ================================ =========================================================================================================
 enmapboxtestdata/                Official EnMAP-Box testdata. Not part of repository code, can be installed calling
                                  ``scripts/install:_testdata.py``.
+enmapboxunittestdata/            Unit test testdata. Not part of repository code, can be installed calling
+                                 ``scripts/install:_testdata.py``.
 qgisresources/                   QGIS resources compiled as python modules.
                                  Read :ref:`here<dev_repo_installation>` for details.
 deploy/                          Builds of the EnMAP-Box plugin.

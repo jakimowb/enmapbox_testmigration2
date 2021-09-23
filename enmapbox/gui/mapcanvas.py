@@ -1127,7 +1127,6 @@ class MapCanvas(QgsMapCanvas):
             if len(speclibs) > 0:
                 m = menu.addMenu('Add Spectral Library')
                 for speclib in speclibs:
-                    assert isinstance(speclib, SpectralLibrary)
                     a = m.addAction(speclib.name())
                     a.setToolTip(speclib.source())
                     a.triggered.connect(lambda *args, slib=speclib: self.setLayers(self.layers() + [slib]))

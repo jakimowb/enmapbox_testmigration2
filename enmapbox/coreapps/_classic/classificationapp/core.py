@@ -11,6 +11,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
+from enmapbox.externals.qps.speclib.core import is_spectral_library
 from _classic.hubdsm.core.color import Color as HubdsmColor
 from _classic.hubdsm.core.gdalraster import GdalRaster
 from _classic.hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
@@ -215,7 +216,7 @@ class ClassificationWorkflowApp(QMainWindow):
                 self.log('Selected layer is not a valid library.')
                 return
 
-            assert isinstance(libraryLayer, SpectralLibrary)
+            assert is_spectral_library(libraryLayer)
 
             if not isinstance(libraryLayer.renderer(), QgsCategorizedSymbolRenderer):
                 self.uiType2Library_.setLayer(None)
