@@ -194,7 +194,7 @@ class ApplierOperator(_classic.hubdc.applier.ApplierOperator):
             aggregateFunction = lambda a: np.all(a, axis=0, keepdims=True)
 
         if mask is None or mask.filename() is None:
-            array = self.full(value=True, bands=1, dtype=np.bool, overlap=overlap)
+            array = self.full(value=True, bands=1, dtype=bool, overlap=overlap)
         elif isinstance(mask, (Mask, Raster)):
 
             if not isinstance(mask, Mask):
@@ -238,7 +238,7 @@ class ApplierOperator(_classic.hubdc.applier.ApplierOperator):
 
     def flowMasksArray(self, masks, aggregateFunction=None, overlap=0):
         name = 'mask'
-        array = self.full(value=True, bands=1, dtype=np.bool, overlap=overlap)
+        array = self.full(value=True, bands=1, dtype=bool, overlap=overlap)
         if masks is None:
             return array
 
@@ -273,7 +273,7 @@ class ApplierOperator(_classic.hubdc.applier.ApplierOperator):
             array = raster.array(overlap=overlap, resampleAlg=gdal.GRA_Average,
                 noDataValue=regression.noDataValue())
 
-            invalid = self.full(value=np.False_, dtype=np.bool)
+            invalid = self.full(value=np.False_, dtype=bool)
             for i, noDataValue in enumerate(regression.noDataValues()):
                 overallCoverageArray = 1. - raster.fractionArray(categories=[noDataValue], overlap=overlap, index=0)
                 invalid += overallCoverageArray <= min(0.9999, regression.minOverallCoverage())
@@ -435,7 +435,7 @@ class ApplierOperator(_classic.hubdc.applier.ApplierOperator):
         if noDataValue is not None:
             mask = array != noDataValue
         else:
-            mask = np.full_like(array, fill_value=np.True_, dtype=np.bool)
+            mask = np.full_like(array, fill_value=np.True_, dtype=bool)
         return mask
 
     def maskFromArray(self, array, noDataValues=None, defaultNoDataValue=None, noDataValueSource=None,
@@ -453,7 +453,7 @@ class ApplierOperator(_classic.hubdc.applier.ApplierOperator):
 
         assert len(array) == len(noDataValues)
 
-        mask = np.full_like(array, fill_value=np.True_, dtype=np.bool)
+        mask = np.full_like(array, fill_value=np.True_, dtype=bool)
 
         for i, band in enumerate(array):
             if noDataValues[i] is not None:
@@ -2774,7 +2774,7 @@ class _MaskFromRaster(ApplierOperator):
     def ufunc(self, raster, initValue, true, false, invert,
             aggregateFunction=None):
         array = self.flowRasterArray('raster', raster=raster)
-        marray = np.full_like(array, fill_value=initValue, dtype=np.bool)
+        marray = np.full_like(array, fill_value=initValue, dtype=bool)
 
         for value in true:
             if isinstance(value, (int, float)):

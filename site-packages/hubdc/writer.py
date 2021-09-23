@@ -33,7 +33,7 @@ class Writer():
     @staticmethod
     def createRaster(outputRasters, filename, bands, dtype, grid, driver, creationOptions):
         assert isinstance(driver, RasterDriver)
-        if dtype == np.bool:
+        if dtype == bool:
             dtype = np.uint8
         outputRasters[filename] = driver.create(grid=grid, bands=bands,
                                                 gdalType=gdal_array.NumericTypeCodeToGDALTypeCode(dtype),

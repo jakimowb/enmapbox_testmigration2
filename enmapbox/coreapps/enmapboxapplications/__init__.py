@@ -232,7 +232,7 @@ class EnMAPBoxScatterPlotApp(EnMAPBoxApplication):
     def menu(self, appMenu):
         appMenu = self.enmapbox.menu('Tools')
         assert isinstance(appMenu, QMenu)
-        a = appMenu.addAction('Scatterplot')
+        a = appMenu.addAction('Scatter plot')
         assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)

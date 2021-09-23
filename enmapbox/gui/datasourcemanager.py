@@ -1088,6 +1088,14 @@ class DataSourceTreeView(TreeView):
                                         )
                                         )
 
+                alg = TranslateRasterAlgorithm()
+                parameters = {alg.P_RASTER: src.uri()}
+                a: QAction = m.addAction('Save as')
+                a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
+                a.triggered.connect(lambda src:
+                    EnMAPBox.instance().showProcessingAlgorithmDialog(alg, parameters, parent=self)
+                )
+
             if isinstance(src, DataSourceVector):
                 if isinstance(src.mapLayer(), QgsVectorLayer):
                     if src.mapLayer().wkbType() != QgsWkbTypes.NoGeometry:

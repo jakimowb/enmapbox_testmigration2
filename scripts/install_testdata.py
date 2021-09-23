@@ -49,6 +49,10 @@ def install_enmapboxtestdata():
     install_zipfile(URL_TESTDATA, localpath, 'enmapboxtestdata')
 
 
+def install_enmapboxunittestdata():
+    localpath = DIR_REPO / 'enmapboxunittestdata'
+    install_zipfile(URL_TESTDATA, localpath, 'enmapboxunittestdata')
+
 def install_qgisresources():
     localpath = DIR_REPO / 'qgisresources'
     install_zipfile(URL_QGIS_RESOURCES, localpath)
@@ -61,6 +65,11 @@ if __name__ == "__main__":
                         default=False,
                         help='Download and install EnMAP-Box testdata',
                         action='store_true')
+    parser.add_argument('-e', '--enmapboxunittestdata',
+                        required=False,
+                        default=False,
+                        help='Download and install EnMAP-Box unittest testdata',
+                        action='store_true')
     parser.add_argument('-q', '--qgisresources',
                         required=False,
                         default=False,
@@ -71,6 +80,9 @@ if __name__ == "__main__":
 
     if args.enmapboxtestdata:
         install_enmapboxtestdata()
+
+    if args.enmapboxtestdata:
+        install_enmapboxunittestdata()
 
     if args.qgisresources:
         install_qgisresources()

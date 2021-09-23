@@ -1213,7 +1213,7 @@ class RasterDataset(object):
 
         bands = len(array)
         dtype = array[0].dtype
-        if dtype == np.bool:
+        if dtype == bool:
             dtype = np.uint8
 
         gdalType = gdal_array.NumericTypeCodeToGDALTypeCode(dtype)
