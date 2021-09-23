@@ -51,7 +51,7 @@ from enmapbox.gui import \
     ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, PyObjectTreeNode, \
     qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, KeepRefs, \
     SpatialExtent, SpatialPoint, fileSizeString, file_search, defaultBands, defaultRasterRenderer, loadUi
-from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB
+from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB, is_spectral_library
 from enmapbox.gui.utils import enmapboxUiPath, dataTypeName
 from enmapbox.gui.mimedata import \
     MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
@@ -59,7 +59,7 @@ from enmapbox.gui.mimedata import \
 from enmapbox.gui.mapcanvas import MapDock
 from enmapbox.gui.datasources import \
     DataSourceFactory, DataSource, DataSourceFile, DataSourceVector, DataSourceRaster, \
-    DataSourceSpatial, DataSourceSpectralLibrary, HubFlowDataSource
+    DataSourceSpatial, HubFlowDataSource
 
 HUBFLOW = True
 HUBFLOW_MAX_VALUES = 1024
@@ -153,7 +153,7 @@ class DataSourceManager(QObject):
                 layers.append(s.mapLayer())
         return layers
 
-    def sources(self, sourceTypes=None) -> list:
+    def sources(self, sourceTypes=None) -> typing.List[DataSource]:
         """
         Returns the managed DataSources
         :param sourceTypes: filter to return specific DataSource types only
@@ -174,23 +174,26 @@ class DataSourceManager(QObject):
                 if isinstance(sourceType, type(DataSource)):
                     filterTypes.add(sourceType)
                 elif sourceType in SOURCE_TYPES:
-                    if sourceType == 'ALL':
-                        return self.mSources[:]
-                    elif sourceType == 'VECTOR':
-                        filterTypes.add(DataSourceVector)
-                        filterTypes.add(DataSourceSpectralLibrary)
-                    elif sourceType == 'SPATIAL':
-                        filterTypes.add(DataSourceVector)
-                        filterTypes.add(DataSourceRaster)
-                        filterTypes.add(DataSourceSpectralLibrary)
-                    elif sourceType == 'RASTER':
-                        filterTypes.add(DataSourceRaster)
-                    elif sourceType == 'MODEL':
-                        filterTypes.add(HubFlowDataSource)
-                    elif sourceType == 'SPECLIB':
-                        filterTypes.add(DataSourceSpectralLibrary)
+                    filterTypes.add(sourceType)
 
-            results = [r for r in self.mSources if type(r) in filterTypes]
+            if 'ALL' in filterTypes:
+                return self.mSources[:]
+
+            results = []
+            for source in self.mSources:
+                if type(source) in filterTypes:
+                    results.append(source)
+                elif isinstance(source, (DataSourceSpatial)) and 'SPATIAL' in filterTypes:
+                    results.append(source)
+                elif isinstance(source, DataSourceVector):
+                    if 'VECTOR' in filterTypes:
+                        results.append(source)
+                    elif source.isSpectralLibrary() and 'SPECLIB' in filterTypes:
+                        results.append(source)
+                elif isinstance(source, DataSourceRaster) and 'RASTER' in filterTypes:
+                    results.append(source)
+                elif isinstance(source, HubFlowDataSource) and 'MODEL' in filterTypes:
+                    results.append(source)
 
         return results
 
@@ -708,14 +711,17 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
             geomType = ['Point', 'Line', 'Polygon', 'Unknown', 'Null'][lyr.geometryType()]
             wkbType = QgsWkbTypes.displayString(int(lyr.wkbType()))
 
-            if re.search('polygon', wkbType, re.I):
-                self.setIcon(QIcon(r':/images/themes/default/mIconPolygonLayer.svg'))
-            elif re.search('line', wkbType, re.I):
-                self.setIcon(QIcon(r':/images/themes/default/mIconLineLayer.svg'))
-            elif re.search('point', wkbType, re.I):
-                self.setIcon(QIcon(r':/images/themes/default/mIconPointLayer.svg'))
-            elif lyr.wkbType() in [QgsWkbTypes.NoGeometry, QgsWkbTypes.Unknown]:
-                self.setIcon(QIcon(r':/enmapbox/gui/ui/icons/mActionOpenTable.svg'))
+            if is_spectral_library(lyr):
+                self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
+            else:
+                if re.search('polygon', wkbType, re.I):
+                    self.setIcon(QIcon(r':/images/themes/default/mIconPolygonLayer.svg'))
+                elif re.search('line', wkbType, re.I):
+                    self.setIcon(QIcon(r':/images/themes/default/mIconLineLayer.svg'))
+                elif re.search('point', wkbType, re.I):
+                    self.setIcon(QIcon(r':/images/themes/default/mIconPointLayer.svg'))
+                elif lyr.wkbType() in [QgsWkbTypes.NoGeometry, QgsWkbTypes.Unknown]:
+                    self.setIcon(QIcon(r':/images/themes/default/mActionOpenTable.svg'))
 
             self.nodeWKBType.setValue(wkbType)
             self.nodeGeomType.setValue(geomType)
@@ -745,6 +751,9 @@ class VectorDataSourceTreeNode(SpatialDataSourceTreeNode):
 
             self.nodeFields.removeAllChildNodes()
             self.nodeFields.appendChildNodes(field_nodes)
+
+    def dataSource(self) -> DataSourceVector:
+        return self.mDataSource
 
 
 class ClassificationNodeLayer(TreeNode):
@@ -895,82 +904,6 @@ class FileDataSourceTreeNode(DataSourceTreeNode):
             a.triggered.connect(lambda *args, p=path: webbrowser.open(path))
 
 
-class SpeclibDataSourceTreeNode(VectorDataSourceTreeNode):
-    def __init__(self, *args, **kwds):
-        super().__init__(*args, **kwds)
-
-        self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
-        self.nodeProfiles = TreeNode('Profiles')
-        # self.nodeProfiles.setIcon(QIcon(r':/qps/ui/icons/profile.svg'))
-        self.appendChildNodes([self.nodeProfiles])
-
-    def speclib(self) -> SpectralLibrary:
-        """
-        Returns the SpectralLibrary
-        :return: SpectralLibrary
-        """
-        if isinstance(self.dataSource(), DataSourceSpectralLibrary):
-            return self.dataSource().speclib()
-        else:
-            return None
-
-    def updateNodes(self, *args):
-
-        super().updateNodes()
-        self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
-        sl: SpectralLibrary = self.speclib()
-        if isinstance(sl, SpectralLibrary):
-            from ..externals.qps.speclib.core import profile_field_list
-            profile_fields = profile_field_list(sl)
-            LUNodes = {n.name(): n for n in self.nodeProfiles.childNodes()}
-            LUFields = {f.name(): f for f in profile_fields}
-
-            to_remove = [node for name, node in LUNodes.items() if name not in LUFields.keys()]
-
-            self.nodeProfiles.removeChildNodes(to_remove)
-
-            LUNodes = {n.name(): n for n in self.nodeProfiles.childNodes()}
-
-            to_add = []
-            n_features = sl.featureCount()
-            n_profiles = 0
-            for field in profile_fields:
-                n = 0
-                name = field.name()
-                for f in sl.getFeatures(f'"{name}" is not NULL'):
-                    n += 1
-                fieldNode = LUNodes.get(field.name(), None)
-                if fieldNode is None:
-                    fieldNode = TreeNode(field.name())
-                    to_add.append(fieldNode)
-                fieldNode.setValue(n)
-                fieldNode.setToolTip(f'{n} profiles on field "{field.name()}"')
-                n_profiles += n
-            self.nodeProfiles.appendChildNodes(to_add)
-            self.nodeProfiles.setValue(n_profiles)
-
-    def connectDataSource(self, dataSource):
-        assert isinstance(dataSource, DataSourceSpectralLibrary)
-        super(SpeclibDataSourceTreeNode, self).connectDataSource(dataSource)
-
-        sl = self.speclib()
-        if isinstance(sl, SpectralLibrary):
-            sl.afterCommitChanges.connect(self.updateNodes)
-            sl.afterRollBack.connect(self.updateNodes)
-            sl.attributeAdded.connect(self.updateNodes)
-            sl.attributeDeleted.connect(self.updateNodes)
-
-    def disconnectDataSource(self):
-        sl = self.speclib()
-        super().disconnectDataSource()
-
-        if isinstance(sl, SpectralLibrary):
-            sl.afterCommitChanges.disconnect(self.updateNodes)
-            sl.afterRollBack.disconnect(self.updateNodes)
-            sl.attributeAdded.disconnect(self.updateNodes)
-            sl.attributeDeleted.disconnect(self.updateNodes)
-
-
 class HubFlowPyObjectTreeNode(PyObjectTreeNode):
 
     def __init__(self, *args, **kwds):
@@ -1042,7 +975,6 @@ class DataSourceTreeView(TreeView):
         assert isinstance(event, QContextMenuEvent)
 
         col = idx.column()
-
 
         selectedNodes = self.selectedNodes()
         node = self.selectedNode()
@@ -1151,12 +1083,10 @@ class DataSourceTreeView(TreeView):
                     a.setIcon(QIcon(':/images/themes/default/processingAlgorithm.svg'))
                     a.setToolTip('Show Raster math algorithm dialog.')
                     a.triggered.connect(lambda src:
-                        EnMAPBox.instance().showProcessingAlgorithmDialog(
-                            alg, parameters, parent=self
-                        )
-                    )
-
-
+                                        EnMAPBox.instance().showProcessingAlgorithmDialog(
+                                            alg, parameters, parent=self
+                                        )
+                                        )
 
             if isinstance(src, DataSourceVector):
                 if isinstance(src.mapLayer(), QgsVectorLayer):
@@ -1175,8 +1105,12 @@ class DataSourceTreeView(TreeView):
                         else:
                             sub.setEnabled(False)
 
+                    if src.isSpectralLibrary():
+                        a = m.addAction('Open Spectral Library Viewer')
+                        a.triggered.connect(lambda *args, s=src: self.openInSpeclibEditor(src.createUnregisteredMapLayer()))
+
                     a = m.addAction('Open Attribute Table')
-                    a.triggered.connect(lambda *args, s=src.mapLayer(): self.openInAttributeEditor(s))
+                    a.triggered.connect(lambda *args, s=src: self.openInAttributeEditor(s.mapLayer()))
 
                     a = m.addAction('Open in QGIS')
                     if isinstance(qgis.utils.iface, QgisInterface):
@@ -1184,10 +1118,6 @@ class DataSourceTreeView(TreeView):
                                             self.openInMap(s, QgsProject.instance()))
                     else:
                         a.setEnabled(False)
-
-            if isinstance(src, DataSourceSpectralLibrary):
-                a = m.addAction('Open Editor')
-                a.triggered.connect(lambda *args, s=src: self.openInSpeclibEditor(s.speclib()))
 
             if isinstance(src, DataSourceFile):
                 s = ""
@@ -1335,7 +1265,7 @@ class DataSourcePanelUI(QgsDockWidget):
 
         self.initActions()
 
-    def setFilter(self, pattern:str):
+    def setFilter(self, pattern: str):
         self.mDataSourceProxyModel.setFilterWildcard(pattern)
 
     def onSyncToQGIS(self, *args):
@@ -1403,10 +1333,6 @@ LUT_DATASOURCTYPES[DataSourceRaster] = \
     ('Raster Data',
      QIcon(':/images/themes/default/mIconRaster.svg'),
      'Raster data sources')
-LUT_DATASOURCTYPES[DataSourceSpectralLibrary] = \
-    ('Spectral Libraries',
-     QIcon(':/qps/ui/icons/speclib.svg'),
-     'Spectral Libraries')
 LUT_DATASOURCTYPES[DataSourceVector] = \
     ('Vector Data',
      QIcon(':/images/themes/default/mIconVector.svg'),
@@ -1538,13 +1464,14 @@ class DataSourceManagerTreeModel(TreeModel):
                 uriList.append(dataSource.uri())
                 uuidList.append(dataSource.uuid())
 
-                if isinstance(dataSource, DataSourceSpectralLibrary):
-                    from ..externals.qps.speclib.core import MIMEDATA_TEXT, MIMEDATA_SPECLIB, MIMEDATA_URL, \
-                        MIMEDATA_SPECLIB_LINK
-                    mimeDataSpeclib = dataSource.speclib().mimeData(formats=[MIMEDATA_SPECLIB_LINK])
-                    for f in mimeDataSpeclib.formats():
-                        if f not in mimeData.formats():
-                            mimeData.setData(f, mimeDataSpeclib.data(f))
+                if False:
+                    if isinstance(dataSource, DataSourceSpectralLibrary):
+                        from ..externals.qps.speclib.core import MIMEDATA_TEXT, MIMEDATA_SPECLIB, MIMEDATA_URL, \
+                            MIMEDATA_SPECLIB_LINK
+                        mimeDataSpeclib = dataSource.speclib().mimeData(formats=[MIMEDATA_SPECLIB_LINK])
+                        for f in mimeDataSpeclib.formats():
+                            if f not in mimeData.formats():
+                                mimeData.setData(f, mimeDataSpeclib.data(f))
 
         if len(uuidList) > 0:
             mimeData.setData(MDF_DATASOURCETREEMODELDATA, pickle.dumps(uuidList))
@@ -1661,9 +1588,15 @@ class DataSourceManagerTreeModel(TreeModel):
             a = menu.addAction('Show report')
             a.triggered.connect(lambda: self.onShowModelReport(node.dataSource))
 
-        if isinstance(node, SpeclibDataSourceTreeNode):
+        if isinstance(node, VectorDataSourceTreeNode):
             a = menu.addAction('Open')
-            a.triggered.connect(lambda: self.onOpenSpeclib(node.speclib()))
+            dataSource: DataSourceVector = node.dataSource()
+            if isinstance(dataSource, DataSourceVector):
+                if dataSource.isSpectralLibrary():
+                    a.triggered.connect(lambda ds=dataSource: self.onOpenSpeclib(ds.createUnregisteredMapLayer()))
+                else:
+                    a.triggered.connect(lambda ds=dataSource: self.onOpenVectorLayer(ds.createUnregisteredMapLayer()))
+
         # append node-defined context menu
         menu2 = node.contextMenu()
 
@@ -1682,6 +1615,10 @@ class DataSourceManagerTreeModel(TreeModel):
         from enmapbox.gui.enmapboxgui import EnMAPBox
         EnMAPBox.instance().dockManager().createDock('SPECLIB', speclib=speclib)
 
+    def onOpenVectorLayer(self, layer: QgsVectorLayer):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        EnMAPBox.instance().dockManager().createDock('MAP', layer)
+
     def onShowModelReport(self, model):
         assert isinstance(model, HubFlowDataSource)
         pfType = model.pfType
@@ -1699,6 +1636,7 @@ class DataSourceManagerProxyModel(QSortFilterProxyModel):
         self.setRecursiveFilteringEnabled(True)
         self.setFilterCaseSensitivity(Qt.CaseInsensitive)
 
+
 def createNodeFromDataSource(dataSource: DataSource, parent: TreeNode = None) -> DataSourceTreeNode:
     """
     Generates a DataSourceTreeNode
@@ -1715,8 +1653,6 @@ def createNodeFromDataSource(dataSource: DataSource, parent: TreeNode = None) ->
         node = HubFlowObjectTreeNode()
     elif isinstance(dataSource, DataSourceRaster):
         node = RasterDataSourceTreeNode()
-    elif isinstance(dataSource, DataSourceSpectralLibrary):
-        node = SpeclibDataSourceTreeNode()
     elif isinstance(dataSource, DataSourceVector):
         node = VectorDataSourceTreeNode()
     elif isinstance(dataSource, DataSourceFile):

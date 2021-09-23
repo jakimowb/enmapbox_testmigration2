@@ -22,6 +22,9 @@
 import os
 import typing
 import pathlib
+
+from qgis._core import QgsVectorLayer
+
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
@@ -85,8 +88,8 @@ class SpecMixApp(EnMAPBoxApplication):
     def startGUI(self):
         from specmixapp.specmix import SpecMixWidget
         w = SpecMixWidget()
-        self.enmapbox.sigSpectralLibraryAdded[SpectralLibrary].connect(w.addSpectralLibraries)
-        self.enmapbox.sigSpectralLibraryRemoved[SpectralLibrary].connect(w.removeSpectralLibraries)
+        self.enmapbox.sigSpectralLibraryAdded[QgsVectorLayer].connect(w.addSpectralLibraries)
+        self.enmapbox.sigSpectralLibraryRemoved[QgsVectorLayer].connect(w.removeSpectralLibraries)
 
         existing: typing.List[SpectralLibrary] = list()
         for dw in self.enmapbox.docks(SpectralLibraryDock):
