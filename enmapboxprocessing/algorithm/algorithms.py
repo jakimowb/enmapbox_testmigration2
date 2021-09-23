@@ -19,7 +19,8 @@ from enmapboxprocessing.algorithm.fitgenericclassifieralgorithm import FitGeneri
 from enmapboxprocessing.algorithm.fitlinearsvcalgorithm import FitLinearSvcAlgorithm
 from enmapboxprocessing.algorithm.fitlogisticregressionralgorithm import FitLogisticRegressionAlgorithm
 from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
-from enmapboxprocessing.algorithm.fitsvcalgorithm import FitSvcAlgorithm
+from enmapboxprocessing.algorithm.fitsvcrbfalgorithm import FitSvcRbfAlgorithm
+from enmapboxprocessing.algorithm.fitsvcpolyalgorithm import FitSvcPolyAlgorithm
 from enmapboxprocessing.algorithm.geolocaterasteralgorithm import GeolocateRasterAlgorithm
 from enmapboxprocessing.algorithm.importdesisl1balgorithm import ImportDesisL1BAlgorithm
 from enmapboxprocessing.algorithm.importdesisl1calgorithm import ImportDesisL1CAlgorithm
@@ -147,7 +148,8 @@ def algorithms():
         FitLinearSvcAlgorithm(),
         FitLogisticRegressionAlgorithm(),
         FitRandomForestClassifierAlgorithm(),
-        FitSvcAlgorithm(),
+        FitSvcRbfAlgorithm(),
+        FitSvcPolyAlgorithm(),
         FeatureClusteringHierarchicalAlgorithm(),
         GeolocateRasterAlgorithm(),
         ImportDesisL1BAlgorithm(),
