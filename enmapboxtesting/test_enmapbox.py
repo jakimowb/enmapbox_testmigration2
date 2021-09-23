@@ -201,12 +201,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
                        enmapboxtestdata.enmap_srf_library
                        ]
 
-            if True:
-                mapdock: MapDock = EMB.createDock('MAP')
-                dSources = EMB.addSources(sources)
-                layers = [ds.createUnregisteredMapLayer() for ds in dSources if isinstance(ds, DataSourceSpatial)]
-
-                mapdock.addLayers(layers)
+            dSources = EMB.addSources(sources)
 
         EMB.ui.show()
 
