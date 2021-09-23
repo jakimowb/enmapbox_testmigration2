@@ -77,11 +77,15 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
             self.checkParameterRasterClassification(parameters, self.P_CLASSIFICATION, context),
             self.checkParameterMapClassification(parameters, self.P_REFERENCE, context),
             self.checkParameterRasterClassification(parameters, self.P_STRATIFICATION, context),
-            self.checkCategories(parameters, context)
         ]
         for valid, message in checks:
             if not valid:
                 return valid, message
+
+        valid, message = self.checkCategories(parameters, context)
+        if not valid:
+            return valid, message
+
         return True, ''
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):

@@ -17,13 +17,13 @@
 ***************************************************************************
 """
 
+import collections
 import inspect
-import pickle
 import os
-import typing
+import pickle
 import re
 import sys
-import collections
+import typing
 import uuid
 import webbrowser
 from os.path import splitext
@@ -31,10 +31,26 @@ from os.path import splitext
 import numpy as np
 from PyQt5.QtCore import Qt, QMimeData, QModelIndex, QSize, QUrl, QObject, QSortFilterProxyModel
 from PyQt5.QtGui import QIcon, QContextMenuEvent, QPixmap
-from PyQt5.QtWidgets import QAbstractItemView, QDockWidget, QStyle, QAction, QTreeView, QFileDialog, QDialog
+from PyQt5.QtWidgets import QAbstractItemView, QStyle, QAction, QTreeView, QFileDialog, QDialog
 
+import qgis.utils
+from enmapbox import DIR_TESTDATA, messageLog
+from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB, is_spectral_library
 from enmapbox.externals.qps.utils import bandClosestToWavelength
+from enmapbox.gui import \
+    ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, PyObjectTreeNode, \
+    qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, SpatialExtent, fileSizeString, defaultBands, \
+    defaultRasterRenderer, loadUi
+from enmapbox.gui.datasources import \
+    DataSourceFactory, DataSource, DataSourceFile, DataSourceVector, DataSourceRaster, \
+    DataSourceSpatial, HubFlowDataSource
+from enmapbox.gui.mapcanvas import MapDock
+from enmapbox.gui.mimedata import \
+    MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
+    QGIS_URILIST_MIMETYPE, MDF_URILIST, extractMapLayers
+from enmapbox.gui.utils import enmapboxUiPath, dataTypeName
 from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
+from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.utils import Utils
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import *
@@ -45,21 +61,6 @@ from qgis.core import \
     QgsLayerTreeGroup, QgsLayerTreeLayer, QgsRasterDataProvider, Qgis, QgsField, QgsFieldModel
 from qgis.gui import \
     QgisInterface, QgsMapCanvas, QgsDockWidget
-import qgis.utils
-from enmapbox import DIR_TESTDATA, messageLog
-from enmapbox.gui import \
-    ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, PyObjectTreeNode, \
-    qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, KeepRefs, \
-    SpatialExtent, SpatialPoint, fileSizeString, file_search, defaultBands, defaultRasterRenderer, loadUi
-from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB, is_spectral_library
-from enmapbox.gui.utils import enmapboxUiPath, dataTypeName
-from enmapbox.gui.mimedata import \
-    MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
-    QGIS_URILIST_MIMETYPE, MDF_URILIST, extractMapLayers
-from enmapbox.gui.mapcanvas import MapDock
-from enmapbox.gui.datasources import \
-    DataSourceFactory, DataSource, DataSourceFile, DataSourceVector, DataSourceRaster, \
-    DataSourceSpatial, HubFlowDataSource
 
 HUBFLOW = True
 HUBFLOW_MAX_VALUES = 1024
@@ -1065,35 +1066,12 @@ class DataSourceTreeView(TreeView):
                     sub.setEnabled(False)
 
                 # AR: add some useful processing algo shortcuts
-                if False:  # having RasterMath in the context menu is not really necessary any more -> lets dicuss with SL+BJ
-                    alg = RasterMathAlgorithm()
-                    inputs = list()
-                    for node in selectedNodes:
-                        if isinstance(node, RasterDataSourceTreeNode):
-                            inputs.append((node.dataSource().name(), node.dataSource().uri()))
-                    code = list()
-                    for i, (name, uri) in enumerate(inputs):
-                        identifier = Utils.makeIdentifier(splitext(name)[0])
-                        code.append(f'{identifier} = INPUTS[{i}]  # {name} ({uri})')
-                    parameters = {
-                        alg.P_INPUTS: [uri for name, uri in inputs],
-                        alg.P_CODE: '\n'.join(code),
-                    }
-                    a: QAction = m.addAction('Raster math')
-                    a.setIcon(QIcon(':/images/themes/default/processingAlgorithm.svg'))
-                    a.setToolTip('Show Raster math algorithm dialog.')
-                    a.triggered.connect(lambda src:
-                                        EnMAPBox.instance().showProcessingAlgorithmDialog(
-                                            alg, parameters, parent=self
-                                        )
-                                        )
-
                 alg = TranslateRasterAlgorithm()
                 parameters = {alg.P_RASTER: src.uri()}
                 a: QAction = m.addAction('Save as')
                 a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
-                a.triggered.connect(lambda src:
-                    EnMAPBox.instance().showProcessingAlgorithmDialog(alg, parameters, parent=self)
+                a.triggered.connect(
+                    lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(alg, parameters, parent=self)
                 )
 
             if isinstance(src, DataSourceVector):
@@ -1115,7 +1093,8 @@ class DataSourceTreeView(TreeView):
 
                     if src.isSpectralLibrary():
                         a = m.addAction('Open Spectral Library Viewer')
-                        a.triggered.connect(lambda *args, s=src: self.openInSpeclibEditor(src.createUnregisteredMapLayer()))
+                        a.triggered.connect(
+                            lambda *args, s=src: self.openInSpeclibEditor(src.createUnregisteredMapLayer()))
 
                     a = m.addAction('Open Attribute Table')
                     a.triggered.connect(lambda *args, s=src: self.openInAttributeEditor(s.mapLayer()))
@@ -1474,8 +1453,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
                 if False:
                     if isinstance(dataSource, DataSourceSpectralLibrary):
-                        from ..externals.qps.speclib.core import MIMEDATA_TEXT, MIMEDATA_SPECLIB, MIMEDATA_URL, \
-                            MIMEDATA_SPECLIB_LINK
+                        from ..externals.qps.speclib.core import MIMEDATA_SPECLIB_LINK
                         mimeDataSpeclib = dataSource.speclib().mimeData(formats=[MIMEDATA_SPECLIB_LINK])
                         for f in mimeDataSpeclib.formats():
                             if f not in mimeData.formats():
