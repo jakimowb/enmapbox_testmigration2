@@ -475,7 +475,7 @@ class DataSourceManager(QObject):
             self.mSources.remove(ds)
 
             self.sigDataSourceRemoved.emit(ds)
-            return dataSource
+            return ds
         else:
             return None
 
