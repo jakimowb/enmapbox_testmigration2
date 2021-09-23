@@ -202,7 +202,6 @@ class DataSourceTests(EnMAPBoxTestCase):
         self.assertIsInstance(ds, DataSourceVector)
         self.assertTrue(ds.isSpectralLibrary())
 
-
         import enmapboxtestdata.asd.asd
         from enmapbox import scantree
         from enmapbox.externals.qps.speclib.io.asd import ASDSpectralLibraryIO
@@ -221,7 +220,7 @@ class DataSourceTests(EnMAPBoxTestCase):
 
             self.assertIsInstance(ds, list)
             self.assertTrue(len(ds) > 0, msg='not datasource returned for {}'.format(file))
-            self.assertIsInstance(ds[0], DataSourceSpectralLibrary)
+
 
     def test_layerSourceUpdate(self):
 

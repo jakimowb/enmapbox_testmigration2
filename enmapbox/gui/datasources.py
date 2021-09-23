@@ -365,6 +365,8 @@ class DataSourceSpatial(DataSource):
                         name = 'WFS:{}'.format(layer.name())
                 elif layer.providerType() == 'wms':
                     name = 'WMS:{}'.format(layer.name())
+                elif layer.name() != '':
+                    name = layer.name()
                 else:
                     name = os.path.basename(uri)
             providerKey = layer.dataProvider().name()
@@ -385,6 +387,12 @@ class DataSourceSpatial(DataSource):
 
     def mapLayer(self) -> QgsMapLayer:
         return self.mLayer
+
+    def setMapLayer(self, layer: QgsMapLayer):
+        assert isinstance(layer, QgsMapLayer)
+
+        self.mLayer = layer
+        self.mLayerId = layer.id()
 
     def setName(self, name: str):
         super().setName(name)
@@ -462,9 +470,9 @@ class DataSourceRaster(DataSourceSpatial):
             layer = self.createUnregisteredMapLayer()
         assert isinstance(layer, QgsRasterLayer)
         assert layer.isValid()
+
+        self.setMapLayer(layer)
         self.mLayer: QgsRasterLayer = layer
-        self.mLayerId = self.mLayer.id()
-        self.mLayer.setCustomProperty('ENMAPBOX_DATASOURCE', True)
 
         # self.mDataType = -1
         # self.mPxSize = QSizeF()
@@ -679,8 +687,7 @@ class DataSourceVector(DataSourceSpatial):
             layer = self.createUnregisteredMapLayer()
         assert isinstance(layer, QgsVectorLayer)
 
-        self.mLayer = layer
-        self.mLayerId = self.mLayer.id()
+        self.setMapLayer(layer)
         self.updateMetadata()
 
     def geometryType(self) -> QgsWkbTypes:
