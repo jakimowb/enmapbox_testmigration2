@@ -160,6 +160,16 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         if layer is None:
             return None
 
+        # convert temporary scratch layer to OGR layer
+        if layer.dataProvider().name() == 'memory':
+            renderer = layer.renderer().clone()
+            parameters = {'INPUT': layer, 'OUTPUT': 'TEMPORARY_OUTPUT'}
+            feedback = None
+            result = self.runAlg('native:savefeatures', parameters, None, feedback, context, True)
+            layer = QgsVectorLayer(result['OUTPUT'], layer.name())
+            layer.setRenderer(renderer)
+            layer.saveDefaultStyle()
+
         # if layer is given by URI string or renderer is undefined, we need to manually load the default style
         if isinstance(parameters.get(name), str) or layer.renderer() is None:
             layer.loadDefaultStyle()
