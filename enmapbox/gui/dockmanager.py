@@ -26,6 +26,7 @@ import time
 from qgis._core import Qgis
 from qgis._gui import QgsLayerTreeProxyModel
 
+from enmapbox.externals.qps.speclib.core import is_spectral_library, profile_field_list
 from processing import Processing
 from qgis.PyQt.QtWidgets import QWidget, QHeaderView, QMenu, QAbstractItemView, QApplication
 from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
@@ -304,7 +305,7 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.speclibNode = QgsLayerTreeLayer(self.speclib())
         self.addChildNode(self.speclibNode)
         speclib = self.speclib()
-        if isinstance(speclib, SpectralLibrary):
+        if is_spectral_library(speclib):
             speclib.committedFeaturesAdded.connect(self.updateNodes)
             speclib.committedFeaturesRemoved.connect(self.updateNodes)
             self.updateNodes()
@@ -319,14 +320,15 @@ class SpeclibDockTreeNode(DockTreeNode):
 
         if isinstance(self.mSpeclibWidget, SpectralLibraryWidget):
             sl: SpectralLibrary = self.mSpeclibWidget.speclib()
-            if isinstance(sl, SpectralLibrary):
+            if is_spectral_library(sl):
                 # self.profilesNode.setValue(len(speclib))
 
                 NODES = {}
                 PROFILES = dict()
                 n_total = 0
                 tt = []
-                for field in sl.spectralProfileFields():
+
+                for field in profile_field_list(sl):
                     n = 0
                     for f in sl.getFeatures(f'"{field.name()}" is not NULL'):
                         if f.id() >= 0:
@@ -1309,7 +1311,7 @@ class DockManager(QObject):
                 NEW_DOCK = self.createDock('SPECLIB')
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
                 sl = NEW_DOCK.speclib()
-                assert isinstance(sl, SpectralLibrary)
+                assert is_spectral_library(sl)
                 sl.startEditing()
                 for speclib in speclibs:
                     NEW_DOCK.speclib().addSpeclib(speclib, addMissingFields=True)
@@ -1432,7 +1434,7 @@ class DockManager(QObject):
 
         elif cls == SpectralLibraryDock:
             speclib = kwds.get('speclib')
-            if isinstance(speclib, SpectralLibrary):
+            if is_spectral_library(speclib):
                 kwds['name'] = speclib.name()
             dock = SpectralLibraryDock(*args, **kwds)
             dock.speclib().willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))

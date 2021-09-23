@@ -54,12 +54,10 @@ class testDataSources(EnMAPBoxTestCase):
         self.assertTrue(len(signalArgs) == 3)
         self.assertIsInstance(signalArgs[0], DataSourceRaster)
         self.assertIsInstance(signalArgs[1], DataSourceVector)
-        self.assertIsInstance(signalArgs[2], DataSourceSpectralLibrary)
 
         types = DSM.sourceTypes()
         self.assertTrue(DataSourceRaster in types)
         self.assertTrue(DataSourceVector in types)
-        self.assertTrue(DataSourceSpectralLibrary in types)
 
         sources = DSM.sources(sourceTypes=[DataSourceRaster])
         self.assertTrue(len(sources) == 1)

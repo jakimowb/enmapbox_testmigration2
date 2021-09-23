@@ -43,13 +43,14 @@ class TestEnMAPBoxApplications(EnMAPBoxTestCase):
     def test_UiLibrary(self):
         # Addresses https://bitbucket.org/hu-geomatics/enmap-box/issues/310/attributeerror-function-object-has-no
 
-        enmapBox = EnMAPBox.instance()
+        enmapBox = EnMAPBox(load_core_apps=True, load_other_apps=False)
+        enmapBox.loadExampleData()
         self.assertIsInstance(enmapBox, EnMAPBox)
 
         # how to get SPECLIBs listed in the EnMAP-Box
         # a) get the URI
         speclibUris = enmapBox.dataSources('SPECLIB')
-        # b) get the DataSourceSpectralLibrary instances
+
         speclibDataSources = enmapBox.dataSourceManager().sources('SPECLIB')
 
         self.assertTrue(len(speclibUris) > 0)

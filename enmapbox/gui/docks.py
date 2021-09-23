@@ -791,10 +791,10 @@ class SpectralLibraryDock(Dock):
     """
     sigLoadFromMapRequest = pyqtSignal()
 
-    def __init__(self, *args, speclib: SpectralLibrary = None, **kwds):
+    def __init__(self, *args, speclib: QgsVectorLayer = None, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
-        if not isinstance(speclib, SpectralLibrary):
+        if not is_spectral_library(speclib):
             speclib = SpectralLibrary()
 
         self.mSpeclibWidget: SpectralLibraryWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
@@ -802,7 +802,7 @@ class SpectralLibraryDock(Dock):
         self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.mSpeclibWidget)
 
-        assert isinstance(speclib, SpectralLibrary)
+        assert is_spectral_library(speclib)
         name = kwds.get('name')
         if isinstance(name, str):
             speclib.setName(name)
