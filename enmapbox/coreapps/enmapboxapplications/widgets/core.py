@@ -3,7 +3,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapbox.gui.datasources import DataSourceSpectralLibrary
+from enmapbox.gui.datasources import DataSourceVector
 from hubflow.core import *
 
 pathUi = join(dirname(__file__), 'ui')
@@ -30,7 +30,7 @@ class UiLibrary(QComboBox):
 
         # add all speclibs
         for source in self.enmapBox.dataSourceManager().mSources:
-            if isinstance(source, DataSourceSpectralLibrary):
+            if isinstance(source, DataSourceVector) and source.isSpectralLibrary():
                 if source.mUri not in self.filenames:
                     self.names.append(source.mName)
                     self.filenames.append(source.mUri)

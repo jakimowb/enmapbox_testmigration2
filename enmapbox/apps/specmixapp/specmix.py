@@ -2,14 +2,18 @@ import typing
 import math
 import collections
 import enum
+
+from qgis._core import QgsVectorLayer
+
+from enmapbox.externals.qps.speclib.core import is_spectral_library
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.core import QgsField
-from enmapbox.externals.qps.speclib.core import SpectralLibrary, SpectralProfile
-from enmapbox.externals.qps.speclib.gui import SpectralLibraryPlotWidget, SpectralProfilePlotDataItem
+from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
+from enmapbox.externals.qps.speclib.core.spectralprofile import SpectralProfile
+from enmapbox.externals.qps.speclib.gui.spectrallibraryplotwidget import SpectralLibraryPlotWidget, SpectralProfilePlotDataItem
 from enmapbox.externals.qps.utils import loadUi
-from enmapbox.gui.spectralprofilesources import SpectralProfileDstListModel
 from enmapbox.externals.qps.plotstyling.plotstyling import PlotStyle, PlotStyleButton
 import numpy as np
 from . import APP_DIR, APP_NAME
@@ -38,7 +42,7 @@ class SpectralLibraryListModel(QAbstractListModel):
         if not isinstance(speclibs, list):
             speclibs = [speclibs]
 
-        speclibs = [s for s in speclibs if isinstance(s, SpectralLibrary) and s not in self.mSpectralLibraries]
+        speclibs = [s for s in speclibs if is_spectral_library(s) and s not in self.mSpectralLibraries]
         if len(speclibs) > 0:
             if i is None:
                 i = len(self)
@@ -51,7 +55,7 @@ class SpectralLibraryListModel(QAbstractListModel):
     def removeSpectralLibraries(self, speclibs: typing.List[SpectralLibrary]):
         if not isinstance(speclibs, list):
             speclibs = [speclibs]
-        speclibs = [s for s in speclibs if isinstance(s, SpectralLibrary) and s in self.mSpectralLibraries]
+        speclibs = [s for s in speclibs if is_spectral_library(s) and s in self.mSpectralLibraries]
 
         for s in speclibs:
             i = self.mSpectralLibraries.index(s)
@@ -59,8 +63,9 @@ class SpectralLibraryListModel(QAbstractListModel):
             self.mSpectralLibraries.pop(i)
             self.endRemoveRows()
 
-    def speclib2idx(self, speclib:SpectralLibrary) -> QModelIndex:
-        assert isinstance(speclib, SpectralLibrary)
+    def speclib2idx(self, speclib:QgsVectorLayer) -> QModelIndex:
+
+        assert is_spectral_library(speclib)
         assert speclib in self.mSpectralLibraries
         i = self.mSpectralLibraries.index(speclib)
         return self.createIndex(i, 0, speclib)
@@ -88,7 +93,7 @@ class SpectralLibraryListModel(QAbstractListModel):
             return None
 
         speclib = self.mSpectralLibraries[index.row()]
-        assert isinstance(speclib, SpectralLibrary)
+        assert is_spectral_library(speclib)
         if role == Qt.DisplayRole:
             return speclib.name()
         if role == Qt.ToolTipRole:
@@ -694,7 +699,7 @@ class SpecMixWidget(QWidget):
 
     def addSelectedSourceProfiles(self, *args):
         speclib = self.selectedSpeclib()
-        if isinstance(speclib, SpectralLibrary):
+        if is_spectral_library(speclib):
             profiles = list(speclib.profiles(speclib.selectedFeatureIds()))
             self.mParameterModel.addProfiles(profiles)
 
@@ -717,14 +722,14 @@ class SpecMixWidget(QWidget):
         if self.manualHandling() == False:
             self.mParameterModel.clear()
 
-        if isinstance(lastSpeclib, SpectralLibrary):
+        if is_spectral_library(lastSpeclib):
             # unregister signals
             try:
                 lastSpeclib.selectionChanged.disconnect(self.onSourceSpeclibSelectionChanged)
             finally:
                 self.m_profile_source_library = None
 
-        if isinstance(speclib, SpectralLibrary):
+        if is_spectral_library(speclib):
             # register signals
             speclib.selectionChanged.connect(self.onSourceSpeclibSelectionChanged)
             self.m_profile_source_library = speclib
@@ -741,7 +746,7 @@ class SpecMixWidget(QWidget):
     def syncWithSelectedSourceProfiles(self):
 
         speclib = self.selectedSpeclib()
-        if isinstance(speclib, SpectralLibrary):
+        if is_spectral_library(speclib, SpectralLibrary):
             requiredFIDs = speclib.selectedFeatureIds()
             ofids = self.mParameterModel.originalFeatureIds()
 
@@ -786,7 +791,7 @@ class SpecMixWidget(QWidget):
 
         info = ''
 
-        if isinstance(self.selectedSpeclib(), SpectralLibrary):
+        if is_spectral_library(self.selectedSpeclib()):
             self.cbSyncWithSelection.setEnabled(True)
             is_manual = self.manualHandling()
 

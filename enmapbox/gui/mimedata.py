@@ -21,8 +21,9 @@ from PyQt5.QtXml import *
 from enmapbox import debugLog
 from enmapbox.gui import SpectralLibrary
 from enmapbox.gui.datasources import DataSource, DataSourceSpatial
-from enmapbox.gui.datasources import DataSourceFactory, DataSourceSpectralLibrary
+from enmapbox.gui.datasources import DataSourceFactory
 from ..externals.qps.layerproperties import defaultRasterRenderer
+from ..externals.qps.speclib.core import is_spectral_library
 
 MDF_RASTERBANDS = 'application/enmapbox.rasterbanddata'
 
@@ -247,7 +248,7 @@ def extractMapLayers(mimeData: QMimeData) -> list:
         for url in mimeData.urls():
             dataSources = DataSourceFactory.create(url)
             for dataSource in dataSources:
-                if isinstance(dataSource, DataSourceSpatial) and not isinstance(dataSource, DataSourceSpectralLibrary):
+                if isinstance(dataSource, DataSourceSpatial):
                     lyr = dataSource.createUnregisteredMapLayer()
                     if isinstance(lyr, QgsRasterLayer):
                         lyr.setRenderer(defaultRasterRenderer(lyr))
@@ -324,7 +325,7 @@ def extractSpectralLibraries(mimeData: QMimeData) -> list:
     """Reads spectral libraries that may be defined in mimeData"""
     results = []
     slib = SpectralLibrary.readFromMimeData(mimeData)
-    if isinstance(slib, SpectralLibrary):
+    if is_spectral_library(slib):
         results.append(slib)
 
     return results
