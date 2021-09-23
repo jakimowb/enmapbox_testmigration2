@@ -202,10 +202,10 @@ class DataSourceTests(EnMAPBoxTestCase):
         ds = ds[0]
         self.assertIsInstance(ds, DataSourceSpectralLibrary)
 
-        import enmapboxtestdata.asd.asd
+        import enmapboxunittestdata.asd.asd
         from enmapbox import scantree
         from enmapbox.externals.qps.speclib.io.asd import ASDSpectralLibraryIO
-        asdDir = pathlib.Path(enmapboxtestdata.__file__).parent
+        asdDir = pathlib.Path(enmapboxunittestdata.__file__).parent
         asdFiles = list(scantree(asdDir, '.asd'))
 
         for file in asdFiles:
