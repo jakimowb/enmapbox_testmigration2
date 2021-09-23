@@ -469,7 +469,7 @@ class EnMAPBox(QgisInterface, QObject):
         debugLog('Load settings from QgsProject.instance()')
         self.onReloadProject()
 
-    def showMessage(self, msg:str, title:str='Message', html:bool=False):
+    def showMessage(self, msg: str, title: str = 'Message', html: bool = False):
         viewer = QgsMessageViewer()
         viewer.setWindowTitle(title)
         if html:
@@ -494,7 +494,8 @@ class EnMAPBox(QgisInterface, QObject):
         :return:
         """
         a = QAction(button_text)
-    def showMessage(self, msg:str, title:str='Message', html:bool=False):
+
+    def showMessage(self, msg: str, title: str = 'Message', html: bool = False):
         viewer = QgsMessageViewer()
         viewer.setWindowTitle(title)
         if html:
@@ -1537,7 +1538,6 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigRasterSourceRemoved[str].emit(dataSource.uri())
             self.sigRasterSourceRemoved[DataSourceRaster].emit(dataSource)
             self.spectralProfileSourcePanel().removeSources(dataSource.uri())
-
 
         if isinstance(dataSource, DataSourceVector):
             self.sigVectorSourceRemoved[str].emit(dataSource.uri())
