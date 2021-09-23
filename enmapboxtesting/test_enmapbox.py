@@ -182,7 +182,8 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         see https://bitbucket.org/hu-geomatics/enmap-box/issues/605
         """
         EMB = EnMAPBox(load_core_apps=False, load_other_apps=False)
-
+        import os
+        os.environ.setdefault('DEBUG', 'True')
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(EMB, EnMAPBox.instance())

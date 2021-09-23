@@ -1526,7 +1526,7 @@ class EnMAPBox(QgisInterface, QObject):
         :param dataSource: DataSource
         """
         assert isinstance(dataSource, DataSource)
-
+        debugLog(f'onDataSourceRemoved {dataSource}')
         # remove any layer that matches the same source uri
         model: DockManagerTreeModel = self.dockManagerTreeModel()
         model.removeDataSource(dataSource)
@@ -1557,6 +1557,7 @@ class EnMAPBox(QgisInterface, QObject):
         if isinstance(dataSource, DataSourceSpatial):
             self.removeMapLayer(dataSource.mapLayer())
         self.syncHiddenLayers()
+        debugLog(f'onDataSourceRemoved {dataSource} exit')
 
     def onDataSourceAdded(self, dataSource: DataSource):
 

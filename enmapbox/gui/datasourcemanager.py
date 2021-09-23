@@ -1345,6 +1345,7 @@ class DataSourceManagerTreeModel(TreeModel):
         self.setColumnNames(['Source', 'Value'])
         self.dataSourceManager = dataSourceManager
         self.dataSourceManager.sigDataSourceAdded.connect(self.addDataSource)
+
         self.dataSourceManager.sigDataSourceRemoved.connect(self.removeDataSource)
 
         for ds in self.dataSourceManager.mSources:
@@ -1532,6 +1533,8 @@ class DataSourceManagerTreeModel(TreeModel):
 
             if node.dataSource() == dataSource:
                 to_remove.append(node)
+        # FIX 605
+        s = ""
         sourceGroup.removeChildNodes(to_remove)
 
     def supportedDragActions(self):
