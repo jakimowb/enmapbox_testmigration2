@@ -1636,7 +1636,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return enmapbox.__version__
 
-    def dataSourceTreeView(self) -> QTreeView:
+    def dataSourceTreeView(self) -> 'DataSourceTreeView':
         return self.ui.dataSourcePanel.dataSourceTreeView
 
     def dataSources(self, sourceType='ALL', onlyUri: bool = True) -> list:
