@@ -65,7 +65,7 @@ if __name__ == "__main__":
                         default=False,
                         help='Download and install EnMAP-Box testdata',
                         action='store_true')
-    parser.add_argument('-e', '--enmapboxunittestdata',
+    parser.add_argument('-u', '--enmapboxunittestdata',
                         required=False,
                         default=False,
                         help='Download and install EnMAP-Box unittest testdata',
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     if args.enmapboxtestdata:
         install_enmapboxtestdata()
 
-    if args.enmapboxtestdata:
+    if args.enmapboxunittestdata:
         install_enmapboxunittestdata()
 
     if args.qgisresources:
