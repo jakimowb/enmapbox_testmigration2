@@ -57,7 +57,7 @@ class RasterizeCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterVectorLayer(self.P_CATEGORIZED_VECTOR, self._CATEGORIZED_VECTOR)
         self.addParameterRasterLayer(self.P_GRID, self._GRID)
         self.addParameterInt(self.P_COVERAGE, self._COVERAGE, 50, False, 0, 100, advanced=True)
-        self.addParameterBoolean(self.P_MAJORITY_VOTING, self._MAJORITY_VOTING, True, False, advanced=True)
+        self.addParameterBoolean(self.P_MAJORITY_VOTING, self._MAJORITY_VOTING, True, False, True)
         self.addParameterRasterDestination(self.P_OUTPUT_CATEGORIZED_RASTER, self._OUTPUT_CATEGORIZED_RASTER)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:

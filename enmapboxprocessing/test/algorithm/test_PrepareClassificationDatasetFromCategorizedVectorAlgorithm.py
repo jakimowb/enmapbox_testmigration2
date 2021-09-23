@@ -18,6 +18,7 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_polygons,
+            alg.P_MAJORITY_VOTING: False,
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
         }
         self.runalg(alg, parameters)
@@ -55,6 +56,7 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_polygons,
             alg.P_CATEGORY_FIELD: 'level_3',
+            alg.P_MAJORITY_VOTING: False,
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
         }
         self.runalg(alg, parameters)
@@ -69,34 +71,16 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
             [c.name for c in dump.categories]
         )
 
-    def test_debug(self):
-
+    def test_minimal_coverage(self):
         alg = PrepareClassificationDatasetFromCategorizedVectorAlgorithm()
         parameters = {
-            alg.P_FEATURE_RASTER: r'C:\Users\Andreas\Downloads\ANDREAS\Chandous_Khair_VV_VH_ratio_June_Oct_2021.dat',
-            alg.P_CATEGORIZED_VECTOR: r'C:\Users\Andreas\Downloads\ANDREAS\example.shp',
-            alg.P_OUTPUT_DATASET: 'c:/vsimem/sample.pkl'
+            alg.P_FEATURE_RASTER: enmap,
+            alg.P_CATEGORIZED_VECTOR: landcover_polygons,
+            alg.P_COVERAGE: 100,  # pure pixel only
+            alg.P_MAJORITY_VOTING: True,
+            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
-        print(dump)
-
-    def test_debug2(self):
-        vector = QgsVectorLayer(r'C:\Users\Andreas\Downloads\ANDREAS\example.shp')
-        grid = QgsRasterLayer(r'C:\Users\Andreas\Downloads\ANDREAS\Chandous_Khair_VV_VH_ratio_June_Oct_2021.dat')
-        alg = 'gdal:rasterize'
-        parameters = {
-            'INPUT': vector,
-            'BURN': 1,
-            'INIT': 0,
-            'UNITS': 0,  # size in pixels
-            'WIDTH': grid.width(), 'HEIGHT': grid.height(),
-            'EXTENT': grid.extent(),
-            'OUTPUT': r'C:\Users\Andreas\Downloads\ANDREAS\rasterized.tif'}
-        result = self.runalg(alg, parameters)
-
-
-        print(vector.crs())
-        print(QgsRasterLayer(result['OUTPUT']).crs())
-        print(vector.crs().toProj())
-        print(QgsRasterLayer(result['OUTPUT']).crs().toProj())
+        self.assertEqual((1481, 177), dump.X.shape)
+        self.assertEqual((1481, 1), dump.y.shape)
