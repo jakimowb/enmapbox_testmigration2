@@ -30,7 +30,7 @@ import copy
 import enum
 import typing
 import types
-import sip
+from qgis.PyQt import sip
 
 import collections.abc
 import numpy as np
@@ -878,10 +878,7 @@ class TreeModel(QAbstractItemModel):
         self.beginRemoveRows(idxNode, first, last)
 
     def onNodeRemovedChildren(self, node: TreeNode, first: int, last: int):
-        # FIX 605 fails in 3rd iteration
         self.endRemoveRows()
-        s =""
-        #
 
     def onNodeUpdated(self, node: TreeNode):
         idx = self.node2idx(node)
