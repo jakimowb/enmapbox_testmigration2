@@ -10,6 +10,7 @@ matplotlib>=3.0
 pip>=20.0
 dataclasses ; python_version < '3.7'
 scipy>=1.1
+PyQt5-sip
 
 # required by parts of EnMAP-Box Core
 scikit-learn>=0.24
