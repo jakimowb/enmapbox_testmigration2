@@ -277,6 +277,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     sigMapCanvasRemoved = pyqtSignal(MapCanvas)
     sigMapCanvasAdded = pyqtSignal(MapCanvas)
+    sigMapCanvasKeyPressed = pyqtSignal(MapCanvas, QKeyEvent)
 
     sigProjectWillBeSaved = pyqtSignal()
 
@@ -647,6 +648,12 @@ class EnMAPBox(QgisInterface, QObject):
             self.dataSourceManager().addSources(unknown)
         self.syncHiddenLayers()
 
+    def onMapCanvasKeyPressed(self, mapCanvas: MapCanvas, e: QKeyEvent):
+
+        if e.key() == Qt.Key_S:
+            # add current profiles (if collected)
+            self.spectralProfileSourcePanel().addCurrentProfilesToSpeclib()
+
     def onReloadProject(self, *args):
 
         proj: QgsProject = QgsProject.instance()
@@ -915,6 +922,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.spectralProfileSourcePanel.addSources(sources)
         self.ui.spectralProfileSourcePanel.setDefaultSource(sources[0])
+        self.sigMapCanvasKeyPressed.connect(self.onMapCanvasKeyPressed)
 
         area = Qt.RightDockWidgetArea
 
@@ -1168,6 +1176,7 @@ class EnMAPBox(QgisInterface, QObject):
             assert isinstance(canvas, MapCanvas)
             canvas.sigCrosshairPositionChanged.connect(self.onCrosshairPositionChanged)
             canvas.setCrosshairVisibility(True)
+            canvas.keyPressed.connect(lambda e, c=canvas: self.sigMapCanvasKeyPressed.emit(canvas, e))
             canvas.mapTools().setVectorLayerTools(self.mVectorLayerTools)
 
             self.setMapTool(self.mMapToolKey, canvases=[canvas])

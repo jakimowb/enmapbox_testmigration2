@@ -1198,10 +1198,11 @@ class MapCanvas(QgsMapCanvas):
                                         Qt.NoModifier)
                     self.mousePressEvent(event)
 
-                    if is_shift:
-                        event = QMouseEvent(QEvent.MouseButtonRelease, localPos.toQPointF(), Qt.LeftButton,
-                                            Qt.LeftButton, Qt.NoModifier)
-                        self.mouseReleaseEvent(event)
+                    event = QMouseEvent(QEvent.MouseButtonRelease, localPos.toQPointF(), Qt.LeftButton,
+                                        Qt.LeftButton, Qt.NoModifier)
+                    self.mouseReleaseEvent(event)
+                    self.keyPressed.emit(e)
+
                     return
 
         super(MapCanvas, self).keyPressEvent(e)
