@@ -714,6 +714,7 @@ class EnMAPBox(QgisInterface, QObject):
         assert isinstance(layerIDs, list)
 
         layers = [QgsProject.instance().mapLayer(lid) for lid in layerIDs]
+        layers = [l for l in layers if isinstance(l, QgsMapLayer)]
         self.removeMapLayers(layers, remove_from_project=False)
 
     def syncHiddenLayers(self):
@@ -793,7 +794,7 @@ class EnMAPBox(QgisInterface, QObject):
         Removes layers from the EnMAP-Box
         """
         grp = self.hiddenLayerGroup()
-
+        layers = [l for l in layers if isinstance(l, QgsMapLayer)]
         removedIds = [l.id() for l in layers]
 
         layersDS = self.dataSourceManager().mapLayers()
