@@ -136,6 +136,6 @@ class TestIssue(EnMAPBoxTestCase):
         for n in gnode:
             n.parentNode().removeChildNodes(n)
 
-        #self.showGui(view)
+
 if __name__ == '__main__':
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

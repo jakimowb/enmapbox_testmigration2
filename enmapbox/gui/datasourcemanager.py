@@ -1212,7 +1212,7 @@ class DataSourceTreeView(TreeView):
         if isinstance(model, DataSourceManagerTreeModel):
             model.dataSourceManager.clear()
 
-    def openInSpeclibEditor(self, speclib: SpectralLibrary):
+    def openInSpeclibEditor(self, speclib: QgsVectorLayer):
         """
         Opens a SpectralLibrary in a new SpectralLibraryDock
         :param speclib: SpectralLibrary
