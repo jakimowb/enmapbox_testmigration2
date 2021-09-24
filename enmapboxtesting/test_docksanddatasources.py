@@ -145,7 +145,11 @@ class testDataSources(EnMAPBoxTestCase):
         self.assertIsInstance(DM, DockManager)
         w.connectDockManager(DM)
         w.show()
-        DM.createDock('MAP')
+        MAPDOCK: MapDock = DM.createDock('MAP')
+        lyr1 = TestObjects.createRasterLayer()
+        lyr2 = TestObjects.createVectorLayer()
+        MAPDOCK.addLayers([lyr1, lyr2])
+
         DM.createDock('SPECLIB')
         # DM.createDock('WEBVIEW')
         self.showGui(w)
