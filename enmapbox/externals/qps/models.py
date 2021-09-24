@@ -558,6 +558,7 @@ class TreeNode(QObject):
                 removed.append(node)
 
             self.sigRemovedChildren.emit(self, first, last)
+            s = ""
 
     def setToolTip(self, toolTip: str):
         """
@@ -828,6 +829,8 @@ class TreeModel(QAbstractItemModel):
         else:
             self.mRootNode = TreeNode(name='<root node>')
 
+        self.mCNT_REMOVE = 0
+        self.mCNT_INSERT = 0
         self.mRootNode.setValues(['Name', 'Value'])
         self.mRootNode.sigWillAddChildren.connect(self.onNodeWillAddChildren)
         self.mRootNode.sigAddedChildren.connect(self.onNodeAddedChildren)
@@ -856,10 +859,12 @@ class TreeModel(QAbstractItemModel):
         parent = self.node2idx(node)
         if not node == self.mRootNode:
             assert parent.internalPointer() == node
+        self.mCNT_INSERT += 1
         self.beginInsertRows(parent, first, last)
 
     def onNodeAddedChildren(self, node: TreeNode, first: int, last: int):
         self.endInsertRows()
+        self.mCNT_INSERT -= 1
         parent = self.node2idx(node)
         idx1 = self.index(first, 0, parent)
         idx2 = self.index(last, 0, parent)
@@ -874,15 +879,22 @@ class TreeModel(QAbstractItemModel):
         return cnt
 
     def onNodeWillRemoveChildren(self, node: TreeNode, first: int, last: int):
+        self.mCNT_REMOVE += 1
         idxNode = self.node2idx(node)
         self.beginRemoveRows(idxNode, first, last)
 
     def onNodeRemovedChildren(self, node: TreeNode, first: int, last: int):
         self.endRemoveRows()
+        self.mCNT_REMOVE -= 1
 
     def onNodeUpdated(self, node: TreeNode):
         idx = self.node2idx(node)
         idx2 = self.index(idx.row(), node.columnCount() - 1, parent=idx.parent())
+        if self.mCNT_REMOVE > 0:
+            # do not emit dataChanged when being in begin/end removeRows!
+            s = ""
+        if self.mCNT_INSERT > 0:
+            s = ""
         self.dataChanged.emit(idx, idx2)
 
     def headerData(self, section, orientation, role):
@@ -950,7 +962,7 @@ class TreeModel(QAbstractItemModel):
         """
         return self.mColumnNames[:]
 
-    def printModel(self, index: QModelIndex, prefix=''):
+    def printModel(self, index: QModelIndex, prefix='', depth: int=1):
         """
         Prints the model oder a sub-node specified by index
         :param index:
@@ -960,14 +972,17 @@ class TreeModel(QAbstractItemModel):
         :return:
         :rtype:
         """
+        if depth == -1:
+            return
         if index is None:
             index = QModelIndex()
         if isinstance(index, TreeNode):
             index = self.node2idx(index)
         print(f'{prefix} {self.data(index, role=Qt.DisplayRole)}')
+        depth = depth - 1
         for r in range(self.rowCount(index)):
             idx = self.index(r, 0, parent=index)
-            self.printModel(idx, prefix=f'{prefix}-')
+            self.printModel(idx, prefix=f'{prefix}-', depth=depth)
 
     def span(self, idx) -> QSize():
 

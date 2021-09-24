@@ -457,9 +457,11 @@ class DataSourceManager(QObject):
         to_remove = []
         if isinstance(dataSource, QgsMapLayer):
             for ds in self:
-                if isinstance(ds, DataSourceSpatial) and isinstance(ds.mapLayer(),
-                                                                    QgsMapLayer) and ds.mapLayer().id() == dataSource.id():
+                if isinstance(ds, DataSourceSpatial) and \
+                   isinstance(ds.mapLayer(), QgsMapLayer) and \
+                   ds.mapLayer().id() == dataSource.id():
                     to_remove.append(ds)
+
         elif isinstance(dataSource, str):
             for ds in self:
                 if ds.uri() == dataSource:
@@ -1345,7 +1347,6 @@ class DataSourceManagerTreeModel(TreeModel):
         self.setColumnNames(['Source', 'Value'])
         self.dataSourceManager = dataSourceManager
         self.dataSourceManager.sigDataSourceAdded.connect(self.addDataSource)
-
         self.dataSourceManager.sigDataSourceRemoved.connect(self.removeDataSource)
 
         for ds in self.dataSourceManager.mSources:
@@ -1524,6 +1525,10 @@ class DataSourceManagerTreeModel(TreeModel):
         s = ""
 
     def removeDataSource(self, dataSource):
+        from enmapbox import debugLog
+        debugLog(f'removeDataSource {dataSource}')
+        self.printModel(QModelIndex(), 'before:', depth=2)
+
         assert isinstance(dataSource, DataSource)
         sourceGroup = self.sourceGroup(dataSource)
         to_remove = []
@@ -1532,10 +1537,13 @@ class DataSourceManagerTreeModel(TreeModel):
             assert isinstance(node, DataSourceTreeNode)
 
             if node.dataSource() == dataSource:
+                # node.disconnectDataSource()
+                # node.removeAllChildNodes()
                 to_remove.append(node)
-        # FIX 605
-        s = ""
+
         sourceGroup.removeChildNodes(to_remove)
+        self.printModel(QModelIndex(), 'after:', depth=2)
+        s = ""
 
     def supportedDragActions(self):
         return Qt.CopyAction

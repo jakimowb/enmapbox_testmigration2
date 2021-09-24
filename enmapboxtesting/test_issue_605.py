@@ -65,7 +65,7 @@ class TestIssue(EnMAPBoxTestCase):
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(EMB, EnMAPBox.instance())
 
-        #
+        layers = []
         if False:
             EMB.loadExampleData()
         else:
@@ -90,7 +90,7 @@ class TestIssue(EnMAPBoxTestCase):
                        TestObjects.createRasterLayer(),
                        # TestObjects.createVectorLayer()
                        ]
-
+            layers.extend(sources)
             dSources = EMB.addSources(sources)
 
         EMB.ui.show()
@@ -99,6 +99,7 @@ class TestIssue(EnMAPBoxTestCase):
             print(f'{i + 1}: {s}')
 
         print('Remove all datasources:')
+        #EMB.dataSourceTreeView().model().sourceModel().rootNode().removeAllChildNodes()
         EMB.dataSourceTreeView().onRemoveAllDataSources()
         print('All datasources removed')
         self.assertTrue(len(EMB.dataSources()) == 0)
@@ -106,7 +107,7 @@ class TestIssue(EnMAPBoxTestCase):
         # QgsProject.instance()
         # qgis.utils.iface.actionSaveProject().trigger()
         # qgis.utils.iface.mainWindow()
-        # self.showGui([EMB.ui])
+        self.showGui([EMB.ui])
 
     def test_treeModel(self):
         from enmapbox.externals.qps.models import TreeView, TreeModel, TreeNode
@@ -116,19 +117,23 @@ class TestIssue(EnMAPBoxTestCase):
         view = TreeView()
         view.setModel(model)
 
-        gn = TreeNode()
-        model.rootNode().appendChildNodes(gn)
 
+
+        groupNodes = list()
         subnodes = list()
-        for i in range(10):
-            node = TreeNode()
-            gn.appendChildNodes(node)
-            subnodes.append(node)
+        for g in range(3):
+            gnode = TreeNode()
+            for i in range(10):
+                node = TreeNode()
+                gnode.appendChildNodes(node)
+                subnodes.append(node)
+            groupNodes.append(gnode)
+            model.rootNode().appendChildNodes(gnode)
 
         view.show()
 
-        for n in subnodes:
-            gn.removeChildNodes(n)
+        for n in gnode:
+            n.parentNode().removeChildNodes(n)
 
         #self.showGui(view)
 if __name__ == '__main__':

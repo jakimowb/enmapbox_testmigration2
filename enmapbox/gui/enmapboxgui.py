@@ -1557,7 +1557,7 @@ class EnMAPBox(QgisInterface, QObject):
         if isinstance(dataSource, DataSourceSpatial):
             self.removeMapLayer(dataSource.mapLayer())
         self.syncHiddenLayers()
-        debugLog(f'onDataSourceRemoved {dataSource} exit')
+        debugLog(f'onDataSourceRemoved exit {dataSource} exit')
 
     def onDataSourceAdded(self, dataSource: DataSource):
 
