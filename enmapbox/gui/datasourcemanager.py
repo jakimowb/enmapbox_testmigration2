@@ -1520,14 +1520,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
         dataSourceNode = createNodeFromDataSource(dataSource, sourceGroupNode)
 
-        # sourceGroupNode.appendChildNodes([sourceGroupNode])
-        # dataSourceNode.setExpanded(False)
-        s = ""
-
     def removeDataSource(self, dataSource):
-        from enmapbox import debugLog
-        debugLog(f'removeDataSource {dataSource}')
-        self.printModel(QModelIndex(), 'before:', depth=2)
 
         assert isinstance(dataSource, DataSource)
         sourceGroup = self.sourceGroup(dataSource)
@@ -1537,13 +1530,9 @@ class DataSourceManagerTreeModel(TreeModel):
             assert isinstance(node, DataSourceTreeNode)
 
             if node.dataSource() == dataSource:
-                # node.disconnectDataSource()
-                # node.removeAllChildNodes()
                 to_remove.append(node)
 
         sourceGroup.removeChildNodes(to_remove)
-        self.printModel(QModelIndex(), 'after:', depth=2)
-        s = ""
 
     def supportedDragActions(self):
         return Qt.CopyAction

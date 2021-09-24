@@ -70,25 +70,26 @@ class TestIssue(EnMAPBoxTestCase):
             EMB.loadExampleData()
         else:
             import enmapboxtestdata
-            #sources = [enmapboxtestdata.enmap,
-            #           enmapboxtestdata.landcover_polygons,
-            #           enmapboxtestdata.landcover_points,
-            #           enmapboxtestdata.library,
-            #           re.sub(r'\.sli$', '.gpkg', enmapboxtestdata.library),
-            #           enmapboxtestdata.enmap_srf_library
-            #           ]
+            sources = []
+            sources += [enmapboxtestdata.enmap,
+                        enmapboxtestdata.landcover_polygons,
+                        enmapboxtestdata.landcover_points,
+                        enmapboxtestdata.library,
+                        re.sub(r'\.sli$', '.gpkg', enmapboxtestdata.library),
+                        enmapboxtestdata.enmap_srf_library
+                        ]
 
-            sources = [TestObjects.createVectorLayer(),
-                       TestObjects.createVectorLayer(),
-                       TestObjects.createVectorLayer(),
-                       TestObjects.createVectorLayer(),
-                       # TestObjects.createVectorLayer()
-                       ]
-            sources = [TestObjects.createRasterLayer(),
-                       TestObjects.createRasterLayer(),
-                       TestObjects.createRasterLayer(),
-                       TestObjects.createRasterLayer(),
-                       # TestObjects.createVectorLayer()
+            sources += [TestObjects.createVectorLayer(),
+                        TestObjects.createVectorLayer(),
+                        TestObjects.createVectorLayer(),
+                        TestObjects.createVectorLayer(),
+                        TestObjects.createVectorLayer()
+                        ]
+            sources += [TestObjects.createRasterLayer(),
+                        TestObjects.createRasterLayer(),
+                        TestObjects.createRasterLayer(),
+                        TestObjects.createRasterLayer(),
+                        TestObjects.createVectorLayer()
                        ]
             layers.extend(sources)
             dSources = EMB.addSources(sources)
@@ -99,7 +100,7 @@ class TestIssue(EnMAPBoxTestCase):
             print(f'{i + 1}: {s}')
 
         print('Remove all datasources:')
-        #EMB.dataSourceTreeView().model().sourceModel().rootNode().removeAllChildNodes()
+        EMB.dataSourceTreeView().model().sourceModel().rootNode().removeAllChildNodes()
         EMB.dataSourceTreeView().onRemoveAllDataSources()
         print('All datasources removed')
         self.assertTrue(len(EMB.dataSources()) == 0)
