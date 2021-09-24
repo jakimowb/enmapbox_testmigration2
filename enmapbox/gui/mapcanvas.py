@@ -872,6 +872,7 @@ class MapCanvas(QgsMapCanvas):
         self.setProperty(KEY_LAST_CLICKED, time.time())
         MapCanvas._cnt += 1
         self.mFirstCrs: QgsCoordinateReferenceSystem = None
+        self.mInitializedExtent: bool = False
         self.acceptDrops()
         self.setExtent(QgsRectangle(-1, -1, 1, 1))
 
@@ -1440,8 +1441,12 @@ class MapCanvas(QgsMapCanvas):
             for lyr in mapLayers:
                 if lyr.crs().isValid():
                     self.setDestinationCrs(lyr.crs())
-                    self.zoomToFullExtent()
                     self.mFirstCrs = lyr.crs()
+        if not self.mInitializedExtent:
+            for lyr in mapLayers:
+                if lyr.isValid():
+                    self.zoomToFullExtent()
+                    self.mInitializedExtent = True
                     break
 
         self.setRenderFlag(True)
