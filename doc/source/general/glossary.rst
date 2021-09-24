@@ -279,7 +279,8 @@ GIS and Remote Sensing
         .. image:: img/spectral_profile.png
 
     spectral raster layer
-        A :term:`raster layer` where the individual bands (i.e. :term:`spectral bands<spectral band>`) represent measurements across the electromagnetic spectrum.
+        A :term:`raster layer` with proper :term:`wavelength` and :term:`wavelength units` metadata,
+        where the individual bands (i.e. :term:`spectral bands<spectral band>`) represent measurements across the electromagnetic spectrum.
         The measurement vector of a single pixel is called a :term:`spectral profile`)
 
         .. image:: img/raster_layer.png
