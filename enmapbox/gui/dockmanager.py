@@ -306,6 +306,8 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.addChildNode(self.speclibNode)
         speclib = self.speclib()
         if is_spectral_library(speclib):
+            speclib: QgsVectorLayer
+            speclib.editCommandEnded.connect(self.updateNodes)
             speclib.committedFeaturesAdded.connect(self.updateNodes)
             speclib.committedFeaturesRemoved.connect(self.updateNodes)
             self.updateNodes()
@@ -328,14 +330,34 @@ class SpeclibDockTreeNode(DockTreeNode):
                 n_total = 0
                 tt = []
 
+                for c in self.profilesNode.children():
+                    NODES[c.name()] = c
+
+                has_new_node = False
+
+                NEW_NODES = []
                 for field in profile_field_list(sl):
                     n = 0
+                    if field.name() not in NODES.keys():
+                        has_new_node = True
+                        node = LayerTreeNode(field.name())
+                    else:
+                        node = NODES[field.name()]
                     for f in sl.getFeatures(f'"{field.name()}" is not NULL'):
-                        if f.id() >= 0:
-                            n += 1
+                        # show committed only?
+                        # if f.id() >= 0:
+                        n += 1
                     PROFILES[field.name()] = n
                     tt.append(f'"{field.name()}" with {n} profiles')
                     n_total += n
+                    node.setValue(n)
+                    NEW_NODES.append(node)
+
+                if has_new_node:
+                    self.profilesNode.removeAllChildren()
+                    for n in NEW_NODES:
+                        self.profilesNode.addChildNode(n)
+
                 self.profilesNode.setTooltip('\n'.join(tt))
                 self.profilesNode.setName(f'{n_total} Profiles')
                 self.profilesNode.setValue(n_total)
