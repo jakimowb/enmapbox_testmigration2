@@ -7,9 +7,12 @@ from PyQt5.QtCore import pyqtSignal, Qt, QModelIndex
 from PyQt5.QtGui import QIcon, QDragEnterEvent, QContextMenuEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction, QMenu, QToolBar, QToolButton, QWidgetAction, QPushButton, \
     QHBoxLayout, QFrame, QDialog, QLabel
+from qgis.core import QgsVectorLayer
+
 from qgis.core import QgsFeature
 from qgis.gui import QgsMapCanvas, QgsDualView, QgsAttributeTableView, QgsAttributeTableFilterModel, QgsDockWidget, \
     QgsActionMenu, QgsStatusBar
+from ..core import is_spectral_library
 from ...layerproperties import AttributeTableWidget, showLayerPropertiesDialog
 from ...plotstyling.plotstyling import PlotStyle, PlotStyleWidget
 from ..core.spectrallibrary import SpectralLibrary
@@ -36,7 +39,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
     def __init__(self, *args, speclib: SpectralLibrary = None, mapCanvas: QgsMapCanvas = None, **kwds):
 
-        if not isinstance(speclib, SpectralLibrary):
+        if not is_spectral_library(speclib):
             speclib = SpectralLibrary()
 
         super().__init__(speclib)
@@ -335,14 +338,14 @@ class SpectralLibraryWidget(AttributeTableWidget):
     def updatePlot(self):
         self.plotControl().updatePlot()
 
-    def speclib(self) -> SpectralLibrary:
+    def speclib(self) -> QgsVectorLayer:
         return self.mLayer
 
-    def spectralLibrary(self) -> SpectralLibrary:
+    def spectralLibrary(self) -> QgsVectorLayer:
         return self.speclib()
 
-    def addSpeclib(self, speclib: SpectralLibrary):
-        assert isinstance(speclib, SpectralLibrary)
+    def addSpeclib(self, speclib: QgsVectorLayer):
+        assert is_spectral_library(speclib)
         sl = self.speclib()
         wasEditable = sl.isEditable()
         try:
@@ -375,7 +378,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
     def deleteCurrentProfilesFromSpeclib(self, *args):
         # delete previous current profiles
         speclib = self.speclib()
-        if isinstance(speclib, SpectralLibrary):
+        if is_spectral_library(speclib):
             oldCurrentIDs = list(self.plotControl().mTemporaryProfileIDs)
             restart_editing: bool = not speclib.startEditing()
             speclib.beginEditCommand('Remove temporary')
@@ -588,7 +591,8 @@ class SpectralLibraryInfoLabel(QLabel):
     def onSelectAxisUnitIncompatibleProfiles(self):
         incompatible = []
         pw: SpectralProfilePlotWidget = self.plotWidget()
-        if not isinstance(pw, SpectralProfilePlotWidget) or not isinstance(pw.speclib(), SpectralLibrary):
+        if not isinstance(pw, SpectralProfilePlotWidget) or \
+                not is_spectral_library(pw.speclib()):
             return
 
         targetUnit = pw.xUnit()
