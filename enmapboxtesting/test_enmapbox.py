@@ -224,6 +224,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         QgsApplication.processEvents()
 
         self.assertEqual(len(box.dataSources()), nQGIS)
+        self.showGui([box, iface.mainWindow()])
 
     def test_createDock(self):
 

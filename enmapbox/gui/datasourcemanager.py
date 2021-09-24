@@ -388,7 +388,7 @@ class DataSourceManager(QObject):
                 lyr = layerTree.layer()
 
                 if isinstance(lyr, QgsMapLayer) and lyr.isValid() and not grp.customProperty('nodeHidden'):
-                    layers.append(layerTree.layer())
+                    layers.append(layerTree.layer().clone())
 
         if len(layers) > 0:
             self.addSources(layers)
