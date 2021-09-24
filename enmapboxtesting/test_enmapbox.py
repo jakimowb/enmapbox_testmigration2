@@ -177,48 +177,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
         self.showGui([EMB.ui])
 
-    def test_issue_605(self):
-        """
-        see https://bitbucket.org/hu-geomatics/enmap-box/issues/605
-        """
-        EMB = EnMAPBox(load_core_apps=False, load_other_apps=False)
-
-        self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
-        self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
-        self.assertEqual(EMB, EnMAPBox.instance())
-
-        #
-        if False:
-            EMB.loadExampleData()
-        else:
-            import enmapboxtestdata
-            sources = [enmapboxtestdata.enmap,
-                       enmapboxtestdata.landcover_polygons,
-                       enmapboxtestdata.landcover_points,
-                       enmapboxtestdata.library,
-                       re.sub(r'\.sli$', '.gpkg', enmapboxtestdata.library),
-                       enmapboxtestdata.enmap_srf_library
-                       ]
-
-            if True:
-                mapdock: MapDock = EMB.createDock('MAP')
-                dSources = EMB.addSources(sources)
-                layers = [ds.createUnregisteredMapLayer() for ds in dSources if isinstance(ds, DataSourceSpatial)]
-
-                mapdock.addLayers(layers)
-
-        EMB.ui.show()
-
-        for i, s in enumerate(EMB.dataSources()):
-            print(f'{i + 1}: {s}')
-
-        EMB.dataSourceTreeView().onRemoveAllDataSources()
-        self.assertTrue(len(EMB.dataSources()) == 0)
-        # import qgis.utils
-        # QgsProject.instance()
-        # qgis.utils.iface.actionSaveProject().trigger()
-        # qgis.utils.iface.mainWindow()
-        # self.showGui([EMB.ui])
 
     def test_Qgis(self):
 

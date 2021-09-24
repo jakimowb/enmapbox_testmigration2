@@ -46,7 +46,7 @@ from qgis.PyQt.QtCore import \
     QAbstractTableModel, QModelIndex, QSortFilterProxyModel, QRegExp, QUrl
 
 from qgis.PyQt.QtGui import QContextMenuEvent, QColor, QIcon
-import sip
+from qgis.PyQt import sip
 from enmapbox import debugLog
 
 URL_PACKAGE_HELP = r"https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages"

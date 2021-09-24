@@ -457,9 +457,11 @@ class DataSourceManager(QObject):
         to_remove = []
         if isinstance(dataSource, QgsMapLayer):
             for ds in self:
-                if isinstance(ds, DataSourceSpatial) and isinstance(ds.mapLayer(),
-                                                                    QgsMapLayer) and ds.mapLayer().id() == dataSource.id():
+                if isinstance(ds, DataSourceSpatial) and \
+                   isinstance(ds.mapLayer(), QgsMapLayer) and \
+                   ds.mapLayer().id() == dataSource.id():
                     to_remove.append(ds)
+
         elif isinstance(dataSource, str):
             for ds in self:
                 if ds.uri() == dataSource:
@@ -1518,11 +1520,8 @@ class DataSourceManagerTreeModel(TreeModel):
 
         dataSourceNode = createNodeFromDataSource(dataSource, sourceGroupNode)
 
-        # sourceGroupNode.appendChildNodes([sourceGroupNode])
-        # dataSourceNode.setExpanded(False)
-        s = ""
-
     def removeDataSource(self, dataSource):
+
         assert isinstance(dataSource, DataSource)
         sourceGroup = self.sourceGroup(dataSource)
         to_remove = []
@@ -1532,6 +1531,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
             if node.dataSource() == dataSource:
                 to_remove.append(node)
+
         sourceGroup.removeChildNodes(to_remove)
 
     def supportedDragActions(self):

@@ -30,7 +30,7 @@ import copy
 import enum
 import typing
 import types
-import sip
+from qgis.PyQt import sip
 
 import collections.abc
 import numpy as np
@@ -558,6 +558,7 @@ class TreeNode(QObject):
                 removed.append(node)
 
             self.sigRemovedChildren.emit(self, first, last)
+            s = ""
 
     def setToolTip(self, toolTip: str):
         """
@@ -620,7 +621,6 @@ class TreeNode(QObject):
             self.setValues(None)
         else:
             self.setValues([value])
-
 
     def setValues(self, values: list):
         """
@@ -696,7 +696,7 @@ class TreeNode(QObject):
 
 class OptionTreeNode(TreeNode):
 
-    def __init__(self, optionModel:OptionListModel, *args, option: Option = None, **kwds):
+    def __init__(self, optionModel: OptionListModel, *args, option: Option = None, **kwds):
         super().__init__(*args, **kwds)
 
         assert isinstance(optionModel, OptionListModel)
@@ -719,6 +719,7 @@ class OptionTreeNode(TreeNode):
 
     def options(self) -> typing.List[Option]:
         return self.mOptionModel.options()
+
 
 class PyObjectTreeNode(TreeNode):
 
@@ -828,6 +829,10 @@ class TreeModel(QAbstractItemModel):
         else:
             self.mRootNode = TreeNode(name='<root node>')
 
+        # monitors the number of being/end blocks for removing / inserting rows
+        self.mCNT_REMOVE = 0
+        self.mCNT_INSERT = 0
+
         self.mRootNode.setValues(['Name', 'Value'])
         self.mRootNode.sigWillAddChildren.connect(self.onNodeWillAddChildren)
         self.mRootNode.sigAddedChildren.connect(self.onNodeAddedChildren)
@@ -856,10 +861,12 @@ class TreeModel(QAbstractItemModel):
         parent = self.node2idx(node)
         if not node == self.mRootNode:
             assert parent.internalPointer() == node
+        self.mCNT_INSERT += 1
         self.beginInsertRows(parent, first, last)
 
     def onNodeAddedChildren(self, node: TreeNode, first: int, last: int):
         self.endInsertRows()
+        self.mCNT_INSERT -= 1
         parent = self.node2idx(node)
         idx1 = self.index(first, 0, parent)
         idx2 = self.index(last, 0, parent)
@@ -874,13 +881,22 @@ class TreeModel(QAbstractItemModel):
         return cnt
 
     def onNodeWillRemoveChildren(self, node: TreeNode, first: int, last: int):
+        self.mCNT_REMOVE += 1
         idxNode = self.node2idx(node)
         self.beginRemoveRows(idxNode, first, last)
 
     def onNodeRemovedChildren(self, node: TreeNode, first: int, last: int):
         self.endRemoveRows()
+        self.mCNT_REMOVE -= 1
 
     def onNodeUpdated(self, node: TreeNode):
+        if self.mCNT_REMOVE > 0:
+            # do not emit dataChanged while being in begin/end removeRows!
+            return
+        if self.mCNT_INSERT > 0:
+            # do not emit dataChanged while being in begin/end addRows!
+            return
+
         idx = self.node2idx(node)
         idx2 = self.index(idx.row(), node.columnCount() - 1, parent=idx.parent())
         self.dataChanged.emit(idx, idx2)
@@ -950,24 +966,29 @@ class TreeModel(QAbstractItemModel):
         """
         return self.mColumnNames[:]
 
-    def printModel(self, index: QModelIndex, prefix=''):
+    def printModel(self,
+                   index: typing.Union[QModelIndex, TreeNode],
+                   prefix: str = '',
+                   depth: int = 1):
         """
-        Prints the model oder a sub-node specified by index
-        :param index:
+        Prints the model oder a sub-node specified by index. Usable for debugging.
+        :param index: QModelIndex or TreeNode
         :type index:
         :param prefix:
         :type prefix:
-        :return:
-        :rtype:
+        :param depth: depth to which sub-nodes should be print
         """
+        if depth == -1:
+            return
         if index is None:
             index = QModelIndex()
         if isinstance(index, TreeNode):
             index = self.node2idx(index)
         print(f'{prefix} {self.data(index, role=Qt.DisplayRole)}')
+        depth = depth - 1
         for r in range(self.rowCount(index)):
             idx = self.index(r, 0, parent=index)
-            self.printModel(idx, prefix=f'{prefix}-')
+            self.printModel(idx, prefix=f'{prefix}-', depth=depth)
 
     def span(self, idx) -> QSize():
 
@@ -1299,18 +1320,12 @@ class TreeView(QTreeView):
                 self.setExpanded(parent, True)
 
     def onDataChanged(self, tl: QModelIndex, br: QModelIndex, roles):
-
-        parent = tl.parent()
-
         self.setColumnSpan(tl.parent(), tl.row(), br.row())
-        #for row in range(tl.row(), br.row() + 1):
-        #    idx = self.model().index(row, 0, parent)
-        #    self.setColumnSpan(idx, None, None)
-        s = ""
 
     def setColumnSpan(self, parent: QModelIndex, first: int, last: int):
         """
         Sets the column span for the rows "first" to "last" recursively
+        :param parent:
         :param idx:
         :return:
         """
@@ -1348,30 +1363,6 @@ class TreeView(QTreeView):
             self.setColumnSpan(idx0, None, None)
         return
 
-    def setRowColumnSpan(self, row, parent: QModelIndex):
-        cols = self.model().columnCount(parent)
-
-        self.setFirstColumnSpanned(r, parent, spanned)
-
-        """
-        assert isinstance(idx, QModelIndex)
-        if not idx.isValid():
-            return
-
-        row = idx.row()
-        nRows = self.model().rowCount(idx)
-        node = self.model().data(idx, role=Qt.UserRole)
-        if isinstance(node, TreeNode):
-            span = len(node.values()) == 0
-            if span == True and node.value() != None:
-                s = ""
-            self.setFirstColumnSpanned(idx.row(), idx.parent(), span)
-
-            for row in range(self.model().rowCount(idx)):
-                idx2 = self.model().index(row, 0, idx)
-                self.setColumnSpan(idx2)
-        """
-
     def selectedNode(self) -> TreeNode:
         """
         Returns the first of all selected TreeNodes
@@ -1400,7 +1391,6 @@ class TreeView(QTreeView):
 class SettingsNode(TreeNode):
 
     def __init__(self, settings: QgsSettings, settings_key: str, **kwds):
-
         super(SettingsNode, self).__init__(**kwds)
         self.mSettings: QgsSettings = settings
         self.mSettingsKey = f'{settings.group()}/{settings_key}'
@@ -1575,7 +1565,7 @@ class SettingsModel(TreeModel):
 
         old_value = node.value()
         if old_value != value:
-            node.setValue(value) # this triggers the dataChanged signal
+            node.setValue(value)  # this triggers the dataChanged signal
             self.sigSettingsValueChanged.emit(node.mSettingsKey)
             return True
 
