@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ***************************************************************************
-    test_issue_605
+    test_issue_711
     ---------------------
     Date                 :
     Copyright            : (C) 2021 by Benjamin Jakimow
@@ -54,9 +54,9 @@ class TestIssue(EnMAPBoxTestCase):
 
         self.showGui([qgis.utils.iface.mainWindow(), EMB.ui])
 
-    def test_issue_605(self):
+    def test_issue_711(self):
         """
-        see https://bitbucket.org/hu-geomatics/enmap-box/issues/605
+        see https://bitbucket.org/hu-geomatics/enmap-box/issues/711
         """
         EMB = EnMAPBox(load_core_apps=False, load_other_apps=False)
         import os
