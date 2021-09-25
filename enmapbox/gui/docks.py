@@ -31,7 +31,8 @@ from ..externals.qps.externals.pyqtgraph.dockarea import DockArea as pgDockArea
 from ..externals.qps.externals.pyqtgraph.dockarea.DockArea import TempAreaWindow
 from ..externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
 from ..externals.qps.externals.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
-
+from ..externals.qps.layerproperties import pasteStyleFromClipboard
+from enmapbox.gui.mimedata import MDF_QGIS_LAYER_STYLE
 
 class DockTypes(enum.Enum):
     """
@@ -846,4 +847,11 @@ class SpectralLibraryDock(Dock):
         :return: QMenu
         """
         super(SpectralLibraryDock, self).populateContextMenu(menu)
+
+        speclib = self.speclib()
+        if isinstance(speclib, QgsVectorLayer):
+            actionPasteStyle = menu.addAction('Paste Style')
+            actionPasteStyle.triggered.connect(lambda: pasteStyleFromClipboard(speclib))
+            actionPasteStyle.setEnabled(MDF_QGIS_LAYER_STYLE in QApplication.clipboard().mimeData().formats())
+
         menu.addAction(self.speclibWidget().actionShowProperties)
