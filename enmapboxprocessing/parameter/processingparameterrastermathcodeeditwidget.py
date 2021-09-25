@@ -1,3 +1,6 @@
+import subprocess
+import sys
+import webbrowser
 from collections import OrderedDict
 from functools import partial
 from os import scandir, DirEntry, mkdir
@@ -23,9 +26,12 @@ from processing.gui.wrappers import WidgetWrapper, DIALOG_MODELER, DIALOG_BATCH
 class ProcessingParameterRasterMathCodeEdit(QWidget):
     mCode: CodeEditWidget
     mSourcesTree: QTreeWidget
+    mSourcesRefresh: QToolButton
     mSnippetsTree: QTreeWidget
     mSnippetOpen: QToolButton
     mSnippetSaveAs: QToolButton
+    mSnippetOpenFolder: QToolButton
+    mSnippetRefresh: QToolButton
     mInput: QComboBox
     mOutput: QComboBox
 
@@ -34,7 +40,8 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
         loadUi(__file__.replace('.py', '.ui'), self)
 
         self.updateSources()
-        QgsProject.instance().layersAdded.connect(self.updateSources)
+        # QgsProject.instance().layersAdded.connect(self.updateSources)  # better not auto-update sources, because when adding a result layer to a map view, it will be added with the basename equal to the identifier already used in the snippet
+        self.mSourcesRefresh.clicked.connect(self.updateSources)
 
         self.parseSnippets()
 
@@ -73,6 +80,8 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
             obj.clicked.connect(self.onSensorBandClicked)
 
         self.mSnippetSaveAs.clicked.connect(self.onSnippetSaveAsClicked)
+        self.mSnippetOpenFolder.clicked.connect(self.onSnippetOpenFolderClicked)
+        self.mSnippetRefresh.clicked.connect(self.parseSnippets)
 
         self._lastDoubleClickTime = 0.  # required for a workaround
 
@@ -107,6 +116,25 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
                 with open(filename, 'w') as file:
                     file.write(snippet)
                 self.parseSnippets()
+
+    def onSnippetOpenFolderClicked(self):
+        from enmapboxprocessing.algorithm import rastermathalgorithm
+        root = join(dirname(rastermathalgorithm.__file__), 'snippet')
+        # taken from https://stackoverflow.com/questions/1795111/is-there-a-cross-platform-way-to-open-a-file-browser-in-python
+        if sys.platform == 'win32':
+            #subprocess.Popen(['start', root], shell=True)
+            webbrowser.open(root)
+
+        elif sys.platform == 'darwin':
+            subprocess.Popen(['open', root])
+
+        else:
+            try:
+                subprocess.Popen(['xdg-open', root])
+            except OSError:
+                pass
+                # error, think of something else to try
+                # xdg-open *should* be supported by recent Gnome, KDE, Xfce
 
     def onSensorBandClicked(self):
         button: QToolButton = self.sender()
@@ -349,8 +377,13 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
         for registryName, layer in layers.items():
 
             crs: QgsCoordinateReferenceSystem = layer.crs()
+
             if not crs.isValid():
                 continue
+
+            if layer.dataProvider().name() not in ['gdal', 'ogr']:
+                continue
+
             crsid = f' [{crs.authid()}]'
 
             font = self.mSourcesTree.font()
@@ -409,8 +442,11 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
 
     def value(self) -> str:
         # include the layer mapping
+        code = self.mCode.text()
         text = ''
         for identifier, registryName in self.getSources().items():
+            if not identifier in code:
+                continue
             layer = QgsProject.instance().mapLayer(registryName)
             if isinstance(layer, QgsRasterLayer):
                 text += f'# {identifier} := QgsRasterLayer("{layer.source()}")\n'
