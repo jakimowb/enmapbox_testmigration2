@@ -424,15 +424,6 @@ class DataSourceSpatial(DataSource):
 
 class HubFlowDataSource(DataSource):
 
-    @staticmethod
-    def createID(obj) -> str:
-        import hubflow.core
-        assert isinstance(obj, hubflow.core.FlowObject)
-        attr = getattr(obj, 'filename', None)
-        uri = attr() if callable(attr) else ''
-
-        return 'hubflow:{}:{}:{}'.format(obj.__class__.__name__, id(obj), uri)
-
     def __init__(self, obj, uri: str = None, name: str = None, icon: QIcon = None):
         if isinstance(uri, str):
             id = uri
@@ -857,12 +848,12 @@ class DataSourceFactory(object):
         :param src: any type
         :return: uri, 'hubflow' | None, None
         """
-        from hubflow.core import \
-            FlowObject, Map
-        # all hubflow Object, except spatial types, like Rasters or Vectors
-        # as they are handeled with QGIS API
-        if isinstance(src, FlowObject) and not isinstance(src, Map):
-            return True, src
+        #from hubflow.core import \
+        #    FlowObject, Map
+        ## all hubflow Object, except spatial types, like Rasters or Vectors
+        ## as they are handeled with QGIS API
+        #if isinstance(src, FlowObject) and not isinstance(src, Map):
+        #    return True, src
 
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str) and os.path.exists(src):

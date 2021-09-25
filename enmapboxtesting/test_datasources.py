@@ -558,76 +558,21 @@ class DataSourceTests(EnMAPBoxTestCase):
                     if n > 3:
                         break
 
-    def test_hubflowtypes(self):
-        """
-        Tests to load serialized hubflow objects
-        """
 
-        from enmapbox.gui.datasources import HubFlowDataSource
-
-        dirTmp = self.createTestOutputDirectory() / 'hubflowtypetest'
-        os.makedirs(dirTmp, exist_ok=True)
-        from hubflow.testdata import outdir
-        print(outdir)
-
-        ds = DataSourceManager()
-        dm = DataSourceManagerTreeModel(None, ds)
-        dtv = DataSourceTreeView()
-        dtv.setModel(dm)
-
-        root = dm.rootNode()
-        DATA_MEM = {'AAA':
-                {'RootNode': root,
-                 'B2': {'DDD': root},
-                 'NP': np.arange(256),
-                 'Array2': np.asarray([[1,2,3],[4,5,6]]),
-                 'Model': dm},
-                'CA': QgsMapCanvas(),
-                }
-
-        DATA_PKL = {'D1':
-                        {'Array1D': np.random.rand(256),
-                         'Array2D': np.random.rand(64, 32),
-                         'Array3D': np.random.rand(32, 16, 3),
-                         },
-                    }
-
-        DATA_JSON = {'AAA':
-                        {'List': np.arange(256).tolist(),
-                         },
-                    }
+    def test_issue_672_pkl(self):
 
 
-        path_json = dirTmp / 'test.json'
-        path_pkl = dirTmp / 'test.pkl'
-        path_not_a_json = dirTmp / 'test_not_a.json'
-        path_not_a_pkl = dirTmp / 'test_not_a.pkl'
+        from enmapbox import DIR_REPO
 
-        with open(path_json, 'w', encoding='utf8') as f:
-            json.dump(DATA_JSON, f)
+        path_pkl = pathlib.Path(DIR_REPO) / 'enmapboxunittestdata' / 'classifier.pkl'
 
-        with open(path_pkl, 'wb') as f:
-            pickle.dump(DATA_PKL, f)
+        if os.path.isfile(path_pkl):
+            EB = EnMAPBox(load_core_apps=False, load_other_apps=False)
+            from enmapbox.testing import TestObjects
+            from enmapbox.gui.datasourcemanager import DataSourceTreeView
+            EB.addSource(path_pkl)
+            self.showGui(EB.ui)
 
-        # test crashed data:
-        with open(path_not_a_json, 'w') as f:
-            f.write('[no a json')
-
-        with open(path_not_a_pkl, 'wb') as f:
-            f.write(bytes(b'not a pkl'))
-
-        for s in [path_not_a_json, path_not_a_pkl]:
-            sources = ds.addSource(s)
-            for source in sources:
-                self.assertIsInstance(source, DataSourceFile)
-
-        for s in [path_json, path_pkl]:
-            sources = ds.addSource(s)
-            for source in sources:
-                self.assertIsInstance(source, DataSource)
-
-
-        self.showGui(dtv)
 
     def test_issue478(self):
         # https://bitbucket.org/hu-geomatics/enmap-box/issues/478/visualization-of-single-band-fails
