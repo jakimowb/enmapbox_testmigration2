@@ -191,8 +191,6 @@ class DataSourceTests(EnMAPBoxTestCase):
         mimeData = QMimeData()
         mimeData.setUrls([QUrl.fromLocalFile(path_csv.as_posix())])
 
-
-
     def test_speclibs(self):
 
         ds = DataSourceFactory.create(library)
@@ -221,7 +219,6 @@ class DataSourceTests(EnMAPBoxTestCase):
             self.assertIsInstance(ds, list)
             self.assertTrue(len(ds) > 0, msg='not datasource returned for {}'.format(file))
 
-
     def test_layerSourceUpdate(self):
 
         path = '/vsimem/image.bsq'
@@ -246,7 +243,6 @@ class DataSourceTests(EnMAPBoxTestCase):
         self.assertEqual(lyr.height(), 500)
 
         # del lyr
-
 
     def test_datasourceversions(self):
 
@@ -536,7 +532,6 @@ class DataSourceTests(EnMAPBoxTestCase):
                     mapCanvas.dropEvent(createDropEvent(mimeData))
                     self.assertTrue(len(mapCanvas.layers()) == 1)
 
-
                 if isinstance(dNode, HubFlowObjectTreeNode):
                     pass
 
@@ -558,21 +553,19 @@ class DataSourceTests(EnMAPBoxTestCase):
                     if n > 3:
                         break
 
-
     def test_issue_672_pkl(self):
-
 
         from enmapbox import DIR_REPO
 
         path_pkl = pathlib.Path(DIR_REPO) / 'enmapboxunittestdata' / 'classifier.pkl'
 
-        if os.path.isfile(path_pkl):
-            EB = EnMAPBox(load_core_apps=False, load_other_apps=False)
-            from enmapbox.testing import TestObjects
-            from enmapbox.gui.datasourcemanager import DataSourceTreeView
-            EB.addSource(path_pkl)
-            self.showGui(EB.ui)
+        self.assertTrue(os.path.isfile(path_pkl), msg='missing unittest data: {}'.format(path_pkl))
 
+        dsm = DataSourceManager()
+        panel = DataSourcePanelUI()
+        panel.connectDataSourceManager(dsm)
+        dsm.addSource(path_pkl)
+        self.showGui(panel)
 
     def test_issue478(self):
         # https://bitbucket.org/hu-geomatics/enmap-box/issues/478/visualization-of-single-band-fails
@@ -594,5 +587,4 @@ class DataSourceTests(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

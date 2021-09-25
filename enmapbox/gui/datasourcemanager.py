@@ -1236,7 +1236,7 @@ class DataSourcePanelUI(QgsDockWidget):
         self.mDataSourceTreeModel: DataSourceManagerTreeModel = None
         self.mDataSourceProxyModel: DataSourceManagerProxyModel = DataSourceManagerProxyModel()
         assert isinstance(self.dataSourceTreeView, DataSourceTreeView)
-
+        self.dataSourceTreeView.setUniformRowHeights(True)
         self.dataSourceTreeView.setDragDropMode(QAbstractItemView.DragDrop)
 
         # init actions
