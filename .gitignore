@@ -7,6 +7,7 @@ tmp/
 doc/build/
 */build/
 enmapboxtestdata/
+enmapboxunittestdata/
 test-reports/
 test-outputs/
 qgisresources
