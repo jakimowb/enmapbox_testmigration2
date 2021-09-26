@@ -36,7 +36,7 @@ from PyQt5.QtWidgets import QAbstractItemView, QStyle, QAction, QTreeView, QFile
 import qgis.utils
 from enmapbox import DIR_TESTDATA, messageLog
 from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB, is_spectral_library
-from enmapbox.externals.qps.utils import bandClosestToWavelength
+from enmapbox.externals.qps.utils import bandClosestToWavelength, QGIS_DATATYPE_NAMES
 from enmapbox.gui import \
     ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, PyObjectTreeNode, \
     qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, SpatialExtent, fileSizeString, defaultBands, \
@@ -573,7 +573,7 @@ class DataSourceSizesTreeNode(TreeNode):
                 value.append(f'{dataSource.nSamples()}'
                              f'x{dataSource.nLines()}'
                              f'x{dataSource.nBands()}'
-                             f'x{dp.dataTypeSize(1)} Byte')
+                             f'x{dp.dataTypeSize(1)} ({QGIS_DATATYPE_NAMES.get(dp.dataType(1), "unknown type")})')
 
                 childs += [TreeNode('Pixel',
                                     value=f'{lyr.rasterUnitsPerPixelX()}x'
@@ -1236,7 +1236,7 @@ class DataSourcePanelUI(QgsDockWidget):
         self.mDataSourceTreeModel: DataSourceManagerTreeModel = None
         self.mDataSourceProxyModel: DataSourceManagerProxyModel = DataSourceManagerProxyModel()
         assert isinstance(self.dataSourceTreeView, DataSourceTreeView)
-
+        self.dataSourceTreeView.setUniformRowHeights(True)
         self.dataSourceTreeView.setDragDropMode(QAbstractItemView.DragDrop)
 
         # init actions
