@@ -51,7 +51,7 @@ class TestFitClassifierAlgorithm(TestCase):
     def test_unfitted(self):
         alg = FitTestClassifierAlgorithm()
         parameters = {
-            alg.P_DATASET: 'None',
+            alg.P_DATASET: None,
             alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
         }
         self.runalg(alg, parameters)
