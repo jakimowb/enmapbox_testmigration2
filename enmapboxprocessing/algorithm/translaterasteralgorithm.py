@@ -177,7 +177,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         dataType = self.parameterAsQgsDataType(parameters, self.P_DATA_TYPE, context, default=provider.dataType(1))
         copyMetadata = self.parameterAsBoolean(parameters, self.P_COPY_METADATA, context)
         copyStyle = self.parameterAsBoolean(parameters, self.P_COPY_STYLE, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
         format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context, filename)
         width = int(round(extent.width() / grid.rasterUnitsPerPixelX()))
         height = int(round(extent.height() / grid.rasterUnitsPerPixelY()))

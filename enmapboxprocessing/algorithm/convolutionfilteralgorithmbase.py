@@ -90,7 +90,7 @@ class ConvolutionFilterAlgorithmBase(EnMAPProcessingAlgorithm):
             nan_treatment = 'interpolate'
         else:
             nan_treatment = 'fill'
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         maximumMemoryUsage = Utils.maximumMemoryUsage()
 

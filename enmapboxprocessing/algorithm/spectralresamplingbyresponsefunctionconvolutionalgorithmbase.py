@@ -76,7 +76,7 @@ class SpectralResamplingByResponseFunctionConvolutionAlgorithmBase(EnMAPProcessi
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         responses = self.parameterAsResponses(parameters, self.P_CODE, context)
         saveResponseFunction = self.parameterAsBoolean(parameters, self.P_SAVE_RESPONSE_FUNCTION, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
         maximumMemoryUsage = gdal.GetCacheMax()
 
         with open(filename + '.log', 'w') as logfile:

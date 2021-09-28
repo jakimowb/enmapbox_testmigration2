@@ -84,7 +84,7 @@ class RandomPointsFromCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
         distanceGlobal = self.parameterAsInt(parameters, self.P_DISTANCE_GLOBAL, context)
         distanceStratum = self.parameterAsInt(parameters, self.P_DISTANCE_STRATUM, context)
         seed = self.parameterAsInt(parameters, self.P_SEED, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_POINTS, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_POINTS, context)
         categories = Utils.categoriesFromPalettedRasterRenderer(stratification.renderer())
         if len(N) == 1:
             N = N * len(categories)

@@ -51,7 +51,7 @@ class SpectralResamplingBySpectralRasterWavelengthAndFwhmAlgorithm(EnMAPProcessi
             parameters, self.P_RESPONSE_RASTER, context, checkFwhm=True
         )
         saveResponseFunction = self.parameterAsBoolean(parameters, self.P_SAVE_RESPONSE_FUNCTION, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)

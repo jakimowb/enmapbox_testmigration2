@@ -68,7 +68,7 @@ class CreateGridAlgorithm(EnMAPProcessingAlgorithm):
         crs = self.parameterAsCrs(parameters, self.P_CRS, context)
         extent = self.parameterAsExtent(parameters, self.P_EXTENT, context, crs=crs)
         unit = self.parameterAsEnum(parameters, self.P_UNIT, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_GRID, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_GRID, context)
         if unit == self.PixelUnits:
             width = self.parameterAsInt(parameters, self.P_WIDTH, context)
             height = self.parameterAsInt(parameters, self.P_HEIGHT, context)
