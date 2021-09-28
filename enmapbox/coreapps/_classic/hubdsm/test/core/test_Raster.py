@@ -4,7 +4,7 @@ import numpy as np
 from osgeo import gdal
 from osgeo.gdal_array import GDALTypeCodeToNumericTypeCode
 
-from enmapboxtestdata import enmap, hires
+from enmapbox.exampledata import enmap, hires
 from _classic.hubdsm.core.band import Band
 from _classic.hubdsm.core.error import ProjectionMismatchError
 from _classic.hubdsm.core.extent import Extent

@@ -4,7 +4,7 @@ from qgis._core import QgsRasterRange
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.testcase import TestCase
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 
 
 class TestRasterReader(TestCase):

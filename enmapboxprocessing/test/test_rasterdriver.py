@@ -5,7 +5,7 @@ from qgis._core import QgsCoordinateReferenceSystem, Qgis, QgsRasterLayer
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.testcase import TestCase
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 
 
 class TestDriver(TestCase):
