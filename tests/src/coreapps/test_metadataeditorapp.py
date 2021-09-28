@@ -25,7 +25,7 @@ import unittest
 import xmlrunner
 from enmapbox import DIR_ENMAPBOX
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-from enmapboxtestdata import landcover_polygons, enmap
+from enmapbox.exampledata import landcover_polygons, enmap
 from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsProject
 
 p = pathlib.Path(DIR_ENMAPBOX) / 'coreapps'
@@ -58,7 +58,7 @@ class TestMDMetadataKeys(EnMAPBoxTestCase):
 
     def createSupportedSources(self)->list:
 
-        from enmapboxtestdata import enmap, landcover_polygons
+        from enmapbox.exampledata import enmap, landcover_polygons
 
         sources = []
 
@@ -77,7 +77,7 @@ class TestMDMetadataKeys(EnMAPBoxTestCase):
         return sources
 
     def test_MDDialog(self):
-        from enmapboxtestdata import hires
+        from enmapbox.exampledata import hires
 
 
         layers = [TestObjects.createRasterLayer(nb=30),

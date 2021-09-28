@@ -23,7 +23,7 @@ from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsPointXY, 
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.gui.utils import *
 
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 
 
 class testClassUtils(EnMAPBoxTestCase):
@@ -112,7 +112,7 @@ class testClassUtils(EnMAPBoxTestCase):
 
     def test_wavelength_information(self):
 
-        from enmapboxtestdata import enmap
+        from enmapbox.exampledata import enmap
         from enmapbox.gui.utils import parseWavelength, parseFWHM
         wl, wlu = parseWavelength(enmap)
         fwhm = parseFWHM(enmap)

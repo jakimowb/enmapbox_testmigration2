@@ -11,7 +11,7 @@ from enmapbox import EnMAPBox
 
 hasTestData = False
 try:
-    import enmapboxtestdata
+    import enmapbox.exampledata
     hasTestData = True
 except ModuleNotFoundError:
     hasTestData = False

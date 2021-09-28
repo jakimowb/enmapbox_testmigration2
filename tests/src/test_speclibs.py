@@ -24,14 +24,14 @@ from osgeo import gdal, ogr, osr
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.gui.utils import *
 from enmapbox.gui import *
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 
 
 class testClassUtils(EnMAPBoxTestCase):
 
     def test_speclibImports(self):
 
-        from enmapboxtestdata import enmap, landcover_polygons
+        from enmapbox.exampledata import enmap, landcover_polygons
 
         vl = QgsVectorLayer(landcover_polygons)
         rl = QgsRasterLayer(enmap)

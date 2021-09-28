@@ -69,14 +69,14 @@ class TestIssue(EnMAPBoxTestCase):
         if False:
             EMB.loadExampleData()
         else:
-            import enmapboxtestdata
+            import enmapbox.exampledata
             sources = []
-            sources += [enmapboxtestdata.enmap,
-                        enmapboxtestdata.landcover_polygons,
-                        enmapboxtestdata.landcover_points,
-                        enmapboxtestdata.library,
-                        re.sub(r'\.sli$', '.gpkg', enmapboxtestdata.library),
-                        enmapboxtestdata.enmap_srf_library
+            sources += [enmapbox.exampledata.enmap,
+                        enmapbox.exampledata.landcover_polygons,
+                        enmapbox.exampledata.landcover_points,
+                        enmapbox.exampledata.library,
+                        re.sub(r'\.sli$', '.gpkg', enmapbox.exampledata.library),
+                        enmapbox.exampledata.enmap_srf_library
                         ]
 
             sources += [TestObjects.createVectorLayer(),

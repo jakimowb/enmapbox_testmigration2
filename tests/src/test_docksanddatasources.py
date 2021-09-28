@@ -25,7 +25,7 @@ from qgis.PyQt.QtWidgets import *
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 from enmapbox.gui import SpectralProfile
 from enmapbox import EnMAPBox
-from enmapboxtestdata import *
+from enmapbox.exampledata import *
 from enmapbox.gui.datasources import *
 from enmapbox.gui.datasourcemanager import *
 from enmapbox.gui.dockmanager import *
@@ -222,7 +222,7 @@ class testDataSources(EnMAPBoxTestCase):
         self.showGui(da)
 
     def test_dockTreeViewDoubleClicks(self):
-        from enmapboxtestdata import enmap, landcover_polygons
+        from enmapbox.exampledata import enmap, landcover_polygons
         eb = EnMAPBox(load_core_apps=False, load_other_apps=False)
 
         lyrR = QgsRasterLayer(enmap)

@@ -23,7 +23,7 @@ from qgis.gui import QgsMapCanvas
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from enmapbox.testing import EnMAPBoxTestCase
-from enmapboxtestdata import enmap, landcover_polygons
+from enmapbox.exampledata import enmap, landcover_polygons
 from enmapbox.gui import *
 from enmapbox.testing import TestObjects
 from enmapbox.externals.qps.cursorlocationvalue import CursorLocationInfoDock

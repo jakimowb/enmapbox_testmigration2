@@ -44,7 +44,7 @@ def install_zipfile(url: str, localPath: pathlib.Path, zip_root: str = None):
     del response
 
 
-def install_enmapboxtestdata():
+def install_exampledata():
     localpath = DIR_REPO / 'enmapbox' / 'exampledata'
     install_zipfile(URL_TESTDATA, localpath, 'enmapboxtestdata')
 
@@ -69,8 +69,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.enmapboxtestdata:
-        install_enmapboxtestdata()
+    if args.exampledata:
+        install_exampledata()
 
     if args.qgisresources:
         install_qgisresources()
