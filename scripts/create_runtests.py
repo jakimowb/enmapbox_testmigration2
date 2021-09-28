@@ -10,7 +10,7 @@ def create_runtests():
     DIR_REPO = DIR_SCRIPTS.parent
 
     TEST_DIRECTORIES = [
-        DIR_REPO / 'enmapboxtesting',
+        DIR_REPO / 'tests',
         DIR_REPO / 'hubdc' / 'test',
     ]
 

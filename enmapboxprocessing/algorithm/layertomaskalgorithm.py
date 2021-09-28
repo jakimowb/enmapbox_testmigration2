@@ -50,7 +50,7 @@ class LayerToMaskAlgorithm(EnMAPProcessingAlgorithm):
                 feedback.reportError(message, True)
                 raise QgsProcessingException(message)
             grid = layer
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_MASK, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_MASK, context)
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
 
         with open(filename + '.log', 'w') as logfile:

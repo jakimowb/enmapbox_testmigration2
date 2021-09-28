@@ -61,7 +61,7 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         probability = self.parameterAsRasterLayer(parameters, self.P_PROBABILITY, context)
         styledLayer = self.parameterAsLayer(parameters, self.P_COLORS_LAYER, context)
         colors = self.parameterAsValues(parameters, self.P_COLORS, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RGB, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RGB, context)
         maximumMemoryUsage = gdal.GetCacheMax()
 
         categories = None
