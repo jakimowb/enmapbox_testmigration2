@@ -52,6 +52,14 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             (self._BAND_LIST, 'Bands to subset and rearrange. '
                               'An empty selection defaults to all bands in native order.'),
             (self._GRID, 'The destination grid.'),
+            (self._COPY_METADATA, 'Whether to copy metadata from source to destination. '
+                                  'Special care is taken of ENVI list items containing band information. '
+                                  'The following list items will be properly subsetted according to the selected '
+                                  'bands: band names, bbl, data_gain_values, data_offset_values, '
+                                  'data_reflectance_gain_values, data_reflectance_offset_values, fwhm, '
+                                  'wavelength.'),
+            (self._COPY_STYLE, 'Whether to copy style from source to destination.'),
+            (self._CREATION_PROFILE, 'Output format and creation options.'),
             (self._SPECTRAL_RASTER, 'A spectral raster layer used for specifying a band subset '
                                     'by matching the center wavelength.'),
             (self._SPECTRAL_BAND_LIST, 'Spectral bands used to match source raster bands.'
@@ -67,13 +75,6 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             (self._EXCLUDE_BAD_BANDS, 'Whether to exclude bad bands (given by BBL metadata item inside ENVI domain). '
                                       'Also see The ENVI Header Format for more details: '
                                       'https://www.l3harrisgeospatial.com/docs/ENVIHeaderFiles.html '),
-            (self._COPY_METADATA, 'Whether to copy metadata from source to destination. '
-                                  'Special care is taken of ENVI list items containing band information. '
-                                  'The following list items will be properly subsetted according to the selected '
-                                  'bands: band names, bbl, data_gain_values, data_offset_values, '
-                                  'data_reflectance_gain_values, data_reflectance_offset_values, fwhm, '
-                                  'wavelength.'),
-            (self._COPY_STYLE, 'Whether to copy style from source to destination.'),
             (self._RESAMPLE_ALG, 'Spatial resample algorithm.'),
             (self._SOURCE_NODATA, 'The value to be used instead of the original raster layer no data value.'),
             (self._NODATA, 'The value to be used instead of the default destination no data value.'),
