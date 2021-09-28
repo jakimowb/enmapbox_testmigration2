@@ -3,7 +3,7 @@ import numpy as np
 from enmapboxprocessing.algorithm.createmaskalgorithm import CreateMaskAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import hires
+from enmapbox.exampledata import hires
 
 
 class TestCreateMaskAlgorithm(TestCase):

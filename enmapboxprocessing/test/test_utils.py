@@ -5,7 +5,7 @@ from qgis._core import QgsVectorLayer
 
 from enmapboxprocessing.typing import Category
 from enmapboxprocessing.utils import Utils
-from enmapboxtestdata import landcover_polygons
+from enmapbox.exampledata import landcover_polygons
 
 
 class TestUtils(TestCase):

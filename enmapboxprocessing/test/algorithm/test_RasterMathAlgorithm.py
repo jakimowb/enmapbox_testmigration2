@@ -6,7 +6,7 @@ from qgis._core import QgsProject, QgsRasterLayer, QgsMapLayer
 from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, hires, landcover_polygons
+from enmapbox.exampledata import enmap, hires, landcover_polygons
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

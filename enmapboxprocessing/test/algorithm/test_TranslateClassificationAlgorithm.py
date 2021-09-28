@@ -5,7 +5,7 @@ import processing
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 from enmapboxunittestdata import landcover_raster_30m_epsg3035
 
 writeToDisk = True

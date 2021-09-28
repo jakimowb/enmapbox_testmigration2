@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from qgis._core import QgsVectorLayer, QgsRasterLayer
 
 from enmapbox.externals.qps.speclib.core import SpectralLibrary
-from enmapboxtestdata import enmap, landcover_points
+from enmapbox.exampledata import enmap, landcover_points
 from _classic.hubdsm.algorithm.estimatorpredict import estimatorPredict
 from _classic.hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
 from _classic.hubdsm.core.raster import Raster
