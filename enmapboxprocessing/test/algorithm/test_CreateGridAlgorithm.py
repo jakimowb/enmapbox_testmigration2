@@ -1,9 +1,6 @@
-import subprocess
-import webbrowser
-
-import processing
 from qgis._core import QgsRasterLayer, QgsProcessingContext, QgsCoordinateReferenceSystem
 
+import processing
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxtestdata import enmap
@@ -30,7 +27,7 @@ class TestCreateGridAlgorithm(TestCase):
         cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
         print(cmd)
         eval(cmd)
-        #webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
+        # webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
 
     def test_pixelUnits(self):
         raster = QgsRasterLayer(enmap)

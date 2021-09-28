@@ -1,9 +1,5 @@
-import webbrowser
-
-import processing
-from qgis._core import QgsRasterLayer, QgsVectorLayer, QgsPalettedRasterRenderer, QgsProcessingContext
-
 import numpy as np
+from qgis._core import QgsRasterLayer, QgsVectorLayer, QgsPalettedRasterRenderer
 
 from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader

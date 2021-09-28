@@ -6,12 +6,16 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>421</width>
-    <height>501</height>
+    <width>346</width>
+    <height>299</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="../../qpsresources.qrc">
+    <normaloff>:/qps/ui/icons/speclib_plot.svg</normaloff>:/qps/ui/icons/speclib_plot.svg</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -39,15 +43,24 @@
      </property>
      <widget class="SpectralProfilePlotWidget" name="plotWidget">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>0</horstretch>
-        <verstretch>2</verstretch>
+        <verstretch>3</verstretch>
        </sizepolicy>
       </property>
      </widget>
-     <widget class="QgsCollapsibleGroupBox" name="mGroupBox">
+     <widget class="QgsCollapsibleGroupBox" name="gbVisualization">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>1</verstretch>
+       </sizepolicy>
+      </property>
       <property name="title">
        <string>Visualization</string>
+      </property>
+      <property name="collapsed">
+       <bool>false</bool>
       </property>
       <layout class="QGridLayout" name="gridLayout">
        <property name="leftMargin">
@@ -79,7 +92,7 @@
             <string>+VIS</string>
            </property>
            <property name="icon">
-            <iconset>
+            <iconset resource="../../../../QGIS/images/images.qrc">
              <normaloff>:/images/themes/default/mActionAdd.svg</normaloff>:/images/themes/default/mActionAdd.svg</iconset>
            </property>
            <property name="autoRaise">
@@ -93,7 +106,7 @@
             <string>-VIS</string>
            </property>
            <property name="icon">
-            <iconset>
+            <iconset resource="../../../../QGIS/images/images.qrc">
              <normaloff>:/images/themes/default/mActionRemove.svg</normaloff>:/images/themes/default/mActionRemove.svg</iconset>
            </property>
            <property name="autoRaise">
@@ -107,22 +120,8 @@
             <string>...</string>
            </property>
            <property name="icon">
-            <iconset>
+            <iconset resource="../../../../QGIS/images/images.qrc">
              <normaloff>:/images/themes/default/mActionShowSelectedLayers.svg</normaloff>:/images/themes/default/mActionShowSelectedLayers.svg</iconset>
-           </property>
-           <property name="autoRaise">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QToolButton" name="btnColorsFromFeatureRenderer">
-           <property name="text">
-            <string>...</string>
-           </property>
-           <property name="icon">
-            <iconset>
-             <normaloff>:/qps/ui/icons/speclib_usevectorrenderer.svg</normaloff>:/qps/ui/icons/speclib_usevectorrenderer.svg</iconset>
            </property>
            <property name="autoRaise">
             <bool>true</bool>
@@ -161,6 +160,9 @@
          <property name="selectionMode">
           <enum>QAbstractItemView::ExtendedSelection</enum>
          </property>
+         <property name="indentation">
+          <number>12</number>
+         </property>
         </widget>
        </item>
       </layout>
@@ -170,7 +172,7 @@
   </layout>
   <action name="actionAddProfileVis">
    <property name="icon">
-    <iconset>
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionAdd.svg</normaloff>:/images/themes/default/mActionAdd.svg</iconset>
    </property>
    <property name="text">
@@ -182,7 +184,7 @@
   </action>
   <action name="actionRemoveProfileVis">
    <property name="icon">
-    <iconset>
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionRemove.svg</normaloff>:/images/themes/default/mActionRemove.svg</iconset>
    </property>
    <property name="text">
@@ -197,7 +199,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/mActionShowSelectedLayers.svg</normaloff>:/images/themes/default/mActionShowSelectedLayers.svg</iconset>
    </property>
    <property name="text">
@@ -215,7 +217,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="../../qpsresources.qrc">
      <normaloff>:/qps/ui/icons/speclib_usevectorrenderer.svg</normaloff>:/qps/ui/icons/speclib_usevectorrenderer.svg</iconset>
    </property>
    <property name="text">
@@ -227,7 +229,7 @@
   </action>
   <action name="optionCursorCrosshair">
    <property name="icon">
-    <iconset>
+    <iconset resource="../../../../QGIS/images/images.qrc">
      <normaloff>:/images/themes/default/cursors/mCrossHair.svg</normaloff>:/images/themes/default/cursors/mCrossHair.svg</iconset>
    </property>
    <property name="text">
@@ -239,7 +241,7 @@
   </action>
   <action name="optionCursorPosition">
    <property name="icon">
-    <iconset>
+    <iconset resource="../../qpsresources.qrc">
      <normaloff>:/qps/ui/icons/cursorlocationinfo.svg</normaloff>:/qps/ui/icons/cursorlocationinfo.svg</iconset>
    </property>
    <property name="text">

@@ -100,8 +100,11 @@ class SpectralResamplingByResponseFunctionConvolutionAlgorithmBase(EnMAPProcessi
                         weights.append(fx)
                         xs.append(x)
                     weights = np.divide(weights, np.max(weights))  # scale to 0-1 range
-                    responses2[f'Band {i + 1} ({k} Nanometers)'] = [(x, round(w, RESPONSE_CUTOFF_DIGITS)) for x, w in
-                                                                    zip(xs, weights)]
+    #                responses2[f'Band {i + 1} ({k} Nanometers)'] = [(x, round(w, RESPONSE_CUTOFF_DIGITS)) for x, w in
+    #                                                                zip(xs, weights)]
+                    responses2[f'band {i + 1}'] = [(x, round(w, RESPONSE_CUTOFF_DIGITS)) for x, w in
+                                                                zip(xs, weights)]
+
                 else:
                     responses2[k] = v
             responses = responses2
@@ -150,11 +153,10 @@ class SpectralResamplingByResponseFunctionConvolutionAlgorithmBase(EnMAPProcessi
                     )
                 )
 
-            for bandNo in range(1, writer.bandCount() + 1):
-                writer.setWavelength(outputWavelength[bandNo - 1], bandNo)
-
             for bandNo, bandName in enumerate(responses, 1):
-                writer.setBandName(bandName, bandNo)
+                wl = round(outputWavelength[bandNo - 1], 1)
+                writer.setWavelength(wl, bandNo)
+                writer.setBandName(bandName + f' ({wl} Nanometers)', bandNo)
             writer.setNoDataValue(outputNoDataValue, bandNo)
             writer.close()
 

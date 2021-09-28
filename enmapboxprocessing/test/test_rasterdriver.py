@@ -1,11 +1,9 @@
+import numpy as np
 from osgeo import gdal
 from qgis._core import QgsCoordinateReferenceSystem, Qgis, QgsRasterLayer
 
-import numpy as np
-
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.test.testcase import TestCase
 from enmapboxtestdata import enmap
 
@@ -36,16 +34,16 @@ class TestDriver(TestCase):
         self.assertArrayEqual(raster.array(), array)
 
     def test_createRaster_withDifferentDataTypes(self):
-        filename = 'c:/vsimem/raster1.tif'
-        for dtype in [np.uint8, np.float32, np.float64, np.int16, np.int32, np.uint16, np.uint32]:
+        for i, dtype in enumerate([np.uint8, np.float32, np.float64, np.int16, np.int32, np.uint16, np.uint32]):
+            filename = f'c:/vsimem/raster_{i}.tif'
             array = np.array([[[0]]], dtype=dtype)
             Driver(filename).createFromArray(array)
             raster = RasterReader(filename)
             self.assertEqual(raster.array()[0].dtype, array.dtype)
 
     def test_createRaster_withDifferentFormats(self):
-        filename = 'c:/vsimem/raster1.tif'
         for format in ['ENVI', 'GTiff']:
+            filename = f'c:/vsimem/raster_{format}.tif'
             array = np.array([[[1]], [[2]], [[3]]])
             Driver(filename, format=format).createFromArray(array)
             raster = RasterReader(filename)

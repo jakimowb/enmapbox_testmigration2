@@ -46,7 +46,7 @@ from qgis.PyQt.QtCore import \
     QAbstractTableModel, QModelIndex, QSortFilterProxyModel, QRegExp, QUrl
 
 from qgis.PyQt.QtGui import QContextMenuEvent, QColor, QIcon
-import sip
+from qgis.PyQt import sip
 from enmapbox import debugLog
 
 URL_PACKAGE_HELP = r"https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages"
@@ -481,7 +481,7 @@ def missingTestData() -> bool:
         return True
 
 
-def installTestData(overwrite_existing=False, ask=True):
+def installTestData(overwrite_existing:bool=False, ask:bool=True):
     """
     Downloads and installs the EnMAP-Box Example Data
     """

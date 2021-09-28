@@ -21,11 +21,13 @@ class PrepareClassificationDatasetFromCategorizedVectorAlgorithm(EnMAPProcessing
     P_CATEGORIZED_VECTOR, _CATEGORIZED_VECTOR = 'categorizedVector', 'Categorized vector layer'
     P_FEATURE_RASTER, _FEATURE_RASTER = 'featureRaster', 'Raster layer with features'
     P_CATEGORY_FIELD, _CATEGORY_FIELD = 'categoryField', 'Field with class values'
+    P_COVERAGE, _COVERAGE = 'coverage', 'Minimum pixel coverage'
+    P_MAJORITY_VOTING, _MAJORITY_VOTING = 'majorityVoting', 'Majority voting'
     P_OUTPUT_DATASET, _OUTPUT_DATASET = 'outputClassificationDataset', 'Output dataset'
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Classification dataset (from categorized vector layer and feature raster)'
+        return 'Create classification dataset (from categorized vector layer and feature raster)'
 
     def shortDescription(self) -> str:
         return 'Create a classification dataset by sampling data for pixels that match the given categories ' \
@@ -46,6 +48,10 @@ class PrepareClassificationDatasetFromCategorizedVectorAlgorithm(EnMAPProcessing
             (self._CATEGORY_FIELD, 'Field with class values used as target data y. '
                                    'If not selected, the field defined by the renderer is used. '
                                    'If that is also not specified, an error is raised.'),
+            (self._COVERAGE, 'Exclude all pixel where (polygon) coverage is smaller than given threshold.'),
+            (self._MAJORITY_VOTING, 'Whether to use majority voting. '
+                                    'Turn off to use simple nearest neighbour resampling, which is much faster, '
+                                    'but may result in highly inaccurate class decisions.'),
             (self._OUTPUT_DATASET, self.PickleFileDestination)
         ]
 
@@ -59,6 +65,8 @@ class PrepareClassificationDatasetFromCategorizedVectorAlgorithm(EnMAPProcessing
             self.P_CATEGORY_FIELD, self._CATEGORY_FIELD, None, self.P_CATEGORIZED_VECTOR,
             QgsProcessingParameterField.Any, False, True, False, True
         )
+        self.addParameterInt(self.P_COVERAGE, self._COVERAGE, 50, False, 0, 100, advanced=True)
+        self.addParameterBoolean(self.P_MAJORITY_VOTING, self._MAJORITY_VOTING, True, False, True)
         self.addParameterFileDestination(self.P_OUTPUT_DATASET, self._OUTPUT_DATASET, self.PickleFileFilter)
 
     def processAlgorithm(
@@ -67,6 +75,8 @@ class PrepareClassificationDatasetFromCategorizedVectorAlgorithm(EnMAPProcessing
         classification = self.parameterAsVectorLayer(parameters, self.P_CATEGORIZED_VECTOR, context)
         raster = self.parameterAsRasterLayer(parameters, self.P_FEATURE_RASTER, context)
         classField = self.parameterAsField(parameters, self.P_CATEGORY_FIELD, context)
+        minCoverage = self.parameterAsInt(parameters, self.P_COVERAGE, context)
+        majorityVoting = self.parameterAsBoolean(parameters, self.P_MAJORITY_VOTING, context)
         filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_DATASET, context)
 
         with open(filename + '.log', 'w') as logfile:
@@ -99,7 +109,8 @@ class PrepareClassificationDatasetFromCategorizedVectorAlgorithm(EnMAPProcessing
             parameters = {
                 alg.P_CATEGORIZED_VECTOR: classification,
                 alg.P_GRID: raster,
-                alg.P_MAJORITY_VOTING: False,
+                alg.P_COVERAGE: minCoverage,
+                alg.P_MAJORITY_VOTING: majorityVoting,
                 alg.P_OUTPUT_CATEGORIZED_RASTER: Utils.tmpFilename(filename, 'classification.tif')
             }
             result = self.runAlg(alg, parameters, None, feedback2, context, True)

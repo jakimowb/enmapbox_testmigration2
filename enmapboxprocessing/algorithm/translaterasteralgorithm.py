@@ -142,7 +142,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterBoolean(self.P_UNSET_SOURCE_NODATA, self._UNSET_SOURCE_NODATA, False, False, True)
         self.addParameterBoolean(self.P_UNSET_NODATA, self._UNSET_NODATA, False, False, True)
         self.addParameterDataType(self.P_DATA_TYPE, self._DATA_TYPE, optional=True, advanced=True)
-        self.addParameterCreationProfile(self.P_CREATION_PROFILE, self._CREATION_PROFILE, '', True, True)
+        self.addParameterCreationProfile(self.P_CREATION_PROFILE, self._CREATION_PROFILE, '', True, False)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER, allowEnvi=True, allowVrt=True)
 
     def processAlgorithm(
@@ -291,21 +291,21 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                 )
                 assert outGdalDataset is not None
 
-            if copyStyle:
-                raster.saveDefaultStyle()
-
             writer = RasterWriter(outGdalDataset)
             reader = RasterReader(raster)
             if copyMetadata:
                 metadata = reader.metadata()
-                metadata = {key: value for key, value in metadata.items() if not key.startswith('Band_')}
+                # if '' in metadata:
+                #     metadata[''] = {key: value for key, value in metadata[''].items() if not key.startswith('Band_')}
                 writer.setMetadata(metadata)
                 if bandList is None:
                     bandList = range(1, reader.bandCount() + 1)
                 for dstBandNo, srcBandNo in enumerate(bandList, 1):
-                    writer.setMetadata(reader.metadata(srcBandNo), dstBandNo)
-                    writer.setWavelength(reader.wavelength(srcBandNo), dstBandNo)
-                    writer.setFwhm(reader.fwhm(srcBandNo), dstBandNo)
+                    metadata = reader.metadata(srcBandNo)
+                    writer.setMetadata(metadata, dstBandNo)
+                    units = reader.wavelengthUnits(srcBandNo)
+                    writer.setWavelength(reader.wavelength(srcBandNo, units), dstBandNo, units)
+                    writer.setFwhm(reader.fwhm(srcBandNo, units), dstBandNo, units)
                     writer.setBadBandMultiplier(reader.badBandMultiplier(srcBandNo), dstBandNo)
 
             if copyStyle:

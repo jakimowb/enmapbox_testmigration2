@@ -35,13 +35,11 @@ import zipfile
 import itertools
 import pathlib
 import warnings
-import collections
 import copy
 import shutil
 import typing
 import json
 import gc
-import sip
 import traceback
 import calendar
 import datetime
@@ -53,7 +51,7 @@ from qgis.core import QgsField, QgsVectorLayer, QgsRasterLayer, QgsRasterDataPro
     QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsRectangle, QgsPointXY, QgsProject, \
     QgsMapLayerProxyModel, QgsRasterRenderer, QgsMessageOutput, QgsFeature, QgsTask, Qgis, QgsGeometry, \
     QgsFields
-from qgis.gui import *
+
 from qgis.gui import QgisInterface, QgsDialog, QgsMessageViewer, QgsMapLayerComboBox, QgsMapCanvas
 
 from qgis.PyQt.QtCore import *
@@ -74,7 +72,6 @@ REMOVE_setShortcutVisibleInContextMenu = hasattr(QAction, 'setShortcutVisibleInC
 jp = os.path.join
 dn = os.path.dirname
 
-
 QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.uint8,
                          Qgis.UInt16: np.uint16,
                          Qgis.Int16: np.int16,
@@ -86,6 +83,20 @@ QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.uint8,
                          Qgis.CFloat64: np.complex64,
                          Qgis.ARGB32: np.uint32,
                          Qgis.ARGB32_Premultiplied: np.uint32}
+
+QGIS_DATATYPE_NAMES = {
+                     Qgis.Byte: 'Byte',
+                     Qgis.UInt16: 'UInt16',
+                     Qgis.Int16: 'Int16',
+                     Qgis.UInt32: 'UInt32',
+                     Qgis.Int32: 'Int32',
+                     Qgis.Float32: 'Float32',
+                     Qgis.Float64: 'Float64',
+                     Qgis.CFloat32: 'Complex',
+                     Qgis.CFloat64: 'Complex64',
+                     Qgis.ARGB32: 'UInt32',
+                     Qgis.ARGB32_Premultiplied: 'Int32'}
+
 
 def rm(p):
     """
@@ -458,7 +469,7 @@ convertDateUnit = UnitLookup.convertDateUnit
 
 METRIC_EXPONENTS = UnitLookup.METRIC_EXPONENTS
 
-# contains the wavelengths
+# contains a lookup for wavelengths in nanometers
 LUT_WAVELENGTH = dict({'B': 480,
                        'G': 570,
                        'R': 660,
@@ -467,6 +478,15 @@ LUT_WAVELENGTH = dict({'B': 480,
                        'SWIR1': 1650,
                        'SWIR2': 2150
                        })
+WAVELENGTH_DESCRIPTION = {
+    'B': f'Visible blue at {LUT_WAVELENGTH["B"]} nm',
+    'G': f'Visible green at {LUT_WAVELENGTH["G"]} nm',
+    'R': f'Visible red at {LUT_WAVELENGTH["R"]} nm',
+    'NIR': f'Near infrared at {LUT_WAVELENGTH["NIR"]} nm',
+    'SWIR': f'Shortwave infrared at {LUT_WAVELENGTH["SWIR"]} nm',
+    'SWIR1': f'Shortwave infrared at {LUT_WAVELENGTH["SWIR1"]} nm',
+    'SWIR2': f'Shortwave infrared at {LUT_WAVELENGTH["SWIR2"]} nm',
+}
 
 NEXT_COLOR_HUE_DELTA_CON = 10
 NEXT_COLOR_HUE_DELTA_CAT = 100
@@ -1138,6 +1158,8 @@ def loadUi(uifile: typing.Union[str, pathlib.Path],
             from .. import qps
         except ImportError:
             import qps
+        except ValueError:
+            import qps
 
         elem = doc.elementsByTagName('customwidget')
         for child in [elem.item(i) for i in range(elem.count())]:
@@ -1320,8 +1342,15 @@ def qgsFields2str(qgsFields: QgsFields) -> str:
     infos = []
     for field in qgsFields:
         assert isinstance(field, QgsField)
-        info = [field.name(), field.type(), field.typeName(), field.length(), field.precision(), field.comment(),
-                field.subType()]
+        # info = [field.name(), field.type(), field.typeName(), field.length(), field.precision(), field.comment(), field.subType()]
+        info = dict(name=field.name(),
+                    type=field.type(),
+                    typeName=field.typeName(),
+                    length=field.length(),
+                    precission=field.precision(),
+                    comment=field.comment(),
+                    subType=field.subType(),
+                    editorWidget=field.editorWidgetSetup().type())
         infos.append(info)
     return json.dumps(infos)
 
@@ -1333,7 +1362,15 @@ def str2QgsFields(fieldString: str) -> QgsFields:
     infos = json.loads(fieldString)
     assert isinstance(infos, list)
     for info in infos:
-        field = QgsField(*info)
+        field = QgsField(name=info['name'],
+                         type=info['type'],
+                         typeName=info['typeName'],
+                         len=info['length'],
+                         prec=info['precission'],
+                         comment=info['comment'],
+                         subType=info['subType']
+                         )
+        field.setEditorWidgetSetup(QgsEditorWidgetSetup(info['editorWidget'], {}))
         fields.append(field)
     return fields
 
@@ -1544,10 +1581,6 @@ def displayBandNames(rasterSource, bands=None, leadingBandNumber=True):
     return None
 
 
-
-
-
-
 def defaultBands(dataset) -> list:
     """
     Returns a list of 3 default bands
@@ -1656,7 +1689,7 @@ def parseBadBandList(dataset) -> typing.List[int]:
     return bbl
 
 
-def parseFWHM(dataset) -> typing.Tuple[np.ndarray]:
+def parseFWHM(dataset) -> np.ndarray:
     """
     Returns the full width half maximum
     :param dataset:
@@ -2036,9 +2069,46 @@ def osrSpatialReference(input) -> osr.SpatialReference:
     return srs
 
 
+def px2geocoordinatesV2(layer: QgsRasterLayer,
+                        xcoordinates: np.ndarray, ycoordinates: np.ndarray,
+                        subpixel_pos: float = 0.5,
+                        subpixel_pos_x: float = None,
+                        subpixel_pos_y: float = None) -> typing.Tuple[np.ndarray, np.ndarray]:
+    """
+    Returns the pixel center as coordinate in a raster layer's CRS
+    :param layer: QgsRasterLayer
+    :param px: QPoint pixel position (0,0) = 1st pixel
+    :return: SpatialPoint
+    """
+    assert isinstance(layer, QgsRasterLayer) and layer.isValid()
+    # assert 0 <= px.x() < layer.width()
+    # assert 0 <= px.y() < layer.height()
+    assert 0 <= subpixel_pos <= 1.0
+
+    if subpixel_pos_x is None:
+        subpixel_pos_x = subpixel_pos
+
+    if subpixel_pos_y is None:
+        subpixel_pos_y = subpixel_pos
+
+    assert 0 <= subpixel_pos_x <= 1.0
+    assert 0 <= subpixel_pos_y <= 1.0
+
+    ext: QgsRectangle = layer.extent()
+
+    resX = layer.extent().width() / layer.width()
+    resY = layer.extent().height() / layer.height()
+
+    geo_x = ext.xMinimum() + (xcoordinates + subpixel_pos_x) * resX
+    geo_y = ext.yMaximum() - (ycoordinates + subpixel_pos_y) * resY
+
+    return geo_x, geo_y
+
+
 def px2geocoordinates(raster, target_srs=None, pxCenter: bool = True) -> typing.Tuple[np.ndarray, np.ndarray]:
     """
     Returns the pixel positions as geo-coordinates
+    :param pxCenter: bool, set True to return coordinates in pixel center
     :param raster: any, must be readable as gdal.Dataset
     :param target_srs: any, must be convertable to osr.SpatialReference
     :return:
@@ -2075,6 +2145,8 @@ def px2geocoordinates(raster, target_srs=None, pxCenter: bool = True) -> typing.
 
         geo_x = dsMEM.GetRasterBand(1).ReadAsArray()
         geo_y = dsMEM.GetRasterBand(2).ReadAsArray()
+        del dsMEM
+
     return geo_x, geo_y
 
 
@@ -2101,10 +2173,12 @@ def px2geo(px: QPoint, gt, pxCenter: bool = True) -> QgsPointXY:
 
     return QgsPointXY(gx, gy)
 
+
 class HashablePoint(QPoint):
     """
     A QPoint that can be hashed, e.g. to be used in a set
     """
+
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
 
@@ -2113,6 +2187,7 @@ class HashablePoint(QPoint):
 
     def __eq__(self, other):
         return self.x() == other.x() and self.y() == other.y()
+
 
 class HashableRect(QRect):
 
@@ -2172,7 +2247,7 @@ class SpatialPoint(QgsPointXY):
     def crs(self):
         return self.mCrs
 
-    def toPixel(self, layer: QgsMapLayer, allowOutOfRaster:bool=False) -> QPoint:
+    def toPixel(self, layer: QgsMapLayer, allowOutOfRaster: bool = False) -> QPoint:
         dp: QgsRasterDataProvider = layer.dataProvider()
 
         pt = self.toCrs(layer.crs())
@@ -2256,8 +2331,11 @@ class SpatialPoint(QgsPointXY):
         return '{} {} {}'.format(self.x(), self.y(), self.crs().authid())
 
 
-
-def px2spatialPoint(layer: QgsRasterLayer, px: QPoint, subpixel_pos: float= 0.5) -> SpatialPoint:
+def px2spatialPoint(layer: QgsRasterLayer,
+                    px: QPoint,
+                    subpixel_pos: float = 0.5,
+                    subpixel_pos_x: float = None,
+                    subpixel_pos_y: float = None) -> SpatialPoint:
     """
     Returns the pixel center as coordinate in a raster layer's CRS
     :param layer: QgsRasterLayer
@@ -2269,14 +2347,23 @@ def px2spatialPoint(layer: QgsRasterLayer, px: QPoint, subpixel_pos: float= 0.5)
     # assert 0 <= px.y() < layer.height()
     assert 0 <= subpixel_pos <= 1.0
 
+    if subpixel_pos_x is None:
+        subpixel_pos_x = subpixel_pos
+
+    if subpixel_pos_y is None:
+        subpixel_pos_y = subpixel_pos
+
+    assert 0 <= subpixel_pos_x <= 1.0
+    assert 0 <= subpixel_pos_y <= 1.0
+
     ext: QgsRectangle = layer.extent()
 
     resX = layer.extent().width() / layer.width()
     resY = layer.extent().height() / layer.height()
 
     return SpatialPoint(layer.crs(),
-                        ext.xMinimum() + (px.x() + subpixel_pos) * resX,
-                        ext.yMaximum() - (px.y() + subpixel_pos) * resY)
+                        ext.xMinimum() + (px.x() + subpixel_pos_x) * resX,
+                        ext.yMaximum() - (px.y() + subpixel_pos_y) * resY)
 
 
 def spatialPoint2px(layer: QgsRasterLayer, spatialPoint: typing.Union[QgsPointXY, SpatialPoint]) -> QPoint:
@@ -2336,10 +2423,13 @@ def createCRSTransform(src: QgsCoordinateReferenceSystem, dst: QgsCoordinateRefe
     return t
 
 
-def saveTransform(geom, crs1, crs2):
+def saveTransform(geom: typing.Union[QgsPointXY, QgsRectangle,
+                                     typing.Tuple[np.ndarray, np.ndarray]],
+                  crs1: QgsCoordinateReferenceSystem,
+                  crs2: QgsCoordinateReferenceSystem) -> typing.Union[QgsPointXY, QgsRectangle]:
     """
-
-    :param geom:
+    Transforms geometries from into another QgsCoordinateReferenceSystem
+    :param geom: QgsGeometry
     :param crs1:
     :param crs2:
     :return:
@@ -2347,14 +2437,13 @@ def saveTransform(geom, crs1, crs2):
     assert isinstance(crs1, QgsCoordinateReferenceSystem)
     assert isinstance(crs2, QgsCoordinateReferenceSystem)
 
+    transform = QgsCoordinateTransform(crs1, crs2, QgsProject.instance())
+
     result = None
     if isinstance(geom, QgsRectangle):
         if geom.isEmpty():
             return None
 
-        transform = QgsCoordinateTransform()
-        transform.setSourceCrs(crs1)
-        transform.setDestinationCrs(crs2)
         try:
             rect = transform.transformBoundingBox(geom);
             result = SpatialExtent(crs2, rect)
@@ -2364,23 +2453,34 @@ def saveTransform(geom, crs1, crs2):
 
     elif isinstance(geom, QgsPointXY):
 
-        transform = QgsCoordinateTransform();
-        transform.setSourceCrs(crs1)
-        transform.setDestinationCrs(crs2)
         try:
             pt = transform.transform(geom);
             result = SpatialPoint(crs2, pt)
         except:
             print('Can not transform from {} to {} on QgsPointXY {}'.format( \
                 crs1.description(), crs2.description(), str(geom)), file=sys.stderr)
+
+    elif isinstance(geom, tuple):
+
+        xcoords, ycoords = geom
+        shape = xcoords.shape
+        assert xcoords.shape == ycoords.shape
+        n = np.prod(xcoords.shape)
+        results = [transform.transform(QgsPointXY(x, y))
+                   for x, y in zip(xcoords.flatten(), ycoords.flatten())]
+        xresults = np.asarray([r.x() for r in results])
+        yresults = np.asarray([r.y() for r in results])
+
+        result = (xresults.reshape(shape), yresults.reshape(shape))
     return result
 
 
-def scaledUnitString(num, infix=' ', suffix='B', div=1000):
+def scaledUnitString(num: float, infix: str = ' ', suffix: str = 'B', div: float = 1000):
     """
     Returns a human-readable file size string.
     thanks to Fred Cirera
     http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
+    :param infix:
     :param num: number in bytes
     :param suffix: 'B' for bytes by default.
     :param div: divisor of num, 1000 by default.
@@ -2634,7 +2734,6 @@ class SpatialExtent(QgsRectangle):
         return '{} {} {}'.format(self.upperLeft(), self.lowerRight(), self.crs().authid())
 
 
-
 def rasterLayerArray(layer: QgsRasterLayer,
                      rect: typing.Union[QRect, QgsRasterLayer, SpatialExtent] = None,
                      ul: typing.Union[SpatialPoint, QPoint] = None,
@@ -2667,8 +2766,8 @@ def rasterLayerArray(layer: QgsRasterLayer,
             lr = SpatialPoint(layer.crs(), rect.xMaximum(), rect.yMinimum())
         elif isinstance(rect, QRect):
             ul = QPoint(rect.x(), rect.y())
-            lr = QPoint(rect.x() + rect.width()-1,
-                        rect.y() + rect.height()-1)
+            lr = QPoint(rect.x() + rect.width() - 1,
+                        rect.y() + rect.height() - 1)
         else:
             raise NotImplementedError()
 
@@ -2715,16 +2814,16 @@ def rasterLayerArray(layer: QgsRasterLayer,
     nb = len(bands)
     assert nb > 0
     for i, band in enumerate(bands):
-            band_block: QgsRasterBlock = dp.block(band, boundingBox, width_px, height_px)
-            if not (isinstance(band_block, QgsRasterBlock) and band_block.isValid()):
-                return None
+        band_block: QgsRasterBlock = dp.block(band, boundingBox, width_px, height_px)
+        if not (isinstance(band_block, QgsRasterBlock) and band_block.isValid()):
+            return None
 
-            assert isinstance(band_block, QgsRasterBlock)
-            band_array = rasterBlockArray(band_block)
-            assert band_array.shape == (height_px, width_px)
-            if i == 0:
-                result_array = np.empty((nb, height_px, width_px), dtype=band_array.dtype)
-            result_array[i, :, :] = band_array
+        assert isinstance(band_block, QgsRasterBlock)
+        band_array = rasterBlockArray(band_block)
+        assert band_array.shape == (height_px, width_px)
+        if i == 0:
+            result_array = np.empty((nb, height_px, width_px), dtype=band_array.dtype)
+        result_array[i, :, :] = band_array
 
     return result_array
 
@@ -2849,6 +2948,7 @@ class SignalObjectWrapper(QObject):
     """
     A wrapper to transport python objects via signal-slot
     """
+
     def __init__(self, obj, *args, **kwds):
         super(SignalObjectWrapper, self).__init__(*args, **kwds)
         self.wrapped_object = obj

@@ -2,17 +2,15 @@ import traceback
 from collections import OrderedDict, defaultdict
 from math import ceil
 from os.path import basename, splitext, join, dirname
-from random import randint
 from re import finditer, Match
-from typing import Dict, Any, List, Tuple, Optional, Iterable, Union
+from typing import Dict, Any, List, Tuple, Union
 
 import numpy
 import numpy as np
 from mock import Mock
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsProcessing,
-                        QgsProcessingParameterString, QgsProject, QgsRasterLayer, QgsProcessingParameterField,
-                        QgsProcessingParameterVectorLayer, Qgis, QgsMapLayer, QgsVectorLayer, QgsFields)
+                        QgsProcessingParameterString, QgsProject, QgsRasterLayer, Qgis, QgsVectorLayer, QgsFields)
 
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
@@ -25,7 +23,6 @@ from enmapboxprocessing.rasterblockinfo import RasterBlockInfo
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.utils import Utils
-from processing import getTempFilename, Processing
 from typeguard import typechecked
 
 
@@ -56,19 +53,21 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     P_V8 = 'V8'
     P_V9 = 'V9'
     P_V10 = 'V10'
-    P_OUTPUT_RASTER = 'outputRaster'
+    P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRaster', 'Output raster layer'
+
+    linkNumpy = EnMAPProcessingAlgorithm.htmlLink('https://numpy.org/doc/stable/reference/', 'NumPy')
+    linkTutorial = EnMAPProcessingAlgorithm.htmlLink(
+        'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_manual/applications.html#rastermath',
+        'RasterMath tutorial')
 
     def displayName(self) -> str:
         return 'Raster math'
 
     def shortDescription(self) -> str:
-        link1 = self.htmlLink('https://numpy.org/doc/stable/reference/', 'NumPy')
-        link2 = self.htmlLink('https://numpy.org/doc/stable/reference/arrays.ndarray.html', '3d NumPy arrays')
 
-        return 'Perform mathematical calculations on selected raster layer data. ' \
-               f'Use any {link1}-based arithmetic, or even arbitrary Python code.\n' \
-               f'Input raster data is mapped to {link2} A, B, ..., Z. ' \
-               'Result array variables R1, R2, ..., R10 are written to corresponding destination raster layer.'
+        return 'Perform mathematical calculations on raster layer and vector layer data. ' \
+               f'Use any {self.linkNumpy}-based arithmetic, or even arbitrary Python code.\n' \
+               f'See the {self.linkTutorial} for detailed usage instructions.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         linkReader = self.htmlLink(
@@ -84,75 +83,26 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             'feedback'
         )
         return [
-            (self._CODE, 'The mathematical calculation to be performed on the input arrays '
-                         'A, B, ..., Z, creating result arrays R1, R2, ..., R10. '
-                         'All arrays are 3d with shape (bandCount, height, width).\n'
-                         'When using a simple expression like A + B, the result is automatically assigned to R1.\n'
-                         'Alternatively, use a statement to explicitely assign outputs like R1 = A + B.\n'
-                         'To correctly handle no data regions use the AM, ..., ZM mask arrays:'
-                         '<pre>'
-                         'R1 = A + B<br>'
-                         'R1[~AM] = -99<br>'  
-                         'R1[~BM] = -99<br>'
-                         '</pre>'
-                         f'To properly set no data values, band names, metadata etc. use the R1_, ... R10_ '
-                         f'{linkWriter} handles:'
-                         '<pre>'
-                         'R1_.setNoDataValue(-99)<br>'
-                         "R1_.setBandName('my band', bandNo=1)<br>"
-                         "R1_.setMetadataItem('my key', 42, 'MY DOMAIN')<br>"
-                         '</pre>'
-                         'To query or copy source no data values, band names, metadata etc. use the A_, ..., Z_ '
-                         f'{linkReader} handles. E.g., copy all data and metadata:'
-                         '<pre>'
-                         'R1 = A<br>'
-                         'R1_.setMetadata(A_.metadata())<br>'
-                         '</pre>'
-                         'When using spatial operators, '
-                         'make sure to specify an appropriate value for the Block overlap parameter to avoid artifacts at '
-                         'block borders, or enable Monolithic processing. '
-                         'E.g., when applying this Gaussian filter, the overlap should be set to sigma * truncate:'
-                         '<pre>'
-                         'from scipy.ndimage import gaussian_filter<br>'
-                         'R1 = gaussian_filter(A, sigma=3, truncate=4)<br>'
-                         '</pre>'
-                         'In some usecases, the main focus is to calculate some statistics that aggregate data over '
-                         'the full grid extent. To do that correctly, you also want to enable Monolithic processing '
-                         f'and use the {linkFeedback} object to report/log results:'
-                         '<pre>'
-                         'hist, bin_edges = np.histogram(A, bins=10, range=(0, 10000))<br>'
-                         'for a, b, n in zip(bin_edges[:-1], bin_edges[1:], hist):<br>'
-                         "    feedback.pushInfo(f'[{a}, {b}]: {n}')<br>"
-                         '</pre>'
-                         'To allow for arbitrary many inputs, use the INPUTS parameters.'
-                         'E.g. averaging a list of raster layer:'
-                         '<pre>np.min(INPUTS, axis=0)</pre>'
-                         ),
-            (self._GRID, 'The target grid. If not specified, the grid of raster layer A is used.'),
-            ('A, B, ..., Z', 'Raster layers that are mapped to numpy array variables A, B, ..., Z '
-                             'with shape (bandCount, height, width).\n'
-                             f'Use the associated {linkReader} objects A_, B_, ..., Z_ to query additional '
-                             'information like metadata, no data values, band names, center wavelength '
-                             'and so on.\n'
-                             f'Additionally, you may use the associated boolean arrays AM, BM, ..., ZM to properly '
-                             f'mask no data regions. Note that all no data, inf and nan values evaluate to False, '
-                             f'and all other to True.'),
-            ('Selected band', 'If specified, only the selected band is mapped with shape (1, height, width).'),
-            (self._RS, 'Additional input raster layers arranged as a list of numpy arrays mapped to the '
-                           'variable named INPUTS.\n'
-                           f'The associated {linkReader} objects are stored in a variable named INPUTS_.'),
-            ('R1, R2, ..., R10', 'Raster file destinations for writing the created output variables '
-                                 'R1, R2, ..., R10. \n'
-                                 f'Use the associated {linkWriter} objects R1_, R2_, ..., R10_ to assign additional '
-                                 'information like metadata, no data values, band names, center wavelength '
-                                 'and so on.\n'),
+            (self._CODE, 'The mathematical calculation to be performed on the selected input arrays.\n'
+                         'Select inputs in the available data sources section or '
+                         'use the raster layer R1, ..., R10 and vector layer V1, ..., V10.\n'
+                         'In the code snippets section you can find some prepdefined code snippets ready to use.\n'
+                         f'See the {self.linkTutorial} for detailed usage instructions.'),
+            (self._GRID, 'The destination grid. If not specified, the grid of the first raster layer is used.'),
+            ('Raster layer mapped to R1, ..., R10', 'Additional raster layers mapped to Ri.'),
+            ('Vector layer mapped to V1, ..., V10', 'Additional vector layers mapped to Vi.'),
+            (self._RS, 'Additional list of raster layers mapped to a list variable RS.'),
             (self._OVERLAP, 'The number of columns and rows to read from the neighbouring blocks. '
-                             'Needs to be specified only when performing spatial operations, '
-                             'to avoid artifacts at block borders.'),
-            (self._MONOLITHIC, 'Whether to read all data for the full extent at once, instead of block-wise processing. '
-                               'This may be useful for some spatially unbound operations, '
-                               'like segmentation or region growing, when calculating global statistics, '
-                               'or if RAM is not an issue at all.')
+                            'Needs to be specified only when performing spatial operations, '
+                            'to avoid artifacts at block borders.'),
+            (self._MONOLITHIC,
+             'Whether to read all data for the full extent at once, instead of block-wise processing. '
+             'This may be useful for some spatially unbound operations, '
+             'like segmentation or region growing, when calculating global statistics, '
+             'or if RAM is not an issue at all.'),
+            (self._OUTPUT_RASTER, 'Raster file destination for writing the default output variable. '
+                                  'Additional outputs are written into the same directory. '
+                                  f'See the {self.linkTutorial} for detailed usage instructions.'),
         ]
 
     def group(self):
@@ -196,7 +146,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     def prepareAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> bool:
-        self.mapLayers = {k:v for k,v in QgsProject.instance().mapLayers().items() if k in parameters[self.P_CODE]}
+        self.mapLayers = {k: v for k, v in QgsProject.instance().mapLayers().items() if k in parameters[self.P_CODE]}
         print('###', self.mapLayers)
         return True
 
@@ -262,7 +212,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                     layerName, value = line.split(':=')
                     layerName = layerName.strip('# ')
                     vector = eval(value.strip())
-                    if isinstance(raster, QgsVectorLayer):
+                    if isinstance(vector, QgsVectorLayer):
                         vectors[layerName] = vector
 
             # rasterize vectors to grid
@@ -319,14 +269,15 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             readers = {rasterName: RasterReader(raster) for rasterName, raster in rasters.items()}
             readers2 = {rasterName: RasterReader(raster) for rasterName, raster in rasters2.items()}
 
+            # We do not need alias anymore I guess. Make sure and delete this block.
             # find alias identifiers and assign reader
-            for line in code.splitlines():
-                if not line.startswith('#'):
-                    continue
-                if ' is an alias for ' in line:
-                    a, b = line.strip('# ').split(' is an alias for ')
-                    readers[a] = readers[b]
-                    readers2[a] = readers2[b]
+            #for line in code.splitlines():
+            #    if not line.startswith('#'):
+            #        continue
+            #    if ' is an alias for ' in line:
+            #        a, b = line.strip('# ').split(' is an alias for ')
+            #        readers[a] = readers[b]
+            #        readers2[a] = readers2[b]
 
             # init output raster layer
             writers = self.makeWriter(code, filename, grid, readers, readers2, feedback)
@@ -343,7 +294,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                 blockSizeY = grid.height()
                 blockSizeX = grid.width()
 
-            #blockSizeY = 100
+            # blockSizeY = 100
 
             # process
             if overlap is None:
@@ -361,7 +312,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             result = {self.P_OUTPUT_RASTER: None}
             for key, writer in writers.items():
                 if key == splitext(basename(filename))[0]:  # if identifier matches the output basename, ...
-                    key = self.P_OUTPUT_RASTER              # ... map the result to the name of the output
+                    key = self.P_OUTPUT_RASTER  # ... map the result to the name of the output
                 result[key] = writer.source()
             self.toc(feedback, result)
 
@@ -378,10 +329,10 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
         writers = dict()  # we have no writers
         for method in RasterWriter.__dict__:
             if method.startswith('set'):
-                match: Match
+                match_: Match
                 pattern = r'\w*.' + method
-                for match in finditer(pattern, code):
-                    substring = code[match.start(): match.end()]
+                for match_ in finditer(pattern, code):
+                    substring = code[match_.start(): match_.end()]
                     identifier = substring.split('.')[0]
                     writers[identifier] = Mock()  # silently ignore all writer interaction
 
@@ -434,31 +385,31 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             needAllData = False
 
             # - check if we use the actual array
-            match: Match
+            match_: Match
             for line in code.splitlines():
                 if line.startswith('#'):
                     continue
                 line += '    '  # add some space for avoiding index errors when checking
-                for match in finditer(rasterName, line):
-                    if line[match.end()] in '@.':
+                for match_ in finditer(rasterName, line):
+                    if line[match_.end()] in '@.':
                         continue  # not using the actual array, but only a single band or the reader
                 needAllData = True
 
             # - check if we use the actual mask array
-            match: Match
+            match_: Match
             for line in code.splitlines():
                 if line.startswith('#'):
                     continue
                 line += '    '  # add some space for avoiding index errors when checking
-                for match in finditer(rasterName + 'Mask', line):
-                    if line[match.end()] in '@':
+                for match_ in finditer(rasterName + 'Mask', line):
+                    if line[match_.end()] in '@':
                         continue  # not using the actual mask array, but only a single band
                 needAllData = True
 
             if needAllData:
                 # check if the raster is a rasterized vector ...
                 isRasterizedVector = reader.bandName(reader.bandCount()) == 'None'
-                if isRasterizedVector: # ... if so, we just assign the 0/1 mask, instead of all burned fields
+                if isRasterizedVector:  # ... if so, we just assign the 0/1 mask, instead of all burned fields
                     array = np.array(reader2.arrayFromBlock(block, [reader.bandCount()], overlap))
                     namespace[rasterName] = array
                     namespace[rasterName + 'Mask'] = array == 1
@@ -469,7 +420,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
 
             #  find single band usages indicated by '@'
             atBands: Dict[Tuple, List[str]] = defaultdict(list)
-            match: Match
+            match_: Match
             for line in code.splitlines():
                 if line.startswith('#'):
                     continue
@@ -480,16 +431,16 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                 matches.extend(finditer(rasterName + 'Mask@"[^"]+"', line))
                 matches.extend(finditer(rasterName + 'Mask@[0-9:|^]+', line))
 
-                for match in matches:
-                    text = line[match.start(): match.end()]
+                for match_ in matches:
+                    text = line[match_.start(): match_.end()]
                     atIdentifiers.append(text)  # need to make the @identifier a valid identifier later
-                    if line[match.end(): match.end() + 2] == 'nm':  # waveband mode
+                    if line[match_.end(): match_.end() + 2] == 'nm':  # waveband mode
                         unit = 'nm'
                     else:
                         unit = ''
-                    if line[match.end() - 1] == '"':  # band name mode
+                    if line[match_.end() - 1] == '"':  # band name mode
                         bandName = text.split('"')[1]
-                        bandNos = (reader.findBandName(bandName), )
+                        bandNos = (reader.findBandName(bandName),)
                     else:  # band number mode
                         subtext = text.split('@')[1]
                         groups = subtext.split('|')
@@ -587,12 +538,15 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
 
         # prepare output data
         results = dict()
-        for key, value in namespace.items():
-            if key in readers:  # skip all input arrays
-                continue
-
+        for key, value in namespace.items():  # skip all input arrays
+            if key in readers:
+                if isSingleLineCode:
+                    if key != self.P_OUTPUT_RASTER:
+                        continue
+                else:
+                    continue
             removeItem = False
-            for reader  in readers:  # skip all input arrays with @ syntax
+            for reader in readers:  # skip all input arrays with @ syntax
                 if key.startswith(reader + 'At'):
                     removeItem = True
             if removeItem:
@@ -608,7 +562,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                 value = value[None]  # ... add third dimension
             if value.ndim != 3:  # skip all non-3d-arrays
                 continue
-            if value.shape[1:] != (block.height + 2 * overlap, block.width + 2 * overlap): # skip mismatching arrays
+            if value.shape[1:] != (block.height + 2 * overlap, block.width + 2 * overlap):  # skip mismatching arrays
                 continue
             results[key] = value
 

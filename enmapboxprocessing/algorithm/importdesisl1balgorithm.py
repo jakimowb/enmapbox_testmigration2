@@ -1,12 +1,10 @@
 from os.path import basename
 from typing import Dict, Any, List, Tuple
-from xml.etree import ElementTree
 
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-
 from typeguard import typechecked
 
 
@@ -38,11 +36,11 @@ class ImportDesisL1BAlgorithm(EnMAPProcessingAlgorithm):
     def isValidFile(self, file: str) -> bool:
         return (basename(file).startswith('DESIS-HSI-L1B') & basename(file).endswith('METADATA.xml'))
 
-    def  defaultParameters(self, xmlFilename: str):
+    def defaultParameters(self, xmlFilename: str):
         return {
-                    self.P_FILE: xmlFilename,
-                    self.P_OUTPUT_RASTER: xmlFilename.replace('METADATA.xml', 'SPECTRAL_IMAGE.vrt'),
-                }
+            self.P_FILE: xmlFilename,
+            self.P_OUTPUT_RASTER: xmlFilename.replace('METADATA.xml', 'SPECTRAL_IMAGE.vrt'),
+        }
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
@@ -84,17 +82,15 @@ class ImportDesisL1BAlgorithm(EnMAPProcessingAlgorithm):
 
             # create VRTs
             ds = gdal.Open(xmlFilename.replace('-METADATA.xml', '-SPECTRAL_IMAGE.tif'))
-            bandNames = [ds.GetRasterBand(i + 1).GetDescription() for i in range(ds.RasterCount)]
             options = gdal.TranslateOptions(format='VRT')
             ds: gdal.Dataset = gdal.Translate(destName=filename, srcDS=ds, options=options)
             ds.SetMetadataItem('wavelength', '{' + ', '.join(wavelength[:ds.RasterCount]) + '}', 'ENVI')
             ds.SetMetadataItem('wavelength_units', 'nanometers', 'ENVI')
             ds.SetMetadataItem('fwhm', '{' + ', '.join(fwhm[:ds.RasterCount]) + '}', 'ENVI')
-
             rasterBands = [ds.GetRasterBand(i + 1) for i in range(ds.RasterCount)]
             rasterBand: gdal.Band
             for i, rasterBand in enumerate(rasterBands):
-                rasterBand.SetDescription(bandNames[i])
+                rasterBand.SetDescription(f'band {i + 1} ({wavelength[i]} Nanometers)')
                 rasterBand.SetScale(float(gains[i]))
                 rasterBand.SetOffset(float(offsets[i]))
                 rasterBand.FlushCache()

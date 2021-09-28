@@ -23,9 +23,11 @@ import typing
 import warnings
 import time
 
+from PyQt5.QtWidgets import QToolButton, QAction
 from qgis._core import Qgis
 from qgis._gui import QgsLayerTreeProxyModel
 
+from enmapbox.externals.qps.speclib.core import is_spectral_library, profile_field_list
 from processing import Processing
 from qgis.PyQt.QtWidgets import QWidget, QHeaderView, QMenu, QAbstractItemView, QApplication
 from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
@@ -59,9 +61,7 @@ from enmapbox.gui.datasources import DataSource
 from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
 from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui.utils import getDOMAttributes
-from hubdsm.core.category import Category  # needed for eval
-from hubdsm.core.color import Color  # needed for eval
-from hubdsm.processing.classificationstatistics import ClassificationStatistics, ClassificationStatisticsPlot
+
 
 LUT_DOCKTYPES = {'MAP': MapDock,
                  'TEXT': TextDock,
@@ -304,7 +304,9 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.speclibNode = QgsLayerTreeLayer(self.speclib())
         self.addChildNode(self.speclibNode)
         speclib = self.speclib()
-        if isinstance(speclib, SpectralLibrary):
+        if is_spectral_library(speclib):
+            speclib: QgsVectorLayer
+            speclib.editCommandEnded.connect(self.updateNodes)
             speclib.committedFeaturesAdded.connect(self.updateNodes)
             speclib.committedFeaturesRemoved.connect(self.updateNodes)
             self.updateNodes()
@@ -319,21 +321,42 @@ class SpeclibDockTreeNode(DockTreeNode):
 
         if isinstance(self.mSpeclibWidget, SpectralLibraryWidget):
             sl: SpectralLibrary = self.mSpeclibWidget.speclib()
-            if isinstance(sl, SpectralLibrary):
+            if is_spectral_library(sl):
                 # self.profilesNode.setValue(len(speclib))
 
                 NODES = {}
                 PROFILES = dict()
                 n_total = 0
                 tt = []
-                for field in sl.spectralProfileFields():
+
+                for c in self.profilesNode.children():
+                    NODES[c.name()] = c
+
+                has_new_node = False
+
+                NEW_NODES = []
+                for field in profile_field_list(sl):
                     n = 0
+                    if field.name() not in NODES.keys():
+                        has_new_node = True
+                        node = LayerTreeNode(field.name())
+                    else:
+                        node = NODES[field.name()]
                     for f in sl.getFeatures(f'"{field.name()}" is not NULL'):
-                        if f.id() >= 0:
-                            n += 1
+                        # show committed only?
+                        # if f.id() >= 0:
+                        n += 1
                     PROFILES[field.name()] = n
                     tt.append(f'"{field.name()}" with {n} profiles')
                     n_total += n
+                    node.setValue(n)
+                    NEW_NODES.append(node)
+
+                if has_new_node:
+                    self.profilesNode.removeAllChildren()
+                    for n in NEW_NODES:
+                        self.profilesNode.addChildNode(n)
+
                 self.profilesNode.setTooltip('\n'.join(tt))
                 self.profilesNode.setName(f'{n_total} Profiles')
                 self.profilesNode.setValue(n_total)
@@ -964,7 +987,6 @@ class DockManagerTreeProxyModel(QSortFilterProxyModel):
         super().__init__(*args, **kwds)
 
 
-
 class DockTreeView(QgsLayerTreeView):
     sigPopulateContextMenu = pyqtSignal(QMenu)
 
@@ -1197,6 +1219,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         showLayerPropertiesDialog(layer, canvas, modal=True)
 
     def runImageStatistics(self, layer):
+
         from enmapboxapplications import ImageStatisticsApp
         widget = ImageStatisticsApp(parent=self.mDockTreeView)
         widget.uiRaster().setLayer(layer)
@@ -1204,6 +1227,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         widget.uiExecute().clicked.emit()
 
     def runClassificationStatistics(self, layer):
+        from hubdsm.processing.classificationstatistics import ClassificationStatistics, ClassificationStatisticsPlot
         alg = ClassificationStatistics()
         io = {alg.P_CLASSIFICATION: layer}
         result = Processing.runAlgorithm(alg, parameters=io, feedback=QgsProcessingFeedback())
@@ -1309,7 +1333,7 @@ class DockManager(QObject):
                 NEW_DOCK = self.createDock('SPECLIB')
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
                 sl = NEW_DOCK.speclib()
-                assert isinstance(sl, SpectralLibrary)
+                assert is_spectral_library(sl)
                 sl.startEditing()
                 for speclib in speclibs:
                     NEW_DOCK.speclib().addSpeclib(speclib, addMissingFields=True)
@@ -1432,7 +1456,7 @@ class DockManager(QObject):
 
         elif cls == SpectralLibraryDock:
             speclib = kwds.get('speclib')
-            if isinstance(speclib, SpectralLibrary):
+            if is_spectral_library(speclib):
                 kwds['name'] = speclib.name()
             dock = SpectralLibraryDock(*args, **kwds)
             dock.speclib().willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
@@ -1483,9 +1507,18 @@ class DockPanelUI(QgsDockWidget):
     def __init__(self, parent=None):
         super(DockPanelUI, self).__init__(parent)
         loadUi(enmapboxUiPath('dockpanel.ui'), self)
-        self.dockManager = None
+        self.mDockManager: DockManager = None
         self.mDockManagerTreeModel: DockManagerTreeModel = None
+
+        self.dockTreeView: DockTreeView
+        self.actionRemoveSelected: QAction
+        self.btnRemoveSource: QToolButton
+
+        self.btnRemoveSource.setDefaultAction(self.actionRemoveSelected)
+        self.actionRemoveSelected.triggered.connect(self.onRemoveSelected)
+
         assert isinstance(self.dockTreeView, DockTreeView)
+        # self.dockTreeView.currentLayerChanged.connect(self.onSelectionChanged)
         self.tbFilterText.textChanged.connect(self.setFilter)
         self.initActions()
 
@@ -1495,6 +1528,19 @@ class DockPanelUI(QgsDockWidget):
         proxyModel = self.dockTreeView.proxyModel()
         if isinstance(proxyModel, QgsLayerTreeProxyModel):
             proxyModel.setFilterText(pattern)
+
+    def onRemoveSelected(self):
+        tv: DockTreeView = self.dockTreeView
+        model = self.dockManagerTreeModel()
+        if isinstance(model, DockManagerTreeModel):
+            layerNodes = list(set(tv.selectedLayerNodes()))
+
+            layerNodes = [n for n in layerNodes if isinstance(n.parent(), MapDockTreeNode)]
+            self.mDockManagerTreeModel.removeNodes(layerNodes)
+
+            #docks = [n.dock for n in self.dockTreeView.selectedNodes() if isinstance(n, DockTreeNode)]
+            #for dock in docks:
+            #    self.mDockManagerTreeModel.removeDock(dock)
 
     def initActions(self):
         self.btnCollapse.setDefaultAction(self.actionCollapseTreeNodes)
@@ -1510,8 +1556,8 @@ class DockPanelUI(QgsDockWidget):
         :return:
         """
         assert isinstance(dockManager, DockManager)
-        self.dockManager = dockManager
-        self.mDockManagerTreeModel = DockManagerTreeModel(self.dockManager)
+        self.mDockManager = dockManager
+        self.mDockManagerTreeModel = DockManagerTreeModel(self.mDockManager)
         # self.mDockManagerProxyModel.setSourceModel(self.mDockManagerTreeModel)
         self.dockTreeView.setModel(self.mDockManagerTreeModel)
 
@@ -1519,11 +1565,12 @@ class DockPanelUI(QgsDockWidget):
         assert self.mDockManagerTreeModel == m
         assert isinstance(m, QgsLayerTreeModel)
 
-        self.menuProvider: DockManagerLayerTreeModelMenuProvider = DockManagerLayerTreeModelMenuProvider(
+        self.mMenuProvider: DockManagerLayerTreeModelMenuProvider = DockManagerLayerTreeModelMenuProvider(
             self.dockTreeView)
-        self.dockTreeView.setMenuProvider(self.menuProvider)
+        self.dockTreeView.setMenuProvider(self.mMenuProvider)
 
-        s = ""
+    def dockManagerTreeModel(self) -> DockManagerTreeModel:
+        return self.dockTreeView.layerTreeModel()
 
 
 class MapCanvasBridge(QgsLayerTreeMapCanvasBridge):

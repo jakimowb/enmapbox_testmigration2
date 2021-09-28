@@ -5,6 +5,7 @@ from typing import Dict, Any, List, Tuple
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException,
                         QgsProcessingParameterField)
 
+from enmapbox.externals.qps.speclib import FIELD_VALUES
 from enmapbox.externals.qps.speclib.core import profile_field_names, is_profile_field
 from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
 from enmapboxprocessing.algorithm.spectralresamplingbyresponsefunctionconvolutionalgorithmbase import \
@@ -72,6 +73,9 @@ class SpectralResamplingByResponseFunctionLibraryAlgorithm(EnMAPProcessingAlgori
                 raise QgsProcessingException(message)
 
             responses = OrderedDict()
+            if binaryField is None:
+                binaryField = FIELD_VALUES
+
             for profile in spectralLibrary.profiles(profile_field=binaryField):
                 # derive to-nanometers scale factor
                 wavelength_units = profile.xUnit()
@@ -82,7 +86,7 @@ class SpectralResamplingByResponseFunctionLibraryAlgorithm(EnMAPProcessingAlgori
                 else:
                     raise ValueError(f'unsupported wavelength units: {wavelength_units}')
                 # prepare responses
-                responses[profile.id()] = [
+                responses[profile.attribute('name')] = [
                     (int(round(x * scale)), round(y, RESPONSE_CUTOFF_DIGITS))  # scale and round
                     for x, y in zip(profile.xValues(), profile.yValues())
                     if y >= RESPONSE_CUTOFF_VALUE  # filter very small weights for better performance
@@ -91,8 +95,8 @@ class SpectralResamplingByResponseFunctionLibraryAlgorithm(EnMAPProcessingAlgori
             # prepare code snippet
             text = ['from collections import OrderedDict',
                     'responses = OrderedDict()']
-            for fid in responses:
-                text.append(f"responses[{fid}] = {responses[fid]}")
+            for name in responses:
+                text.append(f"responses[{repr(name)}] = {responses[name]}")
             code = '\n'.join(text)
 
             alg = SpectralResamplingToCustomSensorAlgorithm()

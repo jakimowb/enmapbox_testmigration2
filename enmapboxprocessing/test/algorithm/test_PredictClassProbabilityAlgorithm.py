@@ -44,7 +44,7 @@ class TestPredictClassProbabilityAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: enmap,
             alg.P_CLASSIFIER: parametersFit[algFit.P_OUTPUT_CLASSIFIER],
-            alg.P_OUTPUT_PROBABILITY: 'c:/vsimem/probability.tif'
+            alg.P_OUTPUT_PROBABILITY: 'c:/vsimem/probability1.tif'
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(-13052, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_PROBABILITY]).array())))
@@ -65,7 +65,7 @@ class TestPredictClassProbabilityAlgorithm(TestCase):
             alg.P_RASTER: enmap,
             alg.P_CLASSIFIER: parametersFit[algFit.P_OUTPUT_CLASSIFIER],
             alg.P_MASK: landcover_raster_30m,
-            alg.P_OUTPUT_PROBABILITY: 'c:/vsimem/probability.tif'
+            alg.P_OUTPUT_PROBABILITY: 'c:/vsimem/probability2.tif'
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(-427832, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_PROBABILITY]).array())))
@@ -86,7 +86,7 @@ class TestPredictClassProbabilityAlgorithm(TestCase):
             alg.P_RASTER: enmap,
             alg.P_CLASSIFIER: parametersFit[algFit.P_OUTPUT_CLASSIFIER],
             alg.P_MASK: landcover_polygons,
-            alg.P_OUTPUT_PROBABILITY: 'c:/vsimem/probability.tif'
+            alg.P_OUTPUT_PROBABILITY: 'c:/vsimem/probability3.tif'
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(-427832, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_PROBABILITY]).array())))

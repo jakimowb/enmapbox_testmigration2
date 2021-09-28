@@ -36,11 +36,12 @@ import warnings
 
 import mock
 import numpy as np
-import sip
+from qgis.PyQt import sip
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QHBoxLayout
 from osgeo import gdal, ogr, osr, gdal_array
-from qgis.core import QgsField
+
+from qgis.core import QgsField, QgsPointXY, QgsGeometry
 
 import qgis.testing
 import qgis.utils
@@ -63,7 +64,7 @@ from .speclib.processing import SpectralProcessingAlgorithmInputWidgetFactory, \
     SpectralProcessingProfilesOutputWidgetFactory, SpectralProcessingProfileType, SpectralProcessingProfilesOutput, \
     SpectralProcessingProfiles
 from .speclib.processingalgorithms import SpectralPythonCodeProcessingAlgorithm
-from .utils import UnitLookup
+from .utils import UnitLookup, px2geo, px2spatialPoint, SpatialPoint
 
 WMS_GMAPS = r'crs=EPSG:3857&' \
             r'format&' \
@@ -473,8 +474,7 @@ class TestCase(qgis.testing.TestCase):
         """
         Call this to show GUI(s) in case we do not run within a CI system
         """
-        if str(os.environ.get('CI')).lower() not in ['', 'none', 'false', '0']:
-            return False
+
         if widgets is None:
             widgets = []
         if not isinstance(widgets, list):
@@ -488,6 +488,9 @@ class TestCase(qgis.testing.TestCase):
                 keepOpen = True
             elif callable(w):
                 w()
+
+        if str(os.environ.get('CI')).lower() not in ['', 'none', 'false', '0']:
+            return False
 
         app = QApplication.instance()
         if isinstance(app, QApplication) and keepOpen:
@@ -559,13 +562,28 @@ class TestAlgorithmProvider(QgsProcessingProvider):
         return True
 
 
+
 class SpectralProfileDataIterator(object):
 
-    def __init__(self, n_bands_per_field: typing.Union[int, typing.List[int]]):
+    def __init__(self,
+                 n_bands_per_field: typing.Union[int, typing.List[int]],
+                 target_crs=None):
+
         if not isinstance(n_bands_per_field, list):
             n_bands_per_field = [n_bands_per_field]
 
+        if not isinstance(target_crs, QgsCoordinateReferenceSystem):
+            target_crs = QgsCoordinateReferenceSystem('EPSG:4326')
+        self.target_crs = target_crs
         self.coredata, self.wl, self.wlu, self.gt, self.wkt = TestObjects.coreData()
+
+        px1 = px2geo(QPoint(0,0), self.gt, pxCenter=False)
+        px2 = px2geo(QPoint(1,1), self.gt, pxCenter=False)
+
+        self.dx = abs(px2.x()-px1.x())
+        self.dy = abs(px2.y()-px1.y())
+
+        self.source_crs = QgsCoordinateReferenceSystem(self.wkt)
         self.cnb, self.cnl, self.cns = self.coredata.shape
         n_bands_per_field = [self.cnb if nb == -1 else nb for nb in n_bands_per_field]
         for nb in n_bands_per_field:
@@ -582,6 +600,12 @@ class SpectralProfileDataIterator(object):
 
             self.band_indices.append(idx)
 
+    def sourceCrs(self) -> QgsCoordinateReferenceSystem:
+        return self.source_crs
+
+    def targetCrs(self) -> QgsCoordinateReferenceSystem:
+        return self.target_crs
+
     def __iter__(self):
         return self
 
@@ -590,6 +614,13 @@ class SpectralProfileDataIterator(object):
         x = random.randint(0, self.coredata.shape[2] - 1)
         y = random.randint(0, self.coredata.shape[1] - 1)
 
+        px = QPoint(x, y)
+        # from .utils import px2geo
+        pt = px2geo(px, self.gt, pxCenter=False)
+        pt = SpatialPoint(self.sourceCrs(),
+                          pt.x() + self.dx * random.uniform(0, 1),
+                        pt.y() - self.dy * random.uniform(0, 1))
+        pt = pt.toCrs(self.targetCrs())
         results = []
         for band_indices in self.band_indices:
             if band_indices.dtype == np.int16:
@@ -602,7 +633,7 @@ class SpectralProfileDataIterator(object):
             else:
                 raise NotImplementedError()
             results.append((yValues, xValues, self.wlu))
-        return results
+        return results, pt
 
 
 class TestObjects(object):
@@ -690,9 +721,11 @@ class TestObjects(object):
 
         profileGenerator = SpectralProfileDataIterator(n_bands)
         for i in range(n):
-            field_data = profileGenerator.__next__()
+            field_data, pt = profileGenerator.__next__()
+            g = QgsGeometry.fromQPointF(pt.toQPointF())
             profile = SpectralProfile(fields=fields)
             profile.setId(i + 1)
+            profile.setGeometry(g)
             for j, field in enumerate(profile_fields):
                 (data, wl, data_wlu) = field_data[j]
                 if wlu is None:
@@ -782,6 +815,45 @@ class TestObjects(object):
         return TestObjects.createRasterDataset(*args, **kwds)
 
     @staticmethod
+    def createMultiMaskExample(*args, **kwds) -> QgsRasterLayer:
+
+        path = '/vsimem/testMaskImage.{}.tif'.format(str(uuid.uuid4()))
+        ds = TestObjects.createRasterDataset(*args, **kwds)
+        nb = ds.RasterCount
+        nl, ns = ds.RasterYSize, ds.RasterXSize
+        arr: np.ndarray = ds.ReadAsArray()
+        arr = arr.reshape((nb, nl, ns))
+        nodata_values = []
+
+        d = int(min(nl, ns) * 0.25)
+
+        global_nodata = -9999
+        for b in range(nb):
+
+            x = random.randint(0, ns-1)
+            y = random.randint(0, nl-1)
+
+            #nodata = b
+            nodata = global_nodata
+            nodata_values.append(nodata)
+            arr[b,
+                max(y-d, 0):min(y+d, nl-1),
+                max(x-d, 0):min(x+d, ns-1)] = nodata
+
+        ds2: gdal.Dataset = gdal_array.SaveArray(arr, path, prototype=ds)
+
+        for b, nd in enumerate(nodata_values):
+            band: gdal.Band = ds2.GetRasterBand(b+1)
+            band.SetNoDataValue(nd)
+            band.SetDescription(ds.GetRasterBand(b+1).GetDescription())
+        ds2.FlushCache()
+        lyr = QgsRasterLayer(path)
+        lyr.setName('Multiband Mask')
+        assert lyr.isValid()
+
+        return lyr
+
+    @staticmethod
     def createRasterDataset(ns=10, nl=20, nb=1,
                             crs=None, gt=None,
                             eType: int = gdal.GDT_Int16,
@@ -822,12 +894,17 @@ class TestObjects(object):
 
         ds: gdal.Driver = drv.Create(path, ns, nl, bands=nb, eType=eType)
         assert isinstance(ds, gdal.Dataset)
+        for b in range(ds.RasterCount):
+            band: gdal.Band = ds.GetRasterBand(b + 1)
+            band.SetDescription(f'Test Band {b+1}')
+
         if no_data_rectangle > 0:
             no_data_rectangle = min([no_data_rectangle, ns])
             no_data_rectangle = min([no_data_rectangle, nl])
             for b in range(ds.RasterCount):
                 band: gdal.Band = ds.GetRasterBand(b + 1)
                 band.SetNoDataValue(no_data_value)
+
 
         coredata, core_wl, core_wlu, core_gt, core_wkt = TestObjects.coreData()
 

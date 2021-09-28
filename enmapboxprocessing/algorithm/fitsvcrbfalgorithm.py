@@ -3,10 +3,10 @@ from typeguard import typechecked
 
 
 @typechecked
-class FitSvcAlgorithm(FitClassifierAlgorithmBase):
+class FitSvcRbfAlgorithm(FitClassifierAlgorithmBase):
 
     def displayName(self) -> str:
-        return 'Fit SVC'
+        return 'Fit SVC (RBF kernel)'
 
     def shortDescription(self) -> str:
         return 'C-Support Vector Classification. ' \

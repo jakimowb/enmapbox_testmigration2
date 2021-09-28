@@ -88,17 +88,15 @@ class ImportDesisL1CAlgorithm(EnMAPProcessingAlgorithm):
 
             # create VRTs
             ds = gdal.Open(xmlFilename.replace('-METADATA.xml', '-SPECTRAL_IMAGE.tif'))
-            bandNames = [ds.GetRasterBand(i + 1).GetDescription() for i in range(ds.RasterCount)]
             options = gdal.TranslateOptions(format='VRT')
             ds: gdal.Dataset = gdal.Translate(destName=filename, srcDS=ds, options=options)
             ds.SetMetadataItem('wavelength', '{' + ', '.join(wavelength[:ds.RasterCount]) + '}', 'ENVI')
             ds.SetMetadataItem('wavelength_units', 'nanometers', 'ENVI')
             ds.SetMetadataItem('fwhm', '{' + ', '.join(fwhm[:ds.RasterCount]) + '}', 'ENVI')
-
             rasterBands = [ds.GetRasterBand(i + 1) for i in range(ds.RasterCount)]
             rasterBand: gdal.Band
             for i, rasterBand in enumerate(rasterBands):
-                rasterBand.SetDescription(bandNames[i])
+                rasterBand.SetDescription(f'band {i + 1} ({wavelength[i]} Nanometers)')
                 rasterBand.SetScale(float(gains[i]))
                 rasterBand.SetOffset(float(offsets[i]))
                 rasterBand.FlushCache()

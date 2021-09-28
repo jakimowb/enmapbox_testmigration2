@@ -1,26 +1,21 @@
 from typing import Dict, Any, List, Tuple
 
-from osgeo import gdal
-
-import processing
 from PyQt5.QtCore import QVariant
+from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRectangle,
                         QgsCoordinateReferenceSystem, QgsVectorFileWriter,
                         QgsProject, QgsField, QgsCoordinateTransform, QgsRasterLayer, QgsProcessingException)
 
+import processing
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
-from enmapboxprocessing.algorithm.rastermathalgorithm import RasterMathAlgorithm
-from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
-from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
-from enmapboxprocessing.rasterwriter import RasterWriter
-from qgis.core import edit
-
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
-from enmapboxprocessing.driver import Driver
+from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
+from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-from enmapboxprocessing.rasterreader import RasterReader
+from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.typing import HexColor, Category
 from enmapboxprocessing.utils import Utils
+from qgis.core import edit
 from typeguard import typechecked
 
 
@@ -62,7 +57,7 @@ class RasterizeCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterVectorLayer(self.P_CATEGORIZED_VECTOR, self._CATEGORIZED_VECTOR)
         self.addParameterRasterLayer(self.P_GRID, self._GRID)
         self.addParameterInt(self.P_COVERAGE, self._COVERAGE, 50, False, 0, 100, advanced=True)
-        self.addParameterBoolean(self.P_MAJORITY_VOTING, self._MAJORITY_VOTING, True, False, advanced=True)
+        self.addParameterBoolean(self.P_MAJORITY_VOTING, self._MAJORITY_VOTING, True, False, True)
         self.addParameterRasterDestination(self.P_OUTPUT_CATEGORIZED_RASTER, self._OUTPUT_CATEGORIZED_RASTER)
 
     def checkParameterValues(self, parameters: Dict[str, Any], context: QgsProcessingContext) -> Tuple[bool, str]:

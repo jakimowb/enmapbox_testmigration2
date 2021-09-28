@@ -15,7 +15,6 @@ class CodeEditWidget(QsciScintilla):
         font = QFont()
         font.setFamily('Courier')
         font.setFixedPitch(True)
-        # font.setPointSize(10)
         font.setPixelSize(8)
 
         self.setFont(font)
@@ -28,9 +27,7 @@ class CodeEditWidget(QsciScintilla):
         self.setMarginLineNumbers(0, True)
         self.setMarginsBackgroundColor(QColor("#e3e3e3"))
 
-        # self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding,
-        #                               QSizePolicy.Expanding))
-        self.setMinimumSize(0, 300)
+#        self.setMinimumSize(0, 300)
 
     def setToolTip(self, *args, **kwargs):
         pass
@@ -45,6 +42,7 @@ class ProcessingParameterCodeEdit(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
         loadUi(__file__.replace('.py', '.ui'), self)
+        self.codeEdit.setMinimumSize(0, 300)
 
 
 class ProcessingParameterCodeEditWidgetWrapper(WidgetWrapper):

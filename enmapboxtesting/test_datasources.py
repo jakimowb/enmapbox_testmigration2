@@ -191,21 +191,19 @@ class DataSourceTests(EnMAPBoxTestCase):
         mimeData = QMimeData()
         mimeData.setUrls([QUrl.fromLocalFile(path_csv.as_posix())])
 
-
-
-
     def test_speclibs(self):
 
         ds = DataSourceFactory.create(library)
         self.assertIsInstance(ds, list)
         self.assertTrue(len(ds) == 1)
         ds = ds[0]
-        self.assertIsInstance(ds, DataSourceSpectralLibrary)
+        self.assertIsInstance(ds, DataSourceVector)
+        self.assertTrue(ds.isSpectralLibrary())
 
-        import enmapboxtestdata.asd.asd
+        import enmapboxunittestdata.asd.asd
         from enmapbox import scantree
         from enmapbox.externals.qps.speclib.io.asd import ASDSpectralLibraryIO
-        asdDir = pathlib.Path(enmapboxtestdata.__file__).parent
+        asdDir = pathlib.Path(enmapboxunittestdata.__file__).parent
         asdFiles = list(scantree(asdDir, '.asd'))
 
         for file in asdFiles:
@@ -220,7 +218,6 @@ class DataSourceTests(EnMAPBoxTestCase):
 
             self.assertIsInstance(ds, list)
             self.assertTrue(len(ds) > 0, msg='not datasource returned for {}'.format(file))
-            self.assertIsInstance(ds[0], DataSourceSpectralLibrary)
 
     def test_layerSourceUpdate(self):
 
@@ -246,7 +243,6 @@ class DataSourceTests(EnMAPBoxTestCase):
         self.assertEqual(lyr.height(), 500)
 
         # del lyr
-
 
     def test_datasourceversions(self):
 
@@ -536,15 +532,6 @@ class DataSourceTests(EnMAPBoxTestCase):
                     mapCanvas.dropEvent(createDropEvent(mimeData))
                     self.assertTrue(len(mapCanvas.layers()) == 1)
 
-                if isinstance(dNode, SpeclibDataSourceTreeNode):
-                    self.assertIsInstance(dNode.mDataSource, DataSourceSpectralLibrary)
-
-                    # drop speclib to mapcanvas
-                    n = len(mapCanvas.layers())
-                    mapCanvas.dropEvent(createDropEvent(mimeData))
-                    QApplication.processEvents()
-                    self.assertEqual(len(mapCanvas.layers()), n + 1)
-
                 if isinstance(dNode, HubFlowObjectTreeNode):
                     pass
 
@@ -566,76 +553,19 @@ class DataSourceTests(EnMAPBoxTestCase):
                     if n > 3:
                         break
 
-    def test_hubflowtypes(self):
-        """
-        Tests to load serialized hubflow objects
-        """
+    def test_issue_672_pkl(self):
 
-        from enmapbox.gui.datasources import HubFlowDataSource
+        from enmapbox import DIR_REPO
 
-        dirTmp = self.createTestOutputDirectory() / 'hubflowtypetest'
-        os.makedirs(dirTmp, exist_ok=True)
-        from hubflow.testdata import outdir
-        print(outdir)
+        path_pkl = pathlib.Path(DIR_REPO) / 'enmapboxunittestdata' / 'classifier.pkl'
 
-        ds = DataSourceManager()
-        dm = DataSourceManagerTreeModel(None, ds)
-        dtv = DataSourceTreeView()
-        dtv.setModel(dm)
+        self.assertTrue(os.path.isfile(path_pkl), msg='missing unittest data: {}'.format(path_pkl))
 
-        root = dm.rootNode()
-        DATA_MEM = {'AAA':
-                {'RootNode': root,
-                 'B2': {'DDD': root},
-                 'NP': np.arange(256),
-                 'Array2': np.asarray([[1,2,3],[4,5,6]]),
-                 'Model': dm},
-                'CA': QgsMapCanvas(),
-                }
-
-        DATA_PKL = {'D1':
-                        {'Array1D': np.random.rand(256),
-                         'Array2D': np.random.rand(64, 32),
-                         'Array3D': np.random.rand(32, 16, 3),
-                         },
-                    }
-
-        DATA_JSON = {'AAA':
-                        {'List': np.arange(256).tolist(),
-                         },
-                    }
-
-
-        path_json = dirTmp / 'test.json'
-        path_pkl = dirTmp / 'test.pkl'
-        path_not_a_json = dirTmp / 'test_not_a.json'
-        path_not_a_pkl = dirTmp / 'test_not_a.pkl'
-
-        with open(path_json, 'w', encoding='utf8') as f:
-            json.dump(DATA_JSON, f)
-
-        with open(path_pkl, 'wb') as f:
-            pickle.dump(DATA_PKL, f)
-
-        # test crashed data:
-        with open(path_not_a_json, 'w') as f:
-            f.write('[no a json')
-
-        with open(path_not_a_pkl, 'wb') as f:
-            f.write(bytes(b'not a pkl'))
-
-        for s in [path_not_a_json, path_not_a_pkl]:
-            sources = ds.addSource(s)
-            for source in sources:
-                self.assertIsInstance(source, DataSourceFile)
-
-        for s in [path_json, path_pkl]:
-            sources = ds.addSource(s)
-            for source in sources:
-                self.assertIsInstance(source, DataSource)
-
-
-        self.showGui(dtv)
+        dsm = DataSourceManager()
+        panel = DataSourcePanelUI()
+        panel.connectDataSourceManager(dsm)
+        dsm.addSource(path_pkl)
+        self.showGui(panel)
 
     def test_issue478(self):
         # https://bitbucket.org/hu-geomatics/enmap-box/issues/478/visualization-of-single-band-fails
@@ -657,5 +587,4 @@ class DataSourceTests(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

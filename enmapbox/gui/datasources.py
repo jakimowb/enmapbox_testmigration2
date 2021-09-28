@@ -28,6 +28,8 @@ import typing
 import pathlib
 import uuid
 
+from qgis._core import QgsFields
+
 from qgis.PyQt.QtCore import QVariant, pyqtSignal, QDateTime, QFileInfo, QUrl, QSizeF
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QFileIconProvider
@@ -363,6 +365,8 @@ class DataSourceSpatial(DataSource):
                         name = 'WFS:{}'.format(layer.name())
                 elif layer.providerType() == 'wms':
                     name = 'WMS:{}'.format(layer.name())
+                elif layer.name() != '':
+                    name = layer.name()
                 else:
                     name = os.path.basename(uri)
             providerKey = layer.dataProvider().name()
@@ -383,6 +387,12 @@ class DataSourceSpatial(DataSource):
 
     def mapLayer(self) -> QgsMapLayer:
         return self.mLayer
+
+    def setMapLayer(self, layer: QgsMapLayer):
+        assert isinstance(layer, QgsMapLayer)
+
+        self.mLayer = layer
+        self.mLayerId = layer.id()
 
     def setName(self, name: str):
         super().setName(name)
@@ -413,15 +423,6 @@ class DataSourceSpatial(DataSource):
 
 
 class HubFlowDataSource(DataSource):
-
-    @staticmethod
-    def createID(obj) -> str:
-        import hubflow.core
-        assert isinstance(obj, hubflow.core.FlowObject)
-        attr = getattr(obj, 'filename', None)
-        uri = attr() if callable(attr) else ''
-
-        return 'hubflow:{}:{}:{}'.format(obj.__class__.__name__, id(obj), uri)
 
     def __init__(self, obj, uri: str = None, name: str = None, icon: QIcon = None):
         if isinstance(uri, str):
@@ -459,9 +460,10 @@ class DataSourceRaster(DataSourceSpatial):
         if not isinstance(layer, QgsRasterLayer):
             layer = self.createUnregisteredMapLayer()
         assert isinstance(layer, QgsRasterLayer)
+        assert layer.isValid()
+
+        self.setMapLayer(layer)
         self.mLayer: QgsRasterLayer = layer
-        self.mLayerId = self.mLayer.id()
-        self.mLayer.setCustomProperty('ENMAPBOX_DATASOURCE', True)
 
         # self.mDataType = -1
         # self.mPxSize = QSizeF()
@@ -676,8 +678,7 @@ class DataSourceVector(DataSourceSpatial):
             layer = self.createUnregisteredMapLayer()
         assert isinstance(layer, QgsVectorLayer)
 
-        self.mLayer = layer
-        self.mLayerId = self.mLayer.id()
+        self.setMapLayer(layer)
         self.updateMetadata()
 
     def geometryType(self) -> QgsWkbTypes:
@@ -686,6 +687,9 @@ class DataSourceVector(DataSourceSpatial):
         :return: QgsWkbTypes.GeometryType
         """
         return self.mapLayer().geometryType()
+
+    def isSpectralLibrary(self) -> bool:
+        return is_spectral_library(self.mLayer)
 
     def createUnregisteredMapLayer(self) -> QgsVectorLayer:
         """
@@ -702,7 +706,12 @@ class DataSourceVector(DataSourceSpatial):
             QgsSettings().setValue(key, 'useProject')
 
         loptions = QgsVectorLayer.LayerOptions(True, False)
-        lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider, options=loptions)
+        if self.mProvider == 'memory':
+            # we cannot clone memory layers
+            # see https://github.com/qgis/QGIS/issues/34134
+            lyr = self.mLayer
+        else:
+            lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider, options=loptions)
 
         if isPrompt:
             QgsSettings().setValue(key, v)
@@ -712,60 +721,20 @@ class DataSourceVector(DataSourceSpatial):
     def updateMetadata(self, *args, **kwds):
         super(DataSourceVector, self).updateMetadata(*args, **kwds)
 
-        gt = self.geometryType()
-        if gt in [QgsWkbTypes.PointGeometry]:
-            self.mIcon = QIcon(':/enmapbox/gui/ui/icons/mIconPointLayer.svg')
-        elif gt in [QgsWkbTypes.LineGeometry]:
-            self.mIcon = QIcon(':/images/themes/default/mIconLineLayer.svg')
-        elif gt in [QgsWkbTypes.PolygonGeometry]:
-            self.mIcon = QIcon(':/images/themes/default/mIconPolygonLayer.svg')
+        icon = QIcon(r':/images/themes/default/mIconVector.svg')
 
-
-class DataSourceSpectralLibrary(DataSourceVector):
-
-    def __init__(self, uri, name=None, icon=None, speclib: SpectralLibrary = None):
-        if icon is None:
-            icon = QIcon(':/qps/ui/icons/speclib.svg')
-
-        if isinstance(speclib, SpectralLibrary):
-            uri = speclib.source()
-            name = speclib.name()
-            layer = speclib
+        if self.isSpectralLibrary():
+            icon = QIcon(r':/qps/ui/icons/speclib.svg')
         else:
-            layer = SpectralLibrary.readFrom(uri)
-            assert isinstance(layer, SpectralLibrary), 'Unable to read SpectraLibrary from {}'.format(uri)
-        assert isinstance(layer, SpectralLibrary)
+            gt = self.geometryType()
+            if gt in [QgsWkbTypes.PointGeometry]:
+                icon = QIcon(':/enmapbox/gui/ui/icons/mIconPointLayer.svg')
+            elif gt in [QgsWkbTypes.LineGeometry]:
+                icon = QIcon(':/images/themes/default/mIconLineLayer.svg')
+            elif gt in [QgsWkbTypes.PolygonGeometry]:
+                icon = QIcon(':/images/themes/default/mIconPolygonLayer.svg')
 
-        super(DataSourceSpectralLibrary, self).__init__(uri, name, icon, providerKey='ogr', layer=layer)
-
-        # reset uri to original file
-        self.mUri = uri
-
-        self.setIcon(icon)
-
-        self.nProfiles = 0
-        self.profileNames = []
-        self.updateMetadata()
-
-    def createUnregisteredMapLayer(self) -> SpectralLibrary:
-
-        return SpectralLibrary(path=self.mLayer.source(), baseName=self.name())
-
-    def updateMetadata(self, *args, **kwds):
-
-        speclib = self.speclib()
-        if isinstance(speclib, SpectralLibrary):
-            self.setName(speclib.name())
-            self.mIcon = QIcon(':/qps/ui/icons/speclib.svg')
-
-    def mapLayer(self) -> SpectralLibrary:
-        return super().mapLayer()
-
-    def speclib(self) -> SpectralLibrary:
-        """
-        :return: SpectralLibrary
-        """
-        return self.mapLayer()
+        self.mIcon = icon
 
 
 class DataSourceFactory(object):
@@ -857,7 +826,7 @@ class DataSourceFactory(object):
         :return: (uri, None) if True
         """
         uri = None
-        if isinstance(src, SpectralLibrary):
+        if is_spectral_library(src):
             uri = src.source()
         else:
             if not isinstance(src, str):
@@ -879,12 +848,12 @@ class DataSourceFactory(object):
         :param src: any type
         :return: uri, 'hubflow' | None, None
         """
-        from hubflow.core import \
-            FlowObject, Map
-        # all hubflow Object, except spatial types, like Rasters or Vectors
-        # as they are handeled with QGIS API
-        if isinstance(src, FlowObject) and not isinstance(src, Map):
-            return True, src
+        #from hubflow.core import \
+        #    FlowObject, Map
+        ## all hubflow Object, except spatial types, like Rasters or Vectors
+        ## as they are handeled with QGIS API
+        #if isinstance(src, FlowObject) and not isinstance(src, Map):
+        #    return True, src
 
         src = DataSourceFactory.srcToString(src)
         if isinstance(src, str) and os.path.exists(src):
@@ -962,8 +931,6 @@ class DataSourceFactory(object):
                     return [DataSourceRaster(src.uri, name=src.name, providerKey=src.providerKey)]
                 elif src.layerType == 'vector':
                     return [DataSourceVector(src.uri, name=src.name, providerKey=src.providerKey)]
-            elif isinstance(src, SpectralLibrary):
-                return [DataSourceSpectralLibrary(None, speclib=src)]
             elif isinstance(src, QgsVectorLayer):
                 return [DataSourceVector(None, layer=src)]
             elif isinstance(src, QgsRasterLayer):
@@ -983,18 +950,15 @@ class DataSourceFactory(object):
             # DataSource.instances()
 
             # run checks on input sources
-            if isinstance(src, SpectralLibrary):
-                sourceTestFunctions = [DataSourceFactory.checkForSpeclib]
-            elif isinstance(src, gdal.Dataset) or isinstance(src, QgsRasterLayer):
+            if isinstance(src, gdal.Dataset) or isinstance(src, QgsRasterLayer):
                 sourceTestFunctions = [DataSourceFactory.checkForRaster]
             elif isinstance(src, ogr.DataSource) or isinstance(src, QgsVectorLayer):
-                sourceTestFunctions = [DataSourceFactory.checkForVector, DataSourceFactory.checkForSpeclib]
+                sourceTestFunctions = [DataSourceFactory.checkForVector]
             elif type(src).__name__ in ['module']:
                 return []
             else:  # run all tests
                 sourceTestFunctions = [DataSourceFactory.checkForRaster,
                                        DataSourceFactory.checkForVector,
-                                       DataSourceFactory.checkForSpeclib,
                                        DataSourceFactory.checkForHubFlow,
                                        DataSourceFactory.checkOtherFiles]
 
@@ -1002,10 +966,7 @@ class DataSourceFactory(object):
                 if isinstance(src, str):
                     guess = guessDataProvider(src)
                     if isinstance(guess, str):
-                        if guess == 'enmapbox_speclib':
-                            sourceTestFunctions.insert(0, sourceTestFunctions.pop(
-                                sourceTestFunctions.index(DataSourceFactory.checkForSpeclib)))
-                        elif guess == 'ogr':
+                        if guess == 'ogr':
                             sourceTestFunctions.insert(0, sourceTestFunctions.pop(
                                 sourceTestFunctions.index(DataSourceFactory.checkForVector)))
                         elif guess == 'enmapbox_textfile':
@@ -1064,7 +1025,10 @@ class DataSourceFactory(object):
                             for ldef in d.selection():
                                 assert isinstance(ldef, QgsSublayersDialog.LayerDefinition)
                                 names.append(ldef.layerName)
-                                rasterUris.append(subLayers[ldef.layerId])
+                                subLayerUri = subLayers[ldef.layerId]
+                                parts = subLayerUri.split(lyr.dataProvider().sublayerSeparator())
+
+                                rasterUris.append(parts[0])
 
             else:
 
@@ -1090,19 +1054,6 @@ class DataSourceFactory(object):
         uri, pkey = DataSourceFactory.isVectorSource(src)
         if uri:
             return [DataSourceVector(uri, providerKey=pkey, **kwds)]
-        return []
-
-    @staticmethod
-    def checkForSpeclib(src, **kwds) -> typing.List[DataSourceSpectralLibrary]:
-        """
-        Returns a DataSourceSpectralLibrary from src, if possible
-        :param src: any type
-        :param kwds: DataSourceSpectralLibrary keywords
-        :return: [list-of-DataSourceSpectralLibrary]
-        """
-        uri, pkey = DataSourceFactory.isSpeclib(src)
-        if uri:
-            return [DataSourceSpectralLibrary(uri, **kwds)]
         return []
 
     @staticmethod

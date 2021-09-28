@@ -16,6 +16,9 @@ from PyQt5.uic import loadUi
 
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcodealgorithm import \
     PrepareClassificationDatasetFromCodeAlgorithm
+from enmapboxprocessing.parameter.processingparameterclassificationdatasetwidget import \
+    ProcessingParameterClassificationDatasetWidget
+from enmapboxprocessing.parameter.processingparametercodeeditwidget import CodeEditWidget
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 from qgis._core import QgsMapLayerProxyModel, Qgis, QgsProcessingFeedback, QgsRasterLayer, QgsProject, QgsVectorLayer
 from qgis._gui import QgsFileWidget, QgsMapLayerComboBox, QgsSpinBox, QgsMessageBar, QgsColorButton, QgsDoubleSpinBox
@@ -121,14 +124,16 @@ class ClassificationWorkflowGui(QMainWindow):
     mLog: QTextEdit
     mLogClear: QToolButton
 
-    # todo quick mapping
-    mQuickMapFeatures: QgsMapLayerComboBox
-    mQuickMapTargets: QgsMapLayerComboBox
-    mQuickLibrary: QgsMapLayerComboBox
-    mQuickTable: QgsMapLayerComboBox
-    mQuickFeatures2: QgsMapLayerComboBox
-    mQuickClassifier: QComboBox
+    # quick mapping
+    mQuickDataset: ProcessingParameterClassificationDatasetWidget
+    mQuickFeatures: QgsMapLayerComboBox
+    mQuickComboClassifier: QComboBox
+    mQuickCodeClassifier: CodeEditWidget
     mRunQuickMapping: QToolButton
+    mQuickCheckPredictedClassification: QCheckBox
+    mQuickCheckPredictedProbability: QCheckBox
+    mQuickFilePredictedClassification: QgsFileWidget
+    mQuickFilePredictedProbability: QgsFileWidget
 
     # dataset
     # - import
@@ -159,7 +164,7 @@ class ClassificationWorkflowGui(QMainWindow):
 
     # classifier
     mComboClassifier: QComboBox
-    mCodeClassifier: QPlainTextEdit
+    mCodeClassifier: CodeEditWidget
     mFileClassifier: QgsFileWidget
     mViewClassifier: QToolButton
     mRunCreateClassifier: QToolButton
@@ -255,7 +260,7 @@ class ClassificationWorkflowGui(QMainWindow):
         self.mLogClear.clicked.connect(lambda: self.mLog.clear())
 
         # quick mapping
-        self.mQuickClassifier.currentIndexChanged.connect(self.onClassifierChanged)
+        self.mQuickComboClassifier.currentIndexChanged.connect(self.onClassifierChanged)
         self.mRunQuickMapping.clicked.connect(self.runQuickMapping)
 
         # dataset
@@ -274,6 +279,7 @@ class ClassificationWorkflowGui(QMainWindow):
         self.mRunSplitDataset.clicked.connect(self.runSplitDataset)
 
         # classifier
+        self.mComboClassifier.currentIndexChanged.connect(self.onClassifierChanged)
         self.mViewClassifier.clicked.connect(self.onViewFile)
         self.mRunCreateClassifier.clicked.connect(self.runCreateClassifier)
 
@@ -376,8 +382,7 @@ class ClassificationWorkflowGui(QMainWindow):
 
     def initLayers(self):
         self.mPredictFeatures.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.mQuickMapFeatures.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.mQuickFeatures2.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mQuickFeatures.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
     def initClassifier(self):
         self.classifierNames = list()
@@ -394,10 +399,11 @@ class ClassificationWorkflowGui(QMainWindow):
             i += 1
             self.classifierNames.append(alg.displayName().replace('Fit ', ''))
             self.classifierCodes.append(alg.defaultCodeAsString())
-        self.mQuickClassifier.addItems(self.classifierNames)
+        self.mQuickComboClassifier.addItems(self.classifierNames)
         self.mComboClassifier.addItems(self.classifierNames)
-        self.mCodeClassifier.setPlainText(FitRandomForestClassifierAlgorithm().defaultCodeAsString())
-        self.mQuickClassifier.setCurrentIndex(index)
+        self.mCodeClassifier.setText(FitRandomForestClassifierAlgorithm().defaultCodeAsString())
+        self.mQuickCodeClassifier.setText(FitRandomForestClassifierAlgorithm().defaultCodeAsString())
+        self.mQuickComboClassifier.setCurrentIndex(index)
         self.mComboClassifier.setCurrentIndex(index)
         
     def _createAlgorithmDialogWrapper(self):
@@ -440,40 +446,36 @@ class ClassificationWorkflowGui(QMainWindow):
 
     @errorHandled(successMessage='performed quick mapping')
     def runQuickMapping(self, *args):
-        # create sample
-        labels = self.mQuickLabels.currentLayer()
-        if labels is None:
-            self.pushParameterMissingLayer('Map with class labels')
+
+        # check consistency
+        if self.mQuickDataset.value() == '':
+            self.pushParameterMissing('Classification dataset for training', 'select a dataset first')
             raise MissingParameterError()
-        features = self.mQuickFeatures.currentLayer()
-        if features is None:
-            self.pushParameterMissingLayer('Raster with features')
+        if self.mQuickFeatures.currentLayer() is None:
+            self.pushParameterMissing('Raster layer for mapping', 'select a raster first')
             raise MissingParameterError()
 
-        if isinstance(labels, QgsRasterLayer):
-            self.mAlgoDataset.setCurrentIndex(1)
-            Alg = PrepareClassificationDatasetFromCategorizedRasterAlgorithm
-            parameters = {Alg.P_CATEGORIZED_RASTER: labels,
-                          Alg.P_FEATURE_RASTER: features}
-        elif isinstance(labels, QgsVectorLayer):
-            self.mAlgoDataset.setCurrentIndex(2)
-            Alg = PrepareClassificationDatasetFromCategorizedVectorAlgorithm
-            parameters = {Alg.P_CATEGORIZED_VECTOR: labels,
-                          Alg.P_FEATURE_RASTER: features}
-        else:
-            assert 0
-        self.runImportDataset(parameters=parameters, autoRun=True)
+        # set dataset
+        self.mFileDataset.setFilePath(self.mQuickDataset.value())
 
         # fit classifier
+        self.mFileClassifierFitted.setFilePath('')
         self.mDataFit.setCurrentIndex(1)  # (original) dataset
         self.mRunCreateClassifier.clicked.emit()
         self.mRunClassifierFit.clicked.emit()
+        if self.mFileClassifierFitted.filePath() == '':  # if fitting was canceled return silently
+            return
 
         # mapping
-        self.mPredictFeatures.setLayer(features)
-        if self.mQuickFeatures.currentLayer() is not None:
-            self.mPredictFeatures.setLayer(self.mQuickFeatures.currentLayer())
+        self.mPredictFeatures.setLayer(self.mQuickFeatures.currentLayer())
+        self.mCheckPredictedClassification.setChecked(self.mQuickCheckPredictedClassification.isChecked())
+        self.mCheckPredictedProbability.setChecked(self.mQuickCheckPredictedProbability.isChecked())
+        self.mFilePredictedProbability.setFilePath(self.mQuickFilePredictedProbability.filePath())
+        self.mFilePredictedClassification.setFilePath(self.mQuickFilePredictedClassification.filePath())
         self.mRunPredict.clicked.emit()
+        self.mQuickFilePredictedProbability.setFilePath(self.mFilePredictedProbability.filePath())
+        self.mQuickFilePredictedClassification.setFilePath(self.mFilePredictedClassification.filePath())
+
 
     @errorHandled(successMessage='created dataset')
     def runImportDataset(self, *args, parameters=None, autoRun=False):
@@ -683,7 +685,7 @@ class ClassificationWorkflowGui(QMainWindow):
     def runCreateClassifier(self, *args):
 
         alg = FitGenericClassifierAlgorithm()
-        parameters = {alg.P_CLASSIFIER: self.mCodeClassifier.toPlainText(),
+        parameters = {alg.P_CLASSIFIER: self.mCodeClassifier.text(),
                       alg.P_OUTPUT_CLASSIFIER: self.createOutputFilename(self.mFileClassifier, '.pkl')}
         result = self.showAlgorithmDialog(alg, parameters)
         self.mFileClassifier.setFilePath(result[alg.P_OUTPUT_CLASSIFIER])
@@ -798,7 +800,7 @@ class ClassificationWorkflowGui(QMainWindow):
 
         alg = FitGenericClassifierAlgorithm()
         parameters = {alg.P_DATASET: filenameTrain,
-                      alg.P_CLASSIFIER: self.mCodeClassifier.toPlainText(),
+                      alg.P_CLASSIFIER: self.mCodeClassifier.text(),
                       alg.P_OUTPUT_CLASSIFIER: self.createOutputFilename(self.mFileClassifierFitted, '.pkl')
                       }
         result = self.showAlgorithmDialog(alg, parameters)
@@ -940,9 +942,11 @@ class ClassificationWorkflowGui(QMainWindow):
 
     @errorHandled
     def onClassifierChanged(self, index: int):
-        self.mQuickClassifier.setCurrentIndex(index)
         self.mComboClassifier.setCurrentIndex(index)
-        self.mCodeClassifier.setPlainText(self.classifierCodes[index])
+        self.mQuickComboClassifier.setCurrentIndex(index)
+        text = self.classifierCodes[index]
+        self.mCodeClassifier.setText(text)
+        self.mQuickCodeClassifier.setText(text)
 
     @errorHandled
     def onWorkingDirectoryChanged(self, *args):

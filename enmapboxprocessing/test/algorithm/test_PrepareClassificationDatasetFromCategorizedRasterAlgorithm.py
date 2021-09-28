@@ -1,3 +1,5 @@
+from qgis._core import QgsRasterLayer
+
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedrasteralgorithm import \
     PrepareClassificationDatasetFromCategorizedRasterAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
@@ -46,3 +48,20 @@ class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
         self.assertEqual(['band 8 (0.460000 Micrometers)', 'band 9 (0.465000 Micrometers)'], dump.features[:2])
         self.assertListEqual([1, 2, 3, 4, 5, 6], [c.value for c in dump.categories])
         self.assertListEqual(['1', '2', '3', '4', '5', '6'], [c.name for c in dump.categories])
+
+    def test_byFirstRendererBand(self):
+        alg = PrepareClassificationDatasetFromCategorizedRasterAlgorithm()
+        print(QgsRasterLayer(enmap).renderer())
+        parameters = {
+            alg.P_FEATURE_RASTER: enmap,
+            alg.P_CATEGORIZED_RASTER: enmap,  # this makes not much sense, but we allow it anyways
+            alg.P_OUTPUT_DATASET: 'c:/vsimem/sample.pkl'
+        }
+        self.runalg(alg, parameters)
+        dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
+        self.assertEqual((71158, 177), dump.X.shape)
+        self.assertEqual((71158, 1), dump.y.shape)
+        self.assertEqual(177, len(dump.features))
+        self.assertEqual(['band 8 (0.460000 Micrometers)', 'band 9 (0.465000 Micrometers)'], dump.features[:2])
+        self.assertEqual(1479, len(dump.categories))
+

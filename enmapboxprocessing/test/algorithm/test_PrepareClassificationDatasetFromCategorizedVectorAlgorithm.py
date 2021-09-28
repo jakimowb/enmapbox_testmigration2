@@ -1,3 +1,5 @@
+from qgis._core import QgsVectorLayer, QgsRasterLayer
+
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectoralgorithm import \
     PrepareClassificationDatasetFromCategorizedVectorAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
@@ -16,6 +18,7 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_polygons,
+            alg.P_MAJORITY_VOTING: False,
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
         }
         self.runalg(alg, parameters)
@@ -53,6 +56,7 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_polygons,
             alg.P_CATEGORY_FIELD: 'level_3',
+            alg.P_MAJORITY_VOTING: False,
             alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
         }
         self.runalg(alg, parameters)
@@ -66,3 +70,17 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
             ['low vegetation', 'pavement', 'roof', 'soil', 'tree', 'water'],
             [c.name for c in dump.categories]
         )
+
+    def test_minimal_coverage(self):
+        alg = PrepareClassificationDatasetFromCategorizedVectorAlgorithm()
+        parameters = {
+            alg.P_FEATURE_RASTER: enmap,
+            alg.P_CATEGORIZED_VECTOR: landcover_polygons,
+            alg.P_COVERAGE: 100,  # pure pixel only
+            alg.P_MAJORITY_VOTING: True,
+            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+        }
+        self.runalg(alg, parameters)
+        dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
+        self.assertEqual((1481, 177), dump.X.shape)
+        self.assertEqual((1481, 1), dump.y.shape)

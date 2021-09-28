@@ -4,7 +4,6 @@ from math import ceil
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
-from astropy.convolution import Kernel
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, Qgis)
 
 from enmapboxprocessing.driver import Driver
@@ -107,7 +106,7 @@ class ConvolutionFilterAlgorithmBase(EnMAPProcessingAlgorithm):
                 kernel = CustomKernel(array=kernel.array[None])
             elif kernel.dimension == 1:
                 kernel = CustomKernel(array=kernel.array.reshape(-1, 1, 1))
-            assert isinstance(kernel, Kernel)
+
             zsize, ysize, xsize = kernel.shape
             overlap = int((max(ysize, xsize) + 1) / 2.)
 

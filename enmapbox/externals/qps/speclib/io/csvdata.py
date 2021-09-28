@@ -59,7 +59,7 @@ class CSVSpectralLibraryIO(SpectralLibraryIO):
             if isinstance(path, str) and os.path.isfile(path):
 
                 sl = CSVSpectralLibraryIO.readFrom(path, dialect)
-                if isinstance(sl, SpectralLibrary):
+                if is_spectral_library(sl):
                     speclib.addSpeclib(sl, True)
         m = menu.addMenu('CSV')
 
@@ -132,7 +132,7 @@ class CSVSpectralLibraryIO(SpectralLibraryIO):
         :param dialect: CSV dialect, python csv.excel_tab by default
         :return: [list-with-csv-filepath]
         """
-        assert isinstance(speclib, SpectralLibrary)
+        assert is_spectral_library(speclib)
 
         text = CSVSpectralLibraryIO.asString(speclib, dialect=dialect)
         file = open(path, 'w')
@@ -298,7 +298,7 @@ class CSVSpectralLibraryIO(SpectralLibraryIO):
                     p.setValues(y=y, x=x, xUnit=xUnit, yUnit=yUnit)
 
                 # add other attributes
-                for n in [n for n in p.fieldNames() if n in list(columnVectors.keys())]:
+                for n in [n for n in p.fields().names() if n in list(columnVectors.keys())]:
 
                     p.setAttribute(n, columnVectors[n][i])
 
@@ -318,9 +318,9 @@ class CSVSpectralLibraryIO(SpectralLibraryIO):
         :param skipGeometry:
         :return: str
         """
-        assert isinstance(speclib, SpectralLibrary)
+        assert is_spectral_library(speclib)
 
-        attributeNames = [n for n in speclib.fieldNames() if n not in [FIELD_VALUES]]
+        attributeNames = [n for n in speclib.fields().names() if n not in [FIELD_VALUES]]
 
         # in-memory text buffer
         stream = io.StringIO()

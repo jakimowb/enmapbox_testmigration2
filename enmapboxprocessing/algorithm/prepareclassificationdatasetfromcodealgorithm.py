@@ -17,7 +17,7 @@ class PrepareClassificationDatasetFromCodeAlgorithm(EnMAPProcessingAlgorithm):
 
     @classmethod
     def displayName(cls) -> str:
-        return 'Classification dataset (from Python code)'
+        return 'Create classification dataset (from Python code)'
 
     def shortDescription(self) -> str:
         return 'Create a classification dataset from Python code ' \

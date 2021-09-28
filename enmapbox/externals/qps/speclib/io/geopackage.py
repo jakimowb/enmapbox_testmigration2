@@ -1,6 +1,9 @@
+import os
 import typing
 
 from PyQt5.QtWidgets import QFormLayout
+
+from qgis._core import QgsProject
 from qgis.core import QgsVectorLayer, QgsExpressionContext, QgsFields, QgsProcessingFeedback, QgsFeature, \
     QgsVectorFileWriter, QgsCoordinateTransformContext, QgsCoordinateReferenceSystem
 
@@ -33,8 +36,10 @@ class GeoPackageSpectralLibraryExportWidget(SpectralLibraryExportWidget):
         return "Geopackage (*.gpkg);;SpatialLite (*.sqlite)"
 
     def exportSettings(self, settings: dict) -> dict:
-        settings['crs'] = self.speclib().crs()
-        settings['wkbType'] = self.speclib().wkbType()
+        speclib = self.speclib()
+        if isinstance(speclib, QgsVectorLayer):
+            settings['crs'] = speclib.crs()
+            settings['wkbType'] = speclib.wkbType()
         return settings
 
 
@@ -99,7 +104,6 @@ class GeoPackageSpectralLibraryIO(SpectralLibraryIO):
     def createImportWidget(cls) -> SpectralLibraryImportWidget:
         return GeoPackageSpectralLibraryImportWidget()
 
-
     @classmethod
     def exportProfiles(cls,
                        path: str,
@@ -120,8 +124,15 @@ class GeoPackageSpectralLibraryIO(SpectralLibraryIO):
         saveVectorOptions = QgsVectorFileWriter.SaveVectorOptions()
         saveVectorOptions.feedback = feedback
         saveVectorOptions.driverName = 'GPKG'
+        saveVectorOptions.symbologyExport = QgsVectorFileWriter.SymbolLayerSymbology
+        saveVectorOptions.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
 
-        transformContext = QgsCoordinateTransformContext()
+        newLayerName = exportSettings.get('layer_name', '')
+        if newLayerName == '':
+            newLayerName = os.path.basename(newLayerName)
+
+        writer: QgsVectorFileWriter = None
+        transformContext = QgsProject.instance().transformContext()
         for i, profile in enumerate(profiles):
             if i == 0:
                 # init file writer based on 1st feature fields
@@ -132,13 +143,22 @@ class GeoPackageSpectralLibraryIO(SpectralLibraryIO):
                     srs=exportSettings['crs'],
                     transformContext=transformContext,
                     options=saveVectorOptions,
-                    #sinkFlags=None,
-                    newLayer=None,
+                    # sinkFlags=None,
+                    # newLayer=newLayerName,
                     newFilename=None
                 )
+                if writer.hasError() != QgsVectorFileWriter.NoError:
+                    raise Exception(f'Error when creating {path}: {writer.errorMessage()}')
 
-            writer.addFeature(profile)
+            if not writer.addFeature(profile):
+                if writer.hasError() != QgsVectorFileWriter.NoError:
+                    raise Exception(f'Error when creating feature: {writer.errorMessage()}')
 
+        if True:
+            lyr = QgsVectorLayer(path)
+            if lyr.isValid():
+                s = ""
+            s = ""
         return [path]
 
     @classmethod

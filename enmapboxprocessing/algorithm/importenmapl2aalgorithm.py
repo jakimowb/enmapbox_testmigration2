@@ -81,6 +81,7 @@ class ImportEnmapL2AAlgorithm(EnMAPProcessingAlgorithm):
             rasterBands = [ds.GetRasterBand(i + 1) for i in range(ds.RasterCount)]
             rasterBand: gdal.Band
             for i, rasterBand in enumerate(rasterBands):
+                rasterBand.SetDescription(f'band {i + 1} ({wavelength[i]} Nanometers)')
                 rasterBand.SetScale(float(gains[i]) * 1e4)
                 rasterBand.SetOffset(float(offsets[i]))
                 rasterBand.FlushCache()

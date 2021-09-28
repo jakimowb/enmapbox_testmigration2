@@ -169,15 +169,12 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(EMB, EnMAPBox.instance())
+
         EMB.loadExampleData()
         self.assertTrue(len(QgsProject.instance().mapLayers()) > 0)
         canvases = EMB.mapCanvases()
         self.assertTrue(canvases[-1] == EMB.currentMapCanvas())
 
-        #import qgis.utils
-        #QgsProject.instance()
-        #qgis.utils.iface.actionSaveProject().trigger()
-        # qgis.utils.iface.mainWindow()
         self.showGui([EMB.ui])
 
 
@@ -205,7 +202,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
             iface.setActiveLayer(layer)
             self.assertEqual(iface.activeLayer(), layer)
 
-
         box = EnMAPBox(load_core_apps=False, load_other_apps=False)
         iface = qgis.utils.iface
         self.assertIsInstance(iface, QgisInterface)
@@ -228,6 +224,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         QgsApplication.processEvents()
 
         self.assertEqual(len(box.dataSources()), nQGIS)
+        self.showGui([box, iface.mainWindow()])
 
     def test_createDock(self):
 
@@ -327,7 +324,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
         self.assertTrue(len(E.dataSources()) > 0)
         ns = len(E.dataSources('SPATIAL'))
-        #self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
+        # self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
 
         # add layer to map
         mapDock.addLayers([TestObjects.createRasterLayer()])
@@ -363,5 +360,4 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
 
 if __name__ == '__main__':
-
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

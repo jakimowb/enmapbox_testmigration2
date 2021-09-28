@@ -1,16 +1,22 @@
+import subprocess
+import sys
+import webbrowser
 from collections import OrderedDict
 from functools import partial
-from os.path import splitext, basename
+from os import scandir, DirEntry, mkdir
+from os.path import splitext, basename, exists, join, dirname
 from time import time
 from typing import Dict, Union
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QTreeWidget, QTreeWidgetItem, QPushButton, \
-    QInputDialog, QMenu, QAction, QComboBox, QListWidget
+    QInputDialog, QMenu, QAction, QComboBox, QListWidget, QToolButton, QFileDialog
 from PyQt5.uic import loadUi
 from qgis._core import QgsProject, QgsRasterLayer, QgsVectorLayer, QgsFields, QgsField, QgsCoordinateReferenceSystem
 
+from enmapboxprocessing.algorithm.rastermathalgorithm.snippetinsertdialog import SnippetInsertDialog
+from enmapboxprocessing.algorithm.rastermathalgorithm.snippetsaveasdialog import SnippetSaveAsDialog
 from enmapboxprocessing.parameter.processingparametercodeeditwidget import CodeEditWidget
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.utils import Utils
@@ -20,23 +26,31 @@ from processing.gui.wrappers import WidgetWrapper, DIALOG_MODELER, DIALOG_BATCH
 class ProcessingParameterRasterMathCodeEdit(QWidget):
     mCode: CodeEditWidget
     mSourcesTree: QTreeWidget
+    mSourcesRefresh: QToolButton
+    mSnippetsTree: QTreeWidget
+    mSnippetOpen: QToolButton
+    mSnippetSaveAs: QToolButton
+    mSnippetOpenFolder: QToolButton
+    mSnippetRefresh: QToolButton
     mInput: QComboBox
     mOutput: QComboBox
-    mLandsat8: QListWidget
-    mSentinel2: QListWidget
 
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
         loadUi(__file__.replace('.py', '.ui'), self)
 
         self.updateSources()
-        QgsProject.instance().layersAdded.connect(self.updateSources)
+        # QgsProject.instance().layersAdded.connect(self.updateSources)  # better not auto-update sources, because when adding a result layer to a map view, it will be added with the basename equal to the identifier already used in the snippet
+        self.mSourcesRefresh.clicked.connect(self.updateSources)
+
+        self.parseSnippets()
 
         # connect signals
         self.mSourcesTree.clicked.connect(self.onSourceClicked)
         self.mSourcesTree.doubleClicked.connect(self.onSourceDoubleClicked)
         self.mSourcesTree.setContextMenuPolicy(Qt.CustomContextMenu)
         self.mSourcesTree.customContextMenuRequested.connect(self.onContextMenuRequested)
+        self.mSnippetsTree.doubleClicked.connect(self.onSnippetDoubleClicked)
 
         self.mBiggerGui.clicked.connect(
             lambda: self.mCode.setMinimumSize(0, min(self.mCode.size().height() + 100, 1000))
@@ -57,19 +71,80 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
             obj: QPushButton = getattr(self, name)
             obj.clicked.connect(self.onMethodClicked)
 
-        self.mLandsat8.doubleClicked.connect(self.onSensorBandDoubleClicked)
-        self.mSentinel2.doubleClicked.connect(self.onSensorBandDoubleClicked)
+        for i in range(1, 7):
+            obj: QToolButton = getattr(self, 'mLandsat_' + str(i))
+            obj.clicked.connect(self.onSensorBandClicked)
+
+        for i in range(1, 11):
+            obj: QToolButton = getattr(self, 'mSentinel2_' + str(i))
+            obj.clicked.connect(self.onSensorBandClicked)
+
+        self.mSnippetSaveAs.clicked.connect(self.onSnippetSaveAsClicked)
+        self.mSnippetOpenFolder.clicked.connect(self.onSnippetOpenFolderClicked)
+        self.mSnippetRefresh.clicked.connect(self.parseSnippets)
 
         self._lastDoubleClickTime = 0.  # required for a workaround
 
-    def onSensorBandDoubleClicked(self):
-        list = self.sender()
+    def parseSnippets(self):
+        from enmapboxprocessing.algorithm import rastermathalgorithm
+        root = join(dirname(rastermathalgorithm.__file__), 'snippet')
+        self.mSnippetsTree.clear()
+        folder: DirEntry
+        file: DirEntry
+        for folder in scandir(root):
+            if folder.is_dir():
+                folderItem = QTreeWidgetItem([folder.name])
+                self.mSnippetsTree.addTopLevelItem(folderItem)
+                for file in scandir(folder):
+                    fileItem = QTreeWidgetItem([splitext(file.name)[0]])
+                    fileItem.setToolTip(0, file.path)
+                    folderItem.addChild(fileItem)
+
+    def onSnippetSaveAsClicked(self):
+        code = self.mCode.text()
+        rasterNames = list(self.getRasterSources().keys())
+        dlg = SnippetSaveAsDialog(code, rasterNames, self.parent())
+        if dlg.exec_():
+            snippet = dlg.values()
+            from enmapboxprocessing.algorithm import rastermathalgorithm
+            root = join(dirname(rastermathalgorithm.__file__), 'snippet', 'custom')
+            if not exists(root):
+                mkdir(root)
+            dlg = QFileDialog()
+            filename, _ = dlg.getSaveFileName(self, 'Save code snippet as', root, '*.txt', '*.txt')
+            if filename != '':
+                with open(filename, 'w') as file:
+                    file.write(snippet)
+                self.parseSnippets()
+
+    def onSnippetOpenFolderClicked(self):
+        from enmapboxprocessing.algorithm import rastermathalgorithm
+        root = join(dirname(rastermathalgorithm.__file__), 'snippet')
+        # taken from https://stackoverflow.com/questions/1795111/is-there-a-cross-platform-way-to-open-a-file-browser-in-python
+        if sys.platform == 'win32':
+            #subprocess.Popen(['start', root], shell=True)
+            webbrowser.open(root)
+
+        elif sys.platform == 'darwin':
+            subprocess.Popen(['open', root])
+
+        else:
+            try:
+                subprocess.Popen(['xdg-open', root])
+            except OSError:
+                pass
+                # error, think of something else to try
+                # xdg-open *should* be supported by recent Gnome, KDE, Xfce
+
+    def onSensorBandClicked(self):
+        button: QToolButton = self.sender()
         text = self.mInput.currentText()
-        text += list.currentItem().toolTip()
+        text += button.toolTip()
         y, x = self.mCode.getCursorPosition()
         self.mCode.insert(text)
         x += len(text)
         self.mCode.setCursorPosition(y, x)
+        self.mCode.setFocus()
 
     def onSourceClicked(self):
         item = self.mSourcesTree.currentItem()
@@ -92,6 +167,29 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
     def onSourceDoubleClicked(self):
         self.insertIdentifier()
         self.onSourceClicked()
+
+    def onSnippetDoubleClicked(self):
+        # workaround an issue, where on doubleClicked is triggered twice
+        t = time()
+        if (t - self._lastDoubleClickTime) < 0.1:
+            return
+        self._lastDoubleClickTime = t
+
+        item: QTreeWidgetItem = self.mSnippetsTree.currentItem()
+
+        if item.toolTip(0) == '':
+            return
+
+        filename = item.toolTip(0)
+
+        with open(filename) as file:
+            snippet = file.read()
+        rasterNames = list(self.getRasterSources().keys())
+
+        dlg = SnippetInsertDialog(snippet, rasterNames, self.parent())
+        if dlg.exec_():
+            code = dlg.values()
+            self.mCode.setText(code)
 
     def onContextMenuRequested(self, pos):
 
@@ -224,6 +322,11 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
 
         return sources
 
+    def getRasterSources(self) -> Dict:
+        sources = {k: v for k, v in self.getSources().items()
+                   if isinstance(QgsProject.instance().mapLayer(v), QgsRasterLayer)}
+        return sources
+
     def insertIdentifier(self, identifier: str = None):
         # workaround an issue, where on doubleClicked is triggered twice
         t = time()
@@ -274,8 +377,13 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
         for registryName, layer in layers.items():
 
             crs: QgsCoordinateReferenceSystem = layer.crs()
+
             if not crs.isValid():
                 continue
+
+            if layer.dataProvider().name() not in ['gdal', 'ogr']:
+                continue
+
             crsid = f' [{crs.authid()}]'
 
             font = self.mSourcesTree.font()
@@ -334,8 +442,11 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
 
     def value(self) -> str:
         # include the layer mapping
+        code = self.mCode.text()
         text = ''
         for identifier, registryName in self.getSources().items():
+            if not identifier in code:
+                continue
             layer = QgsProject.instance().mapLayer(registryName)
             if isinstance(layer, QgsRasterLayer):
                 text += f'# {identifier} := QgsRasterLayer("{layer.source()}")\n'

@@ -254,12 +254,12 @@ class EnMAPBox(QgisInterface, QObject):
     MAPTOOLACTION = 'enmapbox/maptoolkey'
 
     sigDataSourceAdded = pyqtSignal([str], [DataSource])
-    sigSpectralLibraryAdded = pyqtSignal([str], [SpectralLibrary], [DataSourceSpectralLibrary])
+    sigSpectralLibraryAdded = pyqtSignal([str], [QgsVectorLayer])
     sigRasterSourceAdded = pyqtSignal([str], [DataSourceRaster])
     sigVectorSourceAdded = pyqtSignal([str], [DataSourceVector])
 
     sigDataSourceRemoved = pyqtSignal([str], [DataSource])
-    sigSpectralLibraryRemoved = pyqtSignal([str], [SpectralLibrary], [DataSourceSpectralLibrary])
+    sigSpectralLibraryRemoved = pyqtSignal([str], [QgsVectorLayer])
     sigRasterSourceRemoved = pyqtSignal([str], [DataSourceRaster])
     sigVectorSourceRemoved = pyqtSignal([str], [DataSourceVector])
 
@@ -277,6 +277,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     sigMapCanvasRemoved = pyqtSignal(MapCanvas)
     sigMapCanvasAdded = pyqtSignal(MapCanvas)
+    sigMapCanvasKeyPressed = pyqtSignal(MapCanvas, QKeyEvent)
 
     sigProjectWillBeSaved = pyqtSignal()
 
@@ -468,7 +469,7 @@ class EnMAPBox(QgisInterface, QObject):
         debugLog('Load settings from QgsProject.instance()')
         self.onReloadProject()
 
-    def showMessage(self, msg:str, title:str='Message', html:bool=False):
+    def showMessage(self, msg: str, title: str = 'Message', html: bool = False):
         viewer = QgsMessageViewer()
         viewer.setWindowTitle(title)
         if html:
@@ -493,7 +494,8 @@ class EnMAPBox(QgisInterface, QObject):
         :return:
         """
         a = QAction(button_text)
-    def showMessage(self, msg:str, title:str='Message', html:bool=False):
+
+    def showMessage(self, msg: str, title: str = 'Message', html: bool = False):
         viewer = QgsMessageViewer()
         viewer.setWindowTitle(title)
         if html:
@@ -584,7 +586,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         if lyr is None:
             lyr = self.currentLayer()
-        if isinstance(lyr, SpectralLibrary):
+        if is_spectral_library(lyr):
             dock = self.createDock(SpectralLibraryDock, speclib=lyr)
         elif isinstance(lyr, QgsVectorLayer):
             dock = self.createDock(AttributeTableDock, layer=lyr)
@@ -647,6 +649,12 @@ class EnMAPBox(QgisInterface, QObject):
             self.dataSourceManager().addSources(unknown)
         self.syncHiddenLayers()
 
+    def onMapCanvasKeyPressed(self, mapCanvas: MapCanvas, e: QKeyEvent):
+
+        if e.key() == Qt.Key_S:
+            # add current profiles (if collected)
+            self.spectralProfileSourcePanel().addCurrentProfilesToSpeclib()
+
     def onReloadProject(self, *args):
 
         proj: QgsProject = QgsProject.instance()
@@ -706,6 +714,7 @@ class EnMAPBox(QgisInterface, QObject):
         assert isinstance(layerIDs, list)
 
         layers = [QgsProject.instance().mapLayer(lid) for lid in layerIDs]
+        layers = [l for l in layers if isinstance(l, QgsMapLayer)]
         self.removeMapLayers(layers, remove_from_project=False)
 
     def syncHiddenLayers(self):
@@ -785,7 +794,7 @@ class EnMAPBox(QgisInterface, QObject):
         Removes layers from the EnMAP-Box
         """
         grp = self.hiddenLayerGroup()
-
+        layers = [l for l in layers if isinstance(l, QgsMapLayer)]
         removedIds = [l.id() for l in layers]
 
         layersDS = self.dataSourceManager().mapLayers()
@@ -915,6 +924,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.spectralProfileSourcePanel.addSources(sources)
         self.ui.spectralProfileSourcePanel.setDefaultSource(sources[0])
+        self.sigMapCanvasKeyPressed.connect(self.onMapCanvasKeyPressed)
 
         area = Qt.RightDockWidgetArea
 
@@ -1168,6 +1178,7 @@ class EnMAPBox(QgisInterface, QObject):
             assert isinstance(canvas, MapCanvas)
             canvas.sigCrosshairPositionChanged.connect(self.onCrosshairPositionChanged)
             canvas.setCrosshairVisibility(True)
+            canvas.keyPressed.connect(lambda e, c=canvas: self.sigMapCanvasKeyPressed.emit(canvas, e))
             canvas.mapTools().setVectorLayerTools(self.mVectorLayerTools)
 
             self.setMapTool(self.mMapToolKey, canvases=[canvas])
@@ -1529,20 +1540,19 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigRasterSourceRemoved[DataSourceRaster].emit(dataSource)
             self.spectralProfileSourcePanel().removeSources(dataSource.uri())
 
-        if isinstance(dataSource, DataSourceSpectralLibrary):
-            to_remove = [d for d in self.dockManager().docks() \
-                         if isinstance(d, SpectralLibraryDock) \
-                         and d.speclib() == dataSource.speclib()]
-            for d in to_remove:
-                self.dockManager().removeDock(d)
-
-            self.sigSpectralLibraryRemoved[str].emit(dataSource.uri())
-            self.sigSpectralLibraryRemoved[SpectralLibrary].emit(dataSource.speclib())
-            self.sigSpectralLibraryRemoved[DataSourceSpectralLibrary].emit(dataSource)
-
         if isinstance(dataSource, DataSourceVector):
             self.sigVectorSourceRemoved[str].emit(dataSource.uri())
             self.sigVectorSourceRemoved[DataSourceVector].emit(dataSource)
+
+            if dataSource.isSpectralLibrary():
+                to_remove = [d for d in self.dockManager().docks() \
+                             if isinstance(d, SpectralLibraryDock) \
+                             and d.speclib() == dataSource.mapLayer()]
+                for d in to_remove:
+                    self.dockManager().removeDock(d)
+
+                self.sigSpectralLibraryRemoved[str].emit(dataSource.uri())
+                self.sigSpectralLibraryRemoved[QgsVectorLayer].emit(dataSource.mapLayer())
 
         # finally, remove related map layers
         if isinstance(dataSource, DataSourceSpatial):
@@ -1564,10 +1574,9 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigVectorSourceAdded[str].emit(dataSource.uri())
             self.sigVectorSourceAdded[DataSourceVector].emit(dataSource)
 
-        if isinstance(dataSource, DataSourceSpectralLibrary):
-            self.sigSpectralLibraryAdded[str].emit(dataSource.uri())
-            self.sigSpectralLibraryAdded[SpectralLibrary].emit(dataSource.speclib())
-            self.sigSpectralLibraryAdded[DataSourceSpectralLibrary].emit(dataSource)
+            if dataSource.isSpectralLibrary():
+                self.sigSpectralLibraryAdded[str].emit(dataSource.uri())
+                self.sigSpectralLibraryAdded[QgsVectorLayer].emit(dataSource.mapLayer())
 
         if False and isinstance(dataSource, DataSourceSpatial):
             self.addMapLayer(dataSource.mapLayer())
@@ -1628,7 +1637,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return enmapbox.__version__
 
-    def dataSourceTreeView(self) -> QTreeView:
+    def dataSourceTreeView(self) -> 'DataSourceTreeView':
         return self.ui.dataSourcePanel.dataSourceTreeView
 
     def dataSources(self, sourceType='ALL', onlyUri: bool = True) -> list:
@@ -2218,7 +2227,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def showProcessingAlgorithmDialog(
             self, algorithmName: Union[str, QgsProcessingAlgorithm], parameters: Dict = None, show=True, modal=False,
-            wrapper: AlgorithmDialog = None, autoRun=False, parent=None
+            wrapper: type = None, autoRun=False, parent=None
     ) -> AlgorithmDialog:
         """
         Create an algorithm dialog.
@@ -2301,10 +2310,11 @@ class EnMAPBox(QgisInterface, QObject):
         """
         candidates = []
         for source in self.mDataSourceManager.sources():
-            if isinstance(source, DataSourceSpectralLibrary):
+            if isinstance(source, DataSourceVector):
                 candidates.append(source.mapLayer())
+
         for lyr in self.mapLayers():
-            if isinstance(lyr, SpectralLibrary):
+            if is_spectral_library(lyr):
                 candidates.append(lyr)
 
         for dock in self.docks():
@@ -2313,7 +2323,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         speclibs = []
         for c in candidates:
-            if isinstance(c, SpectralLibrary) and c not in speclibs:
+            if is_spectral_library(c) and c not in speclibs:
                 speclibs.append(c)
 
         return speclibs

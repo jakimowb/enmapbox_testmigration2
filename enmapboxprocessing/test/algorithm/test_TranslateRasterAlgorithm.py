@@ -1,33 +1,17 @@
-import webbrowser
-
-import processing
-from qgis._core import QgsRasterLayer, QgsRasterRenderer, QgsProcessingContext, Qgis
 import numpy as np
+from qgis._core import QgsRasterLayer, QgsRasterRenderer
 
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxtestdata import enmap, hires
-from enmapboxunittestdata import landcover_raster_30m_epsg3035, landcover_raster_30m
+from enmapboxunittestdata import landcover_raster_30m_epsg3035
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
 
 
 class TestTranslateAlgorithm(TestCase):
-
-    def test_pythonCommand(self):
-        alg = TranslateRasterAlgorithm()
-        alg.initAlgorithm()
-        parameters = {
-            alg.P_RASTER: QgsRasterLayer(enmap),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
-        }
-        processing
-        cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
-        print(cmd)
-        eval(cmd)
-        #webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
 
     def test_default(self):
         alg = TranslateRasterAlgorithm()
@@ -99,7 +83,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_CREATION_PROFILE: alg.GTiffFormat,
             alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
         }
-        gold = [1, 3, 2, 4, 5,  6, 7]
+        gold = [1, 3, 2, 4, 5, 6, 7]
         'Byte Int16 UInt16 UInt32 Int32 Float32 Float64'
         for index, name in enumerate(alg.O_DATA_TYPE):
             parameters[alg.P_DATA_TYPE] = index
@@ -131,32 +115,17 @@ class TestTranslateAlgorithm(TestCase):
         alg = TranslateRasterAlgorithm()
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap),
-            #alg.P_BAND_LIST: [3],
+            alg.P_BAND_LIST: [3],
             alg.P_COPY_METADATA: True,
             alg.P_CREATION_PROFILE: alg.DefaultGTiffCreationProfile,
             alg.P_OUTPUT_RASTER: c + '/vsimem/enmap.tif'
         }
         result = self.runalg(alg, parameters)
-        gold = RasterReader(enmap).metadataDomain('')
-        lead = RasterReader(result[alg.P_OUTPUT_RASTER]).metadataDomain('')
-        return
-        for key in gold:
-            if key.startswith('Band_'):
-                continue
-            self.assertEqual(gold[key], lead[key])
-        gold = RasterReader(enmap).metadataDomain('ENVI')
-        lead = RasterReader(result[alg.P_OUTPUT_RASTER]).metadataDomain('ENVI')
-        for key, value in gold.items():
-            if key in ['file_compression']:
-                continue
-            if key == 'bands':
-                value = '1'
-            if key in [
-                'band names', 'bbl', 'data_gain_values', 'data_offset_values', 'data_reflectance_gain_values',
-                'data_reflectance_offset_values', 'fwhm', 'wavelength'
-            ]:
-                value = [value[bandNo - 1] for bandNo in parameters[alg.P_BAND_LIST]]
-            self.assertEqual(value, lead[key])
+
+        raster = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(470, int(raster.wavelength(1)))
+        self.assertEqual(5.8, raster.fwhm(1))
+        self.assertEqual(1, raster.badBandMultiplier(1))
 
     def test_clipSourceGrid_byFullExtent(self):
         raster = QgsRasterLayer(enmap)
@@ -277,7 +246,7 @@ class TestTranslateAlgorithm(TestCase):
         result = self.runalg(alg, parameters)
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
         self.assertEqual(3, reader.bandCount())
-        self.assertListEqual([665.0, 559.0, 489.0], [reader.wavelength(i+1) for i in range(reader.bandCount())])
+        self.assertListEqual([665.0, 559.0, 489.0], [reader.wavelength(i + 1) for i in range(reader.bandCount())])
 
     def test_scalingTo100(self):
         alg = TranslateRasterAlgorithm()

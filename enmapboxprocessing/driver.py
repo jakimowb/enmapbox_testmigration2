@@ -1,3 +1,4 @@
+import warnings
 from os.path import splitext
 from typing import Union
 
@@ -51,7 +52,12 @@ class Driver(object):
             self.feedback.pushInfo(info)
 
         gdalDriver: gdal.Driver = gdal.GetDriverByName(self.format)
-        gdalDataset: gdal.Dataset = gdalDriver.Create(self.filename, width, height, nBands, gdalDataType, self.options)
+        try:
+            gdalDataset: gdal.Dataset = gdalDriver.Create(self.filename, width, height, nBands, gdalDataType, self.options)
+        except RuntimeError as error:
+            warnings.warn(f'Unable to create file: {self.filename}')
+            raise error
+
         assert gdalDataset is not None
         gdalDataset.SetProjection(crs.toWkt())
         gdalDataset.SetGeoTransform(gdalGeoTransform)

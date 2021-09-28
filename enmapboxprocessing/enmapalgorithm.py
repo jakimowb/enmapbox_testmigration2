@@ -5,6 +5,7 @@ from time import time
 from typing import Any, Dict, Iterable, Optional, List, Tuple, TextIO
 
 import numpy as np
+from PyQt5.QtGui import QIcon
 from osgeo import gdal
 from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
                         QgsProcessingContext, QgsProcessingFeedback,
@@ -20,9 +21,6 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
 
 import processing
 from enmapboxprocessing.glossary import injectGlossaryLinks
-from enmapboxprocessing.parameter.processingparametercodeeditwidget import ProcessingParameterCodeEditWidgetWrapper
-from enmapboxprocessing.parameter.processingparametercreationprofilewidget import \
-    ProcessingParameterCreationProfileWidgetWrapper
 from enmapboxprocessing.parameter.processingparameterrasterdestination import ProcessingParameterRasterDestination
 from enmapboxprocessing.processingfeedback import ProcessingFeedback
 from enmapboxprocessing.typing import QgisDataType, CreationOptions, GdalResamplingAlgorithm
@@ -60,6 +58,9 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     EnviFormat = 'ENVI'
     DefaultEnviCreationOptions = 'INTERLEAVE=BSQ'.split()
     DefaultEnviCreationProfile = EnviFormat + ' ' + ' '.join(DefaultEnviCreationOptions)
+
+    def icon(self):
+        return QIcon(':/enmapbox/gui/ui/icons/enmapbox.svg')
 
     def createInstance(self):
         return type(self)()
@@ -99,9 +100,15 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def parameterAsLayer(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsMapLayer]:
+
         layer = super().parameterAsLayer(parameters, name, context)
-        if isinstance(layer, QgsMapLayer) and isinstance(parameters[name], str):
+        if layer is None:
+            return None
+
+        # if layer is given by URI string or renderer is undefined, we need to manually load the default style
+        if isinstance(parameters.get(name), str) or layer.renderer() is None:
             layer.loadDefaultStyle()
+
         return layer
 
     def parameterAsLayerList(
@@ -110,17 +117,22 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         layers = super().parameterAsLayerList(parameters, name, context)
         if layers is None or len(layers) == 0:
             return None
-        #for layer in layers:
-        #    if isinstance(layer, QgsMapLayer) and isinstance(parameters[name], str):
-        #        layer.loadDefaultStyle()
+        for layer in layers:
+            if isinstance(layer, QgsMapLayer) and layer.renderer() is None:
+                layer.loadDefaultStyle()
         return layers
 
     def parameterAsRasterLayer(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsRasterLayer]:
         layer = super().parameterAsRasterLayer(parameters, name, context)
-        if isinstance(layer, QgsRasterLayer) and isinstance(parameters[name], str):
+        if layer is None:
+            return None
+
+        # if layer is given by URI string or renderer is undefined, we need to manually load the default style
+        if isinstance(parameters.get(name), str) or layer.renderer() is None:
             layer.loadDefaultStyle()
+
         return layer
 
     def parameterAsSpectralRasterLayer(
@@ -145,8 +157,23 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[QgsVectorLayer]:
         layer = super().parameterAsVectorLayer(parameters, name, context)
-        if isinstance(layer, QgsVectorLayer) and isinstance(parameters[name], str):
+        if layer is None:
+            return None
+
+        # convert temporary scratch layer to OGR layer
+        if layer.dataProvider().name() == 'memory':
+            renderer = layer.renderer().clone()
+            parameters = {'INPUT': layer, 'OUTPUT': 'TEMPORARY_OUTPUT'}
+            feedback = None
+            result = self.runAlg('native:savefeatures', parameters, None, feedback, context, True)
+            layer = QgsVectorLayer(result['OUTPUT'], layer.name())
+            layer.setRenderer(renderer)
+            layer.saveDefaultStyle()
+
+        # if layer is given by URI string or renderer is undefined, we need to manually load the default style
+        if isinstance(parameters.get(name), str) or layer.renderer() is None:
             layer.loadDefaultStyle()
+
         return layer
 
     def parameterAsFields(
@@ -220,8 +247,15 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         string = self.parameterAsString(parameters, name, context)
         if string is None:
             return None
+        if string == '':
+            return None
+
         string = string.replace('\n', '')
-        values = eval(string)
+        try:
+            values = eval(string)
+        except:
+            raise QgsProcessingException(f'Invalid value list: {self.parameterDefinition(name).description()}')
+
         if not isinstance(values, (tuple, list)):
             values = [values]
         values = list(values)
@@ -287,7 +321,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext, filename: str
     ) -> Tuple[str, CreationOptions]:
         text = self.parameterAsString(parameters, name, context)
-        if text is None:
+        if text is None or text == '':
             extension = splitext(filename)[1].lower()
             defaultCreationProfilesByExtension = {
                 '.tif': self.DefaultGTiffCreationProfile,
@@ -319,7 +353,10 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def checkParameterVectorClassification(
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Tuple[bool, str]:
-        renderer = self.parameterAsVectorLayer(parameters, name, context).renderer()
+        layer = self.parameterAsVectorLayer(parameters, name, context)
+        if layer is None:
+            return True, ''
+        renderer = layer.renderer()
         return (
             isinstance(renderer, QgsCategorizedSymbolRenderer),
             f'Invalid vector classification, '
@@ -379,6 +416,19 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
 
     def helpUrl(self, *args, **kwargs):
         return 'https://bitbucket.org/hu-geomatics/enmap-box-geoalgorithmsprovider/overview'
+
+    def addParameterClassificationDataset(
+            self, name: str, description: str, defaultValue=None, optional=False, advanced=False
+    ):
+        from enmapboxprocessing.parameter.processingparameterclassificationdatasetwidget import \
+            ProcessingParameterClassificationDatasetWidgetWrapper
+        behavior = QgsProcessingParameterFile.File
+        extension = self.PickleFileExtension
+        param = QgsProcessingParameterFile(name, description, behavior, extension, defaultValue, optional)
+        param.setMetadata({'widget_wrapper': {'class': ProcessingParameterClassificationDatasetWidgetWrapper}})
+        param.setDefaultValue(defaultValue)
+        self.addParameter(param)
+        self.flagParameterAsAdvanced(name, advanced)
 
     def addParameterMapLayer(self, name: str, description: str, defaultValue=None, optional=False, advanced=False):
         self.addParameter(QgsProcessingParameterMapLayer(name, description, defaultValue, optional))
@@ -584,6 +634,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def addParameterCode(
             self, name: str, description: str, defaultValue=None, optional=False, advanced=False
     ):
+        from enmapboxprocessing.parameter.processingparametercodeeditwidget import \
+            ProcessingParameterCodeEditWidgetWrapper
         param = QgsProcessingParameterString(name, description, optional=optional)
         param.setMetadata({'widget_wrapper': {'class': ProcessingParameterCodeEditWidgetWrapper}})
         param.setDefaultValue(defaultValue)
@@ -600,6 +652,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     def addParameterCreationProfile(
             self, name: str, description='Output options', defaultValue: str = None, optional=False, advanced=False
     ):
+        from enmapboxprocessing.parameter.processingparametercreationprofilewidget import \
+            ProcessingParameterCreationProfileWidgetWrapper
         param = QgsProcessingParameterString(name, description, optional=optional)
         param.setMetadata({'widget_wrapper': {'class': ProcessingParameterCreationProfileWidgetWrapper}})
         param.setDefaultValue(defaultValue)

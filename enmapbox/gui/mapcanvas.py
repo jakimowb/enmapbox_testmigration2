@@ -22,12 +22,13 @@ import warnings
 
 import typing
 from PyQt5.QtCore import Qt, QObject, QCoreApplication, pyqtSignal, QEvent, QPointF, QMimeData, QTimer, QSize, \
-    QSettings, QModelIndex, QAbstractListModel
-from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent
+    QSettings, QModelIndex, QAbstractListModel, QPoint
+from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent, QKeyEvent
 from PyQt5.QtWidgets import QAction, QToolButton, QFileDialog, QHBoxLayout, QFrame, QMenu, QLabel, QApplication, \
     QWidgetAction, QGridLayout, QSpacerItem, QSizePolicy, QDialog, QVBoxLayout, QComboBox
 
-from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent, qgisAppQgisInterface
+from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent, qgisAppQgisInterface, spatialPoint2px, \
+    px2spatialPoint
 from enmapbox.gui import MapTools, MapToolCenter, PixelScaleExtentMapTool, \
     CursorLocationMapTool, FullExtentMapTool, QgsMapToolAddFeature, QgsMapToolSelect, \
     CrosshairDialog, CrosshairStyle, CrosshairMapCanvasItem
@@ -37,7 +38,7 @@ from qgis.PyQt import sip
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsRectangle, QgsMapLayerProxyModel, QgsVectorLayerTools, \
     QgsMapLayer, QgsRasterLayer, QgsPointXY, \
-    QgsProject, Qgis, QgsMapSettings
+    QgsProject, Qgis, QgsMapSettings, QgsMapToPixel
 from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapToolZoom, QgsAdvancedDigitizingDockWidget, QgsMapLayerComboBox, \
     QgsProjectionSelectionWidget, QgsMapToolIdentify, QgsMapTool, QgsMapToolPan, QgsMapToolCapture, QgsMapMouseEvent
 
@@ -871,6 +872,7 @@ class MapCanvas(QgsMapCanvas):
         self.setProperty(KEY_LAST_CLICKED, time.time())
         MapCanvas._cnt += 1
         self.mFirstCrs: QgsCoordinateReferenceSystem = None
+        self.mInitializedExtent: bool = False
         self.acceptDrops()
         self.setExtent(QgsRectangle(-1, -1, 1, 1))
 
@@ -1126,7 +1128,6 @@ class MapCanvas(QgsMapCanvas):
             if len(speclibs) > 0:
                 m = menu.addMenu('Add Spectral Library')
                 for speclib in speclibs:
-                    assert isinstance(speclib, SpectralLibrary)
                     a = m.addAction(speclib.name())
                     a.setToolTip(speclib.source())
                     a.triggered.connect(lambda *args, slib=speclib: self.setLayers(self.layers() + [slib]))
@@ -1137,6 +1138,75 @@ class MapCanvas(QgsMapCanvas):
     def clearLayers(self, *args):
         self.setLayers([])
         self.sigLayersCleared.emit()
+
+    def keyPressEvent(self, e: QKeyEvent):
+
+        is_panning = bool(QApplication.mouseButtons() & Qt.MiddleButton)
+        is_ctrl = bool(QApplication.keyboardModifiers() & Qt.ControlModifier)
+        is_shift = bool(QApplication.keyboardModifiers() & Qt.ShiftModifier)
+
+        # print(f'panning: {is_panning} CTRL: {is_ctrl}')
+        if not is_panning and is_ctrl and e.key() in [Qt.Key_Left, Qt.Key_Right, Qt.Key_Up, Qt.Key_Down]:
+            # find raster layer with a reference pixel grid
+            rasterLayer: QgsRasterLayer = self.mCrosshairItem.rasterGridLayer()
+            if not isinstance(rasterLayer, QgsRasterLayer):
+                for lyr in self.layers():
+                    if isinstance(lyr, QgsRasterLayer):
+                        rasterLayer = lyr
+                        break
+
+            if isinstance(rasterLayer, QgsRasterLayer):
+                # get the pixel grid cell at canvas center  in canvas coordinates
+                self.mCrosshairItem.isVisible()
+                settings: QgsMapSettings = self.mapSettings()
+                canvasCrs: QgsCoordinateReferenceSystem = settings.destinationCrs()
+                layerCrs: QgsCoordinateReferenceSystem = rasterLayer.crs()
+
+                # ptA = SpatialPoint.fromMapCanvasCenter(self)
+                ptA = SpatialPoint(canvasCrs, self.mCrosshairItem.mPosition).toCrs(layerCrs)
+                if not isinstance(ptA, SpatialPoint):
+                    return
+
+                dx = rasterLayer.rasterUnitsPerPixelX()
+                dy = rasterLayer.rasterUnitsPerPixelY()
+
+                ptB: SpatialPoint = None
+                if e.key() == Qt.Key_Left:
+                    ptB = SpatialPoint(canvasCrs, ptA.x() - dx, ptA.y())
+                elif e.key() == Qt.Key_Right:
+                    ptB = SpatialPoint(canvasCrs, ptA.x() + dx, ptA.y())
+                elif e.key() == Qt.Key_Up:
+                    ptB = SpatialPoint(canvasCrs, ptA.x(), ptA.y() + dy)
+                elif e.key() == Qt.Key_Down:
+                    ptB = SpatialPoint(canvasCrs, ptA.x(), ptA.y() - dy)
+                else:
+                    raise NotImplementedError()
+
+                ptR = ptB.toCrs(canvasCrs)
+
+                if not isinstance(ptR, SpatialPoint):
+                    super(MapCanvas, self).keyPressEvent(e)
+                    return
+
+                if isinstance(ptB, QgsPointXY):
+                    # self.setCenter(ptB)
+                    self.mCrosshairItem.setPosition(ptR)
+                    m2p: QgsMapToPixel = settings.mapToPixel()
+                    localPos = m2p.transform(ptR)
+
+                    # simulate a left-button mouse-click
+                    event = QMouseEvent(QEvent.MouseButtonPress, localPos.toQPointF(), Qt.LeftButton, Qt.LeftButton,
+                                        Qt.NoModifier)
+                    self.mousePressEvent(event)
+
+                    event = QMouseEvent(QEvent.MouseButtonRelease, localPos.toQPointF(), Qt.LeftButton,
+                                        Qt.LeftButton, Qt.NoModifier)
+                    self.mouseReleaseEvent(event)
+                    self.keyPressed.emit(e)
+
+                    return
+
+        super(MapCanvas, self).keyPressEvent(e)
 
     def layerPaths(self):
         """
@@ -1229,7 +1299,7 @@ class MapCanvas(QgsMapCanvas):
     def name(self):
         return self.windowTitle()
 
-    def zoomToPixelScale(self, spatialPoint: SpatialPoint = None, layer: QgsRasterLayer=None):
+    def zoomToPixelScale(self, spatialPoint: SpatialPoint = None, layer: QgsRasterLayer = None):
         unitsPxX = []
         unitsPxY = []
 
@@ -1371,8 +1441,12 @@ class MapCanvas(QgsMapCanvas):
             for lyr in mapLayers:
                 if lyr.crs().isValid():
                     self.setDestinationCrs(lyr.crs())
-                    self.zoomToFullExtent()
                     self.mFirstCrs = lyr.crs()
+        if not self.mInitializedExtent:
+            for lyr in mapLayers:
+                if lyr.isValid():
+                    self.zoomToFullExtent()
+                    self.mInitializedExtent = True
                     break
 
         self.setRenderFlag(True)
@@ -1510,4 +1584,3 @@ class MapDock(Dock):
             for mapDockTreeNode in enmapBox.dockManagerTreeModel().mapDockTreeNodes():
                 if mapDockTreeNode.dock is self:
                     mapDockTreeNode.insertLayer(idx=idx, layerSource=layerSource)
-

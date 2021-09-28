@@ -13,7 +13,15 @@ class TestUtils(TestCase):
     def test_(self):
         vector = QgsVectorLayer(landcover_polygons)
         categories = Utils.categoriesFromCategorizedSymbolRenderer(renderer=vector.renderer())
-        print(categories)
+        self.assertListEqual(
+            [Category(value='roof', name='roof', color='#e60000'),
+             Category(value='pavement', name='pavement', color='#9c9c9c'),
+             Category(value='low vegetation', name='low vegetation', color='#98e600'),
+             Category(value='tree', name='tree', color='#267300'),
+             Category(value='soil', name='soil', color='#a87000'),
+             Category(value='water', name='water', color='#0064ff')],
+            categories
+        )
 
     def test_parseColor(self):
         white = QColor('#FFFFFF')

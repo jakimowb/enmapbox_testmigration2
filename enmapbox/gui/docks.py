@@ -20,6 +20,8 @@
 import codecs
 import typing
 import enum
+
+from qgis.PyQt import QtCore
 from qgis.core import QgsVectorLayer
 
 from enmapbox.gui import SpectralLibraryWidget, SpectralLibrary
@@ -29,7 +31,8 @@ from ..externals.qps.externals.pyqtgraph.dockarea import DockArea as pgDockArea
 from ..externals.qps.externals.pyqtgraph.dockarea.DockArea import TempAreaWindow
 from ..externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
 from ..externals.qps.externals.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
-
+from ..externals.qps.layerproperties import pasteStyleFromClipboard
+from enmapbox.gui.mimedata import MDF_QGIS_LAYER_STYLE
 
 class DockTypes(enum.Enum):
     """
@@ -730,7 +733,7 @@ class WebViewDock(Dock):
         super(WebViewDock, self).__init__(*args, **kwargs)
         # self.setLineWrapMode(QTextEdit.FixedColumnWidth)
 
-        from PyQt5.QtWebKit import QWebView
+        from PyQt5.QtWebKitWidgets import QWebView
         self.webView = QWebView(self)
         self.layout.addWidget(self.webView)
 
@@ -789,17 +792,18 @@ class SpectralLibraryDock(Dock):
     """
     sigLoadFromMapRequest = pyqtSignal()
 
-    def __init__(self, *args, speclib: SpectralLibrary = None, **kwds):
+    def __init__(self, *args, speclib: QgsVectorLayer = None, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
-        if not isinstance(speclib, SpectralLibrary):
+        if not is_spectral_library(speclib):
             speclib = SpectralLibrary()
 
         self.mSpeclibWidget: SpectralLibraryWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
+        self.mSpeclibWidget.setVisualizationBoxCollapsed(True)
         self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.mSpeclibWidget)
 
-        assert isinstance(speclib, SpectralLibrary)
+        assert is_spectral_library(speclib)
         name = kwds.get('name')
         if isinstance(name, str):
             speclib.setName(name)
@@ -843,4 +847,11 @@ class SpectralLibraryDock(Dock):
         :return: QMenu
         """
         super(SpectralLibraryDock, self).populateContextMenu(menu)
+
+        speclib = self.speclib()
+        if isinstance(speclib, QgsVectorLayer):
+            actionPasteStyle = menu.addAction('Paste Style')
+            actionPasteStyle.triggered.connect(lambda: pasteStyleFromClipboard(speclib))
+            actionPasteStyle.setEnabled(MDF_QGIS_LAYER_STYLE in QApplication.clipboard().mimeData().formats())
+
         menu.addAction(self.speclibWidget().actionShowProperties)

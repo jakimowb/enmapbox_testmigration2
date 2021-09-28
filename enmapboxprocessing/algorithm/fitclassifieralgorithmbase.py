@@ -2,7 +2,7 @@ import inspect
 import traceback
 from typing import Dict, Any, List, Tuple
 
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback)
+from qgis._core import QgsProcessingContext, QgsProcessingFeedback
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.typing import ClassifierDump
@@ -40,8 +40,8 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
         return Group.Test.value + Group.Classification.value
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
-        self.addParameterFile(self.P_DATASET, self._DATASET, extension=self.PickleFileExtension, optional=True)
         self.addParameterCode(self.P_CLASSIFIER, self._CLASSIFIER, self.defaultCodeAsString())
+        self.addParameterClassificationDataset(self.P_DATASET, self._DATASET, None, True)
         self.addParameterFileDestination(self.P_OUTPUT_CLASSIFIER, self._OUTPUT_CLASSIFIER, self.PickleFileFilter)
 
     def defaultCodeAsString(self):
@@ -79,7 +79,8 @@ class FitClassifierAlgorithmBase(EnMAPProcessingAlgorithm):
 
             if filenameDataset is not None:
                 dump = ClassifierDump(**Utils.pickleLoad(filenameDataset))
-                feedback.pushInfo(f'Load training dataset: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
+                feedback.pushInfo(
+                    f'Load training dataset: X=array{list(dump.X.shape)} y=array{list(dump.y.shape)} categories={[c.name for c in dump.categories]}')
                 feedback.pushInfo('Fit classifier')
                 classifier.fit(dump.X, dump.y.ravel())
             else:

@@ -278,7 +278,7 @@ class SpectralLibraryIO(object):
 
         for format in matched_formats:
             format.setSource(uri)
-            fields = format.sourceFields()
+            fields = QgsFields(format.sourceFields())
             if fields.count() == 0:
                 continue
             settings = format.importSettings({})
@@ -294,7 +294,9 @@ class SpectralLibraryIO(object):
         profiles = SpectralLibraryIO.readProfilesFromUri(uri)
         if len(profiles) > 0:
             from .spectrallibrary import SpectralLibrary
-            speclib = SpectralLibrary(fields=profiles[0].fields())
+            referenceProfile = profiles[0]
+
+            speclib = SpectralLibrary(fields=referenceProfile.fields())
             speclib.startEditing()
             speclib.beginEditCommand('Add profiles')
             speclib.addFeatures(profiles)
@@ -319,6 +321,8 @@ class SpectralLibraryImportDialog(QDialog):
             source = dialog.source()
             propertyMap = dialog.fieldPropertyMap()
             format = dialog.currentImportWidget()
+            if not isinstance(format, SpectralLibraryImportWidget):
+                return False
             settings = format.importSettings({})
             io: SpectralLibraryIO = format.spectralLibraryIO()
             speclib: QgsVectorLayer = dialog.speclib()
@@ -508,13 +512,24 @@ class SpectralLibraryImportDialog(QDialog):
 class SpectralLibraryExportDialog(QDialog):
 
     @staticmethod
-    def exportProfiles(speclib: QgsVectorLayer, parent: QWidget = None):
+    def exportProfiles(speclib: QgsVectorLayer, parent: QWidget = None) -> typing.List[str]:
 
         dialog = SpectralLibraryExportDialog(parent=parent, speclib=speclib)
 
         if dialog.exec_() == QDialog.Accepted:
             w: SpectralLibraryExportWidget = dialog.currentExportWidget()
-            settings = dialog.currentExportWidget().exportSettings({})
+            io: SpectralLibraryIO =dialog.exportIO()
+            settings = dialog.exportSettings()
+            if isinstance(io, SpectralLibraryIO):
+                feedback = QgsProcessingFeedback()
+                path = dialog.exportPath()
+                if dialog.saveSelectedFeaturesOnly():
+                    profiles = speclib.getSelectedFeatures()
+                else:
+                    profiles = speclib.getFeatures()
+
+                return io.exportProfiles(path, settings, profiles, feedback)
+        return []
 
     def __init__(self, *args, speclib: QgsVectorLayer = None, **kwds):
         super().__init__(*args, **kwds)
@@ -567,6 +582,9 @@ class SpectralLibraryExportDialog(QDialog):
     def exportSettings(self) -> dict:
         settings = dict()
         w = self.currentExportWidget()
+        if not isinstance(w, SpectralLibraryExportWidget):
+            return None
+
         if w.supportsLayerName():
             settings['layer_name'] = self.tbLayerName.text()
 
@@ -617,8 +635,8 @@ class SpectralLibraryExportDialog(QDialog):
 
         self.mSpeclib = speclib
         self.mSpeclib.selectionChanged.connect(self.onSelectionChanged)
-        if self.tbLayerName.text() == '':
-            self.tbLayerName.setText(re.sub(r'[^0-9a-zA-Z_]', '_', speclib.name()))
+        # if self.tbLayerName.text() == '':
+        #     self.tbLayerName.setText(re.sub(r'[^0-9a-zA-Z_]', '_', speclib.name()))
         for w in self.exportWidgets():
             w.setSpeclib(speclib)
 

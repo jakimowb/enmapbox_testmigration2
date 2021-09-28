@@ -9,7 +9,8 @@ from enmapboxprocessing.algorithm.fitgaussianprocessclassifieralgorithm import F
 from enmapboxprocessing.algorithm.fitgenericclassifieralgorithm import FitGenericClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitlinearsvcalgorithm import FitLinearSvcAlgorithm
 from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
-from enmapboxprocessing.algorithm.fitsvcalgorithm import FitSvcAlgorithm
+from enmapboxprocessing.algorithm.fitsvcpolyalgorithm import FitSvcPolyAlgorithm
+from enmapboxprocessing.algorithm.fitsvcrbfalgorithm import FitSvcRbfAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
@@ -50,6 +51,7 @@ class TestFitClassifierAlgorithm(TestCase):
     def test_unfitted(self):
         alg = FitTestClassifierAlgorithm()
         parameters = {
+            alg.P_DATASET: None,
             alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
         }
         self.runalg(alg, parameters)
@@ -67,7 +69,7 @@ class TestFitClassifierAlgorithm(TestCase):
     def test_classifiers(self):
         algs = [
             FitRandomForestClassifierAlgorithm(), FitGaussianProcessClassifierAlgorithm(), FitLinearSvcAlgorithm(),
-            FitSvcAlgorithm(),
+            FitSvcRbfAlgorithm(), FitSvcPolyAlgorithm(),
         ]
         for alg in algs:
             print(alg.displayName())

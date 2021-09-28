@@ -33,7 +33,6 @@ class TestRasterProcessing(TestCase):
         outraster = Driver('c:/vsimem/enmap.tif', options=options).createLike(raster)
         for block in raster.walkGrid(50, 50):
             array = raster.array(block.xOffset, block.yOffset, block.width, block.height)
-            print(array[0].shape)
             outraster.writeArray(array, block.xOffset, block.yOffset)
         outraster.setNoDataValue(raster.noDataValue())
         outraster.setMetadata(raster.metadata())
@@ -54,4 +53,4 @@ class TestRasterProcessing(TestCase):
         raster = RasterReader(enmap)
         blockSizeX, blockSizeY = raster.gdalBand(1).GetBlockSize()
         for block in raster.walkGrid(blockSizeX, blockSizeY):
-            print(block)
+            pass

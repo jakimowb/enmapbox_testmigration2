@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>260</width>
-    <height>299</height>
+    <width>208</width>
+    <height>216</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -43,20 +43,14 @@
        <property name="spacing">
         <number>2</number>
        </property>
-       <item row="0" column="2">
-        <widget class="QSlider" name="sliderSingleBand">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-           <horstretch>1</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Band</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="1">
+       <item row="3" column="2">
         <spacer name="verticalSpacer_2">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -69,24 +63,7 @@
          </property>
         </spacer>
        </item>
-       <item row="0" column="1">
-        <widget class="QgsRasterBandComboBox" name="cbSingleBand">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>1</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>Band</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0" colspan="3">
+       <item row="2" column="0" colspan="4">
         <widget class="QGroupBox" name="gbSingleBandWavelength">
          <property name="minimumSize">
           <size>
@@ -97,183 +74,67 @@
          <property name="title">
           <string>Wavelength</string>
          </property>
-         <layout class="QHBoxLayout" name="horizontalLayout">
-          <item>
-           <widget class="QToolButton" name="btnSetSBBand_B">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>23</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>B</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QToolButton" name="btnSetSBBand_G">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>23</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>G</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QToolButton" name="btnSetSBBand_R">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>23</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>R</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QToolButton" name="btnSetSBBand_NIR">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>23</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>NIR</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QToolButton" name="btnSetSBBand_SWIR1">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>23</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>SWIR1</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QToolButton" name="btnSetSBBand_SWIR2">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>23</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>SWIR2</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-         </layout>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QSlider" name="sliderSingleBand">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1" colspan="2">
+        <widget class="RasterBandComboBox" name="cbSingleBand">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="editable">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
       </layout>
      </widget>
      <widget class="QWidget" name="pageMultiBand">
       <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>R</string>
+       <property name="leftMargin">
+        <number>2</number>
+       </property>
+       <property name="topMargin">
+        <number>2</number>
+       </property>
+       <property name="rightMargin">
+        <number>2</number>
+       </property>
+       <property name="bottomMargin">
+        <number>2</number>
+       </property>
+       <property name="spacing">
+        <number>2</number>
+       </property>
+       <item row="5" column="0" colspan="4">
+        <widget class="QGroupBox" name="gbMultiBandWavelength">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>25</height>
+          </size>
+         </property>
+         <property name="title">
+          <string>Wavelength Combination</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="1">
-        <widget class="QgsRasterBandComboBox" name="cbMultiBandRed">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>1</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>B</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QgsRasterBandComboBox" name="cbMultiBandGreen">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>1</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>G</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="1">
-        <widget class="QgsRasterBandComboBox" name="cbMultiBandBlue">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>1</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="2">
-        <widget class="QSlider" name="sliderMultiBandGreen">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-           <horstretch>1</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <widget class="QSlider" name="sliderMultiBandRed">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-           <horstretch>1</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="1">
+       <item row="6" column="2">
         <spacer name="verticalSpacer_3">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -286,10 +147,20 @@
          </property>
         </spacer>
        </item>
-       <item row="4" column="2">
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_6">
+         <property name="toolTip">
+          <string>Blue band</string>
+         </property>
+         <property name="text">
+          <string>B</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="3">
         <widget class="QSlider" name="sliderMultiBandBlue">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
            <horstretch>1</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
@@ -299,126 +170,98 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="0" colspan="3">
-        <widget class="QGroupBox" name="gbMultiBandWavelength">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
+       <item row="0" column="3">
+        <widget class="QSlider" name="sliderMultiBandRed">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
-         <property name="title">
-          <string>Wavelength Combination</string>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_3">
-          <property name="spacing">
-           <number>2</number>
-          </property>
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
-           <number>0</number>
-          </property>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_2">
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QToolButton" name="btnSetMBBands_RGB">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>23</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>R-G-B</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QToolButton" name="btnSetMBBands_NIRRG">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>23</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>NIR-R-G</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="horizontalSpacer_2">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>0</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_3">
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QToolButton" name="btnSetMBBands_SWIRNIRR">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>23</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>SWIR-NIR-R</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QToolButton" name="btnSetMBBands_NIRSWIRR">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>23</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>NIR-SWIR-R</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="horizontalSpacer_3">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>0</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </item>
-         </layout>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="label_4">
+         <property name="toolTip">
+          <string>Red band</string>
+         </property>
+         <property name="text">
+          <string>R</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_5">
+         <property name="toolTip">
+          <string>Green band</string>
+         </property>
+         <property name="text">
+          <string>G</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="3">
+        <widget class="QSlider" name="sliderMultiBandGreen">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1" colspan="2">
+        <widget class="RasterBandComboBox" name="cbMultiBandRed">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>Select the band for red color values</string>
+         </property>
+         <property name="editable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1" colspan="2">
+        <widget class="RasterBandComboBox" name="cbMultiBandGreen">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>Select the band for green color values</string>
+         </property>
+         <property name="editable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1" colspan="2">
+        <widget class="RasterBandComboBox" name="cbMultiBandBlue">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>Select the band for blue color values</string>
+         </property>
+         <property name="editable">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
       </layout>
@@ -453,9 +296,13 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QgsRasterBandComboBox</class>
+   <class>RasterBandComboBox</class>
    <extends>QComboBox</extends>
-   <header>qgsrasterbandcombobox.h</header>
+   <header>qps.layerconfigwidgets.rasterbands</header>
+   <slots>
+    <signal>bandChanged(int)</signal>
+    <slot>setBand(int)</slot>
+   </slots>
   </customwidget>
  </customwidgets>
  <resources>
@@ -463,34 +310,18 @@
  </resources>
  <connections>
   <connection>
-   <sender>cbSingleBand</sender>
-   <signal>bandChanged(int)</signal>
-   <receiver>sliderSingleBand</receiver>
-   <slot>setValue(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>114</x>
-     <y>46</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>114</x>
-     <y>72</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>sliderSingleBand</sender>
+   <sender>sliderMultiBandRed</sender>
    <signal>valueChanged(int)</signal>
-   <receiver>cbSingleBand</receiver>
+   <receiver>cbMultiBandRed</receiver>
    <slot>setBand(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>172</x>
-     <y>73</y>
+     <x>246</x>
+     <y>47</y>
     </hint>
     <hint type="destinationlabel">
-     <x>171</x>
-     <y>42</y>
+     <x>176</x>
+     <y>49</y>
     </hint>
    </hints>
   </connection>
@@ -501,28 +332,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>93</x>
-     <y>63</y>
+     <x>125</x>
+     <y>47</y>
     </hint>
     <hint type="destinationlabel">
-     <x>93</x>
-     <y>92</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>sliderMultiBandRed</sender>
-   <signal>valueChanged(int)</signal>
-   <receiver>cbMultiBandRed</receiver>
-   <slot>setBand(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>148</x>
-     <y>90</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>148</x>
-     <y>70</y>
+     <x>300</x>
+     <y>51</y>
     </hint>
    </hints>
   </connection>
@@ -533,28 +348,12 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>118</x>
-     <y>117</y>
+     <x>157</x>
+     <y>74</y>
     </hint>
     <hint type="destinationlabel">
-     <x>118</x>
-     <y>141</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>sliderMultiBandGreen</sender>
-   <signal>valueChanged(int)</signal>
-   <receiver>cbMultiBandGreen</receiver>
-   <slot>setBand(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>207</x>
-     <y>147</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>203</x>
-     <y>119</y>
+     <x>243</x>
+     <y>72</y>
     </hint>
    </hints>
   </connection>
@@ -565,12 +364,28 @@
    <slot>setValue(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>77</x>
-     <y>171</y>
+     <x>183</x>
+     <y>99</y>
     </hint>
     <hint type="destinationlabel">
-     <x>80</x>
-     <y>199</y>
+     <x>263</x>
+     <y>101</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderMultiBandGreen</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>cbMultiBandGreen</receiver>
+   <slot>setBand(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>304</x>
+     <y>75</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>76</y>
     </hint>
    </hints>
   </connection>
@@ -581,12 +396,44 @@
    <slot>setBand(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>116</x>
-     <y>202</y>
+     <x>288</x>
+     <y>104</y>
     </hint>
     <hint type="destinationlabel">
-     <x>102</x>
-     <y>173</y>
+     <x>172</x>
+     <y>105</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cbSingleBand</sender>
+   <signal>bandChanged(int)</signal>
+   <receiver>sliderSingleBand</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>105</x>
+     <y>39</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>295</x>
+     <y>40</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderSingleBand</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>cbSingleBand</receiver>
+   <slot>setBand(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>295</x>
+     <y>41</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>88</x>
+     <y>44</y>
     </hint>
    </hints>
   </connection>

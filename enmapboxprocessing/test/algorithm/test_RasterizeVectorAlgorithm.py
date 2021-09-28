@@ -1,10 +1,6 @@
-import webbrowser
-
-from osgeo import ogr
+from qgis._core import Qgis, QgsProcessingContext
 
 import processing
-from qgis._core import QgsRasterLayer, QgsVectorLayer, Qgis, QgsProcessingContext
-
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
@@ -29,7 +25,7 @@ class TestRasterizeAlgorithm(TestCase):
         cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
         print(cmd)
         eval(cmd)
-        #webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
+        # webbrowser.open_new(parameters[alg.P_OUTPUT_RASTER] + '.log')
 
     def test_default(self):
         alg = RasterizeVectorAlgorithm()

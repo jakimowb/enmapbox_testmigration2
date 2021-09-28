@@ -255,11 +255,15 @@ GIS and Remote Sensing
         The region is typically described by a :term:`spectral response function`.
 
     spectral library
-        A :term:`vector layer` with (at least) one special binary field containing pickled profile data and metadata.
-        If a spectral library has exactly one such binary field, each :term:`geographic feature` represents one :term:`spectral profile`.
-        In the case of `n` different binary fields, each geographic feature represents `n` profiles.
+        A :term:`vector layer` with at least one field of type `binary` that is designated to a `Spectral Profiles`
+        editor and. Such :term:`Spectral Profile` fields can contain serialized profile data.
+        Additional metadata can be stored like in any other vector layer, e.g. in text and number fields.
 
-        A spectral library is a collection of profiles with arbitrary profile-wise data and metadata,
+        Using a vector layer with multiple :term:`Spectral Profile` fields, it possible to link different profiles to
+        the same :term:`geographic feature`, e.g. a white reference profile to a field spectrometer profile reccored
+        at the same position.
+
+        A spectral library is a collection of profiles with arbitrary profile- and metadata,
         stored as pickled dictionaries inside (multiple) binary fields.
         Dictionary items are:
 
@@ -269,7 +273,7 @@ GIS and Remote Sensing
         * `yUnit`: y value units (e.g. ???)
         * `bbl`: the :term:`bad bands list`
 
-        See `enmapbox.externals.qps.speclib.core.SpectralLibrary` for details.
+        See `enmapbox.externals.qps.speclib.core.SpectralLibraryUtils` for details.
 
         .. image:: img/spectral_library.png
 
@@ -279,7 +283,8 @@ GIS and Remote Sensing
         .. image:: img/spectral_profile.png
 
     spectral raster layer
-        A :term:`raster layer` where the individual bands (i.e. :term:`spectral bands<spectral band>`) represent measurements across the electromagnetic spectrum.
+        A :term:`raster layer` with proper :term:`wavelength` and :term:`wavelength units` metadata,
+        where the individual bands (i.e. :term:`spectral bands<spectral band>`) represent measurements across the electromagnetic spectrum.
         The measurement vector of a single pixel is called a :term:`spectral profile`)
 
         .. image:: img/raster_layer.png
