@@ -23,7 +23,7 @@ from PyQt5.QtCore import *
 from enmapbox.gui.mimedata import fromLayerList
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 
-from enmapboxtestdata import enmap, hires, landcover_polygons, library
+from enmapbox.exampledata import enmap, hires, landcover_polygons, library
 from enmapbox.gui.mapcanvas import *
 from enmapbox.testing import TestObjects
 

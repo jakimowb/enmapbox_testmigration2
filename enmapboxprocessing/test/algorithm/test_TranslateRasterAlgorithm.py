@@ -4,7 +4,7 @@ from qgis._core import QgsRasterLayer, QgsRasterRenderer
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, hires
+from enmapbox.exampledata import enmap, hires
 from enmapboxunittestdata import landcover_raster_30m_epsg3035
 
 writeToDisk = True

@@ -30,7 +30,7 @@ from enmapbox import EnMAPBox
 from enmapbox.gui.datasourcemanager import *
 from enmapbox.gui.utils import *
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-from enmapboxtestdata import enmap, hires, landcover_polygons, library
+from enmapbox.exampledata import enmap, hires, landcover_polygons, library
 from enmapbox.gui.datasources import *
 
 
@@ -571,7 +571,7 @@ class DataSourceTests(EnMAPBoxTestCase):
         # https://bitbucket.org/hu-geomatics/enmap-box/issues/478/visualization-of-single-band-fails
         # test if sources can be opened in a new map
         EB = EnMAPBox(load_core_apps=False, load_other_apps=False)
-        from enmapboxtestdata import enmap
+        from enmapbox.exampledata import enmap
         from enmapbox.testing import TestObjects
         from enmapbox.gui.datasourcemanager import DataSourceTreeView
         EB.addSource(enmap)

@@ -138,7 +138,7 @@ DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
 DIR_SITEPACKAGES = os.path.join(DIR_REPO, 'site-packages')
 DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui', 'ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui', 'ui', 'icons'])
-DIR_TESTDATA = os.path.join(DIR_REPO, 'enmapboxtestdata')
+DIR_TESTDATA = (pathlib.Path(DIR_REPO) / 'enmapbox' / 'exampledata').as_posix()
 
 DIR_UNITTESTS = os.path.join(DIR_REPO, 'enmapboxtesting')
 

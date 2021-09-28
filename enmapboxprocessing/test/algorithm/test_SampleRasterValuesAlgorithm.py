@@ -2,7 +2,7 @@ from qgis._core import (QgsRasterLayer, QgsVectorLayer)
 
 from enmapboxprocessing.algorithm.samplerastervaluesalgorithm import SampleRasterValuesAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, landcover_polygons
+from enmapbox.exampledata import enmap, landcover_polygons
 from enmapboxunittestdata import landcover_points_singlepart_epsg3035, enmap_uncompressed
 
 writeToDisk = True

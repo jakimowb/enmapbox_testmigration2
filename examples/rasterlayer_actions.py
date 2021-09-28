@@ -21,7 +21,7 @@ def widgetScreenshot(widget, path):
 APP = initQgisApplication()
 from qgis.gui import *
 from qgis.core import *
-from enmapboxtestdata import enmap, landcover_polygons
+from enmapbox.exampledata import enmap, landcover_polygons
 
 lyr1 = QgsRasterLayer(enmap)
 

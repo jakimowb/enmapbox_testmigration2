@@ -181,7 +181,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
     def test_Qgis(self):
 
         from enmapbox import Qgis
-        from enmapboxtestdata import enmap, landcover_polygons
+        from enmapbox.exampledata import enmap, landcover_polygons
         from qgis.utils import iface
         from enmapbox.testing import WMS_OSM, WMS_GMAPS, WFS_Berlin
         layers = [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons)]
@@ -277,7 +277,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         E.loadExampleData()
         E.removeSources(E.dataSources())
         self.assertTrue(len(E.dataSources()) == 0)
-        from enmapboxtestdata import enmap, landcover_polygons
+        from enmapbox.exampledata import enmap, landcover_polygons
         E.addSource(enmap)
         self.assertTrue(len(E.dataSources()) == 1)
         E.addSource(landcover_polygons)

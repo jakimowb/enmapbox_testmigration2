@@ -29,7 +29,7 @@ from qgis.PyQt.QtWidgets import *
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox import EnMAPBox, DIR_TESTDATA
 
-from enmapboxtestdata import enmap, hires, library, landcover_polygons
+from enmapbox.exampledata import enmap, hires, library, landcover_polygons
 import enmapbox.gui.mimedata as mimedata
 
 
@@ -188,7 +188,7 @@ class MimeDataTests(EnMAPBoxTestCase):
         # drop on spectral library widget
         from enmapbox.gui.docks import SpectralLibraryDock
         from enmapbox.gui import SpectralLibraryWidget
-        from enmapboxtestdata import library
+        from enmapbox.exampledata import library
         EB = EnMAPBox(load_other_apps=False, load_core_apps=False)
         sld = EB.createDock('SPECLIB')
         self.assertIsInstance(sld, SpectralLibraryDock)
