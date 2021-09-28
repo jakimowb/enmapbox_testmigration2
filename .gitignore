@@ -43,7 +43,7 @@ enmapboxtestdata.zip
 /enmapbox/gui/ui/tmp.ui
 doc/build
 /.gitignore
-/test/
-/test*/
+/test-*/
 /test-reports/
 hubdc/gis/
+exampledata/
