@@ -25,7 +25,10 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._FILE, 'The HE5 product file.'),
+            (self._FILE, 'The HE5 product file.\n'
+                         'Instead of executing this algorithm, '
+                         'you may drag&drop the HE5 file directly from your system file browser onto '
+                         'the EnMAP-Box map view area.'),
             (self._OUTPUT_RASTER, self.RasterFileDestination)
         ]
 
