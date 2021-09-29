@@ -48,7 +48,6 @@ def install_exampledata():
     localpath = DIR_REPO / 'enmapbox' / 'exampledata'
     install_zipfile(URL_TESTDATA, localpath, 'enmapboxtestdata')
 
-
 def install_qgisresources():
     localpath = DIR_REPO / 'qgisresources'
     install_zipfile(URL_QGIS_RESOURCES, localpath)
