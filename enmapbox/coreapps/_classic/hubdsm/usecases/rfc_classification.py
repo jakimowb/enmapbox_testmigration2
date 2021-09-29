@@ -2,7 +2,7 @@ from osgeo import gdal
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
-from enmapboxtestdata import enmap, hires, landcover_polygons
+from enmapbox.exampledata import enmap, hires, landcover_polygons
 from _classic.hubdsm.algorithm.estimatorpredict import estimatorPredict
 from _classic.hubdsm.core.category import Category
 from _classic.hubdsm.core.color import Color

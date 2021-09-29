@@ -3,7 +3,7 @@ from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifie
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectoralgorithm import \
     PrepareClassificationDatasetFromCategorizedVectorAlgorithm
-from enmapboxtestdata import enmap, landcover_polygons
+from enmapbox.exampledata import enmap, landcover_polygons
 from processing.core.Processing import Processing
 
 qgsApp = start_app()

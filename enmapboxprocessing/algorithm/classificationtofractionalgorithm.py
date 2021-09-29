@@ -52,7 +52,7 @@ class ClassificationToFractionAlgorithm(EnMAPProcessingAlgorithm):
         map = self.parameterAsLayer(parameters, self.P_CATEGORIZED_LAYER, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_FRACTION, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_FRACTION, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)

@@ -82,7 +82,7 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
         addValue = self.parameterAsBoolean(parameters, self.P_ADD_VALUE, context)
         allTouched = self.parameterAsBoolean(parameters, self.P_ALL_TOUCHED, context)
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)

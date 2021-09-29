@@ -93,7 +93,7 @@ class RasterizeVectorAlgorithm(EnMAPProcessingAlgorithm):
         addValue = self.parameterAsBoolean(parameters, self.P_ADD_VALUE, context)
         allTouched = self.parameterAsBoolean(parameters, self.P_ALL_TOUCHED, context)
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
         if resampleAlg == gdal.GRA_NearestNeighbour:
             oversampling = 1
         else:

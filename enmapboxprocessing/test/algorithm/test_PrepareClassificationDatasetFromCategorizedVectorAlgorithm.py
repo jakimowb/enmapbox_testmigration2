@@ -5,7 +5,7 @@ from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvec
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapboxtestdata import enmap, landcover_polygons, landcover_points
+from enmapbox.exampledata import enmap, landcover_polygons, landcover_points
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

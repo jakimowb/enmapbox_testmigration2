@@ -473,15 +473,15 @@ def missingTestData() -> bool:
     :return: (bool, str)
     """
     try:
-        import enmapboxtestdata
-        assert os.path.isfile(enmapboxtestdata.enmap)
+        import enmapbox.exampledata
+        assert os.path.isfile(enmapbox.exampledata.enmap)
         return False
     except Exception as ex:
         print(ex, file=sys.stderr)
         return True
 
 
-def installTestData(overwrite_existing:bool=False, ask:bool=True):
+def installTestData(overwrite_existing: bool = False, ask: bool = True):
     """
     Downloads and installs the EnMAP-Box Example Data
     """
@@ -503,9 +503,9 @@ def installTestData(overwrite_existing:bool=False, ask:bool=True):
             print('Canceled')
             return
 
-    pathLocalZip = os.path.join(os.path.dirname(DIR_TESTDATA), 'enmapboxtestdata.zip')
+    pathLocalZip = os.path.join(os.path.dirname(DIR_TESTDATA), 'enmapboxexampledata.zip')
     url = QUrl(URL_TESTDATA)
-    dialog = QgsFileDownloaderDialog(url, pathLocalZip, 'Download enmapboxtestdata.zip')
+    dialog = QgsFileDownloaderDialog(url, pathLocalZip, 'Download enmapboxexampledata.zip')
     from enmapbox.gui.utils import qgisAppQgisInterface
     qgisMainApp = qgisAppQgisInterface()
 

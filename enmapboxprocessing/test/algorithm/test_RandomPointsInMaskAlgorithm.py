@@ -2,7 +2,7 @@ from qgis._core import QgsRasterLayer, QgsVectorLayer
 
 from enmapboxprocessing.algorithm.randompointsfrommaskrasteralgorithm import RandomPointsFromMaskRasterAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

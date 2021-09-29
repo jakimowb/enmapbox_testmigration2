@@ -90,7 +90,7 @@ class ConvolutionFilterAlgorithmBase(EnMAPProcessingAlgorithm):
             nan_treatment = 'interpolate'
         else:
             nan_treatment = 'fill'
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         maximumMemoryUsage = Utils.maximumMemoryUsage()
 
@@ -106,7 +106,7 @@ class ConvolutionFilterAlgorithmBase(EnMAPProcessingAlgorithm):
                 kernel = CustomKernel(array=kernel.array[None])
             elif kernel.dimension == 1:
                 kernel = CustomKernel(array=kernel.array.reshape(-1, 1, 1))
-            assert isinstance(kernel, Kernel)
+
             zsize, ysize, xsize = kernel.shape
             overlap = int((max(ysize, xsize) + 1) / 2.)
 

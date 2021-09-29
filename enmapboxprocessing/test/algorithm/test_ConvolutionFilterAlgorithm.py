@@ -20,7 +20,7 @@ from enmapboxprocessing.algorithm.spectralconvolutionsavitskygolay1dalgorithm im
     SpectralConvolutionSavitskyGolay1DAlgorithm
 from enmapboxprocessing.algorithm.spectralconvolutiontrapezoid1dalgorithm import SpectralConvolutionTrapezoid1DAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import hires
+from enmapbox.exampledata import hires
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

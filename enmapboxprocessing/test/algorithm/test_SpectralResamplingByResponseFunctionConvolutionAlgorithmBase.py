@@ -9,7 +9,7 @@ from enmapboxprocessing.algorithm.spectralresamplingtoprismaalgorithm import Spe
 from enmapboxprocessing.algorithm.spectralresamplingtosentinel2algorithm import SpectralResamplingToSentinel2Algorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 
 
 class TestSpectralResamplingByResponseFunctionConvolutionAlgorithmBase(TestCase):

@@ -23,9 +23,10 @@ import warnings
 import typing
 from PyQt5.QtCore import Qt, QObject, QCoreApplication, pyqtSignal, QEvent, QPointF, QMimeData, QTimer, QSize, \
     QSettings, QModelIndex, QAbstractListModel, QPoint
-from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent, QKeyEvent
+from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent, QKeyEvent, QColor
 from PyQt5.QtWidgets import QAction, QToolButton, QFileDialog, QHBoxLayout, QFrame, QMenu, QLabel, QApplication, \
     QWidgetAction, QGridLayout, QSpacerItem, QSizePolicy, QDialog, QVBoxLayout, QComboBox
+from qgis._gui import QgsColorDialog
 
 from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent, qgisAppQgisInterface, spatialPoint2px, \
     px2spatialPoint
@@ -1120,6 +1121,9 @@ class MapCanvas(QgsMapCanvas):
         action = menu.addAction('Set CRS...')
         action.triggered.connect(self.setCRSfromDialog)
 
+        action = menu.addAction('Set background color')
+        action.triggered.connect(self.setBackgroundColorFromDialog)
+
         from enmapbox import EnMAPBox
         from enmapbox.gui import SpectralLibrary
         emb = EnMAPBox.instance()
@@ -1242,6 +1246,9 @@ class MapCanvas(QgsMapCanvas):
         :param args:
         """
         setMapCanvasCRSfromDialog(self)
+
+    def setBackgroundColorFromDialog(self, *args):
+        setMapCanvasBackgroundColorFromDialog(self, self.canvasColor())
 
     def setCrosshairStyle(self, crosshairStyle: CrosshairStyle):
         """
@@ -1497,6 +1504,13 @@ def setMapCanvasCRSfromDialog(mapCanvas, crs=None):
     w.crsChanged.connect(mapCanvas.setDestinationCrs)
     w.selectCrs()
     return w
+
+
+def setMapCanvasBackgroundColorFromDialog(mapCanvas: QgsMapCanvas, color: QColor=None):
+    dialog = QgsColorDialog(mapCanvas)
+    dialog.setColor(color)
+    if dialog.exec() == QgsColorDialog.Accepted:
+        mapCanvas.setCanvasColor(dialog.color())
 
 
 class MapDock(Dock):

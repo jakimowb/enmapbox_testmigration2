@@ -1,6 +1,6 @@
 from enmapboxprocessing.algorithm.classifierperformancealgorithm import ClassifierPerformanceAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxunittestdata import (classifierDumpPkl)
+from enmapboxtestdata import (classifierDumpPkl)
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -15,7 +15,7 @@ class TestClassifierPerformanceAlgorithm(TestCase):
             alg.P_CLASSIFIER: classifierDumpPkl,
             alg.P_DATASET: classifierDumpPkl,
             alg.P_OPEN_REPORT: False,
-            alg.P_OUTPUT_REPORT: c + '/vsimem/report.html'
+            alg.P_OUTPUT_REPORT: c + '/vsimem/report_train.html'
         }
         self.runalg(alg, parameters)
         # check the result manually
@@ -27,7 +27,8 @@ class TestClassifierPerformanceAlgorithm(TestCase):
             alg.P_CLASSIFIER: classifierDumpPkl,
             alg.P_DATASET: classifierDumpPkl,
             alg.P_NFOLD: 3,
-            alg.P_OUTPUT_REPORT: c + '/vsimem/report.html'
+            alg.P_OPEN_REPORT: False,
+            alg.P_OUTPUT_REPORT: c + '/vsimem/report_crossval.html'
         }
         self.runalg(alg, parameters)
         # check the result manually

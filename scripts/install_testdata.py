@@ -44,14 +44,10 @@ def install_zipfile(url: str, localPath: pathlib.Path, zip_root: str = None):
     del response
 
 
-def install_enmapboxtestdata():
-    localpath = DIR_REPO / 'enmapboxtestdata'
+def install_exampledata():
+    localpath = DIR_REPO / 'enmapbox' / 'exampledata'
     install_zipfile(URL_TESTDATA, localpath, 'enmapboxtestdata')
 
-
-def install_enmapboxunittestdata():
-    localpath = DIR_REPO / 'enmapboxunittestdata'
-    install_zipfile(URL_TESTDATA, localpath, 'enmapboxunittestdata')
 
 def install_qgisresources():
     localpath = DIR_REPO / 'qgisresources'
@@ -59,16 +55,11 @@ def install_qgisresources():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Install testdata')
-    parser.add_argument('-e', '--enmapboxtestdata',
+    parser = argparse.ArgumentParser(description='Install exampledata')
+    parser.add_argument('-e', '--exampledata',
                         required=False,
                         default=False,
-                        help='Download and install EnMAP-Box testdata',
-                        action='store_true')
-    parser.add_argument('-u', '--enmapboxunittestdata',
-                        required=False,
-                        default=False,
-                        help='Download and install EnMAP-Box unittest testdata',
+                        help='Download and install EnMAP-Box example data',
                         action='store_true')
     parser.add_argument('-q', '--qgisresources',
                         required=False,
@@ -78,11 +69,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.enmapboxtestdata:
-        install_enmapboxtestdata()
-
-    if args.enmapboxunittestdata:
-        install_enmapboxunittestdata()
+    if args.exampledata:
+        install_exampledata()
 
     if args.qgisresources:
         install_qgisresources()

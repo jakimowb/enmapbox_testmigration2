@@ -3,7 +3,7 @@ from unittest.case import TestCase
 import numpy as np
 from osgeo import gdal, ogr
 
-from enmapboxtestdata import enmap, landcover_polygons
+from enmapbox.exampledata import enmap, landcover_polygons
 from _classic.hubdsm.core.category import Category
 from _classic.hubdsm.core.color import Color
 from _classic.hubdsm.core.error import ProjectionMismatchError

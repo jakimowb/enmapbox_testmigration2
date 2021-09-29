@@ -62,7 +62,7 @@ class ApplyBandFunctionAlgorithmBase(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         function = self.parameterAsFunction(parameters, self.P_FUNCTION, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
 
         with open(filename + '.log', 'w') as logfile:

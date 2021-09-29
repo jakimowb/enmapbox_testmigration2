@@ -16,7 +16,7 @@ def setup_enmapbox_repository():
     site.addsitedir(DIR_REPO)
 
     from scripts.compile_resourcefiles import compileEnMAPBoxResources
-    from scripts.install_testdata import install_qgisresources, install_enmapboxtestdata
+    from scripts.install_testdata import install_qgisresources, install_exampledata
 
     # 1. compile EnMAP-Box resource files (*.qrc) into corresponding python modules (*.py)
     print('Compile EnMAP-Box resource files...')
@@ -24,7 +24,7 @@ def setup_enmapbox_repository():
 
     # 2. install the EnMAP-Box test data
     print('Install EnMAP-Box Test Data')
-    install_enmapboxtestdata()
+    install_exampledata()
 
     print('Install QGIS resource files')
     install_qgisresources()

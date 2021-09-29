@@ -1,16 +1,12 @@
-import webbrowser
-
-import processing
-from qgis._core import QgsRasterLayer, QgsVectorLayer, QgsPalettedRasterRenderer, QgsProcessingContext
-
 import numpy as np
+from qgis._core import QgsRasterLayer, QgsVectorLayer, QgsPalettedRasterRenderer
 
 from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.utils import Utils
-from enmapboxtestdata import enmap, landcover_polygons
-from enmapboxunittestdata import (landcover_polygons_3classes_epsg4326, landcover_polygons_3classes_id,
+from enmapbox.exampledata import enmap, landcover_polygons
+from enmapboxtestdata import (landcover_polygons_3classes_epsg4326, landcover_polygons_3classes_id,
                                   landcover_points_multipart_epsg3035)
 
 writeToDisk = True

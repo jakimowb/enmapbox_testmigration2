@@ -1,7 +1,7 @@
 from osgeo import gdal
 from osgeo.gdal_array import GDALTypeCodeToNumericTypeCode
 
-from enmapboxtestdata import enmap, hires
+from enmapbox.exampledata import enmap, hires
 from _classic.hubdsm.core.raster import Raster
 from _classic.hubdsm.core.resolution import Resolution
 

@@ -4,7 +4,7 @@ from qgis._core import QgsRasterLayer, QgsVectorLayer
 from enmapboxprocessing.algorithm.randompointsfromcategorizedrasteralgorithm import \
     RandomPointsFromCategorizedRasterAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxunittestdata import landcover_map_l3
+from enmapboxtestdata import landcover_map_l3
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

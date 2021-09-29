@@ -4,7 +4,7 @@ import pathlib
 from osgeo import gdal
 from osgeo.ogr import DataSource
 
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 p = r'/vsimem/myfile.tiff'
 
 ds = gdal.Open(enmap)

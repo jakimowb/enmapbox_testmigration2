@@ -87,6 +87,7 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
                 parameters = {
                     alg.P_CLASSIFICATION: prediction,
                     alg.P_REFERENCE: reference,
+                    alg.P_OPEN_REPORT: False,
                     alg.P_OUTPUT_REPORT: filename,
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)
@@ -114,6 +115,7 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
                 parameters = {
                     alg.P_CLASSIFICATION: prediction,
                     alg.P_REFERENCE: reference,
+                    alg.P_OPEN_REPORT: False,
                     alg.P_OUTPUT_REPORT: filename,
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)

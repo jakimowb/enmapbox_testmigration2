@@ -5,8 +5,8 @@ from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedras
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapboxtestdata import enmap, landcover_points
-from enmapboxunittestdata import landcover_raster_30m
+from enmapbox.exampledata import enmap, landcover_points
+from enmapboxtestdata import landcover_raster_30m
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -63,5 +63,5 @@ class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
         self.assertEqual((71158, 1), dump.y.shape)
         self.assertEqual(177, len(dump.features))
         self.assertEqual(['band 8 (0.460000 Micrometers)', 'band 9 (0.465000 Micrometers)'], dump.features[:2])
-        self.assertEqual(1479, len(dump.categories))
+        self.assertEqual(1911, len(dump.categories))
 

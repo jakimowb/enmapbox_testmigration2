@@ -157,7 +157,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         overlap = self.parameterAsInt(parameters, self.P_OVERLAP, context)
         monolithic = self.parameterAsBoolean(parameters, self.P_MONOLITHIC, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
