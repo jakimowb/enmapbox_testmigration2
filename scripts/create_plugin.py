@@ -130,7 +130,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
                                pattern=re.compile(r'\.(meta|srf)$'))))
 
     # add unit tests
-    files.extend(list(scantree(DIR_REPO / 'enmapboxtesting', pattern=re.compile(r'\.py$'))))
+    files.extend(list(scantree(DIR_REPO / 'enmapbox' / 'exampledata', pattern=re.compile(r'\.py$'))))
     files.append(DIR_REPO / '__init__.py')
     files.append(DIR_REPO / 'CHANGELOG.rst')
     files.append(DIR_REPO / 'CONTRIBUTORS.rst')
