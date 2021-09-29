@@ -174,7 +174,8 @@ Linux
 
    .. hint:: Make sure to execute the pip command in the python environment QGIS is using (usually you can find out where
              python is located by running ``import sys; sys.executable`` in the QGIS Python Console). You then might have
-             to change the ``python3`` part in the snippet below with the explicit QGIS python path.
+             to change the ``python3`` part in the snippet below with the explicit QGIS python path. This also applies if
+             you installed QGIS using flatpak, in that case install python modules as described `here <https://qgis.org/de/site/forusers/alldownloads.html#flatpak>`_.
 
    .. code-block:: bash
 
