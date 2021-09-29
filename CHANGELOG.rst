@@ -25,6 +25,7 @@ Version 3.9
 * added *Geolocate raster layer* processing algorithm: allows to geolocate a raster given in sensor geometry using X/Y location bands; e.g. usefull for geolocating PRISMA L1 Landcover into PRISMA L2 pixel grid using the Lat/Lon location bands
 * added EnMAP spectral response function library as example dataset
 * added map view context menu option for changing the map view background color
+* added single pixel movement in map view using <Ctrl> + <Arrow> keys
 
 Version 3.8
 -----------
