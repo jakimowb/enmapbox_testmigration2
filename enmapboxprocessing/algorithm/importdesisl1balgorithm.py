@@ -22,7 +22,10 @@ class ImportDesisL1BAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._FILE, 'The metadata XML file associated with the product.'),
+            (self._FILE, 'The metadata XML file associated with the product.\n'
+                         'Instead of executing this algorithm, '
+                         'you may drag&drop the metadata XML file directly from your system file browser onto '
+                         'the EnMAP-Box map view area.'),
             (self._OUTPUT_RASTER, self.RasterFileDestination)
         ]
 

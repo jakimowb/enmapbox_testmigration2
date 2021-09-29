@@ -1,12 +1,10 @@
 from os.path import basename
 from typing import Dict, Any, List, Tuple
-from xml.etree import ElementTree
 
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException)
 
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
-
 from typeguard import typechecked
 
 
@@ -28,7 +26,10 @@ class ImportDesisL1CAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._FILE, 'The metadata XML file associated with the product.'),
+            (self._FILE, 'The metadata XML file associated with the product.\n'
+                         'Instead of executing this algorithm, '
+                         'you may drag&drop the metadata XML file directly from your system file browser onto '
+                         'the EnMAP-Box map view area.'),
             (self._OUTPUT_RASTER, self.RasterFileDestination)
         ]
 
@@ -42,11 +43,11 @@ class ImportDesisL1CAlgorithm(EnMAPProcessingAlgorithm):
     def isValidFile(self, file: str) -> bool:
         return basename(file).startswith('DESIS-HSI-L1C') & basename(file).endswith('METADATA.xml')
 
-    def  defaultParameters(self, xmlFilename: str):
+    def defaultParameters(self, xmlFilename: str):
         return {
-                    self.P_FILE: xmlFilename,
-                    self.P_OUTPUT_RASTER: xmlFilename.replace('METADATA.xml', 'SPECTRAL_IMAGE.vrt'),
-                }
+            self.P_FILE: xmlFilename,
+            self.P_OUTPUT_RASTER: xmlFilename.replace('METADATA.xml', 'SPECTRAL_IMAGE.vrt'),
+        }
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
