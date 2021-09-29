@@ -2,10 +2,9 @@
 
 
 Roadmap
-#################
+#######
 
 The development of the EnMAP-Box is based on the following schedule:
-
 
 ==================  ============================================
 Date                Event / Phase
@@ -27,6 +26,6 @@ Mid Aug 2022        Feature Freeze EnMAP-Box 3.11
 End Sep 2022        **Release EnMAP-Box 3.11**
 ==================  ============================================
 
+Released versions: https://plugins.qgis.org/plugins/enmapboxplugin/
 
-
-
+Changelog: https://bitbucket.org/hu-geomatics/enmap-box/src/develop/CHANGELOG.rst
