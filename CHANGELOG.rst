@@ -1,5 +1,31 @@
 CHANGELOG
 =========
+
+Version 3.9
+-----------
+*This release was testet under QGIS 3.18 and 3.20.*
+
+* added PRISMA L1 product import
+* added Landsat 4-8 Collection 1-2 L2 product import
+* added Sentinel-2 L2A product import
+* added drag&drop functionality for opening external products (PRISMA, DESIS, Sentinel-2, Landsat) by simply dragging and dropping the product metadata file from the system file explorer onto the map view area.
+* added custom processing widget for selecting classification datasets from various sources; improves consistency and look&feel in algorithm dialogs and application GUIs
+* added custom processing widget for Python code with highlighting
+* added custem processing widget for building raster math expressions and code snippets
+* improved raster math algorithms dialog and provided comprehensive cookbook usage recipe on ReadTheDocs
+* added *Layer to mask layer* processing algorithm
+* added *Create mask raster layer* processing algorithm
+* overhauled all spatial and spectral filter algorithms
+* added *Spatial convolution 2D Savitzki-Golay filter* processing algorithm
+* overhauled all spectral resampling algorithms; added more custom sensors for spectral resampling: we now support EnMAP, DESIS, PRISMA, Landsat 4-8 and Sentinel-2; predefined sensor response functions are editable in the algorithm dialog
+* added *Spectral resampling (to response function library)* processing algorithm: allows to specify the target response functions via a spectral library
+* added *Spectral resampling (to spectral raster layer wavelength and FWHM)* processing algorithm: allows to specify the target response functions via a spectral raster layer
+* added *Spectral resampling (to custom sensor)* processing algorithm: allows to specify the target response function via Python code
+* improved *Translate raster layer* processing algorithm: 1) improved source and target no data handling, 2) added option for spectral subsetting to another spectral raster layer, and 3) added options for setting/updating band scale and offset values
+* added *Geolocate raster layer* processing algorithm: allows to geolocate a raster given in sensor geometry using X/Y location bands; e.g. usefull for geolocating PRISMA L1 Landcover into PRISMA L2 pixel grid using the Lat/Lon location bands
+* added EnMAP spectral response function library as example dataset
+* added map view context menu option for changing the map view background color
+
 Version 3.8
 -----------
 * introduced a Glossary explaining common terms
