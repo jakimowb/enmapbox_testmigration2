@@ -6,7 +6,7 @@ from enmapboxprocessing.algorithm.spectralresamplingtolandsat8algorithm import S
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapbox.exampledata import enmap, enmap_srf_library
-from enmapboxunittestdata import landsat8_sectralResponseFunctionLibrary
+from enmapboxtestdata import landsat8_sectralResponseFunctionLibrary
 
 
 class TestSpectralResamplingByResponseFunctionLibraryAlgorithmBase(TestCase):

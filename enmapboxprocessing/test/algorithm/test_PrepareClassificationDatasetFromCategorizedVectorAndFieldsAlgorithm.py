@@ -4,7 +4,7 @@ from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
 from enmapbox.exampledata import landcover_polygons
-from enmapboxunittestdata import classificationDatasetAsVector
+from enmapboxtestdata import classificationDatasetAsVector
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

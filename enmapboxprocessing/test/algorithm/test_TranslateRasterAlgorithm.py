@@ -5,7 +5,7 @@ from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRaste
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapbox.exampledata import enmap, hires
-from enmapboxunittestdata import landcover_raster_30m_epsg3035
+from enmapboxtestdata import landcover_raster_30m_epsg3035
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

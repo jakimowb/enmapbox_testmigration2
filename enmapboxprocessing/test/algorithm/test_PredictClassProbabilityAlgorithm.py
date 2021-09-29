@@ -6,7 +6,7 @@ from enmapboxprocessing.algorithm.predictclassprobabilityalgorithm import Predic
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapbox.exampledata import enmap, landcover_polygons
-from enmapboxunittestdata import landcover_raster_30m, classifierDumpPkl
+from enmapboxtestdata import landcover_raster_30m, classifierDumpPkl
 
 writeToDisk = True
 

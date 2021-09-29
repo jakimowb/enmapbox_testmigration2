@@ -6,7 +6,7 @@ from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.utils import Utils
 from enmapbox.exampledata import enmap, landcover_polygons
-from enmapboxunittestdata import (landcover_polygons_3classes_epsg4326, landcover_polygons_3classes_id,
+from enmapboxtestdata import (landcover_polygons_3classes_epsg4326, landcover_polygons_3classes_id,
                                   landcover_points_multipart_epsg3035)
 
 writeToDisk = True

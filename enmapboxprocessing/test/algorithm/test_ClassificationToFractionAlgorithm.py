@@ -4,7 +4,7 @@ from enmapboxprocessing.algorithm.classificationtofractionalgorithm import Class
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapbox.exampledata import enmap, landcover_polygons
-from enmapboxunittestdata import landcover_raster_1m
+from enmapboxtestdata import landcover_raster_1m
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

@@ -2,7 +2,7 @@ from enmapboxprocessing.algorithm.classifierperformancealgorithm import Classifi
 from enmapboxprocessing.algorithm.classifierfeaturerankingpermutationimportancealgorithm import \
     ClassifierFeatureRankingPermutationImportanceAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxunittestdata import (classifierDumpPkl)
+from enmapboxtestdata import (classifierDumpPkl)
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

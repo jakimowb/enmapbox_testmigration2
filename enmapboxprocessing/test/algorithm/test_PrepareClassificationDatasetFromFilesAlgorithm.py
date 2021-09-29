@@ -2,7 +2,7 @@ from enmapboxprocessing.algorithm.prepareclassificationdatasetfromfilesalgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapboxunittestdata import classificationSampleAsCsv
+from enmapboxtestdata import classificationSampleAsCsv
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

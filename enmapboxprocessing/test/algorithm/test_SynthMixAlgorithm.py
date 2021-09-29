@@ -1,6 +1,6 @@
 from enmapboxprocessing.algorithm.synthmixalgorithm import SynthMixAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxunittestdata import (classifierDumpPkl)
+from enmapboxtestdata import (classifierDumpPkl)
 
 
 class TestFitClassifierAlgorithm(TestCase):

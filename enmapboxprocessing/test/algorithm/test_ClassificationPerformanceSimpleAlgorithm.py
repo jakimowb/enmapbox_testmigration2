@@ -7,7 +7,7 @@ from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm impor
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.utils import Utils
 from enmapbox.exampledata import landcover_polygons, enmap
-from enmapboxunittestdata import landcover_map_l3
+from enmapboxtestdata import landcover_map_l3
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
