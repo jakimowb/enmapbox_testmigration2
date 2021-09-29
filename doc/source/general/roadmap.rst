@@ -1,8 +1,8 @@
 .. _roadmap:
 
 
-Roadmap and released Versions
-#############################
+Roadmap
+#######
 
 The development of the EnMAP-Box is based on the following schedule:
 
