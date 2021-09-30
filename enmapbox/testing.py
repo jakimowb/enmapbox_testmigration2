@@ -44,7 +44,7 @@ import numpy as np
 from osgeo import gdal, ogr, osr
 
 from enmapbox.gui.utils import file_search
-from enmapbox import DIR_TESTDATA
+from enmapbox import DIR_EXAMPLEDATA
 
 SHOW_GUI = True
 

@@ -34,7 +34,7 @@ from PyQt5.QtGui import QIcon, QContextMenuEvent, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QStyle, QAction, QTreeView, QFileDialog, QDialog
 
 import qgis.utils
-from enmapbox import DIR_TESTDATA, messageLog
+from enmapbox import DIR_EXAMPLEDATA, messageLog
 from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB, is_spectral_library
 from enmapbox.externals.qps.utils import bandClosestToWavelength, QGIS_DATATYPE_NAMES
 from enmapbox.gui import \
@@ -323,7 +323,7 @@ class DataSourceManager(QObject):
         defaultRoot = SETTINGS.value('lastsourcedir', None)
 
         if defaultRoot is None:
-            defaultRoot = DIR_TESTDATA
+            defaultRoot = DIR_EXAMPLEDATA
 
         if not os.path.exists(defaultRoot):
             defaultRoot = None
@@ -358,7 +358,7 @@ class DataSourceManager(QObject):
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
 
         if lastDataSourceDir is None:
-            lastDataSourceDir = DIR_TESTDATA
+            lastDataSourceDir = DIR_EXAMPLEDATA
 
         if not os.path.exists(lastDataSourceDir):
             lastDataSourceDir = None

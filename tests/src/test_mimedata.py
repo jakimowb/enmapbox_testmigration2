@@ -27,7 +27,7 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtWidgets import *
 
 from enmapbox.testing import EnMAPBoxTestCase
-from enmapbox import EnMAPBox, DIR_TESTDATA
+from enmapbox import EnMAPBox, DIR_EXAMPLEDATA
 
 from enmapbox.exampledata import enmap, hires, library, landcover_polygons
 import enmapbox.gui.mimedata as mimedata
@@ -126,7 +126,7 @@ class MimeDataTests(EnMAPBoxTestCase):
     def test_dropping_files_empty_dockarea(self):
         files = []
         nMax = 25
-        for root, dirs, f in os.walk(DIR_TESTDATA):
+        for root, dirs, f in os.walk(DIR_EXAMPLEDATA):
             if len(files) >= nMax:
                 break
             for file in f:
@@ -178,7 +178,7 @@ class MimeDataTests(EnMAPBoxTestCase):
     def test_dropping_files_speclib_widget(self):
         files = []
         nMax = 25
-        for root, dirs, f in os.walk(DIR_TESTDATA):
+        for root, dirs, f in os.walk(DIR_EXAMPLEDATA):
             if len(files) >= nMax:
                 break
             for file in f:
@@ -202,7 +202,7 @@ class MimeDataTests(EnMAPBoxTestCase):
         self.assertTrue(len(w.speclib()) > 0)
 
         # drop ASD file
-        asdFile = pathlib.Path(DIR_TESTDATA) / 'asd' / 'txt' / 'ribb00002.asd.txt'
+        asdFile = pathlib.Path(DIR_EXAMPLEDATA) / 'asd' / 'txt' / 'ribb00002.asd.txt'
         if asdFile.is_file():
             w.dropEvent(self.file2DropEvent(asdFile))
             QApplication.processEvents()
