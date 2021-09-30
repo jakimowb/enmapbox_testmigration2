@@ -199,6 +199,7 @@ def extractMapLayers(mimeData: QMimeData) -> list:
 
                 elif providerKey in ['ogr', 'WFS']:
                     mapLayer = QgsVectorLayer(src, name, providerKey)
+                    s = ""
 
                 if isinstance(mapLayer, QgsMapLayer):
                     mapLayer.setName(attributes['name'])
@@ -256,7 +257,7 @@ def extractMapLayers(mimeData: QMimeData) -> list:
                 else:
 
                     # check if URL is associated with an external product,
-                    # if so, the product in created by running the appropriate processing algorithm
+                    # if so, the product is created by running the appropriate processing algorithm
 
                     class AlgorithmDialogWrapper(AlgorithmDialog):
                         def __init__(self, *args, **kwargs):

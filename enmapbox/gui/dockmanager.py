@@ -1313,10 +1313,9 @@ class DockManager(QObject):
             mimeData = event.mimeData()
             assert isinstance(mimeData, QMimeData)
 
-            speclibs = extractSpectralLibraries(mimeData)
-            speclibUris = [s.source() for s in speclibs]
+            # speclibs = extractSpectralLibraries(mimeData)
+            # speclibUris = [s.source() for s in speclibs]
             layers = extractMapLayers(mimeData)
-            layers = [l for l in layers if l.source() not in speclibUris]
             rxSupportedFiles = re.compile('(xml|html|txt|csv|log|md|rst)$')
             textfiles = []
             for url in mimeData.urls():
@@ -1325,10 +1324,11 @@ class DockManager(QObject):
                     textfiles.append(path)
 
             # register datasources
-            for src in layers + textfiles + speclibs:
+            for src in layers + textfiles:
                 self.mDataSourceManager.addSource(src)
 
             # open map dock for new layers
+            speclibs = [l for l in layers if is_spectral_library(l)]
             if len(speclibs) > 0:
                 NEW_DOCK = self.createDock('SPECLIB')
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
@@ -1340,6 +1340,7 @@ class DockManager(QObject):
                 sl.commitChanges()
 
             # open map dock for new layers
+
             if len(layers) > 0:
                 NEW_DOCK = self.createDock('MAP')
                 assert isinstance(NEW_DOCK, MapDock)
