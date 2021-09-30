@@ -1469,8 +1469,8 @@ class EnMAPBox(QgisInterface, QObject):
             installTestData()
 
         if not missingTestData():
-            import enmapboxtestdata
-            dir = os.path.dirname(enmapboxtestdata.__file__)
+            import enmapbox.exampledata
+            dir = os.path.dirname(enmapbox.exampledata.__file__)
             files = list(
                 file_search(dir, re.compile('.*(bsq|bil|bip|tif|gpkg|sli|img|shp|pkl)$', re.I), recursive=True))
             files = [pathlib.Path(file).as_posix() for file in files]
