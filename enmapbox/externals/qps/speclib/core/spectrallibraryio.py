@@ -241,6 +241,8 @@ class SpectralLibraryIO(object):
                        feedback: QgsProcessingFeedback) -> typing.List[str]:
         """
         Writes the files and returns a list of written files paths that can be used to import the profile
+        :param path:
+        :type path:
         :param exportSettings:
         :param profiles:
         :param feedback:
@@ -289,19 +291,36 @@ class SpectralLibraryIO(object):
         return []
 
     @staticmethod
-    def readSpeclibFromUri(uri, feedback: QgsProcessingFeedback = None):
+    def readSpeclibFromUri(uri, feedback: QgsProcessingFeedback = None) -> 'SpectralLibrary':
+        """
+        Tries to open a source uri as SpectralLibrary
+        :param uri: str
+        :param feedback: QgsProcessingFeedback
+        :return: SpectralLibrary
+        """
         speclib = None
-        profiles = SpectralLibraryIO.readProfilesFromUri(uri)
-        if len(profiles) > 0:
-            from .spectrallibrary import SpectralLibrary
-            referenceProfile = profiles[0]
 
-            speclib = SpectralLibrary(fields=referenceProfile.fields())
-            speclib.startEditing()
-            speclib.beginEditCommand('Add profiles')
-            speclib.addFeatures(profiles)
-            speclib.endEditCommand()
-            speclib.commitChanges()
+        # 1. Try to open directly as vector layer
+        try:
+            from .spectrallibrary import SpectralLibrary
+            speclib = SpectralLibrary(uri)
+        except:
+            pass
+
+        # 2. Search for suited IO options
+        if not isinstance(speclib, QgsVectorLayer):
+
+            profiles = SpectralLibraryIO.readProfilesFromUri(uri)
+            if len(profiles) > 0:
+                from .spectrallibrary import SpectralLibrary
+                referenceProfile = profiles[0]
+
+                speclib = SpectralLibrary(fields=referenceProfile.fields())
+                speclib.startEditing()
+                speclib.beginEditCommand('Add profiles')
+                speclib.addFeatures(profiles)
+                speclib.endEditCommand()
+                speclib.commitChanges()
 
         return speclib
 
@@ -518,7 +537,7 @@ class SpectralLibraryExportDialog(QDialog):
 
         if dialog.exec_() == QDialog.Accepted:
             w: SpectralLibraryExportWidget = dialog.currentExportWidget()
-            io: SpectralLibraryIO =dialog.exportIO()
+            io: SpectralLibraryIO = dialog.exportIO()
             settings = dialog.exportSettings()
             if isinstance(io, SpectralLibraryIO):
                 feedback = QgsProcessingFeedback()
