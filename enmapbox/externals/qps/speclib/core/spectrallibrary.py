@@ -266,6 +266,38 @@ class SpectralLibraryUtils:
     """
 
     @staticmethod
+    def readFromSource(uri: str, feedback: QgsProcessingFeedback = None):
+        from .spectrallibraryio import SpectralLibraryIO
+        return SpectralLibraryIO.readSpeclibFromUri(uri, feedback=feedback)
+
+    @staticmethod
+    def readFromVectorLayer(source: typing.Union[str, QgsVectorLayer]) -> QgsVectorLayer:
+        """
+        Returns a vector layer as Spectral Library vector layer.
+        It is assumed that binary fields without special editor widget setup are Spectral Profile fields.
+        :param source: str | QgsVectorLayer
+        :return: QgsVectorLayer
+        """
+        if isinstance(source, str):
+            source = QgsVectorLayer(source)
+
+        if not isinstance(source, QgsVectorLayer):
+            return None
+        if not source.isValid():
+            return None
+
+        # assume that binary fields without other editor widgets are Spectral Profile Widgets
+        for i in range(source.fields().count()):
+            field: QgsField = source.fields().at(i)
+            if field.type() == QVariant.ByteArray and field.editorWidgetSetup().type() == '':
+                source.setEditorWidgetSetup(i, QgsEditorWidgetSetup(EDITOR_WIDGET_REGISTRY_KEY, {}))
+
+        if not is_spectral_library(source):
+            return None
+
+        return source
+
+    @staticmethod
     def readFromMimeData(mimeData: QMimeData):
         """
         Reads a SpectraLibrary from mime data.
@@ -658,6 +690,7 @@ class SpectralLibraryUtils:
             setup = fSrc.editorWidgetSetup()
             if QgsGui.instance().editorWidgetRegistry().factory(setup.type()).supportsField(speclib, idx):
                 speclib.setEditorWidgetSetup(idx, setup)
+    # assign
 
 
 class SpectralLibrary(QgsVectorLayer):
@@ -1109,15 +1142,14 @@ class SpectralLibrary(QgsVectorLayer):
         :param uri: path or uri of the source from which to read SpectralProfiles and return them in a SpectralLibrary
         :return: SpectralLibrary
         """
-        from .spectrallibraryio import SpectralLibraryIO
-        return SpectralLibraryIO.readSpeclibFromUri(uri, feedback=feedback)
+        return SpectralLibraryUtils.readFromSource(uri, feedback)
 
     # sigProgressInfo = pyqtSignal(int, int, str)
 
     def __init__(self,
                  path: str = None,
                  baseName: str = DEFAULT_NAME,
-                 provider: str = None,
+                 provider: str = 'ogr',
                  options: QgsVectorLayer.LayerOptions = None,
                  fields: QgsFields = None,
                  profile_fields: typing.List[str] = [FIELD_VALUES],
@@ -1187,8 +1219,15 @@ class SpectralLibrary(QgsVectorLayer):
                 # copy editor widget type
 
                 assert self.commitChanges(stopEditing=True)
-
-        # self.attributeAdded.connect(self.onAttributeAdded)
+        else:
+            fields: QgsFields = self.fields()
+            for name in profile_fields:
+                i = fields.lookupField(name)
+                if i > -1:
+                    field: QgsField = fields.at(i)
+                    editorWidget: QgsEditorWidgetSetup = field.editorWidgetSetup()
+                    if field.type() == QVariant.ByteArray and editorWidget.type() == '':
+                        self.setEditorWidgetSetup(i, QgsEditorWidgetSetup(EDITOR_WIDGET_REGISTRY_KEY, {}))
 
         self.initTableConfig()
 
