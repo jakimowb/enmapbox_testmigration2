@@ -42,6 +42,9 @@ class TestIssue(EnMAPBoxTestCase):
         from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY
         filename = path.as_posix()
         reg: QgsEditorWidgetRegistry = QgsGui.editorWidgetRegistry()
+        print('Available editor types:')
+        for k, v in reg.factories().items():
+            print(f'   {k}:"{v.name()}"')
 
         vl = QgsVectorLayer(filename)
         sl1 = SpectralLibraryUtils.readFromSource(filename)
@@ -53,7 +56,7 @@ class TestIssue(EnMAPBoxTestCase):
             print(f'{lyr.id()}:{lyr.source()}')
             print(f'type: {lyr.fields().field("profiles").typeName()}')
             print(f'editor: {lyr.fields().field("profiles").editorWidgetSetup().type()}')
-
+            print(f'is spectral library?: {is_spectral_library(lyr)}')
         # self.assertTrue(vl.fields().field('profiles').editorWidgetSetup().type() == '')
         self.assertEqual(sl1.fields().field('profiles').editorWidgetSetup().type(), EDITOR_WIDGET_REGISTRY_KEY)
         self.assertEqual(sl2.fields().field('profiles').editorWidgetSetup().type(), EDITOR_WIDGET_REGISTRY_KEY)
