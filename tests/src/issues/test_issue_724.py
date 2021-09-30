@@ -1,4 +1,3 @@
-
 import unittest
 import xmlrunner
 
@@ -34,27 +33,30 @@ class TestIssue(EnMAPBoxTestCase):
 
     def test_issue_724(self):
 
-        # create vectorlayer
+        from enmapbox import registerEditorWidgets
+        registerEditorWidgets()
+
         path = pathlib.Path('~').expanduser() / 'Downloads' / 'library.gpkg'
         self.assertTrue(path.is_file())
 
         from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY
         filename = path.as_posix()
+        reg: QgsEditorWidgetRegistry = QgsGui.editorWidgetRegistry()
 
         vl = QgsVectorLayer(filename)
         sl1 = SpectralLibraryUtils.readFromSource(filename)
         sl2 = SpectralLibrary(filename)
-        for lyr in [vl, sl1, sl2]:
+        slRef = TestObjects.createSpectralLibrary()
+        for lyr in [vl, sl1, sl2, slRef]:
             self.assertIsInstance(lyr, QgsVectorLayer)
             self.assertTrue(lyr.featureCount() > 0)
             print(f'{lyr.id()}:{lyr.source()}')
-            print(f'typename: {lyr.fields().field("profiles").typeName()}')
+            print(f'type: {lyr.fields().field("profiles").typeName()}')
             print(f'editor: {lyr.fields().field("profiles").editorWidgetSetup().type()}')
 
         # self.assertTrue(vl.fields().field('profiles').editorWidgetSetup().type() == '')
-        self.assertTrue(sl1.fields().field('profiles').editorWidgetSetup().type() == EDITOR_WIDGET_REGISTRY_KEY)
-        self.assertTrue(sl2.fields().field('profiles').editorWidgetSetup().type() == EDITOR_WIDGET_REGISTRY_KEY)
-
+        self.assertEqual(sl1.fields().field('profiles').editorWidgetSetup().type(), EDITOR_WIDGET_REGISTRY_KEY)
+        self.assertEqual(sl2.fields().field('profiles').editorWidgetSetup().type(), EDITOR_WIDGET_REGISTRY_KEY)
 
 
 if __name__ == '__main__':
