@@ -5,8 +5,8 @@ from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifie
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, landcover_polygons, landcover_points
-from enmapboxunittestdata import landcover_raster_30m, classifierDumpPkl
+from enmapbox.exampledata import enmap, landcover_polygons, landcover_points
+from enmapboxtestdata import landcover_raster_30m, classifierDumpPkl
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

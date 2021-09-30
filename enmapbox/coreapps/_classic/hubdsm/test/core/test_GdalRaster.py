@@ -2,7 +2,7 @@ from unittest.case import TestCase
 
 import numpy as np
 
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 from _classic.hubdsm.core.error import ProjectionMismatchError
 from _classic.hubdsm.core.gdalraster import GdalRaster
 from _classic.hubdsm.core.gdaldriver import MEM_DRIVER, GdalDriver

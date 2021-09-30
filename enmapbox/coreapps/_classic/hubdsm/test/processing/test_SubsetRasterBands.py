@@ -1,7 +1,7 @@
 import numpy as np
 from qgis._core import QgsRasterLayer
 
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 from _classic.hubdsm.core.gdaldriver import MEM_DRIVER
 from _classic.hubdsm.core.raster import Raster
 from _classic.hubdsm.processing.subsetrasterbands import SubsetRasterBands

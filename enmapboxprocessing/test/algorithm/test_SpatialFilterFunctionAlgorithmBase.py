@@ -34,7 +34,7 @@ from enmapboxprocessing.algorithm.spatialpercentilealgorithm import SpatialPerce
 from enmapboxprocessing.algorithm.spatialprewittalgorithm import SpatialPrewittAlgorithm
 from enmapboxprocessing.algorithm.spatialsobelalgorithm import SpatialSobelAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import hires
+from enmapbox.exampledata import hires
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

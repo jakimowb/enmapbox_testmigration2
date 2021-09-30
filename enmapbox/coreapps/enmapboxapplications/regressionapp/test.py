@@ -1,7 +1,7 @@
 from enmapbox.testing import initQgisApplication
 from enmapboxapplications.widgets.core import *
 from enmapboxapplications.regressionapp.core import RegressionWorkflowApp
-from enmapboxtestdata import *
+from enmapbox.exampledata import *
 
 if __name__ == '__main__':
 

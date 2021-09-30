@@ -4,7 +4,7 @@ from qgis._core import QgsRasterLayer, QgsRectangle, QgsCoordinateReferenceSyste
 from enmapboxprocessing.algorithm.geolocaterasteralgorithm import GeolocateRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 
 
 class TestTranslateAlgorithm(TestCase):

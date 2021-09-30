@@ -4,7 +4,7 @@ from enmapboxprocessing.algorithm.applymaskalgorithm import ApplyMaskAlgorithm
 from enmapboxprocessing.algorithm.layertomaskalgorithm import LayerToMaskAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, landcover_polygons
+from enmapbox.exampledata import enmap, landcover_polygons
 
 
 class TestLayerToMaskAlgorithm(TestCase):

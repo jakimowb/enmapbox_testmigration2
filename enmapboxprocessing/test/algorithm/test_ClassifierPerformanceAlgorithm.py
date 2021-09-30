@@ -1,6 +1,6 @@
 from enmapboxprocessing.algorithm.classifierperformancealgorithm import ClassifierPerformanceAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxunittestdata import (classifierDumpPkl)
+from enmapboxtestdata import (classifierDumpPkl)
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

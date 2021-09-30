@@ -29,7 +29,7 @@ from PyQt5.QtCore import *
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.gui.utils import *
 from enmapbox.gui.widgets.models import *
-from enmapboxtestdata import *
+from enmapbox.exampledata import *
 
 
 class TestEnMAPBoxPlugin(EnMAPBoxTestCase):

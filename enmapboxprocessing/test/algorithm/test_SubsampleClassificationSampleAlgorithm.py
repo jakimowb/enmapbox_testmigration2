@@ -1,7 +1,7 @@
 from enmapboxprocessing.algorithm.randomsamplesfromclassificationdatasetalgorithm import RandomSamplesFromClassificationDatasetAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.utils import Utils
-from enmapboxunittestdata import (classifierDumpPkl)
+from enmapboxtestdata import (classifierDumpPkl)
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
