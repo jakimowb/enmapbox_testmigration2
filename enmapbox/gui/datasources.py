@@ -712,7 +712,7 @@ class DataSourceVector(DataSourceSpatial):
             lyr = self.mLayer
         else:
             lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider, options=loptions)
-
+            s = ""
         if isPrompt:
             QgsSettings().setValue(key, v)
 

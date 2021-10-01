@@ -27,10 +27,10 @@ from qgis.PyQt.QtGui import QGuiApplication
 from qgis.core import QgsApplication
 
 site.addsitedir(pathlib.Path(__file__).parents[1])
-import enmapbox
+
 from enmapbox.testing import start_app, QgisMockup
 from enmapbox.externals.qps.resources import findQGISResourceFiles
-
+import qgis.utils
 
 qApp: QgsApplication = None
 
@@ -66,15 +66,10 @@ def run(
         print('## QgsApplication created')
     else:
         print('## QgsApplication exists')
+        from enmapbox import initAll
+        initAll()
 
-    # initialize resources and background frameworks
-    # if started from QGIS, this is done by enmapbox/enmapboxplugin.py
-    # initialize Qt resources, QgsEditorWidgetWrapper, QgsProcessingProviders etc.
-    # enmapbox.initAll(processing=initProcessing)
-    from enmapbox import initAll
     from enmapbox.gui.enmapboxgui import EnMAPBox
-    import qgis.utils
-    initAll()
     enmapBox = EnMAPBox(qgis.utils.iface, load_core_apps=load_core_apps, load_other_apps=load_other_apps)
     enmapBox.run()
     print('## EnMAP-Box started')

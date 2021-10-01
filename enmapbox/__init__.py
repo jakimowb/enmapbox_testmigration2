@@ -360,7 +360,7 @@ def registerExpressionFunctions():
     """
     Adds Expression functions for the QGIS expression editor
     """
-    from .externals.qps.speclib.qgsfunctions import registerQgsExpressionFunctions
+    from .externals.qps.qgsfunctions import registerQgsExpressionFunctions
     registerQgsExpressionFunctions()
 
 
@@ -368,7 +368,7 @@ def unregisterExpressionFunctions():
     """
     Removes added expression functions
     """
-    from .externals.qps.speclib.qgsfunctions import unregisterQgsExpressionFunctions
+    from .externals.qps.qgsfunctions import unregisterQgsExpressionFunctions
     unregisterQgsExpressionFunctions()
 
 

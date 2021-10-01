@@ -45,6 +45,20 @@ MDF_QGIS_LAYER_STYLE = 'application/qgis.style'
 QGIS_URILIST_MIMETYPE = "application/x-vnd.qgis.qgis.uri"
 
 
+class AlgorithmDialogWrapper(AlgorithmDialog):
+    def __init__(self, *args, **kwargs):
+        AlgorithmDialog.__init__(self, *args, **kwargs)
+        self.finishedSuccessful = False
+        self.finishResult = None
+
+    def finish(self, successful, result, context, feedback, in_place=False):
+        super().finish(successful, result, context, feedback, in_place)
+        self.finishedSuccessful = successful
+        self.finishResult = result
+        if successful:
+            self.close()
+
+
 def attributesd2dict(attributes: QDomNamedNodeMap) -> str:
     d = {}
     assert isinstance(attributes, QDomNamedNodeMap)
@@ -199,6 +213,7 @@ def extractMapLayers(mimeData: QMimeData) -> list:
 
                 elif providerKey in ['ogr', 'WFS']:
                     mapLayer = QgsVectorLayer(src, name, providerKey)
+                    s = ""
 
                 if isinstance(mapLayer, QgsMapLayer):
                     mapLayer.setName(attributes['name'])
@@ -256,20 +271,9 @@ def extractMapLayers(mimeData: QMimeData) -> list:
                 else:
 
                     # check if URL is associated with an external product,
-                    # if so, the product in created by running the appropriate processing algorithm
+                    # if so, the product is created by running the appropriate processing algorithm
 
-                    class AlgorithmDialogWrapper(AlgorithmDialog):
-                        def __init__(self, *args, **kwargs):
-                            AlgorithmDialog.__init__(self, *args, **kwargs)
-                            self.finishedSuccessful = False
-                            self.finishResult = None
 
-                        def finish(self, successful, result, context, feedback, in_place=False):
-                            super().finish(successful, result, context, feedback, in_place)
-                            self.finishedSuccessful = successful
-                            self.finishResult = result
-                            if successful:
-                                self.close()
 
                     filename = url.toLocalFile()
                     algs = [

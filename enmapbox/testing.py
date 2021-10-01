@@ -67,6 +67,12 @@ def start_app(*args, loadProcessingFramework: bool = True, **kwds) -> QgsApplica
         enmapbox.registerEditorWidgets()
         enmapbox.registerExpressionFunctions()
         enmapbox.registerMapLayerConfigWidgetFactories()
+
+        from .externals.qps import registerSpectralLibraryIOs
+        registerSpectralLibraryIOs()
+
+        from .externals.qps import registerSpectralProfileSamplingModes
+        registerSpectralProfileSamplingModes()
         return app
 
 
