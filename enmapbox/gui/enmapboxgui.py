@@ -138,6 +138,8 @@ class EnMAPBoxSplashScreen(QSplashScreen):
 
 
 class EnMAPBoxUI(QMainWindow):
+    mActionProcessingToolbox: QAction
+
     def __init__(self, *args, **kwds):
         """Constructor."""
         super().__init__(*args, **kwds)
@@ -931,8 +933,7 @@ class EnMAPBox(QgisInterface, QObject):
         try:
             import processing.gui.ProcessingToolbox
             panel = processing.gui.ProcessingToolbox.ProcessingToolbox()
-            self.ui.processingPanel = self.addPanel(area, panel)
-
+            self.ui.processingPanel = self.addPanel(area, panel, False)
         except Exception as ex:
             print(ex, file=sys.stderr)
 
@@ -1030,6 +1031,8 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.mapcanvas import CanvasLinkDialog
         self.ui.mActionMapLinking.triggered.connect(
             lambda: CanvasLinkDialog.showDialog(parent=self.ui, canvases=self.mapCanvases()))
+        self.ui.mActionProcessingToolbox.triggered.connect(
+            lambda: self.ui.processingPanel.setVisible(self.ui.processingPanel.isHidden()))
         from enmapbox.gui.about import AboutDialog
         self.ui.mActionAbout.triggered.connect(lambda: AboutDialog(parent=self.ui).show())
         from enmapbox.gui.settings import showSettingsDialog
