@@ -1,7 +1,9 @@
 import sys
+
 from qgis.core import *
 
-from enmapbox.externals.qps.speclib.core import SpectralLibrary
+#from enmapbox.externals.qps.speclib.core import SpectralLibrary
+from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
 from _classic.hubflow.core import *
 import _classic.hubdc.progressbar
 from _classic.enmapboxgeoalgorithms import ENMAPBOXGEOALGORITHMS_VERSION
