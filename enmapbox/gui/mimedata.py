@@ -273,8 +273,6 @@ def extractMapLayers(mimeData: QMimeData) -> list:
                     # check if URL is associated with an external product,
                     # if so, the product is created by running the appropriate processing algorithm
 
-
-
                     filename = url.toLocalFile()
                     algs = [
                         ImportDesisL1BAlgorithm(),
@@ -311,7 +309,7 @@ def extractMapLayers(mimeData: QMimeData) -> list:
                             else:
                                 keys = [alg.P_OUTPUT_RASTER]
                             for key in keys:
-                                layer = QgsRasterLayer(parameters[key], basename(parameters[key])                                )
+                                layer = QgsRasterLayer(parameters[key], basename(parameters[key]))
                                 newMapLayers.append(layer)
 
     else:

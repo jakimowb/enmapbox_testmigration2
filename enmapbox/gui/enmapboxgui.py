@@ -1231,7 +1231,11 @@ class EnMAPBox(QgisInterface, QObject):
 
         panel: SpectralProfileSourcePanel = self.spectralProfileSourcePanel()
         if len(self.docks(SpectralLibraryDock)) == 0:
-            self.createDock(SpectralLibraryDock)
+            dock = self.createDock(SpectralLibraryDock)
+            if isinstance(dock, SpectralLibraryDock):
+                slw: SpectralLibraryWidget = dock.speclibWidget()
+                slw.setViewVisibility(SpectralLibraryWidget.ViewType.ProfileView)
+                slw.setVisualizationBoxCollapsed(True)
 
         if len(panel.mBridge) == 0:
             panel.createRelation()
