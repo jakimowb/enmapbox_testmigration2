@@ -1,3 +1,5 @@
+from qgis._core import QgsProcessingException
+
 from enmapbox.exampledata import library_gpkg
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedlibraryalgorithm import \
     PrepareClassificationDatasetFromCategorizedLibraryAlgorithm
@@ -20,8 +22,8 @@ class TestPrepareClassificationDatasetFromCategorizedLibrary(TestCase):
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
-        self.assertEqual((58, 177), dump.X.shape)
-        self.assertEqual((58, 1), dump.y.shape)
+        self.assertEqual((75, 177), dump.X.shape)
+        self.assertEqual((75, 1), dump.y.shape)
         self.assertEqual(177, len(dump.features))
 
     def test_selectBinaryField(self):
@@ -36,3 +38,28 @@ class TestPrepareClassificationDatasetFromCategorizedLibrary(TestCase):
         self.assertEqual((58, 177), dump.X.shape)
         self.assertEqual((58, 1), dump.y.shape)
         self.assertEqual(177, len(dump.features))
+
+    def test_wrongCategoryField(self):
+        alg = PrepareClassificationDatasetFromCategorizedLibraryAlgorithm()
+        parameters = {
+            alg.P_CATEGORIZED_LIBRARY: library_gpkg,
+            #alg.P_FIELD: 'profiles',
+            alg.P_CATEGORY_FIELD: 'profiles',
+            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+        }
+        try:
+            self.runalg(alg, parameters)
+        except QgsProcessingException as error:
+            self.assertEqual('Unable to derive categories from field: profiles', str(error))
+
+    def test_wrongProfileField(self):
+        alg = PrepareClassificationDatasetFromCategorizedLibraryAlgorithm()
+        parameters = {
+            alg.P_CATEGORIZED_LIBRARY: library_gpkg,
+            alg.P_FIELD: 'level_1',
+            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+        }
+        try:
+            self.runalg(alg, parameters)
+        except QgsProcessingException as error:
+            self.assertEqual('Profiles field must be Binary: level_1', str(error))
