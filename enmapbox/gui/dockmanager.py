@@ -57,7 +57,7 @@ from enmapbox.gui.mimedata import \
     extractMapLayers, containsMapLayers, textToByteArray, extractSpectralLibraries
 from enmapbox.gui.docks import Dock, DockArea, \
     AttributeTableDock, SpectralLibraryDock, TextDock, MimeDataDock, WebViewDock
-from enmapbox.gui.datasources import DataSource
+from enmapbox.gui.datasources import DataSource, DataSourceVector, DataSourceSpatial
 from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
 from enmapbox.gui.datasourcemanager import DataSourceManager
 from enmapbox.gui.utils import getDOMAttributes
@@ -1253,7 +1253,7 @@ class DockManager(QObject):
         self.mConnectedDockAreas = []
         self.mCurrentDockArea = None
         self.mDocks = list()
-        self.mDataSourceManager = None
+        self.mDataSourceManager: DataSourceManager = None
         self.mMessageBar: QgsMessageBar = None
 
     def setMessageBar(self, messageBar: QgsMessageBar):
@@ -1313,11 +1313,10 @@ class DockManager(QObject):
             mimeData = event.mimeData()
             assert isinstance(mimeData, QMimeData)
 
-            speclibs = extractSpectralLibraries(mimeData)
-            speclibUris = [s.source() for s in speclibs]
+            # speclibs = extractSpectralLibraries(mimeData)
+            # speclibUris = [s.source() for s in speclibs]
             layers = extractMapLayers(mimeData)
-            layers = [l for l in layers if l.source() not in speclibUris]
-            rxSupportedFiles = re.compile('(xml|html|txt|csv|log|md|rst)$')
+            rxSupportedFiles = re.compile(r'(xml|html|txt|csv|log|md|rst|qml)$')
             textfiles = []
             for url in mimeData.urls():
                 path = url.toLocalFile()
@@ -1325,32 +1324,35 @@ class DockManager(QObject):
                     textfiles.append(path)
 
             # register datasources
-            for src in layers + textfiles + speclibs:
-                self.mDataSourceManager.addSource(src)
 
-            # open map dock for new layers
-            if len(speclibs) > 0:
-                NEW_DOCK = self.createDock('SPECLIB')
+            new_sources = self.mDataSourceManager.addSources(layers + textfiles)
+
+            layer_sources = [l.source() for l in layers]
+            layer_sources = [s for s in self.mDataSourceManager.sources()
+                             if isinstance(s, DataSourceSpatial) and s.uri() in layer_sources]
+
+            dropped_speclibs: typing.List[DataSourceVector] = [s for s in layer_sources
+                                                               if isinstance(s, DataSourceVector)
+                                                               and s.isSpectralLibrary()]
+
+            dropped_maplayers: typing.List[DataSourceSpatial] = [s for s in layer_sources
+                                                                 if s not in dropped_speclibs
+                                                                 and isinstance(s, DataSourceSpatial)]
+
+            # open spectral Library dock for new speclibs
+
+            if len(dropped_speclibs) > 0:
+                # show 1st speclib
+                NEW_DOCK = self.createDock('SPECLIB', dropped_speclibs[0].createUnregisteredMapLayer())
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
-                sl = NEW_DOCK.speclib()
-                assert is_spectral_library(sl)
-                sl.startEditing()
-                for speclib in speclibs:
-                    NEW_DOCK.speclib().addSpeclib(speclib, addMissingFields=True)
-                sl.commitChanges()
 
-            # open map dock for new layers
-            if len(layers) > 0:
+            # open map dock for other map layers
+            if len(dropped_maplayers) > 0:
                 NEW_DOCK = self.createDock('MAP')
                 assert isinstance(NEW_DOCK, MapDock)
+                layers = [s.createUnregisteredMapLayer() for s in dropped_maplayers]
                 NEW_DOCK.addLayers(layers)
 
-            # open test dock for new text files
-            for path in textfiles:
-                if rxSupportedFiles.search(os.path.basename(path)):
-                    dock: TextDock = self.createDock(TextDock)
-                    dock.setTitle(os.path.basename(path))
-                    dock.textDockWidget().loadFile(path)
             event.accept()
 
     def __len__(self):

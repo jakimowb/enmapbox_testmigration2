@@ -712,7 +712,7 @@ class DataSourceVector(DataSourceSpatial):
             lyr = self.mLayer
         else:
             lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider, options=loptions)
-
+            s = ""
         if isPrompt:
             QgsSettings().setValue(key, v)
 
@@ -748,10 +748,7 @@ class DataSourceFactory(object):
         :return: str
         """
         if isinstance(src, QUrl):
-            if src.isLocalFile():
-                src = src.toLocalFile()
-            else:
-                src = src.path()
+            src = src.toString(QUrl.PreferLocalFile | QUrl.RemoveQuery)
         if isinstance(src, str):
             # identify GDAL subdataset strings
             if re.search('(HDF|SENTINEL).*:.*:.*', src):

@@ -256,9 +256,10 @@ class DataSourceManager(QObject):
         :param name:
         :param icon:
         :return: a list of successfully added DataSource instances.
-                 Usually this will be a list with a single DataSource instance only, but in case of container datasets multiple instances might get returned.
+                 Usually this will be a list with a single DataSource instance only.
+                 In case of container datasets multiple instances might get returned.
         """
-        # do not add paths if the are already known
+        # do not add paths if they are already known
         knownStrings = self.uriList() + self.layerIds() + self.layerSources()
         if isinstance(newDataSource, str):
             if newDataSource in knownStrings:
@@ -267,7 +268,7 @@ class DataSourceManager(QObject):
             layers = [ds.mapLayerId() for ds in self.sources() if isinstance(ds, DataSourceSpatial)]
             layers += [ds.mapLayer().source() for ds in self.sources() if isinstance(ds, DataSourceSpatial)]
             if newDataSource in layers:
-                return None
+                return []
 
         if isinstance(newDataSource, QgsMapLayer):
             if not newDataSource.isValid() or \
