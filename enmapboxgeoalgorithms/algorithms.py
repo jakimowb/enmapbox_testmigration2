@@ -7,22 +7,12 @@ from enmapboxprocessing.algorithm.algorithms import algorithms
 from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.changemap import ChangeMap
 from hubdsm.processing.classificationstatistics import ClassificationStatistics
-from hubdsm.processing.importdesisl2a import ImportDesisL2A
-from hubdsm.processing.importenmapl1b import ImportEnmapL1B
-from hubdsm.processing.importenmapl1c import ImportEnmapL1C
-from hubdsm.processing.importenmapl2a import ImportEnmapL2A
-from hubdsm.processing.importprismal2d import ImportPrismaL2D
 from hubdsm.processing.saveasenvi import SaveAsEnvi
 from hubdsm.processing.savelayerasclassification import SaveLayerAsClassification
 from hubdsm.processing.uniquebandvaluecounts import UniqueBandValueCounts
 from hubflow.core import *
 
 ALGORITHMS.append(UniqueBandValueCounts())
-ALGORITHMS.append(ImportEnmapL1B())
-ALGORITHMS.append(ImportEnmapL1C())
-ALGORITHMS.append(ImportEnmapL2A())
-ALGORITHMS.append(ImportPrismaL2D())
-ALGORITHMS.append(ImportDesisL2A())
 ALGORITHMS.append(SaveLayerAsClassification())
 ALGORITHMS.append(AggregateBands())
 ALGORITHMS.append(ClassificationStatistics())
