@@ -101,7 +101,7 @@
      <x>0</x>
      <y>0</y>
      <width>868</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAbout">
@@ -159,6 +159,7 @@
     <addaction name="mActionIdentify"/>
     <addaction name="separator"/>
     <addaction name="mActionMapLinking"/>
+    <addaction name="mActionProcessingToolbox"/>
     <addaction name="separator"/>
     <addaction name="mActionAddMapView"/>
     <addaction name="mActionAddSpeclibView"/>
@@ -241,6 +242,7 @@
    <addaction name="optionMoveCenter"/>
    <addaction name="separator"/>
    <addaction name="mActionMapLinking"/>
+   <addaction name="mActionProcessingToolbox"/>
   </widget>
   <widget class="QToolBar" name="toolBarVectorTools">
    <property name="windowTitle">
@@ -575,6 +577,18 @@
    </property>
    <property name="toolTip">
     <string>Specify the linking between different maps</string>
+   </property>
+  </action>
+  <action name="mActionProcessingToolbox">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/themes/default/processingAlgorithm.svg</normaloff>:/images/themes/default/processingAlgorithm.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Processing Toolbox</string>
+   </property>
+   <property name="toolTip">
+    <string>Toggle processing toolbox visibility</string>
    </property>
   </action>
   <action name="mActionOpenOnlineDocumentation">
