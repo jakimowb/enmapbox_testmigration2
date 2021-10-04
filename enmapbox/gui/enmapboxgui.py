@@ -30,6 +30,7 @@ from enmapboxprocessing.algorithm.importlandsatl2algorithm import ImportLandsatL
 from enmapboxprocessing.algorithm.importprismal1algorithm import ImportPrismaL1Algorithm
 from enmapboxprocessing.algorithm.importprismal2dalgorithm import ImportPrismaL2DAlgorithm
 from enmapboxprocessing.algorithm.importsentinel2l2aalgorithm import ImportSentinel2L2AAlgorithm
+from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 import enmapbox
 from qgis import utils as qgsUtils
@@ -968,7 +969,7 @@ class EnMAPBox(QgisInterface, QObject):
     def initActions(self):
         # link action to managers
         self.ui.mActionAddDataSource.triggered.connect(self.mDataSourceManager.addDataSourceByDialog)
-        self.ui.mActionAddSentinel2.triggered.connect(self.mDataSourceManager.addSentinel2ByDialog)
+        # self.ui.mActionAddSentinel2.triggered.connect(self.mDataSourceManager.addSentinel2ByDialog)  # replaced by "Import Sentinel-2 L2A product" algo
         self.ui.mActionAddSubDatasets.triggered.connect(self.mDataSourceManager.addSubDatasetsByDialog)
 
         self.ui.mActionAddMapView.triggered.connect(lambda: self.mDockManager.createDock('MAP'))
@@ -1063,10 +1064,10 @@ class EnMAPBox(QgisInterface, QObject):
         """
         Initializes the product loaders under <menu> Project -> Add Product
         """
-        menu = self.ui.menuAdd_Product
-        separator = self.ui.mActionAddSentinel2
-        assert isinstance(menu, QMenu)
-        assert isinstance(separator, QAction)
+        menu: QMenu = self.ui.menuAdd_Product
+        #separator = self.ui.mActionAddSentinel2  # outdated
+
+        menu.addSeparator()
 
         # add more product import actions hereafter
         algs = [
@@ -1081,13 +1082,20 @@ class EnMAPBox(QgisInterface, QObject):
             ImportPrismaL2DAlgorithm(),
             ImportSentinel2L2AAlgorithm(),
         ]
+
         for alg in algs:
             name = alg.displayName()[7:-8]  # remove "Import " and " product" parts
             tooltip = alg.shortDescription()
             a = QAction(name, parent=menu)
             a.setToolTip(tooltip)
-            a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(alg))
-            menu.insertAction(separator, a)
+            a.alg = alg
+            a.triggered.connect(self.onActionAddProductTriggered)
+            menu.addAction(a)
+
+    def onActionAddProductTriggered(self):
+        a = self.sender()
+        alg: EnMAPProcessingAlgorithm = a.alg
+        self.showProcessingAlgorithmDialog(alg)
 
     def _mapToolButton(self, action) -> Optional[QToolButton]:
         for toolBar in self.ui.findChildren(QToolBar):
@@ -1888,8 +1896,8 @@ class EnMAPBox(QgisInterface, QObject):
     currentLayerChanged = pyqtSignal(QgsMapLayer)
 
     ### ACTIONS ###
-    def actionAddSentinel2(self) -> QAction:
-        return self.ui.mActionAddSentinel2
+    #def actionAddSentinel2(self) -> QAction:  # AR: this is outdated; replaced by "Import Sentinel-2 L2A product" algo
+    #    return self.ui.mActionAddSentinel2
 
     def actionAddSubDatasets(self) -> QAction:
         return self.ui.mActionAddSubDatasets
