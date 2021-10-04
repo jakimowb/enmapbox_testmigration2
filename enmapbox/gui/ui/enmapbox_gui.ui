@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>868</width>
+    <width>867</width>
     <height>669</height>
    </rect>
   </property>
@@ -100,7 +100,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>868</width>
+     <width>867</width>
      <height>21</height>
     </rect>
    </property>
@@ -121,7 +121,6 @@
      <property name="title">
       <string>Add Product</string>
      </property>
-     <addaction name="mActionAddSentinel2"/>
      <addaction name="separator"/>
      <addaction name="mActionAddSubDatasets"/>
     </widget>
@@ -743,14 +742,6 @@
    </property>
    <property name="toolTip">
     <string>Opens an installer for required python packages</string>
-   </property>
-  </action>
-  <action name="mActionAddSentinel2">
-   <property name="text">
-    <string>Sentinel-2</string>
-   </property>
-   <property name="toolTip">
-    <string>Select and add images from Sentinel-2 outputs</string>
    </property>
   </action>
   <action name="mActionAddSubDatasets">
