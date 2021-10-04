@@ -233,6 +233,9 @@ def v3(alg: EnMAPProcessingAlgorithm, text):
 
         pdhelp = helpParameters.get(pd.description(), 'undocumented')
 
+        if pdhelp == '':
+            continue
+
         if pdhelp == 'undocumented':
             assert 0, pd.description()
 

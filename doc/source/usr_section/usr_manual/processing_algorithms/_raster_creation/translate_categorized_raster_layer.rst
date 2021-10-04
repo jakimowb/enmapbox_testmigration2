@@ -27,5 +27,5 @@ Resampling is done via a two-step majority voting approach. First, the categoriz
 
 
 :guilabel:`Output categorized raster layer` [rasterDestination]
-    Output raster file destination.
+    Raster file destination.
 

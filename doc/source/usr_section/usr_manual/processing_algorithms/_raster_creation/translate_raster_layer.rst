@@ -4,7 +4,7 @@
 Translate raster layer
 **********************
 
-Convert raster data between different formats, potentially performing some operations like spatial subsetting, spatial resampling, reprojection, band subsettings, band reordering and data type conversion.
+Convert raster data between different formats, potentially performing some operations like spatial subsetting, spatial resampling, reprojection, band subsetting, band reordering, data scaling, no data value specification, and data type conversion.
 
 **Parameters**
 
@@ -18,7 +18,7 @@ Convert raster data between different formats, potentially performing some opera
 
 
 :guilabel:`Grid` [raster]
-    The target grid.
+    The destination grid.
 
 
 :guilabel:`Copy metadata` [boolean]
@@ -31,6 +31,28 @@ Convert raster data between different formats, potentially performing some opera
     Whether to copy style from source to destination.
 
     Default: *False*
+
+
+:guilabel:`Write ENVI header` [boolean]
+    Whether to write an ENVI header *.hdr sidecar file with spectral metadata required for proper visualization in ENVI software.
+
+    Default: *False*
+
+
+:guilabel:`Spectral raster layer for band subsetting` [raster]
+    A spectral raster layer used for specifying a band subset by matching the center wavelength.
+
+
+:guilabel:`Selected spectral bands` [band]
+    Spectral bands used to match source raster bands.An empty selection defaults to all bands in native order.
+
+
+:guilabel:`Data offset value` [number]
+    A data offset value applied to each band.
+
+
+:guilabel:`Data gain/scale value` [number]
+    A data gain/scale value applied to each band.
 
 
 :guilabel:`Spatial extent` [extent]
@@ -57,18 +79,38 @@ Convert raster data between different formats, potentially performing some opera
     Default: *0*
 
 
+:guilabel:`Source no data value` [number]
+    The value to be used instead of the original raster layer no data value.
+
+
+:guilabel:`No data value` [number]
+    The value to be used instead of the default destination no data value.
+
+
+:guilabel:`Unset source no data value` [boolean]
+    Whether to unset (i.e. not use) the source no data value.
+
+    Default: *False*
+
+
+:guilabel:`Unset no data value` [boolean]
+    Whether to unset the destination no data value.
+
+    Default: *False*
+
+
 :guilabel:`Data type` [enum]
     Output data type.
 
 
-:guilabel:`Output options` [enum]
+:guilabel:`Output options` [string]
     Output format and creation options.
 
-    Default: *0*
+    Default: **
 
 **Outputs**
 
 
 :guilabel:`Output raster layer` [rasterDestination]
-    Output raster file destination.
+    Raster file destination.
 

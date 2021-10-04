@@ -21,11 +21,11 @@ Resampling is done via a two-step majority voting approach. First, the categoriz
 :guilabel:`Minimum pixel coverage` [number]
     Exclude all pixel where (polygon) coverage is smaller than given threshold.
 
-    Default: *0*
+    Default: *50*
 
 
 :guilabel:`Majority voting` [boolean]
-    Whether to use majority voting. Turn off to use simple nearest neighbour resampling, which is much faster, but may result in highly inaccurate decisions.
+    Whether to use majority voting. Turn off to use simple nearest neighbour resampling, which is much faster, but may result in highly inaccurate class decisions.
 
     Default: *True*
 
@@ -33,5 +33,5 @@ Resampling is done via a two-step majority voting approach. First, the categoriz
 
 
 :guilabel:`Output categorized raster layer` [rasterDestination]
-    Output raster file destination.
+    Raster file destination.
 

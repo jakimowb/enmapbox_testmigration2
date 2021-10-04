@@ -28,5 +28,5 @@ Note that we assume non-overlapping feature geometries! In case of overlapping g
 
 
 :guilabel:`Output point layer` [vectorDestination]
-    Output vector file destination.
+    Vector file destination.
 

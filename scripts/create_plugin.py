@@ -47,8 +47,8 @@ MD = QGISMetadataFileWriter()
 MD.mName = 'EnMAP-Box 3'
 MD.mDescription = 'Imaging Spectroscopy and Remote Sensing for QGIS'
 MD.mTags = ['raster', 'analysis', 'imaging spectroscopy', 'spectral', 'hyperspectral', 'multispectral',
-            'landsat', 'sentinel', 'enmap', 'land cover', 'landscape',
-            'classification', 'remote sensing',
+            'landsat', 'sentinel', 'enmap', 'desis', 'prisma', 'land cover', 'landscape',
+            'classification', 'regression', 'unmixing', 'remote sensing',
             'mask', 'accuracy', 'clip', 'spectral signature', 'supervised classification', 'clustering',
             'machine learning']
 MD.mCategory = 'Analysis'

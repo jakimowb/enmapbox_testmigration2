@@ -4,32 +4,79 @@
 Raster math
 ***********
 
-Create a raster layer by evaluating an expression with numpy syntax. Use any basic arithmetic and logical operators supported by numpy arrays. The numpy modul is imported as np.
+Perform mathematical calculations on raster layer and vector layer data. Use any <a href="https://numpy.org/doc/stable/reference/">NumPy</a>-based arithmetic, or even arbitrary Python code.
+See the <a href="https://enmap-box.readthedocs.io/en/latest/usr_section/usr_manual/applications.html#rastermath">RasterMath tutorial</a> for detailed usage instructions.
 
 **Parameters**
 
 
-:guilabel:`Raster layers` [multilayer]
-    List of raster layers that are mapped to variables A, B, C, ... .
-    Individual bands are mapped to variables A@1, A@2, ..., B@1, B@2, ... .
-
-
-:guilabel:`Expression` [string]
-    The expression to be evaluated. Must result in a (multiband) 3d numpy array, a (single-band) 2d numpy array or a list of 2d numpy arrays.
-    Example 1 - add up two bands: <pre>A@1 + B@1</pre>
-    Example 2 - add up two rasters (with same number of bands) band-wise: <pre>A + B</pre>
-    Example 3 - use a numpy function to calculate the exponential of all values in a raster: <pre>np.exp(A)</pre>
-    Example 4 - build a band stack with all bands from three raster layers:<pre>list(A) + list(B) + list(C)</pre>
-    More complex expressions can be splitted into multiple lines for defining temporary variables or import modules. Here the last line is evaluated as the final result.
-    Example 5 - use a multiple line code block to calculate a vegetation index:<pre>nir = np.float32(A@4)<br>red = np.float32(A@3)<br>ndvi = (nir - red) / (nir + red)<br>ndvi</pre>
+:guilabel:`Code` [string]
+    The mathematical calculation to be performed on the selected input arrays.
+    Select inputs in the available data sources section or use the raster layer R1, ..., R10 and vector layer V1, ..., V10.
+    In the code snippets section you can find some prepdefined code snippets ready to use.
+    See the <a href="https://enmap-box.readthedocs.io/en/latest/usr_section/usr_manual/applications.html#rastermath">RasterMath tutorial</a> for detailed usage instructions.
 
 
 :guilabel:`Grid` [raster]
-    The target grid. If not specified, the grid of the first raster layer is used.
+    The destination grid. If not specified, the grid of the first raster layer is used.
 
+
+:guilabel:`Block overlap` [number]
+    The number of columns and rows to read from the neighbouring blocks. Needs to be specified only when performing spatial operations, to avoid artifacts at block borders.
+
+
+:guilabel:`Monolithic processing` [boolean]
+    Whether to read all data for the full extent at once, instead of block-wise processing. This may be useful for some spatially unbound operations, like segmentation or region growing, when calculating global statistics, or if RAM is not an issue at all.
+
+    Default: *False*
+
+
+:guilabel:`Raster layers ` [multilayer]
+    Additional list of raster layers mapped to a list variable RS.
+
+
+:guilabel:`Raster layer mapped to R1` [raster]
+
+:guilabel:`Raster layer mapped to R2` [raster]
+
+:guilabel:`Raster layer mapped to R3` [raster]
+
+:guilabel:`Raster layer mapped to R4` [raster]
+
+:guilabel:`Raster layer mapped to R5` [raster]
+
+:guilabel:`Raster layer mapped to R6` [raster]
+
+:guilabel:`Raster layer mapped to R7` [raster]
+
+:guilabel:`Raster layer mapped to R8` [raster]
+
+:guilabel:`Raster layer mapped to R9` [raster]
+
+:guilabel:`Raster layer mapped to R10` [raster]
+
+:guilabel:`Vector layer mapped to V1` [vector]
+
+:guilabel:`Vector layer mapped to V2` [vector]
+
+:guilabel:`Vector layer mapped to V3` [vector]
+
+:guilabel:`Vector layer mapped to V4` [vector]
+
+:guilabel:`Vector layer mapped to V5` [vector]
+
+:guilabel:`Vector layer mapped to V6` [vector]
+
+:guilabel:`Vector layer mapped to V7` [vector]
+
+:guilabel:`Vector layer mapped to V8` [vector]
+
+:guilabel:`Vector layer mapped to V9` [vector]
+
+:guilabel:`Vector layer mapped to V10` [vector]
 **Outputs**
 
 
 :guilabel:`Output raster layer` [rasterDestination]
-    Output raster file destination.
+    Raster file destination for writing the default output variable. Additional outputs are written into the same directory. See the <a href="https://enmap-box.readthedocs.io/en/latest/usr_section/usr_manual/applications.html#rastermath">RasterMath tutorial</a> for detailed usage instructions.
 

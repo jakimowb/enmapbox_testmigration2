@@ -10,11 +10,11 @@ Create an empty raster that can be used as a grid.
 
 
 :guilabel:`CRS` [crs]
-    Target coordinate reference system.
+    Destination coordinate reference system.
 
 
 :guilabel:`Extent` [extent]
-    Target extent.
+    Destination extent.
 
 
 :guilabel:`Size units` [enum]
@@ -36,5 +36,5 @@ Create an empty raster that can be used as a grid.
 
 
 :guilabel:`Output grid` [rasterDestination]
-    Output raster file destination.
+    Raster file destination.
 

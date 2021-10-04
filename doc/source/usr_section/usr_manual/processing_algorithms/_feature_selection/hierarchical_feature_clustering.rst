@@ -19,6 +19,12 @@ For further analysis, all relevant results are also stored as a JSON sidecar fil
 
     Default: *False*
 
+
+:guilabel:`Open output report in webbrowser after running algorithm` [boolean]
+    Whether to open the output report in the web browser.
+
+    Default: *True*
+
 **Outputs**
 
 

@@ -20,5 +20,5 @@ Aggregates a (single-band) categorized layer into a (multiband) class fraction r
 
 
 :guilabel:`Output class fraction layer` [rasterDestination]
-    Output raster file destination.
+    Raster file destination.
 

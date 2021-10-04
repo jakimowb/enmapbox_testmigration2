@@ -11,7 +11,7 @@ Used in the Cookbook Recipes: <a href="https://enmap-box.readthedocs.io/en/lates
 
 
 :guilabel:`Raster layer with features` [raster]
-    A raster layer with bands used as features. Classifier features and raster bands are matched by name.
+    A raster layer with bands used as features. Classifier features and raster bands are matched by name to allow for classifiers trained on a subset of the raster bands. If raster bands and classifier features are not matching by name, but overall number of bands and features do match, raster bands are used in original order.
 
 
 :guilabel:`Mask layer` [layer]
@@ -25,5 +25,5 @@ Used in the Cookbook Recipes: <a href="https://enmap-box.readthedocs.io/en/lates
 
 
 :guilabel:`Output classification layer` [rasterDestination]
-    Output raster file destination.
+    Raster file destination.
 

@@ -24,5 +24,5 @@ Uses a fitted classifier to predict class probability layer from a raster layer 
 
 
 :guilabel:`Output class probability layer` [rasterDestination]
-    Output raster file destination.
+    Raster file destination.
 

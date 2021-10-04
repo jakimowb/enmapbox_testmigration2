@@ -39,12 +39,6 @@ Converts vector geometries (points, lines and polygons) into a raster grid.
     Default: *False*
 
 
-:guilabel:`Aggregation algorithm` [enum]
-    If selected, burn at a x10 finer resolution and aggregate values back to target resolution. For example, use Mode aggregation for categorical attributes to burn the category with highest pixel coverage (i.e. majority voting). For continuous attributes use Average to calculate a weighted average.
-
-    Default: *0*
-
-
 :guilabel:`Add value` [boolean]
     Whether to add up existing values instead of replacing them.
 
@@ -66,5 +60,5 @@ Converts vector geometries (points, lines and polygons) into a raster grid.
 
 
 :guilabel:`Output raster layer` [rasterDestination]
-    Output raster file destination.
+    Raster file destination.
 
