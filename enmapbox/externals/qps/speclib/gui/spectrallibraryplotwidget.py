@@ -1600,14 +1600,26 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
             assert unit_, f'Unknown unit for x-axis: {unit}'
             self.mXUnit = unit_
 
-            baseUnit = UnitLookup.baseUnit(unit_)
-            labelName = None
-            if baseUnit in UnitLookup.metric_units():
-                labelName = f'Wavelength [{baseUnit}]'
-            elif baseUnit in UnitLookup.date_units():
-                labelName = f'Date [{baseUnit}]'
-            elif baseUnit in UnitLookup.time_units():
-                labelName = f'Time [{baseUnit}]'
+            labelLookup = {
+                'Band Number': 'Band Number',
+                'Band Index': 'Band Index',
+                'nm': 'Wavelength [nanometer]',
+                'μm': 'Wavelength [micrometer]',
+                'mm': 'Wavelength [millimeter]',
+                'm': 'Wavelength [meter]',
+                'DateTime': 'Date [yyyy-mm-dd]',
+                'DecimalYear': 'Date [decimal year]',
+                'DOY': 'Date [day of year]'
+            }
+
+            labelName = labelLookup[unit_]
+            #baseUnit = UnitLookup.baseUnit(unit_)
+            #if baseUnit in UnitLookup.metric_units():
+            #    labelName = f'Wavelength [{baseUnit}]'
+            #elif baseUnit in UnitLookup.date_units():
+            #    labelName = f'Date [{baseUnit}]'
+            #elif baseUnit in UnitLookup.time_units():
+            #    labelName = f'Time [{baseUnit}]'
 
             self.mPlotWidget.xAxis().setUnit(unit, labelName=labelName)
             self.mPlotWidget.clearInfoScatterPoint()
