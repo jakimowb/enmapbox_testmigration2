@@ -26,7 +26,7 @@ class CreateRgbImageFromClassProbabilityAlgorithm(EnMAPProcessingAlgorithm):
         return 'Create RGB image from class probability/fraction layer'
 
     def shortDescription(self):
-        return 'Create an RGB image from a class fraction/probability layer.' \
+        return 'Create an RGB image from a class fraction layer or class probability layer.' \
                'The RGB pixel color of a single pixel is given by the weighted mean of the given category colors.' \
                'The weights are given by class fractions/probabilities (i.e. values between 0 and 1).' \
                '\nFor example, pure pixels with cover fractions of 1 appear in its pure category color. ' \
