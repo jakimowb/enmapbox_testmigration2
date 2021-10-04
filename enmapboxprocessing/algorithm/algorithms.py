@@ -229,7 +229,7 @@ def algorithms():
         SpectralResamplingToLandsat8Algorithm(),
         SpectralResamplingToPrismaAlgorithm(),
         SpectralResamplingToSentinel2Algorithm(),
-        SynthMixAlgorithm(),
+        # SynthMixAlgorithm(),  # not ready for v3.9
         TranslateCategorizedRasterAlgorithm(),
         TranslateRasterAlgorithm()
     ]

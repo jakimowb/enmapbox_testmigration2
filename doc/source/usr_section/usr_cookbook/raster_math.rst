@@ -1,4 +1,4 @@
-Using Raster Math for performing both simple and complex raster arithmetics
+Using Raster math for performing both simple and complex raster arithmetics
 ===========================================================================
 
 :guilabel:`Raster math` is a powerful raster calculator inspired by the :guilabel:`QGIS Raster calculator`,
@@ -83,4 +83,25 @@ Using advanced band subsetting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ToDo
+
+Using special variables and logging feedback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ToDo
+
+Running Raster math from command line
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Like any other processing algorithm, :guilabel:`Raster math` can be executed from the command line. Here is a simple NDVI example:
+
+Anaconda Prompt:
+    Activate your QGIS conda environment and use the **qgis_process** command line tool::
+
+        qgis_process run enmapbox:RasterMath -- code="(R1@865nm - R1@655nm) / (R1@865nm + R1@655nm)" R1=enmap_berlin.bsq outputRaster=c:/vsimem/ndvi.tif
+
+OSGeo4W Shell:
+    As an initial step, run **qgis_process-qgis.bat** to setup the environment. Now use the **qgis_process** command line tool::
+
+        qgis_process run enmapbox:RasterMath -- code="(R1@865nm - R1@655nm) / (R1@865nm + R1@655nm)" R1=enmap_berlin.bsq outputRaster=c:/vsimem/ndvi.tif
+
 
