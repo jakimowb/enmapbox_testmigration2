@@ -712,7 +712,9 @@ class DataSourceVector(DataSourceSpatial):
             lyr = self.mLayer
         else:
             lyr = QgsVectorLayer(self.mUri, self.mName, self.mProvider, options=loptions)
-            s = ""
+            msg, success = lyr.loadDefaultStyle()
+            if not success:
+                warnings.warn(f'DataSourceVector.createUnregisteredMapLayer() loadDefaultStyle():\n{msg}')
         if isPrompt:
             QgsSettings().setValue(key, v)
 

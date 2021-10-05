@@ -756,8 +756,10 @@ class EnMAPBox(QgisInterface, QObject):
             for lid in toAdd:
                 assert isinstance(lid, str)
                 if lid in SPECLIBS.keys() and not lid in QgsProject.instance().mapLayers().keys():
-                    lyr = SPECLIBS[lid]
+                    lyr: QgsVectorLayer = SPECLIBS[lid]
                     QgsProject.instance().addMapLayer(lyr, False)
+                    if lyr.dataProvider().name() == 'memory':
+                        lyr.setCustomProperty("skipMemoryLayersCheck", 1)
 
                 lyr = QgsProject.instance().mapLayer(lid)
 
@@ -1225,6 +1227,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         if isinstance(dock, SpectralLibraryDock):
             self.spectralProfileSourcePanel().removeSpectralLibraryWidgets(dock.speclibWidget())
+
         # lid = dock.speclib().id()
         # if self.mapLayerStore().mapLayer(lid):
         #     self.mapLayerStore().removeMapLayer(lid)
