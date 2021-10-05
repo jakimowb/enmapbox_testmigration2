@@ -162,7 +162,8 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     # include test data into test versions
     if include_testdata:
         if os.path.isdir(enmapbox.DIR_EXAMPLEDATA):
-            shutil.copytree(enmapbox.DIR_EXAMPLEDATA, PLUGIN_DIR / 'enmapboxtestdata')
+            DEST = PLUGIN_DIR / 'enmapbox' / 'exampledata'
+            shutil.copytree(enmapbox.DIR_EXAMPLEDATA, DEST, dirs_exist_ok=True)
 
     if include_qgisresources and not re.search(currentBranch, 'master', re.I):
         qgisresources = pathlib.Path(DIR_REPO) / 'qgisresources'
