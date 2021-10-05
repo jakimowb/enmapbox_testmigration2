@@ -1343,7 +1343,7 @@ class DockManager(QObject):
 
             if len(dropped_speclibs) > 0:
                 # show 1st speclib
-                NEW_DOCK = self.createDock('SPECLIB', dropped_speclibs[0].createUnregisteredMapLayer())
+                NEW_DOCK = self.createDock('SPECLIB', speclib=dropped_speclibs[0].createUnregisteredMapLayer())
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
 
             # open map dock for other map layers
