@@ -398,6 +398,9 @@ class TestCase(qgis.testing.TestCase):
         from osgeo import gdal
         gdal.AllRegister()
 
+        from enmapbox import registerEditorWidgets, registerMapLayerConfigWidgetFactories
+        registerEditorWidgets()
+        registerMapLayerConfigWidgetFactories()
     @classmethod
     def tearDownClass(cls):
         if False and isinstance(QgsApplication.instance(), QgsApplication):
