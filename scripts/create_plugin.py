@@ -47,8 +47,8 @@ MD = QGISMetadataFileWriter()
 MD.mName = 'EnMAP-Box 3'
 MD.mDescription = 'Imaging Spectroscopy and Remote Sensing for QGIS'
 MD.mTags = ['raster', 'analysis', 'imaging spectroscopy', 'spectral', 'hyperspectral', 'multispectral',
-            'landsat', 'sentinel', 'enmap', 'land cover', 'landscape',
-            'classification', 'remote sensing',
+            'landsat', 'sentinel', 'enmap', 'desis', 'prisma', 'land cover', 'landscape',
+            'classification', 'regression', 'unmixing', 'remote sensing',
             'mask', 'accuracy', 'clip', 'spectral signature', 'supervised classification', 'clustering',
             'machine learning']
 MD.mCategory = 'Analysis'
@@ -162,7 +162,8 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     # include test data into test versions
     if include_testdata:
         if os.path.isdir(enmapbox.DIR_EXAMPLEDATA):
-            shutil.copytree(enmapbox.DIR_EXAMPLEDATA, PLUGIN_DIR / 'enmapboxtestdata')
+            DEST = PLUGIN_DIR / 'enmapbox' / 'exampledata'
+            shutil.copytree(enmapbox.DIR_EXAMPLEDATA, DEST, dirs_exist_ok=True)
 
     if include_qgisresources and not re.search(currentBranch, 'master', re.I):
         qgisresources = pathlib.Path(DIR_REPO) / 'qgisresources'

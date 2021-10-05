@@ -266,6 +266,11 @@ class SpectralLibraryUtils:
     """
 
     @staticmethod
+    def writeToSource(speclib: QgsVectorLayer, uri: str, feedback: QgsProcessingFeedback = None) -> typing.List[str]:
+        from .spectrallibraryio import SpectralLibraryIO
+        return SpectralLibraryIO.writeSpeclibToUri(speclib, uri, feedback=feedback)
+
+    @staticmethod
     def readFromSource(uri: str, feedback: QgsProcessingFeedback = None):
         from .spectrallibraryio import SpectralLibraryIO
         return SpectralLibraryIO.readSpeclibFromUri(uri, feedback=feedback)
@@ -298,7 +303,7 @@ class SpectralLibraryUtils:
         return source
 
     @staticmethod
-    def readFromMimeData(mimeData: QMimeData):
+    def readFromMimeData(mimeData: QMimeData) -> QgsVectorLayer:
         """
         Reads a SpectraLibrary from mime data.
         :param mimeData: QMimeData
@@ -388,6 +393,14 @@ class SpectralLibraryUtils:
         speclib.setAttributeTableConfig(conf)
 
     @staticmethod
+    def canReadFromMimeData(mimeData: QMimeData) -> bool:
+        formats = [MIMEDATA_SPECLIB_LINK, MIMEDATA_SPECLIB, MIMEDATA_TEXT, MIMEDATA_URL]
+        for format in formats:
+            if format in mimeData.formats():
+                return True
+        return False
+
+    @staticmethod
     def mimeData(speclib: QgsVectorLayer, formats: list = None) -> QMimeData:
         """
         Wraps this Speclib into a QMimeData object
@@ -411,8 +424,10 @@ class SpectralLibraryUtils:
                 mimeData.setData(MIMEDATA_SPECLIB_LINK, pickle.dumps(thisID))
             elif format == MIMEDATA_SPECLIB:
                 mimeData.setData(MIMEDATA_SPECLIB, pickle.dumps(speclib))
+
             elif format == MIMEDATA_URL:
                 mimeData.setUrls([QUrl(speclib.source())])
+
             elif format == MIMEDATA_TEXT:
                 from ..io.csvdata import CSVSpectralLibraryIO
                 txt = CSVSpectralLibraryIO.asString(speclib)
@@ -1328,7 +1343,7 @@ class SpectralLibrary(QgsVectorLayer):
 
         basename, ext = os.path.splitext(pathOne.name)
 
-        assert pathOne.as_posix().startswith('/vsimem/') or pathOne.parent.is_dir(), f'Canot write to {pathOne}'
+        assert pathOne.as_posix().startswith('/vsimem/') or pathOne.parent.is_dir(), f'Cannot write to {pathOne}'
         imageFiles = []
         for setting, profiles in self.groupBySpectralProperties().items():
             xValues = setting.x()
@@ -1369,44 +1384,8 @@ class SpectralLibrary(QgsVectorLayer):
             del dsDst
         return imageFiles
 
-    def write(self, path: str, **kwds) -> typing.List[str]:
-        """
-        Exports profiles to a file.
-        This wrapper tries to identify a fitting AbstractSpectralLibraryIO from the
-        file extension in `path`.
-        To ensure the way how the SpectralLibrary is written into file data, use
-        a AbstractSpectralLibraryIO implementation of choice.
-        :param path: str, filepath
-        :param kwds: keywords to be used in specific `AbstractSpectralLibraryIO.write(...)` methods.
-        :return: list of written files
-        """
-
-        if path is None:
-            path, filter = QFileDialog.getSaveFileName(parent=kwds.get('parent'),
-                                                       caption='Save Spectral Library',
-                                                       directory=QgsFileUtils.stringToSafeFilename(
-                                                           self.name() + '.gpkg'),
-                                                       filter=FILTERS,
-                                                       initialFilter='Geopackage (*.gpkg)')
-
-        if isinstance(path, pathlib.Path):
-            path = path.as_posix()
-
-        if len(path) > 0:
-            ext = os.path.splitext(path)[-1].lower()
-            from ..io.csvdata import CSVSpectralLibraryIO
-            from ..io.vectorsources import VectorSourceSpectralLibraryIO
-            from ..io.envi import EnviSpectralLibraryIO
-
-            # todo: implement filter strings in AbstractSpectralLibraryIOs to auto-match file extensions
-            if ext in ['.sli', '.esl']:
-                return EnviSpectralLibraryIO.write(self, path, **kwds)
-
-            elif ext in ['.json', '.geojson', '.geojsonl', '.csv', '.gpkg']:
-                return VectorSourceSpectralLibraryIO.write(self, path, **kwds)
-            else:
-                raise Exception(f'Filetype not supported: {path}')
-        return []
+    def write(self, uri, feedback: QgsProcessingFeedback = None) -> typing.List[str]:
+        return SpectralLibraryUtils.writeToSource(self, uri, feedback)
 
     def spectralProfileFields(self) -> typing.List[QgsField]:
         return profile_field_list(self)

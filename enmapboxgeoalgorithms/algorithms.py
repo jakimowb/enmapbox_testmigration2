@@ -17,7 +17,7 @@ ALGORITHMS.append(SaveLayerAsClassification())
 ALGORITHMS.append(AggregateBands())
 ALGORITHMS.append(ClassificationStatistics())
 ALGORITHMS.append(SaveAsEnvi())
-ALGORITHMS.append(ChangeMap())
+# ALGORITHMS.append(ChangeMap())  # outdated in v3.9, needs to overhauled
 
 ALGORITHMS.extend(algorithms())
 
@@ -205,119 +205,6 @@ class ClusteringPerformanceFromRaster(EnMAPAlgorithm):
 
 
 ALGORITHMS.append(ClusteringPerformanceFromRaster())
-
-
-class ImportLibrary(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Import Library'
-
-    def description(self):
-        return 'Import Library profiles as single line Raster.'
-
-    def group(self):
-        return self.GROUP_IMPORT_DATA
-
-    def defineCharacteristics(self):
-        self.addParameterLibrary()
-        self.addParameterOutputRaster()
-
-    def processAlgorithm_(self):
-        library = self.getParameterLibrary()
-        filename = self.getParameterOutputRaster()
-        Raster.fromEnviSpectralLibrary(filename=filename, library=library)
-        return {self.P_OUTPUT_RASTER: filename}
-
-
-ALGORITHMS.append(ImportLibrary())
-
-
-class ImportLibraryClassificationAttribute(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Import Library Classification Attribute'
-
-    def description(self):
-        return 'Import Library classification attribute as single line Classification.'
-
-    def group(self):
-        return self.GROUP_IMPORT_DATA
-
-    P_ATTRIBUTE = 'attribute'
-
-    def defineCharacteristics(self):
-        self.addParameterLibrary()
-        self.addParameterString(name=self.P_ATTRIBUTE, description='Classification Attribute',
-                                help='Attribute name as specified in the library CSV attribute file.')
-        self.addParameterOutputClassification()
-
-    def processAlgorithm_(self):
-        library = self.getParameterLibrary()
-        attribute = self.getParameterString(self.P_ATTRIBUTE)
-
-        filename = self.getParameterOutputClassification()
-        Classification.fromEnviSpectralLibrary(filename=filename, library=library, attribute=attribute)
-        return {self.P_OUTPUT_CLASSIFICATION: filename}
-
-
-ALGORITHMS.append(ImportLibraryClassificationAttribute())
-
-'''class ImportLibraryRegressionAttribute(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Import Library Regression Attributes'
-
-    def description(self):
-        return 'Import Library regression attributes as single line Regression.'
-
-    def group(self):
-        return self.GROUP_AUXILLIARY
-
-    P_ATTRIBUTES = 'attributes'
-
-    def defineCharacteristics(self):
-        self.addParameterLibrary()
-        self.addParameterString(name=self.P_ATTRIBUTES, description='Regression Attributes',
-                                help='List of attribute names as specified in the library CSV attribute file.')
-        self.addParameterOutputRegression()
-
-    def processAlgorithm_(self):
-
-        library = self.getParameterLibrary()
-        attributes = [s.strip() for s in self.getParameterString(self.P_ATTRIBUTES).split(',')]
-        filename = self.getParameterOutputRegression()
-        Regression.fromEnviSpectralLibrary(filename=filename, library=library, attributes=attributes)
-        return {self.P_OUTPUT_REGRESSION: filename}
-
-
-ALGORITHMS.append(ImportLibraryRegressionAttribute())
-
-
-class ImportLibraryFractionAttribute(EnMAPAlgorithm):
-    def displayName(self):
-        return 'Import Library Fraction Attributes'
-
-    def description(self):
-        return 'Import Library fraction attributes as single line Fraction.'
-
-    def group(self):
-        return self.GROUP_AUXILLIARY
-
-    P_ATTRIBUTES = 'attributes'
-
-    def defineCharacteristics(self):
-        self.addParameterLibrary()
-        self.addParameterString(name=self.P_ATTRIBUTES, description='Fraction Attributes',
-                                help='List of attribute names as specified in the library CSV attribute file.')
-        self.addParameterOutputFraction()
-
-    def processAlgorithm_(self):
-
-        library = self.getParameterLibrary()
-        attributes = [s.strip() for s in self.getParameterString(self.P_ATTRIBUTES).split(',')]
-        filename = self.getParameterOutputFraction()
-        Regression.fromEnviSpectralLibrary(filename=filename, library=library, attributes=attributes)
-        return {self.P_OUTPUT_FRACTION: filename}
-
-
-ALGORITHMS.append(ImportLibraryFractionAttribute())'''
 
 
 class FractionFromVectorClassification(EnMAPAlgorithm):
@@ -601,34 +488,6 @@ class RegressionFromVectorRegression(EnMAPAlgorithm):
 
 
 ALGORITHMS.append(RegressionFromVectorRegression())
-
-
-class RegressionSampleFromArtmo(EnMAPAlgorithm):
-    def group(self): return self.GROUP_IMPORT_DATA
-
-    def displayName(self): return 'Import ARTMO lookup table'
-
-    def description(self):
-        return 'Creates a raster and a regression from the profiles and biophysical parameters in the lookup table.'
-
-    def defineCharacteristics(self):
-        self.addParameterFile(description='ARTMO lookup table')
-        self.addParameterFloat(description='Reflectance scale factor', defaultValue=1.,
-                               help='Reflectance scale factor. Keep the default to have the data in the [0, 1]. Use a value of 10000 to scale the data into the [0, 10000] range.')
-        self.addParameterOutputRaster()
-        self.addParameterOutputRegression()
-
-    def processAlgorithm_(self):
-        sample = RegressionSample.fromArtmo(filenameRaster=self.getParameterOutputRaster(),
-                                            filenameRegression=self.getParameterOutputRegression(),
-                                            filenameArtmo=self.getParameterFile(),
-                                            filenameArtmoMeta=self.getParameterFile().replace('.txt', '_meta.txt'),
-                                            scale=self.getParameterFloat())
-        return {self.P_OUTPUT_REGRESSION: sample.regression().filename(),
-                self.P_OUTPUT_RASTER: sample.raster().filename()}
-
-
-ALGORITHMS.append(RegressionSampleFromArtmo())
 
 
 class RegressionPerformanceFromRaster(EnMAPAlgorithm):

@@ -17,6 +17,12 @@ Observed and predicted categories are matched by name.
 :guilabel:`Observed categorized layer` [layer]
     A categorized layer representing a (ground truth) observation sample, that was aquired using a (simple) random sampling approach.
 
+
+:guilabel:`Open output report in webbrowser after running algorithm` [boolean]
+    Whether to open the output report in the web browser.
+
+    Default: *True*
+
 **Outputs**
 
 

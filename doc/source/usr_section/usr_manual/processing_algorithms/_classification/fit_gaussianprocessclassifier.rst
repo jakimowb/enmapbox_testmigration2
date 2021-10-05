@@ -12,10 +12,6 @@ See <a href="http://scikit-learn.org/stable/modules/gaussian_process.html">Gauss
 **Parameters**
 
 
-:guilabel:`Training dataset` [file]
-    Training dataset pickle file used for fitting the classifier. If not specified, an unfitted classifier is created.
-
-
 :guilabel:`Classifier` [string]
     Scikit-learn python code. See <a href="http://scikit-learn.org/stable/modules/generated/sklearn.gaussian_process.GaussianProcessClassifier.html">GaussianProcessClassifier</a> for information on different parameters.
 
@@ -25,11 +21,16 @@ See <a href="http://scikit-learn.org/stable/modules/gaussian_process.html">Gauss
         from sklearn.preprocessing import StandardScaler
         from sklearn.gaussian_process import GaussianProcessClassifier
         from sklearn.gaussian_process.kernels import RBF
+        
         gpc = GaussianProcessClassifier(RBF(), max_iter_predict=1)
         classifier = make_pipeline(StandardScaler(), gpc)
+
+:guilabel:`Training dataset` [file]
+    Training dataset pickle file used for fitting the classifier. If not specified, an unfitted classifier is created.
+
 **Outputs**
 
 
 :guilabel:`Output classifier` [fileDestination]
-    Output destination pickle file.
+    Destination pickle file.
 

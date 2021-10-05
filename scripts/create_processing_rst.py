@@ -1,6 +1,8 @@
+import re
 from os import makedirs
 from os.path import abspath, join, dirname, exists, basename
 from shutil import rmtree
+from typing import List
 
 from qgis._core import QgsProcessingParameterDefinition, QgsProcessingDestinationParameter
 
@@ -233,6 +235,9 @@ def v3(alg: EnMAPProcessingAlgorithm, text):
 
         pdhelp = helpParameters.get(pd.description(), 'undocumented')
 
+        if pdhelp == '':
+            continue
+
         if pdhelp == 'undocumented':
             assert 0, pd.description()
 
@@ -251,8 +256,30 @@ def v3(alg: EnMAPProcessingAlgorithm, text):
                     text += '        {}\n'.format(line)
             else:
                 text += '    Default: *{}*\n\n'.format(pd.defaultValue())
+
+    # convert HTML weblinks into RST weblinks
+    htmlLinks = utilsFindHtmlWeblinks(text)
+    for htmlLink in htmlLinks:
+        rstLink = utilsHtmlWeblinkToRstWeblink(htmlLink)
+        text = text.replace(htmlLink, rstLink)
+
     return text
 
+
+def utilsFindHtmlWeblinks(text) -> List[str]:
+    match_: re.Match
+    starts = [match_.start() for match_ in re.finditer('<a href="', text)]
+    ends = [match_.start() + 4 for match_ in re.finditer('</a>', text)]
+    assert len(starts) == len(ends)
+    links = [text[start:end] for start, end in zip(starts, ends)]
+    return links
+
+def utilsHtmlWeblinkToRstWeblink(htmlText:str) -> str:
+    assert htmlText.startswith('<a href="'), htmlText
+    assert htmlText.endswith('</a>'), htmlText
+    link, name = htmlText[9:-4].split('">')
+    rstText = f'`{name} <{link}>`_'
+    return rstText
 
 if __name__ == '__main__':
     generateRST()

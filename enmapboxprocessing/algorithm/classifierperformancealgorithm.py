@@ -33,6 +33,7 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
             (self._DATASET, f'Test dataset pickle file used for assessing the classifier performance.'),
             (self._NFOLD, 'The number of folds used for assessing cross-validation performance. '
                           'If not specified (default), simple test performance is assessed.'),
+            (self._OPEN_REPORT, self.ReportOpen),
             (self._OUTPUT_REPORT, self.ReportFileDestination)
         ]
 

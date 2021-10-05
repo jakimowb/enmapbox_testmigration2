@@ -49,6 +49,7 @@ from enmapbox.gui.mimedata import \
     MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
     QGIS_URILIST_MIMETYPE, MDF_URILIST, extractMapLayers
 from enmapbox.gui.utils import enmapboxUiPath, dataTypeName
+from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
 from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.utils import Utils
@@ -1076,6 +1077,16 @@ class DataSourceTreeView(TreeView):
                 a.triggered.connect(
                     lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(alg, parameters, parent=self)
                 )
+
+                if splitext(src.uri())[1].lower() in ['.tif', '.tiff']:
+                    alg = AppendEnviHeaderToGTiffRasterAlgorithm()
+                    parameters = {alg.P_RASTER: src.uri()}
+                    a: QAction = m.addAction('Append ENVI header')
+                    a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
+                    a.triggered.connect(
+                        lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(alg, parameters, parent=self)
+                    )
+
 
             if isinstance(src, DataSourceVector):
                 if isinstance(src.mapLayer(), QgsVectorLayer):

@@ -4,7 +4,7 @@ import typing
 import warnings
 
 from PyQt5.QtCore import pyqtSignal, Qt, QModelIndex
-from PyQt5.QtGui import QIcon, QDragEnterEvent, QContextMenuEvent
+from PyQt5.QtGui import QIcon, QDragEnterEvent, QContextMenuEvent, QDropEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction, QMenu, QToolBar, QToolButton, QWidgetAction, QPushButton, \
     QHBoxLayout, QFrame, QDialog, QLabel
 from qgis.core import QgsVectorLayer
@@ -15,7 +15,7 @@ from qgis.gui import QgsMapCanvas, QgsDualView, QgsAttributeTableView, QgsAttrib
 from ..core import is_spectral_library
 from ...layerproperties import AttributeTableWidget, showLayerPropertiesDialog
 from ...plotstyling.plotstyling import PlotStyle, PlotStyleWidget
-from ..core.spectrallibrary import SpectralLibrary
+from ..core.spectrallibrary import SpectralLibrary, SpectralLibraryUtils
 from ..core.spectrallibraryio import SpectralLibraryIO, SpectralLibraryImportDialog, SpectralLibraryExportDialog
 from ..core.spectralprofile import SpectralProfile
 from .spectrallibraryplotwidget import SpectralProfilePlotWidget, SpectralLibraryPlotWidget, \
@@ -65,6 +65,9 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.mSpeclibPlotWidget: SpectralLibraryPlotWidget = SpectralLibraryPlotWidget()
         assert isinstance(self.mSpeclibPlotWidget, SpectralLibraryPlotWidget)
         self.mSpeclibPlotWidget.setDualView(self.mMainView)
+        self.mSpeclibPlotWidget.sigDragEnterEvent.connect(self.dragEnterEvent)
+        self.mSpeclibPlotWidget.sigDropEvent.connect(self.dropEvent)
+
         # self.mStatusLabel.setPlotWidget(self.mSpeclibPlotWidget)
         # self.mSpeclibPlotWidget.plotWidget.mUpdateTimer.timeout.connect(self.mStatusLabel.update)
 
@@ -394,17 +397,17 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
     def addSpeclib(self, speclib: QgsVectorLayer):
         assert is_spectral_library(speclib)
-        sl = self.speclib()
-        wasEditable = sl.isEditable()
+        speclib_dst = self.speclib()
+        wasEditable = speclib_dst.isEditable()
         try:
-            sl.startEditing()
+            speclib_dst.startEditing()
             info = 'Add {} profiles from {} ...'.format(len(speclib), speclib.name())
-            sl.beginEditCommand(info)
-            sl.addSpeclib(speclib)
-            sl.endEditCommand()
+            speclib_dst.beginEditCommand(info)
+            SpectralLibraryUtils.addSpeclib(speclib_dst, speclib)
+            speclib_dst.endEditCommand()
 
             if not wasEditable:
-                sl.commitChanges()
+                speclib_dst.commitChanges()
                 s = ""
 
         except Exception as ex:
@@ -502,11 +505,22 @@ class SpectralLibraryWidget(AttributeTableWidget):
         """
         return self.mMapCanvas
 
-    def dropEvent(self, event):
-        self.plotWidget().dropEvent(event)
+    def dropEvent(self, event: QDropEvent):
+
+        if not isinstance(self.speclib(), QgsVectorLayer):
+            return
+        sl: QgsVectorLayer = self.speclib()
+
+        slNew = SpectralLibraryUtils.readFromMimeData(event.mimeData())
+
+        if isinstance(slNew, QgsVectorLayer) and slNew.featureCount() > 0:
+            self.addSpeclib(slNew)
+            event.acceptProposedAction()
 
     def dragEnterEvent(self, event: QDragEnterEvent):
-        self.plotWidget().dragEnterEvent(event)
+
+        if event.proposedAction() == Qt.CopyAction and SpectralLibraryUtils.canReadFromMimeData(event.mimeData()):
+            event.acceptProposedAction()
 
     def onImportProfiles(self):
         """

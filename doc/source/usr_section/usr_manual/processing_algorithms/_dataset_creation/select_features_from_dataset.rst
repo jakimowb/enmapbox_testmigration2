@@ -20,5 +20,5 @@ Subset and/or reorder features in feature data X.
 
 
 :guilabel:`Output dataset` [fileDestination]
-    Output destination pickle file.
+    Destination pickle file.
 

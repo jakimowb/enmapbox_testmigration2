@@ -30,5 +30,5 @@ This algorithm creates a new point layer with a given number of random points, a
 
 
 :guilabel:`Output point layer` [vectorDestination]
-    Output vector file destination.
+    Vector file destination.
 

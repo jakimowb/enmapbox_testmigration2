@@ -783,9 +783,30 @@ def ogrDataSource(data_source) -> ogr.DataSource:
 
     if isinstance(data_source, QgsVectorLayer):
         dpn = data_source.dataProvider().name()
+        uri = None
         if dpn not in ['ogr']:
+            context = QgsProcessingContext()
+            feedback = QgsProcessingFeedback()
+            alg: QgsProcessingAlgorithm = QgsApplication.processingRegistry().algorithmById('native:savefeatures').create({})
+            parameters = dict(DATASOURCE_OPTIONS='',
+                              INPUT=data_source.source(),
+                              LAYER_NAME='',
+                              LAYER_OPTIONS='',
+                              OUTPUT='TEMPORARY_OUTPUT'
+            )
+
+            assert alg.prepareAlgorithm(parameters, context, feedback), feedback.textLog()
+
+            results = alg.processAlgorithm(parameters, context, feedback)
+            print(results)
+            if not results:
+                raise Exception(f'Unable to convert {dpn} to temporary ogr format')
+            else:
+                uri = results['OUTPUT']
+        else:
+            uri = data_source.source().split('|')[0]
+        if uri is None:
             raise Exception(f'Unsupported vector data provider: {dpn}')
-        uri = data_source.source().split('|')[0]
         return ogrDataSource(uri)
 
     if isinstance(data_source, pathlib.Path):
@@ -2070,20 +2091,27 @@ def osrSpatialReference(input) -> osr.SpatialReference:
 
 
 def px2geocoordinatesV2(layer: QgsRasterLayer,
-                        xcoordinates: np.ndarray, ycoordinates: np.ndarray,
+                        xcoordinates: np.ndarray = None,
+                        ycoordinates: np.ndarray = None,
                         subpixel_pos: float = 0.5,
                         subpixel_pos_x: float = None,
                         subpixel_pos_y: float = None) -> typing.Tuple[np.ndarray, np.ndarray]:
     """
-    Returns the pixel center as coordinate in a raster layer's CRS
+    Returns the pixel centers as coordinate in a raster layer's CRS
     :param layer: QgsRasterLayer
     :param px: QPoint pixel position (0,0) = 1st pixel
-    :return: SpatialPoint
+    :return: geo_x, geo_y numpy arrays
     """
     assert isinstance(layer, QgsRasterLayer) and layer.isValid()
     # assert 0 <= px.x() < layer.width()
     # assert 0 <= px.y() < layer.height()
     assert 0 <= subpixel_pos <= 1.0
+
+    if xcoordinates is None:
+        xcoordinates = np.arange(layer.width())
+
+    if ycoordinates is None:
+        ycoordinates = np.arange(layer.height())
 
     if subpixel_pos_x is None:
         subpixel_pos_x = subpixel_pos

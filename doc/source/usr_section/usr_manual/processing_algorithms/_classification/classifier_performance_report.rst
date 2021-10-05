@@ -20,6 +20,12 @@ Evaluates classifier performance.
 :guilabel:`Number of cross-validation folds` [number]
     The number of folds used for assessing cross-validation performance. If not specified (default), simple test performance is assessed.
 
+
+:guilabel:`Open output report in webbrowser after running algorithm` [boolean]
+    Whether to open the output report in the web browser.
+
+    Default: *True*
+
 **Outputs**
 
 

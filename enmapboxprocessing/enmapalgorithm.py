@@ -46,6 +46,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     VectorFileDestination = 'Vector file destination.'
     ReportFileFilter = 'HTML (*.html)'
     ReportFileDestination = 'Output report file destination.'
+    ReportOpen = 'Whether to open the output report in the web browser.'
     FolderDestination = 'Folder destination.'
 
     VrtFormat = 'VRT'
@@ -753,7 +754,7 @@ class Group(Enum):
     SpectralResampling = 'Spectral resampling'
     Regression = 'Regression'
     Sampling = 'Sampling'
-    Test = 'TEST_'
+    Test = '*'
     Testdata = 'Testdata'
     Transformation = 'Transformation'
 

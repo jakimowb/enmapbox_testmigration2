@@ -10,10 +10,6 @@ A random forest is a meta estimator that fits a number of decision tree classifi
 **Parameters**
 
 
-:guilabel:`Training dataset` [file]
-    Training dataset pickle file used for fitting the classifier. If not specified, an unfitted classifier is created.
-
-
 :guilabel:`Classifier` [string]
     Scikit-learn python code. See <a href="http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html">RandomForestClassifier</a> for information on different parameters.
 
@@ -21,9 +17,13 @@ A random forest is a meta estimator that fits a number of decision tree classifi
 
         from sklearn.ensemble import RandomForestClassifier
         classifier = RandomForestClassifier(n_estimators=100, oob_score=True)
+
+:guilabel:`Training dataset` [file]
+    Training dataset pickle file used for fitting the classifier. If not specified, an unfitted classifier is created.
+
 **Outputs**
 
 
 :guilabel:`Output classifier` [fileDestination]
-    Output destination pickle file.
+    Destination pickle file.
 
