@@ -297,6 +297,8 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.profilesNode.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
         self.addChildNode(self.profilesNode)
 
+        self.mPROFILES: typing.Dict[str, int] = dict()
+
         assert isinstance(dock, SpectralLibraryDock)
         self.mSpeclibWidget = dock.mSpeclibWidget
         assert isinstance(self.mSpeclibWidget, SpectralLibraryWidget)
@@ -319,47 +321,39 @@ class SpeclibDockTreeNode(DockTreeNode):
 
     def updateNodes(self):
 
+        PROFILES = dict()
+
         if isinstance(self.mSpeclibWidget, SpectralLibraryWidget):
             sl: SpectralLibrary = self.mSpeclibWidget.speclib()
             if is_spectral_library(sl):
-                # self.profilesNode.setValue(len(speclib))
-
-                NODES = {}
-                PROFILES = dict()
-                n_total = 0
-                tt = []
-
-                for c in self.profilesNode.children():
-                    NODES[c.name()] = c
-
-                has_new_node = False
-
-                NEW_NODES = []
+                # count number of profiles
+                n = 0
                 for field in profile_field_list(sl):
-                    n = 0
-                    if field.name() not in NODES.keys():
-                        has_new_node = True
-                        node = LayerTreeNode(field.name())
-                    else:
-                        node = NODES[field.name()]
                     for f in sl.getFeatures(f'"{field.name()}" is not NULL'):
                         # show committed only?
                         # if f.id() >= 0:
                         n += 1
                     PROFILES[field.name()] = n
-                    tt.append(f'"{field.name()}" with {n} profiles')
-                    n_total += n
-                    node.setValue(n)
-                    NEW_NODES.append(node)
 
-                if has_new_node:
-                    self.profilesNode.removeAllChildren()
-                    for n in NEW_NODES:
-                        self.profilesNode.addChildNode(n)
+        if PROFILES != self.mPROFILES:
+            self.profilesNode.removeAllChildren()
+            new_nodes = []
+            n_total = 0
+            tt = [f'{len(PROFILES)} Spectral Profiles fields with:']
+            for name, cnt in PROFILES.items():
+                n_total += cnt
+                node = LayerTreeNode(f'{name} {cnt}')
+                node.setIcon(QIcon(r':/qps/ui/icons/profile.svg'))
+                # node.setValue(cnt)
+                tt.append(f'{name}: {cnt} profiles')
+                new_nodes.append(node)
+                self.profilesNode.addChildNode(node)
 
-                self.profilesNode.setTooltip('\n'.join(tt))
-                self.profilesNode.setName(f'{n_total} Profiles')
-                self.profilesNode.setValue(n_total)
+            self.profilesNode.setTooltip('\n'.join(tt))
+            self.profilesNode.setName(f'{n_total} Profiles')
+            self.profilesNode.setValue(n_total)
+
+            self.mPROFILES = PROFILES
 
 
 class MapDockTreeNode(DockTreeNode):
