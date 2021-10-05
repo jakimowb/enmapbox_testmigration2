@@ -18,11 +18,9 @@ Processing Algorithms
     _vector_creation/index.rst
     accuracy_assessment/index.rst
     auxilliary/index.rst
-    classification/index.rst
     clustering/index.rst
     create_raster/index.rst
     create_sample/index.rst
-    import_data/index.rst
     post-processing/index.rst
     random/index.rst
     regression/index.rst

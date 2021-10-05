@@ -4,18 +4,18 @@
 Spectral resampling (to Landsat 4/5 TM)
 ***************************************
 
-Spectrally resample a spectral raster layer by applying spectral response function convolution.
-For more information see the <a href="https://www.usgs.gov/core-science-systems/nli/landsat/landsat-satellite-missions">Landsat</a> missions website.
+Spectrally resample a `spectral raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-raster-layer>`_ by applying `spectral response function <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-response-function>`_ convolution.
+For more information see the `Landsat <https://www.usgs.gov/core-science-systems/nli/landsat/landsat-satellite-missions>`_ missions website.
 
 **Parameters**
 
 
 :guilabel:`Spectral raster layer` [raster]
-    A spectral raster layer to be resampled.
+    A `spectral raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-raster-layer>`_ to be resampled.
 
 
 :guilabel:`Spectral response function` [string]
-    Python code specifying the spectral response function.
+    Python code specifying the `spectral response function <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-response-function>`_.
 
     Default::
 
@@ -31,7 +31,7 @@ For more information see the <a href="https://www.usgs.gov/core-science-systems/
         
 
 :guilabel:`Save spectral response function` [boolean]
-    Whether to save the spectral response function library as *.srf.gpkg sidecar file.
+    Whether to save the `spectral response function library <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-response-function-library>`_ as *.srf.gpkg sidecar file.
 
     Default: *False*
 
@@ -41,3 +41,37 @@ For more information see the <a href="https://www.usgs.gov/core-science-systems/
 :guilabel:`Output raster layer` [rasterDestination]
     Raster file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:SpectralResamplingToLandsat45Tm``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    raster: Spectral raster layer
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    response: Spectral response function
+    	Argument type:	string
+    	Acceptable values:
+    		- String value
+    saveResponseFunction: Save spectral response function
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    outputResampledRaster: Output raster layer
+    	Argument type:	rasterDestination
+    	Acceptable values:
+    		- Path for new raster layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputResampledRaster: <outputRaster>
+    	Output raster layer
+    
+    

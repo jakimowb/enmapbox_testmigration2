@@ -4,17 +4,17 @@
 Spatial Prewitt filter
 **********************
 
-Spatial Prewitt filter. See <a href="https://en.wikipedia.org/wiki/Prewitt_operator">Wikipedia</a> for general information.
+Spatial Prewitt filter. See `Wikipedia <https://en.wikipedia.org/wiki/Prewitt_operator>`_ for general information.
 
 **Parameters**
 
 
 :guilabel:`Raster layer` [raster]
-    Raster layer to be processed band-wise.
+    `Raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ to be processed `band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_-wise.
 
 
 :guilabel:`Function` [string]
-    Python code. See <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.prewitt.html">prewitt</a> for information on different parameters.
+    Python code. See `prewitt <https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.prewitt.html>`_ for information on different parameters.
 
     Default::
 
@@ -27,3 +27,32 @@ Spatial Prewitt filter. See <a href="https://en.wikipedia.org/wiki/Prewitt_opera
 :guilabel:`Output raster layer` [rasterDestination]
     Raster file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:SpatialPrewittFilter``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    raster: Raster layer
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    function: Function
+    	Argument type:	string
+    	Acceptable values:
+    		- String value
+    outputRaster: Output raster layer
+    	Argument type:	rasterDestination
+    	Acceptable values:
+    		- Path for new raster layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputRaster: <outputRaster>
+    	Output raster layer
+    
+    

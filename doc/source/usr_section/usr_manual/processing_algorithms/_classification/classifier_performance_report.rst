@@ -4,21 +4,21 @@
 Classifier performance report
 *****************************
 
-Evaluates classifier performance.
+Evaluates `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_ performance.
 
 **Parameters**
 
 
 :guilabel:`Classifier` [file]
-    Classifier pickle file.
+    `Classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_ `pickle file <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-pickle-file>`_.
 
 
 :guilabel:`Test dataset` [file]
-    Test dataset pickle file used for assessing the classifier performance.
+    `Test dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-test-dataset>`_ `pickle file <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-pickle-file>`_ used for assessing the `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_ performance.
 
 
 :guilabel:`Number of cross-validation folds` [number]
-    The number of folds used for assessing cross-validation performance. If not specified (default), simple test performance is assessed.
+    The number of folds used for assessing `cross-validation <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-cross-validation>`_ performance. If not specified (default), simple test performance is assessed.
 
 
 :guilabel:`Open output report in webbrowser after running algorithm` [boolean]
@@ -32,3 +32,41 @@ Evaluates classifier performance.
 :guilabel:`Output report` [fileDestination]
     Output report file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:ClassifierPerformanceReport``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    classifier: Classifier
+    	Argument type:	file
+    	Acceptable values:
+    		- Path to a file
+    dataset: Test dataset
+    	Argument type:	file
+    	Acceptable values:
+    		- Path to a file
+    nfold: Number of cross-validation folds
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    openReport: Open output report in webbrowser after running algorithm
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    outputClassifierPerformance: Output report
+    	Argument type:	fileDestination
+    	Acceptable values:
+    		- Path for new file
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputClassifierPerformance: <outputHtml>
+    	Output report
+    
+    

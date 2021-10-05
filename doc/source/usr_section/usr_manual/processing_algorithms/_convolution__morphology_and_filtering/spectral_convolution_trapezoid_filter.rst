@@ -10,11 +10,11 @@ Spectral convolution Trapezoid filter
 
 
 :guilabel:`Raster layer` [raster]
-    Raster layer to be filtered.
+    `Raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ to be filtered.
 
 
 :guilabel:`Kernel` [string]
-    Python code. See <a href="http://docs.astropy.org/en/stable/api/astropy.convolution.Trapezoid1DKernel.html">Trapezoid1DKernel</a> for information on different parameters.
+    Python code. See `Trapezoid1DKernel <http://docs.astropy.org/en/stable/api/astropy.convolution.Trapezoid1DKernel.html>`_ for information on different parameters.
 
     Default::
 
@@ -28,7 +28,7 @@ Spectral convolution Trapezoid filter
 
 
 :guilabel:`Interpolate no data pixel` [boolean]
-    Whether to interpolate no data pixel. Will result in renormalization of the kernel at each position ignoring pixels with no data values.
+    Whether to interpolate no data pixel. Will result in renormalization of the kernel at each position ignoring pixels with `no data value <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-no-data-value>`_s.
 
     Default: *True*
 
@@ -38,3 +38,42 @@ Spectral convolution Trapezoid filter
 :guilabel:`Output raster layer` [rasterDestination]
     Raster file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:SpectralConvolutionTrapezoidFilter``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    raster: Raster layer
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    kernel: Kernel
+    	Argument type:	string
+    	Acceptable values:
+    		- String value
+    normalize: Normalize kernel
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    interpolate: Interpolate no data pixel
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    outputRaster: Output raster layer
+    	Argument type:	rasterDestination
+    	Acceptable values:
+    		- Path for new raster layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputRaster: <outputRaster>
+    	Output raster layer
+    
+    

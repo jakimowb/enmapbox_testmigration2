@@ -4,25 +4,25 @@
 Geolocate raster layer
 **********************
 
-Geolocate a raster layer using geolocation arrays. See <a href="https://gdal.org/development/rfc/rfc4_geolocate.html">Geolocation Arrays</a> in the GDAL documentation for details on the concept and parameters.
+Geolocate a `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ using geolocation arrays. See `Geolocation Arrays <https://gdal.org/development/rfc/rfc4_geolocate.html>`_ in the GDAL documentation for details on the concept and parameters.
 
 **Parameters**
 
 
 :guilabel:`Raster layer` [raster]
-    A raster layer to be geolocated.
+    A `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ to be geolocated.
 
 
 :guilabel:`X locations raster layer` [raster]
-    A raster layer containing the x geolocation array.
+    A `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ containing the x geolocation array.
 
 
 :guilabel:`Y locations raster layer` [raster]
-    A raster layer containing the y geolocation array.
+    A `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ containing the `y <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-y>`_ geolocation array.
 
 
 :guilabel:`Grid` [raster]
-    The destination grid. If skipped, the grid CRS is set to the CRS of the geolocation arrays, extent and resolution is controlled by gdal.Warp defaults.
+    The destination `grid <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-grid>`_. If skipped, the grid CRS is set to the CRS of the geolocation arrays, extent and resolution is controlled by gdal.Warp defaults.
 
 
 :guilabel:`Locations CRS` [crs]
@@ -36,11 +36,11 @@ Geolocate a raster layer using geolocation arrays. See <a href="https://gdal.org
 
 
 :guilabel:`X locations band` [band]
-    The x coordinates band.
+    The x coordinates `band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_.
 
 
 :guilabel:`Y locations band` [band]
-    The y coordinates band.
+    The `y <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-y>`_ coordinates `band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_.
 
 
 :guilabel:`Pixel offset` [number]
@@ -72,3 +72,75 @@ Geolocate a raster layer using geolocation arrays. See <a href="https://gdal.org
 :guilabel:`Output raster layer` [rasterDestination]
     Raster file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:GeolocateRasterLayer``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    raster: Raster layer
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    xRaster: X locations raster layer
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    yRaster: Y locations raster layer
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    grid: Grid
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    crs: Locations CRS
+    	Argument type:	crs
+    	Acceptable values:
+    		- CRS as an auth ID (e.g. 'EPSG:3111')
+    		- CRS as a PROJ4 string (e.g. 'PROJ4:…')
+    		- CRS as a WKT string (e.g. 'WKT:…')
+    		- Path to a layer. The CRS of the layer is used.
+    noDataValue: No data value
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    xBand: X locations band
+    	Argument type:	band
+    	Acceptable values:
+    		- Integer value representing an existing raster band number
+    yBand: Y locations band
+    	Argument type:	band
+    	Acceptable values:
+    		- Integer value representing an existing raster band number
+    pixelOffset: Pixel offset
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    lineOffset: Line offset
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    pixelStep: Pixel step
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    lineStep: Line step
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    outputGeolocatedRaster: Output raster layer
+    	Argument type:	rasterDestination
+    	Acceptable values:
+    		- Path for new raster layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputGeolocatedRaster: <outputRaster>
+    	Output raster layer
+    
+    

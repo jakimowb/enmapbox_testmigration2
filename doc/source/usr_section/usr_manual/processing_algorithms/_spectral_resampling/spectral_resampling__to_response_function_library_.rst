@@ -4,21 +4,21 @@
 Spectral resampling (to response function library)
 **************************************************
 
-Spectrally resample a spectral raster layer by applying spectral response function convolution, with spectral response function stored inside a spectral library. Each spectral profile defines a destination spectral band.
+Spectrally resample a `spectral raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-raster-layer>`_ by applying `spectral response function <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-response-function>`_ convolution, with spectral response function stored inside a `spectral library <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-library>`_. Each `spectral profile <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-profile>`_ defines a destination `spectral band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-band>`_.
 
 **Parameters**
 
 
 :guilabel:`Spectral raster layer` [raster]
-    A spectral raster layer to be resampled.
+    A `spectral raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-raster-layer>`_ to be resampled.
 
 
 :guilabel:`Spectral response function library` [vector]
-    A spectral response function library defining the destination sensor.
+    A `spectral response function library <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-response-function-library>`_ defining the destination sensor.
 
 
 :guilabel:`Field with spectral profiles used as features` [field]
-    Binary field with spectral profiles used as spectral response functions. If not selected, the default field is used. If that is also not specified, an error is raised.
+    Binary `field <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_ with `spectral profile <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-profile>`_s used as `spectral response function <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-response-function>`_s. If not selected, the default field is used. If that is also not specified, an error is raised.
 
 **Outputs**
 
@@ -26,3 +26,37 @@ Spectrally resample a spectral raster layer by applying spectral response functi
 :guilabel:`Output raster layer` [rasterDestination]
     Raster file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:SpectralResamplingToResponseFunctionLibrary``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    raster: Spectral raster layer
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    library: Spectral response function library
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    field: Field with spectral profiles used as features
+    	Argument type:	field
+    	Acceptable values:
+    		- The name of an existing field
+    		- ; delimited list of existing field names
+    outputResampledRaster: Output raster layer
+    	Argument type:	rasterDestination
+    	Acceptable values:
+    		- Path for new raster layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputResampledRaster: <outputRaster>
+    	Output raster layer
+    
+    
