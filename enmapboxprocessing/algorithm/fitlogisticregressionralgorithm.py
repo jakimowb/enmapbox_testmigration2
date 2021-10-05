@@ -11,8 +11,8 @@ class FitLogisticRegressionAlgorithm(FitClassifierAlgorithmBase):
     def shortDescription(self) -> str:
         return 'Logistic Regression (aka logit, MaxEnt) classifier.' \
                '\nIn the multiclass case, the training algorithm uses the one-vs-rest (OvR) scheme if the ' \
-               '‘multi_class’ option is set to ‘ovr’, and uses the cross-entropy loss if the ‘multi_class’ option ' \
-               'is set to ‘multinomial’.'
+               "'multi_class' option is set to 'ovr', and uses the cross-entropy loss if the 'multi_class' option " \
+               "is set to 'multinomial'."
 
     def helpParameterCode(self) -> str:
         return 'Scikit-learn python code. ' \

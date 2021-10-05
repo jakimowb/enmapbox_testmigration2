@@ -32,7 +32,6 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     P_GRID, _GRID = 'grid', 'Grid'
     P_OVERLAP, _OVERLAP = 'overlap', 'Block overlap'
     P_MONOLITHIC, _MONOLITHIC = 'monolithic', 'Monolithic processing'
-    P_RS, _RS = 'rasters', 'Raster layers '
     P_R1 = 'R1'
     P_R2 = 'R2'
     P_R3 = 'R3'
@@ -53,12 +52,13 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     P_V8 = 'V8'
     P_V9 = 'V9'
     P_V10 = 'V10'
+    P_RS, _RS = 'RS', 'Raster layers mapped to RS'
     P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRaster', 'Output raster layer'
 
     linkNumpy = EnMAPProcessingAlgorithm.htmlLink('https://numpy.org/doc/stable/reference/', 'NumPy')
-    linkTutorial = EnMAPProcessingAlgorithm.htmlLink(
-        'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_manual/applications.html#rastermath',
-        'RasterMath tutorial')
+    linkRecipe = EnMAPProcessingAlgorithm.htmlLink(
+        'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/raster_math.html',
+        'RasterMath cookbook recipe')
 
     def displayName(self) -> str:
         return 'Raster math'
@@ -67,7 +67,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
 
         return 'Perform mathematical calculations on raster layer and vector layer data. ' \
                f'Use any {self.linkNumpy}-based arithmetic, or even arbitrary Python code.\n' \
-               f'See the {self.linkTutorial} for detailed usage instructions.'
+               f'See the {self.linkRecipe} for detailed usage instructions.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         linkReader = self.htmlLink(
@@ -87,11 +87,8 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                                 'Select inputs in the available data sources section or '
                                 'use the raster layer R1, ..., R10 and vector layer V1, ..., V10.\n'
                                 'In the code snippets section you can find some prepdefined code snippets ready to use.\n'
-                                f'See the {self.linkTutorial} for detailed usage instructions.'),
+                                f'See the {self.linkRecipe} for detailed usage instructions.'),
                    (self._GRID, 'The destination grid. If not specified, the grid of the first raster layer is used.'),
-                   ('Raster layer mapped to R1, ..., R10', 'Additional raster layers mapped to Ri.'),
-                   ('Vector layer mapped to V1, ..., V10', 'Additional vector layers mapped to Vi.'),
-                   (self._RS, 'Additional list of raster layers mapped to a list variable RS.'),
                    (self._OVERLAP, 'The number of columns and rows to read from the neighbouring blocks. '
                                    'Needs to be specified only when performing spatial operations, '
                                    'to avoid artifacts at block borders.'),
@@ -100,9 +97,12 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                     'This may be useful for some spatially unbound operations, '
                     'like segmentation or region growing, when calculating global statistics, '
                     'or if RAM is not an issue at all.'),
+                   ('Raster layer mapped to R1, ..., R10', 'Additional raster layers mapped to Ri.'),
+                   ('Vector layer mapped to V1, ..., V10', 'Additional vector layers mapped to Vi.'),
+                   (self._RS, 'Additional list of raster layers mapped to a list variable RS.'),
                    (self._OUTPUT_RASTER, 'Raster file destination for writing the default output variable. '
                                          'Additional outputs are written into the same directory. '
-                                         f'See the {self.linkTutorial} for detailed usage instructions.'),
+                                         f'See the {self.linkRecipe} for detailed usage instructions.'),
                ] + (
                        [(f'Raster layer mapped to R{i}', '') for i in range(1, 11)] +  # just silince those
                        [(f'Vector layer mapped to V{i}', '') for i in range(1, 11)]    # just silince those
@@ -139,11 +139,11 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_GRID, self._GRID, optional=True)
         self.addParameterInt(self.P_OVERLAP, self._OVERLAP, None, True, 0)
         self.addParameterBoolean(self.P_MONOLITHIC, self._MONOLITHIC, False, True)
-        self.addParameterMultipleLayers(self.P_RS, self._RS, QgsProcessing.TypeRaster, None, True, True)
         for name, description in self.inputRasterNames():
             self.addParameterRasterLayer(name, description, None, True, True)
         for name, description in self.inputVectorNames():
             self.addParameterVectorLayer(name, description, None, None, True, True)
+        self.addParameterMultipleLayers(self.P_RS, self._RS, QgsProcessing.TypeRaster, None, True, True)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER, None, False, True)
 
     def prepareAlgorithm(

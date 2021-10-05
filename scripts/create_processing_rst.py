@@ -1,4 +1,5 @@
 import re
+import subprocess
 from os import makedirs
 from os.path import abspath, join, dirname, exists, basename
 from shutil import rmtree
@@ -9,6 +10,7 @@ from qgis._core import QgsProcessingParameterDefinition, QgsProcessingDestinatio
 from enmapboxgeoalgorithms.algorithms import ALGORITHMS
 from enmapboxgeoalgorithms.provider import EnMAPAlgorithm as EnMAPAlgorithmV1, Help as HelpV1, Cookbook as CookbookV1
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
+from enmapboxprocessing.glossary import injectGlossaryLinks
 from hubdsm.processing.enmapalgorithm import EnMAPAlgorithm as EnMAPAlgorithmV2, Help as HelpV2
 
 
@@ -217,12 +219,18 @@ def v3(alg: EnMAPProcessingAlgorithm, text):
     except:
         assert 0
 
-    text += alg.shortDescription() + '\n\n'
+    text += injectGlossaryLinks(alg.shortDescription()) + '\n\n'
 
     text += '**Parameters**\n\n'
     outputsHeadingCreated = False
     for pd in alg.parameterDefinitions():
         assert isinstance(pd, QgsProcessingParameterDefinition)
+
+        pdhelp = helpParameters.get(pd.description(), 'undocumented')
+        if pdhelp == '':  # an empty strings has to be set by the algo to actively hide an parameter
+            continue
+        if pdhelp == 'undocumented':  # 'undocumented' is the default and must be overwritten by the algo!
+            assert 0, pd.description()
 
         if not outputsHeadingCreated and isinstance(pd, QgsProcessingDestinationParameter):
             text += '**Outputs**\n\n'
@@ -230,24 +238,15 @@ def v3(alg: EnMAPProcessingAlgorithm, text):
 
         text += '\n:guilabel:`{}` [{}]\n'.format(pd.description(), pd.type())
 
+        pdhelp = injectGlossaryLinks(pdhelp)
+
         if False:  # todo pd.flags() auswerten
             text += '    Optional\n'
-
-        pdhelp = helpParameters.get(pd.description(), 'undocumented')
-
-        if pdhelp == '':
-            continue
-
-        if pdhelp == 'undocumented':
-            assert 0, pd.description()
 
         for line in pdhelp.split('\n'):
             text += '    {}\n'.format(line)
 
         text += '\n'
-
-        # if pd.type() == 'fileDestination':
-        #    a=1
 
         if pd.defaultValue() is not None:
             if isinstance(pd.defaultValue(), str) and '\n' in pd.defaultValue():
@@ -263,6 +262,18 @@ def v3(alg: EnMAPProcessingAlgorithm, text):
         rstLink = utilsHtmlWeblinkToRstWeblink(htmlLink)
         text = text.replace(htmlLink, rstLink)
 
+    # add qgis_process help
+    algoId = 'enmapbox:' + alg.name()
+    print(algoId)
+    result = subprocess.run(['qgis_process', 'help', algoId], stdout=subprocess.PIPE)
+    helptext = result.stdout.decode('cp1252')  # use Windows codepage 1252 to avoid problems with special characters
+    helptext = helptext[helptext.find('----------------\nArguments\n----------------'):]
+    helptext = '\n'.join(['    ' + line for line in helptext.splitlines()])
+
+    text += '**Command-line usage**\n\n' \
+            f'``>qgis_process help {algoId}``::\n\n'
+    text += helptext
+
     return text
 
 
@@ -274,12 +285,14 @@ def utilsFindHtmlWeblinks(text) -> List[str]:
     links = [text[start:end] for start, end in zip(starts, ends)]
     return links
 
-def utilsHtmlWeblinkToRstWeblink(htmlText:str) -> str:
+
+def utilsHtmlWeblinkToRstWeblink(htmlText: str) -> str:
     assert htmlText.startswith('<a href="'), htmlText
     assert htmlText.endswith('</a>'), htmlText
     link, name = htmlText[9:-4].split('">')
     rstText = f'`{name} <{link}>`_'
     return rstText
+
 
 if __name__ == '__main__':
     generateRST()
