@@ -32,6 +32,8 @@ import warnings
 
 from osgeo import gdal
 import numpy as np
+
+from qgis.core import QgsProviderRegistry
 from qgis.core import QgsFields, QgsField, QgsExpressionContext, Qgis, QgsFeature, QgsRasterDataProvider, \
     QgsCoordinateReferenceSystem, QgsGeometry, QgsPointXY, QgsPoint
 from qgis.gui import QgsMapLayerComboBox
@@ -292,7 +294,8 @@ class RasterLayerSpectralLibraryImportWidget(SpectralLibraryImportWidget):
             self.cbVectorLayer.setAllowEmptyLayer(True, 'Each Raster Pixel')
         self.cbRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.cbVectorLayer.setFilters(QgsMapLayerProxyModel.PointLayer | QgsMapLayerProxyModel.PolygonLayer)
-
+        excluded = [p for p in QgsProviderRegistry.instance().providerList() if p not in ['ogr']]
+        self.cbVectorLayer.setExcludedProviders(excluded)
         self.mCbTouched.stateChanged.connect(self.updateInfoBox)
         # self.mCbAllAttributes.stateChanged.connect(self.updateInfoBox)
         self.cbRasterLayer.layerChanged.connect(self.updateInfoBox)
@@ -553,7 +556,7 @@ class RasterLayerSpectralLibraryIO(SpectralLibraryIO):
                 xsize = min(block_size[0], ds.RasterXSize - xoff)
                 ysize = min(block_size[1], ds.RasterYSize - yoff)
                 cube: np.ndarray = ds.ReadAsArray(xoff=xoff, yoff=yoff, xsize=xsize, ysize=ysize)
-                cube = cube.reshape((ds.RasterCount, ds.RasterYSize, ds.RasterXSize))
+                cube = cube.reshape((ds.RasterCount, ysize, xsize))
                 fid_pos = fid_positions[yoff:yoff + ysize, xoff:xoff + xsize]
                 assert cube.shape[1:] == fid_pos.shape
 
@@ -605,7 +608,6 @@ class RasterLayerSpectralLibraryIO(SpectralLibraryIO):
                                         p.setAttribute(field.name(), vectorFeature.attribute(field.name()))
 
                             yield p
-
 
 
 class DEPR_RasterSourceSpectralLibraryIO(SpectralLibraryIO):
