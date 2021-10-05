@@ -193,18 +193,20 @@ class XUnitModel(UnitModel):
 
         self.addUnit(BAND_NUMBER, description=BAND_NUMBER)
         self.addUnit(BAND_INDEX, description=BAND_INDEX)
-        for u in ['Nanometers',
-                  'Micrometers',
-                  'Millimeters',
-                  'Meters',
-                  'Kilometers']:
+        for u in ['Nanometer',
+                  'Micrometer',
+                  'Millimeter',
+                  'Meter',
+                  'Kilometer']:
             baseUnit = UnitLookup.baseUnit(u)
             assert isinstance(baseUnit, str), u
-            self.addUnit(baseUnit, description='{} [{}]'.format(u, baseUnit))
+            if u in ['Kilometer']:  # big round decided to skip those
+                continue
+            self.addUnit(baseUnit, description='Wavelength [{}]'.format(u.lower()), tooltip=f'plot against {u.lower()}s')
 
-        self.addUnit('DateTime', description='Date')
-        self.addUnit('DecimalYear', description='Date [Decimal Year]')
-        self.addUnit('DOY', description='Day of Year [DOY]')
+        self.addUnit('DateTime', description='Date [yyyy-mm-dd]', tooltip='plot against timestamps')
+        self.addUnit('DecimalYear', description='Date [decimal year]', tooltip='plot against decimal years')
+        self.addUnit('DOY', description='Date [day of year]', tooltip='plot against days of year')
 
     def findUnit(self, unit):
         if unit in [None, NULL]:
