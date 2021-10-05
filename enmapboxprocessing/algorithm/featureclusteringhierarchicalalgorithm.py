@@ -26,6 +26,7 @@ class FeatureClusteringHierarchicalAlgorithm(EnMAPProcessingAlgorithm):
         return [
             (self._DATASET, 'Dataset pickle file with feature data X to be evaluated.'),
             (self._NO_PLOT, 'Skip the creation of plots, which can take a lot of time for large features sets.'),
+            (self._OPEN_REPORT, self.ReportOpen),
             (self._OUTPUT_REPORT, self.ReportFileDestination)
         ]
 

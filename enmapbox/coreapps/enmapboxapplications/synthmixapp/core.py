@@ -1,36 +1,41 @@
 import traceback
 
+from PyQt5.QtWidgets import *
 from PyQt5.uic import loadUi
+
+from enmapboxapplications.synthmixapp.script import synthmixRegressionEnsemble
+from enmapboxprocessing.driver import Driver
+from enmapboxprocessing.parameter.processingparameterclassificationdatasetwidget import \
+    ProcessingParameterClassificationDatasetWidget
+from enmapboxprocessing.typing import ClassifierDump
+from enmapboxprocessing.utils import Utils
+from hubflow.core import *
 from qgis.core import *
 from qgis.gui import *
-from PyQt5.QtWidgets import *
-
-from enmapboxapplications.widgets.core import UiLabeledLibrary
-from enmapboxapplications.synthmixapp.script import synthmixRegressionEnsemble
-from hubflow.core import *
+from typeguard import typechecked
 
 pathUi = join(dirname(__file__), 'ui')
+
 
 class SynthmixApp(QMainWindow):
 
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
         loadUi(join(pathUi, 'main.ui'), self)
-        #self.setupUi(self)
+        # self.setupUi(self)
         self.uiInfo_ = QLabel()
         self.statusBar().addWidget(self.uiInfo_, 1)
         self.initRegressor()
         self.initOutputFolder()
         self.initAggregations()
-        self.uiLabeledLibrary().uiField().currentIndexChanged.connect(self.setTargets)
-        self.uiLabeledLibrary().setInfo(uiInfo=self.uiInfo())
+        self.uiLabeledLibrary().mFile.fileChanged.connect(self.setTargets)
         self.setTargets(0)
         self.uiRaster().setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.uiRaster().setCurrentIndex(0)
         self.uiExecute().clicked.connect(self.execute)
 
     def uiLabeledLibrary(self):
-        assert isinstance(self.uiLabeledLibrary_, UiLabeledLibrary)
+        assert isinstance(self.uiLabeledLibrary_, ProcessingParameterClassificationDatasetWidget)
         return self.uiLabeledLibrary_
 
     def uiInfo(self):
@@ -54,20 +59,17 @@ class SynthmixApp(QMainWindow):
         return self.uiExecute_
 
     def setTargets(self, index):
-        library = self.uiLabeledLibrary().currentLibrary()
+
         for i in range(self.uiTargets().count()):
             self.uiTargets().removeItem(0)
 
-        if library is not None:
-            field = self.uiLabeledLibrary().currentField()
-            if field is not None:
-                definitions = library.attributeDefinitions()
-                try:
-                    classDefinition = AttributeDefinitionEditor.makeClassDefinition(definitions=definitions, attribute=field)
-                    self.names = classDefinition.names()
-                except:
-                    self.names = []
-                self.uiTargets().addItems(self.names)
+        filename = self.uiLabeledLibrary().value()
+        if filename == '':
+            return
+
+        dump = ClassifierDump(**Utils.pickleLoad(filename))
+        self.names = [c.name for c in dump.categories]
+        self.uiTargets().addItems(self.names)
         self.uiTargets().selectAllOptions()
 
     def initRegressor(self):
@@ -75,7 +77,8 @@ class SynthmixApp(QMainWindow):
         self.regressors = [alg for alg in ALGORITHMS if isinstance(alg, RegressorFit)]
         self.regressorNames = [alg.name()[3:] for alg in self.regressors]
         self.uiRegressor().addItems(self.regressorNames)
-        self.uiRegressor().currentIndexChanged.connect(lambda index: self.uiCode_.setText(self.regressors[index].code()))
+        self.uiRegressor().currentIndexChanged.connect(
+            lambda index: self.uiCode_.setText(self.regressors[index].code()))
         self.uiRegressor().setCurrentIndex(self.regressorNames.index('RandomForestRegressor'))
 
     def initOutputFolder(self):
@@ -90,14 +93,9 @@ class SynthmixApp(QMainWindow):
 
     def execute(self, *args):
         try:
-            library = self.uiLabeledLibrary().currentLibrary()
-            if library is None:
-                self.uiInfo().setText('Error: no library selected')
-                return
-
-            field = self.uiLabeledLibrary().currentField()
-            if field is None:
-                self.uiInfo().setText('Error: no attribute selected')
+            filenameDataset = self.uiLabeledLibrary().value()
+            if filenameDataset is None:
+                self.uiInfo().setText('Error: select Endmember Dataset first')
                 return
 
             qgsRaster = self.uiRaster().currentLayer()
@@ -106,14 +104,14 @@ class SynthmixApp(QMainWindow):
                 return
             raster = Raster(filename=self.uiRaster().currentLayer().source())
 
-            targets = [self.names.index(name)+1 for name in self.uiTargets().checkedItems()]
+            targets = [self.names.index(name) + 1 for name in self.uiTargets().checkedItems()]
             if len(targets) == 0:
                 self.uiInfo().setText('Error: no target classes selected')
                 return
 
             mixingComplexities = dict()
 
-            for key, ui in zip([2,3,4], [self.uiComplexity2_, self.uiComplexity3_, self.uiComplexity4_]):
+            for key, ui in zip([2, 3, 4], [self.uiComplexity2_, self.uiComplexity3_, self.uiComplexity4_]):
                 try:
                     mixingComplexities[key] = float(ui.text())
                     assert mixingComplexities[key] >= 0 and mixingComplexities[key] <= 1
@@ -129,7 +127,6 @@ class SynthmixApp(QMainWindow):
             includeEndmember = self.uiIncludeLibrarySpectra_.isChecked()
             includeWithinclassMixtures = self.uiIncludeWithinclassMixtures_.isChecked()
             useEnsemble = self.uiUseEnsemble_.isChecked()
-
 
             try:
                 n = int(self.uiNumberOfSamples_.text())
@@ -157,11 +154,9 @@ class SynthmixApp(QMainWindow):
             exec(code, namespace)
             sklEstimator = namespace['estimator']
 
-            classificationSample = ClassificationSample(raster=library.raster(),
-                                                        classification=Classification.fromEnviSpectralLibrary(
-                                                            filename='/vsimem/synthmixapp/classification.bsq',
-                                                            library=library,
-                                                            attribute=field))
+            filename = join(self.uiOutputFolder_.filePath(), self.uiOutputBasename_.text())
+
+            classificationSample = utilsMakeClassificationSampleFromCategorizedLibrary(filenameDataset, filename)
 
             self.uiExecute().setEnabled(False)
 
@@ -195,3 +190,26 @@ class SynthmixApp(QMainWindow):
             traceback.print_exc()
             self.uiProgressBar_.setValue(0)
             return
+
+
+# fix for #734
+# note that we mix old hubflow API with new enmapboxprocessing API
+# SynthMix will be overhauled for version 3.10!
+@typechecked
+def utilsMakeClassificationSampleFromCategorizedLibrary(filenameDataset: str, filename: str) -> ClassificationSample:
+    dump = ClassifierDump(**Utils.pickleLoad(filenameDataset))
+    X = dump.X
+    y = dump.y
+    categories = dump.categories
+
+    filenameRaster = Utils.tmpFilename(filename, 'X.tif')
+    filenameClassification = Utils.tmpFilename(filename, 'y.tif')
+    Driver(filenameRaster).createFromArray(np.expand_dims(X.T, 2))
+    Driver(filenameClassification).createFromArray(np.expand_dims(y.T, 2))
+    classDefinition = ClassDefinition(
+        classes=len(categories), names=[c.name for c in categories], colors=[Color(c.color) for c in categories]
+    )
+    raster = Raster(filenameRaster)
+    classification = Classification(filenameClassification, classDefinition=classDefinition)
+
+    return ClassificationSample(raster, classification)

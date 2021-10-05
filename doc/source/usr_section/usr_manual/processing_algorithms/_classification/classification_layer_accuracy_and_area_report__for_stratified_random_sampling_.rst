@@ -21,6 +21,12 @@ Observed and predicted categories are matched by name.
 :guilabel:`Stratification layer` [layer]
     A stratification layer that was used for drawing the observation sample. If not defined, the classification layer is used as stratification layer.
 
+
+:guilabel:`Open output report in webbrowser after running algorithm` [boolean]
+    Whether to open the output report in the web browser.
+
+    Default: *True*
+
 **Outputs**
 
 

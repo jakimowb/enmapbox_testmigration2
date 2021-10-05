@@ -32,7 +32,8 @@ class RasterReader(object):
             self._sourceLayer = QgsRasterLayer(source)
             provider = self._sourceLayer.dataProvider()
         elif isinstance(source, gdal.Dataset):
-            provider = QgsRasterLayer(source.GetDescription())
+            self._sourceLayer = QgsRasterLayer(source.GetDescription())
+            provider = self._sourceLayer.dataProvider()
         else:
             assert 0
 

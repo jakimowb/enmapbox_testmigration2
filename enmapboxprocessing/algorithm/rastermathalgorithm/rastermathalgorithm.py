@@ -83,27 +83,30 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             'feedback'
         )
         return [
-            (self._CODE, 'The mathematical calculation to be performed on the selected input arrays.\n'
-                         'Select inputs in the available data sources section or '
-                         'use the raster layer R1, ..., R10 and vector layer V1, ..., V10.\n'
-                         'In the code snippets section you can find some prepdefined code snippets ready to use.\n'
-                         f'See the {self.linkTutorial} for detailed usage instructions.'),
-            (self._GRID, 'The destination grid. If not specified, the grid of the first raster layer is used.'),
-            ('Raster layer mapped to R1, ..., R10', 'Additional raster layers mapped to Ri.'),
-            ('Vector layer mapped to V1, ..., V10', 'Additional vector layers mapped to Vi.'),
-            (self._RS, 'Additional list of raster layers mapped to a list variable RS.'),
-            (self._OVERLAP, 'The number of columns and rows to read from the neighbouring blocks. '
-                            'Needs to be specified only when performing spatial operations, '
-                            'to avoid artifacts at block borders.'),
-            (self._MONOLITHIC,
-             'Whether to read all data for the full extent at once, instead of block-wise processing. '
-             'This may be useful for some spatially unbound operations, '
-             'like segmentation or region growing, when calculating global statistics, '
-             'or if RAM is not an issue at all.'),
-            (self._OUTPUT_RASTER, 'Raster file destination for writing the default output variable. '
-                                  'Additional outputs are written into the same directory. '
-                                  f'See the {self.linkTutorial} for detailed usage instructions.'),
-        ]
+                   (self._CODE, 'The mathematical calculation to be performed on the selected input arrays.\n'
+                                'Select inputs in the available data sources section or '
+                                'use the raster layer R1, ..., R10 and vector layer V1, ..., V10.\n'
+                                'In the code snippets section you can find some prepdefined code snippets ready to use.\n'
+                                f'See the {self.linkTutorial} for detailed usage instructions.'),
+                   (self._GRID, 'The destination grid. If not specified, the grid of the first raster layer is used.'),
+                   ('Raster layer mapped to R1, ..., R10', 'Additional raster layers mapped to Ri.'),
+                   ('Vector layer mapped to V1, ..., V10', 'Additional vector layers mapped to Vi.'),
+                   (self._RS, 'Additional list of raster layers mapped to a list variable RS.'),
+                   (self._OVERLAP, 'The number of columns and rows to read from the neighbouring blocks. '
+                                   'Needs to be specified only when performing spatial operations, '
+                                   'to avoid artifacts at block borders.'),
+                   (self._MONOLITHIC,
+                    'Whether to read all data for the full extent at once, instead of block-wise processing. '
+                    'This may be useful for some spatially unbound operations, '
+                    'like segmentation or region growing, when calculating global statistics, '
+                    'or if RAM is not an issue at all.'),
+                   (self._OUTPUT_RASTER, 'Raster file destination for writing the default output variable. '
+                                         'Additional outputs are written into the same directory. '
+                                         f'See the {self.linkTutorial} for detailed usage instructions.'),
+               ] + (
+                       [(f'Raster layer mapped to R{i}', '') for i in range(1, 11)] +  # just silince those
+                       [(f'Vector layer mapped to V{i}', '') for i in range(1, 11)]    # just silince those
+               )
 
     def group(self):
         return Group.Test.value + Group.RasterCreation.value
@@ -141,7 +144,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             self.addParameterRasterLayer(name, description, None, True, True)
         for name, description in self.inputVectorNames():
             self.addParameterVectorLayer(name, description, None, None, True, True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output raster', None, False, True)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER, None, False, True)
 
     def prepareAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
@@ -271,7 +274,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
 
             # We do not need alias anymore I guess. Make sure and delete this block.
             # find alias identifiers and assign reader
-            #for line in code.splitlines():
+            # for line in code.splitlines():
             #    if not line.startswith('#'):
             #        continue
             #    if ' is an alias for ' in line:

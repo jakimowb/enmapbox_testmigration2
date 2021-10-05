@@ -25,5 +25,5 @@ For example, pure pixels with cover fractions of 1 appear in its pure category c
 
 
 :guilabel:`Output RGB image` [rasterDestination]
-    Output raster file destination.
+    Raster file destination.
 

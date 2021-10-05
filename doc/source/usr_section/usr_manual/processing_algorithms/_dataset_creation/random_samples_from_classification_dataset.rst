@@ -36,9 +36,9 @@ Split a dataset by randomly drawing samples.
 
 
 :guilabel:`Output dataset` [fileDestination]
-    Output destination pickle file.Stores sampled data.
+    Destination pickle file.Stores sampled data.
 
 
 :guilabel:`Output dataset complement` [fileDestination]
-    Output destination pickle file.Stores remaining data that was not sampled.
+    Destination pickle file.Stores remaining data that was not sampled.
 

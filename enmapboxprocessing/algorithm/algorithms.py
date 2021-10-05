@@ -1,3 +1,4 @@
+from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
 from enmapboxprocessing.algorithm.applymaskalgorithm import ApplyMaskAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
@@ -133,6 +134,7 @@ from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRaste
 
 def algorithms():
     algos = [
+        AppendEnviHeaderToGTiffRasterAlgorithm(),
         ApplyMaskAlgorithm(),
         ClassificationPerformanceSimpleAlgorithm(),
         ClassificationPerformanceStratifiedAlgorithm(),
@@ -227,7 +229,7 @@ def algorithms():
         SpectralResamplingToLandsat8Algorithm(),
         SpectralResamplingToPrismaAlgorithm(),
         SpectralResamplingToSentinel2Algorithm(),
-        SynthMixAlgorithm(),
+        # SynthMixAlgorithm(),  # not ready for v3.9
         TranslateCategorizedRasterAlgorithm(),
         TranslateRasterAlgorithm()
     ]

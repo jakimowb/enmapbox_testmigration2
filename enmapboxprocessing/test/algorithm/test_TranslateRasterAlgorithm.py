@@ -1,10 +1,12 @@
+from os.path import exists
+
 import numpy as np
 from qgis._core import QgsRasterLayer, QgsRasterRenderer
 
+from enmapbox.exampledata import enmap, hires
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapbox.exampledata import enmap, hires
 from enmapboxtestdata import landcover_raster_30m_epsg3035
 
 writeToDisk = True
@@ -294,3 +296,14 @@ class TestTranslateAlgorithm(TestCase):
         result = self.runalg(alg, parameters)
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
         self.assertEqual(-123, reader.noDataValue())
+
+    def test_writeEnviHeader(self):
+        filename = 'c:/vsimem/enmap.tif'
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: enmap,
+            alg.P_OUTPUT_RASTER: filename,
+            alg.P_WRITE_ENVI_HEADER: True,
+        }
+        self.runalg(alg, parameters)
+        self.assertTrue(exists(filename + '.hdr'))

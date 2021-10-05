@@ -36,6 +36,7 @@ class ClassificationPerformanceSimpleAlgorithm(EnMAPProcessingAlgorithm):
             (self._CLASSIFICATION, 'A classification layer that is to be assessed.'),
             (self._REFERENCE, 'A categorized layer representing a (ground truth) observation sample, '
                               'that was aquired using a (simple) random sampling approach.'),
+            (self._OPEN_REPORT, self.ReportOpen),
             (self._OUTPUT_REPORT, self.ReportFileDestination)
         ]
 
