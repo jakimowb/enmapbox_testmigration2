@@ -3,6 +3,7 @@ import math
 import collections
 import enum
 
+from qgis._core import QgsFeature
 from qgis._gui import QgsDualView, QgsMapCanvas
 
 from qgis.core import QgsVectorLayer
@@ -320,10 +321,10 @@ class SpecMixParameterModel(QAbstractTableModel):
             clones = []
 
             for p in profiles:
-                assert isinstance(p, SpectralProfile)
-                j = SpectralProfile(fields=self.mSpeclib.fields())
-                j.setAttribute('values', p.attribute('values'))
-                j.setAttribute(aName, p.name())
+                assert isinstance(p, QgsFeature)
+                j = QgsFeature(self.mSpeclib.fields())
+               # j.setAttribute('values', p.attribute('values'))
+                # j.setAttribute(aName, p.name())
                 j.setAttribute(aOFID, p.id())
                 j.setAttribute(aMetric, '')
                 j.setAttribute(aWeight, self.mDefaultWeight)
@@ -373,7 +374,9 @@ class SpecMixParameterModel(QAbstractTableModel):
 
     def data(self, index: QModelIndex, role=None):
 
-        profile: SpectralProfile = self.mSpeclib[index.row()]
+        row = index.row()
+        fid = self.mSpeclib.allFeatureIds()[row]
+        profile: SpectralProfile = self.mSpeclib.getFeature(fid)
         NULL = QVariant()
         if role == Qt.DisplayRole:
             if index.column() == 0:

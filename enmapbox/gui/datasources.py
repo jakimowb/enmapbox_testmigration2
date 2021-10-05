@@ -28,7 +28,7 @@ import typing
 import pathlib
 import uuid
 
-from qgis._core import QgsFields
+from qgis._core import QgsFields, QgsLayerItem
 
 from qgis.PyQt.QtCore import QVariant, pyqtSignal, QDateTime, QFileInfo, QUrl, QSizeF
 from qgis.PyQt.QtGui import QIcon
@@ -378,6 +378,7 @@ class DataSourceSpatial(DataSource):
 
         super(DataSourceSpatial, self).__init__(uri, name=name, icon=icon)
 
+        self.mLayerItem: QgsLayerItem = None
         self.mProvider = providerKey
         self.mLayer = None
         self.mLayerId = None
@@ -391,6 +392,14 @@ class DataSourceSpatial(DataSource):
     def setMapLayer(self, layer: QgsMapLayer):
         assert isinstance(layer, QgsMapLayer)
 
+        if isinstance(layer, QgsVectorLayer):
+            t = Qgis.BrowserLayerType.Vector
+        elif isinstance(layer, QgsRasterLayer):
+            t = Qgis.BrowserLayerType.Raster
+        else:
+            t = Qgis.BrowserLayerType.NoType
+
+        self.mLayerItem = QgsLayerItem(None, layer.name(), layer.source(), layer.dataProvider().source(), t, layer.providerType())
         self.mLayer = layer
         self.mLayerId = layer.id()
 
