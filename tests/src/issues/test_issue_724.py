@@ -1,3 +1,4 @@
+import os
 import unittest
 import xmlrunner
 
@@ -36,8 +37,20 @@ class TestIssue(EnMAPBoxTestCase):
         from enmapbox import registerEditorWidgets
         registerEditorWidgets()
 
-        path = pathlib.Path('~').expanduser() / 'Downloads' / 'library.gpkg'
-        self.assertTrue(path.is_file())
+        # create and save a speclib as GPKG
+        sl = TestObjects.createSpectralLibrary()
+
+        path = self.createTestOutputDirectory() / 'issue_724' / 'speclib.gpkg'
+        os.makedirs(path.parent, exist_ok=True)
+        options = dict(overwrite=True)
+        result, msg = QgsVectorLayerExporter.exportLayer(sl, uri=path.as_posix(), providerKey='ogr',
+                                                         destCRS=sl.crs(), options=options)
+        self.assertTrue(result == QgsVectorLayerExporter.NoError, msg=msg)
+        lyr = SpectralLibraryUtils.readFromSource(path)
+        msg, success = lyr.saveDefaultStyle()
+        self.assertTrue(success)
+        del lyr
+
 
         from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY
         filename = path.as_posix()
@@ -57,7 +70,7 @@ class TestIssue(EnMAPBoxTestCase):
             print(f'type: {lyr.fields().field("profiles").typeName()}')
             print(f'editor: {lyr.fields().field("profiles").editorWidgetSetup().type()}')
             print(f'is spectral library?: {is_spectral_library(lyr)}')
-        # self.assertTrue(vl.fields().field('profiles').editorWidgetSetup().type() == '')
+        self.assertTrue(vl.fields().field('profiles').editorWidgetSetup().type() == EDITOR_WIDGET_REGISTRY_KEY)
         self.assertEqual(sl1.fields().field('profiles').editorWidgetSetup().type(), EDITOR_WIDGET_REGISTRY_KEY)
         self.assertEqual(sl2.fields().field('profiles').editorWidgetSetup().type(), EDITOR_WIDGET_REGISTRY_KEY)
 
