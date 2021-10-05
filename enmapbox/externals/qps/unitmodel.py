@@ -8,6 +8,7 @@ from .utils import UnitLookup, METRIC_EXPONENTS, datetime64
 BAND_INDEX = 'Band Index'
 BAND_NUMBER = 'Band Number'
 
+
 class UnitModel(QAbstractListModel):
 
     def __init__(self, *args, **kwds):
@@ -73,7 +74,8 @@ class UnitModel(QAbstractListModel):
             self.mUnits.remove(unit)
             self.endRemoveRows()
 
-    def addUnit(self, unit: str,
+    def addUnit(self,
+                unit: str,
                 description: str = None,
                 tooltip: str = None,
                 aliases: typing.List[str] = []):
@@ -146,7 +148,7 @@ class UnitConverterFunctionModel(object):
         self.mLUT = dict()
 
         self.func_return_band_index = lambda v, *args: np.arange(len(v))
-        self.func_return_band_number = lambda v, *args: np.arange(len(v))+1
+        self.func_return_band_number = lambda v, *args: np.arange(len(v)) + 1
         self.func_return_none = lambda v, *args: None
         self.func_return_same = lambda v, *args: v
         self.func_return_decimalyear = lambda v, *args: UnitLookup.convertDateUnit(v, 'DecimalYear')
@@ -193,20 +195,18 @@ class XUnitModel(UnitModel):
 
         self.addUnit(BAND_NUMBER, description=BAND_NUMBER)
         self.addUnit(BAND_INDEX, description=BAND_INDEX)
-        for u in ['Nanometer',
-                  'Micrometer',
-                  'Millimeter',
-                  'Meter',
-                  'Kilometer']:
+        for u in ['Nanometers',
+                  'Micrometers',
+                  'Millimeters',
+                  'Meters',
+                  'Kilometers']:
             baseUnit = UnitLookup.baseUnit(u)
             assert isinstance(baseUnit, str), u
-            if u in ['Kilometer']:  # big round decided to skip those
-                continue
-            self.addUnit(baseUnit, description='Wavelength [{}]'.format(u.lower()), tooltip=f'plot against {u.lower()}s')
+            self.addUnit(baseUnit, description='{} [{}]'.format(u, baseUnit))
 
-        self.addUnit('DateTime', description='Date [yyyy-mm-dd]', tooltip='plot against timestamps')
-        self.addUnit('DecimalYear', description='Date [decimal year]', tooltip='plot against decimal years')
-        self.addUnit('DOY', description='Date [day of year]', tooltip='plot against days of year')
+        self.addUnit('DateTime', description='Date Time')
+        self.addUnit('DecimalYear', description='Decimal Year')
+        self.addUnit('DOY', description='Day of Year')
 
     def findUnit(self, unit):
         if unit in [None, NULL]:

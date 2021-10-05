@@ -17,6 +17,8 @@ from PyQt5.QtWidgets import QWidgetAction, QWidget, QGridLayout, QSpinBox, QLabe
     QTableView, QComboBox, QMenu, QSlider, QStyledItemDelegate, QHBoxLayout, QTreeView, QStyleOptionViewItem, \
     QRadioButton, QSizePolicy, QSplitter
 from PyQt5.QtXml import QDomElement, QDomDocument, QDomNode
+
+from qgis.PyQt.QtCore import NULL
 from qgis.gui import QgsColorButton, QgsPropertyOverrideButton, QgsCollapsibleGroupBox
 
 from qgis.core import QgsProperty, QgsExpressionContextScope
@@ -39,23 +41,51 @@ from ..core.spectralprofile import SpectralProfile, SpectralProfileBlock, Spectr
 from ..processing import is_spectral_processing_model, SpectralProcessingProfiles, \
     SpectralProcessingProfilesOutput, SpectralProcessingModelList, NULL_MODEL, outputParameterResults, \
     outputParameterResult
-from ...unitmodel import BAND_INDEX, BAND_NUMBER, UnitConverterFunctionModel, XUnitModel, UnitModel
+from ...unitmodel import BAND_INDEX, BAND_NUMBER, UnitConverterFunctionModel, UnitModel
 from ...utils import datetime64, UnitLookup, chunks, loadUi, SignalObjectWrapper, convertDateUnit, nextColor
 
 
-class XAxisUnitWidgetAction(QWidgetAction):
+class SpectralProfilePlotXAxisUnitModel(UnitModel):
+    """
+    A unit model for the SpectralProfilePlot's X Axis
+    """
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+
+        self.addUnit(BAND_NUMBER, description=BAND_NUMBER, tooltip=f'{BAND_NUMBER} (1st band = 1)')
+        self.addUnit(BAND_INDEX, description=BAND_INDEX, tooltip=f'{BAND_INDEX} (1st band = 0)')
+        for u in ['Nanometer',
+                  'Micrometer',
+                  'Millimeter',
+                  'Meter']:
+            baseUnit = UnitLookup.baseUnit(u)
+            assert isinstance(baseUnit, str), u
+            self.addUnit(baseUnit, description=f'Wavelength [{baseUnit}]', tooltip=f'Wavelength in {u} [{baseUnit}]')
+
+        self.addUnit('DateTime', description='Date Time', tooltip='Date Time in ISO 8601 format')
+        self.addUnit('DecimalYear', description='Decimal Year', tooltip='Decimal year')
+        self.addUnit('DOY', description='Day of Year', tooltip='Day of Year (DOY)')
+
+    def findUnit(self, unit):
+        if unit in [None, NULL]:
+            unit = BAND_NUMBER
+        return super().findUnit(unit)
+
+
+class SpectralProfilePlotXAxisUnitWidgetAction(QWidgetAction):
     sigUnitChanged = pyqtSignal(str)
 
     def __init__(self, parent, unit_model: UnitModel = None, **kwds):
         super().__init__(parent)
-        self.mUnitModel: XUnitModel
+        self.mUnitModel: SpectralProfilePlotXAxisUnitModel
         if isinstance(unit_model, UnitModel):
             self.mUnitModel = unit_model
         else:
-            self.mUnitModel = XUnitModel()
+            self.mUnitModel = SpectralProfilePlotXAxisUnitModel()
         self.mUnit: str = BAND_INDEX
 
-    def unitModel(self) -> XUnitModel:
+    def unitModel(self) -> SpectralProfilePlotXAxisUnitModel:
         return self.mUnitModel
 
     def setUnit(self, unit: str):
@@ -107,6 +137,7 @@ class SpectralXAxis(pg.AxisItem):
         self.enableAutoSIPrefix(True)
         self.labelAngle = 0
 
+        self.mDateTimeFormat = '%D'
         self.mUnit: str = ''
 
     def tickStrings(self, values, scale, spacing):
@@ -115,20 +146,37 @@ class SpectralXAxis(pg.AxisItem):
             return []
 
         if self.mUnit == 'DateTime':
+            values64 = datetime64(np.asarray(values))
+            v_min, v_max = min(values64), max(values64)
+            if v_min < v_max:
+                fmt = '%Y'
+                for tscale in ['Y', 'M', 'D', 'h', 'm', 's', 'ms']:
+                    scale_type = f'datetime64[{tscale}]'
+                    rng = v_max.astype(scale_type) - v_min.astype(scale_type)
+                    nscale_units = rng.astype(int)
+                    if nscale_units > 0:
+                        s = ""
+                        break
 
-            values = datetime64(np.asarray(values)).astype('datetime64[D]')
-
-            rng = max(values) - min(values)
-            ndays = rng.astype(int)
+                if tscale == 'Y':
+                    fmt = '%Y'
+                elif tscale == 'M':
+                    fmt = '%Y-%m'
+                elif tscale == 'D':
+                    fmt = '%Y-%m-%d'
+                elif tscale == 'h':
+                    fmt = '%H:%M'
+                elif tscale == 's':
+                    fmt = '%H:%M:%S'
+                else:
+                    fmt = '%S.%f'
+                self.mDateTimeFormat = fmt
 
             strns = []
+            for v in values64:
+                strns.append(v.astype(object).strftime(self.mDateTimeFormat))
 
-            for v in values:
-                if ndays == 0:
-                    strns.append(v.astype(str))
-                else:
-                    strns.append(v.astype(str))
-
+            # print(strns)
             return strns
         else:
             return super(SpectralXAxis, self).tickStrings(values, scale, spacing)
@@ -500,7 +548,6 @@ class SpectralProfilePlotVisualization(QObject):
         """
         return self.mColorProperty
 
-
     def name(self) -> str:
         """
         Returns the name of this visualization
@@ -528,7 +575,8 @@ class SpectralProfilePlotVisualization(QObject):
     def isComplete(self) -> bool:
         speclib = self.speclib()
         field = self.field()
-        return isinstance(speclib, QgsVectorLayer) \
+        return isinstance(speclib, QgsVectorLayer) and \
+               not sip.isdeleted(speclib) \
                and isinstance(field, QgsField) \
                and field.name() in speclib.fields().names()
 
@@ -1234,6 +1282,10 @@ class SpectralProfilePlotWidget(pg.PlotWidget):
         self.mShowCrosshair: bool = True
         self.mShowCursorInfo: bool = True
 
+    def dragEnterEvent(self, ev: QDragEnterEvent):
+
+        s = ""
+
     def onProfileClicked(self, data: MouseClickData):
         """
         Slot to react to mouse-clicks on SpectralProfilePlotDataItems
@@ -1293,6 +1345,7 @@ class SpectralProfilePlotWidget(pg.PlotWidget):
     def clearInfoScatterPoint(self):
         self.mInfoScatterPoint.setVisible(False)
         self.mInfoScatterPointHtml = ''
+
 
     def spectralProfilePlotDataItems(self) -> typing.List[SpectralProfilePlotDataItem]:
         return [item for item in self.plotItem.listDataItems()
@@ -1489,7 +1542,7 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
         self.mDualView: QgsDualView = None
         self.mSpeclib: QgsVectorLayer = None
 
-        self.mXUnitModel: XUnitModel = XUnitModel()
+        self.mXUnitModel: SpectralProfilePlotXAxisUnitModel = SpectralProfilePlotXAxisUnitModel()
         self.mXUnit: str = self.mXUnitModel[0]
         self.mXUnitInitialized: bool = False
         self.mMaxProfiles: int = 64
@@ -1600,27 +1653,8 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
             assert unit_, f'Unknown unit for x-axis: {unit}'
             self.mXUnit = unit_
 
-            labelLookup = {
-                'Band Number': 'Band Number',
-                'Band Index': 'Band Index',
-                'nm': 'Wavelength [nanometer]',
-                'μm': 'Wavelength [micrometer]',
-                'mm': 'Wavelength [millimeter]',
-                'm': 'Wavelength [meter]',
-                'DateTime': 'Date [yyyy-mm-dd]',
-                'DecimalYear': 'Date [decimal year]',
-                'DOY': 'Date [day of year]'
-            }
-
-            labelName = labelLookup[unit_]
-            #baseUnit = UnitLookup.baseUnit(unit_)
-            #if baseUnit in UnitLookup.metric_units():
-            #    labelName = f'Wavelength [{baseUnit}]'
-            #elif baseUnit in UnitLookup.date_units():
-            #    labelName = f'Date [{baseUnit}]'
-            #elif baseUnit in UnitLookup.time_units():
-            #    labelName = f'Time [{baseUnit}]'
-
+            #  baseUnit = UnitLookup.baseUnit(unit_)
+            labelName = self.mXUnitModel.unitData(unit_, Qt.DisplayRole)
             self.mPlotWidget.xAxis().setUnit(unit, labelName=labelName)
             self.mPlotWidget.clearInfoScatterPoint()
             # self.mPlotWidget.xAxis().setLabel(text='x values', unit=unit_)
@@ -2814,6 +2848,8 @@ class SpectralProfilePlotControlViewDelegate(QStyledItemDelegate):
 
 
 class SpectralLibraryPlotWidget(QWidget):
+    sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
+    sigDropEvent = pyqtSignal(QDropEvent)
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
@@ -2831,6 +2867,8 @@ class SpectralLibraryPlotWidget(QWidget):
         # self.mPlotControlModel.sigProgressChanged.connect(self.onProgressChanged)
         self.mCurrentModelId: str = None
         self.setCurrentModel('')
+        self.setAcceptDrops(True)
+
 
         self.mProxyModel = QSortFilterProxyModel()
         self.mProxyModel.setSourceModel(self.mPlotControlModel)
@@ -2873,7 +2911,7 @@ class SpectralLibraryPlotWidget(QWidget):
         self.optionCursorPosition: QAction
         self.optionCursorPosition.toggled.connect(self.plotWidget.setShowCursorInfo)
 
-        self.optionXUnit = XAxisUnitWidgetAction(self, self.mPlotControlModel.mXUnitModel)
+        self.optionXUnit = SpectralProfilePlotXAxisUnitWidgetAction(self, self.mPlotControlModel.mXUnitModel)
         self.optionXUnit.setUnit(self.mPlotControlModel.xUnit())
         self.optionXUnit.setDefaultWidget(self.optionXUnit.createUnitComboBox())
         self.optionXUnit.sigUnitChanged.connect(self.mPlotControlModel.setXUnit)
@@ -2992,6 +3030,12 @@ class SpectralLibraryPlotWidget(QWidget):
             color = lastVis.plotStyle().lineColor()
             item.plotStyle().setLineColor(nextColor(color, mode='cat'))
         self.mPlotControlModel.insertVisualizations(-1, item)
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        self.sigDragEnterEvent.emit(event)
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        self.sigDropEvent.emit(event)
 
     def defaultStyle(self) -> PlotStyle:
 
