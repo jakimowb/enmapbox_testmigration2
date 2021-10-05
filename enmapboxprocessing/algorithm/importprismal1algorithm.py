@@ -2,9 +2,7 @@ from os.path import basename
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
-from osgeo import gdal
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsRectangle,
-                        QgsCoordinateReferenceSystem)
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException)
 
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
@@ -66,17 +64,18 @@ class ImportPrismaL1Algorithm(EnMAPProcessingAlgorithm):
                 feedback.reportError(message, True)
                 raise QgsProcessingException(message)
 
-            # read metadata
-            ds: gdal.Dataset = gdal.Open(he5Filename)
-            meta = ds.GetMetadata()
-            selectedVnir = np.array(meta['List_Cw_Vnir'].split()) != '0'
-            selectedSwir = np.array(meta['List_Cw_Swir'].split()) != '0'
-
-            # read data, fix interleave, reverse band order and scale
+            # read data and metadata (we aren't using GDAL, because it had problems reading the HE5 files)
             import h5py
+            meta = dict()
             with h5py.File(he5Filename, 'r') as file:
                 arrayVnir = file['/HDFEOS/SWATHS/PRS_L1_HCO/Data Fields/VNIR_Cube'][()]
                 arraySwir = file['/HDFEOS/SWATHS/PRS_L1_HCO/Data Fields/SWIR_Cube'][()]
+                meta = {key: file.attrs[key] for key in file.attrs.keys()}
+
+            selectedVnir = meta['List_Cw_Vnir'] != 0
+            selectedSwir = meta['List_Cw_Swir'] != 0
+
+            # fix interleave, reverse band order and scale
             arrayVnir = np.transpose(arrayVnir, [1, 0, 2])[selectedVnir][::-1]
             arraySwir = np.transpose(arraySwir, [1, 0, 2])[selectedSwir][::-1]
             array = list(arrayVnir.astype(np.int16)) + list(arraySwir.astype(np.int16))
@@ -93,17 +92,17 @@ class ImportPrismaL1Algorithm(EnMAPProcessingAlgorithm):
 
             # set metadata
             wavelengthVnir = list(reversed([float(v)
-                                            for v, flag in zip(meta['List_Cw_Vnir'].split(), selectedVnir)
+                                            for v, flag in zip(meta['List_Cw_Vnir'], selectedVnir)
                                             if flag]))
             wavelengthSwir = list(reversed([float(v)
-                                            for v, flag in zip(meta['List_Cw_Swir'].split(), selectedSwir)
+                                            for v, flag in zip(meta['List_Cw_Swir'], selectedSwir)
                                             if flag]))
             wavelength = wavelengthVnir + wavelengthSwir
             fwhmVnir = list(reversed([float(v)
-                                      for v, flag in zip(meta['List_Fwhm_Vnir'].split(), selectedVnir)
+                                      for v, flag in zip(meta['List_Fwhm_Vnir'], selectedVnir)
                                       if flag]))
             fwhmSwir = list(reversed([float(v)
-                                      for v, flag in zip(meta['List_Fwhm_Swir'].split(), selectedSwir)
+                                      for v, flag in zip(meta['List_Fwhm_Swir'], selectedSwir)
                                       if flag]))
             fwhm = fwhmVnir + fwhmSwir
 
