@@ -291,7 +291,7 @@ if __name__ == "__main__":
     if re.search(r'\.master\.', path.name):
         message = '\nVery important checklist. Do not remove!!!' \
                   '\nChecklist for release:' \
-                  '\n0. Run scripts\runtests.bat' \
+                  '\n0. Run scripts/runtests.bat' \
                   '\n1. Change log up-to-date?' \
                   '\n2. ZIP containing branch information?' \
                   '\n3. Processing algo documentation up-to-date (run create_processing_rst)?.' \
