@@ -17,6 +17,7 @@ from enmapbox import EnMAPBox, EnMAPBoxApplication
 
 class TestVRTBuilderApp(EnMAPBoxTestCase):
 
+    @unittest.skipIf(EnMAPBoxTestCase.runsInCI(), 'blocking dialogs')
     def test_startapp(self):
 
         enmapbox = EnMAPBox(load_core_apps=False, load_other_apps=False)
