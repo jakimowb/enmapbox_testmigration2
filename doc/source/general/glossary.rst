@@ -260,7 +260,7 @@ GIS and Remote Sensing
         Additional metadata can be stored like in any other vector layer, e.g. in text and number fields.
 
         Using a vector layer with multiple :term:`Spectral Profile` fields, it possible to link different profiles to
-        the same :term:`geographic feature`, e.g. a white reference profile to a field spectrometer profile reccored
+        the same :term:`geographic feature`, e.g. a white reference profile to a field spectrometer profile record
         at the same position.
 
         A spectral library is a collection of profiles with arbitrary profile- and metadata,
@@ -271,7 +271,7 @@ GIS and Remote Sensing
         * `y`: list of y values (e.g. surface reflectance)
         * `xUnit`: x value units (e.g. nanometers)
         * `yUnit`: y value units (e.g. ???)
-        * `bbl`: the :term:`bad bands list`
+        * `bbl`: the list of :term:`bad band multiplier`
 
         See `enmapbox.externals.qps.speclib.core.SpectralLibraryUtils` for details.
 
@@ -294,9 +294,12 @@ GIS and Remote Sensing
 
     spectral response function
         The spectral response describes the sensitivity of a sensor to optical radiation of different wavelengths.
+        In hyperspectral remote sensing,
+        the spectral response function is often described by a single :term:`full-width-at-half-maximum` value.
 
     spectral response function library
-        A :term:`spectral library`, where each profile represents the :term:`spectral response function` of a :term:`spectral band`.
+        A :term:`spectral library`,
+        where each profile represents the :term:`spectral response function` of a :term:`spectral band`.
 
         .. image:: img/spectral_response_function_library.png
 
@@ -332,64 +335,212 @@ GIS and Remote Sensing
 Raster Metadata
 ===============
 
+*Introduction*
+    Raster metadata management is mainly based on the **GDAL PAM (Persistent Auxiliary Metadata)** model.
+    Depending on the type of metadata, managing specific metadata item in the GUI or programmatically can differ.
+    Details are explained in the specific term descriptions below.
+
+    In the GUI, most of the metadata items can be inspected in the :guilabel:`Layer Properties` dialog,
+    under :guilabel:`GDAL Metadata`.
+
+    .. image:: img/raster_layer_gdal_metadata.png
+        :width: 100%
+
+    Alternatively, metadata can be managed inside a standard text editor, by opening the GDAL PAM *.aux.xml sidecar file.
+    If the PAM file not already exists, you can create it manually, but usually, it is also created,
+    when a raster file is opened inside QGIS. Here is an excerpt of the ``enmap_berlin.bsq.aux.xml`` PAM file::
+
+        <PAMDataset>
+          <Metadata domain="ENVI">
+            <MDI key="band_names">{band 8, band 9, band 10, band 11, band 12, band 13, band 14, band 15, band 16, band 17, band 18, band 19, band 20, band 21, band 22, band 23, band 24, band 25, band 26, band 27, band 28, band 29, band 30, band 31, band 32, band 33, band 34, band 35, band 36, band 37, band 38, band 39, band 40, band 41, band 42, band 43, band 44, band 45, band 46, band 47, band 48, band 49, band 50, band 51, band 52, band 53, band 54, band 55, band 56, band 57, band 58, band 59, band 60, band 61, band 62, band 63, band 64, band 65, band 66, band 67, band 68, band 69, band 70, band 71, band 72, band 73, band 74, band 75, band 76, band 77, band 91, band 92, band 93, band 94, band 95, band 96, band 97, band 98, band 99, band 100, band 101, band 102, band 103, band 104, band 105, band 106, band 107, band 108, band 109, band 110, band 111, band 112, band 113, band 114, band 115, band 116, band 117, band 118, band 119, band 120, band 121, band 122, band 123, band 124, band 125, band 126, band 127, band 144, band 145, band 146, band 147, band 148, band 149, band 150, band 151, band 152, band 153, band 154, band 155, band 156, band 157, band 158, band 159, band 160, band 161, band 162, band 163, band 164, band 165, band 166, band 167, band 168, band 195, band 196, band 197, band 198, band 199, band 200, band 201, band 202, band 203, band 204, band 205, band 206, band 207, band 208, band 209, band 210, band 211, band 212, band 213, band 214, band 215, band 216, band 217, band 218, band 219, band 220, band 221, band 222, band 223, band 224, band 225, band 226, band 227, band 228, band 229, band 230, band 231, band 232, band 233, band 234, band 235, band 236, band 237, band 238, band 239}</MDI>
+            <MDI key="fwhm">{ 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005900, 0.005900, 0.006000, 0.006000, 0.006100, 0.006100, 0.006200, 0.006200, 0.006300, 0.006400, 0.006400, 0.006500, 0.006600, 0.006600, 0.006700, 0.006800, 0.006900, 0.006900, 0.007000, 0.007100, 0.007200, 0.007300, 0.007300, 0.007400, 0.007500, 0.007600, 0.007700, 0.007800, 0.007900, 0.007900, 0.008000, 0.008100, 0.008200, 0.008300, 0.008400, 0.008400, 0.008500, 0.008600, 0.008700, 0.008700, 0.008800, 0.008900, 0.008900, 0.009000, 0.009100, 0.009100, 0.009200, 0.009300, 0.009300, 0.009400, 0.009400, 0.009500, 0.009500, 0.009600, 0.009600, 0.009600, 0.009600, 0.009700, 0.009700, 0.009700, 0.011800, 0.011900, 0.012100, 0.012200, 0.012400, 0.012500, 0.012700, 0.012800, 0.012900, 0.013100, 0.013200, 0.013300, 0.013400, 0.013500, 0.013600, 0.013700, 0.013800, 0.013900, 0.014000, 0.014000, 0.014100, 0.014100, 0.014200, 0.014200, 0.014300, 0.014300, 0.014300, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.013700, 0.013600, 0.013600, 0.013500, 0.013500, 0.013400, 0.013400, 0.013300, 0.013200, 0.013200, 0.013100, 0.013100, 0.013000, 0.012900, 0.012900, 0.012800, 0.012800, 0.012700, 0.012700, 0.012600, 0.012500, 0.012500, 0.012400, 0.012400, 0.012300, 0.010900, 0.010800, 0.010800, 0.010700, 0.010700, 0.010600, 0.010600, 0.010500, 0.010500, 0.010400, 0.010400, 0.010400, 0.010300, 0.010300, 0.010200, 0.010200, 0.010100, 0.010100, 0.010100, 0.010000, 0.010000, 0.009900, 0.009900, 0.009900, 0.009800, 0.009800, 0.009700, 0.009700, 0.009700, 0.009600, 0.009600, 0.009600, 0.009500, 0.009500, 0.009400, 0.009400, 0.009400, 0.009300, 0.009300, 0.009300, 0.009200, 0.009200, 0.009100, 0.009100, 0.009100}</MDI>
+            <MDI key="wavelength">{ 0.460000, 0.465000, 0.470000, 0.475000, 0.479000, 0.484000, 0.489000, 0.494000, 0.499000, 0.503000, 0.508000, 0.513000, 0.518000, 0.523000, 0.528000, 0.533000, 0.538000, 0.543000, 0.549000, 0.554000, 0.559000, 0.565000, 0.570000, 0.575000, 0.581000, 0.587000, 0.592000, 0.598000, 0.604000, 0.610000, 0.616000, 0.622000, 0.628000, 0.634000, 0.640000, 0.646000, 0.653000, 0.659000, 0.665000, 0.672000, 0.679000, 0.685000, 0.692000, 0.699000, 0.706000, 0.713000, 0.720000, 0.727000, 0.734000, 0.741000, 0.749000, 0.756000, 0.763000, 0.771000, 0.778000, 0.786000, 0.793000, 0.801000, 0.809000, 0.817000, 0.824000, 0.832000, 0.840000, 0.848000, 0.856000, 0.864000, 0.872000, 0.880000, 0.888000, 0.896000, 0.915000, 0.924000, 0.934000, 0.944000, 0.955000, 0.965000, 0.975000, 0.986000, 0.997000, 1.007000, 1.018000, 1.029000, 1.040000, 1.051000, 1.063000, 1.074000, 1.086000, 1.097000, 1.109000, 1.120000, 1.132000, 1.144000, 1.155000, 1.167000, 1.179000, 1.191000, 1.203000, 1.215000, 1.227000, 1.239000, 1.251000, 1.263000, 1.275000, 1.287000, 1.299000, 1.311000, 1.323000, 1.522000, 1.534000, 1.545000, 1.557000, 1.568000, 1.579000, 1.590000, 1.601000, 1.612000, 1.624000, 1.634000, 1.645000, 1.656000, 1.667000, 1.678000, 1.689000, 1.699000, 1.710000, 1.721000, 1.731000, 1.742000, 1.752000, 1.763000, 1.773000, 1.783000, 2.044000, 2.053000, 2.062000, 2.071000, 2.080000, 2.089000, 2.098000, 2.107000, 2.115000, 2.124000, 2.133000, 2.141000, 2.150000, 2.159000, 2.167000, 2.176000, 2.184000, 2.193000, 2.201000, 2.210000, 2.218000, 2.226000, 2.234000, 2.243000, 2.251000, 2.259000, 2.267000, 2.275000, 2.283000, 2.292000, 2.300000, 2.308000, 2.315000, 2.323000, 2.331000, 2.339000, 2.347000, 2.355000, 2.363000, 2.370000, 2.378000, 2.386000, 2.393000, 2.401000, 2.409000}</MDI>
+            <MDI key="wavelength_units">Micrometers</MDI>
+            ...
+          </Metadata>
+          <PAMRasterBand band="1">
+            <Description>band 8 (0.460000 Micrometers)</Description>
+            <NoDataValue>-9.90000000000000E+01</NoDataValue>
+            <Metadata>
+              <MDI key="wavelength">0.460000</MDI>
+              <MDI key="wavelength_units">Micrometers</MDI>
+            </Metadata>
+          </PAMRasterBand>
+
+          <PAMRasterBand band="1">
+            ...
+          </PAMRasterBand>
+
+          ...
+
+        </PAMDataset>
+
+
+    For managing metadata programmatically, you can mostly use the GDAL API classes ``gdal.Datset`` and ``gdal.Band``,
+    or the EnMAP-Box API classes ``enmapboxprocessing.rasterreader.RasterReader``
+    and ``enmapboxprocessing.rasterreader.RasterWriter``.
+
+    .. warning::
+        If you want to edit metadata in an editor or programmatically,
+        be sure to first close the associated raster layer inside QGIS.
+        Otherwise, QGIS will overwrite your changes again.
+
+
+    To examplify the API usage, we assume the following namespace setup throughout the rest of this section::
+
+        from osgeo import gdal
+        from enmapboxprocessing.rasterreader import RasterReader
+        from enmapboxprocessing.rasterwriter import RasterWriter
+        from enmapbox.exampledata import enmap
+
+        # use enmap_berlin.bsq raster layer as example dataset
+        dataset: gdal.Dataset = gdal.Open(enmap)
+        raster = RasterReader(enmap)
+
+        # assume we have a newly created gdal.Dataset object in update mode
+        newDataset: gdal.Dataset
+        newRaster = RasterWriter(newDataset)
+
+        # for band-wise interactions, we just use the first band
+        bandNo = 1
+
 .. glossary::
 
     band description
     band name
-        Defined by GDAL data model. Accessible via `gdal.Band.GetDescription()`.
+        The name of a :term:`band`.
+
+        Usage example::
+
+            # get
+            >>>dataset.GetRasterBand(bandNo).GetDescription()
+            >>>raster.bandName(bandNo)
+            band 8 (0.460000 Micrometers)
+            band 8 (0.460000 Micrometers)
+
+            # set
+            >>>newDataset.GetRasterBand(bandNo).SetDescription('my band name')
+            >>>newRaster.setBandName('my band name', bandNo)
 
     bad band multiplier
         The bad band multiplier value is indicating whether a :term:`band` is usable (1) or not (0).
-        Also see :term:`bad bands list` for details.
 
-    bbl
-    bad bands list
-        List of :term:`bad band multiplier` values of each :term:`band`, typically 0 for bad bands and 1 for good bands.
+        This information is derived from *PAM/Band/Default/bad_band_multiplier*.
+        If that is undefined, it is derived by indexing the ENVI bad bands list from *PAM/Dataset/ENVI/bbl*.
+        If that is also undefined, it is assumed, that the band is usable (i.e. value=1)::
 
-        Historically that information is stored in ENVI format and domain.
-        Accessible via `gdal.Dataset.GetMetadataItem('fwhm', 'ENVI')`.
+            # get
+            >>>dataset.GetRasterBand(bandNo).GetMetadataItem('bad_band_multiplier')  # isn't sufficient in this case
+            >>>dataset.GetMetadataItem('bbl', 'ENVI')  # also not sufficient
+            >>>raster.badBandMultiplier(bandNo)  # this will correctly resolve the bad band multiplier
+            None
+            None
+            1
 
-        We store that information band-wise in the default domain.
-        Accessible via `gdal.Band.GetMetadataItem('bad band multiplier')`.
-
+            # set
+            >>>newDataset.GetRasterBand(bandNo).SetMetadataItem('bad_band_multiplier', '1')  # set for single band
+            >>>newDataset.SetMetadataItem('bbl', '{1, ...., 1}', 'ENVI')  # set for all bands at once
+            >>>newRaster.setBadBandMultiplier(1, bandNo)  # set for single band
 
     center wavelength
         A synonym for :term:`wavelength`.
 
     fwhm
     full-width-at-half-maximum
-        List of full-width-half-maximum (FWHM) values of each :term:`band`.
-        Units should be the same as those used for :term:`wavelength` and set in the :term:`wavelength units` parameter.
+        The full-width-half-maximum (FWHM) value of a :term:`spectral band`
+        is approximating the :term:`spectral response function` as a normal distribution with a sigma = FWHM / 2.355.
+        Units should be the same as those used for :term:`wavelength` and set in the :term:`wavelength units` item.
 
-        Historically that information is stored in ENVI format and domain.
-        Accessible via `gdal.Dataset.GetMetadataItem('fwhm', 'ENVI')`.
+        This information is derived from *PAM/Band/Default/fwhm*.
+        If that is undefined, it is derived by indexing the ENVI fwhm list from *PAM/Dataset/ENVI/fwhm*::
 
-        We store that information band-wise in the default domain.
-        Accessible via `gdal.Band.GetMetadataItem('fwhm')`.
+            # get
+            >>>dataset.GetRasterBand(bandNo).GetMetadataItem('fwhm')  # isn't sufficient in this case
+            >>>text = dataset.GetMetadataItem('fwhm', 'ENVI')  # this gives just a string with values for all bands
+            >>>text
+            >>>float(text.strip('{}').split(',')[bandNo - 1])  # extra processing required to unpack the band FWHM
+            >>>raster.badBandMultiplier(bandNo)  # in Nanometers (the default)
+            >>>raster.badBandMultiplier(bandNo, 'Micrometers')  #  in user-defined units
+            None
+            { 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005800, 0.005900, 0.005900, 0.006000, 0.006000, 0.006100, 0.006100, 0.006200, 0.006200, 0.006300, 0.006400, 0.006400, 0.006500, 0.006600, 0.006600, 0.006700, 0.006800, 0.006900, 0.006900, 0.007000, 0.007100, 0.007200, 0.007300, 0.007300, 0.007400, 0.007500, 0.007600, 0.007700, 0.007800, 0.007900, 0.007900, 0.008000, 0.008100, 0.008200, 0.008300, 0.008400, 0.008400, 0.008500, 0.008600, 0.008700, 0.008700, 0.008800, 0.008900, 0.008900, 0.009000, 0.009100, 0.009100, 0.009200, 0.009300, 0.009300, 0.009400, 0.009400, 0.009500, 0.009500, 0.009600, 0.009600, 0.009600, 0.009600, 0.009700, 0.009700, 0.009700, 0.011800, 0.011900, 0.012100, 0.012200, 0.012400, 0.012500, 0.012700, 0.012800, 0.012900, 0.013100, 0.013200, 0.013300, 0.013400, 0.013500, 0.013600, 0.013700, 0.013800, 0.013900, 0.014000, 0.014000, 0.014100, 0.014100, 0.014200, 0.014200, 0.014300, 0.014300, 0.014300, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.014400, 0.013700, 0.013600, 0.013600, 0.013500, 0.013500, 0.013400, 0.013400, 0.013300, 0.013200, 0.013200, 0.013100, 0.013100, 0.013000, 0.012900, 0.012900, 0.012800, 0.012800, 0.012700, 0.012700, 0.012600, 0.012500, 0.012500, 0.012400, 0.012400, 0.012300, 0.010900, 0.010800, 0.010800, 0.010700, 0.010700, 0.010600, 0.010600, 0.010500, 0.010500, 0.010400, 0.010400, 0.010400, 0.010300, 0.010300, 0.010200, 0.010200, 0.010100, 0.010100, 0.010100, 0.010000, 0.010000, 0.009900, 0.009900, 0.009900, 0.009800, 0.009800, 0.009700, 0.009700, 0.009700, 0.009600, 0.009600, 0.009600, 0.009500, 0.009500, 0.009400, 0.009400, 0.009400, 0.009300, 0.009300, 0.009300, 0.009200, 0.009200, 0.009100, 0.009100, 0.009100}
+            0.0058
+            5.8
+            0.0058
+
+            # set
+            >>>newDataset.GetRasterBand(bandNo).SetMetadataItem('fwhm', '0.0058')  # set FWHM for single band
+            >>>newDataset.GetRasterBand(bandNo).SetMetadataItem('wavelength_units', 'Micrometers')  # also set the units
+            >>>newDataset.SetMetadataItem('fwhm', '{0.0058, ..., 0.0091}', 'ENVI')  # set FWHM for all bands at once
+            >>>newDataset.SetMetadataItem('wavelength_units', 'Micrometers', 'ENVI')  # also set the units
+            >>>newRaster.setFwhm(5.8, bandNo)  # set single band FWHM in Nanometers
+            >>>newRaster.setFwhm(0.0058, bandNo, 'Micrometers')  # set single band FWHM in user-defined units
 
     no data value
-        Defined by GDAL data model. Accessible via `gdal.Band.GetNoDataValue()`.
+        The no data value of a :term:`band`.
+
+        Usage example::
+
+            # get
+            >>>dataset.GetRasterBand(bandNo).GetNoDataValue()
+            >>>raster.noDataValue(bandNo)
+            >>>raster.noDataValue()  # if bandNo is skipped, it defaults to the first band
+            -99.0
+            -99.0
+            -99.0
+
+            # set
+            newDataset.GetRasterBand(bandNo).SetNoDataValue(-9999)
+            newRaster.setNoDataValue(-9999, bandNo)
+            newRaster.setNoDataValue(-9999)  # if bandNo is skipped, the no data value is applied to all bands
+
 
     wavelength
-        List of center wavelength values of each :term:`band`.
-        Units should be the same as those used for the :term:`fwhm` and set in the :term:`wavelength units` parameter.
+        The center wavelength value of a :term:`band`.
+        Units should be the same as those used for the :term:`fwhm` and set in the :term:`wavelength units` item.
 
-        Historically that information is stored in ENVI format and domain.
-        Accessible via `gdal.Dataset.GetMetadataItem('wavelength', 'ENVI')`.
+        This information is derived from *PAM/Band/Default/wavelength*.
+        If that is undefined, it is derived by indexing the ENVI wavelength list from *PAM/Dataset/ENVI/wavelength*::
 
-        We store that information band-wise in the default domain.
-        Accessible via `gdal.Band.GetMetadataItem('wavelength')`.
+            # get
+            >>>dataset.GetRasterBand(bandNo).GetMetadataItem('wavelength')  # this works, because the GDAL ENVI driver assigns those on-the-fly
+            >>>text = dataset.GetMetadataItem('fwhm', 'ENVI')  # this gives just a string with values for all bands
+            >>>text
+            >>>float(text.strip('{}').split(',')[bandNo - 1])  # extra processing required to unpack the band wavelength
+            >>>raster.wavelength(bandNo)  # in Nanometers (the default)
+            >>>raster.wavelength(bandNo, 'Micrometers')  #  in user-defined units
+            0.460000
+            { 0.460000, 0.465000, 0.470000, 0.475000, 0.479000, 0.484000, 0.489000, 0.494000, 0.499000, 0.503000, 0.508000, 0.513000, 0.518000, 0.523000, 0.528000, 0.533000, 0.538000, 0.543000, 0.549000, 0.554000, 0.559000, 0.565000, 0.570000, 0.575000, 0.581000, 0.587000, 0.592000, 0.598000, 0.604000, 0.610000, 0.616000, 0.622000, 0.628000, 0.634000, 0.640000, 0.646000, 0.653000, 0.659000, 0.665000, 0.672000, 0.679000, 0.685000, 0.692000, 0.699000, 0.706000, 0.713000, 0.720000, 0.727000, 0.734000, 0.741000, 0.749000, 0.756000, 0.763000, 0.771000, 0.778000, 0.786000, 0.793000, 0.801000, 0.809000, 0.817000, 0.824000, 0.832000, 0.840000, 0.848000, 0.856000, 0.864000, 0.872000, 0.880000, 0.888000, 0.896000, 0.915000, 0.924000, 0.934000, 0.944000, 0.955000, 0.965000, 0.975000, 0.986000, 0.997000, 1.007000, 1.018000, 1.029000, 1.040000, 1.051000, 1.063000, 1.074000, 1.086000, 1.097000, 1.109000, 1.120000, 1.132000, 1.144000, 1.155000, 1.167000, 1.179000, 1.191000, 1.203000, 1.215000, 1.227000, 1.239000, 1.251000, 1.263000, 1.275000, 1.287000, 1.299000, 1.311000, 1.323000, 1.522000, 1.534000, 1.545000, 1.557000, 1.568000, 1.579000, 1.590000, 1.601000, 1.612000, 1.624000, 1.634000, 1.645000, 1.656000, 1.667000, 1.678000, 1.689000, 1.699000, 1.710000, 1.721000, 1.731000, 1.742000, 1.752000, 1.763000, 1.773000, 1.783000, 2.044000, 2.053000, 2.062000, 2.071000, 2.080000, 2.089000, 2.098000, 2.107000, 2.115000, 2.124000, 2.133000, 2.141000, 2.150000, 2.159000, 2.167000, 2.176000, 2.184000, 2.193000, 2.201000, 2.210000, 2.218000, 2.226000, 2.234000, 2.243000, 2.251000, 2.259000, 2.267000, 2.275000, 2.283000, 2.292000, 2.300000, 2.308000, 2.315000, 2.323000, 2.331000, 2.339000, 2.347000, 2.355000, 2.363000, 2.370000, 2.378000, 2.386000, 2.393000, 2.401000, 2.409000}
+            0.46
+            460.0
+            0.46
+
+            # set
+            >>>newDataset.GetRasterBand(bandNo).SetMetadataItem('wavelength', '0.46')  # set wavelength for single band
+            >>>newDataset.GetRasterBand(bandNo).SetMetadataItem('wavelength_units', 'Micrometers')  # also set the units
+            >>>newDataset.SetMetadataItem('fwhm', '{0.46, ..., 2.409}', 'ENVI')  # set wavelength for all bands at once            >>>newDataset.SetMetadataItem('wavelength_units', 'Micrometers', 'ENVI')  # also set the units
+            >>>newRaster.setWavelength(460, bandNo)  # set single band wavelength in Nanometers
+            >>>newRaster.setWavelength(0.46, bandNo, 'Micrometers')  # set single band wavelength in user-defined units
 
     wavelength units
-        Text string indicating one of the following wavelength units:
-        `Micrometers`, `um`, `Nanometers`, `nm`, `Index`, `Unknown`
+        The wavelength units of a :term:`band`. Valid units are `Micrometers`, `um`, `Nanometers`, `nm`.
 
-        Historically that information is stored in ENVI format and domain.
-        Accessible via `gdal.Dataset.GetMetadataItem('wavelength units', 'ENVI')`.
+        This information is derived from *PAM/Band/Default/wavelength_units*.
+        If that is undefined, it is derived from *PAM/Dataset/ENVI/wavelength_units*::
 
-        We store that information band-wise in the default domain.
-        Accessible via `gdal.Band.GetMetadataItem('wavelength units')`.
+            # get
+            >>>dataset.GetRasterBand(bandNo).GetMetadataItem('wavelength_units')  # this works, because the GDAL ENVI driver assigns those on-the-fly
+            >>>dataset.GetMetadataItem('wavelength_units', 'ENVI')
+            >>>raster.wavelengthUnits(bandNo)
+            Micrometers
+            Micrometers
+            Micrometers
 
+            # set
+            >>>newDataset.GetRasterBand(bandNo).SetMetadataItem('wavelength_units', 'Micrometers')  # set for single band
+            >>>newDataset.SetMetadataItem('wavelength_units', 'Micrometers', 'ENVI')  # set for the dataset
+
+        Note that when using the ``RasterWriter`` for setting :term:`wavelength` or :term:`fwhm` information,
+        the wavelength units are also correctly specified at the same time.
 
 
 Machine Learning
