@@ -1211,7 +1211,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             emb.createDock('ATTRIBUTE', layer=layer)
 
     def setLayerStyle(self, layer, canvas):
-        showLayerPropertiesDialog(layer, canvas, modal=True)
+        showLayerPropertiesDialog(layer, canvas, modal=True, useQGISDialog=False)
 
     def runImageStatistics(self, layer):
 
