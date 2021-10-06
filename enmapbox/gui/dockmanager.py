@@ -296,7 +296,6 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.profilesNode: LayerTreeNode = LayerTreeNode('Profiles')
         self.profilesNode.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
 
-
         self.mPROFILES: typing.Dict[str, int] = dict()
 
         assert isinstance(dock, SpectralLibraryDock)
