@@ -1204,14 +1204,19 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         else:
             s = ""
 
-    def openAttributeTable(self, layer):
+    def openAttributeTable(self, layer: QgsVectorLayer):
         from enmapbox import EnMAPBox
         emb = EnMAPBox.instance()
         if isinstance(emb, EnMAPBox) and isinstance(layer, QgsVectorLayer):
             emb.createDock('ATTRIBUTE', layer=layer)
 
-    def setLayerStyle(self, layer, canvas):
-        showLayerPropertiesDialog(layer, canvas, modal=True, useQGISDialog=False)
+    def setLayerStyle(self, layer: QgsMapLayer, canvas: QgsMapCanvas):
+        from enmapbox import EnMAPBox
+        messageBar = None
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox) and isinstance(layer, QgsVectorLayer):
+            messageBar = emb.messageBar()
+        showLayerPropertiesDialog(layer, canvas=canvas, messageBar=messageBar, modal=True, useQGISDialog=False)
 
     def runImageStatistics(self, layer):
 
