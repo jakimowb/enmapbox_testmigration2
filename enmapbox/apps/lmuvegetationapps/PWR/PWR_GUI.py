@@ -22,11 +22,11 @@
     along with this software. If not, see <http://www.gnu.org/licenses/>.
 ***************************************************************************
 """
-from qgis._gui import QgsMapLayerComboBox
-from qgis._core import QgsMapLayerProxyModel
-
+from qgis.gui import QgsMapLayerComboBox
+from qgis.core import QgsMapLayerProxyModel
 import sys
 from qgis.PyQt.QtWidgets import *
+from PyQt5.QtGui import QPixmap
 from hubflow.core import *
 from lmuvegetationapps.PWR.PWR_core import PWR_core
 from lmuvegetationapps import APP_DIR
@@ -34,6 +34,7 @@ from lmuvegetationapps import APP_DIR
 pathUI_pwr = os.path.join(APP_DIR, 'Resources/UserInterfaces/PWR.ui')
 pathUI_nodat = os.path.join(APP_DIR, 'Resources/UserInterfaces/Nodat.ui')
 pathUI_prgbar = os.path.join(APP_DIR, 'Resources/UserInterfaces/ProgressBar.ui')
+pathIMG = os.path.join(APP_DIR, "Resources/PWR_showImg.PNG")
 
 from enmapbox.gui.utils import loadUi
 
@@ -69,6 +70,11 @@ class PWR:
         self.gui = PWR_GUI()
         self.initial_values()
         self.connections()
+        label = QLabel(self.gui.pwrImage)
+        pixelmap = QPixmap(pathIMG)
+        label.setPixmap(pixelmap)
+        self.gui.pwrImage.resize(pixelmap.width(), pixelmap.height())
+        self.gui.pwrImage.show()
 
     def initial_values(self):
         self.image = None

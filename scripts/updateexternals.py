@@ -89,16 +89,16 @@ RemoteInfo.create(r'https://bitbucket.org/ecstagriculture/enmap-box-lmu-vegetati
 
 ## hub-workflow.git
 
-RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
-                  prefixLocal=r'site-packages/hubflow',
-                  prefixRemote=r'hubflow',
-                  remoteBranch='develop')
+#RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
+#                  prefixLocal=r'site-packages/hubflow',
+#                  prefixRemote=r'hubflow',
+#                  remoteBranch='develop')
 
-RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
-                  prefixLocal=r'doc/source/dev_section/dev_cookbook/hubflow',
-                  prefixRemote=r'doc/source',
-                  excluded=['conf.py', 'index.rst'],
-                  remoteBranch='develop')
+#RemoteInfo.create(r'https://bitbucket.org/hu-geomatics/hub-workflow.git',
+#                  prefixLocal=r'doc/source/dev_section/dev_cookbook/hubflow',
+#                  prefixRemote=r'doc/source',
+#                  excluded=['conf.py', 'index.rst'],
+#                  remoteBranch='develop')
 
 ## GFZ
 
