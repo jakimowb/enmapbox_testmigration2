@@ -598,6 +598,8 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         rootNode = self.rootNode
         to_remove = [n for n in rootNode.children() if n.dock == dock]
         for node in to_remove:
+            for c in node.children():
+                c.disconnect()
             self.removeDockNode(node)
 
     def removeDataSource(self, dataSource: DataSource):
@@ -1027,6 +1029,15 @@ class DockTreeView(QgsLayerTreeView):
         debugLog(f'DockTreeView current layer : {self.currentLayer()}')
         debugLog(f'DockTreeView current canvas: {self.currentMapCanvas()}')
 
+    def selectedDockNodes(self) -> typing.List[DockTreeNode]:
+
+        nodes = []
+        for idx in self.selectedIndexes():
+            node = self.index2node(idx)
+            if isinstance(node, DockTreeNode) and node not in nodes:
+                nodes.append(node)
+        return nodes
+
     def setCurrentMapCanvas(self, canvas: QgsMapCanvas):
 
         if canvas in self.mapCanvases():
@@ -1103,7 +1114,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         super(DockManagerLayerTreeModelMenuProvider, self).__init__()
         # QObject.__init__(self)
         assert isinstance(treeView, DockTreeView)
-        self.mDockTreeView = treeView
+        self.mDockTreeView: DockTreeView = treeView
         self.mSignals = DockManagerLayerTreeModelMenuProvider.Signals()
 
     def createContextMenu(self):
@@ -1117,6 +1128,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         menu.setToolTipsVisible(True)
 
         selectedLayerNodes = list(set(self.mDockTreeView.selectedLayerNodes()))
+        selectedDockNodes = self.mDockTreeView.selectedDockNodes()
         if isinstance(node, (DockTreeNode, QgsLayerTreeLayer)):
             actionEdit = menu.addAction('Rename')
             actionEdit.setShortcut(Qt.Key_F2)
