@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QGroupBox, QWidget, QLabel
 from qgis.core import QgsVectorLayer, QgsExpression, QgsFieldProxyModel, QgsField, QgsFieldFormatter, QgsApplication
 
 from qgis.gui import QgsEditorWidgetWrapper, QgsFieldExpressionWidget, QgsEditorConfigWidget, QgsGui, \
-     QgsEditorWidgetFactory
+    QgsEditorWidgetFactory
 from qgis.PyQt.QtCore import NULL
 from .spectrallibraryplotwidget import SpectralProfilePlotXAxisUnitModel
 from .. import speclibUiPath, EDITOR_WIDGET_REGISTRY_KEY, EDITOR_WIDGET_REGISTRY_NAME
@@ -18,6 +18,7 @@ SPECTRAL_PROFILE_FIELD_REPRESENT_VALUE = 'Profile'
 
 SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY: None
 SPECTRAL_PROFILE_FIELD_FORMATTER: None
+
 
 class SpectralProfileTableModel(QAbstractTableModel):
     """
@@ -496,8 +497,14 @@ def registerSpectralProfileEditorWidget():
     if not EDITOR_WIDGET_REGISTRY_KEY in widgetRegistry.factories().keys():
         global SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY
         global SPECTRAL_PROFILE_FIELD_FORMATTER
+
         SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY = SpectralProfileEditorWidgetFactory(EDITOR_WIDGET_REGISTRY_NAME)
         SPECTRAL_PROFILE_FIELD_FORMATTER = SpectralProfileFieldFormatter()
-        widgetRegistry.registerWidget(EDITOR_WIDGET_REGISTRY_KEY, SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY)
+        if True:
+            # workaround as long human-readible name needs to be in QML
+            widgetRegistry.registerWidget(EDITOR_WIDGET_REGISTRY_NAME, SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY)
+        else:
+            # as it should be
+            widgetRegistry.registerWidget(EDITOR_WIDGET_REGISTRY_KEY, SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY)
         fieldFormatterRegistry.addFieldFormatter(SPECTRAL_PROFILE_FIELD_FORMATTER)
         s = ""
