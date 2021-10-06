@@ -5,17 +5,17 @@ Spatial convolution Savitsky-Golay filter
 *****************************************
 
 2D Savitsky-Golay filter.
-See <a href="https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter#Two-dimensional_convolution_coefficients">wikipedia</a> for details.
+See `wikipedia <https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter#Two-dimensional_convolution_coefficients>`_ for details.
 
 **Parameters**
 
 
 :guilabel:`Raster layer` [raster]
-    Raster layer to be filtered.
+    `Raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ to be filtered.
 
 
 :guilabel:`Kernel` [string]
-    Python code. See <a href="https://scipy-cookbook.readthedocs.io/items/SavitzkyGolay.html#Two-dimensional-data-smoothing-and-least-square-gradient-estimate">sgolay2d</a> from the SciPy cookbook for information on different parameters.
+    Python code. See `sgolay2d <https://scipy-cookbook.readthedocs.io/items/SavitzkyGolay.html#Two-dimensional-data-smoothing-and-least-square-gradient-estimate>`_ from the SciPy cookbook for information on different parameters.
 
     Default::
 
@@ -30,7 +30,7 @@ See <a href="https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter#Two-dim
 
 
 :guilabel:`Interpolate no data pixel` [boolean]
-    Whether to interpolate no data pixel. Will result in renormalization of the kernel at each position ignoring pixels with no data values.
+    Whether to interpolate no data pixel. Will result in renormalization of the kernel at each position ignoring pixels with `no data value <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-no-data-value>`_s.
 
     Default: *True*
 
@@ -40,3 +40,42 @@ See <a href="https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter#Two-dim
 :guilabel:`Output raster layer` [rasterDestination]
     Raster file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:SpatialConvolutionSavitskygolayFilter``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    raster: Raster layer
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    kernel: Kernel
+    	Argument type:	string
+    	Acceptable values:
+    		- String value
+    normalize: Normalize kernel
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    interpolate: Interpolate no data pixel
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    outputRaster: Output raster layer
+    	Argument type:	rasterDestination
+    	Acceptable values:
+    		- Path for new raster layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputRaster: <outputRaster>
+    	Output raster layer
+    
+    

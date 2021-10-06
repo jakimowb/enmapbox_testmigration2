@@ -4,7 +4,7 @@
 Import DESIS L1B product
 ************************
 
-Prepare a spectral raster layer from the given product. Wavelength and FWHM information is set and data is scaled according to data gain/offset values.
+Prepare a `spectral raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-raster-layer>`_ from the given product. `Wavelength <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-wavelength>`_ and FWHM information is set and data is scaled according to data gain/offset values.
 
 **Parameters**
 
@@ -19,3 +19,28 @@ Prepare a spectral raster layer from the given product. Wavelength and FWHM info
 :guilabel:`Output raster layer` [rasterDestination]
     Raster file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:ImportDesisL1BProduct``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    file: Metadata file
+    	Argument type:	file
+    	Acceptable values:
+    		- Path to a file
+    outputDesisL1CRaster: Output raster layer
+    	Argument type:	rasterDestination
+    	Acceptable values:
+    		- Path for new raster layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputDesisL1CRaster: <outputRaster>
+    	Output raster layer
+    
+    

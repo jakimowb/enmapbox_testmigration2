@@ -12,6 +12,7 @@ with open(filename) as file:
         if line[:4] == '    ' and line[4] not in ' .:':
             line = line.strip()
             glossary[line] = f'{baselink}#term-{line.replace(" ", "-").lower()}'  # term-* anchor needs to be lower case
+            glossary[line + 's'] = glossary[line]  # handle generic plural
 
 # the whole injection process is implemented quit clumsy, but it works for now
 def injectGlossaryLinks(text: str):
@@ -19,8 +20,6 @@ def injectGlossaryLinks(text: str):
     terms = list()
     letter = '_abcdefghijklmnopqrstuvwxyz'
     letter = letter + letter.upper()
-    letterWithoutS = '_abcdefghijklmnopqrtuvwxyz'
-    letterWithoutS = letterWithoutS + letterWithoutS.upper()
 
     # mask out all weblinks to avoid term injection here (addresses issue #741)
     links = utilsFindWeblinks(text)
@@ -44,7 +43,7 @@ def injectGlossaryLinks(text: str):
             if i0 > 0:
                 if text[i0 - 1].lower() in letter:
                     continue
-            if text[i0 + len(k)].lower() in letterWithoutS:
+            if text[i0 + len(k)].lower() in letter:
                 continue
 
             #if text[i0 + len(k)].lower() in letter:
@@ -105,7 +104,7 @@ def injectGlossaryLinks(text: str):
 def utilsFindWeblinks(text) -> List[str]:
     match_: re.Match
     starts = [match_.start() for match_ in re.finditer('<a href="', text)]
-    ends = [match_.start() for match_ in re.finditer('</a>', text)]
+    ends = [match_.start() + 4 for match_ in re.finditer('</a>', text)]
     assert len(starts) == len(ends)
     links = [text[start:end] for start, end in zip(starts, ends)]
     return links

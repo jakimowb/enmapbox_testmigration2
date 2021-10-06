@@ -4,7 +4,7 @@
 Import Landsat L2 product
 *************************
 
-Prepare a spectral raster layer from the given product. Wavelength information is set and data is scaled into the 0 to 10000 range.Supports Landsat 4 to 8, collection 1 and 2. 
+Prepare a `spectral raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-raster-layer>`_ from the given product. `Wavelength <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-wavelength>`_ information is set and data is scaled into the 0 to 10000 range.Supports Landsat 4 to 8, collection 1 and 2. 
 
 **Parameters**
 
@@ -19,3 +19,28 @@ Prepare a spectral raster layer from the given product. Wavelength information i
 :guilabel:`Output raster layer` [rasterDestination]
     Raster file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:ImportLandsatL2Product``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    file: Metadata file
+    	Argument type:	file
+    	Acceptable values:
+    		- Path to a file
+    outputLandsatL2Raster: Output raster layer
+    	Argument type:	rasterDestination
+    	Acceptable values:
+    		- Path for new raster layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputLandsatL2Raster: <outputRaster>
+    	Output raster layer
+    
+    

@@ -409,6 +409,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             title, text2 = self.helpHeader()
             text += f' <i><h3>{title}</h3> </i><p>{injectGlossaryLinks(text2)}</p>'
         for name, text2 in self.helpParameters():
+            if text2 == '':
+                continue
             text += f'<h3>{name}</h3><p>{injectGlossaryLinks(text2)}</p>'
         return text
 

@@ -4,15 +4,15 @@
 Fit SVC (RBF kernel)
 ********************
 
-C-Support Vector Classification. 
-The implementation is based on libsvm. The fit time scales at least quadratically with the number of samples and may be impractical beyond tens of thousands of samples. 
+C-Support Vector `Classification <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classification>`_. 
+The implementation is based on libsvm. The fit time scales at least quadratically with the number of `sample <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-sample>`_s and may be impractical beyond tens of thousands of samples. 
 The multiclass support is handled according to a one-vs-one scheme.
 
 **Parameters**
 
 
 :guilabel:`Classifier` [string]
-    Scikit-learn python code. See <a href="http://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html">SVC</a>, <a href="http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html">GridSearchCV</a>, <a href="http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html">StandardScaler</a> for information on different parameters.
+    Scikit-learn python code. See `SVC <http://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html>`_, `GridSearchCV <http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html>`_, `StandardScaler <http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html>`_ for information on different parameters.
 
     Default::
 
@@ -29,11 +29,40 @@ The multiclass support is handled according to a one-vs-one scheme.
         classifier = make_pipeline(StandardScaler(), tunedSVC)
 
 :guilabel:`Training dataset` [file]
-    Training dataset pickle file used for fitting the classifier. If not specified, an unfitted classifier is created.
+    `Training dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-training-dataset>`_ `pickle file <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-pickle-file>`_ used for fitting the `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_. If not specified, an unfitted classifier is created.
 
 **Outputs**
 
 
 :guilabel:`Output classifier` [fileDestination]
-    Destination pickle file.
+    Destination `pickle file <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-pickle-file>`_.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:FitSvcRbfKernel``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    classifier: Classifier
+    	Argument type:	string
+    	Acceptable values:
+    		- String value
+    dataset: Training dataset
+    	Argument type:	file
+    	Acceptable values:
+    		- Path to a file
+    outputClassifier: Output classifier
+    	Argument type:	fileDestination
+    	Acceptable values:
+    		- Path for new file
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputClassifier: <outputFile>
+    	Output classifier
+    
+    

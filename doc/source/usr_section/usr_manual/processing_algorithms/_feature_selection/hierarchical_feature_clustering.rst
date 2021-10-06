@@ -4,18 +4,18 @@
 Hierarchical feature clustering
 *******************************
 
-Evaluate feature multicollinearity by performing hierarchical/agglomerative clustering with Ward linkage using squared Spearman rank-order correlation as distance between features. The result report includes i) pairwise squared Spearman rank-order correlation matrix, ii) clustering dendrogram, iii) inter-cluster correlation distribution, iv) intra-cluster correlation distribution, and v) a clustering hierarchy table detailing selected cluster representatives for each cluster size n.
+Evaluate `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_ multicollinearity by performing hierarchical/agglomerative `clustering <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-clustering>`_ with Ward linkage using squared Spearman rank-order correlation as distance between features. The result report includes i) pairwise squared Spearman rank-order correlation matrix, ii) clustering dendrogram, iii) inter-cluster correlation distribution, iv) intra-cluster correlation distribution, and v) a clustering hierarchy `table <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-table>`_ detailing selected cluster representatives for each cluster size n.
 For further analysis, all relevant results are also stored as a JSON sidecar file next to the report.
 
 **Parameters**
 
 
 :guilabel:`Dataset` [file]
-    Dataset pickle file with feature data X to be evaluated.
+    `Dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-dataset>`_ `pickle file <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-pickle-file>`_ with `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_ data `X <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-x>`_ to be evaluated.
 
 
 :guilabel:`Do not report plots` [boolean]
-    Skip the creation of plots, which can take a lot of time for large features sets.
+    Skip the creation of plots, which can take a lot of time for large `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_s sets.
 
     Default: *False*
 
@@ -31,3 +31,38 @@ For further analysis, all relevant results are also stored as a JSON sidecar fil
 :guilabel:`Output report` [fileDestination]
     Output report file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:HierarchicalFeatureClustering``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    dataset: Dataset
+    	Argument type:	file
+    	Acceptable values:
+    		- Path to a file
+    noPlot: Do not report plots
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    openReport: Open output report in webbrowser after running algorithm
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    outputHierarchicalFeatureClustering: Output report
+    	Argument type:	fileDestination
+    	Acceptable values:
+    		- Path for new file
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputHierarchicalFeatureClustering: <outputHtml>
+    	Output report
+    
+    

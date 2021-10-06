@@ -34,5 +34,5 @@ class TestUtils(TestCase):
         text2 = injectGlossaryLinks(text)
         self.assertEqual(
             text2,
-            'abc <a href="https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature">feature</a>s def'
+            'abc <a href="https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature">features</a> def'
         )

@@ -4,13 +4,13 @@
 Create classification dataset (from Python code)
 ************************************************
 
-Create a classification dataset from Python code and store the result as a pickle file.
+Create a `classification <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classification>`_ `dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-dataset>`_ from Python code and store the result as a `pickle file <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-pickle-file>`_.
 
 **Parameters**
 
 
 :guilabel:`Code` [string]
-    Python code specifying the classification dataset.
+    Python code specifying the `classification <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classification>`_ `dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-dataset>`_.
 
     Default::
 
@@ -37,5 +37,30 @@ Create a classification dataset from Python code and store the result as a pickl
 
 
 :guilabel:`Output dataset` [fileDestination]
-    Destination pickle file.
+    Destination `pickle file <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-pickle-file>`_.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:CreateClassificationDatasetFromPythonCode``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    code: Code
+    	Argument type:	string
+    	Acceptable values:
+    		- String value
+    outputClassificationDataset: Output dataset
+    	Argument type:	fileDestination
+    	Acceptable values:
+    		- Path for new file
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputClassificationDataset: <outputFile>
+    	Output dataset
+    
+    

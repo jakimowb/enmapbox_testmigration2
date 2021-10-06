@@ -4,21 +4,21 @@
 Predict class probability layer
 *******************************
 
-Uses a fitted classifier to predict class probability layer from a raster layer with features.
+Uses a fitted `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_ to predict `class probability layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-class-probability-layer>`_ from a `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ with `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_s.
 
 **Parameters**
 
 
 :guilabel:`Raster layer with features` [raster]
-    A raster layer with bands used as features. Classifier features and raster bands are matched by name.
+    A `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ with `band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_s used as `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_s. `Classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_ features and raster bands are matched by name.
 
 
 :guilabel:`Classifier` [file]
-    A fitted classifier.
+    A fitted `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_.
 
 
 :guilabel:`Mask layer` [layer]
-    A mask layer.
+    A `mask layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-mask-layer>`_.
 
 **Outputs**
 
@@ -26,3 +26,36 @@ Uses a fitted classifier to predict class probability layer from a raster layer 
 :guilabel:`Output class probability layer` [rasterDestination]
     Raster file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:PredictClassProbabilityLayer``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    raster: Raster layer with features
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    classifier: Classifier
+    	Argument type:	file
+    	Acceptable values:
+    		- Path to a file
+    mask: Mask layer
+    	Argument type:	layer
+    	Acceptable values:
+    		- Path to a vector, raster or mesh layer
+    outputProbability: Output class probability layer
+    	Argument type:	rasterDestination
+    	Acceptable values:
+    		- Path for new raster layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputProbability: <outputRaster>
+    	Output class probability layer
+    
+    
