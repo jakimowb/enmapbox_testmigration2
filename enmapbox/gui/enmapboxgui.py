@@ -1782,7 +1782,7 @@ class EnMAPBox(QgisInterface, QObject):
                     mapCanvas = canvas
                     break
             # 2.
-            showLayerPropertiesDialog(mapLayer, mapCanvas, modal=True)
+            showLayerPropertiesDialog(mapLayer, canvas=mapCanvas, messageBar=self.messageBar(), modal=True)
 
     @staticmethod
     def getIcon():
