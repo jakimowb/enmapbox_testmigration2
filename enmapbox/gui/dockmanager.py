@@ -295,7 +295,7 @@ class SpeclibDockTreeNode(DockTreeNode):
         self.mSpeclibWidget: SpectralLibraryWidget = None
         self.profilesNode: LayerTreeNode = LayerTreeNode('Profiles')
         self.profilesNode.setIcon(QIcon(':/qps/ui/icons/profile.svg'))
-        self.addChildNode(self.profilesNode)
+
 
         self.mPROFILES: typing.Dict[str, int] = dict()
 
@@ -304,6 +304,8 @@ class SpeclibDockTreeNode(DockTreeNode):
         assert isinstance(self.mSpeclibWidget, SpectralLibraryWidget)
 
         self.speclibNode = QgsLayerTreeLayer(self.speclib())
+
+        # self.addChildNode(self.profilesNode)
         self.addChildNode(self.speclibNode)
         speclib = self.speclib()
         if is_spectral_library(speclib):
@@ -322,7 +324,7 @@ class SpeclibDockTreeNode(DockTreeNode):
     def updateNodes(self):
 
         PROFILES = dict()
-
+        debugLog('update speclib nodes')
         if isinstance(self.mSpeclibWidget, SpectralLibraryWidget):
             sl: SpectralLibrary = self.mSpeclibWidget.speclib()
             if is_spectral_library(sl):
