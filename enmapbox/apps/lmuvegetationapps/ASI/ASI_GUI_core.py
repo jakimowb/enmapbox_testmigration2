@@ -46,8 +46,10 @@ pathUI = os.path.join(APP_DIR, 'Resources/UserInterfaces/ASI.ui')
 pathUI2 = os.path.join(APP_DIR, 'Resources/UserInterfaces/Nodat.ui')
 pathUI_prg = os.path.join(APP_DIR, 'Resources/UserInterfaces/ProgressBar.ui')
 
+
 class ASI_GUI(QDialog):
     mLayer: QgsMapLayerComboBox
+
     def __init__(self, parent=None):
         super(ASI_GUI, self).__init__(parent)
         loadUi(pathUI, self)
@@ -355,23 +357,26 @@ class ASI:
         self.gui.lblPixelLocation.setText("Image pixel: row: %s | col: %s" % (
             str(max_ndvi_pos[1]), str(max_ndvi_pos[2])))
         self.gui.lblPixelLocation.setStyleSheet('color: green')
-        self.plot_spec = self.core.interp_watervapor_1d(self.core.ndvi_spec / self.division_factor)
+        if not np.isnan(self.core.ndvi_spec).any():
+            self.plot_spec = self.core.interp_watervapor_1d(self.core.ndvi_spec / self.division_factor)
 
-        self.cr_spectrum, full_hull_x = self.core.segmented_convex_hull_1d(self.plot_spec)
+            self.cr_spectrum, full_hull_x = self.core.segmented_convex_hull_1d(self.plot_spec)
 
-        self.gui.rangeView.plot(self.core.wl, self.plot_spec, clear=True, pen="g", fillLevel=0,
+            self.gui.rangeView.plot(self.core.wl, self.plot_spec, clear=True, pen="g", fillLevel=0,
                                 fillBrush=(255, 255, 255, 30), name='maxNDVIspec')
-        self.gui.rangeView.plot(self.core.wl, full_hull_x, clear=False, pen="r", fillLevel=0,
+            self.gui.rangeView.plot(self.core.wl, full_hull_x, clear=False, pen="r", fillLevel=0,
                                 name='hull')
-        self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
-        self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
+            self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
+            self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
 
-        self.gui.crsView.plot(self.core.wl, self.cr_spectrum, clear=True, pen="g", fillLevel=0,
+            self.gui.crsView.plot(self.core.wl, self.cr_spectrum, clear=True, pen="g", fillLevel=0,
                               fillBrush=(255, 255, 255, 30), name='cr_spec')
-        self.gui.crsView.addItem(pg.InfiniteLine(0, angle=0, pen='r'))
-        self.gui.crsView.addItem(pg.InfiniteLine(1, angle=0, pen='w'))
-        self.gui.crsView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
-        self.gui.crsView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
+            self.gui.crsView.addItem(pg.InfiniteLine(0, angle=0, pen='r'))
+            self.gui.crsView.addItem(pg.InfiniteLine(1, angle=0, pen='w'))
+            self.gui.crsView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
+            self.gui.crsView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
+        else:
+            pass
 
     def plot_change(self, mode):
         if mode == 'zoom':
@@ -554,7 +559,9 @@ class ASI_core:
         self.division_factor = division_factor
         self.max_ndvi_pos = max_ndvi_pos
         self.ndvi_spec = ndvi_spec
+        self.NDVI = None
         self.initial_values()
+        self.max_index = None
 
     def initial_values(self):
         self.wavelengths = None
@@ -711,7 +718,7 @@ class ASI_core:
         x = np.arange(len(in_array))
         self.res = np.empty(shape=np.shape(in_array))
 
-        if np.nan not in in_array:
+        if not np.isnan(in_array).any():
             idx = np.asarray(np.nonzero(in_array))
             idx = idx.flatten()
 
@@ -940,7 +947,7 @@ class ASI_core:
             closest_bands.insert(0, closest_bands[0])
 
         fixed_end = closest_bands[4]
-
+        absorb_area_test = 0
         for row in range(in_matrix.shape[1]):
             for col in range(in_matrix.shape[2]):
                 if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
@@ -1056,6 +1063,7 @@ class ASI_core:
                         j -= 2
                     try:
                         if j == 2:
+
                             absorb_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:i, row, col]) -
                                                                  np.log(1 / contiguous_hull_x[k:i]))  # / np.nansum(contiguous_hull_x[k:i])
                             #hull_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:fixed_end, row, col]))
@@ -1074,7 +1082,9 @@ class ASI_core:
 
                 self.prgbar_process(pixel_no=row * self.ncols + col)
         max_hull_1 = np.amax(hull_area, axis=1, keepdims=True)
+        max_hull_1[np.isinf(max_hull_1)] = 0
         max_hull_2 = np.amax(max_hull_1, axis=2, keepdims=True)
+        max_hull_2[np.isinf(max_hull_2)] = 0
         max_1 = np.amax(ones_sum, axis=1, keepdims=True)
         max_ = np.amax(max_1, axis=2, keepdims=True)
         cr_absorb_area[cr_absorb_area <= 0] = 0
@@ -1140,7 +1150,6 @@ class ASI_core:
                     else:
                         continue
                     self.prgbar_process(pixel_no=row * self.ncols + col)
-
                 else:
                     continue
             else:
@@ -1150,8 +1159,11 @@ class ASI_core:
             self.max_index = [self.NDVI, self.row, self.col]  # raster pos where NDVI > 0.85 was found
             return self.max_index, self.ndvi_spec
         else:
+            self.max_index = [0, 0, 0]
+            self.ndvi_spec = np.empty(np.shape(in_raster)[0])
+            self.ndvi_spec[:] = np.nan
             QMessageBox.information(self.prg.gui, "Error", "No NDVI > 0.85 found, Check Data Input.")
-            return
+            return self.max_index, self.ndvi_spec
 
     def prgbar_process(self, pixel_no):
         if self.prg:

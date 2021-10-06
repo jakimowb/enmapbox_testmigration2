@@ -1,5 +1,7 @@
 import pathlib
 import re
+import site
+site.addsitedir(pathlib.Path(__file__).parents[1])
 
 from enmapbox.gui.utils import file_search
 
@@ -11,7 +13,6 @@ def create_runtests():
 
     TEST_DIRECTORIES = [
         DIR_REPO / 'tests',
-        DIR_REPO / 'hubdc' / 'test',
     ]
 
     assert DIR_REPO.is_dir()
@@ -63,7 +64,7 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd):/usr/share/qgis/python/plugins"
     n = 0
     if True:
         for DIR_TESTS in TEST_DIRECTORIES:
-            for i, file in enumerate(file_search(DIR_TESTS, 'test_*.py')):
+            for i, file in enumerate(file_search(DIR_TESTS, 'test_*.py', recursive=True)):
                 file = pathlib.Path(file)
                 do_append = '' if n == 0 else '--append'
                 pathTest = file.relative_to(DIR_REPO).as_posix()

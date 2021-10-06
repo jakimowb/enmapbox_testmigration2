@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import QWidgetAction, QWidget, QGridLayout, QSpinBox, QLabe
 from PyQt5.QtXml import QDomElement, QDomDocument, QDomNode
 
 from qgis.PyQt.QtCore import NULL
-from qgis._core import QgsPropertyDefinition
+from qgis.core import QgsPropertyDefinition
 from qgis.gui import QgsColorButton, QgsPropertyOverrideButton, QgsCollapsibleGroupBox
 
 from qgis.core import QgsProperty, QgsExpressionContextScope
@@ -2031,8 +2031,6 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
 
     def mimeData(self, indexes: typing.Iterable[QModelIndex]) -> QMimeData:
 
-
-
         visualizations = []
         rows = []
         for idx in indexes:
@@ -2239,25 +2237,40 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
         return self.mDualView
 
     def setDualView(self, dualView: QgsDualView):
-
+        speclib = None
         if self.mDualView != dualView:
             if isinstance(self.mDualView, QgsDualView):
+                # disconnect
                 self.mDualView.tableView().selectionModel().selectionChanged.disconnect(self.onDualViewSelectionChanged)
+                self.mDualView.tableView().verticalScrollBar().sliderMoved.disconnect(self.onDualViewSliderMoved)
 
             self.mDualView = dualView
-            self.mDualView.tableView().selectionModel().selectionChanged.connect(self.onDualViewSelectionChanged)
-            self.mDualView.tableView().verticalScrollBar().sliderMoved.connect(self.onDualViewSliderMoved)
-            # self.mDualView.view()
-            speclib = dualView.masterModel().layer()
 
-            if self.mSpeclib != speclib:
-                if isinstance(self.mSpeclib, QgsVectorLayer):
-                    # unregister signales
-                    self.mSpeclib.attributeDeleted.disconnect(self.onSpeclibAttributesChanged)
-                    self.mSpeclib.attributeAdded.disconnect(self.onSpeclibAttributesChanged)
+            if isinstance(self.mDualView, QgsDualView):
+                self.mDualView.tableView().selectionModel().selectionChanged.connect(self.onDualViewSelectionChanged)
+                self.mDualView.tableView().verticalScrollBar().sliderMoved.connect(self.onDualViewSliderMoved)
+                # self.mDualView.view()
+                speclib = dualView.masterModel().layer()
 
-                # register signals
-                self.mSpeclib = speclib
+        if self.mSpeclib != speclib:
+            if isinstance(self.mSpeclib, QgsVectorLayer):
+                # unregister signals
+                self.mSpeclib.attributeDeleted.disconnect(self.onSpeclibAttributesChanged)
+                self.mSpeclib.attributeAdded.disconnect(self.onSpeclibAttributesChanged)
+                self.mSpeclib.editCommandEnded.disconnect(self.onSpeclibEditCommandEnded)
+                # self.mSpeclib.attributeValueChanged.connect(self.onSpeclibAttributeValueChanged)
+                self.mSpeclib.beforeCommitChanges.disconnect(self.onSpeclibBeforeCommitChanges)
+                self.mSpeclib.afterCommitChanges.disconnect(self.onSpeclibAfterCommitChanges)
+                self.mSpeclib.committedFeaturesAdded.disconnect(self.onSpeclibCommittedFeaturesAdded)
+
+                self.mSpeclib.featuresDeleted.disconnect(self.onSpeclibFeaturesDeleted)
+                self.mSpeclib.selectionChanged.disconnect(self.onSpeclibSelectionChanged)
+                self.mSpeclib.rendererChanged.disconnect(self.onSpeclibRendererChanged)
+
+            self.mSpeclib = speclib
+
+            # register signals
+            if isinstance(self.mSpeclib, QgsVectorLayer):
                 self.mSpeclib.attributeDeleted.connect(self.onSpeclibAttributesChanged)
                 self.mSpeclib.attributeAdded.connect(self.onSpeclibAttributesChanged)
                 self.mSpeclib.editCommandEnded.connect(self.onSpeclibEditCommandEnded)
@@ -2270,7 +2283,6 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
                 self.mSpeclib.selectionChanged.connect(self.onSpeclibSelectionChanged)
                 self.mSpeclib.rendererChanged.connect(self.onSpeclibRendererChanged)
                 self.onSpeclibAttributesChanged()
-                # self.loadFeatureColors()
 
     def onSpeclibBeforeCommitChanges(self):
         """
@@ -2279,6 +2291,7 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
         self.mStartedCommitEditWrapper = not self.speclib().isEditCommandActive()
         if self.mStartedCommitEditWrapper:
             self.speclib().beginEditCommand('Before commit changes')
+            s = ""
 
     def onSpeclibAfterCommitChanges(self):
         """
@@ -2757,7 +2770,8 @@ class SpectralProfilePlotControlView(QTreeView):
             property.setExpressionString('@symbol_color')
 
             model: QAbstractItemModel = self.model()
-            idx = model.index(SpectralProfilePlotControlModel.PIX_COLOR, SpectralProfilePlotControlModel.CIX_VALUE, parentIdx)
+            idx = model.index(SpectralProfilePlotControlModel.PIX_COLOR, SpectralProfilePlotControlModel.CIX_VALUE,
+                              parentIdx)
             self.model().setData(idx, property, role=Qt.EditRole)
         pass
 
