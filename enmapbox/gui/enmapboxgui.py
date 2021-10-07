@@ -654,7 +654,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def onMapCanvasKeyPressed(self, mapCanvas: MapCanvas, e: QKeyEvent):
 
-        if e.key() == Qt.Key_S:
+        if e.key() == Qt.Key_A:
             # add current profiles (if collected)
             self.spectralProfileSourcePanel().addCurrentProfilesToSpeclib()
 
