@@ -889,7 +889,7 @@
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>-15</y>
+        <y>0</y>
         <width>369</width>
         <height>980</height>
        </rect>
@@ -2327,7 +2327,7 @@
              </font>
             </property>
             <property name="text">
-             <string>[m&lt;sup&gt;2&lt;/sup&gt;m&lt;sup&gt;-2&lt;/sup&gt;]</string>
+             <string>[m&lt;sup&gt;2&lt;/sup&gt;/m&lt;sup&gt;2&lt;/sup&gt;]</string>
             </property>
            </widget>
           </item>
@@ -3094,7 +3094,7 @@
           <item row="0" column="4">
            <widget class="QLabel" name="label_2">
             <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;[m&lt;span style=&quot; vertical-align:super;&quot;&gt;2&lt;/span&gt;m&lt;span style=&quot; vertical-align:super;&quot;&gt;-2&lt;/span&gt;]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;[m&lt;span style=&quot; vertical-align:super;&quot;&gt;2&lt;/span&gt;/m&lt;span style=&quot; vertical-align:super;&quot;&gt;2&lt;/span&gt;]&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
            </widget>
           </item>

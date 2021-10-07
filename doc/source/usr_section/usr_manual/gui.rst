@@ -51,16 +51,16 @@ In the toolbar you can find the most common tasks. See table below for informati
      - Changes the zoom level of the map you click to show the full extent of all layers visualized in it
    * - |select_location|
      - Identify
-     - Identify loactions on the map where you click. Use the three options on the right to specify what to identify
+     - Identify locations on the map where you click with the cursor. Use the three options on the right to specify what to identify
    * - |mActionIdentify|
-     - Identify cursor location value
-     - Cursor Location Values. Shows pixel values of all layers at the selected position.
+     - *option:* Location value
+     - Shows pixel values of all layers at the selected position
    * - |profile|
-     - Select pixel profiles from map
+     - *option:* Pixel profile
      - Opens spectral library window (if not opened yet) and plots the spectral profile of the selected pixel
    * - |pan_center|
-     - Center map on clicked location
-     - This tool will move the center of the map view to the pixel you click on
+     - *option:* Center map
+     - Moves the map center to the selected cursor location
    * - |link_basic|
      - Specify the linking between different maps
      - Opens the Map Linking Dialog

@@ -97,7 +97,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
     GROUP_CREATE_SAMPLE = 'Create Sample'
     GROUP_CLASSIFICATION = 'Classification'
     GROUP_CLUSTERING = 'Clustering'
-    GROUP_IMPORT_DATA = 'Import Data'
+    #GROUP_IMPORT_DATA = 'Import Data'
     GROUP_MASKING = 'OLD_Masking'
     GROUP_OPTIONS = 'Options'
     GROUP_PREPROCESSING = 'Pre-Processing'

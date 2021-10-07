@@ -2,7 +2,6 @@ from os.path import basename
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
-from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsRectangle,
                         QgsCoordinateReferenceSystem)
 
@@ -25,7 +24,10 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._FILE, 'The HE5 product file.'),
+            (self._FILE, 'The HE5 product file.\n'
+                         'Instead of executing this algorithm, '
+                         'you may drag&drop the HE5 file directly from your system file browser onto '
+                         'the EnMAP-Box map view area.'),
             (self._OUTPUT_RASTER, self.RasterFileDestination)
         ]
 
@@ -50,7 +52,7 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
         he5Filename = self.parameterAsFile(parameters, self.P_FILE, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -63,21 +65,20 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
                 feedback.reportError(message, True)
                 raise QgsProcessingException(message)
 
-            # read metadata
-            ds: gdal.Dataset = gdal.Open(he5Filename)
-            meta = ds.GetMetadata()
-            offsetVnir = np.float32(meta['L2ScaleVnirMin'])
-            gainVnir = np.float32((float(meta['L2ScaleVnirMax']) - float(meta['L2ScaleVnirMin'])) / 65535 * 10000)
-            selectedVnir = np.array(meta['List_Cw_Vnir'].split()) != '0'
-            offsetSwir = np.float32(meta['L2ScaleSwirMin'])
-            gainSwir = np.float32((float(meta['L2ScaleSwirMax']) - float(meta['L2ScaleSwirMin'])) / 65535 * 10000)
-            selectedSwir = np.array(meta['List_Cw_Swir'].split()) != '0'
-
-            # read data, fix interleave, reverse band order and scale
+            # read data and metadata (we aren't using GDAL, because it had problems reading the HE5 files)
             import h5py
             with h5py.File(he5Filename, 'r') as file:
                 arrayVnir = file['/HDFEOS/SWATHS/PRS_L2D_HCO/Data Fields/VNIR_Cube'][()]
                 arraySwir = file['/HDFEOS/SWATHS/PRS_L2D_HCO/Data Fields/SWIR_Cube'][()]
+                meta = {key: file.attrs[key] for key in file.attrs.keys()}
+            offsetVnir = meta['L2ScaleVnirMin']
+            gainVnir = (meta['L2ScaleVnirMax'] - meta['L2ScaleVnirMin']) / 65535 * 10000
+            selectedVnir = meta['List_Cw_Vnir'] != 0
+            offsetSwir = meta['L2ScaleSwirMin']
+            gainSwir = (meta['L2ScaleSwirMax'] - meta['L2ScaleSwirMin']) / 65535 * 10000
+            selectedSwir = meta['List_Cw_Swir'] != 0
+
+            # fix interleave, reverse band order and scale
             arrayVnir = offsetVnir + np.transpose(arrayVnir, [1, 0, 2])[selectedVnir][::-1] * gainVnir
             arraySwir = offsetSwir + np.transpose(arraySwir, [1, 0, 2])[selectedSwir][::-1] * gainSwir
             array = list(arrayVnir.astype(np.int16)) + list(arraySwir.astype(np.int16))
@@ -91,10 +92,6 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
             # write data
             extent = QgsRectangle(
                 float(meta['Product_ULcorner_easting']) - 15, float(meta['Product_LRcorner_northing']) - 15,
-                float(meta['Product_ULcorner_northing']) + 15, float(meta['Product_LRcorner_easting']) + 15
-            )
-            extent = QgsRectangle(
-                float(meta['Product_ULcorner_easting']) - 15, float(meta['Product_LRcorner_northing']) - 15,
                 float(meta['Product_LRcorner_easting']) + 15, float(meta['Product_ULcorner_northing']) + 15
             )
 
@@ -104,17 +101,17 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
 
             # set metadata
             wavelengthVnir = list(reversed([float(v)
-                                            for v, flag in zip(meta['List_Cw_Vnir'].split(), selectedVnir)
+                                            for v, flag in zip(meta['List_Cw_Vnir'], selectedVnir)
                                             if flag]))
             wavelengthSwir = list(reversed([float(v)
-                                            for v, flag in zip(meta['List_Cw_Swir'].split(), selectedSwir)
+                                            for v, flag in zip(meta['List_Cw_Swir'], selectedSwir)
                                             if flag]))
             wavelength = wavelengthVnir + wavelengthSwir
             fwhmVnir = list(reversed([float(v)
-                                      for v, flag in zip(meta['List_Fwhm_Vnir'].split(), selectedVnir)
+                                      for v, flag in zip(meta['List_Fwhm_Vnir'], selectedVnir)
                                       if flag]))
             fwhmSwir = list(reversed([float(v)
-                                      for v, flag in zip(meta['List_Fwhm_Swir'].split(), selectedSwir)
+                                      for v, flag in zip(meta['List_Fwhm_Swir'], selectedSwir)
                                       if flag]))
             fwhm = fwhmVnir + fwhmSwir
 

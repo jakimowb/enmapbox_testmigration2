@@ -29,7 +29,7 @@ class ImportSentinel2L2AAlgorithm(EnMAPProcessingAlgorithm):
         'B11, SWIR (1614 Nanometers)[20 Meter]',
         'B12, SWIR (2202 Nanometers)[20 Meter]'
     ]
-    D_BAND_LIST = list(range(len(P_BAND_LIST)))  # [1, 2, 3, 4, 5, 6, 7, 8, 11, 12]
+    D_BAND_LIST = list(range(len(O_BAND_LIST)))  # [1, 2, 3, 4, 5, 6, 7, 8, 11, 12]
     P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputSentinel2L2ARaster', 'Output raster layer'
 
     def displayName(self):
@@ -41,7 +41,10 @@ class ImportSentinel2L2AAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._FILE, 'The MTD_MSIL2A.xml metadata file associated with the product.'),
+            (self._FILE, 'The MTD_MSIL2A.xml metadata file associated with the product.\n'
+                         'Instead of executing this algorithm, '
+                         'you may drag&drop the metadata file directly from your system file browser onto '
+                         'the EnMAP-Box map view area.'),
             (self._BAND_LIST, 'Bands to be stacked together. '
                               'Defaults to all 10m and 20m bands ordered by center wavelength. '
                               'Note that the destination pixel size matches the smallest/finest '
@@ -72,7 +75,7 @@ class ImportSentinel2L2AAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         xmlFilename = self.parameterAsFile(parameters, self.P_FILE, context)
         bandListIndices = self.parameterAsInts(parameters, self.P_BAND_LIST, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)

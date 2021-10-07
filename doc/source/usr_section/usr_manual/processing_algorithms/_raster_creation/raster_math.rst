@@ -4,32 +4,159 @@
 Raster math
 ***********
 
-Create a raster layer by evaluating an expression with numpy syntax. Use any basic arithmetic and logical operators supported by numpy arrays. The numpy modul is imported as np.
+Perform mathematical calculations on `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ and `vector layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-vector-layer>`_ data. Use any `NumPy <https://numpy.org/doc/stable/reference/>`_-based arithmetic, or even arbitrary Python code.
+See the `RasterMath cookbook recipe <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/raster_math.html>`_ for detailed usage instructions.
 
 **Parameters**
 
 
-:guilabel:`Raster layers` [multilayer]
-    List of raster layers that are mapped to variables A, B, C, ... .
-    Individual bands are mapped to variables A@1, A@2, ..., B@1, B@2, ... .
-
-
-:guilabel:`Expression` [string]
-    The expression to be evaluated. Must result in a (multiband) 3d numpy array, a (single-band) 2d numpy array or a list of 2d numpy arrays.
-    Example 1 - add up two bands: <pre>A@1 + B@1</pre>
-    Example 2 - add up two rasters (with same number of bands) band-wise: <pre>A + B</pre>
-    Example 3 - use a numpy function to calculate the exponential of all values in a raster: <pre>np.exp(A)</pre>
-    Example 4 - build a band stack with all bands from three raster layers:<pre>list(A) + list(B) + list(C)</pre>
-    More complex expressions can be splitted into multiple lines for defining temporary variables or import modules. Here the last line is evaluated as the final result.
-    Example 5 - use a multiple line code block to calculate a vegetation index:<pre>nir = np.float32(A@4)<br>red = np.float32(A@3)<br>ndvi = (nir - red) / (nir + red)<br>ndvi</pre>
+:guilabel:`Code` [string]
+    The mathematical calculation to be performed on the selected input arrays.
+    Select inputs in the available data sources section or use the `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ R1, ..., R10 and `vector layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-vector-layer>`_ V1, ..., V10.
+    In the code snippets section you can find some prepdefined code snippets ready to use.
+    See the `RasterMath cookbook recipe <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/raster_math.html>`_ for detailed usage instructions.
 
 
 :guilabel:`Grid` [raster]
-    The target grid. If not specified, the grid of the first raster layer is used.
+    The destination `grid <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-grid>`_. If not specified, the grid of the first `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ is used.
+
+
+:guilabel:`Block overlap` [number]
+    The number of columns and rows to read from the neighbouring blocks. Needs to be specified only when performing spatial operations, to avoid artifacts at block borders.
+
+
+:guilabel:`Monolithic processing` [boolean]
+    Whether to read all data for the full extent at once, instead of block-wise processing. This may be useful for some spatially unbound operations, like segmentation or region growing, when calculating global statistics, or if RAM is not an issue at all.
+
+    Default: *False*
+
+
+:guilabel:`Raster layers mapped to RS` [multilayer]
+    Additional list of `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_s mapped to a list variable RS.
 
 **Outputs**
 
 
 :guilabel:`Output raster layer` [rasterDestination]
-    Output raster file destination.
+    Raster file destination for writing the default `output <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-output>`_ variable. Additional outputs are written into the same directory. See the `RasterMath cookbook recipe <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/raster_math.html>`_ for detailed usage instructions.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:RasterMath``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    code: Code
+    	Argument type:	string
+    	Acceptable values:
+    		- String value
+    grid: Grid
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    overlap: Block overlap
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    monolithic: Monolithic processing
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    R1: Raster layer mapped to R1
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    R2: Raster layer mapped to R2
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    R3: Raster layer mapped to R3
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    R4: Raster layer mapped to R4
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    R5: Raster layer mapped to R5
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    R6: Raster layer mapped to R6
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    R7: Raster layer mapped to R7
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    R8: Raster layer mapped to R8
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    R9: Raster layer mapped to R9
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    R10: Raster layer mapped to R10
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    V1: Vector layer mapped to V1
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    V2: Vector layer mapped to V2
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    V3: Vector layer mapped to V3
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    V4: Vector layer mapped to V4
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    V5: Vector layer mapped to V5
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    V6: Vector layer mapped to V6
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    V7: Vector layer mapped to V7
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    V8: Vector layer mapped to V8
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    V9: Vector layer mapped to V9
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    V10: Vector layer mapped to V10
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    RS: Raster layers mapped to RS
+    	Argument type:	multilayer
+    outputRaster: Output raster layer
+    	Argument type:	rasterDestination
+    	Acceptable values:
+    		- Path for new raster layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputRaster: <outputRaster>
+    	Output raster layer
+    
+    

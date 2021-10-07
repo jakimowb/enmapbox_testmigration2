@@ -26,7 +26,10 @@ class ImportDesisL2AAlgorithm(EnMAPProcessingAlgorithm):
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         return [
-            (self._FILE, 'The metadata XML file associated with the product.'),
+            (self._FILE, 'The metadata XML file associated with the product.\n'
+                         'Instead of executing this algorithm, '
+                         'you may drag&drop the metadata XML file directly from your system file browser onto '
+                         'the EnMAP-Box map view area.'),
             (self._OUTPUT_RASTER, self.RasterFileDestination)
         ]
 
@@ -50,7 +53,7 @@ class ImportDesisL2AAlgorithm(EnMAPProcessingAlgorithm):
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
         xmlFilename = self.parameterAsFile(parameters, self.P_FILE, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)

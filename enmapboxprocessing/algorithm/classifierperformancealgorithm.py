@@ -33,6 +33,7 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
             (self._DATASET, f'Test dataset pickle file used for assessing the classifier performance.'),
             (self._NFOLD, 'The number of folds used for assessing cross-validation performance. '
                           'If not specified (default), simple test performance is assessed.'),
+            (self._OPEN_REPORT, self.ReportOpen),
             (self._OUTPUT_REPORT, self.ReportFileDestination)
         ]
 
@@ -87,6 +88,7 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
                 parameters = {
                     alg.P_CLASSIFICATION: prediction,
                     alg.P_REFERENCE: reference,
+                    alg.P_OPEN_REPORT: False,
                     alg.P_OUTPUT_REPORT: filename,
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)
@@ -114,6 +116,7 @@ class ClassifierPerformanceAlgorithm(EnMAPProcessingAlgorithm):
                 parameters = {
                     alg.P_CLASSIFICATION: prediction,
                     alg.P_REFERENCE: reference,
+                    alg.P_OPEN_REPORT: False,
                     alg.P_OUTPUT_REPORT: filename,
                 }
                 self.runAlg(alg, parameters, None, feedback2, context, True)

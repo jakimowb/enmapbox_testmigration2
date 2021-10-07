@@ -10,7 +10,7 @@ class FitLinearSvcAlgorithm(FitClassifierAlgorithmBase):
 
     def shortDescription(self) -> str:
         return 'Linear Support Vector Classification. ' \
-               '\nSimilar to SVC with parameter kernel=’linear’, but implemented in terms of liblinear rather than ' \
+               "\nSimilar to SVC with parameter kernel='linear', but implemented in terms of liblinear rather than " \
                'libsvm, so it has more flexibility in the choice of penalties and loss functions and should scale ' \
                'better to large numbers of samples. ' \
                '\nThis class supports both dense and sparse input and the multiclass support is handled according to ' \

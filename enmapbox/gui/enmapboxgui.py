@@ -30,6 +30,7 @@ from enmapboxprocessing.algorithm.importlandsatl2algorithm import ImportLandsatL
 from enmapboxprocessing.algorithm.importprismal1algorithm import ImportPrismaL1Algorithm
 from enmapboxprocessing.algorithm.importprismal2dalgorithm import ImportPrismaL2DAlgorithm
 from enmapboxprocessing.algorithm.importsentinel2l2aalgorithm import ImportSentinel2L2AAlgorithm
+from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 import enmapbox
 from qgis import utils as qgsUtils
@@ -138,6 +139,8 @@ class EnMAPBoxSplashScreen(QSplashScreen):
 
 
 class EnMAPBoxUI(QMainWindow):
+    mActionProcessingToolbox: QAction
+
     def __init__(self, *args, **kwds):
         """Constructor."""
         super().__init__(*args, **kwds)
@@ -753,8 +756,10 @@ class EnMAPBox(QgisInterface, QObject):
             for lid in toAdd:
                 assert isinstance(lid, str)
                 if lid in SPECLIBS.keys() and not lid in QgsProject.instance().mapLayers().keys():
-                    lyr = SPECLIBS[lid]
+                    lyr: QgsVectorLayer = SPECLIBS[lid]
                     QgsProject.instance().addMapLayer(lyr, False)
+                    if lyr.dataProvider().name() == 'memory':
+                        lyr.setCustomProperty("skipMemoryLayersCheck", 1)
 
                 lyr = QgsProject.instance().mapLayer(lid)
 
@@ -931,8 +936,7 @@ class EnMAPBox(QgisInterface, QObject):
         try:
             import processing.gui.ProcessingToolbox
             panel = processing.gui.ProcessingToolbox.ProcessingToolbox()
-            self.ui.processingPanel = self.addPanel(area, panel)
-
+            self.ui.processingPanel = self.addPanel(area, panel, False)
         except Exception as ex:
             print(ex, file=sys.stderr)
 
@@ -967,7 +971,7 @@ class EnMAPBox(QgisInterface, QObject):
     def initActions(self):
         # link action to managers
         self.ui.mActionAddDataSource.triggered.connect(self.mDataSourceManager.addDataSourceByDialog)
-        self.ui.mActionAddSentinel2.triggered.connect(self.mDataSourceManager.addSentinel2ByDialog)
+        # self.ui.mActionAddSentinel2.triggered.connect(self.mDataSourceManager.addSentinel2ByDialog)  # replaced by "Import Sentinel-2 L2A product" algo
         self.ui.mActionAddSubDatasets.triggered.connect(self.mDataSourceManager.addSubDatasetsByDialog)
 
         self.ui.mActionAddMapView.triggered.connect(lambda: self.mDockManager.createDock('MAP'))
@@ -1030,6 +1034,8 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.mapcanvas import CanvasLinkDialog
         self.ui.mActionMapLinking.triggered.connect(
             lambda: CanvasLinkDialog.showDialog(parent=self.ui, canvases=self.mapCanvases()))
+        self.ui.mActionProcessingToolbox.triggered.connect(
+            lambda: self.ui.processingPanel.setVisible(self.ui.processingPanel.isHidden()))
         from enmapbox.gui.about import AboutDialog
         self.ui.mActionAbout.triggered.connect(lambda: AboutDialog(parent=self.ui).show())
         from enmapbox.gui.settings import showSettingsDialog
@@ -1060,10 +1066,10 @@ class EnMAPBox(QgisInterface, QObject):
         """
         Initializes the product loaders under <menu> Project -> Add Product
         """
-        menu = self.ui.menuAdd_Product
-        separator = self.ui.mActionAddSentinel2
-        assert isinstance(menu, QMenu)
-        assert isinstance(separator, QAction)
+        menu: QMenu = self.ui.menuAdd_Product
+        #separator = self.ui.mActionAddSentinel2  # outdated
+
+        menu.addSeparator()
 
         # add more product import actions hereafter
         algs = [
@@ -1078,13 +1084,20 @@ class EnMAPBox(QgisInterface, QObject):
             ImportPrismaL2DAlgorithm(),
             ImportSentinel2L2AAlgorithm(),
         ]
+
         for alg in algs:
             name = alg.displayName()[7:-8]  # remove "Import " and " product" parts
             tooltip = alg.shortDescription()
             a = QAction(name, parent=menu)
             a.setToolTip(tooltip)
-            a.triggered.connect(lambda *args: self.showProcessingAlgorithmDialog(alg))
-            menu.insertAction(separator, a)
+            a.alg = alg
+            a.triggered.connect(self.onActionAddProductTriggered)
+            menu.addAction(a)
+
+    def onActionAddProductTriggered(self):
+        a = self.sender()
+        alg: EnMAPProcessingAlgorithm = a.alg
+        self.showProcessingAlgorithmDialog(alg)
 
     def _mapToolButton(self, action) -> Optional[QToolButton]:
         for toolBar in self.ui.findChildren(QToolBar):
@@ -1213,7 +1226,11 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigMapCanvasRemoved.emit(dock.mapCanvas())
 
         if isinstance(dock, SpectralLibraryDock):
+            if not sip.isdeleted(dock.speclib()):
+                dock.speclib().rollBack()
+                dock.speclib().commitChanges()
             self.spectralProfileSourcePanel().removeSpectralLibraryWidgets(dock.speclibWidget())
+
         # lid = dock.speclib().id()
         # if self.mapLayerStore().mapLayer(lid):
         #     self.mapLayerStore().removeMapLayer(lid)
@@ -1228,7 +1245,11 @@ class EnMAPBox(QgisInterface, QObject):
 
         panel: SpectralProfileSourcePanel = self.spectralProfileSourcePanel()
         if len(self.docks(SpectralLibraryDock)) == 0:
-            self.createDock(SpectralLibraryDock)
+            dock = self.createDock(SpectralLibraryDock)
+            if isinstance(dock, SpectralLibraryDock):
+                slw: SpectralLibraryWidget = dock.speclibWidget()
+                slw.setViewVisibility(SpectralLibraryWidget.ViewType.ProfileView)
+                slw.setVisualizationBoxCollapsed(True)
 
         if len(panel.mBridge) == 0:
             panel.createRelation()
@@ -1469,8 +1490,8 @@ class EnMAPBox(QgisInterface, QObject):
             installTestData()
 
         if not missingTestData():
-            import enmapboxtestdata
-            dir = os.path.dirname(enmapboxtestdata.__file__)
+            import enmapbox.exampledata
+            dir = os.path.dirname(enmapbox.exampledata.__file__)
             files = list(
                 file_search(dir, re.compile('.*(bsq|bil|bip|tif|gpkg|sli|img|shp|pkl)$', re.I), recursive=True))
             files = [pathlib.Path(file).as_posix() for file in files]
@@ -1762,7 +1783,7 @@ class EnMAPBox(QgisInterface, QObject):
                     mapCanvas = canvas
                     break
             # 2.
-            showLayerPropertiesDialog(mapLayer, mapCanvas, modal=True)
+            showLayerPropertiesDialog(mapLayer, canvas=mapCanvas, messageBar=self.messageBar(), modal=True)
 
     @staticmethod
     def getIcon():
@@ -1881,8 +1902,8 @@ class EnMAPBox(QgisInterface, QObject):
     currentLayerChanged = pyqtSignal(QgsMapLayer)
 
     ### ACTIONS ###
-    def actionAddSentinel2(self) -> QAction:
-        return self.ui.mActionAddSentinel2
+    #def actionAddSentinel2(self) -> QAction:  # AR: this is outdated; replaced by "Import Sentinel-2 L2A product" algo
+    #    return self.ui.mActionAddSentinel2
 
     def actionAddSubDatasets(self) -> QAction:
         return self.ui.mActionAddSubDatasets

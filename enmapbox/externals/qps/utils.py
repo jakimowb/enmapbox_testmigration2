@@ -84,6 +84,19 @@ QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.uint8,
                          Qgis.ARGB32: np.uint32,
                          Qgis.ARGB32_Premultiplied: np.uint32}
 
+QGIS_DATATYPE_NAMES = {
+                     Qgis.Byte: 'Byte',
+                     Qgis.UInt16: 'UInt16',
+                     Qgis.Int16: 'Int16',
+                     Qgis.UInt32: 'UInt32',
+                     Qgis.Int32: 'Int32',
+                     Qgis.Float32: 'Float32',
+                     Qgis.Float64: 'Float64',
+                     Qgis.CFloat32: 'Complex',
+                     Qgis.CFloat64: 'Complex64',
+                     Qgis.ARGB32: 'UInt32',
+                     Qgis.ARGB32_Premultiplied: 'Int32'}
+
 
 def rm(p):
     """
@@ -456,7 +469,7 @@ convertDateUnit = UnitLookup.convertDateUnit
 
 METRIC_EXPONENTS = UnitLookup.METRIC_EXPONENTS
 
-# contains the wavelengths
+# contains a lookup for wavelengths in nanometers
 LUT_WAVELENGTH = dict({'B': 480,
                        'G': 570,
                        'R': 660,
@@ -465,6 +478,15 @@ LUT_WAVELENGTH = dict({'B': 480,
                        'SWIR1': 1650,
                        'SWIR2': 2150
                        })
+WAVELENGTH_DESCRIPTION = {
+    'B': f'Visible blue at {LUT_WAVELENGTH["B"]} nm',
+    'G': f'Visible green at {LUT_WAVELENGTH["G"]} nm',
+    'R': f'Visible red at {LUT_WAVELENGTH["R"]} nm',
+    'NIR': f'Near infrared at {LUT_WAVELENGTH["NIR"]} nm',
+    'SWIR': f'Shortwave infrared at {LUT_WAVELENGTH["SWIR"]} nm',
+    'SWIR1': f'Shortwave infrared at {LUT_WAVELENGTH["SWIR1"]} nm',
+    'SWIR2': f'Shortwave infrared at {LUT_WAVELENGTH["SWIR2"]} nm',
+}
 
 NEXT_COLOR_HUE_DELTA_CON = 10
 NEXT_COLOR_HUE_DELTA_CAT = 100
@@ -761,9 +783,30 @@ def ogrDataSource(data_source) -> ogr.DataSource:
 
     if isinstance(data_source, QgsVectorLayer):
         dpn = data_source.dataProvider().name()
+        uri = None
         if dpn not in ['ogr']:
+            context = QgsProcessingContext()
+            feedback = QgsProcessingFeedback()
+            alg: QgsProcessingAlgorithm = QgsApplication.processingRegistry().algorithmById('native:savefeatures').create({})
+            parameters = dict(DATASOURCE_OPTIONS='',
+                              INPUT=data_source.source(),
+                              LAYER_NAME='',
+                              LAYER_OPTIONS='',
+                              OUTPUT='TEMPORARY_OUTPUT'
+            )
+
+            assert alg.prepareAlgorithm(parameters, context, feedback), feedback.textLog()
+
+            results = alg.processAlgorithm(parameters, context, feedback)
+            print(results)
+            if not results:
+                raise Exception(f'Unable to convert {dpn} to temporary ogr format')
+            else:
+                uri = results['OUTPUT']
+        else:
+            uri = data_source.source().split('|')[0]
+        if uri is None:
             raise Exception(f'Unsupported vector data provider: {dpn}')
-        uri = data_source.source().split('|')[0]
         return ogrDataSource(uri)
 
     if isinstance(data_source, pathlib.Path):
@@ -2048,20 +2091,27 @@ def osrSpatialReference(input) -> osr.SpatialReference:
 
 
 def px2geocoordinatesV2(layer: QgsRasterLayer,
-                        xcoordinates: np.ndarray, ycoordinates: np.ndarray,
+                        xcoordinates: np.ndarray = None,
+                        ycoordinates: np.ndarray = None,
                         subpixel_pos: float = 0.5,
                         subpixel_pos_x: float = None,
                         subpixel_pos_y: float = None) -> typing.Tuple[np.ndarray, np.ndarray]:
     """
-    Returns the pixel center as coordinate in a raster layer's CRS
+    Returns the pixel centers as coordinate in a raster layer's CRS
     :param layer: QgsRasterLayer
     :param px: QPoint pixel position (0,0) = 1st pixel
-    :return: SpatialPoint
+    :return: geo_x, geo_y numpy arrays
     """
     assert isinstance(layer, QgsRasterLayer) and layer.isValid()
     # assert 0 <= px.x() < layer.width()
     # assert 0 <= px.y() < layer.height()
     assert 0 <= subpixel_pos <= 1.0
+
+    if xcoordinates is None:
+        xcoordinates = np.arange(layer.width())
+
+    if ycoordinates is None:
+        ycoordinates = np.arange(layer.height())
 
     if subpixel_pos_x is None:
         subpixel_pos_x = subpixel_pos

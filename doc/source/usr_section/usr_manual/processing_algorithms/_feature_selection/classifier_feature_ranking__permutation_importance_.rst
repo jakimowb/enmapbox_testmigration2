@@ -4,31 +4,31 @@
 Classifier feature ranking (permutation importance)
 ***************************************************
 
-Permutation feature importance is a model inspection technique that is especially useful for non-linear or opaque estimators. The permutation feature importance is defined to be the decrease in a model score when a single feature value is randomly shuffled. This procedure breaks the relationship between the feature and the target, thus the drop in the model score is indicative of how much the model depends on the feature. This technique benefits from being model agnostic and can be calculated many times with different permutations of the feature.
+Permutation `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_ importance is a model inspection technique that is especially useful for non-linear or opaque `estimator <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-estimator>`_s. The permutation feature importance is defined to be the decrease in a model score when a single feature value is randomly shuffled. This procedure breaks the relationship between the feature and the `target <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-target>`_, thus the drop in the model score is indicative of how much the model depends on the feature. This technique benefits from being model agnostic and can be calculated many times with different permutations of the feature.
 
 **Parameters**
 
 
 :guilabel:`Classifier` [file]
-    Classifier pickle file. In case of an unfitted classifier, also specify a training dataset.
+    Classifier `pickle file <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-pickle-file>`_. In case of an unfitted `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_, also specify a `training dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-training-dataset>`_.
 
 
 :guilabel:`Training dataset` [file]
-    Training dataset pickle file used for (re-)fitting the classifier. Can be skipped in case of a fitted classifier.
+    `Training dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-training-dataset>`_ `pickle file <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-pickle-file>`_ used for (re-)fitting the `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_. Can be skipped in case of a fitted classifier.
 
 
 :guilabel:`Test dataset` [file]
-    Test dataset pickle file used for performance evaluation. If skipped, the training dataset is used.
+    `Test dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-test-dataset>`_ `pickle file <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-pickle-file>`_ used for performance evaluation. If skipped, the `training dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-training-dataset>`_ is used.
 
 
 :guilabel:`Evaluation metric` [enum]
-    An evaluation metric to use. See Metrics and scoring: quantifying the quality of predictions for further information.
+    An `evaluation metric <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-evaluation-metric>`_ to use. See Metrics and scoring: quantifying the quality of predictions for further information.
 
     Default: *7*
 
 
 :guilabel:`Number of repetitions` [number]
-    Number of times to permute a feature.
+    Number of times to permute a `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_.
 
     Default: *10*
 
@@ -36,9 +36,86 @@ Permutation feature importance is a model inspection technique that is especiall
 :guilabel:`Random seed` [number]
     The seed for the random generator can be provided.
 
+
+:guilabel:`Open output report in webbrowser after running algorithm` [boolean]
+    Whether to open the output report in the web browser.
+
+    Default: *True*
+
 **Outputs**
 
 
 :guilabel:`Output report` [fileDestination]
     Output report file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:ClassifierFeatureRankingPermutationImportance``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    classifier: Classifier
+    	Argument type:	file
+    	Acceptable values:
+    		- Path to a file
+    trainDataset: Training dataset
+    	Argument type:	file
+    	Acceptable values:
+    		- Path to a file
+    testDataset: Test dataset
+    	Argument type:	file
+    	Acceptable values:
+    		- Path to a file
+    evaluationMetric: Evaluation metric
+    	Argument type:	enum
+    	Available values:
+    		- 0: accuracy
+    		- 1: balanced_accuracy
+    		- 2: top_k_accuracy
+    		- 3: average_precision
+    		- 4: neg_brier_score
+    		- 5: f1
+    		- 6: f1_micro
+    		- 7: f1_macro
+    		- 8: f1_weighted
+    		- 9: f1_samples
+    		- 10: neg_log_loss
+    		- 11: precision
+    		- 12: recall
+    		- 13: jaccard
+    		- 14: roc_auc
+    		- 15: roc_auc_ovr
+    		- 16: roc_auc_ovo
+    		- 17: roc_auc_ovr_weighted
+    		- 18: roc_auc_ovo_weighted
+    	Acceptable values:
+    		- Number of selected option, e.g. '1'
+    		- Comma separated list of options, e.g. '1,3'
+    repeats: Number of repetitions
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    seed: Random seed
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    openReport: Open output report in webbrowser after running algorithm
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    outputPermutationImportanceRanking: Output report
+    	Argument type:	fileDestination
+    	Acceptable values:
+    		- Path for new file
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputPermutationImportanceRanking: <outputHtml>
+    	Output report
+    
+    

@@ -1,11 +1,9 @@
-import webbrowser
+from qgis._core import (QgsRasterLayer, QgsVectorLayer)
 
-import processing
-from qgis._core import (QgsRasterLayer, QgsVectorLayer, QgsProcessingContext)
 from enmapboxprocessing.algorithm.samplerastervaluesalgorithm import SampleRasterValuesAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, landcover_polygons
-from enmapboxunittestdata import landcover_points_singlepart_epsg3035, enmap_uncompressed
+from enmapbox.exampledata import enmap, landcover_polygons
+from enmapboxtestdata import landcover_points_singlepart_epsg3035, enmap_uncompressed
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -53,4 +51,3 @@ class TestSampleRasterValuesAlgorithm(TestCase):
             ['fid', 'COVER', 'level_1_id', 'level_1', 'level_2_id', 'level_2', 'level_3_id', 'level_3'],
             points.fields().names()[:8]
         )
-

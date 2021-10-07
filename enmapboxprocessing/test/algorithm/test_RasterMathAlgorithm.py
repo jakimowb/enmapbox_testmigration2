@@ -3,10 +3,10 @@ from os.path import normpath
 import numpy as np
 from qgis._core import QgsProject, QgsRasterLayer, QgsMapLayer
 
-from enmapboxprocessing.algorithm.rastermathalgorithm import RasterMathAlgorithm
+from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, hires, landcover_polygons
+from enmapbox.exampledata import enmap, hires, landcover_polygons
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -210,7 +210,7 @@ class TestRasterMathAlgorithm(TestCase):
         self.assertEqual(71158. * len(bandList), np.sum(RasterReader(result['raster10']).array(), dtype=float))
 
 
-    def test_externalVectorLayer(self):
+    def test_externalVectorLayer_field(self):
         alg = RasterMathAlgorithm()
         parameters = {
             alg.P_CODE: f"# landcover := QgsVectorLayer('{landcover_polygons}')\n"
@@ -222,7 +222,19 @@ class TestRasterMathAlgorithm(TestCase):
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
         self.assertEqual(5260, np.sum(reader.array(), dtype=float))
 
-    def test_alias(self):
+    def test_externalVectorLayer_mask(self):
+        alg = RasterMathAlgorithm()
+        parameters = {
+            alg.P_CODE: f"# landcover := QgsVectorLayer('{landcover_polygons}')\n"
+                        'landcover',
+            alg.P_GRID: enmap,
+            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
+        }
+        result = self.runalg(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(2028, np.sum(reader.array(), dtype=float))
+
+    def _test_alias(self):
         alg = RasterMathAlgorithm()
         parameters = {
             alg.P_R1: enmap,
@@ -232,4 +244,3 @@ class TestRasterMathAlgorithm(TestCase):
             alg.P_OUTPUT_RASTER: 'c:/vsimem/raster.tif'
         }
         result = self.runalg(alg, parameters)
-

@@ -47,8 +47,8 @@ MD = QGISMetadataFileWriter()
 MD.mName = 'EnMAP-Box 3'
 MD.mDescription = 'Imaging Spectroscopy and Remote Sensing for QGIS'
 MD.mTags = ['raster', 'analysis', 'imaging spectroscopy', 'spectral', 'hyperspectral', 'multispectral',
-            'landsat', 'sentinel', 'enmap', 'land cover', 'landscape',
-            'classification', 'remote sensing',
+            'landsat', 'sentinel', 'enmap', 'desis', 'prisma', 'land cover', 'landscape',
+            'classification', 'regression', 'unmixing', 'remote sensing',
             'mask', 'accuracy', 'clip', 'spectral signature', 'supervised classification', 'clustering',
             'machine learning']
 MD.mCategory = 'Analysis'
@@ -130,7 +130,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
                                pattern=re.compile(r'\.(meta|srf)$'))))
 
     # add unit tests
-    files.extend(list(scantree(DIR_REPO / 'enmapboxtesting', pattern=re.compile(r'\.py$'))))
+    files.extend(list(scantree(DIR_REPO / 'enmapbox' / 'exampledata', pattern=re.compile(r'\.py$'))))
     files.append(DIR_REPO / '__init__.py')
     files.append(DIR_REPO / 'CHANGELOG.rst')
     files.append(DIR_REPO / 'CONTRIBUTORS.rst')
@@ -161,8 +161,9 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
     # include test data into test versions
     if include_testdata:
-        if os.path.isdir(enmapbox.DIR_TESTDATA):
-            shutil.copytree(enmapbox.DIR_TESTDATA, PLUGIN_DIR / 'enmapboxtestdata')
+        if os.path.isdir(enmapbox.DIR_EXAMPLEDATA):
+            DEST = PLUGIN_DIR / 'enmapbox' / 'exampledata'
+            shutil.copytree(enmapbox.DIR_EXAMPLEDATA, DEST, dirs_exist_ok=True)
 
     if include_qgisresources and not re.search(currentBranch, 'master', re.I):
         qgisresources = pathlib.Path(DIR_REPO) / 'qgisresources'
@@ -291,7 +292,7 @@ if __name__ == "__main__":
     if re.search(r'\.master\.', path.name):
         message = '\nVery important checklist. Do not remove!!!' \
                   '\nChecklist for release:' \
-                  '\n0. Run scripts\runtests.bat' \
+                  '\n0. Run scripts\\runtests.bat (win) or scripts/runtests.sh (linux/mac)' \
                   '\n1. Change log up-to-date?' \
                   '\n2. ZIP containing branch information?' \
                   '\n3. Processing algo documentation up-to-date (run create_processing_rst)?.' \

@@ -8,14 +8,16 @@ from qgis.core import QgsVectorLayer, QgsField, QgsFeature, QgsFields
 from ...speclib import EDITOR_WIDGET_REGISTRY_KEY
 
 
-def create_profile_field(name: str, comment: str = '') -> QgsField:
+def create_profile_field(name: str, comment: str = None) -> QgsField:
     """
     Creates a QgsField to store spectral profiles
     :param name: field name
     :param comment: field comment, optional
     :return: QgsField
     """
-    field = QgsField(name=name, type=QVariant.ByteArray, typeName='SpectralProfile', comment=comment)
+    if not isinstance(comment, str):
+        comment = 'Spectral Profile Field'
+    field = QgsField(name=name, type=QVariant.ByteArray, comment=comment)
     setup = QgsEditorWidgetSetup(EDITOR_WIDGET_REGISTRY_KEY, {})
     field.setEditorWidgetSetup(setup)
     return field
@@ -31,17 +33,40 @@ def is_profile_field(field: QgsField) -> bool:
     return isinstance(field, QgsField) and field.editorWidgetSetup().type() == EDITOR_WIDGET_REGISTRY_KEY
 
 
+def contains_profile_field(object: typing.Union[QgsVectorLayer, QgsFeature, QgsFields]) -> bool:
+    """
+    Returns True if the input contains a QgsField of type binary and editorWidget SpectralProfile
+    :param object:
+    :return: bool
+    """
+    fields = None
+    if isinstance(object, (QgsVectorLayer, QgsFeature)):
+        fields = object.fields()
+    elif isinstance(object, QgsFields):
+        fields = object
+    if isinstance(fields, QgsFields):
+        for field in fields:
+            if is_profile_field(field):
+                return True
+    return False
+
+
 def is_spectral_library(layer: QgsVectorLayer) -> bool:
     """
     Returns True if a vector layer contains at least one spectral profile field
     :param layer: QgsVectorLayer
     :return: bool
     """
-    if isinstance(layer, QgsVectorLayer):
-        for field in layer.fields():
-            if is_profile_field(field):
-                return True
-    return False
+    return contains_profile_field(layer)
+
+
+def is_spectral_feature(feature: QgsFeature) -> bool:
+    """
+    Returns True if a QgsFeatures contains at least oe spectral profile field
+    :param feature:
+    :return:
+    """
+    return contains_profile_field(feature)
 
 
 def profile_fields(fields: typing.Union[QgsFeature, QgsVectorLayer, QgsFields]) -> QgsFields:
@@ -50,12 +75,23 @@ def profile_fields(fields: typing.Union[QgsFeature, QgsVectorLayer, QgsFields]) 
     :param fields: fields to check
     :return: QgsFields
     """
+    pfields = QgsFields()
+
     if isinstance(fields, QgsFeature):
         fields = fields.fields()
     elif isinstance(fields, QgsVectorLayer):
         fields = fields.fields()
+    elif isinstance(fields, list):
+        fds = QgsFields()
+        for f in fields:
+            assert isinstance(f, QgsField)
+            fds.append(f)
+        fields = fds
+    elif isinstance(fields, QgsFields):
+        pass
+    if not isinstance(fields, QgsFields):
+        return pfields
 
-    pfields = QgsFields()
     for i in range(fields.count()):
         f = fields.at(i)
         if is_profile_field(f):

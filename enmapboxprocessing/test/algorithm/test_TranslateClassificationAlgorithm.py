@@ -1,14 +1,12 @@
-import webbrowser
-
 import numpy as np
-import processing
 from qgis._core import QgsRasterLayer, QgsProcessingContext
 
+import processing
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap
-from enmapboxunittestdata import landcover_raster_30m_epsg3035
+from enmapbox.exampledata import enmap
+from enmapboxtestdata import landcover_raster_30m_epsg3035
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -28,7 +26,7 @@ class TestTranslateClassificationAlgorithm(TestCase):
         cmd = alg.asPythonCommand(parameters, QgsProcessingContext())
         print(cmd)
         eval(cmd)
-        #webbrowser.open_new(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER] + '.log')
+        # webbrowser.open_new(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER] + '.log')
 
     def test_default(self):
         alg = TranslateCategorizedRasterAlgorithm()

@@ -3,8 +3,8 @@ from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvec
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapboxtestdata import landcover_polygons
-from enmapboxunittestdata import classificationDatasetAsVector
+from enmapbox.exampledata import landcover_polygons
+from enmapboxtestdata import classificationDatasetAsVector
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

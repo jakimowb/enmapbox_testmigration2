@@ -44,7 +44,7 @@ import numpy as np
 from osgeo import gdal, ogr, osr
 
 from enmapbox.gui.utils import file_search
-from enmapbox import DIR_TESTDATA
+from enmapbox import DIR_EXAMPLEDATA
 
 SHOW_GUI = True
 
@@ -67,6 +67,12 @@ def start_app(*args, loadProcessingFramework: bool = True, **kwds) -> QgsApplica
         enmapbox.registerEditorWidgets()
         enmapbox.registerExpressionFunctions()
         enmapbox.registerMapLayerConfigWidgetFactories()
+
+        from .externals.qps import registerSpectralLibraryIOs
+        registerSpectralLibraryIOs()
+
+        from .externals.qps import registerSpectralProfileSamplingModes
+        registerSpectralProfileSamplingModes()
         return app
 
 

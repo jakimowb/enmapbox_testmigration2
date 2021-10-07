@@ -34,9 +34,9 @@ from PyQt5.QtGui import QIcon, QContextMenuEvent, QPixmap
 from PyQt5.QtWidgets import QAbstractItemView, QStyle, QAction, QTreeView, QFileDialog, QDialog
 
 import qgis.utils
-from enmapbox import DIR_TESTDATA, messageLog
+from enmapbox import DIR_EXAMPLEDATA, messageLog
 from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB, is_spectral_library
-from enmapbox.externals.qps.utils import bandClosestToWavelength
+from enmapbox.externals.qps.utils import bandClosestToWavelength, QGIS_DATATYPE_NAMES
 from enmapbox.gui import \
     ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, PyObjectTreeNode, \
     qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, SpatialExtent, fileSizeString, defaultBands, \
@@ -49,7 +49,9 @@ from enmapbox.gui.mimedata import \
     MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
     QGIS_URILIST_MIMETYPE, MDF_URILIST, extractMapLayers
 from enmapbox.gui.utils import enmapboxUiPath, dataTypeName
+from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
 from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
+from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.utils import Utils
 from qgis.PyQt.QtCore import pyqtSignal
@@ -256,9 +258,10 @@ class DataSourceManager(QObject):
         :param name:
         :param icon:
         :return: a list of successfully added DataSource instances.
-                 Usually this will be a list with a single DataSource instance only, but in case of container datasets multiple instances might get returned.
+                 Usually this will be a list with a single DataSource instance only.
+                 In case of container datasets multiple instances might get returned.
         """
-        # do not add paths if the are already known
+        # do not add paths if they are already known
         knownStrings = self.uriList() + self.layerIds() + self.layerSources()
         if isinstance(newDataSource, str):
             if newDataSource in knownStrings:
@@ -267,7 +270,7 @@ class DataSourceManager(QObject):
             layers = [ds.mapLayerId() for ds in self.sources() if isinstance(ds, DataSourceSpatial)]
             layers += [ds.mapLayer().source() for ds in self.sources() if isinstance(ds, DataSourceSpatial)]
             if newDataSource in layers:
-                return None
+                return []
 
         if isinstance(newDataSource, QgsMapLayer):
             if not newDataSource.isValid() or \
@@ -323,7 +326,7 @@ class DataSourceManager(QObject):
         defaultRoot = SETTINGS.value('lastsourcedir', None)
 
         if defaultRoot is None:
-            defaultRoot = DIR_TESTDATA
+            defaultRoot = DIR_EXAMPLEDATA
 
         if not os.path.exists(defaultRoot):
             defaultRoot = None
@@ -358,7 +361,7 @@ class DataSourceManager(QObject):
         lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
 
         if lastDataSourceDir is None:
-            lastDataSourceDir = DIR_TESTDATA
+            lastDataSourceDir = DIR_EXAMPLEDATA
 
         if not os.path.exists(lastDataSourceDir):
             lastDataSourceDir = None
@@ -573,7 +576,7 @@ class DataSourceSizesTreeNode(TreeNode):
                 value.append(f'{dataSource.nSamples()}'
                              f'x{dataSource.nLines()}'
                              f'x{dataSource.nBands()}'
-                             f'x{dp.dataTypeSize(1)} Byte')
+                             f'x{dp.dataTypeSize(1)} ({QGIS_DATATYPE_NAMES.get(dp.dataType(1), "unknown type")})')
 
                 childs += [TreeNode('Pixel',
                                     value=f'{lyr.rasterUnitsPerPixelX()}x'
@@ -1068,13 +1071,33 @@ class DataSourceTreeView(TreeView):
                     sub.setEnabled(False)
 
                 # AR: add some useful processing algo shortcuts
-                alg = TranslateRasterAlgorithm()
-                parameters = {alg.P_RASTER: src.uri()}
+                parameters = {SaveRasterAsAlgorithm.P_RASTER: src.uri()}
                 a: QAction = m.addAction('Save as')
                 a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
                 a.triggered.connect(
-                    lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(alg, parameters, parent=self)
+                    lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
+                        SaveRasterAsAlgorithm(), parameters, parent=self
+                    )
                 )
+
+                parameters = {TranslateRasterAlgorithm.P_RASTER: src.uri()}
+                a: QAction = m.addAction('Translate')
+                a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
+                a.triggered.connect(
+                    lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
+                        TranslateRasterAlgorithm(), parameters, parent=self
+                    )
+                )
+
+                if splitext(src.uri())[1].lower() in ['.tif', '.tiff']:
+                    parameters = {AppendEnviHeaderToGTiffRasterAlgorithm.P_RASTER: src.uri()}
+                    a: QAction = m.addAction('Append ENVI header')
+                    a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
+                    a.triggered.connect(
+                        lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
+                            AppendEnviHeaderToGTiffRasterAlgorithm(), parameters, parent=self
+                        )
+                    )
 
             if isinstance(src, DataSourceVector):
                 if isinstance(src.mapLayer(), QgsVectorLayer):
@@ -1236,7 +1259,7 @@ class DataSourcePanelUI(QgsDockWidget):
         self.mDataSourceTreeModel: DataSourceManagerTreeModel = None
         self.mDataSourceProxyModel: DataSourceManagerProxyModel = DataSourceManagerProxyModel()
         assert isinstance(self.dataSourceTreeView, DataSourceTreeView)
-
+        self.dataSourceTreeView.setUniformRowHeights(True)
         self.dataSourceTreeView.setDragDropMode(QAbstractItemView.DragDrop)
 
         # init actions

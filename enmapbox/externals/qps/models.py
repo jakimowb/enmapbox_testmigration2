@@ -290,7 +290,7 @@ class OptionListModel(QAbstractListModel):
         elif role == Qt.ToolTipRole:
             result = '{}'.format(option.mName if option.mTooltip is None else option.mTooltip)
         elif role == Qt.DecorationRole:
-            result = option.mIcon
+            result = QIcon(option.mIcon)
         elif role == Qt.UserRole:
             result = option
         return result
@@ -720,6 +720,34 @@ class OptionTreeNode(TreeNode):
     def options(self) -> typing.List[Option]:
         return self.mOptionModel.options()
 
+class NumpyArrayIterator(object):
+    """
+    Iterator for numpy.ndArrays
+    """
+
+
+    def __init__(self, array: np.ndarray):
+        assert isinstance(array, np.ndarray)
+        self.mArray = array
+        self.mIndex = -1
+        self.mMax = array.shape[0]
+
+    def __str__(self):
+        return 'NumpyArrayIterator'
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self.mIndex += 1
+        if self.mIndex < self.mArray.shape[0]:
+            if self.mArray.ndim > 1:
+                return self.mIndex, self.mArray[self.mIndex, :]
+            else:
+                return self.mIndex, self.mArray[self.mIndex]
+        else:
+            raise StopIteration
+
 
 class PyObjectTreeNode(TreeNode):
 
@@ -734,31 +762,24 @@ class PyObjectTreeNode(TreeNode):
         if isinstance(obj, (int, float, str)):
             self.setValue(obj)
             self.mIsFetched = True
-            """
-            elif isinstance(obj, (np.ndarray,)):
-                value = np.array2string(obj, threshold=25)
-                self.setValue(value)
-                self.mIsFetched = True
-            else:
-                value = '{:1.25}'.format(str(obj)).strip()
-                self.setValue(value)
-            """
-        else:
-            # if hasattr(obj, '__name__'):
-            #    value = obj.__name__
-            # else:
-            #    value = type(obj).__name__
 
-            if isinstance(obj, (np.ndarray,)):
-                value = np.array2string(obj, threshold=10)
+        else:
+            subnodes = []
+            if isinstance(obj, np.ndarray):
+                subnodes.append(TreeNode('min', value=obj.min()))
+                subnodes.append(TreeNode('max', value=obj.max()))
+                subnodes.append(TreeNode('shape', value=obj.shape))
+                subnodes.append(TreeNode('dtype', value=obj.dtype))
+                subnodes.append(TreeNode('size', value=obj.size))
+                value = np.array2string(obj, max_line_width=512)
             elif isinstance(obj, (bytearray, bytes)):
                 value = str(obj)
             else:
-                # value = '{:1.256s}'.format(str(obj))
-                value = str(obj)  # .strip()
-            value = value.replace('\n', ' ')
+                value = str(obj)
             self.setValue(value)
             self.setToolTip(f'{self.name()} {value}')
+            if len(subnodes) > 0:
+                self.appendChildNodes(subnodes)
 
     def canFetchMore(self) -> bool:
         return not self.mIsFetched
@@ -776,12 +797,20 @@ class PyObjectTreeNode(TreeNode):
         if self.mFetchIterator is None:
             if isinstance(self.mPyObject, (list, tuple)):
                 self.mFetchIterator = enumerate(self.mPyObject)
+            elif isinstance(self.mPyObject, np.ndarray):
+                # self.mFetchIterator = iter(self.mPyObject[:,])
+                self.mFetchIterator = iter({'array': NumpyArrayIterator(self.mPyObject),
+                                           #'internals': iter(self.mPyObject)
+                                            }.items())
+            elif isinstance(self.mPyObject, NumpyArrayIterator):
+                self.mFetchIterator = self.mPyObject
             elif isinstance(self.mPyObject, dict):
                 self.mFetchIterator = iter(self.mPyObject.items())
             elif isinstance(self.mPyObject, object):
                 self.mFetchIterator = iter(sorted(inspect.getmembers(self.mPyObject)))
+            elif isinstance(iter(self.mPyObject), typing.Iterator):
+                self.mFetchIterator = self.mPyObject
             else:
-                s = ""
                 self.mIsFetched = True
                 return
 
@@ -900,6 +929,7 @@ class TreeModel(QAbstractItemModel):
         idx = self.node2idx(node)
         idx2 = self.index(idx.row(), node.columnCount() - 1, parent=idx.parent())
         self.dataChanged.emit(idx, idx2)
+        s = ""
 
     def headerData(self, section, orientation, role):
         assert isinstance(section, int)
@@ -931,6 +961,7 @@ class TreeModel(QAbstractItemModel):
         else:
             idx = self.node2idx(parentNode)
             return self.createIndex(idx.row(), idx.column(), parentNode)
+        s = ""
 
     def rowCount(self, parent: QModelIndex = None) -> int:
         """
@@ -1218,6 +1249,11 @@ class TreeView(QTreeView):
         self.mAutoExpansionDepth: int = 1
         self.mModel = None
         self.mNodeExpansion: typing.Dict[str, bool] = dict()
+        self.mAutoFirstColumnSpan: bool = True
+
+    def setAutoFirstColumnSpan(self, b:bool):
+        assert isinstance(b, bool)
+        self.mAutoFirstColumnSpan = b
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """
@@ -1248,8 +1284,10 @@ class TreeView(QTreeView):
         assert isinstance(depth, int)
         self.mAutoExpansionDepth = depth
 
-    def updateNodeExpansion(self, restore: bool,
-                            index: QModelIndex = None, prefix='') -> typing.Dict[str, bool]:
+    def updateNodeExpansion(self,
+                            restore: bool,
+                            index: QModelIndex = None,
+                            prefix='') -> typing.Dict[str, bool]:
         """
         Allows to save and restore the state of node expansion
         :param restore: bool, set True to save the state, False to restore it
@@ -1295,14 +1333,14 @@ class TreeView(QTreeView):
         if isinstance(self.mModel, QAbstractItemModel):
             self.mModel.modelReset.connect(self.onModelReset)
             self.mModel.dataChanged.connect(self.onDataChanged)
-            # self.mModel.rowsAboutToBeInserted.connect(self.onAboutRowsInserted)
             self.mModel.rowsInserted.connect(self.onRowsInserted)
 
         # update column spans
-        # self.onModelReset()
+        self.onModelReset()
 
     def onModelReset(self):
-        self.setColumnSpan(QModelIndex(), None, None)
+        if self.mAutoFirstColumnSpan:
+            self.setColumnSpan(QModelIndex(), None, None)
 
     def nodeDepth(self, index: QModelIndex) -> int:
         if not index.isValid():
@@ -1311,29 +1349,34 @@ class TreeView(QTreeView):
 
     def onRowsInserted(self, parent: QModelIndex, first: int, last: int):
 
-        node = self.model().data(parent, Qt.UserRole)
-        if True:
+        if self.mAutoFirstColumnSpan:
             self.setColumnSpan(parent, first, last)
+        else:
+            s = ""
         if True:
             level = self.nodeDepth(parent)
             if level < self.mAutoExpansionDepth:
                 self.setExpanded(parent, True)
 
     def onDataChanged(self, tl: QModelIndex, br: QModelIndex, roles):
-        self.setColumnSpan(tl.parent(), tl.row(), br.row())
+        if self.mAutoFirstColumnSpan:
+            self.setColumnSpan(tl.parent(), tl.row(), br.row())
 
     def setColumnSpan(self, parent: QModelIndex, first: int, last: int):
         """
-        Sets the column span for the rows "first" to "last" recursively
+        Sets the column span for node in rows "first" to "last" recursively
         :param parent:
-        :param idx:
-        :return:
+        :param first: (optional) 1st row to set column span for. Defaults to 0
+        :param last: (optional) last row to set column span for. Defaults to rowCount()-1 of parent
         """
 
         model: QAbstractItemModel = self.model()
         if not isinstance(model, QAbstractItemModel):
             return
         assert isinstance(parent, QModelIndex)
+
+        if parent.column() > 0:
+            return
 
         rows = model.rowCount(parent)
         cols = model.columnCount(parent)
@@ -1346,10 +1389,19 @@ class TreeView(QTreeView):
             last = rows - 1
 
         assert last < rows
+        assert first <= last
+
         for r in range(first, last + 1):
             idx0: QModelIndex = model.index(r, 0, parent)
+            node = idx0.data(Qt.UserRole)
+            if isinstance(node, PyObjectTreeNode):
+                # workaround for EnMAP-Box issue 672 and issue 737
+                # https://bitbucket.org/hu-geomatics/enmap-box/issues/672
+                # https://bitbucket.org/hu-geomatics/enmap-box/issues/737
+                continue
 
-            spanned = True
+            spanned: bool = True
+
             for c in range(1, cols):
                 idx_right = model.index(r, c, parent)
                 if idx_right.isValid():
@@ -1357,10 +1409,15 @@ class TreeView(QTreeView):
                     if txt not in [None, '']:
                         spanned = False
                         break
+
+            # if spanned:
+            #     txt0 = model.index(r, 0, parent).data(Qt.DisplayRole)
+            #     data0 = model.index(r, 0, parent).data(Qt.UserRole)
+            #     print(f'spanned: {data0} {txt0}')
             self.setFirstColumnSpanned(r, parent, spanned)
 
             # traverse sub-trees structure
-            self.setColumnSpan(idx0, None, None)
+            # self.setColumnSpan(idx0, None, None)
         return
 
     def selectedNode(self) -> TreeNode:

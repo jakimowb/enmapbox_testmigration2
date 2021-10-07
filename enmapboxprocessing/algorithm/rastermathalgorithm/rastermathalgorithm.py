@@ -32,7 +32,6 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     P_GRID, _GRID = 'grid', 'Grid'
     P_OVERLAP, _OVERLAP = 'overlap', 'Block overlap'
     P_MONOLITHIC, _MONOLITHIC = 'monolithic', 'Monolithic processing'
-    P_RS, _RS = 'rasters', 'Raster layers '
     P_R1 = 'R1'
     P_R2 = 'R2'
     P_R3 = 'R3'
@@ -53,12 +52,13 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     P_V8 = 'V8'
     P_V9 = 'V9'
     P_V10 = 'V10'
+    P_RS, _RS = 'RS', 'Raster layers mapped to RS'
     P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputRaster', 'Output raster layer'
 
     linkNumpy = EnMAPProcessingAlgorithm.htmlLink('https://numpy.org/doc/stable/reference/', 'NumPy')
-    linkTutorial = EnMAPProcessingAlgorithm.htmlLink(
-        'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_manual/applications.html#rastermath',
-        'RasterMath tutorial')
+    linkRecipe = EnMAPProcessingAlgorithm.htmlLink(
+        'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/raster_math.html',
+        'RasterMath cookbook recipe')
 
     def displayName(self) -> str:
         return 'Raster math'
@@ -67,7 +67,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
 
         return 'Perform mathematical calculations on raster layer and vector layer data. ' \
                f'Use any {self.linkNumpy}-based arithmetic, or even arbitrary Python code.\n' \
-               f'See the {self.linkTutorial} for detailed usage instructions.'
+               f'See the {self.linkRecipe} for detailed usage instructions.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
         linkReader = self.htmlLink(
@@ -83,70 +83,30 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             'feedback'
         )
         return [
-            (self._CODE, 'The mathematical calculation to be performed on the selected input arrays.\n'
-                         'Select inputs in the available data sources section or use the raster/vector layer '
-                         'parameters R1, ..., R10 and V1, ..., V10.\n'
-                         'In the code snippets section you can find some prepdefined code snippets ready to use.\n'
-                         f'See the {self.linkTutorial} for detailed usage instructions.'),
-            ('DUMMY',    'R1,A, B, ..., Z, creating result arrays R1, R2, ..., R10. '
-                         'All arrays are 3d with shape (bandCount, height, width).\n'
-                         'When using a simple expression like A + B, the result is automatically assigned to R1.\n'
-                         'Alternatively, use a statement to explicitely assign outputs like R1 = A + B.\n'
-                         'To correctly handle no data regions use the AM, ..., ZM mask arrays:'
-                         '<pre>'
-                         'R1 = A + B<br>'
-                         'R1[~AM] = -99<br>'
-                         'R1[~BM] = -99<br>'
-                         '</pre>'
-                         f'To properly set no data values, band names, metadata etc. use the R1_, ... R10_ '
-                         f'{linkWriter} handles:'
-                         '<pre>'
-                         'R1_.setNoDataValue(-99)<br>'
-                         "R1_.setBandName('my band', bandNo=1)<br>"
-                         "R1_.setMetadataItem('my key', 42, 'MY DOMAIN')<br>"
-                         '</pre>'
-                         'To query or copy source no data values, band names, metadata etc. use the A_, ..., Z_ '
-                         f'{linkReader} handles. E.g., copy all data and metadata:'
-                         '<pre>'
-                         'R1 = A<br>'
-                         'R1_.setMetadata(A_.metadata())<br>'
-                         '</pre>'
-                         'When using spatial operators, '
-                         'make sure to specify an appropriate value for the Block overlap parameter to avoid artifacts at '
-                         'block borders, or enable Monolithic processing. '
-                         'E.g., when applying this Gaussian filter, the overlap should be set to sigma * truncate:'
-                         '<pre>'
-                         'from scipy.ndimage import gaussian_filter<br>'
-                         'R1 = gaussian_filter(A, sigma=3, truncate=4)<br>'
-                         '</pre>'
-                         'In some usecases, the main focus is to calculate some statistics that aggregate data over '
-                         'the full grid extent. To do that correctly, you also want to enable Monolithic processing '
-                         f'and use the {linkFeedback} object to report/log results:'
-                         '<pre>'
-                         'hist, bin_edges = np.histogram(A, bins=10, range=(0, 10000))<br>'
-                         'for a, b, n in zip(bin_edges[:-1], bin_edges[1:], hist):<br>'
-                         "    feedback.pushInfo(f'[{a}, {b}]: {n}')<br>"
-                         '</pre>'
-                         'To allow for arbitrary many inputs, use the INPUTS parameters.'
-                         'E.g. averaging a list of raster layer:'
-                         '<pre>np.min(INPUTS, axis=0)</pre>'
-             ),
-            (self._GRID, 'The destination grid. If not specified, the grid of the first raster layer is used.'),
-            ('Raster layer mapped to R1, ..., R10',
-             'Additional raster layers mapped to individual numpy array variables Ri with shape (bandCount, blockHeight, blockWidth).'),
-            (self._RS, 'Additional list of raster layers mapped to a list variable RS.'),
-            (self._OVERLAP, 'The number of columns and rows to read from the neighbouring blocks. '
-                            'Needs to be specified only when performing spatial operations, '
-                            'to avoid artifacts at block borders.'),
-            (
-            self._MONOLITHIC, 'Whether to read all data for the full extent at once, instead of block-wise processing. '
-                              'This may be useful for some spatially unbound operations, '
-                              'like segmentation or region growing, when calculating global statistics, '
-                              'or if RAM is not an issue at all.'),
-            (self._OUTPUT_RASTER, 'Raster file destination for writing the default output variable. '
-                                   'Additional outputs are written into the same directory. '
-                                   f'See the {self.linkTutorial} for detailed usage instructions.'),
-        ]
+                   (self._CODE, 'The mathematical calculation to be performed on the selected input arrays.\n'
+                                'Select inputs in the available data sources section or '
+                                'use the raster layer R1, ..., R10 and vector layer V1, ..., V10.\n'
+                                'In the code snippets section you can find some prepdefined code snippets ready to use.\n'
+                                f'See the {self.linkRecipe} for detailed usage instructions.'),
+                   (self._GRID, 'The destination grid. If not specified, the grid of the first raster layer is used.'),
+                   (self._OVERLAP, 'The number of columns and rows to read from the neighbouring blocks. '
+                                   'Needs to be specified only when performing spatial operations, '
+                                   'to avoid artifacts at block borders.'),
+                   (self._MONOLITHIC,
+                    'Whether to read all data for the full extent at once, instead of block-wise processing. '
+                    'This may be useful for some spatially unbound operations, '
+                    'like segmentation or region growing, when calculating global statistics, '
+                    'or if RAM is not an issue at all.'),
+                   ('Raster layer mapped to R1, ..., R10', 'Additional raster layers mapped to Ri.'),
+                   ('Vector layer mapped to V1, ..., V10', 'Additional vector layers mapped to Vi.'),
+                   (self._RS, 'Additional list of raster layers mapped to a list variable RS.'),
+                   (self._OUTPUT_RASTER, 'Raster file destination for writing the default output variable. '
+                                         'Additional outputs are written into the same directory. '
+                                         f'See the {self.linkRecipe} for detailed usage instructions.'),
+               ] + (
+                       [(f'Raster layer mapped to R{i}', '') for i in range(1, 11)] +  # just silince those
+                       [(f'Vector layer mapped to V{i}', '') for i in range(1, 11)]    # just silince those
+               )
 
     def group(self):
         return Group.Test.value + Group.RasterCreation.value
@@ -179,12 +139,12 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_GRID, self._GRID, optional=True)
         self.addParameterInt(self.P_OVERLAP, self._OVERLAP, None, True, 0)
         self.addParameterBoolean(self.P_MONOLITHIC, self._MONOLITHIC, False, True)
-        self.addParameterMultipleLayers(self.P_RS, self._RS, QgsProcessing.TypeRaster, None, True, True)
         for name, description in self.inputRasterNames():
             self.addParameterRasterLayer(name, description, None, True, True)
         for name, description in self.inputVectorNames():
             self.addParameterVectorLayer(name, description, None, None, True, True)
-        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, 'Output raster', None, False, True)
+        self.addParameterMultipleLayers(self.P_RS, self._RS, QgsProcessing.TypeRaster, None, True, True)
+        self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER, None, False, True)
 
     def prepareAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
@@ -200,7 +160,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         overlap = self.parameterAsInt(parameters, self.P_OVERLAP, context)
         monolithic = self.parameterAsBoolean(parameters, self.P_MONOLITHIC, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
@@ -255,7 +215,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                     layerName, value = line.split(':=')
                     layerName = layerName.strip('# ')
                     vector = eval(value.strip())
-                    if isinstance(raster, QgsVectorLayer):
+                    if isinstance(vector, QgsVectorLayer):
                         vectors[layerName] = vector
 
             # rasterize vectors to grid
@@ -312,14 +272,15 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             readers = {rasterName: RasterReader(raster) for rasterName, raster in rasters.items()}
             readers2 = {rasterName: RasterReader(raster) for rasterName, raster in rasters2.items()}
 
+            # We do not need alias anymore I guess. Make sure and delete this block.
             # find alias identifiers and assign reader
-            for line in code.splitlines():
-                if not line.startswith('#'):
-                    continue
-                if ' is an alias for ' in line:
-                    a, b = line.strip('# ').split(' is an alias for ')
-                    readers[a] = readers[b]
-                    readers2[a] = readers2[b]
+            # for line in code.splitlines():
+            #    if not line.startswith('#'):
+            #        continue
+            #    if ' is an alias for ' in line:
+            #        a, b = line.strip('# ').split(' is an alias for ')
+            #        readers[a] = readers[b]
+            #        readers2[a] = readers2[b]
 
             # init output raster layer
             writers = self.makeWriter(code, filename, grid, readers, readers2, feedback)
@@ -580,10 +541,13 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
 
         # prepare output data
         results = dict()
-        for key, value in namespace.items():
-            if key in readers:  # skip all input arrays
-                continue
-
+        for key, value in namespace.items():  # skip all input arrays
+            if key in readers:
+                if isSingleLineCode:
+                    if key != self.P_OUTPUT_RASTER:
+                        continue
+                else:
+                    continue
             removeItem = False
             for reader in readers:  # skip all input arrays with @ syntax
                 if key.startswith(reader + 'At'):

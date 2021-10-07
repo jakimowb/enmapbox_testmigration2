@@ -67,9 +67,9 @@ class Examples(unittest.TestCase):
         enmapBox = EnMAPBox.instance()
 
         # add some data sources
-        from enmapboxtestdata import enmap as pathRasterSource
-        from enmapboxtestdata import landcover_polygons as pathVectorSource
-        from enmapboxtestdata import library as pathSpectralLibrary
+        from enmapbox.exampledata import enmap as pathRasterSource
+        from enmapbox.exampledata import landcover_polygons as pathVectorSource
+        from enmapbox.exampledata import library as pathSpectralLibrary
 
 
 
@@ -119,7 +119,7 @@ class Examples(unittest.TestCase):
     def test_Ex2_UniqueDataSources(self):
 
         from enmapbox import EnMAPBox
-        from enmapboxtestdata import enmap
+        from enmapbox.exampledata import enmap
 
         enmapBox = EnMAPBox(None)
         enmapBox.addSource(enmap)
@@ -305,7 +305,7 @@ class Examples(unittest.TestCase):
 
     def test_Ex5_PointsAndExtents(self):
 
-        from enmapboxtestdata import enmap
+        from enmapbox.exampledata import enmap
         from enmapbox.gui import SpatialPoint
 
         layer = QgsRasterLayer(enmap)

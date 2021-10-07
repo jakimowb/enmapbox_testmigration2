@@ -41,6 +41,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget, QHBoxLayout
 from osgeo import gdal, ogr, osr, gdal_array
 
+from qgis.gui import QgsMapLayerConfigWidgetFactory
 from qgis.core import QgsField, QgsPointXY, QgsGeometry
 
 import qgis.testing
@@ -221,6 +222,8 @@ class QgisMockup(QgisInterface):
     def __init__(self, *args):
         super(QgisMockup, self).__init__()
 
+        self.mMapLayerPanelFactories: typing.List[QgsMapLayerConfigWidgetFactory] = []
+
         self.mCanvas = QgsMapCanvas()
         self.mCanvas.blockSignals(False)
         self.mCanvas.setCanvasColor(Qt.black)
@@ -268,6 +271,14 @@ class QgisMockup(QgisInterface):
                     inspect.getfullargspec(getattr(self, n))
                 except:
                     setattr(self, n, getattr(self._mock, n))
+
+    def registerMapLayerConfigWidgetFactory(self, factory: QgsMapLayerConfigWidgetFactory):
+        assert isinstance(factory, QgsMapLayerConfigWidgetFactory)
+        self.mMapLayerPanelFactories.append(factory)
+
+    def unregisterMapLayerConfigWidgetFactory(self, factory: QgsMapLayerConfigWidgetFactory):
+        assert isinstance(factory, QgsMapLayerConfigWidgetFactory)
+        self.mMapLayerPanelFactories = [f for f in self.mMapLayerPanelFactories if f.title() != factory.title()]
 
     def addLegendLayers(self, mapLayers: typing.List[QgsMapLayer]):
         for l in mapLayers:
@@ -383,6 +394,10 @@ class QgisMockup(QgisInterface):
 
 class TestCase(qgis.testing.TestCase):
 
+    @staticmethod
+    def runsInCI() -> True:
+        return str(os.environ.get('CI', '')).lower() not in ['', 'none', 'false', '0']
+
     @classmethod
     def setUpClass(cls, cleanup: bool = True, options=StartOptions.All, resources: list = None) -> None:
 
@@ -489,7 +504,7 @@ class TestCase(qgis.testing.TestCase):
             elif callable(w):
                 w()
 
-        if str(os.environ.get('CI')).lower() not in ['', 'none', 'false', '0']:
+        if self.runsInCI():
             return False
 
         app = QApplication.instance()
@@ -815,6 +830,45 @@ class TestObjects(object):
         return TestObjects.createRasterDataset(*args, **kwds)
 
     @staticmethod
+    def createMultiMaskExample(*args, **kwds) -> QgsRasterLayer:
+
+        path = '/vsimem/testMaskImage.{}.tif'.format(str(uuid.uuid4()))
+        ds = TestObjects.createRasterDataset(*args, **kwds)
+        nb = ds.RasterCount
+        nl, ns = ds.RasterYSize, ds.RasterXSize
+        arr: np.ndarray = ds.ReadAsArray()
+        arr = arr.reshape((nb, nl, ns))
+        nodata_values = []
+
+        d = int(min(nl, ns) * 0.25)
+
+        global_nodata = -9999
+        for b in range(nb):
+
+            x = random.randint(0, ns-1)
+            y = random.randint(0, nl-1)
+
+            #nodata = b
+            nodata = global_nodata
+            nodata_values.append(nodata)
+            arr[b,
+                max(y-d, 0):min(y+d, nl-1),
+                max(x-d, 0):min(x+d, ns-1)] = nodata
+
+        ds2: gdal.Dataset = gdal_array.SaveArray(arr, path, prototype=ds)
+
+        for b, nd in enumerate(nodata_values):
+            band: gdal.Band = ds2.GetRasterBand(b+1)
+            band.SetNoDataValue(nd)
+            band.SetDescription(ds.GetRasterBand(b+1).GetDescription())
+        ds2.FlushCache()
+        lyr = QgsRasterLayer(path)
+        lyr.setName('Multiband Mask')
+        assert lyr.isValid()
+
+        return lyr
+
+    @staticmethod
     def createRasterDataset(ns=10, nl=20, nb=1,
                             crs=None, gt=None,
                             eType: int = gdal.GDT_Int16,
@@ -855,12 +909,17 @@ class TestObjects(object):
 
         ds: gdal.Driver = drv.Create(path, ns, nl, bands=nb, eType=eType)
         assert isinstance(ds, gdal.Dataset)
+        for b in range(ds.RasterCount):
+            band: gdal.Band = ds.GetRasterBand(b + 1)
+            band.SetDescription(f'Test Band {b+1}')
+
         if no_data_rectangle > 0:
             no_data_rectangle = min([no_data_rectangle, ns])
             no_data_rectangle = min([no_data_rectangle, nl])
             for b in range(ds.RasterCount):
                 band: gdal.Band = ds.GetRasterBand(b + 1)
                 band.SetNoDataValue(no_data_value)
+
 
         coredata, core_wl, core_wlu, core_gt, core_wkt = TestObjects.coreData()
 

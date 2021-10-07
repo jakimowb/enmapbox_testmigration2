@@ -32,7 +32,8 @@ class RasterReader(object):
             self._sourceLayer = QgsRasterLayer(source)
             provider = self._sourceLayer.dataProvider()
         elif isinstance(source, gdal.Dataset):
-            provider = QgsRasterLayer(source.GetDescription())
+            self._sourceLayer = QgsRasterLayer(source.GetDescription())
+            provider = self._sourceLayer.dataProvider()
         else:
             assert 0
 
@@ -261,12 +262,14 @@ class RasterReader(object):
         domains = self._gdalObject(bandNo).GetMetadataDomainList()
         return {domain: self.metadataDomain(domain, bandNo) for domain in domains}
 
-    def isSpectralRasterLayer(self):
-        try:
-            self.wavelength(1)
-        except:
-            return False
-        return True
+    def isSpectralRasterLayer(self, quickCheck=True):
+        if quickCheck:
+            return self.wavelength(1) is not None
+        else:
+            for bandNo in range(1, self.bandCount() + 1):
+                if self.wavelength(bandNo) is None:
+                    return False
+            return True
 
     def findBandName(self, bandName: str) -> int:
         for bandNo in range(1, self.bandCount() + 1):

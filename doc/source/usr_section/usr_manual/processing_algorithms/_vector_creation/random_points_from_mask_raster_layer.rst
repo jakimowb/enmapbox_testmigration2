@@ -4,13 +4,13 @@
 Random points from mask raster layer
 ************************************
 
-This algorithm creates a new point layer with a given number of random points, all of them in the area where the given mask evaluates to true.
+This algorithm creates a new `point layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-point-layer>`_ with a given number of random points, all of them in the area where the given mask evaluates to true.
 
 **Parameters**
 
 
 :guilabel:`Mask raster layer` [raster]
-    A mask raster layer to draw locations from.
+    A `mask raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-mask-raster-layer>`_ to draw locations from.
 
 
 :guilabel:`Number of points` [number]
@@ -30,5 +30,42 @@ This algorithm creates a new point layer with a given number of random points, a
 
 
 :guilabel:`Output point layer` [vectorDestination]
-    Output vector file destination.
+    Vector file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:RandomPointsFromMaskRasterLayer``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    mask: Mask raster layer
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    n: Number of points
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    distance: Minimum distance between points (in meters)
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    seed: Random seed
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    outputPoints: Output point layer
+    	Argument type:	vectorDestination
+    	Acceptable values:
+    		- Path for new vector layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputPoints: <outputVector>
+    	Output point layer
+    
+    

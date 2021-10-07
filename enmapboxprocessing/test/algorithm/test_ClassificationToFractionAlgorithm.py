@@ -3,8 +3,8 @@ import numpy as np
 from enmapboxprocessing.algorithm.classificationtofractionalgorithm import ClassificationToFractionAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, landcover_polygons
-from enmapboxunittestdata import landcover_raster_1m
+from enmapbox.exampledata import enmap, landcover_polygons
+from enmapboxtestdata import landcover_raster_1m
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

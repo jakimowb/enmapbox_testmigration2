@@ -1,4 +1,3 @@
-import webbrowser
 from unittest import TestCase
 
 from enmapboxprocessing.reportwriter import HtmlReportWriter, CsvReportWriter, MultiReportWriter
@@ -28,9 +27,6 @@ class TestReportWriter(TestCase):
                 caption='Table with Double Column Header'
             )
 
-        webbrowser.open_new(filenameHtml)
-        webbrowser.open_new(filenameCsv)
-
     def test2(self):
         import csv
         with open('c:/vsimem/eggs.csv', 'w', newline='') as csvfile:
@@ -40,7 +36,7 @@ class TestReportWriter(TestCase):
             spamwriter.writerow(['Spam', 'Lovely Spam', 'Wonderful Spam'])
             spamwriter.writerow([1.46])
 
-    def test2(self):
+    def test3(self):
         import csv
 
         with open('c:/vsimem/eggs.csv', 'w', encoding='utf-8') as f:

@@ -46,6 +46,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     VectorFileDestination = 'Vector file destination.'
     ReportFileFilter = 'HTML (*.html)'
     ReportFileDestination = 'Output report file destination.'
+    ReportOpen = 'Whether to open the output report in the web browser.'
     FolderDestination = 'Folder destination.'
 
     VrtFormat = 'VRT'
@@ -408,6 +409,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             title, text2 = self.helpHeader()
             text += f' <i><h3>{title}</h3> </i><p>{injectGlossaryLinks(text2)}</p>'
         for name, text2 in self.helpParameters():
+            if text2 == '':
+                continue
             text += f'<h3>{name}</h3><p>{injectGlossaryLinks(text2)}</p>'
         return text
 
@@ -753,7 +756,7 @@ class Group(Enum):
     SpectralResampling = 'Spectral resampling'
     Regression = 'Regression'
     Sampling = 'Sampling'
-    Test = 'TEST_'
+    Test = '*'
     Testdata = 'Testdata'
     Transformation = 'Transformation'
 

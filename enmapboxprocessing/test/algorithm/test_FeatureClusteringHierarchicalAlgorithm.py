@@ -1,6 +1,6 @@
 from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import FeatureClusteringHierarchicalAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxunittestdata import classifierDumpPkl
+from enmapboxtestdata import classifierDumpPkl
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]

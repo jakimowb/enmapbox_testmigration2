@@ -50,6 +50,7 @@ class ClassifierFeatureRankingPermutationImportanceAlgorithm(EnMAPProcessingAlgo
              f'See Metrics and scoring: quantifying the quality of predictions for further information.'),
             (self._REPEATS, 'Number of times to permute a feature.'),
             (self._SEED, 'The seed for the random generator can be provided.'),
+            (self._OPEN_REPORT, self.ReportOpen),
             (self._OUTPUT_REPORT, self.ReportFileDestination)
         ]
 

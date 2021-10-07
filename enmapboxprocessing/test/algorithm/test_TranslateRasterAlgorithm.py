@@ -1,14 +1,13 @@
-import webbrowser
+from os.path import exists
 
-import processing
-from qgis._core import QgsRasterLayer, QgsRasterRenderer, QgsProcessingContext, Qgis
 import numpy as np
+from qgis._core import QgsRasterLayer, QgsRasterRenderer
 
+from enmapbox.exampledata import enmap, hires
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, hires
-from enmapboxunittestdata import landcover_raster_30m_epsg3035, landcover_raster_30m
+from enmapboxtestdata import landcover_raster_30m_epsg3035
 
 writeToDisk = True
 c = ['', 'c:'][int(writeToDisk)]
@@ -86,7 +85,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_CREATION_PROFILE: alg.GTiffFormat,
             alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
         }
-        gold = [1, 3, 2, 4, 5,  6, 7]
+        gold = [1, 3, 2, 4, 5, 6, 7]
         'Byte Int16 UInt16 UInt32 Int32 Float32 Float64'
         for index, name in enumerate(alg.O_DATA_TYPE):
             parameters[alg.P_DATA_TYPE] = index
@@ -249,7 +248,7 @@ class TestTranslateAlgorithm(TestCase):
         result = self.runalg(alg, parameters)
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
         self.assertEqual(3, reader.bandCount())
-        self.assertListEqual([665.0, 559.0, 489.0], [reader.wavelength(i+1) for i in range(reader.bandCount())])
+        self.assertListEqual([665.0, 559.0, 489.0], [reader.wavelength(i + 1) for i in range(reader.bandCount())])
 
     def test_scalingTo100(self):
         alg = TranslateRasterAlgorithm()
@@ -297,3 +296,14 @@ class TestTranslateAlgorithm(TestCase):
         result = self.runalg(alg, parameters)
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
         self.assertEqual(-123, reader.noDataValue())
+
+    def test_writeEnviHeader(self):
+        filename = 'c:/vsimem/enmap.tif'
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: enmap,
+            alg.P_OUTPUT_RASTER: filename,
+            alg.P_WRITE_ENVI_HEADER: True,
+        }
+        self.runalg(alg, parameters)
+        self.assertTrue(exists(filename + '.hdr'))

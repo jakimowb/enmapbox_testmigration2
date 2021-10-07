@@ -4,21 +4,21 @@
 Rasterize vector layer
 **********************
 
-Converts vector geometries (points, lines and polygons) into a raster grid.
+Converts vector geometries (points, lines and polygons) into a raster `grid <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-grid>`_.
 
 **Parameters**
 
 
 :guilabel:`Vector layer` [vector]
-    A vector layer to be rasterized.
+    A `vector layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-vector-layer>`_ to be rasterized.
 
 
 :guilabel:`Grid` [raster]
-    The target grid.
+    The target `grid <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-grid>`_.
 
 
 :guilabel:`Init value` [number]
-    Pre-initialization value for the output raster layer.
+    Pre-initialization value for the output `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_.
 
     Default: *0*
 
@@ -30,19 +30,13 @@ Converts vector geometries (points, lines and polygons) into a raster grid.
 
 
 :guilabel:`Burn attribute` [field]
-    Numeric vector field to use as burn values.
+    Numeric vector `field <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_ to use as burn values.
 
 
 :guilabel:`Burn feature ID` [boolean]
-    Whether to use the feature ID as burn values. Initial value is set to -1. Data type is set to Int32.
+    Whether to use the `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_ ID as burn values. Initial value is set to -1. Data type is set to Int32.
 
     Default: *False*
-
-
-:guilabel:`Aggregation algorithm` [enum]
-    If selected, burn at a x10 finer resolution and aggregate values back to target resolution. For example, use Mode aggregation for categorical attributes to burn the category with highest pixel coverage (i.e. majority voting). For continuous attributes use Average to calculate a weighted average.
-
-    Default: *0*
 
 
 :guilabel:`Add value` [boolean]
@@ -66,5 +60,75 @@ Converts vector geometries (points, lines and polygons) into a raster grid.
 
 
 :guilabel:`Output raster layer` [rasterDestination]
-    Output raster file destination.
+    Raster file destination.
 
+**Command-line usage**
+
+``>qgis_process help enmapbox:RasterizeVectorLayer``::
+
+    ----------------
+    Arguments
+    ----------------
+    
+    vector: Vector layer
+    	Argument type:	vector
+    	Acceptable values:
+    		- Path to a vector layer
+    grid: Grid
+    	Argument type:	raster
+    	Acceptable values:
+    		- Path to a raster layer
+    initValue: Init value
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    burnValue: Burn value
+    	Argument type:	number
+    	Acceptable values:
+    		- A numeric value
+    burnAttribute: Burn attribute
+    	Argument type:	field
+    	Acceptable values:
+    		- The name of an existing field
+    		- ; delimited list of existing field names
+    burnFid: Burn feature ID
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    addValue: Add value
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    allTouched: All touched
+    	Argument type:	boolean
+    	Acceptable values:
+    		- 1 for true/yes
+    		- 0 for false/no
+    dataType: Data type
+    	Argument type:	enum
+    	Available values:
+    		- 0: Byte
+    		- 1: Int16
+    		- 2: UInt16
+    		- 3: UInt32
+    		- 4: Int32
+    		- 5: Float32
+    		- 6: Float64
+    	Acceptable values:
+    		- Number of selected option, e.g. '1'
+    		- Comma separated list of options, e.g. '1,3'
+    outputRasterizedVector: Output raster layer
+    	Argument type:	rasterDestination
+    	Acceptable values:
+    		- Path for new raster layer
+    
+    ----------------
+    Outputs
+    ----------------
+    
+    outputRasterizedVector: <outputRaster>
+    	Output raster layer
+    
+    

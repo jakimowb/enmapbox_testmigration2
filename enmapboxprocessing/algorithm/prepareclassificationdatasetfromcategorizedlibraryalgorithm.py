@@ -5,7 +5,7 @@ import numpy as np
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsCategorizedSymbolRenderer,
                         QgsProcessingParameterField, QgsProcessingException)
 
-from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary, FIELD_VALUES
+from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary, FIELD_VALUES, SpectralLibraryUtils
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.typing import checkSampleShape, ClassifierDump
 from enmapboxprocessing.utils import Utils
@@ -43,8 +43,8 @@ class PrepareClassificationDatasetFromCategorizedLibraryAlgorithm(EnMAPProcessin
                                    'If not selected, the field defined by the renderer is used. '
                                    'If that is also not specified, an error is raised.'),
             (self._FIELD, 'Binary field with spectral profiles used as feature data X. '
-                          'If not selected, the default field is used. '
-                          'If that is also not specified, an error is raised.'),
+                          'If not selected, the default field named "profiles" is used. '
+                          'If that is also not available, an error is raised.'),
             (self._OUTPUT_DATASET, self.PickleFileDestination)
         ]
 
@@ -88,41 +88,38 @@ class PrepareClassificationDatasetFromCategorizedLibraryAlgorithm(EnMAPProcessin
                     raise QgsProcessingException(message)
             else:
                 categories = Utils.categoriesFromVectorField(library, classField)
-                feedback.pushInfo(f'Derive categories from selected field: {categories}')
+                if len(categories) > 0:
+                    feedback.pushInfo(f'Derive categories from selected field: {categories}')
+                else:
+                    raise QgsProcessingException(f'Unable to derive categories from field: {classField}')
 
             # open library
             if binaryField is None:
                 binaryField = FIELD_VALUES
             feedback.pushInfo('Read data')
-            try:
-                spectralLibrary = SpectralLibrary(library.source(), profile_fields=[binaryField])
-            except Exception as error:
-                traceback.print_exc()
-                message = f"Couldn't open the selected spectral library: {error}"
-                feedback.reportError(message, fatalError=True)
-                raise QgsProcessingException(message)
 
             # prepare categories
             categories, valueLookup = Utils.prepareCategories(categories, valuesToInt=True, removeLastIfEmpty=True)
 
             # prepare data
-            n = spectralLibrary.featureCount()
+            n = library.featureCount()
             X = list()
             y = list()
-            for i, profile in enumerate(spectralLibrary.profiles(profile_field=binaryField)):
+            for i, profile in enumerate(SpectralLibraryUtils.profiles(library, profile_field=binaryField)):
                 feedback.setProgress(i / n * 100)
                 yi = valueLookup.get(profile.attribute(classField), None)
                 if yi is None:  # if category is not of interest ...
                     continue  # ... we skip the profile
-                Xi = profile.yValues()
+                try:
+                    Xi = profile.yValues()
+                except TypeError:
+                    raise QgsProcessingException(f'Profiles field must be Binary: {binaryField}')
+
                 y.append(yi)
                 X.append(Xi)
 
             if len(set(map(len, X))) != 1:
-                feedback.reportError(
-                    'Number of features do not match across all spectral profiles.',
-                    fatalError=True
-                )
+                raise QgsProcessingException('Number of features do not match across all spectral profiles.')
 
             try:
                 X = np.array(X, dtype=np.float32)

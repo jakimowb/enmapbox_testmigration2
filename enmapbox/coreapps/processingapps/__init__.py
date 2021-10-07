@@ -24,7 +24,7 @@ class ProcessingApps(EnMAPBoxApplication):
 
     def menu(self, appMenu):
         assert isinstance(appMenu, QMenu)
-        a = appMenu.addAction('RasterMath')
+        a = appMenu.addAction('Raster math')
         assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)

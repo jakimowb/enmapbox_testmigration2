@@ -58,7 +58,7 @@ class SpectralResamplingByResponseFunctionLibraryAlgorithm(EnMAPProcessingAlgori
         raster = self.parameterAsSpectralRasterLayer(parameters, self.P_RASTER, context)
         library = self.parameterAsVectorLayer(parameters, self.P_LIBRARY, context)
         binaryField = self.parameterAsField(parameters, self.P_FIELD, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)

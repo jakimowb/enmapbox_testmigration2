@@ -611,7 +611,7 @@ class MDKeyClassification(MDKeyAbstract):
 
 if __name__ == '__main__':
 
-    from enmapboxtestdata import enmap, landcover
+    from enmapbox.exampledata import enmap, landcover
     from enmapbox.testing import initQgisApplication
 
     #this will initialize the QApplication/QgsApplication which runs in the background
