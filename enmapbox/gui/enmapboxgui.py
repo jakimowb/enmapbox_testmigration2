@@ -1226,8 +1226,9 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigMapCanvasRemoved.emit(dock.mapCanvas())
 
         if isinstance(dock, SpectralLibraryDock):
-            dock.speclib().rollBack()
-            dock.speclib().commitChanges()
+            if not sip.isdeleted(dock.speclib()):
+                dock.speclib().rollBack()
+                dock.speclib().commitChanges()
             self.spectralProfileSourcePanel().removeSpectralLibraryWidgets(dock.speclibWidget())
 
         # lid = dock.speclib().id()

@@ -1528,6 +1528,7 @@ class DockPanelUI(QgsDockWidget):
         loadUi(enmapboxUiPath('dockpanel.ui'), self)
         self.mDockManager: DockManager = None
         self.mDockManagerTreeModel: DockManagerTreeModel = None
+        self.mMenuProvider: DockManagerLayerTreeModelMenuProvider = None
 
         self.dockTreeView: DockTreeView
         self.actionRemoveSelected: QAction
