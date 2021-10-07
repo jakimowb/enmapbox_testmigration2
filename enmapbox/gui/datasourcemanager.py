@@ -197,6 +197,8 @@ class DataSourceManager(QObject):
                     results.append(source)
                 elif isinstance(source, HubFlowDataSource) and 'MODEL' in filterTypes:
                     results.append(source)
+                elif isinstance(source, DataSourceFile) and 'FIILE' in filterTypes:
+                    results.append(source)
 
         return results
 

@@ -1032,8 +1032,13 @@ class DockTreeView(QgsLayerTreeView):
     def selectedDockNodes(self) -> typing.List[DockTreeNode]:
 
         nodes = []
+        proxymodel = isinstance(self.model(), QSortFilterProxyModel)
         for idx in self.selectedIndexes():
-            node = self.index2node(idx)
+            if proxymodel:
+                node = self.layerTreeModel().index2node(self.model().mapToSource(idx))
+            else:
+                node = self.index2node(idx)
+
             if isinstance(node, DockTreeNode) and node not in nodes:
                 nodes.append(node)
         return nodes
@@ -1523,6 +1528,7 @@ class DockPanelUI(QgsDockWidget):
         loadUi(enmapboxUiPath('dockpanel.ui'), self)
         self.mDockManager: DockManager = None
         self.mDockManagerTreeModel: DockManagerTreeModel = None
+        self.mMenuProvider: DockManagerLayerTreeModelMenuProvider = None
 
         self.dockTreeView: DockTreeView
         self.actionRemoveSelected: QAction
@@ -1552,6 +1558,8 @@ class DockPanelUI(QgsDockWidget):
             layerNodes = [n for n in layerNodes if isinstance(n.parent(), MapDockTreeNode)]
             self.mDockManagerTreeModel.removeNodes(layerNodes)
 
+            for n in tv.selectedDockNodes():
+                self.mDockManager.removeDock(n.dock)
             #docks = [n.dock for n in self.dockTreeView.selectedNodes() if isinstance(n, DockTreeNode)]
             #for dock in docks:
             #    self.mDockManagerTreeModel.removeDock(dock)

@@ -654,7 +654,8 @@ class EnMAPBox(QgisInterface, QObject):
 
     def onMapCanvasKeyPressed(self, mapCanvas: MapCanvas, e: QKeyEvent):
 
-        if e.key() == Qt.Key_S:
+        is_ctrl = bool(QApplication.keyboardModifiers() & Qt.ControlModifier)
+        if e.key() == Qt.Key_S and is_ctrl:
             # add current profiles (if collected)
             self.spectralProfileSourcePanel().addCurrentProfilesToSpeclib()
 
@@ -1226,8 +1227,9 @@ class EnMAPBox(QgisInterface, QObject):
             self.sigMapCanvasRemoved.emit(dock.mapCanvas())
 
         if isinstance(dock, SpectralLibraryDock):
-            dock.speclib().rollBack()
-            dock.speclib().commitChanges()
+            if not sip.isdeleted(dock.speclib()):
+                dock.speclib().rollBack()
+                dock.speclib().commitChanges()
             self.spectralProfileSourcePanel().removeSpectralLibraryWidgets(dock.speclibWidget())
 
         # lid = dock.speclib().id()

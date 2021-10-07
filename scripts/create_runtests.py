@@ -13,6 +13,7 @@ def create_runtests():
 
     TEST_DIRECTORIES = [
         DIR_REPO / 'tests',
+        DIR_REPO / 'enmapboxprocessing' / 'test',
     ]
 
     assert DIR_REPO.is_dir()
