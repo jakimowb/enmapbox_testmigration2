@@ -41,7 +41,8 @@ Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g.
 * added *Spectral resampling (to spectral raster layer wavelength and FWHM)* processing algorithm: allows to specify the target response functions via a spectral raster layer
 * added *Spectral resampling (to custom sensor)* processing algorithm: allows to specify the target response function via Python code
 * improved *Translate raster layer* processing algorithm: 1) improved source and target no data handling, 2) added option for spectral subsetting to another spectral raster layer, 3) added options for setting/updating band scale and offset values, 4) added option for creating an ENVI header sidecar file for better compatibility to ENVI software
-* added *Append ENVI header to GeoTiff raster layer* processing algorithm: improves compatibility to ENVI software
+* added *Save raster layer as* processing algorithm: a slimmed down version of "Translate raster layer"
+* added *Append ENVI header to GeoTiff raster layer* processing algorithm: places a *.hdr ENVI header file next to a GeoTiff raster to improve compatibility to ENVI software
 * added *Geolocate raster layer* processing algorithm: allows to geolocate a raster given in sensor geometry using X/Y location bands; e.g. usefull for geolocating PRISMA L1 Landcover into PRISMA L2 pixel grid using the Lat/Lon location bands
 
 **Miscellaneous**

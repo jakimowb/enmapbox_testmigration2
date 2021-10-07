@@ -158,7 +158,6 @@
     <addaction name="mActionIdentify"/>
     <addaction name="separator"/>
     <addaction name="mActionMapLinking"/>
-    <addaction name="mActionProcessingToolbox"/>
     <addaction name="separator"/>
     <addaction name="mActionAddMapView"/>
     <addaction name="mActionAddSpeclibView"/>
