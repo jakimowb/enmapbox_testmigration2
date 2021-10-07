@@ -51,6 +51,7 @@ from enmapbox.gui.mimedata import \
 from enmapbox.gui.utils import enmapboxUiPath, dataTypeName
 from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
 from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
+from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.utils import Utils
 from qgis.PyQt.QtCore import pyqtSignal
@@ -1070,23 +1071,33 @@ class DataSourceTreeView(TreeView):
                     sub.setEnabled(False)
 
                 # AR: add some useful processing algo shortcuts
-                alg = TranslateRasterAlgorithm()
-                parameters = {alg.P_RASTER: src.uri()}
+                parameters = {SaveRasterAsAlgorithm.P_RASTER: src.uri()}
                 a: QAction = m.addAction('Save as')
                 a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
                 a.triggered.connect(
-                    lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(alg, parameters, parent=self)
+                    lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
+                        SaveRasterAsAlgorithm(), parameters, parent=self
+                    )
+                )
+
+                parameters = {TranslateRasterAlgorithm.P_RASTER: src.uri()}
+                a: QAction = m.addAction('Translate')
+                a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
+                a.triggered.connect(
+                    lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
+                        TranslateRasterAlgorithm(), parameters, parent=self
+                    )
                 )
 
                 if splitext(src.uri())[1].lower() in ['.tif', '.tiff']:
-                    alg = AppendEnviHeaderToGTiffRasterAlgorithm()
-                    parameters = {alg.P_RASTER: src.uri()}
+                    parameters = {AppendEnviHeaderToGTiffRasterAlgorithm.P_RASTER: src.uri()}
                     a: QAction = m.addAction('Append ENVI header')
                     a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
                     a.triggered.connect(
-                        lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(alg, parameters, parent=self)
+                        lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
+                            AppendEnviHeaderToGTiffRasterAlgorithm(), parameters, parent=self
+                        )
                     )
-
 
             if isinstance(src, DataSourceVector):
                 if isinstance(src.mapLayer(), QgsVectorLayer):

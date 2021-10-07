@@ -59,6 +59,7 @@ from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import Ras
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.algorithm.samplerastervaluesalgorithm import SampleRasterValuesAlgorithm
+from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.algorithm.selectfeaturesfromdatasetalgorithm import SelectFeaturesFromDatasetAlgorithm
 from enmapboxprocessing.algorithm.spatialconvolutionairydisk2dalgorithm import SpatialConvolutionAiryDisk2DAlgorithm
 from enmapboxprocessing.algorithm.spatialconvolutionbox2dalgorithm import SpatialConvolutionBox2DAlgorithm
@@ -181,6 +182,7 @@ def algorithms():
         RasterizeVectorAlgorithm(),
         RasterMathAlgorithm(),
         SampleRasterValuesAlgorithm(),
+        SaveRasterAsAlgorithm(),
         SelectFeaturesFromDatasetAlgorithm(),
         SpatialConvolutionAiryDisk2DAlgorithm(),
         SpatialConvolutionBox2DAlgorithm(),

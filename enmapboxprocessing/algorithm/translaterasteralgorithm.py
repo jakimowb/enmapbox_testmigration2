@@ -53,12 +53,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             (self._BAND_LIST, 'Bands to subset and rearrange. '
                               'An empty selection defaults to all bands in native order.'),
             (self._GRID, 'The destination grid.'),
-            (self._COPY_METADATA, 'Whether to copy metadata from source to destination. '
-                                  'Special care is taken of ENVI list items containing band information. '
-                                  'The following list items will be properly subsetted according to the selected '
-                                  'bands: band names, bbl, data_gain_values, data_offset_values, '
-                                  'data_reflectance_gain_values, data_reflectance_offset_values, fwhm, '
-                                  'wavelength.'),
+            (self._COPY_METADATA, 'Whether to copy GDAL metadata from source to destination.'),
             (self._COPY_STYLE, 'Whether to copy style from source to destination.'),
             (self._WRITE_ENVI_HEADER, 'Whether to write an ENVI header *.hdr sidecar file with '
                                       'spectral metadata required for proper visualization in ENVI software.'),
