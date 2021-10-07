@@ -292,15 +292,16 @@ if __name__ == "__main__":
     if re.search(r'\.master\.', path.name):
         message = '\nVery important checklist. Do not remove!!!' \
                   '\nChecklist for release:' \
-                  '\n0. Run scripts\\runtests.bat (win) or scripts/runtests.sh (linux/mac)' \
-                  '\n1. Change log up-to-date?' \
-                  '\n2. ZIP containing branch information?' \
-                  '\n3. Processing algo documentation up-to-date (run create_processing_rst)?.' \
-                  '\n4. Check if box runs without optional dependencies (see enmapboxtesting/non-blocking-dependencies/readme.txt).'\
-                  '\n5. Version number increased? (enmapbox/__init__.py -> __version__)' \
-                  '\n6. Create testdata tag with same version number. Try to download testdata!' \
-                  '\n6. QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
-                  '\n7. Plugin promotion (Slack, Email, ...)'
+                  '\n  Run scripts\\runtests.bat (win) or scripts/runtests.sh (linux/mac)' \
+                  '\n  Change log up-to-date?' \
+                  '\n  ZIP containing branch information?' \
+                  '\n  Processing algo documentation up-to-date (run create_processing_rst)' \
+                  '\n  Run weblink checker (in doc folder make linkcheck)' \
+                  '\n  Check if box runs without optional dependencies (see enmapboxtesting/non-blocking-dependencies/readme.txt).'\
+                  '\n  Version number increased? (enmapbox/__init__.py -> __version__)' \
+                  '\n  Create testdata tag with same version number. Try to download testdata!' \
+                  '\n  QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
+                  '\n  Plugin promotion (Slack, Email, ...)'
         print(message)
 
     exit()

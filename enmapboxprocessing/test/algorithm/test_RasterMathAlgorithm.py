@@ -1,7 +1,8 @@
+import subprocess
 from os.path import normpath
 
 import numpy as np
-from qgis._core import QgsProject, QgsRasterLayer, QgsMapLayer
+from qgis._core import QgsProject, QgsRasterLayer, QgsMapLayer, QgsProcessingContext
 
 from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
@@ -234,13 +235,11 @@ class TestRasterMathAlgorithm(TestCase):
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
         self.assertEqual(2028, np.sum(reader.array(), dtype=float))
 
-    def _test_alias(self):
+    def test_debug(self):
         alg = RasterMathAlgorithm()
         parameters = {
             alg.P_R1: enmap,
-            alg.P_CODE: '# raster is an alias for R1\n'
-                        'raster = R1\n'
-                        'raster.noDataValue()',
+            alg.P_CODE: 'a=R1\nb=R1',
             alg.P_OUTPUT_RASTER: 'c:/vsimem/raster.tif'
         }
         result = self.runalg(alg, parameters)
