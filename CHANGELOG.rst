@@ -8,6 +8,21 @@ Version 3.9
 *Note that we are currently in a transition phase, where we're overhauling all processing algorithms.
 Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g. "*Classification".*
 
+
+**GUI**
+
+* added drag&drop functionality for opening external products (PRISMA, DESIS, Sentinel-2, Landsat) by simply dragging and dropping the product metadata file from the system file explorer onto the map view area.
+* added map view context menu *Set background color* option: allows to change the map view background color
+* added data sources context menu *Save as* option: opens *Translate raster layer* algorithm dialog
+* added data sources context menu *Append ENVI header* option: opens *Append ENVI header to GeoTiff raster layer* algorithm dialog
+* added single pixel movement in map view using <Ctrl> + <Arrow> keys
+* revised Spectral Library Concept
+    * Spectral Libraries can define more than one Spectral Profile field
+    * each vector source that can store binary values (Geopackage, PostGIS, in-memory) can be used as Spectral Library
+    * Spectral Profile plot support individual profile styles, e.g. colors defined by attribute values
+    * Spectral Profiles can be collected with additional attributes, e.g. individual names
+
+
 **Processing algorithms**
 
 * added PRISMA L1 product import
@@ -28,14 +43,6 @@ Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g.
 * improved *Translate raster layer* processing algorithm: 1) improved source and target no data handling, 2) added option for spectral subsetting to another spectral raster layer, 3) added options for setting/updating band scale and offset values, 4) added option for creating an ENVI header sidecar file for better compatibility to ENVI software
 * added *Append ENVI header to GeoTiff raster layer* processing algorithm: improves compatibility to ENVI software
 * added *Geolocate raster layer* processing algorithm: allows to geolocate a raster given in sensor geometry using X/Y location bands; e.g. usefull for geolocating PRISMA L1 Landcover into PRISMA L2 pixel grid using the Lat/Lon location bands
-
-**GUI**
-
-* added drag&drop functionality for opening external products (PRISMA, DESIS, Sentinel-2, Landsat) by simply dragging and dropping the product metadata file from the system file explorer onto the map view area.
-* added map view context menu *Set background color* option: allows to change the map view background color
-* added data sources context menu *Save as* option: opens *Translate raster layer* algorithm dialog
-* added data sources context menu *Append ENVI header* option: opens *Append ENVI header to GeoTiff raster layer* algorithm dialog
-* added single pixel movement in map view using <Ctrl> + <Arrow> keys
 
 **Miscellaneous**
 
