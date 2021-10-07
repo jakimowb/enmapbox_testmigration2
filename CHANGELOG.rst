@@ -22,7 +22,6 @@ Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g.
     * Spectral Profile plot support individual profile styles, e.g. colors defined by attribute values
     * Spectral Profiles can be collected with additional attributes, e.g. individual names
 
-
 **Processing algorithms**
 
 * added PRISMA L1 product import
@@ -49,7 +48,7 @@ Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g.
 
 * added EnMAP spectral response function library as example dataset
 * change example data vector layer format from Shapefile to GeoPackage
-
+* added test data to enmapbox repository
 
 Version 3.8
 -----------
