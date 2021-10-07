@@ -200,7 +200,7 @@ class DataSourceTests(EnMAPBoxTestCase):
         self.assertIsInstance(ds, DataSourceVector)
         self.assertTrue(ds.isSpectralLibrary())
 
-        import enmapboxunittestdata.asd.asd
+        import enmapbox.unittestdata.asd.asd
         from enmapbox import scantree
         from enmapbox.externals.qps.speclib.io.asd import ASDSpectralLibraryIO
         asdDir = pathlib.Path(enmapboxunittestdata.__file__).parent
@@ -307,7 +307,7 @@ class DataSourceTests(EnMAPBoxTestCase):
         reg = QgsProject.instance()
         reg.removeAllMapLayers()
         dsm = DataSourceManager()
-        uris = [library, enmap, landcover_polygons]
+        uris = [enmap_srf_library, enmap, landcover_polygons]
         uris = [pathlib.Path(p).as_posix() for p in uris]
         dsm.addSources(uris)
 
@@ -319,10 +319,11 @@ class DataSourceTests(EnMAPBoxTestCase):
         self.assertTrue(len(uriList) == len(uris))
         self.assertListEqual(uris, dsm.uriList())
 
-        self.assertEqual(len(dsm.sources('SPATIAL')), 3)
+        self.assertEqual(len(dsm.sources('SPATIAL')),2)
         self.assertEqual(len(dsm.sources('RASTER')), 1)
-        self.assertEqual(len(dsm.sources('VECTOR')), 2)
-        self.assertEqual(len(dsm.sources('SPECLIB')), 1)
+        self.assertEqual(len(dsm.sources('VECTOR')), 1)
+        self.assertEqual(len(dsm.sources('SPECLIB')), 0)
+        self.assertEqual(len(dsm.sources('FILE')), 0)
 
         self.assertTrue(len(reg.mapLayers()) == 0)
         lyrs = self.createTestSourceLayers()
@@ -486,6 +487,10 @@ class DataSourceTests(EnMAPBoxTestCase):
 
             for j, dNode in enumerate(grpNode.childNodes()):
                 self.assertIsInstance(dNode, DataSourceTreeNode)
+
+                if not isinstance(dNode, (SpatialDataSourceTreeNode,)):
+                    continue
+
                 nodeIndex = M.node2idx(dNode)
                 self.assertIsInstance(nodeIndex, QModelIndex)
                 self.assertTrue(nodeIndex.isValid())
@@ -499,6 +504,8 @@ class DataSourceTests(EnMAPBoxTestCase):
                 from enmapbox.gui.mimedata import extractMapLayers
                 l = extractMapLayers(mimeData)
                 self.assertIsInstance(l, list)
+                if not len(l) == 1:
+                    s = ""
                 self.assertTrue(len(l) == 1)
                 self.assertIsInstance(l[0], QgsMapLayer)
 

@@ -654,7 +654,8 @@ class EnMAPBox(QgisInterface, QObject):
 
     def onMapCanvasKeyPressed(self, mapCanvas: MapCanvas, e: QKeyEvent):
 
-        if e.key() == Qt.Key_A:
+        is_ctrl = bool(QApplication.keyboardModifiers() & Qt.ControlModifier)
+        if e.key() == Qt.Key_S and is_ctrl:
             # add current profiles (if collected)
             self.spectralProfileSourcePanel().addCurrentProfilesToSpeclib()
 
