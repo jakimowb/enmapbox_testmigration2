@@ -346,7 +346,7 @@ Raster Metadata
     .. image:: img/raster_layer_gdal_metadata.png
         :width: 100%
 
-    Alternatively, metadata can be managed inside a standard text editor, by opening the GDAL PAM *.aux.xml sidecar file.
+    Alternatively, metadata can be managed inside a standard text editor, by opening the GDAL PAM `*.aux.xml` sidecar file.
     If the PAM file not already exists, you can create it manually, but usually, it is also created,
     when a raster file is opened inside QGIS. Here is an excerpt of the ``enmap_berlin.bsq.aux.xml`` PAM file::
 

@@ -1,3 +1,4 @@
+import traceback
 from enum import Enum
 from os import makedirs
 from os.path import isabs, join, dirname, exists, splitext
@@ -17,7 +18,8 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterFileDestination, QgsProcessingParameterFile, QgsProcessingParameterRange,
                         QgsProcessingParameterCrs, QgsProcessingParameterVectorDestination, QgsProcessing,
                         QgsProcessingUtils, QgsProcessingParameterMultipleLayers, QgsProcessingException,
-                        QgsProcessingParameterFolderDestination)
+                        QgsProcessingParameterFolderDestination, QgsProcessingParameterRasterDestination,
+                        QgsProcessingDestinationParameter, QgsProcessingOutputLayerDefinition)
 
 import processing
 from enmapboxprocessing.glossary import injectGlossaryLinks
@@ -680,14 +682,42 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             p.setFlags(p.flags() | QgsProcessingParameterDefinition.FlagHidden)
 
     def asConsoleCommand(self, parameters: Dict[str, Any], context: QgsProcessingContext):
-        cmd = f'qgis_process run enmapbox:{self.id()} '
+        algoId = self.id()
+        if not algoId.startswith('enmapbox:'):  # depending in the environment, the prefix is missing
+            algoId = 'enmapbox:' + algoId
+        cmd = f'qgis_process run {algoId} --'
         parameter: QgsProcessingParameterDefinition
         for parameter in self.parameterDefinitions():
-            value = parameters.get(parameter.name())
-            if value is None:
+
+            if parameters.get(parameter.name()) is None:
                 continue
-            value = parameter.valueAsPythonString(value, context)
-            cmd += f'--{parameter.name()}={value} '
+
+            if isinstance(parameter, (QgsProcessingParameterString, QgsProcessingParameterRasterLayer,
+                                      QgsProcessingParameterVectorLayer, QgsProcessingParameterMapLayer,
+                                      QgsProcessingDestinationParameter, QgsProcessingParameterField,
+                                      QgsProcessingParameterFile)):
+                if isinstance(parameter, (QgsProcessingParameterString)):
+                    value = parameters[parameter.name()]
+                    value = parameter.valueAsPythonString(value, context)[1:-1]  # remove single quotes
+                elif isinstance(parameter, (QgsProcessingDestinationParameter)):
+                    value = self.parameterAsOutputLayer(parameters, parameter.name(), context)
+                elif isinstance(parameter, (QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
+                                          QgsProcessingParameterMapLayer)):
+                    value = self.parameterAsLayer(parameters, parameter.name(), context).source()
+                elif isinstance(parameter, (QgsProcessingParameterFile)):
+                    value = self.parameterAsFile(parameters, parameter.name(), context)
+                else:
+                    value = self.parameterAsString(parameters, parameter.name(), context)
+                value = value.replace('"', r'\"')  # escape double quotes
+                value = '"' + value + '"' # wrapping in double quotes
+            else:
+                value = parameter.valueAsPythonString(parameters[parameter.name()], context)
+
+            # for debugging only
+            if value.startswith("'"):
+                raise Exception(f'DEBUG: check type {type(parameter)}')
+
+            cmd += rf'{parameter.name()}={value} '
         return cmd
 
     def asPythonCommand(self, parameters: Dict[str, Any], context: QgsProcessingContext):
@@ -725,7 +755,12 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
 
     def tic(self, feedback: ProcessingFeedback, parameters: Dict[str, Any], context: QgsProcessingContext):
         feedback.pushPythonCommand(self.asPythonCommand(parameters, context) + '\n')
-        feedback.pushConsoleCommand(self.asConsoleCommand(parameters, context) + '\n')
+        try:
+            feedback.pushConsoleCommand(self.asConsoleCommand(parameters, context) + '\n')
+        except Exception as error:
+            traceback.print_exc()
+            feedback.pushConsoleCommand('Unable to create console command. Please report error traceback shown in the Python console.\n')
+
         self._startTime = time()
 
     def toc(self, feedback: ProcessingFeedback, result: Dict):

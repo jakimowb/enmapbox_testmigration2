@@ -531,6 +531,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
 
         # execute code
         try:
+            code = code.replace(r'\n', '\n')  # convert raw new lines (only required when executed via qgis_process)
             exec(code, namespace)
         except Exception as error:
             traceback.print_exc()
