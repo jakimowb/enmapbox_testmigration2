@@ -16,12 +16,14 @@ Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g.
 * added data sources context menu *Save as* option: opens *Translate raster layer* algorithm dialog
 * added data sources context menu *Append ENVI header* option: opens *Append ENVI header to GeoTiff raster layer* algorithm dialog
 * added single pixel movement in map view using <Ctrl> + <Arrow> keys, <Ctrl> + S to save a selected profile in a Spectral Library
-* heavily revised spectral library concept
+* revised spectral library concept
 * spectral libraries can define multiple fields with spectral profiles
-* each vector layer that allows to store binary values (e.g. Geopackage, PostGIS, in-memory layers) can be used as Spectral Library
-* profile colors in the Spectral Profile plot can be defined by attribute values and expressions
-* spectral profiles can be collected with additional layer attributes, e.g. individual names and numbers
 * icons show data type of new vector layer fields
+* each vector layer that allows to store binary values (e.g. Geopackage, PostGIS, in-memory layers) can be used as Spectral Library
+* spectral profiles can be collected with additional layer attributes, e.g. individual names and numbers
+* spectral profile colors can be defined by attribute values and expressions
+* profile plot allows to select multiple data points for comparision
+
 
 
 **Processing algorithms**
