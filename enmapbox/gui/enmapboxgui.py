@@ -18,6 +18,7 @@
 """
 import re
 import traceback
+import typing
 from typing import Optional, Dict, Union
 
 from enmapboxprocessing.algorithm.importdesisl1balgorithm import ImportDesisL1BAlgorithm
@@ -395,8 +396,10 @@ class EnMAPBox(QgisInterface, QObject):
                                                   self.messageBar().pushItem(QgsMessageBarItem(title, text, level)))
         self.mVectorLayerTools.sigFreezeCanvases.connect(self.freezeCanvases)
         self.mVectorLayerTools.sigEditingStarted.connect(self.updateCurrentLayerActions)
-        self.mVectorLayerTools.sigZoomRequest.connect(self.zoomToExtent)
-        self.mVectorLayerTools.sigPanRequest.connect(self.panToPoint)
+        self.mVectorLayerTools.sigZoomRequest[QgsCoordinateReferenceSystem, QgsRectangle].connect(
+            lambda crs, extent: self.zoomToExtent(SpatialExtent(crs, extent)))
+        self.mVectorLayerTools.sigPanRequest[QgsCoordinateReferenceSystem, QgsPointXY].connect(
+            lambda crs, pt: self.panToPoint(SpatialPoint(crs, pt)))
 
         self.ui.cursorLocationValuePanel.sigLocationRequest.connect(lambda: self.setMapTool(MapTools.CursorLocation))
 
@@ -2479,7 +2482,11 @@ class EnMAPBox(QgisInterface, QObject):
         Zooms the current map canvas to a requested extent
         """
         canvas = self.currentMapCanvas()
-        if isinstance(canvas, QgsMapCanvas) and isinstance(extent, SpatialExtent):
+        if not isinstance(canvas, QgsMapCanvas):
+            debugLog(f'zoomToExtent: no current map canvas')
+            return
+
+        if isinstance(extent, SpatialExtent):
             ext = extent.toCrs(canvas.mapSettings().destinationCrs())
             if isinstance(ext, SpatialExtent):
                 canvas.setExtent(ext)
