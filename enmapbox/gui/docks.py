@@ -799,7 +799,7 @@ class SpectralLibraryDock(Dock):
             speclib = SpectralLibrary()
 
         self.mSpeclibWidget: SpectralLibraryWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
-        self.mSpeclibWidget.setVisualizationBoxCollapsed(True)
+        self.mSpeclibWidget.spectralLibraryPlotWidget().optionShowVisualizationSettings.setChecked(False)
         self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.mSpeclibWidget)
 
