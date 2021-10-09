@@ -1068,7 +1068,7 @@ class EnMAPBox(QgisInterface, QObject):
         Initializes the product loaders under <menu> Project -> Add Product
         """
         menu: QMenu = self.ui.menuAdd_Product
-        #separator = self.ui.mActionAddSentinel2  # outdated
+        # separator = self.ui.mActionAddSentinel2  # outdated
 
         menu.addSeparator()
 
@@ -1250,7 +1250,6 @@ class EnMAPBox(QgisInterface, QObject):
             if isinstance(dock, SpectralLibraryDock):
                 slw: SpectralLibraryWidget = dock.speclibWidget()
                 slw.setViewVisibility(SpectralLibraryWidget.ViewType.ProfileView)
-                slw.setVisualizationBoxCollapsed(True)
 
         if len(panel.mBridge) == 0:
             panel.createRelation()
@@ -1903,7 +1902,7 @@ class EnMAPBox(QgisInterface, QObject):
     currentLayerChanged = pyqtSignal(QgsMapLayer)
 
     ### ACTIONS ###
-    #def actionAddSentinel2(self) -> QAction:  # AR: this is outdated; replaced by "Import Sentinel-2 L2A product" algo
+    # def actionAddSentinel2(self) -> QAction:  # AR: this is outdated; replaced by "Import Sentinel-2 L2A product" algo
     #    return self.ui.mActionAddSentinel2
 
     def actionAddSubDatasets(self) -> QAction:
