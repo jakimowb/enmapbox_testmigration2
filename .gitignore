@@ -47,5 +47,6 @@ doc/build
 /test-reports/
 hubdc/gis/
 exampledata/
+_exampledata/
 *.gpkg-shm
 *.gpkg-wal
