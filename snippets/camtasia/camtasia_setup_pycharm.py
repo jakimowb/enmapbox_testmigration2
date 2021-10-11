@@ -1,8 +1,13 @@
+import os
+import pathlib
+import shutil
+
+from PyQt5.QtCore import QSize
 
 import qgis.utils
 from enmapbox.testing import TestCase
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapbox import initAll
+from enmapbox import initAll, DIR_ENMAPBOX
 
 class StartEnMAPBoxCamtasia(TestCase):
 
@@ -17,6 +22,14 @@ class StartEnMAPBoxCamtasia(TestCase):
 
     def test_start_intro_speclib_empty(self):
 
+        PATH_EXAMPLE = pathlib.Path(DIR_ENMAPBOX) / 'exampledata'
+        _PATH_EXAMPLE = PATH_EXAMPLE.parent / ('_'+PATH_EXAMPLE.name)
+        rename = PATH_EXAMPLE.is_dir()
+        if rename:
+            if _PATH_EXAMPLE.is_dir():
+                shutil.rmtree(PATH_EXAMPLE)
+            else:
+                os.rename(PATH_EXAMPLE, _PATH_EXAMPLE)
         emb = EnMAPBox(load_other_apps=False, load_core_apps=True)
 
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
@@ -24,6 +37,10 @@ class StartEnMAPBoxCamtasia(TestCase):
 
         # remove error messages
         self.clearAndResize(emb)
+        size = emb.ui.spectralProfileSourcePanel
+        emb.ui.spectralProfileSourcePanel.resize(QSize(400, size.height()))
 
         self.showGui(emb.ui)
 
+        if rename:
+            os.rename(_PATH_EXAMPLE, PATH_EXAMPLE)
