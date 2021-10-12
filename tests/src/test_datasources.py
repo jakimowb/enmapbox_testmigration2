@@ -20,6 +20,9 @@ import numpy as np
 import xmlrunner
 import json
 import pickle
+
+import testdata
+from enmapbox.externals.qps.speclib.core import profile_fields
 from qgis.PyQt import sip
 from qgis.core import *
 from qgis.gui import *
@@ -30,7 +33,7 @@ from enmapbox import EnMAPBox
 from enmapbox.gui.datasourcemanager import *
 from enmapbox.gui.utils import *
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-from enmapbox.exampledata import enmap, hires, landcover_polygons, library
+from enmapbox.exampledata import enmap, hires, landcover_polygons, library, enmap_srf_library
 from enmapbox.gui.datasources import *
 
 
@@ -193,31 +196,30 @@ class DataSourceTests(EnMAPBoxTestCase):
 
     def test_speclibs(self):
 
-        ds = DataSourceFactory.create(library)
+        ds = DataSourceFactory.create(enmap_srf_library)
         self.assertIsInstance(ds, list)
         self.assertTrue(len(ds) == 1)
         ds = ds[0]
         self.assertIsInstance(ds, DataSourceVector)
         self.assertTrue(ds.isSpectralLibrary())
 
-        import enmapbox.unittestdata.asd.asd
+
         from enmapbox import scantree
-        from enmapbox.externals.qps.speclib.io.asd import ASDSpectralLibraryIO
-        asdDir = pathlib.Path(enmapboxunittestdata.__file__).parent
+        from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibraryUtils
+        import testdata.asd
+        asdDir = pathlib.Path(testdata.asd.__file__).parent
         asdFiles = list(scantree(asdDir, '.asd'))
 
         for file in asdFiles:
             file = str(file)
             print('Load SpectralLibrary from {}...'.format(file), flush=True)
             self.assertTrue(os.path.isfile(file))
-            self.assertTrue(ASDSpectralLibraryIO.canRead(file))
-            slib = ASDSpectralLibraryIO.readFrom(file)
 
-            self.assertIsInstance(slib, SpectralLibrary)
-            ds = DataSourceFactory.create(file)
+            slib = SpectralLibraryUtils.readFromSource(file)
 
-            self.assertIsInstance(ds, list)
-            self.assertTrue(len(ds) > 0, msg='not datasource returned for {}'.format(file))
+            self.assertIsInstance(slib, QgsVectorLayer)
+            self.assertTrue(slib.featureCount() > 0)
+            self.assertTrue(profile_fields(slib).count() > 0)
 
     def test_layerSourceUpdate(self):
 
@@ -319,10 +321,10 @@ class DataSourceTests(EnMAPBoxTestCase):
         self.assertTrue(len(uriList) == len(uris))
         self.assertListEqual(uris, dsm.uriList())
 
-        self.assertEqual(len(dsm.sources('SPATIAL')),2)
+        self.assertEqual(len(dsm.sources('SPATIAL')),3)
         self.assertEqual(len(dsm.sources('RASTER')), 1)
-        self.assertEqual(len(dsm.sources('VECTOR')), 1)
-        self.assertEqual(len(dsm.sources('SPECLIB')), 0)
+        self.assertEqual(len(dsm.sources('VECTOR')), 2)
+        self.assertEqual(len(dsm.sources('SPECLIB')), 1)
         self.assertEqual(len(dsm.sources('FILE')), 0)
 
         self.assertTrue(len(reg.mapLayers()) == 0)
@@ -564,7 +566,7 @@ class DataSourceTests(EnMAPBoxTestCase):
 
         from enmapbox import DIR_REPO
 
-        path_pkl = pathlib.Path(DIR_REPO) / 'enmapboxunittestdata' / 'classifier.pkl'
+        path_pkl = testdata.classifier_pkl
 
         self.assertTrue(os.path.isfile(path_pkl), msg='missing unittest data: {}'.format(path_pkl))
 
