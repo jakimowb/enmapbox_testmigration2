@@ -25,6 +25,7 @@ class StartEnMAPBoxCamtasia(TestCase):
         PATH_EXAMPLE = pathlib.Path(DIR_ENMAPBOX) / 'exampledata'
         _PATH_EXAMPLE = PATH_EXAMPLE.parent / ('_'+PATH_EXAMPLE.name)
         rename = PATH_EXAMPLE.is_dir()
+        rename = False
         if rename:
             if _PATH_EXAMPLE.is_dir():
                 shutil.rmtree(PATH_EXAMPLE)
