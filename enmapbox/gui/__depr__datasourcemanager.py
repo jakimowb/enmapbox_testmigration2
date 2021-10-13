@@ -42,16 +42,14 @@ from enmapbox.gui import \
     ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, PyObjectTreeNode, \
     qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, SpatialExtent, fileSizeString, defaultBands, \
     defaultRasterRenderer, loadUi
-from enmapbox.gui.mapcanvas import MapDock
+from enmapbox.gui.dataviews.docks import MapDock
 from enmapbox.gui.mimedata import \
     MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
     QGIS_URILIST_MIMETYPE, MDF_URILIST, extractMapLayers
 from enmapbox.gui.utils import enmapboxUiPath, dataTypeName
 from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
-from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
-from enmapboxprocessing.utils import Utils
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import QApplication, QMenu
@@ -1244,12 +1242,12 @@ class DataSourceTreeView(TreeView):
 
         """
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        from enmapbox.gui.docks import SpectralLibraryDock
+        from enmapbox.gui.dataviews.docks import SpectralLibraryDock
         EnMAPBox.instance().dockManager().createDock(SpectralLibraryDock, speclib=speclib)
 
     def openInAttributeEditor(self, vectorLayer: QgsVectorLayer):
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        from enmapbox.gui.docks import AttributeTableDock
+        from enmapbox.gui.dataviews.docks import AttributeTableDock
         EnMAPBox.instance().dockManager().createDock(AttributeTableDock, layer=vectorLayer)
 
 

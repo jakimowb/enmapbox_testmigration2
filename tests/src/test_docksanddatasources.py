@@ -15,21 +15,14 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 import unittest
 import tempfile
 import xmlrunner
-from qgis import *
-from qgis.core import QgsApplication, QgsProject, QgsRasterLayer, QgsVectorLayer, QgsLayerTreeLayer
-from qgis.gui import QgsLayerTreeView, QgsMapCanvas
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtWidgets import *
 
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 from enmapbox.gui import SpectralProfile
 from enmapbox import EnMAPBox
 from enmapbox.exampledata import *
-from enmapbox.gui.datasources import *
 from enmapbox.gui.datasourcemanager import *
-from enmapbox.gui.dockmanager import *
-from enmapbox.gui.docks import *
+from enmapbox.gui.dataviews.dockmanager import *
+from enmapbox.gui.dataviews.docks import *
 from enmapbox.externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
 
 

@@ -20,7 +20,7 @@ import time
 import os
 
 
-from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsMimeDataUtils, QgsWkbTypes
+from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsWkbTypes
 from qgis.gui import QgsMapCanvas
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
@@ -67,7 +67,7 @@ class MimeDataTests(EnMAPBoxTestCase):
 
     def test_datasourcehandling(self):
 
-        from enmapbox.gui.datasources import DataSource, DataSourceRaster, DataSourceTextFile, DataSourceVector, DataSourceFactory
+        from enmapbox.gui.datasources import DataSource, DataSourceFactory
         from enmapbox.gui.datasourcemanager import DataSourceManager
 
 
@@ -186,7 +186,7 @@ class MimeDataTests(EnMAPBoxTestCase):
                     files.append(pathlib.Path(root) / file)
 
         # drop on spectral library widget
-        from enmapbox.gui.docks import SpectralLibraryDock
+        from enmapbox.gui.dataviews.docks import SpectralLibraryDock
         from enmapbox.gui import SpectralLibraryWidget
         from enmapbox.exampledata import library
         EB = EnMAPBox(load_other_apps=False, load_core_apps=False)

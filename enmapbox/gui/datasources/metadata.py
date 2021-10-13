@@ -153,10 +153,10 @@ class DataSourceSizesTreeNode(TreeNode):
 
             ext = SpatialExtent.fromLayer(lyr)
             mu = QgsUnitTypes.encodeUnit(ext.crs().mapUnits())
-
-            data['map_layer'] = lyr
-            data['map_units'] = mu
-            data['extent'] = ext
+            from .datasources import DataSource
+            data[DataSource.MD_LAYER] = lyr
+            data[DataSource.MD_MAPUNIT] = mu
+            data[DataSource.MD_EXTENT] = ext
 
             childs += [TreeNode('Width', value='{:0.2f} {}'.format(ext.width(), mu), toolTip='Spatial width'),
                        TreeNode('Height', value='{:0.2f} {}'.format(ext.height(), mu, toolTip='Spatial height'))

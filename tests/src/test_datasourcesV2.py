@@ -38,6 +38,6 @@ class DataSourceV2Tests(EnMAPBoxTestCase):
     def test_EnMAPBox(self):
 
         from enmapbox import EnMAPBox
-        emb = EnMAPBox()
+        emb = EnMAPBox(load_core_apps=False, load_other_apps=False)
         emb.loadExampleData()
         self.showGui(emb.ui)

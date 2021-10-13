@@ -202,7 +202,7 @@
   <customwidget>
    <class>DockTreeView</class>
    <extends>QTreeView</extends>
-   <header>enmapbox.gui.dockmanager</header>
+   <header>enmapbox.gui.dataviews.dockmanager</header>
   </customwidget>
  </customwidgets>
  <resources>

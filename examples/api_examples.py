@@ -22,12 +22,11 @@
 """
 
 # imports
-import sys, os, unittest
+import unittest
 from qgis.core import *
 from qgis.gui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtCore import *
 
 # create a QgsApplication instance which emulate the QGIS Desktop Application
 from enmapbox.testing import initQgisApplication
@@ -165,7 +164,7 @@ class Examples(unittest.TestCase):
         """
         Add new dock windows to view data
         """
-        from enmapbox.gui.enmapboxgui import EnMAPBox, Dock, MapDock, SpectralLibraryDock
+        from enmapbox.gui.enmapboxgui import EnMAPBox
         enmapBox = EnMAPBox(None)
 
         #enmapBox.createDock('MAP')  # a spatial map
@@ -190,7 +189,7 @@ class Examples(unittest.TestCase):
 
 
         # list all docks
-        from enmapbox.gui.docks import Dock, SpectralLibraryDock
+        from enmapbox.gui.dataviews.docks import Dock
         for dock in enmapBox.mDockManager.docks():
             assert isinstance(dock, Dock)
             print(dock)
@@ -254,7 +253,7 @@ class Examples(unittest.TestCase):
         enmapBox = EnMAPBox(None)
         enmapBox.loadExampleData()  # this opens a map dock as well
 
-        from enmapbox.gui import MapTools, SpatialPoint, SpectralProfile
+        from enmapbox.gui import SpectralProfile
 
 
         class MyApp(QMainWindow):

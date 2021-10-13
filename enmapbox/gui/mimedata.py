@@ -97,8 +97,8 @@ def toDataSourceList(mimeData):
         node = doc.firstChildElement(MDF_DATASOURCETREEMODELDATA_XML)
         childs = node.childNodes()
 
-        from enmapbox.gui.datasources import DataSource, DataSourceFactory
-        from enmapbox.gui.datasourcemanager import DataSourceManager
+        from enmapbox.gui.datasources.datasources import DataSource, DataSourceFactory
+        from enmapbox.gui.datasources.manager import DataSourceManager
         from uuid import UUID
         dsm = DataSourceManager.instance()
         b = isinstance(dsm, DataSourceManager)

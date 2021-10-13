@@ -25,15 +25,15 @@ import typing
 import uuid
 import os
 from osgeo import gdal
-from qgis.PyQt.QtWidgets import QMessageBox, QMainWindow, QMenu, QAction
+from qgis.PyQt.QtWidgets import QMessageBox, QMainWindow, QMenu
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsRasterLayer, QgsRasterRenderer
-from qgis.gui import QgsMapCanvas, QgisInterface, QgsMapTool
+from qgis.gui import QgsMapCanvas, QgisInterface
 import qgis.utils
 from enmapbox.gui.applications import EnMAPBoxApplication
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui.datasourcemanager import DataSourceTreeView, RasterBandTreeNode
-from enmapbox.gui.dockmanager import DockTreeView
+from enmapbox.gui.dataviews.dockmanager import DockTreeView
 
 APP_DIR = os.path.dirname(__file__)
 MIN_VERSION = '0.9'
@@ -205,7 +205,7 @@ class VRTBuilderApp(EnMAPBoxApplication):
 
         if not self.mIsInstalled:
             return
-        from vrtbuilder.widgets import VRTBuilderWidget, SpatialExtentMapTool
+        from vrtbuilder.widgets import VRTBuilderWidget
         assert isinstance(w, VRTBuilderWidget)
         canvases = []
 

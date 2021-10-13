@@ -8,24 +8,6 @@ from .datasources import DataSource, VectorDataSource, RasterDataSource, ModelDa
     FileDataSource
 
 
-class DataSourceList(object):
-
-    def __init__(self, dataSources=[]):
-
-        self.mDataSources = dataSources
-
-    def __iter__(self):
-        return iter(self.mDataSources)
-
-    def setDataSources(self, dataSources):
-        for s in dataSources:
-            assert isinstance(s, DataSource)
-        self.mDataSources.clear()
-        self.mDataSources.extend(dataSources)
-
-    def dataSources(self) -> typing.List[DataSource]:
-        return self.mDataSources[:]
-
 class DataSourceSet(TreeNode):
 
     def __init__(self, *args, name: str = '<source set>', **kwds):
@@ -56,16 +38,17 @@ class DataSourceSet(TreeNode):
     def dataSources(self) -> typing.List[DataSource]:
         return self.childNodes()
 
-    def removeDataSources(self, dataSources: typing.Union[DataSource, typing.List[DataSource]]) -> typing.List[DataSource]:
+    def removeDataSources(self, dataSources: typing.Union[DataSource, typing.List[DataSource]]) -> typing.List[
+        DataSource]:
         if isinstance(dataSources, DataSource):
             dataSources = [dataSources]
         owned = self.dataSources()
-        owned = [d for d in dataSources if d in owned]
+        toremove = [d for d in dataSources if d in owned]
 
-        if len(owned) > 0:
-            self.removeChildNodes(owned)
+        if len(toremove) > 0:
+            self.removeChildNodes(toremove)
             self.updateName()
-            return owned
+        return toremove
 
     def addDataSources(self, dataSources: typing.Union[DataSource, typing.List[DataSource]]) -> typing.List[DataSource]:
         if isinstance(dataSources, DataSource):

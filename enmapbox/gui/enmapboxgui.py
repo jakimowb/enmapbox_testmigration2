@@ -20,7 +20,6 @@ import os
 import pathlib
 import re
 import sys
-import traceback
 import enum
 import typing
 import warnings
@@ -29,7 +28,7 @@ from typing import Optional, Dict, Union
 
 from PyQt5.QtCore import pyqtSignal, Qt, QObject, QModelIndex, pyqtSlot, QSettings, QEventLoop, QRect, QSize, QFile
 from PyQt5.QtGui import QDragEnterEvent, QDragMoveEvent, QDragLeaveEvent, QDropEvent, QPixmap, QColor, QIcon, QKeyEvent, \
-    QCloseEvent, QPainter, QGuiApplication
+    QCloseEvent, QGuiApplication
 from PyQt5.QtWidgets import QFrame, QToolBar, QToolButton, QAction, QMenu, QSplashScreen, QGraphicsDropShadowEffect, \
     QMainWindow, QApplication, QSizePolicy, QWidget, QDockWidget, QStyle, QFileDialog, QDialog
 from PyQt5.QtXml import QDomDocument
@@ -50,34 +49,34 @@ from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm
 from processing.gui.AlgorithmDialog import AlgorithmDialog
 import enmapbox
 from qgis import utils as qgsUtils
+from qgis.PyQt import sip
 import qgis.utils
-import sip
+
 
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, \
-    QgsProcessingAlgorithm, QgsApplication, Qgis, QgsCoordinateReferenceSystem, QgsWkbTypes, \
+    QgsProcessingAlgorithm, Qgis, QgsCoordinateReferenceSystem, QgsWkbTypes, \
     QgsMapLayerStore, QgsPointXY, QgsLayerTreeGroup, QgsLayerTree, QgsLayerTreeLayer, QgsVectorLayerTools, \
     QgsZipUtils, QgsProjectArchive, QgsSettings, \
-    QgsStyle, QgsSymbolLegendNode, QgsSymbol, QgsTaskManager, QgsApplication, QgsTask, QgsProcessingAlgRunnerTask
+    QgsStyle, QgsSymbolLegendNode, QgsSymbol, QgsTaskManager, QgsApplication, QgsProcessingAlgRunnerTask
 
 from qgis.gui import QgsMapCanvas, QgsLayerTreeView, \
-    QgisInterface, QgsMessageBar, QgsMessageViewer, QgsMessageBarItem, QgsMapLayerConfigWidgetFactory, \
-    QgsMapLayerConfigWidgetFactory, QgsAttributeTableFilterModel, QgsSymbolSelectorDialog, \
+    QgisInterface, QgsMessageBar, QgsMessageViewer, QgsMessageBarItem, QgsMapLayerConfigWidgetFactory, QgsAttributeTableFilterModel, QgsSymbolSelectorDialog, \
     QgsSymbolWidgetContext
 
-from enmapbox import messageLog, debugLog, DEBUG, DIR_ENMAPBOX
-from .datasources.datasourcesets import DataSourceList
-from .dockmanager import DockManagerTreeModel, MapDockTreeNode, DockTreeNode, SpeclibDockTreeNode
+from enmapbox import messageLog, debugLog, DEBUG
+
+from enmapbox.gui.dataviews.dockmanager import DockManagerTreeModel, MapDockTreeNode, SpeclibDockTreeNode
 from .datasources.datasources import DataSource, RasterDataSource, VectorDataSource, SpatialDataSource
 from enmapbox.externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog
 from enmapbox.externals.qps.maptools import QgsMapToolSelectionHandler, MapTools
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
 from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
-from enmapbox.externals.qps.speclib.gui.spectralprofilesources import SpectralProfileSourcePanel, SpectralProfileSource, \
-    SpectralProfileBridge, MapCanvasLayerProfileSource
+from enmapbox.externals.qps.speclib.gui.spectralprofilesources import SpectralProfileSourcePanel, \
+    MapCanvasLayerProfileSource
 from enmapbox.externals.qps.speclib.gui.spectrallibrarywidget import SpectralLibraryWidget
-from .docks import SpectralLibraryDock, Dock, AttributeTableDock
-from .mapcanvas import MapDock, MapCanvas
+from enmapbox.gui.dataviews.docks import SpectralLibraryDock, Dock, AttributeTableDock, MapDock
+from .mapcanvas import MapCanvas
 from .utils import enmapboxUiPath
 from ..externals.qps.speclib.core import is_spectral_library
 from ..externals.qps.subdatasets import SubDatasetSelectionDialog
@@ -88,14 +87,7 @@ HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
 MAX_MISSING_DEPENDENCY_WARNINGS = 3
 KEY_MISSING_DEPENDENCY_VERSION = 'MISSING_PACKAGE_WARNING_VERSION'
 
-
-class EnMAPBoxDocks(enum.Enum):
-    MapDock = 'MAP'
-    SpectralLibraryDock = 'SPECLIB'
-    TextViewDock = 'TEXT'
-    HTMLViewDock = 'HTML'
-    MimeDataDock = 'MIME'
-    EmptyView = 'EMPTY'
+from .dataviews.docks import DockTypes
 
 
 class CentralFrame(QFrame):
@@ -276,12 +268,12 @@ class EnMAPBox(QgisInterface, QObject):
 
     MAPTOOLACTION = 'enmapbox/maptoolkey'
 
-    sigDataSourcesAdded = pyqtSignal(DataSourceList)
-    sigSpectralLibraryAdded = pyqtSignal(VectorDataSource)
+    sigDataSourcesAdded = pyqtSignal(list)
+    sigSpectralLibraryAdded = pyqtSignal([str], [VectorDataSource])
     sigRasterSourceAdded = pyqtSignal([str], [RasterDataSource])
     sigVectorSourceAdded = pyqtSignal([str], [VectorDataSource])
 
-    sigDataSourcesRemoved = pyqtSignal(DataSourceList)
+    sigDataSourcesRemoved = pyqtSignal(list)
     sigSpectralLibraryRemoved = pyqtSignal([str], [VectorDataSource])
     sigRasterSourceRemoved = pyqtSignal([str], [RasterDataSource])
     sigVectorSourceRemoved = pyqtSignal([str], [VectorDataSource])
@@ -360,7 +352,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         # define managers
         from enmapbox.gui.datasources.manager import DataSourceManager
-        from enmapbox.gui.dockmanager import DockManager
+        from enmapbox.gui.dataviews.dockmanager import DockManager
 
         splash.showMessage('Init DataSourceManager')
         self.mDataSourceManager = DataSourceManager()
@@ -659,7 +651,7 @@ class EnMAPBox(QgisInterface, QObject):
     def dataSourceManager(self) -> enmapbox.gui.datasources.manager.DataSourceManager:
         return self.mDataSourceManager
 
-    def dockManager(self) -> enmapbox.gui.dockmanager.DockManager:
+    def dockManager(self) -> enmapbox.gui.dataviews.dockmanager.DockManager:
         return self.mDockManager
 
     def addMapLayer(self, layer: QgsMapLayer):
@@ -748,11 +740,11 @@ class EnMAPBox(QgisInterface, QObject):
     def syncHiddenLayers(self):
         """
         Updates the hidden layers node in the QGIS LayerTree.
-        This is important as only layers in the QGIS LayerTree will be shown in the QgsMapLayerComboBox.
+        This is important as only layers in the QGIS LayerTree will be shown in
+        the QgsMapLayerComboBox / QgsMapLayer
 
         :return:
         """
-
         grp = self.hiddenLayerGroup()
         if isinstance(grp, EnMAPBoxHiddenLayerTreeGroup):
             knownInQGIS = [l.layerId() for l in grp.findLayers() if isinstance(l.layer(), QgsMapLayer)]
@@ -827,9 +819,8 @@ class EnMAPBox(QgisInterface, QObject):
         layers = [l for l in layers if isinstance(l, QgsMapLayer)]
         removedIds = [l.id() for l in layers]
 
-        layersDS = self.dataSourceManager().mapLayers()
         layersTM = self.dockManagerTreeModel().mapLayers()
-        layers = [l for l in layers if isinstance(l, QgsMapLayer) and l in layersDS + layersTM]
+        layers = [l for l in layers if isinstance(l, QgsMapLayer) and l in layersTM]
         self.syncHiddenLayers()
 
         ltv = qgis.utils.iface.layerTreeView()
@@ -934,11 +925,11 @@ class EnMAPBox(QgisInterface, QObject):
         # add & register panels
         area = None
 
-        import enmapbox.gui.dockmanager
+        import enmapbox.gui.dataviews.dockmanager
 
         area = Qt.LeftDockWidgetArea
         self.ui.dataSourcePanel = self.addPanel(area, enmapbox.gui.datasources.manager.DataSourceManagerPanelUI(self.ui))
-        self.ui.dockPanel = self.addPanel(area, enmapbox.gui.dockmanager.DockPanelUI(self.ui))
+        self.ui.dockPanel = self.addPanel(area, enmapbox.gui.dataviews.dockmanager.DockPanelUI(self.ui))
 
         self.ui.cursorLocationValuePanel = self.addPanel(area, CursorLocationInfoDock(self.ui), show=False)
         self.ui.cursorLocationValuePanel.mLocationInfoModel.setCountFromZero(False)
@@ -1050,11 +1041,11 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.mActionAddDataSource.triggered.connect(self.openAddDataSourceDialog)
         self.ui.mActionAddSubDatasets.triggered.connect(self.openSubDatasetsDialog)
 
-        self.ui.mActionAddMapView.triggered.connect(lambda: self.mDockManager.createDock(EnMAPBoxDocks.MapDock))
-        self.ui.mActionAddTextView.triggered.connect(lambda: self.mDockManager.createDock(EnMAPBoxDocks.TextViewDock))
-        self.ui.mActionAddWebView.triggered.connect(lambda: self.mDockManager.createDock(EnMAPBoxDocks.HTMLViewDock))
-        self.ui.mActionAddMimeView.triggered.connect(lambda: self.mDockManager.createDock(EnMAPBoxDocks.MimeDataDock))
-        self.ui.mActionAddSpeclibView.triggered.connect(lambda: self.mDockManager.createDock(EnMAPBoxDocks.SpectralLibraryDock))
+        self.ui.mActionAddMapView.triggered.connect(lambda: self.mDockManager.createDock(DockTypes.MapDock))
+        self.ui.mActionAddTextView.triggered.connect(lambda: self.mDockManager.createDock(DockTypes.TextDock))
+        self.ui.mActionAddWebView.triggered.connect(lambda: self.mDockManager.createDock(DockTypes.WebViewDock))
+        self.ui.mActionAddMimeView.triggered.connect(lambda: self.mDockManager.createDock(DockTypes.MimeDataDock))
+        self.ui.mActionAddSpeclibView.triggered.connect(lambda: self.mDockManager.createDock(DockTypes.SpectralLibraryDock))
         self.ui.mActionLoadExampleData.triggered.connect(lambda: self.openExampleData(
             mapWindows=1 if len(self.mDockManager.docks(MapDock)) == 0 else 0))
 
@@ -1250,7 +1241,7 @@ class EnMAPBox(QgisInterface, QObject):
 
     def onDockAdded(self, dock):
         assert isinstance(dock, Dock)
-        from enmapbox.gui.mapcanvas import MapDock
+
 
         if isinstance(dock, SpectralLibraryDock):
             dock.sigLoadFromMapRequest.connect(lambda: self.setMapTool(MapTools.SpectralProfile))
@@ -1617,47 +1608,37 @@ class EnMAPBox(QgisInterface, QObject):
                 lyrs = sorted(lyrs, reverse=True, key=niceLayerOrder)
                 dock.mapCanvas().setLayers(lyrs)
 
-    def onDataSourcesRemoved(self, dataSources: DataSourceList):
+    def onDataSourcesRemoved(self, dataSources: typing.List[DataSource]):
         """
         Reacts on removed data sources
         :param dataSource: DataSource
         """
+
+        # remove where we can remove lists of data sources
+        self.spectralProfileSourcePanel().removeSources(dataSources)
+        self.dockManagerTreeModel().removeDataSources(dataSources)
+
+        # emit signals that are connected to single datasource types
         for dataSource in dataSources:
-            assert isinstance(dataSource, DataSource)
-
-            # remove any layer that matches the same source uri
-            model: DockManagerTreeModel = self.dockManagerTreeModel()
-            model.removeDataSource(dataSource)
-
-            self.sigDataSourcesRemoved[DataSourceList].emit(dataSource)
-
             if isinstance(dataSource, RasterDataSource):
-                self.sigRasterSourceRemoved[str].emit(dataSource.uri())
+                self.sigRasterSourceRemoved[str].emit(dataSource.source())
                 self.sigRasterSourceRemoved[RasterDataSource].emit(dataSource)
-                self.spectralProfileSourcePanel().removeSources(dataSource.uri())
 
             if isinstance(dataSource, VectorDataSource):
-                self.sigVectorSourceRemoved[str].emit(dataSource.uri())
+                self.sigVectorSourceRemoved[str].emit(dataSource.source())
                 self.sigVectorSourceRemoved[VectorDataSource].emit(dataSource)
 
                 if dataSource.isSpectralLibrary():
-                    to_remove = [d for d in self.dockManager().docks() \
-                                 if isinstance(d, SpectralLibraryDock) \
-                                 and d.speclib() == dataSource.mapLayer()]
-                    for d in to_remove:
-                        self.dockManager().removeDock(d)
+                    self.sigSpectralLibraryRemoved[str].emit(dataSource.source())
+                    self.sigSpectralLibraryRemoved[VectorDataSource].emit(dataSource)
 
-                    self.sigSpectralLibraryRemoved[str].emit(dataSource.uri())
-                    self.sigSpectralLibraryRemoved[QgsVectorLayer].emit(dataSource.mapLayer())
-
-            # finally, remove related map layers
-            if isinstance(dataSource, SpatialDataSource):
-                self.removeMapLayer(dataSource.mapLayer())
         self.syncHiddenLayers()
+
+        self.sigDataSourcesRemoved[list].emit(dataSources)
 
     def onDataSourcesAdded(self, dataSources: typing.List[DataSource]):
 
-        self.sigDataSourcesAdded[DataSourceList].emit(dataSources)
+        self.sigDataSourcesAdded[list].emit(dataSources)
 
         for dataSource in dataSources:
             if isinstance(dataSource, RasterDataSource):
@@ -1765,7 +1746,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         self.mDockManager.removeDock(*args, **kwds)
 
-    def dockTreeView(self) -> enmapbox.gui.dockmanager.DockTreeView:
+    def dockTreeView(self) -> enmapbox.gui.dataviews.dockmanager.DockTreeView:
         """
         Returns the DockTreeView
         """
@@ -1960,10 +1941,10 @@ class EnMAPBox(QgisInterface, QObject):
         self.mQgisInterfaceLayerSet = dict()
         self.mQgisInterfaceMapCanvas = MapCanvas()
 
-    def layerTreeView(self) -> enmapbox.gui.dockmanager.DockTreeView:
+    def layerTreeView(self) -> enmapbox.gui.dataviews.dockmanager.DockTreeView:
         """
         Returns the Dock Panel Tree View
-        :return: enmapbox.gui.dockmanager.DockTreeView
+        :return: enmapbox.gui.dataviews.dockmanager.DockTreeView
         """
         return self.dockTreeView()
 
@@ -2396,30 +2377,12 @@ class EnMAPBox(QgisInterface, QObject):
         # return self.ui.mActionAddDataSource.icon().availableSizes()[0]
         return QSize(16, 16)
 
-    def spectralLibraries(self) -> typing.List[SpectralLibrary]:
+    def spectralLibraryWidgets(self) -> typing.List[SpectralLibraryWidget]:
         """
-        Returns a list of SpectraLibraries that either known as DataSource, added to one of the Maps or visible in a SpectralLibrary Widget).
-        :return: [list-of-SpectralLibraries]
+        Returns a list with SpectralLibraryWidgets known to the EnMAP-Box.
+        :return: [list-of-SpectralLibraryWidget]
         """
-        candidates = []
-        for source in self.mDataSourceManager.sources():
-            if isinstance(source, VectorDataSource):
-                candidates.append(source.mapLayer())
-
-        for lyr in self.mapLayers():
-            if is_spectral_library(lyr):
-                candidates.append(lyr)
-
-        for dock in self.docks():
-            if isinstance(dock, SpectralLibraryDock):
-                candidates.append(dock.speclib())
-
-        speclibs = []
-        for c in candidates:
-            if is_spectral_library(c) and c not in speclibs:
-                speclibs.append(c)
-
-        return speclibs
+        return [d.speclibWidget() for d in self.docks() if isinstance(d, SpectralLibraryDock)]
 
     def mapCanvases(self) -> typing.List[MapCanvas]:
         """

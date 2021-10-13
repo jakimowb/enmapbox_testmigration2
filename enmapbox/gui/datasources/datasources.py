@@ -1,17 +1,19 @@
 import json
 import pickle
+import warnings
 
+from PyQt5.QtGui import QIcon
 from qgis._core import QgsDataItem, QgsLayerItem, QgsCoordinateReferenceSystem, QgsMapLayer, QgsUnitTypes, \
-    QgsMapLayerType, QgsVectorLayer, QgsRasterLayer, Qgis
+    QgsMapLayerType, QgsVectorLayer, QgsRasterLayer, Qgis, QgsWkbTypes, QgsField
 
 from enmapbox import messageLog, debugLog
+from ...externals.qps.classification.classificationscheme import ClassificationScheme
 from ...externals.qps.models import TreeNode, PyObjectTreeNode
-from ...externals.qps.utils import SpatialExtent, parseWavelength
+from ...externals.qps.utils import SpatialExtent, parseWavelength, iconForFieldType
 from ...externals.qps.speclib.core import is_spectral_library
 from .metadata import CRSLayerTreeNode, RasterBandTreeNode, DataSourceSizesTreeNode
 
 from qgis.core import QgsDataItem, QgsLayerItem, QgsMapLayer, QgsRasterLayer
-
 
 
 def dataItemToLayer(dataItem: QgsDataItem) -> QgsMapLayer:
@@ -27,6 +29,11 @@ def dataItemToLayer(dataItem: QgsDataItem) -> QgsMapLayer:
     return lyr
 
 class DataSource(TreeNode):
+
+    MD_LAYER = 'map_layer'
+    MD_MAPUNIT = 'map_unit'
+    MD_EXTENT = 'spatial_extent'
+    MD_CRS = 'crs'
 
     def __init__(self, dataItem: QgsDataItem, **kwds):
         assert isinstance(dataItem, QgsDataItem)
@@ -50,12 +57,17 @@ class DataSource(TreeNode):
     def source(self) -> str:
         return self.mDataItem.path()
 
+    def uri(self) -> str:
+        warnings.warn(DeprecationWarning)
+        return self.source()
+
     def dataItem(self) -> QgsDataItem:
         return self.mDataItem
 
     def updateNodes(self, **kwds) -> dict:
         """
         Creates and updates notes according to the data source.
+        Returns dictionary with collected metadata
         """
         dataItem: QgsDataItem = self.dataItem()
         self.setName(dataItem.name())
@@ -88,9 +100,9 @@ class SpatialDataSource(DataSource):
         return self.mDataItem
 
     def updateNodes(self) -> dict:
-        data = super().updateNodes()
+        MD = super().updateNodes()
 
-        ext = data.get('spatial_extent', None)
+        ext = MD.get(DataSource.MD_EXTENT, None)
         if isinstance(ext, SpatialExtent):
             mu = QgsUnitTypes.toString(ext.crs().mapUnits())
             self.nodeCRS.setCrs(ext.crs())
@@ -100,7 +112,7 @@ class SpatialDataSource(DataSource):
             self.nodeCRS.setCrs(QgsCoordinateReferenceSystem())
             self.nodeExtXmu.setValue(None)
             self.nodeExtYmu.setValue(None)
-        return data
+        return MD
 
 
 class VectorDataSource(SpatialDataSource):
@@ -110,17 +122,73 @@ class VectorDataSource(SpatialDataSource):
         assert isinstance(dataItem, QgsLayerItem)
         assert dataItem.mapLayerType() == QgsMapLayerType.VectorLayer
         self.mIsSpectralLibrary: bool = False
+        self.mWKBType = None
+        self.mGeometryType = None
+
+        self.nodeFeatures: TreeNode = TreeNode('Features', values=[0])
+        self.nodeGeomType = TreeNode('Geometry Type')
+        self.nodeWKBType = TreeNode('WKB Type')
+
+        self.nodeFields: TreeNode = TreeNode('Fields',
+                                             toolTip='Attribute fields related to each feature',
+                                             values=[0])
+
+        self.nodeFeatures.appendChildNodes([self.nodeGeomType, self.nodeWKBType])
+        self.appendChildNodes([self.nodeFeatures, self.nodeFields])
 
         self.updateNodes()
 
+    def wkbType(self) -> QgsWkbTypes.Type:
+        return self.mWKBType
+
+    def geometryType(self) -> QgsWkbTypes.GeometryType:
+        return self.mGeometryType
+
     def updateNodes(self) -> dict:
 
-        data = super(VectorDataSource, self).updateNodes()
-        lyr = data.get('map_layer', None)
+        MD = super(VectorDataSource, self).updateNodes()
+        lyr = MD.get('map_layer', None)
+
         self.mIsSpectralLibrary = is_spectral_library(lyr)
 
-    def isSpectralLibrary(self):
-        self.mIsSpectralLibrary
+        if isinstance(lyr, QgsVectorLayer):
+            self.mWKBType = lyr.wkbType()
+            self.mGeometryType = lyr.geometryType()
+
+            wkbTypeName = QgsWkbTypes.displayString(int(self.mWKBType))
+            geomTypeName = ['Point', 'Line', 'Polygon', 'Unknown', 'Null'][lyr.geometryType()]
+            self.nodeWKBType.setValue(wkbTypeName)
+            self.nodeGeomType.setValue(geomTypeName)
+
+            nFeat = lyr.featureCount()
+            nFields = lyr.fields().count()
+            self.nodeFields.setValue(nFields)
+
+            if self.isSpectralLibrary():
+                self.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
+            else:
+                self.setIcon(self.dataItem().icon())
+
+            self.nodeFeatures.setValue(nFeat)
+            self.nodeFields.removeAllChildNodes()
+            field_nodes = []
+            for i, f in enumerate(lyr.fields()):
+                f: QgsField
+                n = TreeNode(f.name())
+                l = f.length()
+                if l > 0:
+                    n.setValue('{} {}'.format(f.typeName(), l))
+                else:
+                    n.setValue(f.typeName())
+                n.setIcon(iconForFieldType(f))
+                field_nodes.append(n)
+
+            self.nodeFields.setValue(len(field_nodes))
+            self.nodeFields.appendChildNodes(field_nodes)
+
+    def isSpectralLibrary(self) -> bool:
+        return self.mIsSpectralLibrary
+
 
 class RasterDataSource(SpatialDataSource):
 
@@ -138,11 +206,11 @@ class RasterDataSource(SpatialDataSource):
         self.updateNodes()
 
     def updateNodes(self) -> dict:
-        data = super().updateNodes()
+        MD = super().updateNodes()
 
         self.mNodeBands.removeAllChildNodes()
 
-        lyr = data.get('map_layer', None)
+        lyr = MD.get(DataSource.MD_LAYER, None)
         if isinstance(lyr, QgsRasterLayer):
             self.mNodeBands.setValue(lyr.bandCount())
             self.mWavelength, self.mWavelengthUnits = parseWavelength(lyr)
@@ -153,6 +221,23 @@ class RasterDataSource(SpatialDataSource):
                 bandNodes.append(bandNode)
             self.mNodeBands.appendChildNodes(bandNodes)
 
+            hasClassInfo = isinstance(ClassificationScheme.fromMapLayer(lyr), ClassificationScheme)
+
+            nBands = lyr.bandCount()
+            dataType = None
+            if nBands > 0:
+                dataType = lyr.dataProvider().dataType(1)
+
+            # show more specialized raster icons
+            if hasClassInfo is True:
+                icon = QIcon(':/enmapbox/gui/ui/icons/filelist_classification.svg')
+            elif dataType in [Qgis.Byte] and nBands == 1:
+                icon = QIcon(':/enmapbox/gui/ui/icons/filelist_mask.svg')
+            elif nBands == 1:
+                icon = QIcon(':/enmapbox/gui/ui/icons/filelist_regression.svg')
+            else:
+                icon = QIcon(':/enmapbox/gui/ui/icons/filelist_image.svg')
+            self.setIcon(icon)
 
 class ModelDataSource(DataSource):
 
@@ -165,7 +250,7 @@ class ModelDataSource(DataSource):
         self.updateNodes()
 
     def updateNodes(self, **kwds) -> dict:
-        data = super().updateNodes(**kwds)
+        MD = super().updateNodes(**kwds)
 
         if isinstance(self.mObjectNode, PyObjectTreeNode):
             self.removeChildNodes([self.mObjectNode])
@@ -193,7 +278,7 @@ class ModelDataSource(DataSource):
         self.mPklObject = pkl_obj
 
         if isinstance(pkl_obj, object):
-            self.mObjectNode = PyObjectTreeNode(obj=self.mPklObject)
+            self.mObjectNode = PyObjectTreeNode(obj=self.mPklObject, name='Content')
             self.appendChildNodes([self.mObjectNode])
 
 
