@@ -90,11 +90,11 @@ class Examples(unittest.TestCase):
         def onDataSourceAdded(dataSource:str):
             print('DataSource added: {}'.format(dataSource))
 
-        enmapBox.sigDataSourceAdded.connect(onDataSourceAdded)
+        enmapBox.sigDataSourcesAdded.connect(onDataSourceAdded)
 
         def onDataSourceRemoved(dataSource:str):
             print('DataSource removed: {}'.format(dataSource))
-        enmapBox.sigDataSourceRemoved.connect(onDataSourceRemoved)
+        enmapBox.sigDataSourcesRemoved.connect(onDataSourceRemoved)
 
 
 
@@ -135,8 +135,8 @@ class Examples(unittest.TestCase):
         from enmapbox import EnMAPBox
 
         enmapBox = EnMAPBox(None)
-        enmapBox.sigDataSourceAdded.connect(lambda uri:print('DataSource added: {}'.format(uri)))
-        enmapBox.sigDataSourceRemoved.connect(lambda uri: print('DataSource removed: {}'.format(uri)))
+        enmapBox.sigDataSourcesAdded.connect(lambda uri:print('DataSource added: {}'.format(uri)))
+        enmapBox.sigDataSourcesRemoved.connect(lambda uri: print('DataSource removed: {}'.format(uri)))
 
         import tempfile, os, time
         tempDir = tempfile.mkdtemp()
