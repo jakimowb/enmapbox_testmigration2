@@ -28,7 +28,7 @@ import typing
 import pathlib
 import uuid
 
-from qgis._core import QgsFields
+from qgis._core import QgsFields, QgsDataItem
 
 from qgis.PyQt.QtCore import QVariant, pyqtSignal, QDateTime, QFileInfo, QUrl, QSizeF
 from qgis.PyQt.QtGui import QIcon
@@ -160,8 +160,9 @@ class DataSource(object):
         self.mUri = ''
         self.mIcon = icon
         self.mName = name
-        self.setUri(uri)
+
         self.mMetadata = {}
+        self.mDataItem: QgsDataItem = None
 
         if os.path.isfile(self.mUri):
             self.mModificationTime = QFileInfo(self.mUri).lastModified()
@@ -185,13 +186,6 @@ class DataSource(object):
         except:
             pass
         return self.mUri == dataSource.mUri
-
-    def setUri(self, uri: str):
-        """
-        Sets the unified ressource identifier (uri) of this data source
-        """
-        assert isinstance(uri, str)
-        self.mUri = uri
 
     def modificationTime(self) -> QDateTime:
         """
