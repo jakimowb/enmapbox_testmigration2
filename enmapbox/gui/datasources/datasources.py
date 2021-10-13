@@ -3,7 +3,7 @@ import pickle
 import warnings
 
 from PyQt5.QtGui import QIcon
-from qgis._core import QgsDataItem, QgsLayerItem, QgsCoordinateReferenceSystem, QgsMapLayer, QgsUnitTypes, \
+from qgis.core import QgsDataItem, QgsLayerItem, QgsCoordinateReferenceSystem, QgsMapLayer, QgsUnitTypes, \
     QgsMapLayerType, QgsVectorLayer, QgsRasterLayer, Qgis, QgsWkbTypes, QgsField
 
 from enmapbox import messageLog, debugLog

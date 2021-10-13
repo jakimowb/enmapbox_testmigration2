@@ -7,7 +7,7 @@ import typing
 from urlchecker.core.check import UrlChecker, UrlCheckResult
 from urlchecker.core.urlproc import UrlCheckResult
 import pathlib
-
+from enmapbox.testing import TestCase
 from enmapbox.externals.qps.utils import file_search, loadUi
 
 DIR_REPO = pathlib.Path(__file__).parents[1]
@@ -16,7 +16,7 @@ DIR_DOCS = DIR_REPO / 'doc'
 DIR_CODE = DIR_REPO / 'enmapbox'
 
 
-class TestRepository(unittest.TestCase):
+class TestRepository(TestCase):
 
     def test_project_urls(self):
         urls = ['https://www.enmap.org/',
@@ -29,6 +29,7 @@ class TestRepository(unittest.TestCase):
         self.assertTrue(len(checker.failed) == 0,
                         msg=f'Failed to connect to: {failed}\nService down?')
 
+    @unittest.skipIf(TestCase.runsInCI(), 'not that important')
     def test_qgis_api_imports(self):
         from enmapbox import DIR_REPO
         from enmapbox.gui.utils import file_search

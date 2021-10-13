@@ -28,7 +28,7 @@ import typing
 import pathlib
 import uuid
 
-from qgis._core import QgsFields, QgsDataItem
+from qgis.core import QgsFields, QgsDataItem
 
 from qgis.PyQt.QtCore import QVariant, pyqtSignal, QDateTime, QFileInfo, QUrl, QSizeF
 from qgis.PyQt.QtGui import QIcon

@@ -23,8 +23,8 @@ import typing
 import time
 
 from PyQt5.QtWidgets import QToolButton, QAction
-from qgis._core import Qgis
-from qgis._gui import QgsLayerTreeProxyModel
+from qgis.core import Qgis
+from qgis.gui import QgsLayerTreeProxyModel
 
 from enmapbox.externals.qps.speclib.core import is_spectral_library, profile_field_list
 from processing import Processing

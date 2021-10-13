@@ -24,9 +24,9 @@ from enmapbox.gui.datasources.datasourcesets import DataSourceSet, ModelDataSour
 # from enmapbox.gui.mapcanvas import MapDock
 # from enmapbox.gui.mimedata import MDF_URILIST, MDF_QGIS_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE, extractMapLayers, \
 #    MDF_RASTERBANDS
-from qgis._gui import QgisInterface, QgsMapCanvas, QgsDockWidget
+from qgis.gui import QgisInterface, QgsMapCanvas, QgsDockWidget
 
-from qgis._core import QgsLayerTreeGroup, QgsLayerTreeLayer, QgsMapLayer, QgsProject, QgsWkbTypes, QgsRasterLayer, \
+from qgis.core import QgsLayerTreeGroup, QgsLayerTreeLayer, QgsMapLayer, QgsProject, QgsWkbTypes, QgsRasterLayer, \
     QgsRasterDataProvider, QgsRasterRenderer, QgsVectorLayer, QgsDataItem, QgsLayerItem, Qgis
 
 from enmapbox.gui.utils import enmapboxUiPath

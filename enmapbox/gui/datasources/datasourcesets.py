@@ -1,7 +1,7 @@
 import typing
 
 from PyQt5.QtGui import QIcon
-from qgis._core import QgsApplication
+from qgis.core import QgsApplication
 
 from enmapbox.externals.qps.models import TreeNode
 from .datasources import DataSource, VectorDataSource, RasterDataSource, ModelDataSource, \

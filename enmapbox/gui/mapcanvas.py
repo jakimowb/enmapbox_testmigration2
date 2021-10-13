@@ -26,8 +26,8 @@ from PyQt5.QtCore import Qt, QObject, QCoreApplication, pyqtSignal, QEvent, QPoi
 from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent, QKeyEvent, QColor
 from PyQt5.QtWidgets import QAction, QToolButton, QFileDialog, QHBoxLayout, QFrame, QMenu, QLabel, QApplication, \
     QWidgetAction, QGridLayout, QSpacerItem, QSizePolicy, QDialog, QVBoxLayout, QComboBox
-from qgis._core import QgsVectorLayer
-from qgis._gui import QgsColorDialog
+from qgis.core import QgsVectorLayer
+from qgis.gui import QgsColorDialog
 
 from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent, qgisAppQgisInterface
 from enmapbox.gui import MapTools, MapToolCenter, PixelScaleExtentMapTool, \

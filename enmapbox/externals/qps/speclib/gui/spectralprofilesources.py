@@ -142,10 +142,7 @@ class StandardLayerProfileSource(SpectralProfileSource):
 
     @staticmethod
     def fromRasterLayer(lyr: QgsRasterLayer):
-        if lyr.isValid():
-            return StandardLayerProfileSource(lyr.source(), lyr.name(), lyr.providerType(), lyr.renderer().clone())
-        else:
-            return None
+        return StandardLayerProfileSource(lyr.source(), lyr.name(), lyr.providerType(), lyr.renderer().clone())
 
     def __init__(self, uri: str, name: str, provider: str, renderer: QgsRasterRenderer = None):
         super().__init__()

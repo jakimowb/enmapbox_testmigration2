@@ -25,8 +25,8 @@ import uuid
 from PyQt5.QtCore import pyqtSignal, QSettings, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QToolButton, QMenu
-from qgis._core import QgsCoordinateReferenceSystem, QgsMapLayer
-from qgis._gui import QgsMapCanvas
+from qgis.core import QgsCoordinateReferenceSystem, QgsMapLayer
+from qgis.gui import QgsMapCanvas
 
 from enmapbox.gui.mapcanvas import MapCanvas, CanvasLink
 from qgis.PyQt import QtCore
