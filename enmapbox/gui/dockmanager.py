@@ -57,9 +57,9 @@ from enmapbox.gui.mimedata import \
     extractMapLayers, containsMapLayers, textToByteArray, extractSpectralLibraries
 from enmapbox.gui.docks import Dock, DockArea, \
     AttributeTableDock, SpectralLibraryDock, TextDock, MimeDataDock, WebViewDock
-from enmapbox.gui.datasources import DataSource, DataSourceVector, DataSourceSpatial
+from enmapbox.gui.datasources.datasources import DataSource, VectorDataSource, SpatialDataSource
 from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
-from enmapbox.gui.datasourcemanager import DataSourceManager
+from enmapbox.gui.datasources.manager import DataSourceManager
 from enmapbox.gui.utils import getDOMAttributes
 
 

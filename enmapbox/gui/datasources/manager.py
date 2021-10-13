@@ -1,0 +1,730 @@
+import os
+import pathlib
+import pickle
+import re
+import typing
+from os.path import splitext
+
+from PyQt5.QtCore import QMimeData, QModelIndex, Qt, QUrl, QSortFilterProxyModel, pyqtSignal
+from PyQt5.QtGui import QContextMenuEvent, QIcon
+from PyQt5.QtWidgets import QMenu, QAction, QApplication, QAbstractItemView, QTreeView
+
+import qgis
+
+from enmapbox.externals.qps.layerproperties import defaultRasterRenderer
+from enmapbox.externals.qps.models import TreeModel, TreeView, TreeNode
+from enmapbox.externals.qps.utils import defaultBands, bandClosestToWavelength, loadUi, qgisAppQgisInterface
+from .metadata import RasterBandTreeNode
+from .datasources import DataSource, SpatialDataSource, VectorDataSource, RasterDataSource, \
+    ModelDataSource, FileDataSource
+from enmapbox.gui.datasources.datasourcesets import DataSourceSet, ModelDataSourceSet, VectorDataSourceSet, \
+    FileDataSourceSet, RasterDataSourceSet
+# from enmapbox.gui.docks import SpectralLibraryDock
+# from enmapbox.gui.mapcanvas import MapDock
+#from enmapbox.gui.mimedata import MDF_URILIST, MDF_QGIS_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE, extractMapLayers, \
+#    MDF_RASTERBANDS
+from qgis._gui import QgisInterface, QgsMapCanvas, QgsDockWidget
+
+from qgis._core import QgsLayerTreeGroup, QgsLayerTreeLayer, QgsMapLayer, QgsProject, QgsWkbTypes, QgsRasterLayer, \
+    QgsRasterDataProvider, QgsRasterRenderer, QgsVectorLayer, QgsDataItem, QgsLayerItem, Qgis
+
+from enmapbox.gui.utils import enmapboxUiPath
+from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
+from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
+from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
+from ..mimedata import MDF_URILIST, QGIS_URILIST_MIMETYPE, extractMapLayers
+
+from ...externals.qps.speclib.core import is_spectral_library
+
+
+class DataSourceManager(TreeModel):
+
+    def __init__(self, *args, **kwds):
+
+        super().__init__(*args, **kwds)
+        self.mRasters: RasterDataSourceSet = RasterDataSourceSet()
+        self.mVectors: VectorDataSourceSet = VectorDataSourceSet()
+        self.mModels: ModelDataSourceSet = ModelDataSourceSet()
+        self.mFiles: FileDataSourceSet = FileDataSourceSet()
+        self.rootNode().appendChildNodes([self.mRasters, self.mVectors, self.mModels, self.mFiles])
+
+        # self.mModels: DataSourceCollectionItem = None
+        # self.mOthers: DataSourceCollectionItem = None
+        from enmapbox import EnMAPBox
+        self.mEnMAPBoxInstance: EnMAPBox = None
+
+    def enmapBoxInstance(self) -> 'EnMAPBox':
+        return self.mEnMAPBoxInstance
+
+    def setEnMAPBoxInstance(self, enmapbox):
+        self.mEnMAPBoxInstance = enmapbox
+
+
+    def dropMimeData(self, mimeData: QMimeData, action, row: int, column: int, parent: QModelIndex):
+
+        assert isinstance(mimeData, QMimeData)
+
+        result = False
+        toAdd = []
+        if action in [Qt.MoveAction, Qt.CopyAction]:
+            # collect nodes
+            nodes = []
+
+            # add new data from external sources
+            from enmapbox.gui.mimedata import MDF_QGIS_LAYERTREEMODELDATA
+            if mimeData.hasFormat(MDF_URILIST):
+                for url in mimeData.urls():
+                    toAdd.extend(DataSourceFactory.create(url))
+
+            # add data dragged from QGIS
+            elif mimeData.hasFormat(MDF_QGIS_LAYERTREEMODELDATA) or mimeData.hasFormat(QGIS_URILIST_MIMETYPE):
+
+                lyrs = extractMapLayers(mimeData)
+                toAdd.extend(DataSourceFactory.create(lyrs))
+        added = []
+        if len(toAdd) > 0:
+             added = self.addDataSources(toAdd)
+
+        return len(added) > 0
+
+    def mimeData(self, indexes: list) -> QMimeData:
+        indexes = sorted(indexes)
+        if len(indexes) == 0:
+            return None
+
+        bandNodes = typing.List[RasterBandTreeNode] = []
+        dataSources: typing.List[DataSource] = []
+        for node in self.indexes2nodes(indexes):
+            if isinstance(node, DataSource):
+                dataSources.append(node)
+            elif isinstance(node, DataSourceSet):
+                dataSources.extend(node.dataSources())
+            elif isinstance(node, RasterBandTreeNode):
+                bandNodes.append(node)
+
+        dataSources = list(set(dataSources))
+
+        mimeData = QMimeData()
+        # define application/enmapbox.datasourcetreemodeldata
+        exportedNodes = []
+
+        # collect nodes to be exported as mimeData
+
+
+        uriList = list()
+        uuidList = list()
+
+        bandInfo = list()
+
+        for node in bandNodes:
+            ds: RasterDataSource = node.parentNode()
+            if isinstance(ds, RasterDataSource):
+                uri = node.mDataSource.uri()
+                provider = node.mDataSource.provider()
+                band = node.mBandIndex
+                baseName = '{}:{}'.format(node.mDataSource.name(), node.name())
+                bandInfo.append((uri, baseName, provider, band))
+
+            elif isinstance(node, DataSource):
+                uriList.append(node.source())
+
+        if len(bandInfo) > 0:
+            from enmapbox.gui.mimedata import MDF_RASTERBANDS
+            mimeData.setData(MDF_RASTERBANDS, pickle.dumps(bandInfo))
+
+        urls = [QUrl.fromLocalFile(uri) if os.path.isfile(uri) else QUrl(uri) for uri in uriList]
+        if len(urls) > 0:
+            mimeData.setUrls(urls)
+        return mimeData
+
+    def mimeTypes(self):
+        # specifies the mime types handled by this model
+        types = []
+        # types.append(MDF_DATASOURCETREEMODELDATA)
+        from enmapbox.gui.mimedata import MDF_QGIS_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE,MDF_URILIST
+        types.append(MDF_QGIS_LAYERTREEMODELDATA)
+        types.append(QGIS_URILIST_MIMETYPE)
+        types.append(MDF_URILIST)
+        return types
+
+
+    def clear(self):
+        """
+        Removes all data sources
+        """
+        for sourceSet in self.dataSourceSets():
+            sourceSet.clear()
+
+    def importQGISLayers(self):
+        """
+        Adds datasources known to QGIS which do not exist here
+        """
+        layers = []
+
+        from qgis.utils import iface
+        if isinstance(iface, QgisInterface):
+            root = iface.layerTreeView().layerTreeModel().rootGroup()
+            assert isinstance(root, QgsLayerTreeGroup)
+
+            for layerTree in root.findLayers():
+                assert isinstance(layerTree, QgsLayerTreeLayer)
+                s = ""
+                grp = layerTree
+                # grp.setCustomProperty('nodeHidden', 'true' if bHide else 'false')
+                lyr = layerTree.layer()
+
+                if isinstance(lyr, QgsMapLayer) and lyr.isValid() and not grp.customProperty('nodeHidden'):
+                    layers.append(layerTree.layer())
+
+        if len(layers) > 0:
+            self.addDataSources(DataSourceFactory.create(layers))
+
+    def dataSourceSets(self) -> typing.List[DataSourceSet]:
+        return [c for c in self.rootNode().childNodes() if isinstance(c, DataSourceSet)]
+
+    def dataSources(self) -> typing.List[DataSource]:
+        l = list()
+        for ds in self.dataSourceSets():
+            l.extend(ds.dataSources())
+        return l
+
+    def findDataSources(self, inputs) -> typing.List[DataSource]:
+        if not isinstance(inputs, list):
+            inputs = [inputs]
+        allDataSources = self.dataSources()
+
+        foundSources = []
+        for input in inputs:
+
+            if isinstance(input, DataSource) and input in allDataSources:
+                foundSources.append(allDataSources[allDataSources.index(input)]) # return reference in own list
+            elif isinstance(input, QgsMapLayer):
+
+                for ds in allDataSources:
+                    dataItem = ds.dataItem()
+                    if isinstance(ds, SpatialDataSource) \
+                        and dataItem.path() == input.source() \
+                        and dataItem.providerKey() == input.providerType():
+                        foundSources.append(ds)
+            elif isinstance(input, str):
+                for ds in allDataSources:
+                    if ds.dataItem().path() == input:
+                        foundSources.append(ds)
+
+        return foundSources
+
+
+    def removeDataSources(self,
+                          dataSources: typing.Union[DataSource, typing.List[DataSource]]) -> typing.List[DataSource]:
+
+        ownedSources = self.findDataSources(dataSources)
+        removed = []
+
+        for dsSet in self.dataSourceSets():
+            removed.append(dsSet.removeDataSources(ownedSources))
+        return removed
+
+    def addDataSources(self, sources: typing.Union[DataSource, typing.List[DataSource]]) -> typing.List[DataSource]:
+
+        if isinstance(sources, DataSource):
+            sources = [sources]
+        added = []
+        for source in sources:
+            for sourceSet in self.dataSourceSets():
+                if sourceSet.isValidSource(source):
+                    newSources = sourceSet.addDataSources(source)
+                    if len(newSources) > 0:
+                        added.extend(newSources)
+                        break
+        return added
+
+
+class DataSourceManagerProxyModel(QSortFilterProxyModel):
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+        self.setRecursiveFilteringEnabled(True)
+        self.setFilterCaseSensitivity(Qt.CaseInsensitive)
+
+
+class DataSourceManagerTreeView(TreeView):
+    """
+    A TreeView to show EnMAP-Box Data Sources
+    """
+    sigPopulateContextMenu = pyqtSignal(QMenu)
+
+    def __init__(self, *args, **kwds):
+        super(DataSourceManagerTreeView, self).__init__(*args, **kwds)
+        self.setAcceptDrops(True)
+
+    def dataSourceManager(self) -> DataSourceManager:
+        model = self.model()
+        if isinstance(model, QSortFilterProxyModel):
+            model = model.sourceModel()
+        return model
+
+    def enmapboxInstance(self) -> 'EnMAPBox':
+        from enmapbox import EnMAPBox
+        dsm = self.dataSourceManager()
+        if isinstance(dsm, DataSourceManager):
+            return dsm.enmapBoxInstance()
+        return None
+
+    def contextMenuEvent(self, event: QContextMenuEvent):
+        """
+        Creates and shows the context menu created with a right-mouse-click.
+        :param event: QContextMenuEvent
+        """
+        idx = self.currentIndex()
+        assert isinstance(event, QContextMenuEvent)
+
+        col = idx.column()
+
+        selectedNodes = self.selectedNodes()
+        node = self.selectedNode()
+        dataSources = self.selectedDataSources()
+        srcURIs = list(set([s.source() for s in dataSources]))
+
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        enmapbox = EnMAPBox.instance()
+
+        DSM: DataSourceManager = self.dataSourceManager()
+        if not isinstance(DSM, DataSourceManager):
+            return
+
+        enmapbox: EnMAPBox = DSM.enmapBoxInstance()
+        mapDocks = []
+        if isinstance(enmapbox, EnMAPBox):
+            mapDocks = enmapbox.dockManager().docks('MAP')
+
+        m: QMenu = QMenu()
+        m.setToolTipsVisible(True)
+
+        if isinstance(node, DataSourceSet):
+            a = m.addAction('Remove')
+            assert isinstance(a, QAction)
+            a.setToolTip('Removes all datasources from this node')
+            a.triggered.connect(lambda *args, node=node, dsm=DSM:
+                                DSM.removeDataSources(node.dataSources()))
+
+
+        if isinstance(node, DataSource):
+            a = m.addAction('Remove')
+            a.triggered.connect(lambda *args, dataSources=dataSources, dsm=DSM:
+                                dsm.removeDataSources(dataSources))
+            a = m.addAction('Copy URI / path')
+            a.triggered.connect(lambda *args, srcURIs=srcURIs:
+                                QApplication.clipboard().setText('\n'.join(srcURIs)))
+            # a = m.addAction('Rename')
+            # a.setEnabled(False)
+            # todo: implement rename function
+            # a.triggered.connect(node.dataSource.rename)
+
+
+            def appendRasterActions(sub: QMenu, src: RasterDataSource, target):
+                assert isinstance(src, RasterDataSource)
+                a = sub.addAction('Default Colors')
+                a.triggered.connect(lambda *args, s=src, t=target:
+                                    self.openInMap(s, t, rgb='DEFAULT'))
+
+                b = src.mWavelengthUnits is not None
+
+                a = sub.addAction('True Color')
+                a.setToolTip('Red-Green-Blue true colors')
+                a.triggered.connect(lambda *args, s=src, t=target:
+                                    self.openInMap(s, t, rgb='R,G,B'))
+                a.setEnabled(b)
+                a = sub.addAction('CIR')
+                a.setToolTip('nIR Red Green')
+                a.triggered.connect(lambda *args, s=src, t=target:
+                                    self.openInMap(s, t, rgb='NIR,R,G'))
+                a.setEnabled(b)
+
+                a = sub.addAction('SWIR')
+                a.setToolTip('nIR swIR Red')
+                a.triggered.connect(lambda *args, s=src, t=target:
+                                    self.openInMap(s, t, rgb='NIR,SWIR,R'))
+                a.setEnabled(b)
+
+            if isinstance(node, RasterDataSource):
+                sub = m.addMenu('Open in new map...')
+                appendRasterActions(sub, node, None)
+
+                sub = m.addMenu('Open in existing map...')
+                if len(mapDocks) > 0:
+                    for mapDock in mapDocks:
+                        assert isinstance(mapDock, MapDock)
+                        subsub = sub.addMenu(mapDock.title())
+                        appendRasterActions(subsub, node, mapDock)
+                else:
+                    sub.setEnabled(False)
+                sub = m.addMenu('Open in QGIS')
+                if isinstance(qgis.utils.iface, QgisInterface):
+                    appendRasterActions(sub, node, QgsProject.instance())
+                else:
+                    sub.setEnabled(False)
+
+                # AR: add some useful processing algo shortcuts
+                parameters = {SaveRasterAsAlgorithm.P_RASTER: node.source()}
+                a: QAction = m.addAction('Save as')
+                a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
+                a.triggered.connect(
+                    lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
+                        SaveRasterAsAlgorithm(), parameters, parent=self
+                    )
+                )
+
+                parameters = {TranslateRasterAlgorithm.P_RASTER: node.source()}
+                a: QAction = m.addAction('Translate')
+                a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
+                a.triggered.connect(
+                    lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
+                        TranslateRasterAlgorithm(), parameters, parent=self
+                    )
+                )
+
+                if splitext(node.source())[1].lower() in ['.tif', '.tiff']:
+                    parameters = {AppendEnviHeaderToGTiffRasterAlgorithm.P_RASTER: node.source()}
+                    a: QAction = m.addAction('Append ENVI header')
+                    a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
+                    a.triggered.connect(
+                        lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
+                            AppendEnviHeaderToGTiffRasterAlgorithm(), parameters, parent=self
+                        )
+                    )
+
+            if isinstance(node, VectorDataSource):
+
+                if node.mapLayer().wkbType() != QgsWkbTypes.NoGeometry:
+                    a = m.addAction('Open in new map')
+                    a.triggered.connect(lambda *args, s=node: self.openInMap(s, None))
+
+                    sub = m.addMenu('Open in existing map...')
+                    if len(mapDocks) > 0:
+                        for mapDock in mapDocks:
+                            from enmapbox.gui.mapcanvas import MapDock
+                            assert isinstance(mapDock, MapDock)
+                            a = sub.addAction(mapDock.title())
+                            a.triggered.connect(
+                                lambda checked, s=node, d=mapDock:
+                                self.openInMap(s, d))
+                    else:
+                        sub.setEnabled(False)
+
+                if node.isSpectralLibrary():
+                    a = m.addAction('Open Spectral Library Viewer')
+                    a.triggered.connect(
+                        lambda *args, s=node: self.openInSpeclibEditor(node.asMapLayer()))
+
+                a = m.addAction('Open Attribute Table')
+                a.triggered.connect(lambda *args, s=node: self.openInAttributeEditor(s.asMapLayer()))
+
+                a = m.addAction('Open in QGIS')
+                if isinstance(qgis.utils.iface, QgisInterface):
+                    a.triggered.connect(lambda *args, s=node:
+                                        self.openInMap(s, QgsProject.instance()))
+                else:
+                    a.setEnabled(False)
+
+
+        if isinstance(node, RasterBandTreeNode):
+            a = m.addAction('Band statistics')
+            a.setEnabled(False)
+
+            a = m.addAction('Open in new map')
+            a.triggered.connect(lambda *args, n=node: self.openInMap(node, rgb=[n.mBandIndex]))
+
+        if col == 1 and node.value() != None:
+            a = m.addAction('Copy')
+            a.triggered.connect(lambda *args, n=node: QApplication.clipboard().setText(str(n.value())))
+
+        if isinstance(node, TreeNode):
+            node.populateContextMenu(m)
+
+        a = m.addAction('Remove all DataSources')
+        a.setToolTip('Removes all data source.')
+        a.triggered.connect(self.onRemoveAllDataSources)
+
+        self.sigPopulateContextMenu.emit(m)
+
+        m.exec_(self.viewport().mapToGlobal(event.pos()))
+
+    def openInMap(self, dataSource: typing.Union[VectorDataSource, RasterDataSource],
+                  target: typing.Union[QgsMapCanvas, QgsProject, 'MapDock'] = None,
+                  rgb=None,
+                  sampleSize: int = 256):
+        """
+        Add a DataSourceSpatial as QgsMapLayer to a mapCanvas.
+        :param target:
+        :param sampleSize:
+        :param dataSource: DataSourceSpatial
+        :param rgb:
+        """
+
+        if not isinstance(dataSource, (VectorDataSource, RasterDataSource)):
+            return
+        from enmapbox.gui.mapcanvas import MapDock
+        LOAD_DEFAULT_STYLE: bool = isinstance(rgb, str) and re.search('DEFAULT', rgb, re.I)
+
+        if target is None:
+            emb = self.enmapboxInstance()
+            from enmapbox import EnMAPBox
+            if not isinstance(emb, EnMAPBox):
+                return None
+            dock = emb.createDock('MAP')
+
+            assert isinstance(dock, MapDock)
+            target = dock.mapCanvas()
+
+        if isinstance(target, MapDock):
+            target = target.mapCanvas()
+
+        assert isinstance(target, (QgsMapCanvas, QgsProject))
+
+        # loads the layer with default style (wherever it is defined)
+        lyr = dataSource.asMapLayer()
+
+        if isinstance(lyr, QgsRasterLayer) \
+                and not LOAD_DEFAULT_STYLE \
+                and isinstance(lyr.dataProvider(), QgsRasterDataProvider) \
+                and lyr.dataProvider().name() == 'gdal':
+
+            r = lyr.renderer()
+            if isinstance(r, QgsRasterRenderer):
+                bandIndices: typing.List[int] = None
+                if isinstance(rgb, str):
+                    if LOAD_DEFAULT_STYLE:
+                        bandIndices = defaultBands(lyr)
+                    else:
+                        bandIndices = [bandClosestToWavelength(lyr, s) for s in rgb.split(',')]
+
+                elif isinstance(rgb, list):
+                    bandIndices = rgb
+
+                if isinstance(bandIndices, list):
+                    r = defaultRasterRenderer(lyr, bandIndices=bandIndices, sampleSize=sampleSize)
+                    r.setInput(lyr.dataProvider())
+                    lyr.setRenderer(r)
+
+        elif isinstance(lyr, QgsVectorLayer):
+
+            pass
+
+        if isinstance(target, QgsMapCanvas):
+            allLayers = target.layers()
+            allLayers.append(lyr)
+            target.setLayers(allLayers)
+        elif isinstance(target, QgsProject):
+            target.addMapLayer(lyr)
+
+    def onSaveAs(self, dataSource):
+        """
+        Todo: save raster / vector sources
+        """
+        pass
+
+    def onRemoveAllDataSources(self):
+        dsm: DataSourceManager = self.dataSourceManager()
+        if dsm:
+            dsm.clear()
+
+    def selectedDataSources(self) -> typing.List[DataSource]:
+
+        sources = []
+        for n in self.selectedNodes():
+            if isinstance(n, DataSource) and n not in sources:
+                sources.append(n)
+        return sources
+
+    def openInSpeclibEditor(self, speclib: QgsVectorLayer):
+        """
+        Opens a SpectralLibrary in a new SpectralLibraryDock
+        :param speclib: SpectralLibrary
+
+        """
+        from enmapbox import EnMAPBox
+        emb = self.enmapboxInstance()
+        if isinstance(emb, EnMAPBox):
+            emb.dockManager().createDock(SpectralLibraryDock, speclib=speclib)
+
+    def openInAttributeEditor(self, vectorLayer: QgsVectorLayer):
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+        from enmapbox.gui.docks import AttributeTableDock
+        EnMAPBox.instance().dockManager().createDock(AttributeTableDock, layer=vectorLayer)
+
+
+class DataSourceManagerPanelUI(QgsDockWidget):
+    def __init__(self, parent=None):
+        super(DataSourceManagerPanelUI, self).__init__(parent)
+        loadUi(enmapboxUiPath('datasourcemanagerpanel.ui'), self)
+        self.mDataSourceManager: DataSourceManager = None
+        self.mDataSourceManagerProxyModel: DataSourceManagerProxyModel = DataSourceManagerProxyModel()
+        assert isinstance(self.mDataSourceManagerTreeView, DataSourceManagerTreeView)
+        self.mDataSourceManagerTreeView.setUniformRowHeights(True)
+        self.mDataSourceManagerTreeView.setDragDropMode(QAbstractItemView.DragDrop)
+
+        # init actions
+        self.actionAddDataSource.triggered.connect(lambda: self.mDataSourceManager.addDataSourceByDialog())
+        self.actionRemoveDataSource.triggered.connect(
+            lambda: self.mDataSourceManager.removeDataSources(self.selectedDataSources()))
+        self.actionRemoveDataSource.setEnabled(False)  # will be enabled with selection of node
+
+        # self.mDataSourceManager.exportSourcesToQGISRegistry(showLayers=True)
+        self.actionSyncWithQGIS.triggered.connect(self.onSyncToQGIS)
+
+        self.tbFilterText.textChanged.connect(self.setFilter)
+        hasQGIS = qgisAppQgisInterface() is not None
+        self.actionSyncWithQGIS.setEnabled(hasQGIS)
+
+        self.initActions()
+
+    def dataSourceManagerTreeView(self) -> DataSourceManagerTreeView:
+        return self.mDataSourceManagerTreeView
+
+    def setFilter(self, pattern: str):
+        self.mDataSourceManagerProxyModel.setFilterWildcard(pattern)
+
+    def onSyncToQGIS(self, *args):
+        if isinstance(self.mDataSourceManager, DataSourceManager):
+            self.mDataSourceManager.importQGISLayers()
+
+    def initActions(self):
+
+        self.btnAddSource.setDefaultAction(self.actionAddDataSource)
+        self.btnSync.setDefaultAction(self.actionSyncWithQGIS)
+        self.btnRemoveSource.setDefaultAction(self.actionRemoveDataSource)
+        self.btnCollapse.clicked.connect(lambda: self.expandSelectedNodes(self.dataSourceTreeView, False))
+        self.btnExpand.clicked.connect(lambda: self.expandSelectedNodes(self.dataSourceTreeView, True))
+
+    def expandSelectedNodes(self, treeView, expand):
+        assert isinstance(treeView, QTreeView)
+
+        treeView.selectAll()
+        indices = treeView.selectedIndexes()
+        if len(indices) == 0:
+            treeView.selectAll()
+            indices += treeView.selectedIndexes()
+            treeView.clearSelection()
+        for idx in indices:
+            treeView.setExpanded(idx, expand)
+
+    def connectDataSourceManager(self, dataSourceManager: DataSourceManager):
+        """
+        Initializes the panel with a DataSourceManager
+        :param dataSourceManager: DataSourceManager
+        """
+        assert isinstance(dataSourceManager, DataSourceManager)
+        self.mDataSourceManager = dataSourceManager
+        self.mDataSourceManagerProxyModel.setSourceModel(self.mDataSourceManager)
+        self.mDataSourceManagerTreeView.setModel(self.mDataSourceManagerProxyModel)
+        self.mDataSourceManagerTreeView.selectionModel().selectionChanged.connect(self.onSelectionChanged)
+
+    def onSelectionChanged(self, selected, deselected):
+
+        s = self.selectedDataSources()
+        self.actionRemoveDataSource.setEnabled(len(s) > 0)
+
+    def selectedDataSources(self) -> typing.List[DataSource]:
+        """
+        :return: [list-of-selected-DataSources]
+        """
+        sources = set()
+
+        for idx in self.dataSourceManagerTreeView().selectionModel().selectedIndexes():
+            assert isinstance(idx, QModelIndex)
+            node = idx.data(Qt.UserRole)
+            if isinstance(node, DataSource):
+                sources.add(node)
+            elif isinstance(node, DataSourceSet):
+                for s in node:
+                    sources.add(s)
+        return list(sources)
+
+
+class DataSourceFactory(object):
+
+    @staticmethod
+    def create(source: any, provider: str = None, name: str = None) -> typing.List[DataSource]:
+        """
+        Searches the input for DataSources
+        """
+        results = []
+        if isinstance(source, list):
+            for s in source:
+                results.extend(DataSourceFactory.create(source, provider=provider, name=name))
+        else:
+            dataItem: QgsDataItem = None
+            if isinstance(source, QgsMapLayer):
+                dataItem = QgsLayerItem.typeFromMapLayer(source)
+
+            if dataItem is None:
+                if isinstance(source, pathlib.Path):
+                    source = source.as_posix()
+                elif isinstance(source, QUrl):
+                    source = source.toString(QUrl.PreferLocalFile | QUrl.RemoveQuery)
+
+                if isinstance(source, str):
+
+                    if name is None:
+                        name = pathlib.Path(source).name
+
+                    if re.search(r'\.(pkl)$', source, re.I):
+                        dataItem = QgsDataItem(Qgis.BrowserItemType.Custom, None, name, source, 'special:pkl')
+
+                    if not isinstance(dataItem, QgsDataItem):
+                        if re.search(r'\.(bsq|tiff?|hdf|bil|bip|grib|xml)$', source, re.I):
+                            mapLayerTypes = [QgsRasterLayer, QgsVectorLayer]
+                        else:
+                            mapLayerTypes = [QgsVectorLayer, QgsRasterLayer]
+
+                        for mapLayerType in mapLayerTypes:
+                            try:
+                                lyr = mapLayerType(source, name)
+                                if isinstance(lyr, QgsMapLayer) and lyr.isValid():
+                                    dtype = QgsLayerItem.typeFromMapLayer(lyr)
+                                    dataItem = QgsLayerItem(None, lyr.name(), lyr.source(),
+                                                            lyr.source(), dtype, lyr.providerType())
+                                    if is_spectral_library(lyr):
+                                        dataItem.setIcon(QIcon(r':/qps/ui/icons/speclib.svg'))
+
+                                    break
+                            except:
+                                pass
+
+                    if dataItem is None:
+                        if pathlib.Path(source).is_file():
+                            dataItem = QgsDataItem(Qgis.BrowserItemType.Custom, None, name, source, 'special:file')
+                            s = ""
+                if isinstance(dataItem, QgsDataItem):
+                    if isinstance(dataItem, QgsLayerItem):
+                        if dataItem.mapLayerType() == QgsMapLayer.RasterLayer:
+                            results.append(RasterDataSource(dataItem))
+                        elif dataItem.mapLayerType() == QgsMapLayer.VectorLayer:
+                            results.append(VectorDataSource(dataItem))
+                    elif dataItem.providerKey() == 'special:pkl':
+                        results.append(ModelDataSource(dataItem))
+                    elif dataItem.providerKey() == 'special:files':
+                        results.append(FileDataSource(dataItem))
+
+        return results
+
+    @staticmethod
+    def srcToString(src) -> str:
+        """
+        Extracts the source uri that can be used to open a new QgsMapLayer
+        :param src: QUrl | str
+        :return: str
+        """
+        if isinstance(src, QUrl):
+            src = src.toString(QUrl.PreferLocalFile | QUrl.RemoveQuery)
+        if isinstance(src, str):
+            # identify GDAL subdataset strings
+            if re.search('(HDF|SENTINEL).*:.*:.*', src):
+                src = src
+            elif os.path.isfile(src):
+                src = pathlib.Path(src).as_posix()
+            else:
+                pass
+        else:
+            src = None
+        return src

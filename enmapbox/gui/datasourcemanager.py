@@ -25,6 +25,7 @@ import re
 import sys
 import typing
 import uuid
+import warnings
 import webbrowser
 from os.path import splitext
 
@@ -41,9 +42,6 @@ from enmapbox.gui import \
     ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, PyObjectTreeNode, \
     qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, SpatialExtent, fileSizeString, defaultBands, \
     defaultRasterRenderer, loadUi
-from enmapbox.gui.datasources import \
-    DataSourceFactory, DataSource, DataSourceFile, DataSourceVector, DataSourceRaster, \
-    DataSourceSpatial, HubFlowDataSource
 from enmapbox.gui.mapcanvas import MapDock
 from enmapbox.gui.mimedata import \
     MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
@@ -63,6 +61,8 @@ from qgis.core import \
     QgsLayerTreeGroup, QgsLayerTreeLayer, QgsRasterDataProvider, Qgis, QgsField, QgsFieldModel
 from qgis.gui import \
     QgisInterface, QgsMapCanvas, QgsDockWidget
+
+warnings.warn(DeprecationWarning)
 
 HUBFLOW = True
 HUBFLOW_MAX_VALUES = 1024
