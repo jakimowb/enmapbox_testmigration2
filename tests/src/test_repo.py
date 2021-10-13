@@ -8,6 +8,8 @@ from urlchecker.core.check import UrlChecker, UrlCheckResult
 from urlchecker.core.urlproc import UrlCheckResult
 import pathlib
 
+from enmapbox.externals.qps.utils import file_search, loadUi
+
 DIR_REPO = pathlib.Path(__file__).parents[1]
 
 DIR_DOCS = DIR_REPO / 'doc'
@@ -34,14 +36,14 @@ class TestRepository(unittest.TestCase):
         re1 = re.compile(r'^\w*import qgis._')
         re2 = re.compile(r'^\w*from qgis._')
 
-        affected_files:typing.Dict[str, typing.List[int]] = dict()
+        affected_files: typing.Dict[str, typing.List[int]] = dict()
         for path in file_search(DIR_REPO, '*.py', recursive=True):
             with open(path, encoding='utf-8') as f:
                 affected_lines = []
                 lines = f.readlines()
                 for i, line in enumerate(lines):
                     if re1.search(line) or re2.search(line):
-                        affected_lines.append(i+1)
+                        affected_lines.append(i + 1)
 
                 if len(affected_lines) > 0:
                     affected_files[path] = affected_lines
@@ -53,6 +55,22 @@ class TestRepository(unittest.TestCase):
             msg = '\n'.join(msg)
             warnings.warn(msg)
             # self.se(False, msg=msg)
+
+    def test_ui_files(self):
+
+        rx = re.compile(r'.*\.ui$')
+        ERRORS: typing.Dict[str, Exception] = dict()
+        for uifile in file_search(DIR_REPO, rx, recursive=True):
+            try:
+                fmt = loadUi(uifile)
+            except Exception as ex:
+                ERRORS[uifile] = ex
+        messages = []
+        for path, ex in ERRORS.items():
+            ex: Exception
+            messages.append(f'\t{path}: {ex}')
+        messages = '\n'.join(messages)
+        self.assertTrue(len(ERRORS) == 0, msg=f'Unable to loads {len(ERRORS)} *.ui files:\n\t{messages}')
 
 
 if __name__ == '__main__':
