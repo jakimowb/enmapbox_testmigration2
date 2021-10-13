@@ -250,6 +250,16 @@ class DockTreeNode(LayerTreeNode):
         self.dock = dock
         self.setName(dock.title())
         self.dock.sigTitleChanged.connect(self.setName)
+        self.mEnMAPBoxInstance = None
+
+    def setEnMAPBoxInstance(self, enmapbox: 'EnMAPBox'):
+
+        from enmapbox import EnMAPBox
+        assert isinstance(enmapbox, EnMAPBox)
+        self.mEnMAPBoxInstance = enmapbox
+
+    def enmapBoxInstance(self) -> 'EnMAPBox':
+        return self.mEnMAPBoxInstance
 
     def writeXML(self, parentElement):
         elem = super(DockTreeNode, self).writeXML(parentElement)
@@ -474,22 +484,22 @@ class MapDockTreeNode(DockTreeNode):
 
     def insertLayer(self, idx, layerSource):
         """
-        Inserts a new QgsMapLayer od DataSourceSpatial on position idx by creating a new QgsMayTreeLayer node
+        Inserts a new QgsMapLayer or SpatialDataSource on position idx by creating a new QgsMayTreeLayer node
         :param idx:
         :param layerSource:
         :return:
         """
-        from enmapbox.gui.datasourcemanager import DataSourceManager
-        dsm = DataSourceManager.instance()
+        from enmapbox.gui.enmapboxgui import EnMAPBox
+
 
         mapLayers = []
         if isinstance(layerSource, QgsMapLayer):
             mapLayers.append(layerSource)
         else:
             s = ""
-
-        if isinstance(dsm, DataSourceManager):
-            dsm.addSources(mapLayers)
+        emb = self.enmapBoxInstance()
+        if isinstance(emb, EnMAPBox):
+            emb.addSources(mapLayers)
 
         for mapLayer in mapLayers:
             assert isinstance(mapLayer, QgsMapLayer)
@@ -571,6 +581,8 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         :return:
         """
         dockNode = createDockTreeNode(dock)
+        dockNode.setEnMAPBoxInstance(self.mDockManager.enmapBoxInstance())
+
         if isinstance(dockNode, DockTreeNode):
             self.rootNode.addChildNode(dockNode)
             if self.rowCount() == 1:
@@ -1273,13 +1285,22 @@ class DockManager(QObject):
         self.mDataSourceManager: DataSourceManager = None
         self.mMessageBar: QgsMessageBar = None
 
+        self.mEnMAPBoxInstance: 'EnMAPBox' = None
+
+    def setEnMAPBoxInstance(self, enmapBox):
+        self.mEnMAPBoxInstance = enmapBox
+
+    def enmapBoxInstance(self) -> 'EnMAPBox':
+        return self.mEnMAPBoxInstance
+
     def setMessageBar(self, messageBar: QgsMessageBar):
         self.mMessageBar = messageBar
 
     def connectDataSourceManager(self, dataSourceManager: DataSourceManager):
         assert isinstance(dataSourceManager, DataSourceManager)
         self.mDataSourceManager = dataSourceManager
-        pass
+        self.setEnMAPBoxInstance(self.mDataSourceManager.enmapBoxInstance())
+
 
     def dataSourceManager(self) -> DataSourceManager:
         return self.mDataSourceManager
@@ -1462,7 +1483,7 @@ class DockManager(QObject):
         if cls == MapDock:
             dock = MapDock(*args, **kwds)
             if isinstance(self.mDataSourceManager, DataSourceManager):
-                dock.sigLayersAdded.connect(self.mDataSourceManager.addSources)
+                dock.sigLayersAdded.connect(self.mDataSourceManager.addDataSources)
 
         elif cls == TextDock:
             dock = TextDock(*args, **kwds)

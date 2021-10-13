@@ -20,7 +20,7 @@
 import codecs
 import typing
 import enum
-
+import uuid
 from qgis.PyQt import QtCore
 from qgis.core import QgsVectorLayer
 
@@ -33,6 +33,8 @@ from ..externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
 from ..externals.qps.externals.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
 from ..externals.qps.layerproperties import pasteStyleFromClipboard
 from enmapbox.gui.mimedata import MDF_QGIS_LAYER_STYLE
+from ..externals.qps.speclib.core import is_spectral_library
+
 
 class DockTypes(enum.Enum):
     """

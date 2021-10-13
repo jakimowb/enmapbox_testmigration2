@@ -8,6 +8,24 @@ from .datasources import DataSource, VectorDataSource, RasterDataSource, ModelDa
     FileDataSource
 
 
+class DataSourceList(object):
+
+    def __init__(self, dataSources=[]):
+
+        self.mDataSources = dataSources
+
+    def __iter__(self):
+        return iter(self.mDataSources)
+
+    def setDataSources(self, dataSources):
+        for s in dataSources:
+            assert isinstance(s, DataSource)
+        self.mDataSources.clear()
+        self.mDataSources.extend(dataSources)
+
+    def dataSources(self) -> typing.List[DataSource]:
+        return self.mDataSources[:]
+
 class DataSourceSet(TreeNode):
 
     def __init__(self, *args, name: str = '<source set>', **kwds):

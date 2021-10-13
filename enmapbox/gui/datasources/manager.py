@@ -18,7 +18,7 @@ from .metadata import RasterBandTreeNode
 from .datasources import DataSource, SpatialDataSource, VectorDataSource, RasterDataSource, \
     ModelDataSource, FileDataSource
 from enmapbox.gui.datasources.datasourcesets import DataSourceSet, ModelDataSourceSet, VectorDataSourceSet, \
-    FileDataSourceSet, RasterDataSourceSet
+    FileDataSourceSet, RasterDataSourceSet, DataSourceList
 # from enmapbox.gui.docks import SpectralLibraryDock
 # from enmapbox.gui.mapcanvas import MapDock
 #from enmapbox.gui.mimedata import MDF_URILIST, MDF_QGIS_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE, extractMapLayers, \
@@ -38,6 +38,8 @@ from ...externals.qps.speclib.core import is_spectral_library
 
 
 class DataSourceManager(TreeModel):
+    sigDataSourcesRemoved = pyqtSignal(DataSourceList)
+    sigDataSourcesAdded = pyqtSignal(DataSourceList)
 
     def __init__(self, *args, **kwds):
 
@@ -222,10 +224,12 @@ class DataSourceManager(TreeModel):
 
         for dsSet in self.dataSourceSets():
             removed.append(dsSet.removeDataSources(ownedSources))
+        if len(removed) > 0:
+            self.sigDataSourcesRemoved.emit(DataSourceList(dataSources=removed))
         return removed
 
     def addDataSources(self, sources: typing.Union[DataSource, typing.List[DataSource]]) -> typing.List[DataSource]:
-
+        sources = DataSourceFactory.create(sources)
         if isinstance(sources, DataSource):
             sources = [sources]
         added = []
@@ -236,6 +240,8 @@ class DataSourceManager(TreeModel):
                     if len(newSources) > 0:
                         added.extend(newSources)
                         break
+        if len(added) > 0:
+            self.sigDataSourcesAdded.emit(DataSourceList(dataSources=added))
         return added
 
 
@@ -651,7 +657,7 @@ class DataSourceFactory(object):
         results = []
         if isinstance(source, list):
             for s in source:
-                results.extend(DataSourceFactory.create(source, provider=provider, name=name))
+                results.extend(DataSourceFactory.create(s, provider=provider, name=name))
         else:
             dataItem: QgsDataItem = None
             if isinstance(source, QgsMapLayer):
