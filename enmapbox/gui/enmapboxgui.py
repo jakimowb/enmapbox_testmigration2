@@ -27,12 +27,13 @@ import warnings
 from typing import Optional, Dict, Union
 
 
-from PyQt5.QtCore import pyqtSignal, Qt, QObject, QModelIndex, pyqtSlot, QSettings, QEventLoop
+from PyQt5.QtCore import pyqtSignal, Qt, QObject, QModelIndex, pyqtSlot, QSettings, QEventLoop, QRect, QSize, QFile
 from PyQt5.QtGui import QDragEnterEvent, QDragMoveEvent, QDragLeaveEvent, QDropEvent, QPixmap, QColor, QIcon, QKeyEvent, \
-    QCloseEvent
+    QCloseEvent, QPainter, QGuiApplication
 from PyQt5.QtWidgets import QFrame, QToolBar, QToolButton, QAction, QMenu, QSplashScreen, QGraphicsDropShadowEffect, \
-    QMainWindow, QApplication, QSizePolicy, QWidget, QDockWidget, QStyle
+    QMainWindow, QApplication, QSizePolicy, QWidget, QDockWidget, QStyle, QFileDialog, QDialog
 from PyQt5.QtXml import QDomDocument
+from qgis._core import QgsRectangle
 
 import enmapbox.gui.datasources.manager
 from enmapboxprocessing.algorithm.importdesisl1balgorithm import ImportDesisL1BAlgorithm
@@ -64,6 +65,7 @@ from qgis.gui import QgsMapCanvas, QgsLayerTreeView, \
     QgsSymbolWidgetContext
 
 from enmapbox import messageLog, debugLog, DEBUG, DIR_ENMAPBOX
+from .datasources.datasourcesets import DataSourceList
 from .dockmanager import DockManagerTreeModel, MapDockTreeNode, DockTreeNode, SpeclibDockTreeNode
 from .datasources.datasources import DataSource, RasterDataSource, VectorDataSource, SpatialDataSource
 from enmapbox.externals.qps.cursorlocationvalue import CursorLocationInfoDock
@@ -78,7 +80,8 @@ from .docks import SpectralLibraryDock, Dock, AttributeTableDock
 from .mapcanvas import MapDock, MapCanvas
 from .utils import enmapboxUiPath
 from ..externals.qps.speclib.core import is_spectral_library
-from ..externals.qps.utils import SpatialPoint, loadUi, SpatialExtent
+from ..externals.qps.subdatasets import SubDatasetSelectionDialog
+from ..externals.qps.utils import SpatialPoint, loadUi, SpatialExtent, file_search
 
 HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
 
@@ -90,6 +93,7 @@ class EnMAPBoxDocks(enum.Enum):
     MapDock = 'MAP'
     SpectralLibraryDock = 'SPECLIB'
     TextViewDock = 'TEXT'
+    HTMLViewDock = 'HTML'
     MimeDataDock = 'MIME'
     EmptyView = 'EMPTY'
 
@@ -272,13 +276,13 @@ class EnMAPBox(QgisInterface, QObject):
 
     MAPTOOLACTION = 'enmapbox/maptoolkey'
 
-    sigDataSourcesAdded = pyqtSignal([str], [DataSource])
-    sigSpectralLibraryAdded = pyqtSignal([str], [QgsVectorLayer])
+    sigDataSourcesAdded = pyqtSignal(DataSourceList)
+    sigSpectralLibraryAdded = pyqtSignal(VectorDataSource)
     sigRasterSourceAdded = pyqtSignal([str], [RasterDataSource])
     sigVectorSourceAdded = pyqtSignal([str], [VectorDataSource])
 
-    sigDataSourcesRemoved = pyqtSignal([str], [DataSource])
-    sigSpectralLibraryRemoved = pyqtSignal([str], [QgsVectorLayer])
+    sigDataSourcesRemoved = pyqtSignal(DataSourceList)
+    sigSpectralLibraryRemoved = pyqtSignal([str], [VectorDataSource])
     sigRasterSourceRemoved = pyqtSignal([str], [RasterDataSource])
     sigVectorSourceRemoved = pyqtSignal([str], [VectorDataSource])
 
@@ -360,8 +364,10 @@ class EnMAPBox(QgisInterface, QObject):
 
         splash.showMessage('Init DataSourceManager')
         self.mDataSourceManager = DataSourceManager()
-        self.mDataSourceManager.sigDataSourceRemoved.connect(self.onDataSourcesRemoved)
-        self.mDataSourceManager.sigDataSourceAdded.connect(self.onDataSourcesAdded)
+        self.mDataSourceManager.sigDataSourcesRemoved.connect(self.onDataSourcesRemoved)
+        self.mDataSourceManager.sigDataSourcesAdded.connect(self.onDataSourcesAdded)
+        self.mDataSourceManager.setEnMAPBoxInstance(self)
+
         # QgsProject.instance().layersAdded.connect(self.addMapLayers)
         QgsProject.instance().layersWillBeRemoved.connect(self.onLayersWillBeRemoved)
         QgsProject.instance().writeProject.connect(self.onWriteProject)
@@ -986,17 +992,69 @@ class EnMAPBox(QgisInterface, QObject):
         for c in self.mapCanvases():
             c.freeze(b)
 
+    def openAddDataSourceDialog(self):
+        """
+        Shows a fileOpen dialog to select new data sources
+        :return:
+        """
+
+        from enmapbox import enmapboxSettings
+        SETTINGS = enmapboxSettings()
+        lastDataSourceDir = SETTINGS.value('lastsourcedir', None)
+
+        if lastDataSourceDir is None:
+            lastDataSourceDir = enmapbox.DIR_EXAMPLEDATA
+
+        if not os.path.exists(lastDataSourceDir):
+            lastDataSourceDir = None
+
+        uris, filter = QFileDialog.getOpenFileNames(None, "Open a data source(s)", lastDataSourceDir)
+        self.addSources(uris)
+
+        if len(uris) > 0:
+            SETTINGS.setValue('lastsourcedir', os.path.dirname(uris[-1]))
+
+    def openSubDatasetsDialog(self, *args, title:str='Add Sub-Datasets', filter: str = 'All files (*.*)'):
+
+        SETTINGS = enmapbox.enmapboxSettings()
+        defaultRoot = SETTINGS.value('lastsourcedir', None)
+
+        if defaultRoot is None:
+            defaultRoot = enmapbox.DIR_EXAMPLEDATA
+
+        if not os.path.exists(defaultRoot):
+            defaultRoot = None
+
+        d = SubDatasetSelectionDialog()
+        d.setWindowTitle(title)
+        d.setFileFilter(filter)
+        d.setDefaultRoot(defaultRoot)
+        result = d.exec_()
+
+        if result == QDialog.Accepted:
+            subdatasets = d.selectedSubDatasets()
+            layers = []
+            loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
+            for i, s in enumerate(subdatasets):
+                lyr = QgsRasterLayer(s, options=loptions)
+                if i == 0:
+                    paths = d.fileWidget.splitFilePaths(d.fileWidget.filePath())
+                    SETTINGS.setValue('lastsourcedir', os.path.dirname(paths[0]))
+
+                layers.append(lyr)
+            self.addSources(layers)
+
+
     def initActions(self):
         # link action to managers
-        self.ui.mActionAddDataSource.triggered.connect(self.mDataSourceManager.addDataSourceByDialog)
-        # self.ui.mActionAddSentinel2.triggered.connect(self.mDataSourceManager.addSentinel2ByDialog)  # replaced by "Import Sentinel-2 L2A product" algo
-        self.ui.mActionAddSubDatasets.triggered.connect(self.mDataSourceManager.addSubDatasetsByDialog)
+        self.ui.mActionAddDataSource.triggered.connect(self.openAddDataSourceDialog)
+        self.ui.mActionAddSubDatasets.triggered.connect(self.openSubDatasetsDialog)
 
-        self.ui.mActionAddMapView.triggered.connect(lambda: self.mDockManager.createDock('MAP'))
-        self.ui.mActionAddTextView.triggered.connect(lambda: self.mDockManager.createDock('TEXT'))
-        self.ui.mActionAddWebView.triggered.connect(lambda: self.mDockManager.createDock('WEBVIEW'))
-        self.ui.mActionAddMimeView.triggered.connect(lambda: self.mDockManager.createDock('MIME'))
-        self.ui.mActionAddSpeclibView.triggered.connect(lambda: self.mDockManager.createDock('SPECLIB'))
+        self.ui.mActionAddMapView.triggered.connect(lambda: self.mDockManager.createDock(EnMAPBoxDocks.MapDock))
+        self.ui.mActionAddTextView.triggered.connect(lambda: self.mDockManager.createDock(EnMAPBoxDocks.TextViewDock))
+        self.ui.mActionAddWebView.triggered.connect(lambda: self.mDockManager.createDock(EnMAPBoxDocks.HTMLViewDock))
+        self.ui.mActionAddMimeView.triggered.connect(lambda: self.mDockManager.createDock(EnMAPBoxDocks.MimeDataDock))
+        self.ui.mActionAddSpeclibView.triggered.connect(lambda: self.mDockManager.createDock(EnMAPBoxDocks.SpectralLibraryDock))
         self.ui.mActionLoadExampleData.triggered.connect(lambda: self.openExampleData(
             mapWindows=1 if len(self.mDockManager.docks(MapDock)) == 0 else 0))
 
@@ -1514,16 +1572,16 @@ class EnMAPBox(QgisInterface, QObject):
             files = [pathlib.Path(file).as_posix() for file in files]
 
             self.addSources(files)
-            exampleSources = [s for s in self.dataSourceManager().sources()
-                              if isinstance(s, DataSourceSpatial) and s.uri() in files]
+            exampleSources = [s for s in self.dataSourceManager().dataSources()
+                              if isinstance(s, SpatialDataSource) and s.source() in files]
 
             for n in range(mapWindows):
                 dock: MapDock = self.createDock('MAP')
                 assert isinstance(dock, MapDock)
                 lyrs = []
                 for src in exampleSources:
-                    if isinstance(src, DataSourceSpatial):
-                        lyr = src.createUnregisteredMapLayer()
+                    if isinstance(src, SpatialDataSource):
+                        lyr = src.asMapLayer()
                         if isinstance(lyr, QgsVectorLayer):
                             lyr.updateExtents()
 
@@ -1559,7 +1617,7 @@ class EnMAPBox(QgisInterface, QObject):
                 lyrs = sorted(lyrs, reverse=True, key=niceLayerOrder)
                 dock.mapCanvas().setLayers(lyrs)
 
-    def onDataSourcesRemoved(self, dataSources: typing.List[DataSource]):
+    def onDataSourcesRemoved(self, dataSources: DataSourceList):
         """
         Reacts on removed data sources
         :param dataSource: DataSource
@@ -1571,8 +1629,7 @@ class EnMAPBox(QgisInterface, QObject):
             model: DockManagerTreeModel = self.dockManagerTreeModel()
             model.removeDataSource(dataSource)
 
-            self.sigDataSourcesRemoved[str].emit(dataSource.uri())
-            self.sigDataSourcesRemoved[DataSource].emit(dataSource)
+            self.sigDataSourcesRemoved[DataSourceList].emit(dataSource)
 
             if isinstance(dataSource, RasterDataSource):
                 self.sigRasterSourceRemoved[str].emit(dataSource.uri())
@@ -1600,22 +1657,22 @@ class EnMAPBox(QgisInterface, QObject):
 
     def onDataSourcesAdded(self, dataSources: typing.List[DataSource]):
 
-        self.sigDataSourcesAdded[list].emit(dataSources)
-        self.sigDataSourcesAdded[str].emit(dataSource.source())
+        self.sigDataSourcesAdded[DataSourceList].emit(dataSources)
 
-        if isinstance(dataSource, RasterDataSource):
-            self.sigRasterSourceAdded[str].emit(dataSource.uri())
-            self.sigRasterSourceAdded[RasterDataSource].emit(dataSource)
+        for dataSource in dataSources:
+            if isinstance(dataSource, RasterDataSource):
+                self.sigRasterSourceAdded[str].emit(dataSource.source())
+                self.sigRasterSourceAdded[RasterDataSource].emit(dataSource)
 
-            self.spectralProfileSourcePanel().addSources(dataSource.createUnregisteredMapLayer())
+                self.spectralProfileSourcePanel().addSources(dataSource.asMapLayer())
 
-        if isinstance(dataSource, VectorDataSource):
-            self.sigVectorSourceAdded[str].emit(dataSource.uri())
-            self.sigVectorSourceAdded[VectorDataSource].emit(dataSource)
+            if isinstance(dataSource, VectorDataSource):
+                self.sigVectorSourceAdded[str].emit(dataSource.source())
+                self.sigVectorSourceAdded[VectorDataSource].emit(dataSource)
 
-            if dataSource.isSpectralLibrary():
-                self.sigSpectralLibraryAdded[str].emit(dataSource.uri())
-                self.sigSpectralLibraryAdded[QgsVectorLayer].emit(dataSource.mapLayer())
+                if dataSource.isSpectralLibrary():
+                    self.sigSpectralLibraryAdded[str].emit(dataSource.source())
+                    self.sigSpectralLibraryAdded[VectorDataSource].emit(dataSource)
 
     def restoreProject(self):
         raise NotImplementedError()
@@ -1735,7 +1792,7 @@ class EnMAPBox(QgisInterface, QObject):
         :return: Returns a list of added DataSources or the list of DataSources that were derived from a single data source uri.
         """
         assert isinstance(sourceList, list)
-        return self.mDataSourceManager.addSources(sourceList)
+        return self.mDataSourceManager.addDataSources(sourceList)
 
     def addSource(self, source, name=None):
         """
