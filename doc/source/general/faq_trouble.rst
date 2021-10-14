@@ -216,13 +216,21 @@ suggest new entries!
 Known Issues
 ============
 
-* **cannot import name 'sip' from 'PyQt5'**
+* **QGIS crashes while starting/activating the EnMAP-Box plugin** - HDF5 library version mismatched error (see `Issue #747 <https://bitbucket.org/hu-geomatics/enmap-box/issues/747/h5py-hdf5-library-version-mismatched-error>`_)
 
-  This error is sometimes observed on Ubuntu (20.04) systems. See `Issue #718 <https://bitbucket.org/hu-geomatics/enmap-box/issues/718/cannot-import-name-sip-from-pyqt5-linux>`_ for status.
+  Workaround: In QGIS go to :menuselection:`Settings --> Options --> System`, under :guilabel:`Environment` add the
+  variable ``HDF5_DISABLE_VERSION_CHECK`` with a value of ``1``. Note that this does not fix potential functionality issues
+  of the h5py library, so be careful when using the PRISMA Import.
 
 ....
 
 * **Spectral Library: Axis visualisation bugs (pyqtgraph)**
 
-   If you experience visualisation bugs in the Spectral Library Window, this might be related to (windows) resolution
-   scaling factor. Try setting the scaling to 100% (see corresponding `Issue #603 <https://bitbucket.org/hu-geomatics/enmap-box/issues/603/darstellung-y-achse-bei-spektrum-plot>`_ for more information)
+  If you experience visualisation bugs in the Spectral Library Window, this might be related to (windows) resolution
+  scaling factor. Try setting the scaling to 100% (see corresponding `Issue #603 <https://bitbucket.org/hu-geomatics/enmap-box/issues/603/darstellung-y-achse-bei-spektrum-plot>`_ for more information)
+
+....
+
+* **cannot import name 'sip' from 'PyQt5'**
+
+  This error is sometimes observed on Ubuntu (20.04) systems. See `Issue #718 <https://bitbucket.org/hu-geomatics/enmap-box/issues/718/cannot-import-name-sip-from-pyqt5-linux>`_ for status.
