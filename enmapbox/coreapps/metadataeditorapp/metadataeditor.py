@@ -59,7 +59,7 @@ class MetadataEditorDialog(QDialog):
         emb = EnMAPBox.instance()
 
         if isinstance(emb, EnMAPBox):
-            dataSourceLayers = [source.mapLayer() for source in emb.dataSourceManager().sources(SpatialDataSource)]
+            dataSourceLayers = [source.asMapLayer() for source in emb.dataSourceManager().sources() if isinstance(source, SpatialDataSource)]
             existingLayers = sorted(existingLayers, key=lambda lyr: lyr in dataSourceLayers)
 
         for layer in existingLayers:

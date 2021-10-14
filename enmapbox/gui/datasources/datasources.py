@@ -96,6 +96,10 @@ class SpatialDataSource(DataSource):
     def asMapLayer(self) -> QgsMapLayer:
         return dataItemToLayer(self.dataItem())
 
+    def mapLayer(self) -> QgsMapLayer:
+        warnings.warn(DeprecationWarning('Use .asMapLayer() instead'))
+        return self.asMapLayer()
+
     def dataItem(self) -> QgsLayerItem:
         return self.mDataItem
 
