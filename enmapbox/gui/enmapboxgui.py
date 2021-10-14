@@ -658,15 +658,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.addMapLayers([layer])
 
     def addMapLayers(self, layers: typing.List[QgsMapLayer]):
-        layers = [l for l in layers if isinstance(l, QgsMapLayer)]
-        unregistered = [l for l in layers if l not in QgsProject.instance().mapLayers().values()]
-        unknown = [l for l in layers if l not in self.mapLayers()]
-        if len(unregistered) > 0:
-            QgsProject.instance().addMapLayers(unregistered, False)
-            # this triggers the DataSourceManager to add new sources
-        if len(unknown) > 0:
-            self.dataSourceManager().addSources(unknown)
-        self.syncHiddenLayers()
+        self.dataSourceManager().addDataSources(layers)
 
     def onMapCanvasKeyPressed(self, mapCanvas: MapCanvas, e: QKeyEvent):
 
@@ -1655,6 +1647,8 @@ class EnMAPBox(QgisInterface, QObject):
                     self.sigSpectralLibraryAdded[str].emit(dataSource.source())
                     self.sigSpectralLibraryAdded[VectorDataSource].emit(dataSource)
 
+        self.syncHiddenLayers()
+
     def restoreProject(self):
         raise NotImplementedError()
 
@@ -1711,14 +1705,17 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return enmapbox.__version__
 
-    def dataSourceTreeView(self) -> 'DataSourceTreeView':
-        return self.ui.dataSourcePanel.dataSourceTreeView
+    def dataSourceTreeView(self) -> 'DataSourceManagerTreeView':
+        warnings.warn(DeprecationWarning)
+        return self.dataSourceManagerTreeView()
+
+    def dataSourceManagerTreeView(self) -> 'DataSourceManagerTreeView':
+        return self.ui.dataSourcePanel.dataSourceManagerTreeView()
 
     def dataSources(self, sourceType='ALL', onlyUri: bool = True) -> list:
         """
         Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
         :param sourceType: ['ALL', 'RASTER', 'VECTOR', 'MODEL'],
-                            see enmapbox.gui.datasourcemanager.DataSourceManager.SOURCE_TYPES
         :param onlyUri: bool, set on False to return the DataSource object instead of the uri only.
         :return: [list-of-datasource-URIs (str)]
         """
@@ -1782,7 +1779,7 @@ class EnMAPBox(QgisInterface, QObject):
         :param name:
         :return: [list-of-dataSources]
         """
-        return self.mDataSourceManager.addSource(source, name=name)
+        return self.mDataSourceManager.addDataSources(source, name=name)
 
     def removeSources(self, dataSourceList: list = None):
         """

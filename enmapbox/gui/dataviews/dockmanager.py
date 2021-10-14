@@ -54,7 +54,7 @@ from enmapbox.gui.mimedata import \
     extractMapLayers, containsMapLayers, textToByteArray
 from enmapbox.gui.dataviews.docks import Dock, DockArea, \
     AttributeTableDock, SpectralLibraryDock, TextDock, MimeDataDock, WebViewDock, LUT_DOCKTYPES, MapDock
-from enmapbox.gui.datasources.datasources import DataSource
+from enmapbox.gui.datasources.datasources import DataSource, VectorDataSource, SpatialDataSource
 from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
 from enmapbox.gui.datasources.manager import DataSourceManager
 from enmapbox.gui.utils import getDOMAttributes
@@ -242,8 +242,8 @@ class DockTreeNode(LayerTreeNode):
 
     def setEnMAPBoxInstance(self, enmapbox: 'EnMAPBox'):
         from enmapbox import EnMAPBox
-        assert isinstance(enmapbox, EnMAPBox)
-        self.mEnMAPBoxInstance = enmapbox
+        if isinstance(enmapbox, EnMAPBox):
+            self.mEnMAPBoxInstance = enmapbox
 
     def enmapBoxInstance(self) -> 'EnMAPBox':
         return self.mEnMAPBoxInstance
@@ -1367,32 +1367,22 @@ class DockManager(QObject):
 
             # register datasources
 
-            new_sources = self.mDataSourceManager.addSources(layers + textfiles)
+            new_sources = self.mDataSourceManager.addDataSources(layers + textfiles)
 
-            layer_sources = [l.source() for l in layers]
-            layer_sources = [s for s in self.mDataSourceManager.sources()
-                             if isinstance(s, DataSourceSpatial) and s.uri() in layer_sources]
-
-            dropped_speclibs: typing.List[DataSourceVector] = [s for s in layer_sources
-                                                               if isinstance(s, DataSourceVector)
-                                                               and s.isSpectralLibrary()]
-
-            dropped_maplayers: typing.List[DataSourceSpatial] = [s for s in layer_sources
-                                                                 if s not in dropped_speclibs
-                                                                 and isinstance(s, DataSourceSpatial)]
-
+            dropped_speclibs = [s for s in new_sources if isinstance(s, VectorDataSource) and s.isSpectralLibrary()]
+            dropped_maplayers = [s for s in new_sources if isinstance(s, SpatialDataSource) and s not in dropped_speclibs]
             # open spectral Library dock for new speclibs
 
             if len(dropped_speclibs) > 0:
                 # show 1st speclib
-                NEW_DOCK = self.createDock('SPECLIB', speclib=dropped_speclibs[0].createUnregisteredMapLayer())
+                NEW_DOCK = self.createDock('SPECLIB', speclib=dropped_speclibs[0].asMapLayer())
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
 
             # open map dock for other map layers
             if len(dropped_maplayers) > 0:
                 NEW_DOCK = self.createDock('MAP')
                 assert isinstance(NEW_DOCK, MapDock)
-                layers = [s.createUnregisteredMapLayer() for s in dropped_maplayers]
+                layers = [s.asMapLayer() for s in dropped_maplayers]
                 NEW_DOCK.addLayers(layers)
 
             event.accept()

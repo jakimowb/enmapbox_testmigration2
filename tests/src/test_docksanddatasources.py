@@ -20,7 +20,7 @@ from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 from enmapbox.gui import SpectralProfile
 from enmapbox import EnMAPBox
 from enmapbox.exampledata import *
-from enmapbox.gui.datasourcemanager import *
+from enmapbox.gui.datasources.manager import *
 from enmapbox.gui.dataviews.dockmanager import *
 from enmapbox.gui.dataviews.docks import *
 from enmapbox.externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
@@ -45,31 +45,31 @@ class testDataSources(EnMAPBoxTestCase):
         DSM.addSource(library)
 
         self.assertTrue(len(signalArgs) == 3)
-        self.assertIsInstance(signalArgs[0], DataSourceRaster)
-        self.assertIsInstance(signalArgs[1], DataSourceVector)
+        self.assertIsInstance(signalArgs[0], RasterDataSource)
+        self.assertIsInstance(signalArgs[1], VectorDataSource)
 
         types = DSM.sourceTypes()
-        self.assertTrue(DataSourceRaster in types)
-        self.assertTrue(DataSourceVector in types)
+        self.assertTrue(RasterDataSource in types)
+        self.assertTrue(VectorDataSource in types)
 
-        sources = DSM.sources(sourceTypes=[DataSourceRaster])
+        sources = DSM.sources(sourceTypes=[RasterDataSource])
         self.assertTrue(len(sources) == 1)
-        self.assertIsInstance(sources[0], DataSourceRaster)
+        self.assertIsInstance(sources[0], RasterDataSource)
 
-        sources = DSM.sources(sourceTypes=[DataSourceRaster, DataSourceVector])
+        sources = DSM.sources(sourceTypes=[RasterDataSource, VectorDataSource])
         self.assertTrue(len(sources) == 2)
-        self.assertIsInstance(sources[0], DataSourceRaster)
-        self.assertIsInstance(sources[1], DataSourceVector)
+        self.assertIsInstance(sources[0], RasterDataSource)
+        self.assertIsInstance(sources[1], VectorDataSource)
 
         self.assertTrue(len(DSM.sources()) == 3)
-        sources = DSM.sources(sourceTypes=DataSourceRaster)
+        sources = DSM.sources(sourceTypes=RasterDataSource)
         self.assertTrue(len(sources) == 1)
-        self.assertIsInstance(sources[0], DataSourceRaster)
+        self.assertIsInstance(sources[0], RasterDataSource)
         self.assertIs(sources[0], signalArgs[0])
 
-        sources = DSM.sources(sourceTypes=DataSourceVector)
+        sources = DSM.sources(sourceTypes=VectorDataSource)
         self.assertTrue(len(sources) == 1)
-        self.assertIsInstance(sources[0], DataSourceVector)
+        self.assertIsInstance(sources[0], VectorDataSource)
         self.assertIs(sources[0], signalArgs[1])
 
         lyrWFS = QgsVectorLayer(TestObjects.uriWFS(), 'WFS', 'WFS')
@@ -77,7 +77,7 @@ class testDataSources(EnMAPBoxTestCase):
             for o in [lyrWFS, lyrWFS.source()]:
                 sources = DSM.addSource(o)
                 self.assertTrue(len(sources) == 1)
-                self.assertIsInstance(sources[0], DataSourceVector)
+                self.assertIsInstance(sources[0], VectorDataSource)
                 DSM.removeSources(sources)
 
         lyrWMS = QgsRasterLayer(TestObjects.uriWMS(), 'WMS', 'wms')
@@ -85,7 +85,7 @@ class testDataSources(EnMAPBoxTestCase):
             for o in [lyrWMS, lyrWMS.source()]:
                 sources = DSM.addSource(o)
                 self.assertTrue(len(sources) == 1)
-                self.assertIsInstance(sources[0], DataSourceRaster)
+                self.assertIsInstance(sources[0], RasterDataSource)
                 DSM.removeSources(sources)
 
     def test_dockview(self):
@@ -208,7 +208,7 @@ class testDataSources(EnMAPBoxTestCase):
 
     def test_MapDock(self):
         da = DockArea()
-        from enmapbox.gui.mapcanvas import MapDock
+        from enmapbox.gui.dataviews.docks import MapDock
         dock = MapDock()
         self.assertIsInstance(dock, MapDock)
         da.addDock(dock)

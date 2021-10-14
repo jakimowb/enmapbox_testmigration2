@@ -32,7 +32,7 @@ from qgis.gui import QgsMapCanvas, QgisInterface
 import qgis.utils
 from enmapbox.gui.applications import EnMAPBoxApplication
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapbox.gui.datasourcemanager import DataSourceTreeView, RasterBandTreeNode
+from enmapbox.gui.datasources.manager import DataSourceManagerTreeView, RasterBandTreeNode
 from enmapbox.gui.dataviews.dockmanager import DockTreeView
 
 APP_DIR = os.path.dirname(__file__)
@@ -70,7 +70,7 @@ class VRTBuilderApp(EnMAPBoxApplication):
             self.licence = LICENSE
             self.mIcon = QIcon(PATH_ICON)
 
-            dstv: DataSourceTreeView = self.enmapbox.dataSourceTreeView()
+            dstv: DataSourceManagerTreeView = self.enmapbox.dataSourceManagerTreeView()
             dstv.sigPopulateContextMenu.connect(
                 lambda menu, widget=None: self.onPopulateDataSourceContextMenu(menu, widget))
             dotv: DockTreeView = self.enmapbox.dockTreeView()
@@ -132,7 +132,7 @@ class VRTBuilderApp(EnMAPBoxApplication):
     def onPopulateDataSourceContextMenu(self, menu: QMenu, w):
         assert isinstance(menu, QMenu)
 
-        dstv: DataSourceTreeView = self.enmapbox.dataSourceTreeView()
+        dstv: DataSourceManagerTreeView = self.enmapbox.dataSourceManagerTreeView()
         bandNodes = [n for n in dstv.selectedNodes() if isinstance(n, RasterBandTreeNode)]
         self.addMenuForInputs(menu, bandNodes, w)
 

@@ -23,7 +23,7 @@ from qgis.PyQt.QtWidgets import QVBoxLayout, QDialogButtonBox, QDialog
 from qgis.PyQt.QtCore import Qt
 from enmapbox.externals.qps.layerconfigwidgets.gdalmetadata import GDALMetadataModelConfigWidget
 from enmapbox.gui.utils import loadUi
-from enmapbox.gui.enmapboxgui import EnMAPBox, DataSourceSpatial
+from enmapbox.gui.enmapboxgui import EnMAPBox, SpatialDataSource
 
 from qgis.core import QgsProject, QgsMapLayer
 from qgis.gui import QgsMapLayerComboBox
@@ -59,7 +59,7 @@ class MetadataEditorDialog(QDialog):
         emb = EnMAPBox.instance()
 
         if isinstance(emb, EnMAPBox):
-            dataSourceLayers = [source.mapLayer() for source in emb.dataSourceManager().sources(DataSourceSpatial)]
+            dataSourceLayers = [source.mapLayer() for source in emb.dataSourceManager().sources(SpatialDataSource)]
             existingLayers = sorted(existingLayers, key=lambda lyr: lyr in dataSourceLayers)
 
         for layer in existingLayers:

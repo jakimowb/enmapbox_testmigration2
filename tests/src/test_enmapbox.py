@@ -236,7 +236,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         dsSpatial = E.dataSourceManager().sources('SPATIAL')
         self.assertIsInstance(dsSpatial, list)
         ds1 = dsSpatial[0]
-        self.assertIsInstance(ds1, DataSourceSpatial)
+        self.assertIsInstance(ds1, SpatialDataSource)
         uri = ds1.uri()
         uri2 = ds1.mapLayer().source()
         # remove layers from the QgsProject and see what happens.

@@ -289,3 +289,28 @@ class FileDataSource(DataSource):
         assert dataItem.type() == QgsLayerItem.NoType
         assert dataItem.providerKey() == 'speclia:file'
         super(FileDataSource, self).__init__(dataItem)
+
+
+
+class DataSourceTypes(object):
+    """
+    Enumeration that defines the standard data source types.
+    """
+    Raster = 'RASTER'
+    Vector = 'VECTOR'
+    SpectralLibrary = 'SPECLIB'
+    Spatial = 'SPATIAL'
+    Model = 'MODEL'
+    File = 'FILE'
+
+
+LUT_DATASOURCETYPES = {DataSourceTypes.Raster: RasterDataSource,
+                 DataSourceTypes.Vector: VectorDataSource,
+                 DataSourceTypes.Spatial: SpatialDataSource,
+                 DataSourceTypes.SpectralLibrary: VectorDataSource,
+                 DataSourceTypes.Model: ModelDataSource,
+                 DataSourceTypes.File: FileDataSource,
+                 }
+
+for cls in set(LUT_DATASOURCETYPES.values()):
+    LUT_DATASOURCETYPES[cls] = cls

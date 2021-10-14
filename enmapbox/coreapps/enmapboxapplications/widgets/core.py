@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 
 from enmapbox.gui.datasources.datasources import VectorDataSource
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapbox.gui.datasources import DataSourceVector
+from enmapbox.gui.datasources import VectorDataSource
 from hubflow.core import *
 
 pathUi = join(dirname(__file__), 'ui')

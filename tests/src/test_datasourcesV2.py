@@ -1,3 +1,7 @@
+import unittest
+
+import xmlrunner
+
 from enmapbox.gui.datasources.manager import DataSourceManager, DataSourceManagerPanelUI, DataSourceFactory
 from enmapbox.testing import EnMAPBoxTestCase
 
@@ -38,6 +42,10 @@ class DataSourceV2Tests(EnMAPBoxTestCase):
     def test_EnMAPBox(self):
 
         from enmapbox import EnMAPBox
-        emb = EnMAPBox(load_core_apps=False, load_other_apps=False)
+        emb = EnMAPBox(load_core_apps=True, load_other_apps=True)
         emb.loadExampleData()
         self.showGui(emb.ui)
+
+
+if __name__ == "__main__":
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

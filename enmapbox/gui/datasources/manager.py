@@ -54,6 +54,9 @@ class DataSourceManager(TreeModel):
         from enmapbox import EnMAPBox
         self.mEnMAPBoxInstance: EnMAPBox = None
 
+    def __len__(self):
+        return len(self.dataSources())
+
     def enmapBoxInstance(self) -> 'EnMAPBox':
         return self.mEnMAPBoxInstance
 
@@ -169,14 +172,23 @@ class DataSourceManager(TreeModel):
     def dataSourceSets(self) -> typing.List[DataSourceSet]:
         return [c for c in self.rootNode().childNodes() if isinstance(c, DataSourceSet)]
 
-    def sources(self):
-        warnings.warn(DeprecationWarning)
-        return self.dataSources()
+    def sources(self, *args):
+        warnings.warn(DeprecationWarning('Use .dataSources() instead.'))
+        return self.dataSources(*args)
 
-    def dataSources(self) -> typing.List[DataSource]:
+    def dataSources(self, filter=None) -> typing.List[DataSource]:
         l = list()
         for ds in self.dataSourceSets():
             l.extend(ds.dataSources())
+
+        if filter:
+            from .datasources import LUT_DATASOURCETYPES, DataSourceTypes
+            assert filter in LUT_DATASOURCETYPES.keys(), f'Unknown datasource filter "{filter}"'
+            if filter == DataSourceTypes.SpectralLibrary:
+                l = [ds for ds in l if isinstance(ds, VectorDataSource) and ds.isSpectralLibrary()]
+            else:
+                cls = LUT_DATASOURCETYPES[filter]
+                l = [ds for ds in l if isinstance(ds, cls)]
         return l
 
     def findDataSources(self, inputs) -> typing.List[DataSource]:
@@ -226,8 +238,18 @@ class DataSourceManager(TreeModel):
             flags = flags | Qt.ItemIsDropEnabled | Qt.ItemIsDragEnabled
         return flags
 
-    def addDataSources(self, sources: typing.Union[DataSource, typing.List[DataSource]]) -> typing.List[DataSource]:
-        sources = DataSourceFactory.create(sources)
+    def addSources(self, *args, **kwds):
+        warnings.warn(DeprecationWarning('Use addDataSources instead'))
+        self.addDataSources(*args, **kwds)
+
+    def addSource(self, *args, **kwds):
+        self.addSources(*args, **kwds)
+
+    def addDataSources(self,
+                       sources: typing.Union[DataSource, typing.List[DataSource]],
+                       provider: str = None,
+                       name: str = None) -> typing.List[DataSource]:
+        sources = DataSourceFactory.create(sources, provider=provider, name=name)
         if isinstance(sources, DataSource):
             sources = [sources]
         added = []
@@ -452,10 +474,10 @@ class DataSourceManagerTreeView(TreeView):
                   rgb=None,
                   sampleSize: int = 256):
         """
-        Add a DataSourceSpatial as QgsMapLayer to a mapCanvas.
+        Add a SpatialDataSource as QgsMapLayer to a mapCanvas.
         :param target:
         :param sampleSize:
-        :param dataSource: DataSourceSpatial
+        :param dataSource: SpatialDataSource
         :param rgb:
         """
 
@@ -659,7 +681,9 @@ class DataSourceFactory(object):
                 return [source]
             dataItem: QgsDataItem = None
             if isinstance(source, QgsMapLayer):
-                dataItem = QgsLayerItem.typeFromMapLayer(source)
+                dtype = QgsLayerItem.typeFromMapLayer(source)
+                dataItem = QgsLayerItem(None, source.name(), source.source(),
+                                        source.source(), dtype, source.providerType())
 
             if dataItem is None:
                 if isinstance(source, pathlib.Path):
@@ -668,6 +692,7 @@ class DataSourceFactory(object):
                     source = source.toString(QUrl.PreferLocalFile | QUrl.RemoveQuery)
 
                 if isinstance(source, str):
+                    source = pathlib.Path(source).as_posix()
 
                     if name is None:
                         name = pathlib.Path(source).name
@@ -699,16 +724,17 @@ class DataSourceFactory(object):
                         if pathlib.Path(source).is_file():
                             dataItem = QgsDataItem(Qgis.BrowserItemType.Custom, None, name, source, 'special:file')
                             s = ""
-                if isinstance(dataItem, QgsDataItem):
-                    if isinstance(dataItem, QgsLayerItem):
-                        if dataItem.mapLayerType() == QgsMapLayer.RasterLayer:
-                            results.append(RasterDataSource(dataItem))
-                        elif dataItem.mapLayerType() == QgsMapLayer.VectorLayer:
-                            results.append(VectorDataSource(dataItem))
-                    elif dataItem.providerKey() == 'special:pkl':
-                        results.append(ModelDataSource(dataItem))
-                    elif dataItem.providerKey() == 'special:files':
-                        results.append(FileDataSource(dataItem))
+
+            if isinstance(dataItem, QgsDataItem):
+                if isinstance(dataItem, QgsLayerItem):
+                    if dataItem.mapLayerType() == QgsMapLayer.RasterLayer:
+                        results.append(RasterDataSource(dataItem))
+                    elif dataItem.mapLayerType() == QgsMapLayer.VectorLayer:
+                        results.append(VectorDataSource(dataItem))
+                elif dataItem.providerKey() == 'special:pkl':
+                    results.append(ModelDataSource(dataItem))
+                elif dataItem.providerKey() == 'special:files':
+                    results.append(FileDataSource(dataItem))
 
         return results
 

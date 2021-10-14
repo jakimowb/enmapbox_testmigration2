@@ -836,17 +836,6 @@ class SpectralLibraryDock(Dock):
         menu.addAction(self.speclibWidget().actionShowProperties)
 
 
-class DockTypes(object):
-    """
-    Enumeration that defines the standard dock types.
-    """
-    MapDock = 'MAP'
-    TextDock = 'TEXT'
-    MimeDataDock = 'MIME'
-    WebViewDock = 'WEBVIEW'
-    SpectralLibraryDock = 'SPECLIB'
-    AttributeTableDock = 'ATTRIBUTES'
-
 
 class MapDockLabel(DockLabel):
 
@@ -949,6 +938,18 @@ class MapDock(Dock):
             for mapDockTreeNode in enmapBox.dockManagerTreeModel().mapDockTreeNodes():
                 if mapDockTreeNode.dock is self:
                     mapDockTreeNode.insertLayer(idx=idx, layerSource=layerSource)
+
+
+class DockTypes(object):
+    """
+    Enumeration that defines the standard dock types.
+    """
+    MapDock = 'MAP'
+    TextDock = 'TEXT'
+    MimeDataDock = 'MIME'
+    WebViewDock = 'WEBVIEW'
+    SpectralLibraryDock = 'SPECLIB'
+    AttributeTableDock = 'ATTRIBUTES'
 
 
 LUT_DOCKTYPES = {DockTypes.MapDock: MapDock,
