@@ -233,7 +233,7 @@ class ApplicationRegistry(QObject):
                     results.append(p)
         return results
 
-    def addApplicationFolder(self, appPackagePath: str, isRootFolder: bool =False) -> bool:
+    def addApplicationFolder(self, appPackagePath: str, isRootFolder: bool = False) -> bool:
         """
         Loads an EnMAP-Box application from its root folder.
         :param appPackagePath: directory with an __init__.py which defines a .enmapboxApplicationFactory() or
@@ -265,8 +265,6 @@ class ApplicationRegistry(QObject):
                 blacklist = os.environ.get('EMB_APP_BLACKLIST', '').split(',')
                 if appPkgName in blacklist:
                     raise Exception('Skipped loading EnMAPBoxApplication "{}"'.format(appPkgName))
-
-
 
                 print('Load EnMAPBoxApplication(s) from "{}"'.format(appPkgName))
 

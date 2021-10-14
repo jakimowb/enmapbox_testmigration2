@@ -21,6 +21,7 @@
 import unittest
 import xmlrunner
 
+from enmapbox import DIR_REPO
 from enmapbox.gui.datasources.datasources import SpatialDataSource
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapbox.gui.enmapboxgui import EnMAPBox
@@ -128,6 +129,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertIsInstance(d, AboutDialog)
         self.showGui(d)
 
+    @unittest.skipIf(not (pathlib.Path(DIR_REPO) / 'qgisresources').is_dir(), 'qgisresources dir does not exist')
     def test_findqgisresources(self):
         from enmapbox.externals.qps.resources import findQGISResourceFiles
         results = findQGISResourceFiles()

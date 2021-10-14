@@ -193,8 +193,6 @@ class LayerTreeNode(QgsLayerTree):
             tagName = elem.tagName()
             node = None
             attributes = getDOMAttributes(elem)
-            # from enmapbox.gui.dataviews.dockmanager import DockTreeNode, MapDockTreeNode, TextDockTreeNode
-            # from enmapbox.gui.datasourcemanager import DataSourceGroupTreeNode, DataSourceTreeNode
 
             if tagName == 'tree-node':
                 node = LayerTreeNode.readXml(elem)

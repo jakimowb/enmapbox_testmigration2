@@ -19,23 +19,26 @@
 ***************************************************************************
 """
 
-import os, collections
-from qgis.gui import QgsFileWidget
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
+import os
+
+from PyQt5.QtWidgets import QDialog
+
+from enmapbox.externals.qps.utils import loadUi
+from examples.exampleapp import APP_DIR
 
 """"
 Use the QtDesigner to open the example.ui file.  
 The example.ui can get compiled and loaded at runtime.
 """""
 from enmapbox.gui.utils import loadUIFormClass
-from __init__ import APP_DIR
 
-#path to the *.ui file that was created/edited in the QDesigner
+# path to the *.ui file that was created/edited in the QDesigner
 pathUi = os.path.join(APP_DIR, 'example.ui')
 
-class ExampleGUI(QDialog, loadUIFormClass(pathUi)):
+
+class ExampleGUI(QDialog):
     """Constructor."""
+
     def __init__(self, parent=None):
         super(ExampleGUI, self).__init__(parent)
         # Set up the user interface from Designer.
@@ -46,11 +49,10 @@ class ExampleGUI(QDialog, loadUIFormClass(pathUi)):
 
         # Important!!!!!!!!! this will initiate all the QWidgets etc. specified in the *.ui file
         self.setupUi(self)
-
+        loadUi(pathUi, self)
         # Connect widgets, add logic that can not be expressed in the QDesginer and needs to be "hard-coded"
         self.buttonBox.accepted.connect(self.startAlgorithm)
         self.buttonBox.rejected.connect(self.close)
-
 
     def collectParameters(self):
         """
@@ -66,5 +68,3 @@ class ExampleGUI(QDialog, loadUIFormClass(pathUi)):
         params = self.collectParameters()
         from algorithms import dummyAlgorithm
         dummyAlgorithm(**params)
-
-

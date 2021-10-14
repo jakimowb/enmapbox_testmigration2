@@ -20,12 +20,13 @@ from enmapbox import EnMAPBox
 from enmapbox.gui.applications import *
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox import DIR_ENMAPBOX
+
 path = os.path.join(DIR_ENMAPBOX, 'apps')
 if path not in sys.path:
     sys.path.append(path)
 
-class test_ensomap(EnMAPBoxTestCase):
 
+class test_ensomap(EnMAPBoxTestCase):
 
     def test_imports(self):
         import ensomap
@@ -42,7 +43,8 @@ class test_ensomap(EnMAPBoxTestCase):
         self.assertIsInstance(w, QWidget)
 
     def test_EnSOMAP_App(self):
-
+        if EnMAPBox.instance():
+            EnMAPBox.instance().close()
         emb = EnMAPBox(load_core_apps=False, load_other_apps=False)
 
         from ensomap import enmapboxApplicationFactory
@@ -51,15 +53,8 @@ class test_ensomap(EnMAPBoxTestCase):
 
         self.assertTrue(isinstance(app, list) or isinstance(app, EnMAPBoxApplication))
 
-    def test_EnMAPBox(self):
 
-        emb = EnMAPBox()
-
-        self.assertIsInstance(emb, EnMAPBox)
 if __name__ == "__main__":
-
     import xmlrunner
+
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
-

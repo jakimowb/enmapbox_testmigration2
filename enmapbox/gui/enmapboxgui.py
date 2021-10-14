@@ -439,7 +439,7 @@ class EnMAPBox(QgisInterface, QObject):
         from enmapbox.gui.applications import ApplicationRegistry
         self.applicationRegistry = ApplicationRegistry(self, parent=self)
         self.applicationRegistry.sigLoadingInfo.connect(splash.showMessage)
-        self.applicationRegistry.sigLoadingFinished.connect(lambda msg, success:
+        self.applicationRegistry.sigLoadingFinished.connect(lambda success, msg:
                                                 splash.showMessage(msg, color=QColor('red') if not success else None)
                                                             )
 

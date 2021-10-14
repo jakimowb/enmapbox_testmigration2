@@ -28,12 +28,12 @@ class TestIssue(EnMAPBoxTestCase):
         from enmapbox.exampledata import enmap
 
         from enmapbox.testing import TestObjects
-        from enmapbox.gui.datasourcemanager import DataSourceTreeView
+        from enmapbox.gui.datasources.manager import DataSourceManagerTreeView
         EB.addSource(enmap)
         wms = TestObjects.uriWMS()
         EB.addSource(wms)
-        tv = EB.dataSourceTreeView()
-        self.assertIsInstance(tv, DataSourceTreeView)
+        tv = EB.dataSourceManagerTreeView()
+        self.assertIsInstance(tv, DataSourceManagerTreeView)
         for src in EB.dataSourceManager().sources('RASTER'):
             tv.openInMap(src, rgb=[0])
             self.assertIsInstance(tv, QTreeView)
