@@ -28,7 +28,7 @@ from typing import Optional, Dict, Union
 
 from PyQt5.QtCore import pyqtSignal, Qt, QObject, QModelIndex, pyqtSlot, QSettings, QEventLoop, QRect, QSize, QFile
 from PyQt5.QtGui import QDragEnterEvent, QDragMoveEvent, QDragLeaveEvent, QDropEvent, QPixmap, QColor, QIcon, QKeyEvent, \
-    QCloseEvent, QGuiApplication
+    QCloseEvent, QGuiApplication, QPainter
 from PyQt5.QtWidgets import QFrame, QToolBar, QToolButton, QAction, QMenu, QSplashScreen, QGraphicsDropShadowEffect, \
     QMainWindow, QApplication, QSizePolicy, QWidget, QDockWidget, QStyle, QFileDialog, QDialog
 from PyQt5.QtXml import QDomDocument
@@ -143,12 +143,28 @@ class EnMAPBoxSplashScreen(QSplashScreen):
         :return:
         """
         if alignment is None:
-            alignment = int(Qt.AlignCenter | Qt.AlignBottom)
+            alignment = int(Qt.AlignLeft | Qt.AlignBottom)
         if color is None:
             color = QColor('black')
         super(EnMAPBoxSplashScreen, self).showMessage(text, alignment, color)
         QApplication.processEvents()
 
+    """
+    def drawContents(self, painter: QPainter) -> None:
+        # color = QColor('black')
+        color = QColor('white')
+        color.setAlpha(125)
+
+        painter.setBrush(color)
+        painter.setPen(color)
+        size = self.size()
+        h = 25
+        d = 10
+        rect = QRect(QRect(0, size.height()-h-d, size.width(), size.height()-d) )
+        painter.drawRect(rect)
+        #painter.setPen(QColor('white'))
+        super().drawContents(painter)
+    """
 
 class EnMAPBoxUI(QMainWindow):
     mActionProcessingToolbox: QAction
@@ -420,7 +436,15 @@ class EnMAPBox(QgisInterface, QObject):
         splash.showMessage('Load EnMAPBoxApplications...')
 
         debugLog('Load EnMAPBoxApplications...')
-        self.initEnMAPBoxApplications(load_core_apps=load_core_apps, load_other_apps=load_other_apps)
+        from enmapbox.gui.applications import ApplicationRegistry
+        self.applicationRegistry = ApplicationRegistry(self, parent=self)
+        self.applicationRegistry.sigLoadingInfo.connect(splash.showMessage)
+        self.applicationRegistry.sigLoadingFinished.connect(lambda msg, success:
+                                                splash.showMessage(msg, color=QColor('red') if not success else None)
+                                                            )
+
+        self.initEnMAPBoxApplications(load_core_apps=load_core_apps,
+                                      load_other_apps=load_other_apps)
 
         # add developer tools to the Tools menu
         debugLog('Modify menu...')
@@ -445,6 +469,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         # check missing packages and show a message
         # see https://bitbucket.org/hu-geomatics/enmap-box/issues/366/start-enmap-box-in-standard-qgis
+        splash.showMessage('Check dependencies...')
         debugLog('Run dependency checks...')
 
         from ..dependencycheck import requiredPackages
@@ -484,7 +509,7 @@ class EnMAPBox(QgisInterface, QObject):
         EnMAPBox._instance = self
 
         splash.finish(self.ui)
-
+        splash.showMessage('Load project settings...')
         debugLog('Load settings from QgsProject.instance()')
         self.onReloadProject()
 
@@ -1389,16 +1414,19 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.optionMoveCenter.setEnabled(b)
         return results
 
+    def settings(self) -> QSettings:
+        """
+        Returns the EnMAP-Box user settings
+        """
+        from enmapbox import enmapboxSettings
+        return enmapboxSettings()
+
     def initEnMAPBoxApplications(self,
                                  load_core_apps: bool = True,
                                  load_other_apps: bool = True):
         """
         Initialized EnMAPBoxApplications
         """
-        assert isinstance(self, EnMAPBox)
-        from enmapbox.gui.applications import ApplicationRegistry
-        self.applicationRegistry = ApplicationRegistry(self, parent=self)
-
         listingBasename = 'enmapboxapplications.txt'
 
         DIR_ENMAPBOX = pathlib.Path(enmapbox.DIR_ENMAPBOX)
@@ -1481,13 +1509,6 @@ class EnMAPBox(QgisInterface, QObject):
                                                                   notifyUser=False)
 
         settings.setValue(KEY_COUNTS, counts)
-
-    def settings(self) -> QSettings:
-        """
-        Returns the EnMAP-Box user settings
-        """
-        from enmapbox import enmapboxSettings
-        return enmapboxSettings()
 
     def exit(self):
         """Closes the EnMAP-Box"""

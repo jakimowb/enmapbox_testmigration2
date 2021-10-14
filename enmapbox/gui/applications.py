@@ -127,6 +127,9 @@ class ApplicationRegistry(QObject):
     Registry to load and remove EnMAPBox Applications
     """
 
+    sigLoadingInfo = pyqtSignal(str)
+    sigLoadingFinished = pyqtSignal(bool, str)
+
     def __init__(self, enmapBox, parent=None):
         super(ApplicationRegistry, self).__init__(parent)
         self.appPackageRootFolders = []
@@ -230,7 +233,7 @@ class ApplicationRegistry(QObject):
                     results.append(p)
         return results
 
-    def addApplicationFolder(self, appPackagePath: str, isRootFolder=False) -> bool:
+    def addApplicationFolder(self, appPackagePath: str, isRootFolder: bool =False) -> bool:
         """
         Loads an EnMAP-Box application from its root folder.
         :param appPackagePath: directory with an __init__.py which defines a .enmapboxApplicationFactory() or
@@ -239,7 +242,7 @@ class ApplicationRegistry(QObject):
         """
         if isinstance(appPackagePath, pathlib.Path):
             appPackagePath = str(appPackagePath)
-
+        self.sigLoadingInfo.emit(f'Load Applications from {appPackagePath}')
         if isRootFolder:
             assert (isinstance(appPackagePath, str) and os.path.isdir(appPackagePath))
             subDirs = []
@@ -263,6 +266,8 @@ class ApplicationRegistry(QObject):
                 if appPkgName in blacklist:
                     raise Exception('Skipped loading EnMAPBoxApplication "{}"'.format(appPkgName))
 
+
+
                 print('Load EnMAPBoxApplication(s) from "{}"'.format(appPkgName))
 
                 if not os.path.isfile(pkgFile):
@@ -273,6 +278,7 @@ class ApplicationRegistry(QObject):
 
                 # do not use __import__
                 # appModule = __import__(appPkgName)
+
                 appModule = importlib.import_module(appPkgName)
 
                 factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
@@ -334,13 +340,14 @@ class ApplicationRegistry(QObject):
         assert isinstance(app, EnMAPBoxApplication)
 
         appWrapper = ApplicationWrapper(app)
+        self.sigLoadingInfo.emit(f'Load {appWrapper.appId} ...')
         if DEBUG:
             print('Check requirements...')
         isOk, errorMessages = EnMAPBoxApplication.checkRequirements(app)
         if not isOk:
+            self.sigLoadingInfo.emit(f'Unable to load {appWrapper.appId}', False)
             raise Exception(
                 'Unable to load EnMAPBoxApplication "{}"\n{}.'.format(appWrapper.appId, '\n\t'.join(errorMessages)))
-
         if appWrapper.appId in self.mAppWrapper.keys():
             messageLog('EnMAPBoxApplication {} already loaded. Reload'.format(appWrapper.appId))
             self.removeApplication(appWrapper.appId)
@@ -360,11 +367,11 @@ class ApplicationRegistry(QObject):
 
         if DEBUG:
             print('Loading done.')
-
+        self.sigLoadingFinished.emit(f'{app} loaed', True)
         return True
 
     def loadProcessingAlgorithms(self, appWrapper: ApplicationWrapper):
-
+        self.sigLoadingInfo.emit(f'Load QgsProcessingAlgorithms of {appWrapper.appId}')
         assert isinstance(appWrapper, ApplicationWrapper)
         processingAlgorithms = appWrapper.app.processingAlgorithms()
         if DEBUG:
