@@ -1,5 +1,5 @@
 import unittest
-from os.path import dirname, join
+from os.path import dirname, join, exists
 from typing import Dict
 
 from qgis._core import QgsProcessingFeedback
@@ -31,3 +31,6 @@ class TestCase(unittest.TestCase):
     def filename(self, basename: str):
         import enmapbox
         return join(dirname(dirname(enmapbox.__file__)), 'test-outputs', basename)
+
+    def sensorProductsFolderExists(self):
+        return exists(r'D:\data\sensors')

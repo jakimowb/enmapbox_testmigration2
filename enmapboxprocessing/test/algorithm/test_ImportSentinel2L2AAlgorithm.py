@@ -9,6 +9,9 @@ from enmapboxprocessing.test.algorithm.testcase import TestCase
 class TestImportSentinel2L2AAlgorithm(TestCase):
 
     def test(self):
+        if not self.sensorProductsFolderExists():
+            return
+
         alg = ImportSentinel2L2AAlgorithm()
         parameters = {
             alg.P_FILE: r'D:\data\sensors\sentinel2\S2A_MSIL2A_20200816T101031_N0214_R022_T32UQD_20200816T130108.SAFE\MTD_MSIL2A.xml',

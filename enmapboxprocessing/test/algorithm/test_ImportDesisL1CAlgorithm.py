@@ -8,6 +8,10 @@ from enmapboxprocessing.test.algorithm.testcase import TestCase
 class TestImportDesisL1CAlgorithm(TestCase):
 
     def test(self):
+
+        if not self.sensorProductsFolderExists():
+            return
+
         alg = ImportDesisL1CAlgorithm()
         parameters = {
             alg.P_FILE: r'D:\data\sensors\desis\DESIS-HSI-L1C-DT1203190212_025-20191203T021128-V0210\DESIS-HSI-L1C-DT1203190212_025-20191203T021128-V0210-METADATA.xml',

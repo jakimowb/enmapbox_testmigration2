@@ -8,6 +8,9 @@ from enmapboxprocessing.test.algorithm.testcase import TestCase
 class TestImportEnmapL1BAlgorithm(TestCase):
 
     def test(self):
+        if not self.sensorProductsFolderExists():
+            return
+
         alg = ImportEnmapL1BAlgorithm()
         parameters = {
             alg.P_FILE: r'D:\data\sensors\enmap\L1B_Arcachon_3\ENMAP01-____L1B-DT000400126_20170218T110119Z_003_V000204_20200508T124425Z-METADATA.XML',

@@ -8,6 +8,9 @@ from enmapboxprocessing.test.algorithm.testcase import TestCase
 class TestImportPrismaL2DAlgorithm(TestCase):
 
     def test(self):
+        if not self.sensorProductsFolderExists():
+            return
+
         alg = ImportPrismaL2DAlgorithm()
         parameters = {
             alg.P_FILE: r'D:\data\sensors\prisma\PRS_L2D_STD_20201107101404_20201107101408_0001.he5',
