@@ -1712,18 +1712,17 @@ class EnMAPBox(QgisInterface, QObject):
     def dataSourceManagerTreeView(self) -> 'DataSourceManagerTreeView':
         return self.ui.dataSourcePanel.dataSourceManagerTreeView()
 
-    def dataSources(self, sourceType='ALL', onlyUri: bool = True) -> list:
+    def dataSources(self, sourceType='ALL') -> typing.List[str]:
         """
         Returns a list of URIs to the data sources of type "sourceType" opened in the EnMAP-Box
         :param sourceType: ['ALL', 'RASTER', 'VECTOR', 'MODEL'],
         :param onlyUri: bool, set on False to return the DataSource object instead of the uri only.
         :return: [list-of-datasource-URIs (str)]
         """
+        if sourceType == 'ALL':
+            sourceType = None
 
-        sources = self.mDataSourceManager.sources(sourceTypes=sourceType)
-        if onlyUri:
-            sources = [ds.uri() for ds in sources]
-        return sources
+        return [s.source() for s in self.mDataSourceManager.dataSources(filter=sourceType)]
 
     def createDock(self, *args, **kwds) -> Dock:
         """
