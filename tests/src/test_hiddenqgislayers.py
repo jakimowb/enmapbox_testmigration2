@@ -13,9 +13,10 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 import unittest
 import xmlrunner
 import qgis.utils
+from qgis.core import QgsProject
 from enmapbox.testing import *
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapbox.gui.datasourcemanager import *
+from enmapbox.gui.datasources.manager import *
 from enmapbox.gui.dataviews.dockmanager import *
 
 

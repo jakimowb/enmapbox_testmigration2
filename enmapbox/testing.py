@@ -25,6 +25,7 @@ import sys
 import re
 import io
 import shutil
+import site
 import importlib
 import uuid
 import warnings
@@ -85,6 +86,12 @@ class EnMAPBoxTestCase(TestCase):
         tmpDir = cls.tempDir(cls, subdir=cls.__name__)
         os.chdir(tmpDir)
         super().setUpClass(resources=resources)
+
+        # add test-dir as site lib
+        from enmapbox import DIR_REPO
+        DIR_TESTS = pathlib.Path(DIR_REPO) / 'tests'
+        if DIR_TESTS.is_dir():
+            site.addsitedir(DIR_TESTS)
 
         import enmapbox
         enmapbox.initAll()

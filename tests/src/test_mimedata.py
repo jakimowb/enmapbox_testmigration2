@@ -19,7 +19,6 @@ import pathlib
 import time
 import os
 
-
 from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsWkbTypes
 from qgis.gui import QgsMapCanvas
 from qgis.PyQt.QtGui import *
@@ -67,39 +66,25 @@ class MimeDataTests(EnMAPBoxTestCase):
 
     def test_datasourcehandling(self):
 
-        from enmapbox.gui.datasources import DataSource, DataSourceFactory
-        from enmapbox.gui.datasourcemanager import DataSourceManager
-
+        from enmapbox.gui.datasources.datasources import DataSource
+        from enmapbox.gui.datasources.manager import DataSourceManager, DataSourceFactory
 
         dataSources = DataSourceFactory.create([enmap, hires, library, landcover_polygons])
-        dataSourceUUIDs = [ds.uuid() for ds in dataSources]
         dataSourceObjectIDs = [id(ds) for ds in dataSources]
 
         md = mimedata.fromDataSourceList(dataSources)
 
         self.assertIsInstance(md, QMimeData)
-        self.assertTrue(mimedata.MDF_DATASOURCETREEMODELDATA in md.formats())
 
         sources = mimedata.toDataSourceList(md)
         self.assertTrue(len(sources) == len(dataSources))
-        assert DataSourceManager.instance() is None
+        for ds in dataSources:
+            self.assertTrue(ds in sources)
+
         for src in sources:
             self.assertIsInstance(src, DataSource)
             self.assertTrue(src in dataSources)
-            self.assertTrue(src.uuid() not in dataSourceUUIDs)
             self.assertTrue(id(src) not in dataSourceObjectIDs)
-
-        #do the same but with registered DataSources
-        dsm = DataSourceManager()
-        dsm.addSources(dataSources) #register in DataSourceManager
-        sources = mimedata.toDataSourceList(md)
-        self.assertTrue(len(sources) == len(dataSources))
-        for src in sources:
-            self.assertTrue(src in dataSources)
-            #as each data source has been registere in the DataSource Manager the same object references should be returned
-            self.assertTrue(src.uuid() in dataSourceUUIDs)
-            self.assertTrue(id(src) in dataSourceObjectIDs)
-        s = ""
 
     def test_maplayerhandling(self):
 
@@ -142,7 +127,7 @@ class MimeDataTests(EnMAPBoxTestCase):
             QApplication.processEvents()
             for d in dockManager.docks():
                 dockManager.removeDock(d)
-            EB.dataSourceManager().removeSources(EB.dataSourceManager().sources())
+            EB.dataSourceManager().removeDataSources(EB.dataSourceManager().dataSources())
             QApplication.processEvents()
             QgsProject.instance().removeAllMapLayers()
             QApplication.processEvents()
@@ -172,7 +157,6 @@ class MimeDataTests(EnMAPBoxTestCase):
         canvas.setLayers([vl])
 
         s = ""
-
 
     @unittest.SkipTest
     def test_dropping_files_speclib_widget(self):
@@ -208,7 +192,6 @@ class MimeDataTests(EnMAPBoxTestCase):
             QApplication.processEvents()
             s = ""
 
-
         # drop random files
         for file in files:
             event = self.file2DropEvent(file)
@@ -229,8 +212,4 @@ class MimeDataTests(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
-

@@ -1,4 +1,5 @@
 import pickle
+import typing
 import uuid
 from os.path import basename, exists
 
@@ -19,6 +20,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtXml import *
 
 from enmapbox import debugLog
+from .datasources.datasources import DataSource
+
 from ..externals.qps.layerproperties import defaultRasterRenderer
 from ..externals.qps.speclib.core import is_spectral_library
 from ..externals.qps.speclib.core.spectrallibrary import SpectralLibrary
@@ -72,49 +75,24 @@ def fromDataSourceList(dataSources):
 
     from enmapbox.gui.datasources.datasources import DataSource
 
-    mimeData = QMimeData()
-
-    doc = QDomDocument()
-    node = doc.createElement(MDF_DATASOURCETREEMODELDATA_XML)
-    doc.appendChild(node)
-
+    uriList = []
     for ds in dataSources:
 
         assert isinstance(ds, DataSource)
-        ds.writeXml(node)
-    mimeData.setData(MDF_DATASOURCETREEMODELDATA, doc.toByteArray())
+        uriList.extend(ds.dataItem().mimeUris())
+
+    mimeData = QgsMimeDataUtils.encodeUriList(uriList)
     return mimeData
 
 
-def toDataSourceList(mimeData):
+def toDataSourceList(mimeData) -> typing.List[DataSource]:
     assert isinstance(mimeData, QMimeData)
 
+    uriList = QgsMimeDataUtils.decodeUriList(mimeData)
     dataSources = []
-
-    if MDF_DATASOURCETREEMODELDATA in mimeData.formats():
-        doc = QDomDocument()
-        doc.setContent(mimeData.data(MDF_DATASOURCETREEMODELDATA))
-        node = doc.firstChildElement(MDF_DATASOURCETREEMODELDATA_XML)
-        childs = node.childNodes()
-
-        from enmapbox.gui.datasources.datasources import DataSource, DataSourceFactory
-        from enmapbox.gui.datasources.manager import DataSourceManager
-        from uuid import UUID
-        dsm = DataSourceManager.instance()
-        b = isinstance(dsm, DataSourceManager)
-
-        for i in range(childs.count()):
-            child = childs.at(i).toElement()
-
-            if child.tagName() == 'enmpabox_datasource':
-                attributes = attributesd2dict(child.attributes())
-                if isinstance(dsm, DataSourceManager):
-                    dataSource = dsm.findSourceFromUUID(UUID(attributes['uuid']))
-                    if isinstance(dataSource, DataSource):
-                        dataSources.append(dataSource)
-                        continue
-                dataSources.extend(DataSourceFactory.create(attributes['source'], name=attributes['name']))
-
+    from enmapbox.gui.datasources.manager import DataSourceFactory
+    for uri in uriList:
+        dataSources.extend(DataSourceFactory.create(uri))
     return dataSources
 
 

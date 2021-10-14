@@ -6,11 +6,13 @@ import typing
 import warnings
 from os.path import splitext
 
+from qgis.core import QgsMimeDataUtils
 from PyQt5.QtCore import QMimeData, QModelIndex, Qt, QUrl, QSortFilterProxyModel, pyqtSignal
 from PyQt5.QtGui import QContextMenuEvent, QIcon
 from PyQt5.QtWidgets import QMenu, QAction, QApplication, QAbstractItemView, QTreeView
 
 import qgis
+from qgis.core import Qgis
 
 from enmapbox.externals.qps.layerproperties import defaultRasterRenderer
 from enmapbox.externals.qps.models import TreeModel, TreeView, TreeNode
@@ -173,7 +175,7 @@ class DataSourceManager(TreeModel):
         return [c for c in self.rootNode().childNodes() if isinstance(c, DataSourceSet)]
 
     def sources(self, *args):
-        warnings.warn(DeprecationWarning('Use .dataSources() instead.'))
+        warnings.warn(DeprecationWarning('Use .dataSources() instead.'), stacklevel=2)
         return self.dataSources(*args)
 
     def dataSources(self, filter=None) -> typing.List[DataSource]:
@@ -216,6 +218,11 @@ class DataSourceManager(TreeModel):
 
         return foundSources
 
+    def removeSources(self, *args, **kwds):
+        warnings.warn('Use .removeDataSources', DeprecationWarning, stacklevel=2)
+
+        return self.removeDataSources(*args, **kwds)
+
     def removeDataSources(self,
                           dataSources: typing.Union[DataSource, typing.List[DataSource]]) -> typing.List[DataSource]:
 
@@ -239,7 +246,7 @@ class DataSourceManager(TreeModel):
         return flags
 
     def addSources(self, *args, **kwds):
-        warnings.warn(DeprecationWarning('Use addDataSources instead'))
+        warnings.warn(DeprecationWarning('Use addDataSources instead'), stacklevel=2)
         self.addDataSources(*args, **kwds)
 
     def addSource(self, *args, **kwds):
@@ -679,8 +686,30 @@ class DataSourceFactory(object):
         else:
             if isinstance(source, DataSource):
                 return [source]
+
+                s = ""
             dataItem: QgsDataItem = None
-            if isinstance(source, QgsMapLayer):
+
+            if isinstance(source, QgsMimeDataUtils.Uri):
+                if not source.isValid():
+                    return []
+                else:
+                    if source.layerType == 'raster':
+                        dtype = QgsLayerItem.Raster
+                        dataItem = QgsLayerItem(None, source.name, source.uri,
+                                                source.uri, dtype, source.providerKey)
+                    elif source.layerType == 'vector':
+                        dtype = QgsLayerItem.Vector
+                        dataItem = QgsLayerItem(None, source.name, source.uri,
+                                                source.uri, dtype, source.providerKey)
+                    else:
+                        source = source.uri
+                        provider = source.providerKey
+                        name = source.name
+
+
+
+            elif isinstance(source, QgsMapLayer):
                 dtype = QgsLayerItem.typeFromMapLayer(source)
                 dataItem = QgsLayerItem(None, source.name(), source.source(),
                                         source.source(), dtype, source.providerType())
@@ -698,7 +727,10 @@ class DataSourceFactory(object):
                         name = pathlib.Path(source).name
 
                     if re.search(r'\.(pkl)$', source, re.I):
-                        dataItem = QgsDataItem(Qgis.BrowserItemType.Custom, None, name, source, 'special:pkl')
+                        if Qgis.versionInt() < 32000:
+                            dataItem = QgsDataItem(QgsDataItem.Custom, None, name, source, 'special:pkl')
+                        else:
+                            dataItem = QgsDataItem(Qgis.BrowserItemType.Custom, None, name, source, 'special:pkl')
 
                     if not isinstance(dataItem, QgsDataItem):
                         if re.search(r'\.(bsq|tiff?|hdf|bil|bip|grib|xml)$', source, re.I):
@@ -722,8 +754,10 @@ class DataSourceFactory(object):
 
                     if dataItem is None:
                         if pathlib.Path(source).is_file():
-                            dataItem = QgsDataItem(Qgis.BrowserItemType.Custom, None, name, source, 'special:file')
-                            s = ""
+                            if Qgis.versionInt() < 32000:
+                                dataItem = QgsDataItem(QgsDataItem.Custom, None, name, source, 'special:file')
+                            else:
+                                dataItem = QgsDataItem(Qgis.BrowserItemType.Custom, None, name, source, 'special:file')
 
             if isinstance(dataItem, QgsDataItem):
                 if isinstance(dataItem, QgsLayerItem):

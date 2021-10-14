@@ -190,7 +190,7 @@ def getIcon() -> QIcon:
     Returns the EnMAP icon
     :return: QIcon
     """
-    warnings.warn(DeprecationWarning('Use enmapbox.icon() instead to return the EnMAP-Box icon'))
+    warnings.warn(DeprecationWarning('Use enmapbox.icon() instead to return the EnMAP-Box icon'), stacklevel=2)
     return enmapbox.icon()
 
 
@@ -1710,7 +1710,7 @@ class EnMAPBox(QgisInterface, QObject):
         return enmapbox.__version__
 
     def dataSourceTreeView(self) -> 'DataSourceManagerTreeView':
-        warnings.warn(DeprecationWarning)
+        warnings.warn('Use .dataSourceManagerTreeView()', DeprecationWarning, stacklevel=2)
         return self.dataSourceManagerTreeView()
 
     def dataSourceManagerTreeView(self) -> 'DataSourceManagerTreeView':
@@ -1847,7 +1847,7 @@ class EnMAPBox(QgisInterface, QObject):
         Returns the EnMAP-Box icon.
         :return: QIcon
         """
-        warnings.warn(DeprecationWarning('Use EnMAPBoxicon() instead'))
+        warnings.warn('Use EnMAPBoxicon() instead', DeprecationWarning, stacklevel=2)
         return EnMAPBox.icon()
 
     @staticmethod

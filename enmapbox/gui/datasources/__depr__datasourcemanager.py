@@ -60,7 +60,7 @@ from qgis.core import \
 from qgis.gui import \
     QgisInterface, QgsMapCanvas, QgsDockWidget
 
-warnings.warn(DeprecationWarning)
+warnings.warn('Do not use this module', DeprecationWarning)
 
 HUBFLOW = True
 HUBFLOW_MAX_VALUES = 1024

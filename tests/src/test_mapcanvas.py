@@ -14,6 +14,8 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 import pathlib
 import unittest
 import xmlrunner
+
+from enmapbox.gui.dataviews.docks import MapDock
 from qgis.core import QgsVectorLayer
 from PyQt5.QtCore import *
 
