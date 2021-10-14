@@ -218,9 +218,17 @@ Known Issues
 
 * **QGIS crashes while starting/activating the EnMAP-Box plugin** - HDF5 library version mismatched error (see `Issue #747 <https://bitbucket.org/hu-geomatics/enmap-box/issues/747/h5py-hdf5-library-version-mismatched-error>`_)
 
-  Workaround: In QGIS go to :menuselection:`Settings --> Options --> System`, under :guilabel:`Environment` add the
-  variable ``HDF5_DISABLE_VERSION_CHECK`` with a value of ``1``. Note that this does not fix potential functionality issues
-  of the h5py library, so be careful when using the PRISMA Import.
+  Two potential workarounds:
+
+  1. Install h5py using your systems package manager (``apt`` on Ubuntu, i.e., ``apt install python3-h5py``).
+     Make sure to uninstall previous pip installation with ``python3 -m pip uninstall h5py``.
+
+     OR
+
+  2. In QGIS go to :menuselection:`Settings --> Options --> System`, under :guilabel:`Environment` add the
+     variable ``HDF5_DISABLE_VERSION_CHECK`` with a value of ``1``. Note that this does not fix potential functionality issues
+     of the h5py library, so be careful when using the PRISMA Import.
+
 
 ....
 
