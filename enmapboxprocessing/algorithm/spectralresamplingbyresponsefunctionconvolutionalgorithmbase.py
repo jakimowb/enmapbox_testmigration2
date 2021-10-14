@@ -175,9 +175,7 @@ class SpectralResamplingByResponseFunctionConvolutionAlgorithmBase(EnMAPProcessi
                 library.startEditing()
                 library.addProfiles(profiles)
                 library.commitChanges()
-                options = QgsVectorFileWriter.SaveVectorOptions()
-                options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
-                library.write(filename + '.srf.gpkg', options=options)
+                library.write(filename + '.srf.gpkg')
 
             result = {self.P_OUTPUT_RASTER: filename}
             self.toc(feedback, result)
