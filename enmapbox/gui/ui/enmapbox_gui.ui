@@ -786,7 +786,7 @@
   <customwidget>
    <class>DockArea</class>
    <extends>QWidget</extends>
-   <header>enmapbox.gui.docks</header>
+   <header>enmapbox.gui.dataviews.docks</header>
    <container>1</container>
   </customwidget>
   <customwidget>

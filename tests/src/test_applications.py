@@ -7,6 +7,8 @@
      (at your option) any later version.
 
 """
+import os
+
 import xmlrunner
 
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
@@ -14,13 +16,12 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
+import pathlib
 from collections import namedtuple
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 from qgis.core import QgsApplication
 from enmapbox import EnMAPBox, DIR_ENMAPBOX, DIR_REPO
 from enmapbox.gui.applications import *
-
-DIR_TMP = os.path.join(DIR_REPO, *['tmp', 'tmp_enmapboxApplicationTests'])
 
 
 class test_applications(EnMAPBoxTestCase):
@@ -47,6 +48,8 @@ class test_applications(EnMAPBoxTestCase):
         TESTDATA = namedtuple('TestData',
                               ['validAppDirs', 'invalidAppDirs', 'appDirs', 'pathListingAbs', 'pathListingRel'])
 
+        DIR_TMP = self.createTestOutputDirectory() / 'AppTests'
+
         if os.path.isdir(DIR_TMP):
             shutil.rmtree(DIR_TMP)
         os.makedirs(DIR_TMP, exist_ok=True)
@@ -66,28 +69,23 @@ class test_applications(EnMAPBoxTestCase):
 
         # 3. no app 2: __init__ without factory
 
-        pAppDir = os.path.join(DIR_TMP, 'NoApp2')
+        pAppDir = DIR_TMP / 'NoApp2'
         os.makedirs(pAppDir)
-        pAppInit = os.path.join(pAppDir, 'enmap-box/tests/src/__init__.py')
-        f = open(pAppInit, 'w')
-        f.write('import sys')
-        f.flush()
-        f.close()
+        pAppInit = pAppDir / '__init__.py'
+        with open(pAppInit, 'w') as f:
+            f.write('import sys')
+
         TESTDATA.invalidAppDirs.append(pAppDir)
 
-        TESTDATA.pathListingAbs = os.path.join(DIR_TMP, 'application_abs.txt')
-        f = open(TESTDATA.pathListingAbs, 'w')
-        for p in TESTDATA.invalidAppDirs + TESTDATA.validAppDirs:
-            f.write(p + '\n')
-        f.flush()
-        f.close()
+        TESTDATA.pathListingAbs = DIR_TMP / 'application_abs.txt'
+        with open(TESTDATA.pathListingAbs, 'w') as f:
+            for p in TESTDATA.invalidAppDirs + TESTDATA.validAppDirs:
+                f.write(f'{p}\n')
 
-        TESTDATA.pathListingRel = os.path.join(DIR_TMP, 'application_rel.txt')
-        f = open(TESTDATA.pathListingRel, 'w')
-        for p in TESTDATA.invalidAppDirs + TESTDATA.validAppDirs:
-            f.write(os.path.relpath(p, DIR_TMP) + '\n')
-        f.flush()
-        f.close()
+        TESTDATA.pathListingRel =DIR_TMP / 'application_rel.txt'
+        with open(TESTDATA.pathListingRel, 'w') as f:
+            for p in TESTDATA.invalidAppDirs + TESTDATA.validAppDirs:
+                f.write(os.path.relpath(p, DIR_TMP) + '\n')
 
         return TESTDATA
 
@@ -185,8 +183,8 @@ class test_applications(EnMAPBoxTestCase):
 
     def test_deployed_apps(self):
 
-        pathCoreApps = os.path.join(DIR_ENMAPBOX, 'enmap-box/tests/src/coreapps')
-        pathExternalApps = os.path.join(DIR_ENMAPBOX, 'apps')
+        pathCoreApps = pathlib.Path(DIR_ENMAPBOX) / 'coreapps'
+        pathExternalApps = pathlib.Path(DIR_ENMAPBOX) / 'apps'
         self.assertTrue(os.path.isdir(pathCoreApps))
 
         EB = EnMAPBox()

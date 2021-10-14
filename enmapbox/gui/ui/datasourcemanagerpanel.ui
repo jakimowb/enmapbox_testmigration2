@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>273</width>
+    <width>537</width>
     <height>336</height>
    </rect>
   </property>
@@ -179,7 +179,7 @@
      </widget>
     </item>
     <item>
-     <widget class="DataSourceTreeView" name="dataSourceTreeView">
+     <widget class="DataSourceManagerTreeView" name="mDataSourceManagerTreeView">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>0</horstretch>
@@ -285,9 +285,9 @@
    <header>qgsfilterlineedit.h</header>
   </customwidget>
   <customwidget>
-   <class>DataSourceTreeView</class>
+   <class>DataSourceManagerTreeView</class>
    <extends>QTreeView</extends>
-   <header>enmapbox.gui.datasourcemanager</header>
+   <header>enmapbox.gui.datasources.manager</header>
   </customwidget>
  </customwidgets>
  <resources>

@@ -46,6 +46,7 @@ RemoteInfo.create(r'https://bitbucket.org/jakimowb/qgispluginsupport.git',
                   remoteBranch='develop')
 
 RemoteInfo.create(r'https://bitbucket.org/ecstagriculture/enmap-box-lmu-vegetation-apps.git',
+                  key='lmu',
                   prefixLocal=r'enmapbox/apps/lmuvegetationapps',
                   prefixRemote=r'lmuvegetationapps',
                   remoteBranch='master')

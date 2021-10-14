@@ -25,6 +25,7 @@ import re
 import sys
 import typing
 import uuid
+import warnings
 import webbrowser
 from os.path import splitext
 
@@ -41,19 +42,14 @@ from enmapbox.gui import \
     ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, PyObjectTreeNode, \
     qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, SpatialExtent, fileSizeString, defaultBands, \
     defaultRasterRenderer, loadUi
-from enmapbox.gui.datasources import \
-    DataSourceFactory, DataSource, DataSourceFile, DataSourceVector, DataSourceRaster, \
-    DataSourceSpatial, HubFlowDataSource
-from enmapbox.gui.mapcanvas import MapDock
+from enmapbox.gui.dataviews.docks import MapDock
 from enmapbox.gui.mimedata import \
     MDF_DATASOURCETREEMODELDATA, MDF_QGIS_LAYERTREEMODELDATA, MDF_RASTERBANDS, \
     QGIS_URILIST_MIMETYPE, MDF_URILIST, extractMapLayers
 from enmapbox.gui.utils import enmapboxUiPath, dataTypeName
 from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
-from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
-from enmapboxprocessing.utils import Utils
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import QApplication, QMenu
@@ -63,6 +59,8 @@ from qgis.core import \
     QgsLayerTreeGroup, QgsLayerTreeLayer, QgsRasterDataProvider, Qgis, QgsField, QgsFieldModel
 from qgis.gui import \
     QgisInterface, QgsMapCanvas, QgsDockWidget
+
+warnings.warn(DeprecationWarning)
 
 HUBFLOW = True
 HUBFLOW_MAX_VALUES = 1024
@@ -1244,12 +1242,12 @@ class DataSourceTreeView(TreeView):
 
         """
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        from enmapbox.gui.docks import SpectralLibraryDock
+        from enmapbox.gui.dataviews.docks import SpectralLibraryDock
         EnMAPBox.instance().dockManager().createDock(SpectralLibraryDock, speclib=speclib)
 
     def openInAttributeEditor(self, vectorLayer: QgsVectorLayer):
         from enmapbox.gui.enmapboxgui import EnMAPBox
-        from enmapbox.gui.docks import AttributeTableDock
+        from enmapbox.gui.dataviews.docks import AttributeTableDock
         EnMAPBox.instance().dockManager().createDock(AttributeTableDock, layer=vectorLayer)
 
 

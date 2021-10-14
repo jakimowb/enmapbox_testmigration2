@@ -75,13 +75,15 @@ def run(
     print('## EnMAP-Box started')
     if True and sources is not None:
         for source in enmapBox.addSources(sourceList=sources):
-            try:
-                # add as map
-                lyr = source.createUnregisteredMapLayer()
-                dock = enmapBox.createDock('MAP')
-                dock.addLayers([lyr])
-            except:
-                pass
+            from enmapbox.gui.datasources.datasources import SpatialDataSource
+            if isinstance(source, SpatialDataSource):
+                try:
+                    # add as map
+                    lyr = source.asMapLAyer()
+                    dock = enmapBox.createDock('MAP')
+                    dock.addLayers([lyr])
+                except:
+                    pass
 
     if not qAppExists:
         print('Execute QgsApplication')

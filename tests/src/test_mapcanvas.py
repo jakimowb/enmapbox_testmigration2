@@ -14,14 +14,11 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 import pathlib
 import unittest
 import xmlrunner
-from qgis import *
-from qgis.gui import *
-from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsPointXY, QgsProject
-from PyQt5.QtGui import *
+from qgis.core import QgsVectorLayer
 from PyQt5.QtCore import *
 
 from enmapbox.gui.mimedata import fromLayerList
-from enmapbox.testing import TestObjects, EnMAPBoxTestCase
+from enmapbox.testing import EnMAPBoxTestCase
 
 from enmapbox.exampledata import enmap, hires, landcover_polygons, library
 from enmapbox.gui.mapcanvas import *
@@ -161,7 +158,6 @@ class MapCanvasTests(EnMAPBoxTestCase):
         allFiles = [enmap, hires, landcover_polygons, library]
         spatialFiles = [enmap, hires, landcover_polygons]
 
-        from enmapbox.gui.mimedata import MDF_URILIST, MDF_DATASOURCETREEMODELDATA, MDF_SPECTRALLIBRARY, MDF_ENMAPBOX_LAYERTREEMODELDATA
         md = QMimeData()
         md.setUrls([QUrl.fromLocalFile(f) for f in allFiles])
 

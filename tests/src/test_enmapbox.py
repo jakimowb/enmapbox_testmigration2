@@ -20,15 +20,9 @@
 
 import unittest
 import xmlrunner
-from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, \
-    QgsLayerTree, QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterDefinition
-from qgis.gui import QgisInterface
-from qgis.PyQt.QtGui import QIcon
-from qgis.core import QgsApplication
-from qgis.PyQt.QtCore import QResource
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-from enmapbox.gui.enmapboxgui import EnMAPBox, EnMAPBoxSplashScreen
-from enmapbox.gui.docks import *
+from enmapbox.gui.enmapboxgui import EnMAPBox
+from enmapbox.gui.dataviews.docks import *
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui import *
 
@@ -180,10 +174,8 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
     def test_Qgis(self):
 
-        from enmapbox import Qgis
         from enmapbox.exampledata import enmap, landcover_polygons
         from qgis.utils import iface
-        from enmapbox.testing import WMS_OSM, WMS_GMAPS, WFS_Berlin
         layers = [QgsRasterLayer(enmap), QgsVectorLayer(landcover_polygons)]
         # layers.append(QgsRasterLayer(WMS_OSM, 'osm', 'wms'))
         # layers.append(QgsVectorLayer(WFS_Berlin, 'wfs', 'WFS'))
@@ -244,7 +236,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         dsSpatial = E.dataSourceManager().sources('SPATIAL')
         self.assertIsInstance(dsSpatial, list)
         ds1 = dsSpatial[0]
-        self.assertIsInstance(ds1, DataSourceSpatial)
+        self.assertIsInstance(ds1, SpatialDataSource)
         uri = ds1.uri()
         uri2 = ds1.mapLayer().source()
         # remove layers from the QgsProject and see what happens.

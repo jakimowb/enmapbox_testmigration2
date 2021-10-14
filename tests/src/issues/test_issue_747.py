@@ -12,7 +12,7 @@ from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QResource
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapbox.gui.enmapboxgui import EnMAPBox, EnMAPBoxSplashScreen
-from enmapbox.gui.docks import *
+from enmapbox.gui.dataviews.docks import *
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui import *
 

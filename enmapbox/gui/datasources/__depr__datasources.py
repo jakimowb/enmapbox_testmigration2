@@ -28,7 +28,7 @@ import typing
 import pathlib
 import uuid
 
-from qgis._core import QgsFields
+from qgis.core import QgsFields, QgsDataItem
 
 from qgis.PyQt.QtCore import QVariant, pyqtSignal, QDateTime, QFileInfo, QUrl, QSizeF
 from qgis.PyQt.QtGui import QIcon
@@ -50,72 +50,6 @@ from ..externals.qps.layerproperties import defaultRasterRenderer
 from ..externals.qps.speclib.core import is_spectral_library
 from ..externals.qps.utils import parseWavelength
 
-
-def rasterProvider(uri: str) -> str:
-    """
-    Return the raster provider key with which the uri can be opened as QgsRasterLayer
-    :param uri: str
-    :return: str, Provider key, e.g. "gdal"
-    """
-    # 'DB2', 'WFS', 'arcgisfeatureserver', 'arcgismapserver', 'delimitedtext', 'gdal', 'geonode', 'gpx', 'mdal', 'memory', 'mesh_memory', 'mssql', 'ogr', 'oracle', 'ows', 'postgres', 'spatialite', 'virtual', 'wcs', 'wms']
-
-    if uri in [None, type(None)]:
-        return None
-
-    providers = []
-
-    if os.path.isfile(uri) or uri.startswith('/vsimem') or re.search(r'^.+:.+:.+', uri):
-        providers.append('gdal')
-
-    if re.search('url=', uri):
-        providers.append('wms')
-        providers.append('wcs')
-
-    loptions = QgsRasterLayer.LayerOptions(loadDefaultStyle=False)
-    for p in providers:
-        lyr = QgsRasterLayer(uri, '', p, options=loptions)
-        if lyr.isValid() or len(lyr.subLayers()) > 0:
-            return lyr.providerType()
-    return None
-
-
-def vectorProvider(uri: str) -> str:
-    """
-    Returns the vector data provider keys with which the uri can be opened as QgsVectorLayer
-    :param uri: str
-    :return: str, Provider key, e.g. "ogr"
-    """
-    # 'DB2', 'WFS', 'arcgisfeatureserver', 'arcgismapserver', 'delimitedtext', 'gdal', 'geonode', 'gpx', 'mdal', 'memory', 'mesh_memory', 'mssql', 'ogr', 'oracle', 'ows', 'postgres', 'spatialite', 'virtual', 'wcs', 'wms']
-    if uri in [None, type(None)]:
-        return None
-
-    providers = ['ogr', 'WFS', 'spatialite', 'gpx', 'delimitedtext']
-
-    # change order of providers assuming a faster match
-    if not os.path.isfile(uri):
-        providers.append(providers.pop(0))
-    if re.search('url=', uri):
-        providers.insert(0, providers.pop(providers.index('WFS')))
-
-    loptions = QgsVectorLayer.LayerOptions(False, False)
-    for p in providers:
-        lyr = QgsVectorLayer(uri, '', p, options=loptions)
-        if lyr.isValid():
-            return lyr.providerType()
-    return None
-
-
-def openPlatformDefault(uri):
-    if os.path.isfile(uri):
-        if sys.platform == 'darwin':
-            os.system('open {}'.format(uri))
-
-        elif sys.platform.startswith('win'):
-            os.system('start {}'.format(uri))
-        else:
-            raise NotImplementedError('Unhandled platform {}'.format(sys.platform))
-    else:
-        raise NotImplementedError('Unhandled uri type {}'.format(uri))
 
 
 class DataSource(object):
@@ -160,8 +94,9 @@ class DataSource(object):
         self.mUri = ''
         self.mIcon = icon
         self.mName = name
-        self.setUri(uri)
+
         self.mMetadata = {}
+        self.mDataItem: QgsDataItem = None
 
         if os.path.isfile(self.mUri):
             self.mModificationTime = QFileInfo(self.mUri).lastModified()
@@ -185,13 +120,6 @@ class DataSource(object):
         except:
             pass
         return self.mUri == dataSource.mUri
-
-    def setUri(self, uri: str):
-        """
-        Sets the unified ressource identifier (uri) of this data source
-        """
-        assert isinstance(uri, str)
-        self.mUri = uri
 
     def modificationTime(self) -> QDateTime:
         """
@@ -331,15 +259,6 @@ class DataSourceTextFile(DataSourceFile):
 
     def __init__(self, uri, name=None, icon=None):
         super(DataSourceTextFile, self).__init__(uri, name, icon)
-
-
-class DataSourceXMLFile(DataSourceTextFile):
-    """
-    Class to specifically handle XML based files like XML, HTML etc.
-    """
-
-    def __init__(self, uri, name=None, icon=None):
-        super(DataSourceXMLFile, self).__init__(uri, name, icon)
 
 
 class DataSourceSpatial(DataSource):

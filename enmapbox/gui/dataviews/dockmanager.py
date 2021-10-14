@@ -20,16 +20,15 @@ import os
 import re
 import uuid
 import typing
-import warnings
 import time
 
 from PyQt5.QtWidgets import QToolButton, QAction
-from qgis._core import Qgis
-from qgis._gui import QgsLayerTreeProxyModel
+from qgis.core import Qgis
+from qgis.gui import QgsLayerTreeProxyModel
 
 from enmapbox.externals.qps.speclib.core import is_spectral_library, profile_field_list
 from processing import Processing
-from qgis.PyQt.QtWidgets import QWidget, QHeaderView, QMenu, QAbstractItemView, QApplication
+from qgis.PyQt.QtWidgets import QHeaderView, QMenu, QAbstractItemView, QApplication
 from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
 
 from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
@@ -37,42 +36,28 @@ from qgis.PyQt.QtXml import QDomDocument, QDomElement
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
     QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
     QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils, \
-    QgsPalettedRasterRenderer, QgsProcessingFeedback, QgsSettings
+    QgsPalettedRasterRenderer, QgsProcessingFeedback
 
 from qgis.gui import QgsLayerTreeView, \
     QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget, QgsMessageBar
 
 from enmapbox import debugLog
 from enmapbox.gui import \
-    SpectralLibrary, SpectralLibraryWidget, SpatialExtent, SpatialPoint, \
-    findParent, loadUi, showLayerPropertiesDialog
+    SpectralLibrary, SpectralLibraryWidget, SpatialExtent, findParent, loadUi, showLayerPropertiesDialog
 
 from enmapbox.gui.utils import enmapboxUiPath
 from enmapbox.gui.mapcanvas import \
-    CanvasLink, MapCanvas, MapDock, KEY_LAST_CLICKED, \
-    LINK_ON_CENTER, LINK_ON_CENTER_SCALE, LINK_ON_SCALE
+    MapCanvas, KEY_LAST_CLICKED
 from enmapbox.gui.mimedata import \
     MDF_QGIS_LAYERTREEMODELDATA, MDF_ENMAPBOX_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE, \
     MDF_TEXT_HTML, MDF_URILIST, MDF_TEXT_PLAIN, MDF_QGIS_LAYER_STYLE, \
-    extractMapLayers, containsMapLayers, textToByteArray, extractSpectralLibraries
-from enmapbox.gui.docks import Dock, DockArea, \
-    AttributeTableDock, SpectralLibraryDock, TextDock, MimeDataDock, WebViewDock
-from enmapbox.gui.datasources import DataSource, DataSourceVector, DataSourceSpatial
+    extractMapLayers, containsMapLayers, textToByteArray
+from enmapbox.gui.dataviews.docks import Dock, DockArea, \
+    AttributeTableDock, SpectralLibraryDock, TextDock, MimeDataDock, WebViewDock, LUT_DOCKTYPES, MapDock
+from enmapbox.gui.datasources.datasources import DataSource, VectorDataSource, SpatialDataSource
 from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
-from enmapbox.gui.datasourcemanager import DataSourceManager
+from enmapbox.gui.datasources.manager import DataSourceManager
 from enmapbox.gui.utils import getDOMAttributes
-
-
-LUT_DOCKTYPES = {'MAP': MapDock,
-                 'TEXT': TextDock,
-                 'MIME': MimeDataDock,
-                 'WEBVIEW': WebViewDock,
-                 'SPECLIB': SpectralLibraryDock,
-                 'ATTRIBUTE': AttributeTableDock
-                 }
-
-for cls in list(LUT_DOCKTYPES.values()):
-    LUT_DOCKTYPES[cls] = cls
 
 
 class LayerTreeNode(QgsLayerTree):
@@ -208,7 +193,7 @@ class LayerTreeNode(QgsLayerTree):
             tagName = elem.tagName()
             node = None
             attributes = getDOMAttributes(elem)
-            # from enmapbox.gui.dockmanager import DockTreeNode, MapDockTreeNode, TextDockTreeNode
+            # from enmapbox.gui.dataviews.dockmanager import DockTreeNode, MapDockTreeNode, TextDockTreeNode
             # from enmapbox.gui.datasourcemanager import DataSourceGroupTreeNode, DataSourceTreeNode
 
             if tagName == 'tree-node':
@@ -250,6 +235,18 @@ class DockTreeNode(LayerTreeNode):
         self.dock = dock
         self.setName(dock.title())
         self.dock.sigTitleChanged.connect(self.setName)
+        self.mEnMAPBoxInstance = None
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__} at {id(self)}>'
+
+    def setEnMAPBoxInstance(self, enmapbox: 'EnMAPBox'):
+        from enmapbox import EnMAPBox
+        if isinstance(enmapbox, EnMAPBox):
+            self.mEnMAPBoxInstance = enmapbox
+
+    def enmapBoxInstance(self) -> 'EnMAPBox':
+        return self.mEnMAPBoxInstance
 
     def writeXML(self, parentElement):
         elem = super(DockTreeNode, self).writeXML(parentElement)
@@ -474,22 +471,21 @@ class MapDockTreeNode(DockTreeNode):
 
     def insertLayer(self, idx, layerSource):
         """
-        Inserts a new QgsMapLayer od DataSourceSpatial on position idx by creating a new QgsMayTreeLayer node
+        Inserts a new QgsMapLayer or SpatialDataSource on position idx by creating a new QgsMayTreeLayer node
         :param idx:
         :param layerSource:
         :return:
         """
-        from enmapbox.gui.datasourcemanager import DataSourceManager
-        dsm = DataSourceManager.instance()
+        from enmapbox.gui.enmapboxgui import EnMAPBox
 
         mapLayers = []
         if isinstance(layerSource, QgsMapLayer):
             mapLayers.append(layerSource)
         else:
             s = ""
-
-        if isinstance(dsm, DataSourceManager):
-            dsm.addSources(mapLayers)
+        emb = self.enmapBoxInstance()
+        if isinstance(emb, EnMAPBox):
+            emb.addSources(mapLayers)
 
         for mapLayer in mapLayers:
             assert isinstance(mapLayer, QgsMapLayer)
@@ -571,6 +567,8 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         :return:
         """
         dockNode = createDockTreeNode(dock)
+        dockNode.setEnMAPBoxInstance(self.mDockManager.enmapBoxInstance())
+
         if isinstance(dockNode, DockTreeNode):
             self.rootNode.addChildNode(dockNode)
             if self.rowCount() == 1:
@@ -602,7 +600,7 @@ class DockManagerTreeModel(QgsLayerTreeModel):
                 c.disconnect()
             self.removeDockNode(node)
 
-    def removeDataSource(self, dataSource: DataSource):
+    def removeDataSources(self, dataSources: typing.List[DataSource]):
         """
         Removes nodes that relate to a specific DataSource
         :param dataSource:
@@ -610,12 +608,32 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         :return:
         :rtype:
         """
-        assert isinstance(dataSource, DataSource)
-        for node in self.rootNode.children():
-            if isinstance(node, MapDockTreeNode):
-                node.removeLayerNodesByURI(dataSource.uri())
-                s = ""
-        s = ""
+        if not isinstance(dataSources, list):
+            dataSources = list(dataSources)
+
+        docks_to_close = []
+        for d in dataSources:
+            assert isinstance(d, DataSource)
+
+            for node in self.rootNode.children():
+                if isinstance(node, MapDockTreeNode):
+                    # remove layers from map canvas
+                    node.removeLayerNodesByURI(d.source())
+                else:
+                    # close docks linked to this source
+                    if isinstance(node, AttributeTableDockTreeNode) \
+                            and isinstance(node.dock, AttributeTableDock) \
+                            and isinstance(node.dock.vectorLayer(), QgsVectorLayer) \
+                            and node.dock.vectorLayer().source() == d.source():
+                        docks_to_close.append(node.dock)
+
+                    elif isinstance(node, SpeclibDockTreeNode) \
+                            and isinstance(node.speclib(), QgsVectorLayer) \
+                            and node.speclib().source() == d.source():
+                        docks_to_close.append(node.dock)
+
+        for dock in docks_to_close:
+            self.mDockManager.removeDock(dock)
 
     def dockTreeNodes(self) -> typing.List[DockTreeNode]:
         return [n for n in self.rootNode.children() if isinstance(n, DockTreeNode)]
@@ -777,7 +795,6 @@ class DockManagerTreeModel(QgsLayerTreeModel):
         if not parentIndex.isValid():
             return False
 
-        from enmapbox import EnMAPBox
         # layerRegistry = None
         # if isinstance(EnMAPBox.instance(), EnMAPBox):
         #    layerRegistry = EnMAPBox.instance().mapLayerStore()
@@ -1273,13 +1290,21 @@ class DockManager(QObject):
         self.mDataSourceManager: DataSourceManager = None
         self.mMessageBar: QgsMessageBar = None
 
+        self.mEnMAPBoxInstance: 'EnMAPBox' = None
+
+    def setEnMAPBoxInstance(self, enmapBox):
+        self.mEnMAPBoxInstance = enmapBox
+
+    def enmapBoxInstance(self) -> 'EnMAPBox':
+        return self.mEnMAPBoxInstance
+
     def setMessageBar(self, messageBar: QgsMessageBar):
         self.mMessageBar = messageBar
 
     def connectDataSourceManager(self, dataSourceManager: DataSourceManager):
         assert isinstance(dataSourceManager, DataSourceManager)
         self.mDataSourceManager = dataSourceManager
-        pass
+        self.setEnMAPBoxInstance(self.mDataSourceManager.enmapBoxInstance())
 
     def dataSourceManager(self) -> DataSourceManager:
         return self.mDataSourceManager
@@ -1342,32 +1367,22 @@ class DockManager(QObject):
 
             # register datasources
 
-            new_sources = self.mDataSourceManager.addSources(layers + textfiles)
+            new_sources = self.mDataSourceManager.addDataSources(layers + textfiles)
 
-            layer_sources = [l.source() for l in layers]
-            layer_sources = [s for s in self.mDataSourceManager.sources()
-                             if isinstance(s, DataSourceSpatial) and s.uri() in layer_sources]
-
-            dropped_speclibs: typing.List[DataSourceVector] = [s for s in layer_sources
-                                                               if isinstance(s, DataSourceVector)
-                                                               and s.isSpectralLibrary()]
-
-            dropped_maplayers: typing.List[DataSourceSpatial] = [s for s in layer_sources
-                                                                 if s not in dropped_speclibs
-                                                                 and isinstance(s, DataSourceSpatial)]
-
+            dropped_speclibs = [s for s in new_sources if isinstance(s, VectorDataSource) and s.isSpectralLibrary()]
+            dropped_maplayers = [s for s in new_sources if isinstance(s, SpatialDataSource) and s not in dropped_speclibs]
             # open spectral Library dock for new speclibs
 
             if len(dropped_speclibs) > 0:
                 # show 1st speclib
-                NEW_DOCK = self.createDock('SPECLIB', speclib=dropped_speclibs[0].createUnregisteredMapLayer())
+                NEW_DOCK = self.createDock('SPECLIB', speclib=dropped_speclibs[0].asMapLayer())
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
 
             # open map dock for other map layers
             if len(dropped_maplayers) > 0:
                 NEW_DOCK = self.createDock('MAP')
                 assert isinstance(NEW_DOCK, MapDock)
-                layers = [s.createUnregisteredMapLayer() for s in dropped_maplayers]
+                layers = [s.asMapLayer() for s in dropped_maplayers]
                 NEW_DOCK.addLayers(layers)
 
             event.accept()
@@ -1434,8 +1449,9 @@ class DockManager(QObject):
         :param kwds:
         :return:
         """
-        assert dockType in LUT_DOCKTYPES.keys(), 'dockType must be from [{}]'.format(
-            ','.join(['"{}"'.format(k) for k in LUT_DOCKTYPES.keys()]))
+        assert dockType in LUT_DOCKTYPES.keys(), f'Unknown dockType "{dockType}"\n' + \
+                                                 'Choose from [{}]'.format(
+                                                     ','.join(['"{}"'.format(k) for k in LUT_DOCKTYPES.keys()]))
         cls = LUT_DOCKTYPES[dockType]
 
         # create the dock name
@@ -1462,7 +1478,7 @@ class DockManager(QObject):
         if cls == MapDock:
             dock = MapDock(*args, **kwds)
             if isinstance(self.mDataSourceManager, DataSourceManager):
-                dock.sigLayersAdded.connect(self.mDataSourceManager.addSources)
+                dock.sigLayersAdded.connect(self.mDataSourceManager.addDataSources)
 
         elif cls == TextDock:
             dock = TextDock(*args, **kwds)
@@ -1475,7 +1491,7 @@ class DockManager(QObject):
 
         elif cls == SpectralLibraryDock:
             speclib = kwds.get('speclib')
-            if is_spectral_library(speclib):
+            if isinstance(speclib, QgsVectorLayer):
                 kwds['name'] = speclib.name()
             dock = SpectralLibraryDock(*args, **kwds)
             dock.speclib().willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
@@ -1560,8 +1576,8 @@ class DockPanelUI(QgsDockWidget):
 
             for n in tv.selectedDockNodes():
                 self.mDockManager.removeDock(n.dock)
-            #docks = [n.dock for n in self.dockTreeView.selectedNodes() if isinstance(n, DockTreeNode)]
-            #for dock in docks:
+            # docks = [n.dock for n in self.dockTreeView.selectedNodes() if isinstance(n, DockTreeNode)]
+            # for dock in docks:
             #    self.mDockManagerTreeModel.removeDock(dock)
 
     def initActions(self):

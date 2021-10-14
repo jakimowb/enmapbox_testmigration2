@@ -20,29 +20,29 @@
 import codecs
 import typing
 import enum
+import uuid
 
+from PyQt5.QtCore import pyqtSignal, QSettings, Qt
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QToolButton, QMenu
+from qgis.core import QgsCoordinateReferenceSystem, QgsMapLayer
+from qgis.gui import QgsMapCanvas
+
+from enmapbox.gui.mapcanvas import MapCanvas, CanvasLink
 from qgis.PyQt import QtCore
 from qgis.core import QgsVectorLayer
 
 from enmapbox.gui import SpectralLibraryWidget, SpectralLibrary
 from enmapbox.gui.datasources import *
 from enmapbox.gui.utils import *
-from ..externals.qps.externals.pyqtgraph.dockarea import DockArea as pgDockArea
-from ..externals.qps.externals.pyqtgraph.dockarea.DockArea import TempAreaWindow
-from ..externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
-from ..externals.qps.externals.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
-from ..externals.qps.layerproperties import pasteStyleFromClipboard
-from enmapbox.gui.mimedata import MDF_QGIS_LAYER_STYLE
 
-class DockTypes(enum.Enum):
-    """
-    Enumeration that defines the standard dock types.
-    """
-    MapDock = 'MAP'
-    TextDock = 'TEXT'
-    MimeDataDock = 'MIME'
-    WebViewDock = 'WEBVIEW'
-    SpectralLibraryDock = 'SPECLIB'
+from enmapbox.externals.qps.externals.pyqtgraph.dockarea import DockArea as pgDockArea
+from enmapbox.externals.qps.externals.pyqtgraph.dockarea.DockArea import TempAreaWindow
+from enmapbox.externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
+from enmapbox.externals.qps.externals.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
+from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard
+from enmapbox.gui.mimedata import MDF_QGIS_LAYER_STYLE
+from enmapbox.externals.qps.speclib.core import is_spectral_library
 
 
 class DockWindow(QMainWindow):
@@ -236,9 +236,7 @@ class DockArea(pgDockArea):
         super(DockArea, self).__init__(*args, **kwds)
         self.setAcceptDrops(True)
 
-
         s = ""
-
 
     def makeContainer(self, typ):
         c = super(DockArea, self).makeContainer(typ)
@@ -399,8 +397,6 @@ class DockLabel(pgDockLabel):
                 dockArea.sigDockAdded.connect(lambda *args: setUnfloatButtonVisibility(False))
                 dockArea.sigDockRemoved.connect(lambda *args: setUnfloatButtonVisibility(True))
         self.update()
-
-
 
     def contextMenuEvent(self, event):
         assert isinstance(event, QContextMenuEvent)
@@ -773,6 +769,8 @@ class AttributeTableDock(Dock):
         # we need to get a short name, not the entire title
         self.setTitle(title.split('::')[0])
 
+    def vectorLayer(self) -> QgsVectorLayer:
+        return self.attributeTableWidget.mLayer
 
 class MimeDataDock(Dock):
     """
@@ -795,7 +793,7 @@ class SpectralLibraryDock(Dock):
     def __init__(self, *args, speclib: QgsVectorLayer = None, **kwds):
         super(SpectralLibraryDock, self).__init__(*args, **kwds)
 
-        if not is_spectral_library(speclib):
+        if not isinstance(speclib, QgsVectorLayer):
             speclib = SpectralLibrary()
 
         self.mSpeclibWidget: SpectralLibraryWidget = SpectralLibraryWidget(parent=self, speclib=speclib)
@@ -803,7 +801,6 @@ class SpectralLibraryDock(Dock):
         self.mSpeclibWidget.sigLoadFromMapRequest.connect(self.sigLoadFromMapRequest)
         self.layout.addWidget(self.mSpeclibWidget)
 
-        assert is_spectral_library(speclib)
         name = kwds.get('name')
         if isinstance(name, str):
             speclib.setName(name)
@@ -811,24 +808,6 @@ class SpectralLibraryDock(Dock):
         self.setTitle(speclib.name())
         speclib.nameChanged.connect(lambda slib=speclib: self.setTitle(slib.name()))
         self.sigTitleChanged.connect(speclib.setName)
-
-        # add color attribute
-        """
-        COLOR_WIDGET = 'Color'
-        if False and COLOR_WIDGET in QgsGui.editorWidgetRegistry().factories().keys():
-
-            COLOR_FIELD = 'color'
-            b = speclib.isEditable()
-            speclib.startEditing()
-            field = QgsField(COLOR_FIELD, QVariant.String, 'varchar')
-            defaultValue = QgsDefaultValue('#ffffff', applyOnUpdate=False)
-            field.setDefaultValueDefinition(defaultValue)
-            speclib.addAttribute(field)
-            speclib.setEditorWidgetSetup(speclib.fields().lookupField(COLOR_FIELD), QgsEditorWidgetSetup('Color', {}))
-            speclib.commitChanges()
-            if b:
-                speclib.startEditing()
-        """
 
     def speclibWidget(self) -> SpectralLibraryWidget:
         """
@@ -855,3 +834,133 @@ class SpectralLibraryDock(Dock):
             actionPasteStyle.setEnabled(MDF_QGIS_LAYER_STYLE in QApplication.clipboard().mimeData().formats())
 
         menu.addAction(self.speclibWidget().actionShowProperties)
+
+
+
+class MapDockLabel(DockLabel):
+
+    def __init__(self, *args, **kwds):
+        super(MapDockLabel, self).__init__(*args, **kwds)
+
+        self.addMapLink = QToolButton(self)
+        self.addMapLink.setToolTip('Link with other map(s)')
+        self.addMapLink.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_basic.svg'))
+        self.mButtons.append(self.addMapLink)
+
+        self.removeMapLink = QToolButton(self)
+        self.removeMapLink.setToolTip('Remove links to this map')
+        self.removeMapLink.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_open.svg'))
+        self.mButtons.append(self.removeMapLink)
+
+class MapDock(Dock):
+    """
+    A dock to visualize geodata that can be mapped
+    """
+    # sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
+    # sigCursorLocationRequest = pyqtSignal(SpatialPoint)
+    # sigSpectrumRequest = pyqtSignal(SpatialPoint)
+    sigLayersAdded = pyqtSignal(list)
+    sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
+
+    def __init__(self, *args, **kwds):
+        initSrc = kwds.pop('initSrc', None)
+        super(MapDock, self).__init__(*args, **kwds)
+        self.mBaseName = self.title()
+
+        from enmapbox.gui.mapcanvas import MapCanvas
+        self.mCanvas: MapCanvas = MapCanvas(self)
+        self.mCanvas.setWindowTitle(self.title())
+        self.mCanvas.sigNameChanged.connect(self.setTitle)
+
+        self.sigTitleChanged.connect(self.mCanvas.setWindowTitle)
+        self.mCanvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
+        self.mCanvas.sigCrsChanged.connect(self.sigCrsChanged.emit)
+
+        settings = QSettings()
+        assert isinstance(self.mCanvas, QgsMapCanvas)
+        self.mCanvas.setCanvasColor(Qt.black)
+        self.mCanvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
+        self.layout.addWidget(self.mCanvas)
+
+        if initSrc is not None:
+            from enmapbox.gui.datasources import DataSourceFactory
+            dataSources = DataSourceFactory.create(initSrc)
+            from enmapbox.gui.datasources.datasources import SpatialDataSource
+            lyrs = [ds.asMapLayer() for ds in dataSources if isinstance(ds, SpatialDataSource)]
+            if len(lyrs) > 0:
+                self.mCanvas.setLayers(lyrs)
+
+    def mapCanvas(self) -> MapCanvas:
+        return self.mCanvas
+
+    def populateContextMenu(self, menu: QMenu):
+        """
+        Returns the MapDock context menu
+        :return: QMenu
+        """
+        super(MapDock, self).populateContextMenu(menu)
+
+        self.mCanvas.populateContextMenu(menu, None)
+        return menu
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            s = ""
+        else:
+            super(MapDock, self).mousePressEvent(event)
+
+    def linkWithMapDock(self, mapDock, linkType) -> CanvasLink:
+        assert isinstance(mapDock, MapDock)
+        return self.linkWithCanvas(mapDock.mCanvas, linkType)
+
+    def linkWithCanvas(self, canvas, linkType) -> CanvasLink:
+        assert isinstance(canvas, QgsMapCanvas)
+        return self.mapCanvas().createCanvasLink(canvas, linkType)
+
+    def mapCanvas(self) -> MapCanvas:
+        """
+        Returns the MapCanvas
+        :return: MapCanvas
+        """
+        return self.mCanvas
+
+    def addLayers(self, layers: typing.List[QgsMapLayer]):
+        assert isinstance(layers, list)
+        new_set = self.mapCanvas().layers() + layers
+        self.mapCanvas().setLayers(new_set)
+
+    def insertLayer(self, idx, layerSource):
+        from enmapbox import EnMAPBox
+        from enmapbox.gui.dataviews.dockmanager import MapDockTreeNode
+
+        enmapBox = EnMAPBox.instance()
+        if enmapBox is not None:
+            mapDockTreeNode: MapDockTreeNode
+            for mapDockTreeNode in enmapBox.dockManagerTreeModel().mapDockTreeNodes():
+                if mapDockTreeNode.dock is self:
+                    mapDockTreeNode.insertLayer(idx=idx, layerSource=layerSource)
+
+
+class DockTypes(object):
+    """
+    Enumeration that defines the standard dock types.
+    """
+    MapDock = 'MAP'
+    TextDock = 'TEXT'
+    MimeDataDock = 'MIME'
+    WebViewDock = 'WEBVIEW'
+    SpectralLibraryDock = 'SPECLIB'
+    AttributeTableDock = 'ATTRIBUTES'
+
+
+LUT_DOCKTYPES = {DockTypes.MapDock: MapDock,
+                 DockTypes.TextDock: TextDock,
+                 DockTypes.MimeDataDock: MimeDataDock,
+                 DockTypes.WebViewDock: WebViewDock,
+                 DockTypes.SpectralLibraryDock: SpectralLibraryDock,
+                 DockTypes.AttributeTableDock: AttributeTableDock
+                 }
+
+for cls in set(LUT_DOCKTYPES.values()):
+    LUT_DOCKTYPES[cls] = cls
+

@@ -3,18 +3,12 @@ import unittest
 import xmlrunner
 
 from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibraryUtils
-from enmapbox.gui.datasourcemanager import DataSourceTreeView, DataSourceManagerTreeModel, DataSourceManager, \
-    HubFlowPyObjectTreeNode
-from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, \
-    QgsLayerTree, QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterDefinition
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsApplication
-from qgis.PyQt.QtCore import QResource
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapbox.gui.enmapboxgui import EnMAPBox, EnMAPBoxSplashScreen
-from enmapbox.gui.docks import *
-from enmapbox.gui.mapcanvas import *
+from enmapbox.gui.dataviews.docks import *
 from enmapbox.gui import *
 
 
