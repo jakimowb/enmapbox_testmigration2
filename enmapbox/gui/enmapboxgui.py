@@ -1886,7 +1886,6 @@ class EnMAPBox(QgisInterface, QObject):
 
     def close(self):
         self.disconnectQGISSignals()
-        self.mDataSourceManager.close()
         self.ui.close()
 
     def hiddenLayerGroup(self) -> EnMAPBoxHiddenLayerTreeGroup:
