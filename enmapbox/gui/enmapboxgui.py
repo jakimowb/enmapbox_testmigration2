@@ -733,10 +733,14 @@ class EnMAPBox(QgisInterface, QObject):
         """
         Updates the hidden layers node in the QGIS LayerTree.
         This is important as only layers in the QGIS LayerTree will be shown in
-        the QgsMapLayerComboBox / QgsMapLayer
+        the QgsMapLayerComboBox / QgsMapLayer (until QGIS 3.20)
 
         :return:
         """
+
+        if Qgis.versionInt() >= 32000:
+            return
+
         grp = self.hiddenLayerGroup()
         if isinstance(grp, EnMAPBoxHiddenLayerTreeGroup):
             knownInQGIS = [l.layerId() for l in grp.findLayers() if isinstance(l.layer(), QgsMapLayer)]
@@ -807,7 +811,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         Removes layers from the EnMAP-Box
         """
-        grp = self.hiddenLayerGroup()
+        # grp = self.hiddenLayerGroup()
         layers = [l for l in layers if isinstance(l, QgsMapLayer)]
         removedIds = [l.id() for l in layers]
 
