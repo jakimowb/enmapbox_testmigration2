@@ -1,15 +1,12 @@
 from qgis._core import QgsRasterLayer
 
+from enmapbox.exampledata import enmap
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedrasteralgorithm import \
     PrepareClassificationDatasetFromCategorizedRasterAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapbox.exampledata import enmap, landcover_points
 from enmapboxtestdata import landcover_raster_30m
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
 
 
 class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
@@ -19,7 +16,7 @@ class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_RASTER: landcover_raster_30m,
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
@@ -38,7 +35,7 @@ class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_RASTER: landcover_raster_30m,
             alg.P_CATEGORY_BAND: 0,
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
@@ -55,7 +52,7 @@ class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_RASTER: enmap,  # this makes not much sense, but we allow it anyways
-            alg.P_OUTPUT_DATASET: 'c:/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
@@ -64,4 +61,3 @@ class TestPrepareClassificationSampleFromCategorizedRaster(TestCase):
         self.assertEqual(177, len(dump.features))
         self.assertEqual(['band 8 (0.460000 Micrometers)', 'band 9 (0.465000 Micrometers)'], dump.features[:2])
         self.assertEqual(1911, len(dump.categories))
-

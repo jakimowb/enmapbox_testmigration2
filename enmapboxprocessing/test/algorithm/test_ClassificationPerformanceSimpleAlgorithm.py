@@ -2,15 +2,14 @@ from math import isnan
 
 from qgis._core import QgsProcessingException
 
+from enmapbox.exampledata import landcover_polygons, enmap
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.utils import Utils
-from enmapbox.exampledata import landcover_polygons, enmap
 from enmapboxtestdata import landcover_map_l3
 
 writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
 
 
 class TestClassificationPerformanceSimpleAlgorithm(TestCase):
@@ -22,7 +21,7 @@ class TestClassificationPerformanceSimpleAlgorithm(TestCase):
             alg.P_CLASSIFICATION: landcover_map_l3,
             alg.P_REFERENCE: landcover_polygons,
             alg.P_OPEN_REPORT: False,
-            alg.P_OUTPUT_REPORT: c + '/vsimem/report.html',
+            alg.P_OUTPUT_REPORT: self.filename('report.html'),
         }
         self.runalg(alg, parameters)
 
@@ -33,7 +32,7 @@ class TestClassificationPerformanceSimpleAlgorithm(TestCase):
             alg.P_CLASSIFICATION: landcover_map_l3,
             alg.P_REFERENCE: landcover_map_l3,
             alg.P_OPEN_REPORT: False,
-            alg.P_OUTPUT_REPORT: c + '/vsimem/report_perfectMap.html',
+            alg.P_OUTPUT_REPORT: self.filename('report_perfectMap.html'),
         }
         result = self.runalg(alg, parameters)
         stats = Utils.jsonLoad(result[alg.P_OUTPUT_REPORT] + '.json')
@@ -47,7 +46,7 @@ class TestClassificationPerformanceSimpleAlgorithm(TestCase):
             alg.P_CLASSIFICATION: enmap,
             alg.P_REFERENCE: landcover_map_l3,
             alg.P_OPEN_REPORT: False,
-            alg.P_OUTPUT_REPORT: c + '/vsimem/report.html',
+            alg.P_OUTPUT_REPORT: self.filename('report.html'),
         }
         try:
             self.runalg(alg, parameters)
@@ -60,7 +59,7 @@ class TestClassificationPerformanceSimpleAlgorithm(TestCase):
             alg.P_CLASSIFICATION: landcover_map_l3,
             alg.P_REFERENCE: enmap,
             alg.P_OPEN_REPORT: False,
-            alg.P_OUTPUT_REPORT: c + '/vsimem/report2.html',
+            alg.P_OUTPUT_REPORT: self.filename('report2.html'),
         }
         try:
             self.runalg(alg, parameters)

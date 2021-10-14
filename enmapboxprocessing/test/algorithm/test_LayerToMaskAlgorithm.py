@@ -13,7 +13,7 @@ class TestLayerToMaskAlgorithm(TestCase):
         alg.initAlgorithm()
         parameters = {
             alg.P_LAYER: enmap,
-            alg.P_OUTPUT_MASK: 'c:/vsimem/mask.tif',
+            alg.P_OUTPUT_MASK: self.filename('mask.tif'),
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(71158, np.sum(RasterReader(result[alg.P_OUTPUT_MASK]).array()))
@@ -24,7 +24,7 @@ class TestLayerToMaskAlgorithm(TestCase):
         parameters = {
             alg.P_LAYER: landcover_polygons,
             alg.P_GRID: enmap,
-            alg.P_OUTPUT_MASK: 'c:/vsimem/mask.tif',
+            alg.P_OUTPUT_MASK: self.filename('mask.tif'),
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(2028, np.sum(RasterReader(result[alg.P_OUTPUT_MASK]).array()))

@@ -6,9 +6,6 @@ from enmapboxprocessing.algorithm.randompointsfromcategorizedrasteralgorithm imp
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxtestdata import landcover_map_l3
 
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
-
 
 class TestRandomPointsFromCategorizedRasterAlgorithm(TestCase):
 
@@ -22,7 +19,7 @@ class TestRandomPointsFromCategorizedRasterAlgorithm(TestCase):
             alg.P_DISTANCE_GLOBAL: 0,
             alg.P_DISTANCE_STRATUM: 45,
             alg.P_SEED: 42,
-            alg.P_OUTPUT_POINTS: c + '/vsimem/points.gpkg',
+            alg.P_OUTPUT_POINTS: self.filename('points.gpkg')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(26317, QgsVectorLayer(parameters[alg.P_OUTPUT_POINTS]).featureCount())

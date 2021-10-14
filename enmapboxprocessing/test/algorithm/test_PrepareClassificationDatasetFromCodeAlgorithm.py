@@ -13,7 +13,7 @@ class TestPrepareClassificationDatasetFromCodeAlgorithm(TestCase):
         alg.initAlgorithm()
         parameters = {
             alg.P_CODE: alg.defaultCodeAsString(),
-            alg.P_OUTPUT_DATASET: 'c:/vsimem/dataset.pkl',
+            alg.P_OUTPUT_DATASET: self.filename('dataset.pkl')
         }
         result = self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(result[alg.P_OUTPUT_DATASET]))

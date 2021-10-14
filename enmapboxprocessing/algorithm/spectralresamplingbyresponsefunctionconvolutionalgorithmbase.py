@@ -8,7 +8,7 @@ import numpy as np
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsVectorFileWriter)
 
-from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
+from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary, SpectralLibraryUtils
 from enmapbox.externals.qps.speclib.core.spectralprofile import SpectralProfile
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group

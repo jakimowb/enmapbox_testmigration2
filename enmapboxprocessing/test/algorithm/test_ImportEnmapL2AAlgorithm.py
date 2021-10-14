@@ -11,7 +11,7 @@ class TestImportEnmapL2AAlgorithm(TestCase):
         alg = ImportEnmapL2AAlgorithm()
         parameters = {
             alg.P_FILE: r'D:\data\sensors\enmap\L2A_Arcachon_3_combined\ENMAP01-____L2A-DT000400126_20170218T110119Z_003_V000204_20200512T142942Z-METADATA.XML',
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/enmapL2A.vrt',
+            alg.P_OUTPUT_RASTER: self.filename('enmapL2A.vrt'),
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(

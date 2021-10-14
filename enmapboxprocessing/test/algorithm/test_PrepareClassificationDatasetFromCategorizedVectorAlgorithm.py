@@ -1,14 +1,9 @@
-from qgis._core import QgsVectorLayer, QgsRasterLayer
-
+from enmapbox.exampledata import enmap, landcover_polygons, landcover_points
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectoralgorithm import \
     PrepareClassificationDatasetFromCategorizedVectorAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapbox.exampledata import enmap, landcover_polygons, landcover_points
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
 
 
 class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
@@ -19,7 +14,7 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_polygons,
             alg.P_MAJORITY_VOTING: False,
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
@@ -37,7 +32,7 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
         parameters = {
             alg.P_FEATURE_RASTER: enmap,
             alg.P_CATEGORIZED_VECTOR: landcover_points,
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
@@ -57,7 +52,7 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
             alg.P_CATEGORIZED_VECTOR: landcover_polygons,
             alg.P_CATEGORY_FIELD: 'level_3',
             alg.P_MAJORITY_VOTING: False,
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
@@ -78,7 +73,7 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
             alg.P_CATEGORIZED_VECTOR: landcover_polygons,
             alg.P_COVERAGE: 100,  # pure pixel only
             alg.P_MAJORITY_VOTING: True,
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
