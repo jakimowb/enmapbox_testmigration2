@@ -367,7 +367,7 @@ class ApplicationRegistry(QObject):
 
         if DEBUG:
             print('Loading done.')
-        self.sigLoadingFinished.emit(f'{app} loaed', True)
+        self.sigLoadingFinished.emit(True, f'{app} loaded')
         return True
 
     def loadProcessingAlgorithms(self, appWrapper: ApplicationWrapper):
