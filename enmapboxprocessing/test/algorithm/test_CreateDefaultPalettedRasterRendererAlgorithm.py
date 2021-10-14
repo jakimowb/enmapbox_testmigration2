@@ -8,14 +8,11 @@ from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import Category
 from enmapboxprocessing.utils import Utils
 
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
-
 
 class TestCreateDefaultPalettedRasterRendererAlgorithm(TestCase):
 
     def test(self):
-        filename = 'c:/vsimem/raster.tif'
+        filename = self.filename('raster.tif')
         Driver(filename).createFromArray(array=np.array([[[1, 2, 3]]]))
 
         alg = CreateDefaultPalettedRasterRendererAlgorithm()

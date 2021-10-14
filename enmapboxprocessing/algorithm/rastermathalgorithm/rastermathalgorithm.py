@@ -7,7 +7,7 @@ from typing import Dict, Any, List, Tuple, Union
 
 import numpy
 import numpy as np
-from mock import Mock
+from unittest.mock import Mock
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsProcessing,
                         QgsProcessingParameterString, QgsProject, QgsRasterLayer, Qgis, QgsVectorLayer, QgsFields)

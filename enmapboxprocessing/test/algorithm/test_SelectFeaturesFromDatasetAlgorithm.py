@@ -4,9 +4,6 @@ from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
 from enmapboxtestdata import (classifierDumpPkl)
 
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
-
 
 class TestSelectFeatureSubsetFromSampleAlgorithm(TestCase):
 
@@ -16,7 +13,7 @@ class TestSelectFeatureSubsetFromSampleAlgorithm(TestCase):
         parameters = {
             alg.P_DATASET: classifierDumpPkl,
             alg.P_FEATURE_LIST: "1, 'band 18 (0.508000 Micrometers)', 177",
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))

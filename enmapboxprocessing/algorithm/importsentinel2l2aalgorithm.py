@@ -25,7 +25,6 @@ class ImportSentinel2L2AAlgorithm(EnMAPProcessingAlgorithm):
         'B8, NIR (833 Nanometers)[10 Meter]',
         'B8A, Narrow NIR (865 Nanometers)[20 Meter]',
         'B9, Water vapour (945 Nanometers)[60 Meter]',
-        'B10, SWIR - Cirrus (1374 Nanometers)[60 Meter]',
         'B11, SWIR (1614 Nanometers)[20 Meter]',
         'B12, SWIR (2202 Nanometers)[20 Meter]'
     ]

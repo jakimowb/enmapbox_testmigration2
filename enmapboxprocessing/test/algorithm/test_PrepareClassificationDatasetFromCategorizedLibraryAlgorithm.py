@@ -8,17 +8,13 @@ from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
 
 
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
-
-
 class TestPrepareClassificationDatasetFromCategorizedLibrary(TestCase):
 
     def test_default(self):
         alg = PrepareClassificationDatasetFromCategorizedLibraryAlgorithm()
         parameters = {
             alg.P_CATEGORIZED_LIBRARY: library_gpkg,
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
@@ -31,21 +27,21 @@ class TestPrepareClassificationDatasetFromCategorizedLibrary(TestCase):
         parameters = {
             alg.P_CATEGORIZED_LIBRARY: library_gpkg,
             alg.P_FIELD: 'profiles',
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
-        self.assertEqual((58, 177), dump.X.shape)
-        self.assertEqual((58, 1), dump.y.shape)
+        self.assertEqual((75, 177), dump.X.shape)
+        self.assertEqual((75, 1), dump.y.shape)
         self.assertEqual(177, len(dump.features))
 
     def test_wrongCategoryField(self):
         alg = PrepareClassificationDatasetFromCategorizedLibraryAlgorithm()
         parameters = {
             alg.P_CATEGORIZED_LIBRARY: library_gpkg,
-            #alg.P_FIELD: 'profiles',
+            # alg.P_FIELD: 'profiles',
             alg.P_CATEGORY_FIELD: 'profiles',
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         try:
             self.runalg(alg, parameters)
@@ -57,7 +53,7 @@ class TestPrepareClassificationDatasetFromCategorizedLibrary(TestCase):
         parameters = {
             alg.P_CATEGORIZED_LIBRARY: library_gpkg,
             alg.P_FIELD: 'level_1',
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         try:
             self.runalg(alg, parameters)

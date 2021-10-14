@@ -299,7 +299,6 @@ if __name__ == "__main__":
                   '\n  Run weblink checker (in doc folder make linkcheck)' \
                   '\n  Check if box runs without optional dependencies (see enmapboxtesting/non-blocking-dependencies/readme.txt).'\
                   '\n  Version number increased? (enmapbox/__init__.py -> __version__)' \
-                  '\n  Create testdata tag with same version number. Try to download testdata!' \
                   '\n  QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
                   '\n  Plugin promotion (Slack, Email, ...)'
         print(message)

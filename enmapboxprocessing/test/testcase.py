@@ -1,4 +1,5 @@
 import unittest.case
+from os.path import join, dirname
 from typing import Union
 
 import numpy as np
@@ -12,3 +13,7 @@ class TestCase(unittest.case.TestCase):
         array1 = np.array(array1)
         array2 = np.array(array2)
         self.assertTrue(np.all(array1==array2))
+
+    def filename(self, basename: str):
+        import enmapbox
+        return join(dirname(dirname(enmapbox.__file__)), 'test-outputs', basename)

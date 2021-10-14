@@ -15,7 +15,7 @@ class TestSpectralResamplingByResponseFunctionLibraryAlgorithmBase(TestCase):
             alg.P_RASTER: enmap,
             alg.P_RESPONSE_RASTER: enmap,
             alg.P_SAVE_RESPONSE_FUNCTION: True,
-            alg.P_OUTPUT_RASTER: 'C:/vsimem/resampled.tif'
+            alg.P_OUTPUT_RASTER: self.filename('resampled.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(29437304, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()[0])))

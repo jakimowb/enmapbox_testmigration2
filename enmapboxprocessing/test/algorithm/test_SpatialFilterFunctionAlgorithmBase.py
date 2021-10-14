@@ -1,7 +1,7 @@
+from enmapbox.exampledata import hires
 from enmapboxprocessing.algorithm.applybandfunctionalgorithmbase import ApplyBandFunctionAlgorithmBase
 from enmapboxprocessing.algorithm.spatialgaussiangradientmagnitudealgorithm import \
     SpatialGaussianGradientMagnitudeAlgorithm
-from enmapboxprocessing.algorithm.spatialgenericfilteralgorithm import SpatialGenericAlgorithm
 from enmapboxprocessing.algorithm.spatiallaplacealgorithm import SpatialLaplaceAlgorithm
 from enmapboxprocessing.algorithm.spatialmaximumalgorithm import SpatialMaximumAlgorithm
 from enmapboxprocessing.algorithm.spatialmedianalgorithm import SpatialMedianAlgorithm
@@ -34,10 +34,6 @@ from enmapboxprocessing.algorithm.spatialpercentilealgorithm import SpatialPerce
 from enmapboxprocessing.algorithm.spatialprewittalgorithm import SpatialPrewittAlgorithm
 from enmapboxprocessing.algorithm.spatialsobelalgorithm import SpatialSobelAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapbox.exampledata import hires
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
 
 
 class ApplyBandFunctionAlgorithm(ApplyBandFunctionAlgorithmBase):
@@ -68,7 +64,7 @@ class TestApplyBandFunctionAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: hires,
             alg.P_FUNCTION: alg.defaultCodeAsString(),
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/result.tif',
+            alg.P_OUTPUT_RASTER: self.filename('result.tif')
         }
         self.runalg(alg, parameters)
 
@@ -95,7 +91,7 @@ class TestApplyBandFunctionAlgorithm(TestCase):
             SpatialMaximumAlgorithm(),
             SpatialMedianAlgorithm(),
             SpatialLaplaceAlgorithm(),
-            #SpatialGenericAlgorithm(),
+            # SpatialGenericAlgorithm(),
         ]
         for alg in algs:
             print(alg.displayName())
@@ -104,7 +100,7 @@ class TestApplyBandFunctionAlgorithm(TestCase):
             parameters = {
                 alg.P_RASTER: hires,
                 alg.P_FUNCTION: alg.defaultCodeAsString(),
-                alg.P_OUTPUT_RASTER: 'c:/vsimem/result.tif',
+                alg.P_OUTPUT_RASTER: self.filename('result.tif')
             }
             self.runalg(alg, parameters)
 

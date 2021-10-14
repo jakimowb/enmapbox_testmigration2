@@ -284,6 +284,22 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             makedirs(dirname(filename))
         return filename
 
+    def parameterAsOutputLayer(
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
+    ) -> Optional[str]:
+        filename = super().parameterAsOutputLayer(parameters, name, context)
+        if filename == '':
+            filename = parameters.get(name, '')
+        if filename == '':
+            return None
+        if not isabs(filename):
+            filename = join(QgsProcessingUtils.tempFolder(), filename)
+        if not exists(dirname(filename)):
+            makedirs(dirname(filename))
+        return filename
+
+
+
     def parameterAsRange(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> List[float]:
         return super().parameterAsRange(parameters, name, context)
 
@@ -695,10 +711,10 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             if isinstance(parameter, (QgsProcessingParameterString, QgsProcessingParameterRasterLayer,
                                       QgsProcessingParameterVectorLayer, QgsProcessingParameterMapLayer,
                                       QgsProcessingDestinationParameter, QgsProcessingParameterField,
-                                      QgsProcessingParameterFile)):
+                                      QgsProcessingParameterFile, QgsProcessingParameterCrs)):
                 if isinstance(parameter, (QgsProcessingParameterString)):
                     value = parameters[parameter.name()]
-                    value = parameter.valueAsPythonString(value, context)[1:-1]  # remove single quotes
+                    value = parameter.valueAsPythonString(value, context)#[1:-1]  # remove single quotes
                 elif isinstance(parameter, (QgsProcessingDestinationParameter)):
                     value = self.parameterAsOutputLayer(parameters, parameter.name(), context)
                 elif isinstance(parameter, (QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
@@ -706,16 +722,25 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
                     value = self.parameterAsLayer(parameters, parameter.name(), context).source()
                 elif isinstance(parameter, (QgsProcessingParameterFile)):
                     value = self.parameterAsFile(parameters, parameter.name(), context)
+                elif isinstance(parameter, (QgsProcessingParameterCrs)):
+                    value = self.parameterAsCrs(parameters, parameter.name(), context).authid()
                 else:
                     value = self.parameterAsString(parameters, parameter.name(), context)
                 value = value.replace('"', r'\"')  # escape double quotes
-                value = '"' + value + '"' # wrapping in double quotes
             else:
-                value = parameter.valueAsPythonString(parameters[parameter.name()], context)
+                value = parameter.valueAsPythonString(parameters[parameter.name()], context)  # remove single quotes
 
-            # for debugging only
-            if value.startswith("'"):
-                raise Exception(f'DEBUG: check type {type(parameter)}')
+            # remove whitespaces if possible
+            if isinstance(parameter, (QgsProcessingParameterExtent)):
+                value = value.replace(' ', '')
+
+            # strip single quotes
+            if value.startswith("'") and value.endswith("'"):
+                value = value[1:-1]
+
+            #  wrap in double quotes
+            if ' ' in value:
+                value = '"' + value + '"'
 
             cmd += rf'{parameter.name()}={value} '
         return cmd
@@ -760,6 +785,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         except Exception as error:
             traceback.print_exc()
             feedback.pushConsoleCommand('Unable to create console command. Please report error traceback shown in the Python console.\n')
+            #raise error
 
         self._startTime = time()
 

@@ -1,11 +1,7 @@
-from enmapboxprocessing.algorithm.classifierperformancealgorithm import ClassifierPerformanceAlgorithm
 from enmapboxprocessing.algorithm.classifierfeaturerankingpermutationimportancealgorithm import \
     ClassifierFeatureRankingPermutationImportanceAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxtestdata import (classifierDumpPkl)
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
 
 
 class TestClassifierPerformanceAlgorithm(TestCase):
@@ -16,6 +12,6 @@ class TestClassifierPerformanceAlgorithm(TestCase):
         parameters = {
             alg.P_CLASSIFIER: classifierDumpPkl,
             alg.P_OPEN_REPORT: False,
-            alg.P_OUTPUT_REPORT: c + '/vsimem/report.html'
+            alg.P_OUTPUT_REPORT: self.filename('report.html')
         }
         self.runalg(alg, parameters)

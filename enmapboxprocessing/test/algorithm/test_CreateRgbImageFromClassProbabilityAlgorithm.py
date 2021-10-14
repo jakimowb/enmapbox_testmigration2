@@ -2,6 +2,7 @@ import numpy as np
 from qgis._core import QgsProcessingException
 from sklearn.base import ClassifierMixin
 
+from enmapbox.exampledata import enmap
 from enmapboxprocessing.algorithm.creatergbimagefromclassprobabilityalgorithm import \
     CreateRgbImageFromClassProbabilityAlgorithm
 from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
@@ -11,11 +12,7 @@ from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapbox.exampledata import enmap, landcover_polygons, landcover_points
-from enmapboxtestdata import landcover_raster_30m, classifierDumpPkl
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
+from enmapboxtestdata import classifierDumpPkl
 
 
 class FitTestClassifierAlgorithm(FitClassifierAlgorithmBase):
@@ -44,7 +41,7 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
         parametersFit = {
             algFit.P_DATASET: classifierDumpPkl,
             algFit.P_CLASSIFIER: algFit.defaultCodeAsString(),
-            algFit.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+            algFit.P_OUTPUT_CLASSIFIER: self.filename('classifier.pkl')
         }
         result = self.runalg(algFit, parametersFit)
 
@@ -53,7 +50,7 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
         parametersPredict1 = {
             algPredict1.P_RASTER: enmap,
             algPredict1.P_CLASSIFIER: parametersFit[algFit.P_OUTPUT_CLASSIFIER],
-            algPredict1.P_OUTPUT_CLASSIFICATION: c + '/vsimem/classification.tif'
+            algPredict1.P_OUTPUT_CLASSIFICATION: self.filename('classification.tif')
         }
         result = self.runalg(algPredict1, parametersPredict1)
 
@@ -62,7 +59,7 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
         parametersPredict2 = {
             algPredict2.P_RASTER: enmap,
             algPredict2.P_CLASSIFIER: parametersFit[algFit.P_OUTPUT_CLASSIFIER],
-            algPredict2.P_OUTPUT_PROBABILITY: c + '/vsimem/probability.tif'
+            algPredict2.P_OUTPUT_PROBABILITY: self.filename('probability.tif')
         }
         result = self.runalg(algPredict2, parametersPredict2)
 
@@ -72,7 +69,7 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
         parameters = {
             alg.P_PROBABILITY: parametersPredict2[algPredict2.P_OUTPUT_PROBABILITY],
             alg.P_COLORS_LAYER: parametersPredict1[algPredict1.P_OUTPUT_CLASSIFICATION],
-            alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
+            alg.P_OUTPUT_RGB: self.filename('rgb.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(16826968, np.sum(RasterReader(result[alg.P_OUTPUT_RGB]).array()))
@@ -82,7 +79,7 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
         parameters = {
             alg.P_PROBABILITY: parametersPredict2[algPredict2.P_OUTPUT_PROBABILITY],
             alg.P_COLORS: colors,
-            alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
+            alg.P_OUTPUT_RGB: self.filename('rgb.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(16826968, np.sum(RasterReader(result[alg.P_OUTPUT_RGB]).array()))
@@ -90,7 +87,7 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
         # test invalid colors
         parameters = {
             alg.P_PROBABILITY: parametersPredict2[algPredict2.P_OUTPUT_PROBABILITY],
-            alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
+            alg.P_OUTPUT_RGB: self.filename('rgb.tif')
         }
         try:
             self.runalg(alg, parameters)
@@ -101,7 +98,7 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
         parameters = {
             alg.P_PROBABILITY: parametersPredict2[algPredict2.P_OUTPUT_PROBABILITY],
             alg.P_COLORS: colors,
-            alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
+            alg.P_OUTPUT_RGB: self.filename('rgb.tif')
         }
         try:
             self.runalg(alg, parameters)
@@ -112,7 +109,7 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
         parameters = {
             alg.P_PROBABILITY: parametersPredict2[algPredict2.P_OUTPUT_PROBABILITY],
             alg.P_COLORS: colors,
-            alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
+            alg.P_OUTPUT_RGB: self.filename('rgb.tif')
         }
         try:
             self.runalg(alg, parameters)
@@ -123,7 +120,7 @@ class TestCreateRgbImageFromClassProbabilityAlgorithm(TestCase):
         parameters = {
             alg.P_PROBABILITY: parametersPredict2[algPredict2.P_OUTPUT_PROBABILITY],
             alg.P_COLORS: colors,
-            alg.P_OUTPUT_RGB: c + '/vsimem/rgb.tif'
+            alg.P_OUTPUT_RGB: self.filename('rgb.tif')
         }
         try:
             self.runalg(alg, parameters)

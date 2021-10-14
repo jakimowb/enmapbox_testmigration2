@@ -9,9 +9,6 @@ from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxtestdata import landcover_raster_30m_epsg3035
 
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
-
 
 class TestTranslateAlgorithm(TestCase):
 
@@ -19,7 +16,7 @@ class TestTranslateAlgorithm(TestCase):
         alg = TranslateRasterAlgorithm()
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
+            alg.P_OUTPUT_RASTER: self.filename('raster.tif')
         }
         result = self.runalg(alg, parameters)
         gold = RasterReader(enmap).array()
@@ -34,7 +31,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_GRID: QgsRasterLayer(landcover_raster_30m_epsg3035),
             alg.P_BAND_LIST: [5],
             alg.P_CREATION_PROFILE: alg.VrtFormat,
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster.vrt'
+            alg.P_OUTPUT_RASTER: self.filename('raster.vrt')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(28263893, np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array()))
@@ -45,7 +42,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_RASTER: QgsRasterLayer(hires),
             alg.P_GRID: QgsRasterLayer(enmap),
             alg.P_BAND_LIST: [1],
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
+            alg.P_OUTPUT_RASTER: self.filename('raster.tif')
         }
         result = self.runalg(alg, parameters)
         grid = RasterReader(enmap)
@@ -59,7 +56,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_RASTER: QgsRasterLayer(hires),
             alg.P_GRID: QgsRasterLayer(landcover_raster_30m_epsg3035),
             # alg.P_BAND_LIST: [1],
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster3035.tif'
+            alg.P_OUTPUT_RASTER: self.filename('raster3035.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(parameters[alg.P_GRID].extent(), RasterReader(result[alg.P_OUTPUT_RASTER]).extent())
@@ -71,7 +68,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_RASTER: QgsRasterLayer(hires),
             alg.P_GRID: QgsRasterLayer(landcover_raster_30m_epsg3035),
             alg.P_BAND_LIST: [1],
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster3035_bandSubset.tif'
+            alg.P_OUTPUT_RASTER: self.filename('raster3035_bandSubset.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(parameters[alg.P_GRID].extent(), RasterReader(result[alg.P_OUTPUT_RASTER]).extent())
@@ -83,13 +80,12 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_RASTER: QgsRasterLayer(enmap),
             alg.P_BAND_LIST: [1],
             alg.P_CREATION_PROFILE: alg.GTiffFormat,
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif'
+            alg.P_OUTPUT_RASTER: self.filename('raster.tif')
         }
         gold = [1, 3, 2, 4, 5, 6, 7]
-        'Byte Int16 UInt16 UInt32 Int32 Float32 Float64'
         for index, name in enumerate(alg.O_DATA_TYPE):
             parameters[alg.P_DATA_TYPE] = index
-            parameters[alg.P_OUTPUT_RASTER] = c + f'/vsimem/raster.{name}.tif'
+            parameters[alg.P_OUTPUT_RASTER] = self.filename(f'raster.{name}.tif')
             result = self.runalg(alg, parameters)
             dataType = RasterReader(result[alg.P_OUTPUT_RASTER]).dataType()
             print(name, dataType)
@@ -99,7 +95,7 @@ class TestTranslateAlgorithm(TestCase):
         alg = TranslateRasterAlgorithm()
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/raster.tif',
+            alg.P_OUTPUT_RASTER: self.filename('raster.tif'),
             alg.P_BAND_LIST: None
         }
         result = self.runalg(alg, parameters)
@@ -120,7 +116,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_BAND_LIST: [3],
             alg.P_COPY_METADATA: True,
             alg.P_CREATION_PROFILE: alg.DefaultGTiffCreationProfile,
-            alg.P_OUTPUT_RASTER: c + '/vsimem/enmap.tif'
+            alg.P_OUTPUT_RASTER: self.filename('enmap.tif')
         }
         result = self.runalg(alg, parameters)
 
@@ -136,7 +132,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_RASTER: raster,
             alg.P_BAND_LIST: [1],
             alg.P_EXTENT: raster.extent(),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/enmapClipFull.tif'
+            alg.P_OUTPUT_RASTER: self.filename('enmapClipFull.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(raster.extent(), RasterReader(result[alg.P_OUTPUT_RASTER]).extent())
@@ -150,7 +146,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_RASTER: raster,
             alg.P_BAND_LIST: [1],
             alg.P_EXTENT: extent,
-            alg.P_OUTPUT_RASTER: c + '/vsimem/enmapClipBuffered.tif'
+            alg.P_OUTPUT_RASTER: self.filename('enmapClipBuffered.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(extent, RasterReader(result[alg.P_OUTPUT_RASTER]).extent())
@@ -162,7 +158,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_RASTER: raster,
             alg.P_BAND_LIST: [1],
             alg.P_EXTENT: raster.extent().buffered(-20),
-            alg.P_OUTPUT_RASTER: c + '/vsimem/enmapClipBuffered.tif'
+            alg.P_OUTPUT_RASTER: self.filename('enmapClipBuffered.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(raster.extent().buffered(-30), RasterReader(result[alg.P_OUTPUT_RASTER]).extent())
@@ -182,7 +178,7 @@ class TestTranslateAlgorithm(TestCase):
         parameters2 = parameters.copy()
         parameters2[alg.P_SOURCE_COLUMNS] = [1, raster.width() - 2]
         parameters2[alg.P_SOURCE_ROWS] = [1, raster.height() - 2]
-        parameters2[alg.P_OUTPUT_RASTER] = c + '/vsimem/enmapClipSourceWindow_buffered.tif'
+        parameters2[alg.P_OUTPUT_RASTER] = self.filename('enmapClipSourceWindow_buffered.tif')
         result = self.runalg(alg, parameters2)
         self.assertEqual(raster.extent().buffered(-30), RasterReader(result[alg.P_OUTPUT_RASTER]).extent())
         self.assertEqual(raster.width() - 2, RasterReader(result[alg.P_OUTPUT_RASTER]).width())
@@ -192,7 +188,7 @@ class TestTranslateAlgorithm(TestCase):
         parameters2 = parameters.copy()
         parameters2[alg.P_SOURCE_COLUMNS] = [50, 50]
         parameters2[alg.P_SOURCE_ROWS] = [50, 50]
-        parameters2[alg.P_OUTPUT_RASTER] = c + '/vsimem/enmapClipSourceWindow_singlePixel.tif'
+        parameters2[alg.P_OUTPUT_RASTER] = self.filename('enmapClipSourceWindow_singlePixel.tif')
         result = self.runalg(alg, parameters2)
         self.assertEqual(1, RasterReader(result[alg.P_OUTPUT_RASTER]).width())
         self.assertEqual(1, RasterReader(result[alg.P_OUTPUT_RASTER]).height())
@@ -201,7 +197,7 @@ class TestTranslateAlgorithm(TestCase):
         # single row
         parameters2 = parameters.copy()
         parameters2[alg.P_SOURCE_ROWS] = [50, 50]
-        parameters2[alg.P_OUTPUT_RASTER] = c + '/vsimem/enmapClipSourceWindow_singleRow.tif'
+        parameters2[alg.P_OUTPUT_RASTER] = self.filename('enmapClipSourceWindow_singleRow.tif')
         result = self.runalg(alg, parameters2)
         self.assertEqual(raster.width(), RasterReader(result[alg.P_OUTPUT_RASTER]).width())
         self.assertEqual(1, RasterReader(result[alg.P_OUTPUT_RASTER]).height())
@@ -209,7 +205,7 @@ class TestTranslateAlgorithm(TestCase):
         # single column
         parameters2 = parameters.copy()
         parameters2[alg.P_SOURCE_COLUMNS] = [50, 50]
-        parameters2[alg.P_OUTPUT_RASTER] = c + '/vsimem/enmapClipSourceWindow_singleColumn.tif'
+        parameters2[alg.P_OUTPUT_RASTER] = self.filename('enmapClipSourceWindow_singleColumn.tif')
         result = self.runalg(alg, parameters2)
         self.assertEqual(raster.height(), RasterReader(result[alg.P_OUTPUT_RASTER]).height())
         self.assertEqual(1, RasterReader(result[alg.P_OUTPUT_RASTER]).width())
@@ -223,7 +219,7 @@ class TestTranslateAlgorithm(TestCase):
         for index, name in enumerate(alg.O_RESAMPLE_ALG):
             print(name)
             parameters[alg.P_RESAMPLE_ALG] = index
-            parameters[alg.P_OUTPUT_RASTER] = c + f'/vsimem/raster.{name}.tif'
+            parameters[alg.P_OUTPUT_RASTER] = self.filename(f'raster.{name}.tif')
             self.runalg(alg, parameters)
 
     def test_copyStyle(self):
@@ -231,7 +227,7 @@ class TestTranslateAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: QgsRasterLayer(enmap),
             alg.P_COPY_STYLE: True,
-            alg.P_OUTPUT_RASTER: c + f'/vsimem/rasterStyled.vrt'
+            alg.P_OUTPUT_RASTER: self.filename('rasterStyled.vrt')
         }
         result = self.runalg(alg, parameters)
         layer = QgsRasterLayer(result[alg.P_OUTPUT_RASTER])
@@ -243,7 +239,7 @@ class TestTranslateAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: enmap,
             alg.P_SPECTRAL_RASTER: hires,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/enmapSubsetToHires.tif'
+            alg.P_OUTPUT_RASTER: self.filename('enmapSubsetToHires.tif')
         }
         result = self.runalg(alg, parameters)
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
@@ -257,7 +253,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_BAND_LIST: [1],
             alg.P_OFFSET: 0,
             alg.P_SCALE: 1e-4 * 100,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/enmapScaled.tif'
+            alg.P_OUTPUT_RASTER: self.filename('enmapScaled.tif')
         }
         result = self.runalg(alg, parameters)
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
@@ -269,7 +265,7 @@ class TestTranslateAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: enmap,
             alg.P_UNSET_SOURCE_NODATA: True,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
+            alg.P_OUTPUT_RASTER: self.filename('dummy.tif')
         }
         result = self.runalg(alg, parameters)
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
@@ -280,7 +276,7 @@ class TestTranslateAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: enmap,
             alg.P_UNSET_NODATA: True,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
+            alg.P_OUTPUT_RASTER: self.filename('dummy.tif')
         }
         result = self.runalg(alg, parameters)
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
@@ -291,14 +287,14 @@ class TestTranslateAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: enmap,
             alg.P_NODATA: -123,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/dummy.tif'
+            alg.P_OUTPUT_RASTER: self.filename('dummy.tif')
         }
         result = self.runalg(alg, parameters)
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
         self.assertEqual(-123, reader.noDataValue())
 
     def test_writeEnviHeader(self):
-        filename = 'c:/vsimem/enmap.tif'
+        filename = self.filename('enmap.tif')
         alg = TranslateRasterAlgorithm()
         parameters = {
             alg.P_RASTER: enmap,

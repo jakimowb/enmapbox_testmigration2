@@ -11,7 +11,7 @@ class TestImportPrismaL2DAlgorithm(TestCase):
         alg = ImportPrismaL2DAlgorithm()
         parameters = {
             alg.P_FILE: r'D:\data\sensors\prisma\PRS_L2D_STD_20201107101404_20201107101408_0001.he5',
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/prismaL2D.tif',
+            alg.P_OUTPUT_RASTER: self.filename('prismaL2D.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(-889622826, round(np.sum(RasterReader(result[alg.P_OUTPUT_RASTER]).array(bandList=[1]))))
