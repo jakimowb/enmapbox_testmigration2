@@ -49,8 +49,8 @@ class VectorLayerTools(QgsVectorLayerTools):
     sigEditingStarted = pyqtSignal(QgsVectorLayer)
     sigEditingStopped = pyqtSignal(QgsVectorLayer)
     sigFreezeCanvases = pyqtSignal(bool)
-    sigZoomRequest = pyqtSignal(SpatialExtent)
-    sigPanRequest = pyqtSignal(SpatialPoint)
+    sigZoomRequest = pyqtSignal(QgsCoordinateReferenceSystem, QgsRectangle)
+    sigPanRequest = pyqtSignal(QgsCoordinateReferenceSystem, QgsPointXY)
 
     def __init__(self, *args, **kwds):
         super(VectorLayerTools, self).__init__(*args, **kwds)
@@ -104,9 +104,7 @@ class VectorLayerTools(QgsVectorLayerTools):
 
     def pasteFromClipboard(self, layer: QgsVectorLayer):
         import qgis.utils
-        if isinstance(layer, QgsVectorLayer) \
-                and layer.isEditable() \
-                and isinstance(qgis.utils.iface, QgisInterface):
+        if isinstance(layer, QgsVectorLayer) and layer.isEditable() and isinstance(qgis.utils.iface, QgisInterface):
             qgis.utils.iface.pasteFromClipboard(layer)
 
     def invertSelection(self, layer: QgsVectorLayer):
@@ -159,13 +157,13 @@ class VectorLayerTools(QgsVectorLayerTools):
         if isinstance(layer, QgsVectorLayer) and layer.selectedFeatureCount() > 0:
             bbox = layer.boundingBoxOfSelected()
             ext = SpatialExtent(layer.crs(), bbox)
-            self.sigZoomRequest.emit(ext)
+            self.sigZoomRequest[QgsCoordinateReferenceSystem, QgsRectangle].emit(ext.crs(), ext)
 
     def panToSelected(self, layer: QgsVectorLayer):
         if isinstance(layer, QgsVectorLayer) and layer.selectedFeatureCount() > 0:
             bbox = layer.boundingBoxOfSelected()
             pt = SpatialPoint(layer.crs(), bbox.center())
-            self.sigPanRequest.emit(pt)
+            self.sigPanRequest[QgsCoordinateReferenceSystem, QgsPointXY].emit(pt.crs(), pt)
 
     def rollBackEdits(self, layer: QgsVectorLayer, leave_editable: bool = True, trigger_repaint: bool = False) -> bool:
         self.sigFreezeCanvases.emit(True)

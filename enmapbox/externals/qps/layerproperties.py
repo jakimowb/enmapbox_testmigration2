@@ -129,16 +129,144 @@ MDF_QGIS_LAYER_STYLE = 'application/qgis.style'
 MDF_TEXT_PLAIN = 'text/plain'
 
 
-class FieldListModel(QAbstractListModel):
+class CheckableQgsFieldModel(QgsFieldModel):
+    """
+    A QgsFieldModel that allows to select fields by checkboxes
+    """
 
-    def __init__(self, *args, layer: QgsVectorLayer = None, **kwds):
+    def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
 
-    def setLayer(self, layer: QgsVectorLayer):
-        self.mLayer = layer
+        self.mChecked: typing.Dict[int, bool] = dict()
+        self.mDisabled: typing.Dict[int, bool] = dict()
 
-    def flags(self, index: QModelIndex):
-        pass
+    def setDisabledFields(self, disabled: QgsFields):
+
+        if isinstance(disabled, QgsFields):
+            disabled = disabled.names()
+
+        for r in range(self.rowCount()):
+            field = self.fields().at(r)
+            self.mDisabled[r] = field.name() in disabled or r in disabled
+
+    def checkedFields(self) -> QgsFields:
+
+        fields = QgsFields()
+        for r in range(self.rowCount()):
+            if self.mChecked.get(r, False) and not self.mDisabled.get(r, False):
+                fields.append(self.fields().at(r))
+        return fields
+
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+
+        # flags = super().flags(index)
+        if self.mDisabled.get(index.row(), False):
+            flags = Qt.NoItemFlags
+        else:
+            flags = Qt.ItemIsUserCheckable | Qt.ItemIsEnabled
+
+        return flags
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int) -> typing.Any:
+
+        if role == Qt.DisplayRole and orientation == Qt.Horizontal:
+            if section == 0:
+                return 'Field Name'
+        return super(CheckableQgsFieldModel, self).headerData(section, orientation, role)
+
+    def data(self, index: QModelIndex, role):
+        if not index.isValid():
+            return None
+
+        row = index.row()
+        field: QgsField = self.fields().at(row)
+
+        if role == Qt.CheckStateRole:
+            b = self.mChecked.get(row, False)
+            return Qt.Checked if b else Qt.Unchecked
+        if role == Qt.DecorationRole:
+            return iconForFieldType(field)
+
+        return super().data(index, role)
+
+    def setData(self, index: QModelIndex, value: typing.Any, role) -> bool:
+        if not index.isValid():
+            return None
+
+        row = index.row()
+
+        changed = None
+
+        if role == Qt.CheckStateRole:
+            self.mChecked[row] = value == Qt.Checked
+            changed = True
+
+        if changed is None:
+            return super().setData(index, value, role)
+        elif changed:
+            self.dataChanged.emit(index, index, [role])
+        return changed
+
+
+class CopyAttributesDialog(QDialog):
+
+    @staticmethod
+    def copyLayerFields(layer: QgsVectorLayer,
+                        fields: typing.Union[QgsFields, QgsVectorLayer, QgsFeature],
+                        parent=None) -> bool:
+
+        d = CopyAttributesDialog(layer, fields)
+        if d.exec_() == QDialog.Accepted:
+            was_editable = layer.isEditable()
+            layer.startEditing()
+            layer.beginEditCommand('Add attributes')
+            for f in d.selectedFields():
+                layer.addAttribute(f)
+            layer.endEditCommand()
+            layer.commitChanges(stopEditing=not was_editable)
+            return True
+        return False
+
+    def __init__(self,
+                 layer: QgsVectorLayer,
+                 fields: typing.Union[QgsFields, QgsVectorLayer, QgsFeature],
+                 parent=None, **kwds):
+
+        super().__init__(parent, **kwds)
+        self.setWindowTitle('Copy attributes')
+        self.setWindowIcon(QIcon(r':/images/themes/default/mActionNewAttribute.svg'))
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        fields = qgsFields(fields)
+        assert isinstance(fields, QgsFields)
+
+        self.mLabel = QLabel('Select attributes to copy')
+        self.mTableView = QTableView()
+
+        self.mFieldModel = CheckableQgsFieldModel()
+        self.mFieldModel.setFields(fields)
+        self.mFieldModel.setDisabledFields(layer.fields())
+        self.mFieldModel.dataChanged.connect(self.onFieldSelectionChanged)
+        self.mTableView.setModel(self.mFieldModel)
+        self.mTableView.horizontalHeader()
+        l = QVBoxLayout()
+        l.addWidget(self.mLabel)
+        l.addWidget(self.mTableView)
+
+        self.mButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.mButtonBox.button(QDialogButtonBox.Ok).clicked.connect(self.accept)
+        self.mButtonBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
+        l.addWidget(self.mButtonBox)
+
+        self.setLayout(l)
+
+        self.onFieldSelectionChanged()
+
+    def selectedFields(self) -> QgsFields:
+        return self.mFieldModel.checkedFields()
+
+    def onFieldSelectionChanged(self):
+        fields = self.mFieldModel.checkedFields()
+        self.mButtonBox.button(QDialogButtonBox.Ok).setEnabled(fields.count() > 0)
 
 
 class AddAttributeDialog(QDialog):
@@ -149,6 +277,10 @@ class AddAttributeDialog(QDialog):
     def __init__(self, layer, parent=None, case_sensitive: bool = False):
         assert isinstance(layer, QgsVectorLayer)
         super(AddAttributeDialog, self).__init__(parent)
+
+        self.setWindowTitle('Add attribute')
+        self.setWindowIcon(QIcon(r':/images/themes/default/mActionNewAttribute.svg'))
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
 
         assert isinstance(layer, QgsVectorLayer)
         self.mLayer = layer
@@ -193,11 +325,11 @@ class AddAttributeDialog(QDialog):
         for ntype in nativeTypes:
             assert isinstance(ntype, QgsVectorDataProvider.NativeType)
 
-            if ntype.mTypeName == 'Spectral Profile':
-                icon = QIcon(r':/qps/ui/icons/profile.svg')
-            else:
-                icon = QgsFields.iconForFieldType(ntype.mType)
-            o = Option(ntype, name=ntype.mTypeName, toolTip=ntype.mTypeDesc, icon=icon)
+            o = Option(ntype,
+                       name=ntype.mTypeName,
+                       toolTip=ntype.mTypeDesc,
+                       icon=iconForFieldType(ntype))
+
             self.typeModel.addOption(o)
 
         self.cbType.setModel(self.typeModel)
@@ -341,10 +473,11 @@ class RemoveAttributeDialog(QDialog):
         super().__init__(*args, **kwds)
         assert isinstance(layer, QgsVectorLayer)
         self.mLayer = layer
-        self.setWindowTitle('Remove Field')
-
+        self.setWindowTitle('Remove Fields')
+        self.setWindowIcon(QIcon(r':/images/themes/default/mActionDeleteAttribute.svg'))
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
         from .layerconfigwidgets.vectorlayerfields import LayerFieldsListModel
-        self.fieldModel = LayerFieldsListModel()
+        self.fieldModel = CheckableQgsFieldModel()
         self.fieldModel.setLayer(self.mLayer)
         self.fieldModel.setAllowEmptyFieldName(False)
         self.fieldModel.setAllowExpression(False)
@@ -356,7 +489,7 @@ class RemoveAttributeDialog(QDialog):
         self.btnBox.button(QDialogButtonBox.Cancel).clicked.connect(self.reject)
         self.btnBox.button(QDialogButtonBox.Ok).clicked.connect(self.accept)
 
-        self.label = QLabel('Select')
+        self.label = QLabel('Select Fields to remove')
 
         l = QVBoxLayout()
         l.addWidget(self.label)
@@ -368,12 +501,7 @@ class RemoveAttributeDialog(QDialog):
         """
         Returns the selected QgsFields
         """
-        fields = []
-        for idx in self.tvFieldNames.selectionModel().selectedRows():
-            i = idx.data(Qt.UserRole + 2)
-            fields.append(self.mLayer.fields().at(i))
-
-        return fields
+        return self.fieldModel.checkedFields()
 
     def fieldIndices(self) -> typing.List[int]:
         return [self.mLayer.fields().lookupField(f.name()) for f in self.fields()]
@@ -1063,8 +1191,15 @@ def showLayerPropertiesDialog(layer: QgsMapLayer,
                 if hasattr(dialog, 'addPropertiesPageFactory'):
                     #  QgsGui::providerGuiRegistry()->mapLayerConfigWidgetFactories( mapLayer )
                     from . import MAPLAYER_CONFIGWIDGET_FACTORIES
+                    added = []
                     for factory in QgsGui.providerGuiRegistry().mapLayerConfigWidgetFactories(layer):
+                        factory: QgsMapLayerConfigWidgetFactory
+                        added.append(factory.title())
                         dialog.addPropertiesPageFactory(factory)
+                    for factory in MAPLAYER_CONFIGWIDGET_FACTORIES:
+                        factory: QgsMapLayerConfigWidgetFactory
+                        if factory.title() not in added:
+                            dialog.addPropertiesPageFactory(factory)
                     # for f in MAPLAYER_CONFIGWIDGET_FACTORIES:
                     #    dialog.addPropertiesPageFactory(f)
 

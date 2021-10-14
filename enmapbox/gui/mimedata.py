@@ -19,11 +19,9 @@ from PyQt5.QtCore import *
 from PyQt5.QtXml import *
 
 from enmapbox import debugLog
-from enmapbox.gui import SpectralLibrary
-from enmapbox.gui.datasources import DataSource, DataSourceSpatial
-from enmapbox.gui.datasources import DataSourceFactory
 from ..externals.qps.layerproperties import defaultRasterRenderer
 from ..externals.qps.speclib.core import is_spectral_library
+from ..externals.qps.speclib.core.spectrallibrary import SpectralLibrary
 
 MDF_RASTERBANDS = 'application/enmapbox.rasterbanddata'
 
@@ -69,9 +67,10 @@ def attributesd2dict(attributes: QDomNamedNodeMap) -> str:
 
 
 def fromDataSourceList(dataSources):
-    from enmapbox.gui.datasources import DataSource
     if not isinstance(dataSources, list):
         dataSources = [dataSources]
+
+    from enmapbox.gui.datasources.datasources import DataSource
 
     mimeData = QMimeData()
 
@@ -80,6 +79,7 @@ def fromDataSourceList(dataSources):
     doc.appendChild(node)
 
     for ds in dataSources:
+
         assert isinstance(ds, DataSource)
         ds.writeXml(node)
     mimeData.setData(MDF_DATASOURCETREEMODELDATA, doc.toByteArray())
@@ -97,8 +97,8 @@ def toDataSourceList(mimeData):
         node = doc.firstChildElement(MDF_DATASOURCETREEMODELDATA_XML)
         childs = node.childNodes()
 
-        from enmapbox.gui.datasources import DataSource, DataSourceFactory
-        from enmapbox.gui.datasourcemanager import DataSourceManager
+        from enmapbox.gui.datasources.datasources import DataSource, DataSourceFactory
+        from enmapbox.gui.datasources.manager import DataSourceManager
         from uuid import UUID
         dsm = DataSourceManager.instance()
         b = isinstance(dsm, DataSourceManager)
@@ -169,6 +169,10 @@ def extractMapLayers(mimeData: QMimeData) -> list:
     """
     assert isinstance(mimeData, QMimeData)
 
+    from enmapbox.gui.datasources.datasources import DataSource
+    from enmapbox.gui.datasources.datasources import SpatialDataSource
+    from enmapbox.gui.datasources.manager import DataSourceFactory
+
     newMapLayers = []
 
     QGIS_LAYERTREE_FORMAT = None
@@ -221,7 +225,6 @@ def extractMapLayers(mimeData: QMimeData) -> list:
             if isinstance(mapLayer, (QgsRasterLayer, QgsVectorLayer)):
                 newMapLayers.append(mapLayer)
 
-
     elif MDF_RASTERBANDS in mimeData.formats():
         data = pickle.loads(mimeData.data(MDF_RASTERBANDS))
 
@@ -238,8 +241,9 @@ def extractMapLayers(mimeData: QMimeData) -> list:
         for uuid4 in dsUUIDs:
             assert isinstance(uuid4, uuid.UUID)
             dataSource = DataSource.fromUUID(uuid4)
-            if isinstance(dataSource, DataSourceSpatial):
-                lyr = dataSource.createUnregisteredMapLayer()
+
+            if isinstance(dataSource, SpatialDataSource):
+                lyr = dataSource.asMapLayer()
                 if isinstance(lyr, QgsRasterLayer):
                     lyr.setRenderer(defaultRasterRenderer(lyr))
                 newMapLayers.append(lyr)
@@ -251,10 +255,11 @@ def extractMapLayers(mimeData: QMimeData) -> list:
 
     elif QGIS_URILIST_MIMETYPE in mimeData.formats():
         for uri in QgsMimeDataUtils.decodeUriList(mimeData):
+
             dataSources = DataSourceFactory.create(uri)
             for dataSource in dataSources:
-                if isinstance(dataSource, DataSourceSpatial):
-                    lyr = dataSource.createUnregisteredMapLayer()
+                if isinstance(dataSource, SpatialDataSource):
+                    lyr = dataSource.asMapLayer()
                     if isinstance(lyr, QgsRasterLayer):
                         lyr.setRenderer(defaultRasterRenderer(lyr))
                     newMapLayers.append(lyr)
@@ -263,8 +268,8 @@ def extractMapLayers(mimeData: QMimeData) -> list:
         for url in mimeData.urls():
             dataSources = DataSourceFactory.create(url)
             for dataSource in dataSources:
-                if isinstance(dataSource, DataSourceSpatial):
-                    lyr = dataSource.createUnregisteredMapLayer()
+                if isinstance(dataSource, SpatialDataSource):
+                    lyr = dataSource.asMapLayer()
                     if isinstance(lyr, QgsRasterLayer):
                         lyr.setRenderer(defaultRasterRenderer(lyr))
                     newMapLayers.append(lyr)

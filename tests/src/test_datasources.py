@@ -12,6 +12,7 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import os
+import pathlib
 import tempfile
 import unittest
 import time
@@ -20,6 +21,16 @@ import numpy as np
 import xmlrunner
 import json
 import pickle
+
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QApplication
+from osgeo import ogr, gdal
+
+import testdata
+from enmapbox.externals.qps.speclib.core import profile_fields
+from enmapbox.externals.qps.utils import SpatialExtent
+from enmapbox.gui.datasources.datasources import SpatialDataSource, DataSource, RasterDataSource
+from enmapbox.gui.datasources.manager import DataSourceManager, DataSourceManagerPanelUI, DataSourceFactory
 from qgis.PyQt import sip
 from qgis.core import *
 from qgis.gui import *
@@ -27,10 +38,9 @@ from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, Q
 from qgis.gui import QgsMapCanvas
 
 from enmapbox import EnMAPBox
-from enmapbox.gui.datasourcemanager import *
-from enmapbox.gui.utils import *
+
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-from enmapbox.exampledata import enmap, hires, landcover_polygons, library
+from enmapbox.exampledata import enmap, hires, landcover_polygons, library, enmap_srf_library
 from enmapbox.gui.datasources import *
 
 
@@ -59,7 +69,7 @@ class DataSourceTests(EnMAPBoxTestCase):
 
         if os.path.isfile(p):
             ds1 = DataSourceFactory.create(p)[0]
-            self.assertIsInstance(ds1, DataSourceRaster)
+            self.assertIsInstance(ds1, RasterDataSource)
 
             lyr = ds1.createUnregisteredMapLayer()
             dp = lyr.dataProvider()
@@ -67,30 +77,11 @@ class DataSourceTests(EnMAPBoxTestCase):
             stats = dp.bandStatistics(1)
 
             ds2 = DataSourceFactory.create(p)[0]
-            self.assertIsInstance(ds1, DataSourceRaster)
+            self.assertIsInstance(ds1, RasterDataSource)
 
             self.assertTrue(ds1.isSameSource(ds2))
             self.assertFalse(ds1.isNewVersionOf(ds2))
             self.assertFalse(ds2.isNewVersionOf(ds1))
-
-    def test_rasters(self):
-        for uri in [None, type(None), landcover_polygons]:
-            self.assertTrue(rasterProvider(uri) == None)
-
-        # self.assertTrue(None == rasterProvider(self.wfsUri))
-        self.assertTrue(DataSourceFactory.isRasterSource(enmap))
-        # self.assertTrue(rasterProvider(self.wmsUri) == 'wms')
-        # self.assertTrue(DataSourceFactory.isRasterSource(self.wmsUri))
-
-        for uri in [enmap]:
-            ds = DataSourceFactory.create(uri)
-            self.assertIsInstance(ds, list)
-            self.assertTrue(len(ds) == 1)
-            for source in ds:
-                self.assertIsInstance(source, DataSourceRaster)
-                self.assertIsInstance(source.spatialExtent(), SpatialExtent)
-                self.assertIsInstance(source.mProvider, str)
-                self.assertIsInstance(source.icon(), QIcon)
 
     def test_subdatasets(self):
         path = r'H:\Processing_BJ\01_Data\Sentinel2\T21LWL\S2B_MSIL1C_20191208T140049_N0208_R067_T21LWL_20191208T153903.SAFE\MTD_MSIL1C.xml'
@@ -113,7 +104,7 @@ class DataSourceTests(EnMAPBoxTestCase):
 
                 self.assertIsInstance(ds, list)
                 self.assertTrue(len(ds) == 1)
-                self.assertIsInstance(ds[0], DataSourceRaster)
+                self.assertIsInstance(ds[0], RasterDataSource)
 
     def createTestSources(self) -> list:
 
@@ -133,91 +124,11 @@ class DataSourceTests(EnMAPBoxTestCase):
                 TestObjects.createVectorLayer(ogr.wkbPolygon),
                 TestObjects.createSpectralLibrary(10)]
 
-    def test_classifier(self):
-
-        import pickle
-
-        pathClassifier = r''
-        if os.path.isfile(pathClassifier):
-            f = open(pathClassifier, 'rb')
-            classifier = pickle.load(file=f)
-            f.close()
-
-            HubFlowObjectTreeNode.fetchInternals(classifier._sklEstimator, None)
-
-            DSM = DataSourceManager()
-            TM = DataSourceManagerTreeModel(None, DSM)
-
-            TV = QTreeView()
-            TV.header().setResizeMode(QHeaderView.ResizeToContents)
-            TV.setModel(TM)
-            TV.show()
-            TV.resize(QSize(400, 250))
-
-            DSM.addSource(classifier)
-            self.assertTrue(1 > 0)
-
-            self.showGui(TV)
-
     def test_testSources(self):
 
         for l in self.createTestSourceLayers():
             self.assertIsInstance(l, QgsMapLayer)
             self.assertTrue(l.isValid())
-
-    def test_vectors(self):
-        for uri in [None, type(None), enmap]:
-            self.assertTrue(vectorProvider(uri) == None)
-
-        self.assertTrue(DataSourceFactory.isVectorSource(landcover_polygons))
-
-        for uri in [landcover_polygons]:
-            sources = DataSourceFactory.create(uri)
-            self.assertIsInstance(sources, list)
-            self.assertEqual(len(sources), 1)
-            for source in sources:
-                self.assertIsInstance(source, DataSourceVector)
-                self.assertIsInstance(source.spatialExtent(), SpatialExtent)
-                self.assertIsInstance(source.mProvider, str)
-
-    def test_csv(self):
-
-        path_csv = pathlib.Path(enmap).parent / 'library_berlin.csv'
-        self.assertTrue(path_csv.is_file())
-        self.assertTrue(DataSourceFactory.isVectorSource(path_csv))
-        source = DataSourceFactory.create(path_csv)
-        self.assertTrue(source, DataSourceVector)
-
-        mimeData = QMimeData()
-        mimeData.setUrls([QUrl.fromLocalFile(path_csv.as_posix())])
-
-    def test_speclibs(self):
-
-        ds = DataSourceFactory.create(library)
-        self.assertIsInstance(ds, list)
-        self.assertTrue(len(ds) == 1)
-        ds = ds[0]
-        self.assertIsInstance(ds, DataSourceVector)
-        self.assertTrue(ds.isSpectralLibrary())
-
-        import enmapbox.unittestdata.asd.asd
-        from enmapbox import scantree
-        from enmapbox.externals.qps.speclib.io.asd import ASDSpectralLibraryIO
-        asdDir = pathlib.Path(enmapboxunittestdata.__file__).parent
-        asdFiles = list(scantree(asdDir, '.asd'))
-
-        for file in asdFiles:
-            file = str(file)
-            print('Load SpectralLibrary from {}...'.format(file), flush=True)
-            self.assertTrue(os.path.isfile(file))
-            self.assertTrue(ASDSpectralLibraryIO.canRead(file))
-            slib = ASDSpectralLibraryIO.readFrom(file)
-
-            self.assertIsInstance(slib, SpectralLibrary)
-            ds = DataSourceFactory.create(file)
-
-            self.assertIsInstance(ds, list)
-            self.assertTrue(len(ds) > 0, msg='not datasource returned for {}'.format(file))
 
     def test_layerSourceUpdate(self):
 
@@ -244,43 +155,6 @@ class DataSourceTests(EnMAPBoxTestCase):
 
         # del lyr
 
-    def test_datasourceversions(self):
-
-        path = tempfile.mktemp(suffix='image.bsq')
-        path = '/vsimem/image.bsq'
-        TestObjects.createRasterDataset(nb=2, nl=500, path=path)
-
-        src1 = DataSourceFactory.create(path)[0]
-
-        self.assertIsInstance(src1, DataSourceRaster)
-        self.assertEqual(src1.nBands(), 2)
-        self.assertEqual(src1.nLines(), 500)
-        time.sleep(1)
-        TestObjects.createRasterDataset(nb=30, nl=1000, path=path)
-
-        src2 = DataSourceFactory.create(path)[0]
-        time.sleep(1)
-
-        src3 = DataSourceFactory.create(path)[0]
-        self.assertIsInstance(src2, DataSourceRaster)
-        self.assertEqual(src2.nBands(), 30)
-        self.assertEqual(src2.nLines(), 1000)
-        self.assertTrue(src1.modificationTime() < src2.modificationTime())
-        # self.assertTrue(src2.isNewVersionOf(src1))
-        # self.assertFalse(src3.isNewVersionOf(src2))
-
-        DSM = DataSourceManager()
-
-        self.assertIsInstance(DSM, DataSourceManager)
-        self.assertEqual(len(DSM), 0)
-
-        DSM.addSource(src1)
-        self.assertEqual(len(DSM), 1)
-        self.assertEqual(DSM.sources()[0], src1)
-        DSM.addSource(src2)
-        self.assertEqual(len(DSM), 1)
-        self.assertEqual(DSM.sources()[0], src2)
-
     def test_datasourcemanager_equalsources(self):
 
         p1 = str(pathlib.Path(hires))
@@ -297,7 +171,7 @@ class DataSourceTests(EnMAPBoxTestCase):
     def test_DataSourcePanelUI(self):
 
         dsm = DataSourceManager()
-        panel = DataSourcePanelUI()
+        panel = DataSourceManagerPanelUI()
         panel.connectDataSourceManager(dsm)
         uris = [library, enmap, landcover_polygons]
         dsm.addSources(uris)
@@ -314,26 +188,22 @@ class DataSourceTests(EnMAPBoxTestCase):
         self.assertTrue((len(dsm) == len(uris)))
         dsm.addSources(uris)
         self.assertEqual(len(dsm), len(uris), msg='Redundant sources are not allowed')
-        uriList = dsm.uriList()
-        self.assertIsInstance(uriList, list)
-        self.assertTrue(len(uriList) == len(uris))
-        self.assertListEqual(uris, dsm.uriList())
 
-        self.assertEqual(len(dsm.sources('SPATIAL')),2)
-        self.assertEqual(len(dsm.sources('RASTER')), 1)
-        self.assertEqual(len(dsm.sources('VECTOR')), 1)
-        self.assertEqual(len(dsm.sources('SPECLIB')), 0)
-        self.assertEqual(len(dsm.sources('FILE')), 0)
+        self.assertEqual(len(dsm.dataSources('SPATIAL')), 3)
+        self.assertEqual(len(dsm.dataSources('RASTER')), 1)
+        self.assertEqual(len(dsm.dataSources('VECTOR')), 2)
+        self.assertEqual(len(dsm.dataSources('SPECLIB')), 1)
+        self.assertEqual(len(dsm.dataSources('FILE')), 0)
 
         self.assertTrue(len(reg.mapLayers()) == 0)
         lyrs = self.createTestSourceLayers()
         dsm = DataSourceManager()
         for i, l in enumerate(lyrs):
             print('Add {}...'.format(l.source()))
-            ds = dsm.addSource(l)
-            self.assertTrue(len(ds) == 1)
+            ds = dsm.addDataSources(l)
+            self.assertEqual(len(ds), 1)
             self.assertIsInstance(ds[0], DataSource)
-            self.assertTrue(len(dsm) == i + 1)
+            self.assertEqual(len(dsm), i + 1)
         dsm.addSources(lyrs)
         self.assertTrue(len(dsm) == len(lyrs))
 
@@ -367,74 +237,6 @@ class DataSourceTests(EnMAPBoxTestCase):
         self.assertTrue(sip.isdeleted(lyr))
         # self.assertTrue(len(dsm) == 0)
 
-    def test_datasourcmanagertreemodel(self):
-        reg = QgsProject.instance()
-        reg.removeAllMapLayers()
-        dsm = DataSourceManager()
-        TM = DataSourceManagerTreeModel(None, dsm)
-
-        uriList = self.createTestSources()
-        for uri in uriList:
-            print('Test "{}"'.format(uri))
-            ds = DataSourceFactory.create(uri)[0]
-            print(ds)
-            dsm.addSource(uri)
-
-        self.assertEqual(len(dsm), len(uriList))
-        self.assertEqual(TM.rowCount(None), 3,
-                         msg='More than 3 RasterSource type nodes. Should be raster, vector, speclibs = 3 only.')
-
-        for grpNode in TM.rootNode().children():
-            self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
-            for dsNode in grpNode.childNodes():
-                self.assertIsInstance(dsNode, DataSourceTreeNode)
-
-        rasterGroupNode = [n for n in TM.rootNode() if 'Raster' in n.name()][0]
-        n = len(rasterGroupNode.childNodes())
-        dsm.addSources([enmap])
-
-        self.assertEqual(n, len(rasterGroupNode.childNodes()))
-
-    def test_enmapbox(self):
-
-        from enmapbox.gui.enmapboxgui import EnMAPBox
-        EB = EnMAPBox.instance()
-        if not isinstance(EB, EnMAPBox):
-            EB = EnMAPBox(load_other_apps=False, load_core_apps=False)
-
-        uriList = self.createTestSources()
-        for uri in uriList:
-            print('Test "{}"'.format(uri))
-            ds = EB.addSource(uri)
-
-    def createTestSources(self) -> list:
-
-        return [library, enmap, landcover_polygons]
-
-    def test_testSources(self):
-
-        reg = QgsProject.instance()
-
-        raster = QgsRasterLayer(enmap)
-        self.assertIsInstance(raster, QgsRasterLayer)
-        reg.addMapLayer(raster, False)
-
-        sl = SpectralLibrary.readFrom(library)
-        self.assertIsInstance(sl, SpectralLibrary)
-        reg.addMapLayer(sl, False)
-
-    def test_sourceNodes(self):
-
-        for uri in self.createTestSources():
-            self.assertIsInstance(uri, str)
-            dsl = DataSourceFactory.create(uri)
-
-            for dataSource in dsl:
-                self.assertIsInstance(dataSource, DataSource)
-
-                node = createNodeFromDataSource(dataSource)
-                self.assertIsInstance(node, DataSourceTreeNode)
-
     def test_registryresponse(self):
 
         from enmapbox.gui.mapcanvas import MapCanvas
@@ -445,7 +247,7 @@ class DataSourceTests(EnMAPBoxTestCase):
         for p in self.createTestSources():
             print(p)
             ds = DataSourceFactory.create(p)
-            if isinstance(ds, DataSourceSpatial):
+            if isinstance(ds, SpatialDataSource):
                 lyr = ds.createUnregisteredMapLayer()
                 mapCanvas.setLayers(lyr)
 
@@ -454,125 +256,6 @@ class DataSourceTests(EnMAPBoxTestCase):
                 self.assertTrue(len(reg.mapLayers()) == 1)
                 reg.removeAllMapLayers()
                 self.assertTrue(len(mapCanvas.layers()) == 0)
-
-    def test_datasourceTreeManagerModel(self):
-
-        dsm = DataSourceManager()
-        M = DataSourceManagerTreeModel(None, dsm)
-        self.assertIsInstance(M, DataSourceManagerTreeModel)
-
-        self.assertEqual(M.rowCount(None), 0)
-
-        # add 2 rasters
-        dsm.addSources([enmap, hires])
-        self.assertEqual(M.rowCount(None), 1)
-
-        # add
-        dsm.addSource(landcover_polygons)
-        self.assertEqual(M.rowCount(None), 2)
-
-        added = dsm.addSource(library)
-        self.assertEqual(M.rowCount(None), 3)
-
-        from enmapbox.gui.mapcanvas import MapCanvas
-
-        for i, grpNode in enumerate(M.rootNode().childNodes()):
-            self.assertIsInstance(grpNode, DataSourceGroupTreeNode)
-            grpIndex = M.node2idx(grpNode)
-            self.assertIsInstance(grpIndex, QModelIndex)
-            self.assertTrue(grpIndex.isValid())
-            self.assertEqual(grpIndex.row(), i)
-
-            rasterSourceNodes = []
-
-            for j, dNode in enumerate(grpNode.childNodes()):
-                self.assertIsInstance(dNode, DataSourceTreeNode)
-
-                if not isinstance(dNode, (SpatialDataSourceTreeNode,)):
-                    continue
-
-                nodeIndex = M.node2idx(dNode)
-                self.assertIsInstance(nodeIndex, QModelIndex)
-                self.assertTrue(nodeIndex.isValid())
-                self.assertEqual(nodeIndex.row(), j)
-
-                mapCanvas = MapCanvas()
-                # get mime data
-                mimeData = M.mimeData([nodeIndex])
-                self.assertIsInstance(mimeData, QMimeData)
-
-                from enmapbox.gui.mimedata import extractMapLayers
-                l = extractMapLayers(mimeData)
-                self.assertIsInstance(l, list)
-                if not len(l) == 1:
-                    s = ""
-                self.assertTrue(len(l) == 1)
-                self.assertIsInstance(l[0], QgsMapLayer)
-
-                def createDropEvent(mimeData: QMimeData) -> QDropEvent:
-                    return QDropEvent(QPointF(0, 0), Qt.CopyAction, mimeData, Qt.LeftButton, Qt.NoModifier, QEvent.Drop)
-
-                formats = mimeData.formats()
-                self.assertIsInstance(dNode.mDataSource, DataSource)
-                self.assertIn(MDF_DATASOURCETREEMODELDATA, formats)
-
-                if isinstance(dNode, RasterDataSourceTreeNode):
-                    self.assertIsInstance(dNode.mDataSource, DataSourceRaster)
-                    mapCanvas.dropEvent(createDropEvent(mimeData))
-                    QApplication.processEvents()
-                    self.assertTrue(len(mapCanvas.layers()) == 1)
-                    rasterSourceNodes.append(dNode)
-
-                    # set drag / drop of raster band
-                    # see https://bitbucket.org/hu-geomatics/enmap-box/issues/408/dropping-a-raster-band-onto-the-grey-area
-                    for bandNode in dNode.mNodeBands.childNodes():
-                        self.assertIsInstance(bandNode, RasterBandTreeNode)
-                        bandMime = M.mimeData([M.node2idx(bandNode)])
-                        n = len(mapCanvas.layers())
-                        mapCanvas.dropEvent(createDropEvent(bandMime))
-                        QApplication.processEvents()
-                        self.assertEqual(len(mapCanvas.layers()), n + 1)
-                        break
-
-                if isinstance(dNode, VectorDataSourceTreeNode):
-                    self.assertIsInstance(dNode.mDataSource, DataSourceVector)
-                    mapCanvas.dropEvent(createDropEvent(mimeData))
-                    self.assertTrue(len(mapCanvas.layers()) == 1)
-
-                if isinstance(dNode, HubFlowObjectTreeNode):
-                    pass
-
-                QApplication.processEvents()
-
-            for node in rasterSourceNodes:
-                self.assertIsInstance(node, RasterDataSourceTreeNode)
-                self.assertIsInstance(node.childNodes(), list)
-                n0 = len(mapCanvas.layers())
-                for n, child in enumerate(node.mNodeBands.children()):
-                    self.assertIsInstance(child, RasterBandTreeNode)
-                    nodeIndex = M.node2index(child)
-                    mimeData = M.mimeData([nodeIndex])
-                    self.assertIsInstance(mimeData, QMimeData)
-                    # drop speclib to mapcanvas
-                    mapCanvas.dropEvent(createDropEvent(mimeData))
-                    self.assertTrue(len(mapCanvas.layers()) == n0 + n + 1)
-
-                    if n > 3:
-                        break
-
-    def test_issue_672_pkl(self):
-
-        from enmapbox import DIR_REPO
-
-        path_pkl = pathlib.Path(DIR_REPO) / 'enmapboxunittestdata' / 'classifier.pkl'
-
-        self.assertTrue(os.path.isfile(path_pkl), msg='missing unittest data: {}'.format(path_pkl))
-
-        dsm = DataSourceManager()
-        panel = DataSourcePanelUI()
-        panel.connectDataSourceManager(dsm)
-        dsm.addSource(path_pkl)
-        self.showGui(panel)
 
 
 if __name__ == "__main__":

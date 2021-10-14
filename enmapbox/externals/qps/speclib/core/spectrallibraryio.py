@@ -2,11 +2,12 @@ import os
 import pathlib
 import typing
 import re
+import warnings
 
 from PyQt5.QtCore import pyqtSignal, QRegExp, QUrl
 from PyQt5.QtGui import QIcon, QRegExpValidator
 from PyQt5.QtWidgets import QWidget, QMenu, QDialog, QFormLayout, QComboBox, QStackedWidget, QDialogButtonBox, \
-    QLineEdit, QCheckBox
+    QLineEdit, QCheckBox, QToolButton, QAction
 
 from qgis.core import QgsProject
 from qgis.core import QgsVectorLayer, QgsFeature, QgsFields, QgsExpressionContextGenerator, QgsProperty, QgsFileUtils, \
@@ -16,11 +17,14 @@ from qgis.gui import QgsFileWidget, QgsFieldMappingWidget, QgsFieldMappingModel
 from qgis.core import QgsField, QgsExpression, QgsExpressionContext
 
 from qgis.core import QgsProcessingFeedback
-from . import is_spectral_library
+from . import is_spectral_library, is_profile_field, profile_field_list
+from .spectralprofile import groupBySpectralProperties
 from .. import speclibUiPath
-from ...utils import loadUi
+from ...layerproperties import CopyAttributesDialog
+from ...utils import loadUi, FeatureReferenceIterator
 
 IMPORT_SETTINGS_KEY_REQUIRED_SOURCE_FIELDS = 'required_source_fields'
+
 
 class SpectralLibraryIOWidget(QWidget):
 
@@ -46,7 +50,7 @@ class SpectralLibraryIOWidget(QWidget):
         Sets the spectral library to make IO operations with
         :param speclib:
         """
-        assert is_spectral_library(speclib)
+        # assert is_spectral_library(speclib)
         self.mSpeclib = speclib
 
     def speclib(self) -> QgsVectorLayer:
@@ -310,51 +314,153 @@ class SpectralLibraryIO(object):
         return []
 
     @staticmethod
-    def writeSpeclibToUri(speclib: QgsVectorLayer, uri, feedback: QgsProcessingFeedback = None) -> typing.List[str]:
-        return SpectralLibraryIO.writeProfilesToUri(speclib.getFeatures(), uri, crs=speclib.crs(), feedback=feedback)
+    def writeSpeclibToUri(speclib: QgsVectorLayer, uri,
+                          settings: dict = None,
+                          feedback: QgsProcessingFeedback = None) -> typing.List[str]:
+
+        return SpectralLibraryIO.writeProfilesToUri(speclib.getFeatures(), speclib, uri,
+                                                    settings=settings,
+                                                    feedback=feedback)
 
     @staticmethod
     def writeProfilesToUri(profiles: typing.List[QgsFeature],
-                           uri,
+                           speclib: QgsVectorLayer,
+                           uri: typing.Union[str, pathlib.Path],
+                           settings: dict = None,
                            feedback: QgsProcessingFeedback = None,
                            crs: QgsCoordinateReferenceSystem = None) -> typing.List[str]:
+
+        if profiles is None and isinstance(speclib, QgsVectorLayer):
+            profiles = speclib.getFeatures()
+
+        featureIterator = FeatureReferenceIterator(profiles)
+        referenceProfile = featureIterator.referenceFeature()
+
+        if not isinstance(referenceProfile, QgsFeature):
+            print('No features to write')
+            return []
+
+        profile_fields = profile_field_list(referenceProfile)
+        if len(profile_fields) == 0:
+            print('No profile fieds to write')
+            return []
+
+        if not isinstance(settings, dict):
+            settings = dict()
+
+        if not isinstance(crs, QgsCoordinateReferenceSystem):
+            if isinstance(speclib, QgsVectorLayer):
+                crs = speclib.crs()
+            else:
+                crs = QgsCoordinateReferenceSystem()
+
+        def createDummySpeclib(refProfile: QgsFeature, profile_field: str = None) -> QgsVectorLayer:
+            g = refProfile.geometry()
+            dummy = QgsVectorLayer('point', "Scratch point layer", "memory")
+            assert dummy.isValid()
+            if isinstance(crs, QgsCoordinateReferenceSystem):
+                dummy.setCrs(crs)
+
+            dummy.startEditing()
+            for f in refProfile.fields():
+                f: QgsField
+                if profile_field and is_profile_field(f) and f.name() != profile_field:
+                    continue
+                dummy.addAttribute(f)
+            assert dummy.commitChanges()
+            return dummy
 
         if isinstance(uri, QUrl):
             uri = uri.toString(QUrl.PreferLocalFile | QUrl.RemoveQuery)
 
-        elif isinstance(uri, pathlib.Path):
-            uri = uri.as_posix()
+        uri = pathlib.Path(uri)
 
-        if not isinstance(uri, str):
-            return []
-
-        if crs is None:
-            crs = QgsCoordinateReferenceSystem()
-
-        ext = os.path.splitext(uri)[1]
+        uri_bn, uri_ext = os.path.splitext(uri.name)
 
         matched_formats: typing.List[SpectralLibraryImportWidget] = []
+
+        if len(SpectralLibraryIO.spectralLibraryIOs()) == 0:
+            warnings.warn('No SpectralLibraryIO registered. Register SpectralLibraryIOs with '
+                          'SpectralLibraryIO.registerSpectralLibraryIO(<IO>) first.')
+            return []
+
         for IO in SpectralLibraryIO.spectralLibraryIOs():
             format = IO.createExportWidget()
-            if isinstance(format, SpectralLibraryImportWidget):
+            if isinstance(format, SpectralLibraryExportWidget):
                 for e in QgsFileUtils.extensionsFromFilter(format.filter()):
-                    if ext.endswith(e):
+                    if uri_ext.endswith(e):
                         matched_formats.append(format)
                         break
+
+        if len(matched_formats) == 0:
+            warnings.warn(f'No SpectralLibraryIO export format found for file type "*{uri_ext}"')
+            return []
 
         for format in matched_formats:
             format: SpectralLibraryExportWidget
             IO: SpectralLibraryIO = format.spectralLibraryIO()
-            format.setSpeclib(uri)
-            fields = QgsFields(format.sourceFields())
-            if fields.count() == 0:
-                continue
-            settings = dict(fields=QgsFields(format.sourceFields()))
-            settings = format.importSettings(settings)
-            importedProfiles = IO.importProfiles(uri, settings, feedback=feedback)
-            if len(importedProfiles) > 0:
-                return importedProfiles
 
+            # consider that not every format allows to
+            # 1. write profiles from different fields
+            # 2. profiles of different wavelength
+
+            GROUPS: typing.Dict[str, typing.List[typing.List[QgsFeature]]] = dict()
+
+            needs_field_separation = len(profile_fields) > 1 and not format.supportsMultipleProfileFields()
+            needs_setting_groups = not format.supportsMultipleSpectralSettings()
+
+            if not (needs_setting_groups or needs_field_separation):
+                GROUPS[''] = [featureIterator]
+            else:
+                all_profiles = list(featureIterator)
+
+                if needs_setting_groups:
+                    for field in profile_fields:
+                        for setting, profiles in groupBySpectralProperties(all_profiles, profile_field=field):
+                            GROUPS[field.name()] = GROUPS.get(field.name(), []).append(list(profiles))
+                else:
+                    # needs_field_separation:
+                    for field in profile_fields:
+                        GROUPS[field.name()] = [all_profiles]
+
+            # iterate over profile fields
+
+            files_creates = []
+            # iterate over profile groups
+
+            nFields = 0
+
+            for fieldName, profilesGroups in GROUPS.items():
+
+                nFields += 1
+
+                # use a separated file name for each field
+                if len(profile_fields) > 1 and fieldName != '':
+                    dummy = createDummySpeclib(referenceProfile)
+                    uri_field = f'{uri_bn}.{fieldName}'
+                else:
+                    dummy = createDummySpeclib(referenceProfile, fieldName)
+                    uri_field = uri_bn
+
+                for iGrp, profiles in enumerate(profilesGroups):
+
+                    # use a separated file name for each profile group
+                    if iGrp == 0:
+                        _uri = uri.parent / f'{uri_field}{uri_ext}'
+                    else:
+                        _uri = uri.parent / f'{uri_field}.{iGrp}{uri_ext}'
+
+                    format.setSpeclib(dummy)
+                    _settings = dict()
+                    if fieldName != '':
+                        _settings['profile_field'] = fieldName
+                    _settings = format.exportSettings(_settings)
+                    # update with globals settings (if defined)
+                    _settings.update(settings)
+
+                    create_files = IO.exportProfiles(_uri.as_posix(), _settings, profiles, feedback=feedback)
+                    files_creates.extend(create_files)
+            return files_creates
         return []
 
     @staticmethod
@@ -400,7 +506,6 @@ class SpectralLibraryIO(object):
 
 
 class SpectralLibraryImportDialog(QDialog):
-
 
     @staticmethod
     def importProfiles(speclib: QgsVectorLayer,
@@ -483,6 +588,12 @@ class SpectralLibraryImportDialog(QDialog):
         self.fileWidget: QgsFileWidget
         self.fieldMappingWidget: QgsFieldMappingWidget
         self.buttonBox: QDialogButtonBox
+
+        self.btnAddMissingSourceFields: QToolButton
+        self.actionAddMissingSourceFields: QAction
+        self.actionAddMissingSourceFields.triggered.connect(self.onAddMissingSourceFields)
+        self.btnAddMissingSourceFields.setDefaultAction(self.actionAddMissingSourceFields)
+
         self.cbFormat.currentIndexChanged.connect(self.setImportWidget)
 
         self.fileWidget.fileChanged.connect(self.onFileChanged)
@@ -550,7 +661,10 @@ class SpectralLibraryImportDialog(QDialog):
             self.fieldMappingWidget.setFieldPropertyMap({})
             self.fieldMappingWidget.setSourceFields(w.sourceFields())
             # self.fieldMappingWidget.registerExpressionContextGenerator(w)
-            s = ""
+            fields = w.sourceFields()
+            self.actionAddMissingSourceFields.setEnabled(fields.count() > 0)
+        else:
+            self.actionAddMissingSourceFields.setEnabled(False)
 
     def setImportWidget(self, import_format: typing.Union[int, str, SpectralLibraryImportWidget]):
         self.cbFormat: QComboBox
@@ -607,6 +721,17 @@ class SpectralLibraryImportDialog(QDialog):
         return [self.stackedWidgetFormatOptions.widget(i)
                 for i in range(self.stackedWidgetFormatOptions.count())
                 if isinstance(self.stackedWidgetFormatOptions.widget(i), SpectralLibraryImportWidget)]
+
+    def onAddMissingSourceFields(self):
+        sourceFields = None
+        w = self.currentImportWidget()
+        if isinstance(w, SpectralLibraryImportWidget):
+            sourceFields = w.sourceFields()
+        speclib = self.speclib()
+
+        if isinstance(sourceFields, QgsFields) and sourceFields.count() > 0 and isinstance(speclib, QgsVectorLayer):
+            if CopyAttributesDialog.copyLayerFields(speclib, sourceFields):
+                self.fieldMappingWidget.setDestinationFields(speclib.fields())
 
     def currentImportWidget(self) -> SpectralLibraryImportWidget:
         return self.stackedWidgetFormatOptions.currentWidget()

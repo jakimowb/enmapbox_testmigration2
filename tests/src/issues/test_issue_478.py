@@ -2,16 +2,8 @@
 
 import unittest
 import xmlrunner
-from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, \
-    QgsLayerTree, QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterDefinition
-from qgis.gui import QgisInterface
-from qgis.PyQt.QtGui import QIcon
-from qgis.core import QgsApplication
-from qgis.PyQt.QtCore import QResource
-from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-from enmapbox.gui.enmapboxgui import EnMAPBox, EnMAPBoxSplashScreen
-from enmapbox.gui.docks import *
-from enmapbox.gui.mapcanvas import *
+from enmapbox.testing import EnMAPBoxTestCase
+from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui import *
 
 

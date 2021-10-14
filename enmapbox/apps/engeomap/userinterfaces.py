@@ -22,8 +22,11 @@
 import os
 import collections
 import time
+
+from enmapbox.externals.qps.utils import loadUi
 from qgis.gui import QgsFileWidget
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from enmapbox.gui.utils import loadUIFormClass
 from engeomap import APP_DIR
@@ -52,7 +55,7 @@ def button_paths(objectus):
 
 
 def selectFile(objectt):
-    feil = QtWidgets.QFileDialog.getOpenFileName()
+    feil = QFileDialog.getOpenFileName()
     objectt.setText(feil[0])
     objectt.show()
     return None
@@ -66,11 +69,12 @@ def display_busy(anzeige, imnam):
     anzeige.show()
 
 
-class EnGeoMAPGUI(QDialog, loadUIFormClass(pathUi)):
+class EnGeoMAPGUI(QDialog):
     """Constructor."""
     def __init__(self, parent=None):
         super(EnGeoMAPGUI, self).__init__(parent)
         self.setupUi(self)
+        loadUi(pathUi, self)
         self.imready = pathreadui
         self.imbusy = pathbusyui
         self.enmap_data.clicked.connect(self.selectFile1)

@@ -24,47 +24,43 @@
     along with this software. If not, see <http://www.gnu.org/licenses/>.
 ***************************************************************************
 """
+import calendar
+import copy
+import datetime
+import fnmatch
+import gc
+import importlib
+import io
+import itertools
+import json
 import math
 import os
-import sys
-import importlib
-import re
-import fnmatch
-import io
-import zipfile
-import itertools
 import pathlib
-import warnings
-import copy
+import re
 import shutil
-import typing
-import json
-import gc
+import sys
 import traceback
-import calendar
-import datetime
+import typing
+import warnings
+import zipfile
 
-from PyQt5.QtCore import QObject
+import numpy as np
+from osgeo import gdal, ogr, osr, gdal_array
 
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QDialogButtonBox, QLabel, QGridLayout, QMainWindow
+from qgis.PyQt.QtXml import *
+from qgis.PyQt.QtXml import QDomDocument
 from qgis.core import *
 from qgis.core import QgsField, QgsVectorLayer, QgsRasterLayer, QgsRasterDataProvider, QgsMapLayer, QgsMapLayerStore, \
     QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsRectangle, QgsPointXY, QgsProject, \
     QgsMapLayerProxyModel, QgsRasterRenderer, QgsMessageOutput, QgsFeature, QgsTask, Qgis, QgsGeometry, \
     QgsFields
-
 from qgis.gui import QgisInterface, QgsDialog, QgsMessageViewer, QgsMapLayerComboBox, QgsMapCanvas
 
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtXml import *
-from qgis.PyQt.QtXml import QDomDocument
-from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import *
-from osgeo import gdal, ogr, osr, gdal_array
-import numpy as np
-from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QDialogButtonBox, QLabel, QGridLayout, QMainWindow
-
-# dictionary to store form classes and avoid multiple calls to read <myui>.i
 QGIS_RESOURCE_WARNINGS = set()
 
 REMOVE_setShortcutVisibleInContextMenu = hasattr(QAction, 'setShortcutVisibleInContextMenu')
@@ -85,17 +81,17 @@ QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.uint8,
                          Qgis.ARGB32_Premultiplied: np.uint32}
 
 QGIS_DATATYPE_NAMES = {
-                     Qgis.Byte: 'Byte',
-                     Qgis.UInt16: 'UInt16',
-                     Qgis.Int16: 'Int16',
-                     Qgis.UInt32: 'UInt32',
-                     Qgis.Int32: 'Int32',
-                     Qgis.Float32: 'Float32',
-                     Qgis.Float64: 'Float64',
-                     Qgis.CFloat32: 'Complex',
-                     Qgis.CFloat64: 'Complex64',
-                     Qgis.ARGB32: 'UInt32',
-                     Qgis.ARGB32_Premultiplied: 'Int32'}
+    Qgis.Byte: 'Byte',
+    Qgis.UInt16: 'UInt16',
+    Qgis.Int16: 'Int16',
+    Qgis.UInt32: 'UInt32',
+    Qgis.Int32: 'Int32',
+    Qgis.Float32: 'Float32',
+    Qgis.Float64: 'Float64',
+    Qgis.CFloat32: 'Complex',
+    Qgis.CFloat64: 'Complex64',
+    Qgis.ARGB32: 'UInt32',
+    Qgis.ARGB32_Premultiplied: 'Int32'}
 
 
 def rm(p):
@@ -490,6 +486,7 @@ WAVELENGTH_DESCRIPTION = {
 
 NEXT_COLOR_HUE_DELTA_CON = 10
 NEXT_COLOR_HUE_DELTA_CAT = 100
+NEXT_COLOR_DELTA_VALUE = 50
 
 
 def nextColor(color, mode='cat') -> QColor:
@@ -498,15 +495,22 @@ def nextColor(color, mode='cat') -> QColor:
     :param color: QColor
     :param mode: str, 'cat' for categorical colors (much difference from 'color')
                       'con' for continuous colors (similar to 'color')
+                      'darker' for decreased brightness (if possible)
+                      'brighter' for increased brightness (if possible)
     :return: QColor
     """
-    assert mode in ['cat', 'con']
+    assert mode in ['cat', 'con', 'darker', 'brighter']
     assert isinstance(color, QColor)
-    hue, sat, value, alpha = color.getHsl()
+    hue, sat, value, alpha = color.getHsv()
     if mode == 'cat':
         hue += NEXT_COLOR_HUE_DELTA_CAT
     elif mode == 'con':
         hue += NEXT_COLOR_HUE_DELTA_CON
+    elif mode == 'darker':
+        value = max(0, value - NEXT_COLOR_DELTA_VALUE)
+    elif mode == 'brighter':
+        value = max(255, value + NEXT_COLOR_DELTA_VALUE)
+
     if sat == 0:
         sat = 255
         value = 128
@@ -515,7 +519,7 @@ def nextColor(color, mode='cat') -> QColor:
     while hue >= 360:
         hue -= 360
 
-    return QColor.fromHsl(hue, sat, value, alpha)
+    return QColor.fromHsv(hue, sat, value, alpha)
 
 
 def findMapLayerStores() -> typing.List[typing.Union[QgsProject, QgsMapLayerStore]]:
@@ -787,13 +791,14 @@ def ogrDataSource(data_source) -> ogr.DataSource:
         if dpn not in ['ogr']:
             context = QgsProcessingContext()
             feedback = QgsProcessingFeedback()
-            alg: QgsProcessingAlgorithm = QgsApplication.processingRegistry().algorithmById('native:savefeatures').create({})
+            alg: QgsProcessingAlgorithm = QgsApplication.processingRegistry().algorithmById(
+                'native:savefeatures').create({})
             parameters = dict(DATASOURCE_OPTIONS='',
                               INPUT=data_source.source(),
                               LAYER_NAME='',
                               LAYER_OPTIONS='',
                               OUTPUT='TEMPORARY_OUTPUT'
-            )
+                              )
 
             assert alg.prepareAlgorithm(parameters, context, feedback), feedback.textLog()
 
@@ -987,22 +992,37 @@ def qgsRasterLayer(source) -> QgsRasterLayer:
     raise Exception('Unable to transform {} into QgsRasterLayer'.format(source))
 
 
-def qgsField(layer: QgsVectorLayer, field) -> QgsField:
+def qgsFields(source: typing.Union[QgsFeature, QgsFields, QgsVectorLayer]) -> QgsFields:
+    """
+    Returns the QgsFields of its inputs
+    :return: QgsFields
+    """
+    if isinstance(source, QgsFields):
+        return source
+    elif isinstance(source, (QgsFeature, QgsVectorLayer)):
+        return source.fields()
+    return None
+
+
+def qgsField(layer_fields: QgsVectorLayer, field: typing.Union[QgsField, str, int]) -> QgsField:
     """
     Returns the QgsField relating to the input value in "field"
-    :param layer:
-    :param field:
-    :return: QgsField
+    :param layer_fields: QgsVectorLayer | QgsFields
+    :param field: QgsField | str or int index of field in layer_fields
+    :return: QgsField or None, if not found
     """
-    assert isinstance(layer, QgsVectorLayer)
+    if isinstance(layer_fields, QgsVectorLayer):
+        layer_fields = layer_fields.fields()
+
+    assert isinstance(layer_fields, QgsFields)
 
     if isinstance(field, QgsField):
-        return qgsField(layer, layer.fields().lookupField(field.name()))
+        return qgsField(layer_fields, layer_fields.lookupField(field.name()))
     elif isinstance(field, str):
-        return qgsField(layer, layer.fields().lookupField(field))
+        return qgsField(layer_fields, layer_fields.lookupField(field))
     elif isinstance(field, int):
-        if 0 <= field < layer.fields().count():
-            return layer.fields().at(field)
+        if 0 <= field < layer_fields.count():
+            return layer_fields.at(field)
     return None
 
 
@@ -2202,6 +2222,21 @@ def px2geo(px: QPoint, gt, pxCenter: bool = True) -> QgsPointXY:
     return QgsPointXY(gx, gy)
 
 
+class HashablePointF(QPointF):
+    """
+        A QPointF that can be hashed, e.g. to be used in a set
+    """
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+
+    def __hash__(self):
+        return hash((self.x(), self.y()))
+
+    def __eq__(self, other):
+        return self.x() == other.x() and self.y() == other.y()
+
+
 class HashablePoint(QPoint):
     """
     A QPoint that can be hashed, e.g. to be used in a set
@@ -2436,6 +2471,34 @@ def findParent(qObject, parentType, checkInstance=False):
     return parent
 
 
+def iconForFieldType(field: typing.Union[QgsField, QgsVectorDataProvider.NativeType]) -> QIcon:
+    """
+    Returns an icon for field types, including own defined
+    :return:
+    """
+    from .speclib.core import is_profile_field, create_profile_field
+
+    if isinstance(field, QgsVectorDataProvider.NativeType):
+        if field.mTypeName.replace(' ', '').lower() == 'spectralprofile':
+            field = create_profile_field('dummy')
+        else:
+            field = QgsField(
+                name='dummy',
+                type=field.mType,
+                typeName=field.mTypeName,
+                len=field.mMaxLen,
+                prec=field.mMaxPrec,
+                # comment=field.comment,
+                subType=field.mSubType
+            )
+
+    assert isinstance(field, QgsField)
+    if is_profile_field(field):
+        return QIcon(r':/qps/ui/icons/profile.svg')
+    else:
+        return QgsFields.iconForFieldType(field.type())
+
+
 def createCRSTransform(src: QgsCoordinateReferenceSystem, dst: QgsCoordinateReferenceSystem):
     """
 
@@ -2469,7 +2532,7 @@ def saveTransform(geom: typing.Union[QgsPointXY, QgsRectangle,
 
     result = None
     if isinstance(geom, QgsRectangle):
-        if geom.isEmpty():
+        if geom.isNull() or not geom.isFinite():
             return None
 
         try:
@@ -2980,3 +3043,40 @@ class SignalObjectWrapper(QObject):
     def __init__(self, obj, *args, **kwds):
         super(SignalObjectWrapper, self).__init__(*args, **kwds)
         self.wrapped_object = obj
+
+
+class FeatureReferenceIterator(object):
+    """
+    Iterator for QgsFeatures that uses the 1st feature as reference
+    """
+    def __init__(self, features: typing.Iterable[QgsFeature]):
+
+        self.mNextFeatureIndex = -1
+        self.mReferenceFeature = None
+        if isinstance(features, QgsVectorLayer):
+            self.mFeatureIterator = features.getFeatures()
+        else:
+            self.mFeatureIterator = iter(features)
+        try:
+            self.mReferenceFeature = self.mFeatureIterator.__next__()
+            self.mNextFeatureIndex += 1
+        except StopIteration:
+            pass
+
+    def referenceFeature(self) -> QgsFeature:
+        return self.mReferenceFeature
+
+    def __str__(self):
+        return 'FeaturePreviewIterator'
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self.mNextFeatureIndex += 1
+        if self.mNextFeatureIndex == 0:
+            raise StopIteration
+        elif self.mNextFeatureIndex == 1:
+            return self.referenceFeature()
+        else:
+            return self.mFeatureIterator.__next__()

@@ -91,6 +91,10 @@ class EnMAPBoxTestCase(TestCase):
 
         s = ""
 
+    def testDataDir(self) -> pathlib.Path:
+        from enmapbox import DIR_REPO
+        return pathlib.Path(DIR_REPO) / 'tests' / 'testdata'
+
     def tempDir(self, subdir: str = None, cleanup: bool = False) -> pathlib.Path:
         """
         Returns the <enmapbox-repository/test-outputs> directory

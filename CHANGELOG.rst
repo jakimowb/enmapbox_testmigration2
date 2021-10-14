@@ -16,11 +16,14 @@ Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g.
 * added data sources context menu *Save as* option: opens *Translate raster layer* algorithm dialog
 * added data sources context menu *Append ENVI header* option: opens *Append ENVI header to GeoTiff raster layer* algorithm dialog
 * added single pixel movement in map view using <Ctrl> + <Arrow> keys, <Ctrl> + S to save a selected profile in a Spectral Library
-* revised Spectral Library Concept:
-    * Spectral Libraries can define more than one Spectral Profile field
-    * each vector source that can store binary values (Geopackage, PostGIS, in-memory) can be used as Spectral Library
-    * Spectral Profile plot support individual profile styles, e.g. colors defined by attribute values
-    * Spectral Profiles can be collected with additional attributes, e.g. individual names
+* revised spectral library concept
+* spectral libraries can define multiple fields with spectral profiles
+* icons show data type of new vector layer fields
+* each vector layer that allows to store binary values (e.g. Geopackage, PostGIS, in-memory layers) can be used as Spectral Library
+* spectral profiles can be collected with additional layer attributes, e.g. individual names and numbers
+* spectral profile colors can be defined by attribute values and expressions
+* profile plot allows to select multiple data points for comparision
+
 
 
 **Processing algorithms**
@@ -42,7 +45,7 @@ Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g.
 * added *Spectral resampling (to custom sensor)* processing algorithm: allows to specify the target response function via Python code
 * improved *Translate raster layer* processing algorithm: 1) improved source and target no data handling, 2) added option for spectral subsetting to another spectral raster layer, 3) added options for setting/updating band scale and offset values, 4) added option for creating an ENVI header sidecar file for better compatibility to ENVI software
 * added *Save raster layer as* processing algorithm: a slimmed down version of "Translate raster layer"
-* added *Append ENVI header to GeoTiff raster layer* processing algorithm: places a *.hdr ENVI header file next to a GeoTiff raster to improve compatibility to ENVI software
+* added *Append ENVI header to GeoTiff raster layer* processing algorithm: places a \*.hdr ENVI header file next to a GeoTiff raster to improve compatibility to ENVI software
 * added *Geolocate raster layer* processing algorithm: allows to geolocate a raster given in sensor geometry using X/Y location bands; e.g. usefull for geolocating PRISMA L1 Landcover into PRISMA L2 pixel grid using the Lat/Lon location bands
 
 **Miscellaneous**

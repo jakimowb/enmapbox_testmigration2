@@ -286,7 +286,11 @@
    :width: 28px
 .. |profile_dontreceive| image:: /../../enmapbox/externals/qps/ui/icons/profile_dontreceive.svg
    :width: 28px
+.. |profile_expression| image:: /../../enmapbox/externals/qps/ui/icons/profile_expression.svg
+   :width: 28px
 .. |profile_identify| image:: /../../enmapbox/externals/qps/ui/icons/profile_identify.svg
+   :width: 28px
+.. |profile_processing| image:: /../../enmapbox/externals/qps/ui/icons/profile_processing.svg
    :width: 28px
 .. |profile_reload| image:: /../../enmapbox/externals/qps/ui/icons/profile_reload.svg
    :width: 28px
@@ -314,9 +318,13 @@
    :width: 28px
 .. |speclib| image:: /../../enmapbox/externals/qps/ui/icons/speclib.svg
    :width: 28px
+.. |speclibV2| image:: /../../enmapbox/externals/qps/ui/icons/speclibV2.svg
+   :width: 28px
 .. |speclib_add| image:: /../../enmapbox/externals/qps/ui/icons/speclib_add.svg
    :width: 28px
 .. |speclib_clear| image:: /../../enmapbox/externals/qps/ui/icons/speclib_clear.svg
+   :width: 28px
+.. |speclib_plot| image:: /../../enmapbox/externals/qps/ui/icons/speclib_plot.svg
    :width: 28px
 .. |speclib_reload| image:: /../../enmapbox/externals/qps/ui/icons/speclib_reload.svg
    :width: 28px
