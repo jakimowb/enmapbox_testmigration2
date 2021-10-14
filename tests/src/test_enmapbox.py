@@ -20,6 +20,8 @@
 
 import unittest
 import xmlrunner
+
+from enmapbox.gui.datasources.datasources import SpatialDataSource
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui.dataviews.docks import *
