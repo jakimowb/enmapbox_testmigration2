@@ -35,7 +35,7 @@ from enmapbox.gui.utils import enmapboxUiPath
 from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
 from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
-from ..mimedata import MDF_URILIST, QGIS_URILIST_MIMETYPE, extractMapLayers
+from ..mimedata import MDF_URILIST, QGIS_URILIST_MIMETYPE, extractMapLayers, fromDataSourceList
 
 from ...externals.qps.speclib.core import is_spectral_library
 
@@ -111,6 +111,12 @@ class DataSourceManager(TreeModel):
 
         dataSources = list(set(dataSources))
         sourceList = [d.source() for d in dataSources]
+
+        if len(dataSources) > 0:
+            mdf = fromDataSourceList(dataSources)
+            for f in mdf.formats():
+                mimeData.setData(f, mdf.data(f))
+
 
         bandInfo = list()
         for node in bandNodes:
