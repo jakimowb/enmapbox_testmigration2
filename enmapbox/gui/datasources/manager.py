@@ -450,15 +450,17 @@ class DataSourceManagerTreeView(TreeView):
                 if isinstance(qgis.utils.iface, QgisInterface):
                     a.triggered.connect(lambda *args, s=node:
                                         self.openInMap(s, QgsProject.instance()))
-        else:
-            aRemove.setEnabled(False)
 
-        if isinstance(node, RasterBandTreeNode):
+        elif isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
             a.setEnabled(False)
+            # todo: AR call band stats dialog here
 
             a = m.addAction('Open in new map')
-            a.triggered.connect(lambda *args, n=node: self.openInMap(node, rgb=[n.mBandIndex]))
+            a.triggered.connect(lambda *args, n=node: self.openInMap(n.rasterSource(), rgb=[n.bandIndex()]))
+
+        else:
+            aRemove.setEnabled(False)
 
         if col == 1 and node.value() != None:
             a = m.addAction('Copy')

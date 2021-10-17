@@ -168,7 +168,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertIsInstance(EnMAPBox.instance(), EnMAPBox)
         self.assertEqual(EMB, EnMAPBox.instance())
 
-        EMB.loadExampleData()
+        EMB.openExampleData(mapWindows=1, testData=True)
         self.assertTrue(len(QgsProject.instance().mapLayers()) > 0)
         canvases = EMB.mapCanvases()
         self.assertTrue(canvases[-1] == EMB.currentMapCanvas())
