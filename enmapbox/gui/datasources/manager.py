@@ -421,7 +421,7 @@ class DataSourceManagerTreeView(TreeView):
                         )
                     )
 
-            if isinstance(node, VectorDataSource):
+            elif isinstance(node, VectorDataSource):
 
                 if node.wkbType() not in [QgsWkbTypes.NoGeometry, QgsWkbTypes.Unknown, QgsWkbTypes.UnknownGeometry]:
                     a = m.addAction('Open in new map')
@@ -446,7 +446,6 @@ class DataSourceManagerTreeView(TreeView):
                 a = m.addAction('Open Attribute Table')
                 a.triggered.connect(lambda *args, s=node: self.openInAttributeEditor(s.asMapLayer()))
 
-            if isinstance(node, SpatialDataSource):
                 a = m.addAction('Open in QGIS')
                 if isinstance(qgis.utils.iface, QgisInterface):
                     a.triggered.connect(lambda *args, s=node:
