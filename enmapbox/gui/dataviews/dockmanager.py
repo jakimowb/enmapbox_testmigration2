@@ -1195,11 +1195,16 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                     action.setToolTip('Opens the layer attribute table')
                     action.triggered.connect(lambda *args, l=lyr: self.openAttributeTable(l))
 
+                    action = menu.addAction('Open Spectral Library Viewer')
+                    action.setToolTip('Opens the vector layer in a spectral library view')
+                    action.triggered.connect(lambda *args, l=lyr: self.openSpectralLibraryView(l))
+
                 # add some processing algorithm shortcuts
                 menu.addSeparator()
                 if isinstance(lyr, QgsRasterLayer):
                     action = menu.addAction('Image Statistics')
                     action.triggered.connect(lambda: self.runImageStatistics(lyr))
+
                     if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
                         action = menu.addAction('Classification Statistics')
                         action.triggered.connect(lambda: self.runClassificationStatistics(lyr))
@@ -1240,7 +1245,15 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         from enmapbox import EnMAPBox
         emb = EnMAPBox.instance()
         if isinstance(emb, EnMAPBox) and isinstance(layer, QgsVectorLayer):
-            emb.createDock('ATTRIBUTE', layer=layer)
+            from enmapbox.gui.dataviews.docks import AttributeTableDock
+            emb.createDock(AttributeTableDock, layer=layer)
+
+    def openSpectralLibraryView(self, layer: QgsVectorLayer):
+        from enmapbox import EnMAPBox
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox) and isinstance(layer, QgsVectorLayer):
+            from enmapbox.gui.dataviews.docks import SpectralLibraryDock
+            emb.createDock(SpectralLibraryDock, speclib=layer)
 
     def setLayerStyle(self, layer: QgsMapLayer, canvas: QgsMapCanvas):
         from enmapbox import EnMAPBox
@@ -1377,12 +1390,14 @@ class DockManager(QObject):
 
             if len(dropped_speclibs) > 0:
                 # show 1st speclib
-                NEW_DOCK = self.createDock('SPECLIB', speclib=dropped_speclibs[0])
+                from enmapbox.gui.dataviews.docks import SpectralLibraryDock
+                NEW_DOCK = self.createDock(SpectralLibraryDock, speclib=dropped_speclibs[0])
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
 
             # open map dock for other map layers
             if len(dropped_maplayers) > 0:
-                NEW_DOCK = self.createDock('MAP')
+                from enmapbox.gui.dataviews.docks import MapDock
+                NEW_DOCK = self.createDock(MapDock)
                 assert isinstance(NEW_DOCK, MapDock)
                 # layers = [s.asMapLayer() for s in dropped_maplayers]
                 NEW_DOCK.addLayers(dropped_maplayers)
