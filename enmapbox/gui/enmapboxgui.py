@@ -931,7 +931,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.layerTreeView().layerTreeModel().mapLayers()
 
-    def addPanel(self, area, panel, show=True):
+    def addPanel(self, area, panel, show: bool =True):
         """
         shortcut to add a created panel and return it
         :param dock:
@@ -956,7 +956,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.cursorLocationValuePanel.mLocationInfoModel.setCountFromZero(False)
 
         self.ui.spectralProfileSourcePanel: SpectralProfileSourcePanel = \
-            self.addPanel(area, SpectralProfileSourcePanel(self.ui))
+            self.addPanel(area, SpectralProfileSourcePanel(self.ui), False)
 
         sources = [
             MapCanvasLayerProfileSource(mode=MapCanvasLayerProfileSource.MODE_FIRST_LAYER),
@@ -1337,6 +1337,7 @@ class EnMAPBox(QgisInterface, QObject):
             if isinstance(dock, SpectralLibraryDock):
                 slw: SpectralLibraryWidget = dock.speclibWidget()
                 slw.setViewVisibility(SpectralLibraryWidget.ViewType.ProfileView)
+                panel.setUserVisible(True)
 
         if len(panel.mBridge) == 0:
             panel.createRelation()

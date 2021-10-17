@@ -1437,9 +1437,12 @@ class MapCanvas(QgsMapCanvas):
         """
         if not isinstance(mapLayers, list):
             mapLayers = [mapLayers]
+        _mapLayers = []
         for l in mapLayers:
             assert isinstance(l, QgsMapLayer)
-
+            if l not in _mapLayers:
+                _mapLayers.append(l)
+        mapLayers = _mapLayers
         lastSet = self.layers()
 
         QgsProject.instance().addMapLayers(mapLayers, False)
