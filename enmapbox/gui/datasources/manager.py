@@ -464,6 +464,8 @@ class DataSourceManagerTreeView(TreeView):
             a = m.addAction('Band statistics')
             a.setEnabled(False)
             # todo: AR call band stats dialog here
+            # similar to:
+            # a.triggered.connect(lambda: self.runImageStatistics(lyr))
 
             a = m.addAction('Open in new map')
             a.triggered.connect(lambda *args, n=node: self.openInMap(n.rasterSource(), rgb=[n.bandIndex()]))
