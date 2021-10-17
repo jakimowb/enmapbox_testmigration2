@@ -1563,7 +1563,7 @@ class EnMAPBox(QgisInterface, QObject):
 
             # any other types to handle?
 
-    def openExampleData(self, mapWindows=0):
+    def openExampleData(self, mapWindows=0, testData:bool = False):
         """
         Opens the example data
         :param mapWindows: number of new MapDocks to be opened
@@ -1572,12 +1572,11 @@ class EnMAPBox(QgisInterface, QObject):
         if missingTestData():
             installTestData()
 
+        rx = re.compile('.*(bsq|bil|bip|tif|gpkg|sli|img|shp|pkl)$', re.I)
         if not missingTestData():
             import enmapbox.exampledata
-            dir = os.path.dirname(enmapbox.exampledata.__file__)
-            files = list(
-                file_search(dir, re.compile('.*(bsq|bil|bip|tif|gpkg|sli|img|shp|pkl)$', re.I), recursive=True))
-            files = [pathlib.Path(file).as_posix() for file in files]
+            dir_exampledata = os.path.dirname(enmapbox.exampledata.__file__)
+            files = list(pathlib.Path(f).as_posix() for f in file_search(dir_exampledata, rx, recursive=True))
 
             self.addSources(files)
             exampleSources = [s for s in self.dataSourceManager().dataSources()
@@ -1624,6 +1623,14 @@ class EnMAPBox(QgisInterface, QObject):
 
                 lyrs = sorted(lyrs, reverse=True, key=niceLayerOrder)
                 dock.mapCanvas().setLayers(lyrs)
+
+        if testData:
+            from enmapbox import DIR_REPO
+            dir_testdata = pathlib.Path(DIR_REPO) / 'tests' / 'testdata'
+
+            if dir_testdata.is_dir():
+                files = list(pathlib.Path(f).as_posix() for f in file_search(dir_testdata, rx, recursive=True))
+                self.addSources(files)
 
     def onDataSourcesRemoved(self, dataSources: typing.List[DataSource]):
         """

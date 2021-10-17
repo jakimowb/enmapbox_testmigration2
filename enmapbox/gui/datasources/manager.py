@@ -594,6 +594,9 @@ class DataSourceManagerPanelUI(QgsDockWidget):
         self.mDataSourceManagerTreeView.setUniformRowHeights(True)
         self.mDataSourceManagerTreeView.setDragDropMode(QAbstractItemView.DragDrop)
 
+        self.btnCollapse.clicked.connect(lambda: self.mDataSourceManagerTreeView.expandSelectedNodes(False))
+        self.btnExpand.clicked.connect(lambda: self.mDataSourceManagerTreeView.expandSelectedNodes(True))
+
         # init actions
         self.actionAddDataSource.triggered.connect(lambda: self.mDataSourceManager.addDataSourceByDialog())
         self.actionRemoveDataSource.triggered.connect(
@@ -624,8 +627,8 @@ class DataSourceManagerPanelUI(QgsDockWidget):
         self.btnAddSource.setDefaultAction(self.actionAddDataSource)
         self.btnSync.setDefaultAction(self.actionSyncWithQGIS)
         self.btnRemoveSource.setDefaultAction(self.actionRemoveDataSource)
-        self.btnCollapse.clicked.connect(lambda: self.expandSelectedNodes(self.dataSourceTreeView, False))
-        self.btnExpand.clicked.connect(lambda: self.expandSelectedNodes(self.dataSourceTreeView, True))
+        self.btnCollapse.clicked.connect(lambda: self.dataSourceManagerTreeView().expandSelectedNodes(False))
+        self.btnExpand.clicked.connect(lambda: self.dataSourceManagerTreeView().expandSelectedNodes(True))
 
     def expandSelectedNodes(self, treeView, expand):
         assert isinstance(treeView, QTreeView)
