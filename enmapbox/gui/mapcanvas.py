@@ -754,7 +754,7 @@ class CanvasLink(QObject):
 
         else:
             raise NotImplementedError()
-        # dstCanvas.refresh()
+        dstCanvas.refresh()
         return dstCanvas
 
     def applyTo(self, canvasTo: QgsMapCanvas):
