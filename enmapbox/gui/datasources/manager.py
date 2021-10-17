@@ -114,12 +114,13 @@ class DataSourceManager(TreeModel):
 
         bandInfo = list()
         for node in bandNodes:
-            ds: RasterDataSource = node.parentNode()
+            node: RasterBandTreeNode
+            ds: RasterDataSource = node.rasterSource()
             if isinstance(ds, RasterDataSource):
                 source = ds.dataItem().path()
                 provider = ds.dataItem().providerKey()
                 band = node.mBandIndex
-                baseName = '{}:{}'.format(node.mDataSource.name(), node.name())
+                baseName = '{}:{}'.format(ds.name(), node.name())
                 bandInfo.append((source, baseName, provider, band))
 
         if len(bandInfo) > 0:
@@ -241,8 +242,10 @@ class DataSourceManager(TreeModel):
 
         flags = super(DataSourceManager, self).flags(index)
         node = index.data(Qt.UserRole)
+        if isinstance(node, RasterBandTreeNode):
+            s = ""
         if isinstance(node, (DataSource, RasterBandTreeNode)):
-            flags = flags | Qt.ItemIsDropEnabled | Qt.ItemIsDragEnabled
+            flags = flags | Qt.ItemIsDragEnabled
         return flags
 
     def addSources(self, *args, **kwds):

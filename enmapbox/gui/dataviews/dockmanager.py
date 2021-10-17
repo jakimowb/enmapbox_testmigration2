@@ -1367,21 +1367,25 @@ class DockManager(QObject):
 
             new_sources = self.mDataSourceManager.addDataSources(layers + textfiles)
 
-            dropped_speclibs = [s for s in new_sources if isinstance(s, VectorDataSource) and s.isSpectralLibrary()]
-            dropped_maplayers = [s for s in new_sources if isinstance(s, SpatialDataSource) and s not in dropped_speclibs]
+            # dropped_speclibs = [s for s in new_sources if isinstance(s, VectorDataSource) and s.isSpectralLibrary()]
+            # dropped_maplayers = [s for s in new_sources if isinstance(s, SpatialDataSource) and s not in dropped_speclibs]
+
+            dropped_speclibs = [l for l in layers if is_spectral_library(l)]
+            dropped_maplayers = [l for l in layers if isinstance(l, QgsMapLayer) and l.isValid()]
+
             # open spectral Library dock for new speclibs
 
             if len(dropped_speclibs) > 0:
                 # show 1st speclib
-                NEW_DOCK = self.createDock('SPECLIB', speclib=dropped_speclibs[0].asMapLayer())
+                NEW_DOCK = self.createDock('SPECLIB', speclib=dropped_speclibs[0])
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
 
             # open map dock for other map layers
             if len(dropped_maplayers) > 0:
                 NEW_DOCK = self.createDock('MAP')
                 assert isinstance(NEW_DOCK, MapDock)
-                layers = [s.asMapLayer() for s in dropped_maplayers]
-                NEW_DOCK.addLayers(layers)
+                # layers = [s.asMapLayer() for s in dropped_maplayers]
+                NEW_DOCK.addLayers(dropped_maplayers)
 
             event.accept()
 
