@@ -1,9 +1,53 @@
+"""
+Addresses issue 737
 
+Crash ID: 77ef79350e68116c5eda6d8af9e557ce99027e7d
+
+
+Stack Trace
+
+
+memcmp :
+QTreeViewPrivate::removeViewItems :
+QTreeViewPrivate::collapse :
+QTreeViewPrivate::expandOrCollapseItemAtPos :
+QTreeView::mousePressEvent :
+PyInit_QtWidgets :
+QWidget::event :
+QFrame::event :
+QAbstractItemView::viewportEvent :
+PyInit_QtWidgets :
+QCoreApplicationPrivate::sendThroughObjectEventFilters :
+QApplicationPrivate::notify_helper :
+QApplication::notify :
+QgsApplication::notify qgsapplication.cpp:511
+QCoreApplication::notifyInternal2 :
+QApplicationPrivate::sendMouseEvent :
+QSizePolicy::QSizePolicy :
+QSizePolicy::QSizePolicy :
+QApplicationPrivate::notify_helper :
+QApplication::notify :
+QgsApplication::notify qgsapplication.cpp:511
+QCoreApplication::notifyInternal2 :
+QGuiApplicationPrivate::processMouseEvent :
+QWindowSystemInterface::sendWindowSystemEvents :
+QEventDispatcherWin32::processEvents :
+qt_plugin_query_metadata :
+QEventLoop::exec :
+QCoreApplication::exec :
+main main.cpp:1646
+WinMain mainwin.cpp:197
+__scrt_common_main_seh exe_common.inl:288
+BaseThreadInitThunk :
+RtlUserThreadStart :
+
+
+"""
 import unittest
 import xmlrunner
 
-from enmapbox.gui.datasourcemanager import DataSourceTreeView, DataSourceManagerTreeModel, DataSourceManager, \
-    HubFlowPyObjectTreeNode
+from enmapbox.gui.datasources.manager import DataSourceManagerTreeView, DataSourceManager
+from enmapbox.gui.datasources.datasources import ModelDataSource
 from qgis.core import QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, \
     QgsLayerTree, QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer, QgsProcessingParameterDefinition
 from qgis.gui import QgisInterface
@@ -44,8 +88,7 @@ class TestIssue(EnMAPBoxTestCase):
         - seems to be related to TreeView.setColumnSpan
         - automatic column span is necessary to save space
         """
-        mgr = DataSourceManager()
-        model = DataSourceManagerTreeModel(None, mgr)
+        model = DataSourceManager()
 
         tv = TreeView()
         # tv = QTreeView()
@@ -59,14 +102,14 @@ class TestIssue(EnMAPBoxTestCase):
 
         from testdata import classification_dataset_pkl
         self.assertIsInstance(tv, QTreeView)
-        mgr.addSource(classification_dataset_pkl)
+        model.addSource(classification_dataset_pkl)
 
-        node = model.rootNode().findChildNodes(HubFlowPyObjectTreeNode, recursive=True)
+        node = model.rootNode().findChildNodes(ModelDataSource, recursive=True)
         self.assertTrue(len(node) == 1)
         node = node[0]
         # tv.expandRecursively(QModelIndex(), 4)
         # dict X array
-        self.assertIsInstance(node, HubFlowPyObjectTreeNode)
+        self.assertIsInstance(node, ModelDataSource)
         NODES = dict(ROOT=node)
 
         for name in ['dict', 'X', 'array']:
@@ -79,7 +122,7 @@ class TestIssue(EnMAPBoxTestCase):
         # tv.expand(model.node2idx(node))
         tv.resize(QSize(600, 600))
         tv.show()
-        s  =""
+        s = ""
 
         self.showGui(tv)
 

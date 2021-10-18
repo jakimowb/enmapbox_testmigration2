@@ -35,7 +35,7 @@ from enmapbox.gui.utils import enmapboxUiPath
 from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
 from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
-from ..mimedata import MDF_URILIST, QGIS_URILIST_MIMETYPE, extractMapLayers
+from ..mimedata import MDF_URILIST, QGIS_URILIST_MIMETYPE, extractMapLayers, fromDataSourceList
 
 from ...externals.qps.speclib.core import is_spectral_library
 
@@ -112,14 +112,21 @@ class DataSourceManager(TreeModel):
         dataSources = list(set(dataSources))
         sourceList = [d.source() for d in dataSources]
 
+        if len(dataSources) > 0:
+            mdf = fromDataSourceList(dataSources)
+            for f in mdf.formats():
+                mimeData.setData(f, mdf.data(f))
+
+
         bandInfo = list()
         for node in bandNodes:
-            ds: RasterDataSource = node.parentNode()
+            node: RasterBandTreeNode
+            ds: RasterDataSource = node.rasterSource()
             if isinstance(ds, RasterDataSource):
                 source = ds.dataItem().path()
                 provider = ds.dataItem().providerKey()
                 band = node.mBandIndex
-                baseName = '{}:{}'.format(node.mDataSource.name(), node.name())
+                baseName = '{}:{}'.format(ds.name(), node.name())
                 bandInfo.append((source, baseName, provider, band))
 
         if len(bandInfo) > 0:
@@ -241,8 +248,10 @@ class DataSourceManager(TreeModel):
 
         flags = super(DataSourceManager, self).flags(index)
         node = index.data(Qt.UserRole)
+        if isinstance(node, RasterBandTreeNode):
+            s = ""
         if isinstance(node, (DataSource, RasterBandTreeNode)):
-            flags = flags | Qt.ItemIsDropEnabled | Qt.ItemIsDragEnabled
+            flags = flags | Qt.ItemIsDragEnabled
         return flags
 
     def addSources(self, *args, **kwds):
@@ -421,7 +430,7 @@ class DataSourceManagerTreeView(TreeView):
                         )
                     )
 
-            if isinstance(node, VectorDataSource):
+            elif isinstance(node, VectorDataSource):
 
                 if node.wkbType() not in [QgsWkbTypes.NoGeometry, QgsWkbTypes.Unknown, QgsWkbTypes.UnknownGeometry]:
                     a = m.addAction('Open in new map')
@@ -446,20 +455,23 @@ class DataSourceManagerTreeView(TreeView):
                 a = m.addAction('Open Attribute Table')
                 a.triggered.connect(lambda *args, s=node: self.openInAttributeEditor(s.asMapLayer()))
 
-            if isinstance(node, SpatialDataSource):
                 a = m.addAction('Open in QGIS')
                 if isinstance(qgis.utils.iface, QgisInterface):
                     a.triggered.connect(lambda *args, s=node:
                                         self.openInMap(s, QgsProject.instance()))
-        else:
-            aRemove.setEnabled(False)
 
-        if isinstance(node, RasterBandTreeNode):
+        elif isinstance(node, RasterBandTreeNode):
             a = m.addAction('Band statistics')
             a.setEnabled(False)
+            # todo: AR call band stats dialog here
+            # similar to:
+            # a.triggered.connect(lambda: self.runImageStatistics(lyr))
 
             a = m.addAction('Open in new map')
-            a.triggered.connect(lambda *args, n=node: self.openInMap(node, rgb=[n.mBandIndex]))
+            a.triggered.connect(lambda *args, n=node: self.openInMap(n.rasterSource(), rgb=[n.bandIndex()]))
+
+        else:
+            aRemove.setEnabled(False)
 
         if col == 1 and node.value() != None:
             a = m.addAction('Copy')
@@ -594,6 +606,9 @@ class DataSourceManagerPanelUI(QgsDockWidget):
         self.mDataSourceManagerTreeView.setUniformRowHeights(True)
         self.mDataSourceManagerTreeView.setDragDropMode(QAbstractItemView.DragDrop)
 
+        self.btnCollapse.clicked.connect(lambda: self.mDataSourceManagerTreeView.expandSelectedNodes(False))
+        self.btnExpand.clicked.connect(lambda: self.mDataSourceManagerTreeView.expandSelectedNodes(True))
+
         # init actions
         self.actionAddDataSource.triggered.connect(lambda: self.mDataSourceManager.addDataSourceByDialog())
         self.actionRemoveDataSource.triggered.connect(
@@ -624,8 +639,8 @@ class DataSourceManagerPanelUI(QgsDockWidget):
         self.btnAddSource.setDefaultAction(self.actionAddDataSource)
         self.btnSync.setDefaultAction(self.actionSyncWithQGIS)
         self.btnRemoveSource.setDefaultAction(self.actionRemoveDataSource)
-        self.btnCollapse.clicked.connect(lambda: self.expandSelectedNodes(self.dataSourceTreeView, False))
-        self.btnExpand.clicked.connect(lambda: self.expandSelectedNodes(self.dataSourceTreeView, True))
+        self.btnCollapse.clicked.connect(lambda: self.dataSourceManagerTreeView().expandSelectedNodes(False))
+        self.btnExpand.clicked.connect(lambda: self.dataSourceManagerTreeView().expandSelectedNodes(True))
 
     def expandSelectedNodes(self, treeView, expand):
         assert isinstance(treeView, QTreeView)

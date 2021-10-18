@@ -70,7 +70,7 @@ class RasterBandTreeNode(TreeNode):
         assert bandIndex >= 0
         assert bandIndex < rasterLayer.bandCount()
         # self.mDataSource = dataSource
-        self.mBandIndex = bandIndex
+        self.mBandIndex: int = bandIndex
 
         if False:
             md = self.mDataSource.mBandMetadata[bandIndex]
@@ -85,6 +85,12 @@ class RasterBandTreeNode(TreeNode):
                     to_add.append(classNode)
                 self.appendChildNodes(to_add)
 
+    def bandIndex(self) -> int:
+        return self.mBandIndex
+
+    def rasterSource(self) -> TreeNode:
+        from enmapbox.gui.datasources.datasources import RasterDataSource
+        return self.findParentNode(RasterDataSource)
 
 class ClassificationNodeLayer(TreeNode):
 

@@ -754,7 +754,7 @@ class CanvasLink(QObject):
 
         else:
             raise NotImplementedError()
-
+        dstCanvas.refresh()
         return dstCanvas
 
     def applyTo(self, canvasTo: QgsMapCanvas):
@@ -1366,10 +1366,15 @@ class MapCanvas(QgsMapCanvas):
 
             # add map layers
             mapLayers = extractMapLayers(mimeData)
-
-            if len(mapLayers) > 0:
-                self.setLayers(mapLayers + self.layers())
-                event.accept()
+            to_add = []
+            for l in mapLayers:
+                if l in self.layers():
+                    l = l.clone()
+                to_add.append(l)
+            if len(to_add) > 0:
+                self.setLayers(to_add + self.layers())
+            print(self.layers())
+            event.accept()
 
     def setExtent(self, rectangle):
         """
@@ -1437,9 +1442,12 @@ class MapCanvas(QgsMapCanvas):
         """
         if not isinstance(mapLayers, list):
             mapLayers = [mapLayers]
+        _mapLayers = []
         for l in mapLayers:
             assert isinstance(l, QgsMapLayer)
-
+            if l not in _mapLayers:
+                _mapLayers.append(l)
+        mapLayers = _mapLayers
         lastSet = self.layers()
 
         QgsProject.instance().addMapLayers(mapLayers, False)
