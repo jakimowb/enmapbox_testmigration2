@@ -461,11 +461,12 @@ class DataSourceManagerTreeView(TreeView):
                                         self.openInMap(s, QgsProject.instance()))
 
         elif isinstance(node, RasterBandTreeNode):
-            a = m.addAction('Band statistics')
-            a.setEnabled(False)
+            #a = m.addAction('Band statistics')
+            #a.setEnabled(False)
             # todo: AR call band stats dialog here
             # similar to:
             # a.triggered.connect(lambda: self.runImageStatistics(lyr))
+            # See issue #792. Will be implemented for v3.10
 
             a = m.addAction('Open in new map')
             a.triggered.connect(lambda *args, n=node: self.openInMap(n.rasterSource(), rgb=[n.bandIndex()]))
