@@ -58,6 +58,8 @@ from enmapbox.gui.datasources.datasources import DataSource, VectorDataSource, S
 from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
 from enmapbox.gui.datasources.manager import DataSourceManager
 from enmapbox.gui.utils import getDOMAttributes
+from enmapboxprocessing.renderer.classfractionrenderer import ClassFractionRendererWidget
+from enmapboxprocessing.renderer.decorrelationstretchrenderer import DecorrelationStretchRendererWidget
 
 
 class LayerTreeNode(QgsLayerTree):
@@ -1199,7 +1201,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                     action.setToolTip('Opens the vector layer in a spectral library view')
                     action.triggered.connect(lambda *args, l=lyr: self.openSpectralLibraryView(l))
 
-                # add some processing algorithm shortcuts
+                # add processing algorithm shortcuts
                 menu.addSeparator()
                 if isinstance(lyr, QgsRasterLayer):
                     action = menu.addAction('Image Statistics')
@@ -1213,6 +1215,19 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 action = menu.addAction('Layer properties')
                 action.setToolTip('Set layer properties')
                 action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
+
+                # add raster renderer here, because we can't register; QgsRendererRegistry.addRenderer only supports vector renderer :-(
+                if isinstance(lyr, QgsRasterLayer):
+                    action: QAction = menu.addAction('Class Fraction/Probability Rendering')
+                    action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
+                    action.setToolTip('Set layer band rendering')
+                    action.triggered.connect(lambda: self.setClassFractionRenderer(lyr))
+
+                    action: QAction = menu.addAction('Decorrelation Stretch Rendering')
+                    action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
+                    action.setToolTip('Set layer band rendering')
+                    action.triggered.connect(lambda: self.setDecorrelationStretchRenderer(lyr, canvas))
+
 
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
@@ -1262,6 +1277,16 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         if isinstance(emb, EnMAPBox) and isinstance(layer, QgsVectorLayer):
             messageBar = emb.messageBar()
         showLayerPropertiesDialog(layer, canvas=canvas, messageBar=messageBar, modal=True, useQGISDialog=False)
+
+    def setClassFractionRenderer(self, layer: QgsRasterLayer):
+        widget = ClassFractionRendererWidget(layer, parent=self.mDockTreeView)
+        widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
+        widget.show()
+
+    def setDecorrelationStretchRenderer(self, layer: QgsRasterLayer, canvas: QgsMapCanvas):
+        widget = DecorrelationStretchRendererWidget(layer, canvas, parent=self.mDockTreeView)
+        widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
+        widget.show()
 
     def runImageStatistics(self, layer):
 

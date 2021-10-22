@@ -23,8 +23,7 @@ import sys
 import enum
 import typing
 import warnings
-from typing import Optional, Dict, Union
-
+from typing import Optional, Dict, Union, Any
 
 from PyQt5.QtCore import pyqtSignal, Qt, QObject, QModelIndex, pyqtSlot, QSettings, QEventLoop, QRect, QSize, QFile
 from PyQt5.QtGui import QDragEnterEvent, QDragMoveEvent, QDragLeaveEvent, QDropEvent, QPixmap, QColor, QIcon, QKeyEvent, \
@@ -1551,18 +1550,23 @@ class EnMAPBox(QgisInterface, QObject):
         contains_html = re.search(r'<(html|br|a|p/?>)', message) is not None
         self.addMessageBarTextBoxItem(line1, message, level=level, html=contains_html)
 
-    def onDataDropped(self, droppedData):
+    def onDataDropped(self, droppedData: Any, mapDock = None):
         assert isinstance(droppedData, list)
-        mapDock = None
+        if mapDock is None:
+            mapDock = self.createDock('MAP')
         from enmapbox.gui.datasources.datasources import SpatialDataSource
         for dataItem in droppedData:
             if isinstance(dataItem, SpatialDataSource):
                 dataSources = self.mDataSourceManager.addDataSources(dataItem)
-                if mapDock is None:
-                    mapDock = self.createDock('MAP')
                 mapDock.addLayers([ds.createRegisteredMapLayer() for ds in dataSources])
+            elif isinstance(dataItem, QgsMapLayer):
+                mapDock.addLayers([dataItem])
+            else:
+                raise TypeError(f'unexpected data item: {dataItem} ({type(dataItem)})')
 
-            # any other types to handle?
+    def dropObject(self, obj: Any):
+        """Drop any object into the EnMAP-Box. Hopefully we can figure out what to do with it :-)"""
+        self.onDataDropped([obj])
 
     def openExampleData(self, mapWindows=0, testData:bool = False):
         """

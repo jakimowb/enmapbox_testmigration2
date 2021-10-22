@@ -4,7 +4,7 @@ import re
 from os import makedirs
 from os.path import join, dirname, basename, exists, splitext
 from random import randint
-from typing import Tuple, Optional, Callable, List, Any, Dict
+from typing import Tuple, Optional, Callable, Any, Dict, Union
 
 import numpy as np
 from PyQt5.QtGui import QColor
@@ -12,10 +12,10 @@ from osgeo import gdal
 from qgis._core import (QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRasterRenderer,
                         QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsRectangle, QgsRasterLayer,
                         QgsRasterDataProvider, QgsPointXY, QgsPoint, Qgis, QgsWkbTypes, QgsSymbol, QgsVectorLayer,
-                        QgsFeature)
+                        QgsFeature, QgsRasterRenderer, QgsFeatureRenderer)
 
 from enmapboxprocessing.enmapalgorithm import AlgorithmCanceledException
-from enmapboxprocessing.typing import (NumpyDataType, MetadataValue, GdalDataType, QgisDataType, MetadataDomain,
+from enmapboxprocessing.typing import (NumpyDataType, MetadataValue, GdalDataType, QgisDataType,
                                        GdalResamplingAlgorithm, Categories, Category)
 from typeguard import typechecked
 
@@ -43,6 +43,8 @@ class Utils(object):
         elif dataType == Qgis.UInt16:
             return np.uint16
         elif dataType == Qgis.UInt32:
+            return np.uint32
+        elif dataType == Qgis.ARGB32_Premultiplied:
             return np.uint32
         else:
             raise Exception(f'unsupported data type: {dataType}')
@@ -107,25 +109,6 @@ class Utils(object):
             raise Exception(f'unsupported data type: {dataType}')
 
     @staticmethod
-    def gdalDataTypeToNumpyDataType(dataType: GdalDataType) -> QgisDataType:
-        if dataType == gdal.GDT_Byte:
-            return Qgis.Byte
-        elif dataType == gdal.GDT_Float32:
-            return Qgis.Float32
-        elif dataType == gdal.GDT_Float64:
-            return Qgis.Float64
-        elif dataType == gdal.GDT_Int16:
-            return Qgis.Int16
-        elif dataType == gdal.GDT_Int32:
-            return Qgis.Int32
-        elif dataType == gdal.GDT_UInt16:
-            return Qgis.UInt16
-        elif dataType == gdal.GDT_UInt32:
-            return Qgis.UInt32
-        else:
-            raise Exception(f'unsupported data type: {dataType}')
-
-    @staticmethod
     def numpyDataTypeToQgisDataType(dataType: NumpyDataType) -> Qgis.DataType:
         if dataType in [bool, np.uint8]:
             return Qgis.Byte
@@ -152,10 +135,11 @@ class Utils(object):
         return array
 
     @classmethod
-    def numpyArrayToQgsRasterBlock(cls, array: np.ndarray) -> QgsRasterBlock:
+    def numpyArrayToQgsRasterBlock(cls, array: np.ndarray, dataType: int = None) -> QgsRasterBlock:
         assert array.ndim == 2
         height, width = array.shape
-        dataType = cls.numpyDataTypeToQgisDataType(array.dtype)
+        if dataType is None:
+            dataType = cls.numpyDataTypeToQgisDataType(array.dtype)
         block = QgsRasterBlock(dataType, width, height)
         block.setData(array.tobytes())
         return block
@@ -273,6 +257,14 @@ class Utils(object):
             name = names.get(value, str(value))
             categories.append(Category(value, name, color))
         return categories
+
+    @classmethod
+    def categoriesFromRenderer(cls, renderer: Union[QgsFeatureRenderer, QgsRasterRenderer]) -> Categories:
+        if isinstance(renderer, QgsPalettedRasterRenderer):
+            return cls.categoriesFromPalettedRasterRenderer(renderer)
+        if isinstance(renderer, QgsCategorizedSymbolRenderer):
+            return cls.categoriesFromCategorizedSymbolRenderer(renderer)
+        raise TypeError(f"can't derive categories from renderer: {renderer}")
 
     @classmethod
     def parseColor(cls, obj):

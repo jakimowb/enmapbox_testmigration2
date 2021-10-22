@@ -2,6 +2,7 @@
 # changes will be overwritten when running scripts\update_unittestdata_init.py
 import pathlib
 root = pathlib.Path(__file__).parent
+
 classification_dataset_csv = (root / 'classification_dataset.csv').as_posix()
 classification_dataset_gpkg = (root / 'classification_dataset.gpkg').as_posix()
 classification_dataset_pkl = (root / 'classification_dataset.pkl').as_posix()
@@ -11,6 +12,7 @@ classifier_pkl_json = (root / 'classifier.pkl.json').as_posix()
 enmap_uncompressed_tif = (root / 'enmap_uncompressed.tif').as_posix()
 force_features_csv = (root / 'force_features.csv').as_posix()
 force_labels_csv = (root / 'force_labels.csv').as_posix()
+fraction_map_l3_tif = (root / 'fraction_map_l3.tif').as_posix()
 landcover_berlin_point_multipart_3035_gpkg = (root / 'landcover_berlin_point_multipart_3035.gpkg').as_posix()
 landcover_berlin_point_singlepart_3035_gpkg = (root / 'landcover_berlin_point_singlepart_3035.gpkg').as_posix()
 landcover_berlin_polygon_3classes_gpkg = (root / 'landcover_berlin_polygon_3classes.gpkg').as_posix()
