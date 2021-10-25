@@ -86,6 +86,7 @@ class DataSourceManager(TreeModel):
 
                 lyrs = extractMapLayers(mimeData)
                 toAdd.extend(DataSourceFactory.create(lyrs))
+
         added = []
         if len(toAdd) > 0:
             added = self.addDataSources(toAdd)
@@ -723,8 +724,6 @@ class DataSourceFactory(object):
                         provider = source.providerKey
                         name = source.name
 
-
-
             elif isinstance(source, QgsMapLayer):
                 dtype = QgsLayerItem.typeFromMapLayer(source)
                 dataItem = QgsLayerItem(None, source.name(), source.source(),
@@ -783,7 +782,7 @@ class DataSourceFactory(object):
                         results.append(VectorDataSource(dataItem))
                 elif dataItem.providerKey() == 'special:pkl':
                     results.append(ModelDataSource(dataItem))
-                elif dataItem.providerKey() == 'special:files':
+                elif dataItem.providerKey() == 'special:file':
                     results.append(FileDataSource(dataItem))
 
         return results
