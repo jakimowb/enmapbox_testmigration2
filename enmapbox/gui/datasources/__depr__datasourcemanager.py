@@ -1136,8 +1136,8 @@ class DataSourceTreeView(TreeView):
                 pass
 
         if isinstance(node, RasterBandTreeNode):
-            a = m.addAction('Band statistics')
-            a.setEnabled(False)
+            #a = m.addAction('Band statistics')
+            #a.setEnabled(False)
 
             a = m.addAction('Open in new map')
             a.triggered.connect(lambda *args, n=node: self.openInMap(n.mDataSource, rgb=[n.mBandIndex]))

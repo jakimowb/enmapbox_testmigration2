@@ -28,8 +28,8 @@ def dataItemToLayer(dataItem: QgsDataItem) -> QgsMapLayer:
             lyr.loadDefaultStyle()
     return lyr
 
-class DataSource(TreeNode):
 
+class DataSource(TreeNode):
     MD_LAYER = 'map_layer'
     MD_MAPUNIT = 'map_unit'
     MD_EXTENT = 'spatial_extent'
@@ -243,6 +243,7 @@ class RasterDataSource(SpatialDataSource):
                 icon = QIcon(':/enmapbox/gui/ui/icons/filelist_image.svg')
             self.setIcon(icon)
 
+
 class ModelDataSource(DataSource):
 
     def __init__(self, dataItem: QgsDataItem):
@@ -295,7 +296,6 @@ class FileDataSource(DataSource):
         super(FileDataSource, self).__init__(dataItem)
 
 
-
 class DataSourceTypes(object):
     """
     Enumeration that defines the standard data source types.
@@ -309,12 +309,12 @@ class DataSourceTypes(object):
 
 
 LUT_DATASOURCETYPES = {DataSourceTypes.Raster: RasterDataSource,
-                 DataSourceTypes.Vector: VectorDataSource,
-                 DataSourceTypes.Spatial: SpatialDataSource,
-                 DataSourceTypes.SpectralLibrary: VectorDataSource,
-                 DataSourceTypes.Model: ModelDataSource,
-                 DataSourceTypes.File: FileDataSource,
-                 }
+                       DataSourceTypes.Vector: VectorDataSource,
+                       DataSourceTypes.Spatial: SpatialDataSource,
+                       DataSourceTypes.SpectralLibrary: VectorDataSource,
+                       DataSourceTypes.Model: ModelDataSource,
+                       DataSourceTypes.File: FileDataSource,
+                       }
 
 for cls in set(LUT_DATASOURCETYPES.values()):
     LUT_DATASOURCETYPES[cls] = cls

@@ -108,6 +108,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
     GROUP_TEST = 'TEST'
     GROUP_TESTDATA = 'Testdata'
     GROUP_TRANSFORMATION = 'Transformation'
+    GROUP_VISUALIZATION = 'Visualization'
 
     def cookbookRecipes(self):
         return []

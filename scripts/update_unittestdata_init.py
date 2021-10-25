@@ -1,16 +1,10 @@
-import os
-import shutil
-import requests
-import zipfile
-import pathlib
-import io
-import re
 import argparse
+import pathlib
+import re
 import site
 
 site.addsitedir(pathlib.Path(__file__).parents[1])
-import enmapbox
-from enmapbox import DIR_REPO, __version__
+from enmapbox import DIR_REPO
 from enmapbox.gui.utils import file_search
 
 DIR_REPO = pathlib.Path(DIR_REPO)
@@ -18,10 +12,10 @@ DIR_REPO = pathlib.Path(DIR_REPO)
 DIR_UNITTESTDATA = DIR_REPO / 'tests' / 'testdata'
 PATH_TEST_INIT = DIR_UNITTESTDATA / '__init__.py'
 
+
 def update_unittest_init(
         use_pathlib: bool = True,
         overwrite: bool = False):
-
     assert DIR_UNITTESTDATA.is_dir()
 
     if not overwrite and PATH_TEST_INIT.is_file():
@@ -58,7 +52,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=f'Updates path variable in {part}')
     parser.add_argument('-o', '--overwrite',
                         required=False,
-                        default=False,
+                        default=True,
                         help='Overwrite existing __init__.py',
                         action='store_true')
     parser.add_argument('-p', '--pathlib',

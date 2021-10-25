@@ -6,8 +6,6 @@ tmp/
 */tmp/
 doc/build/
 */build/
-enmap-box/enmapbox/enmapboxtestdata/
-enmapboxunittestdata/
 test-reports/
 test-outputs/
 qgisresources
@@ -46,7 +44,6 @@ doc/build
 /tests/test-*/
 /test-reports/
 hubdc/gis/
-exampledata/
-_exampledata/
 *.gpkg-shm
 *.gpkg-wal
+enmapbox/enmapboxexampledata.zip

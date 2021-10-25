@@ -58,6 +58,8 @@ from enmapbox.gui.datasources.datasources import DataSource, VectorDataSource, S
 from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
 from enmapbox.gui.datasources.manager import DataSourceManager
 from enmapbox.gui.utils import getDOMAttributes
+from enmapboxprocessing.renderer.classfractionrenderer import ClassFractionRendererWidget
+from enmapboxprocessing.renderer.decorrelationstretchrenderer import DecorrelationStretchRendererWidget
 
 
 class LayerTreeNode(QgsLayerTree):
@@ -1195,11 +1197,16 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                     action.setToolTip('Opens the layer attribute table')
                     action.triggered.connect(lambda *args, l=lyr: self.openAttributeTable(l))
 
-                # add some processing algorithm shortcuts
+                    action = menu.addAction('Open Spectral Library Viewer')
+                    action.setToolTip('Opens the vector layer in a spectral library view')
+                    action.triggered.connect(lambda *args, l=lyr: self.openSpectralLibraryView(l))
+
+                # add processing algorithm shortcuts
                 menu.addSeparator()
                 if isinstance(lyr, QgsRasterLayer):
                     action = menu.addAction('Image Statistics')
                     action.triggered.connect(lambda: self.runImageStatistics(lyr))
+
                     if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
                         action = menu.addAction('Classification Statistics')
                         action.triggered.connect(lambda: self.runClassificationStatistics(lyr))
@@ -1208,6 +1215,19 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 action = menu.addAction('Layer properties')
                 action.setToolTip('Set layer properties')
                 action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
+
+                # add raster renderer here, because we can't register; QgsRendererRegistry.addRenderer only supports vector renderer :-(
+                if isinstance(lyr, QgsRasterLayer):
+                    action: QAction = menu.addAction('Class Fraction/Probability Rendering')
+                    action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
+                    action.setToolTip('Set layer band rendering')
+                    action.triggered.connect(lambda: self.setClassFractionRenderer(lyr))
+
+                    action: QAction = menu.addAction('Decorrelation Stretch Rendering')
+                    action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
+                    action.setToolTip('Set layer band rendering')
+                    action.triggered.connect(lambda: self.setDecorrelationStretchRenderer(lyr, canvas))
+
 
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
@@ -1240,7 +1260,15 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         from enmapbox import EnMAPBox
         emb = EnMAPBox.instance()
         if isinstance(emb, EnMAPBox) and isinstance(layer, QgsVectorLayer):
-            emb.createDock('ATTRIBUTE', layer=layer)
+            from enmapbox.gui.dataviews.docks import AttributeTableDock
+            emb.createDock(AttributeTableDock, layer=layer)
+
+    def openSpectralLibraryView(self, layer: QgsVectorLayer):
+        from enmapbox import EnMAPBox
+        emb = EnMAPBox.instance()
+        if isinstance(emb, EnMAPBox) and isinstance(layer, QgsVectorLayer):
+            from enmapbox.gui.dataviews.docks import SpectralLibraryDock
+            emb.createDock(SpectralLibraryDock, speclib=layer)
 
     def setLayerStyle(self, layer: QgsMapLayer, canvas: QgsMapCanvas):
         from enmapbox import EnMAPBox
@@ -1249,6 +1277,16 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         if isinstance(emb, EnMAPBox) and isinstance(layer, QgsVectorLayer):
             messageBar = emb.messageBar()
         showLayerPropertiesDialog(layer, canvas=canvas, messageBar=messageBar, modal=True, useQGISDialog=False)
+
+    def setClassFractionRenderer(self, layer: QgsRasterLayer):
+        widget = ClassFractionRendererWidget(layer, parent=self.mDockTreeView)
+        widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
+        widget.show()
+
+    def setDecorrelationStretchRenderer(self, layer: QgsRasterLayer, canvas: QgsMapCanvas):
+        widget = DecorrelationStretchRendererWidget(layer, canvas, parent=self.mDockTreeView)
+        widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
+        widget.show()
 
     def runImageStatistics(self, layer):
 
@@ -1367,21 +1405,27 @@ class DockManager(QObject):
 
             new_sources = self.mDataSourceManager.addDataSources(layers + textfiles)
 
-            dropped_speclibs = [s for s in new_sources if isinstance(s, VectorDataSource) and s.isSpectralLibrary()]
-            dropped_maplayers = [s for s in new_sources if isinstance(s, SpatialDataSource) and s not in dropped_speclibs]
+            # dropped_speclibs = [s for s in new_sources if isinstance(s, VectorDataSource) and s.isSpectralLibrary()]
+            # dropped_maplayers = [s for s in new_sources if isinstance(s, SpatialDataSource) and s not in dropped_speclibs]
+
+            dropped_speclibs = [l for l in layers if is_spectral_library(l)]
+            dropped_maplayers = [l for l in layers if isinstance(l, QgsMapLayer) and l.isValid()]
+
             # open spectral Library dock for new speclibs
 
             if len(dropped_speclibs) > 0:
                 # show 1st speclib
-                NEW_DOCK = self.createDock('SPECLIB', speclib=dropped_speclibs[0].asMapLayer())
+                from enmapbox.gui.dataviews.docks import SpectralLibraryDock
+                NEW_DOCK = self.createDock(SpectralLibraryDock, speclib=dropped_speclibs[0])
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
 
             # open map dock for other map layers
             if len(dropped_maplayers) > 0:
-                NEW_DOCK = self.createDock('MAP')
+                from enmapbox.gui.dataviews.docks import MapDock
+                NEW_DOCK = self.createDock(MapDock)
                 assert isinstance(NEW_DOCK, MapDock)
-                layers = [s.asMapLayer() for s in dropped_maplayers]
-                NEW_DOCK.addLayers(layers)
+                # layers = [s.asMapLayer() for s in dropped_maplayers]
+                NEW_DOCK.addLayers(dropped_maplayers)
 
             event.accept()
 
