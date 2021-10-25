@@ -775,6 +775,8 @@ class DockManagerTreeModel(QgsLayerTreeModel):
             else:
                 s = ""
 
+            if not isinstance(dockNode, MapDockTreeNode):
+                flags = flags & ~Qt.ItemIsDragEnabled
             return flags
 
     def headerData(self, section, orientation, role=None):
