@@ -161,11 +161,11 @@ class DataSourceTests(EnMAPBoxTestCase):
         p2 = pathlib.Path(hires).as_posix()
 
         dsm = DataSourceManager()
-        dsm.addSources([p1, p2])
+        dsm.addDataSources([p1, p2])
         self.assertTrue(len(dsm) == 1)
 
         dsm = DataSourceManager()
-        dsm.addSources([p2, p1])
+        dsm.addDataSources([p2, p1])
         self.assertTrue(len(dsm) == 1)
 
     def test_DataSourcePanelUI(self):
@@ -174,7 +174,7 @@ class DataSourceTests(EnMAPBoxTestCase):
         panel = DataSourceManagerPanelUI()
         panel.connectDataSourceManager(dsm)
         uris = [library, enmap, landcover_polygons]
-        dsm.addSources(uris)
+        dsm.addDataSources(uris)
         self.showGui(panel)
 
     def test_datasourcemanager(self):
@@ -183,10 +183,10 @@ class DataSourceTests(EnMAPBoxTestCase):
         dsm = DataSourceManager()
         uris = [enmap_srf_library, enmap, landcover_polygons]
         uris = [pathlib.Path(p).as_posix() for p in uris]
-        dsm.addSources(uris)
+        dsm.addDataSources(uris)
 
         self.assertTrue((len(dsm) == len(uris)))
-        dsm.addSources(uris)
+        dsm.addDataSources(uris)
         self.assertEqual(len(dsm), len(uris), msg='Redundant sources are not allowed')
 
         self.assertEqual(len(dsm.dataSources('SPATIAL')), 3)
@@ -204,7 +204,7 @@ class DataSourceTests(EnMAPBoxTestCase):
             self.assertEqual(len(ds), 1)
             self.assertIsInstance(ds[0], DataSource)
             self.assertEqual(len(dsm), i + 1)
-        dsm.addSources(lyrs)
+        dsm.addDataSources(lyrs)
         self.assertTrue(len(dsm) == len(lyrs))
 
         dsm = DataSourceManager()
@@ -218,8 +218,8 @@ class DataSourceTests(EnMAPBoxTestCase):
         try:
             p1 = str(pathlib.WindowsPath(pathlib.Path(enmap)))
             p2 = str(pathlib.Path(enmap).as_posix())
-            dsm.addSources(p1)
-            dsm.addSources(p2)
+            dsm.addDataSources(p1)
+            dsm.addDataSources(p2)
             self.assertTrue(len(dsm) == l, msg='DataSourceManager should not contain the same source multiple times')
         except:
             pass

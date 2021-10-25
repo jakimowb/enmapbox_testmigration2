@@ -77,7 +77,7 @@ class MimeDataTests(EnMAPBoxTestCase):
         self.assertIsInstance(md, QMimeData)
 
         sources = mimedata.toDataSourceList(md)
-        self.assertTrue(len(sources) == len(dataSources))
+        self.assertEqual(len(sources), len(dataSources))
         for ds in dataSources:
             self.assertTrue(ds in sources)
 

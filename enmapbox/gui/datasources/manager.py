@@ -260,7 +260,8 @@ class DataSourceManager(TreeModel):
         self.addDataSources(*args, **kwds)
 
     def addSource(self, *args, **kwds):
-        self.addSources(*args, **kwds)
+        warnings.warn(DeprecationWarning('Use addDataSources instead'), stacklevel=2)
+        self.addDataSources(*args, **kwds)
 
     def addDataSources(self,
                        sources: typing.Union[DataSource, typing.List[DataSource]],
@@ -708,21 +709,27 @@ class DataSourceFactory(object):
             dataItem: QgsDataItem = None
 
             if isinstance(source, QgsMimeDataUtils.Uri):
-                if not source.isValid():
-                    return []
+                if source.layerType == 'raster':
+                    dtype = QgsLayerItem.Raster
+                    dataItem = QgsLayerItem(None, source.name, source.uri,
+                                            source.uri, dtype, source.providerKey)
+
+                elif source.layerType == 'vector':
+                    dtype = QgsLayerItem.Vector
+                    dataItem = QgsLayerItem(None, source.name, source.uri,
+                                            source.uri, dtype, source.providerKey)
+
+                elif source.providerKey in ['special:file', 'special:pkl']:
+                    name = source.name
+                    source = source.uri
+
+                elif source.isValid():
+                    source = source.uri
+                    provider = source.providerKey
+                    name = source.name
+
                 else:
-                    if source.layerType == 'raster':
-                        dtype = QgsLayerItem.Raster
-                        dataItem = QgsLayerItem(None, source.name, source.uri,
-                                                source.uri, dtype, source.providerKey)
-                    elif source.layerType == 'vector':
-                        dtype = QgsLayerItem.Vector
-                        dataItem = QgsLayerItem(None, source.name, source.uri,
-                                                source.uri, dtype, source.providerKey)
-                    else:
-                        source = source.uri
-                        provider = source.providerKey
-                        name = source.name
+                    return []
 
             elif isinstance(source, QgsMapLayer):
                 dtype = QgsLayerItem.typeFromMapLayer(source)
