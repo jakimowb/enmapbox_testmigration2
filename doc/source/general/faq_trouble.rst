@@ -216,6 +216,13 @@ suggest new entries!
 Known Issues
 ============
 
+Here is a list of known issues, that aren't fixed easily,
+and/or only affect a specific version of QGIS or operating system:
+https://bitbucket.org/hu-geomatics/enmap-box/issues?component=known+issue&status=on+hold
+
+Also read the rest of this section fpr further details on some of the issues and possible workarounds.
+
+
 * **QGIS crashes while starting/activating the EnMAP-Box plugin** - HDF5 library version mismatched error (see `Issue #747 <https://bitbucket.org/hu-geomatics/enmap-box/issues/747/h5py-hdf5-library-version-mismatched-error>`_)
 
   Two potential workarounds:
