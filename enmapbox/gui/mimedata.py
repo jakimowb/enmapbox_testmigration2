@@ -3,6 +3,11 @@ import typing
 import uuid
 from os.path import basename, exists
 
+from qgis.PyQt.QtCore import QMimeData, QUrl, QByteArray
+from qgis.PyQt.QtXml import QDomNamedNodeMap, QDomDocument
+
+from qgis.core import QgsLayerItem
+
 from enmapboxprocessing.algorithm.importdesisl1balgorithm import ImportDesisL1BAlgorithm
 from enmapboxprocessing.algorithm.importdesisl1calgorithm import ImportDesisL1CAlgorithm
 from enmapboxprocessing.algorithm.importdesisl2aalgorithm import ImportDesisL2AAlgorithm
@@ -16,8 +21,6 @@ from enmapboxprocessing.algorithm.importsentinel2l2aalgorithm import ImportSenti
 from processing import AlgorithmDialog
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsProject, QgsReadWriteContext, \
     QgsMimeDataUtils, QgsLayerTree, QgsLayerTreeLayer
-from PyQt5.QtCore import *
-from PyQt5.QtXml import *
 
 from enmapbox import debugLog
 from .datasources.datasources import DataSource
@@ -79,7 +82,18 @@ def fromDataSourceList(dataSources):
     for ds in dataSources:
 
         assert isinstance(ds, DataSource)
-        uriList.extend(ds.dataItem().mimeUris())
+
+        dataItem = ds.dataItem()
+        uris = dataItem.mimeUris()
+        if not isinstance(dataItem, QgsLayerItem):
+            uri = QgsMimeDataUtils.Uri()
+            uri.name = dataItem.name()
+            uri.filePath = dataItem.path()
+            uri.uri = dataItem.path()
+            uri.providerKey = dataItem.providerKey()
+            uris = [uri]
+            # uris = [QUrl.fromLocalFile(dataItem.path())]
+        uriList.extend(uris)
 
     mimeData = QgsMimeDataUtils.encodeUriList(uriList)
     return mimeData

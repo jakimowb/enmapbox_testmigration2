@@ -338,7 +338,7 @@ class ApplicationRegistry(QObject):
         assert isinstance(app, EnMAPBoxApplication)
 
         appWrapper = ApplicationWrapper(app)
-        self.sigLoadingInfo.emit(f'Load {appWrapper.appId} ...')
+        self.sigLoadingInfo.emit(f'Load {appWrapper.app.name} ...')
         if DEBUG:
             print('Check requirements...')
         isOk, errorMessages = EnMAPBoxApplication.checkRequirements(app)
@@ -369,7 +369,7 @@ class ApplicationRegistry(QObject):
         return True
 
     def loadProcessingAlgorithms(self, appWrapper: ApplicationWrapper):
-        self.sigLoadingInfo.emit(f'Load QgsProcessingAlgorithms of {appWrapper.appId}')
+        self.sigLoadingInfo.emit(f'Load QgsProcessingAlgorithms of {appWrapper.app.name}')
         assert isinstance(appWrapper, ApplicationWrapper)
         processingAlgorithms = appWrapper.app.processingAlgorithms()
         if DEBUG:

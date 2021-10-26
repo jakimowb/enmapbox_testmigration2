@@ -1715,12 +1715,14 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
                 context.setFeature(feature)
 
                 renderContext = QgsRenderContext()
-                renderer = speclib.renderer().clone()
+                if isinstance(speclib.renderer(), QgsFeatureRenderer):
+                    renderer = speclib.renderer().clone()
 
-                renderer.startRender(renderContext, speclib.fields())
-                symbol = renderer.symbolForFeature(feature, renderContext)
-                if isinstance(symbol, QgsSymbol):
-                    context.appendScope(QgsExpressionContextScope(symbol.symbolRenderContext().expressionContextScope()))
+                    renderer.startRender(renderContext, speclib.fields())
+                    symbol = renderer.symbolForFeature(feature, renderContext)
+                    if isinstance(symbol, QgsSymbol):
+                        context.appendScope(QgsExpressionContextScope(
+                            symbol.symbolRenderContext().expressionContextScope()))
 
         color, success = property.valueAsColor(context, defaultColor=defaultColor)
         if isinstance(renderer, QgsFeatureRenderer):
@@ -1740,6 +1742,9 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
                 self.index(0, 0),
                 self.index(self.rowCount() - 1, 0)
             )
+
+    def plotWidgetStyle(self) -> SpectralLibraryPlotWidgetStyle:
+        return self.mPlotWidgetStyle
 
     def parent(self, index: QModelIndex):
         if not index.isValid():
@@ -2130,12 +2135,17 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
         for vis in visualizations:
             vis: SpectralProfilePlotVisualization
 
-            renderer: QgsFeatureRenderer = self.speclib().renderer().clone()
-            renderContext = QgsRenderContext()
-            # renderer.startRender(renderContext, self.speclib().fields())
-            renderContext.setExpressionContext(self.speclib().createExpressionContext())
+            renderer: QgsFeatureRenderer = self.speclib().renderer()
+            if isinstance(renderer, QgsFeatureRenderer):
+                renderer = renderer.clone()
+                renderContext = QgsRenderContext()
+                # renderer.startRender(renderContext, self.speclib().fields())
+                renderContext.setExpressionContext(self.speclib().createExpressionContext())
 
-            VIS_RENDERERS[vis] = (renderer, renderContext)
+                VIS_RENDERERS[vis] = (renderer, renderContext)
+            else:
+                VIS_RENDERERS[vis] = (None, None)
+
             VIS_HAS_FILTER[vis] = vis.filterProperty().expressionString().strip() != ''
 
         request = QgsFeatureRequest()
@@ -2246,19 +2256,24 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
                     symbolBrush.setColor(featureColor)
 
                 else:
-
+                    qgssymbol = None
                     renderer, renderContext = VIS_RENDERERS[vis]
-                    renderContext.expressionContext().setFeature(feature)
 
-                    renderer.startRender(renderContext, feature.fields())
-                    qgssymbol = renderer.symbolForFeature(feature, renderContext)
-                    if isinstance(qgssymbol, QgsSymbol):
-                        symbolScope = qgssymbol.symbolRenderContext().expressionContextScope()
-                        context.appendScope(symbolScope)
+                    if isinstance(renderer, QgsFeatureRenderer):
+                        renderContext.expressionContext().setFeature(feature)
+                        renderer.startRender(renderContext, feature.fields())
+                        qgssymbol = renderer.symbolForFeature(feature, renderContext)
+
+                        if isinstance(qgssymbol, QgsSymbol):
+                            symbolScope = qgssymbol.symbolRenderContext().expressionContextScope()
+                            context.appendScope(symbolScope)
 
                     prop = vis.colorProperty()
                     featureColor, success = prop.valueAsColor(context, defaultColor=QColor('white'))
-                    renderer.stopRender(renderContext)
+
+                    if isinstance(renderer, QgsFeatureRenderer):
+                        renderer.stopRender(renderContext)
+
                     if isinstance(qgssymbol, QgsSymbol):
                         context.popScope()
                         pass
@@ -2313,9 +2328,7 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
                 new_spdis.append(pdi)
 
         s = ""
-        for v, t in VIS_RENDERERS.items():
-            renderer, renderContext = t
-            # renderer.stopRender(renderContext)
+
 
         to_remove = [p for p in old_spdis if p not in new_spdis]
         for p in to_remove:
@@ -2817,8 +2830,10 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
 
             if col == self.CIX_VALUE:
                 if role == Qt.DisplayRole:
+
                     if row == self.PIX_FIELD:
                         return vis.field().name()
+
                     if row == self.PIX_COLOR:
                         property = vis.colorProperty()
                         if property.propertyType() == QgsProperty.ExpressionBasedProperty:
@@ -2827,36 +2842,46 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
                             return property.field()
                         else:
                             return self.createPropertyColor(vis.colorProperty())
+
                     if row == self.PIX_MODEL:
                         return vis.modelName()
+
                     if row == self.PIX_LABEL:
                         return vis.mLabelProperty.expressionString()
+
                     if row == self.PIX_FILTER:
                         return vis.mFilterProperty.expressionString()
 
                 if role == SpectralProfilePlotControlModel.PropertyRole:
                     if row == self.PIX_COLOR:
                         return vis.colorProperty()
+
                     if row == self.PIX_LABEL:
                         return vis.labelProperty()
+
                     if row == self.PIX_FILTER:
                         return vis.filterProperty()
 
                 if role == SpectralProfilePlotControlModel.PropertyDefinitionRole:
                     if row == self.PIX_COLOR:
                         return vis.mColorPropertyDefinition
+
                     if row == self.PIX_LABEL:
                         return vis.mLabelPropertyDefinition
+
                     if row == self.PIX_FILTER:
                         return vis.mFilterPropertyDefinition
 
                 if role == Qt.ToolTipRole:
                     if row == self.PIX_FIELD:
                         return vis.field().name()
+
                     if row == self.PIX_MODEL:
                         return vis.modelName()
+
                     if row == self.PIX_LABEL:
                         return vis.mLabelPropertyDefinition.description()
+
                     if row == self.PIX_FILTER:
                         return vis.mFilterPropertyDefinition.description()
 
@@ -2869,6 +2894,7 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
                 if role == Qt.SizeHintRole:
                     if row == self.PIX_STYLE:
                         return QSize(75, 50)
+
                 if role == SpectralProfilePlotControlModel.PropertyDefinitionRole:
                     if row == self.PIX_COLOR:
                         return vis.colorProperty()
@@ -2948,6 +2974,7 @@ class SpectralProfilePlotControlModel(QAbstractItemModel):
                     if index.row() == self.PIX_STYLE:
                         if value != vis.mPlotStyle:
                             vis.setPlotStyle(value)
+                            # vis.setVisible(value.isVisible())
                             changed = True
 
         if changed:
@@ -3163,12 +3190,9 @@ class SpectralProfilePlotControlViewDelegate(QStyledItemDelegate):
         super(SpectralProfilePlotControlViewDelegate, self).__init__(parent=parent)
         self.mTreeView: SpectralProfilePlotControlView = treeView
 
-    def model(self) -> SpectralProfilePlotControlModel:
-        return self.mTreeView.model()
-
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
         handle = index.data(Qt.UserRole)
-        # bc = self.model().mPlotWidgetStyle.backgroundColor
+        bc = QColor(self.plotControl().plotWidgetStyle().backgroundColor)
         if True and isinstance(handle, SpectralProfilePlotVisualization) and \
                 index.column() == SpectralProfilePlotControlModel.CIX_NAME:
             super().paint(painter, option, index)
@@ -3186,7 +3210,7 @@ class SpectralProfilePlotControlViewDelegate(QStyledItemDelegate):
                     icon.paint(painter, rect1)
                     s_x += dy
 
-                pixmap = style.createPixmap(size=QSize(w - s_x, h), hline=True)
+                pixmap = style.createPixmap(size=QSize(w - s_x, h), hline=True, bc=bc)
                 rect2 = QRect(r.x() + s_x, r.y(), r.width() - s_x, r.height())
                 painter.drawPixmap(rect2, pixmap)
 
@@ -3196,10 +3220,11 @@ class SpectralProfilePlotControlViewDelegate(QStyledItemDelegate):
                     SpectralProfilePlotControlModel.PropertyIndexRole) == SpectralProfilePlotControlModel.PIX_STYLE:
             # self.initStyleOption(option, index)
             style: PlotStyle = handle.parentVisualization().plotStyle()
+
             h = self.mTreeView.rowHeight(index)
             w = self.mTreeView.columnWidth(index.column())
             if h > 0 and w > 0:
-                px = style.createPixmap(size=QSize(w, h))
+                px = style.createPixmap(size=QSize(w, h), bc=bc)
                 painter.drawPixmap(option.rect, px)
             else:
                 super().paint(painter, option, index)
@@ -3274,6 +3299,7 @@ class SpectralProfilePlotControlViewDelegate(QStyledItemDelegate):
                     w.setMinimumSize(5, 5)
                     w.setPlotStyle(vis.plotStyle())
                     w.setColorWidgetVisibility(False)
+                    w.setVisibilityCheckboxVisible(False)
                     w.setToolTip('Set curve style')
 
         return w

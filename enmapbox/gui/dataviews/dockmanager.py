@@ -23,6 +23,8 @@ import typing
 import time
 
 from PyQt5.QtWidgets import QToolButton, QAction
+from qgis.core import QgsWkbTypes
+
 from qgis.core import Qgis
 from qgis.gui import QgsLayerTreeProxyModel
 
@@ -773,6 +775,8 @@ class DockManagerTreeModel(QgsLayerTreeModel):
             else:
                 s = ""
 
+            if not isinstance(dockNode, MapDockTreeNode):
+                flags = flags & ~Qt.ItemIsDragEnabled
             return flags
 
     def headerData(self, section, orientation, role=None):
@@ -1420,6 +1424,12 @@ class DockManager(QObject):
                 assert isinstance(NEW_DOCK, SpectralLibraryDock)
 
             # open map dock for other map layers
+
+            # exclude vector layers without geometry
+            dropped_maplayers = [l for l in dropped_maplayers \
+                                 if not (isinstance(l, QgsVectorLayer) and \
+                                         l.geometryType() in [QgsWkbTypes.UnknownGeometry, QgsWkbTypes.NullGeometry])]
+
             if len(dropped_maplayers) > 0:
                 from enmapbox.gui.dataviews.docks import MapDock
                 NEW_DOCK = self.createDock(MapDock)

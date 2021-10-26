@@ -101,8 +101,8 @@ class FileDataSourceSet(DataSourceSet):
                                                 icon=QIcon(r':/trolltech/styles/commonstyle/images/file-128.png')
                                                 )
 
-        def isValidSource(self, source) -> bool:
-            return isinstance(source, FileDataSource)
+    def isValidSource(self, source) -> bool:
+        return isinstance(source, FileDataSource)
 
 
 class RasterDataSourceSet(DataSourceSet):

@@ -1,3 +1,4 @@
+@echo off
 set REPO=%~dp0..
 set CI=True
 set PYTHONPATH=^

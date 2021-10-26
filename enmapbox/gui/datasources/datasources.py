@@ -289,10 +289,10 @@ class ModelDataSource(DataSource):
 
 class FileDataSource(DataSource):
 
-    def __init__(self, dataItem: QgsLayerItem):
-        assert isinstance(dataItem, QgsLayerItem)
-        assert dataItem.type() == QgsLayerItem.NoType
-        assert dataItem.providerKey() == 'speclia:file'
+    def __init__(self, dataItem: QgsDataItem):
+        assert isinstance(dataItem, QgsDataItem)
+        # assert dataItem.type() == QgsDataItem.NoType
+        assert dataItem.providerKey() == 'special:file'
         super(FileDataSource, self).__init__(dataItem)
 
 
