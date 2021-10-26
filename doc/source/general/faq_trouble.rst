@@ -249,3 +249,13 @@ Also read the rest of this section fpr further details on some of the issues and
 * **cannot import name 'sip' from 'PyQt5'**
 
   This error is sometimes observed on Ubuntu (20.04) systems. See `Issue #718 <https://bitbucket.org/hu-geomatics/enmap-box/issues/718/cannot-import-name-sip-from-pyqt5-linux>`_ for status.
+
+
+* **QGIS does not show up on MacOS (conda installation)**
+
+    On macOS it has been observed that the QGIS GUI does not be shown, despite it can be started from e.g. the
+    conda shell and a new item appears in the macOS dock.
+
+    This can be solved by setting `export QT_MAC_WANTS_LAYER=1`
+
+    See `qgis-feedstock Issue 183 <https://github.com/conda-forge/qgis-feedstock/issues/183>`_ for details.
