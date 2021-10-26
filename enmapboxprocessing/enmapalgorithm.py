@@ -708,41 +708,60 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             if parameters.get(parameter.name()) is None:
                 continue
 
-            if isinstance(parameter, (QgsProcessingParameterString, QgsProcessingParameterRasterLayer,
-                                      QgsProcessingParameterVectorLayer, QgsProcessingParameterMapLayer,
-                                      QgsProcessingDestinationParameter, QgsProcessingParameterField,
-                                      QgsProcessingParameterFile, QgsProcessingParameterCrs)):
-                if isinstance(parameter, (QgsProcessingParameterString)):
-                    value = parameters[parameter.name()]
-                    value = parameter.valueAsPythonString(value, context)#[1:-1]  # remove single quotes
-                elif isinstance(parameter, (QgsProcessingDestinationParameter)):
-                    value = self.parameterAsOutputLayer(parameters, parameter.name(), context)
-                elif isinstance(parameter, (QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
-                                          QgsProcessingParameterMapLayer)):
-                    value = self.parameterAsLayer(parameters, parameter.name(), context).source()
-                elif isinstance(parameter, (QgsProcessingParameterFile)):
-                    value = self.parameterAsFile(parameters, parameter.name(), context)
-                elif isinstance(parameter, (QgsProcessingParameterCrs)):
-                    value = self.parameterAsCrs(parameters, parameter.name(), context).authid()
+            isListParameter = isinstance(parameter, QgsProcessingParameterField) and parameter.allowMultiple()
+
+            if not isListParameter:
+                if isinstance(parameter, (QgsProcessingParameterString, QgsProcessingParameterRasterLayer,
+                                          QgsProcessingParameterVectorLayer, QgsProcessingParameterMapLayer,
+                                          QgsProcessingDestinationParameter, QgsProcessingParameterField,
+                                          QgsProcessingParameterFile, QgsProcessingParameterCrs)):
+                    if isinstance(parameter, (QgsProcessingParameterString)):
+                        value = parameters[parameter.name()]
+                        value = parameter.valueAsPythonString(value, context)#[1:-1]  # remove single quotes
+                    elif isinstance(parameter, (QgsProcessingDestinationParameter)):
+                        value = self.parameterAsOutputLayer(parameters, parameter.name(), context)
+                    elif isinstance(parameter, (QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
+                                              QgsProcessingParameterMapLayer)):
+                        value = self.parameterAsLayer(parameters, parameter.name(), context).source()
+                    elif isinstance(parameter, (QgsProcessingParameterFile)):
+                        value = self.parameterAsFile(parameters, parameter.name(), context)
+                    elif isinstance(parameter, (QgsProcessingParameterCrs)):
+                        value = self.parameterAsCrs(parameters, parameter.name(), context).authid()
+                    elif isinstance(parameter, (QgsProcessingParameterField)):
+                        value = self.parameterAsField(parameters, parameter.name(), context)
+                    else:
+                        value = self.parameterAsString(parameters, parameter.name(), context)
+                    if value is None:
+                        assert value is not None
+                    value = value.replace('"', r'\"')  # escape double quotes
                 else:
-                    value = self.parameterAsString(parameters, parameter.name(), context)
-                value = value.replace('"', r'\"')  # escape double quotes
-            else:
-                value = parameter.valueAsPythonString(parameters[parameter.name()], context)  # remove single quotes
+                    value = parameter.valueAsPythonString(parameters[parameter.name()], context)  # remove single quotes
 
-            # remove whitespaces if possible
-            if isinstance(parameter, (QgsProcessingParameterExtent)):
-                value = value.replace(' ', '')
+                # remove whitespaces if possible
+                if isinstance(parameter, (QgsProcessingParameterExtent)):
+                    value = value.replace(' ', '')
 
-            # strip single quotes
-            if value.startswith("'") and value.endswith("'"):
-                value = value[1:-1]
+                # strip single quotes
+                if value.startswith("'") and value.endswith("'"):
+                    value = value[1:-1]
 
-            #  wrap in double quotes
-            if ' ' in value:
-                value = '"' + value + '"'
+                #  wrap in double quotes
+                if ' ' in value:
+                    value = '"' + value + '"'
 
-            cmd += rf'{parameter.name()}={value} '
+                cmd += rf'{parameter.name()}={value} '
+
+            else:  # handle list parameters
+                if isinstance(parameter, QgsProcessingParameterField):
+                    values = self.parameterAsFields(parameters, parameter.name(), context)
+                else:
+                    assert 0
+                for value in values:
+                    value = str(value)
+                    if ' ' in value:
+                        value = '"' + value + '"'
+                    cmd += f'{parameter.name()}={value} '
+
         return cmd
 
     def asPythonCommand(self, parameters: Dict[str, Any], context: QgsProcessingContext):
@@ -785,7 +804,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         except Exception as error:
             traceback.print_exc()
             feedback.pushConsoleCommand('Unable to create console command. Please report error traceback shown in the Python console.\n')
-            #raise error
+            # raise error
 
         self._startTime = time()
 
