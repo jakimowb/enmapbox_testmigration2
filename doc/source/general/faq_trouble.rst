@@ -218,44 +218,6 @@ Known Issues
 
 Here is a list of known issues, that aren't fixed easily,
 and/or only affect a specific version of QGIS or operating system:
+
 https://bitbucket.org/hu-geomatics/enmap-box/issues?component=known+issue&status=on+hold
 
-Also read the rest of this section fpr further details on some of the issues and possible workarounds.
-
-
-* **QGIS crashes while starting/activating the EnMAP-Box plugin** - HDF5 library version mismatched error (see `Issue #747 <https://bitbucket.org/hu-geomatics/enmap-box/issues/747/h5py-hdf5-library-version-mismatched-error>`_)
-
-  Two potential workarounds:
-
-  1. Install h5py using your systems package manager (``apt`` on Ubuntu, i.e., ``apt install python3-h5py``).
-     Make sure to uninstall previous pip installation with ``python3 -m pip uninstall h5py``.
-
-     OR
-
-  2. In QGIS go to :menuselection:`Settings --> Options --> System`, under :guilabel:`Environment` add the
-     variable ``HDF5_DISABLE_VERSION_CHECK`` with a value of ``1``. Note that this does not fix potential functionality issues
-     of the h5py library, so be careful when using the PRISMA Import.
-
-
-....
-
-* **Spectral Library: Axis visualisation bugs (pyqtgraph)**
-
-  If you experience visualisation bugs in the Spectral Library Window, this might be related to (windows) resolution
-  scaling factor. Try setting the scaling to 100% (see corresponding `Issue #603 <https://bitbucket.org/hu-geomatics/enmap-box/issues/603/darstellung-y-achse-bei-spektrum-plot>`_ for more information)
-
-....
-
-* **cannot import name 'sip' from 'PyQt5'**
-
-  This error is sometimes observed on Ubuntu (20.04) systems. See `Issue #718 <https://bitbucket.org/hu-geomatics/enmap-box/issues/718/cannot-import-name-sip-from-pyqt5-linux>`_ for status.
-
-
-* **QGIS does not show up on MacOS (conda installation)**
-
-    On macOS it has been observed that the QGIS GUI does not be shown, despite it can be started from e.g. the
-    conda shell and a new item appears in the macOS dock.
-
-    This can be solved by setting `export QT_MAC_WANTS_LAYER=1`
-
-    See `qgis-feedstock Issue 183 <https://github.com/conda-forge/qgis-feedstock/issues/183>`_ for details.
