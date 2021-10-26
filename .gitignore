@@ -13,6 +13,9 @@ qgisresources/
 qgisresources.zip
 hubdc/test/output_core
 
+enmapbox/exampledata/*.gpkg
+
+
 # we do not like to have compiled qt resource files in our repository!
 site-packages/qps/qpsresources.py
 enmapbox/externals/qps/qpsresources.py
