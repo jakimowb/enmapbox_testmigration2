@@ -118,6 +118,9 @@ class DataSourceManager(TreeModel):
             for f in mdf.formats():
                 mimeData.setData(f, mdf.data(f))
 
+            if len(mimeData.formats()) > 0:
+                return mimeData
+
         bandInfo = list()
         for node in bandNodes:
             node: RasterBandTreeNode
