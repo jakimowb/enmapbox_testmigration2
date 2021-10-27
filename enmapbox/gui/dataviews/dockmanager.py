@@ -497,6 +497,284 @@ class MapDockTreeNode(DockTreeNode):
             self.insertChildNode(idx, l)
 
 
+class DockManager(QObject):
+    """
+    Class to handle all DOCK related events
+    """
+
+    sigDockAdded = pyqtSignal(Dock)
+    sigDockRemoved = pyqtSignal(Dock)
+    sigDockWillBeRemoved = pyqtSignal(Dock)
+    sigDockTitleChanged = pyqtSignal(Dock)
+
+    def __init__(self):
+        QObject.__init__(self)
+        self.mConnectedDockAreas = []
+        self.mCurrentDockArea = None
+        self.mDocks = list()
+        self.mDataSourceManager: DataSourceManager = None
+        self.mMessageBar: QgsMessageBar = None
+
+        self.mEnMAPBoxInstance: 'EnMAPBox' = None
+
+    def setEnMAPBoxInstance(self, enmapBox):
+        self.mEnMAPBoxInstance = enmapBox
+
+    def enmapBoxInstance(self) -> 'EnMAPBox':
+        return self.mEnMAPBoxInstance
+
+    def setMessageBar(self, messageBar: QgsMessageBar):
+        self.mMessageBar = messageBar
+
+    def connectDataSourceManager(self, dataSourceManager: DataSourceManager):
+        assert isinstance(dataSourceManager, DataSourceManager)
+        self.mDataSourceManager = dataSourceManager
+        self.setEnMAPBoxInstance(self.mDataSourceManager.enmapBoxInstance())
+
+    def dataSourceManager(self) -> DataSourceManager:
+        return self.mDataSourceManager
+
+    def mapDocks(self) -> typing.List[SpectralLibraryDock]:
+        return [d for d in self if isinstance(d, MapDock)]
+
+    def spectraLibraryDocks(self) -> typing.List[SpectralLibraryDock]:
+        return [d for d in self if isinstance(d, SpectralLibraryDock)]
+
+    def connectDockArea(self, dockArea: DockArea):
+        assert isinstance(dockArea, DockArea)
+
+        dockArea.sigDragEnterEvent.connect(lambda event: self.onDockAreaDragDropEvent(dockArea, event))
+        dockArea.sigDragMoveEvent.connect(lambda event: self.onDockAreaDragDropEvent(dockArea, event))
+        dockArea.sigDragLeaveEvent.connect(lambda event: self.onDockAreaDragDropEvent(dockArea, event))
+        dockArea.sigDropEvent.connect(lambda event: self.onDockAreaDragDropEvent(dockArea, event))
+        self.mConnectedDockAreas.append(dockArea)
+
+    def currentDockArea(self):
+        if self.mCurrentDockArea not in self.mConnectedDockAreas and len(self.mConnectedDockAreas) > 0:
+            self.mCurrentDockArea = self.mConnectedDockAreas[0]
+        return self.mCurrentDockArea
+
+    def onDockAreaDragDropEvent(self, dockArea, event):
+
+        assert isinstance(dockArea, DockArea)
+
+        assert isinstance(event, QEvent)
+
+        if isinstance(event, QDragEnterEvent):
+            # check mime types we can handle
+            mimeData = event.mimeData()
+            assert isinstance(mimeData, QMimeData)
+            if containsMapLayers(mimeData):
+                event.setDropAction(Qt.CopyAction)
+                event.accept()
+                return
+
+        elif isinstance(event, QDragMoveEvent):
+            event.accept()
+            return
+        elif isinstance(event, QDragLeaveEvent):
+            event.accept()
+            return
+
+        elif isinstance(event, QDropEvent):
+            mimeData = event.mimeData()
+            assert isinstance(mimeData, QMimeData)
+
+            # speclibs = extractSpectralLibraries(mimeData)
+            # speclibUris = [s.source() for s in speclibs]
+            layers = extractMapLayers(mimeData)
+            rxSupportedFiles = re.compile(r'(xml|html|txt|csv|log|md|rst|qml)$')
+            textfiles = []
+            for url in mimeData.urls():
+                path = url.toLocalFile()
+                if os.path.isfile(path) and rxSupportedFiles.search(path):
+                    textfiles.append(path)
+
+            # register datasources
+
+            new_sources = self.mDataSourceManager.addDataSources(layers + textfiles)
+
+            # dropped_speclibs = [s for s in new_sources if isinstance(s, VectorDataSource) and s.isSpectralLibrary()]
+            # dropped_maplayers = [s for s in new_sources if isinstance(s, SpatialDataSource) and s not in dropped_speclibs]
+
+            dropped_speclibs = [l for l in layers if is_spectral_library(l)]
+            dropped_maplayers = [l for l in layers if isinstance(l, QgsMapLayer) and l.isValid()]
+
+            # open spectral Library dock for new speclibs
+
+            if len(dropped_speclibs) > 0:
+                # show 1st speclib
+                from enmapbox.gui.dataviews.docks import SpectralLibraryDock
+                NEW_DOCK = self.createDock(SpectralLibraryDock, speclib=dropped_speclibs[0])
+                assert isinstance(NEW_DOCK, SpectralLibraryDock)
+
+            # open map dock for other map layers
+
+            # exclude vector layers without geometry
+            dropped_maplayers = [l for l in dropped_maplayers \
+                                 if not (isinstance(l, QgsVectorLayer) and \
+                                         l.geometryType() in [QgsWkbTypes.UnknownGeometry, QgsWkbTypes.NullGeometry])]
+
+            if len(dropped_maplayers) > 0:
+                from enmapbox.gui.dataviews.docks import MapDock
+                NEW_DOCK = self.createDock(MapDock)
+                assert isinstance(NEW_DOCK, MapDock)
+                # layers = [s.asMapLayer() for s in dropped_maplayers]
+                NEW_DOCK.addLayers(dropped_maplayers)
+
+            event.accept()
+
+    def __len__(self):
+        """
+        Returns the number of Docks.
+        :return: int
+        """
+        return len(self.mDocks)
+
+    def __iter__(self):
+        """
+        Iterator over all Docks.
+        """
+        return iter(self.mDocks)
+
+    def docks(self, dockType=None) -> list:
+        """
+        Returns the managed docks.
+        :param dockType: type of Dock to be returned. Default = None to return all Docks
+        :return: [list-of-Docks controlled by this DockManager]
+        """
+        if isinstance(dockType, str):
+            dockType = LUT_DOCKTYPES[dockType]
+        if dockType is None:
+            return self.mDocks[:]
+        else:
+            # handle wrapper types, e.g. when calling .dock(MapDock)
+            return [d for d in self.mDocks if dockType.__name__ == d.__class__.__name__]
+
+    def getDockWithUUID(self, uuid_):
+        if isinstance(uuid_, str):
+            uuid_ = uuid.UUID(uuid_)
+        assert isinstance(uuid_, uuid.UUID)
+        for dock in list(self.mDocks):
+            assert isinstance(dock, Dock)
+            if dock.uuid == uuid_:
+                return dock
+
+        return None
+
+    def removeDock(self, dock):
+        """
+        Removes a Dock instances
+        :param dock:
+        :return:
+        """
+        if dock in self.mDocks:
+            self.sigDockWillBeRemoved.emit(dock)
+            self.mDocks.remove(dock)
+
+            if dock.container():
+                dock.close()
+            self.sigDockRemoved.emit(dock)
+            return True
+        return False
+
+    def createDock(self, dockType, *args, **kwds) -> Dock:
+        """
+        Creates and returns a new Dock
+        :param dockType: str or Dock class, e.g. 'MAP' or MapDock
+        :param args:
+        :param kwds:
+        :return:
+        """
+        assert dockType in LUT_DOCKTYPES.keys(), f'Unknown dockType "{dockType}"\n' + \
+                                                 'Choose from [{}]'.format(
+                                                     ','.join(['"{}"'.format(k) for k in LUT_DOCKTYPES.keys()]))
+        cls = LUT_DOCKTYPES[dockType]
+
+        # create the dock name
+        existingDocks = self.docks(dockType)
+        existingNames = [d.title() for d in existingDocks]
+        n = len(existingDocks) + 1
+        dockTypes = [MapDock, TextDock, MimeDataDock, WebViewDock, SpectralLibraryDock, AttributeTableDock]
+        dockBaseNames = ['Map', 'Text', 'MimeData', 'HTML Viewer', 'SpectralLibrary', 'Attribute Table']
+        baseName = 'Dock'
+        if cls in dockTypes:
+            baseName = dockBaseNames[dockTypes.index(cls)]
+        name = '{} #{}'.format(baseName, n)
+        while name in existingNames:
+            n += 1
+            name = '{} #{}'.format(baseName, n)
+        kwds['name'] = name
+
+        dockArea = kwds.get('dockArea', self.currentDockArea())
+        assert isinstance(dockArea, DockArea), 'DockManager not connected to any DockArea yet. \n' \
+                                               'Add DockAreas with connectDockArea(self, dockArea)'
+        kwds['area'] = dockArea
+        # kwds['parent'] = dockArea
+        dock = None
+        if cls == MapDock:
+            dock = MapDock(*args, **kwds)
+            if isinstance(self.mDataSourceManager, DataSourceManager):
+                dock.sigLayersAdded.connect(self.mDataSourceManager.addDataSources)
+
+        elif cls == TextDock:
+            dock = TextDock(*args, **kwds)
+
+        elif cls == MimeDataDock:
+            dock = MimeDataDock(*args, **kwds)
+
+        elif cls == WebViewDock:
+            dock = WebViewDock(*args, **kwds)
+
+        elif cls == SpectralLibraryDock:
+            speclib = kwds.get('speclib')
+            if isinstance(speclib, QgsVectorLayer):
+                kwds['name'] = speclib.name()
+            dock = SpectralLibraryDock(*args, **kwds)
+            dock.speclib().willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
+            if isinstance(self.mMessageBar, QgsMessageBar):
+                dock.mSpeclibWidget.setMainMessageBar(self.mMessageBar)
+
+        elif cls == AttributeTableDock:
+            layer = kwds.pop('layer', None)
+            assert isinstance(layer, QgsVectorLayer), 'QgsVectorLayer "layer" is not defined'
+            dock = AttributeTableDock(layer, *args, **kwds)
+            layer.willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
+            if isinstance(self.mMessageBar, QgsMessageBar):
+                dock.attributeTableWidget.setMainMessageBar(self.mMessageBar)
+        else:
+            raise Exception('Unknown dock type: {}'.format(dockType))
+        # dock.setParent(dockArea)
+        dockArea.addDock(dock, *args, **kwds)
+        dock.setVisible(True)
+
+        if dock not in self.mDocks:
+            dock.sigClosed.connect(self.removeDock)
+            self.mDocks.append(dock)
+            self.sigDockAdded.emit(dock)
+
+        return dock
+
+    def onSpeclibWillBeDeleted(self, lyr):
+        s = ""
+
+    """
+    QgsLegendInterface() Slots
+    """
+
+    def refreshLayerSymbology(self, mapLayer):
+        pass
+
+    def removeGroup(self, p_int):
+        pass
+
+    def removeLegendLayerAction(self, QAction):
+        pass
+
+    def moveLayer(self, QgsMapLayer, p_int):
+        pass
+
+
 class DockManagerTreeModel(QgsLayerTreeModel):
     def __init__(self, dockManager, parent=None):
         self.rootNode: LayerTreeNode = LayerTreeNode('<hidden root node>')
@@ -636,6 +914,9 @@ class DockManagerTreeModel(QgsLayerTreeModel):
 
         for dock in docks_to_close:
             self.mDockManager.removeDock(dock)
+
+    def dockManager(self) -> DockManager:
+        return self.mDockManager
 
     def dockTreeNodes(self) -> typing.List[DockTreeNode]:
         return [n for n in self.rootNode.children() if isinstance(n, DockTreeNode)]
@@ -1095,6 +1376,14 @@ class DockTreeView(QgsLayerTreeView):
         for c in model.rootNode.findChildren(LayerTreeNode):
             self.setColumnSpan(c)
 
+    def enmapBoxInstance(self) -> 'EnMAPBox':
+        m = self.model()
+        if isinstance(m, QSortFilterProxyModel):
+            m = m.sourceModel()
+        if isinstance(m, DockManagerTreeModel):
+            return m.mDockManager.enmapBoxInstance()
+        return None
+
     def layerTreeModel(self) -> DockManagerTreeModel:
         return super().layerTreeModel()
 
@@ -1143,6 +1432,9 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         self.mDockTreeView: DockTreeView = treeView
         self.mSignals = DockManagerLayerTreeModelMenuProvider.Signals()
 
+    def enmapboxInstance(self) -> 'EnMAPBox':
+        return self.mDockTreeView.enmapBoxInstance()
+
     def createContextMenu(self):
 
         cidx: QModelIndex = self.mDockTreeView.currentIndex()
@@ -1162,10 +1454,10 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
         if type(node) is QgsLayerTreeLayer:
             # get parent dock node -> related map canvas
-            mapNode = findParent(node, MapDockTreeNode)
-            if isinstance(mapNode, MapDockTreeNode):
-                assert isinstance(mapNode.dock, MapDock)
-                canvas = mapNode.dock.mCanvas
+            viewNode = findParent(node, MapDockTreeNode)
+            if isinstance(viewNode, MapDockTreeNode):
+                assert isinstance(viewNode.dock, MapDock)
+                canvas = viewNode.dock.mCanvas
 
                 lyr = node.layer()
 
@@ -1215,6 +1507,11 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                         action = menu.addAction('Classification Statistics')
                         action.triggered.connect(lambda: self.runClassificationStatistics(lyr))
 
+                if isinstance(lyr, (QgsRasterLayer, QgsVectorLayer)):
+                    menu.addSeparator()
+                    action = menu.addAction('Save as...')
+                    action.triggered.connect(lambda *args, l=lyr: self.onSaveAs(l))
+
                 menu.addSeparator()
                 action = menu.addAction('Layer properties')
                 action.setToolTip('Set layer properties')
@@ -1249,8 +1546,33 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
         return menu
 
-    def onZoomToLayer(self, lyr: QgsMapLayer, canvas: QgsMapCanvas):
+    def onSaveAs(self, layer: QgsMapLayer):
+        """
+        Saves vector / raster layers
+        """
+        emb = self.enmapboxInstance()
+        if emb is None:
+            return
 
+        if isinstance(layer, QgsRasterLayer):
+            from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
+            parameters = {SaveRasterAsAlgorithm.P_RASTER: layer}
+            dlg = emb.showProcessingAlgorithmDialog(SaveRasterAsAlgorithm(), parameters, parent=None)
+
+        elif isinstance(layer, QgsVectorLayer):
+            parameters = dict(INPUT=layer)
+            dlg = emb.showProcessingAlgorithmDialog('native:savefeatures', parameters, parent=None)
+
+    def onZoomToLayer(self, lyr: QgsMapLayer, canvas: QgsMapCanvas):
+        """
+        Zooms a QgsMapCanvas to the extent of a QgsMapLayer
+        :param lyr:
+        :type lyr:
+        :param canvas:
+        :type canvas:
+        :return:
+        :rtype:
+        """
         assert isinstance(lyr, QgsMapLayer)
         assert isinstance(canvas, QgsMapCanvas)
 
@@ -1310,284 +1632,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         widget = ClassificationStatisticsPlot(categories=categories, counts=counts, layer=layer,
                                               parent=self.mDockTreeView)
         widget.show()
-
-
-class DockManager(QObject):
-    """
-    Class to handle all DOCK related events
-    """
-
-    sigDockAdded = pyqtSignal(Dock)
-    sigDockRemoved = pyqtSignal(Dock)
-    sigDockWillBeRemoved = pyqtSignal(Dock)
-    sigDockTitleChanged = pyqtSignal(Dock)
-
-    def __init__(self):
-        QObject.__init__(self)
-        self.mConnectedDockAreas = []
-        self.mCurrentDockArea = None
-        self.mDocks = list()
-        self.mDataSourceManager: DataSourceManager = None
-        self.mMessageBar: QgsMessageBar = None
-
-        self.mEnMAPBoxInstance: 'EnMAPBox' = None
-
-    def setEnMAPBoxInstance(self, enmapBox):
-        self.mEnMAPBoxInstance = enmapBox
-
-    def enmapBoxInstance(self) -> 'EnMAPBox':
-        return self.mEnMAPBoxInstance
-
-    def setMessageBar(self, messageBar: QgsMessageBar):
-        self.mMessageBar = messageBar
-
-    def connectDataSourceManager(self, dataSourceManager: DataSourceManager):
-        assert isinstance(dataSourceManager, DataSourceManager)
-        self.mDataSourceManager = dataSourceManager
-        self.setEnMAPBoxInstance(self.mDataSourceManager.enmapBoxInstance())
-
-    def dataSourceManager(self) -> DataSourceManager:
-        return self.mDataSourceManager
-
-    def mapDocks(self) -> typing.List[SpectralLibraryDock]:
-        return [d for d in self if isinstance(d, MapDock)]
-
-    def spectraLibraryDocks(self) -> typing.List[SpectralLibraryDock]:
-        return [d for d in self if isinstance(d, SpectralLibraryDock)]
-
-    def connectDockArea(self, dockArea: DockArea):
-        assert isinstance(dockArea, DockArea)
-
-        dockArea.sigDragEnterEvent.connect(lambda event: self.onDockAreaDragDropEvent(dockArea, event))
-        dockArea.sigDragMoveEvent.connect(lambda event: self.onDockAreaDragDropEvent(dockArea, event))
-        dockArea.sigDragLeaveEvent.connect(lambda event: self.onDockAreaDragDropEvent(dockArea, event))
-        dockArea.sigDropEvent.connect(lambda event: self.onDockAreaDragDropEvent(dockArea, event))
-        self.mConnectedDockAreas.append(dockArea)
-
-    def currentDockArea(self):
-        if self.mCurrentDockArea not in self.mConnectedDockAreas and len(self.mConnectedDockAreas) > 0:
-            self.mCurrentDockArea = self.mConnectedDockAreas[0]
-        return self.mCurrentDockArea
-
-    def onDockAreaDragDropEvent(self, dockArea, event):
-
-        assert isinstance(dockArea, DockArea)
-
-        assert isinstance(event, QEvent)
-
-        if isinstance(event, QDragEnterEvent):
-            # check mime types we can handle
-            mimeData = event.mimeData()
-            assert isinstance(mimeData, QMimeData)
-            if containsMapLayers(mimeData):
-                event.setDropAction(Qt.CopyAction)
-                event.accept()
-                return
-
-        elif isinstance(event, QDragMoveEvent):
-            event.accept()
-            return
-        elif isinstance(event, QDragLeaveEvent):
-            event.accept()
-            return
-
-        elif isinstance(event, QDropEvent):
-            mimeData = event.mimeData()
-            assert isinstance(mimeData, QMimeData)
-
-            # speclibs = extractSpectralLibraries(mimeData)
-            # speclibUris = [s.source() for s in speclibs]
-            layers = extractMapLayers(mimeData)
-            rxSupportedFiles = re.compile(r'(xml|html|txt|csv|log|md|rst|qml)$')
-            textfiles = []
-            for url in mimeData.urls():
-                path = url.toLocalFile()
-                if os.path.isfile(path) and rxSupportedFiles.search(path):
-                    textfiles.append(path)
-
-            # register datasources
-
-            new_sources = self.mDataSourceManager.addDataSources(layers + textfiles)
-
-            # dropped_speclibs = [s for s in new_sources if isinstance(s, VectorDataSource) and s.isSpectralLibrary()]
-            # dropped_maplayers = [s for s in new_sources if isinstance(s, SpatialDataSource) and s not in dropped_speclibs]
-
-            dropped_speclibs = [l for l in layers if is_spectral_library(l)]
-            dropped_maplayers = [l for l in layers if isinstance(l, QgsMapLayer) and l.isValid()]
-
-            # open spectral Library dock for new speclibs
-
-            if len(dropped_speclibs) > 0:
-                # show 1st speclib
-                from enmapbox.gui.dataviews.docks import SpectralLibraryDock
-                NEW_DOCK = self.createDock(SpectralLibraryDock, speclib=dropped_speclibs[0])
-                assert isinstance(NEW_DOCK, SpectralLibraryDock)
-
-            # open map dock for other map layers
-
-            # exclude vector layers without geometry
-            dropped_maplayers = [l for l in dropped_maplayers \
-                                 if not (isinstance(l, QgsVectorLayer) and \
-                                         l.geometryType() in [QgsWkbTypes.UnknownGeometry, QgsWkbTypes.NullGeometry])]
-
-            if len(dropped_maplayers) > 0:
-                from enmapbox.gui.dataviews.docks import MapDock
-                NEW_DOCK = self.createDock(MapDock)
-                assert isinstance(NEW_DOCK, MapDock)
-                # layers = [s.asMapLayer() for s in dropped_maplayers]
-                NEW_DOCK.addLayers(dropped_maplayers)
-
-            event.accept()
-
-    def __len__(self):
-        """
-        Returns the number of Docks.
-        :return: int
-        """
-        return len(self.mDocks)
-
-    def __iter__(self):
-        """
-        Iterator over all Docks.
-        """
-        return iter(self.mDocks)
-
-    def docks(self, dockType=None) -> list:
-        """
-        Returns the managed docks.
-        :param dockType: type of Dock to be returned. Default = None to return all Docks
-        :return: [list-of-Docks controlled by this DockManager]
-        """
-        if isinstance(dockType, str):
-            dockType = LUT_DOCKTYPES[dockType]
-        if dockType is None:
-            return self.mDocks[:]
-        else:
-            # handle wrapper types, e.g. when calling .dock(MapDock)
-            return [d for d in self.mDocks if dockType.__name__ == d.__class__.__name__]
-
-    def getDockWithUUID(self, uuid_):
-        if isinstance(uuid_, str):
-            uuid_ = uuid.UUID(uuid_)
-        assert isinstance(uuid_, uuid.UUID)
-        for dock in list(self.mDocks):
-            assert isinstance(dock, Dock)
-            if dock.uuid == uuid_:
-                return dock
-
-        return None
-
-    def removeDock(self, dock):
-        """
-        Removes a Dock instances
-        :param dock:
-        :return:
-        """
-        if dock in self.mDocks:
-            self.sigDockWillBeRemoved.emit(dock)
-            self.mDocks.remove(dock)
-
-            if dock.container():
-                dock.close()
-            self.sigDockRemoved.emit(dock)
-            return True
-        return False
-
-    def createDock(self, dockType, *args, **kwds) -> Dock:
-        """
-        Creates and returns a new Dock
-        :param dockType: str or Dock class, e.g. 'MAP' or MapDock
-        :param args:
-        :param kwds:
-        :return:
-        """
-        assert dockType in LUT_DOCKTYPES.keys(), f'Unknown dockType "{dockType}"\n' + \
-                                                 'Choose from [{}]'.format(
-                                                     ','.join(['"{}"'.format(k) for k in LUT_DOCKTYPES.keys()]))
-        cls = LUT_DOCKTYPES[dockType]
-
-        # create the dock name
-        existingDocks = self.docks(dockType)
-        existingNames = [d.title() for d in existingDocks]
-        n = len(existingDocks) + 1
-        dockTypes = [MapDock, TextDock, MimeDataDock, WebViewDock, SpectralLibraryDock, AttributeTableDock]
-        dockBaseNames = ['Map', 'Text', 'MimeData', 'HTML Viewer', 'SpectralLibrary', 'Attribute Table']
-        baseName = 'Dock'
-        if cls in dockTypes:
-            baseName = dockBaseNames[dockTypes.index(cls)]
-        name = '{} #{}'.format(baseName, n)
-        while name in existingNames:
-            n += 1
-            name = '{} #{}'.format(baseName, n)
-        kwds['name'] = name
-
-        dockArea = kwds.get('dockArea', self.currentDockArea())
-        assert isinstance(dockArea, DockArea), 'DockManager not connected to any DockArea yet. \n' \
-                                               'Add DockAreas with connectDockArea(self, dockArea)'
-        kwds['area'] = dockArea
-        # kwds['parent'] = dockArea
-        dock = None
-        if cls == MapDock:
-            dock = MapDock(*args, **kwds)
-            if isinstance(self.mDataSourceManager, DataSourceManager):
-                dock.sigLayersAdded.connect(self.mDataSourceManager.addDataSources)
-
-        elif cls == TextDock:
-            dock = TextDock(*args, **kwds)
-
-        elif cls == MimeDataDock:
-            dock = MimeDataDock(*args, **kwds)
-
-        elif cls == WebViewDock:
-            dock = WebViewDock(*args, **kwds)
-
-        elif cls == SpectralLibraryDock:
-            speclib = kwds.get('speclib')
-            if isinstance(speclib, QgsVectorLayer):
-                kwds['name'] = speclib.name()
-            dock = SpectralLibraryDock(*args, **kwds)
-            dock.speclib().willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
-            if isinstance(self.mMessageBar, QgsMessageBar):
-                dock.mSpeclibWidget.setMainMessageBar(self.mMessageBar)
-
-        elif cls == AttributeTableDock:
-            layer = kwds.pop('layer', None)
-            assert isinstance(layer, QgsVectorLayer), 'QgsVectorLayer "layer" is not defined'
-            dock = AttributeTableDock(layer, *args, **kwds)
-            layer.willBeDeleted.connect(lambda *args, d=dock: self.removeDock(d))
-            if isinstance(self.mMessageBar, QgsMessageBar):
-                dock.attributeTableWidget.setMainMessageBar(self.mMessageBar)
-        else:
-            raise Exception('Unknown dock type: {}'.format(dockType))
-        # dock.setParent(dockArea)
-        dockArea.addDock(dock, *args, **kwds)
-        dock.setVisible(True)
-
-        if dock not in self.mDocks:
-            dock.sigClosed.connect(self.removeDock)
-            self.mDocks.append(dock)
-            self.sigDockAdded.emit(dock)
-
-        return dock
-
-    def onSpeclibWillBeDeleted(self, lyr):
-        s = ""
-
-    """
-    QgsLegendInterface() Slots
-    """
-
-    def refreshLayerSymbology(self, mapLayer):
-        pass
-
-    def removeGroup(self, p_int):
-        pass
-
-    def removeLegendLayerAction(self, QAction):
-        pass
-
-    def moveLayer(self, QgsMapLayer, p_int):
-        pass
 
 
 class DockPanelUI(QgsDockWidget):

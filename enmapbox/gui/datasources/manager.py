@@ -561,7 +561,7 @@ class DataSourceManagerTreeView(TreeView):
 
     def onSaveAs(self, dataSource: DataSource):
         """
-        Todo: save raster / vector sources
+        Saves Vectors/Raster sources
         """
         emb = self.enmapboxInstance()
         if emb is None:
