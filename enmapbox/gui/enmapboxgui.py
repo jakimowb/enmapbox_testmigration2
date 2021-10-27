@@ -51,7 +51,6 @@ from qgis import utils as qgsUtils
 from qgis.PyQt import sip
 import qgis.utils
 
-
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, \
     QgsProcessingAlgorithm, Qgis, QgsCoordinateReferenceSystem, QgsWkbTypes, \
     QgsMapLayerStore, QgsPointXY, QgsLayerTreeGroup, QgsLayerTree, QgsLayerTreeLayer, QgsVectorLayerTools, \
@@ -59,7 +58,8 @@ from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, \
     QgsStyle, QgsSymbolLegendNode, QgsSymbol, QgsTaskManager, QgsApplication, QgsProcessingAlgRunnerTask
 
 from qgis.gui import QgsMapCanvas, QgsLayerTreeView, \
-    QgisInterface, QgsMessageBar, QgsMessageViewer, QgsMessageBarItem, QgsMapLayerConfigWidgetFactory, QgsAttributeTableFilterModel, QgsSymbolSelectorDialog, \
+    QgisInterface, QgsMessageBar, QgsMessageViewer, QgsMessageBarItem, QgsMapLayerConfigWidgetFactory, \
+    QgsAttributeTableFilterModel, QgsSymbolSelectorDialog, \
     QgsSymbolWidgetContext
 
 from enmapbox import messageLog, debugLog, DEBUG
@@ -164,6 +164,7 @@ class EnMAPBoxSplashScreen(QSplashScreen):
         #painter.setPen(QColor('white'))
         super().drawContents(painter)
     """
+
 
 class EnMAPBoxUI(QMainWindow):
     mActionProcessingToolbox: QAction
@@ -439,7 +440,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.applicationRegistry = ApplicationRegistry(self, parent=self)
         self.applicationRegistry.sigLoadingInfo.connect(splash.showMessage)
         self.applicationRegistry.sigLoadingFinished.connect(lambda success, msg:
-                                                splash.showMessage(msg, color=QColor('red') if not success else None)
+                                                            splash.showMessage(msg, color=QColor(
+                                                                'red') if not success else None)
                                                             )
 
         self.initEnMAPBoxApplications(load_core_apps=load_core_apps,
@@ -930,7 +932,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         return self.layerTreeView().layerTreeModel().mapLayers()
 
-    def addPanel(self, area, panel, show: bool =True):
+    def addPanel(self, area, panel, show: bool = True):
         """
         shortcut to add a created panel and return it
         :param dock:
@@ -948,7 +950,8 @@ class EnMAPBox(QgisInterface, QObject):
         import enmapbox.gui.dataviews.dockmanager
 
         area = Qt.LeftDockWidgetArea
-        self.ui.dataSourcePanel = self.addPanel(area, enmapbox.gui.datasources.manager.DataSourceManagerPanelUI(self.ui))
+        self.ui.dataSourcePanel = self.addPanel(area,
+                                                enmapbox.gui.datasources.manager.DataSourceManagerPanelUI(self.ui))
         self.ui.dockPanel = self.addPanel(area, enmapbox.gui.dataviews.dockmanager.DockPanelUI(self.ui))
 
         self.ui.cursorLocationValuePanel = self.addPanel(area, CursorLocationInfoDock(self.ui), show=False)
@@ -1025,7 +1028,7 @@ class EnMAPBox(QgisInterface, QObject):
         if len(uris) > 0:
             SETTINGS.setValue('lastsourcedir', os.path.dirname(uris[-1]))
 
-    def openSubDatasetsDialog(self, *args, title:str='Add Sub-Datasets', filter: str = 'All files (*.*)'):
+    def openSubDatasetsDialog(self, *args, title: str = 'Add Sub-Datasets', filter: str = 'All files (*.*)'):
 
         SETTINGS = enmapbox.enmapboxSettings()
         defaultRoot = SETTINGS.value('lastsourcedir', None)
@@ -1055,7 +1058,6 @@ class EnMAPBox(QgisInterface, QObject):
                 layers.append(lyr)
             self.addSources(layers)
 
-
     def initActions(self):
         # link action to managers
         self.ui.mActionAddDataSource.triggered.connect(self.openAddDataSourceDialog)
@@ -1065,7 +1067,8 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.mActionAddTextView.triggered.connect(lambda: self.mDockManager.createDock(DockTypes.TextDock))
         self.ui.mActionAddWebView.triggered.connect(lambda: self.mDockManager.createDock(DockTypes.WebViewDock))
         self.ui.mActionAddMimeView.triggered.connect(lambda: self.mDockManager.createDock(DockTypes.MimeDataDock))
-        self.ui.mActionAddSpeclibView.triggered.connect(lambda: self.mDockManager.createDock(DockTypes.SpectralLibraryDock))
+        self.ui.mActionAddSpeclibView.triggered.connect(
+            lambda: self.mDockManager.createDock(DockTypes.SpectralLibraryDock))
         self.ui.mActionLoadExampleData.triggered.connect(lambda: self.openExampleData(
             mapWindows=1 if len(self.mDockManager.docks(MapDock)) == 0 else 0))
 
@@ -1261,7 +1264,6 @@ class EnMAPBox(QgisInterface, QObject):
 
     def onDockAdded(self, dock):
         assert isinstance(dock, Dock)
-
 
         if isinstance(dock, SpectralLibraryDock):
             dock.sigLoadFromMapRequest.connect(lambda: self.setMapTool(MapTools.SpectralProfile))
@@ -1550,7 +1552,7 @@ class EnMAPBox(QgisInterface, QObject):
         contains_html = re.search(r'<(html|br|a|p/?>)', message) is not None
         self.addMessageBarTextBoxItem(line1, message, level=level, html=contains_html)
 
-    def onDataDropped(self, droppedData: Any, mapDock = None):
+    def onDataDropped(self, droppedData: Any, mapDock=None):
         assert isinstance(droppedData, list)
         if mapDock is None:
             mapDock = self.createDock('MAP')
@@ -1568,7 +1570,7 @@ class EnMAPBox(QgisInterface, QObject):
         """Drop any object into the EnMAP-Box. Hopefully we can figure out what to do with it :-)"""
         self.onDataDropped([obj])
 
-    def openExampleData(self, mapWindows=0, testData:bool = False):
+    def openExampleData(self, mapWindows=0, testData: bool = False):
         """
         Opens the example data
         :param mapWindows: number of new MapDocks to be opened
@@ -2334,10 +2336,15 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.ui.addDockWidget(area, dockWidget, orientation=orientation)
 
-    def showProcessingAlgorithmDialog(
-            self, algorithmName: Union[str, QgsProcessingAlgorithm], parameters: Dict = None, show=True, modal=False,
-            wrapper: type = None, autoRun=False, parent=None
-    ) -> AlgorithmDialog:
+    def showProcessingAlgorithmDialog(self,
+                                      algorithmName: Union[str, QgsProcessingAlgorithm],
+                                      parameters: Dict = None,
+                                      show: bool = True,
+                                      modal: bool = False,
+                                      wrapper: type = None,
+                                      autoRun: bool = False,
+                                      parent: QWidget = None
+                                      ) -> AlgorithmDialog:
         """
         Create an algorithm dialog.
 
@@ -2369,7 +2376,7 @@ class EnMAPBox(QgisInterface, QObject):
                 raise ValueError(algorithmName)
 
             algId = alg.id().split(':')[1]  # remove provider prefix
-            if algorithmId == algId:
+            if algorithmId == alg.id() or algorithmId == algId:
                 algorithm = alg
                 break
 

@@ -404,14 +404,10 @@ class DataSourceManagerTreeView(TreeView):
                     sub.setEnabled(False)
 
                 # AR: add some useful processing algo shortcuts
-                parameters = {SaveRasterAsAlgorithm.P_RASTER: node.source()}
+
                 a: QAction = m.addAction('Save as')
                 a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
-                a.triggered.connect(
-                    lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
-                        SaveRasterAsAlgorithm(), parameters, parent=self
-                    )
-                )
+                a.triggered.connect(lambda *args, src=node: self.onSaveAs(src))
 
                 parameters = {TranslateRasterAlgorithm.P_RASTER: node.source()}
                 a: QAction = m.addAction('Translate')
@@ -461,6 +457,10 @@ class DataSourceManagerTreeView(TreeView):
                 if isinstance(qgis.utils.iface, QgisInterface):
                     a.triggered.connect(lambda *args, s=node:
                                         self.openInMap(s, QgsProject.instance()))
+
+                a: QAction = m.addAction('Save as')
+                a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
+                a.triggered.connect(lambda *args, src=node: self.onSaveAs(src))
 
         elif isinstance(node, RasterBandTreeNode):
             #a = m.addAction('Band statistics')
@@ -559,11 +559,23 @@ class DataSourceManagerTreeView(TreeView):
         elif isinstance(target, QgsProject):
             target.addMapLayer(lyr)
 
-    def onSaveAs(self, dataSource):
+    def onSaveAs(self, dataSource: DataSource):
         """
         Todo: save raster / vector sources
         """
-        pass
+        emb = self.enmapboxInstance()
+        if emb is None:
+            return
+
+        if isinstance(dataSource, RasterDataSource):
+            parameters = {SaveRasterAsAlgorithm.P_RASTER: dataSource.source()}
+            dlg = emb.showProcessingAlgorithmDialog(SaveRasterAsAlgorithm(), parameters, parent=self)
+
+        elif isinstance(dataSource, VectorDataSource):
+            parameters = dict(INPUT=dataSource.source())
+            dlg = emb.showProcessingAlgorithmDialog('native:savefeatures', parameters, parent=self)
+            s = ""
+
 
     def onRemoveAllDataSources(self):
         dsm: DataSourceManager = self.dataSourceManager()
