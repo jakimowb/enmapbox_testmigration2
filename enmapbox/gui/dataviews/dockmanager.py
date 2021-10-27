@@ -18,47 +18,42 @@
 """
 import os
 import re
-import uuid
-import typing
 import time
+import typing
+import uuid
 
 from PyQt5.QtWidgets import QToolButton, QAction
-from qgis.core import QgsWkbTypes
-
-from qgis.core import Qgis
-from qgis.gui import QgsLayerTreeProxyModel
-
-from enmapbox.externals.qps.speclib.core import is_spectral_library, profile_field_list
 from processing import Processing
-from qgis.PyQt.QtWidgets import QHeaderView, QMenu, QAbstractItemView, QApplication
 from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
-
 from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
+from qgis.PyQt.QtWidgets import QHeaderView, QMenu, QAbstractItemView, QApplication
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
+from qgis.core import Qgis
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
     QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
     QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils, \
     QgsPalettedRasterRenderer, QgsProcessingFeedback
-
+from qgis.core import QgsWkbTypes
+from qgis.gui import QgsLayerTreeProxyModel
 from qgis.gui import QgsLayerTreeView, \
     QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget, QgsMessageBar
 
 from enmapbox import debugLog
+from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
+from enmapbox.externals.qps.speclib.core import is_spectral_library, profile_field_list
 from enmapbox.gui import \
     SpectralLibrary, SpectralLibraryWidget, SpatialExtent, findParent, loadUi, showLayerPropertiesDialog
-
-from enmapbox.gui.utils import enmapboxUiPath
+from enmapbox.gui.datasources.datasources import DataSource
+from enmapbox.gui.datasources.manager import DataSourceManager
+from enmapbox.gui.dataviews.docks import Dock, DockArea, \
+    AttributeTableDock, SpectralLibraryDock, TextDock, MimeDataDock, WebViewDock, LUT_DOCKTYPES, MapDock
 from enmapbox.gui.mapcanvas import \
     MapCanvas, KEY_LAST_CLICKED
 from enmapbox.gui.mimedata import \
     MDF_QGIS_LAYERTREEMODELDATA, MDF_ENMAPBOX_LAYERTREEMODELDATA, QGIS_URILIST_MIMETYPE, \
     MDF_TEXT_HTML, MDF_URILIST, MDF_TEXT_PLAIN, MDF_QGIS_LAYER_STYLE, \
     extractMapLayers, containsMapLayers, textToByteArray
-from enmapbox.gui.dataviews.docks import Dock, DockArea, \
-    AttributeTableDock, SpectralLibraryDock, TextDock, MimeDataDock, WebViewDock, LUT_DOCKTYPES, MapDock
-from enmapbox.gui.datasources.datasources import DataSource, VectorDataSource, SpatialDataSource
-from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
-from enmapbox.gui.datasources.manager import DataSourceManager
+from enmapbox.gui.utils import enmapboxUiPath
 from enmapbox.gui.utils import getDOMAttributes
 from enmapboxprocessing.renderer.classfractionrenderer import ClassFractionRendererWidget
 from enmapboxprocessing.renderer.decorrelationstretchrenderer import DecorrelationStretchRendererWidget
@@ -1627,7 +1622,10 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         alg = ClassificationStatistics()
         io = {alg.P_CLASSIFICATION: layer}
         result = Processing.runAlgorithm(alg, parameters=io, feedback=QgsProcessingFeedback())
-        categories = eval(result[alg.P_OUTPUT_CATEGORIES])
+
+        from hubdsm.core.color import Color
+        from hubdsm.core.category import Category
+        categories = eval(result[alg.P_OUTPUT_CATEGORIES], {'Category': Category, 'Color': Color})
         counts = eval(result[alg.P_OUTPUT_COUNTS])
         widget = ClassificationStatisticsPlot(categories=categories, counts=counts, layer=layer,
                                               parent=self.mDockTreeView)
