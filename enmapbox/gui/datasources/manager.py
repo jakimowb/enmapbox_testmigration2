@@ -118,7 +118,6 @@ class DataSourceManager(TreeModel):
             for f in mdf.formats():
                 mimeData.setData(f, mdf.data(f))
 
-
         bandInfo = list()
         for node in bandNodes:
             node: RasterBandTreeNode
@@ -463,8 +462,8 @@ class DataSourceManagerTreeView(TreeView):
                 a.triggered.connect(lambda *args, src=node: self.onSaveAs(src))
 
         elif isinstance(node, RasterBandTreeNode):
-            #a = m.addAction('Band statistics')
-            #a.setEnabled(False)
+            # a = m.addAction('Band statistics')
+            # a.setEnabled(False)
             # todo: AR call band stats dialog here
             # similar to:
             # a.triggered.connect(lambda: self.runImageStatistics(lyr))
@@ -548,6 +547,13 @@ class DataSourceManagerTreeView(TreeView):
                     r.setInput(lyr.dataProvider())
                     lyr.setRenderer(r)
 
+                    if len(bandIndices) == 1:
+                        name = lyr.name()
+                        # todo: change name?
+                        # name = f'{name}:{[b+1 for b in bandIndices]}'
+                        # name = f'{lyr.name()}:{lyr.dataProvider().displayBandName(bandIndices[0])}'
+                        lyr.setName(name)
+
         elif isinstance(lyr, QgsVectorLayer):
 
             pass
@@ -575,7 +581,6 @@ class DataSourceManagerTreeView(TreeView):
             parameters = dict(INPUT=dataSource.source())
             dlg = emb.showProcessingAlgorithmDialog('native:savefeatures', parameters, parent=self)
             s = ""
-
 
     def onRemoveAllDataSources(self):
         dsm: DataSourceManager = self.dataSourceManager()
