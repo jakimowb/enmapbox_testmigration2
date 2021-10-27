@@ -1,7 +1,7 @@
 import traceback
 from enum import Enum
 from os import makedirs
-from os.path import isabs, join, dirname, exists, splitext
+from os.path import isabs, join, dirname, exists, splitext, abspath
 from time import time
 from typing import Any, Dict, Iterable, Optional, List, Tuple, TextIO
 
@@ -288,12 +288,13 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
     ) -> Optional[str]:
         filename = super().parameterAsOutputLayer(parameters, name, context)
+
         if filename == '':
             filename = parameters.get(name, '')
         if filename == '':
             return None
         if not isabs(filename):
-            filename = join(QgsProcessingUtils.tempFolder(), filename)
+            filename = abspath(filename) # join(QgsProcessingUtils.tempFolder(), filename)
         if not exists(dirname(filename)):
             makedirs(dirname(filename))
         return filename
@@ -717,9 +718,9 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
                                           QgsProcessingParameterFile, QgsProcessingParameterCrs)):
                     if isinstance(parameter, (QgsProcessingParameterString)):
                         value = parameters[parameter.name()]
-                        value = parameter.valueAsPythonString(value, context)#[1:-1]  # remove single quotes
+                        value = parameter.valueAsPythonString(value, context)
                     elif isinstance(parameter, (QgsProcessingDestinationParameter)):
-                        value = self.parameterAsOutputLayer(parameters, parameter.name(), context)
+                        value = parameter.valueAsPythonString(parameters[parameter.name()], context)
                     elif isinstance(parameter, (QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
                                               QgsProcessingParameterMapLayer)):
                         value = self.parameterAsLayer(parameters, parameter.name(), context).source()
