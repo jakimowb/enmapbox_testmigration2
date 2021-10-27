@@ -126,7 +126,8 @@ class DataSourceManager(TreeModel):
                 source = ds.dataItem().path()
                 provider = ds.dataItem().providerKey()
                 band = node.mBandIndex
-                baseName = '{}:{}'.format(ds.name(), node.name())
+                # baseName = '{}:{}'.format(ds.name(), node.name())
+                baseName = ds.name()
                 bandInfo.append((source, baseName, provider, band))
 
         if len(bandInfo) > 0:
