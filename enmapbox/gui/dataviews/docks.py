@@ -827,14 +827,20 @@ class SpectralLibraryDock(Dock):
         """
         super(SpectralLibraryDock, self).populateContextMenu(menu)
 
+        # here we might add Spectral Library Widget specific action
+        # speclib / vector layer specific ones are accessible via the lower node
+        """
         speclib = self.speclib()
-        if isinstance(speclib, QgsVectorLayer):
+        if False or isinstance(speclib, QgsVectorLayer):
             actionPasteStyle = menu.addAction('Paste Style')
             actionPasteStyle.triggered.connect(lambda: pasteStyleFromClipboard(speclib))
             actionPasteStyle.setEnabled(MDF_QGIS_LAYER_STYLE in QApplication.clipboard().mimeData().formats())
 
-        menu.addAction(self.speclibWidget().actionShowProperties)
+            actionCopyStyle = menu.addAction('Copy Style')
+            actionCopyStyle.triggered.connect(lambda: pasteStyleToClipboard(lyr))
 
+        menu.addAction(self.speclibWidget().actionShowProperties)
+        """
 
 
 class MapDockLabel(DockLabel):
