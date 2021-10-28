@@ -1220,9 +1220,8 @@ class TreeModel(QAbstractItemModel):
             i = col - 1
 
             if len(node.values()) > i:
-
                 if role == Qt.DisplayRole:
-                    return str(node.values()[i])
+                    return str(node.values()[i]).replace('\n', ' ')
                 if role == Qt.EditRole:
                     return node.values()[i]
                 if role == Qt.ToolTipRole:
