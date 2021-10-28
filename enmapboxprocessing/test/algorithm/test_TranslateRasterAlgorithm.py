@@ -12,6 +12,30 @@ from enmapboxtestdata import landcover_raster_30m_epsg3035
 
 class TestTranslateAlgorithm(TestCase):
 
+    def test_temp(self):
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: QgsRasterLayer(enmap),
+            alg.P_OUTPUT_RASTER: 'TEMPORARY_OUTPUT'
+        }
+        result = self.runalg(alg, parameters)
+        gold = RasterReader(enmap).array()
+        lead = RasterReader(result[alg.P_OUTPUT_RASTER]).array()
+        self.assertEqual(gold[0].dtype, lead[0].dtype)
+        self.assertEqual(np.sum(gold), np.sum(lead))
+
+    def test_relpath(self):
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: QgsRasterLayer(enmap),
+            alg.P_OUTPUT_RASTER: 'test.tif'
+        }
+        result = self.runalg(alg, parameters)
+        gold = RasterReader(enmap).array()
+        lead = RasterReader(result[alg.P_OUTPUT_RASTER]).array()
+        self.assertEqual(gold[0].dtype, lead[0].dtype)
+        self.assertEqual(np.sum(gold), np.sum(lead))
+
     def test_default(self):
         alg = TranslateRasterAlgorithm()
         parameters = {

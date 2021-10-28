@@ -48,7 +48,7 @@ class TestConvolutionFilterAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: hires,
             alg.P_KERNEL: alg.defaultCodeAsString(),
-            alg.P_OUTPUT_RASTER: self.filename('filtered.tif')
+            alg.P_OUTPUT_RASTER: self.filename('filteredBox2D.tif')
         }
         self.runalg(alg, parameters)
 

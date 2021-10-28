@@ -12,7 +12,7 @@ classification = QgsRasterLayer(landcover_map_l3)
 categories = Utils.categoriesFromPalettedRasterRenderer(classification.renderer())
 for category in categories:
     renderer.addCategory(category)
-layer = QgsRasterLayer(fraction_map_l3_tif)
+layer = QgsRasterLayer(fraction_map_l3_tif, 'fraction_map_l3.tif')
 layer.setRenderer(renderer)
 
 qgsApp = start_app()
