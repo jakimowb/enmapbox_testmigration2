@@ -1508,21 +1508,23 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                     action.triggered.connect(lambda *args, l=lyr: self.onSaveAs(l))
 
                 menu.addSeparator()
-                action = menu.addAction('Layer properties')
-                action.setToolTip('Set layer properties')
-                action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
 
                 # add raster renderer here, because we can't register; QgsRendererRegistry.addRenderer only supports vector renderer :-(
                 if isinstance(lyr, QgsRasterLayer):
-                    action: QAction = menu.addAction('Class Fraction/Probability Rendering')
+                    submenu = menu.addMenu('Custom raster rendering')
+                    submenu.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
+
+                    action: QAction = submenu.addAction('Class fraction/probability rendering')
                     action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
-                    action.setToolTip('Set layer band rendering')
                     action.triggered.connect(lambda: self.setClassFractionRenderer(lyr))
 
-                    action: QAction = menu.addAction('Decorrelation Stretch Rendering')
+                    action: QAction = submenu.addAction('Decorrelation stretch rendering')
                     action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
-                    action.setToolTip('Set layer band rendering')
                     action.triggered.connect(lambda: self.setDecorrelationStretchRenderer(lyr, canvas))
+
+                action = menu.addAction('Layer properties')
+                action.setToolTip('Set layer properties')
+                action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
 
 
         elif isinstance(node, DockTreeNode):
