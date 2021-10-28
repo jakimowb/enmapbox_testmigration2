@@ -296,7 +296,7 @@ if __name__ == "__main__":
                   '\n  Change log up-to-date?' \
                   '\n  Processing algo documentation up-to-date (run create_processing_rst)' \
                   '\n  Run weblink checker (in doc folder make linkcheck)' \
-                  '\n  Check if box runs without optional dependencies (see enmapboxtesting/non-blocking-dependencies/readme.txt).'\
+                  '\n  Check if box runs without optional dependencies (see tests/non-blocking-dependencies/readme.txt).'\
                   '\n  Version number increased? (enmapbox/__init__.py -> __version__)' \
                   '\n  QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
                   '\n  ZIP containing branch (i.e. master) information (GIT installed)?' \

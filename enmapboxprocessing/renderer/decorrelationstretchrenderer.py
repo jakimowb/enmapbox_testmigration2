@@ -1,6 +1,7 @@
 from copy import deepcopy
 from typing import List
 
+
 import numpy as np
 from PyQt5.QtWidgets import QWidget, QToolButton, QCheckBox, \
     QMainWindow, QComboBox
@@ -8,8 +9,13 @@ from PyQt5.uic import loadUi
 from qgis._core import QgsRasterRenderer, QgsRasterInterface, QgsRectangle, QgsRasterBlockFeedback, Qgis, \
     QgsRasterLayer, QgsMultiBandColorRenderer, QgsCoordinateTransform, QgsProject
 from qgis._gui import QgsMapCanvas, QgsRasterBandComboBox, QgsDoubleSpinBox
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import RobustScaler, MinMaxScaler
+
+try:
+    from sklearn.decomposition import PCA
+    from sklearn.preprocessing import RobustScaler, MinMaxScaler
+except ModuleNotFoundError:
+    from unittest.mock import Mock
+    RobustScaler = MinMaxScaler = PCA = Mock()
 
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.utils import Utils
