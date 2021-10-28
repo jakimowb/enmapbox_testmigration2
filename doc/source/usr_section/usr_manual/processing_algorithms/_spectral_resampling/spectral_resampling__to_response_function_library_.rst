@@ -18,7 +18,7 @@ Spectrally resample a `spectral raster layer <https://enmap-box.readthedocs.io/e
 
 
 :guilabel:`Field with spectral profiles used as features` [field]
-    Binary `field <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_ with `spectral profile <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-profile>`_s used as `spectral response function <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-response-function>`_s. If not selected, the default field is used. If that is also not specified, an error is raised.
+    Binary `field <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_ with `spectral profiles <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-profile>`_ used as `spectral response functions <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-response-function>`_. If not selected, the default field is used. If that is also not specified, an error is raised.
 
 **Outputs**
 

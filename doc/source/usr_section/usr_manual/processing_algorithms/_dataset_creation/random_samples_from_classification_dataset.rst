@@ -4,7 +4,7 @@
 Random samples from classification dataset
 ******************************************
 
-Split a `dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-dataset>`_ by randomly drawing `sample <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-sample>`_s.
+Split a `dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-dataset>`_ by randomly drawing `samples <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-sample>`_.
 
 **Parameters**
 
@@ -14,17 +14,17 @@ Split a `dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.ht
 
 
 :guilabel:`Number of samples per category` [string]
-    Number of `sample <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-sample>`_s to draw from each `category <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-category>`_. Set a single value N to draw N points for each category. Set a list of values N1, N2, ... Ni, ... to draw Ni points for category i.
+    Number of `samples <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-sample>`_ to draw from each `category <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-category>`_. Set a single value N to draw N points for each category. Set a list of values N1, N2, ... Ni, ... to draw Ni points for category i.
 
 
 :guilabel:`Draw with replacement` [boolean]
-    Whether to draw `sample <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-sample>`_s with replacement.
+    Whether to draw `samples <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-sample>`_ with replacement.
 
     Default: *False*
 
 
 :guilabel:`Draw proportional` [boolean]
-    Whether to interprete number of `sample <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-sample>`_s N or Ni as percentage to be drawn from each `category <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-category>`_.
+    Whether to interprete number of `samples <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-sample>`_ N or Ni as percentage to be drawn from each `category <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-category>`_.
 
     Default: *False*
 

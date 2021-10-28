@@ -6,7 +6,7 @@ Fit GaussianProcessClassifier
 
 Gaussian process `classification <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classification>`_ (GPC) based on Laplace approximation.
 The implementation is based on Algorithm 3.1, 3.2, and 5.1 of Gaussian Processes for Machine Learning (GPML) by Rasmussen and Williams. 
-Internally, the Laplace approximation is used for approximating the non-Gaussian posterior by a Gaussian. Currently, the implementation is restricted to using the logistic link function. For multi-`class <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-class>`_ classification, several binary one-versus rest `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_s are fitted. Note that this class thus does not implement a true multi-class Laplace approximation.
+Internally, the Laplace approximation is used for approximating the non-Gaussian posterior by a Gaussian. Currently, the implementation is restricted to using the logistic link function. For multi-`class <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-class>`_ classification, several binary one-versus rest `classifiers <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_ are fitted. Note that this class thus does not implement a true multi-class Laplace approximation.
 See `Gaussian Processes <http://scikit-learn.org/stable/modules/gaussian_process.html>`_ for further information.
 
 **Parameters**

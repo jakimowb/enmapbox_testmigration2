@@ -5,7 +5,7 @@ Create classification dataset (from categorized vector layer with feature fields
 *********************************************************************************
 
 Create a `classification <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classification>`_ `dataset <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-dataset>`_ from `attribute table <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-attribute-table>`_ rows that matches the given `categories <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-categories>`_ and store the result as a `pickle file <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-pickle-file>`_. 
-If the `layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-layer>`_ is not categorized, or the `field <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_ with `class <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-class>`_ values is selected manually, categories are derived from the `target <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-target>`_ data `y <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-y>`_. To be more precise: i) `category <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-category>`_ values are derived from unique `attribute value <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-attribute-value>`_s (after excluding no data or zero data values), ii) category names are set equal to the category values, and iii) category `color <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-color>`_s are picked randomly.
+If the `layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-layer>`_ is not categorized, or the `field <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_ with `class <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-class>`_ values is selected manually, categories are derived from the `target <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-target>`_ data `y <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-y>`_. To be more precise: i) `category <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-category>`_ values are derived from unique `attribute values <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-attribute-value>`_ (after excluding no data or zero data values), ii) category names are set equal to the category values, and iii) category `colors <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-color>`_ are picked randomly.
 
 **Parameters**
 
@@ -15,7 +15,7 @@ If the `layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#
 
 
 :guilabel:`Fields with features` [field]
-    `Field <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_s with values used as `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_ data `X <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-x>`_.
+    `Fields <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_ with values used as `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_ data `X <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-x>`_.
 
 
 :guilabel:`Field with class values` [field]

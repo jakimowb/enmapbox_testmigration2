@@ -15,7 +15,7 @@ Create a `classification <https://enmap-box.readthedocs.io/en/latest/general/glo
 
 
 :guilabel:`Fields with features` [field]
-    `Field <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_s used as `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_s. Values may be given as strings, but must be castable to float.
+    `Fields <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_ used as `features <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_. Values may be given as strings, but must be castable to float.
 
 
 :guilabel:`Field with class values` [field]
@@ -27,7 +27,7 @@ Create a `classification <https://enmap-box.readthedocs.io/en/latest/general/glo
 
 
 :guilabel:`Field with class colors` [field]
-    `Field <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_ used as `class <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-class>`_ `color <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-color>`_. Values may be given as `hex-color <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-hex-color>`_s, `rgb-color <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-rgb-color>`_s or `int-color <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-int-color>`_s.
+    `Field <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-field>`_ used as `class <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-class>`_ `color <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-color>`_. Values may be given as `hex-colors <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-hex-color>`_, `rgb-colors <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-rgb-color>`_ or `int-colors <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-int-color>`_.
 
 **Outputs**
 

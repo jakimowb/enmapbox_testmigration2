@@ -14,7 +14,7 @@ Convert raster data between different formats, potentially performing some opera
 
 
 :guilabel:`Selected bands` [band]
-    Bands to subset and rearrange. An empty selection defaults to all `band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_s in native order.
+    Bands to subset and rearrange. An empty selection defaults to all `bands <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_ in native order.
 
 
 :guilabel:`Grid` [raster]
@@ -22,7 +22,7 @@ Convert raster data between different formats, potentially performing some opera
 
 
 :guilabel:`Copy metadata` [boolean]
-    Whether to copy metadata from source to destination. Special care is taken of ENVI list items containing `band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_ information. The following list items will be properly subsetted according to the selected bands: `band name <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band-name>`_s, `bbl <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-bbl>`_, data_gain_values, data_offset_values, data_reflectance_gain_values, data_reflectance_offset_values, `fwhm <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-fwhm>`_, `wavelength <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-wavelength>`_.
+    Whether to copy GDAL metadata from source to destination.
 
     Default: *False*
 
@@ -44,7 +44,7 @@ Convert raster data between different formats, potentially performing some opera
 
 
 :guilabel:`Selected spectral bands` [band]
-    `Spectral band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-band>`_s used to match source raster `band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_s.An empty selection defaults to all bands in native order.
+    `Spectral bands <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-spectral-band>`_ used to match source raster `bands <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_.An empty selection defaults to all bands in native order.
 
 
 :guilabel:`Data offset value` [number]
@@ -68,7 +68,7 @@ Convert raster data between different formats, potentially performing some opera
 
 
 :guilabel:`Exclude bad bands` [boolean]
-    Whether to exclude bad `band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_s (given by BBL metadata item inside ENVI domain). Also see The ENVI Header Format for more details: https://www.l3harrisgeospatial.com/docs/ENVIHeaderFiles.html 
+    Whether to exclude bad `bands <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_ (given by BBL metadata item inside ENVI domain). Also see The ENVI Header Format for more details: https://www.l3harrisgeospatial.com/docs/ENVIHeaderFiles.html 
 
     Default: *False*
 

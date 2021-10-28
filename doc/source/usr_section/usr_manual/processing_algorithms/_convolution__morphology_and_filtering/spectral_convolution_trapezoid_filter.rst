@@ -28,7 +28,7 @@ Spectral convolution Trapezoid filter
 
 
 :guilabel:`Interpolate no data pixel` [boolean]
-    Whether to interpolate no data pixel. Will result in renormalization of the kernel at each position ignoring pixels with `no data value <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-no-data-value>`_s.
+    Whether to interpolate no data pixel. Will result in renormalization of the kernel at each position ignoring pixels with `no data values <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-no-data-value>`_.
 
     Default: *True*
 

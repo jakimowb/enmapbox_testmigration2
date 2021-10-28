@@ -1,5 +1,6 @@
 import traceback
 from copy import deepcopy
+from os.path import splitext
 from random import randint
 from typing import List
 
@@ -50,7 +51,7 @@ class ClassFractionRenderer(QgsRasterRenderer):
             if bandNo < 1 or bandNo > self.input().bandCount():
                 continue
             block: QgsRasterBlock = self.input().block(bandNo, extent, width, height)
-            weight = Utils.qgsRasterBlockToNumpyArray(block)  # note that we assume weigt
+            weight = Utils.qgsRasterBlockToNumpyArray(block)
             r += color.red() * weight
             g += color.green() * weight
             b += color.blue() * weight
@@ -63,7 +64,7 @@ class ClassFractionRenderer(QgsRasterRenderer):
 
         # convert back to QGIS raster block
         rgba = np.array([r, g, b, a], dtype=np.uint32)
-        outarray = (rgba[0] << 16) + (rgba[1] << 8) + rgba[2] + (rgba[3] << 24)  # re-compose channels to int
+        outarray = (rgba[0] << 16) + (rgba[1] << 8) + rgba[2] + (rgba[3] << 24)
         return Utils.numpyArrayToQgsRasterBlock(outarray, Qgis.ARGB32_Premultiplied)
 
     def clone(self) -> QgsRasterRenderer:
@@ -85,6 +86,8 @@ class ClassFractionRendererWidget(QMainWindow):
     mOk: QToolButton
     mCancel: QToolButton
     mApply: QToolButton
+    mSaveStyle: QToolButton
+    mLoadStyle: QToolButton
 
     def __init__(self, layer: QgsRasterLayer, parent=None):
         QWidget.__init__(self, parent)
@@ -94,16 +97,22 @@ class ClassFractionRendererWidget(QMainWindow):
 
         self.mAdd.clicked.connect(lambda: self.addItem())
         self.mRemove.clicked.connect(self.removeItem)
-        self.mDeleteAll.clicked.connect(self.mTree.clear)
+        self.mDeleteAll.clicked.connect(self.removeAllItems)
         self.mClassify.clicked.connect(self.classify)
         self.mPasteStyle.clicked.connect(self.pasteStyle)
 
         self.mOk.clicked.connect(self.onOkClicked)
         self.mCancel.clicked.connect(self.onCancelClicked)
         self.mApply.clicked.connect(self.onApplyClicked)
+        self.mSaveStyle.clicked.connect(self.onSaveStyleClicked)
+        self.mLoadStyle.clicked.connect(self.onLoadStyleClicked)
 
+        self.restoreRenderer(self.rendererBackup)
+
+    def restoreRenderer(self, renderer: QgsRasterRenderer):
+        self.mTree.clear()
         if isinstance(self.rendererBackup, ClassFractionRenderer):
-            for category in self.rendererBackup.categories:
+            for category in renderer.categories:
                 self.addItem(category.value, QColor(category.color), label=category.name)
 
     def pasteStyle(self):
@@ -181,6 +190,10 @@ class ClassFractionRendererWidget(QMainWindow):
                     self.onLiveUpdate()
                     return
 
+    def removeAllItems(self):
+        self.mTree.clear()
+        self.onLiveUpdate()
+
     def currentCategories(self) -> Categories:
         categories = list()
         for i in range(self.mTree.topLevelItemCount()):
@@ -213,6 +226,20 @@ class ClassFractionRendererWidget(QMainWindow):
     def onApplyClicked(self):
         self.layer.setRenderer(self.currentRenderer())
         self.layer.triggerRepaint()
+
+    def styleFilename(self):
+        return splitext(self.layer.source())[0] + '.qml.pkl'
+
+    def onSaveStyleClicked(self):
+        renderer = self.currentRenderer()
+        Utils.pickleDump(renderer.categories, self.styleFilename())
+
+    def onLoadStyleClicked(self):
+        self.removeAllItems()
+        categories: Categories = Utils.pickleLoad(self.styleFilename())
+        for category in categories:
+            self.addItem(category.value, QColor(category.color), category.name, False)
+        self.onLiveUpdate()
 
     def onLiveUpdate(self):
         if self.mLiveUpdate.isChecked():

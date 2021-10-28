@@ -32,13 +32,13 @@ See the `RasterMath cookbook recipe <https://enmap-box.readthedocs.io/en/latest/
 
 
 :guilabel:`Raster layers mapped to RS` [multilayer]
-    Additional list of `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_s mapped to a list variable RS.
+    Additional list of `raster layers <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ mapped to a list variable RS.
 
 **Outputs**
 
 
 :guilabel:`Output raster layer` [rasterDestination]
-    Raster file destination for writing the default `output <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-output>`_ variable. Additional outputs are written into the same directory. See the `RasterMath cookbook recipe <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/raster_math.html>`_ for detailed usage instructions.
+    Raster file destination for writing the default `output <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-output>`_ variable. Additional `outputs <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-output>`_ are written into the same directory. See the `RasterMath cookbook recipe <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/raster_math.html>`_ for detailed usage instructions.
 
 **Command-line usage**
 

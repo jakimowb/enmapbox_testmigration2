@@ -15,9 +15,9 @@ Prepare a `spectral raster layer <https://enmap-box.readthedocs.io/en/latest/gen
 
 
 :guilabel:`Band list` [enum]
-    Bands to be stacked together. Defaults to all 10m and 20m `band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_s ordered by `center wavelength <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-center-wavelength>`_. Note that the destination pixel size matches the smallest/finest pixel size over all selected bands.
+    Bands to be stacked together. Defaults to all 10m and 20m `bands <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_ ordered by `center wavelength <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-center-wavelength>`_. Note that the destination pixel size matches the smallest/finest pixel size over all selected bands.
 
-    Default: *[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]*
+    Default: *[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]*
 
 **Outputs**
 
@@ -50,9 +50,8 @@ Prepare a `spectral raster layer <https://enmap-box.readthedocs.io/en/latest/gen
     		- 7: B8, NIR (833 Nanometers)[10 Meter]
     		- 8: B8A, Narrow NIR (865 Nanometers)[20 Meter]
     		- 9: B9, Water vapour (945 Nanometers)[60 Meter]
-    		- 10: B10, SWIR - Cirrus (1374 Nanometers)[60 Meter]
-    		- 11: B11, SWIR (1614 Nanometers)[20 Meter]
-    		- 12: B12, SWIR (2202 Nanometers)[20 Meter]
+    		- 10: B11, SWIR (1614 Nanometers)[20 Meter]
+    		- 11: B12, SWIR (2202 Nanometers)[20 Meter]
     	Acceptable values:
     		- Number of selected option, e.g. '1'
     		- Comma separated list of options, e.g. '1,3'

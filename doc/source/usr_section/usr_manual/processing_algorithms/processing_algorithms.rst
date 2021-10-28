@@ -21,7 +21,7 @@ Processing Algorithms
     clustering/index.rst
     create_raster/index.rst
     create_sample/index.rst
-    post-processing/index.rst
     random/index.rst
     regression/index.rst
     transformation/index.rst
+    visualization/index.rst

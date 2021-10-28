@@ -24,7 +24,16 @@ Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g.
 * spectral profile colors can be defined by attribute values and expressions
 * profile plot allows to select multiple data points for comparision
 
+**Renderer**
 
+We started to introduced new raster renderer into the EnMAP-Box / QGIS.
+Unfortunately, QGIS currently doesn't support registering custom Python raster renderer.
+Because of this, our renderers aren't visible in the *Renderer type* list inside the *Layer Properties* dialog under *Symbology > Band Rendering*.
+
+To actually use one of our renderers, you need to choose it from the *Custom raster renderer* submenu inside the raster layer context menu in the *Date Views* panel.
+
+* added custom *Class fraction/probability* raster renderer: allows to visualize arbitrary many fraction/probability bands at the same time; this will replace the *Create RGB image from class probability/fraction layer* processing algorithm
+* added custom *Decorrelation stretch* raster renderer: remove the high correlation commonly found in optical bands to produce a more colorful color composite image; this will replace the *Decorrelation stretch* processing algorithm
 
 **Processing algorithms**
 
@@ -52,7 +61,9 @@ Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g.
 
 * added EnMAP spectral response function library as example dataset
 * change example data vector layer format from Shapefile to GeoPackage
-* added test data to enmapbox repository
+* added example data to enmapbox repository
+* added unittest data to enmapbox repository
+
 
 Version 3.8
 -----------

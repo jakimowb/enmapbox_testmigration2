@@ -294,7 +294,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         if filename == '':
             return None
         if not isabs(filename):
-            filename = abspath(filename) # join(QgsProcessingUtils.tempFolder(), filename)
+            filename = abspath(filename)
         if not exists(dirname(filename)):
             makedirs(dirname(filename))
         return filename
@@ -805,7 +805,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         except Exception as error:
             traceback.print_exc()
             feedback.pushConsoleCommand('Unable to create console command. Please report error traceback shown in the Python console.\n')
-            # raise error
+            # raise error  # enable this only for debugging
 
         self._startTime = time()
 

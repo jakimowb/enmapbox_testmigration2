@@ -4,14 +4,14 @@
 Predict classification layer
 ****************************
 
-Uses a fitted `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_ to predict a `classification layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classification-layer>`_ from a `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ with `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_s. 
+Uses a fitted `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_ to predict a `classification layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classification-layer>`_ from a `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ with `features <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_. 
 Used in the Cookbook Recipes: `Classification <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/classification.html>`_, `Graphical Modeler <https://enmap-box.readthedocs.io/en/latest/usr_section/usr_cookbook/graphical_modeler.html>`_ for information on different parameters.
 
 **Parameters**
 
 
 :guilabel:`Raster layer with features` [raster]
-    A `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ with `band <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_s used as `feature <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_s. Classifier features and raster bands are matched by name to allow for `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_s trained on a subset of the raster bands. If raster bands and classifier features are not matching by name, but overall number of bands and features do match, raster bands are used in original order.
+    A `raster layer <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-raster-layer>`_ with `bands <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-band>`_ used as `features <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-feature>`_. Classifier features and raster bands are matched by name to allow for `classifiers <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_ trained on a subset of the raster bands. If raster bands and `classifier <https://enmap-box.readthedocs.io/en/latest/general/glossary.html#term-classifier>`_ features are not matching by name, but overall number of bands and features do match, raster bands are used in original order.
 
 
 :guilabel:`Mask layer` [layer]

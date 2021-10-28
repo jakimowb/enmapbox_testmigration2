@@ -294,12 +294,12 @@ if __name__ == "__main__":
                   '\nChecklist for release:' \
                   '\n  Run scripts\\runtests.bat (win) or scripts/runtests.sh (linux/mac)' \
                   '\n  Change log up-to-date?' \
-                  '\n  ZIP containing branch information?' \
                   '\n  Processing algo documentation up-to-date (run create_processing_rst)' \
                   '\n  Run weblink checker (in doc folder make linkcheck)' \
                   '\n  Check if box runs without optional dependencies (see enmapboxtesting/non-blocking-dependencies/readme.txt).'\
                   '\n  Version number increased? (enmapbox/__init__.py -> __version__)' \
                   '\n  QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
+                  '\n  ZIP containing branch (i.e. master) information (GIT installed)?' \
                   '\n  Plugin promotion (Slack, Email, ...)'
         print(message)
 
