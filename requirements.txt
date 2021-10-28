@@ -9,12 +9,14 @@ numpy>=1.15
 matplotlib>=3.0
 pip>=20.0
 dataclasses ; python_version < '3.7'
+scipy>=1.1
+# PyQt5-sip  # commented out; caused "Unable to import PyQt5-sip" issue, see #718
 
 # required by parts of EnMAP-Box Core
-scipy>=1.1
-scikit-learn>=0.19.2
+scikit-learn>=0.24
 astropy # required for convolution
 PyOpenGL # required by ImageCube app
+h5py # required for PRISMA import
 
 # required by parts of EnMAP-Box Applications
 numba # <=0.47 ; platform_system != "Linux" # required by EnSoMAP, causes problems on Linux (miniconda)

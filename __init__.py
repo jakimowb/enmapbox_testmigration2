@@ -26,6 +26,13 @@
 ***************************************************************************
 """
 
+# make EnMAP-Box site-packages available
+import sys
+from os.path import dirname, join
+
+sys.path.append(join(dirname(__file__), 'site-packages'))
+
+
 def classFactory(iface):
     """
     Loads the EnMAP-Box Plugin

@@ -91,7 +91,9 @@ except ModuleNotFoundError as ex:
 
             print(ex)
 
-__version__ = '3.7'  # subsub-version information is added during build process
+__version__ = '3.9'  # subsub-version information is added during build process
+__version_exampledata__ = '3.9'  # https://bitbucket.org/hu-geomatics/enmap-box/downloads/exampledata.3.9.zip; note that the exampledata folder is part of the repo, but will be removed from the plugin ZIP
+
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
@@ -99,11 +101,10 @@ ISSUE_TRACKER = 'https://bitbucket.org/hu-geomatics/enmap-box/issues'
 CREATE_ISSUE = 'https://bitbucket.org/hu-geomatics/enmap-box/issues/new'
 DEPENDENCIES = ['numpy', 'scipy', 'osgeo.gdal', 'PyQt5', 'sklearn', 'matplotlib']
 DOCUMENTATION = 'https://enmap-box.readthedocs.io/'
-URL_TESTDATA = r'https://bitbucket.org/hu-geomatics/enmap-box-testdata/get/master.zip'
+URL_TESTDATA = fr'https://bitbucket.org/hu-geomatics/enmap-box/downloads/exampledata.{__version_exampledata__}.zip'
 URL_INSTALLATION = r'https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages'
 URL_QGIS_RESOURCES = r'https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip'
-MIN_VERSION_TESTDATA = '0.12'
-MIN_VERSION_QGIS = '3.16'
+MIN_VERSION_QGIS = '3.18'
 
 PLUGIN_DEPENDENCIES = ['vrtbuilderplugin>=0.9']
 ABOUT = """
@@ -137,7 +138,7 @@ DIR_REPO = os.path.dirname(DIR_ENMAPBOX)
 DIR_SITEPACKAGES = os.path.join(DIR_REPO, 'site-packages')
 DIR_UIFILES = os.path.join(DIR_ENMAPBOX, *['gui', 'ui'])
 DIR_ICONS = os.path.join(DIR_ENMAPBOX, *['gui', 'ui', 'icons'])
-DIR_TESTDATA = os.path.join(DIR_REPO, 'enmapboxtestdata')
+DIR_EXAMPLEDATA = (pathlib.Path(DIR_REPO) / 'enmapbox' / 'exampledata').as_posix()
 
 DIR_UNITTESTS = os.path.join(DIR_REPO, 'enmapboxtesting')
 
@@ -169,7 +170,7 @@ except:
     pSrc = pathlib.Path(DIR_ENMAPBOX) / 'externals' / 'qps' / 'externals'
     assert pSrc.is_dir()
     site.addsitedir(pSrc)
-    import pyqtgraph
+    #import pyqtgraph
 
 
 def icon() -> QIcon:
@@ -359,7 +360,7 @@ def registerExpressionFunctions():
     """
     Adds Expression functions for the QGIS expression editor
     """
-    from .externals.qps.speclib.qgsfunctions import registerQgsExpressionFunctions
+    from .externals.qps.qgsfunctions import registerQgsExpressionFunctions
     registerQgsExpressionFunctions()
 
 
@@ -367,7 +368,7 @@ def unregisterExpressionFunctions():
     """
     Removes added expression functions
     """
-    from .externals.qps.speclib.qgsfunctions import unregisterQgsExpressionFunctions
+    from .externals.qps.qgsfunctions import unregisterQgsExpressionFunctions
     unregisterQgsExpressionFunctions()
 
 
@@ -381,6 +382,11 @@ def initAll():
     registerEnMAPBoxProcessingProvider()
     registerMapLayerConfigWidgetFactories()
 
+    from .externals.qps import registerSpectralLibraryIOs
+    registerSpectralLibraryIOs()
+
+    from .externals.qps import registerSpectralProfileSamplingModes
+    registerSpectralProfileSamplingModes()
 
 def unloadAll():
     """

@@ -25,16 +25,16 @@
 
 from hubflow.core import *
 from hubdc.core import *
-import gdal
-from gdalconst import *
+# from osgeo import _gdal
+from osgeo._gdalconst import *
 import numpy as np
 import struct
 import os
 
 from scipy.optimize import minimize_scalar
-#from scipy.interpolate import interp1d
-from scipy.interpolate import interp1d
-#from numba import jit
+# from scipy.interpolate import interp1d
+# from scipy.interpolate import interp1d
+# from numba import jit
 
 # ======================================================================================================================
 # function definitions
@@ -141,63 +141,16 @@ class PWR_core:
 
         return grid, wl, nbands, nrows, ncols, in_matrix
 
-    def read_image(self, image, dtype=np.float32):  # Function is deprecated!
-        '''
-        :param image: ENVI-grid with spectral information
-        :param dtype: deprecated
-        :return: matrix(rows, cols, nbands, reflectances)
-        '''
-
-        dataset = gdal.Open(image)
-
-        nbands = dataset.RasterCount
-        nrows = dataset.RasterYSize
-        ncols = dataset.RasterXSize
-        #print(dataset.GetMetadata)
-        #print(dataset.GetMetadataItem('wavelength', 'ENVI'))
-        try:
-            wavelengths = "".join(dataset.GetMetadataItem('wavelength', 'ENVI').split())
-            wavelengths = wavelengths.replace("{", "")
-            wavelengths = wavelengths.replace("}", "")
-            wavelengths = wavelengths.split(",")
-        except ValueError:
-            raise ValueError('Input Image does not have wavelengths supplied. Check header file!')
-
-        if dataset.GetMetadataItem('wavelength_units', 'ENVI') is None:
-            raise ValueError('No wavelength units provided in ENVI header file')
-        elif dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['nanometers', 'nm', 'nanometer']:
-            wave_convert = 1
-        elif dataset.GetMetadataItem('wavelength_units', 'ENVI').lower() in ['micrometers', 'µm', 'micrometer']:
-            wave_convert = 1000
-        else:
-            raise ValueError("Wavelength units must be nanometers or micrometers. Got '%s' instead" % dataset.GetMetadataItem('wavelength_units', 'ENVI'))
-
-        in_matrix = np.zeros((nbands, nrows, ncols))
-
-        for band_no in range(nbands):
-            band = dataset.GetRasterBand(band_no + 1)
-            scancol = band.ReadRaster1(0, 0, ncols, nrows, ncols, nrows, GDT_Float32)
-            in_matrix[band_no, :, :] = np.reshape(np.asarray(struct.unpack('f' * nrows * ncols, scancol),
-                                                             dtype=np.float32), (nrows, ncols))
-
-        if self.division_factor != 1.0:
-            in_matrix = in_matrix / self.division_factor
-
-        wl = [float(item) * wave_convert for item in wavelengths]
-        wl = [int(round(item, 0)) for item in wl]
-
-        return wl, nbands, nrows, ncols, in_matrix
-
     def find_closest(self, lambd):
         distances = [abs(lambd - self.wl[i]) for i in range(self.n_wl)]  # Get distances of input WL to all sensor WLs
         return self.wl[distances.index(min(distances))]
 
     def NDVI(self, row, col):
-        R860 = self.in_raster[self.NDVI_bands[1], row, col]
-        R1240 = self.in_raster[self.NDVI_bands[0], row, col]
+        R668 = self.in_raster[self.NDVI_bands[1], row, col]
+        R827 = self.in_raster[self.NDVI_bands[0], row, col]
 
         try:
-            NDVI = float(R860-R1240)/float(R860+R1240)
+            NDVI = float(R668-R827)/float(R668+R827)
         except ZeroDivisionError:
             NDVI = 0.0
 

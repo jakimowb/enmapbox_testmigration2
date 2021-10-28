@@ -539,13 +539,16 @@ class Extent(QWidget):
         index = self.MODE_OPTIONS.index(mode)
         self.uiMode.setCurrentIndex(index)
 
-    def value(self):
+    def value(self, projection):
         mode = self.mode()
         if mode == self.USER:
-            extent = hubdc.core.Extent(xmin=float(self.uiXmin.text()),
+            extent = hubdc.core.Extent(
+                xmin=float(self.uiXmin.text()),
                 xmax=float(self.uiXmax.text()),
                 ymin=float(self.uiYmin.text()),
-                ymax=float(self.uiYmax.text()))
+                ymax=float(self.uiYmax.text()),
+                projection=projection
+                                       )
         else:
             extent = None
         return mode, extent
@@ -664,7 +667,7 @@ class Grid(QWidget):
 
     def value(self):
         projection = self.uiProjection().value()
-        extent = self.uiExtent().value()
+        extent = self.uiExtent().value(projection)
         resolution = self.uiResolution().value()
         return projection, extent, resolution
 
@@ -945,7 +948,7 @@ class ImageMathApp(QMainWindow):
 
         except:
             import traceback
-
+            traceback.print_exc()
             html = '<p style="color:red;">{}</p>'.format(traceback.format_exc()).replace('\n', '<br>')
             self.uiLog().setText(html)
 

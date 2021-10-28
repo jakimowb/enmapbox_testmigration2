@@ -25,12 +25,13 @@
 ***************************************************************************
 """
 
-import typing
-from ..core import *
-from PyQt5.QtWidgets import QProgressDialog
+from ..core.spectrallibrary import *
 import locale
 
-class ClipboardIO(AbstractSpectralLibraryIO):
+from ..core.spectrallibraryio import SpectralLibraryIO
+
+
+class ClipboardIO(SpectralLibraryIO):
     """
     Reads and write SpectralLibrary from/to system clipboard.
     """
@@ -57,7 +58,7 @@ class ClipboardIO(AbstractSpectralLibraryIO):
 
     @classmethod
     def readFrom(cls, path=None,
-                 progressDialog:typing.Union[QProgressDialog, ProgressHandler]=None) -> SpectralLibrary:
+                 feedback:QgsProcessingFeedback=None) -> SpectralLibrary:
 
         clipboard = QApplication.clipboard()
         mimeData = clipboard.mimeData()
@@ -67,7 +68,7 @@ class ClipboardIO(AbstractSpectralLibraryIO):
         if MIMEDATA_SPECLIB in mimeData.formats():
             b = mimeData.data(MIMEDATA_SPECLIB)
             speclib = pickle.loads(b)
-            assert isinstance(speclib, SpectralLibrary)
+            assert is_spectral_library(speclib)
             return speclib
 
         return None
@@ -78,11 +79,11 @@ class ClipboardIO(AbstractSpectralLibraryIO):
               mode=None,
               sep=None,
               newline=None,
-              progressDialog:typing.Union[QProgressDialog, ProgressHandler]=None):
+              feedback:QgsProcessingFeedback=None):
 
         if mode is None:
             mode = ClipboardIO.WritingModes.ALL
-        assert isinstance(speclib, SpectralLibrary)
+        assert is_spectral_library(speclib)
 
         mimeData = QMimeData()
 

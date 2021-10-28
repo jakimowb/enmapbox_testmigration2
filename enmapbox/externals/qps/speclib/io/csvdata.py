@@ -24,16 +24,25 @@
     along with this software. If not, see <http://www.gnu.org/licenses/>.
 ***************************************************************************
 """
-import os, sys, re, pathlib, json, typing
-from qgis.core import *
+import sys
+import io
+import json
+import os
+import re
 import csv as pycsv
-from ..core import *
-
+from qgis.PyQt.QtWidgets import QFileDialog, QMenu
+from qgis.core import QgsProcessingFeedback, QgsVectorFileWriter, QgsGeometry
+from .. import createStandardFields
+from ...utils import toType, createQgsField, findTypeFromString, value2str
+from ..core.spectralprofile import SpectralProfile
+from ..core.spectrallibrary import SpectralLibrary
+from ..core.spectrallibraryio import SpectralLibraryIO
+from .. import FIELD_VALUES
 # max size a CSV file can have, in MBytes
 MAX_CSV_SIZE = 5
 
 
-class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
+class CSVSpectralLibraryIO(SpectralLibraryIO):
     """
     SpectralLibrary IO with CSV files.
     """
@@ -50,7 +59,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
             if isinstance(path, str) and os.path.isfile(path):
 
                 sl = CSVSpectralLibraryIO.readFrom(path, dialect)
-                if isinstance(sl, SpectralLibrary):
+                if is_spectral_library(sl):
                     speclib.addSpeclib(sl, True)
         m = menu.addMenu('CSV')
 
@@ -114,7 +123,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
     @classmethod
     def write(cls, speclib: SpectralLibrary,
               path: str,
-              progressDialog:typing.Union[QProgressDialog, ProgressHandler] = None,
+              feedback: QgsProcessingFeedback = None,
               dialect=pycsv.excel_tab) -> list:
         """
         Writes the speclib into a CSv file
@@ -123,7 +132,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
         :param dialect: CSV dialect, python csv.excel_tab by default
         :return: [list-with-csv-filepath]
         """
-        assert isinstance(speclib, SpectralLibrary)
+        assert is_spectral_library(speclib)
 
         text = CSVSpectralLibraryIO.asString(speclib, dialect=dialect)
         file = open(path, 'w')
@@ -132,7 +141,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
         return [path]
 
     @classmethod
-    def readFrom(cls, path=None, progressDialog:typing.Union[QProgressDialog, ProgressHandler]=None, dialect=pycsv.excel_tab):
+    def readFrom(cls, path=None, feedback:QgsProcessingFeedback=None, dialect=pycsv.excel_tab):
         f = open(path, 'r', encoding='utf-8')
         text = f.read()
         f.close()
@@ -265,7 +274,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
                     s = ""
 
                 # convert values to int, float or str
-                columnVectors[n] = toType(t, values, empty2None=True)
+                columnVectors[n] = toType(t, values, empty2None=True, empty_values=[None, ''])
                 missingQgsFields.append(qgsField)
 
             # add missing fields
@@ -289,7 +298,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
                     p.setValues(y=y, x=x, xUnit=xUnit, yUnit=yUnit)
 
                 # add other attributes
-                for n in [n for n in p.fieldNames() if n in list(columnVectors.keys())]:
+                for n in [n for n in p.fields().names() if n in list(columnVectors.keys())]:
 
                     p.setAttribute(n, columnVectors[n][i])
 
@@ -309,16 +318,20 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
         :param skipGeometry:
         :return: str
         """
-        assert isinstance(speclib, SpectralLibrary)
+        assert is_spectral_library(speclib)
 
-        attributeNames = [n for n in speclib.fieldNames() if n not in [FIELD_VALUES]]
+        attributeNames = [n for n in speclib.fields().names() if n not in [FIELD_VALUES]]
 
         # in-memory text buffer
         stream = io.StringIO()
 
         for iCSVTable, item in enumerate(speclib.groupBySpectralProperties(excludeEmptyProfiles=False).items()):
-            xvalues, xunit, yunit = item[0]
-            profiles = item[1]
+
+            settings, profiles = item
+            xvalues = settings.x()
+            yunit = settings.yUnit()
+            xunit = settings.xUnit()
+
             refProfile = profiles[0]
             assert isinstance(refProfile, SpectralProfile)
             nbands = len(refProfile.xValues())
@@ -368,7 +381,7 @@ class CSVSpectralLibraryIO(AbstractSpectralLibraryIO):
 
 class CSVWriterFieldValueConverter(QgsVectorFileWriter.FieldValueConverter):
     """
-    A QgsVectorFileWriter.FieldValueConverter to convers SpectralLibrary values into strings
+    A QgsVectorFileWriter.FieldValueConverter to converts SpectralLibrary values into strings
     """
     def __init__(self, speclib):
         super(CSVWriterFieldValueConverter, self).__init__()

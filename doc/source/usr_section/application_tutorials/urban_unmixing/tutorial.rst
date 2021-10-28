@@ -26,7 +26,7 @@ Introduction
    :align: right
    :width: 30%
 
-This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/now-online-hyperedu-educational-resources-on-imaging-spectroscopy/>`_,
+This tutorial is part of the `HYPERedu online learning platform <https://eo-college.org/resource-spectrum/hyperspectral/>`_,
 an education initiative within the `EnMAP mission <https://www.enmap.org/>`_ hosted
 on EO College. HYPERedu provides annotated slide collections and hands-on tutorials using the open-source EnMAP-Box software,
 targeting basic principles, methods as well as applications of imaging spectroscopy.
@@ -96,7 +96,7 @@ reference information.
    Spectral library; :file:`library_berlin.sli`; Urban spectral library with 75 pure surface materials categorized in a hierarchical class scheme. The Library was developed from the HyMap image and spectrally resampled to the EnMAP sensor (ENVI spectral library ``sli`` with metadata extensions ``csv`` & ``json``)
    Vector; :file:`landcover_berlin.shp`; Detailed land cover reference information categorized in a hierarchical class scheme (ESRI Shapefile ``shp`` with QGIS layer style file ``qml`` and metadata extension ``json``)
 
-.. .. image:: tut_img/data_table.PNG
+.. .. image:: tut_img/data_table.png
 
 The tutorial dataset is a subset extracted from the Berlin-Urban-Gradient dataset [4]_.
 Please cite the dataset as follows:
@@ -332,7 +332,7 @@ Exercise C: Urban spectral libraries
 * Close all Map and Spectral Library Windows from the previous exercise.
 * To load the urban spectral library, click on the |viewlist_spectrumdock| icon to open a new Spectral Library Window and drag :file:`library_berlin.sli` from the :guilabel:`Data Sources` panel into SpectralLibrary #1. Get familiar with the representation of the spectral library and the attribute table.
 * By default, only 64 spectra will be displayed at once in the plot window. To change this number, right-click in the plot
-  area, go to :guilabel:`Profiles` and enter a higher number, e.g. ``75`` (total number of spectra in :file:`library_berlin.sli`)
+  area, go to :menuselection:`Others --> Max. Profiles` and enter a higher number, e.g. ``75`` (total number of spectra in :file:`library_berlin.sli`)
 * To display a subset of spectra in a separate Library Window…
 
   * Select the spectra of interest by clicking on their corresponding row numbers (use :kbd:`Ctrl` or :kbd:`Shift` to select multiple rows). To select spectra with the same attributes, prior sorting of the attribute table by clicking on the corresponding column header is recommended. You can also select the spectra directly in the plot window.

@@ -22,6 +22,8 @@
     along with this software. If not, see <http://www.gnu.org/licenses/>.
 ***************************************************************************
 """
+from qgis._gui import QgsMapLayerComboBox
+from qgis._core import QgsMapLayerProxyModel
 
 from hubflow.core import *
 import numpy as np
@@ -44,15 +46,17 @@ pathUI_prg = os.path.join(APP_DIR, 'Resources/UserInterfaces/ProgressBar.ui')
 
 
 class iREIP_GUI(QDialog):
+    mLayer: QgsMapLayerComboBox
     def __init__(self, parent=None):
         super(iREIP_GUI, self).__init__(parent)
         loadUi(pathUI_ireip, self)
         QApplication.instance().installEventFilter(self)
-
+        self.mLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
         # fix the sendHoverEvent crash by replacing the slot function
         self.rangeView.scene().sendHoverEvents = self.onHoverEvent
         self.firstDerivView.scene().sendHoverEvents = self.onHoverEvent
         self.secondDerivView.scene().sendHoverEvents = self.onHoverEvent
+
 
         self.plotItems = (self.rangeView.getPlotItem(), self.firstDerivView.getPlotItem(),
                           self.secondDerivView.getPlotItem())
@@ -139,9 +143,12 @@ class iREIP:
         self.nodat = [-999] * 2
         self.division_factor = 1.0
         self.calc_deriv_flag = [False, False]  # First, Second Derivative [First, Second]
+        self.addItem = []
+        self.gui.mLayer.setLayer(None)
 
     def connections(self):
-        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="image"))
+        self.gui.mLayer.layerChanged.connect(lambda: self.open_file(mode="imgDropdown"))
+        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="imgSelect"))
         self.gui.cmdOutputImage.clicked.connect(lambda: self.open_file(mode="output"))
 
         self.gui.lowWaveEdit.returnPressed.connect(
@@ -165,44 +172,60 @@ class iREIP:
         self.gui.pushClose.clicked.connect(lambda: self.gui.close())
 
     def open_file(self, mode):
-        if mode == "image":
-            bsq_input = QFileDialog.getOpenFileName(caption='Select Input Image',
-                                                    filter="ENVI Image (*.bsq)")[0]
-            if not bsq_input:
-                return
+        if mode == "imgSelect":
             if self.image is not None:
                 self.reset()
+            bsq_input = QFileDialog.getOpenFileName(caption='Select Input Image', filter="ENVI Image (*.bsq)")[0]
+            if not bsq_input:
+                return
+            self.addItem.append(bsq_input)
+            self.gui.mLayer.setAdditionalItems(self.addItem)
+            self.gui.mLayer.setCurrentText(bsq_input)
+
             self.image = bsq_input
-            self.image = self.image.replace("\\", "/")
-            try:
-                meta = self.get_image_meta(image=self.image, image_type="Input Image")
-                self.dtype = meta[4]
-                if self.dtype < 4 or self.dtype > 9:
-                    QMessageBox.information(self.gui, "Integer Input",
-                                        "Tool requires float [0.0-1.0]:\nDivision factor set to 10000")
-                    self.division_factor = 10000
-                    self.gui.spinDivisionFactor.setText(str(self.division_factor))
-            except ValueError as e:
-                self.abort(message=str(e))
-                return
-            if None in meta:
-                self.image = None
-                self.nodat[0] = None
-                self.gui.lblInputImage.setText("")
-                return
+            self.image_read()
+
+        elif mode == "imgDropdown":
+            if self.image is not None:
+                self.reset()
+            if self.gui.mLayer.currentLayer() is not None:
+                input = self.gui.mLayer.currentLayer()
+                bsq_input = input.source()
+            elif len(self.gui.mLayer.currentText()) > 0:
+                bsq_input = self.gui.mLayer.currentText()
             else:
-                self.gui.lblInputImage.setText(bsq_input)
-                self.gui.lblNodatImage.setText(str(meta[0]))
-                self.gui.txtNodatOutput.setText(str(meta[0]))
-                self.nodat[0] = meta[0]
+                self.reset()
+                return
+            self.image = bsq_input
+            self.image_read()
+
         elif mode == "output":
-            # result, _filter = QFileDialog.getSaveFileName(None, 'Specify Output File', '.', "ENVI Image(*.bsq)")
-            result = \
-            QFileDialog.getSaveFileName(caption='Specify Output File',
-                                        filter="ENVI Image (*.bsq)")[0]
+            result = QFileDialog.getSaveFileName(caption='Specify Output File',
+                                                 filter="ENVI Image (*.bsq)")[0]
             self.out_path = result
             self.out_path = self.out_path.replace("\\", "/")
             self.gui.txtOutputImage.setText(result)
+
+    def image_read(self):
+        try:
+            meta = self.get_image_meta(image=self.image, image_type="Input Image")
+            self.dtype = meta[4]
+            if self.dtype < 4 or self.dtype > 9:
+                QMessageBox.information(self.gui, "Integer Input",
+                                        "Integer input image:\nTool requires float [0.0-1.0]:\nDivision factor set to 10000")
+                self.division_factor = 10000
+                self.gui.spinDivisionFactor.setText(str(self.division_factor))
+        except ValueError as e:
+            self.abort(message=str(e))
+            return
+        if None in meta:
+            self.image = None
+            self.nodat[0] = None
+            return
+        else:
+            self.gui.lblNodatImage.setText(str(meta[0]))
+            self.gui.txtNodatOutput.setText(str(meta[0]))
+            self.nodat[0] = meta[0]
 
     def get_image_meta(self, image, image_type):
         dataset = openRasterDataset(image)
@@ -230,6 +253,9 @@ class iREIP:
     def reset(self):
         self.max_ndvi_pos = None
         self.init_plot()
+        self.image = None
+
+
 
     def limits_changed(self, textfeld):
         if self.image is None:
@@ -332,6 +358,8 @@ class iREIP:
         labelStyle = {'color': '#FFF', 'font-size': '12px'}
 
         self.gui.lblPixelLocation.setText("")
+        self.gui.ipLabel.setText("")
+        self.gui.ipPosLabel.setText("")
 
         self.gui.rangeView.plot(clear=True)
         self.gui.rangeView.setLabel(axis='left', text="Reflectance [%]", **labelStyle)
@@ -536,7 +564,7 @@ class iREIP:
                 if self.division_factor != 1.0:
                     self.iiREIP.in_raster = np.divide(self.iiREIP.in_raster, self.division_factor)
             except:
-                self.iiREIP.in_raster = self.iiREIP.read_image_window(image=self.image)
+                self.iiREIP.in_raster = self.iiREIP.read_image(image=self.image)
                 if self.division_factor != 1.0:
                     self.iiREIP.in_raster = np.divide(self.iiREIP.in_raster, self.division_factor)
 
@@ -832,6 +860,7 @@ class iREIP_core:
         else:
             smooth_matrix = in_matrix
 
+        smooth_matrix = smooth_matrix[self.valid_bands]
         d1 = np.gradient(smooth_matrix, axis=0)
         d2 = np.gradient(d1, axis=0)
 
@@ -897,6 +926,7 @@ class iREIP_core:
         NDVI_closest = [self.find_closest_wl(lambd=827), self.find_closest_wl(lambd=668)]
         self.NDVI_bands = [i for i, x in enumerate(self.wl) if x in NDVI_closest]
 
+        in_raster = np.divide(in_raster, self.division_factor)
         for row in range(np.shape(in_raster)[1]):
             for col in range(np.shape(in_raster)[2]):
                 if np.mean(in_raster[:, row, col]) != self.nodat[0]:
@@ -907,7 +937,7 @@ class iREIP_core:
                     except ZeroDivisionError:
                         NDVI = 0
                     self.prgbar_process(pixel_no=row * self.ncols + col)
-                    if NDVI > 0.85 and NDVI < 0.9:
+                    if NDVI > 0.75 and NDVI < 0.85 and (R827 - R668) > 0.3:
                         self.NDVI = NDVI
                         self.row = row
                         self.col = col

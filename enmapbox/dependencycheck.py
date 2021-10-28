@@ -46,16 +46,15 @@ from qgis.PyQt.QtCore import \
     QAbstractTableModel, QModelIndex, QSortFilterProxyModel, QRegExp, QUrl
 
 from qgis.PyQt.QtGui import QContextMenuEvent, QColor, QIcon
-import sip
+from qgis.PyQt import sip
 from enmapbox import debugLog
-
 
 URL_PACKAGE_HELP = r"https://enmap-box.readthedocs.io/en/latest/usr_section/usr_installation.html#install-required-python-packages"
 
 INFO_MESSAGE_BEFORE_PACKAGE_INSTALLATION = f"""
 <b>It might be necessary to install missing package(s) with your local package manager!</b>
   <p>You can find more information on how to install them <a href="{URL_PACKAGE_HELP}">here</a>
-  </p>
+  <p>You may Ignore and install missing packages anyway or Abort the installation.</p>
 """
 
 # look-up for pip package name and how it gets imported in python
@@ -66,9 +65,6 @@ PACKAGE_LOOKUP = {'scikit-learn': 'sklearn',
                   'enpt-enmapboxapp': 'enpt_enmapboxapp',
                   'GDAL': 'osgeo.gdal'
                   }
-
-
-
 
 # just in case a package cannot /should not simply get installed
 # calling pip install --user <pip package name>
@@ -92,6 +88,7 @@ rxPipVersion = re.compile(r'([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((
 
 for k in PACKAGE_LOOKUP.keys():
     assert rxPipPackageName.search(k)
+
 
 class PIPPackage(object):
 
@@ -476,47 +473,19 @@ def missingTestData() -> bool:
     :return: (bool, str)
     """
     try:
-        import enmapboxtestdata
-        assert os.path.isfile(enmapboxtestdata.enmap)
+        import enmapbox.exampledata
+        assert os.path.isfile(enmapbox.exampledata.enmap)
         return False
     except Exception as ex:
         print(ex, file=sys.stderr)
         return True
 
 
-def outdatedTestData() -> bool:
-    """Returns whether testdata is outdated."""
-
-    try:
-        import warnings
-        import enmapboxtestdata
-        from enmapbox import MIN_VERSION_TESTDATA
-
-        def version_parse(version: str):
-            """Return comparable version string"""
-            return '.'.join(number.zfill(10) for number in version.split('.'))
-
-        testDataOutdated = version_parse(enmapboxtestdata.__version__) < version_parse(MIN_VERSION_TESTDATA)
-        boxOutdated = version_parse(enmapboxtestdata.__version__) > version_parse(MIN_VERSION_TESTDATA)
-
-        if boxOutdated:
-            warnings.warn('Testdata version {} required by EnMAP-Box, but installed version {} is newer. '
-                          'Installed EnMAP-Box is outdated and may have problems correctly processing the testdata. '
-                          'Consider updating the EnMAP-Box.'
-                          ''.format(MIN_VERSION_TESTDATA, enmapboxtestdata.__version__))
-
-        return testDataOutdated
-
-    except Exception as ex:
-        print(ex, file=sys.stderr)
-        return True
-
-
-def installTestData(overwrite_existing=False, ask=True):
+def installTestData(overwrite_existing: bool = False, ask: bool = True):
     """
     Downloads and installs the EnMAP-Box Example Data
     """
-    if not missingTestData() and not outdatedTestData() and not overwrite_existing:
+    if not missingTestData() and not overwrite_existing:
         print('Testdata already installed and up to date.')
         return
 
@@ -526,7 +495,7 @@ def installTestData(overwrite_existing=False, ask=True):
         app = initQgisApplication()
     from enmapbox import URL_TESTDATA
     from pyplugin_installer.unzip import unzip
-    from enmapbox import DIR_TESTDATA
+    from enmapbox import DIR_EXAMPLEDATA
     if ask == True:
         btn = QMessageBox.question(None, 'Testdata is missing or outdated',
                                    'Download testdata from \n{}\n?'.format(URL_TESTDATA))
@@ -534,9 +503,9 @@ def installTestData(overwrite_existing=False, ask=True):
             print('Canceled')
             return
 
-    pathLocalZip = os.path.join(os.path.dirname(DIR_TESTDATA), 'enmapboxtestdata.zip')
+    pathLocalZip = os.path.join(os.path.dirname(DIR_EXAMPLEDATA), 'enmapboxexampledata.zip')
     url = QUrl(URL_TESTDATA)
-    dialog = QgsFileDownloaderDialog(url, pathLocalZip, 'Download enmapboxtestdata.zip')
+    dialog = QgsFileDownloaderDialog(url, pathLocalZip, 'Download enmapboxexampledata.zip')
     from enmapbox.gui.utils import qgisAppQgisInterface
     qgisMainApp = qgisAppQgisInterface()
 
@@ -548,34 +517,44 @@ def installTestData(overwrite_existing=False, ask=True):
         print('Download completed')
         print('Unzip {}...'.format(pathLocalZip))
 
-        targetDir = DIR_TESTDATA
+        targetDir = pathlib.Path(DIR_EXAMPLEDATA)
+        examplePkgName = targetDir.name
         os.makedirs(targetDir, exist_ok=True)
         import zipfile
         zf = zipfile.ZipFile(pathLocalZip)
 
         names = zf.namelist()
-        names = [n for n in names if re.search(r'[^/]/enmapboxtestdata/..*', n) and not n.endswith('/')]
-        for name in names:
+        # [n for n in names if re.search(r'[^/]/exampledata/..*', n) and not n.endswith('/')]
+
+        subPaths = []
+        rx = re.compile(f'/?({examplePkgName}/.+)$')
+        for n in names:
+            if not n.endswith('/'):
+                m = rx.match(n)
+                if isinstance(m, typing.Match):
+                    subPaths.append(pathlib.Path(m.group(1)))
+
+        assert len(subPaths) > 0, \
+            f'Downloaded zip file does not contain data with sub-paths {examplePkgName}/*:\n\t{pathLocalZip}'
+
+        for pathRel in subPaths:
+            pathDst = targetDir.parent / pathRel
             # create directory if doesn't exist
+            os.makedirs(pathDst.parent, exist_ok=True)
 
-            pathRel = re.search(r'[^/]+/enmapboxtestdata/(.*)$', name).group(1)
-            subDir, baseName = os.path.split(pathRel)
-            fullDir = os.path.normpath(os.path.join(targetDir, subDir))
-            os.makedirs(fullDir, exist_ok=True)
-
-            if not name.endswith('/'):
-                fullPath = os.path.normpath(os.path.join(targetDir, pathRel))
-                with open(fullPath, 'wb') as outfile:
-                    outfile.write(zf.read(name))
-                    outfile.flush()
+            with open(pathDst, 'wb') as outfile:
+                outfile.write(zf.read(pathRel.as_posix()))
+                outfile.flush()
 
         zf.close()
         del zf
 
         print('Testdata installed.')
-        spec = importlib.util.spec_from_file_location('enmapboxtestdata', os.path.join(targetDir, '__init__.py'))
+        spec = importlib.util.spec_from_file_location(examplePkgName, os.path.join(targetDir, '__init__.py'))
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        sys.modules[examplePkgName] = module
+        # backward compatibility
         sys.modules['enmapboxtestdata'] = module
 
     def onDownloadError(messages):

@@ -17,6 +17,7 @@ The repository contains the following files and folders:
 Folder/File                     Purpose
 =============================== ========================================================================================
 doc/                            EnMAP-Box Sphinx *.rst documentation
+doc_*/                          Deprecated doc folders (will be removed)
 enmapbox/                       EnMAP-Box source code
 enmapboxtesting/                Unit tests
 scripts/                        Scripts to maintain the repository and build the EnMAP-Box QGIS Plugin
@@ -66,6 +67,8 @@ created during the development process. These are:
 
 ================================ =========================================================================================================
 enmapboxtestdata/                Official EnMAP-Box testdata. Not part of repository code, can be installed calling
+                                 ``scripts/install:_testdata.py``.
+enmapboxunittestdata/            Unit test testdata. Not part of repository code, can be installed calling
                                  ``scripts/install:_testdata.py``.
 qgisresources/                   QGIS resources compiled as python modules.
                                  Read :ref:`here<dev_repo_installation>` for details.

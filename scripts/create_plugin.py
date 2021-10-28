@@ -18,18 +18,19 @@
 *                                                                         *
 ***************************************************************************
 """
-# noinspection PyPep8Naming
-import warnings
 import argparse
 import datetime
+import io
 import os
 import pathlib
 import re
 import shutil
+import site
 import sys
 import typing
-import site
-import io
+# noinspection PyPep8Naming
+import warnings
+
 site.addsitedir(pathlib.Path(__file__).parents[1])
 import enmapbox
 from enmapbox import DIR_REPO, __version__
@@ -46,8 +47,8 @@ MD = QGISMetadataFileWriter()
 MD.mName = 'EnMAP-Box 3'
 MD.mDescription = 'Imaging Spectroscopy and Remote Sensing for QGIS'
 MD.mTags = ['raster', 'analysis', 'imaging spectroscopy', 'spectral', 'hyperspectral', 'multispectral',
-            'landsat', 'sentinel', 'enmap', 'land cover', 'landscape',
-            'classification', 'remote sensing',
+            'landsat', 'sentinel', 'enmap', 'desis', 'prisma', 'land cover', 'landscape',
+            'classification', 'regression', 'unmixing', 'remote sensing',
             'mask', 'accuracy', 'clip', 'spectral signature', 'supervised classification', 'clustering',
             'machine learning']
 MD.mCategory = 'Analysis'
@@ -60,6 +61,7 @@ MD.mRepository = enmapbox.REPOSITORY
 MD.mQgisMinimumVersion = enmapbox.MIN_VERSION_QGIS
 MD.mEmail = 'enmapbox@enmap.org'
 MD.mHasProcessingProvider = True
+
 
 ########## End of config section
 
@@ -77,7 +79,7 @@ def scantree(path, pattern=re.compile(r'.$')) -> typing.Iterator[pathlib.Path]:
             yield pathlib.Path(entry.path)
 
 
-def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False):
+def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False) -> pathlib.Path:
     DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
     assert (DIR_REPO / '.git').is_dir()
 
@@ -120,9 +122,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     pattern = re.compile(r'\.(sli|hdr|py|svg|png|txt|ui|tif|qml|md|js|css|json|aux\.xml)$')
     files = list(scantree(DIR_REPO / 'enmapbox', pattern=pattern))
     files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
-    files.extend(list(scantree(DIR_REPO / 'hubflow', pattern=pattern)))
-    files.extend(list(scantree(DIR_REPO / 'hubdc', pattern=pattern)))
-    files.extend(list(scantree(DIR_REPO / 'hubdsm', pattern=pattern)))
+    files.extend(list(scantree(DIR_REPO / 'enmapboxprocessing', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
 
     # add special files required by EnMAP-Box Applications
@@ -130,7 +130,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
                                pattern=re.compile(r'\.(meta|srf)$'))))
 
     # add unit tests
-    files.extend(list(scantree(DIR_REPO / 'enmapboxtesting', pattern=re.compile(r'\.py$'))))
+    files.extend(list(scantree(DIR_REPO / 'enmapbox' / 'exampledata', pattern=re.compile(r'\.py$'))))
     files.append(DIR_REPO / '__init__.py')
     files.append(DIR_REPO / 'CHANGELOG.rst')
     files.append(DIR_REPO / 'CONTRIBUTORS.rst')
@@ -138,6 +138,9 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     files.append(DIR_REPO / 'LICENSE.txt')
     files.append(DIR_REPO / 'requirements.txt')
     files.append(DIR_REPO / 'requirements_developer.txt')
+
+    # add glossary RST
+    files.append(DIR_REPO / 'doc/source/general/glossary.rst')
 
     for fileSrc in files:
         assert fileSrc.is_file()
@@ -158,8 +161,9 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
     # include test data into test versions
     if include_testdata:
-        if os.path.isdir(enmapbox.DIR_TESTDATA):
-            shutil.copytree(enmapbox.DIR_TESTDATA, PLUGIN_DIR / 'enmapboxtestdata')
+        if os.path.isdir(enmapbox.DIR_EXAMPLEDATA):
+            DEST = PLUGIN_DIR / 'enmapbox' / 'exampledata'
+            shutil.copytree(enmapbox.DIR_EXAMPLEDATA, DEST, dirs_exist_ok=True)
 
     if include_qgisresources and not re.search(currentBranch, 'master', re.I):
         qgisresources = pathlib.Path(DIR_REPO) / 'qgisresources'
@@ -198,7 +202,8 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
         print('\n'.join(info))
 
-    print('Finished')
+    print(f'Finished building {BUILD_NAME}')
+    return PLUGIN_ZIP
 
 
 def createCHANGELOG(dirPlugin):
@@ -282,5 +287,20 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    create_enmapbox_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
+    path = create_enmapbox_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
+
+    if re.search(r'\.master\.', path.name):
+        message = '\nVery important checklist. Do not remove!!!' \
+                  '\nChecklist for release:' \
+                  '\n  Run scripts\\runtests.bat (win) or scripts/runtests.sh (linux/mac)' \
+                  '\n  Change log up-to-date?' \
+                  '\n  Processing algo documentation up-to-date (run create_processing_rst)' \
+                  '\n  Run weblink checker (in doc folder make linkcheck)' \
+                  '\n  Check if box runs without optional dependencies (see tests/non-blocking-dependencies/readme.txt).'\
+                  '\n  Version number increased? (enmapbox/__init__.py -> __version__)' \
+                  '\n  QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
+                  '\n  ZIP containing branch (i.e. master) information (GIT installed)?' \
+                  '\n  Plugin promotion (Slack, Email, ...)'
+        print(message)
+
     exit()

@@ -58,19 +58,21 @@ class SourceValueSet(object):
 
 class RasterValueSet(SourceValueSet):
     class BandInfo(object):
-        def __init__(self, bandIndex, bandValue, bandName, classInfo=None):
+        def __init__(self, bandIndex, bandValue, bandName,
+                     is_nodata: bool =False, classInfo=None):
             assert bandIndex >= 0
             if bandValue is not None:
                 assert type(bandValue) in [float, int]
             if bandName is not None:
                 assert isinstance(bandName, str)
 
+            self.is_nodata: bool = bool(is_nodata)
             self.bandIndex = bandIndex
             self.bandValue = bandValue
-            self.bandName = bandName
+            self.bandName: str = bandName
             self.classInfo = classInfo
 
-    def __init__(self, source, point, pxPosition):
+    def __init__(self, source, point, pxPosition: QPoint):
         assert isinstance(pxPosition, QPoint)
         super(RasterValueSet, self).__init__(source, point)
         self.pxPosition = pxPosition
@@ -189,7 +191,8 @@ class CursorLocationInfoModel(TreeModel):
 
             for bv in sourceValueSet.bandValues:
                 if isinstance(bv, RasterValueSet.BandInfo):
-                    n = TreeNode(name='Band {}'.format(bv.bandIndex + 1))
+                    #n = TreeNode(name='Band {}'.format(bv.bandIndex + 1))
+                    n = TreeNode(name = bv.bandName)
                     n.setToolTip('Band {} {}'.format(bv.bandIndex + 1, bv.bandName).strip())
                     n.setValues([bv.bandValue, bv.bandName])
                     subNodes.append(n)
@@ -471,19 +474,22 @@ class CursorLocationInfoDock(QDockWidget):
                         assert isinstance(block, QgsRasterBlock)
                         v.bandValues.append(QColor(block.color(0, 0)))
                 else:
-                    results = l.dataProvider().identify(pointLyr, QgsRaster.IdentifyFormatValue).results()
+                    dp: QgsRasterDataProvider = l.dataProvider()
+                    results = dp.identify(pointLyr, QgsRaster.IdentifyFormatValue).results()
                     classScheme = None
                     if isinstance(l.renderer(), QgsPalettedRasterRenderer):
                         classScheme = ClassificationScheme.fromRasterRenderer(l.renderer())
                     for b in bandNumbers:
                         if b in results.keys():
-                            bandValue = as_py_value(results[b], l.dataProvider().dataType(b))
+                            bandValue = results[b]
+                            if bandValue:
+                                bandValue = as_py_value(bandValue, l.dataProvider().dataType(b))
 
-                            classInfo = None
+                            classInfo: ClassInfo = None
                             if isinstance(bandValue, (int, float)) \
                                     and isinstance(classScheme, ClassificationScheme) \
                                     and 0 <= bandValue < len(classScheme):
-                                classInfo = classScheme[int(bandValue)]
+                                classInfo = classScheme.classInfo(label=int(bandValue))
                             info = RasterValueSet.BandInfo(b - 1, bandValue, l.bandName(b), classInfo=classInfo)
                             v.bandValues.append(info)
 

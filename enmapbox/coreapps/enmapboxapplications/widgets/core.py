@@ -2,8 +2,9 @@ from PyQt5.uic import loadUi
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
+from enmapbox.gui.datasources.datasources import VectorDataSource
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapbox.gui.datasources import DataSourceSpectralLibrary
+from enmapbox.gui.datasources.datasources import VectorDataSource
 from hubflow.core import *
 
 pathUi = join(dirname(__file__), 'ui')
@@ -14,7 +15,7 @@ class UiLibrary(QComboBox):
         super().__init__(parent)
         self.enmapBox = EnMAPBox.instance()
         assert isinstance(self.enmapBox, EnMAPBox)
-        self.enmapBox.sigDataSourceAdded.connect(self.setLibraries)
+        self.enmapBox.sigDataSourcesAdded.connect(self.setLibraries)
 
         self.names = list()
         self.filenames = list()
@@ -29,11 +30,11 @@ class UiLibrary(QComboBox):
         self.addItem('')
 
         # add all speclibs
-        for source in self.enmapBox.dataSourceManager().mSources:
-            if isinstance(source, DataSourceSpectralLibrary):
-                if source.mUri not in self.filenames:
+        for source in self.enmapBox.dataSourceManager().dataSources():
+            if isinstance(source, VectorDataSource) and source.isSpectralLibrary():
+                if source.uri() not in self.filenames:
                     self.names.append(source.mName)
-                    self.filenames.append(source.mUri)
+                    self.filenames.append(source.uri())
                     self.addItem(self.names[-1])
 
     def currentLibrary(self):

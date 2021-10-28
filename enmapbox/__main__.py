@@ -27,10 +27,10 @@ from qgis.PyQt.QtGui import QGuiApplication
 from qgis.core import QgsApplication
 
 site.addsitedir(pathlib.Path(__file__).parents[1])
-import enmapbox
+
 from enmapbox.testing import start_app, QgisMockup
 from enmapbox.externals.qps.resources import findQGISResourceFiles
-
+import qgis.utils
 
 qApp: QgsApplication = None
 
@@ -66,25 +66,24 @@ def run(
         print('## QgsApplication created')
     else:
         print('## QgsApplication exists')
+        from enmapbox import initAll
+        initAll()
 
-    # initialize resources and background frameworks
-    # if started from QGIS, this is done by enmapbox/enmapboxplugin.py
-    # initialize Qt resources, QgsEditorWidgetWrapper, QgsProcessingProviders etc.
-    # enmapbox.initAll(processing=initProcessing)
     from enmapbox.gui.enmapboxgui import EnMAPBox
-    import qgis.utils
     enmapBox = EnMAPBox(qgis.utils.iface, load_core_apps=load_core_apps, load_other_apps=load_other_apps)
     enmapBox.run()
     print('## EnMAP-Box started')
     if True and sources is not None:
         for source in enmapBox.addSources(sourceList=sources):
-            try:
-                # add as map
-                lyr = source.createUnregisteredMapLayer()
-                dock = enmapBox.createDock('MAP')
-                dock.addLayers([lyr])
-            except:
-                pass
+            from enmapbox.gui.datasources.datasources import SpatialDataSource
+            if isinstance(source, SpatialDataSource):
+                try:
+                    # add as map
+                    lyr = source.asMapLAyer()
+                    dock = enmapBox.createDock('MAP')
+                    dock.addLayers([lyr])
+                except:
+                    pass
 
     if not qAppExists:
         print('Execute QgsApplication')

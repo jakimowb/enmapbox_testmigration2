@@ -22,9 +22,11 @@
     along with this software. If not, see <http://www.gnu.org/licenses/>.
 ***************************************************************************
 """
-
+from qgis.gui import QgsMapLayerComboBox
+from qgis.core import QgsMapLayerProxyModel
 import sys
 from qgis.PyQt.QtWidgets import *
+from PyQt5.QtGui import QPixmap
 from hubflow.core import *
 from lmuvegetationapps.PWR.PWR_core import PWR_core
 from lmuvegetationapps import APP_DIR
@@ -32,13 +34,16 @@ from lmuvegetationapps import APP_DIR
 pathUI_pwr = os.path.join(APP_DIR, 'Resources/UserInterfaces/PWR.ui')
 pathUI_nodat = os.path.join(APP_DIR, 'Resources/UserInterfaces/Nodat.ui')
 pathUI_prgbar = os.path.join(APP_DIR, 'Resources/UserInterfaces/ProgressBar.ui')
+pathIMG = os.path.join(APP_DIR, "Resources/PWR_showImg.PNG")
 
 from enmapbox.gui.utils import loadUi
 
 class PWR_GUI(QDialog):
+    mLayer: QgsMapLayerComboBox
     def __init__(self, parent=None):
         super(PWR_GUI, self).__init__(parent)
         loadUi(pathUI_pwr, self)
+        self.mLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
 class Nodat_GUI(QDialog):
     def __init__(self, parent=None):
@@ -65,6 +70,11 @@ class PWR:
         self.gui = PWR_GUI()
         self.initial_values()
         self.connections()
+        label = QLabel(self.gui.pwrImage)
+        pixelmap = QPixmap(pathIMG)
+        label.setPixmap(pixelmap)
+        self.gui.pwrImage.resize(pixelmap.width(), pixelmap.height())
+        self.gui.pwrImage.show()
 
     def initial_values(self):
         self.image = None
@@ -72,9 +82,12 @@ class PWR:
         self.division_factor = 1.0
         self.NDWI_th = -0.9
         self.out_path = None
+        self.addItem = []
+        self.gui.mLayer.setLayer(None)
 
     def connections(self):
-        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="image"))
+        self.gui.mLayer.layerChanged.connect(lambda: self.open_file(mode="imgDropdown"))
+        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="imgSelect"))
         self.gui.cmdOutputImage.clicked.connect(lambda: self.open_file(mode="output"))
 
         self.gui.SpinNDWI.valueChanged.connect(lambda: self.NDWI_th_change())
@@ -83,39 +96,60 @@ class PWR:
         self.gui.pushClose.clicked.connect(lambda: self.gui.close())
 
     def open_file(self, mode):
-        if mode == "image":
-            bsq_input, _filter = QFileDialog.getOpenFileName(None, 'Select Input Image', '.', "ENVI Image (*.bsq)")
-            if not bsq_input: return
-            self.image = bsq_input
-            self.image = self.image.replace("\\", "/")
-            try:
-                meta = self.get_image_meta(image=self.image, image_type="Input Image")
-                self.dtype = meta[4]
-                if self.dtype < 4 or self.dtype > 9:
-                    QMessageBox.information(self.gui, "Integer Input",
-                                        "Tool requires float [0.0-1.0]:\nDivision factor set to 10000")
-                    self.division_factor = 10000
-                    self.gui.spinDivisionFactor.setText(str(self.division_factor))
-            except ValueError as e:
-                self.abort(message=str(e))
-                return
-            if None in meta:
+        if mode == "imgSelect":
+            if self.image is not None:
                 self.image = None
-                self.nodat[0] = None
-                self.gui.lblInputImage.setText("")
+            bsq_input = QFileDialog.getOpenFileName(caption='Select Input Image', filter="ENVI Image (*.bsq)")[0]
+            if not bsq_input:
                 return
+            self.addItem.append(bsq_input)
+            self.gui.mLayer.setAdditionalItems(self.addItem)
+            self.gui.mLayer.setCurrentText(bsq_input)
+
+            self.image = bsq_input
+            self.image_read()
+
+        elif mode == "imgDropdown":
+            if self.image is not None:
+                self.image = None
+            if self.gui.mLayer.currentLayer() is not None:
+                input = self.gui.mLayer.currentLayer()
+                bsq_input = input.source()
+            elif len(self.gui.mLayer.currentText()) > 0:
+                bsq_input = self.gui.mLayer.currentText()
             else:
-                self.gui.lblInputImage.setText(bsq_input)
-                self.gui.lblNodatImage.setText(str(meta[0]))
-                self.nodat[0] = meta[0]
+                self.image = None
+                return
+            self.image = bsq_input
+            self.image_read()
+
         elif mode == "output":
-            #result, _filter = QFileDialog.getSaveFileName(None, 'Specify Output File', '.', "ENVI Image(*.bsq)")
-            result = QFileDialog.getSaveFileName(caption='Specify Output File', filter="ENVI Image (*.bsq)")[0]
-            if not result:
-                raise ImportError('Input file could not be read.  Please make sure it is a valid ENVI image')
+            result = QFileDialog.getSaveFileName(caption='Specify Output File',
+                                                 filter="ENVI Image (*.bsq)")[0]
             self.out_path = result
             self.out_path = self.out_path.replace("\\", "/")
             self.gui.txtOutputImage.setText(result)
+
+    def image_read(self):
+        try:
+            meta = self.get_image_meta(image=self.image, image_type="Input Image")
+            self.dtype = meta[4]
+            if self.dtype < 4 or self.dtype > 9:
+                QMessageBox.information(self.gui, "Integer Input",
+                                        "Integer input image:\nTool requires float [0.0-1.0]:\nDivision factor set to 10000")
+                self.division_factor = 10000
+                self.gui.spinDivisionFactor.setText(str(self.division_factor))
+        except ValueError as e:
+            self.abort(message=str(e))
+            return
+        if None in meta:
+            self.image = None
+            self.nodat[0] = None
+            return
+        else:
+            self.gui.lblNodatImage.setText(str(meta[0]))
+            self.gui.txtNodatOutput.setText(str(meta[0]))
+            self.nodat[0] = meta[0]
 
     def get_image_meta(self, image, image_type):
         dataset = openRasterDataset(image)
@@ -212,7 +246,7 @@ class PWR:
         self.main.prg_widget.gui.close()
 
         QMessageBox.information(self.gui, "Finish", "Calculation of PWR finished successfully")
-        #self.gui.close()
+        # self.gui.close()
 
     def abort(self, message):
         QMessageBox.critical(self.gui, "Error", message)

@@ -255,7 +255,7 @@ class ClassificationScheme(QAbstractTableModel):
 
     def __init__(self, name: str = None, zero_based: bool = False):
         super(ClassificationScheme, self).__init__()
-        self.mClasses = []
+        self.mClasses: typing.List[ClassInfo] = []
         self.mName = name
         self.mIsEditable = True
 
@@ -390,6 +390,25 @@ class ClassificationScheme(QAbstractTableModel):
         row = self.mClasses.index(classInfo)
         return self.createIndex(row, 0)
 
+    def classInfos(self) -> typing.List[ClassInfo]:
+        return self.mClasses[:]
+
+    def classInfo(self, label: typing.Any = None, name: str = None) -> ClassInfo:
+        """
+        Returns the 1st ClassInfo instance that matches a given label or class name
+        :param label: the class label to match with
+        :param name: the class name to match with
+        """
+        if label:
+            for c in self.classInfos():
+                if c.label() == label:
+                    return c
+        elif name:
+            for c in self.classInfos():
+                if c.name() == name:
+                    return c
+        return None
+
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
         if not index.isValid():
             return None
@@ -481,7 +500,7 @@ class ClassificationScheme(QAbstractTableModel):
         if self.mIsEditable:
             flags |= Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
             if self.isEditable():
-                if col == 0  and not self.mZeroBased:
+                if col == 0 and not self.mZeroBased:
                     flags |= Qt.ItemIsEditable
                 elif col == 1:
                     flags |= Qt.ItemIsEditable
@@ -1081,19 +1100,18 @@ class ClassificationScheme(QAbstractTableModel):
             return scheme
 
         field = layer.fields().at(fieldIndex)
-        if re.search('int|string', field.typeName(), re.I):
-            values = layer.uniqueValues(fieldIndex, limit=MAX_UNIQUE_CLASSES)
-            values = sorted(values)
 
-            if len(values) > 0:
-                scheme = ClassificationScheme()
-                scheme.insertClass(ClassInfo(0, 'unclassified'))
-                if field.isNumeric():
-                    for v in values:
-                        scheme.insertClass(ClassInfo(int(v), name=str(v)))
-                else:
-                    for i, v in enumerate(values):
-                        scheme.insertClass(ClassInfo(i + 1, name=str(v)))
+        values = sorted(layer.uniqueValues(fieldIndex, limit=MAX_UNIQUE_CLASSES))
+        values = [v for v in values if v not in [None, NULL]]
+        if len(values) > 0:
+            scheme = ClassificationScheme()
+            scheme.insertClass(ClassInfo(0, 'unclassified'))
+            if field.isNumeric():
+                for v in values:
+                    scheme.insertClass(ClassInfo(int(v), name=str(v)))
+            else:
+                for i, v in enumerate(values):
+                    scheme.insertClass(ClassInfo(i + 1, name=str(v)))
 
         return scheme
 
@@ -1195,8 +1213,8 @@ class ClassificationScheme(QAbstractTableModel):
         if len(lines) <= 1:
             raise Exception('CSV does not contain enough values')
 
-        match = re.search(r'ClassificationScheme\("(.*)"\)', text)
-        if match:
+        matches = re.search(r'ClassificationScheme\("(.*)"\)', text)
+        if matches:
             name = re.search(r'ClassificationScheme\("(.*)"\)', text).group(1)
         else:
             name = 'Classification'
@@ -1205,19 +1223,19 @@ class ClassificationScheme(QAbstractTableModel):
         columnNames = None
         delimiter = ';'
         for i, line in enumerate(lines):
-            match = re.search(r'^[ ]*(?P<label>label)[ ]*[;\t,][ ]*(?P<name>name)[ ]*([;\t,][ ]*(?P<color>color))?',
-                              line, re.IGNORECASE)
-            if match:
+            matches = re.search(r'^[ ]*(?P<label>label)[ ]*[;\t,][ ]*(?P<name>name)[ ]*([;\t,][ ]*(?P<color>color))?',
+                                line, re.IGNORECASE)
+            if matches:
                 delimiter = re.search(r'[;\t,]', line).group()
                 b = True
                 break
 
-        if not match:
+        if not matches:
             raise Exception('Missing column header "label;name:color"')
 
-        cName = match.group('name')
-        cColor = match.group('color')
-        fieldnames = [match.group('label'), match.group('name'), match.group('color')]
+        cName = matches.group('name')
+        cColor = matches.group('color')
+        fieldnames = [matches.group('label'), matches.group('name'), matches.group('color')]
 
         cs = ClassificationScheme()
         cs.setName(name)
@@ -1251,12 +1269,12 @@ class ClassificationScheme(QAbstractTableModel):
             if iColor is not None:
                 colorValue = row[fieldnames[iColor]].strip()
 
-                match = re.search(r'^(?P<R>\d+),(?P<G>\d+),(?P<B>\d+)(,(?P<A>\d+))?$', colorValue)
-                if match:
-                    R = int(match.group('R'))
-                    G = int(match.group('G'))
-                    B = int(match.group('B'))
-                    A = match.group('B')
+                matches = re.search(r'^(?P<R>\d+),(?P<G>\d+),(?P<B>\d+)(,(?P<A>\d+))?$', colorValue)
+                if matches:
+                    R = int(matches.group('R'))
+                    G = int(matches.group('G'))
+                    B = int(matches.group('B'))
+                    A = matches.group('B')
                     if A:
                         A = int(A)
                     c.setColor(QColor(R, G, B, A))
@@ -1959,7 +1977,6 @@ class ClassificationSchemeEditorConfigWidget(QgsEditorConfigWidget):
                 has_classes = r.classAttribute() in self.layer().fields().names()
 
         self.mActionImport.setEnabled(has_classes)
-
 
     def config(self, *args, **kwargs) -> dict:
         return classSchemeToConfig(self.mSchemeWidget.classificationScheme())

@@ -21,8 +21,12 @@
 """
 
 import os
-from PyQt5.QtGui import QIcon, QMenu, QAction
+import pathlib
+import site
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
+
 from exampleapp import APP_DIR
 
 class ExampleEnMAPBoxApp(EnMAPBoxApplication):
@@ -84,8 +88,8 @@ class ExampleEnMAPBoxApp(EnMAPBoxApplication):
         :return: [list-of-GeoAlgorithms]
         """
         #return [] #remove this line to load geoAlgorithms
-        from algorithms import MyEnMAPBoxAppGeoAlgorithm
-        return [MyEnMAPBoxAppGeoAlgorithm()]
+        from algorithms import MyEnMAPBoxAppProcessingAlgorithm
+        return [MyEnMAPBoxAppProcessingAlgorithm()]
 
     def startGUI(self, *args):
         from exampleapp.userinterfaces import ExampleGUI

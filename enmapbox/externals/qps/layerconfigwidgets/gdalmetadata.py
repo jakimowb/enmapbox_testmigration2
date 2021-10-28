@@ -42,8 +42,9 @@ from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsMapLayer, \
 from qgis.gui import QgsMapCanvas, QgsMapLayerConfigWidgetFactory, QgsDoubleSpinBox, QgsMessageBar
 from .core import QpsMapLayerConfigWidget
 from ..classification.classificationscheme import ClassificationScheme, ClassificationSchemeWidget
+from ..speclib.gui.spectrallibraryplotwidget import SpectralProfilePlotXAxisUnitModel
 from ..utils import loadUi, gdalDataset, parseWavelength, parseFWHM
-from ..unitmodel import XUnitModel, BAND_INDEX
+from ..unitmodel import BAND_INDEX, XUnitModel
 
 TYPE_LOOKUP = {
     ':STATISTICS_MAXIMUM': float,
@@ -152,7 +153,7 @@ class GDALBandMetadataModel(QAbstractTableModel):
 
         self.mErrorHandler: GDALErrorHandler = GDALErrorHandler()
 
-        self.mWavelengthUnitModel = XUnitModel()
+        self.mWavelengthUnitModel = SpectralProfilePlotXAxisUnitModel()
         self.mWavelengthUnitModel.mDescription[BAND_INDEX] = 'None'
         self.mWavelengthUnitModel.mToolTips[BAND_INDEX] = 'No wavelength defined'
 
@@ -469,7 +470,7 @@ class GDALBandMetadataModelTableViewDelegate(QStyledItemDelegate):
         assert isinstance(tableView, GDALBandMetadataModelTableView)
         super().__init__(parent=parent)
         self.mTableView = tableView
-        # self.mTableView.model().rowsInserted.connect(self.onRowsInserted)
+        # self.mTreeView.model().rowsInserted.connect(self.onRowsInserted)
 
     def sortFilterProxyModel(self) -> QSortFilterProxyModel:
         return self.mTableView.model()

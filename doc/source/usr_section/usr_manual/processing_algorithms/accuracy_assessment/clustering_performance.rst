@@ -22,5 +22,3 @@ Assesses the performance of a clusterer.
 :guilabel:`HTML Report` [fileDestination]
     Specify output path for HTML report file (.html).
 
-    Default: *outReport.html*
-

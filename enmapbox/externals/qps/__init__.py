@@ -32,8 +32,10 @@ import warnings
 from qgis.core import QgsApplication, Qgis
 from qgis.gui import QgsMapLayerConfigWidgetFactory, QgisInterface
 
-MIN_QGIS_VERSION = '3.14'
-__version__ = '1.2'
+# os.environ['PYQTGRAPH_QT_LIB'] = 'qgis.PyQt'
+
+MIN_QGIS_VERSION = '3.16'
+__version__ = '1.3'
 
 DIR_QPS = pathlib.Path(__file__).parent
 DIR_UI_FILES = DIR_QPS / 'ui'
@@ -47,6 +49,15 @@ if Qgis.QGIS_VERSION < MIN_QGIS_VERSION:
                   f'Please update to QGIS >= {MIN_QGIS_VERSION}', RuntimeWarning)
 
 KEY_MAPLAYERCONFIGWIDGETFACTORIES = 'QPS_MAPLAYER_CONFIGWIDGET_FACTORIES'
+
+
+def debugLog(msg: str):
+    """
+    Prints message 'msg' to console only if environmental variable DEBUG is set
+    :param msg: str
+    """
+    if str(os.environ.get('DEBUG', False)).lower() in ['1', 'true']:
+        print('DEBUG:' + msg, flush=True)
 
 
 def registerMapLayerConfigWidgetFactory(factory: QgsMapLayerConfigWidgetFactory) -> QgsMapLayerConfigWidgetFactory:
@@ -117,17 +128,17 @@ def registerEditorWidgets():
     assert isinstance(QgsApplication.instance(), QgsApplication), 'QgsApplication has not been instantiated'
 
     try:
-        from .speclib.gui import registerSpectralProfileEditorWidget
+        from .speclib.gui.spectralprofileeditor import registerSpectralProfileEditorWidget
         registerSpectralProfileEditorWidget()
     except Exception as ex:
-        print('Failed to call qps.speclib.core.registerSpectralProfileEditorWidget()', file=sys.stderr)
+        print('Failed to call registerSpectralProfileEditorWidget()', file=sys.stderr)
         print(ex, file=sys.stderr)
 
     try:
         from .classification.classificationscheme import registerClassificationSchemeEditorWidget
         registerClassificationSchemeEditorWidget()
     except Exception as ex:
-        print('Failed to call qps.classification.classificationscheme.registerClassificationSchemeEditorWidget()',
+        print('Failed to call registerClassificationSchemeEditorWidget()',
               file=sys.stderr)
         print(ex, file=sys.stderr)
 
@@ -146,15 +157,25 @@ def unregisterEditorWidgets():
 
 def registerExpressionFunctions():
     try:
-        from .speclib.qgsfunctions import registerQgsExpressionFunctions
+        from .qgsfunctions import registerQgsExpressionFunctions
         registerQgsExpressionFunctions()
     except Exception as ex:
         print('Failed to call qps.speclib.qgsfunctions.registerQgsExpressionFunctions()', file=sys.stderr)
         print(ex, file=sys.stderr)
 
 
+def registerSpectralProfileSamplingModes():
+    from .speclib.gui.spectralprofilesources import initSamplingModes
+    initSamplingModes()
+
+
+def registerSpectralLibraryIOs():
+    from .speclib.core.spectrallibraryio import initSpectralLibraryIOs
+    initSpectralLibraryIOs()
+
+
 def unregisterExpressionFunctions():
-    from .speclib.qgsfunctions import unregisterQgsExpressionFunctions as _unregisterQgsExpressionFunctions
+    from .qgsfunctions import unregisterQgsExpressionFunctions as _unregisterQgsExpressionFunctions
     _unregisterQgsExpressionFunctions()
 
 
@@ -181,10 +202,11 @@ def initAll():
     registerEditorWidgets()
     registerExpressionFunctions()
     registerMapLayerConfigWidgetFactories()
+    registerSpectralProfileSamplingModes()
+    registerSpectralLibraryIOs()
 
 
 def unloadAll():
     unregisterEditorWidgets()
     unregisterExpressionFunctions()
     unregisterMapLayerConfigWidgetFactories()
-

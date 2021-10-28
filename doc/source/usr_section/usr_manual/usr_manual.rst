@@ -6,9 +6,9 @@ User Manual
    :maxdepth: 2
 
    gui.rst
+   spectral_library.rst
    tools.rst
    applications.rst
-   python_console.rst
    processing_datatypes.rst
    processing_algorithms/processing_algorithms.rst
    testdataset.rst

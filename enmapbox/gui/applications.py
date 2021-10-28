@@ -19,7 +19,8 @@
 
 import inspect
 import site
-
+import traceback
+import collections
 from qgis.core import QgsProcessingAlgorithm
 from qgis.gui import QgisInterface
 from enmapbox import messageLog
@@ -126,6 +127,9 @@ class ApplicationRegistry(QObject):
     Registry to load and remove EnMAPBox Applications
     """
 
+    sigLoadingInfo = pyqtSignal(str)
+    sigLoadingFinished = pyqtSignal(bool, str)
+
     def __init__(self, enmapBox, parent=None):
         super(ApplicationRegistry, self).__init__(parent)
         self.appPackageRootFolders = []
@@ -229,7 +233,7 @@ class ApplicationRegistry(QObject):
                     results.append(p)
         return results
 
-    def addApplicationFolder(self, appPackagePath: str, isRootFolder=False) -> bool:
+    def addApplicationFolder(self, appPackagePath: str, isRootFolder: bool = False) -> bool:
         """
         Loads an EnMAP-Box application from its root folder.
         :param appPackagePath: directory with an __init__.py which defines a .enmapboxApplicationFactory() or
@@ -238,7 +242,7 @@ class ApplicationRegistry(QObject):
         """
         if isinstance(appPackagePath, pathlib.Path):
             appPackagePath = str(appPackagePath)
-
+        self.sigLoadingInfo.emit(f'Load Applications from {appPackagePath}')
         if isRootFolder:
             assert (isinstance(appPackagePath, str) and os.path.isdir(appPackagePath))
             subDirs = []
@@ -272,6 +276,7 @@ class ApplicationRegistry(QObject):
 
                 # do not use __import__
                 # appModule = __import__(appPkgName)
+
                 appModule = importlib.import_module(appPkgName)
 
                 factory = [o[1] for o in inspect.getmembers(appModule, inspect.isfunction) \
@@ -307,6 +312,7 @@ class ApplicationRegistry(QObject):
             except Exception as ex:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 tbLines = traceback.format_tb(exc_traceback)
+                traceback.print_exc()  # AR: also print the traceback to the console for better PyCharm debugging
                 tbLines = ''.join(tbLines)
                 info = '{}:{}\nTraceback:\n{}'.format(ex.__class__.__name__, ex, tbLines)
                 # return Error with Traceback
@@ -332,13 +338,14 @@ class ApplicationRegistry(QObject):
         assert isinstance(app, EnMAPBoxApplication)
 
         appWrapper = ApplicationWrapper(app)
+        self.sigLoadingInfo.emit(f'Load {appWrapper.app.name} ...')
         if DEBUG:
             print('Check requirements...')
         isOk, errorMessages = EnMAPBoxApplication.checkRequirements(app)
         if not isOk:
+            self.sigLoadingInfo.emit(f'Unable to load {appWrapper.appId}', False)
             raise Exception(
                 'Unable to load EnMAPBoxApplication "{}"\n{}.'.format(appWrapper.appId, '\n\t'.join(errorMessages)))
-
         if appWrapper.appId in self.mAppWrapper.keys():
             messageLog('EnMAPBoxApplication {} already loaded. Reload'.format(appWrapper.appId))
             self.removeApplication(appWrapper.appId)
@@ -358,11 +365,11 @@ class ApplicationRegistry(QObject):
 
         if DEBUG:
             print('Loading done.')
-
+        self.sigLoadingFinished.emit(True, f'{app} loaded')
         return True
 
     def loadProcessingAlgorithms(self, appWrapper: ApplicationWrapper):
-
+        self.sigLoadingInfo.emit(f'Load QgsProcessingAlgorithms of {appWrapper.app.name}')
         assert isinstance(appWrapper, ApplicationWrapper)
         processingAlgorithms = appWrapper.app.processingAlgorithms()
         if DEBUG:

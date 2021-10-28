@@ -33,14 +33,14 @@
    <item>
     <widget class="QFrame" name="frame_1">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
      <property name="maximumSize">
       <size>
-       <width>440</width>
+       <width>16777215</width>
        <height>140</height>
       </size>
      </property>
@@ -54,7 +54,7 @@
       <property name="bottomMargin">
        <number>0</number>
       </property>
-      <item row="1" column="1">
+      <item row="2" column="1">
        <widget class="QLineEdit" name="txtOutputImage">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -64,40 +64,9 @@
         </property>
         <property name="minimumSize">
          <size>
-          <width>310</width>
+          <width>0</width>
           <height>0</height>
          </size>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="lblInputImage">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>310</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="frameShape">
-         <enum>QFrame::Panel</enum>
-        </property>
-        <property name="frameShadow">
-         <enum>QFrame::Sunken</enum>
-        </property>
-        <property name="lineWidth">
-         <number>2</number>
-        </property>
-        <property name="midLineWidth">
-         <number>0</number>
         </property>
         <property name="text">
          <string/>
@@ -105,22 +74,9 @@
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>Output Image:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
        <widget class="QLabel" name="label_3">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -130,19 +86,13 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="cmdInputImage">
+      <item row="2" column="2">
+       <widget class="QPushButton" name="cmdOutputImage">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>20</width>
-          <height>0</height>
-         </size>
         </property>
         <property name="maximumSize">
          <size>
@@ -156,27 +106,38 @@
         <property name="text">
          <string>...</string>
         </property>
-        <property name="iconSize">
-         <size>
-          <width>20</width>
-          <height>20</height>
-         </size>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <property name="autoDefault">
-         <bool>false</bool>
+        <property name="text">
+         <string>Output Image:</string>
         </property>
-        <property name="default">
-         <bool>false</bool>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QgsMapLayerComboBox" name="mLayer">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <property name="flat">
-         <bool>false</bool>
+        <property name="allowEmptyLayer">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
       <item row="1" column="2">
-       <widget class="QPushButton" name="cmdOutputImage">
+       <widget class="QPushButton" name="cmdInputImage">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -216,14 +177,14 @@
          <bool>true</bool>
         </property>
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="maximumSize">
          <size>
-          <width>90</width>
+          <width>100</width>
           <height>16777215</height>
          </size>
         </property>
@@ -244,14 +205,14 @@
       <item row="1" column="0">
        <widget class="QLabel" name="label">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="maximumSize">
          <size>
-          <width>190</width>
+          <width>16777215</width>
           <height>16777215</height>
          </size>
         </property>
@@ -263,7 +224,7 @@
       <item row="1" column="3">
        <widget class="QLabel" name="lblNodatImage">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -276,8 +237,8 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>50</width>
-          <height>20</height>
+          <width>100</width>
+          <height>16777215</height>
          </size>
         </property>
         <property name="frameShape">
@@ -301,7 +262,7 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>110</width>
+          <width>16777215</width>
           <height>16777215</height>
          </size>
         </property>
@@ -323,7 +284,7 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>110</width>
+          <width>16777215</width>
           <height>16777215</height>
          </size>
         </property>
@@ -335,14 +296,14 @@
       <item row="2" column="0">
        <widget class="QLabel" name="label_2">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="maximumSize">
          <size>
-          <width>190</width>
+          <width>16777215</width>
           <height>16777215</height>
          </size>
         </property>
@@ -367,8 +328,8 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>50</width>
-          <height>20</height>
+          <width>100</width>
+          <height>16777215</height>
          </size>
         </property>
         <property name="text">
@@ -389,7 +350,7 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>110</width>
+          <width>16777215</width>
           <height>16777215</height>
          </size>
         </property>
@@ -404,7 +365,7 @@
       <item row="2" column="3">
        <widget class="QLineEdit" name="txtNodatOutput">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -417,8 +378,8 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>50</width>
-          <height>20</height>
+          <width>100</width>
+          <height>16777215</height>
          </size>
         </property>
         <property name="whatsThis">
@@ -432,14 +393,14 @@
       <item row="3" column="0">
        <widget class="QLabel" name="label_7">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="maximumSize">
          <size>
-          <width>190</width>
+          <width>16777215</width>
           <height>16777215</height>
          </size>
         </property>
@@ -454,14 +415,14 @@
       <item row="2" column="1">
        <widget class="QLineEdit" name="upWaveEdit">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="maximumSize">
          <size>
-          <width>90</width>
+          <width>100</width>
           <height>16777215</height>
          </size>
         </property>
@@ -479,14 +440,14 @@
       <item row="3" column="1">
        <widget class="QLineEdit" name="peakLookEdit">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="maximumSize">
          <size>
-          <width>90</width>
+          <width>100</width>
           <height>16777215</height>
          </size>
         </property>
@@ -791,8 +752,8 @@
      </property>
      <property name="maximumSize">
       <size>
-       <width>440</width>
-       <height>41</height>
+       <width>16777215</width>
+       <height>100</height>
       </size>
      </property>
      <property name="frameShape">
@@ -822,11 +783,24 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>40</width>
+          <width>16777215</width>
           <height>20</height>
          </size>
         </property>
        </spacer>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_14">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;App Info: &lt;a href=&quot;https://www.sciencedirect.com/science/article/pii/S0303243420305754?via%3Dihub&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Reference&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+        <property name="openExternalLinks">
+         <bool>true</bool>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QPushButton" name="pushClose">
@@ -845,8 +819,11 @@
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
+        <property name="layoutDirection">
+         <enum>Qt::RightToLeft</enum>
+        </property>
         <property name="text">
-         <string>Quit</string>
+         <string>Cancel</string>
         </property>
        </widget>
       </item>
@@ -870,6 +847,9 @@
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
+        <property name="layoutDirection">
+         <enum>Qt::RightToLeft</enum>
+        </property>
         <property name="text">
          <string>Run</string>
         </property>
@@ -882,18 +862,30 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>QgsMapLayerComboBox</class>
+   <extends>QComboBox</extends>
+   <header>qgsmaplayercombobox.h</header>
+  </customwidget>
+  <customwidget>
    <class>PlotWidget</class>
    <extends>QGraphicsView</extends>
    <header>pyqtgraph.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>
+  <tabstop>mLayer</tabstop>
   <tabstop>cmdInputImage</tabstop>
   <tabstop>txtOutputImage</tabstop>
   <tabstop>cmdOutputImage</tabstop>
+  <tabstop>lowWaveEdit</tabstop>
+  <tabstop>upWaveEdit</tabstop>
+  <tabstop>peakLookEdit</tabstop>
+  <tabstop>txtNodatOutput</tabstop>
+  <tabstop>spinDivisionFactor</tabstop>
   <tabstop>rangeView</tabstop>
   <tabstop>crsView</tabstop>
-  <tabstop>pushClose</tabstop>
+  <tabstop>checkSaveCrs</tabstop>
+  <tabstop>checkSave3Band</tabstop>
  </tabstops>
  <resources/>
  <connections/>

@@ -2,8 +2,8 @@
 # import QPS modules
 from ..externals.qps.crosshair.crosshair import CrosshairStyle, CrosshairWidget, CrosshairMapCanvasItem, CrosshairDialog, getCrosshairStyle
 from ..externals.qps.plotstyling.plotstyling import PlotStyle, PlotStyleDialog, PlotStyleButton, PlotStyleWidget
-from ..externals.qps.speclib.core import SpectralLibrary, SpectralProfile
-from ..externals.qps.speclib.gui import SpectralLibraryWidget, AbstractSpectralLibraryIO
+from ..externals.qps.speclib.core.spectrallibrary import SpectralLibrary, SpectralProfile
+from ..externals.qps.speclib.gui.spectrallibrarywidget import SpectralLibraryWidget
 from ..externals.qps.classification.classificationscheme import ClassificationScheme, ClassInfo, ClassificationSchemeComboBox, ClassificationSchemeWidget, ClassificationSchemeDialog, hasClassification
 from ..externals.qps.models import Option, OptionListModel, TreeNode, TreeModel, TreeView, PyObjectTreeNode
 from ..externals.qps.simplewidgets import SliderSpinBox, DoubleSliderSpinBox

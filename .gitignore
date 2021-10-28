@@ -6,13 +6,15 @@ tmp/
 */tmp/
 doc/build/
 */build/
-enmapboxtestdata/
 test-reports/
 test-outputs/
 qgisresources
 qgisresources/
 qgisresources.zip
 hubdc/test/output_core
+
+enmapbox/exampledata/*.gpkg
+
 
 # we do not like to have compiled qt resource files in our repository!
 site-packages/qps/qpsresources.py
@@ -42,7 +44,9 @@ enmapboxtestdata.zip
 /enmapbox/gui/ui/tmp.ui
 doc/build
 /.gitignore
-/test/
-/test*/
+/tests/test-*/
 /test-reports/
 hubdc/gis/
+*.gpkg-shm
+*.gpkg-wal
+enmapbox/enmapboxexampledata.zip

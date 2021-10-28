@@ -40,6 +40,11 @@ NAME = 'EnMAP-Box'
 LONG_NAME = 'EnMAP-Box (build {})'.format(__version__)
 
 
+class EnMAPBoxProcessingProviderKeys(object):
+    ACTIVATE = 'ENMAPBOX_ACTIVATE'
+    OUTPUTFOLDER = 'ENMAPBOX_OUTPUTFOLDER'
+
+
 class EnMAPBoxProcessingProvider(QgsProcessingProvider):
     """
     The EnMAPBoxAlgorithmProvider contains the GeoAlgorithms under the umbrella of the EnMAP-Box.
@@ -52,11 +57,38 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         self.mAlgorithms = []
         self.mSettingsPrefix = self.id().upper().replace(' ', '_')
 
-        #try:
+        # try:
         #    import hubflow.signals
         #    hubflow.signals.sigFileCreated.connect(self.onHubFlowFileCreated)
-        #except Exception as ex:
+        # except Exception as ex:
         #    messageLog(ex)
+
+    def load(self):
+        with QgsRuntimeProfiler.profile('OTB Provider'):
+            group = self.name()
+            ProcessingConfig.settingIcons[group] = self.icon()
+            ProcessingConfig.addSetting(
+                Setting(group, EnMAPBoxProcessingProviderKeys.ACTIVATE, self.tr('Activate'), True))
+            ProcessingConfig.addSetting(Setting(group, EnMAPBoxProcessingProviderKeys.OUTPUTFOLDER,
+                                                self.tr("EnMAP-Box output folder"),
+                                                (pathlib.Path('~').expanduser() / 'enmapboxoutputs').as_posix(),
+                                                ))
+
+            # todo: add more settings
+            ProcessingConfig.readSettings()
+            self.refreshAlgorithms()
+
+        return True
+
+    def unload(self):
+        ProcessingConfig.removeSetting(EnMAPBoxProcessingProviderKeys.ACTIVATE)
+        ProcessingConfig.removeSetting(EnMAPBoxProcessingProviderKeys.OUTPUTFOLDER)
+
+    def isActive(self):
+        return ProcessingConfig.getSetting(EnMAPBoxProcessingProviderKeys.ACTIVATE)
+
+    def setActive(self, active):
+        ProcessingConfig.setSettingValue(EnMAPBoxProcessingProviderKeys.ACTIVATE, active)
 
     def onHubFlowFileCreated(self, file):
         """
@@ -96,15 +128,6 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
         # processing.core.ProcessingConfig.settingsWatcher.settingsChanged.emit()
         self.algorithmsLoaded.emit()
 
-    def getName(self):
-        raise DeprecationWarning('Use id() instead')
-
-    def getDescription(self):
-        raise DeprecationWarning('Use name()')
-
-    def getIcon(self):
-        raise DeprecationWarning('Use icon()')
-
     def id(self) -> str:
         """
         :return:
@@ -135,29 +158,21 @@ class EnMAPBoxProcessingProvider(QgsProcessingProvider):
 
     def defaultRasterFileExtension(self) -> str:
         """
-        :return: 'bsq'
+        :return: 'tif'
         """
-        return 'bsq'
+        return 'tif'
 
     def defaultVectorFileExtension(self, hasGeometry: bool = True) -> str:
         """
-        :return: 'shp'
+        :return: 'gpkg'
         """
-        return 'shp'
+        return 'gpkg'
 
     def supportedOutputRasterLayerExtensions(self) -> list:
-        return ['bsq', 'bil', 'bip', 'tif', 'vrt']
+        return ['tif', 'bsq', 'bil', 'bip', 'vrt']
 
     def supportsNonFileBasedOutput(self) -> bool:
         return False
-
-    def load(self):
-        """
-        Loads the provider.
-        :return: bool
-        """
-        self.refreshAlgorithms()
-        return True
 
     def containsAlgorithm(self, algorithm: QgsProcessingAlgorithm) -> bool:
         """

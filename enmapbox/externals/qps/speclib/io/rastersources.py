@@ -25,20 +25,36 @@
 ***************************************************************************
 """
 import os
+import pathlib
 import sys
 import typing
+import warnings
+
 from osgeo import gdal
 import numpy as np
+
+from qgis.core import QgsProviderRegistry
+from qgis.core import QgsFields, QgsField, QgsExpressionContext, Qgis, QgsFeature, QgsRasterDataProvider, \
+    QgsCoordinateReferenceSystem, QgsGeometry, QgsPointXY, QgsPoint
+from qgis.gui import QgsMapLayerComboBox
+
 from qgis.PyQt import sip
-from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
-from qgis.core import QgsTask, QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsWkbTypes, \
-    QgsTaskManager, QgsMapLayerProxyModel, QgsApplication, QgsFileUtils
-from ..core import SpectralProfile, SpectralLibrary, AbstractSpectralLibraryIO, ProgressHandler
-from ...utils import SelectMapLayersDialog, gdalDataset, parseWavelength, parseFWHM, parseBadBandList
 
-PIXEL_LIMIT = 100*100
+from qgis.core import QgsTask, QgsVectorLayer, QgsRasterLayer, QgsWkbTypes, \
+    QgsTaskManager, QgsMapLayerProxyModel, QgsApplication, QgsFileUtils, QgsProcessingFeedback
+from .. import speclibUiPath
+from ..core import create_profile_field
+from ..core.spectrallibrary import SpectralProfile, SpectralLibrary
+from ..core.spectrallibraryio import SpectralLibraryIO, SpectralLibraryImportWidget, \
+    IMPORT_SETTINGS_KEY_REQUIRED_SOURCE_FIELDS
+from ..core.spectralprofile import prepareProfileValueDict, encodeProfileValueDict
+from ...utils import SelectMapLayersDialog, gdalDataset, parseWavelength, parseFWHM, parseBadBandList, loadUi, \
+    rasterLayerArray, qgsRasterLayer, px2geocoordinatesV2, optimize_block_size, px2geocoordinates, fid2pixelindices
+
+PIXEL_LIMIT = 100 * 100
+
 
 class SpectralProfileLoadingTask(QgsTask):
 
@@ -53,23 +69,29 @@ class SpectralProfileLoadingTask(QgsTask):
         self.copy_attributes = copy_attributes
         self.exception = None
         self.profiles = None
-        from ..gui import ProgressHandler
-        self.progress_handler = ProgressHandler()
 
     def run(self):
 
-        self.progress_handler.progressChanged[int, int, int].connect(self.onProgressChanged)
+        feedback = QgsProcessingFeedback()
+        feedback.progressChanged.connect(self.setProgress)
+        # todo: emit progress
         try:
             vector = QgsVectorLayer(self.path_vector)
             raster = QgsRasterLayer(self.path_raster)
-            profiles = SpectralLibrary.readFromVector(vector,
-                                                      raster,
-                                                      all_touched=self.all_touched,
-                                                      copy_attributes=self.copy_attributes,
-                                                      progress_handler=self.progress_handler,
-                                                      return_profile_list=True)
+
+            IO = RasterLayerSpectralLibraryIO()
+            settings = {'raster_layer': raster,
+                        'vector_layer': vector,
+                        'all_touched': self.all_touched}
+            if not self.copy_attributes:
+                settings['required_fields'] = []
+
+            profiles = list(IO.importProfiles('', settings, feedback))
+
             self.profiles = profiles
         except Exception as ex:
+            import traceback
+            info = ''.join(traceback.format_stack())
             self.exception = ex
             return False
 
@@ -195,7 +217,7 @@ class SpectralProfileImportPointsDialog(SelectMapLayersDialog):
         self.mIsFinished = True
         self.reject()
 
-    def run(self):
+    def run(self, run_async: bool = True):
         """
         Call this to start loading the profiles in a background process
         """
@@ -205,15 +227,22 @@ class SpectralProfileImportPointsDialog(SelectMapLayersDialog):
                                           copy_attributes=self.allAttributes()
                                           )
 
-        mgr = QgsApplication.taskManager()
-        assert isinstance(mgr, QgsTaskManager)
-        id = mgr.addTask(task)
-        self.mTasks[id] = task
         task.progressChanged.connect(self.onProgressChanged)
-        task.taskCompleted.connect(lambda task=task: self.onCompleted(task))
-        task.taskTerminated.connect(lambda task=task: self.onTerminated(task))
 
-        QgsApplication.taskManager().addTask(task)
+        if run_async:
+            mgr = QgsApplication.taskManager()
+            assert isinstance(mgr, QgsTaskManager)
+            task.taskCompleted.connect(lambda task=task: self.onCompleted(task))
+            task.taskTerminated.connect(lambda task=task: self.onTerminated(task))
+
+            id = mgr.addTask(task)
+            self.mTasks[id] = task
+        else:
+            task.run()
+            self.onCompleted(task)
+
+
+
 
     def allAttributes(self) -> bool:
         """
@@ -244,7 +273,365 @@ class SpectralProfileImportPointsDialog(SelectMapLayersDialog):
         return self.mapLayers()[1]
 
 
-class RasterSourceSpectralLibraryIO(AbstractSpectralLibraryIO):
+RF_PROFILE = 'raster_profile'
+RF_SOURCE = 'raster_source'
+RF_NAME = 'raster_name'
+RF_PX_X = 'raster_px_x'
+RF_PX_Y = 'raster_px_y'
+
+RASTER_FIELDS = QgsFields()
+RASTER_FIELDS.append(create_profile_field(RF_PROFILE))
+RASTER_FIELDS.append(QgsField(RF_NAME, QVariant.String))
+RASTER_FIELDS.append(QgsField(RF_SOURCE, QVariant.String))
+RASTER_FIELDS.append(QgsField(RF_PX_X, QVariant.Int))
+RASTER_FIELDS.append(QgsField(RF_PX_Y, QVariant.Int))
+
+
+class RasterLayerSpectralLibraryImportWidget(SpectralLibraryImportWidget):
+
+    def __init__(self, *args, **kwds):
+        super(RasterLayerSpectralLibraryImportWidget, self).__init__(*args, **kwds)
+        loadUi(speclibUiPath('rasterspectrallibraryinput.ui'), self)
+        self.mFields: QgsFields = QgsFields(RASTER_FIELDS)
+
+        self.cbRasterLayer: QgsMapLayerComboBox
+        self.cbVectorLayer: QgsMapLayerComboBox
+        self.mCbTouched: QCheckBox
+        # self.mCbAllAttributes: QCheckBox
+        self.tbInfo: QTextEdit
+
+        Qgis.version()
+        self.cbRasterLayer.setAllowEmptyLayer(False)
+        if Qgis.versionInt() < 32000:
+            self.cbVectorLayer.setAllowEmptyLayer(True)
+        else:
+            self.cbVectorLayer.setAllowEmptyLayer(True, 'Each Raster Pixel')
+        self.cbRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.cbVectorLayer.setFilters(QgsMapLayerProxyModel.PointLayer | QgsMapLayerProxyModel.PolygonLayer)
+        excluded = [p for p in QgsProviderRegistry.instance().providerList() if p not in ['ogr']]
+        self.cbVectorLayer.setExcludedProviders(excluded)
+        self.mCbTouched.stateChanged.connect(self.updateInfoBox)
+        # self.mCbAllAttributes.stateChanged.connect(self.updateInfoBox)
+        self.cbRasterLayer.layerChanged.connect(self.updateInfoBox)
+        self.cbVectorLayer.layerChanged.connect(self.updateInfoBox)
+
+        self.updateInfoBox()
+
+    def importSettings(self, settings: dict) -> dict:
+
+        settings['raster_layer'] = self.cbRasterLayer.currentLayer()
+        settings['fields'] = QgsFields(self.mFields)
+
+        vl = self.cbVectorLayer.currentLayer()
+        if isinstance(vl, QgsVectorLayer):
+            settings['vector_layer'] = vl
+            settings['all_touched'] = self.mCbTouched.isChecked()
+            # settings['copy_vector_attributes'] = self.mCbAllAttributes.isChecked()
+
+        return settings
+
+    def updateInfoBox(self):
+        rl: QgsRasterLayer = self.rasterLayer()
+        vl: QgsVectorLayer = self.vectorLayer()
+        has_vector = isinstance(vl, QgsVectorLayer)
+
+        # self.mCbAllAttributes.setEnabled(has_vector)
+        self.mCbTouched.setEnabled(has_vector and
+                                   QgsWkbTypes.geometryType(vl.wkbType()) == QgsWkbTypes.PolygonGeometry)
+
+        if has_vector:
+            info = 'Extract raster profiles for geometry positions'
+        else:
+            info = 'Extracts a profiles from each valid pixel position'
+            if isinstance(rl, QgsRasterLayer):
+                info += f'\n{rl.width()} x {rl.height()} = up to {rl.width() * rl.height()} profiles'
+        self.tbInfo.setText(info)
+
+        self.updateFields()
+
+    def rasterLayer(self) -> QgsRasterLayer:
+        return self.cbRasterLayer.currentLayer()
+
+    def vectorLayer(self) -> QgsVectorLayer:
+        return self.cbVectorLayer.currentLayer()
+
+    def updateFields(self):
+
+        new_fields = QgsFields(RASTER_FIELDS)
+
+        vl: QgsVectorLayer = self.vectorLayer()
+        # copy attributes from input vector
+        if isinstance(vl, QgsVectorLayer):
+            for field in vl.fields():
+                if field not in new_fields:
+                    new_fields.append(QgsField(field))
+
+        self.mFields = new_fields
+        self.sigSourceChanged.emit()
+
+    def spectralLibraryIO(cls) -> 'SpectralLibraryIO':
+        return SpectralLibraryIO.spectralLibraryIOInstances(RasterLayerSpectralLibraryIO)
+
+    def supportsMultipleFiles(self) -> bool:
+        return None
+
+    def filter(self) -> str:
+        return "GeoTiff (*.tif);;Any file (*.*)"
+
+    def setSource(self, source: str):
+        if self.mSource != source:
+            self.mSource = source
+            self.sigSourceChanged.emit()
+
+    def sourceCrs(self) -> QgsCoordinateReferenceSystem:
+        lyr = self.rasterLayer()
+        if isinstance(lyr, QgsRasterLayer):
+            return QgsCoordinateReferenceSystem(lyr.crs())
+        else:
+            return QgsCoordinateReferenceSystem()
+
+    def sourceFields(self) -> QgsFields:
+        return QgsFields(self.mFields)
+
+
+class RasterLayerSpectralLibraryIO(SpectralLibraryIO):
+
+    def __init__(self, *args, **kwds):
+
+        super().__init__(*args, **kwds)
+
+    @classmethod
+    def formatName(cls) -> str:
+        return 'Raster Layer'
+
+    @classmethod
+    def createImportWidget(cls) -> SpectralLibraryImportWidget:
+        return RasterLayerSpectralLibraryImportWidget()
+
+    @classmethod
+    def importProfiles(cls,
+                       path: str,
+                       importSettings: dict,
+                       feedback: QgsProcessingFeedback) -> typing.List[QgsFeature]:
+
+        required_fields = QgsFields()
+        if 'fields' in importSettings.keys():
+            available_fields: QgsFields = QgsFields(importSettings['fields'])
+        else:
+            available_fields: QgsFields = QgsFields(RASTER_FIELDS)
+
+        if IMPORT_SETTINGS_KEY_REQUIRED_SOURCE_FIELDS in importSettings.keys():
+            for name in importSettings[IMPORT_SETTINGS_KEY_REQUIRED_SOURCE_FIELDS]:
+                if name in available_fields.names():
+                    required_fields.append(available_fields.field(name))
+        else:
+            required_fields = available_fields
+
+        rl = importSettings.get('raster_layer', path)
+        vl = importSettings.get('vector_layer', None)
+        all_touched = importSettings.get('all_touched', False)
+        if not isinstance(rl, QgsRasterLayer):
+            rl = QgsRasterLayer(rl)
+
+        assert isinstance(rl, QgsRasterLayer) and rl.isValid()
+
+        if vl is None:
+            return RasterLayerSpectralLibraryIO.readRaster(rl, required_fields)
+        else:
+            if not isinstance(vl, QgsVectorLayer):
+                vl = QgsVectorLayer(vl)
+            assert isinstance(vl, QgsVectorLayer) and vl.isValid()
+            return RasterLayerSpectralLibraryIO.readRasterVector(rl, vl, required_fields, all_touched)
+
+    @staticmethod
+    def readRaster(raster, fields: QgsFields) -> typing.Generator[QgsFeature, None, None]:
+
+        raster: QgsRasterLayer
+        try:
+            raster = qgsRasterLayer(raster)
+
+        except Exception as ex:
+            warnings.warn(f'Unable to open {raster} as QgsRasterLayer.\n{ex}')
+            raise StopIteration
+
+        assert isinstance(fields, QgsFields)
+
+        raster_source = raster.source()
+        raster_name = pathlib.Path(raster_source).name
+        dp: QgsRasterDataProvider = raster.dataProvider()
+        ds: gdal.Dataset = gdalDataset(raster)
+        if isinstance(ds, gdal.Dataset):
+            wl, wlu = parseWavelength(ds)
+            fwhm = parseFWHM(ds)
+            bbl = parseBadBandList(ds)
+        else:
+            wl = wlu = fwhm = bbl = None
+
+        # each none-masked pixel is a profile
+        array = rasterLayerArray(raster)
+
+        # todo: add multi-band masking options
+        valid = np.isfinite(array[0, :])
+        if dp.sourceHasNoDataValue(1):
+            valid = np.logical_and(valid, array[0, :] != dp.sourceNoDataValue(1))
+        for ndv in dp.userNoDataValues(1):
+            valid = np.logical_and(valid, array[0, :] != ndv)
+
+        valid = np.where(valid)
+
+        geo_x, geo_y = px2geocoordinatesV2(raster)
+
+        n_profiles = len(valid[0])
+        if n_profiles > PIXEL_LIMIT:
+            raise Exception(f'Number of raster image pixels {n_profiles} exceeds PIXEL_LIMIT {PIXEL_LIMIT}')
+
+        if wl is not None:
+            xvalues = wl.tolist()
+        else:
+            xvalues = (np.arange(ds.RasterCount) + 1).tolist()
+
+        i_RF_NAME = fields.lookupField(RF_NAME)
+        i_RF_SOURCE = fields.lookupField(RF_SOURCE)
+        i_RF_PX_X = fields.lookupField(RF_PX_X)
+        i_RF_PX_Y = fields.lookupField(RF_PX_Y)
+        i_RF_PROFILE = fields.lookupField(RF_PROFILE)
+
+        for y, x in zip(*valid):
+
+            yvalues = array[:, y, x]
+
+            p = QgsFeature(fields)
+
+            if i_RF_NAME >= 0:
+                p.setAttribute(i_RF_NAME, raster_name)
+
+            if i_RF_SOURCE >= 0:
+                p.setAttribute(i_RF_SOURCE, raster_source)
+
+            if i_RF_PX_X >= 0:
+                p.setAttribute(i_RF_PX_X, x)
+
+            if i_RF_PX_Y >= 0:
+                p.setAttribute(i_RF_PX_Y, y)
+
+            gx, gy = geo_x[x], geo_y[y]
+            p.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(gx, gy)))
+
+            if i_RF_PROFILE >= 0:
+                spectrum_dict = prepareProfileValueDict(x=xvalues, y=yvalues, xUnit=wlu)
+                p.setAttribute(i_RF_PROFILE, encodeProfileValueDict(spectrum_dict))
+
+            yield p
+
+    @staticmethod
+    def readRasterVector(raster, vector,
+                         fields: QgsFields,
+                         all_touched: bool,
+                         cache: int = 5 * 2 ** 20) -> typing.Generator[QgsFeature, None, None]:
+
+        ds: gdal.Dataset = gdalDataset(raster)
+        assert isinstance(ds, gdal.Dataset), f'Unable to open {raster.source()} as gdal.Dataset'
+
+        path = pathlib.Path(ds.GetDescription())
+        raster_name = path.name
+        raster_source = path.as_posix()
+
+        bbl = parseBadBandList(ds)
+        wl, wlu = parseWavelength(ds)
+
+        block_size = optimize_block_size(ds, cache=cache)
+
+        nXBlocks = int((ds.RasterXSize + block_size[0] - 1) / block_size[0])
+        nYBlocks = int((ds.RasterYSize + block_size[1] - 1) / block_size[1])
+        nBlocksTotal = nXBlocks * nYBlocks
+        nBlocksDone = 0
+
+        # pixel center coordinates as geolocations
+
+        geo_x, geo_y = px2geocoordinates(ds, pxCenter=True)
+
+        # get FID positions
+        layer = 0
+        for sub in vector.dataProvider().subLayers():
+            layer = sub.split('!!::!!')[1]
+            break
+
+        fid_positions, no_fid = fid2pixelindices(ds, vector,
+                                                 layer=layer,
+                                                 all_touched=all_touched)
+
+        i_RF_NAME = fields.lookupField(RF_NAME)
+        i_RF_SOURCE = fields.lookupField(RF_SOURCE)
+        i_RF_PX_X = fields.lookupField(RF_PX_X)
+        i_RF_PX_Y = fields.lookupField(RF_PX_Y)
+        i_RF_PROFILE = fields.lookupField(RF_PROFILE)
+
+        PROFILE_COUNTS = dict()
+
+        FEATURES: typing.Dict[int, QgsFeature] = dict()
+
+        for y in range(nYBlocks):
+            yoff = y * block_size[1]
+            for x in range(nXBlocks):
+                xoff = x * block_size[0]
+                xsize = min(block_size[0], ds.RasterXSize - xoff)
+                ysize = min(block_size[1], ds.RasterYSize - yoff)
+                cube: np.ndarray = ds.ReadAsArray(xoff=xoff, yoff=yoff, xsize=xsize, ysize=ysize)
+                cube = cube.reshape((ds.RasterCount, ysize, xsize))
+                fid_pos = fid_positions[yoff:yoff + ysize, xoff:xoff + xsize]
+                assert cube.shape[1:] == fid_pos.shape
+
+                for fid in [int(v) for v in np.unique(fid_pos) if v != no_fid]:
+                    fid_yy, fid_xx = np.where(fid_pos == fid)
+                    n_p = len(fid_yy)
+                    if n_p > 0:
+
+                        if fid not in FEATURES.keys():
+                            FEATURES[fid] = vector.getFeature(fid)
+                        vectorFeature: QgsFeature = FEATURES.get(fid)
+
+                        fid_profiles = cube[:, fid_yy, fid_xx]
+                        profile_geo_x = geo_x[fid_yy + yoff, fid_xx + xoff]
+                        profile_geo_y = geo_y[fid_yy + yoff, fid_xx + xoff]
+                        profile_px_x = fid_xx + xoff
+                        profile_px_y = fid_yy + yoff
+
+                        for i in range(n_p):
+                            # create profile feature
+                            p = QgsFeature(fields)
+
+                            # create geometry
+                            p.setGeometry(QgsPoint(profile_geo_x[i],
+                                                   profile_geo_y[i]))
+
+                            PROFILE_COUNTS[fid] = PROFILE_COUNTS.get(fid, 0) + 1
+                            # sp.setName(f'{fid_basename}_{PROFILE_COUNTS[fid]}')
+
+                            if i_RF_NAME >= 0:
+                                p.setAttribute(i_RF_NAME, raster_name)
+
+                            if i_RF_SOURCE >= 0:
+                                p.setAttribute(i_RF_SOURCE, raster_source)
+
+                            if i_RF_PROFILE >= 0:
+                                spectrum_dict = prepareProfileValueDict(x=wl, y=fid_profiles[:, i], xUnit=wlu, bbl=bbl)
+                                p.setAttribute(i_RF_PROFILE, encodeProfileValueDict(spectrum_dict))
+
+                            if i_RF_PX_X >= 0:
+                                p[i_RF_PX_X] = int(profile_px_x[i])
+
+                            if i_RF_PX_Y >= 0:
+                                p[i_RF_PX_Y] = int(profile_px_y[i])
+
+                            if isinstance(vectorFeature, QgsFeature) and vectorFeature.isValid():
+                                for field in vectorFeature.fields():
+                                    if field in fields:
+                                        p.setAttribute(field.name(), vectorFeature.attribute(field.name()))
+
+                            yield p
+
+
+class DEPR_RasterSourceSpectralLibraryIO(SpectralLibraryIO):
     """
     I/O Interface for Raster files.
     """
@@ -266,7 +653,7 @@ class RasterSourceSpectralLibraryIO(AbstractSpectralLibraryIO):
 
     @classmethod
     def readFrom(cls, path,
-                 progressDialog: typing.Union[QProgressDialog, ProgressHandler] = None,
+                 feedback: QgsProcessingFeedback = None,
                  addAttributes: bool = True) -> SpectralLibrary:
 
         ds: gdal.Dataset = gdalDataset(path)
@@ -274,7 +661,7 @@ class RasterSourceSpectralLibraryIO(AbstractSpectralLibraryIO):
             return None
 
         speclib = SpectralLibrary()
-        assert isinstance(speclib, SpectralLibrary)
+        assert is_spectral_library(speclib)
         sourcepath = ds.GetDescription()
         basename = os.path.basename(ds.GetDescription())
         speclib.setName(basename)
@@ -318,7 +705,7 @@ class RasterSourceSpectralLibraryIO(AbstractSpectralLibraryIO):
     @classmethod
     def write(cls, speclib: SpectralLibrary,
               path: str,
-              progressDialog: typing.Union[QProgressDialog, ProgressHandler] = None):
+              feedback: QgsProcessingFeedback = None):
         """
         Writes the SpectralLibrary to path and returns a list of written files that can be used to open the spectral library with readFrom
         """
@@ -340,7 +727,7 @@ class RasterSourceSpectralLibraryIO(AbstractSpectralLibraryIO):
 
                 try:
                     sl = RasterSourceSpectralLibraryIO.readFrom(path)
-                    if isinstance(sl, SpectralLibrary):
+                    if is_spectral_library(sl):
                         speclib.startEditing()
                         speclib.beginEditCommand('Add Spectral Library from {}'.format(path))
                         speclib.addSpeclib(sl, addMissingFields=True)
@@ -349,6 +736,7 @@ class RasterSourceSpectralLibraryIO(AbstractSpectralLibraryIO):
                 except Exception as ex:
                     QMessageBox.critical(None, 'Raster image as SpectralLibrary', str(ex))
                     return
+
         m = menu.addAction('Raster Image')
         m.setToolTip('Import all pixels as spectral profiles which are not masked. '
                      'Use careful and not with large images!')
@@ -361,7 +749,7 @@ class RasterSourceSpectralLibraryIO(AbstractSpectralLibraryIO):
             # https://gdal.org/drivers/vector/index.html
             LUT_Files = {'GeoTiff (*.tif)': 'GTiff',
                          'ENVI Raster (*.bsq)': 'ENVI',
-                        }
+                         }
 
             path, filter = QFileDialog.getSaveFileName(caption='Write as raster image',
                                                        filter=';;'.join(LUT_Files.keys()),

@@ -264,6 +264,10 @@
    :width: 28px
 .. |edit_ogr_metadata| image:: /../../enmapbox/externals/qps/ui/icons/edit_ogr_metadata.svg
    :width: 28px
+.. |export_symbology| image:: /../../enmapbox/externals/qps/ui/icons/export_symbology.svg
+   :width: 28px
+.. |import_symbology| image:: /../../enmapbox/externals/qps/ui/icons/import_symbology.svg
+   :width: 28px
 .. |pan_center| image:: /../../enmapbox/externals/qps/ui/icons/pan_center.svg
    :width: 28px
 .. |plus_green| image:: /../../enmapbox/externals/qps/ui/icons/plus_green.svg
@@ -274,11 +278,19 @@
    :width: 28px
 .. |profile| image:: /../../enmapbox/externals/qps/ui/icons/profile.svg
    :width: 28px
+.. |profiletheme_bright| image:: /../../enmapbox/externals/qps/ui/icons/profiletheme_bright.svg
+   :width: 28px
+.. |profiletheme_dark| image:: /../../enmapbox/externals/qps/ui/icons/profiletheme_dark.svg
+   :width: 28px
 .. |profile_add_auto| image:: /../../enmapbox/externals/qps/ui/icons/profile_add_auto.svg
    :width: 28px
 .. |profile_dontreceive| image:: /../../enmapbox/externals/qps/ui/icons/profile_dontreceive.svg
    :width: 28px
+.. |profile_expression| image:: /../../enmapbox/externals/qps/ui/icons/profile_expression.svg
+   :width: 28px
 .. |profile_identify| image:: /../../enmapbox/externals/qps/ui/icons/profile_identify.svg
+   :width: 28px
+.. |profile_processing| image:: /../../enmapbox/externals/qps/ui/icons/profile_processing.svg
    :width: 28px
 .. |profile_reload| image:: /../../enmapbox/externals/qps/ui/icons/profile_reload.svg
    :width: 28px
@@ -306,13 +318,19 @@
    :width: 28px
 .. |speclib| image:: /../../enmapbox/externals/qps/ui/icons/speclib.svg
    :width: 28px
+.. |speclibV2| image:: /../../enmapbox/externals/qps/ui/icons/speclibV2.svg
+   :width: 28px
 .. |speclib_add| image:: /../../enmapbox/externals/qps/ui/icons/speclib_add.svg
    :width: 28px
 .. |speclib_clear| image:: /../../enmapbox/externals/qps/ui/icons/speclib_clear.svg
    :width: 28px
+.. |speclib_plot| image:: /../../enmapbox/externals/qps/ui/icons/speclib_plot.svg
+   :width: 28px
 .. |speclib_reload| image:: /../../enmapbox/externals/qps/ui/icons/speclib_reload.svg
    :width: 28px
 .. |speclib_save| image:: /../../enmapbox/externals/qps/ui/icons/speclib_save.svg
+   :width: 28px
+.. |speclib_usevectorrenderer| image:: /../../enmapbox/externals/qps/ui/icons/speclib_usevectorrenderer.svg
    :width: 28px
 .. |temporalProfile| image:: /../../enmapbox/externals/qps/ui/icons/temporalProfile.svg
    :width: 28px
@@ -332,7 +350,11 @@
    :width: 28px
 .. |iconClearConsole| image:: /img/icons/iconClearConsole.svg
    :width: 28px
+.. |mAction| image:: /img/icons/mAction.svg
+   :width: 28px
 .. |mActionAddRasterLayer| image:: /img/icons/mActionAddRasterLayer.svg
+   :width: 28px
+.. |mActionConditionalFormatting| image:: /img/icons/mActionConditionalFormatting.svg
    :width: 28px
 .. |mActionDataSourceManager| image:: /img/icons/mActionDataSourceManager.svg
    :width: 28px
@@ -350,11 +372,19 @@
    :width: 28px
 .. |mActionFileSaveAs| image:: /img/icons/mActionFileSaveAs.svg
    :width: 28px
+.. |mActionFilter2| image:: /img/icons/mActionFilter2.svg
+   :width: 28px
 .. |mActionFormView| image:: /img/icons/mActionFormView.svg
    :width: 28px
 .. |mActionInvertSelection| image:: /img/icons/mActionInvertSelection.svg
    :width: 28px
+.. |mActionMultiEdit| image:: /img/icons/mActionMultiEdit.svg
+   :width: 28px
 .. |mActionNewAttribute| image:: /img/icons/mActionNewAttribute.svg
+   :width: 28px
+.. |mActionNewTableRow| image:: /img/icons/mActionNewTableRow.svg
+   :width: 28px
+.. |mActionPanToSelected| image:: /img/icons/mActionPanToSelected.svg
    :width: 28px
 .. |mActionReload| image:: /img/icons/mActionReload.svg
    :width: 28px
@@ -362,17 +392,23 @@
    :width: 28px
 .. |mActionSelectAll| image:: /img/icons/mActionSelectAll.svg
    :width: 28px
+.. |mActionSelectedToTop| image:: /img/icons/mActionSelectedToTop.svg
+   :width: 28px
 .. |mActionSetProjection| image:: /img/icons/mActionSetProjection.svg
    :width: 28px
 .. |mActionToggleEditing| image:: /img/icons/mActionToggleEditing.svg
    :width: 28px
 .. |mIconEditableEdits| image:: /img/icons/mIconEditableEdits.svg
    :width: 28px
+.. |mIconExpressionSelect| image:: /img/icons/mIconExpressionSelect.svg
+   :width: 28px
 .. |plot_style| image:: /img/icons/plot_style.svg
    :width: 28px
 .. |rb0| image:: /img/icons/rb0.png
    :width: 28px
 .. |rb1| image:: /img/icons/rb1.png
+   :width: 28px
+.. |rendererCategorizedSymbol| image:: /img/icons/rendererCategorizedSymbol.svg
    :width: 28px
 .. |spin| image:: /img/icons/spin.png
    :width: 28px

@@ -1,7 +1,7 @@
 import sys
 from qgis.core import *
 
-from enmapbox.externals.qps.speclib.core import SpectralLibrary
+from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
 from hubflow.core import *
 import hubdc.progressbar
 from enmapboxgeoalgorithms import ENMAPBOXGEOALGORITHMS_VERSION
@@ -97,8 +97,8 @@ class EnMAPAlgorithm(QgisAlgorithm):
     GROUP_CREATE_SAMPLE = 'Create Sample'
     GROUP_CLASSIFICATION = 'Classification'
     GROUP_CLUSTERING = 'Clustering'
-    GROUP_IMPORT_DATA = 'Import Data'
-    GROUP_MASKING = 'Masking'
+    #GROUP_IMPORT_DATA = 'Import Data'
+    GROUP_MASKING = 'OLD_Masking'
     GROUP_OPTIONS = 'Options'
     GROUP_PREPROCESSING = 'Pre-Processing'
     GROUP_POSTPROCESSING = 'Post-Processing'
@@ -108,6 +108,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
     GROUP_TEST = 'TEST'
     GROUP_TESTDATA = 'Testdata'
     GROUP_TRANSFORMATION = 'Transformation'
+    GROUP_VISUALIZATION = 'Visualization'
 
     def cookbookRecipes(self):
         return []
@@ -849,7 +850,6 @@ class EnMAPAlgorithm(QgisAlgorithm):
         if help is None:
             help = 'Specify output path for HTML report file (.html).'
         self.addParameter_(QgsProcessingParameterFileDestination(name=name, description=description,
-                                                                 defaultValue='{}.html'.format(name),
                                                                  fileFilter='HTML files (*.html)'), help)
         # self.addOutput(QgsProcessingOutputHtml(name=name, description=description))
 
@@ -858,7 +858,7 @@ class EnMAPAlgorithm(QgisAlgorithm):
     def getParameterOutputReport(self, name=P_OUTPUT_REPORT):
         self._progressBar.setText(str(self._parameters))
         assert name in self._parameters
-        filename = self._parameters[name]
+        filename = self.parameterAsFileOutput(self._parameters, name, self._context)
         return filename
 
     P_GRID = 'grid'

@@ -24,56 +24,74 @@
     along with this software. If not, see <http://www.gnu.org/licenses/>.
 ***************************************************************************
 """
-
-import os
-import sys
-import importlib
-import re
-import fnmatch
-import io
-import zipfile
-import itertools
-import pathlib
-import warnings
-import collections
-import copy
-import shutil
-import typing
-import gc
-import sip
-import traceback
 import calendar
+import copy
 import datetime
+import fnmatch
+import gc
+import importlib
+import io
+import itertools
+import json
+import math
+import os
+import pathlib
+import re
+import shutil
+import sys
+import traceback
+import typing
+import warnings
+import zipfile
+
+import numpy as np
+from osgeo import gdal, ogr, osr, gdal_array
+
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QDialogButtonBox, QLabel, QGridLayout, QMainWindow
+from qgis.PyQt.QtXml import *
+from qgis.PyQt.QtXml import QDomDocument
 from qgis.core import *
 from qgis.core import QgsField, QgsVectorLayer, QgsRasterLayer, QgsRasterDataProvider, QgsMapLayer, QgsMapLayerStore, \
     QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsRectangle, QgsPointXY, QgsProject, \
-    QgsMapLayerProxyModel, QgsRasterRenderer, QgsMessageOutput, QgsFeature, QgsTask, Qgis, QgsGeometry
-from qgis.gui import *
+    QgsMapLayerProxyModel, QgsRasterRenderer, QgsMessageOutput, QgsFeature, QgsTask, Qgis, QgsGeometry, \
+    QgsFields
 from qgis.gui import QgisInterface, QgsDialog, QgsMessageViewer, QgsMapLayerComboBox, QgsMapCanvas
 
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtXml import *
-from qgis.PyQt.QtXml import QDomDocument
-from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import *
-from osgeo import gdal, ogr, osr, gdal_array
-import numpy as np
-from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton, QDialogButtonBox, QLabel, QGridLayout, QMainWindow
-
-try:
-    from .. import qps
-except:
-    import qps
-from . import DIR_UI_FILES
-
-# dictionary to store form classes and avoid multiple calls to read <myui>.i
 QGIS_RESOURCE_WARNINGS = set()
 
 REMOVE_setShortcutVisibleInContextMenu = hasattr(QAction, 'setShortcutVisibleInContextMenu')
 
 jp = os.path.join
 dn = os.path.dirname
+
+QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.uint8,
+                         Qgis.UInt16: np.uint16,
+                         Qgis.Int16: np.int16,
+                         Qgis.UInt32: np.uint32,
+                         Qgis.Int32: np.int32,
+                         Qgis.Float32: np.float32,
+                         Qgis.Float64: np.float64,
+                         Qgis.CFloat32: complex,
+                         Qgis.CFloat64: np.complex64,
+                         Qgis.ARGB32: np.uint32,
+                         Qgis.ARGB32_Premultiplied: np.uint32}
+
+QGIS_DATATYPE_NAMES = {
+    Qgis.Byte: 'Byte',
+    Qgis.UInt16: 'UInt16',
+    Qgis.Int16: 'Int16',
+    Qgis.UInt32: 'UInt32',
+    Qgis.Int32: 'Int32',
+    Qgis.Float32: 'Float32',
+    Qgis.Float64: 'Float64',
+    Qgis.CFloat32: 'Complex',
+    Qgis.CFloat64: 'Complex64',
+    Qgis.ARGB32: 'UInt32',
+    Qgis.ARGB32_Premultiplied: 'Int32'}
 
 
 def rm(p):
@@ -401,7 +419,7 @@ class UnitLookup(object):
             return None
         # see https://numpy.org/doc/stable/reference/arrays.datetime.html#arrays-dtypes-dateunits
         # for valid date units
-        if isinstance(value, np.ndarray):
+        if isinstance(value, (np.ndarray, list)):
             func = np.vectorize(UnitLookup.convertDateUnit)
             return func(value, unit)
 
@@ -415,7 +433,7 @@ class UnitLookup(object):
         elif unit == 'W':
             return value.astype(object).week
         elif unit == 'DOY':
-            return int(((value - value.astype('datetime64[Y]')).astype('timedelta64[D]') + 1).astype(int))
+            return ((value - value.astype('datetime64[Y]')).astype('timedelta64[D]') + 1).astype(int)
 
         elif unit.startswith('DecimalYear'):
             year = value.astype(object).year
@@ -447,7 +465,7 @@ convertDateUnit = UnitLookup.convertDateUnit
 
 METRIC_EXPONENTS = UnitLookup.METRIC_EXPONENTS
 
-# contains the wavelengths
+# contains a lookup for wavelengths in nanometers
 LUT_WAVELENGTH = dict({'B': 480,
                        'G': 570,
                        'R': 660,
@@ -456,9 +474,19 @@ LUT_WAVELENGTH = dict({'B': 480,
                        'SWIR1': 1650,
                        'SWIR2': 2150
                        })
+WAVELENGTH_DESCRIPTION = {
+    'B': f'Visible blue at {LUT_WAVELENGTH["B"]} nm',
+    'G': f'Visible green at {LUT_WAVELENGTH["G"]} nm',
+    'R': f'Visible red at {LUT_WAVELENGTH["R"]} nm',
+    'NIR': f'Near infrared at {LUT_WAVELENGTH["NIR"]} nm',
+    'SWIR': f'Shortwave infrared at {LUT_WAVELENGTH["SWIR"]} nm',
+    'SWIR1': f'Shortwave infrared at {LUT_WAVELENGTH["SWIR1"]} nm',
+    'SWIR2': f'Shortwave infrared at {LUT_WAVELENGTH["SWIR2"]} nm',
+}
 
 NEXT_COLOR_HUE_DELTA_CON = 10
 NEXT_COLOR_HUE_DELTA_CAT = 100
+NEXT_COLOR_DELTA_VALUE = 50
 
 
 def nextColor(color, mode='cat') -> QColor:
@@ -467,15 +495,22 @@ def nextColor(color, mode='cat') -> QColor:
     :param color: QColor
     :param mode: str, 'cat' for categorical colors (much difference from 'color')
                       'con' for continuous colors (similar to 'color')
+                      'darker' for decreased brightness (if possible)
+                      'brighter' for increased brightness (if possible)
     :return: QColor
     """
-    assert mode in ['cat', 'con']
+    assert mode in ['cat', 'con', 'darker', 'brighter']
     assert isinstance(color, QColor)
-    hue, sat, value, alpha = color.getHsl()
+    hue, sat, value, alpha = color.getHsv()
     if mode == 'cat':
         hue += NEXT_COLOR_HUE_DELTA_CAT
     elif mode == 'con':
         hue += NEXT_COLOR_HUE_DELTA_CON
+    elif mode == 'darker':
+        value = max(0, value - NEXT_COLOR_DELTA_VALUE)
+    elif mode == 'brighter':
+        value = max(255, value + NEXT_COLOR_DELTA_VALUE)
+
     if sat == 0:
         sat = 255
         value = 128
@@ -484,7 +519,7 @@ def nextColor(color, mode='cat') -> QColor:
     while hue >= 360:
         hue -= 360
 
-    return QColor.fromHsl(hue, sat, value, alpha)
+    return QColor.fromHsv(hue, sat, value, alpha)
 
 
 def findMapLayerStores() -> typing.List[typing.Union[QgsProject, QgsMapLayerStore]]:
@@ -556,6 +591,29 @@ def qgisLayerTreeLayers() -> list:
         return []
 
 
+def toType(t, arg, empty2None=True, empty_values=[None, NULL]):
+    """
+    Converts lists or single values into type t.
+
+    Examples:
+        toType(int, '42') == 42,
+        toType(float, ['23.42', '123.4']) == [23.42, 123.4]
+
+    :param t: type
+    :param arg: value to convert
+    :param empty2None: returns None in case arg is an emptry value (None, '', NoneType, ...)
+    :return: arg as type t (or None)
+    """
+    if isinstance(arg, list):
+        return [toType(t, a, empty2None=empty2None, empty_values=empty_values) for a in arg]
+    else:
+
+        if empty2None and arg in empty_values:
+            return None
+        else:
+            return t(arg)
+
+
 def createQgsField(name: str, exampleValue: typing.Any, comment: str = None) -> QgsField:
     """
     Creates a QgsField based on the type properties of an Python-datatype exampleValue
@@ -587,6 +645,8 @@ def createQgsField(name: str, exampleValue: typing.Any, comment: str = None) -> 
         subType = prototype.type()
         typeName = prototype.typeName()
         return QgsField(name, QVariant.List, typeName, comment=comment, subType=subType)
+    elif isinstance(exampleValue, type):
+        return createQgsField(name, exampleValue(1), comment=comment)
     else:
         raise NotImplemented()
 
@@ -616,9 +676,15 @@ def filenameFromString(text: str):
     return ''.join(chars)
 
 
-def value2str(value, sep: str = None, delimiter: str = ' '):
+def value2str(value,
+              sep: str = None,
+              delimiter: str = ' ',
+              empty_values: list = [None, NULL],
+              empty_string: str = ''):
     """
     Converts a value into a string
+    :param empty_values: Defines a list of values to be represented by the empty_string
+    :param sep:
     :param value: any
     :param delimiter: delimiter to be used for list values
     :return:
@@ -630,9 +696,9 @@ def value2str(value, sep: str = None, delimiter: str = ' '):
     if isinstance(value, list):
         value = delimiter.join([str(v) for v in value])
     elif isinstance(value, np.ndarray):
-        value = value2str(value.tolist(), delimiter=delimiter)
-    elif value is None:
-        value = ''
+        value = value2str(value.tolist(), delimiter=delimiter, empty_values=empty_values, empty_string=empty_string)
+    elif value in empty_values:
+        value = empty_string
     else:
         value = str(value)
     return value
@@ -721,9 +787,31 @@ def ogrDataSource(data_source) -> ogr.DataSource:
 
     if isinstance(data_source, QgsVectorLayer):
         dpn = data_source.dataProvider().name()
+        uri = None
         if dpn not in ['ogr']:
+            context = QgsProcessingContext()
+            feedback = QgsProcessingFeedback()
+            alg: QgsProcessingAlgorithm = QgsApplication.processingRegistry().algorithmById(
+                'native:savefeatures').create({})
+            parameters = dict(DATASOURCE_OPTIONS='',
+                              INPUT=data_source.source(),
+                              LAYER_NAME='',
+                              LAYER_OPTIONS='',
+                              OUTPUT='TEMPORARY_OUTPUT'
+                              )
+
+            assert alg.prepareAlgorithm(parameters, context, feedback), feedback.textLog()
+
+            results = alg.processAlgorithm(parameters, context, feedback)
+            print(results)
+            if not results:
+                raise Exception(f'Unable to convert {dpn} to temporary ogr format')
+            else:
+                uri = results['OUTPUT']
+        else:
+            uri = data_source.source().split('|')[0]
+        if uri is None:
             raise Exception(f'Unsupported vector data provider: {dpn}')
-        uri = data_source.source().split('|')[0]
         return ogrDataSource(uri)
 
     if isinstance(data_source, pathlib.Path):
@@ -885,10 +973,10 @@ def qgsVectorLayer(source) -> QgsVectorLayer:
 
 def qgsRasterLayer(source) -> QgsRasterLayer:
     """
-    Returns a QgsVectorLayer from different source types
-    :param source: QgsVectorLayer | ogr.DataSource | file path
-    :return: QgsVectorLayer
-    :rtype: QgsVectorLayer
+    Returns a QgsRasterLayer from different source types
+    :param source: QgsRasterLayer | gdal.Dataset | file path
+    :return: QgsRasterLayer
+    :rtype: QgsRasterLayer
     """
     if isinstance(source, QgsRasterLayer):
         return source
@@ -902,6 +990,83 @@ def qgsRasterLayer(source) -> QgsRasterLayer:
         return qgsRasterLayer(pathlib.Path(source.toString(QUrl.PreferLocalFile | QUrl.RemoveQuery)).resolve())
 
     raise Exception('Unable to transform {} into QgsRasterLayer'.format(source))
+
+
+def qgsFields(source: typing.Union[QgsFeature, QgsFields, QgsVectorLayer]) -> QgsFields:
+    """
+    Returns the QgsFields of its inputs
+    :return: QgsFields
+    """
+    if isinstance(source, QgsFields):
+        return source
+    elif isinstance(source, (QgsFeature, QgsVectorLayer)):
+        return source.fields()
+    return None
+
+
+def qgsField(layer_fields: QgsVectorLayer, field: typing.Union[QgsField, str, int]) -> QgsField:
+    """
+    Returns the QgsField relating to the input value in "field"
+    :param layer_fields: QgsVectorLayer | QgsFields
+    :param field: QgsField | str or int index of field in layer_fields
+    :return: QgsField or None, if not found
+    """
+    if isinstance(layer_fields, QgsVectorLayer):
+        layer_fields = layer_fields.fields()
+
+    assert isinstance(layer_fields, QgsFields)
+
+    if isinstance(field, QgsField):
+        return qgsField(layer_fields, layer_fields.lookupField(field.name()))
+    elif isinstance(field, str):
+        return qgsField(layer_fields, layer_fields.lookupField(field))
+    elif isinstance(field, int):
+        if 0 <= field < layer_fields.count():
+            return layer_fields.at(field)
+    return None
+
+
+def findTypeFromString(value: str):
+    """
+    Returns a fitting basic python data type of a string value, i.e.
+    :param value: string
+    :return: type out of [str, int or float]
+    """
+    for t in (int, float, str):
+        try:
+            _ = t(value)
+        except ValueError:
+            continue
+        return t
+
+    # every values can be converted into a string
+    return str
+
+
+def setComboboxValue(cb: QComboBox, text: str):
+    """
+    :param cb:
+    :param text:
+    :return:
+    """
+    assert isinstance(cb, QComboBox)
+    currentIndex = cb.currentIndex()
+    idx = -1
+    if text is None:
+        text = ''
+    text = text.strip()
+    for i in range(cb.count()):
+        v = str(cb.itemText(i)).strip()
+        if v == text:
+            idx = i
+            break
+    if not idx >= 0:
+        pass
+
+    if idx >= 0:
+        cb.setCurrentIndex(idx)
+    else:
+        print('ComboBox index not found for "{}"'.format(text))
 
 
 def qgsRasterLayers(sources) -> typing.Iterator[QgsRasterLayer]:
@@ -947,131 +1112,134 @@ def qgsMapLayer(value: typing.Any) -> QgsMapLayer:
     return None
 
 
-def loadUi(uifile, baseinstance=None, package='', resource_suffix='_rc', remove_resource_references=True,
-           loadUiType=False):
+UI_STORE: typing.Dict[pathlib.Path, str] = dict()
+
+
+def loadUi(uifile: typing.Union[str, pathlib.Path],
+           baseinstance=None,
+           resource_suffix: str = '_rc',
+           remove_resource_references: bool = True,
+           no_caching: bool = False,
+           loadUiType: bool = False,
+           package: str = ''
+           ):
     """
-    :param uifile:
-    :type uifile:
-    :param baseinstance:
-    :type baseinstance:
-    :param package:
-    :type package:
-    :param resource_suffix:
-    :type resource_suffix:
-    :param remove_resource_references:
-    :type remove_resource_references:
+    :param uifile: path to *.ui file
+    :param resource_suffix: suffix used for python-compiled *.qrc files. E.g. `_rc` if images.qrc is
+    compiled to images_rc.py
+    :param remove_resource_references: removes all *.qrc references from the *.ui xml. In this case resources need to be
+    loaded externally. See qps.resources for examples.
+    :param no_caching: if True, will read the *.ui for each new call
+    :param loadUiType: if True, returns the output of `uic.loadUi(...)` instead of `uic.loadUiType(...)`
+    :param baseinstance: argument to `uic.loadUi(...)`
+    :param package: argument to `uic.loadUi(...)`
     :return:
-    :rtype:
     """
+    if baseinstance:
+        assert isinstance(baseinstance, QWidget)
 
-    assert os.path.isfile(uifile), '*.ui file does not exist: {}'.format(uifile)
+    uifile = pathlib.Path(uifile).resolve()
+    global UI_STORE
+    assert uifile.is_file(), '*.ui file does not exist: {}'.format(uifile)
+    if no_caching or uifile not in UI_STORE.keys():
+        from .resources import REGEX_QGIS_IMAGES_QRC
 
-    with open(uifile, 'r', encoding='utf-8') as f:
-        txt = f.read()
+        with open(uifile, 'r', encoding='utf-8') as f:
+            txt = f.read()
 
-    dirUi = os.path.dirname(uifile)
+        dirUi: pathlib.Path = uifile.parent
 
-    locations = []
+        locations = []
 
-    for m in re.findall(r'(<include location="(.*\.qrc)"/>)', txt):
-        locations.append(m)
+        # replace local path to QGIS repository images with that used in the QGIS Application
+        txt = re.sub(r'resource="[^":]*/QGIS[^\/"]*[\/]images[\/]images\.qrc"', 'resource=":/images/images.qrc"', txt)
 
-    missing = []
-    for t in locations:
-        line, path = t
-        if not os.path.isabs(path):
-            p = os.path.join(dirUi, path)
-        else:
-            p = path
+        for m in re.findall(r'(<include location="(.*\.qrc)"/>)', txt):
+            locations.append(m)
 
-        if not os.path.isfile(p):
-            missing.append(t)
-
-    match = re.search(r'resource="[^:].*/QGIS[^/"]*/images/images.qrc"', txt)
-    if match:
-        txt = txt.replace(match.group(), 'resource=":/images/images.qrc"')
-
-    if len(missing) > 0:
-
-        missingQrc = []
-        missingQgs = []
-
-        for t in missing:
+        missing = []
+        for t in locations:
             line, path = t
-            if re.search(r'.*(?i:qgis)/images/images\.qrc.*', line):
-                missingQgs.append(m)
+            if REGEX_QGIS_IMAGES_QRC.search(path):
+                continue
+            if not os.path.isabs(path):
+                p = (dirUi / pathlib.Path(path)).resolve()
             else:
-                missingQrc.append(m)
+                p = pathlib.Path(path)
 
-        if len(missingQrc) > 0:
-            print('{}\nrefers to {} none-existing resource (*.qrc) file(s):'.format(uifile, len(missingQrc)))
-            for i, t in enumerate(missingQrc):
+            if not p.is_file():
+                missing.append(t)
+
+        if len(missing) > 0:
+            print('{}\nrefers to {} none-existing resource (*.qrc) file(s):'.format(uifile, len(missing)))
+            for i, t in enumerate(missing):
                 line, path = t
                 print('{}: "{}"'.format(i + 1, path), file=sys.stderr)
 
-        if len(missingQgs) > 0 and not isinstance(qgisAppQgisInterface(), QgisInterface):
-            missingFiles = [p[1] for p in missingQrc if p[1] not in QGIS_RESOURCE_WARNINGS]
+        doc = QDomDocument()
+        doc.setContent(txt)
 
-            if len(missingFiles) > 0:
-                print('{}\nrefers to {} none-existing resource (*.qrc) file(s) '.format(uifile, len(missingFiles)))
-                for i, path in enumerate(missingFiles):
-                    print('{}: "{}"'.format(i + 1, path))
-                    QGIS_RESOURCE_WARNINGS.add(path)
-                print('These files are likely available in a QGIS Desktop session. Further warnings will be skipped')
+        if REMOVE_setShortcutVisibleInContextMenu and 'shortcutVisibleInContextMenu' in txt:
+            toRemove = []
+            actions = doc.elementsByTagName('action')
+            for iAction in range(actions.count()):
+                properties = actions.item(iAction).toElement().elementsByTagName('property')
+                for iProperty in range(properties.count()):
+                    prop = properties.item(iProperty).toElement()
+                    if prop.attribute('name') == 'shortcutVisibleInContextMenu':
+                        toRemove.append(prop)
+            for prop in toRemove:
+                prop.parentNode().removeChild(prop)
+            del toRemove
 
-    doc = QDomDocument()
-    doc.setContent(txt)
+        # we need the absolute position of qps
+        # eg. within my/package/externals/qps
+        # of as top-level qps
+        try:
+            from .. import qps
+        except ImportError:
+            import qps
+        except ValueError:
+            import qps
 
-    if REMOVE_setShortcutVisibleInContextMenu and 'shortcutVisibleInContextMenu' in txt:
-        toRemove = []
-        actions = doc.elementsByTagName('action')
-        for iAction in range(actions.count()):
-            properties = actions.item(iAction).toElement().elementsByTagName('property')
-            for iProperty in range(properties.count()):
-                prop = properties.item(iProperty).toElement()
-                if prop.attribute('name') == 'shortcutVisibleInContextMenu':
-                    toRemove.append(prop)
-        for prop in toRemove:
-            prop.parentNode().removeChild(prop)
-        del toRemove
+        elem = doc.elementsByTagName('customwidget')
+        for child in [elem.item(i) for i in range(elem.count())]:
+            child = child.toElement()
 
-    elem = doc.elementsByTagName('customwidget')
-    for child in [elem.item(i) for i in range(elem.count())]:
-        child = child.toElement()
+            cClass = child.firstChildElement('class').firstChild()
+            cHeader = child.firstChildElement('header').firstChild()
+            cExtends = child.firstChildElement('extends').firstChild()
 
-        cClass = child.firstChildElement('class').firstChild()
-        cHeader = child.firstChildElement('header').firstChild()
-        cExtends = child.firstChildElement('extends').firstChild()
+            sClass = str(cClass.nodeValue())
+            sExtends = str(cHeader.nodeValue())
+            if False:
+                if sClass.startswith('Qgs'):
+                    cHeader.setNodeValue('qgis.gui')
+            if True:
+                # replace 'qps' package location with local absolute position
+                if sExtends.startswith('qps.'):
+                    cHeader.setNodeValue(re.sub(r'^qps\.', qps.__spec__.name + '.', sExtends))
 
-        sClass = str(cClass.nodeValue())
-        sExtends = str(cHeader.nodeValue())
-        if False:
-            if sClass.startswith('Qgs'):
-                cHeader.setNodeValue('qgis.gui')
-        if True:
-            # replace 'qps' package location with local absolute position
-            if sExtends.startswith('qps.'):
-                cHeader.setNodeValue(re.sub(r'^qps\.', qps.__spec__.name + '.', sExtends))
+        if remove_resource_references:
+            # remove resource file locations to avoid import errors.
+            elems = doc.elementsByTagName('include')
+            for i in range(elems.count()):
+                node = elems.item(i).toElement()
+                attribute = node.attribute('location')
+                if len(attribute) > 0 and attribute.endswith('.qrc'):
+                    node.parentNode().removeChild(node)
 
-    if remove_resource_references:
-        # remove resource file locations to avoid import errors.
-        elems = doc.elementsByTagName('include')
-        for i in range(elems.count()):
-            node = elems.item(i).toElement()
-            attribute = node.attribute('location')
-            if len(attribute) > 0 and attribute.endswith('.qrc'):
-                node.parentNode().removeChild(node)
+            # remove iconset resource names, e.g.<iconset resource="../qpsresources.qrc">
+            elems = doc.elementsByTagName('iconset')
+            for i in range(elems.count()):
+                node = elems.item(i).toElement()
+                attribute = node.attribute('resource')
+                if len(attribute) > 0:
+                    node.removeAttribute('resource')
+        UI_STORE[uifile] = doc.toString()
 
-        # remove iconset resource names, e.g.<iconset resource="../qpsresources.qrc">
-        elems = doc.elementsByTagName('iconset')
-        for i in range(elems.count()):
-            node = elems.item(i).toElement()
-            attribute = node.attribute('resource')
-            if len(attribute) > 0:
-                node.removeAttribute('resource')
-
-    buffer = io.StringIO()  # buffer to store modified XML
-    buffer.write(doc.toString())
+    buffer = io.StringIO()  # buffer to store ui XML
+    buffer.write(UI_STORE[uifile])
     buffer.flush()
     buffer.seek(0)
 
@@ -1204,6 +1372,50 @@ def check_package(name, package=None, stop_on_error=False):
     return True
 
 
+def qgsFieldAttributes2List(attributes: typing.List[typing.Any]) -> typing.List[typing.Any]:
+    """Returns a list of attributes with None instead of NULL or QVariant.NULL"""
+    r = QVariant(None)
+    return [None if v == r else v for v in attributes]
+
+
+def qgsFields2str(qgsFields: QgsFields) -> str:
+    """Converts the QgsFields definition into a pickable string"""
+    infos = []
+    for field in qgsFields:
+        assert isinstance(field, QgsField)
+        # info = [field.name(), field.type(), field.typeName(), field.length(), field.precision(), field.comment(), field.subType()]
+        info = dict(name=field.name(),
+                    type=field.type(),
+                    typeName=field.typeName(),
+                    length=field.length(),
+                    precission=field.precision(),
+                    comment=field.comment(),
+                    subType=field.subType(),
+                    editorWidget=field.editorWidgetSetup().type())
+        infos.append(info)
+    return json.dumps(infos)
+
+
+def str2QgsFields(fieldString: str) -> QgsFields:
+    """Converts the string from qgsFields2str into a QgsFields collection"""
+    fields = QgsFields()
+
+    infos = json.loads(fieldString)
+    assert isinstance(infos, list)
+    for info in infos:
+        field = QgsField(name=info['name'],
+                         type=info['type'],
+                         typeName=info['typeName'],
+                         len=info['length'],
+                         prec=info['precission'],
+                         comment=info['comment'],
+                         subType=info['subType']
+                         )
+        field.setEditorWidgetSetup(QgsEditorWidgetSetup(info['editorWidget'], {}))
+        fields.append(field)
+    return fields
+
+
 def as_py_value(value, datatype: Qgis.DataType):
     """
     Converts values into a corresponding python_type
@@ -1301,6 +1513,8 @@ def datetime64(value, dpy: int = None) -> np.datetime64:
     if isinstance(value, np.ndarray):
         func = np.vectorize(datetime64)
         return func(value)
+    elif isinstance(value, list):
+        return datetime64(np.asarray(value), dpy=dpy)
     else:
         raise NotImplementedError('Unsupported input value: {}'.format(value))
 
@@ -1516,7 +1730,7 @@ def parseBadBandList(dataset) -> typing.List[int]:
     return bbl
 
 
-def parseFWHM(dataset) -> typing.Tuple[np.ndarray]:
+def parseFWHM(dataset) -> np.ndarray:
     """
     Returns the full width half maximum
     :param dataset:
@@ -1775,7 +1989,7 @@ def fileSizeString(num, suffix='B', div=1000) -> str:
     return "{:.1f} {}{}".format(num, unit, suffix)
 
 
-def geo2pxF(geo, gt) -> QPointF:
+def geo2pxF(geo: QgsPointXY, gt: typing.Union[list, np.ndarray, tuple]) -> QPointF:
     """
     Returns the pixel position related to a Geo-Coordinate in floating point precision.
     :param geo: Geo-Coordinate as QgsPoint
@@ -1789,7 +2003,7 @@ def geo2pxF(geo, gt) -> QPointF:
     return QPointF(px, py)
 
 
-def geo2px(geo, gt) -> QPoint:
+def geo2px(geo: QgsPointXY, gt: typing.Union[list, np.ndarray, tuple]) -> QPoint:
     """
     Returns the pixel position related to a Geo-Coordinate as integer number.
     Floating-point coordinate are casted to integer coordinate, e.g. the pixel coordinate (0.815, 23.42) is returned as (0,23)
@@ -1896,10 +2110,54 @@ def osrSpatialReference(input) -> osr.SpatialReference:
     return srs
 
 
+def px2geocoordinatesV2(layer: QgsRasterLayer,
+                        xcoordinates: np.ndarray = None,
+                        ycoordinates: np.ndarray = None,
+                        subpixel_pos: float = 0.5,
+                        subpixel_pos_x: float = None,
+                        subpixel_pos_y: float = None) -> typing.Tuple[np.ndarray, np.ndarray]:
+    """
+    Returns the pixel centers as coordinate in a raster layer's CRS
+    :param layer: QgsRasterLayer
+    :param px: QPoint pixel position (0,0) = 1st pixel
+    :return: geo_x, geo_y numpy arrays
+    """
+    assert isinstance(layer, QgsRasterLayer) and layer.isValid()
+    # assert 0 <= px.x() < layer.width()
+    # assert 0 <= px.y() < layer.height()
+    assert 0 <= subpixel_pos <= 1.0
+
+    if xcoordinates is None:
+        xcoordinates = np.arange(layer.width())
+
+    if ycoordinates is None:
+        ycoordinates = np.arange(layer.height())
+
+    if subpixel_pos_x is None:
+        subpixel_pos_x = subpixel_pos
+
+    if subpixel_pos_y is None:
+        subpixel_pos_y = subpixel_pos
+
+    assert 0 <= subpixel_pos_x <= 1.0
+    assert 0 <= subpixel_pos_y <= 1.0
+
+    ext: QgsRectangle = layer.extent()
+
+    resX = layer.extent().width() / layer.width()
+    resY = layer.extent().height() / layer.height()
+
+    geo_x = ext.xMinimum() + (xcoordinates + subpixel_pos_x) * resX
+    geo_y = ext.yMaximum() - (ycoordinates + subpixel_pos_y) * resY
+
+    return geo_x, geo_y
+
+
 def px2geocoordinates(raster, target_srs=None, pxCenter: bool = True) -> typing.Tuple[np.ndarray, np.ndarray]:
     """
     Returns the pixel positions as geo-coordinates
-    :param raster: any, must be readible to as gdal.Dataset
+    :param pxCenter: bool, set True to return coordinates in pixel center
+    :param raster: any, must be readable as gdal.Dataset
     :param target_srs: any, must be convertable to osr.SpatialReference
     :return:
     """
@@ -1935,6 +2193,8 @@ def px2geocoordinates(raster, target_srs=None, pxCenter: bool = True) -> typing.
 
         geo_x = dsMEM.GetRasterBand(1).ReadAsArray()
         geo_y = dsMEM.GetRasterBand(2).ReadAsArray()
+        del dsMEM
+
     return geo_x, geo_y
 
 
@@ -1960,6 +2220,45 @@ def px2geo(px: QPoint, gt, pxCenter: bool = True) -> QgsPointXY:
         gy = 0.5 * (gy + p2.y())
 
     return QgsPointXY(gx, gy)
+
+
+class HashablePointF(QPointF):
+    """
+        A QPointF that can be hashed, e.g. to be used in a set
+    """
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+
+    def __hash__(self):
+        return hash((self.x(), self.y()))
+
+    def __eq__(self, other):
+        return self.x() == other.x() and self.y() == other.y()
+
+
+class HashablePoint(QPoint):
+    """
+    A QPoint that can be hashed, e.g. to be used in a set
+    """
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+
+    def __hash__(self):
+        return hash((self.x(), self.y()))
+
+    def __eq__(self, other):
+        return self.x() == other.x() and self.y() == other.y()
+
+
+class HashableRect(QRect):
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, **kwds)
+
+    def __hash__(self):
+        return hash((self.x(), self.y(), self.width(), self.height()))
 
 
 class SpatialPoint(QgsPointXY):
@@ -2011,7 +2310,31 @@ class SpatialPoint(QgsPointXY):
     def crs(self):
         return self.mCrs
 
-    def toPixelPosition(self, rasterDataSource, allowOutOfRaster=False):
+    def toPixel(self, layer: QgsMapLayer, allowOutOfRaster: bool = False) -> QPoint:
+        dp: QgsRasterDataProvider = layer.dataProvider()
+
+        pt = self.toCrs(layer.crs())
+        if not isinstance(pt, SpatialPoint):
+            return None
+
+        extent = dp.extent()
+        width = dp.xSize() if dp.capabilities() & dp.Size else 1000
+        height = dp.ySize() if dp.capabilities() & dp.Size else 1000
+        xres = extent.width() / width
+        yres = extent.height() / height
+
+        # slot called whenever mouse position changes
+        if extent.xMinimum() <= pt.x() <= extent.xMaximum() and \
+                extent.yMinimum() <= pt.y() <= extent.yMaximum():
+            col = int(math.floor((pt.x() - extent.xMinimum()) / xres))
+            row = int(math.floor((extent.yMaximum() - pt.y()) / yres))
+
+            # output row and column index to console
+            return QPoint(col, row)
+        else:
+            return None
+
+    def toPixelPosition(self, rasterDataSource, allowOutOfRaster=False) -> QPoint:
         """
         Returns the pixel position of this SpatialPoint within the rasterDataSource
         :param rasterDataSource: gdal.Dataset
@@ -2071,6 +2394,72 @@ class SpatialPoint(QgsPointXY):
         return '{} {} {}'.format(self.x(), self.y(), self.crs().authid())
 
 
+def px2spatialPoint(layer: QgsRasterLayer,
+                    px: QPoint,
+                    subpixel_pos: float = 0.5,
+                    subpixel_pos_x: float = None,
+                    subpixel_pos_y: float = None) -> SpatialPoint:
+    """
+    Returns the pixel center as coordinate in a raster layer's CRS
+    :param layer: QgsRasterLayer
+    :param px: QPoint pixel position (0,0) = 1st pixel
+    :return: SpatialPoint
+    """
+    assert isinstance(layer, QgsRasterLayer) and layer.isValid()
+    # assert 0 <= px.x() < layer.width()
+    # assert 0 <= px.y() < layer.height()
+    assert 0 <= subpixel_pos <= 1.0
+
+    if subpixel_pos_x is None:
+        subpixel_pos_x = subpixel_pos
+
+    if subpixel_pos_y is None:
+        subpixel_pos_y = subpixel_pos
+
+    assert 0 <= subpixel_pos_x <= 1.0
+    assert 0 <= subpixel_pos_y <= 1.0
+
+    ext: QgsRectangle = layer.extent()
+
+    resX = layer.extent().width() / layer.width()
+    resY = layer.extent().height() / layer.height()
+
+    return SpatialPoint(layer.crs(),
+                        ext.xMinimum() + (px.x() + subpixel_pos_x) * resX,
+                        ext.yMaximum() - (px.y() + subpixel_pos_y) * resY)
+
+
+def spatialPoint2px(layer: QgsRasterLayer, spatialPoint: typing.Union[QgsPointXY, SpatialPoint]) -> QPoint:
+    """
+    Converts a spatial point into a raster pixel coordinate
+    :param layer:
+    :param spatialPoint:
+    :return:
+    """
+    if isinstance(spatialPoint, SpatialPoint):
+        spatialPoint = spatialPoint.toCrs(layer.crs())
+    assert isinstance(spatialPoint, QgsPointXY)
+    assert isinstance(layer, QgsRasterLayer)
+    ext = layer.extent()
+    resX = layer.extent().width() / layer.width()
+    resY = layer.extent().height() / layer.height()
+
+    x = math.floor((spatialPoint.x() - ext.xMinimum()) / resX)
+    y = math.floor((ext.yMaximum() - spatialPoint.y()) / resY)
+
+    return QPoint(x, y)
+
+
+def rasterBlockArray(block: QgsRasterBlock) -> np.ndarray:
+    """
+    Returns the content of a QgsRasterBlock as 2D numpy array
+    :param block: QgsRasterBlock
+    :return: np.ndarray
+    """
+    dtype = QGIS2NUMPY_DATA_TYPES[block.dataType()]
+    return np.frombuffer(block.data(), dtype=dtype).reshape(block.height(), block.width())
+
+
 def findParent(qObject, parentType, checkInstance=False):
     parent = qObject.parent()
     if checkInstance:
@@ -2080,6 +2469,34 @@ def findParent(qObject, parentType, checkInstance=False):
         while parent != None and type(parent) != parentType:
             parent = parent.parent()
     return parent
+
+
+def iconForFieldType(field: typing.Union[QgsField, QgsVectorDataProvider.NativeType]) -> QIcon:
+    """
+    Returns an icon for field types, including own defined
+    :return:
+    """
+    from .speclib.core import is_profile_field, create_profile_field
+
+    if isinstance(field, QgsVectorDataProvider.NativeType):
+        if field.mTypeName.replace(' ', '').lower() == 'spectralprofile':
+            field = create_profile_field('dummy')
+        else:
+            field = QgsField(
+                name='dummy',
+                type=field.mType,
+                typeName=field.mTypeName,
+                len=field.mMaxLen,
+                prec=field.mMaxPrec,
+                # comment=field.comment,
+                subType=field.mSubType
+            )
+
+    assert isinstance(field, QgsField)
+    if is_profile_field(field):
+        return QIcon(r':/qps/ui/icons/profile.svg')
+    else:
+        return QgsFields.iconForFieldType(field.type())
 
 
 def createCRSTransform(src: QgsCoordinateReferenceSystem, dst: QgsCoordinateReferenceSystem):
@@ -2097,10 +2514,13 @@ def createCRSTransform(src: QgsCoordinateReferenceSystem, dst: QgsCoordinateRefe
     return t
 
 
-def saveTransform(geom, crs1, crs2):
+def saveTransform(geom: typing.Union[QgsPointXY, QgsRectangle,
+                                     typing.Tuple[np.ndarray, np.ndarray]],
+                  crs1: QgsCoordinateReferenceSystem,
+                  crs2: QgsCoordinateReferenceSystem) -> typing.Union[QgsPointXY, QgsRectangle]:
     """
-
-    :param geom:
+    Transforms geometries from into another QgsCoordinateReferenceSystem
+    :param geom: QgsGeometry
     :param crs1:
     :param crs2:
     :return:
@@ -2108,14 +2528,13 @@ def saveTransform(geom, crs1, crs2):
     assert isinstance(crs1, QgsCoordinateReferenceSystem)
     assert isinstance(crs2, QgsCoordinateReferenceSystem)
 
+    transform = QgsCoordinateTransform(crs1, crs2, QgsProject.instance())
+
     result = None
     if isinstance(geom, QgsRectangle):
-        if geom.isEmpty():
+        if geom.isNull() or not geom.isFinite():
             return None
 
-        transform = QgsCoordinateTransform()
-        transform.setSourceCrs(crs1)
-        transform.setDestinationCrs(crs2)
         try:
             rect = transform.transformBoundingBox(geom);
             result = SpatialExtent(crs2, rect)
@@ -2125,23 +2544,34 @@ def saveTransform(geom, crs1, crs2):
 
     elif isinstance(geom, QgsPointXY):
 
-        transform = QgsCoordinateTransform();
-        transform.setSourceCrs(crs1)
-        transform.setDestinationCrs(crs2)
         try:
             pt = transform.transform(geom);
             result = SpatialPoint(crs2, pt)
         except:
             print('Can not transform from {} to {} on QgsPointXY {}'.format( \
                 crs1.description(), crs2.description(), str(geom)), file=sys.stderr)
+
+    elif isinstance(geom, tuple):
+
+        xcoords, ycoords = geom
+        shape = xcoords.shape
+        assert xcoords.shape == ycoords.shape
+        n = np.prod(xcoords.shape)
+        results = [transform.transform(QgsPointXY(x, y))
+                   for x, y in zip(xcoords.flatten(), ycoords.flatten())]
+        xresults = np.asarray([r.x() for r in results])
+        yresults = np.asarray([r.y() for r in results])
+
+        result = (xresults.reshape(shape), yresults.reshape(shape))
     return result
 
 
-def scaledUnitString(num, infix=' ', suffix='B', div=1000):
+def scaledUnitString(num: float, infix: str = ' ', suffix: str = 'B', div: float = 1000):
     """
     Returns a human-readable file size string.
     thanks to Fred Cirera
     http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
+    :param infix:
     :param num: number in bytes
     :param suffix: 'B' for bytes by default.
     :param div: divisor of num, 1000 by default.
@@ -2230,9 +2660,9 @@ class SpatialExtent(QgsRectangle):
         node_geom.appendChild(doc.createTextNode(self.asWktPolygon()))
         node_crs = doc.createElement('SpatialExtentCrs')
         self.crs().writeXml(node_crs, doc)
-        #if QgsCoordinateReferenceSystem(self.crs().authid()) == self.crs():
+        # if QgsCoordinateReferenceSystem(self.crs().authid()) == self.crs():
         #    node_crs.appendChild(doc.createTextNode(self.crs().authid()))
-        #else:
+        # else:
         #    node_crs.appendChild(doc.createTextNode(self.crs().toWkt()))
         node.appendChild(node_geom)
         node.appendChild(node_crs)
@@ -2395,6 +2825,100 @@ class SpatialExtent(QgsRectangle):
         return '{} {} {}'.format(self.upperLeft(), self.lowerRight(), self.crs().authid())
 
 
+def rasterLayerArray(layer: QgsRasterLayer,
+                     rect: typing.Union[QRect, QgsRasterLayer, SpatialExtent] = None,
+                     ul: typing.Union[SpatialPoint, QPoint] = None,
+                     lr: typing.Union[SpatialPoint, QPoint] = None,
+                     bands: typing.Union[str, int, typing.List[int]] = None) -> np.ndarray:
+    """
+    Returns the raster values of a QgsRasterLayer as 3D numpy array of shape (bands, height, width)
+    :param layer: QgsRasterLayer
+    :param ul: upper-left corner,
+               can be a geo-coordinate (SpatialPoint, QgsPointXY) or pixel-coordinate (QPoint)
+               defaults to raster layers upper-left corner
+    :param lr: lower-right corner,
+               can be a geo-coordinate (SpatialPoint, QgsPointXY) or pixel-coordinate (QPoint)
+               default to raster layers lower-right corner
+    :param bands: list of bands to return. defaults to "all". 1st band = [1]
+    :return: numpy.ndarray
+    """
+    layer = qgsRasterLayer(layer)
+
+    ext = layer.extent()
+    resX = ext.width() / layer.width()
+    resY = ext.height() / layer.height()
+
+    if rect:
+        if isinstance(rect, SpatialExtent):
+            rect = rect.toCrs(layer.crs())
+
+        if isinstance(rect, QgsRectangle):
+            ul = SpatialPoint(layer.crs(), rect.xMinimum(), rect.yMaximum())
+            lr = SpatialPoint(layer.crs(), rect.xMaximum(), rect.yMinimum())
+        elif isinstance(rect, QRect):
+            ul = QPoint(rect.x(), rect.y())
+            lr = QPoint(rect.x() + rect.width() - 1,
+                        rect.y() + rect.height() - 1)
+        else:
+            raise NotImplementedError()
+
+    if not isinstance(ul, SpatialPoint):
+        if isinstance(ul, QPoint):
+            ul = px2spatialPoint(layer, ul, subpixel_pos=0.0)
+        elif isinstance(ul, QgsPointXY):
+            ul = SpatialPoint(layer.crs(), ul.x(), ul.y())
+        elif ul is None:
+            ul = SpatialPoint(layer.crs(), ext.xMinimum(), ext.yMaximum())
+
+    assert isinstance(ul, SpatialPoint)
+    ul = ul.toCrs(layer.crs())
+
+    if not isinstance(lr, SpatialPoint):
+        if isinstance(lr, QPoint):
+            lr = px2spatialPoint(layer, lr, subpixel_pos=1.0)
+        elif isinstance(lr, QgsPointXY):
+            lr = SpatialPoint(layer.crs(), lr.x(), lr.y())
+        elif lr is None:
+            lr = SpatialPoint(layer.crs(), ext.xMaximum(), ext.yMinimum())
+
+    assert isinstance(lr, SpatialPoint)
+    lr = lr.toCrs(layer.crs())
+
+    assert isinstance(lr, SpatialPoint)
+
+    if bands in [None, 'all', '*']:
+        bands = list(range(1, layer.bandCount() + 1))
+
+    boundingBox: QgsRectangle = QgsRectangle(ul, lr)
+
+    if isinstance(rect, QRect):
+        width_px = rect.width()
+        height_px = rect.height()
+    else:
+        width_px = int(round(boundingBox.width() / resX))
+        height_px = int(round(boundingBox.height() / resY))
+
+    # npx = width_px * height_px
+    dp: QgsDataProvider = layer.dataProvider()
+    result_array: np.ndarray = None
+    bands = sorted(set(bands))
+    nb = len(bands)
+    assert nb > 0
+    for i, band in enumerate(bands):
+        band_block: QgsRasterBlock = dp.block(band, boundingBox, width_px, height_px)
+        if not (isinstance(band_block, QgsRasterBlock) and band_block.isValid()):
+            return None
+
+        assert isinstance(band_block, QgsRasterBlock)
+        band_array = rasterBlockArray(band_block)
+        assert band_array.shape == (height_px, width_px)
+        if i == 0:
+            result_array = np.empty((nb, height_px, width_px), dtype=band_array.dtype)
+        result_array[i, :, :] = band_array
+
+    return result_array
+
+
 def setToolButtonDefaultActionMenu(toolButton: QToolButton, actions: list):
     if isinstance(toolButton, QAction):
         for btn in toolButton.parent().findChildren(QToolButton):
@@ -2509,3 +3033,50 @@ class QgsTaskMock(QgsTask):
 
     def __init__(self):
         super(QgsTaskMock, self).__init__()
+
+
+class SignalObjectWrapper(QObject):
+    """
+    A wrapper to transport python objects via signal-slot
+    """
+
+    def __init__(self, obj, *args, **kwds):
+        super(SignalObjectWrapper, self).__init__(*args, **kwds)
+        self.wrapped_object = obj
+
+
+class FeatureReferenceIterator(object):
+    """
+    Iterator for QgsFeatures that uses the 1st feature as reference
+    """
+    def __init__(self, features: typing.Iterable[QgsFeature]):
+
+        self.mNextFeatureIndex = -1
+        self.mReferenceFeature = None
+        if isinstance(features, QgsVectorLayer):
+            self.mFeatureIterator = features.getFeatures()
+        else:
+            self.mFeatureIterator = iter(features)
+        try:
+            self.mReferenceFeature = self.mFeatureIterator.__next__()
+            self.mNextFeatureIndex += 1
+        except StopIteration:
+            pass
+
+    def referenceFeature(self) -> QgsFeature:
+        return self.mReferenceFeature
+
+    def __str__(self):
+        return 'FeaturePreviewIterator'
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self.mNextFeatureIndex += 1
+        if self.mNextFeatureIndex == 0:
+            raise StopIteration
+        elif self.mNextFeatureIndex == 1:
+            return self.referenceFeature()
+        else:
+            return self.mFeatureIterator.__next__()

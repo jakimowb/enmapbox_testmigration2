@@ -28,6 +28,8 @@ retrieval of biochemical vegetation traits. International Journal of Applied Ear
 93, 102219
 https://doi.org/10.1016/j.jag.2020.102219
 """
+from qgis._gui import QgsMapLayerComboBox
+from qgis._core import QgsMapLayerProxyModel
 
 from hubflow.core import *
 import numpy as np
@@ -44,11 +46,15 @@ pathUI = os.path.join(APP_DIR, 'Resources/UserInterfaces/ASI.ui')
 pathUI2 = os.path.join(APP_DIR, 'Resources/UserInterfaces/Nodat.ui')
 pathUI_prg = os.path.join(APP_DIR, 'Resources/UserInterfaces/ProgressBar.ui')
 
+
 class ASI_GUI(QDialog):
+    mLayer: QgsMapLayerComboBox
+
     def __init__(self, parent=None):
         super(ASI_GUI, self).__init__(parent)
         loadUi(pathUI, self)
         QApplication.instance().installEventFilter(self)
+        self.mLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
         # fix the sendHoverEvent crash by replacing the slot function
         self.rangeView.scene().sendHoverEvents = self.onHoverEvent
@@ -137,9 +143,12 @@ class ASI:
         self.calc_crs_flag = False
         self.calc_3band_flag = False
         self.out_path = None
+        self.addItem = []
+        self.gui.mLayer.setLayer(None)
 
     def connections(self):
-        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="image"))
+        self.gui.cmdInputImage.clicked.connect(lambda: self.open_file(mode="imgSelect"))
+        self.gui.mLayer.layerChanged.connect(lambda: self.open_file(mode="imgDropdown"))
         self.gui.cmdOutputImage.clicked.connect(lambda: self.open_file(mode="output"))
 
         self.gui.lowWaveEdit.returnPressed.connect(lambda: self.limits_changed(self.gui.lowWaveEdit))
@@ -158,41 +167,60 @@ class ASI:
         self.gui.pushClose.clicked.connect(lambda: self.gui.close())
 
     def open_file(self, mode):
-        if mode == "image":
-            bsq_input, _filter = QFileDialog.getOpenFileName(None, 'Select Input Image', '.', "ENVI Image (*.bsq)")
-            if not bsq_input:
-                return
+        if mode == "imgSelect":
             if self.image is not None:
                 self.reset()
+            bsq_input = QFileDialog.getOpenFileName(caption='Select Input Image', filter="ENVI Image (*.bsq)")[0]
+            if not bsq_input:
+                return
+            self.addItem.append(bsq_input)
+            self.gui.mLayer.setAdditionalItems(self.addItem)
+            self.gui.mLayer.setCurrentText(bsq_input)
+
             self.image = bsq_input
-            self.image = self.image.replace("\\", "/")
-            try:
-                meta = self.get_image_meta(image=self.image, image_type="Input Image")
-                self.dtype = meta[4]
-                if self.dtype < 4 or self.dtype > 9:
-                    QMessageBox.information(self.gui, "Integer Input",
-                                        "Tool requires float [0.0-1.0]:\nDivision factor set to 10000")
-                    self.division_factor = 10000
-                    self.gui.spinDivisionFactor.setText(str(self.division_factor))
-            except ValueError as e:
-                self.abort(message=str(e))
-                return
-            if None in meta:
-                self.image = None
-                self.nodat[0] = None
-                self.gui.lblInputImage.setText("")
-                return
+            self.image_read()
+
+        elif mode == "imgDropdown":
+            if self.image is not None:
+                self.reset()
+            if self.gui.mLayer.currentLayer() is not None:
+                input = self.gui.mLayer.currentLayer()
+                bsq_input = input.source()
+            elif len(self.gui.mLayer.currentText()) > 0:
+                bsq_input = self.gui.mLayer.currentText()
             else:
-                self.gui.lblInputImage.setText(bsq_input)
-                self.gui.lblNodatImage.setText(str(meta[0]))
-                self.gui.txtNodatOutput.setText(str(meta[0]))
-                self.nodat[0] = meta[0]
+                self.reset()
+                return
+            self.image = bsq_input
+            self.image_read()
 
         elif mode == "output":
-            result = QFileDialog.getSaveFileName(caption='Specify Output File', filter="ENVI Image (*.bsq)")[0]
+            result = QFileDialog.getSaveFileName(caption='Specify Output File',
+                                                 filter="ENVI Image (*.bsq)")[0]
             self.out_path = result
             self.out_path = self.out_path.replace("\\", "/")
             self.gui.txtOutputImage.setText(result)
+
+    def image_read(self):
+        try:
+            meta = self.get_image_meta(image=self.image, image_type="Input Image")
+            self.dtype = meta[4]
+            if self.dtype < 4 or self.dtype > 9:
+                QMessageBox.information(self.gui, "Integer Input",
+                                        "Integer input image:\nTool requires float [0.0-1.0]:\nDivision factor set to 10000")
+                self.division_factor = 10000
+                self.gui.spinDivisionFactor.setText(str(self.division_factor))
+        except ValueError as e:
+            self.abort(message=str(e))
+            return
+        if None in meta:
+            self.image = None
+            self.nodat[0] = None
+            return
+        else:
+            self.gui.lblNodatImage.setText(str(meta[0]))
+            self.gui.txtNodatOutput.setText(str(meta[0]))
+            self.nodat[0] = meta[0]
 
 
     def get_image_meta(self, image, image_type):
@@ -219,8 +247,9 @@ class ASI:
                 return self.main.nodat_widget.nodat, nbands, nrows, ncols, dtype
 
     def reset(self):
-        self.max_ndvi_pos = None 
+        self.max_ndvi_pos = None
         self.init_plot()
+        self.image = None
 
     def limits_changed(self, textfeld):
         if self.image is None:
@@ -328,23 +357,26 @@ class ASI:
         self.gui.lblPixelLocation.setText("Image pixel: row: %s | col: %s" % (
             str(max_ndvi_pos[1]), str(max_ndvi_pos[2])))
         self.gui.lblPixelLocation.setStyleSheet('color: green')
-        self.plot_spec = self.core.interp_watervapor_1d(self.core.ndvi_spec / self.division_factor)
+        if not np.isnan(self.core.ndvi_spec).any():
+            self.plot_spec = self.core.interp_watervapor_1d(self.core.ndvi_spec / self.division_factor)
 
-        self.cr_spectrum, full_hull_x = self.core.segmented_convex_hull_1d(self.plot_spec)
+            self.cr_spectrum, full_hull_x = self.core.segmented_convex_hull_1d(self.plot_spec)
 
-        self.gui.rangeView.plot(self.core.wl, self.plot_spec, clear=True, pen="g", fillLevel=0,
+            self.gui.rangeView.plot(self.core.wl, self.plot_spec, clear=True, pen="g", fillLevel=0,
                                 fillBrush=(255, 255, 255, 30), name='maxNDVIspec')
-        self.gui.rangeView.plot(self.core.wl, full_hull_x, clear=False, pen="r", fillLevel=0,
+            self.gui.rangeView.plot(self.core.wl, full_hull_x, clear=False, pen="r", fillLevel=0,
                                 name='hull')
-        self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
-        self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
+            self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
+            self.gui.rangeView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
 
-        self.gui.crsView.plot(self.core.wl, self.cr_spectrum, clear=True, pen="g", fillLevel=0,
+            self.gui.crsView.plot(self.core.wl, self.cr_spectrum, clear=True, pen="g", fillLevel=0,
                               fillBrush=(255, 255, 255, 30), name='cr_spec')
-        self.gui.crsView.addItem(pg.InfiniteLine(0, angle=0, pen='r'))
-        self.gui.crsView.addItem(pg.InfiniteLine(1, angle=0, pen='w'))
-        self.gui.crsView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
-        self.gui.crsView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
+            self.gui.crsView.addItem(pg.InfiniteLine(0, angle=0, pen='r'))
+            self.gui.crsView.addItem(pg.InfiniteLine(1, angle=0, pen='w'))
+            self.gui.crsView.addItem(pg.InfiniteLine(self.limits[0], pen="w"))
+            self.gui.crsView.addItem(pg.InfiniteLine(self.limits[1], pen="w"))
+        else:
+            pass
 
     def plot_change(self, mode):
         if mode == 'zoom':
@@ -527,7 +559,9 @@ class ASI_core:
         self.division_factor = division_factor
         self.max_ndvi_pos = max_ndvi_pos
         self.ndvi_spec = ndvi_spec
+        self.NDVI = None
         self.initial_values()
+        self.max_index = None
 
     def initial_values(self):
         self.wavelengths = None
@@ -684,7 +718,7 @@ class ASI_core:
         x = np.arange(len(in_array))
         self.res = np.empty(shape=np.shape(in_array))
 
-        if np.nan not in in_array:
+        if not np.isnan(in_array).any():
             idx = np.asarray(np.nonzero(in_array))
             idx = idx.flatten()
 
@@ -913,7 +947,7 @@ class ASI_core:
             closest_bands.insert(0, closest_bands[0])
 
         fixed_end = closest_bands[4]
-
+        absorb_area_test = 0
         for row in range(in_matrix.shape[1]):
             for col in range(in_matrix.shape[2]):
                 if np.mean(in_matrix[:, row, col]) != self.nodat[0]:
@@ -1029,6 +1063,7 @@ class ASI_core:
                         j -= 2
                     try:
                         if j == 2:
+
                             absorb_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:i, row, col]) -
                                                                  np.log(1 / contiguous_hull_x[k:i]))  # / np.nansum(contiguous_hull_x[k:i])
                             #hull_area[j, row, col] = np.nansum(np.log(1 / in_matrix[k:fixed_end, row, col]))
@@ -1047,12 +1082,15 @@ class ASI_core:
 
                 self.prgbar_process(pixel_no=row * self.ncols + col)
         max_hull_1 = np.amax(hull_area, axis=1, keepdims=True)
+        max_hull_1[np.isinf(max_hull_1)] = 0
         max_hull_2 = np.amax(max_hull_1, axis=2, keepdims=True)
+        max_hull_2[np.isinf(max_hull_2)] = 0
         max_1 = np.amax(ones_sum, axis=1, keepdims=True)
         max_ = np.amax(max_1, axis=2, keepdims=True)
         cr_absorb_area[cr_absorb_area <= 0] = 0
         res3band[0, :, :] = cr_absorb_area[0, :, :] / max_[0]
         res3band[1, :, :] = cr_absorb_area[1, :, :] / max_[1]
+        #res3band[2, :, :] = cr_absorb_area[2, :, :] / max_[2]
         res3band[2, :, :] = absorb_area[2, :, :] / max_hull_2[2]
         res3band[res3band < 0] = 0
         res3band[~np.isfinite(res3band)] = self.nodat[1]
@@ -1087,7 +1125,7 @@ class ASI_core:
 
         NDVI_closest = [self.find_closest_wl(lambd=827), self.find_closest_wl(lambd=668)]
         self.NDVI_bands = [i for i, x in enumerate(self.wl) if x in NDVI_closest]
-        print(self.NDVI_bands)
+        in_raster = in_raster / self.division_factor
 
         for row in range(np.shape(in_raster)[1]):
             for col in range(np.shape(in_raster)[2]):
@@ -1095,19 +1133,23 @@ class ASI_core:
                     R827 = in_raster[self.NDVI_bands[1], row, col]
                     R668 = in_raster[self.NDVI_bands[0], row, col]
                     if R827 or R668 > 0.0:
-                        try:
-                            NDVI = float(R827 - R668) / float(R827 + R668)
-                        except ZeroDivisionError:
-                            NDVI = 0
+                        if R827 > 0.4:
+                            try:
+                                NDVI = float(R827 - R668) / float(R827 + R668)
+                                if NDVI > 0.85:
+                                    self.NDVI = NDVI
+                                    self.row = row
+                                    self.col = col
+                                    self.ndvi_spec = in_raster[:, row, col]
+                                    break
+                            except ZeroDivisionError:
+                                continue
+                                # NDVI = 0
+                        else:
+                            continue
                     else:
                         continue
                     self.prgbar_process(pixel_no=row * self.ncols + col)
-                    if NDVI > 0.85 and NDVI < 0.9:
-                        self.NDVI = NDVI
-                        self.row = row
-                        self.col = col
-                        self.ndvi_spec = in_raster[:, row, col]
-                        break
                 else:
                     continue
             else:
@@ -1117,8 +1159,11 @@ class ASI_core:
             self.max_index = [self.NDVI, self.row, self.col]  # raster pos where NDVI > 0.85 was found
             return self.max_index, self.ndvi_spec
         else:
+            self.max_index = [0, 0, 0]
+            self.ndvi_spec = np.empty(np.shape(in_raster)[0])
+            self.ndvi_spec[:] = np.nan
             QMessageBox.information(self.prg.gui, "Error", "No NDVI > 0.85 found, Check Data Input.")
-            return
+            return self.max_index, self.ndvi_spec
 
     def prgbar_process(self, pixel_no):
         if self.prg:
@@ -1153,10 +1198,13 @@ class Nodat:
         if self.gui.txtNodat.text() == "":
             QMessageBox.critical(self.gui, "No Data", "A no data value must be supplied for this image!")
             return
+        if self.gui.txtNodat.text() == "NaN":
+            nodat = np.nan
         else:
             try:
                 nodat = int(self.gui.txtNodat.text())
             except:
+
                 QMessageBox.critical(self.gui, "No number", "'%s' is not a valid number" % self.gui.txtNodat.text())
                 self.gui.txtNodat.setText("")
                 return

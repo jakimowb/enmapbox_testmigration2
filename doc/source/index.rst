@@ -34,11 +34,36 @@ Related websites
 
 - `Environmental Mapping and Analysis Program (EnMAP) <http://www.enmap.org/>`_
 - `Source code repository <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/>`_
-- `HYPERedu on eo-college <https://eo-college.org/now-online-hyperedu-educational-resources-on-imaging-spectroscopy/>`_
+- `HYPERedu on eo-college <https://eo-college.org/resource-spectrum/hyperspectral//>`_
 
 
 News
 ****
+
+EnMAP-Box Workshop 2021
+=======================
+
+Jun, 07, 2021
+
+The next EnMAP-Box workshop will be held online on 21-23 June, 2021.
+The workshop aims to demonstrate the current state of the EnMAP-Box by way of presentations, live demos with Q&A and self-paced tutorials.
+Registration for up to 250 participants is now open at the `workshop website <https://bitbucket.org/hu-geomatics/enmap-box/wiki/events/Workshop_2021>`_.
+
+
+.. figure:: img/events/workshop2021.banner.png
+    :align: center
+
+FOSSGIS 2021
+============
+
+Jun 09, 2021
+
+Benjamin Jakimow presented how to use Spectral Libraries in QGIS using the EnMAP-Box (german).
+
+.. raw:: html
+
+   <video width="100%" height="380" controls> <source src="https://mirror.selfnet.de/CCC//events/fossgis/2021/h264-hd/fossgis2021-8945-deu-Von_Pixeln_und_Profilen_Die_Nutzung_von_Spektralbibliotheken_in_QGIS_mit_der_EnMAP-Box_hd.mp4" type="video/mp4"></video>
+
 
 EnMAP-Box Version 3.7 released
 ==============================
@@ -57,7 +82,7 @@ Andreas Rabe presented the EnMAP-Box at the FOSSGIS 2020 in Freiburg. See the fu
 
 .. raw:: html
 
-   <iframe width="100%" height="380" src="https://www.youtube.com/embed/egaJLUe_eXY" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+   <iframe width="100%" height="380" src="https://www.youtube.com/embed/egaJLUe_eXY" frameborder="0" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 |
 
@@ -82,6 +107,7 @@ Two Presentations by EnMAP-Box developers Andreas Rabe and Benjamin Jakimow at t
     general/faq_trouble.rst
     general/contribute.rst
     general/roadmap.rst
+    general/glossary.rst
 
 ..  toctree::
     :maxdepth: 2
@@ -104,8 +130,9 @@ Two Presentations by EnMAP-Box developers Andreas Rabe and Benjamin Jakimow at t
     dev_section/dev_publish_enmapbox.rst
     dev_section/dev_cookbook/dev_cookbook.rst
     dev_section/dev_guide.rst
-    dev_section/api/modules.rst
     dev_section/programming_tutorials/index.rst
+..    dev_section/api/modules.rst
+
 
 
 

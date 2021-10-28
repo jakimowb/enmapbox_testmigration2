@@ -69,7 +69,7 @@ class VIT:
         # sort out only the labels for the indices which should be calculated
         self.labels = [all_labels[i] for i in range(len(all_labels)) if concat_indices[i] == 1]
 
-        
+    def prepare_indices(self):
         # List of wavelengths [nm] used for any of the indices. Append for new index!
         wl_list = np.array([415, 420, 430, 435, 440, 445, 450, 500, 510, 528, 531, 547, 550, 554, 567, 645, 650, 665,
                             668, 670, 672, 675, 677, 680, 682, 683, 690, 695, 700, 701, 705, 708, 710, 715, 720, 724,
@@ -428,8 +428,9 @@ class VIT:
                 index_no += 1
                 self.prgbar_process(index_no)
             if self.ChlIndices[16] == 1:
-                index_out_matrix[:, :, index_no] = self.division(self.dict_senswl[734] - self.dict_senswl[747],
-                                                                 self.dict_senswl[715] + self.dict_senswl[726])
+                index_out_matrix[:, :, index_no] = (self.dict_senswl[734] - self.dict_senswl[747]) / \
+                                                   (self.dict_senswl[715] + self.dict_senswl[726])
+
                 index_no += 1
                 self.prgbar_process(index_no)
                 # former ChlIndices16 is now skipped!
@@ -630,10 +631,10 @@ class VIT:
 
         return index_out_matrix
 
-    def write_out(self, index_out_matrix, out_dir, out_filename, out_extension, out_single):
+    def write_out(self, index_out_matrix, out_dir, out_filename, out_single):
         # Write index-results to file (BSQ)
         if out_single == 1:  # Output to single file
-            output = Raster.fromArray(array=index_out_matrix, filename=out_dir + out_filename + out_extension,
+            output = Raster.fromArray(array=index_out_matrix, filename=out_dir + out_filename,
                                       grid=self.grid)
             output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
             for i, band in enumerate(output.dataset().bands()):
@@ -646,7 +647,7 @@ class VIT:
                 out_array = np.zeros((1, index_out_matrix.shape[1], index_out_matrix.shape[2]))
                 out_array[0, :, :] = index_out_matrix[i, :, :]  # fill it with the index results
                 output = Raster.fromArray(array=out_array, filename=out_dir + out_filename + '_' +
-                                                                    self.labels[i] + out_extension, grid=self.grid)
+                                                                    self.labels[i], grid=self.grid)
                 output.dataset().setMetadataItem('data ignore value', self.nodat[1], 'ENVI')
                 for band in output.dataset().bands():
                     band.setDescription(self.labels[i])
