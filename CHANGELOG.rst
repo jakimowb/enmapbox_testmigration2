@@ -3,7 +3,7 @@ CHANGELOG
 
 Version 3.9
 -----------
-*This release was testet under QGIS 3.18 and 3.20.*
+*This release was tested under QGIS 3.18 and 3.20.*
 
 *Note that we are currently in a transition phase, where we're overhauling all processing algorithms.
 Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g. "*Classification".*
@@ -12,17 +12,47 @@ Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g.
 **GUI**
 
 * added drag&drop functionality for opening external products (PRISMA, DESIS, Sentinel-2, Landsat) by simply dragging and dropping the product metadata file from the system file explorer onto the map view area.
-* added map view context menu *Set background color* option: allows to change the map view background color
-* added data sources context menu *Save as* option: opens *Translate raster layer* algorithm dialog
+* added map view context menu *Set background color* option
+
+* new *Save as* options in data source and data view panel context menus:
+
+  * opens *Translate raster layer* dialog for raster sources
+  * opens *Save Features* dialog for vector sources
+
 * added data sources context menu *Append ENVI header* option: opens *Append ENVI header to GeoTiff raster layer* algorithm dialog
 * added single pixel movement in map view using <Ctrl> + <Arrow> keys, <Ctrl> + S to save a selected profile in a Spectral Library
-* revised spectral library concept
-* spectral libraries can define multiple fields with spectral profiles
-* icons show data type of new vector layer fields
-* each vector layer that allows to store binary values (e.g. Geopackage, PostGIS, in-memory layers) can be used as Spectral Library
-* spectral profiles can be collected with additional layer attributes, e.g. individual names and numbers
-* spectral profile colors can be defined by attribute values and expressions
-* profile plot allows to select multiple data points for comparision
+
+* revised Data Source Panel and Data Source handling (#430)
+* revised Spectral Library concept:
+
+  * each vector layer that allows storing binary data can become a spectral library
+    (e.g. Geopackage, PostGIS, in-memory layers)
+  * spectral libraries can define multiple spectral profile fields
+
+* revised Spectral Profile Source panel:
+
+  * tree view defines how spectral profile features will be generated when using the Identify
+    map tool with activated pixel profile option
+  * allows to extract spectral profiles from different raster sources into different
+    spectral profile fields of the same feature or into different features
+  * values of extracted spectral profiles can be scaled by an (new) offset and a multiplier
+  * other attributes of new features, e.g. for text and numeric fields, can be
+    added by static values or expressions
+
+* revised Spectral Library Viewer:
+
+  * each vector layer can be opened in a Spectral Library Viewer
+  * spectral profile visualizations allow to define colors, lines styles and
+    profile labels
+  * spectral profile visualizations are applied to individual sets of spectral profiles,
+    e.g. all profiles of a spectral profile field, or only to profiles that match
+    filter expressions like ``"name" = 'vegetation'``
+  * profile colors can be defined as static color, attribute value or expression
+  * profile plot allows to select multiple data points, e.g. to compare individual
+    bands between spectral profiles
+  * dialog to add new fields shows data type icons for available field types
+
+
 
 
 
