@@ -50,7 +50,10 @@ class SpectralResamplingByResponseFunctionConvolutionAlgorithmBase(EnMAPProcessi
         raise NotImplementedError()
 
     def defaultCodeAsString(self):
-        lines = [line[8:] for line in inspect.getsource(self.code).split('\n')][1:-2]
+        try:
+            lines = [line[8:] for line in inspect.getsource(self.code).split('\n')][1:-2]
+        except OSError:
+            lines = ['']
         lines = '\n'.join(lines)
         return lines
 

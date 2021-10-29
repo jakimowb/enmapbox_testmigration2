@@ -100,11 +100,6 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.actionSelectProfilesFromMap.setVisible(False)
         self.actionSelectProfilesFromMap.triggered.connect(self.sigLoadFromMapRequest.emit)
 
-        self.actionAddProfiles = QAction('Add Profile(s)', parent=self)
-        self.actionAddProfiles.setToolTip('Adds currently overlaid profiles to the spectral library')
-        self.actionAddProfiles.setIcon(QIcon(':/qps/ui/icons/plus_green_icon.svg'))
-        self.actionAddProfiles.triggered.connect(self.addCurrentProfilesToSpeclib)
-
         self.actionAddCurrentProfiles = QAction('Add Profiles(s)', parent=self)
         self.actionAddCurrentProfiles.setShortcut(Qt.CTRL + Qt.SHIFT + Qt.Key_A)
         # self.actionAddCurrentProfiles.setShortcut(Qt.Key_Z)
@@ -123,6 +118,12 @@ class SpectralLibraryWidget(AttributeTableWidget):
         m = QMenu()
         m.addAction(self.actionAddCurrentProfiles)
         m.addAction(self.optionAddCurrentProfilesAutomatically)
+        m.setDefaultAction(self.actionAddCurrentProfiles)
+
+        self.actionAddProfiles = QAction(self.actionAddCurrentProfiles.text(), self)
+        self.actionAddProfiles.setToolTip(self.actionAddCurrentProfiles.text())
+        self.actionAddProfiles.setIcon(self.actionAddCurrentProfiles.icon())
+        self.actionAddProfiles.triggered.connect(self.actionAddCurrentProfiles.trigger)
         self.actionAddProfiles.setMenu(m)
 
         self.actionImportSpeclib = QAction('Import Spectral Profiles', parent=self)
@@ -211,6 +212,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
         # update toolbar visibilities
         self.updateToolbarVisibility()
+        self.updateActions()
 
         # property button now shown in speclib action toolbar only
         # self.btnShowProperties = QToolButton()
@@ -227,7 +229,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
         self.setViewVisibility(SpectralLibraryWidget.ViewType.Standard)
 
-        #if self.speclib().featureCount() > 0:
+        # if self.speclib().featureCount() > 0:
         #    for field in profile_field_list(self.speclib()):
         #        self.spectralLibraryPlotWidget().createProfileVis(field=field)
 
@@ -388,6 +390,15 @@ class SpectralLibraryWidget(AttributeTableWidget):
         """
         return self.plotWidget().getPlotItem()
 
+    def updateActions(self):
+        """
+        Updates action appearance according to internal states
+        :return:
+        :rtype:
+        """
+        self.actionAddCurrentProfiles.setEnabled(len(self.temporaryProfileIDs()) > 0)
+        s = ""
+
     def updatePlot(self):
         self.plotControl().updatePlot()
 
@@ -397,7 +408,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
     def spectralLibrary(self) -> QgsVectorLayer:
         return self.speclib()
 
-    def addSpeclib(self, speclib: QgsVectorLayer, askforNewFields :bool = False):
+    def addSpeclib(self, speclib: QgsVectorLayer, askforNewFields: bool = False):
         """
         :param speclib: QgsVectorLayer
         :param askforNewFields: bool, if True and speclib to add contains other fields, a dialog will be shown
@@ -412,8 +423,8 @@ class SpectralLibraryWidget(AttributeTableWidget):
             missing = [f for f in speclib.fields() if f.name() not in dst_fields]
             if len(missing) > 0:
                 result = QMessageBox.question(self, 'Create additional field(s)?',
-                                     f'Data has {len(missing)} other field(s).\n'
-                                     f'Do you like to copy them?')
+                                              f'Data has {len(missing)} other field(s).\n'
+                                              f'Do you like to copy them?')
 
                 if result == QMessageBox.Yes:
                     if not CopyAttributesDialog.copyLayerFields(speclib_dst, speclib, parent=self):
@@ -446,6 +457,10 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.plotControl().mTemporaryProfileIDs.clear()
         self.plotControl().mTemporaryProfileColors.clear()
         self.plotControl().updatePlot(fids)
+        self.updateActions()
+
+    def temporaryProfileIDs(self) -> typing.Set[int]:
+        return self.plotControl().mTemporaryProfileIDs
 
     def deleteCurrentProfilesFromSpeclib(self, *args):
         # delete previous current profiles
@@ -459,6 +474,8 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
             if restart_editing:
                 speclib.startEditing()
+
+        self.updateActions()
 
     def spectralLibraryPlotWidget(self) -> SpectralLibraryPlotWidget:
         return self.mSpeclibPlotWidget
@@ -481,7 +498,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
             currentProfiles = list(currentProfiles)
         assert isinstance(currentProfiles, (list,))
 
-        speclib: SpectralLibrary = self.speclib()
+        speclib: QgsVectorLayer = self.speclib()
         plotWidget: SpectralProfilePlotWidget = self.plotWidget()
 
         #  stop plot updates
@@ -512,7 +529,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
         oldIDs = set(speclib.allFeatureIds())
 
         speclib.beginEditCommand('Add current profiles')
-        addedKeys = speclib.addProfiles(currentProfiles)
+        addedKeys = SpectralLibraryUtils.addProfiles(speclib, currentProfiles)
         speclib.endEditCommand()
 
         if not addAuto:
@@ -547,6 +564,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
                 self.spectralLibraryPlotWidget().createProfileVis(field=attribute, color=color)
 
         self.plotControl().updatePlot()
+        self.updateActions()
         self.speclib().triggerRepaint()
 
     def canvas(self) -> QgsMapCanvas:
@@ -607,11 +625,14 @@ class SpectralLibraryWidget(AttributeTableWidget):
         w.close()
 
     def addProfiles(self, profiles, add_missing_fields: bool = False):
-        stopEditing = self.speclib().startEditing()
-        self.speclib().beginEditCommand('Add {} profiles'.format(len(profiles)))
-        self.speclib().addProfiles(profiles, addMissingFields=add_missing_fields)
-        self.speclib().endEditCommand()
-        self.speclib().commitChanges(stopEditing=stopEditing)
+        sl = self.speclib()
+        if isinstance(sl, QgsVectorLayer):
+            stopEditing = sl.startEditing()
+
+            sl.beginEditCommand('Add {} profiles'.format(len(profiles)))
+            SpectralLibraryUtils.addProfiles(sl, profiles, addMissingFields=add_missing_fields)
+            sl.endEditCommand()
+            sl.commitChanges(stopEditing=stopEditing)
 
     def onExportProfiles(self, *args):
 

@@ -300,6 +300,10 @@ if __name__ == "__main__":
                   '\n  Version number increased? (enmapbox/__init__.py -> __version__)' \
                   '\n  QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
                   '\n  ZIP containing branch (i.e. master) information (GIT installed)?' \
+                  '\n  Install ZIP and quick-test under the latest supported QGIS versions and OS, e.g.:' \
+                  '\n      Andreas: latest Windows Conda QGIS' \
+                  '\n      Fabian: Linux QGIS used in Greifswald-Teaching' \
+                  '\n      Benjamin: latest OSGeo4W (maybe also MacOS?) QGIS' \
                   '\n  Plugin promotion (Slack, Email, ...)'
         print(message)
 

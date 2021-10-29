@@ -1449,21 +1449,24 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
         if type(node) is QgsLayerTreeLayer:
             # get parent dock node -> related map canvas
+            lyr: QgsMapLayer = node.layer()
+            canvas: QgsMapCanvas = None
+
+            if isinstance(lyr, (QgsVectorLayer, QgsRasterLayer)):
+                actionPasteStyle = menu.addAction('Paste Style')
+                actionPasteStyle.triggered.connect(lambda *args, l=lyr: pasteStyleFromClipboard(l))
+                actionPasteStyle.setEnabled(MDF_QGIS_LAYER_STYLE in QApplication.clipboard().mimeData().formats())
+
+                actionCopyStyle = menu.addAction('Copy Style')
+                actionCopyStyle.triggered.connect(lambda *args, l=lyr: pasteStyleToClipboard(l))
+                menu.addSeparator()
+
             viewNode = findParent(node, MapDockTreeNode)
+
             if isinstance(viewNode, MapDockTreeNode):
                 assert isinstance(viewNode.dock, MapDock)
                 canvas = viewNode.dock.mCanvas
 
-                lyr = node.layer()
-
-                actionPasteStyle = menu.addAction('Paste Style')
-                actionPasteStyle.triggered.connect(lambda: pasteStyleFromClipboard(lyr))
-                actionPasteStyle.setEnabled(MDF_QGIS_LAYER_STYLE in QApplication.clipboard().mimeData().formats())
-
-                actionCopyStyle = menu.addAction('Copy Style')
-                actionCopyStyle.triggered.connect(lambda: pasteStyleToClipboard(lyr))
-
-                menu.addSeparator()
                 b = isinstance(canvas, QgsMapCanvas)
                 action = menu.addAction('Zoom to layer')
                 action.triggered.connect(lambda *args, l=lyr, c=canvas: self.onZoomToLayer(l, c))
@@ -1522,10 +1525,10 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                     action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
                     action.triggered.connect(lambda: self.setDecorrelationStretchRenderer(lyr, canvas))
 
+            if isinstance(lyr, QgsMapLayer):
                 action = menu.addAction('Layer properties')
                 action.setToolTip('Set layer properties')
-                action.triggered.connect(lambda: self.setLayerStyle(lyr, canvas))
-
+                action.triggered.connect(lambda *args, l=lyr, c=canvas: self.showLayerProperties(l, c))
 
         elif isinstance(node, DockTreeNode):
             assert isinstance(node.dock, Dock)
@@ -1536,7 +1539,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 node.populateContextMenu(menu)
             elif col == 1:
                 a = menu.addAction('Copy')
-                a.triggered.connect(lambda: QApplication.clipboard().setText('{}'.format(node.value())))
+                a.triggered.connect(lambda *args, n=node: QApplication.clipboard().setText('{}'.format(n.value())))
 
         # last chance to add other menu actions
         self.mSignals.sigPopulateContextMenu.emit(menu)
@@ -1593,7 +1596,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             from enmapbox.gui.dataviews.docks import SpectralLibraryDock
             emb.createDock(SpectralLibraryDock, speclib=layer)
 
-    def setLayerStyle(self, layer: QgsMapLayer, canvas: QgsMapCanvas):
+    def showLayerProperties(self, layer: QgsMapLayer, canvas: QgsMapCanvas):
         from enmapbox import EnMAPBox
         messageBar = None
         emb = EnMAPBox.instance()

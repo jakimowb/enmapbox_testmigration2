@@ -267,7 +267,7 @@ class DataSourceManager(TreeModel):
         self.addDataSources(*args, **kwds)
 
     def addDataSources(self,
-                       sources: typing.Union[DataSource, typing.List[DataSource]],
+                       sources: typing.Union[DataSource, typing.List[DataSource], typing.Any],
                        provider: str = None,
                        name: str = None) -> typing.List[DataSource]:
         sources = DataSourceFactory.create(sources, provider=provider, name=name)
@@ -586,6 +586,15 @@ class DataSourceManagerTreeView(TreeView):
             dlg = emb.showProcessingAlgorithmDialog('native:savefeatures', parameters, parent=self)
             s = ""
 
+    def addDataSourceByDialog(self):
+        """
+        Shows a fileOpen dialog to select new data sources
+        :return:
+        """
+        emb = self.enmapboxInstance()
+        if emb:
+            emb.openAddDataSourceDialog()
+
     def onRemoveAllDataSources(self):
         dsm: DataSourceManager = self.dataSourceManager()
         if dsm:
@@ -634,7 +643,7 @@ class DataSourceManagerPanelUI(QgsDockWidget):
         self.btnExpand.clicked.connect(lambda: self.mDataSourceManagerTreeView.expandSelectedNodes(True))
 
         # init actions
-        self.actionAddDataSource.triggered.connect(lambda: self.mDataSourceManager.addDataSourceByDialog())
+        self.actionAddDataSource.triggered.connect(lambda: self.mDataSourceManagerTreeView.addDataSourceByDialog())
         self.actionRemoveDataSource.triggered.connect(
             lambda: self.mDataSourceManager.removeDataSources(self.selectedDataSources()))
         self.actionRemoveDataSource.setEnabled(False)  # will be enabled with selection of node
