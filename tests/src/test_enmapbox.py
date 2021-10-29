@@ -175,7 +175,6 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
         self.showGui([EMB.ui])
 
-
     def test_Qgis(self):
 
         from enmapbox.exampledata import enmap, landcover_polygons

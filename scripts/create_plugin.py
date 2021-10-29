@@ -65,18 +65,26 @@ MD.mHasProcessingProvider = True
 
 ########## End of config section
 
-def scantree(path, pattern=re.compile(r'.$')) -> typing.Iterator[pathlib.Path]:
+def scantree(path: typing.Union[str, pathlib.Path],
+             pattern: typing.Union[str, typing.Pattern] = re.compile(r'.$'),
+             recursive: bool = True) -> typing.Iterator[pathlib.Path]:
     """
     Recursively returns file paths in directory
+    :param recursive: bool, (default True)
     :param path: root directory to search in
-    :param pattern: str with required file ending, e.g. ".py" to search for *.py files
+    :param pattern: regex pattern to match files. (based on posix file paths)
     :return: pathlib.Path
     """
+    if isinstance(pattern, str):
+        pattern = re.compile(pattern)
+
     for entry in os.scandir(path):
-        if entry.is_dir(follow_symlinks=False):
+        if entry.is_dir(follow_symlinks=False) and recursive:
             yield from scantree(entry.path, pattern=pattern)
-        elif entry.is_file and pattern.search(entry.path):
-            yield pathlib.Path(entry.path)
+        else:
+            path = pathlib.Path(entry.path)
+            if path.is_file() and pattern.search(path.as_posix()):
+                yield path
 
 
 def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False) -> pathlib.Path:
@@ -121,6 +129,11 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     # copy python and other resource files
     pattern = re.compile(r'\.(sli|hdr|py|svg|png|txt|ui|tif|qml|md|js|css|json|aux\.xml)$')
     files = list(scantree(DIR_REPO / 'enmapbox', pattern=pattern))
+
+    # exclude exampledata folder, except it's package definition
+    DIR_EXAMPLEDATA = DIR_REPO / 'enmapbox' / 'exampledata'
+    files = [f for f in files if not (f.parent == DIR_EXAMPLEDATA and f.name != '__init__.py')]
+
     files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxprocessing', pattern=pattern)))
     files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
