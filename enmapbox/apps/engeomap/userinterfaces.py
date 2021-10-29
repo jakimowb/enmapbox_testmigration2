@@ -73,7 +73,6 @@ class EnGeoMAPGUI(QDialog):
     """Constructor."""
     def __init__(self, parent=None):
         super(EnGeoMAPGUI, self).__init__(parent)
-        self.setupUi(self)
         loadUi(pathUi, self)
         self.imready = pathreadui
         self.imbusy = pathbusyui
