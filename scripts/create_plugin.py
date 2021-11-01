@@ -317,7 +317,14 @@ if __name__ == "__main__":
                   '\n      Andreas: latest Windows Conda QGIS' \
                   '\n      Fabian: Linux QGIS used in Greifswald-Teaching' \
                   '\n      Benjamin: latest OSGeo4W (maybe also MacOS?) QGIS' \
-                  '\n  Plugin promotion (Slack, Email, ...)'
+                  '\n  Plugin promotion (Slack, Email, ...)' \
+                  '\n      RTD' \
+                  '\n      Email an Saskia: update auf enmap.org (enmap news + enmap news letter)' \
+                  '\n      Email an enmap_wiss@gfz-potsdam.de' \
+                  '\n      Email an Ettore: reach out to PRISMA community' \
+                  '\n      EOL Slack + EnMAP Slack' \
+                  '\n      EOL Twitter'
+
         print(message)
 
     exit()

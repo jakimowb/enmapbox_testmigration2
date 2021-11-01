@@ -40,6 +40,14 @@ Related websites
 News
 ****
 
+EnMAP-Box Version 3.9 released
+==============================
+
+Oct. 10, 2021
+
+A new EnMAP-Box version has been released.
+A list of all improvements can be found in the `changelog <https://bitbucket.org/hu-geomatics/enmap-box/src/develop/CHANGELOG.rst>`_.
+
 EnMAP-Box Workshop 2021
 =======================
 
