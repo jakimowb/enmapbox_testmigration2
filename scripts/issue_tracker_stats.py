@@ -10,8 +10,8 @@ import csv
 # 2. export issues, extract zip file and copy db-2.0.json to JSON_DIR (defaults to <repo>/tmp)
 # 3. set report period with start_date / end_date
 JSON_DIR = pathlib.Path(__file__).parents[1] / 'tmp'
-start_date = datetime.date(2021, 1, 1)
-end_date = datetime.date(2021, 6, 30)
+start_date = datetime.date(2021, 3, 15)
+end_date = datetime.date(2021, 11, 1)
 
 
 
