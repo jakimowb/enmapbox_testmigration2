@@ -49,7 +49,7 @@ class TestEnMAPBoxPlugin(unittest.TestCase):
         path_repo_root = pathlib.Path(DIR_REPO).parent
         plugins = {k: parser for k, parser in findPlugins(path_repo_root.as_posix())}
 
-        self.assertTrue('enmap-box' in plugins.keys())
+        self.assertTrue('enmap-box' in plugins.keys(), msg=f'Unable to find enmapb-box below {path_repo_root}')
         parser = plugins['enmap-box']
 
         required = ['name', 'qgisMinimumVersion', 'description', ]

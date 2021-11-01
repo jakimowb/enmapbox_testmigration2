@@ -212,7 +212,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         self.assertEqual(len(box.dataSources()), 0)
 
         nQGIS = len(root.findLayerIds())
-        box.dataSourceManager().importSourcesFromQGISRegistry()
+        box.dataSourceManager().importQGISLayers()
         QgsApplication.processEvents()
         self.assertEqual(len(box.dataSources()), nQGIS)
 
@@ -327,7 +327,8 @@ class TestEnMAPBox(EnMAPBoxTestCase):
         # unload
         E.removeSources()
         self.assertTrue(len(E.dataSources()) == 0)
-        self.assertTrue(len(QgsProject.instance().mapLayers()) == 0)
+        self.assertTrue(len(QgsProject.instance().mapLayers()) == 1, msg='Layers created outside EnMAP-Box should '
+                                                                         'still exists after closing it')
 
     def test_speclibDocks(self):
         EMB = EnMAPBox()
