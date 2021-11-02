@@ -3,11 +3,14 @@ import site
 import unittest
 import xmlrunner
 
-from enmapbox import DIR_ENMAPBOX
+from enmapbox import DIR_ENMAPBOX, initPythonPaths
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
+initPythonPaths()
+
+import hubflow
 from qgis.core import QgsRasterLayer, QgsPalettedRasterRenderer, QgsProject
 
-site.addsitedir(pathlib.Path(DIR_ENMAPBOX) / 'coreapps')
+
 from reclassifyapp.reclassify import *
 from enmapbox.gui import ClassificationScheme
 from enmapbox.gui.utils import *
@@ -34,7 +37,7 @@ class TestReclassify(EnMAPBoxTestCase):
         #    os.remove(cls.testDir)
 
     def test_hubflow_reclassify(self):
-        import hubflow.core
+
         from enmapbox.testing import TestObjects
         dsSrc = TestObjects.createRasterDataset(10, 20, nc=5)
         self.assertIsInstance(dsSrc, gdal.Dataset)
@@ -138,6 +141,8 @@ class TestReclassify(EnMAPBoxTestCase):
     def test_transformation_table(self):
 
         tv = ReclassifyTableView()
+        self.assertIsInstance(tv, QTableView)
+
         model = ReclassifyTableModel()
         pm = QSortFilterProxyModel()
         pm.setSourceModel(model)
@@ -157,6 +162,7 @@ class TestReclassify(EnMAPBoxTestCase):
 
         self.showGui(tv)
 
+    @unittest.skipIf(EnMAPBoxTestCase.runsInCI(), 'blocking dialog')
     def test_dialog(self):
 
         #

@@ -15,8 +15,10 @@ from reclassifyapp.reclassify import *
 class TestEnMAPBoxApplications(EnMAPBoxTestCase):
 
     def test_createtestdata(self):
-        EB = EnMAPBox()
-        EB.initEnMAPBoxApplications()
+        EB: EnMAPBox = EnMAPBox.instance()
+        if not isinstance(EB, EnMAPBox):
+            EB = EnMAPBox()
+            EB.initEnMAPBoxApplications()
         all_ids = [a.id() for a in QgsApplication.processingRegistry().algorithms()]
 
         test_algs = [a for a in all_ids if a.startswith('enmapbox:CreateTest')]

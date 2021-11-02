@@ -23,14 +23,12 @@ import pathlib
 import site
 import unittest
 import xmlrunner
-from enmapbox import DIR_ENMAPBOX
+from enmapbox import DIR_ENMAPBOX, initPythonPaths
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapbox.exampledata import landcover_polygons, enmap
 from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsProject
 
-p = pathlib.Path(DIR_ENMAPBOX) / 'coreapps'
-assert p.is_dir()
-site.addsitedir(p)
+initPythonPaths()
 from metadataeditorapp.metadataeditor import *
 from enmapbox.gui.utils import *
 
@@ -43,7 +41,6 @@ class TestMDMetadataKeys(EnMAPBoxTestCase):
 
     @classmethod
     def tearDownClass(cls):
-
         cls.qgsApp.quit()
 
     def setUp(self):
@@ -56,8 +53,7 @@ class TestMDMetadataKeys(EnMAPBoxTestCase):
         drv = ogr.GetDriverByName('Memory')
         self.dsVM = drv.CopyDataSource(self.dsV, '')
 
-    def createSupportedSources(self)->list:
-
+    def createSupportedSources(self) -> list:
         from enmapbox.exampledata import enmap, landcover_polygons
 
         sources = []
@@ -70,15 +66,14 @@ class TestMDMetadataKeys(EnMAPBoxTestCase):
         sources.append(QgsVectorLayer(landcover_polygons))
         return sources
 
-    def createNotSupportedSources(self)->list:
-
+    def createNotSupportedSources(self) -> list:
         sources = []
         sources.append(__file__)
         return sources
 
+    @unittest.skipIf(EnMAPBoxTestCase.runsInCI(), 'blocking Dialog')
     def test_MDDialog(self):
         from enmapbox.exampledata import hires
-
 
         layers = [TestObjects.createRasterLayer(nb=30),
                   TestObjects.createVectorLayer(),
@@ -96,6 +91,4 @@ class TestMDMetadataKeys(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-

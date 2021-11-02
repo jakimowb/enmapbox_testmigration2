@@ -1831,14 +1831,16 @@ class EnMAPBox(QgisInterface, QObject):
         Removes all sources available if `dataSourceList` remains unspecified.
         :param dataSourceList:[list-of-data-sources]
         """
-        self.mDataSourceManager.removeSources(dataSourceList)
+        if dataSourceList is None:
+            dataSourceList = self.mDataSourceManager.dataSources()
+        self.mDataSourceManager.removeDataSources(dataSourceList)
 
     def removeSource(self, source):
         """
         Removes a single datasource
         :param source: DataSource or str
         """
-        self.mDataSourceManager.removeSource(source)
+        self.mDataSourceManager.removeDataSources(source)
 
     def menu(self, title) -> QMenu:
         """

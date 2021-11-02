@@ -97,7 +97,7 @@ pipelines:
             #- cp .coveragec deploy/enmapboxplugin
             #- cd deploy/enmapboxplugin
 
-            - set +e # remove or set -e to exit at first error
+            #- set +e # remove or set -e to exit at first error
             # run scripts/createruntests.py to generate the following lines
             - python3 -m coverage run --rcfile=.coveragec   tests/src/coreapps/test_enmapboxapplications.py
             - python3 -m coverage run --rcfile=.coveragec --append  tests/src/coreapps/test_imagecube.py
