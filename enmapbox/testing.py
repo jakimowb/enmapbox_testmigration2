@@ -30,7 +30,6 @@ import importlib
 import uuid
 import warnings
 import pathlib
-import sip
 from qgis.core import QgsApplication, QgsProcessingAlgorithm, \
     QgsProcessingParameterRasterDestination, QgsProcessingParameterNumber, \
     QgsProcessingContext, QgsProcessingFeedback, QgsProcessingParameterRasterLayer, \
@@ -95,12 +94,6 @@ class EnMAPBoxTestCase(TestCase):
 
         import enmapbox
         enmapbox.initAll()
-
-        s = ""
-
-    def testDataDir(self) -> pathlib.Path:
-        from enmapbox import DIR_REPO
-        return pathlib.Path(DIR_REPO) / 'tests' / 'testdata'
 
     def tempDir(self, subdir: str = None, cleanup: bool = False) -> pathlib.Path:
         """
