@@ -141,6 +141,8 @@ class TestReclassify(EnMAPBoxTestCase):
     def test_transformation_table(self):
 
         tv = ReclassifyTableView()
+        self.assertIsInstance(tv, QTableView)
+
         model = ReclassifyTableModel()
         pm = QSortFilterProxyModel()
         pm.setSourceModel(model)
