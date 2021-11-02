@@ -1,13 +1,20 @@
 import unittest
 import xmlrunner
+import pathlib
+import site
 import os
 import numpy as np
 from osgeo import gdal, gdal_array, osr
 from qgis.core import QgsRasterLayer, QgsProject, QgsRasterRenderer, QgsRectangle, QgsCoordinateReferenceSystem
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-from imagecubeapp.imagecube import samplingGrid, ImageCubeRenderJob, ImageCubeWidget, GLItem
 from enmapbox.exampledata import enmap as pathEnMAP
 from enmapbox.exampledata import hires as pathHyMap
+from enmapbox import initPythonPaths
+
+initPythonPaths()
+
+from imagecubeapp.imagecube import samplingGrid, ImageCubeRenderJob, ImageCubeWidget, GLItem
+
 
 class VTest(EnMAPBoxTestCase):
 
@@ -194,5 +201,4 @@ class VTest(EnMAPBoxTestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

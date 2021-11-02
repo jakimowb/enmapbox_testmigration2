@@ -94,7 +94,6 @@ except ModuleNotFoundError as ex:
 __version__ = '3.9'  # subsub-version information is added during build process
 __version_exampledata__ = '3.9'  # https://bitbucket.org/hu-geomatics/enmap-box/downloads/exampledata.3.9.zip; note that the exampledata folder is part of the repo, but will be removed from the plugin ZIP
 
-
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
 ISSUE_TRACKER = 'https://bitbucket.org/hu-geomatics/enmap-box/issues'
@@ -170,7 +169,7 @@ except:
     pSrc = pathlib.Path(DIR_ENMAPBOX) / 'externals' / 'qps' / 'externals'
     assert pSrc.is_dir()
     site.addsitedir(pSrc)
-    #import pyqtgraph
+    # import pyqtgraph
 
 
 def icon() -> QIcon:
@@ -187,7 +186,7 @@ def debugLog(msg: str):
         print('DEBUG:' + msg, flush=True)
 
 
-def messageLog(msg, level=Qgis.Info, notifyUser:bool = True):
+def messageLog(msg, level=Qgis.Info, notifyUser: bool = True):
     """
     Writes a log message to the QGIS EnMAP-Box Log
     :param msg: log message string
@@ -222,6 +221,17 @@ def scantree(path, ending: str = '') -> pathlib.Path:
         else:
             if entry.path.endswith(ending):
                 yield pathlib.Path(entry.path)
+
+
+def initPythonPaths():
+    """
+    Adds EnMAP-Box internal paths to PYTHONPATH
+    Can be used e.g. in unit-tests to ensure that sub-packages are imported right
+    """
+    ROOT = pathlib.Path(__file__).parent
+    site.addsitedir(ROOT / 'site-packages')
+    site.addsitedir(ROOT / 'apps')
+    site.addsitedir(ROOT / 'coreapps')
 
 
 def initEnMAPBoxResources():
@@ -388,6 +398,7 @@ def initAll():
     from .externals.qps import registerSpectralProfileSamplingModes
     registerSpectralProfileSamplingModes()
 
+
 def unloadAll():
     """
     Reomves all registered factories etc.
@@ -427,10 +438,13 @@ def run():
 # print(f'QGIS_PREFIX_PATH={QgsApplication.prefixPath()}')
 if not os.environ.get('READTHEDOCS', False) in [True, 'True']:
     from enmapbox import initEnMAPBoxResources
+
     initEnMAPBoxResources()
 
     from enmapbox.gui.enmapboxgui import EnMAPBox
+
     EnMAPBox = EnMAPBox
 
     from enmapbox.gui.applications import EnMAPBoxApplication
+
     EnMAPBoxApplication = EnMAPBoxApplication
