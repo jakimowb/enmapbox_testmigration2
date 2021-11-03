@@ -91,8 +91,8 @@ except ModuleNotFoundError as ex:
 
             print(ex)
 
-__version__ = '3.9'  # subsub-version information is added during build process
-__version_exampledata__ = '3.9'  # https://bitbucket.org/hu-geomatics/enmap-box/downloads/exampledata.3.9.zip; note that the exampledata folder is part of the repo, but will be removed from the plugin ZIP
+__version__ = '3.10'  # subsub-version information is added during build process
+__version_exampledata__ = '3.9'  # still use 3.9 data; note that the exampledata folder is part of the repo, but will be removed from the plugin ZIP
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'
 REPOSITORY = 'https://bitbucket.org/hu-geomatics/enmap-box.git'
