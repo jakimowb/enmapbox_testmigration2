@@ -21,7 +21,7 @@ import os
 import pathlib
 import sys
 import re
-import mock
+from unittest.mock import Mock
 import numpy as np
 
 if True:
@@ -32,7 +32,7 @@ if True:
                     'processing', 'processing.core', 'processing.core.ProcessingConfig']
 
     for mod_name in MOCK_MODULES:
-        sys.modules[mod_name] = mock.Mock()
+        sys.modules[mod_name] = Mock()
 
 # Install and execute git-lfs
 sys.path.insert(0, os.path.abspath('.'))
