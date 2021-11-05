@@ -50,6 +50,6 @@ qgsApp = start_app()
 initAll()
 
 enmapBox = EnMAPBox(None)
-enmapBox.dropObject(layer)
+enmapBox._dropObject(layer)
 
 qgsApp.exec_()

@@ -1569,7 +1569,7 @@ class EnMAPBox(QgisInterface, QObject):
             else:
                 raise TypeError(f'unexpected data item: {dataItem} ({type(dataItem)})')
 
-    def dropObject(self, obj: Any):
+    def _dropObject(self, obj: Any):
         """Drop any object into the EnMAP-Box. Hopefully we can figure out what to do with it :-)"""
         self.onDataDropped([obj])
 

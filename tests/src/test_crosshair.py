@@ -17,7 +17,7 @@ from qgis.core import QgsRasterLayer, QgsProject
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 from enmapbox.testing import EnMAPBoxTestCase
-from enmapbox.exampledata import enmap, hires, library
+from enmapbox.exampledata import enmap, hires, library_gpkg
 from enmapbox.gui.mapcanvas import *
 from enmapbox.gui import CrosshairDialog
 
