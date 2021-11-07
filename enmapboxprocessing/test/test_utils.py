@@ -58,3 +58,6 @@ class TestUtils(TestCase):
         categories, valueLookup = Utils.prepareCategories([Category('name', 'A', '#000000')], valuesToInt=True)
         self.assertEqual([Category(1, 'A', '#000000')], categories)
         self.assertEqual({'name': 1}, valueLookup)
+
+    def test_wavelengthUnitsConversionFactor(self):
+        self.assertEqual(1000, Utils.wavelengthUnitsConversionFactor('m', 'mm'))

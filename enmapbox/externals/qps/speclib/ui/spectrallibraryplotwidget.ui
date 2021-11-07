@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>627</width>
+    <width>744</width>
     <height>541</height>
    </rect>
   </property>
@@ -101,6 +101,80 @@ QSplitter::handle:vertical {
         </layout>
        </item>
        <item>
+        <widget class="QgsCollapsibleGroupBox" name="mGroupBox">
+         <property name="title">
+          <string>Renderer Bands</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout">
+              <item>
+               <widget class="QLabel" name="label_5">
+                <property name="text">
+                 <string>Layer</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QgsMapLayerComboBox" name="mRendererBandsLayer">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>1</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="currentIndex">
+                 <number>-1</number>
+                </property>
+                <property name="allowEmptyLayer">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QFormLayout" name="mRendererBandsLayout">
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_2">
+                <property name="text">
+                 <string>Red band</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QgsRasterBandComboBox" name="mRendererRedBand"/>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_3">
+                <property name="text">
+                 <string>Green band</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QgsRasterBandComboBox" name="mRendererGreenBand"/>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="label_4">
+                <property name="text">
+                 <string>Blue band</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QgsRasterBandComboBox" name="mRendererBlueBand"/>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <layout class="QHBoxLayout" name="visButtonLayout">
          <property name="spacing">
           <number>2</number>
@@ -114,7 +188,7 @@ QSplitter::handle:vertical {
             <string>+VIS</string>
            </property>
            <property name="icon">
-            <iconset resource="../../../../QGIS/images/images.qrc">
+            <iconset>
              <normaloff>:/images/themes/default/mActionAdd.svg</normaloff>:/images/themes/default/mActionAdd.svg</iconset>
            </property>
            <property name="autoRaise">
@@ -128,7 +202,7 @@ QSplitter::handle:vertical {
             <string>-VIS</string>
            </property>
            <property name="icon">
-            <iconset resource="../../../../QGIS/images/images.qrc">
+            <iconset>
              <normaloff>:/images/themes/default/mActionRemove.svg</normaloff>:/images/themes/default/mActionRemove.svg</iconset>
            </property>
            <property name="autoRaise">
@@ -142,7 +216,7 @@ QSplitter::handle:vertical {
             <string>...</string>
            </property>
            <property name="icon">
-            <iconset resource="../../../../QGIS/images/images.qrc">
+            <iconset>
              <normaloff>:/images/themes/default/mActionShowSelectedLayers.svg</normaloff>:/images/themes/default/mActionShowSelectedLayers.svg</iconset>
            </property>
            <property name="autoRaise">
@@ -254,7 +328,7 @@ QSplitter::handle:vertical {
   </layout>
   <action name="actionAddProfileVis">
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionAdd.svg</normaloff>:/images/themes/default/mActionAdd.svg</iconset>
    </property>
    <property name="text">
@@ -266,7 +340,7 @@ QSplitter::handle:vertical {
   </action>
   <action name="actionRemoveProfileVis">
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionRemove.svg</normaloff>:/images/themes/default/mActionRemove.svg</iconset>
    </property>
    <property name="text">
@@ -281,7 +355,7 @@ QSplitter::handle:vertical {
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionShowSelectedLayers.svg</normaloff>:/images/themes/default/mActionShowSelectedLayers.svg</iconset>
    </property>
    <property name="text">
@@ -311,7 +385,7 @@ QSplitter::handle:vertical {
   </action>
   <action name="optionCursorCrosshair">
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/cursors/mCrossHair.svg</normaloff>:/images/themes/default/cursors/mCrossHair.svg</iconset>
    </property>
    <property name="text">
@@ -349,7 +423,7 @@ QSplitter::handle:vertical {
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/legend.svg</normaloff>:/images/themes/default/legend.svg</iconset>
    </property>
    <property name="text">
@@ -362,9 +436,25 @@ QSplitter::handle:vertical {
  </widget>
  <customwidgets>
   <customwidget>
+   <class>QgsCollapsibleGroupBox</class>
+   <extends>QGroupBox</extends>
+   <header>qgscollapsiblegroupbox.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>QgsFilterLineEdit</class>
    <extends>QLineEdit</extends>
    <header>qgsfilterlineedit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsMapLayerComboBox</class>
+   <extends>QComboBox</extends>
+   <header>qgsmaplayercombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsRasterBandComboBox</class>
+   <extends>QComboBox</extends>
+   <header>qgsrasterbandcombobox.h</header>
   </customwidget>
   <customwidget>
    <class>SpectralProfilePlotWidget</class>
@@ -378,8 +468,56 @@ QSplitter::handle:vertical {
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../../../QGIS/images/images.qrc"/>
   <include location="../../qpsresources.qrc"/>
  </resources>
- <connections/>
+ <connections>
+  <connection>
+   <sender>mRendererBandsLayer</sender>
+   <signal>layerChanged(QgsMapLayer*)</signal>
+   <receiver>mRendererRedBand</receiver>
+   <slot>setLayer(QgsMapLayer*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>616</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>636</x>
+     <y>91</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>mRendererBandsLayer</sender>
+   <signal>layerChanged(QgsMapLayer*)</signal>
+   <receiver>mRendererGreenBand</receiver>
+   <slot>setLayer(QgsMapLayer*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>664</x>
+     <y>56</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>678</x>
+     <y>114</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>mRendererBandsLayer</sender>
+   <signal>layerChanged(QgsMapLayer*)</signal>
+   <receiver>mRendererBlueBand</receiver>
+   <slot>setLayer(QgsMapLayer*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>697</x>
+     <y>57</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>701</x>
+     <y>134</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
