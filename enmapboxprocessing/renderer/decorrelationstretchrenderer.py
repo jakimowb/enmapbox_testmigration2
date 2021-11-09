@@ -151,12 +151,12 @@ class DecorrelationStretchRendererWidget(QMainWindow):
             extent = self.layer.extent()
         elif self.mExtent.currentIndex() == CurrentCanvasExtent:
             if self.layer.crs() == self.mapCanvas.mapSettings().destinationCrs():
+                extent: QgsRectangle = self.mapCanvas.extent()
+            else:
                 transform = QgsCoordinateTransform(
                     self.layer.crs(), self.mapCanvas.mapSettings().destinationCrs(), QgsProject.instance()
                 )
                 extent: QgsRectangle = transform.transformBoundingBox(self.mapCanvas.extent())
-            else:
-                extent: QgsRectangle = self.mapCanvas.extent()
             extent.intersect(self.layer.extent())
         else:
             assert 0
