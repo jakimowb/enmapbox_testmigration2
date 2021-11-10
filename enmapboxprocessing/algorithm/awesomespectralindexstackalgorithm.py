@@ -97,10 +97,15 @@ class AwesomeSpectralIndexStackAlgorithm(EnMAPProcessingAlgorithm):
             # create stack
             ds = gdal.BuildVRT(filename, filenames, separate=True)
             writer = RasterWriter(ds)
+            domain = AwesomeSpectralIndexAlgorithm.Domain
             for bandNo, ifilename in enumerate(filenames, 1):
-                bandName = RasterReader(ifilename).bandName(1)
+                reader = RasterReader(ifilename)
+                metadata = reader.metadataDomain(domain, 1)
+                bandName = reader.bandName(1)
                 writer.setBandName(bandName, bandNo)
+                writer.setMetadataDomain(metadata, domain, bandNo)
             writer = None
+            ds = None
 
             result = {self.P_OUTPUT_VRT: filename}
 

@@ -1,11 +1,13 @@
 from typing import Dict, Any, List, Tuple, Optional
 
+from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsRasterBandStats,
                         QgsRasterLayer)
 
 from enmapboxprocessing.algorithm.vrtbandmathalgorithm import VrtBandMathAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
+from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
@@ -16,6 +18,7 @@ class AwesomeSpectralIndexAlgorithm(EnMAPProcessingAlgorithm):
     P_INDEX, _INDEX = 'index', 'Index'
     P_SCALE, _SCALE = 'scale', 'Scale factor'
     P_OUTPUT_VRT, _OUTPUT_VRT = 'outputVrt', 'Output VRT layer'
+    Domain = 'AwesomeSpectralIndices'
 
     linkAwesomeSpectralIndices = EnMAPProcessingAlgorithm.htmlLink(
         'https://awesome-ee-spectral-indices.readthedocs.io/en/latest/list.html',
@@ -94,8 +97,17 @@ class AwesomeSpectralIndexAlgorithm(EnMAPProcessingAlgorithm):
                 alg.P_OUTPUT_VRT: filename
             }
             self.runAlg(alg, parameters, None, feedback2, context, True)
-            result = {self.P_OUTPUT_VRT: filename}
 
+            # set metadata
+            ds = gdal.Open(filename)
+            writer = RasterWriter(ds)
+            for key in ['bands', 'contributor', 'date_of_addition']:  # skip that items
+                index[key] = None
+            writer.setMetadataDomain(index, self.Domain, 1)
+            writer = None
+            ds = None
+
+            result = {self.P_OUTPUT_VRT: filename}
             self.toc(feedback, result)
 
         return result
