@@ -85,8 +85,9 @@ class RasterWriter(object):
         for domain, metadata_ in metadata.items():
             self.setMetadataDomain(metadata_, domain, bandNo)
 
-    def setBandName(self, bandName: str, bandNo: int):
-        self.gdalBand(bandNo).SetDescription(bandName)
+    def setBandName(self, bandName: Optional[str], bandNo: int):
+        if bandName is not None:
+            self.gdalBand(bandNo).SetDescription(bandName)
 
     def setCategoryNames(self, names: List[str] = None, bandNo: int = None):
         if bandNo is None:

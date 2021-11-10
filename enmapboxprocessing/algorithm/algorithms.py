@@ -233,7 +233,8 @@ def algorithms():
         SpectralResamplingToSentinel2Algorithm(),
         # SynthMixAlgorithm(),  # not ready for v3.9
         TranslateCategorizedRasterAlgorithm(),
-        TranslateRasterAlgorithm()
+        TranslateRasterAlgorithm(),
+        VrtBandMathAlgorithm()
     ]
 
     return algos
