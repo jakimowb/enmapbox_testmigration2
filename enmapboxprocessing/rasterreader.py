@@ -1,4 +1,4 @@
-from math import isnan
+from math import isnan, nan
 from typing import Iterable, List, Union, Optional
 
 import numpy as np
@@ -277,12 +277,17 @@ class RasterReader(object):
                 return bandNo
         raise ValueError(f'unknown band name: {bandName}')
 
-    def findWavelength(self, wavelength: Optional[float]) -> Optional[int]:
+    def findWavelength(self, wavelength: Optional[float], units: str = None) -> Optional[int]:
+        if wavelength is None:
+            return None
+        if units is not None:
+            wavelength = wavelength * Utils.wavelengthUnitsConversionFactor(units, 'nm')
+
         bandNos = list()
         distances = list()
         for bandNo in range(1, self.bandCount() + 1):
             wavelength_ = self.wavelength(bandNo)
-            if wavelength is None:
+            if wavelength_ is None:
                 continue
             bandNos.append(bandNo)
             distances.append(abs(wavelength_ - wavelength))
@@ -309,6 +314,8 @@ class RasterReader(object):
 
     def wavelength(self, bandNo: int, units: str = None) -> Optional[float]:
         """Return band center wavelength in nanometers. Optionally, specify destination units."""
+        if units is None:
+            units = self.Nanometers
         wavelength = self.metadataItem('wavelength', '', bandNo)
         if wavelength is None:
             wavelengths = self.metadataItem('wavelength', 'ENVI')
@@ -320,24 +327,8 @@ class RasterReader(object):
         else:
             wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
 
-        # convert to nanometers
-        if wavelength_units.lower() in ['micrometers', 'um']:
-            scale = 1000.
-        elif wavelength_units.lower() in ['nanometers', 'nm']:
-            scale = 1.
-        else:
-            raise ValueError(f'unsupported wavelength units: {wavelength_units}')
-        wavelength = float(wavelength) * scale
-
         # convert to destination units
-        if units is not None:
-            if units.lower() in ['micrometers', 'um']:
-                scale = 1 / 1000.
-            elif units.lower() in ['nanometers', 'nm']:
-                scale = 1.
-            else:
-                raise ValueError(f'unsupported wavelength units: {units}')
-            wavelength *= scale
+        wavelength = Utils.wavelengthUnitsConversionFactor(wavelength_units, units) * float(wavelength)
 
         return wavelength
 
@@ -354,24 +345,8 @@ class RasterReader(object):
         else:
             wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
 
-        # convert to nanometers
-        if wavelength_units.lower() in ['micrometers', 'um']:
-            scale = 1000.
-        elif wavelength_units.lower() in ['nanometers', 'nm']:
-            scale = 1.
-        else:
-            raise ValueError(f'unsupported wavelength units: {wavelength_units}')
-        fwhm = float(fwhm) * scale
-
         # convert to destination units
-        if units is not None:
-            if units.lower() in ['micrometers', 'um']:
-                scale = 1 / 1000.
-            elif units.lower() in ['nanometers', 'nm']:
-                scale = 1.
-            else:
-                raise ValueError(f'unsupported wavelength units: {units}')
-            fwhm *= scale
+        fwhm = Utils.wavelengthUnitsConversionFactor(wavelength_units, units) * float(fwhm)
 
         return fwhm
 

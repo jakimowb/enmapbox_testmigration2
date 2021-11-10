@@ -442,3 +442,22 @@ class Utils(object):
             return '_'
 
         return ''.join([sub(c) for c in string])
+
+    @classmethod
+    def wavelengthUnitsShortNames(cls, units: str) -> str:
+        if units.lower() in ['nm', 'nanometers']:
+            return 'nm'
+        elif units.lower() in ['μm', 'um', 'micrometers']:
+            return 'μm'
+        elif units.lower() in ['mm', 'millimeters']:
+            return 'mm'
+        elif units.lower() in ['m', 'meters']:
+            return 'm'
+        else:
+            raise ValueError(f'unknown wavelength unit: {units}')
+
+    @classmethod
+    def wavelengthUnitsConversionFactor(cls, srcUnits: str, dstUnits: str) -> float:
+        toNanometers = {'nm': 1., 'μm': 1e3, 'um': 1e3, 'mm': 1e6, 'm': 1e9}[cls.wavelengthUnitsShortNames(srcUnits)]
+        toDstUnits = {'nm': 1., 'μm': 1e-3, 'um': 1e-3, 'mm': 1e-6, 'm': 1e-9}[cls.wavelengthUnitsShortNames(dstUnits)]
+        return toNanometers * toDstUnits
