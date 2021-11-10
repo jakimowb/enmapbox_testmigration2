@@ -1,5 +1,7 @@
 from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
 from enmapboxprocessing.algorithm.applymaskalgorithm import ApplyMaskAlgorithm
+from enmapboxprocessing.algorithm.awesomespectralindexalgorithm import AwesomeSpectralIndexAlgorithm
+from enmapboxprocessing.algorithm.awesomespectralindexstackalgorithm import AwesomeSpectralIndexStackAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import \
@@ -131,12 +133,15 @@ from enmapboxprocessing.algorithm.spectralresamplingtosentinel2algorithm import 
 from enmapboxprocessing.algorithm.synthmixalgorithm import SynthMixAlgorithm
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
+from enmapboxprocessing.algorithm.vrtbandmathalgorithm import VrtBandMathAlgorithm
 
 
 def algorithms():
     algos = [
         AppendEnviHeaderToGTiffRasterAlgorithm(),
         ApplyMaskAlgorithm(),
+        AwesomeSpectralIndexAlgorithm(),
+        AwesomeSpectralIndexStackAlgorithm(),
         ClassificationPerformanceSimpleAlgorithm(),
         ClassificationPerformanceStratifiedAlgorithm(),
         ClassificationToFractionAlgorithm(),
