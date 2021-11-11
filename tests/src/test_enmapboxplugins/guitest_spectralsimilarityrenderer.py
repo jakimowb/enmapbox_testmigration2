@@ -5,7 +5,7 @@ from enmapbox import EnMAPBox, initAll
 from enmapbox.exampledata import enmap
 from enmapbox.testing import start_app
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.renderer.spectralsimilarityrenderer import SpectralSimilarityRenderer
+from enmapboxplugins.mapviewplugins.spectralsimilarityrenderer import SpectralSimilarityRenderer
 
 layer = QgsRasterLayer(enmap)
 reader = RasterReader(layer)

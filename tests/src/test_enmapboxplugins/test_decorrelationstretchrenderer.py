@@ -5,7 +5,7 @@ from sklearn.preprocessing import RobustScaler, MinMaxScaler
 
 from enmapbox.exampledata import enmap
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.renderer.decorrelationstretchrenderer import DecorrelationStretchRenderer
+from enmapboxplugins.mapviewplugins.decorrelationstretchrenderer import DecorrelationStretchRenderer
 from enmapboxprocessing.test.testcase import TestCase
 from enmapboxprocessing.utils import Utils
 

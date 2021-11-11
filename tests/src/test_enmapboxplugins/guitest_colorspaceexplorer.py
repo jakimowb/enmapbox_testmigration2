@@ -1,10 +1,8 @@
 from qgis._core import QgsRasterLayer
-import numpy as np
 
 from enmapbox.exampledata import enmap
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.renderer.colorspaceexplorer import ColorSpaceExplorerWidget
-from enmapboxprocessing.renderer.decorrelationstretchrenderer import DecorrelationStretchRenderer
+from enmapboxplugins.mapviewplugins.colorspaceexplorer import ColorSpaceExplorerWidget
 from enmapbox import EnMAPBox, initAll
 from enmapbox.testing import start_app
 

@@ -2,18 +2,19 @@ import traceback
 from copy import deepcopy
 from os.path import splitext
 from random import randint
-from typing import List
+from typing import List, Tuple, Generator
 
 import numpy as np
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QMouseEvent
 from PyQt5.QtWidgets import QWidget, QToolButton, QTreeWidget, QTreeWidgetItem, QLineEdit, QCheckBox, \
-    QApplication, QMessageBox, QMainWindow
+    QApplication, QMessageBox, QMainWindow, QSpinBox
 from PyQt5.uic import loadUi
 from qgis._core import QgsRasterRenderer, QgsRasterInterface, QgsRectangle, QgsRasterBlockFeedback, QgsRasterBlock, \
-    Qgis, QgsRasterLayer
-from qgis._gui import QgsRasterBandComboBox, QgsColorButton
+    Qgis, QgsRasterLayer, QgsRasterDataProvider, QgsRasterHistogram
+from qgis._gui import QgsRasterBandComboBox, QgsColorButton, QgsMapCanvas
 
+from enmapbox.externals.qps.externals.pyqtgraph.widgets.PlotWidget import PlotWidget, PlotItem
 from enmapbox.externals.qps.layerproperties import rendererFromXml
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.typing import Categories, Category
@@ -82,6 +83,8 @@ class ClassFractionRendererWidget(QMainWindow):
     mDeleteAll: QToolButton
     mPasteStyle: QToolButton
     mLiveUpdate: QCheckBox
+    mMin: QSpinBox
+    mMax: QSpinBox
 
     mOk: QToolButton
     mCancel: QToolButton
@@ -89,10 +92,11 @@ class ClassFractionRendererWidget(QMainWindow):
     mSaveStyle: QToolButton
     mLoadStyle: QToolButton
 
-    def __init__(self, layer: QgsRasterLayer, parent=None):
+    def __init__(self, layer: QgsRasterLayer, mapCanvas: QgsMapCanvas, parent=None):
         QWidget.__init__(self, parent)
         loadUi(__file__.replace('.py', '.ui'), self)
         self.layer = layer
+        self.mapCanvas = mapCanvas
         self.rendererBackup = layer.renderer().clone()
 
         self.mAdd.clicked.connect(lambda: self.addItem())
@@ -106,6 +110,11 @@ class ClassFractionRendererWidget(QMainWindow):
         self.mApply.clicked.connect(self.onApplyClicked)
         self.mSaveStyle.clicked.connect(self.onSaveStyleClicked)
         self.mLoadStyle.clicked.connect(self.onLoadStyleClicked)
+
+        self.mMin.valueChanged.connect(self.onMapCanvasExtentsChanged)
+        self.mMax.valueChanged.connect(self.onMapCanvasExtentsChanged)
+
+        self.mapCanvas.extentsChanged.connect(self.onMapCanvasExtentsChanged)
 
         self.restoreRenderer(self.rendererBackup)
 
@@ -173,6 +182,10 @@ class ClassFractionRendererWidget(QMainWindow):
         labelWidget.setFrame(False)
         self.mTree.setItemWidget(item, 3, labelWidget)
 
+        plotWidget = HistogramPlotWidget()
+        plotWidget.setFixedHeight(40)
+        self.mTree.setItemWidget(item, 4, plotWidget)
+
         if liveUpdate:
             self.onLiveUpdate()
 
@@ -194,17 +207,22 @@ class ClassFractionRendererWidget(QMainWindow):
         self.mTree.clear()
         self.onLiveUpdate()
 
-    def currentCategories(self) -> Categories:
-        categories = list()
+    def currentItemValues(self):
         for i in range(self.mTree.topLevelItemCount()):
             item: QTreeWidgetItem = self.mTree.topLevelItem(i)
-            checkWidget: QCheckBox = self.mTree.itemWidget(item, 0)
-            if not checkWidget.isChecked():
+            checked: bool = self.mTree.itemWidget(item, 0).isChecked()
+            bandNo: int = self.mTree.itemWidget(item, 1).currentBand()
+            color: QColor = self.mTree.itemWidget(item, 2).color()
+            name: str = self.mTree.itemWidget(item, 3).text()
+            plotWidget: HistogramPlotWidget = self.mTree.itemWidget(item, 4)
+            yield checked, bandNo, color, name, plotWidget
+
+    def currentCategories(self) -> Categories:
+        categories = list()
+        for checked, bandNo, color, name, plotItem in self.currentItemValues():
+            if not checked:
                 continue
-            bandWidget: QgsRasterBandComboBox = self.mTree.itemWidget(item, 1)
-            colorWidget: QgsColorButton = self.mTree.itemWidget(item, 2)
-            labelWidget: QLineEdit = self.mTree.itemWidget(item, 3)
-            categories.append(Category(bandWidget.currentBand(), labelWidget.text(), colorWidget.color().name()))
+            categories.append(Category(bandNo, name, color.name()))
         return categories
 
     def currentRenderer(self) -> ClassFractionRenderer:
@@ -244,3 +262,47 @@ class ClassFractionRendererWidget(QMainWindow):
     def onLiveUpdate(self):
         if self.mLiveUpdate.isChecked():
             self.onApplyClicked()
+
+    def onMapCanvasExtentsChanged(self):
+        extent = Utils.layerExtentInMapCanvas(self.layer, self.mapCanvas)
+        for checked, bandNo, color, name, plotWidget in self.currentItemValues():
+            # clear current plot
+            plotWidget.clear()
+            plotWidget.getAxis('bottom').setPen('#000000')
+            plotWidget.getAxis('left').setPen('#000000')
+
+            # make new plot
+            if checked:
+                provider: QgsRasterDataProvider = self.layer.dataProvider()
+                minimum = self.mMin.value()
+                maximum = self.mMax.value()
+                binCount = maximum - minimum
+                rasterHistogram: QgsRasterHistogram = provider.histogram(
+                    bandNo, binCount, minimum / 100., maximum / 100., extent
+                )
+                y = rasterHistogram.histogramVector
+                x = range(binCount + 1)
+                plot = plotWidget.plot(x, y, stepMode='center', fillLevel=0, brush=color)
+                plot.setPen(color=color, width=1)
+                plotWidget.autoRange()
+
+
+@typechecked
+class HistogramPlotWidget(PlotWidget):
+    def __init__(self):
+        PlotWidget.__init__(self, parent=None, background='#ffffff')
+        # QGraphicsView.setMaximumHeight(10)
+        self.getPlotItem().hideAxis('bottom')
+        self.getPlotItem().hideAxis('left')
+        #self.getPlotItem().setXRange(0, 100, padding=0)
+        #self.getPlotItem().autoRange()
+
+    def mousePressEvent(self, ev):
+        self.autoRange()
+
+    def mouseMoveEvent(self, ev):
+        self.autoRange()
+
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        self.autoRange()
+        print(event.x(), event.y())
