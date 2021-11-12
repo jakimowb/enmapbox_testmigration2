@@ -1555,7 +1555,7 @@ class EnMAPBox(QgisInterface, QObject):
         contains_html = re.search(r'<(html|br|a|p/?>)', message) is not None
         self.addMessageBarTextBoxItem(line1, message, level=level, html=contains_html)
 
-    def onDataDropped(self, droppedData: Any, mapDock=None):
+    def onDataDropped(self, droppedData: Any, mapDock=None) -> MapDock:
         assert isinstance(droppedData, list)
         if mapDock is None:
             mapDock = self.createDock('MAP')
@@ -1568,10 +1568,11 @@ class EnMAPBox(QgisInterface, QObject):
                 mapDock.addLayers([dataItem])
             else:
                 raise TypeError(f'unexpected data item: {dataItem} ({type(dataItem)})')
+        return mapDock
 
-    def dropObject(self, obj: Any):
+    def _dropObject(self, obj: Any) -> MapDock:
         """Drop any object into the EnMAP-Box. Hopefully we can figure out what to do with it :-)"""
-        self.onDataDropped([obj])
+        return self.onDataDropped([obj])
 
     def openExampleData(self, mapWindows=0, testData: bool = False):
         """

@@ -1,8 +1,7 @@
-from PyQt5.QtGui import QColor
 from qgis._core import QgsRasterLayer, Qgis
 import numpy as np
 
-from enmapboxprocessing.renderer.classfractionrenderer import ClassFractionRenderer
+from enmapboxplugins.mapviewplugins.classfractionrenderer import ClassFractionRenderer
 from enmapboxprocessing.test.testcase import TestCase
 from enmapboxprocessing.utils import Utils
 from enmapboxtestdata import landcover_map_l3

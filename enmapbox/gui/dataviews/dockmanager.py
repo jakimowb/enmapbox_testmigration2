@@ -28,6 +28,7 @@ from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSi
 from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
 from qgis.PyQt.QtWidgets import QHeaderView, QMenu, QAbstractItemView, QApplication
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
+from qgis._core import QgsMultiBandColorRenderer
 from qgis.core import Qgis
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
     QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
@@ -56,6 +57,7 @@ from enmapbox.gui.mimedata import \
 from enmapbox.gui.utils import enmapboxUiPath
 from enmapbox.gui.utils import getDOMAttributes
 from enmapboxprocessing.renderer.classfractionrenderer import ClassFractionRendererWidget
+from enmapboxprocessing.renderer.colorspaceexplorer import ColorSpaceExplorerWidget
 from enmapboxprocessing.renderer.decorrelationstretchrenderer import DecorrelationStretchRendererWidget
 
 
@@ -1519,11 +1521,16 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
                     action: QAction = submenu.addAction('Class fraction/probability rendering')
                     action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
-                    action.triggered.connect(lambda: self.setClassFractionRenderer(lyr))
+                    action.triggered.connect(lambda: self.showClassFractionRendererDialog(lyr))
 
                     action: QAction = submenu.addAction('Decorrelation stretch rendering')
                     action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
-                    action.triggered.connect(lambda: self.setDecorrelationStretchRenderer(lyr, canvas))
+                    action.triggered.connect(lambda: self.showDecorrelationStretchRendererDialog(lyr, canvas))
+
+                    if isinstance(lyr.renderer(), QgsMultiBandColorRenderer):
+                        action: QAction = submenu.addAction('Color space explorer')
+                        action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
+                        action.triggered.connect(lambda: self.showColorSpaceExplorerDialog(lyr, canvas))
 
             if isinstance(lyr, QgsMapLayer):
                 action = menu.addAction('Layer properties')
@@ -1604,13 +1611,18 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             messageBar = emb.messageBar()
         showLayerPropertiesDialog(layer, canvas=canvas, messageBar=messageBar, modal=True, useQGISDialog=False)
 
-    def setClassFractionRenderer(self, layer: QgsRasterLayer):
+    def showClassFractionRendererDialog(self, layer: QgsRasterLayer):
         widget = ClassFractionRendererWidget(layer, parent=self.mDockTreeView)
         widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
         widget.show()
 
-    def setDecorrelationStretchRenderer(self, layer: QgsRasterLayer, canvas: QgsMapCanvas):
+    def showDecorrelationStretchRendererDialog(self, layer: QgsRasterLayer, canvas: QgsMapCanvas):
         widget = DecorrelationStretchRendererWidget(layer, canvas, parent=self.mDockTreeView)
+        widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
+        widget.show()
+
+    def showColorSpaceExplorerDialog(self, layer: QgsRasterLayer, canvas: QgsMapCanvas):
+        widget = ColorSpaceExplorerWidget(layer, canvas, parent=self.mDockTreeView)
         widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
         widget.show()
 

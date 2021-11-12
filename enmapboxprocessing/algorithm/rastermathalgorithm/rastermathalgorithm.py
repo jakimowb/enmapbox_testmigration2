@@ -70,18 +70,6 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                f'See the {self.linkRecipe} for detailed usage instructions.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
-        linkReader = self.htmlLink(
-            'https://bitbucket.org/hu-geomatics/enmap-box/src/develop/enmapboxprocessing/rasterreader.py',
-            'RasterReader'
-        )
-        linkWriter = self.htmlLink(
-            'https://bitbucket.org/hu-geomatics/enmap-box/src/develop/enmapboxprocessing/rasterwriter.py',
-            'RasterWriter'
-        )
-        linkFeedback = self.htmlLink(
-            'https://qgis.org/api/classQgsProcessingFeedback.html',
-            'feedback'
-        )
         return [
                    (self._CODE, 'The mathematical calculation to be performed on the selected input arrays.\n'
                                 'Select inputs in the available data sources section or '
@@ -271,16 +259,6 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             grid = RasterReader(grid)
             readers = {rasterName: RasterReader(raster) for rasterName, raster in rasters.items()}
             readers2 = {rasterName: RasterReader(raster) for rasterName, raster in rasters2.items()}
-
-            # We do not need alias anymore I guess. Make sure and delete this block.
-            # find alias identifiers and assign reader
-            # for line in code.splitlines():
-            #    if not line.startswith('#'):
-            #        continue
-            #    if ' is an alias for ' in line:
-            #        a, b = line.strip('# ').split(' is an alias for ')
-            #        readers[a] = readers[b]
-            #        readers2[a] = readers2[b]
 
             # init output raster layer
             writers = self.makeWriter(code, filename, grid, readers, readers2, feedback)

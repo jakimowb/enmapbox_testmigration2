@@ -44,7 +44,7 @@ This practical requires at least version of the EnMAPBox under QGIS 3.8.
 4. Data
 ---------
 
-Download data here: :download:`cubus_gamsberg.zip <../data/cubus_gamsberg.zip>`
+Download data here: :download:`cubus_gamsberg.zip <https://nextcloud.gfz-potsdam.de/s/MqdB3twcQHR5fCS>`
 The dataset contains a hyperspectral EO-1 Hyperion image showing the Gamsberg Mine prior to its opening.
 Figure 2 shows a standard layout for the .csv-file and the spectral library. 
 

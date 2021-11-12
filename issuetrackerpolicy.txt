@@ -1,0 +1,16 @@
+We use the tracker to ...
+
+1. plan releases via milestones, e.g. Milestone = "3.10 (Feature)"
+2. plan hotfixes via milestones, e.g. Milestone = "3.9 (Hotfix)";
+   if a bug can't be fixed, we set it "on-hold" and refere to it as a known-issue
+3. collect external feature requests:
+    - if we don't like it, we set the issue to "closed"
+    - if we like it:
+        - ... we may schedule it for the next release, e.g. Milestone = "3.10 (Feature)"
+        - ... we may schedule it for a "Future Release - Nice to have"
+    - if we aren't sure if we like it, let it sit
+4. internal feature requests are handled like external feature requests, but they have to be scheduled (we shouldn't fill up the tracker with our loose ideas of new features)
+
+Additional rules:
+
+1. If an issue is scheduled for a version, e.g Milestone = "<version> (Feature/Hotfix)", we also set an Assignee.
