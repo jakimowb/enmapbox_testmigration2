@@ -1,9 +1,8 @@
-from typing import Union, Optional
+from typing import Optional
 
 from qgis._core import QgsRasterLayer
 
 from enmapboxprocessing.algorithm.awesomespectralindicesalgorithm import AwesomeSpectralIndicesAlgorithm
-from enmapboxprocessing.rasterreader import RasterReader
 from typeguard import typechecked
 
 
