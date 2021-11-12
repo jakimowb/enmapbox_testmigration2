@@ -24,6 +24,7 @@ from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.gui.utils import *
 
 from enmapbox.exampledata import enmap
+from enmapbox.utils import findBroadBand
 
 
 class testClassUtils(EnMAPBoxTestCase):
@@ -130,6 +131,12 @@ class testClassUtils(EnMAPBoxTestCase):
         appendItemsToMenu(self.menuA, B)
 
         self.assertTrue(action in self.menuA.children())
+
+class TestEnmapboxUtils(EnMAPBoxTestCase):
+
+    def test_(self):
+        findBroadBand(QgsRasterLayer(enmap))
+
 
 
 if __name__ == "__main__":

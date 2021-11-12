@@ -1,6 +1,6 @@
 from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
 from enmapboxprocessing.algorithm.applymaskalgorithm import ApplyMaskAlgorithm
-from enmapboxprocessing.algorithm.awesomespectralindexalgorithm import AwesomeSpectralIndexAlgorithm
+from enmapboxprocessing.algorithm.awesomespectralindicesalgorithm import AwesomeSpectralIndicesAlgorithm
 from enmapboxprocessing.algorithm.awesomespectralindexstackalgorithm import AwesomeSpectralIndexStackAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
@@ -140,7 +140,7 @@ def algorithms():
     algos = [
         AppendEnviHeaderToGTiffRasterAlgorithm(),
         ApplyMaskAlgorithm(),
-        AwesomeSpectralIndexAlgorithm(),
+        AwesomeSpectralIndicesAlgorithm(),
         AwesomeSpectralIndexStackAlgorithm(),
         ClassificationPerformanceSimpleAlgorithm(),
         ClassificationPerformanceStratifiedAlgorithm(),

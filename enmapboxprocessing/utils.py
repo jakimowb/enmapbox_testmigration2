@@ -12,7 +12,9 @@ from osgeo import gdal
 from qgis._core import (QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRasterRenderer,
                         QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsRectangle, QgsRasterLayer,
                         QgsRasterDataProvider, QgsPointXY, QgsPoint, Qgis, QgsWkbTypes, QgsSymbol, QgsVectorLayer,
-                        QgsFeature, QgsRasterRenderer, QgsFeatureRenderer)
+                        QgsFeature, QgsRasterRenderer, QgsFeatureRenderer, QgsMapLayer, QgsCoordinateTransform,
+                        QgsProject)
+from qgis._gui import QgsMapCanvas
 
 from enmapboxprocessing.enmapalgorithm import AlgorithmCanceledException
 from enmapboxprocessing.typing import (NumpyDataType, MetadataValue, GdalDataType, QgisDataType,
@@ -461,3 +463,15 @@ class Utils(object):
         toNanometers = {'nm': 1., 'μm': 1e3, 'um': 1e3, 'mm': 1e6, 'm': 1e9}[cls.wavelengthUnitsShortNames(srcUnits)]
         toDstUnits = {'nm': 1., 'μm': 1e-3, 'um': 1e-3, 'mm': 1e-6, 'm': 1e-9}[cls.wavelengthUnitsShortNames(dstUnits)]
         return toNanometers * toDstUnits
+
+    @classmethod
+    def layerExtentInMapCanvas(cls, layer: QgsMapLayer, mapCanvas: QgsMapCanvas) -> QgsRectangle:
+        layerCrs = layer.crs()
+        mapCanvasCrs = mapCanvas.mapSettings().destinationCrs()
+
+        if layerCrs == mapCanvasCrs:
+            return mapCanvas.extent()
+        else:
+            transform = QgsCoordinateTransform(layerCrs, mapCanvasCrs, QgsProject.instance())
+            extent: QgsRectangle = transform.transformBoundingBox(mapCanvas.extent())
+            extent.intersect(layer.extent())

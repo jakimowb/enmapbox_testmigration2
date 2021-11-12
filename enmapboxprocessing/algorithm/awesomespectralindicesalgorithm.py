@@ -13,31 +13,70 @@ from typeguard import typechecked
 
 
 @typechecked
-class AwesomeSpectralIndexAlgorithm(EnMAPProcessingAlgorithm):
+class AwesomeSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
     P_RASTER, _RASTER = 'raster', 'Raster layer'
-    P_INDEX, _INDEX = 'index', 'Index'
+    P_INDICES, _INDICES = 'indices', 'Indices'
     P_SCALE, _SCALE = 'scale', 'Scale factor'
+
+    P_A, _A = 'A', 'Aerosols band'
+    P_B, _B = 'B', 'Blue band'
+    P_G, _G = 'G', 'Green band'
+    P_R, _R = 'R', 'Red band'
+    P_RE1, _RE1 = 'RE1', 'Red Edge 1 band'
+    P_RE2, _RE2 = 'RE2', 'Red Edge 2 band'
+    P_RE3, _RE3 = 'RE3', 'Red Edge 3 band'
+    P_RE4, _RE4 = 'RE4', 'Red Edge 4 band'
+    P_N, _N = 'N', 'NIR band'
+    P_S1, _S1 = 'S1', 'SWIR 1 band'
+    P_S2, _S2 = 'S2', 'SWIR 2 band'
+    P_T1, _T1 = 'T1', 'Thermal 1 band'
+    P_T2, _T2 = 'T2', 'Thermal 2 band'
+
+    P_L, _L = 'L', 'Canopy background adjustment'
+    P_g, _g = 'g', 'Gain factor'
+    P_C1, _C1 = 'C1', 'Coefficient 1 for the aerosol resistance term'
+    P_C2, _C2 = 'C2', 'Coefficient 2 for the aerosol resistance term'
+    P_cexp, _cexp = 'cexp', 'Exponent used for OCVI'
+    P_nexp, _nexp = 'nexp', 'Exponent used for GDVI'
+    P_alpha, _alpha = 'alpha', 'Weighting coefficient used for WDRVI'
+    P_gamma, _gamma = 'gamma', 'Weighting coefficient used for ARVI'
+    P_sla, _sla = 'sla', 'Soil line slope'
+    P_slb, _slb = 'slb', 'Soil line intercept'
+
     P_OUTPUT_VRT, _OUTPUT_VRT = 'outputVrt', 'Output VRT layer'
+
     Domain = 'AwesomeSpectralIndices'
+    WavebandMapping = {  # (<center wavelength>, <fwhm>)
+        'A': (443, 21), 'B': (492, 66), 'G': (560, 36), 'R': (665, 31), 'RE1': (704, 15), 'RE2': (741, 15),
+        'RE3': (783, 20), 'RE4': (865, 21), 'N': (833, 106), 'S1': (1614, 91), 'S2': (2202, 175), 'T1': (10895, 590),
+        'T2': (12005, 1010)}
+    ConstantMapping = {
+        'L': 1.0, 'g': 2.5, 'C1': 6.0, 'C2': 7.5, 'cexp': 1.16, 'nexp': 2.0, 'alpha': 0.1, 'gamma': 1.0, 'sla': 1.0,
+        'slb': 0.0
+    }
 
     linkAwesomeSpectralIndices = EnMAPProcessingAlgorithm.htmlLink(
         'https://awesome-ee-spectral-indices.readthedocs.io/en/latest/list.html',
         'Awesome Spectral Indices')
 
     def displayName(self) -> str:
-        return 'Awesome Spectral Indices (single)'
+        return 'Create Awesome Spectral Indices'
 
     def shortDescription(self) -> str:
-        return f'Create one of the {self.linkAwesomeSpectralIndices}.\n' \
-               f'Note that all spectral indices from that list are considered broad-band spectral indices. ' \
-               f'Narrow-band spectral indices are coerced to the closest broad-band spectrum.'
+        linkMaintainer = EnMAPProcessingAlgorithm.htmlLink('https://github.com/davemlz', 'David Montero Loaiza')
+        return f'Create a stack of {self.linkAwesomeSpectralIndices} and/or custom indices.\n' \
+               f'Credits: the Awesome Spectral Indices project provides a ready-to-use curated list ' \
+               f'of Spectral Indices for Remote Sensing applications, maintained by {linkMaintainer}.'
 
     def helpParameters(self) -> List[Tuple[str, str]]:
 
         return [
-            (self._RASTER, 'Input spectral raster layer.'),
-            (self._INDEX, 'The short name of the index to be created (e.g. NDVI). '
-                          f'See the full list of available {self.linkAwesomeSpectralIndices}.'),
+            (self._RASTER, 'A spectral raster layer.'),
+            (self._INDICES, 'The list of indices to be created. Usage examples:\n'
+                            'Create (predefined) NDVI: <code>NDVI</code>\n'
+                            'Create stack of NDVI and EVI: <code>NDVI, EVI</code>\n'
+                            'Create custom index: <code>MyNDVI = (N - R) / (N + R)</code>\n'
+                            f'See the full list of predefined  {self.linkAwesomeSpectralIndices}.'),
             (self._SCALE, 'Spectral reflectance scale factor. '
                           'Some indices (e.g. EVI) require data to be scaled into the 0 to 1 range. '
                           'If your data is scaled differently, specify an appropriate scale factor.'
@@ -48,6 +87,10 @@ class AwesomeSpectralIndexAlgorithm(EnMAPProcessingAlgorithm):
                           'a) if the mean value is between 1 and 100, use a scale factor of 100, '
                           'b) if the mean value is between 100 and 10000, use a scale factor of 10000, '
                           "c) else, don't scale the data."),
+            ('Aerosols band (A), ..., Thermal 2 band (T2)',
+             'The spectral band mapping from source raster bands to standardized bands used in the formulas.'),
+            ('Canopy background adjustment (L), ..., Soil line intercept (slb)',
+             'Standardized additional index parameters used in the formulas.'),
             (self._OUTPUT_VRT, 'VRT file destination.'),
         ]
 
@@ -56,7 +99,7 @@ class AwesomeSpectralIndexAlgorithm(EnMAPProcessingAlgorithm):
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_RASTER, self._RASTER)
-        self.addParameterString(self.P_INDEX, self._INDEX, 'NDVI', False)
+        self.addParameterString(self.P_INDICES, self._INDICES, 'NDVI', False)
         self.addParameterFloat(self.P_SCALE, self._SCALE, None, True)
         self.addParameterVrtDestination(self.P_OUTPUT_VRT, self._OUTPUT_VRT)
 
@@ -116,21 +159,6 @@ class AwesomeSpectralIndexAlgorithm(EnMAPProcessingAlgorithm):
             self, index: Dict, reader: RasterReader, scale: Optional[float], feedback: QgsProcessingFeedback
     ):
         short_name = index['short_name']
-        wavebandMapping = {
-            'A': 443, 'B': 492, 'G': 560, 'R': 665, 'RE1': 704, 'RE2': 741, 'RE3': 783, 'RE4': 865, 'N': 833,
-            'S1': 1614, 'S2': 2202, 'T1': 10895, 'T2': 12005}
-        constantMapping = {
-            'L': 1.0,  # Canopy background adjustment
-            'g': 2.5,  # Gain factor
-            'C1': 6.0,  # Coefficient 1 for the aerosol resistance term
-            'C2': 7.5,  # Coefficient 2 for the aerosol resistance term
-            'cexp': 1.16,  # Exponent used for OCVI
-            'nexp': 2.0,  # Exponent used for GDVI
-            'alpha': 0.1,  # Weighting coefficient used for WDRVI
-            'gamma': 1.0,  # Weighting coefficient used for ARVI
-            'sla': 1.0,  # Soil line slope
-            'slb': 0.0  # Soil line intercept
-        }
 
         if scale is None:
             stats: QgsRasterBandStats = reader.provider.bandStatistics(
@@ -148,9 +176,10 @@ class AwesomeSpectralIndexAlgorithm(EnMAPProcessingAlgorithm):
         bandNames = list()
         noDataValues = list()
         for name in index['bands']:
-            if name in constantMapping:
+            if name in self.ConstantMapping:
                 continue
-            wavelength = wavebandMapping[name]
+            wavelength, fwhm = self.WavebandMapping[name]
+            assert 0  # todo check FWHM
             bandNo = reader.findWavelength(wavelength)
             bandList.append(bandNo)
             bandNames.append(name)
@@ -162,8 +191,8 @@ class AwesomeSpectralIndexAlgorithm(EnMAPProcessingAlgorithm):
         # add constants
         extraNewLine = False
         for name in index['bands']:
-            if name in constantMapping:
-                code += f'{name} = {constantMapping[name]}\n'
+            if name in self.ConstantMapping:
+                code += f'{name} = {self.ConstantMapping[name]}\n'
                 extraNewLine = True
 
         # add ufunc
@@ -189,6 +218,18 @@ class AwesomeSpectralIndexAlgorithm(EnMAPProcessingAlgorithm):
         code += f'    out_ar[:] = {short_name}\n'
 
         return bandList, code
+
+    @classmethod
+    def findBroadBand(cls, raster: QgsRasterLayer, name: str, strict=False) -> Optional[int]:
+        reader = RasterReader(raster)
+        wavelength, fwhm = cls.WavebandMapping[name]
+        bandNo = reader.findWavelength(wavelength)
+        if bandNo is None:
+            return None
+        if strict:
+            if abs(wavelength - reader.wavelength(bandNo)) > (fwhm / 2):
+                return None
+        return bandNo
 
     @classmethod
     def loadIndices(cls) -> Dict:

@@ -19,7 +19,7 @@ from qgis.core import Qgis
 from enmapbox.externals.qps.layerproperties import defaultRasterRenderer
 from enmapbox.externals.qps.models import TreeModel, TreeView, TreeNode
 from enmapbox.externals.qps.utils import defaultBands, bandClosestToWavelength, loadUi, qgisAppQgisInterface
-from enmapboxprocessing.algorithm.awesomespectralindexalgorithm import AwesomeSpectralIndexAlgorithm
+
 from enmapboxprocessing.algorithm.awesomespectralindexstackalgorithm import AwesomeSpectralIndexStackAlgorithm
 from enmapboxprocessing.utils import Utils
 from .metadata import RasterBandTreeNode
@@ -398,7 +398,7 @@ class DataSourceManagerTreeView(TreeView):
                     subMenu2ByType = {name.lower(): subMenu.addMenu(f'Awesome Spectral Indices ({name})')
                                      for name in ['Vegetation', 'Burn', 'Water', 'Snow', 'Drought', 'Urban']}
                     subMenu2All = subMenu.addMenu('Awesome Spectral Indices (All)')
-                    indices = AwesomeSpectralIndexAlgorithm.loadIndices()['SpectralIndices']
+                    indices = AwesomeSpectralIndicesAlgorithm.loadIndices()['SpectralIndices']
                     for short_name in sorted(indices):
                         if indices[short_name]['type'] == 'kernel':
                             continue
@@ -557,7 +557,7 @@ class DataSourceManagerTreeView(TreeView):
         if short_name is not None:
             filename = join(gettempdir(), 'EnMAP-Box', 'AwesomeSpectralIndex',
                             f'{splitext(basename(source))[0]}.{short_name}.vrt')
-            alg = AwesomeSpectralIndexAlgorithm()
+            alg = AwesomeSpectralIndicesAlgorithm()
             alg.initAlgorithm()
             parameters = {
                 alg.P_RASTER: source,

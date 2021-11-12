@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Tuple
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsRasterLayer)
 
-from enmapboxprocessing.algorithm.awesomespectralindexalgorithm import AwesomeSpectralIndexAlgorithm
+from enmapboxprocessing.algorithm.awesomespectralindicesalgorithm import AwesomeSpectralIndicesAlgorithm
 from enmapboxprocessing.algorithm.vrtbandmathalgorithm import VrtBandMathAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
@@ -75,7 +75,7 @@ class AwesomeSpectralIndexStackAlgorithm(EnMAPProcessingAlgorithm):
             self.tic(feedback, parameters, context)
 
             # create all indices
-            indices = AwesomeSpectralIndexAlgorithm.loadIndices()['SpectralIndices']
+            indices = AwesomeSpectralIndicesAlgorithm.loadIndices()['SpectralIndices']
             filenames = list()
             n = len(indices)
             for i, short_name in enumerate(sorted(indices), 1):
@@ -84,7 +84,7 @@ class AwesomeSpectralIndexStackAlgorithm(EnMAPProcessingAlgorithm):
                 if type_name not in type_names:
                     continue
 
-                alg = AwesomeSpectralIndexAlgorithm()
+                alg = AwesomeSpectralIndicesAlgorithm()
                 parameters = {
                     alg.P_RASTER: raster,
                     alg.P_INDEX: short_name,
@@ -97,7 +97,7 @@ class AwesomeSpectralIndexStackAlgorithm(EnMAPProcessingAlgorithm):
             # create stack
             ds = gdal.BuildVRT(filename, filenames, separate=True)
             writer = RasterWriter(ds)
-            domain = AwesomeSpectralIndexAlgorithm.Domain
+            domain = AwesomeSpectralIndicesAlgorithm.Domain
             for bandNo, ifilename in enumerate(filenames, 1):
                 reader = RasterReader(ifilename)
                 metadata = reader.metadataDomain(domain, 1)

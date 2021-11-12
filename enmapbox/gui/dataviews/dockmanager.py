@@ -56,9 +56,9 @@ from enmapbox.gui.mimedata import \
     extractMapLayers, containsMapLayers, textToByteArray
 from enmapbox.gui.utils import enmapboxUiPath
 from enmapbox.gui.utils import getDOMAttributes
-from enmapboxprocessing.renderer.classfractionrenderer import ClassFractionRendererWidget
-from enmapboxprocessing.renderer.colorspaceexplorer import ColorSpaceExplorerWidget
-from enmapboxprocessing.renderer.decorrelationstretchrenderer import DecorrelationStretchRendererWidget
+from enmapboxplugins.classfractionrenderer import ClassFractionRendererWidget
+from enmapboxplugins.colorspaceexplorer import ColorSpaceExplorerWidget
+from enmapboxplugins.decorrelationstretchrenderer import DecorrelationStretchRendererWidget
 
 
 class LayerTreeNode(QgsLayerTree):
