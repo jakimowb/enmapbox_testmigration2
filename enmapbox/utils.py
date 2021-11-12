@@ -28,8 +28,6 @@ from enmapbox.gui.utils import file_search
 
 
 def bandNumber(raster: typing.Union[str, QgsRasterLayer], wavelength_region: str, strict: bool = False) -> int:
-    # todo: link-in functionality
-    pass
     """
     :param raster: raster image 
     :param wavelength_region: a string that specifies the wavelength regions, e.g. 'R', 'G', 'B' for Red, Green or Blue
@@ -39,3 +37,5 @@ def bandNumber(raster: typing.Union[str, QgsRasterLayer], wavelength_region: str
                  
     :return: int band number (1st band = 1) to be used e.g. in QgsRasterLayer
     """
+    # todo: link-in functionality
+    pass
