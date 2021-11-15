@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from typing import Dict, Any, List, Tuple, Optional
 
 from osgeo import gdal
@@ -13,7 +14,7 @@ from typeguard import typechecked
 
 
 @typechecked
-class AwesomeSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
+class CreateSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
     P_RASTER, _RASTER = 'raster', 'Raster layer'
     P_INDICES, _INDICES = 'indices', 'Indices'
     P_SCALE, _SCALE = 'scale', 'Scale factor'
@@ -45,7 +46,6 @@ class AwesomeSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
 
     P_OUTPUT_VRT, _OUTPUT_VRT = 'outputVrt', 'Output VRT layer'
 
-    Domain = 'AwesomeSpectralIndices'
     WavebandMapping = {  # (<center wavelength>, <fwhm>)
         'A': (443, 21), 'B': (492, 66), 'G': (560, 36), 'R': (665, 31), 'RE1': (704, 15), 'RE2': (741, 15),
         'RE3': (783, 20), 'RE4': (865, 21), 'N': (833, 106), 'S1': (1614, 91), 'S2': (2202, 175), 'T1': (10895, 590),
@@ -54,13 +54,14 @@ class AwesomeSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
         'L': 1.0, 'g': 2.5, 'C1': 6.0, 'C2': 7.5, 'cexp': 1.16, 'nexp': 2.0, 'alpha': 0.1, 'gamma': 1.0, 'sla': 1.0,
         'slb': 0.0
     }
+    IndexDatabase = Utils.jsonLoad(__file__.replace('.py', '.json'))['SpectralIndices']  # AwesomeSpectralIndices
 
     linkAwesomeSpectralIndices = EnMAPProcessingAlgorithm.htmlLink(
         'https://awesome-ee-spectral-indices.readthedocs.io/en/latest/list.html',
         'Awesome Spectral Indices')
 
     def displayName(self) -> str:
-        return 'Create Awesome Spectral Indices'
+        return 'Create spectral indices'
 
     def shortDescription(self) -> str:
         linkMaintainer = EnMAPProcessingAlgorithm.htmlLink('https://github.com/davemlz', 'David Montero Loaiza')
@@ -88,9 +89,10 @@ class AwesomeSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
                           'b) if the mean value is between 100 and 10000, use a scale factor of 10000, '
                           "c) else, don't scale the data."),
             ('Aerosols band (A), ..., Thermal 2 band (T2)',
-             'The spectral band mapping from source raster bands to standardized bands used in the formulas.'),
+             'The band mapping from source to standardized bands A, ..., T2 used in the formulas.\n'
+             'If the source raster has proper wavelength information, mapping is done automatically.'),
             ('Canopy background adjustment (L), ..., Soil line intercept (slb)',
-             'Standardized additional index parameters used in the formulas.'),
+             'Standardized additional index parameters L, ..., slb used in the formulas.'),
             (self._OUTPUT_VRT, 'VRT file destination.'),
         ]
 
@@ -99,16 +101,25 @@ class AwesomeSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
 
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterRasterLayer(self.P_RASTER, self._RASTER)
-        self.addParameterString(self.P_INDICES, self._INDICES, 'NDVI', False)
+        self.addParameterString(self.P_INDICES, self._INDICES, 'NDVI', True)
         self.addParameterFloat(self.P_SCALE, self._SCALE, None, True)
+        for name in self.WavebandMapping:
+            description = getattr(self, '_' + name)
+            self.addParameterBand(name, description, -1, self.P_RASTER, True, False, True)
+        for name in self.ConstantMapping:
+            description = getattr(self, '_' + name)
+            self.addParameterFloat(name, description, self.ConstantMapping[name], True, None, None, True)
         self.addParameterVrtDestination(self.P_OUTPUT_VRT, self._OUTPUT_VRT)
 
     def processAlgorithm(
             self, parameters: Dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> Dict[str, Any]:
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
-        name = self.parameterAsString(parameters, self.P_INDEX, context)
+        text = self.parameterAsString(parameters, self.P_INDICES, context)
+        text = ', '.join(text.splitlines())  # multiline to comma separated list
         scale = self.parameterAsFloat(parameters, self.P_SCALE, context)
+        if scale is None:
+            scale = self.findSpectralReflectanceScaleFactor(raster)
         filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_VRT, context)
 
         with open(filename + '.log', 'w') as logfile:
@@ -116,37 +127,73 @@ class AwesomeSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
             self.tic(feedback, parameters, context)
 
             reader = RasterReader(raster)
-            if not reader.isSpectralRasterLayer():
-                raise QgsProcessingException(f'not a spectral raster layer: {self._RASTER}')
 
-            # get index info
-            indices = self.loadIndices()
-            if not name in indices['SpectralIndices']:
-                raise QgsProcessingException(f'unknown index short name: {name}')
-            index = indices['SpectralIndices'][name]
+            # get band mapping
+            bandNos = dict()
+            for name in self.WavebandMapping:
+                bandNo = self.parameterAsInt(parameters, name, context)
+                if bandNo == -1:
+                    bandNo = self.findBroadBand(raster, name, True)
+                bandNos[name] = bandNo
 
-            feedback.pushInfo(f'Index found: {index}')
+            # eval requested indices
+            indices = OrderedDict()
+            for item in text.split(','):
 
-            bandList, code = self.deriveParameters(index, reader, scale, feedback)
+                if '=' in item:  # custom index
+                    short_name, formula = [s.strip() for s in item.split('=')]
+                    if short_name in self.IndexDatabase:
+                        raise QgsProcessingException(
+                            f'custom index name already exists in as predefined index: {short_name}'
+                        )
+                    # derive bands from formular
+                    formula_ = formula
+                    bands = list()
+                    for name in sorted(self.WavebandMapping.keys(), key=len, reverse=True):  # long names first!
+                        if name in formula_:
+                            bands.append(name)
+                            formula_ = formula_.replace(name, '')
+                    long_name = None
+                    bandName = short_name
+                else:  # predefined index
+                    short_name = item.strip()
+                    if not short_name in self.IndexDatabase:
+                        raise QgsProcessingException(f'unknown index: {short_name}')
+                    formula = self.IndexDatabase[short_name]['formula']
+                    bands = self.IndexDatabase[short_name]['bands']
+                    bands = [name for name in bands if name not in self.ConstantMapping]  # skip constants
+                    long_name = self.IndexDatabase[short_name]['long_name']
+                    bandName = short_name + ' - ' + long_name
 
-            alg = VrtBandMathAlgorithm()
-            parameters = {
-                alg.P_RASTER: raster,
-                alg.P_BAND_LIST: bandList,
-                alg.P_BAND_NAME: f'{index["short_name"]} - {index["long_name"]}',
-                alg.P_NODATA: -9999,
-                alg.P_DATA_TYPE: self.Float32,
-                alg.P_CODE: code,
-                alg.P_OUTPUT_VRT: filename
-            }
-            self.runAlg(alg, parameters, None, feedback2, context, True)
+                bandList = [bandNos[name] for name in bands]
+                code = self.deriveParameters(short_name, formula, bands, bandList, reader, scale)
+                indices[short_name] = long_name, formula, bandList, code, bandName
 
-            # set metadata
-            ds = gdal.Open(filename)
+            # build index VRTs
+            filenames = list()
+            metadatas = list()
+            for short_name, (long_name, formula, bandList, code, bandName) in indices.items():
+
+                alg = VrtBandMathAlgorithm()
+                parameters = {
+                    alg.P_RASTER: raster,
+                    alg.P_BAND_LIST: bandList,
+                    alg.P_BAND_NAME: bandName,
+                    alg.P_NODATA: -9999,
+                    alg.P_DATA_TYPE: self.Float32,
+                    alg.P_CODE: code,
+                    alg.P_OUTPUT_VRT: Utils.tmpFilename(filename, short_name + '.vrt')
+                }
+                result = self.runAlg(alg, parameters, None, feedback2, context, True)
+                filenames.append(result[alg.P_OUTPUT_VRT])
+                metadatas.append({'short_name': short_name, 'long_name': long_name, 'formula': formula})
+
+            # create stack VRT
+            ds = gdal.BuildVRT(filename, filenames, separate=True)
             writer = RasterWriter(ds)
-            for key in ['bands', 'contributor', 'date_of_addition']:  # skip that items
-                index[key] = None
-            writer.setMetadataDomain(index, self.Domain, 1)
+            for bandNo, (ifilename, metadata) in enumerate(zip(filenames, metadatas), 1):
+                writer.setBandName(metadata['short_name'], bandNo)
+                writer.setMetadataDomain(metadata, '', bandNo)
             writer = None
             ds = None
 
@@ -156,42 +203,19 @@ class AwesomeSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
         return result
 
     def deriveParameters(
-            self, index: Dict, reader: RasterReader, scale: Optional[float], feedback: QgsProcessingFeedback
+            self, short_name: str, formula: str, bands: List[str], bandList: List[int], reader: RasterReader,
+            scale: Optional[float]
     ):
-        short_name = index['short_name']
 
-        if scale is None:
-            stats: QgsRasterBandStats = reader.provider.bandStatistics(
-                1, QgsRasterBandStats.Mean, sampleSize=QgsRasterLayer.SAMPLE_SIZE
-            )
-            if 1 < stats.mean < 100:
-                scale = 100
-            elif 100 < stats.mean < 10000:
-                scale = 10000
-            else:
-                scale = 1.
-            feedback.pushInfo(f'Derived scale factor from first band: {scale}')
-
-        bandList = list()
-        bandNames = list()
-        noDataValues = list()
-        for name in index['bands']:
-            if name in self.ConstantMapping:
-                continue
-            wavelength, fwhm = self.WavebandMapping[name]
-            assert 0  # todo check FWHM
-            bandNo = reader.findWavelength(wavelength)
-            bandList.append(bandNo)
-            bandNames.append(name)
-            noDataValues.append(reader.noDataValue(bandNo))
+        noDataValues = [reader.noDataValue(bandNo) for bandNo in bandList]
 
         # add imports
         code = 'import numpy as np\n\n'
 
         # add constants
         extraNewLine = False
-        for name in index['bands']:
-            if name in self.ConstantMapping:
+        for name in self.ConstantMapping:
+            if name in formula:
                 code += f'{name} = {self.ConstantMapping[name]}\n'
                 extraNewLine = True
 
@@ -201,14 +225,14 @@ class AwesomeSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
         code += f'def ufunc(in_ar, out_ar, *args, **kwargs):\n'
 
         # prepare input band variables; use the same identifier as in the formulas; also cast to Float32
-        for i, name in enumerate(bandNames):
+        for i, name in enumerate(bands):
             if scale == 1:
                 code += f'    {name} = np.float32(in_ar[{i}]) / 1e4\n'
             else:
                 code += f'    {name} = np.float32(in_ar[{i}]) / {scale}\n'
 
         # add formula
-        code += f'    {short_name} = {index["formula"]}\n'
+        code += f'    {short_name} = {formula}\n'
 
         # mask noDataRegion
         for i, noDataValue in enumerate(noDataValues):
@@ -217,7 +241,7 @@ class AwesomeSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
         # fill out_ar
         code += f'    out_ar[:] = {short_name}\n'
 
-        return bandList, code
+        return code
 
     @classmethod
     def findBroadBand(cls, raster: QgsRasterLayer, name: str, strict=False) -> Optional[int]:
@@ -232,5 +256,16 @@ class AwesomeSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
         return bandNo
 
     @classmethod
-    def loadIndices(cls) -> Dict:
-        return Utils.jsonLoad(__file__.replace('.py', '.json'))
+    def findSpectralReflectanceScaleFactor(cls, raster: QgsRasterLayer) -> float:
+        stats: QgsRasterBandStats = raster.dataProvider().bandStatistics(
+            1, QgsRasterBandStats.Mean, sampleSize=QgsRasterLayer.SAMPLE_SIZE
+        )
+
+        if 1. < stats.mean < 100:
+            scale = 100.
+        elif 100. < stats.mean < 10000.:
+            scale = 10000.
+        else:
+            scale = 1.
+
+        return scale

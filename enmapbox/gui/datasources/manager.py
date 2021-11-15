@@ -20,7 +20,7 @@ from enmapbox.externals.qps.layerproperties import defaultRasterRenderer
 from enmapbox.externals.qps.models import TreeModel, TreeView, TreeNode
 from enmapbox.externals.qps.utils import defaultBands, bandClosestToWavelength, loadUi, qgisAppQgisInterface
 
-from enmapboxprocessing.algorithm.awesomespectralindexstackalgorithm import AwesomeSpectralIndexStackAlgorithm
+from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from enmapboxprocessing.utils import Utils
 from .metadata import RasterBandTreeNode
 from .datasources import DataSource, SpatialDataSource, VectorDataSource, RasterDataSource, \
@@ -392,50 +392,6 @@ class DataSourceManagerTreeView(TreeView):
                                             self.openInMap(s, t, rgb='NIR,SWIR,R'))
                 subAction.setEnabled(b)
 
-                # add Awesome Spectral Indices
-                if b:
-                    subMenu.addSeparator()
-                    subMenu2ByType = {name.lower(): subMenu.addMenu(f'Awesome Spectral Indices ({name})')
-                                     for name in ['Vegetation', 'Burn', 'Water', 'Snow', 'Drought', 'Urban']}
-                    subMenu2All = subMenu.addMenu('Awesome Spectral Indices (All)')
-                    indices = AwesomeSpectralIndicesAlgorithm.loadIndices()['SpectralIndices']
-                    for short_name in sorted(indices):
-                        if indices[short_name]['type'] == 'kernel':
-                            continue
-
-                        long_name = indices[short_name]['long_name']
-                        formula = indices[short_name]['formula']
-
-                        # add single band VRTs
-                        for subMenu2 in [subMenu2All, subMenu2ByType[indices[short_name]['type']]]:
-                            subAction = subMenu2.addAction(f'{long_name} ({short_name})')
-                            subAction.setToolTip(f'{short_name} = {formula}')
-                            subAction.short_name = short_name
-                            subAction.type_name = None
-                            subAction.source = src.source()
-                            subAction.target = target
-                            subAction.triggered.connect(self.openAwesomeSpectralIndexInMap)
-
-                    # add multi-band VRTs
-                    for type_name, subMenu2 in subMenu2ByType.items():
-                        subMenu2.addSeparator()
-                        subAction = subMenu2.addAction("Stack all indices")
-                        subAction.setToolTip('Create VRT with all indices')
-                        subAction.type_name = type_name.title()
-                        subAction.short_name = None
-                        subAction.source = src.source()
-                        subAction.target = target
-                        subAction.triggered.connect(self.openAwesomeSpectralIndexInMap)
-                    subMenu2All.addSeparator()
-                    subAction = subMenu2All.addAction("Stack all indices")
-                    subAction.setToolTip('Create VRT with all indices')
-                    subAction.type_name = 'All'
-                    subAction.short_name = None
-                    subAction.source = src.source()
-                    subAction.target = target
-                    subAction.triggered.connect(self.openAwesomeSpectralIndexInMap)
-
-
 
             if isinstance(node, RasterDataSource):
                 sub = m.addMenu('Open in new map...')
@@ -543,49 +499,6 @@ class DataSourceManagerTreeView(TreeView):
         self.sigPopulateContextMenu.emit(m, node)
 
         m.exec_(self.viewport().mapToGlobal(event.pos()))
-
-    def openAwesomeSpectralIndexInMap(self):
-        from enmapbox import EnMAPBox
-        enmapBox = EnMAPBox.instance()
-
-        action = self.sender()
-        short_name = action.short_name
-        type_name = action.type_name
-        source = action.source
-        target = action.target
-
-        if short_name is not None:
-            filename = join(gettempdir(), 'EnMAP-Box', 'AwesomeSpectralIndex',
-                            f'{splitext(basename(source))[0]}.{short_name}.vrt')
-            alg = AwesomeSpectralIndicesAlgorithm()
-            alg.initAlgorithm()
-            parameters = {
-                alg.P_RASTER: source,
-                alg.P_INDEX: short_name,
-                alg.P_OUTPUT_VRT: filename
-            }
-        elif type_name is not None:
-            filename = join(gettempdir(), 'EnMAP-Box', 'AwesomeSpectralIndex',
-                            f'{splitext(basename(source))[0]}.{type_name}Indices.vrt')
-
-            alg = AwesomeSpectralIndexStackAlgorithm()
-            alg.initAlgorithm()
-            parameters = {
-                alg.P_RASTER: source,
-                alg.P_OUTPUT_VRT: filename
-            }
-
-            if type_name != 'All':
-                parameters[alg.P_TYPE_LIST] = [alg.O_TYPE_LIST.index(type_name)]
-        else:
-            assert 0
-
-        processing.run(alg, parameters)
-        #enmapBox.showProcessingAlgorithmDialog(alg, parameters, False, True, None, True, self)
-
-        dataSources = self.dataSourceManager().addDataSources([QgsRasterLayer(filename, basename(filename))])
-        for dataSource in dataSources:
-            self.openInMap(dataSource, target)
 
     def openInMap(self, dataSource: typing.Union[VectorDataSource, RasterDataSource],
                   target: typing.Union[QgsMapCanvas, QgsProject, 'MapDock'] = None,

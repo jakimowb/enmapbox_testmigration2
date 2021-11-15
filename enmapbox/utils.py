@@ -2,7 +2,7 @@ from typing import Optional
 
 from qgis._core import QgsRasterLayer
 
-from enmapboxprocessing.algorithm.awesomespectralindicesalgorithm import AwesomeSpectralIndicesAlgorithm
+from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from typeguard import typechecked
 
 
@@ -13,4 +13,4 @@ def findBroadBand(raster: QgsRasterLayer, name: str, strict=False) -> Optional[i
     If strict is True, return None, if matched band is outside the FWHM range.
     """
 
-    return AwesomeSpectralIndicesAlgorithm.findBroadBand(raster, name, strict)
+    return CreateSpectralIndicesAlgorithm.findBroadBand(raster, name, strict)

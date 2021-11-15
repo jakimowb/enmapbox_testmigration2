@@ -1,7 +1,5 @@
 from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
 from enmapboxprocessing.algorithm.applymaskalgorithm import ApplyMaskAlgorithm
-from enmapboxprocessing.algorithm.awesomespectralindicesalgorithm import AwesomeSpectralIndicesAlgorithm
-from enmapboxprocessing.algorithm.awesomespectralindexstackalgorithm import AwesomeSpectralIndexStackAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancestratifiedalgorithm import \
@@ -16,14 +14,15 @@ from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
 from enmapboxprocessing.algorithm.createmaskalgorithm import CreateMaskAlgorithm
 from enmapboxprocessing.algorithm.creatergbimagefromclassprobabilityalgorithm import \
     CreateRgbImageFromClassProbabilityAlgorithm
+from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import FeatureClusteringHierarchicalAlgorithm
 from enmapboxprocessing.algorithm.fitgaussianprocessclassifieralgorithm import FitGaussianProcessClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitgenericclassifieralgorithm import FitGenericClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitlinearsvcalgorithm import FitLinearSvcAlgorithm
 from enmapboxprocessing.algorithm.fitlogisticregressionralgorithm import FitLogisticRegressionAlgorithm
 from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitRandomForestClassifierAlgorithm
-from enmapboxprocessing.algorithm.fitsvcrbfalgorithm import FitSvcRbfAlgorithm
 from enmapboxprocessing.algorithm.fitsvcpolyalgorithm import FitSvcPolyAlgorithm
+from enmapboxprocessing.algorithm.fitsvcrbfalgorithm import FitSvcRbfAlgorithm
 from enmapboxprocessing.algorithm.geolocaterasteralgorithm import GeolocateRasterAlgorithm
 from enmapboxprocessing.algorithm.importdesisl1balgorithm import ImportDesisL1BAlgorithm
 from enmapboxprocessing.algorithm.importdesisl1calgorithm import ImportDesisL1CAlgorithm
@@ -130,7 +129,6 @@ from enmapboxprocessing.algorithm.spectralresamplingtolandsat7algorithm import S
 from enmapboxprocessing.algorithm.spectralresamplingtolandsat8algorithm import SpectralResamplingToLandsat8Algorithm
 from enmapboxprocessing.algorithm.spectralresamplingtoprismaalgorithm import SpectralResamplingToPrismaAlgorithm
 from enmapboxprocessing.algorithm.spectralresamplingtosentinel2algorithm import SpectralResamplingToSentinel2Algorithm
-from enmapboxprocessing.algorithm.synthmixalgorithm import SynthMixAlgorithm
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.algorithm.vrtbandmathalgorithm import VrtBandMathAlgorithm
@@ -140,8 +138,7 @@ def algorithms():
     algos = [
         AppendEnviHeaderToGTiffRasterAlgorithm(),
         ApplyMaskAlgorithm(),
-        AwesomeSpectralIndicesAlgorithm(),
-        AwesomeSpectralIndexStackAlgorithm(),
+        CreateSpectralIndicesAlgorithm(),
         ClassificationPerformanceSimpleAlgorithm(),
         ClassificationPerformanceStratifiedAlgorithm(),
         ClassificationToFractionAlgorithm(),
