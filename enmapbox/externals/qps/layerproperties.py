@@ -1176,6 +1176,7 @@ def showLayerPropertiesDialog(layer: QgsMapLayer,
 
     else:
         dialog = None
+        added_factory_names: typing.List[str] = []
         if not isinstance(canvas, QgsMapCanvas):
             canvas = QgsMapCanvas()
         if not isinstance(messageBar, QgsMessageBar):
@@ -1191,16 +1192,18 @@ def showLayerPropertiesDialog(layer: QgsMapLayer,
                 if hasattr(dialog, 'addPropertiesPageFactory'):
                     #  QgsGui::providerGuiRegistry()->mapLayerConfigWidgetFactories( mapLayer )
                     from . import MAPLAYER_CONFIGWIDGET_FACTORIES
-                    added = []
+
                     if Qgis.versionInt() >= 32000:
                         for factory in QgsGui.providerGuiRegistry().mapLayerConfigWidgetFactories(layer):
                             factory: QgsMapLayerConfigWidgetFactory
-                            added.append(factory.title())
+                            added_factory_names.append(factory.title())
                             dialog.addPropertiesPageFactory(factory)
+
                     for factory in MAPLAYER_CONFIGWIDGET_FACTORIES:
                         factory: QgsMapLayerConfigWidgetFactory
-                        if factory.title() not in added:
+                        if factory.title() not in added_factory_names:
                             dialog.addPropertiesPageFactory(factory)
+
                     # for f in MAPLAYER_CONFIGWIDGET_FACTORIES:
                     #    dialog.addPropertiesPageFactory(f)
 

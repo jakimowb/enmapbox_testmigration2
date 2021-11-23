@@ -27,6 +27,8 @@ import os
 import pathlib
 import enum
 import re
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QObject
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsFileUtils, QgsSettings, \
     QgsStyle, QgsMapLayerStyle, QgsApplication
 from qgis.gui import QgsRasterHistogramWidget, QgsMapCanvas, QgsMapLayerConfigWidget,  \
@@ -124,11 +126,18 @@ class MetadataConfigWidget(QpsMapLayerConfigWidget):
 class MetadataConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self, title='Information', icon=QIcon(':/images/themes/default/mActionPropertiesWidget.svg')):
         super(MetadataConfigWidgetFactory, self).__init__(title, icon)
+
+        self._widget_refs: typing.List[QObject] = []
+
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(False)
 
     def createWidget(self, layer, canvas, dockWidget=False, parent=None):
-        return MetadataConfigWidget(layer, canvas, parent=parent)
+
+        w = MetadataConfigWidget(layer, canvas, parent=parent)
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+        return w
 
     def supportLayerPropertiesDialog(self):
         return True
@@ -172,11 +181,18 @@ class SourceConfigWidget(QpsMapLayerConfigWidget):
 class SourceConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self, title='Source', icon=QIcon(':/images/themes/default/propertyicons/system.svg')):
         super().__init__(title, icon)
+
+        self._widget_refs: typing.List[QObject] = []
+
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(False)
 
     def createWidget(self, layer, canvas, dockWidget=False, parent=None):
-        return SourceConfigWidget(layer, canvas, parent=parent)
+
+        w = SourceConfigWidget(layer, canvas, parent=parent)
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+        return w
 
     def supportsLayer(self, layer) -> bool:
         return isinstance(layer, QgsMapLayer)
@@ -420,11 +436,17 @@ class SymbologyConfigWidget(QpsMapLayerConfigWidget):
 class SymbologyConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self, title='Symbology', icon=QIcon(':/images/themes/default/propertyicons/symbology.svg')):
         super().__init__(title, icon)
+
+        self._widget_refs: typing.List[QObject] = []
+
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(True)
 
     def createWidget(self, layer, canvas, dockWidget=False, parent=None):
-        return SymbologyConfigWidget(layer, canvas, parent=parent)
+        w = SymbologyConfigWidget(layer, canvas, parent=parent)
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+        return w
 
     def supportsLayer(self, layer):
         return isinstance(layer, (QgsVectorLayer, QgsRasterLayer))
@@ -442,11 +464,19 @@ class TransparencyConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
 
     def __init__(self, title='Transparency', icon=QIcon(':/images/themes/default/propertyicons/transparency.svg')):
         super().__init__(title, icon)
+
+        self._widget_refs: typing.List[QObject] = []
+
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(True)
 
     def createWidget(self, layer, canvas, dockWidget=False, parent=None):
-        return QgsRasterTransparencyWidget(layer, canvas, parent=parent)
+        w = QgsRasterTransparencyWidget(layer, canvas, parent=parent)
+
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+
+        return w
 
     def supportsLayer(self, layer):
         return isinstance(layer, QgsRasterLayer)
@@ -485,11 +515,17 @@ class HistogramConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
 
     def __init__(self, title='Transparency', icon=QIcon(':/images/themes/default/propertyicons/histogram.svg')):
         super().__init__(title, icon)
+
+        self._widget_refs: typing.List[QObject] = []
+
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(True)
 
     def createWidget(self, layer, canvas, dockWidget=False, parent=None):
-        return HistogramConfigWidget(layer, canvas, parent=parent)
+        w = HistogramConfigWidget(layer, canvas, parent=parent)
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+        return w
 
     def supportsLayer(self, layer):
         return isinstance(layer, QgsRasterLayer)
@@ -518,11 +554,17 @@ class PyramidsConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
 
     def __init__(self, title='Pyramids', icon=QIcon(':/images/themes/default/propertyicons/pyramids.svg')):
         super().__init__(title, icon)
+
+        self._widget_refs: typing.List[QObject] = []
+
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(True)
 
     def createWidget(self, layer, canvas, dockWidget=False, parent=None):
-        return QgsRasterHistogramWidget(layer, canvas, parent=parent)
+        w = QgsRasterHistogramWidget(layer, canvas, parent=parent)
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+        return w
 
     def supportsLayer(self, layer):
         return isinstance(layer, QgsRasterLayer)
@@ -560,6 +602,9 @@ class LegendConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
 
     def __init__(self, title='Legend', icon=QIcon(':/images/themes/default/legend.svg')):
         super().__init__(title, icon)
+
+        self._widget_refs: typing.List[QObject] = []
+
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(False)
 
@@ -608,11 +653,17 @@ class RenderingConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
 
     def __init__(self, title='Rendering', icon=QIcon(':/images/themes/default/propertyicons/rendering.svg')):
         super().__init__(title, icon)
+
+        self._widget_refs: typing.List[QObject] = []
+
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(False)
 
     def createWidget(self, layer, canvas, dockWidget=False, parent=None):
-        return RenderingConfigWidget(layer, canvas, parent=parent)
+        w = RenderingConfigWidget(layer, canvas, parent=parent)
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+        return w
 
     def supportsLayer(self, layer):
         return isinstance(layer, QgsMapLayer)

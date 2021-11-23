@@ -28,10 +28,11 @@ import pathlib
 import sys
 import copy
 
-from PyQt5.QtCore import QModelIndex, QSortFilterProxyModel, QRegExp, pyqtSignal, QAbstractTableModel, QMimeData, \
-    QTimer, Qt
-from PyQt5.QtGui import QColor, QFont, QIcon, QContextMenuEvent
-from PyQt5.QtWidgets import QLineEdit, QTableView, QDialogButtonBox, QStyledItemDelegate, QComboBox, QWidget, \
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QModelIndex, QSortFilterProxyModel, QRegExp, pyqtSignal, QAbstractTableModel, QMimeData, \
+    QTimer, Qt, QObject
+from qgis.PyQt.QtGui import QColor, QFont, QIcon, QContextMenuEvent
+from qgis.PyQt.QtWidgets import QLineEdit, QTableView, QDialogButtonBox, QStyledItemDelegate, QComboBox, QWidget, \
     QApplication, QMenu, QDoubleSpinBox, QDialog
 from osgeo import gdal, ogr
 import numpy as np
@@ -1248,6 +1249,8 @@ class GDALMetadataConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self):
         super(GDALMetadataConfigWidgetFactory, self).__init__('GDAL/OGR Metadata',
                                                               QIcon(':/qps/ui/icons/edit_gdal_metadata.svg'))
+        self._widget_refs: typing.List[QObject] = []
+
         self.mIsGDAL = False
         self.mIsOGR = False
 
@@ -1280,6 +1283,10 @@ class GDALMetadataConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
         # w.metadataModel.setIsEditable(True)
         w.setWindowTitle(self.title())
         w.setWindowIcon(self.icon())
+
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+
         return w
 
     def title(self) -> str:

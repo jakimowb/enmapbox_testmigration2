@@ -22,9 +22,14 @@
     along with this software. If not, see <http://www.gnu.org/licenses/>.
 ***************************************************************************
 """
-import typing, pathlib, enum
+import typing
+import pathlib
+import enum
+
 from qgis.core import *
 from qgis.gui import *
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QObject
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import QIcon
 from ..utils import loadUi
@@ -210,11 +215,19 @@ class LabelingConfigWidget(QpsMapLayerConfigWidget):
 class LabelingConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self, title='Labels', icon=QIcon(':/images/themes/default/mActionLabeling.svg')):
         super().__init__(title, icon)
+
+        self._widget_refs: typing.List[QObject] = []
+
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(True)
 
     def createWidget(self, layer, canvas, dockWidget=False, parent=None):
-        return LabelingConfigWidget(layer, canvas, parent=parent)
+        w = LabelingConfigWidget(layer, canvas, parent=parent)
+
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+
+        return w
 
     def supportsLayer(self, layer):
         return isinstance(layer, QgsVectorLayer)

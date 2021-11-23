@@ -23,7 +23,8 @@
 ***************************************************************************
 """
 import sys
-
+import typing
+from qgis.PyQt import sip
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtGui import QIcon
@@ -487,11 +488,19 @@ class LayerAttributeFormConfigWidget(QpsMapLayerConfigWidget):
 class LayerAttributeFormConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self, title='Attributes Form', icon=QIcon(':/images/themes/default/mActionFormView.svg')):
         super().__init__(title, icon)
+
+        self._widget_refs: typing.List[QObject] = []
+
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(False)
 
     def createWidget(self, layer, canvas, dockWidget=False, parent=None):
-        return LayerAttributeFormConfigWidget(layer, canvas, parent=parent)
+        w = LayerAttributeFormConfigWidget(layer, canvas, parent=parent)
+
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+
+        return w
 
     def supportsLayer(self, layer) -> bool:
         return isinstance(layer, QgsVectorLayer)
@@ -614,11 +623,19 @@ class LayerFieldsConfigWidget(QpsMapLayerConfigWidget):
 class LayerFieldsConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self, title='Fields', icon=QIcon(':/images/themes/default/mSourceFields.svg')):
         super().__init__(title, icon)
+
+        self._widget_refs: typing.List[QObject] = []
+
         self.setSupportLayerPropertiesDialog(True)
         self.setSupportsStyleDock(False)
 
     def createWidget(self, layer, canvas, dockWidget=False, parent=None):
-        return LayerFieldsConfigWidget(layer, canvas, parent=parent)
+        w = LayerFieldsConfigWidget(layer, canvas, parent=parent)
+
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+
+        return w
 
     def supportsLayer(self, layer) -> bool:
         return isinstance(layer, QgsVectorLayer)

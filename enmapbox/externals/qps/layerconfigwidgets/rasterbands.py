@@ -25,9 +25,10 @@
 import typing
 import pathlib
 
-from PyQt5.QtWidgets import QGroupBox, QToolButton, QPushButton
+from qgis.PyQt.QtWidgets import QGroupBox, QToolButton, QPushButton
 from qgis.gui import QgsRasterLayerProperties
-
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QObject
 from qgis.core import QgsHillshadeRenderer
 from qgis.core import QgsRasterDataProvider, QgsRasterLayer, QgsMapLayer, \
     QgsRasterRenderer, \
@@ -390,7 +391,8 @@ class RasterBandConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self):
         super(RasterBandConfigWidgetFactory, self).__init__('Raster Band',
                                                             QIcon(':/qps/ui/icons/rasterband_select.svg'))
-        s = ""
+
+        self._widget_refs: typing.List[QObject] = []
 
     def supportsLayer(self, layer):
         if isinstance(layer, QgsRasterLayer):
@@ -420,4 +422,8 @@ class RasterBandConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
             w.widgetChanged.connect(parent.syncToLayer)
         w.setWindowTitle(self.title())
         w.setWindowIcon(self.icon())
+
+        self._widget_refs = [o for o in self._widget_refs if not sip.isdeleted(o)]
+        self._widget_refs.append(w)
+
         return w
