@@ -1296,7 +1296,7 @@ class DockTreeView(QgsLayerTreeView):
 
         self.mMenuProvider = DockManagerLayerTreeModelMenuProvider(self)
         self.setMenuProvider(self.mMenuProvider)
-        self.mMenuProvider.mSignals.sigPopulateContextMenu.connect(self.sigPopulateContextMenu.emit)
+        # self.mMenuProvider.mSignals.sigPopulateContextMenu.connect(self.sigPopulateContextMenu.emit)
 
     def findParentMapDockTreeNode(self, node: QgsLayerTreeNode) -> MapDockTreeNode:
         while isinstance(node, QgsLayerTreeNode) and not isinstance(node, MapDockTreeNode):
@@ -1414,18 +1414,18 @@ class DockTreeView(QgsLayerTreeView):
 
 
 class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
-    class Signals(QObject):
-        sigPopulateContextMenu = pyqtSignal(QMenu)
-
-        def __init__(self, *args, **kwds):
-            super().__init__(*args, **kwds)
+    #class Signals(QObject):
+    #    sigPopulateContextMenu = pyqtSignal(QMenu)
+    #
+    #    def __init__(self, *args, **kwds):
+    #        super().__init__(*args, **kwds)
 
     def __init__(self, treeView: DockTreeView):
         super(DockManagerLayerTreeModelMenuProvider, self).__init__()
         # QObject.__init__(self)
         assert isinstance(treeView, DockTreeView)
         self.mDockTreeView: DockTreeView = treeView
-        self.mSignals = DockManagerLayerTreeModelMenuProvider.Signals()
+        # self.mSignals = DockManagerLayerTreeModelMenuProvider.Signals()
 
     def enmapboxInstance(self) -> 'EnMAPBox':
         return self.mDockTreeView.enmapBoxInstance()
@@ -1542,8 +1542,9 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 a.triggered.connect(lambda *args, n=node: QApplication.clipboard().setText('{}'.format(n.value())))
 
         # last chance to add other menu actions
-        self.mSignals.sigPopulateContextMenu.emit(menu)
-
+        # self.mSignals.sigPopulateContextMenu.emit(menu)
+        if isinstance(self.mDockTreeView, DockTreeView):
+            self.mDockTreeView.sigPopulateContextMenu.emit(menu)
         return menu
 
     def onSaveAs(self, layer: QgsMapLayer):
