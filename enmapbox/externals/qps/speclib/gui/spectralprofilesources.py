@@ -1759,7 +1759,7 @@ class SpectralProfileBridge(TreeModel):
         if col == 1:
             if isinstance(node, (SpectralFeatureGeneratorNode, SpectralProfileSourceNode,
                                  SpectralProfileSamplingModeNode, StandardFieldGeneratorNode,
-                                 FloatValueNode, ColorNode)):
+                                 FloatValueNode, ColorNode, OptionTreeNode)):
                 if isinstance(node, StandardFieldGeneratorNode):
                     s = ""
                 flags = flags | Qt.ItemIsEditable
@@ -2291,7 +2291,7 @@ class SpectralProfileSourcePanel(QgsDockWidget):
 
 def initSamplingModes():
     """
-    Inititalizes known SpectralProfileSamplingModes to the SpectralProfileSamplingModeModel
+    Initializes known SpectralProfileSamplingModes to the SpectralProfileSamplingModeModel
     :rtype:
     """
     for mode in [SingleProfileSamplingMode(),
