@@ -340,6 +340,8 @@
    :width: 28px
 .. |action| image:: /img/icons/action.svg
    :width: 28px
+.. |attributes| image:: /img/icons/attributes.svg
+   :width: 28px
 .. |cb0| image:: /img/icons/cb0.png
    :width: 28px
 .. |cb1| image:: /img/icons/cb1.png

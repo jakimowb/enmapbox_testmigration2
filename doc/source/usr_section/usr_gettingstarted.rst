@@ -53,14 +53,14 @@ Loading Testdata
 
   * :file:`enmap_berlin.bsq`
   * :file:`hires_berlin.bsq`
-  * :file:`landcover_berlin_point.shp`
-  * :file:`landcover_berlin_polygon.shp`
+  * :file:`landcover_berlin_point.gpkg`
+  * :file:`landcover_berlin_polygon.gpkg`
   * :file:`library_berlin.sli`
 
 .. tip::
 
    Have a look at the section :ref:`Test dataset <test_dataset>` for further information on the dataset. In this section we will
-   mainly work with :file:`enmap_berlin.bsq` and :file:`landcover_berlin_point.shp`
+   mainly work with :file:`enmap_berlin.bsq` and :file:`landcover_berlin_point.gpkg`
 
 
 First Steps in the GUI
@@ -79,7 +79,7 @@ to get to know the GUI functionalities:
 
 * Now, in the :guilabel:`Data Views` window, expand the :guilabel:`Map #1` list, so that you can see the individual layers. Select
   :file:`hires_berlin.bsq` and drag the layer into :guilabel:`Map #2` (you can drag them directly into the map views or the respective menu item under :guilabel:`Data Views`).
-  You can remove :file:`library_berlin.sli` and :file:`landcover_berlin_polygon.shp`, since they are not needed here. Right-click on the layer
+  You can remove :file:`library_berlin.sli` and :file:`landcover_berlin_polygon.gpkg`, since they are not needed here. Right-click on the layer
   in the Data Views panel and select :guilabel:`Remove Layer`.
 * In the next step we link both map views, so that zoom and center are synchronized between both. Go to :menuselection:`View --> Set Map Linking` and
   select |link_all_mapscale_center| :superscript:`Link map scale and center`.
@@ -92,10 +92,10 @@ Use an Application
 In this section we will use the EnMAP-Box application **Classification Workflow** to classify the :file:`enmap_berlin.bsq`
 image using a point vector dataset with the classes *impervious, low vegetation, tree, soil, water* and a random forest classifier.
 
-* Go to :menuselection:`Applications --> Classification Workflow` to open the Classification Workflow application.
+* Go to :menuselection:`Applications --> Classification Workflow (Classic)` to open the Classification Workflow application.
 * In the :guilabel:`Type` dropdown menu select ``Raster / Vector Classification``.
-* Choose :file:`enmap_berlin.bsq` as :guilabel:`Raster` and :file:`landcover_berlin_point.shp` as :guilabel:`Reference`.
-  Select ``level_2_id`` as :guilabel:`Attribute`. After selection of the attribute the class names and colors become visible in the :guilabel:`Sampling` submenu.
+* Choose :file:`enmap_berlin.bsq` as :guilabel:`Raster` and :file:`landcover_berlin_point.gpkg` as :guilabel:`Reference`.
+  Now the class names and colors become visible in the :guilabel:`Sampling` submenu.
 
   .. image:: ../img/classwf1.png
 
@@ -131,6 +131,11 @@ image using a point vector dataset with the classes *impervious, low vegetation,
 
      Screenshot of the Map Views: EnMAP image on the left and classification result on the right
 
+* In the :guilabel:`Data Views` panel, right-click on the classification layer and select :guilabel:`Classification Statistics`.
+  This will show you an interactive plot with the different class counts
+
+  .. image:: /img/classification_statistics.png
+
 
 Use a Processing Algorithm
 ##########################
@@ -141,15 +146,11 @@ rasterize the vector dataset.
 
 * First of all, make sure the :ref:`Processing Toolbox <processing_toolbox>` window is opened. If not,
   activate it via :menuselection:`View --> Panels --> Processing Toolbox`
-* Open the :menuselection:`Classification from Vector` algorithm under :menuselection:`EnMAP-Box --> Create Raster`.
+* Open the :menuselection:`Rasterize categorized vector layer` algorithm under :menuselection:`EnMAP-Box --> Raster Creation`
 * Use the following settings:
 
-  * :guilabel:`Pixel Grid`: :file:`enmap_berlin.bsq`
-  * :guilabel:`Vector`: :file:`landcover_berlin_polygon.shp`
-  * :guilabel:`Class id attribute`: level_3_id
-  * :guilabel:`Minimal overall coverage`: ``0``
-  * :guilabel:`Minimal dominant coverage`: ``0``
-  * :guilabel:`Oversampling factor`: ``1``
+  * :guilabel:`Categorized vector layer`: :file:`landcover_berlin_polygon.gpkg`
+  * :guilabel:`Grid`: :file:`enmap_berlin.bsq`
 
 * Specify an output filepath under :guilabel:`Output Classification` and click :guilabel:`Run`
 
@@ -180,7 +181,7 @@ In the following, the :file:`enmap_berlin.bsq` is used to explain how to collect
 **Add information to the attribute table:**
 
 * You can manage your spectra and add information, e.g. class name or description of the property.
-* Enable the **Editing mode** by activating the  |mActionToggleEditing|
+* Open the Attribute table view by clicking the |attributes| symbol, then enable the **Editing mode** by activating the |mActionToggleEditing|
 * Add a new field via |mActionNewAttribute|
 
   .. figure:: ../img/speclib_add_field.png
