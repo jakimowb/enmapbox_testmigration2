@@ -842,6 +842,7 @@ class Group(Enum):
     Test = '*'
     Testdata = 'Testdata'
     Transformation = 'Transformation'
+    Water = 'Water'
 
 
 class CookbookUrls(object):
