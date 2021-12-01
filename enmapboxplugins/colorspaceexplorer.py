@@ -1,11 +1,12 @@
 from random import randint
 
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QWidget, QToolButton, QCheckBox, QMainWindow, QSpinBox
+from PyQt5.QtWidgets import QWidget, QToolButton, QCheckBox, QMainWindow, QSpinBox, QGridLayout, QLayoutItem
 from PyQt5.uic import loadUi
 from qgis._core import QgsRasterLayer, QgsMultiBandColorRenderer, QgsContrastEnhancement, QgsRasterMinMaxOrigin
 from qgis._gui import QgsMapCanvas, QgsRasterBandComboBox
 
+from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from typeguard import typechecked
 
 
@@ -25,6 +26,8 @@ class ColorSpaceExplorerWidget(QMainWindow):
     mNext: QToolButton
     mPlay: QToolButton
     mFps: QSpinBox
+
+    mGridLayout: QGridLayout
 
     mLiveUpdate: QCheckBox
 
@@ -58,6 +61,16 @@ class ColorSpaceExplorerWidget(QMainWindow):
             mDelta.setMaximum(self.layer.bandCount())
         self.mRandomDeltaMax.setMaximum(self.layer.bandCount())
 
+        for i in range(1, 17):
+            mRgb: QToolButton = getattr(self, f'mRgb_{i}')
+            text = mRgb.text()
+            tmp = text.split(' ')
+            name = ' '.join(tmp[:-1])
+            bands = tmp[-1][1:-1].split('-')
+            mRgb.setText(name)
+            mRgb.bands = bands
+            mRgb.clicked.connect(self.onPredefinedRgbClicked)
+
         self.mRed.bandChanged.connect(self.onLiveUpdate)
         self.mGreen.bandChanged.connect(self.onLiveUpdate)
         self.mBlue.bandChanged.connect(self.onLiveUpdate)
@@ -73,6 +86,14 @@ class ColorSpaceExplorerWidget(QMainWindow):
         self.mOk.clicked.connect(self.onOkClicked)
         self.mCancel.clicked.connect(self.onCancelClicked)
         self.mApply.clicked.connect(self.onApplyClicked)
+
+    def onPredefinedRgbClicked(self):
+        mRgb = self.sender()
+        bands = [CreateSpectralIndicesAlgorithm.translateSentinel2Band(band) for band in mRgb.bands]
+        r, g, b = [CreateSpectralIndicesAlgorithm.findBroadBand(self.layer, band) for band in bands]
+        self.mRed.setBand(r)
+        self.mGreen.setBand(g)
+        self.mBlue.setBand(b)
 
     def onRandomBandsClicked(self):
         self.mRed.setBand(randint(1, self.layer.bandCount()))
