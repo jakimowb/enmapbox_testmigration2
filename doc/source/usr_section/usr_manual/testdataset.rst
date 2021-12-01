@@ -31,9 +31,9 @@ HyMap image acquired in August 2009 over south eastern part of Berlin. This data
 
 **LandCover Vector Layer (Polygon):**
 
-File name: :file:`landcover_berlin_polygon.shp`
+File name: :file:`landcover_berlin_polygon.gpkg`
 
-Polygon shapefile containing land cover information on three classification levels. Derived from very high resolution aerial imagery and cadastral datasets.
+Polygon vector geopackage containing land cover information on three classification levels. Derived from very high resolution aerial imagery and cadastral datasets.
 
  * Level 1 classes: Impervious, Vegetation, Soil, Water
  * Level 2 classes: Impervious, Low Vegetation, Soil, Tree, Water
@@ -43,7 +43,7 @@ Polygon shapefile containing land cover information on three classification leve
 
 File name: :file:`landcover_berlin_point.shp`
 
-Point shapefile containing land cover information on two classification levels.
+Point vector geopackage containing land cover information on two classification levels.
 
  * Level 1 classes: Impervious, Vegetation, Soil, Water
  * Level 2 classes: Impervious, Low Vegetation, Soil, Tree, Water
