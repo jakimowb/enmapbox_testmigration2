@@ -2647,6 +2647,13 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.addSource(lyr, base_name)
 
+    def currentMapDock(self) -> Optional[MapDock]:
+        """Return map dock associated with the current map canvas."""
+        mapCanvas = self.currentMapCanvas()
+        for mapDock in self.docks(DockTypes.MapDock):
+            if mapDock.mapCanvas() is mapCanvas:
+                return mapDock
+
     def currentMapCanvas(self) -> MapCanvas:
         """
         Returns the active map canvas, i.e. the MapCanvas that was clicked last.
