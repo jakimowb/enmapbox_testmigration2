@@ -1125,6 +1125,9 @@ class MapCanvas(QgsMapCanvas):
         action = menu.addAction('Set background color')
         action.triggered.connect(self.setBackgroundColorFromDialog)
 
+        action = menu.addAction('Show background layer')
+        action.triggered.connect(self.setBackgroundLayer)
+
         from enmapbox import EnMAPBox
         emb = EnMAPBox.instance()
         if isinstance(emb, EnMAPBox):
@@ -1251,6 +1254,17 @@ class MapCanvas(QgsMapCanvas):
 
     def setBackgroundColorFromDialog(self, *args):
         setMapCanvasBackgroundColorFromDialog(self, self.canvasColor())
+
+    def setBackgroundLayer(self):
+        #  Once we have project settings, the user could setup his global background layer manually.
+        # For now use Google Maps as default.
+        backgroundLayer = QgsRasterLayer(
+            'type=xyz&url=https://mt1.google.com/vt/lyrs%3Dm%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0',
+            'Google Maps', 'wms'
+        )
+        layers = [backgroundLayer] + self.layers()
+        self.setLayers(layers)  # seams to not preserve the order of the layers, so the background layer is on top :-(
+
 
     def setCrosshairStyle(self, crosshairStyle: CrosshairStyle):
         """
