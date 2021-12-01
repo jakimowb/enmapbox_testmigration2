@@ -23,6 +23,7 @@ import sys
 import enum
 import typing
 import warnings
+from os.path import dirname, join
 from typing import Optional, Dict, Union, Any
 
 from PyQt5.QtCore import pyqtSignal, Qt, QObject, QModelIndex, pyqtSlot, QSettings, QEventLoop, QRect, QSize, QFile
@@ -169,6 +170,7 @@ class EnMAPBoxSplashScreen(QSplashScreen):
 
 class EnMAPBoxUI(QMainWindow):
     mActionProcessingToolbox: QAction
+    menuAdd_Product: QMenu
 
     def __init__(self, *args, **kwds):
         """Constructor."""
@@ -177,6 +179,7 @@ class EnMAPBoxUI(QMainWindow):
         self.setCentralWidget(self.centralFrame)
         import enmapbox
         self.setWindowIcon(enmapbox.icon())
+        self.menuAdd_Product.setIcon(QIcon(__file__ + '/../ui/icons/enmapSensor.png'))
         self.setVisible(False)
 
         if sys.platform == 'darwin':
