@@ -1,7 +1,6 @@
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMenu, QAction
 
-from classificationworkflowapp.classificationworkflowgui import ClassificationWorkflowGui
 from enmapbox.gui.applications import EnMAPBoxApplication
 from spectralindexcreatorapp.spectralindexcreatordialog import SpectralIndexCreatorDialog
 from typeguard import typechecked
@@ -9,6 +8,7 @@ from typeguard import typechecked
 
 def enmapboxApplicationFactory(enmapBox):
     return [SpectralIndexCreatorApp(enmapBox)]
+
 
 @typechecked
 class SpectralIndexCreatorApp(EnMAPBoxApplication):

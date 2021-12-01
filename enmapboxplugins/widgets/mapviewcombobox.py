@@ -12,13 +12,19 @@ class MapViewComboBox(QComboBox):
     def __init__(self, parent=None):
         from enmapbox import EnMAPBox
         super().__init__(parent)
-        self.enmapBox = EnMAPBox.instance()
 
+        self._emptyText = ''
+
+        self.enmapBox = EnMAPBox.instance()
         self.enmapBox.mDockManager.sigDockRemoved.connect(self.onMapViewsChanged)
         self.enmapBox.mDockManager.sigDockAdded.connect(self.onMapViewsChanged)
         self.enmapBox.mDockManager.sigDockTitleChanged.connect(self.onMapViewsChanged)
 
         self.onMapViewsChanged()
+
+    def setEmptyText(self, text: str):
+        self._emptyText = text
+        self.setItemText(0, text)
 
     def setMapView(self, mapView: MapDock):
         self.mapView = mapView
@@ -32,7 +38,7 @@ class MapViewComboBox(QComboBox):
         index = self.currentIndex()
         name = self.currentText()
         names = [mapView.title() for mapView in self.enmapBox.docks(DockTypes.MapDock)]
-        names.insert(0, '')
+        names.insert(0, self._emptyText)
         aMapViewWasRenamed = self.count() == names
         self.clear()
         self.addItems(names)

@@ -74,6 +74,7 @@ class SpectralIndexCreatorDialog(QMainWindow):
         self.mLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
         for mConstant in self.mConstants():
             mConstant.setClearValue(mConstant.value())
+        self.mMapView.setEmptyText('<new map view>')
 
         self.mLayer.layerChanged.connect(self.onLayerChanged)
         self.mSelectAll.clicked.connect(self.mTable.selectAll)

@@ -58,6 +58,7 @@ from enmapboxprocessing.algorithm.randomsamplesfromclassificationdatasetalgorith
     RandomSamplesFromClassificationDatasetAlgorithm
 from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
+from enmapboxprocessing.algorithm.rasterlayerzonalaggregationalgorithm import RasterLayerZonalAggregationAlgorithm
 from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.algorithm.samplerastervaluesalgorithm import SampleRasterValuesAlgorithm
 from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
@@ -182,6 +183,7 @@ def algorithms():
         RandomSamplesFromClassificationDatasetAlgorithm(),
         RasterizeCategorizedVectorAlgorithm(),
         RasterizeVectorAlgorithm(),
+        RasterLayerZonalAggregationAlgorithm(),
         RasterMathAlgorithm(),
         SampleRasterValuesAlgorithm(),
         SaveRasterAsAlgorithm(),

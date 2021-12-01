@@ -2,7 +2,8 @@ from qgis._core import QgsRasterLayer
 
 from enmapbox import EnMAPBox, initAll
 from enmapbox.testing import start_app
-from enmapboxplugins.mapviewplugins.classfractionrenderer import ClassFractionRenderer, ClassFractionRendererWidget
+from enmapboxplugins.classfractionrenderer import ClassFractionRenderer, ClassFractionRendererWidget
+
 from enmapboxprocessing.utils import Utils
 from enmapboxtestdata import landcover_map_l3
 from tests.testdata import fraction_map_l3_tif

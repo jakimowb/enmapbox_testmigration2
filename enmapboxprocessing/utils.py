@@ -4,7 +4,7 @@ import re
 from os import makedirs
 from os.path import join, dirname, basename, exists, splitext
 from random import randint
-from typing import Tuple, Optional, Callable, Any, Dict, Union
+from typing import Tuple, Optional, Callable, Any, Dict, Union, List
 
 import numpy as np
 from PyQt5.QtGui import QColor
@@ -13,7 +13,7 @@ from qgis._core import (QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRaster
                         QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsRectangle, QgsRasterLayer,
                         QgsRasterDataProvider, QgsPointXY, QgsPoint, Qgis, QgsWkbTypes, QgsSymbol, QgsVectorLayer,
                         QgsFeature, QgsRasterRenderer, QgsFeatureRenderer, QgsMapLayer, QgsCoordinateTransform,
-                        QgsProject)
+                        QgsProject, QgsCoordinateReferenceSystem)
 from qgis._gui import QgsMapCanvas
 
 from enmapboxprocessing.enmapalgorithm import AlgorithmCanceledException
@@ -186,6 +186,18 @@ class Utils(object):
                 if feedback.isCanceled():
                     raise AlgorithmCanceledException()
         return callback
+
+    @classmethod
+    def categoriesFromRasterLayer(cls, raster: QgsRasterLayer, bandNo: int = None) -> Tuple[Categories, int]:
+        renderer = raster.renderer()
+        if isinstance(renderer, QgsPalettedRasterRenderer):
+            categories = cls.categoriesFromPalettedRasterRenderer(renderer)
+            bandNo = renderer.band()
+        else:
+            if bandNo is None:
+                bandNo = 1
+            categories = cls.categoriesFromRasterBand(raster, bandNo)
+        return categories, bandNo
 
     @classmethod
     def categoriesFromPalettedRasterRenderer(cls, renderer: QgsPalettedRasterRenderer) -> Categories:
@@ -475,3 +487,19 @@ class Utils(object):
             transform = QgsCoordinateTransform(layerCrs, mapCanvasCrs, QgsProject.instance())
             extent: QgsRectangle = transform.transformBoundingBox(mapCanvas.extent())
             extent.intersect(layer.extent())
+
+    @classmethod
+    def transformMapCanvasExtent(cls, mapCanvas: QgsMapCanvas, crs: QgsCoordinateReferenceSystem) -> QgsRectangle:
+        mapCanvasCrs = mapCanvas.mapSettings().destinationCrs()
+
+        if crs == mapCanvasCrs:
+            return mapCanvas.extent()
+        else:
+            transform = QgsCoordinateTransform(mapCanvasCrs, crs, QgsProject.instance())
+            return transform.transformBoundingBox(mapCanvas.extent())
+
+    @classmethod
+    def sortedBy(cls, lists: List[List], by: List):
+        argsort = np.argsort(by)
+        return [list(np.array(l)[argsort]) for l in lists]
+

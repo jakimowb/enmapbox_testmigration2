@@ -31,6 +31,7 @@ from PyQt5.QtGui import QDragEnterEvent, QDragMoveEvent, QDragLeaveEvent, QDropE
 from PyQt5.QtWidgets import QFrame, QToolBar, QToolButton, QAction, QMenu, QSplashScreen, QGraphicsDropShadowEffect, \
     QMainWindow, QApplication, QSizePolicy, QWidget, QDockWidget, QStyle, QFileDialog, QDialog
 from PyQt5.QtXml import QDomDocument
+from qgis._core import QgsMapSettings
 from qgis.core import QgsRectangle
 
 import enmapbox.gui.datasources.manager
@@ -1732,7 +1733,7 @@ class EnMAPBox(QgisInterface, QObject):
         if bSP:
             self.loadCurrentMapSpectra(spatialPoint, mapCanvas)
 
-    def currentLocation(self) -> SpatialPoint:
+    def currentLocation(self) -> Optional[SpatialPoint]:
         """
         Returns the current location, which is a SpatialPoint last clicked by a user on a map canvas.
         :return: SpatialPoint
@@ -2698,6 +2699,7 @@ class EnMAPBox(QgisInterface, QObject):
         :param action: Action to add to the toolbar.
         :type action: QAction
         """
+
         pass
 
     def removeToolBarIcon(self, action):

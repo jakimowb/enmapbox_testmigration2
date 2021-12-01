@@ -3,7 +3,7 @@ from qgis._core import QgsRasterLayer
 from enmapbox.exampledata import enmap
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.utils import findBroadBand
-from enmapboxprocessing.algorithm.awesomespectralindicesalgorithm import CreateSpectralIndicesAlgorithm
+from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 
 
 class TestEnmapboxUtils(EnMAPBoxTestCase):

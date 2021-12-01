@@ -2,7 +2,7 @@ from qgis._core import QgsRasterLayer
 
 from enmapbox.exampledata import enmap
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxplugins.mapviewplugins.colorspaceexplorer import ColorSpaceExplorerWidget
+from enmapboxplugins.colorspaceexplorer import ColorSpaceExplorerWidget
 from enmapbox import EnMAPBox, initAll
 from enmapbox.testing import start_app
 

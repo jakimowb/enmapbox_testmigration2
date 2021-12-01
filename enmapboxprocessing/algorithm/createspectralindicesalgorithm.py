@@ -173,7 +173,6 @@ class CreateSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
             filenames = list()
             metadatas = list()
             for short_name, (long_name, formula, bandList, code, bandName) in indices.items():
-
                 alg = VrtBandMathAlgorithm()
                 parameters = {
                     alg.P_RASTER: raster,
@@ -269,3 +268,8 @@ class CreateSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
             scale = 1.
 
         return scale
+
+    @classmethod
+    def translateSentinel2Band(cls, name: str):
+        return {'B1': 'A', 'B2': 'B', 'B3': 'G', 'B4': 'R', 'B5': 'RE1', 'B6': 'RE2', 'B7': 'RE3', 'B8A': 'RE4',
+                'B8': 'N', 'B11': 'S1', 'B12': 'S2'}[name]

@@ -118,8 +118,21 @@
      <string>Project</string>
     </property>
     <widget class="QMenu" name="menuAdd_Product">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
      <property name="title">
       <string>Add Product</string>
+     </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>icons/enmapSensor.png</normaloff>icons/enmapSensor.png</iconset>
+     </property>
+     <property name="toolTipsVisible">
+      <bool>false</bool>
      </property>
      <addaction name="separator"/>
      <addaction name="mActionAddSubDatasets"/>
@@ -299,7 +312,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionZoomIn.svg</normaloff>:/images/themes/default/mActionZoomIn.svg</iconset>
    </property>
    <property name="text">
@@ -354,7 +367,7 @@
   </action>
   <action name="mActionAddDataSource">
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionDataSourceManager.svg</normaloff>:/images/themes/default/mActionDataSourceManager.svg</iconset>
    </property>
    <property name="text">
@@ -369,7 +382,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionZoomFullExtent.svg</normaloff>:/images/themes/default/mActionZoomFullExtent.svg</iconset>
    </property>
    <property name="text">
@@ -393,7 +406,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionZoomActual.svg</normaloff>:/images/themes/default/mActionZoomActual.svg</iconset>
    </property>
    <property name="text">
@@ -420,7 +433,7 @@
     <bool>false</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionPropertiesWidget.svg</normaloff>:/images/themes/default/mActionPropertiesWidget.svg</iconset>
    </property>
    <property name="text">
@@ -432,7 +445,7 @@
   </action>
   <action name="mActionProjectSettings">
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/propertyicons/settings.svg</normaloff>:/images/themes/default/propertyicons/settings.svg</iconset>
    </property>
    <property name="text">
@@ -444,7 +457,7 @@
   </action>
   <action name="mActionExit">
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mIconClose.svg</normaloff>:/images/themes/default/mIconClose.svg</iconset>
    </property>
    <property name="text">
@@ -453,7 +466,7 @@
   </action>
   <action name="mActionPanToSelected">
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionPan.svg</normaloff>:/images/themes/default/mActionPan.svg</iconset>
    </property>
    <property name="text">
@@ -542,7 +555,7 @@
   </action>
   <action name="mActionSaveProjectAs">
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionFileSaveAs.svg</normaloff>:/images/themes/default/mActionFileSaveAs.svg</iconset>
    </property>
    <property name="text">
@@ -617,7 +630,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionSelectRectangle.svg</normaloff>:/images/themes/default/mActionSelectRectangle.svg</iconset>
    </property>
    <property name="text">
@@ -632,7 +645,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionSelectPolygon.svg</normaloff>:/images/themes/default/mActionSelectPolygon.svg</iconset>
    </property>
    <property name="text">
@@ -647,7 +660,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionSelectFreehand.svg</normaloff>:/images/themes/default/mActionSelectFreehand.svg</iconset>
    </property>
    <property name="text">
@@ -659,7 +672,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionSelectRadius.svg</normaloff>:/images/themes/default/mActionSelectRadius.svg</iconset>
    </property>
    <property name="text">
@@ -671,7 +684,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionSelectRectangle.svg</normaloff>:/images/themes/default/mActionSelectRectangle.svg</iconset>
    </property>
    <property name="text">
@@ -686,7 +699,7 @@
   </action>
   <action name="mActionDeselectFeatures">
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionDeselectAll.svg</normaloff>:/images/themes/default/mActionDeselectAll.svg</iconset>
    </property>
    <property name="text">
@@ -701,7 +714,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionToggleEditing.svg</normaloff>:/images/themes/default/mActionToggleEditing.svg</iconset>
    </property>
    <property name="text">
@@ -713,7 +726,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionCapturePolygon.svg</normaloff>:/images/themes/default/mActionCapturePolygon.svg</iconset>
    </property>
    <property name="text">
@@ -725,7 +738,7 @@
   </action>
   <action name="mActionSaveEdits">
    <property name="icon">
-    <iconset resource="../../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionSaveEdits.svg</normaloff>:/images/themes/default/mActionSaveEdits.svg</iconset>
    </property>
    <property name="text">

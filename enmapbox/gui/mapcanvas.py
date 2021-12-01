@@ -955,6 +955,12 @@ class MapCanvas(QgsMapCanvas):
             super(MapCanvas, self).refresh()
             # super(MapCanvas, self).refreshAllLayers()
 
+    def mapSettings(self) -> QgsMapSettings:
+        return super().mapSettings()
+
+    def crs(self) -> QgsCoordinateReferenceSystem:
+        return self.mapSettings().destinationCrs()
+
     def mapTools(self) -> MapCanvasMapTools:
         """
         Returns the map tools
