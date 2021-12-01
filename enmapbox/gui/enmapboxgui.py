@@ -185,6 +185,11 @@ class EnMAPBoxUI(QMainWindow):
 
         self.setWindowTitle('EnMAP-Box 3 ({})'.format(enmapbox.__version__))
 
+        # add a toolbar for EnMAP-Box Plugins
+        self.mPluginsToolbar = QToolBar('Plugins Toolbar')
+        self.addToolBar(self.mPluginsToolbar)
+
+
     def addDockWidget(self, *args, **kwds):
         super(EnMAPBoxUI, self).addDockWidget(*args, **kwds)
 
