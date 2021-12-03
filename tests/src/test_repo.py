@@ -29,7 +29,7 @@ class TestRepository(TestCase):
         self.assertTrue(len(checker.failed) == 0,
                         msg=f'Failed to connect to: {failed}\nService down?')
 
-    @unittest.skipIf(TestCase.runsInCI(), 'not that important')
+    # @unittest.skipIf(TestCase.runsInCI(), 'not that important')
     def test_qgis_api_imports(self):
         from enmapbox import DIR_REPO
         from enmapbox.gui.utils import file_search
@@ -50,7 +50,7 @@ class TestRepository(TestCase):
                     affected_files[path] = affected_lines
 
         if len(affected_files) > 0:
-            msg = ['Shadowed imports of "qgs._" instead "qgis."']
+            msg = ['Import of qgis protected members. Use "qgis." instead "qgs._"']
             for path, lines in affected_files.items():
                 msg.append(f'{path}: lines: {lines}')
             msg = '\n'.join(msg)
