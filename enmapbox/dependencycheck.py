@@ -75,8 +75,9 @@ INSTALLATION_HINT = {
 INSTALLATION_BLOCK = {  # 'numba': 'should to be installed manually using the local package manager.\n' +
     #         'please read <a href="https://numba.pydata.org/numba-doc/dev/user/installing.html">' +
     #         'https://numba.pydata.org/numba-doc/dev/user/installing.html</a> for details',
-    'numpy': 'needs to be installed/updated manually with local package manager',
-    'GDAL': 'needs to be installed/updated manually with local package manager'
+    'numpy': 'needs to be installed/updated manually with local package manager (e.g. OSGeo4W Setup under Windows)',
+    'GDAL': 'needs to be installed/updated manually with local package manager (e.g. OSGeo4W Setup under Windows)',
+    'h5py': 'needs to be installed/updated manually with local package manager (e.g. OSGeo4W Setup under Windows); also see issue #868'
 }
 
 # https://packaging.python.org/tutorials/packaging-projects/#uploading-your-project-to-pypi
