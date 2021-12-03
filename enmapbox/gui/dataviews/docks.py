@@ -861,6 +861,7 @@ class MapDock(Dock):
     # sigSpectrumRequest = pyqtSignal(SpatialPoint)
     sigLayersAdded = pyqtSignal(list)
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
+    sigRenderStateChanged = pyqtSignal()  # used by the progress bar
 
     def __init__(self, *args, **kwds):
         initSrc = kwds.pop('initSrc', None)
@@ -889,6 +890,22 @@ class MapDock(Dock):
             lyrs = [ds.asMapLayer() for ds in dataSources if isinstance(ds, SpatialDataSource)]
             if len(lyrs) > 0:
                 self.mCanvas.setLayers(lyrs)
+
+        # make the map dock aware of it's map canvas rendering state
+        self.renderState = False
+
+        self.mapCanvas().renderStarting.connect(lambda: self.setRenderState(True))
+        self.mapCanvas().renderComplete.connect(lambda: self.setRenderState(False))
+        self.mapCanvas().renderErrorOccurred.connect(lambda: self.setRenderState(False))
+
+    def setRenderState(self, renderState: bool):
+        if self.renderState == renderState:
+            return
+        self.renderState = renderState
+        self.sigRenderStateChanged.emit()
+
+    def isRendering(self) -> bool:
+        return self.renderState
 
     def mapCanvas(self) -> MapCanvas:
         return self.mCanvas

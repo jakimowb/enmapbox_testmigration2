@@ -21,6 +21,7 @@ import re
 import time
 import typing
 import uuid
+from typing import Optional
 
 from PyQt5.QtWidgets import QToolButton, QAction
 from processing import Processing
@@ -509,15 +510,16 @@ class DockManager(QObject):
         self.mConnectedDockAreas = []
         self.mCurrentDockArea = None
         self.mDocks = list()
-        self.mDataSourceManager: DataSourceManager = None
-        self.mMessageBar: QgsMessageBar = None
+        self.mDataSourceManager: Optional[DataSourceManager] = None
+        self.mMessageBar: QgsMessageBar = Optional[None]
 
-        self.mEnMAPBoxInstance: 'EnMAPBox' = None
+        from enmapbox import EnMAPBox
+        self.mEnMAPBoxInstance: Optional[EnMAPBox] = None
 
     def setEnMAPBoxInstance(self, enmapBox):
         self.mEnMAPBoxInstance = enmapBox
 
-    def enmapBoxInstance(self) -> 'EnMAPBox':
+    def enmapBoxInstance(self) -> Optional['EnMAPBox']:
         return self.mEnMAPBoxInstance
 
     def setMessageBar(self, messageBar: QgsMessageBar):
@@ -713,6 +715,7 @@ class DockManager(QObject):
             dock = MapDock(*args, **kwds)
             if isinstance(self.mDataSourceManager, DataSourceManager):
                 dock.sigLayersAdded.connect(self.mDataSourceManager.addDataSources)
+            dock.sigRenderStateChanged.connect(self.mEnMAPBoxInstance.ui.mProgressBarRendering.toggleVisibility)
 
         elif cls == TextDock:
             dock = TextDock(*args, **kwds)

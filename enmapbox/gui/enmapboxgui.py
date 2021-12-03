@@ -24,13 +24,14 @@ import enum
 import typing
 import warnings
 from os.path import dirname, join
-from typing import Optional, Dict, Union, Any
+from typing import Optional, Dict, Union, Any, List
 
 from PyQt5.QtCore import pyqtSignal, Qt, QObject, QModelIndex, pyqtSlot, QSettings, QEventLoop, QRect, QSize, QFile
 from PyQt5.QtGui import QDragEnterEvent, QDragMoveEvent, QDragLeaveEvent, QDropEvent, QPixmap, QColor, QIcon, QKeyEvent, \
     QCloseEvent, QGuiApplication, QPainter
 from PyQt5.QtWidgets import QFrame, QToolBar, QToolButton, QAction, QMenu, QSplashScreen, QGraphicsDropShadowEffect, \
-    QMainWindow, QApplication, QSizePolicy, QWidget, QDockWidget, QStyle, QFileDialog, QDialog
+    QMainWindow, QApplication, QSizePolicy, QWidget, QDockWidget, QStyle, QFileDialog, QDialog, QStatusBar, \
+    QProgressBar, QHBoxLayout
 from PyQt5.QtXml import QDomDocument
 from qgis._core import QgsMapSettings
 from qgis.core import QgsRectangle
@@ -67,6 +68,7 @@ from qgis.gui import QgsMapCanvas, QgsLayerTreeView, \
 from enmapbox import messageLog, debugLog, DEBUG
 
 from enmapbox.gui.dataviews.dockmanager import DockManagerTreeModel, MapDockTreeNode, SpeclibDockTreeNode
+from typeguard import typechecked
 from .datasources.datasources import DataSource, RasterDataSource, VectorDataSource, SpatialDataSource
 from enmapbox.externals.qps.cursorlocationvalue import CursorLocationInfoDock
 from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog
@@ -169,6 +171,7 @@ class EnMAPBoxSplashScreen(QSplashScreen):
 
 
 class EnMAPBoxUI(QMainWindow):
+    mStatusBar: QStatusBar
     mActionProcessingToolbox: QAction
     menuAdd_Product: QMenu
 
@@ -181,6 +184,19 @@ class EnMAPBoxUI(QMainWindow):
         self.setWindowIcon(enmapbox.icon())
         self.menuAdd_Product.setIcon(QIcon(__file__ + '/../ui/icons/enmapSensor.png'))
         self.setVisible(False)
+
+        # add widgets to toolbar
+        self.mStatusBar.setFixedHeight(25)
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.mStatusBar.setLayout(layout)
+        self.mProgressBarRendering = EnMAPBoxMapCanvasRenderProgressBar()
+        self.mProgressBarRendering.setRange(0, 0)
+        self.mProgressBarRendering.setTextVisible(False)
+        layout.addWidget(self.mProgressBarRendering, 1)
+        self.mProgressBarRendering.hide()
+        self.mStatusBar.addWidget(widget, 1)
 
         if sys.platform == 'darwin':
             self.menuBar().setNativeMenuBar(False)
@@ -217,6 +233,25 @@ def getIcon() -> QIcon:
     """
     warnings.warn(DeprecationWarning('Use enmapbox.icon() instead to return the EnMAP-Box icon'), stacklevel=2)
     return enmapbox.icon()
+
+
+@typechecked
+class EnMAPBoxMapCanvasRenderProgressBar(QProgressBar):
+
+    def __init__(self, parent=None):
+        QProgressBar.__init__(self, parent)
+
+    def toggleVisibility(self):
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox.instance()
+        mapDock: MapDock
+        for mapDock in enmapBox.docks(DockTypes.MapDock):
+            if mapDock.isRendering():
+                self.show()
+                #self.setEnabled(True)
+                return
+        self.hide()
+        #self.setEnabled(False)
 
 
 class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):

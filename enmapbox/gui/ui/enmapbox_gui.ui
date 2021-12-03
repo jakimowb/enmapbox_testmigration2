@@ -195,7 +195,7 @@
    <addaction name="menuApplications"/>
    <addaction name="menuAbout"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QStatusBar" name="mStatusBar"/>
   <widget class="QToolBar" name="toolBarDataSources">
    <property name="windowTitle">
     <string>Data Sources</string>
