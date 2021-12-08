@@ -21,6 +21,7 @@ import codecs
 import typing
 import enum
 import uuid
+from math import ceil
 
 from PyQt5.QtCore import pyqtSignal, QSettings, Qt
 from PyQt5.QtGui import QIcon
@@ -91,6 +92,7 @@ class Dock(pgDock):
         else:
             pass
 
+        self.progressBar = self.label.progressBar
         self.uuid = uuid.uuid4()
 
         self.raiseOverlay()
@@ -385,6 +387,12 @@ class DockLabel(pgDockLabel):
             btnUnFloat.clicked.connect(self.dock.unfloat)
             self.mButtons.append(btnUnFloat)
 
+        # add progress bar
+        self.progressBar = QProgressBar(self)
+        self.progressBar.setRange(0, 100)
+        self.progressBar.setValue(50)
+        self.progressBar.setTextVisible(False)
+
         def setUnfloatButtonVisibility(b: bool):
             btnUnFloat.setVisible(b)
             self.update()
@@ -409,10 +417,21 @@ class DockLabel(pgDockLabel):
     #        ev.accept()
 
     def resizeEvent(self, ev: QResizeEvent):
+        border = 0
+        relSize = 0.2
+        maxSize = 50
         if self.orientation == 'vertical':
             size = ev.size().width()
+            self.progressBar.setOrientation(Qt.Vertical)
+            self.progressBar.setFixedHeight(min(ceil(ev.size().height() * relSize), maxSize))
+            self.progressBar.setFixedWidth(ev.size().width() -  2 * border)
+            self.progressBar.move(QPoint(border, ev.size().height() - self.progressBar.height() - border))
         else:
             size = ev.size().height()
+            self.progressBar.setOrientation(Qt.Horizontal)
+            self.progressBar.setFixedWidth(min(ceil(ev.size().width() * relSize), maxSize))
+            self.progressBar.setFixedHeight(ev.size().height() -  2 * border)
+            self.progressBar.move(QPoint(border, border))
 
         for i, btn in enumerate([b for b in self.mButtons if not b.isHidden()]):
             if self.orientation == 'vertical':
@@ -891,21 +910,17 @@ class MapDock(Dock):
             if len(lyrs) > 0:
                 self.mCanvas.setLayers(lyrs)
 
-        # make the map dock aware of it's map canvas rendering state
-        self.renderState = False
+        # connect progress bar to render state
+        self.mapCanvas().renderStarting.connect(self.showProgressBar)
+        self.mapCanvas().renderComplete.connect(self.hideProgressBar)
+        self.mapCanvas().renderErrorOccurred.connect(self.hideProgressBar)
 
-        self.mapCanvas().renderStarting.connect(lambda: self.setRenderState(True))
-        self.mapCanvas().renderComplete.connect(lambda: self.setRenderState(False))
-        self.mapCanvas().renderErrorOccurred.connect(lambda: self.setRenderState(False))
+    def showProgressBar(self):
+        self.progressBar.setRange(0, 0)
+        self.progressBar.show()
 
-    def setRenderState(self, renderState: bool):
-        if self.renderState == renderState:
-            return
-        self.renderState = renderState
-        self.sigRenderStateChanged.emit()
-
-    def isRendering(self) -> bool:
-        return self.renderState
+    def hideProgressBar(self):
+        self.progressBar.hide()
 
     def mapCanvas(self) -> MapCanvas:
         return self.mCanvas

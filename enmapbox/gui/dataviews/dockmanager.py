@@ -716,6 +716,11 @@ class DockManager(QObject):
             if isinstance(self.mDataSourceManager, DataSourceManager):
                 dock.sigLayersAdded.connect(self.mDataSourceManager.addDataSources)
             dock.sigRenderStateChanged.connect(self.mEnMAPBoxInstance.ui.mProgressBarRendering.toggleVisibility)
+            dock.mapCanvas().enableMapTileRendering(True)
+            dock.mapCanvas().setParallelRenderingEnabled(True)
+            dock.mapCanvas().setPreviewJobsEnabled(True)
+            dock.mapCanvas().setCachingEnabled(True)
+            dock.mapCanvas().setMapUpdateInterval(250)
 
         elif cls == TextDock:
             dock = TextDock(*args, **kwds)
