@@ -1355,7 +1355,13 @@ class MapCanvas(QgsMapCanvas):
             center = SpatialPoint.fromMapCanvasCenter(self)
             extent = SpatialExtent(center.crs(), 0, 0, width, height)
             extent.setCenter(center, center.crs())
-            self.setExtent(extent)
+            # self.setExtent(extent)  # this is not precise!
+
+            # better set the scale directly
+            scaleAtOneMeter = 3779.527553725215
+            scaleAtNativeResolution = scaleAtOneMeter * unitsPxX
+            self.zoomScale(scaleAtNativeResolution)
+
         s = ""
 
     def __repr__(self):
