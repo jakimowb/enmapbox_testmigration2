@@ -358,22 +358,44 @@ class PixelScaleExtentMapTool(QgsMapTool):
         """
         crs = self.canvas().mapSettings().destinationCrs()
         pt = SpatialPoint(crs, mouseEvent.mapPoint())
-        center = SpatialPoint.fromMapCanvasCenter(self.canvas())
 
-        unitsPxX = None
-        unitsPxY = None
-
+        unitsPxX = layerMapUnits = None
         for lyr in self.canvas().layers():
             if isinstance(lyr, QgsRasterLayer) and lyr.extent().contains(pt.toCrs(lyr.crs())):
                 unitsPxX = lyr.rasterUnitsPerPixelX()
-                unitsPxY = lyr.rasterUnitsPerPixelY()
+                layerMapUnits = lyr.crs().mapUnits()
                 break
 
         if isinstance(unitsPxX, (int, float)) and unitsPxX > 0:
-            scaleAtOneMeter = 3779.527553725215
-            scaleAtNativeResolution = scaleAtOneMeter * unitsPxX
+            canvasMapUnits = self.canvas().mapUnits()
+            if (
+                    layerMapUnits == QgsUnitTypes.DistanceMeters and
+                    canvasMapUnits == QgsUnitTypes.DistanceMeters
+            ):
+                scaleAtOneMeter = 3779.527553725215
+                scaleAtNativeResolution = scaleAtOneMeter * unitsPxX
+            elif (
+                        layerMapUnits == QgsUnitTypes.DistanceMeters and
+                        canvasMapUnits == QgsUnitTypes.DistanceDegrees
+            ):
+                scaleAtOneMeter = 1902.7474863952016
+                scaleAtNativeResolution = scaleAtOneMeter * unitsPxX
+            elif (
+                    layerMapUnits == QgsUnitTypes.DistanceDegrees and
+                    canvasMapUnits == QgsUnitTypes.DistanceDegrees
+            ):
+                scaleAtOneDegree = 176453049.4014574
+                scaleAtNativeResolution = scaleAtOneDegree * unitsPxX
+            elif (
+                    layerMapUnits == QgsUnitTypes.DistanceDegrees and
+                    canvasMapUnits == QgsUnitTypes.DistanceMeters
+            ):
+                scaleAtOneDegree = 311289235.5551121
+                scaleAtNativeResolution = scaleAtOneDegree * unitsPxX
+            else:
+                assert 0  # Which other units are relevant? Nautical miles, anybody? :-)
+
             self.canvas().zoomScale(scaleAtNativeResolution)
-            print('NEW mapUnitsPerPixel', self.canvas().mapUnitsPerPixel())
 
 
 
