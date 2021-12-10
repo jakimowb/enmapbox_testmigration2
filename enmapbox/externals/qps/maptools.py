@@ -370,11 +370,11 @@ class PixelScaleExtentMapTool(QgsMapTool):
                 break
 
         if isinstance(unitsPxX, (int, float)) and unitsPxX > 0:
-            width = self.canvas().size().width() * unitsPxX  # width in map units
-            height = self.canvas().size().height() * unitsPxY  # height in map units
-            extent = SpatialExtent(crs, 0, 0, width, height)
-            extent.setCenter(center, crs=crs)
-            self.canvas().setExtent(extent)
+            scaleAtOneMeter = 3779.527553725215
+            scaleAtNativeResolution = scaleAtOneMeter * unitsPxX
+            self.canvas().zoomScale(scaleAtNativeResolution)
+            print('NEW mapUnitsPerPixel', self.canvas().mapUnitsPerPixel())
+
 
 
 class FullExtentMapTool(QgsMapTool):
