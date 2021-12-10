@@ -429,6 +429,11 @@ class Utils(object):
             return json.load(file)
 
     @classmethod
+    def fileLoad(cls, filename: str) -> str:
+        with open(filename) as file:
+            return file.read()
+
+    @classmethod
     def isPolygonGeometry(cls, wkbType: int) -> bool:
         types = [value for key, value in QgsWkbTypes.__dict__.items() if 'Polygon' in key]
         return wkbType in types
@@ -497,6 +502,40 @@ class Utils(object):
         else:
             transform = QgsCoordinateTransform(mapCanvasCrs, crs, QgsProject.instance())
             return transform.transformBoundingBox(mapCanvas.extent())
+
+    @classmethod
+    def nativeResolutionScale(cls, layer: QgsRasterLayer, mapCanvas: QgsMapCanvas) -> float:
+        groundSamplingDistance = layer.rasterUnitsPerPixelX()
+        layerMapUnits = layer.crs().mapUnits()
+        canvasMapUnits = mapCanvas.canvas().mapUnits()
+        if (
+                layerMapUnits == QgsUnitTypes.DistanceMeters and
+                canvasMapUnits == QgsUnitTypes.DistanceMeters
+        ):
+            scaleAtOneMeter = 3779.527553725215
+            scaleAtNativeResolution = scaleAtOneMeter * groundSamplingDistance
+        elif (
+                layerMapUnits == QgsUnitTypes.DistanceMeters and
+                canvasMapUnits == QgsUnitTypes.DistanceDegrees
+        ):
+            scaleAtOneMeter = 1902.7474863952016
+            scaleAtNativeResolution = scaleAtOneMeter * groundSamplingDistance
+        elif (
+                layerMapUnits == QgsUnitTypes.DistanceDegrees and
+                canvasMapUnits == QgsUnitTypes.DistanceDegrees
+        ):
+            scaleAtOneDegree = 176453049.4014574
+            scaleAtNativeResolution = scaleAtOneDegree * groundSamplingDistance
+        elif (
+                layerMapUnits == QgsUnitTypes.DistanceDegrees and
+                canvasMapUnits == QgsUnitTypes.DistanceMeters
+        ):
+            scaleAtOneDegree = 311289235.5551121
+            scaleAtNativeResolution = scaleAtOneDegree * groundSamplingDistance
+        else:
+            assert 0  # Which other units are relevant? Nautical miles, anybody? :-)
+
+        return scaleAtNativeResolution
 
     @classmethod
     def sortedBy(cls, lists: List[List], by: List):
