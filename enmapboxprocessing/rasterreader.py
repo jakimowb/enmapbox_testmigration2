@@ -334,6 +334,9 @@ class RasterReader(object):
 
     def fwhm(self, bandNo: int, units: str = None) -> Optional[float]:
         """Return band FWHM in nanometers. Optionally, specify destination units."""
+        if units is None:
+            units = self.Nanometers
+
         fwhm = self.metadataItem('fwhm', '', bandNo)
         if fwhm is None:
             fwhms = self.metadataItem('fwhm', 'ENVI')
