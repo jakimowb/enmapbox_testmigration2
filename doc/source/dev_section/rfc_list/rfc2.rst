@@ -106,7 +106,7 @@ We consequently also look for **fwhm** and **bad band multiplier** here::
 
 
 3. Look at **GDAL PAM** dataset ENVI domain.
-This follows the behaviour of the ENVI driver, that sets lists of **wavelength**, **fwhm** and bad band multipliers (**bbL**) and the **wavelength units** to this location::
+This follows the behaviour of the ENVI driver, that sets lists of **wavelength**, **fwhm** and bad band multipliers (**bbl**) and the **wavelength units** to this location::
 
     wavelengthUnit = gdalDataset.GetMetadataItem('wavelength_unit', 'ENVI')
     wavelength = parseEnviString(gdalDataset.GetMetadataItem('wavelength', 'ENVI'))[42 - 1]
@@ -149,7 +149,7 @@ Technically, we don't need any new functions or methods, because we fully rely o
 
 But, the handling of property keys, and the assurance of fetching priorities,
 can be tedious and should be encapsulated in util functions or methods.
-One example implementation is given by the **RasterReader** class.
+An example implementation is given by the **RasterReader** class.
 
 To query spectral properties for band 42 (in nanometers), we can use::
 

@@ -99,7 +99,7 @@ Implementation
 Technically, we don't need any new functions or methods, because we fully rely on the layer custom property interface.
 
 But, the handling of property keys, and QGIS PAM over GDAL PAM priority, can be tedious and should be encapsulated in utils
-functions or methods. One example implementation is given by the **RasterReader** class.
+functions or methods. An example implementation is given by the **RasterReader** class.
 
 On the dataset level we can use::
 
