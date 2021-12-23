@@ -7,7 +7,7 @@ Contact: andreas.janz@geo.hu-berlin.de
 
 Started: 2021-12-23
 
-Last modified: 2021-12-23
+Last modified: 2021-12-24
 
 Status: Proposed
 
@@ -27,7 +27,7 @@ API support for QGIS PAM management will be implemented in the **enmapboxprocess
 Motivation
 ----------
 
-GDAL organises raster metadata in a PAM (Persistent Auxiliary Metadata) *.aux.xml file.
+GDAL organises raster metadata in a PAM (Persistent Auxiliary Metadata) \*.aux.xml file.
 Reading and writing GDAL PAM items is done via gdal.Dataset and gdal.Band objects.
 
 Currently we restrict metadata handling to GDAL raster. Metadata IO is implemented using the GDAL API:
@@ -40,7 +40,7 @@ On the dataset level we use::
 
     gdal.Dataset.SetMetadataItem(key, value, domain)
     gdal.Dataset.SetMetadata(valueDict, domain)
-    gdal.Dataset.GetMetadata_Dict(valueDictDict)
+    gdal.Dataset.SetMetadata_Dict(valueDictDict)
 
 On the band level we use::
 
@@ -50,7 +50,7 @@ On the band level we use::
 
     gdal.Band.SetMetadataItem(key, value, domain)
     gdal.Band.SetMetadata(valueDict, domain)
-    gdal.Band.GetMetadata_Dict(valueDictDict)
+    gdal.Band.SetMetadata_Dict(valueDictDict)
 
 This is fully sufficient for raster processing, but can be limiting in GUI applications,
 where we usually don’t use **gdal.Dataset**, but **QgsRasterLayer** objects.
@@ -87,16 +87,18 @@ An application that queries metadata from a raster source should use the followi
 
 Technically: **QGIS PAM** shadows **GDAL PAM**
 
-Guide line 1: if you need to set metadata in a processing algorithm: set it to **GDAL PAM**, so that GDAL can read it later!
+Guide line 1:
+    If you need to set metadata in a processing algorithm: set it to **GDAL PAM**, so that GDAL can read it later!
 
-Guide line 2: if you need to set/update metadata in a GUI application: set it to **QGIS PAM**.
+Guide line 2:
+    If you need to set/update metadata in a GUI application: set it to **QGIS PAM**.
 
 Implementation
 --------------
 
 Technically, we don't need any new functions or methods, because we fully rely on the layer custom property interface.
 
-Handling of property keys, and QGIS PAM over GDAL PAM priority, can be tedious and should be encapsulated in utils
+But, the handling of property keys, and QGIS PAM over GDAL PAM priority, can be tedious and should be encapsulated in utils
 functions or methods. One example implementation is given by the **RasterReader** class.
 
 On the dataset level we can use::
