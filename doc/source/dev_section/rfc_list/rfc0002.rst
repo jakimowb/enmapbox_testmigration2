@@ -16,7 +16,7 @@ Summary
 
 It is proposed to implement functions or methods for reading and writing spectral properties from/to
 **QGIS PAM**. Relevant items are: center **wavelength**, **wavelength units**, full width at half maximum (**fwhm**) and
-**bad bands multiplier** values.
+**bad band multiplier** values.
 
 Both, QGIS and GDAL, don't have a concept for spectral property management.
 In GDAL we have rudimentary support for ENVI files.
@@ -43,7 +43,7 @@ GDAL has rudimentary support for spectral properties specified inside ENVI *.hdr
 
 GDAL will dump all items into the ENVI dataset domain, including relevant spectral properties like the list of
 center **wavelength**, the **wavelength units**, the list of full width at half maximum (**fwhm**) values,
-and the list of bad bands multipliers (**bbl**)::
+and the list of bad band multipliers (**bbl**)::
 
     <Metadata domain="ENVI">
       ...
@@ -84,7 +84,7 @@ Approach
 --------
 
 Band-wise spectral properties like **wavelength**, **wavelength units**, full width at half maximum (**fwhm**),
-and **bad bands multiplier** values, are fetched with the following priorisation:
+and **bad band multiplier** values, are fetched with the following priorisation:
 
 1. Look at **QGIS PAM** band default domain.
 This is mainly relevant for GUI applications, where we need to set/update spectral properties using **QgsRasterLayer** objects::
