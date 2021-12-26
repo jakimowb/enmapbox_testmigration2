@@ -7,7 +7,7 @@ Contact: andreas.janz@geo.hu-berlin.de
 
 Started: 2021-12-24
 
-Last modified: 2021-12-25
+Last modified: 2021-12-26
 
 Status: Proposed
 
@@ -70,6 +70,10 @@ GDAL
             <MDI key="TIFFTAG_DATETIME">2019:12:12 19:10:18</MDI>
           </Metadata>
 
+    Since some software use the TIFFTAG_DATETIME to store file creation/manipulation time,
+    and EO data provider don't use it to specify acquisition time, we propose to ignore it.
+
+
 Google Earth Engine
     Google Earth Engine images specify **system:time_start** and **system:time_end** properties in milliseconds since Unix Epoch (1970-01-01T00:00:00)::
 
@@ -108,9 +112,10 @@ EnMAP and DESIS products
               <endTime>2019-12-03T02:14:43.381243Z</endTime>
 
 PRISMA products
-    TODO::
+    PRISMA products specify **Product_StartTime** and **Product_StopTime** properties in each HE5 sub-dataset::
 
-        show PRISMA specification here
+        Product_StartTime=2020-11-07T10:14:04.343999
+        Product_StopTime=2020-11-07T10:14:08.649690
 
 
 The survey shows that there is no clear naming convention for temporal properties. We observe two types of temporal annotation:
@@ -169,24 +174,31 @@ This is useful for sensor product imported with the EnMAP-Box, which dumps all m
     centerTime = parseDateTimeString(date + 'T' + time)
 
     # Sentinel-2
-    startTime = parseDateTimeString(gdalDataset.GetRasterBand(42).GetMetadataItem('PRODUCT_START_TIME'))
-    endTime = parseDateTimeString(gdalDataset.GetRasterBand(42).GetMetadataItem('PRODUCT_STOP_TIME'))
+    startTime = parseDateTimeString(gdalDataset.GetMetadataItem('PRODUCT_START_TIME'))
+    endTime = parseDateTimeString(gdalDataset.GetMetadataItem('PRODUCT_STOP_TIME'))
 
     # EnMAP and DESIS
-    startTime = parseDateTimeString(gdalDataset.GetRasterBand(42).GetMetadataItem('startTime'))
-    endTime = parseDateTimeString(gdalDataset.GetRasterBand(42).GetMetadataItem('endTime'))
+    startTime = parseDateTimeString(gdalDataset.GetMetadataItem('startTime'))
+    endTime = parseDateTimeString(gdalDataset.GetMetadataItem('endTime'))
 
     # PRISMA
-    # todo
+    startTime = parseDateTimeString(gdalDataset.GetMetadataItem('Product_StartTime'))
+    endTime = parseDateTimeString(gdalDataset.GetMetadataItem('Product_StopTime'))
 
     # Google Earth Engine
-    startMSecs = gdalDataset.GetRasterBand(42).GetMetadataItem('system:time_start')
-    endMSecs = gdalDataset.GetRasterBand(42).GetMetadataItem('system:time_end')
+    startMSecs = gdalDataset.GetMetadataItem('system:time_start')
+    endMSecs = gdalDataset.GetMetadataItem('system:time_end')
     startTime = QDateTime(1970, 1 ,1, 0, 0, 0).addMSecs(int(startMSecs))
     endTime = QDateTime(1970, 1 ,1, 0, 0, 0).addMSecs(int(endMSecs))
 
 
-Note that the *parseDateTimeString* function is assumed to parse datetime strings into **QDateTime** objects.
+Note that the *parseDateTimeString* function is assumed to parse timestamps into **QDateTime** objects.
+It is proposed to support the following formats::
+
+    2021-12-24                  # date
+    2021-12-24T12:30:42.123...  # date time
+    1640349042123               # Unix epoche timestamp in milliseconds since 1970-01-01T00:00:00.000
+
 
 Guide line 1:
     If you need to set band-wise temporal properties in a processing algorithm:
@@ -215,7 +227,7 @@ But, the handling of property keys, and the assurance of fetching priorities,
 can be tedious and should be encapsulated in util functions or methods.
 An example implementation is given by the **RasterReader** class.
 
-To query **start time** and **end time** for band 42, we can use::
+To query temporal properties for band 42, we can use::
 
     from enmapboxprocessing.rasterreader import RasterReader
 
@@ -232,6 +244,17 @@ In case of a standart image, where all bands share the same time range, you may 
     endTime = reader.endTime()
     centerTime = reader.centerTime()
     startTime, endTime = reader.temporalRange()
+
+
+To set temporal properties use::
+
+    # for band 42
+    reader.setStartTime(startTime, 42)
+    reader.setEndTime(endTime, 42)
+
+    # for each band
+    reader.setStartTime(startTime)
+    reader.setEndTime(endTime)
 
 
 Use **temporal properties** and **spectral properties** (see RFC 2) together for a full description of a **spectral-temporal timeseries**::
