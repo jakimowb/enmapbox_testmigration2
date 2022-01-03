@@ -1,5 +1,5 @@
 from math import isnan, nan
-from typing import Iterable, List, Union, Optional
+from typing import Iterable, List, Union, Optional, Tuple
 
 import numpy as np
 from PyQt5.QtCore import QSizeF
@@ -16,6 +16,8 @@ from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
 
+
+
 @typechecked
 class RasterReader(object):
 
@@ -24,25 +26,28 @@ class RasterReader(object):
 
     def __init__(self, source: RasterSource):
 
+        self.provider: QgsRasterDataProvider
+
         if isinstance(source, QgsRasterLayer):
-            provider = source.dataProvider()
+            self.layer = source
+            self.provider = self.layer.dataProvider()
         elif isinstance(source, QgsRasterDataProvider):
-            provider = source
+            self.provider = QgsRasterLayer()  # invalid layer!; all QGIS PAM items will get lost
+            self.provider = source
         elif isinstance(source, str):
-            self._sourceLayer = QgsRasterLayer(source)
-            provider = self._sourceLayer.dataProvider()
+            self.layer = QgsRasterLayer(source)
+            self.provider = self.layer.dataProvider()
         elif isinstance(source, gdal.Dataset):
-            self._sourceLayer = QgsRasterLayer(source.GetDescription())
-            provider = self._sourceLayer.dataProvider()
+            self.layer = QgsRasterLayer(source.GetDescription())
+            self.provider = self._layer.dataProvider()
         else:
             assert 0
 
         if isinstance(source, gdal.Dataset):
             gdalDataset = source
         else:
-            gdalDataset: gdal.Dataset = gdal.Open(provider.dataSourceUri(), gdal.GA_ReadOnly)
+            gdalDataset: gdal.Dataset = gdal.Open(self.provider.dataSourceUri(), gdal.GA_ReadOnly)
 
-        self.provider: QgsRasterDataProvider = provider
         self.gdalDataset = gdalDataset
         assert self.gdalDataset is not None
 
@@ -244,7 +249,56 @@ class RasterReader(object):
             maskArray.append(m)
         return maskArray
 
-    def metadataItem(self, key: str, domain: str = '', bandNo: int = None) -> Optional[MetadataValue]:
+    def propertyKey(self, key: str, domain: str, bandNo: int = None):
+        if bandNo is None:
+            propertyKey = f'QGISPAM/dataset/{domain}/{key}'
+        else:
+            propertyKey = f'QGISPAM/band/{bandNo}/{domain}/{key}'
+        return propertyKey
+
+    def propertyKeyComponents(self, propertyKey: str) -> Tuple[str, str, Optional[int]]:
+        if propertyKey.startswith('QGISPAM/dataset'):
+            _, _, domain, key = propertyKey.split('/')
+            bandNo = None
+        elif propertyKey.startswith('QGISPAM/band'):
+            _, _, bandNo, domain, key = propertyKey.split('/')
+            bandNo = int(bandNo)
+        else:
+            raise ValueError('invalid QGIS PAM property key')
+
+        return key, domain, bandNo
+
+    def setMetadataItem(self, key: str, value: MetadataValue, domain: str = '', bandNo: int = None):
+        """Set metadata item as custom layer property. This shadows GDAL PAM metadata items."""
+        propertyKey = self.propertyKey(key, domain, bandNo)
+        self.layer.setCustomProperty(propertyKey, value)
+
+    def removeMetadataItem(self, key: str, domain: str = '', bandNo: int = None):
+        """Remove metadata item from QGIS PAM. It may still exist in GDAL PAM."""
+        self.layer.removeCustomProperty(self.propertyKey(key, domain, bandNo))
+
+    def removeMetadataDomain(self, domain: str, bandNo: int = None):
+        """Remove metadata domain from QGIS PAM. It may still exist in GDAL PAM."""
+        for propertyKey in self.layer.customPropertyKeys():
+            if not propertyKey.startswith('QGISPAM'):
+                continue
+            _, domain2, _ = self.propertyKeyComponents(propertyKey)
+            if domain == domain2:
+                self.layer.removeCustomProperty(propertyKey)
+
+    def metadataItem(
+            self, key: str, domain: str = '', bandNo: int = None, ignoreQgisPam=False
+    ) -> Optional[MetadataValue]:
+
+        # check QGIS PAM (i.e. custom layer properties) first
+        if not ignoreQgisPam:
+            if self.layer is not None:
+                propertyKey = self.propertyKey(key, domain, bandNo)
+                if propertyKey in self.layer.customPropertyKeys():
+                    value = self.layer.customProperty(propertyKey)
+                    return value
+
+        # if not found, check GDAL PAM afterwards
         string = self._gdalObject(bandNo).GetMetadataItem(key, domain)
         if string is None:
             string = self._gdalObject(bandNo).GetMetadataItem(key.replace(' ', '_'), domain)
@@ -252,15 +306,56 @@ class RasterReader(object):
             return None
         return Utils.stringToMetadateValue(string)
 
-    def metadataDomain(self, domain: str = '', bandNo: int = None) -> MetadataDomain:
-        return {
+    def metadataDomain(self, domain: str = '', bandNo: int = None, ignoreQgisPam=False) -> MetadataDomain:
+
+        # get GDAL PAM metadata first
+        metadata = {
             key: Utils.stringToMetadateValue(value)
             for key, value in self._gdalObject(bandNo).GetMetadata(domain).items()
         }
 
-    def metadata(self, bandNo: int = None) -> Metadata:
+        # overwrite with QGIS PAM afterwards
+        if ignoreQgisPam:
+            return metadata
+
+        for propertyKey in self.layer.customPropertyKeys():
+            if not propertyKey.startswith('QGISPAM'):
+                continue
+
+            key, domain2, bandNo2 = self.propertyKeyComponents(propertyKey)
+
+            if domain != domain2 or bandNo != bandNo2:
+                continue
+
+            metadata[key] = self.layer.customProperty(propertyKey)
+
+        return metadata
+
+    def metadata(self, bandNo: int = None, ignoreQgisPam=False) -> Metadata:
         domains = self._gdalObject(bandNo).GetMetadataDomainList()
         return {domain: self.metadataDomain(domain, bandNo) for domain in domains}
+
+    def metadataDomainKeys(self, bandNo: int = None, ignoreQgisPam=False) -> List[str]:
+
+        # get GDAL PAM domains
+        domains: List = self._gdalObject(bandNo).GetMetadataDomainList()
+        if ignoreQgisPam:
+            return domains
+
+        # add QGIS PAM domains
+        for propertyKey in self.layer.customPropertyKeys():
+            if not propertyKey.startswith('QGISPAM'):
+                continue
+
+            _, domain, bandNo2 = self.propertyKeyComponents(propertyKey)
+
+            if bandNo != bandNo2:
+                continue
+
+            if domain not in domains:
+                domains.append(domain)
+
+        return domains
 
     def isSpectralRasterLayer(self, quickCheck=True):
         if quickCheck:
@@ -314,18 +409,28 @@ class RasterReader(object):
 
     def wavelength(self, bandNo: int, units: str = None) -> Optional[float]:
         """Return band center wavelength in nanometers. Optionally, specify destination units."""
+
         if units is None:
             units = self.Nanometers
-        wavelength = self.metadataItem('wavelength', '', bandNo)
-        if wavelength is None:
-            wavelengths = self.metadataItem('wavelength', 'ENVI')
-            if wavelengths is None:
-                return None
+
+        wavelength = self.layer.customProperty(self.propertyKey('wavelength', '', bandNo))
+        wavelength_units = self.layer.customProperty(self.propertyKey('wavelength_units', '', bandNo))
+
+        if wavelength is None:  # not cached already
+            wavelength = self.metadataItem('wavelength', '', bandNo)
+            if wavelength is None:
+                wavelengths = self.metadataItem('wavelength', 'ENVI')
+                if wavelengths is None:
+                    return None
+                else:
+                    wavelength = wavelengths[bandNo - 1]
+                    wavelength_units = self.metadataItem('wavelength_units', 'ENVI')
             else:
-                wavelength = wavelengths[bandNo - 1]
-                wavelength_units = self.metadataItem('wavelength_units', 'ENVI')
-        else:
-            wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
+                wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
+
+            # cache results for later usage
+            self.setMetadataItem('wavelength', float(wavelength), '', bandNo)
+            self.setMetadataItem('wavelength_units', wavelength_units, '', bandNo)
 
         # convert to destination units
         wavelength = Utils.wavelengthUnitsConversionFactor(wavelength_units, units) * float(wavelength)
@@ -353,8 +458,7 @@ class RasterReader(object):
 
         return fwhm
 
-
-    def badBandMultiplier(self, bandNo: int) -> Optional[int]:
+    def badBandMultiplier(self, bandNo: int) -> int:
         """Return bad band multiplier, typically 0 for bad bands and 1 for good bands."""
         badBandMultiplier = self.metadataItem('bad band multiplier', '', bandNo)
         if badBandMultiplier is None:
