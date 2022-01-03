@@ -244,14 +244,14 @@ class EnMAPBoxMapCanvasRenderProgressBar(QProgressBar):
     def toggleVisibility(self):
         from enmapbox import EnMAPBox
         enmapBox = EnMAPBox.instance()
+        if enmapBox is None:
+            return
         mapDock: MapDock
         for mapDock in enmapBox.docks(DockTypes.MapDock):
             if mapDock.isRendering():
                 self.show()
-                #self.setEnabled(True)
                 return
         self.hide()
-        #self.setEnabled(False)
 
 
 class EnMAPBoxLayerTreeLayer(QgsLayerTreeLayer):
@@ -1739,7 +1739,7 @@ class EnMAPBox(QgisInterface, QObject):
     def restoreProject(self):
         raise NotImplementedError()
 
-    def setCurrentLocation(self, spatialPoint: SpatialPoint, mapCanvas: QgsMapCanvas = None):
+    def setCurrentLocation(self, spatialPoint: SpatialPoint, mapCanvas: QgsMapCanvas = None, emitSignal=True):
         """
         Sets the current "last selected" location, for which different properties might get derived,
         like cursor location values and SpectraProfiles.
@@ -1754,9 +1754,10 @@ class EnMAPBox(QgisInterface, QObject):
 
         self.mCurrentMapLocation = spatialPoint
 
-        self.sigCurrentLocationChanged[SpatialPoint].emit(self.mCurrentMapLocation)
-        if isinstance(mapCanvas, QgsMapCanvas):
-            self.sigCurrentLocationChanged[SpatialPoint, QgsMapCanvas].emit(self.mCurrentMapLocation, mapCanvas)
+        if emitSignal:
+            self.sigCurrentLocationChanged[SpatialPoint].emit(self.mCurrentMapLocation)
+            if isinstance(mapCanvas, QgsMapCanvas):
+                self.sigCurrentLocationChanged[SpatialPoint, QgsMapCanvas].emit(self.mCurrentMapLocation, mapCanvas)
 
         if isinstance(mapCanvas, QgsMapCanvas):
             if bCLV:
@@ -2693,7 +2694,7 @@ class EnMAPBox(QgisInterface, QObject):
             if mapDock.mapCanvas() is mapCanvas:
                 return mapDock
 
-    def currentMapCanvas(self) -> MapCanvas:
+    def currentMapCanvas(self) -> Optional[MapCanvas]:
         """
         Returns the active map canvas, i.e. the MapCanvas that was clicked last.
         :return: MapCanvas

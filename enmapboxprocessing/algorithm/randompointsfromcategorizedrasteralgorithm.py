@@ -125,8 +125,13 @@ class RandomPointsFromCategorizedRasterAlgorithm(EnMAPProcessingAlgorithm):
 
             # draw points
             # - for each strata
+
+            progressI = 0
+            progressN = sum(N)
             for mask, n, category in zip(masks, N, categories):
                 for i in range(n):
+                    feedback.setProgress(progressI / progressN * 100)
+                    progressI += 1
                     # - draw single pixel
                     indices = np.where(mask.flat)[0]
                     if len(indices) == 0:

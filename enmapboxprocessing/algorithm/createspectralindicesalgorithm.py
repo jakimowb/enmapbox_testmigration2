@@ -46,6 +46,8 @@ class CreateSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
 
     P_OUTPUT_VRT, _OUTPUT_VRT = 'outputVrt', 'Output VRT layer'
 
+    ShortNames = ['A', 'B', 'G', 'R', 'RE1', 'RE2', 'RE3', 'RE4', 'N', 'S1', 'S2', 'T1', 'T2']
+
     WavebandMapping = {  # (<center wavelength>, <fwhm>)
         'A': (443, 21), 'B': (492, 66), 'G': (560, 36), 'R': (665, 31), 'RE1': (704, 15), 'RE2': (741, 15),
         'RE3': (783, 20), 'RE4': (865, 21), 'N': (833, 106), 'S1': (1614, 91), 'S2': (2202, 175), 'T1': (10895, 590),
@@ -54,7 +56,14 @@ class CreateSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
         'L': 1.0, 'g': 2.5, 'C1': 6.0, 'C2': 7.5, 'cexp': 1.16, 'nexp': 2.0, 'alpha': 0.1, 'gamma': 1.0, 'sla': 1.0,
         'slb': 0.0
     }
+    LongNameMapping = {
+        'A': 'Aerosols band', 'B': 'Blue band', 'G': 'Green band', 'R': 'Red band', 'RE1': 'Red Edge 1 band',
+        'RE2': 'Red Edge 2 band', 'RE3': 'Red Edge 3 band', 'RE4': 'Red Edge 4 band', 'N': 'NIR band',
+        'S1': 'SWIR 1 band', 'S2': 'SWIR 2 band', 'T1': 'Thermal 1 band', 'T2': 'Thermal 2 band'
+    }
+
     IndexDatabase = Utils.jsonLoad(__file__.replace('.py', '.json'))['SpectralIndices']  # AwesomeSpectralIndices
+    IndexDatabase.update(Utils.jsonLoad(__file__.replace('.py', '.other.json'))['SpectralIndices'])  # more indices
 
     linkAwesomeSpectralIndices = EnMAPProcessingAlgorithm.htmlLink(
         'https://awesome-ee-spectral-indices.readthedocs.io/en/latest/list.html',

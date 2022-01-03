@@ -8,12 +8,15 @@ from typing import Tuple, Optional, Callable, Any, Dict, Union, List
 
 import numpy as np
 from PyQt5.QtGui import QColor
+from PyQt5.QtXml import QDomDocument
 from osgeo import gdal
 from qgis._core import (QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRasterRenderer,
                         QgsCategorizedSymbolRenderer, QgsRendererCategory, QgsRectangle, QgsRasterLayer,
                         QgsRasterDataProvider, QgsPointXY, QgsPoint, Qgis, QgsWkbTypes, QgsSymbol, QgsVectorLayer,
                         QgsFeature, QgsRasterRenderer, QgsFeatureRenderer, QgsMapLayer, QgsCoordinateTransform,
-                        QgsProject, QgsCoordinateReferenceSystem)
+                        QgsProject, QgsCoordinateReferenceSystem, QgsUnitTypes, QgsReadWriteContext,
+                        QgsMultiBandColorRenderer, QgsContrastEnhancement, QgsSingleBandPseudoColorRenderer,
+                        QgsRasterShader, QgsColorRampShader, QgsColorRamp, QgsSingleBandGrayRenderer)
 from qgis._gui import QgsMapCanvas
 
 from enmapboxprocessing.enmapalgorithm import AlgorithmCanceledException
@@ -212,6 +215,64 @@ class Utils(object):
     ) -> QgsPalettedRasterRenderer:
         classes = [QgsPalettedRasterRenderer.Class(c.value, QColor(c.color), c.name) for c in categories]
         renderer = QgsPalettedRasterRenderer(provider, bandNumber, classes)
+        return renderer
+
+    @classmethod
+    def multiBandColorRenderer(
+            cls, provider: QgsRasterDataProvider, bandNumbers: List[int], minValues: List[float], maxValues: List[float]
+    ) -> QgsMultiBandColorRenderer:
+
+        renderer = QgsMultiBandColorRenderer(provider, *bandNumbers)
+        ce = QgsContrastEnhancement(provider.dataType(bandNumbers[0]))
+        ce.setMinimumValue(minValues[0], False)
+        ce.setMaximumValue(maxValues[0], False)
+        ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
+        renderer.setRedContrastEnhancement(ce)
+        ce = QgsContrastEnhancement(provider.dataType(bandNumbers[1]))
+        ce.setMinimumValue(minValues[1], False)
+        ce.setMaximumValue(maxValues[1], False)
+        ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
+        renderer.setGreenContrastEnhancement(ce)
+        ce = QgsContrastEnhancement(provider.dataType(bandNumbers[2]))
+        ce.setMinimumValue(minValues[2], False)
+        ce.setMaximumValue(maxValues[2], False)
+        ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
+        renderer.setBlueContrastEnhancement(ce)
+        return renderer
+
+    @classmethod
+    def singleBandGrayRenderer(
+            cls, provider: QgsRasterDataProvider, grayBand: int, minValue: float, maxValue: float
+    ) -> QgsSingleBandGrayRenderer:
+
+        renderer = QgsSingleBandGrayRenderer(provider, grayBand)
+        ce = QgsContrastEnhancement(provider.dataType(grayBand))
+        ce.setMinimumValue(minValue, False)
+        ce.setMaximumValue(maxValue, False)
+        ce.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
+        renderer.setContrastEnhancement(ce)
+        return renderer
+
+    @classmethod
+    def singleBandPseudoColorRenderer(
+            cls, provider: QgsRasterDataProvider, bandNo: int, minValue: float, maxValue: float,
+            ramp: QgsColorRamp
+    ) -> QgsSingleBandPseudoColorRenderer:
+        shader = QgsRasterShader()
+        colorRampShader = QgsColorRampShader()
+        colorRampShader.setMinimumValue(minValue)
+        colorRampShader.setMaximumValue(maxValue)
+        colorRampShader.setColorRampType(QgsColorRampShader.Interpolated)
+        # derive ramp items
+        delta = maxValue - minValue
+        fractionalSteps = [i / ramp.count() for i in range(ramp.count() + 1)]
+        colors = [ramp.color(f) for f in fractionalSteps]
+        steps = [minValue + f * delta for f in fractionalSteps]
+        rampItems = [QgsColorRampShader.ColorRampItem(step, color, str(step))
+                     for step, color in zip(steps, colors)]
+        colorRampShader.setColorRampItemList(rampItems)
+        shader.setRasterShaderFunction(colorRampShader)
+        renderer = QgsSingleBandPseudoColorRenderer(provider, bandNo, shader)
         return renderer
 
     @classmethod
@@ -507,7 +568,7 @@ class Utils(object):
     def nativeResolutionScale(cls, layer: QgsRasterLayer, mapCanvas: QgsMapCanvas) -> float:
         groundSamplingDistance = layer.rasterUnitsPerPixelX()
         layerMapUnits = layer.crs().mapUnits()
-        canvasMapUnits = mapCanvas.canvas().mapUnits()
+        canvasMapUnits = mapCanvas.mapUnits()
         if (
                 layerMapUnits == QgsUnitTypes.DistanceMeters and
                 canvasMapUnits == QgsUnitTypes.DistanceMeters
@@ -542,3 +603,35 @@ class Utils(object):
         argsort = np.argsort(by)
         return [list(np.array(l)[argsort]) for l in lists]
 
+    @classmethod
+    def defaultNoDataValue(cls, numpyDataType) -> float:
+        try:
+            noDataValue = np.finfo(numpyDataType).min
+            noDataValue = float(max(np.finfo(np.float32).min, noDataValue))
+        except:
+            noDataValue = int(np.iinfo(numpyDataType).min)
+        return noDataValue
+
+    @classmethod
+    def setLayerDataSource(cls, layer: QgsMapLayer, newProvider: str, newDataSource: str, extent: QgsRectangle = None):
+        # adopted from the changeDatasourcePlugin
+
+        XMLDocument = QDomDocument("style")
+        XMLMapLayers = XMLDocument.createElement("maplayers")
+        XMLMapLayer = XMLDocument.createElement("maplayer")
+        context = QgsReadWriteContext()
+        layer.writeLayerXml(XMLMapLayer, XMLDocument, context)
+        # apply layer definition
+        XMLMapLayer.firstChildElement("datasource").firstChild().setNodeValue(newDataSource)
+        XMLMapLayer.firstChildElement("provider").firstChild().setNodeValue(newProvider)
+        if extent:  # if a new extent (for raster) is provided it is applied to the layer
+            XMLMapLayerExtent = XMLMapLayer.firstChildElement("extent")
+            XMLMapLayerExtent.firstChildElement("xmin").firstChild().setNodeValue(str(extent.xMinimum()))
+            XMLMapLayerExtent.firstChildElement("xmax").firstChild().setNodeValue(str(extent.xMaximum()))
+            XMLMapLayerExtent.firstChildElement("ymin").firstChild().setNodeValue(str(extent.yMinimum()))
+            XMLMapLayerExtent.firstChildElement("ymax").firstChild().setNodeValue(str(extent.yMaximum()))
+
+        XMLMapLayers.appendChild(XMLMapLayer)
+        XMLDocument.appendChild(XMLMapLayers)
+        layer.readLayerXml(XMLMapLayer, context)
+        layer.reload()

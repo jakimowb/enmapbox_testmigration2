@@ -10,7 +10,6 @@ from enmapboxtestdata import landcover_map_l3
 class TestRandomPointsFromCategorizedRasterAlgorithm(TestCase):
 
     def test(self):
-        global c
         alg = RandomPointsFromCategorizedRasterAlgorithm()
         alg.initAlgorithm()
         parameters = {
@@ -36,3 +35,14 @@ class TestRandomPointsFromCategorizedRasterAlgorithm(TestCase):
         self.assertTrue(np.alltrue(np.equal(
             [[0, 0, 0], [0, 0, 0], [0, 0, 0]], RandomPointsFromCategorizedRasterAlgorithm.makeKernel(30, 30, 45)
         )))
+
+    def test_debug874(self):
+        alg = RandomPointsFromCategorizedRasterAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_STRATIFICATION: QgsRasterLayer(r'C:\Users\Andreas\Downloads\all_features_Cnv.tif'),
+            alg.P_N: 1,
+            alg.P_SEED: 42,
+            alg.P_OUTPUT_POINTS: self.filename('points.gpkg')
+        }
+        result = self.runalg(alg, parameters)

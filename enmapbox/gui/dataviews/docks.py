@@ -44,6 +44,7 @@ from enmapbox.externals.qps.externals.pyqtgraph.dockarea.Dock import DockLabel a
 from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard
 from enmapbox.gui.mimedata import MDF_QGIS_LAYER_STYLE
 from enmapbox.externals.qps.speclib.core import is_spectral_library
+from enmapboxprocessing.utils import Utils
 
 
 class DockWindow(QMainWindow):
@@ -392,6 +393,7 @@ class DockLabel(pgDockLabel):
         self.progressBar.setRange(0, 100)
         self.progressBar.setValue(50)
         self.progressBar.setTextVisible(False)
+        self.progressBar.hide()
 
         def setUnfloatButtonVisibility(b: bool):
             btnUnFloat.setVisible(b)
@@ -878,6 +880,8 @@ class MapDock(Dock):
     # sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
     # sigCursorLocationRequest = pyqtSignal(SpatialPoint)
     # sigSpectrumRequest = pyqtSignal(SpatialPoint)
+
+
     sigLayersAdded = pyqtSignal(list)
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
     sigRenderStateChanged = pyqtSignal()  # used by the progress bar
@@ -922,6 +926,17 @@ class MapDock(Dock):
     def hideProgressBar(self):
         self.progressBar.hide()
 
+    def treeNode(self) -> 'MapDockTreeNode':
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox.instance()
+        for node in enmapBox.dockManagerTreeModel().mapDockTreeNodes():
+            if node.dock is self:
+                return node
+        raise Exception('unexpected error: map dock tree node not found')
+
+    def removeLayer(self, layer: QgsMapLayer):
+        self.treeNode().removeLayer(layer)
+
     def mapCanvas(self) -> MapCanvas:
         return self.mCanvas
 
@@ -949,13 +964,6 @@ class MapDock(Dock):
         assert isinstance(canvas, QgsMapCanvas)
         return self.mapCanvas().createCanvasLink(canvas, linkType)
 
-    def mapCanvas(self) -> MapCanvas:
-        """
-        Returns the MapCanvas
-        :return: MapCanvas
-        """
-        return self.mCanvas
-
     def addLayers(self, layers: typing.List[QgsMapLayer]):
         assert isinstance(layers, list)
         new_set = self.mapCanvas().layers() + layers
@@ -972,6 +980,36 @@ class MapDock(Dock):
                 if mapDockTreeNode.dock is self:
                     mapDockTreeNode.insertLayer(idx=idx, layerSource=layerSource)
 
+    def addOrUpdateLayer(self, layer: QgsMapLayer):
+        """Add a new layer or update existing layer with matching name."""
+
+        from enmapbox import EnMAPBox
+        enmapBox = EnMAPBox.instance()
+
+        # look for existing layer and update ...
+        layerNode: QgsLayerTreeLayer
+        for index, layerNode in enumerate(self.treeNode().findLayers()):
+            if layer.name() == layerNode.layer().name():
+                if False and layer.dataProvider().name() == layerNode.layer().dataProvider().name():
+                    Utils.setLayerDataSource(
+                        layerNode.layer(), layer.dataProvider().name(), layer.source(), layer.extent()
+                    )
+                    layerNode.layer().setRenderer(layer.renderer().clone())
+                    self.mapCanvas().refresh()
+                    enmapBox.layerTreeView().refreshLayerSymbology(layerNode.layer().id())
+                    return
+                else:
+                    # different providers can cause problems, so we better remove the existing and insert the new layer
+
+                    #self.insertLayer(index, layer)  # currently broken, see issue #881
+
+                    self.addLayers([layer])
+                    self.removeLayer(layerNode.layer())
+
+                    return
+
+        # ... or add the layer
+        self.addLayers([layer])
 
 class DockTypes(object):
     """

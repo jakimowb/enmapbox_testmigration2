@@ -44,6 +44,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     PickleFileFilter = 'Pickle (*.pkl)'
     PickleFileExtension = 'pkl'
     PickleFileDestination = 'Destination pickle file.'
+    JsonFileFilter = 'JSON (*.json)'
+    JsonFileDestination = 'Destination JSON file.'
     RasterFileDestination = 'Raster file destination.'
     VectorFileDestination = 'Vector file destination.'
     TableFileDestination = 'Table file destination.'
@@ -51,7 +53,6 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     ReportFileDestination = 'Output report file destination.'
     ReportOpen = 'Whether to open the output report in the web browser.'
     FolderDestination = 'Folder destination.'
-
     VrtFormat = 'VRT'
     DefaultVrtCreationOptions = ''.split()
     DefaultVrtCreationProfile = VrtFormat + ' ' + ' '.join(DefaultVrtCreationOptions)
@@ -830,6 +831,7 @@ class Group(Enum):
     Clustering = 'Clustering'
     DatasetCreation = 'Dataset creation'
     Experimental = 'Experimental'
+    ExportData = 'Export data'
     FeatureSelection = 'Feature selection'
     ImportData = 'Import data'
     Masking = 'Masking'

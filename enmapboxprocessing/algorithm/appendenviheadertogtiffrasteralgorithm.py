@@ -58,9 +58,9 @@ class AppendEnviHeaderToGTiffRasterAlgorithm(EnMAPProcessingAlgorithm):
             text += 'wavelength units = Nanometer\n' \
                     'wavelength = {' + ', '.join(wavelength) + '}\n'
             if fwhm[0] != 'None':
-                'fwhm = {' + ', '.join(fwhm) + '}\n'
+                text += 'fwhm = {' + ', '.join(fwhm) + '}\n'
             if bbl[0] != 'None':
-                'bbl = {' + ', '.join(bbl) + '}\n'
+                text += 'bbl = {' + ', '.join(bbl) + '}\n'
 
         if ds.GetRasterBand(1).GetNoDataValue() is not None:
             text += f'data ignore value = {ds.GetRasterBand(1).GetNoDataValue()}\n'

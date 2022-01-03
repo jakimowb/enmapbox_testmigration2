@@ -12,7 +12,7 @@ qgsApp = start_app()
 
 class ProcessingFeedback(QgsProcessingFeedback):
     def setProgress(self, progress):
-        print('\r', round(progress, 2), end='%', flush=True)
+        print('\r', round(progress, 5), end='%', flush=True)
         if progress == 100:
             print('\r', end='')
 

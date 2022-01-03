@@ -1,5 +1,5 @@
 import numpy as np
-from qgis._core import QgsRasterRange
+from qgis._core import QgsRasterRange, QgsRasterLayer
 
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
@@ -56,25 +56,131 @@ class TestRasterReader(TestCase):
 
 
 class TestRasterMetadataReader(TestCase):
-    def setUp(self):
-        self.reader = RasterReader(enmap)
 
-    def test_metadata_thatExists(self):
+    def test_gdal_dataset_metadata(self):
+        reader = RasterReader(enmap)
         gold = 'Micrometers'
-        self.assertEqual(gold, self.reader.metadataItem('wavelength_units', 'ENVI'))
-        self.assertEqual(gold, self.reader.metadataItem('wavelength units', 'ENVI'))
-        self.assertEqual(gold, self.reader.metadataItem('wavelength_units'.upper(), 'ENVI'.lower()))
-        self.assertEqual(gold, self.reader.metadataItem('wavelength units'.upper(), 'ENVI'.lower()))
-        self.assertIsNone(self.reader.metadataItem('abc', 'XYZ'))
+        self.assertEqual(gold, reader.metadataItem('wavelength_units', 'ENVI'))
+        self.assertEqual(gold, reader.metadataItem('wavelength units', 'ENVI'))
+        self.assertEqual(gold, reader.metadataItem('wavelength_units'.upper(), 'ENVI'.lower()))
+        self.assertEqual(gold, reader.metadataItem('wavelength units'.upper(), 'ENVI'.lower()))
+        self.assertIsNone(reader.metadataItem('abc', 'XYZ'))
 
-    def test_bandwise_metadata(self):
-        self.assertEqual(self.reader.Micrometers, self.reader.wavelengthUnits(1))
-        self.assertEqual(460.0, self.reader.wavelength(1))
-        self.assertEqual(460.0, self.reader.wavelength(1, self.reader.Nanometers))
-        self.assertEqual(0.460, self.reader.wavelength(1, self.reader.Micrometers))
-        self.assertEqual(5.8, self.reader.fwhm(1))
-        self.assertEqual(5.8, self.reader.fwhm(1, self.reader.Nanometers))
-        self.assertEqual(0.0058, self.reader.fwhm(1, self.reader.Micrometers))
+    def test_gdal_band_metadata(self):
+        reader = RasterReader(enmap)
+        self.assertEqual(reader.Micrometers, reader.wavelengthUnits(1))
+        self.assertEqual(460.0, reader.wavelength(1))
+        self.assertEqual(460.0, reader.wavelength(1, reader.Nanometers))
+        self.assertEqual(0.460, reader.wavelength(1, reader.Micrometers))
+        self.assertEqual(5.8, reader.fwhm(1))
+        self.assertEqual(5.8, reader.fwhm(1, reader.Nanometers))
+        self.assertEqual(0.0058, reader.fwhm(1, reader.Micrometers))
+
+
+class TestQgisPam(TestCase):
+    # test QGIS PAM metadata handling (see #898)
+
+    def test_item(self):
+        layer = QgsRasterLayer(enmap)
+        reader = RasterReader(layer)
+
+        # make sure wavelength units exist in GDAL PAM
+        key = 'wavelength_units'
+        self.assertEqual('Micrometers', reader.gdalDataset.GetMetadataItem(key))
+
+        # query wavelength units
+        self.assertEqual('Micrometers', reader.metadataItem(key))
+
+        # shadow GDAL PAM items
+        reader.setMetadataItem(key, 'Nanometers')  # stores item in QGIS PAM
+        self.assertEqual('Nanometers', reader.metadataItem(key))
+
+        # shadow with None to effectively mask existing GDAL items
+        reader.setMetadataItem(key, None)
+        self.assertIsNone(None, reader.metadataItem(key))
+
+        # ignoring QGIS PAM shadowing may be useful in some cases
+        self.assertEqual('Micrometers', reader.metadataItem(key, ignoreQgisPam=True))
+
+        # remove QGIS PAM item
+        reader.removeMetadataItem(key)
+        self.assertEqual('Micrometers', reader.metadataItem(key))  # ignoreQgisPam not required anymore
+
+    def test_domain(self):
+        layer = QgsRasterLayer(enmap)
+        reader = RasterReader(layer)
+
+        # make sure the ENVI domain exists
+        domain = 'ENVI'
+        domainItems = ['bands', 'band_names', 'byte_order', 'coordinate_system_string', 'data_ignore_value', 'data_type', 'default_bands', 'description', 'file_type', 'fwhm', 'header_offset', 'interleave', 'lines', 'samples', 'sensor_type', 'wavelength', 'wavelength_units', 'y_start', 'z_plot_titles']
+        self.assertEqual(domainItems, list(reader.gdalDataset.GetMetadata(domain).keys()))
+
+        # query domain
+        self.assertEqual(
+            domainItems,
+            list(reader.metadataDomain(domain).keys())
+        )
+
+        # shadow GDAL PAM item in domain
+        key = 'wavelength_units'
+        reader.setMetadataItem(key, 'TEST', domain)
+        self.assertEqual('TEST', reader.metadataDomain(domain)[key])
+
+        # shadow with None to effectively mask existing GDAL items
+        reader.setMetadataItem(key, None, domain)
+        self.assertIsNone(reader.metadataDomain(domain)[key])
+
+        # ignoring QGIS PAM shadowing may be useful in some cases
+        self.assertEqual('Micrometers', reader.metadataDomain(domain, ignoreQgisPam=True)[key])
+
+        # remove QGIS PAM domain
+        reader.removeMetadataDomain(domain)
+        self.assertEqual('Micrometers', reader.metadataItem(key))  # ignoreQgisPam not required anymore
+
+    def test_domainList(self):
+        layer = QgsRasterLayer(enmap)
+        reader = RasterReader(layer)
+
+        # make sure which GDAL domains exists
+        self.assertEqual(
+            ['IMAGE_STRUCTURE', '', 'ENVI', 'DERIVED_SUBDATASETS'],
+            reader.gdalDataset.GetMetadataDomainList()
+        )
+
+        # query domain keys
+        self.assertEqual(
+            ['IMAGE_STRUCTURE', '', 'ENVI', 'DERIVED_SUBDATASETS'],
+            reader.metadataDomainKeys()
+        )
+
+        # add item to a new domain
+        reader.setMetadataItem('KEY', 'VALUE', 'NEW_DOMAIN')
+        self.assertTrue('NEW_DOMAIN' in reader.metadataDomainKeys())
+
+        # ignore QGIS PAM to ignore the new domain
+        self.assertFalse('NEW_DOMAIN' in reader.metadataDomainKeys(ignoreQgisPam=True))
+
+    def test_wavelength(self):
+
+        layer = QgsRasterLayer(enmap)
+        reader = RasterReader(layer)
+
+        # make sure GDAL PAM wavelength are available
+        wavelengths = [float(reader.gdalBand(bandNo).GetMetadataItem('wavelength'))
+                      for bandNo in range(1, layer.bandCount() + 1)]
+        self.assertEqual(
+            [0.46, 0.465, 0.47, 0.475, 0.479, 0.484, 0.489, 0.494, 0.499, 0.503, 0.508, 0.513, 0.518, 0.523, 0.528, 0.533, 0.538, 0.543, 0.549, 0.554, 0.559, 0.565, 0.57, 0.575, 0.581, 0.587, 0.592, 0.598, 0.604, 0.61, 0.616, 0.622, 0.628, 0.634, 0.64, 0.646, 0.653, 0.659, 0.665, 0.672, 0.679, 0.685, 0.692, 0.699, 0.706, 0.713, 0.72, 0.727, 0.734, 0.741, 0.749, 0.756, 0.763, 0.771, 0.778, 0.786, 0.793, 0.801, 0.809, 0.817, 0.824, 0.832, 0.84, 0.848, 0.856, 0.864, 0.872, 0.88, 0.888, 0.896, 0.915, 0.924, 0.934, 0.944, 0.955, 0.965, 0.975, 0.986, 0.997, 1.007, 1.018, 1.029, 1.04, 1.051, 1.063, 1.074, 1.086, 1.097, 1.109, 1.12, 1.132, 1.144, 1.155, 1.167, 1.179, 1.191, 1.203, 1.215, 1.227, 1.239, 1.251, 1.263, 1.275, 1.287, 1.299, 1.311, 1.323, 1.522, 1.534, 1.545, 1.557, 1.568, 1.579, 1.59, 1.601, 1.612, 1.624, 1.634, 1.645, 1.656, 1.667, 1.678, 1.689, 1.699, 1.71, 1.721, 1.731, 1.742, 1.752, 1.763, 1.773, 1.783, 2.044, 2.053, 2.062, 2.071, 2.08, 2.089, 2.098, 2.107, 2.115, 2.124, 2.133, 2.141, 2.15, 2.159, 2.167, 2.176, 2.184, 2.193, 2.201, 2.21, 2.218, 2.226, 2.234, 2.243, 2.251, 2.259, 2.267, 2.275, 2.283, 2.292, 2.3, 2.308, 2.315, 2.323, 2.331, 2.339, 2.347, 2.355, 2.363, 2.37, 2.378, 2.386, 2.393, 2.401, 2.409],
+            wavelengths
+        )
+
+        # query wavelength via the RasterReader.wavelength
+        wavelength = reader.wavelength(bandNo=42)
+        self.assertEqual(685.0, wavelength)
+
+        # check that we properly cached the wavelength
+        defaultDomain = ''
+        self.assertEqual(0.685, layer.customProperty(f'QGISPAM/band/42/{defaultDomain}/wavelength'))
+        self.assertEqual('Micrometers', layer.customProperty(f'QGISPAM/band/42/{defaultDomain}/wavelength_units'))
 
 
 class TestRasterMaskReader(TestCase):

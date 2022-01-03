@@ -68,3 +68,14 @@ class TestClassificationPerformanceSimpleAlgorithm(TestCase):
                 str(error),
                 'Unable to execute algorithm\nInvalid classification, requires paletted/unique values renderer (Observed categorized layer)'
             )
+
+    def test_debug(self):
+        alg = ClassificationPerformanceSimpleAlgorithm()
+        alg.initAlgorithm()
+        parameters = {
+            alg.P_CLASSIFICATION: r'C:\Users\Andreas\Downloads\SE_data\rf_classification_v2.bsq',
+            alg.P_REFERENCE: r'C:\Users\Andreas\Downloads\SE_data\validation_data.shp',
+            alg.P_OPEN_REPORT: True,
+            alg.P_OUTPUT_REPORT: self.filename('report.html'),
+        }
+        self.runalg(alg, parameters)

@@ -21,6 +21,7 @@ from enmapbox.externals.qps.models import TreeModel, TreeView, TreeNode
 from enmapbox.externals.qps.utils import defaultBands, bandClosestToWavelength, loadUi, qgisAppQgisInterface
 
 from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
+from enmapboxprocessing.algorithm.subsetrasterbandsalgorithm import SubsetRasterBandsAlgorithm
 from enmapboxprocessing.utils import Utils
 from .metadata import RasterBandTreeNode
 from .datasources import DataSource, SpatialDataSource, VectorDataSource, RasterDataSource, \
@@ -424,6 +425,15 @@ class DataSourceManagerTreeView(TreeView):
                 a.triggered.connect(
                     lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
                         TranslateRasterAlgorithm(), parameters, parent=self
+                    )
+                )
+
+                parameters = {SubsetRasterBandsAlgorithm.P_RASTER: node.source()}
+                a: QAction = m.addAction('Subset bands')
+                a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
+                a.triggered.connect(
+                    lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
+                        SubsetRasterBandsAlgorithm(), parameters, parent=self
                     )
                 )
 

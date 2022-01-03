@@ -406,22 +406,7 @@ Raster Metadata
 
 .. glossary::
 
-    band description
-    band name
-        The name of a :term:`band`.
-
-        Usage example::
-
-            # get
-            >>>dataset.GetRasterBand(bandNo).GetDescription()
-            >>>raster.bandName(bandNo)
-            band 8 (0.460000 Micrometers)
-            band 8 (0.460000 Micrometers)
-
-            # set
-            >>>newDataset.GetRasterBand(bandNo).SetDescription('my band name')
-            >>>newRaster.setBandName('my band name', bandNo)
-
+    bad band
     bad band multiplier
         The bad band multiplier value is indicating whether a :term:`band` is usable (1) or not (0).
 
@@ -441,6 +426,22 @@ Raster Metadata
             >>>newDataset.GetRasterBand(bandNo).SetMetadataItem('bad_band_multiplier', '1')  # set for single band
             >>>newDataset.SetMetadataItem('bbl', '{1, ...., 1}', 'ENVI')  # set for all bands at once
             >>>newRaster.setBadBandMultiplier(1, bandNo)  # set for single band
+
+    band description
+    band name
+        The name of a :term:`band`.
+
+        Usage example::
+
+            # get
+            >>>dataset.GetRasterBand(bandNo).GetDescription()
+            >>>raster.bandName(bandNo)
+            band 8 (0.460000 Micrometers)
+            band 8 (0.460000 Micrometers)
+
+            # set
+            >>>newDataset.GetRasterBand(bandNo).SetDescription('my band name')
+            >>>newRaster.setBandName('my band name', bandNo)
 
     center wavelength
         A synonym for :term:`wavelength`.

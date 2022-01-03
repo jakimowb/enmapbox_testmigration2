@@ -677,7 +677,7 @@ class DockManager(QObject):
             return True
         return False
 
-    def createDock(self, dockType, *args, **kwds) -> Dock:
+    def createDock(self, dockType, *args, cls=None, **kwds) -> Dock:
         """
         Creates and returns a new Dock
         :param dockType: str or Dock class, e.g. 'MAP' or MapDock
@@ -685,10 +685,13 @@ class DockManager(QObject):
         :param kwds:
         :return:
         """
+
         assert dockType in LUT_DOCKTYPES.keys(), f'Unknown dockType "{dockType}"\n' + \
                                                  'Choose from [{}]'.format(
                                                      ','.join(['"{}"'.format(k) for k in LUT_DOCKTYPES.keys()]))
-        cls = LUT_DOCKTYPES[dockType]
+
+        if cls is None:
+            cls = LUT_DOCKTYPES[dockType]  # use one of the hard coded types
 
         # create the dock name
         existingDocks = self.docks(dockType)
@@ -711,8 +714,8 @@ class DockManager(QObject):
         kwds['area'] = dockArea
         # kwds['parent'] = dockArea
         dock = None
-        if cls == MapDock:
-            dock = MapDock(*args, **kwds)
+        if issubclass(cls, MapDock):  # allow subclasses
+            dock = cls(*args, **kwds)
             if isinstance(self.mDataSourceManager, DataSourceManager):
                 dock.sigLayersAdded.connect(self.mDataSourceManager.addDataSources)
             dock.sigRenderStateChanged.connect(self.mEnMAPBoxInstance.ui.mProgressBarRendering.toggleVisibility)
@@ -722,7 +725,7 @@ class DockManager(QObject):
             dock.mapCanvas().setCachingEnabled(True)
             dock.mapCanvas().setMapUpdateInterval(250)
 
-        elif cls == TextDock:
+        elif cls == TextDock:  # todo: allow subclasses for other dock types as well
             dock = TextDock(*args, **kwds)
 
         elif cls == MimeDataDock:
@@ -1358,7 +1361,7 @@ class DockTreeView(QgsLayerTreeView):
         else:
             return False
 
-    def currentMapCanvas(self) -> MapCanvas:
+    def currentMapCanvas(self) -> Optional[MapCanvas]:
         """
         Returns the current MapCanvas, i.e. the MapCanvas that was clicked last
         :return:
