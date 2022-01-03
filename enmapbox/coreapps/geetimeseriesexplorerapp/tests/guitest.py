@@ -1,11 +1,17 @@
+from tempfile import gettempdir
+
+from qgis._core import QgsVectorLayer
+
 from enmapbox import EnMAPBox, initAll
 from enmapbox.testing import start_app
 from geetimeseriesexplorerapp import GeeTimeseriesExplorerApp
 
 
-#import pyqtgraph.examples
-#pyqtgraph.examples.run()
-#exit(0)
+import pyqtgraph.examples
+pyqtgraph.examples.run()
+exit(0)
+from tests.testdata import landcover_berlin_point_singlepart_3035_gpkg
+
 qgsApp = start_app()
 initAll()
 enmapBox = EnMAPBox(None)
@@ -16,18 +22,47 @@ app = GeeTimeseriesExplorerApp.instance()
 app.actionToggleMainDock.trigger()
 app.actionToggleProfileDock.trigger()
 
+locations = QgsVectorLayer(landcover_berlin_point_singlepart_3035_gpkg, 'landcover_berlin_point.gpkg')
+enmapBox.onDataDropped([locations])
 
-# create a composite
 app.mainDock.mLANDSAT_LC08_C02_T1_L2.clicked.emit()
+app.profileDock.mLayer.setLayer(locations)
+app.profileDock.mDownloadFolder.setFilePath(r'C:\Users\Andreas\Downloads\Profiles')
+
+#app.mainDock.mCOPERNICUS_S1_GRD.clicked.emit()
+
 #app.dockWidget.mCompositeDateStart.setDate(QDate(2020, 8, 1))
 #app.dockWidget.mCompositeDateEnd.setDate(QDate(2020, 8, 2))
 #app.dockWidget.mCreateComposite.clicked.emit()
 qgsApp.exec_()
 
-# for i in range(w.colorRamp().count()): print(i, w.colorRamp().color(i/(w.colorRamp().count() - 1)).name())
+
+# use this code for the QGIS version!!!
+"""class EventFilter(QObject):
+    currentLocation = None
+    def eventFilter(self, mapCanvas, event):
+        if not isinstance(event, QInputMethodQueryEvent ):
+            return False
+        location = mapCanvas.mouseLastXY()
+        if self.currentLocation != location:
+            print(location)
+            self.currentLocation = location
+        return False
+
+eventFilter = EventFilter()
+iface.mapCanvas().installEventFilter(eventFilter)"""
 
 
-# todo var qaMask = image.select('QA_PIXEL').rightShift(8).bitwiseAnd(3).neq(3)
+# TASKS
+""""
+# class Task(QgsTask):
+    ...
+    def run(self):
+        from time import sleep
+        sleep(3)
+      
+        return True
 
-
-
+tasks = [Task() for i in range(1000)]
+[QgsApplication.taskManager().addTask(task) for task in tasks]
+"""

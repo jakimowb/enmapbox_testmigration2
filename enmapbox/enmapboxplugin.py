@@ -23,6 +23,7 @@ import pathlib
 import warnings
 import typing
 
+from PyQt5.QtCore import Qt
 from qgis.core import Qgis
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QOperatingSystemVersion
@@ -46,6 +47,8 @@ class EnMAPBoxPlugin(object):
         dirPlugin = pathlib.Path(__file__).parent
         site.addsitedir(dirPlugin)
         site.addsitedir(dirPlugin / 'site-packages')
+        site.addsitedir(pathlib.Path(__file__).parent.parent / 'enmapbox/coreapps')
+
         import enmapbox
 
         # run a minimum dependency check
@@ -90,6 +93,10 @@ class EnMAPBoxPlugin(object):
 
             for action in self.pluginToolbarActions:
                 iface.addToolBarIcon(action)
+
+            # init stand-alone apps, that can operate in QGIS GUI without EnMAP-Box
+            self.initStandAloneAppGuis(iface)
+
         else:
             print('EnMAPBoxPlugin.initGui() called without iface')
 
@@ -135,11 +142,62 @@ class EnMAPBoxPlugin(object):
             EnMAPBox.instance().close()
         EnMAPBox._instance = None
 
+    def initStandAloneAppGuis(self, iface: QgisInterface):
+        """
+        We started to move external QGIS Plugins into the EnMAP-Box as applications.
+        E.g. the GEE Time Series Explorer plugin.
+        Those apps can now be used inside the EnMAP-Box GUI, but also in QGIS GUI as stand-alone.
+        Therefore, we need to add toolbar icons.
+        Note that an app can't do this on it's own, because apps only get initialized on box startup.
+        """
 
+        self.initGeeTimeseriesExplorerGui(iface)
 
+    def initGeeTimeseriesExplorerGui(self, iface: QgisInterface):
 
+        from geetimeseriesexplorerapp.externals.ee_plugin.provider import register_data_provider
+        from geetimeseriesexplorerapp import GeeTimeseriesExplorerApp
+        from geetimeseriesexplorerapp.geetemporalprofiledockwidget import GeeTemporalProfileDockWidget
+        from geetimeseriesexplorerapp.geetimeseriesexplorerdockwidget import GeeTimeseriesExplorerDockWidget
 
+        # register the GEETSE_EE data provider
+        register_data_provider()
 
+        # add main dock and toolbar button
+        self.geeTimeseriesExplorerMainDock = GeeTimeseriesExplorerDockWidget(parent=iface.parent())
+        iface.addDockWidget(Qt.RightDockWidgetArea, self.geeTimeseriesExplorerMainDock)
+        self.geeTimeseriesExplorerMainDock.setWindowIcon(GeeTimeseriesExplorerApp.icon())
+        self.geeTimeseriesExplorerMainDock.hide()
 
+        self.geeTimeseriesExplorerActionToggleMainDock = QAction(
+            GeeTimeseriesExplorerApp.icon(), 'GEE Time Series Explorer', iface.mainWindow()
+        )
+        self.geeTimeseriesExplorerActionToggleMainDock.triggered.connect(self.geeTimeseriesExplorerToggleMainDockVisibility)
+        iface.addToolBarIcon(self.geeTimeseriesExplorerActionToggleMainDock)
 
+        # add profile dock and toolbar button
+        icon = GeeTimeseriesExplorerApp.iconProfilePlot()
+        self.geeTimeseriesExplorerProfileDock = GeeTemporalProfileDockWidget(
+            self.geeTimeseriesExplorerMainDock, parent=iface.parent()
+        )
+        iface.addDockWidget(Qt.TopDockWidgetArea, self.geeTimeseriesExplorerProfileDock)
+        self.geeTimeseriesExplorerProfileDock.setWindowIcon(icon)
+        self.geeTimeseriesExplorerProfileDock.hide()
 
+        self.actionToggleProfileDock = QAction(icon, 'GEE Temporal Profile Viewer', iface.mainWindow())
+        self.actionToggleProfileDock.triggered.connect(self.geeTimeseriesExplorerToggleProfileDockVisibility)
+        iface.addToolBarIcon(self.actionToggleProfileDock)
+
+        # set some members
+        self.geeTimeseriesExplorerMainDock.setProfileDock(self.geeTimeseriesExplorerProfileDock)
+        self.geeTimeseriesExplorerMainDock.setEnmapBox(None)
+        self.geeTimeseriesExplorerMainDock.setQgisInterface(iface)
+
+    def geeTimeseriesExplorerToggleMainDockVisibility(self):
+        self.geeTimeseriesExplorerMainDock.setVisible(not self.geeTimeseriesExplorerMainDock.isVisible())
+        self.geeTimeseriesExplorerProfileDock.setVisible(self.geeTimeseriesExplorerMainDock.isVisible())
+
+    def geeTimeseriesExplorerToggleProfileDockVisibility(self):
+        visible = not self.geeTimeseriesExplorerProfileDock.isVisible()
+        self.geeTimeseriesExplorerProfileDock.setVisible(visible)
+        self.geeTimeseriesExplorerProfileDock.mIdentify.setChecked(visible)

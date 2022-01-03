@@ -6,9 +6,9 @@ import ee
 from qgis._core import QgsRasterLayer
 
 
-def addLayer(eeObject, visParams=None, name=None, shown=True, opacity=1.0) -> QgsRasterLayer:
+def addLayer(eeObject, visParams, name, mapCanvas, shown=True, opacity=1.0) -> QgsRasterLayer:
     from geetimeseriesexplorerapp.externals.ee_plugin.utils import add_or_update_ee_layer
-    return add_or_update_ee_layer(eeObject, visParams, name, shown, opacity)
+    return add_or_update_ee_layer(eeObject, visParams, name, mapCanvas, shown, opacity)
 
 
 def getBounds(asGeoJSON=False):

@@ -44,30 +44,16 @@ def update_ee_layer_properties(layer, eeObject, visParams, shown, opacity):
         layer.dataProvider().set_ee_object(eeObject)
 
 
-def add_ee_image_layer(image, name, shown, opacity):
+def add_ee_image_layer(image, name, mapCanvas, shown, opacity):
     check_version()
 
     url = "type=xyz&url=" + get_ee_image_url(image)
 
     # EE raster data provider
     if image.ee_type == ee.Image:
-        layer = QgsRasterLayer(url, name, "EE")
-    # EE vector data provider
-    if image.ee_type in [ee.Geometry, ee.Feature]:
-        # TODO
-        layer = QgsRasterLayer(url, name, "wms")
-    # EE raster collection data provider
-    if image.ee_type == ee.ImageCollection:
-        # TODO
-        layer = QgsRasterLayer(url, name, "wms")
-    # EE vector collection data provider
-    if image.ee_type == ee.FeatureCollection:
-        # TODO
-        layer = QgsRasterLayer(url, name, "wms")
+        layer = QgsRasterLayer(url, name, "GEETSE_EE")
 
-    # QgsProject.instance().addMapLayer(layer)
-    enmapBox = EnMAPBox.instance()
-    mapCanvas = enmapBox.currentMapCanvas()
+    QgsProject.instance().addMapLayer(layer)
     layers = mapCanvas.layers()
     layers.append(layer)
     mapCanvas.setLayers(layers)
@@ -75,24 +61,20 @@ def add_ee_image_layer(image, name, shown, opacity):
     return layer
 
 
-def update_ee_image_layer(image, layer, shown=True, opacity=1.0):
+def update_ee_image_layer(image, layer, mapCanvas, shown=True, opacity=1.0):
     check_version()
 
     url = "type=xyz&url=" + get_ee_image_url(image)
 
     provider = layer.dataProvider()
     msg = 'Updating layer with provider %s' % (type(provider).__name__, )
-    QgsMessageLog.logMessage(msg, 'Earth Engine')
+    QgsMessageLog.logMessage(msg, 'GEE Time Series Explorer')
 
     provider.setDataSourceUri(url)
     provider.reloadData()
     layer.triggerRepaint()
     layer.reload()
-    iface.mapCanvas().refresh()
-
-    #item = QgsProject.instance().layerTreeRoot().findLayer(layer.id())
-    #if not (shown is None):
-    #    item.setItemVisibilityChecked(shown)
+    mapCanvas.refresh()
 
 
 def get_layer_by_name(name):
@@ -105,62 +87,31 @@ def get_layer_by_name(name):
     return None
 
 
-def add_or_update_ee_layer(eeObject, visParams, name, shown, opacity):
+def add_or_update_ee_layer(eeObject, visParams, name, mapCanvas, shown, opacity):
     if visParams is None:
         visParams = {}
 
     if isinstance(eeObject, ee.Image):
         image = eeObject.visualize(**visParams)
 
-    elif isinstance(eeObject, (ee.Geometry, ee.Feature, ee.ImageCollection, ee.FeatureCollection)):
-        features = ee.FeatureCollection(eeObject)
-
-        if 'width' in visParams:
-            width = visParams['width']
-        else:
-            width = 2
-
-        if 'color' in visParams:
-            color = visParams['color']
-        else:
-            color = '000000'
-
-        image_fill = features.style(**{'fillColor': color}).updateMask(ee.Image.constant(0.5))
-        image_outline = features.style(**{'color': color, 'fillColor': '00000000', 'width': width})
-
-        image = image_fill.blend(image_outline)
-
-    else:
-        err_str = "\n\nThe image argument in 'addLayer' function must be an instance of one of ee.Image, ee.Geometry, " \
-                  "ee.Feature, ee.ImageCollection or ee.FeatureCollection."
-        raise AttributeError(err_str)
-
-    if name is None:
-        # extract name from id
-        try:
-            name = json.loads(eeObject.id().serialize())[
-                "scope"][0][1]["arguments"]["id"]
-        except:
-            name = "untitled"
-
     image.ee_type = type(eeObject)
 
-    layer = add_or_update_ee_image_layer(image, name, shown, opacity)
+    layer = add_or_update_ee_image_layer(image, name, mapCanvas, shown, opacity)
     update_ee_layer_properties(layer, eeObject, visParams, shown, opacity)
 
     return layer
 
 
-def add_or_update_ee_image_layer(image, name, shown=True, opacity=1.0):
+def add_or_update_ee_image_layer(image, name, mapCanvas, shown=True, opacity=1.0):
     layer = get_layer_by_name(name)
 
     if layer:
         if not layer.customProperty('ee-layer'):
             raise Exception('Layer is not an EE layer: ' + name)
 
-        update_ee_image_layer(image, layer, shown, opacity)
+        update_ee_image_layer(image, layer, mapCanvas, shown, opacity)
     else:
-        layer = add_ee_image_layer(image, name, shown, opacity)
+        layer = add_ee_image_layer(image, name, mapCanvas, shown, opacity)
 
     return layer
 

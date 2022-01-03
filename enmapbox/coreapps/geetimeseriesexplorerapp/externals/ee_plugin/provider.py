@@ -1,7 +1,13 @@
-# -*- coding: utf-8 -*-
 """
-Create and init the Earth Engine Qgis data provider
+Create and init the Earth Engine Qgis data provider adopted for the GEE Time Series Explorer plugin.
+
+Note that this is a rough copy&paste&edit of the original EarthEngineRasterDataProvider.
+We need to manipulate the original provider to make it work in the EnMAP-Box environment,
+where we have multiple map canvases and specialized spectral metadata handling.
+
+This needs to be cleaned up at some point!
 """
+import traceback
 from math import nan
 from typing import List, Dict, Optional
 
@@ -36,7 +42,7 @@ BAND_TYPES = {
 }
 
 @typechecked
-class EarthEngineRasterDataProvider(QgsRasterDataProvider):
+class GeetseEarthEngineRasterDataProvider(QgsRasterDataProvider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -46,9 +52,10 @@ class EarthEngineRasterDataProvider(QgsRasterDataProvider):
 
         self._singlePixelCache = dict()  # cache for reading single pixel profiles via block()
 
-        from geetimeseriesexplorerapp.geetimeseriesexplorerdockwidget import CollectionJson, CollectionInfo
-        self.collectionJson: Optional[CollectionJson] = None
-        self.collectionInfo: Optional[CollectionInfo] = None
+        from geetimeseriesexplorerapp.collectioninfo import CollectionInfo
+        from geetimeseriesexplorerapp.imageinfo import ImageInfo
+        self.collectionJson: Optional[CollectionInfo] = None
+        self.imageInfo: Optional[ImageInfo] = None
 
     @classmethod
     def description(cls):
@@ -56,27 +63,33 @@ class EarthEngineRasterDataProvider(QgsRasterDataProvider):
 
     @classmethod
     def providerKey(cls):
-        return 'EE'
+        return 'GEETSE_EE'
 
     @classmethod
     def createProvider(cls, uri, providerOptions, flags=None):
         # compatibility with Qgis < 3.16, ReadFlags only available since 3.16
         if Qgis.QGIS_VERSION_INT >= 31600:
             flags = QgsDataProvider.ReadFlags()
-            return EarthEngineRasterDataProvider(uri, providerOptions, flags)
+            return GeetseEarthEngineRasterDataProvider(uri, providerOptions, flags)
         else:
-            return EarthEngineRasterDataProvider(uri, providerOptions)
+            return GeetseEarthEngineRasterDataProvider(uri, providerOptions)
 
     def set_ee_object(self, ee_object):
         self.ee_object = ee_object
-        self.ee_info = ee_object.getInfo()
+        # self.ee_info = ee_object.getInfo()
 
-    def setInformation(self, collectionJson, collectionInfo):
-        from geetimeseriesexplorerapp.geetimeseriesexplorerdockwidget import CollectionJson, CollectionInfo
-        assert isinstance(collectionJson, CollectionJson)
-        assert isinstance(collectionInfo, CollectionInfo)
+    def setImageForProfile(self, eeImage, showBandInProfile):
+        self.eeImage = eeImage
+        self.showBandInProfile = showBandInProfile
+        self.ee_info = eeImage.getInfo()
+
+    def setInformation(self, collectionJson, imageInfo):
+        from geetimeseriesexplorerapp.collectioninfo import CollectionInfo
+        from geetimeseriesexplorerapp.imageinfo import ImageInfo
+        assert isinstance(collectionJson, CollectionInfo)
+        assert isinstance(imageInfo, ImageInfo)
         self.collectionJson = collectionJson
-        self.collectionInfo = collectionInfo
+        self.imageInfo = imageInfo
 
     def wavelength(self, bandNo: int) -> float:
         """Return band wavelength in nanometers. For non-spectral bands, nan is returned."""
@@ -110,7 +123,7 @@ class EarthEngineRasterDataProvider(QgsRasterDataProvider):
         return self.wms.reloadData()
 
     def htmlMetadata(self):
-        return json.dumps(self.ee_object.getInfo())
+        return json.dumps(self.ee_info)
 
     def bandCount(self):
 
@@ -151,7 +164,7 @@ class EarthEngineRasterDataProvider(QgsRasterDataProvider):
         point_ee = ee.Geometry.Point([point.x(), point.y()])
 
         scale = 1
-        values = self.ee_object.reduceRegion(ee.Reducer.first(), point_ee, scale).getInfo()
+        values = self.eeImage.reduceRegion(ee.Reducer.first(), point_ee, scale).getInfo()
 
         band_indices = range(1, self.bandCount() + 1)
         band_names = [self.generateBandName(band_no) for band_no in band_indices]
@@ -185,31 +198,33 @@ class EarthEngineRasterDataProvider(QgsRasterDataProvider):
                 [boundingBox.xMinimum(), boundingBox.yMinimum(), boundingBox.xMaximum(), boundingBox.yMaximum()]
             )
 
-            eeImage = self.ee_object
+            eeImage = self.eeImage
             eeImage = eeImage.select(bandNo - 1)
             eeImage = eeImage.clipToBoundsAndScale(eeRectangle, width, height)  # down-scale image
             properties = []
             defaultValue = 0
-            sample = eeImage.sampleRectangle(eeRectangle, properties, defaultValue).getInfo()
-            array = np.array(list(sample['properties'].values()))[0]
+            try:
+                sample = eeImage.sampleRectangle(eeRectangle, properties, defaultValue).getInfo()
+                array = np.array(list(sample['properties'].values()))[0]
+            except:
+                traceback.print_exc()
+                array = np.zeros((height, width))
 
             # we may have to deal with one pixel extra in each direction
             array = array[:height, :width]
 
-        # scale to reflectance
-        offset = self.collectionJson.bandOffset(bandNo)
-        scale = self.collectionJson.bandScale(bandNo)
-        if scale is not None:
-            array = array * scale
-        if offset is not None:
-            array = array + offset
+        if array.shape != (height, width):
+            print('GeetseEarthEngineRasterDataProvider.block - array shape mismatch: ', array.shape, (height, width))
 
-        assert array.shape == (height, width)
+        if array.dtype in [np.int64, np.uint64]:  # QGIS has no UInt64 and Int64
+            array = array.astype(np.float64)
+
+        if not self.showBandInProfile[bandNo - 1]:
+            array =  np.full_like(array, nan)
+
         dataType = None
         block = Utils.numpyArrayToQgsRasterBlock(array, dataType)
 
-        array2 = Utils.qgsRasterBlockToNumpyArray(block)
-        #assert np.all(array==array2)
         return block
 
     def xSize(self):
@@ -245,9 +260,9 @@ class EarthEngineVectorCollectionDataProvider(QgsVectorDataProvider):
 
 def register_data_provider():
     metadata = QgsProviderMetadata(
-        EarthEngineRasterDataProvider.providerKey(),
-        EarthEngineRasterDataProvider.description(),
-        EarthEngineRasterDataProvider.createProvider)
+        GeetseEarthEngineRasterDataProvider.providerKey(),
+        GeetseEarthEngineRasterDataProvider.description(),
+        GeetseEarthEngineRasterDataProvider.createProvider)
     registry = QgsProviderRegistry.instance()
     registry.registerProvider(metadata)
-    QgsMessageLog.logMessage('EE provider registered')
+    QgsMessageLog.logMessage('GEETSE_EE provider registered')

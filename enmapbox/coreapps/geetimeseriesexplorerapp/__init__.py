@@ -16,7 +16,7 @@ from typeguard import typechecked
 def enmapboxApplicationFactory(enmapBox: EnMAPBox):
     # create and store singleton
     instance = GeeTimeseriesExplorerApp(enmapBox)
-    enmapBox.setProperty(GeeTimeseriesExplorerApp.__name__, instance)
+    #enmapBox.setProperty(GeeTimeseriesExplorerApp.__name__, instance)
 
     return [instance]
 
@@ -24,10 +24,10 @@ def enmapboxApplicationFactory(enmapBox: EnMAPBox):
 @typechecked
 class GeeTimeseriesExplorerApp(EnMAPBoxApplication):
 
-    @classmethod
-    def instance(cls) -> 'GeeTimeseriesExplorerApp':
-        """Return singleton."""
-        return EnMAPBox.instance().property(GeeTimeseriesExplorerApp.__name__)
+    #@classmethod
+   # def instance(cls) -> 'GeeTimeseriesExplorerApp':
+    #    """Return singleton."""
+   #    return EnMAPBox.instance().property(GeeTimeseriesExplorerApp.__name__)
 
     def __init__(self, enmapBox: EnMAPBox, parent=None):
         super().__init__(enmapBox, parent=parent)
@@ -40,15 +40,25 @@ class GeeTimeseriesExplorerApp(EnMAPBoxApplication):
             'type=xyz&url=https://mt1.google.com/vt/lyrs%3Dm%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0',
             'Google Maps', 'wms'
         )
+
+        # Create and register the EE data providers
+        register_data_provider()
+
         self.initGui()
 
-
-
-    def icon(self):
+    @classmethod
+    def icon(cls):
         return QIcon(__file__.replace('__init__.py', '/icon.svg'))
 
-    def initGui(self):
+    @classmethod
+    def iconProfilePlot(cls):
+        return QIcon(__file__.replace('__init__.py', '/icons/plot.svg'))
 
+    @classmethod
+    def iconMapView(cls):
+        return QIcon(__file__.replace('__init__.py', '/icons/new_map_view.svg'))
+
+    def initGui(self):
         try:
             import ee
         except ModuleNotFoundError:
@@ -62,51 +72,62 @@ class GeeTimeseriesExplorerApp(EnMAPBoxApplication):
             self.enmapbox.ui.mPluginsToolbar.addAction(self.action)
             return
 
+        self.initEnmapGui()
+
+    def initEnmapGui(self):
+
         # add main dock and toolbar button
-        self.mainDock = GeeTimeseriesExplorerDockWidget(self.enmapbox, parent=self.parent())
+        self.mainDock = GeeTimeseriesExplorerDockWidget(parent=self.parent())
         self.enmapbox.addDockWidget(Qt.RightDockWidgetArea, self.mainDock)
         self.mainDock.setWindowIcon(self.icon())
         self.mainDock.hide()
 
-        self.actionToggleMainDock = QAction(self.icon(), 'GEE Time Series Explorer', self.enmapbox.iface.mainWindow())
-        self.actionToggleMainDock.triggered.connect(self.toggleMainDockVisibility)
-        self.enmapbox.ui.mPluginsToolbar.addAction(self.actionToggleMainDock)
+        self.actionTogglemainDock = QAction(self.icon(), 'GEE Time Series Explorer', self.enmapbox.iface.mainWindow())
+        self.actionTogglemainDock.triggered.connect(self.togglemainDockVisibility)
+        self.enmapbox.ui.mPluginsToolbar.addAction(self.actionTogglemainDock)
 
         # add profile dock and toolbar button
-        icon = QIcon(__file__.replace('__init__.py', '/icons/plot.svg'))
-        self.profileDock = GeeTemporalProfileDockWidget(self.enmapbox, self.mainDock, parent=self.parent())
+        icon = self.iconProfilePlot()
+        self.profileDock = GeeTemporalProfileDockWidget(self.mainDock, parent=self.parent())
         self.enmapbox.addDockWidget(Qt.TopDockWidgetArea, self.profileDock)
         self.profileDock.setWindowIcon(icon)
         self.profileDock.hide()
 
-        self.actionToggleProfileDock = QAction(icon, 'GEE Temporal Profile Viewer', self.enmapbox.iface.mainWindow())
-        self.actionToggleProfileDock.triggered.connect(self.toggleProfileDockVisibility)
-        self.enmapbox.ui.mPluginsToolbar.addAction(self.actionToggleProfileDock)
+        self.actionToggleprofileDock = QAction(icon, 'GEE Temporal Profile Viewer', self.enmapbox.iface.mainWindow())
+        self.actionToggleprofileDock.triggered.connect(self.toggleprofileDockVisibility)
+        self.enmapbox.ui.mPluginsToolbar.addAction(self.actionToggleprofileDock)
 
         # add new map view toolbar button
-        icon = QIcon(__file__.replace('__init__.py', '/icons/new_map_view.svg'))
-        self.actionNewMapView = QAction(icon, 'Open new map view', self.enmapbox.iface.mainWindow())
-        self.actionNewMapView.triggered.connect(self.newMapView)
-        self.enmapbox.ui.mPluginsToolbar.addAction(self.actionNewMapView)
+        icon = self.iconMapView()
+        self.actionEnmapNewMapView = QAction(icon, 'Open new map view', self.enmapbox.iface.mainWindow())
+        self.actionEnmapNewMapView.triggered.connect(self.enmapNewMapView)
+        self.enmapbox.ui.mPluginsToolbar.addAction(self.actionEnmapNewMapView)
 
-        # Create and register the EE data providers
-        register_data_provider()
+        # set some members
+        self.mainDock.setProfileDock(self.profileDock)
+        self.mainDock.setEnmapBox(self.enmapbox)
+        self.mainDock.setQgisInterface(None)
 
-    def toggleMainDockVisibility(self):
+        # connect signals between docks
+#        self.profileDock.sigCurrentLocationChanged.connect(self.mainDock.onCurrentLocationChanged)
+
+
+    def togglemainDockVisibility(self):
         self.mainDock.setVisible(not self.mainDock.isVisible())
         if len(self.enmapbox.docks(DockTypes.MapDock)) == 0:
-            self.newMapView()
+            self.enmapNewMapView()
+        self.profileDock.setVisible(self.mainDock.isVisible())
 
-    def toggleProfileDockVisibility(self):
+    def toggleprofileDockVisibility(self):
         visible = not self.profileDock.isVisible()
         self.profileDock.setVisible(visible)
         self.profileDock.mIdentify.setChecked(visible)
 
-    def newMapView(self):
+    def enmapNewMapView(self):
         currentMapDock = self.enmapbox.currentMapDock()
 
         mapDock: MapDock = self.enmapbox.createDock(DockTypes.MapDock)
-        mapDock.addLayers([self.backgroundLayer])
+        mapDock.addLayers([self.backgroundLayer.clone()])
 
         if currentMapDock is None:  # zoom to Germany
             germany = QgsRectangle(633652, 5971168, 1766199, 7363456)

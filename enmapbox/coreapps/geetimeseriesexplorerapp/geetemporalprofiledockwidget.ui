@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>813</width>
-    <height>388</height>
+    <width>1275</width>
+    <height>351</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,8 +18,8 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>756</width>
-    <height>296</height>
+    <width>730</width>
+    <height>351</height>
    </size>
   </property>
   <property name="autoFillBackground">
@@ -85,7 +85,7 @@
              <bool>true</bool>
             </property>
             <property name="checked">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -116,7 +116,7 @@
              <string>Current location (longitude, latitude)</string>
             </property>
             <property name="text">
-             <string/>
+             <string>0, 0</string>
             </property>
            </widget>
           </item>
@@ -126,7 +126,7 @@
              <enum>Qt::TabFocus</enum>
             </property>
             <property name="toolTip">
-             <string>Center map around location.</string>
+             <string>Center map on location.</string>
             </property>
             <property name="text">
              <string>...</string>
@@ -263,27 +263,16 @@
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="mLiveStretch">
+           <widget class="QToolButton" name="mStretchAndUpdateLayer">
             <property name="toolTip">
-             <string>Update cumulative count cut strecht whenever the image / composite selection changes.</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QToolButton" name="mCalculatePercentiles">
-            <property name="toolTip">
-             <string>Compute cumulative count cut min / max values for current map and create / update layer.
-Note that the calculation performs faster the more you zoom in.</string>
+             <string>Apply cumulative count stretch and update layer.</string>
             </property>
             <property name="text">
              <string/>
             </property>
             <property name="icon">
              <iconset>
-              <normaloff>:/images/themes/default/mActionLocalCumulativeCutStretch.svg</normaloff>:/images/themes/default/mActionLocalCumulativeCutStretch.svg</iconset>
+              <normaloff>icons/strechApply.svg</normaloff>icons/strechApply.svg</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -299,14 +288,14 @@ Note that the calculation performs faster the more you zoom in.</string>
              <enum>Qt::TabFocus</enum>
             </property>
             <property name="toolTip">
-             <string>Create / update layer when the selection changes.</string>
+             <string>Update layer when the selection changes.</string>
             </property>
             <property name="text">
              <string>...</string>
             </property>
             <property name="icon">
              <iconset>
-              <normaloff>:/qt-project.org/styles/commonstyle/images/standardbutton-apply-16.png</normaloff>:/qt-project.org/styles/commonstyle/images/standardbutton-apply-16.png</iconset>
+              <normaloff>:/images/themes/default/algorithms/mAlgorithmCheckGeometry.svg</normaloff>:/images/themes/default/algorithms/mAlgorithmCheckGeometry.svg</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -496,11 +485,115 @@ Note that the calculation performs faster the more you zoom in.</string>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>40</width>
+              <width>1</width>
               <height>20</height>
              </size>
             </property>
            </spacer>
+          </item>
+          <item>
+           <widget class="QToolButton" name="mExplodeLayers">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Blow up the timesries into individual layer.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+            <property name="icon">
+             <iconset>
+              <normaloff>icons/exploding_head.png</normaloff>icons/exploding_head.png</iconset>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="mProgressBarFrame">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::NoFrame</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_12">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QProgressBar" name="mProgressBar">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>1</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>100</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>0</number>
+               </property>
+               <property name="value">
+                <number>0</number>
+               </property>
+               <property name="textVisible">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QToolButton" name="mCancelTaskManager">
+               <property name="toolTip">
+                <string>Cancel all tasks.</string>
+               </property>
+               <property name="text">
+                <string>Cancel</string>
+               </property>
+               <property name="icon">
+                <iconset>
+                 <normaloff>:/images/themes/default/mTaskCancel.svg</normaloff>:/images/themes/default/mTaskCancel.svg</iconset>
+               </property>
+               <property name="iconSize">
+                <size>
+                 <width>16</width>
+                 <height>16</height>
+                </size>
+               </property>
+               <property name="toolButtonStyle">
+                <enum>Qt::ToolButtonIconOnly</enum>
+               </property>
+               <property name="autoRaise">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
           </item>
          </layout>
         </item>
@@ -514,7 +607,7 @@ Note that the calculation performs faster the more you zoom in.</string>
         <enum>QTabWidget::North</enum>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>3</number>
        </property>
        <property name="iconSize">
         <size>
@@ -550,10 +643,10 @@ Note that the calculation performs faster the more you zoom in.</string>
           <number>3</number>
          </property>
          <property name="rightMargin">
-          <number>3</number>
+          <number>0</number>
          </property>
          <property name="bottomMargin">
-          <number>3</number>
+          <number>0</number>
          </property>
          <item>
           <widget class="QListWidget" name="mLegend">
@@ -633,16 +726,28 @@ Note that the calculation performs faster the more you zoom in.</string>
          <string>Symbology</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_3">
+         <property name="leftMargin">
+          <number>3</number>
+         </property>
+         <property name="topMargin">
+          <number>3</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
          <item>
           <layout class="QFormLayout" name="formLayout">
-           <item row="0" column="0">
+           <item row="1" column="0">
             <widget class="QCheckBox" name="mShowLines">
              <property name="text">
               <string>Lines</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="1">
+           <item row="1" column="1">
             <widget class="QSpinBox" name="mLineSize">
              <property name="suffix">
               <string> px</string>
@@ -658,7 +763,7 @@ Note that the calculation performs faster the more you zoom in.</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="0">
+           <item row="2" column="0">
             <widget class="QCheckBox" name="mShowPoints">
              <property name="text">
               <string>Points</string>
@@ -668,7 +773,7 @@ Note that the calculation performs faster the more you zoom in.</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
+           <item row="2" column="1">
             <widget class="QSpinBox" name="mPointSize">
              <property name="suffix">
               <string> px</string>
@@ -684,7 +789,7 @@ Note that the calculation performs faster the more you zoom in.</string>
              </property>
             </widget>
            </item>
-           <item row="2" column="0">
+           <item row="3" column="0">
             <widget class="QCheckBox" name="mShowInfo">
              <property name="text">
               <string>Info</string>
@@ -694,7 +799,7 @@ Note that the calculation performs faster the more you zoom in.</string>
              </property>
             </widget>
            </item>
-           <item row="2" column="1">
+           <item row="3" column="1">
             <layout class="QHBoxLayout" name="horizontalLayout_4">
              <item>
               <widget class="QCheckBox" name="mShowDateTime">
@@ -759,7 +864,7 @@ Note that the calculation performs faster the more you zoom in.</string>
              </item>
             </layout>
            </item>
-           <item row="3" column="1">
+           <item row="4" column="1">
             <layout class="QHBoxLayout" name="horizontalLayout_5">
              <item>
               <widget class="QCheckBox" name="mShowId">
@@ -770,7 +875,7 @@ Note that the calculation performs faster the more you zoom in.</string>
                 </sizepolicy>
                </property>
                <property name="text">
-                <string>Show image ID</string>
+                <string>image ID</string>
                </property>
                <property name="checked">
                 <bool>true</bool>
@@ -786,7 +891,7 @@ Note that the calculation performs faster the more you zoom in.</string>
                 </sizepolicy>
                </property>
                <property name="text">
-                <string>Skip masked</string>
+                <string>Skip nan values</string>
                </property>
                <property name="checked">
                 <bool>true</bool>
@@ -794,6 +899,324 @@ Note that the calculation performs faster the more you zoom in.</string>
               </widget>
              </item>
             </layout>
+           </item>
+           <item row="5" column="0">
+            <widget class="QCheckBox" name="mShowImageSelection">
+             <property name="text">
+              <string>Images</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <layout class="QHBoxLayout" name="horizontalLayout_6">
+             <item>
+              <widget class="QgsColorButton" name="mImageSelectionColor">
+               <property name="maximumSize">
+                <size>
+                 <width>50</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="toolTip">
+                <string>The highlight color.</string>
+               </property>
+               <property name="checkable">
+                <bool>false</bool>
+               </property>
+               <property name="toolButtonStyle">
+                <enum>Qt::ToolButtonIconOnly</enum>
+               </property>
+               <property name="autoRaise">
+                <bool>false</bool>
+               </property>
+               <property name="color">
+                <color>
+                 <red>255</red>
+                 <green>255</green>
+                 <blue>0</blue>
+                </color>
+               </property>
+               <property name="allowOpacity">
+                <bool>false</bool>
+               </property>
+               <property name="showMenu">
+                <bool>false</bool>
+               </property>
+               <property name="defaultColor">
+                <color>
+                 <red>255</red>
+                 <green>255</green>
+                 <blue>0</blue>
+                </color>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSlider" name="mImageSelectionOpacity">
+               <property name="toolTip">
+                <string>The highlight color opacity.</string>
+               </property>
+               <property name="maximum">
+                <number>255</number>
+               </property>
+               <property name="value">
+                <number>128</number>
+               </property>
+               <property name="sliderPosition">
+                <number>128</number>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="invertedAppearance">
+                <bool>false</bool>
+               </property>
+               <property name="tickPosition">
+                <enum>QSlider::NoTicks</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="mImageSelectionSize">
+               <property name="toolTip">
+                <string>The highlight buffer size.</string>
+               </property>
+               <property name="suffix">
+                <string> px</string>
+               </property>
+               <property name="prefix">
+                <string/>
+               </property>
+               <property name="minimum">
+                <number>0</number>
+               </property>
+               <property name="value">
+                <number>10</number>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="mShowLegend">
+             <property name="text">
+              <string>Legend</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="tab_5">
+        <attribute name="icon">
+         <iconset>
+          <normaloff>icons/analytics.svg</normaloff>icons/analytics.svg</iconset>
+        </attribute>
+        <attribute name="title">
+         <string/>
+        </attribute>
+        <attribute name="toolTip">
+         <string>Analytics</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_7">
+         <item>
+          <layout class="QFormLayout" name="formLayout_4">
+           <item row="0" column="0">
+            <widget class="QCheckBox" name="mShowFittedLine">
+             <property name="toolTip">
+              <string/>
+             </property>
+             <property name="text">
+              <string>Fitted Line</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <layout class="QHBoxLayout" name="horizontalLayout_7">
+             <item>
+              <widget class="QSpinBox" name="mFittedLineSize">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>1</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="suffix">
+                <string> px</string>
+               </property>
+               <property name="prefix">
+                <string/>
+               </property>
+               <property name="minimum">
+                <number>0</number>
+               </property>
+               <property name="value">
+                <number>1</number>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="mUseFittedLineColor">
+               <property name="toolTip">
+                <string/>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QgsColorButton" name="mFittedLineColor">
+               <property name="maximumSize">
+                <size>
+                 <width>50</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="toolTip">
+                <string/>
+               </property>
+               <property name="checkable">
+                <bool>false</bool>
+               </property>
+               <property name="toolButtonStyle">
+                <enum>Qt::ToolButtonIconOnly</enum>
+               </property>
+               <property name="autoRaise">
+                <bool>false</bool>
+               </property>
+               <property name="color">
+                <color>
+                 <red>255</red>
+                 <green>0</green>
+                 <blue>0</blue>
+                </color>
+               </property>
+               <property name="allowOpacity">
+                <bool>false</bool>
+               </property>
+               <property name="showMenu">
+                <bool>false</bool>
+               </property>
+               <property name="defaultColor">
+                <color>
+                 <red>255</red>
+                 <green>0</green>
+                 <blue>0</blue>
+                </color>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QTabWidget" name="tabWidget_2">
+           <property name="currentIndex">
+            <number>0</number>
+           </property>
+           <widget class="QWidget" name="tab_6">
+            <attribute name="title">
+             <string>SVR</string>
+            </attribute>
+            <layout class="QVBoxLayout" name="verticalLayout_8">
+             <item>
+              <widget class="QTableWidget" name="mSvrParameters">
+               <attribute name="horizontalHeaderStretchLastSection">
+                <bool>true</bool>
+               </attribute>
+               <row>
+                <property name="text">
+                 <string/>
+                </property>
+               </row>
+               <row>
+                <property name="text">
+                 <string/>
+                </property>
+               </row>
+               <row>
+                <property name="text">
+                 <string/>
+                </property>
+               </row>
+               <row>
+                <property name="text">
+                 <string/>
+                </property>
+               </row>
+               <column>
+                <property name="text">
+                 <string>Parameter</string>
+                </property>
+               </column>
+               <column>
+                <property name="text">
+                 <string>Value</string>
+                </property>
+               </column>
+               <item row="0" column="0">
+                <property name="text">
+                 <string>gamma</string>
+                </property>
+                <property name="toolTip">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;RBF kernel coefficient.&lt;/p&gt;&lt;p&gt;gamma = 2^Value.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="flags">
+                 <set>ItemIsSelectable|ItemIsDragEnabled|ItemIsDropEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+                </property>
+               </item>
+               <item row="1" column="0">
+                <property name="text">
+                 <string>C</string>
+                </property>
+                <property name="toolTip">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Regularization parameter.&lt;/p&gt;&lt;p&gt;The strength of the regularization is inversely proportional to C.&lt;br/&gt;Must be strictly positive. The penalty is a squared l2 penalty.&lt;/p&gt;&lt;p&gt;C = 2^Value&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="flags">
+                 <set>ItemIsSelectable|ItemIsDragEnabled|ItemIsDropEnabled|ItemIsUserCheckable|ItemIsEnabled</set>
+                </property>
+               </item>
+               <item row="2" column="0">
+                <property name="text">
+                 <string>epsilon</string>
+                </property>
+                <property name="toolTip">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Epsilon in the epsilon-SVR model.&lt;/p&gt;&lt;p&gt;It specifies the epsilon-tube within which &lt;br/&gt;no penalty is associated in the training loss&lt;br/&gt;function with points predicted within a &lt;br/&gt;distance epsilon from the actual value.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_10">
+           <item>
+            <widget class="QCheckBox" name="mLiveUpdateFittedLine">
+             <property name="toolTip">
+              <string/>
+             </property>
+             <property name="text">
+              <string>Live update</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="mUpdateFittedLine">
+             <property name="text">
+              <string>Apply</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
@@ -811,8 +1234,26 @@ Note that the calculation performs faster the more you zoom in.</string>
          <string>Location Browser</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="leftMargin">
+          <number>3</number>
+         </property>
+         <property name="topMargin">
+          <number>3</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
          <item>
           <layout class="QFormLayout" name="formLayout_2">
+           <property name="labelAlignment">
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+           </property>
+           <property name="formAlignment">
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+           </property>
            <item row="0" column="0">
             <widget class="QLabel" name="label_27">
              <property name="minimumSize">
@@ -878,35 +1319,185 @@ Layer</string>
               </size>
              </property>
              <property name="text">
-              <string>Location
-Browser</string>
+              <string>Location</string>
              </property>
             </widget>
            </item>
            <item row="2" column="1">
-            <widget class="QgsFeaturePickerWidget" name="mFeaturePicker">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-               <horstretch>2</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
+            <layout class="QHBoxLayout" name="horizontalLayout_8">
+             <item>
+              <widget class="QgsFeaturePickerWidget" name="mFeaturePicker">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>1</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string>Locations browser to navigate between locations.</string>
+               </property>
+               <property name="displayExpression">
+                <string/>
+               </property>
+               <property name="fetchGeometry">
+                <bool>true</bool>
+               </property>
+               <property name="fetchLimit">
+                <number>999999999</number>
+               </property>
+               <property name="showBrowserButtons">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_30">
+             <property name="minimumSize">
+              <size>
+               <width>25</width>
+               <height>0</height>
+              </size>
              </property>
-             <property name="toolTip">
-              <string>Locations browser to navigate between locations.</string>
-             </property>
-             <property name="displayExpression">
-              <string/>
-             </property>
-             <property name="fetchGeometry">
-              <bool>true</bool>
-             </property>
-             <property name="fetchLimit">
-              <number>999999999</number>
-             </property>
-             <property name="showBrowserButtons">
-              <bool>true</bool>
+             <property name="text">
+              <string>Download
+Folder</string>
              </property>
             </widget>
+           </item>
+           <item row="3" column="1">
+            <layout class="QHBoxLayout" name="horizontalLayout">
+             <item>
+              <widget class="QgsFileWidget" name="mDownloadFolder">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                 <horstretch>1</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="storageMode">
+                <enum>QgsFileWidget::GetDirectory</enum>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="4" column="1">
+            <layout class="QHBoxLayout" name="horizontalLayout_9">
+             <item>
+              <spacer name="horizontalSpacer_4">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>1</width>
+                 <height>1</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QFrame" name="mDownloadButtons">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="frameShape">
+                <enum>QFrame::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_11">
+                <item>
+                 <widget class="QToolButton" name="mDownloadLocationChips">
+                  <property name="toolTip">
+                   <string>Download all location layer profiles. Already existing locations are skipped.</string>
+                  </property>
+                  <property name="text">
+                   <string>Download Location
+Image Chips</string>
+                  </property>
+                  <property name="icon">
+                   <iconset>
+                    <normaloff>:/images/themes/default/downloading_svg.svg</normaloff>:/images/themes/default/downloading_svg.svg</iconset>
+                  </property>
+                  <property name="iconSize">
+                   <size>
+                    <width>32</width>
+                    <height>32</height>
+                   </size>
+                  </property>
+                  <property name="toolButtonStyle">
+                   <enum>Qt::ToolButtonTextUnderIcon</enum>
+                  </property>
+                  <property name="autoRaise">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QToolButton" name="mDownloadLayerProfiles">
+                  <property name="toolTip">
+                   <string>Download all location layer profiles. Already existing locations are skipped.</string>
+                  </property>
+                  <property name="text">
+                   <string>Download Layer
+Profiles</string>
+                  </property>
+                  <property name="icon">
+                   <iconset>
+                    <normaloff>:/images/themes/default/downloading_svg.svg</normaloff>:/images/themes/default/downloading_svg.svg</iconset>
+                  </property>
+                  <property name="iconSize">
+                   <size>
+                    <width>32</width>
+                    <height>32</height>
+                   </size>
+                  </property>
+                  <property name="toolButtonStyle">
+                   <enum>Qt::ToolButtonTextUnderIcon</enum>
+                  </property>
+                  <property name="autoRaise">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QToolButton" name="mDownloadLayerChips">
+                  <property name="toolTip">
+                   <string>Download all location layer profiles. Already existing locations are skipped.</string>
+                  </property>
+                  <property name="text">
+                   <string>Download Layer
+Image Chips</string>
+                  </property>
+                  <property name="icon">
+                   <iconset>
+                    <normaloff>:/images/themes/default/downloading_svg.svg</normaloff>:/images/themes/default/downloading_svg.svg</iconset>
+                  </property>
+                  <property name="iconSize">
+                   <size>
+                    <width>32</width>
+                    <height>32</height>
+                   </size>
+                  </property>
+                  <property name="toolButtonStyle">
+                   <enum>Qt::ToolButtonTextUnderIcon</enum>
+                  </property>
+                  <property name="autoRaise">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </item>
@@ -923,49 +1514,6 @@ Browser</string>
            </property>
           </spacer>
          </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout">
-           <item>
-            <spacer name="horizontalSpacer">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QToolButton" name="mDownload">
-             <property name="toolTip">
-              <string>Download all profiles.</string>
-             </property>
-             <property name="text">
-              <string>Download Profiles</string>
-             </property>
-             <property name="icon">
-              <iconset>
-               <normaloff>:/images/themes/default/downloading_svg.svg</normaloff>:/images/themes/default/downloading_svg.svg</iconset>
-             </property>
-             <property name="iconSize">
-              <size>
-               <width>32</width>
-               <height>32</height>
-              </size>
-             </property>
-             <property name="toolButtonStyle">
-              <enum>Qt::ToolButtonIconOnly</enum>
-             </property>
-             <property name="autoRaise">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
         </layout>
        </widget>
        <widget class="QWidget" name="tab_4">
@@ -979,6 +1527,42 @@ Browser</string>
         <attribute name="toolTip">
          <string>Profile Data</string>
         </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_6">
+         <property name="leftMargin">
+          <number>3</number>
+         </property>
+         <property name="topMargin">
+          <number>3</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QTableWidget" name="mData">
+           <property name="contextMenuPolicy">
+            <enum>Qt::CustomContextMenu</enum>
+           </property>
+           <property name="editTriggers">
+            <set>QAbstractItemView::NoEditTriggers</set>
+           </property>
+           <property name="alternatingRowColors">
+            <bool>true</bool>
+           </property>
+           <property name="selectionMode">
+            <enum>QAbstractItemView::ExtendedSelection</enum>
+           </property>
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectRows</enum>
+           </property>
+           <property name="sortingEnabled">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </widget>
      </widget>
@@ -991,12 +1575,23 @@ Browser</string>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>30</height>
+       </size>
+      </property>
      </widget>
     </item>
    </layout>
   </widget>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>QgsColorButton</class>
+   <extends>QToolButton</extends>
+   <header>qgscolorbutton.h</header>
+  </customwidget>
   <customwidget>
    <class>QgsFeaturePickerWidget</class>
    <extends>QWidget</extends>
@@ -1006,6 +1601,11 @@ Browser</string>
    <class>QgsFieldComboBox</class>
    <extends>QComboBox</extends>
    <header>qgsfieldcombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsFileWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsfilewidget.h</header>
   </customwidget>
   <customwidget>
    <class>QgsMapLayerComboBox</class>

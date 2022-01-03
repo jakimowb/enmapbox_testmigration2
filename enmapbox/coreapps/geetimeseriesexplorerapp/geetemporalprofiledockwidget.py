@@ -1,32 +1,37 @@
-import math
 import pickle
 import traceback
 from math import nan, isnan
-from os import remove
+from os import remove, makedirs
 from os.path import join, dirname, exists
 from tempfile import gettempdir
-from typing import Optional, List, Tuple
+from time import time
+from typing import Optional, List, Tuple, Dict
 
-import ee
 import numpy as np
 from PyQt5 import QtGui
-from PyQt5.QtCore import Qt, QDateTime, QDate, QModelIndex, QSize
-from PyQt5.QtGui import QColor, QPen, QBrush, QIcon, QTransform, QPixmap
-from PyQt5.QtWidgets import (QPlainTextEdit, QToolButton, QListWidget, QApplication, QSpinBox,
-                             QColorDialog, QComboBox, QMainWindow, QCheckBox, QLineEdit,
-                             QFileDialog, QListWidgetItem, QWidget)
+from PyQt5.QtCore import Qt, QDateTime, QDate, QModelIndex, QPoint, QRectF, QStandardPaths, pyqtSignal
+from PyQt5.QtGui import QColor, QPen, QBrush, QIcon, QPixmap
+from PyQt5.QtWidgets import (QToolButton, QListWidget, QApplication, QSpinBox,
+                             QColorDialog, QComboBox, QCheckBox, QLineEdit,
+                             QFileDialog, QListWidgetItem, QSlider, QTableWidget, QLabel, QMenu, QAction, QProgressBar,
+                             QDoubleSpinBox, QAbstractItemView)
 from qgis.PyQt import uic
 from qgis._core import (QgsProject, QgsCoordinateReferenceSystem, QgsPointXY, QgsCoordinateTransform, QgsGeometry,
-                        QgsFeature, QgsVectorLayer, QgsMapLayerProxyModel, QgsFields)
+                        QgsFeature, QgsVectorLayer, QgsMapLayerProxyModel, QgsFields, QgsTask, QgsTaskManager,
+                        QgsApplication)
 from qgis._gui import (QgsDockWidget, QgsFeaturePickerWidget,
-                       QgsMapLayerComboBox, QgsFieldComboBox, QgsMessageBar)
+                       QgsMapLayerComboBox, QgsFieldComboBox, QgsMessageBar, QgsColorButton, QgsFileWidget)
+from sklearn.svm import SVR
 
+import ee
 import enmapbox.externals.pyqtgraph as pg
 from enmapbox import EnMAPBox
-from enmapbox.externals.qps.externals.pyqtgraph.GraphicsScene.mouseEvents import MouseClickEvent
 from enmapbox.externals.qps.utils import SpatialPoint
-from geetimeseriesexplorer.runcmd import runCmd
+from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
+from enmapboxprocessing.utils import Utils
+from geetimeseriesexplorerapp.tasks.downloadimagechiptask import DownloadImageChipTask, DownloadImageChipBandTask
 from geetimeseriesexplorerapp.geetimeseriesexplorerdockwidget import GeeTimeseriesExplorerDockWidget
+from geetimeseriesexplorerapp.tasks.downloadprofiletask import DownloadProfileTask
 from typeguard import typechecked
 
 
@@ -41,7 +46,7 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
     mShowCompositeBox: QToolButton
     mLiveStretch: QCheckBox
     mLiveUpdate: QCheckBox
-    mCalculatePercentiles: QToolButton
+    mStretchAndUpdateLayer: QToolButton
 
     mGraphicsLayoutWidget: pg.GraphicsLayoutWidget
     mFirst: QToolButton
@@ -50,49 +55,100 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
     mLast: QToolButton
     mStepValue: QSpinBox
     mStepUnits: QComboBox
+    mExplodeLayers: QToolButton
+    mProgressBar: QProgressBar
+    mCancelTaskManager: QToolButton
+
+    # legend
     mLegend: QListWidget
+
+    # symbology
+    mShowLegend: QCheckBox
+
     mShowLines: QCheckBox
+    mLineSize: QSpinBox
+
     mShowPoints: QCheckBox
+    mPointSize: QSpinBox
+
     mShowInfo: QCheckBox
     mShowId: QCheckBox
     mShowDateTime: QCheckBox
     mSkipNan: QCheckBox
-    mLineSize: QSpinBox
-    mPointSize: QSpinBox
     mInfoFormat: QComboBox
     mInfoDigits: QSpinBox
+
+    mShowImageSelection: QCheckBox
+    mImageSelectionColor: QgsColorButton
+    mImageSelectionOpacity: QSlider
+    mImageSelectionSize: QSpinBox
+
+    # analytics
+    mShowFittedLine: QCheckBox
+    mFittedLineSize: QSpinBox
+    mUseFittedLineColor: QCheckBox
+    mFittedLineColor: QgsColorButton
+    mSvrParameters: QTableWidget
+    mLiveUpdateFittedLine: QCheckBox
+    mUpdateFittedLine: QToolButton
+
+    # location browser
     mLayer: QgsMapLayerComboBox
     mField: QgsFieldComboBox
     mFeaturePicker: QgsFeaturePickerWidget
-    mDownload: QToolButton
+    mDownloadFolder: QgsFileWidget
+    mDownloadLocationChips: QToolButton
+    mDownloadLayerProfiles: QToolButton
+    mDownloadLayerChips: QToolButton
 
-    def __init__(self, enmapBox: EnMAPBox, mainDock: GeeTimeseriesExplorerDockWidget, parent=None):
+    # profile data
+    mData: QTableWidget
+
+    sigCurrentLocationChanged = pyqtSignal()
+
+    def __init__(self, mainDock: GeeTimeseriesExplorerDockWidget, parent=None):
         QgsDockWidget.__init__(self, parent)
         uic.loadUi(__file__.replace('.py', '.ui'), self)
 
-        self.enmapBox = enmapBox
         self.mainDock = mainDock
         self.legendItemTemplate: QListWidgetItem = self.mLegend.item(0).clone()
+        self.cache = dict()
+        self.refs = list()  # keep refs to prevent crashes
 
+        # task manager
+        #self.taskManager = QgsTaskManager()  # using this manager gives me crashes, when connected to a progress bar
+        self.taskManager = QgsApplication.taskManager()
+        self.taskManager.taskAdded.connect(self.mProgressBarFrame.show)
+        self.taskManager.allTasksFinished.connect(self.mProgressBarFrame.hide)
+        self.mCancelTaskManager.clicked.connect(self.taskManager.cancelAll)
+        self.mProgressBarFrame.hide()
+
+        # location
+        self.mLocation.textChanged.connect(self.sigCurrentLocationChanged)
+
+        # plot
         self.mInfoLabelItem = pg.LabelItem(justify='right')
         self.mGraphicsLayoutWidget.addItem(self.mInfoLabelItem)
         self.mPlotWidget: pg.PlotItem = self.mGraphicsLayoutWidget.addPlot(row=1, col=0)
         self.mPlotWidget.showGrid(x=True, y=True, alpha=0.5)
+        self.mPlotWidget.addLegend()
+        self.mPlotWidget.legend.setOffset((0.3, 0.3))
         self.mPlotWidgetMouseMovedSignalProxy = pg.SignalProxy(
             self.mPlotWidget.scene().sigMouseMoved, rateLimit=60, slot=self.onPlotWidgetMouseMoved
         )
         self.mPlotWidgetMouseClickedSignalProxy = pg.SignalProxy(
             self.mPlotWidget.scene().sigMouseClicked, rateLimit=60, slot=self.onPlotWidgetMouseClicked
         )
-        #self.mPlotWidget.scene().sigMouseClicked.connect(self.onPlotWidgetMouseClicked)
         self.plotItems = list()
         self.data = None
+        self.highlightedImages = None
+        self.ignoreOnDataSelectionChanged = False
 
-        # add info line
+        # - add info line
         self.infoLabelLine = pg.InfiniteLine(angle=90, movable=False, pen=pg.mkPen(color='#FF09', style=Qt.DashLine))
         self.mPlotWidget.addItem(self.infoLabelLine, ignoreBounds=True)
 
-        # add composite selection box
+        # - add composite selection box
         pen = pg.mkPen(color='#FF0', style=Qt.SolidLine)
         brush = pg.mkBrush(color='#00F5')
         self.compositeBox = pg.LinearRegionItem(values=[nan, nan], pen=pen, brush=brush)
@@ -112,24 +168,48 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         )
         self.compositeBox.hide()
 
-        # add image selection line
+        # - add image selection line
         self.imageLine = pg.InfiniteLine(
             movable=True, angle=90, label='', pen=pg.mkPen(color='#FF0', style=Qt.SolidLine),
             labelOpts={'position': 0.95, 'color': '#FF0', 'fill': '#FF00', 'movable': False}
         )
         self.mPlotWidget.addItem(self.imageLine, ignoreBounds=True)
-        #self.imageLine.hide()
 
+        # location browser
         self.mLayer.setLayer(None)
         self.mLayer.setFilters(QgsMapLayerProxyModel.PointLayer)
+        self.mDownloadFolder.setFilePath(
+            join(QStandardPaths.writableLocation(QStandardPaths.DownloadLocation), 'GEETSE')
+        )
+
+        # data
+        #self.mData.itemSelectionChanged.connect(self.onDataSelectionChanged)
+        self.mData.selectionModel().selectionChanged.connect(self.onDataSelectionChanged)
+
+        # analytics
+        gamma = QSpinBox()
+        gamma.setRange(-20, 20)
+        gamma.setValue(0)
+        gamma.setPrefix('2^')
+        gamma.valueChanged.connect(self.plotProfile)
+        self.mSvrParameters.setCellWidget(0, 1, gamma)
+        C = QSpinBox()
+        C.setRange(-20, 20)
+        C.setValue(0)
+        C.setPrefix('2^')
+        C.valueChanged.connect(self.plotProfile)
+        self.mSvrParameters.setCellWidget(1, 1, C)
+        epsilon = QLineEdit('0')
+        epsilon.textChanged.connect(self.plotProfile)
+        self.mSvrParameters.setCellWidget(2, 1, epsilon)
 
         # connect signals
         self.mShowCompositeBox.toggled.connect(self.toggleSelectionHandlerVisibility)
         self.mShowImageLine.toggled.connect(self.toggleSelectionHandlerVisibility)
-        self.mCalculatePercentiles.clicked.connect(self.onCalculatePercentilesClicked)
+        self.mStretchAndUpdateLayer.clicked.connect(self.mainDock.mStretchAndUpdateLayer.click)
         self.mainDock.mImageExplorerTab.currentChanged.connect(self.setSelectionHandlerFromMainDock)
-        self.mainDock.mImageId.textChanged.connect(self.setImageLineFromMainDock)
-        self.mainDock.mAvailableImages.itemSelectionChanged.connect(self.plotProfile)
+        self.mainDock.mImageId.textChanged.connect(self.setImageIdFromMainDock)
+
         self.mainDock.mCompositeDateStart.dateChanged.connect(self.setCompositeBoxFromMainDock)
         self.mainDock.mCompositeDateEnd.dateChanged.connect(self.setCompositeBoxFromMainDock)
 
@@ -145,28 +225,48 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
 
         self.mLegend.itemChanged.connect(self.plotProfile)
         self.mLegend.doubleClicked.connect(self.onLegendDoubleClicked)
+        self.mShowLegend.clicked.connect(self.plotProfile)
         self.mShowLines.clicked.connect(self.plotProfile)
         self.mShowPoints.clicked.connect(self.plotProfile)
         self.mShowInfo.clicked.connect(self.clearInfo)
         self.mLineSize.valueChanged.connect(self.plotProfile)
         self.mPointSize.valueChanged.connect(self.plotProfile)
+        self.mShowImageSelection.clicked.connect(self.plotProfile)
+        self.mImageSelectionColor.colorChanged.connect(self.plotProfile)
+        self.mImageSelectionOpacity.valueChanged.connect(self.plotProfile)
+        self.mImageSelectionSize.valueChanged.connect(self.plotProfile)
+        self.mShowFittedLine.clicked.connect(self.plotProfile)
+        self.mFittedLineSize.valueChanged.connect(self.plotProfile)
+        self.mUseFittedLineColor.clicked.connect(self.plotProfile)
+        self.mFittedLineColor.colorChanged.connect(self.plotProfile)
+        self.mSvrParameters.cellChanged.connect(self.onSvrParametersChanged)
+        self.mUpdateFittedLine.clicked.connect(self.plotProfile)
+
         self.mLayer.layerChanged.connect(self.mFeaturePicker.setLayer)
         self.mLayer.layerChanged.connect(self.mField.setLayer)
         self.mField.fieldChanged.connect(self.mFeaturePicker.setDisplayExpression)
         self.mFeaturePicker.featureChanged.connect(self.onFeaturePickerFeatureChanged)
+        self.mDownloadLayerProfiles.clicked.connect(self.onDownloadLayerProfilesClicked)
+        self.mDownloadLayerChips.clicked.connect(self.onDownloadLayerChipsClicked)
+        self.mDownloadLocationChips.clicked.connect(self.onDownloadLocationChipsClicked)
+
         self.mPan.clicked.connect(self.onPanClicked)
         self.mRefresh.clicked.connect(self.onRefreshClicked)
-        self.mDownload.clicked.connect(self.onDownloadClicked)
-
+        self.mData.customContextMenuRequested.connect(self.onDataContextMenuEvent)
         self.mFirst.clicked.connect(self.onFirstClicked)
         self.mPrevious.clicked.connect(self.onPreviousClicked)
         self.mNext.clicked.connect(self.onNextClicked)
         self.mLast.clicked.connect(self.onLastClicked)
+        self.mExplodeLayers.clicked.connect(self.onExplodeLayers)
 
-        self.enmapBox.sigCurrentLocationChanged.connect(self.onCurrentLocationChanged)
+        self.sigCurrentLocationChanged.connect(self.onCurrentLocationChanged)
         self.mainDock.sigCollectionChanged.connect(self.onCollectionChanged)
 
         self.toggleSelectionHandlerVisibility()
+
+        # do we need those?
+        self.mStretchAndUpdateLayer.hide()
+        self.mLiveUpdate.hide()
 
     def toggleSelectionHandlerVisibility(self):
         if self.mShowImageLine.isChecked():
@@ -188,8 +288,36 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         if self.mainDock.mImageExplorerTab.currentIndex() == 1:
             self.mShowCompositeBox.click()
 
-    def setImageLineFromMainDock(self):
+    def clearHighlightedImages(self):
+        self.highlightedImages = None
+
+    def setHighlightedImagesFromMainDock(self):
+
+        if not self.isDataAvailable():
+            return
+
+        # prepare data for faster plotting
+        self.highlightedImages = np.full((self.dataN(),), False, bool)
+        indexById = self.dataIndexByImageId()
+        imageIds = [indexById[values[0]] for values in self.mainDock.availableImagesData[1]]
+        selectedRows: List[QModelIndex] = self.mainDock.mAvailableImages.selectionModel().selectedRows()
+        for modelIndex in selectedRows:
+            self.highlightedImages[imageIds[modelIndex.row()]] = True
+
+        # update data selection
+        self.mData.setSelectionMode(QAbstractItemView.MultiSelection)
+        self.ignoreOnDataSelectionChanged = True
+        self.mData.clearSelection()
+        for modelIndex in selectedRows:
+            self.mData.selectRow(modelIndex.row())
+        self.mData.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.ignoreOnDataSelectionChanged = False
+
+        self.plotProfile()
+
+    def setImageIdFromMainDock(self):
         imageId = self.mainDock.mImageId.text()
+
         if not self.isDataAvailable():
             return
         try:
@@ -199,8 +327,23 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         pos = self.dataDecimalYears()[index]
         self.imageLine.setPos(pos)
 
-        # update layer
-        self.onSelectionHandlerChangeFinished()
+        # update selection
+        row = self.dataIndexByImageId()[self.mainDock.mImageId.text()]
+        self.mData.selectionModel().blockSignals(True)
+        self.mData.selectRow(row)
+        self.mData.selectionModel().blockSignals(False)
+
+    def onCreateImageChipTaskCompleted(self, task: 'DownloadImageChipTask'):
+        mapDock = self.imageChipMapDock()
+        if mapDock is None:
+            return
+
+        if self.currentCreateImageChipTask is not task:
+            return
+
+        mapDock.setCenter(task.location)
+        mapDock.setLayer(task.layer.clone())
+        mapDock.mapCanvas().refresh()
 
     def setCompositeBoxFromMainDock(self):
         d1, d2 = self.currentCompositeDateRange()
@@ -217,13 +360,6 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
 
         # update layer
         self.onSelectionHandlerChangeFinished()
-
-    def onCalculatePercentilesClicked(self):
-        self.mainDock.mCalculatePercentiles.click()
-        self.mainDock.mCreateLayer.click()
-
-    def onCreateLayerClicked(self):
-        self.mainDock.mCreateLayer.click()
 
     def onImageLinePositionChanged(self):
         if self.isDataAvailable():
@@ -260,13 +396,7 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         self.onSelectionHandlerChangeFinished()
 
     def onSelectionHandlerChangeFinished(self):
-        if self.mLiveStretch.isChecked():
-            self.mCalculatePercentiles.click()
-            return
-
-        if self.mLiveUpdate.isChecked():
-            self.mainDock.mCreateLayer.click()
-
+        pass
 
     def selectedBandNames(self) -> Optional[List[str]]:
         bandNames = list()
@@ -275,9 +405,19 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
             if item.checkState() == Qt.Checked:
                 bandNames.append(item.text())
         if len(bandNames) == 0:
-            self.pushInfoMissingBand()
+            # self.pushInfoMissingBand()
             return None
         return bandNames
+
+    def selectedBandNumbers(self) -> Optional[List[int]]:
+        bandNumbers = list()
+        for i in range(self.mLegend.count()):
+            item = self.mLegend.item(i)
+            if item.checkState() == Qt.Checked:
+                bandNumbers.append(i + 1)
+        if len(bandNumbers) == 0:
+            return None
+        return bandNumbers
 
     def clearInfo(self):
         self.mInfoLabelItem.setText('')
@@ -295,8 +435,14 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
                         continue
                     xs[~np.isfinite(ys)] = nan
 
-        index = int(np.nanargmin(np.abs(np.subtract(xs, x))))
-        return xs[index], index
+        try:
+            index = int(np.nanargmin(np.abs(np.subtract(xs, x))))
+            pos = xs[index]
+        except ValueError:
+            pos = nan
+            index = -1
+
+        return pos, index
 
     def onPlotWidgetMouseClicked(self, event):
         if not self.isDataAvailable():
@@ -335,6 +481,8 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
             self.mInfoLabelItem.show()
 
         x, index = self.findClosestImage(mousePoint.x(), self.mSkipNan.isChecked())
+        if isnan(x):
+            return
 
         self.infoLabelLine.setPos(x)
 
@@ -350,6 +498,8 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
             item: QListWidgetItem = self.mLegend.item(i)
             if item.checkState() == Qt.Checked:
                 bandName = item.text()
+                if bandName not in self._dataProfile:
+                    continue
                 color = item.color
                 y = round(self.dataProfile(bandName)[index], self.mInfoDigits.value())
                 if self.mInfoDigits.value() == 0:
@@ -365,10 +515,9 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         if not self.mIdentify.isChecked():
             return
         crs = QgsCoordinateReferenceSystem.fromEpsgId(4326)
-        point = self.enmapBox.currentLocation().toCrs(crs)
+        point = self.mainDock.currentLocation().toCrs(crs)
         point = SpatialPoint(crs, point)
         self.setCurrentLocation(point.x(), point.y())
-        #self.enmapBox.setCurrentLocation(point)
         self.readProfile()
         self.plotProfile()
 
@@ -376,10 +525,31 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         self.readProfile()
         self.plotProfile()
 
+    def onSvrParametersChanged(self):
+        if self.mLiveUpdateFittedLine.isChecked():
+            self.mUpdateFittedLine.click()
+
+    def onDataSelectionChanged(self):
+
+        if self.ignoreOnDataSelectionChanged:
+            return
+
+        self.clearHighlightedImages()
+
+        self.mainDock.mAvailableImages.blockSignals(True)
+        self.mainDock.mAvailableImages.setSelectionMode(QAbstractItemView.MultiSelection)
+        self.mainDock.mAvailableImages.clearSelection()
+        for index in self.mData.selectionModel().selectedRows():
+            self.mainDock.mAvailableImages.selectRow(index.row())
+        self.mainDock.mAvailableImages.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.mainDock.mAvailableImages.blockSignals(False)
+        self.mainDock.onAvailableImagesSelectionChanged()
+
     def onCollectionChanged(self):
         self.clearPlot()
         self.clearData()
         self.updateLegend()
+        self.tabWidget.setCurrentIndex(0)  # show bands
 
         # init image selection line position
         date = self.mainDock.eeFullCollectionJson.temporalInterval()[1]
@@ -405,12 +575,41 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
                                    '#DCB9ED', '#B9EDE0', '#8F2323', '#23628F', '#8F6A23', '#6B238F', '#4F8F23',
                                    '#737373', '#CCCCCC')]
         defaultColors.extend([QColor(name) for name in QColor.colorNames() if name not in 'black'])
-        colors = self.mainDock.eeFullCollectionInfo.bandColors
-        names = self.mainDock.eeFullCollectionInfo.bandNames
+
+        colors = self.mainDock.eeFullCollectionInfo.bandColors  # includes band and si colors
+
+        bandNames = self.mainDock.eeFullCollectionInfo.bandNames
+        bandToolTips = [self.mainDock.eeFullCollectionJson.bandTooltip(bandNo)
+                        for bandNo in range(1, len(bandNames) + 1)]
+        spectralIndices = self.mainDock.selectedSpectralIndices()
+        siNames = [si['short_name'] for si in spectralIndices]
+        # make some pretty toolTips
+        siToolTips = list()
+        for si in spectralIndices:
+            bands = set(si['bands']).intersection(set(CreateSpectralIndicesAlgorithm.WavebandMapping.keys()))
+            bandsText = 'with ' + \
+                        ', '.join([f'{key} = {self.mainDock.eeFullCollectionInfo.wavebandMapping[key]}'
+                                   for key in bands]) + '\n'
+            constants = set(si['bands']).intersection(set(CreateSpectralIndicesAlgorithm.ConstantMapping.keys()))
+            constantsText = 'and ' + ', '.join([f'{key} = {CreateSpectralIndicesAlgorithm.ConstantMapping[key]}'
+                                                for key in constants]) + '\n'
+
+            long_name = si['long_name']
+            short_name = si['short_name']
+            formula = si['formula']
+            reference = si['reference']
+            toolTip = f'<html><head/><body><p><span style=" font-weight:600;">{long_name}</span></p>' \
+                      f'<p><span style=" font-weight:600;">{short_name}</span> = {formula}</p>' \
+                      f'<p><span style=" color:#808080;">{bandsText}'
+            if len(constants) > 0:
+                toolTip += f'<br/>          ' \
+                           f'{constantsText}</span>'
+            toolTip += f'</p><p>Reference: {reference}</p></body></html>'
+            siToolTips.append(toolTip)
+
         self.mLegend.clear()
-        for bandNo, (name, color) in enumerate(zip(names, defaultColors), 1):
-            if colors is not None:
-                color = QColor(colors.get(name, color))
+        for name, color, toolTip in zip(bandNames + siNames, defaultColors, bandToolTips + siToolTips):
+            color = QColor(colors.get(name, color))
             item = self.legendItemTemplate.clone()
             item.setText(name)
             item.setCheckState(Qt.Unchecked)
@@ -419,7 +618,8 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
             pixmap.fill(color)
             icon = QIcon(pixmap)
             item.setIcon(icon)
-            item.setToolTip(self.mainDock.eeFullCollectionJson.bandTooltip(bandNo))
+            toolTip += '\n(double-click to change color)'
+            item.setToolTip(toolTip)
             self.mLegend.addItem(item)
 
     def currentImageId(self) -> Optional[str]:
@@ -455,14 +655,6 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
             dateEnd = dateStart.addDays(days)
             self.setComposite(dateStart, dateEnd)
 
-        return
-        if self.mStepUnits.currentText() == 'Days':
-            pass
-        if self.mStepUnits.currentText() == 'Months':
-            dateStart = QDate()
-        if self.mStepUnits.currentText() == 'Years':
-            pass
-
     def onLastClicked(self):
         if self.mShowImageLine.isChecked():
             self.setImage(self.dataIds()[-1])
@@ -479,6 +671,11 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
             if imageId is None:
                 return
             index = self.dataIds().index(imageId) + 1
+            if self.mSkipNan.isChecked():
+                valid = list(np.all(np.isfinite(list(self._dataProfile.values())), axis=0))
+                for index in range(index, self.dataN()):
+                    if valid[index]:
+                        break
             if index == len(self.dataIds()):
                 return
             self.setImage(self.dataIds()[index])
@@ -504,7 +701,12 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
             if imageId is None:
                 return
             index = self.dataIds().index(imageId) - 1
-            if index == 0:
+            if self.mSkipNan.isChecked():
+                valid = list(np.all(np.isfinite(list(self._dataProfile.values())), axis=0))
+                for index in range(index, -1, -1):
+                    if valid[index]:
+                        break
+            if index == -1:
                 return
             self.setImage(self.dataIds()[index])
         if self.mShowCompositeBox.isChecked():
@@ -523,18 +725,229 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
                 assert 0
             self.setComposite(dateStart, dateEnd)
 
+    def onExplodeLayers(self):
+        # just walk over every observation using the navigation buttons
 
-    def onDownloadClicked(self):
-        if self.selectedBandNames() is None:
+        oldAppendIdChecked = self.mainDock.mAppendId.isChecked()
+        self.mainDock.mAppendId.setChecked(True)
+
+        self.onFirstClicked()
+        for i in range(self.dataN() - 1):
+            QApplication.processEvents()
+            self.onNextClicked()
+
+            #if self.mainDock.mStretchAndUpdateLayer.is
+
+
+
+        self.mainDock.mAppendId.setChecked(oldAppendIdChecked)
+
+    def downloadFilenameProfile(self, feature: QgsFeature, eeCollection: ee.ImageCollection):
+
+        location: QgsPointXY = feature.geometry().asPoint()
+
+
+        collectionId = self.mainDock.eeFullCollectionJson.id().replace('/', '_')
+        filename = join(
+            self.currentDownloadFolder(),
+            'profiles',
+            collectionId,
+            str(hash(eeCollection.serialize())),
+            'X%018.13f_Y%018.13f' % (location.x(), location.y()) + '.json'
+        )
+        if not exists(dirname(filename)):
+            makedirs(dirname(filename))
+        return filename
+
+        #point: QgsPointXY = feature.geometry().asPoint()
+        #pointState = point.x(), point.y()
+        #collectionState = eeCollection.serialize()
+        #key = f'location{hash(pointState)}_profile{hash(collectionState)}'.replace('-', '0')
+        #return join(self.currentDownloadFolder(), key + '.json')
+
+    def onDownloadLocationChipsClicked(self):
+        bandNames = self.mainDock.currentImageChipBandNames()
+        if bandNames is None:
+            self.pushInfoMissingBand()
             return
-        canceled = self._onSaveVectorPointsPreparePkl()
-        if canceled:
+        if self.isDataAvailable():
+            imageIds = self.dataIds()
+        else:
+            eePoint = self.eePoint()
+            eeCollection = self.mainDock.eeCollection(False, True, True, False)
+            if eeCollection is None:
+                self.pushInfoMissingCollection()
+                return
+            imageIds = eeCollection.filterBounds(eePoint)\
+                .toList(999999) \
+                .map(lambda eeImage: ee.Image(eeImage).get('system:index'))\
+                .getInfo()
+
+        #imageIds = imageIds[0:2]
+
+        location = self.currentLocation()
+        for imageId in imageIds:
+            #eeImage = self.mainDock.eeFullCollection.filter(ee.Filter.eq('system:index', imageId)).first()
+            eeImage, *_ = self.mainDock.eeImage(imageId)
+
+            alreadyExists = True
+            subFilenames = list()
+            subTasks = list()
+            for bandName in bandNames:
+                subFilename = self.mainDock.downloadFilenameImageChipBandTif(location, imageId, bandName)
+                subFilenames.append(subFilename)
+                subTasks.append(DownloadImageChipBandTask(subFilename, location, eeImage, bandName))
+                alreadyExists &= exists(subFilename)
+            mainFilename = self.mainDock.downloadFilenameImageChipVrt(location, imageId, bandNames)
+            alreadyExists &= exists(mainFilename)
+
+            if alreadyExists:
+                continue
+
+            if not exists(dirname(mainFilename)):
+                makedirs(mainFilename)
+
+            # create task
+            mainTask = DownloadImageChipTask(mainFilename, subFilenames, location)
+            for subTask in subTasks:
+                mainTask.addSubTask(subTask, [], QgsTask.ParentDependsOnSubTask)
+                #subTask.run()
+
+            #mainTask.run()
+            self.taskManager.addTask(mainTask)
+
+            # not sure if we need to keep the refs
+            self.refs.append(mainTask)
+            self.refs.append(subTasks)
+
+
+    def onDownloadLayerChipsClicked(self, *args, onlySelected=False, updateUi=False):
+        assert 0
+        bandNames = self.mainDock.currentImageChipBandNames()
+        layer: QgsVectorLayer = self.mLayer.currentLayer()
+        if bandNames is None:
+            self.pushInfoMissingBand()
             return
-        cmdPy = join(dirname(__file__), 'cmd', 'savevectorpointsprofiles.py')
-        cmd = rf'python {cmdPy}'
-        with GeeWaitCursor():
-            runCmd(cmd)
-            self.mMessageBar.pushSuccess('Success', 'saved point-vector profiles')
+        if layer is None:
+            self.pushInfoMissingLayer()
+            return
+
+        features = list(layer.getFeatures())
+        n = len(features)
+        if n == 0:
+            return
+
+        for feature in features:
+            assert isinstance(feature, QgsFeature)
+            location  = SpatialPoint(layer.crs(), QgsGeometry(feature.geometry()).asPoint())
+            filenames = list()
+            subTasks = list()
+            for bandName in bandNames:
+                pass
+
+    def onDownloadLayerProfilesClicked(self, *args, onlySelected=False, updateUi=False):
+        bandNames = self.selectedBandNames()
+        folder = self.currentDownloadFolder()
+        layer: QgsVectorLayer = self.mLayer.currentLayer()
+        if bandNames is None:
+            self.pushInfoMissingBand()
+            return
+        if folder == '':
+            if onlySelected:
+                return
+            else:
+                self.pushInfoMissingDownloadFolder()
+            return
+        if layer is None:
+            self.pushInfoMissingLayer()
+            return
+
+        bandNumbers = self.selectedBandNumbers()
+        eeCollection = self.mainDock.eeCollection()
+        if eeCollection is None:
+            return
+        eeCollection = eeCollection.select(bandNames)
+        scale = self.mainDock.eeFullCollectionJson.groundSamplingDistance()
+        offsets = [self.mainDock.eeFullCollectionJson.bandOffset(bandNo) for bandNo in bandNumbers]
+        scales = [self.mainDock.eeFullCollectionJson.bandScale(bandNo) for bandNo in bandNumbers]
+
+        if onlySelected:
+            features = list(layer.selectedFeatures())
+        else:
+            features = list(layer.getFeatures())
+        n = len(features)
+        if n == 0:
+            return
+
+        for feature in features:
+            assert isinstance(feature, QgsFeature)
+            point: QgsPointXY = QgsGeometry(feature.geometry()).asPoint()
+            point = self.utilsTransformCrsToWgs84(point, layer.crs())
+            eePoint = ee.Geometry.Point([point.x(), point.y()])
+            filename = self.downloadFilenameProfile(feature, eeCollection)
+            task = DownloadProfileTask(filename, eePoint, eeCollection, scale, offsets, scales)
+            if updateUi:
+                task.taskCompleted.connect(lambda: self.onDownloadProfileTaskCompleted(task))
+            self.taskManager.addTask(task)
+
+            self.refs.append(task)
+
+    def onDownloadProfileTaskCompleted(self, task: DownloadProfileTask):
+
+        if self.cache.get('currentDownloadProfileTask') is not task:  # ignore outdated task
+            return
+
+        data = task.data()
+        if data is None:
+            self.clearData()
+        else:
+            self.setData(data)
+        self.plotProfile()
+
+    def onDataContextMenuEvent(self, position: QPoint):
+        self.menu = QMenu()
+
+        def copyData():
+            if self.isDataAvailable():
+                header = [self.mData.horizontalHeaderItem(i).text() for i in range(self.mData.columnCount())]
+                data = list()
+                for row in range(self.mData.rowCount()):
+                    data.append([])
+                    for column in range(self.mData.columnCount()):
+                        data[row].append(self.mData.cellWidget(row, column).text())
+                data.insert(0, header)
+                text = '\n'.join([';'.join(values) for values in data])
+            else:
+                text = ''
+            QApplication.clipboard().setText(text)
+
+        def selectAll():
+            self.mData.blockSignals(True)
+            self.mData.selectAll()
+            self.mData.blockSignals(False)
+            self.onDataSelectionChanged()
+
+        def deselectAll():
+            self.mData.blockSignals(True)
+            self.mData.clearSelection()
+            self.mData.blockSignals(False)
+            self.onDataSelectionChanged()
+
+        action = QAction('Select All', self)
+        action.triggered.connect(selectAll)
+        self.menu.addAction(action)
+
+        action = QAction('Deselect All', self)
+        action.triggered.connect(deselectAll)
+        self.menu.addAction(action)
+
+        self.menu.addSection('TEST')
+
+        action = QAction('Copy Data to Clipboard', self)
+        action.triggered.connect(copyData)
+        self.menu.addAction(action)
+
+        self.menu.exec_(self.mData.mapToGlobal(position))
 
     def _onSaveVectorPointsPreparePkl(self):
         canceled = True
@@ -598,8 +1011,13 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
 
         return not canceled
 
+    def utilsTransformCrsToWgs84(self, point: QgsPointXY, crs: QgsCoordinateReferenceSystem) -> QgsPointXY:
+        tr = QgsCoordinateTransform(crs, QgsCoordinateReferenceSystem.fromEpsgId(4326), QgsProject.instance())
+        geometry = QgsGeometry.fromPointXY(point)
+        geometry.transform(tr)
+        return geometry.asPoint()
+
     def utilsTransformProjectCrsToWgs84(self, point: QgsPointXY) -> QgsPointXY:
-        QgsCoordinateReferenceSystem = QgsProject.instance().crs()
         tr = QgsCoordinateTransform(
             QgsProject.instance().crs(),
             QgsCoordinateReferenceSystem.fromEpsgId(4326),
@@ -610,10 +1028,9 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         return geometry.asPoint()
 
     def utilsTransformWgs84ToProjectCrs(self, point: QgsPointXY) -> QgsPointXY:
-
         tr = QgsCoordinateTransform(
             QgsCoordinateReferenceSystem.fromEpsgId(4326),
-            self.enmapBox.currentMapCanvas().mapSettings().destinationCrs(),
+            self.mainDock.currentMapCanvas().mapSettings().destinationCrs(),
             QgsProject.instance()
         )
         geometry = QgsGeometry.fromPointXY(point)
@@ -629,7 +1046,7 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         secsInYear = date.daysInYear() * 24 * 60 * 60
         return date.year() + secOfYear / secsInYear
 
-    def utilsDecimalYearToDateTime (self, decimalYear: float) -> QDateTime:
+    def utilsDecimalYearToDateTime(self, decimalYear: float) -> QDateTime:
         year = int(decimalYear)
         secsInYear = QDate(year, 1, 1).daysInYear() * 24 * 60 * 60
         secOfYear = int((decimalYear - year) * secsInYear)
@@ -641,7 +1058,7 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         if point is None:
             return
         point = self.utilsTransformWgs84ToProjectCrs(point)
-        mapCanvas = self.enmapBox.currentMapCanvas()
+        mapCanvas = self.mainDock.currentMapCanvas()
         if point is not None:
             mapCanvas.setCenter(point)
             mapCanvas.refresh()
@@ -660,22 +1077,13 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         layer.removeSelection()
         layer.select(feature.id())
 
+        self.onDownloadLayerProfilesClicked(onlySelected=True, updateUi=True)
+
         point = SpatialPoint(destCrs, destPoint)
-        self.enmapBox.setCurrentLocation(point, self.enmapBox.currentMapCanvas())
+        self.setCurrentLocation(point.x(), point.y())
 
-
-    def onShowDataClicked(self):
-        if self.data is not None:
-            self._dataWindow = QMainWindow(parent=self)
-            self._dataWindow.setWindowTitle('Temporal Profile Data')
-            self._dataWindow.resize(QSize(800, 600))
-            lines = list()
-            for line in self.data:
-                lines.append(';'.join(map(str, line)))
-            text = '\n'.join(lines)
-            dataText = QPlainTextEdit(text, parent=self)
-            self._dataWindow.setCentralWidget(dataText)
-            self._dataWindow.show()
+        if self.mainDock.enmapBox is not None:
+            self.mainDock.enmapBox.currentMapCanvas().setCrosshairPosition(point, True)
 
     def onLegendDoubleClicked(self, index: QModelIndex):
         bandItem = self.mLegend.item(index.row())
@@ -689,51 +1097,65 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
             bandItem.setIcon(icon)
             self.plotProfile()
 
-    def currentLocation(self) -> Optional[QgsPointXY]:
+    def currentDataScaling(self) -> Tuple[List[float], List[float]]:
+        bandNumbers = self.selectedBandNumbers()
+        if self.mainDock.mScaleBands.isChecked():
+            offsets = [self.mainDock.eeFullCollectionJson.bandOffset(bandNo) for bandNo in bandNumbers]
+            scales = [self.mainDock.eeFullCollectionJson.bandScale(bandNo) for bandNo in bandNumbers]
+        else:
+            offsets = [0] * len(bandNumbers)
+            scales = [1] * len(bandNumbers)
+        return offsets, scales
+
+    def currentLocation(self) -> SpatialPoint:
         try:
-            point = QgsPointXY(*map(float, self.mLocation.text().split(',')))
+            point = SpatialPoint(self.mainDock.crsEpsg4326, QgsPointXY(*map(float, self.mLocation.text().split(','))))
         except:
-            self.mMessageBar.pushInfo('Missing parameter', 'location is invalid')
-            point = None
+            mapCenter = self.mainDock.currentMapCanvas().center()
+            point = SpatialPoint(self.mainDock.crsEpsg4326, mapCenter)
         return point
+
+    def currentDownloadFolder(self) -> str:
+        return self.mDownloadFolder.filePath()
 
     def setCurrentLocation(self, x: float, y: float, ndigits=5):
         self.mLocation.setText(str(round(x, ndigits)) + ', ' + str(round(y, ndigits)))
 
+    def setCurrentLocationFromEnmapBox(self):
+        point = self.mainDock.enmapBox.currentLocation().toCrs(self.mainDock.crsEpsg4326)
+        self.setCurrentLocation(point.x(), point.y())
+
     def eePoint(self) -> Optional[ee.Geometry]:
         point = self.currentLocation()
-        if point is None:
-            return None
         eePoint = ee.Geometry.Point([point.x(), point.y()])
         return eePoint
 
     def readProfile(self):
+
+        self.clearHighlightedImages()
+
         eePoint = self.eePoint()
         if eePoint is None:
             return
-
-        eeCollection = self.mainDock.eeCollection()
-        if eeCollection is None:
-            self.pushInfoMissingCollection()
 
         bandNames = self.selectedBandNames()
         if bandNames is None:
             return
 
-        eeCollection = eeCollection.select(bandNames)
+        eeCollection = self.mainDock.eeCollection()
+        if eeCollection is None:
+            return
 
+        eeCollection = eeCollection.select(bandNames)
         scale = self.mainDock.eeFullCollectionJson.groundSamplingDistance()
-        with GeeWaitCursor():
-            try:
-                data = eeCollection.getRegion(eePoint, scale=scale).getInfo()
-            except Exception as error:
-                if str(error) == 'ImageCollection.getRegion: No bands in collection.':
-                    self.pushInfoEmptyQueryResults()
-                else:
-                    self.pushRequestError(error)
-                    self.setData(None)
-                return
-        self.setData(data)
+        offsets, scales = self.currentDataScaling()
+
+        task = DownloadProfileTask(None, eePoint, eeCollection, scale, offsets, scales)
+        self.cache['currentDownloadProfileTask'] = task
+        task.taskCompleted.connect(lambda: self.onDownloadProfileTaskCompleted(task))
+        self.taskManager.addTask(task)
+
+        self.refs.append(task)
 
     def clearData(self):
         self.header = None
@@ -750,36 +1172,38 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         # prepare data
         self.data = [data[i] for i in argsort]
         self._dataMsecs = np.array([row[3] for row in self.data])
-
         self._dataIds = [row[0] for row in self.data]
+        self._dataIndexById = {imageId: i for i, imageId in enumerate(self._dataIds)}
 
         self._dataDateTimes = [self.utilsMsecToDateTime(int(msec)) for msec in self.dataMsecs()]
         self._dataDecimalYears = np.array([self.utilsDateTimeToDecimalYear(dateTime)
                                            for dateTime in self.dataDateTimes()])
         self._dataProfile = dict()
         for index, bandName in enumerate(self.header[4:], 4):
-            bandNo = self.mainDock.eeFullCollectionInfo.bandNames.index(bandName)
-            # todo scale data at collection level, not only when sampling profiles!
-            offset = self.mainDock.eeFullCollectionJson.bandOffset(bandNo)
-            scale = self.mainDock.eeFullCollectionJson.bandScale(bandNo)
-            if offset is None:
-                offset = 0
-            if scale is None:
-                scale = 1
-
             values = list()
             for row in self.data:
                 value = row[index]
                 if value is None:
                     value = nan
-                else:
-                    # scale to reflectance
-                    if scale is not None:
-                        value = value * scale
-                    if offset is not None:
-                        value = value + offset
                 values.append(value)
             self._dataProfile[bandName] = np.array(values)
+
+        # update GUI
+        header = [s for i, s in enumerate(self.header) if i not in [1, 2]]
+        data = [[str(v) for i, v in enumerate(values) if i not in [1, 2]] for values in data]
+        header[1] = 'decimal year'
+        for values in data:
+            msec = int(values[1])
+            dateTime = self.utilsMsecToDateTime(msec)
+            dyear = self.utilsDateTimeToDecimalYear(dateTime)
+            values[1] = str(dyear)
+        self.mData.setRowCount(len(data))
+        self.mData.setColumnCount(len(header))
+        self.mData.setHorizontalHeaderLabels(header)
+        for row, values in enumerate(data):
+            for column, value in enumerate(values):
+                self.mData.setCellWidget(row, column, QLabel(value))
+        self.mData.resizeColumnsToContents()
 
     def isDataAvailable(self) -> bool:
         return self.data is not None
@@ -789,6 +1213,9 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
 
     def dataIds(self) -> List[str]:
         return self._dataIds
+
+    def dataIndexByImageId(self) -> Dict[str, int]:
+        return self._dataIndexById
 
     def dataMsecs(self) -> np.array:
         return self._dataMsecs
@@ -815,16 +1242,8 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         if not self.isDataAvailable():
             return
 
-        # find images that are selected in the available images list
-        selectionFlags = np.full((self.dataN(), ), False, bool)
-        modelIndex: QModelIndex
-        for modelIndex in self.mainDock.mAvailableImages.selectedIndexes():
-            imageId = self.mainDock.mAvailableImages.item(modelIndex.row(), 0).data(Qt.DisplayRole)
-            try:
-                selectionFlags[self.dataIds().index(imageId)] = True
-            except:
-                pass
-        skipSelection = not any(selectionFlags)
+        legend: pg.LegendItem = self.mPlotWidget.legend
+        legend.setVisible(self.mShowLegend.isChecked())
 
         x = np.array(self.dataDecimalYears())
         for i in range(self.mLegend.count()):
@@ -833,39 +1252,70 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
             if item.checkState() == Qt.Checked:
                 color = item.color
                 y = self.dataProfile(bandName)
+                if y is None:
+                    continue
 
-                if self.mShowLines.isChecked():
-                    plotLine: pg.PlotDataItem = self.mPlotWidget.plot(x, y)
-                    pen = QPen(QBrush(color), self.mLineSize.value())
-                    pen.setCosmetic(True)
-                    plotLine.setPen(pen)
-                    self.plotItems.append(plotLine)
-
-                # plot selected images
-                if not skipSelection:
-                    selectionColor = '#FF0'
-                    plotSelection: pg.PlotDataItem = self.mPlotWidget.plot(x[selectionFlags], y[selectionFlags])
+                # highlight selected images
+                if self.mShowImageSelection.isChecked() and self.highlightedImages is not None:
+                    selectionColor: QColor = self.mImageSelectionColor.color()
+                    selectionColor.setAlpha(self.mImageSelectionOpacity.value())
+                    plotSelection: pg.PlotDataItem = self.mPlotWidget.plot(
+                        x[self.highlightedImages], y[self.highlightedImages]
+                    )
                     plotSelection.setSymbol('o')  # ['t', 't1', 't2', 't3', 's', 'p', 'h', 'star', '+', 'd', 'o']
                     plotSelection.setSymbolBrush(selectionColor)
                     plotSelection.setSymbolPen(selectionColor)
-                    symbolSize = self.mPointSize.value() * 2
-                    if (self.mPointSize.value() % 2) == 1:
-                        symbolSize += 1
+                    symbolSize = self.mPointSize.value() + self.mImageSelectionSize.value()
                     plotSelection.setSymbolSize(symbolSize)
                     plotSelection.setPen(None)
                     self.plotItems.append(plotSelection)
 
-                if self.mShowPoints.isChecked():
-                    plotPoints: pg.PlotDataItem = self.mPlotWidget.plot(x, y)
-                    plotPoints.setSymbol('o')  # ['t', 't1', 't2', 't3', 's', 'p', 'h', 'star', '+', 'd', 'o']
-                    plotPoints.setSymbolBrush(color)
-                    plotPoints.setSymbolPen(color)
-                    plotPoints.setSymbolSize(self.mPointSize.value())
-                    plotPoints.setPen(None)
-                    self.plotItems.append(plotPoints)
+                if self.mShowLines.isChecked() or self.mShowPoints.isChecked():
+                    plotProfile: pg.PlotDataItem = self.mPlotWidget.plot(x, y, name=bandName)
+                    if self.mShowLines.isChecked() and not self.mShowPoints.isChecked():
+                        pen = QPen(QBrush(color), self.mLineSize.value())
+                        pen.setCosmetic(True)
+                        plotProfile.setPen(pen)
+                    if not self.mShowLines.isChecked() and self.mShowPoints.isChecked():
+                        plotProfile.setSymbol('o')  # ['t', 't1', 't2', 't3', 's', 'p', 'h', 'star', '+', 'd', 'o']
+                        plotProfile.setSymbolBrush(color)
+                        plotProfile.setSymbolPen(color)
+                        plotProfile.setSymbolSize(self.mPointSize.value())
+                        plotProfile.setPen(None)
+                    if self.mShowLines.isChecked() and self.mShowPoints.isChecked():
+                        pen = QPen(QBrush(color), self.mLineSize.value())
+                        pen.setCosmetic(True)
+                        plotProfile.setPen(pen)
+                        plotProfile.setSymbol('o')  # ['t', 't1', 't2', 't3', 's', 'p', 'h', 'star', '+', 'd', 'o']
+                        plotProfile.setSymbolBrush(color)
+                        plotProfile.setSymbolPen(color)
+                        plotProfile.setSymbolSize(self.mPointSize.value())
+                    self.plotItems.append(plotProfile)
 
+                if self.mShowFittedLine.isChecked():
+                    if self.mUseFittedLineColor.isChecked():
+                        color2 = self.mFittedLineColor.color()
+                    else:
+                        color2 = color
+                    gamma = 2**self.mSvrParameters.cellWidget(0, 1).value()
+                    C = 2**self.mSvrParameters.cellWidget(1, 1).value()
+                    try:
+                        epsilon = float(self.mSvrParameters.cellWidget(2, 1).text())
+                    except:
+                        epsilon = 0
 
-
+                    svr = SVR(kernel='rbf', gamma=gamma, C=C, epsilon=epsilon)
+                    valid = np.isfinite(y)
+                    svr.fit(x[valid].reshape(-1, 1), y[valid])
+                    rect: QRectF = self.mPlotWidget.viewRect()
+                    rect.left()
+                    xfit = np.linspace(min(x), max(x), int((max(x) - min(x)) * 366))
+                    yfit = svr.predict(xfit.reshape(-1, 1))
+                    plotProfile: pg.PlotDataItem = self.mPlotWidget.plot(xfit, yfit, name=bandName + ' Fit')
+                    pen = QPen(QBrush(color2), self.mFittedLineSize.value())
+                    pen.setCosmetic(True)
+                    plotProfile.setPen(pen)
+                    self.plotItems.append(plotProfile)
 
     def pushInfoMissingCollection(self):
         self.mMessageBar.pushInfo('Missing parameter', 'select a collection')
@@ -873,12 +1323,21 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
     def pushInfoMissingBand(self):
         self.mMessageBar.pushInfo('Missing parameter', 'select a band')
 
+    def pushInfoMissingDownloadFolder(self):
+        self.mMessageBar.pushInfo('Missing parameter', 'select a download folder')
+
+    def pushInfoMissingLayer(self):
+        self.mMessageBar.pushInfo('Missing parameter', 'select a locations layer')
+
     def pushRequestError(self, error: Exception):
         self.mMessageBar.pushCritical('Request error', str(error))
         traceback.print_exc()
 
     def pushInfoEmptyQueryResults(self):
         self.mMessageBar.pushInfo('Query result', 'no images found')
+
+    def pushSuccessDownload(self):
+        self.mMessageBar.pushSuccess('Success', 'layer location profiles downloaded')
 
 
 class GeeWaitCursor(object):
