@@ -131,6 +131,7 @@ from enmapboxprocessing.algorithm.spectralresamplingtolandsat7algorithm import S
 from enmapboxprocessing.algorithm.spectralresamplingtolandsat8algorithm import SpectralResamplingToLandsat8Algorithm
 from enmapboxprocessing.algorithm.spectralresamplingtoprismaalgorithm import SpectralResamplingToPrismaAlgorithm
 from enmapboxprocessing.algorithm.spectralresamplingtosentinel2algorithm import SpectralResamplingToSentinel2Algorithm
+from enmapboxprocessing.algorithm.subsetrasterbandsalgorithm import SubsetRasterBandsAlgorithm
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.algorithm.vrtbandmathalgorithm import VrtBandMathAlgorithm
@@ -237,6 +238,7 @@ def algorithms():
         SpectralResamplingToLandsat8Algorithm(),
         SpectralResamplingToPrismaAlgorithm(),
         SpectralResamplingToSentinel2Algorithm(),
+        SubsetRasterBandsAlgorithm(),
         # SynthMixAlgorithm(),  # not ready for v3.9
         TranslateCategorizedRasterAlgorithm(),
         TranslateRasterAlgorithm(),
