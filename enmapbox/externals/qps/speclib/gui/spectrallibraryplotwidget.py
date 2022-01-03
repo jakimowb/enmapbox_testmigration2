@@ -13,7 +13,9 @@ from math import nan
 from typing import Optional
 
 import numpy as np
-from qgis._core import QgsRasterLayer, QgsMultiBandColorRenderer, QgsContrastEnhancement, QgsMapLayerProxyModel
+from numba.cuda import grid
+from qgis._core import QgsRasterLayer, QgsMultiBandColorRenderer, QgsContrastEnhancement, QgsMapLayerProxyModel, \
+    QgsSingleBandGrayRenderer, QgsSingleBandPseudoColorRenderer
 from qgis._gui import QgsMapLayerComboBox, QgsRasterBandComboBox
 from qgis.gui import QgsPropertyAssistantWidget, QgsFilterLineEdit
 
@@ -23,7 +25,7 @@ from PyQt5.QtCore import pyqtSignal, QTimer, QPointF, pyqtSlot, Qt, QModelIndex,
 from PyQt5.QtGui import QColor, QDragEnterEvent, QDragMoveEvent, QDropEvent, QPainter, QIcon, QContextMenuEvent, QPen
 from PyQt5.QtWidgets import QWidgetAction, QWidget, QGridLayout, QSpinBox, QLabel, QFrame, QAction, QApplication, \
     QTableView, QComboBox, QMenu, QSlider, QStyledItemDelegate, QHBoxLayout, QTreeView, QStyleOptionViewItem, \
-    QRadioButton, QSizePolicy, QSplitter, QGroupBox, QCheckBox
+    QRadioButton, QSizePolicy, QSplitter, QGroupBox, QCheckBox, QToolButton
 from PyQt5.QtXml import QDomElement, QDomDocument, QDomNode
 
 from qgis.PyQt.QtCore import NULL
@@ -3403,10 +3405,16 @@ class SpectralLibraryPlotWidget(QWidget):
     sigDragEnterEvent = pyqtSignal(QDragEnterEvent)
     sigDropEvent = pyqtSignal(QDropEvent)
     plotWidget: SpectralProfilePlotWidget
+
+    # renderer bands
     mRendererBandsLayer: QgsMapLayerComboBox
+    mRendererBandsRefresh: QToolButton
     mRendererRedBand: QgsRasterBandComboBox
     mRendererGreenBand: QgsRasterBandComboBox
     mRendererBlueBand: QgsRasterBandComboBox
+    mRendererRedLabel: QLabel
+    mRendererGreenLabel: QLabel
+    mRendererBlueLabel: QLabel
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
@@ -3525,12 +3533,13 @@ class SpectralLibraryPlotWidget(QWidget):
         self.redBar = InfiniteLine(pos=1, angle=90, movable=True)
         self.greenBar = InfiniteLine(pos=2, angle=90, movable=True)
         self.blueBar = InfiniteLine(pos=3, angle=90, movable=True)
-        self.hideRenderBands()
+        self.hideRenderBars()
         self.plotWidget.addItem(self.redBar)
         self.plotWidget.addItem(self.greenBar)
         self.plotWidget.addItem(self.blueBar)
 
         self.mRendererBandsLayer.layerChanged.connect(self.onRendererLayerChanged)
+        self.mRendererBandsRefresh.clicked.connect(self.onRendererLayerChanged)
         self.mRendererRedBand.bandChanged.connect(self.onRendererBandChanged)
         self.mRendererGreenBand.bandChanged.connect(self.onRendererBandChanged)
         self.mRendererBlueBand.bandChanged.connect(self.onRendererBandChanged)
@@ -3541,36 +3550,50 @@ class SpectralLibraryPlotWidget(QWidget):
 
         self.mRendererBandsLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
-    def hideRenderBands(self):
+    def hideRenderBars(self):
         self.redBar.setPen(color=QColor('#FF000000'), width=1)
         self.greenBar.setPen(color=QColor('#00FF0000'), width=1)
         self.blueBar.setPen(color=QColor('#0000FF0000'), width=1)
 
-    def showRenderBands(self):
-        self.redBar.setPen(color=QColor('#FF0000'), width=1)
-        self.greenBar.setPen(color=QColor('#00FF00'), width=1)
-        self.blueBar.setPen(color=QColor('#0000FF'), width=1)
+    def showRenderBars(self, r=True, g=True, b=True):
+        if r:
+            self.redBar.setPen(color=QColor('#FF0000'), width=1)
+        if g:
+            self.greenBar.setPen(color=QColor('#00FF00'), width=1)
+        if b:
+            self.blueBar.setPen(color=QColor('#0000FF'), width=1)
 
-    def onRendererLayerChanged(self, *args, connectRendererChanged=True):
+    def onRendererLayerChanged(self, *args):
         layer: Optional[QgsRasterLayer] = self.mRendererBandsLayer.currentLayer()
+        self.hideRenderBars()
         if layer is None:
-            self.hideRenderBands()
             self.mRendererRedBand.setBand(-1)
             self.mRendererGreenBand.setBand(-1)
             self.mRendererBlueBand.setBand(-1)
             return
         renderer = layer.renderer()
         if isinstance(renderer, QgsMultiBandColorRenderer):
+            self.showRenderBars()
+            self.mRendererRedLabel.setText('Red band')
+            for w in [self.mRendererBlueLabel, self.mRendererBlueBand, self.mRendererGreenLabel,
+                      self.mRendererGreenBand]:
+                w.show()
             for mBand, bandNo in zip(
-                    [self.mRendererRedBand,self.mRendererGreenBand,self.mRendererBlueBand],
+                    [self.mRendererRedBand, self.mRendererGreenBand, self.mRendererBlueBand],
                     [renderer.redBand(), renderer.greenBand(), renderer.blueBand()]):
                 mBand.setBand(bandNo)
-
-        # if the renderer is changed externally, just use this handler again to update the bands
-        if connectRendererChanged:
-            def onRendererChanged():
-                self.onRendererLayerChanged(connectRendererChanged=False)
-            layer.rendererChanged.connect(onRendererChanged)
+        elif isinstance(renderer, (QgsSingleBandGrayRenderer, QgsSingleBandPseudoColorRenderer)):
+            self.showRenderBars(g=False, b=False)
+            self.mRendererRedLabel.setText('Gray band')
+            for w in [self.mRendererBlueLabel, self.mRendererBlueBand, self.mRendererGreenLabel,
+                      self.mRendererGreenBand]:
+                w.hide()
+            if isinstance(renderer, QgsSingleBandGrayRenderer):
+                self.mRendererRedBand.setBand(renderer.grayBand())
+            if isinstance(renderer, QgsSingleBandPseudoColorRenderer):
+                self.mRendererRedBand.setBand(renderer.band())
+        else:
+            assert 0
 
     def onRendererBarChanged(self):
         from enmapboxprocessing.rasterreader import RasterReader
@@ -3587,7 +3610,7 @@ class SpectralLibraryPlotWidget(QWidget):
         else:
             # todo: implement DateTime, DecimalYear, DOY units
             # for now, just hide the bars
-            self.hideRenderBands()
+            self.hideRenderBars()
             return
 
         # clip to valid band number region
@@ -3610,7 +3633,7 @@ class SpectralLibraryPlotWidget(QWidget):
             return
         renderer = layer.renderer().clone()
         if isinstance(renderer, QgsMultiBandColorRenderer):
-            self.showRenderBands()
+            self.showRenderBars()
             for bar, mBand, setBand, getContrastEnhancement, setContrastEnhancement in zip(
                     [self.redBar, self.greenBar, self.blueBar],
                     [self.mRendererRedBand, self.mRendererGreenBand, self.mRendererBlueBand],
@@ -3629,21 +3652,62 @@ class SpectralLibraryPlotWidget(QWidget):
                 elif units in ['nm', 'μm', 'um', 'mm', 'm']:
                     pos = RasterReader(self.mRendererBandsLayer.currentLayer()).wavelength(bandNo, units)
                     if pos is None:
-                        self.hideRenderBands()
+                        self.hideRenderBars()
                         return
                 else:
                     # todo: implement DateTime, DecimalYear, DOY units
                     # for now, just hide the bars
-                    self.hideRenderBands()
+                    self.hideRenderBars()
                     return
                 bar.setPos(pos)
                 setBand(bandNo)
                 contrastEnhancement = QgsContrastEnhancement(layer.dataProvider().dataType(bandNo))
                 contrastEnhancement.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
-                vmin, vmax = layer.dataProvider().cumulativeCut(bandNo, 0.02, 0.98, sampleSize=256)
+                vmin, vmax = layer.dataProvider().cumulativeCut(
+                    bandNo, 0.02, 0.98, sampleSize=QgsRasterLayer.SAMPLE_SIZE
+                )
                 contrastEnhancement.setMinimumValue(vmin)
                 contrastEnhancement.setMaximumValue(vmax)
                 setContrastEnhancement(contrastEnhancement)
+
+        elif isinstance(renderer, (QgsSingleBandGrayRenderer, QgsSingleBandPseudoColorRenderer)):
+            self.showRenderBars(g=False, b=False)
+            bandNo = self.mRendererRedBand.currentBand()
+            units = self.optionXUnit.unit()
+
+            if units == 'Band Number':
+                pos = bandNo
+            elif units == 'Band Index':
+                pos = bandNo - 1
+            elif units in ['nm', 'μm', 'um', 'mm', 'm']:
+                pos = RasterReader(self.mRendererBandsLayer.currentLayer()).wavelength(bandNo, units)
+                if pos is None:
+                    self.hideRenderBars()
+                    return
+            else:
+                # todo: implement DateTime, DecimalYear, DOY units
+                # for now, just hide the bars
+                self.hideRenderBars()
+                return
+
+            self.redBar.setPos(pos)
+            if isinstance(renderer, QgsSingleBandGrayRenderer):
+                renderer.setGrayBand(bandNo)
+            elif isinstance(renderer, QgsSingleBandPseudoColorRenderer):
+                renderer.setBand(bandNo)
+            else:
+                assert 0
+
+            contrastEnhancement = QgsContrastEnhancement(layer.dataProvider().dataType(bandNo))
+            contrastEnhancement.setContrastEnhancementAlgorithm(
+                QgsContrastEnhancement.StretchToMinimumMaximum, True
+            )
+            vmin, vmax = layer.dataProvider().cumulativeCut(
+                bandNo, 0.02, 0.98, sampleSize=QgsRasterLayer.SAMPLE_SIZE
+            )
+            contrastEnhancement.setMinimumValue(vmin)
+            contrastEnhancement.setMaximumValue(vmax)
+            renderer.setContrastEnhancement(contrastEnhancement)
 
             layer.setRenderer(renderer)
             layer.rendererChanged.emit()
@@ -3651,7 +3715,7 @@ class SpectralLibraryPlotWidget(QWidget):
 
         else:
             # for now, just hide the bars
-            self.hideRenderBands()
+            self.hideRenderBars()
             print(f'Renderer not yet supported: {renderer}')
 
 

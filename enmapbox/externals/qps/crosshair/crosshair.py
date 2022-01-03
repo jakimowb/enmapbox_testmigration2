@@ -54,7 +54,7 @@ class CrosshairStyle(object):
         self.mSizePixelBorder = 1
         self.mShow = True
         self.mShowPixelBorder = True
-        self.mShowDistanceMarker = True
+        self.mShowDistanceMarker = False  # hide until #876 is fixed
         self.mShowDistanceLabel = True
 
     def setColor(self, color:QColor):

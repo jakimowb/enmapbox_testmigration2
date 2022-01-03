@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>744</width>
-    <height>541</height>
+    <width>561</width>
+    <height>358</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -125,10 +125,42 @@ QSplitter::handle:vertical {
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
+                <property name="toolTip">
+                 <string/>
+                </property>
                 <property name="currentIndex">
                  <number>-1</number>
                 </property>
                 <property name="allowEmptyLayer">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QToolButton" name="mRendererBandsRefresh">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="toolTip">
+                 <string/>
+                </property>
+                <property name="text">
+                 <string>Apply</string>
+                </property>
+                <property name="icon">
+                 <iconset>
+                  <normaloff>:/images/themes/default/mActionRefresh.svg</normaloff>:/images/themes/default/mActionRefresh.svg</iconset>
+                </property>
+                <property name="autoRaise">
                  <bool>true</bool>
                 </property>
                </widget>
@@ -138,7 +170,7 @@ QSplitter::handle:vertical {
             <item>
              <layout class="QFormLayout" name="mRendererBandsLayout">
               <item row="0" column="0">
-               <widget class="QLabel" name="label_2">
+               <widget class="QLabel" name="mRendererRedLabel">
                 <property name="text">
                  <string>Red band</string>
                 </property>
@@ -148,7 +180,7 @@ QSplitter::handle:vertical {
                <widget class="QgsRasterBandComboBox" name="mRendererRedBand"/>
               </item>
               <item row="1" column="0">
-               <widget class="QLabel" name="label_3">
+               <widget class="QLabel" name="mRendererGreenLabel">
                 <property name="text">
                  <string>Green band</string>
                 </property>
@@ -158,7 +190,7 @@ QSplitter::handle:vertical {
                <widget class="QgsRasterBandComboBox" name="mRendererGreenBand"/>
               </item>
               <item row="2" column="0">
-               <widget class="QLabel" name="label_4">
+               <widget class="QLabel" name="mRendererBlueLabel">
                 <property name="text">
                  <string>Blue band</string>
                 </property>
