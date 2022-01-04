@@ -1,3 +1,4 @@
+from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
 from enmapboxprocessing.algorithm.applymaskalgorithm import ApplyMaskAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
@@ -58,6 +59,7 @@ from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import Ras
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
 from enmapboxprocessing.algorithm.samplerastervaluesalgorithm import SampleRasterValuesAlgorithm
+from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.algorithm.selectfeaturesfromdatasetalgorithm import SelectFeaturesFromDatasetAlgorithm
 from enmapboxprocessing.algorithm.spatialconvolutionairydisk2dalgorithm import SpatialConvolutionAiryDisk2DAlgorithm
 from enmapboxprocessing.algorithm.spatialconvolutionbox2dalgorithm import SpatialConvolutionBox2DAlgorithm
@@ -133,6 +135,7 @@ from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRaste
 
 def algorithms():
     algos = [
+        AppendEnviHeaderToGTiffRasterAlgorithm(),
         ApplyMaskAlgorithm(),
         ClassificationPerformanceSimpleAlgorithm(),
         ClassificationPerformanceStratifiedAlgorithm(),
@@ -179,6 +182,7 @@ def algorithms():
         RasterizeVectorAlgorithm(),
         RasterMathAlgorithm(),
         SampleRasterValuesAlgorithm(),
+        SaveRasterAsAlgorithm(),
         SelectFeaturesFromDatasetAlgorithm(),
         SpatialConvolutionAiryDisk2DAlgorithm(),
         SpatialConvolutionBox2DAlgorithm(),
@@ -227,7 +231,7 @@ def algorithms():
         SpectralResamplingToLandsat8Algorithm(),
         SpectralResamplingToPrismaAlgorithm(),
         SpectralResamplingToSentinel2Algorithm(),
-        SynthMixAlgorithm(),
+        # SynthMixAlgorithm(),  # not ready for v3.9
         TranslateCategorizedRasterAlgorithm(),
         TranslateRasterAlgorithm()
     ]

@@ -1,5 +1,100 @@
 CHANGELOG
 =========
+
+Version 3.9
+-----------
+*This release was tested under QGIS 3.18 and 3.20.*
+
+*Note that we are currently in a transition phase, where we're overhauling all processing algorithms.
+Already overhauled algorithms are placed in groups prefixed by an asterisk, e.g. "*Classification".*
+
+
+**GUI**
+
+* added drag&drop functionality for opening external products (PRISMA, DESIS, Sentinel-2, Landsat) by simply dragging and dropping the product metadata file from the system file explorer onto the map view area.
+* added map view context menu *Set background color* option
+
+* new *Save as* options in data source and data view panel context menus:
+
+  * opens *Translate raster layer* dialog for raster sources
+  * opens *Save Features* dialog for vector sources
+
+* added data sources context menu *Append ENVI header* option: opens *Append ENVI header to GeoTiff raster layer* algorithm dialog
+* added single pixel movement in map view using <Ctrl> + <Arrow> keys, <Ctrl> + S to save a selected profile in a Spectral Library
+
+* revised Data Source Panel and Data Source handling (#430)
+* revised Spectral Library concept:
+
+  * each vector layer that allows storing binary data can become a spectral library
+    (e.g. Geopackage, PostGIS, in-memory layers)
+  * spectral libraries can define multiple spectral profile fields
+
+* revised Spectral Profile Source panel:
+
+  * tree view defines how spectral profile features will be generated when using the Identify
+    map tool with activated pixel profile option
+  * allows to extract spectral profiles from different raster sources into different
+    spectral profile fields of the same feature or into different features
+  * values of extracted spectral profiles can be scaled by an (new) offset and a multiplier
+  * other attributes of new features, e.g. for text and numeric fields, can be
+    added by static values or expressions
+
+* revised Spectral Library Viewer:
+
+  * each vector layer can be opened in a Spectral Library Viewer
+  * spectral profile visualizations allow to define colors, lines styles and
+    profile labels
+  * spectral profile visualizations are applied to individual sets of spectral profiles,
+    e.g. all profiles of a spectral profile field, or only to profiles that match
+    filter expressions like ``"name" = 'vegetation'``
+  * profile colors can be defined as static color, attribute value or expression
+  * profile plot allows to select multiple data points, e.g. to compare individual
+    bands between spectral profiles
+  * dialog to add new fields shows data type icons for available field types
+
+
+
+**Renderer**
+
+We started to introduced new raster renderer into the EnMAP-Box / QGIS.
+Unfortunately, QGIS currently doesn't support registering custom Python raster renderer.
+Because of this, our renderers aren't visible in the *Renderer type* list inside the *Layer Properties* dialog under *Symbology > Band Rendering*.
+
+To actually use one of our renderers, you need to choose it from the *Custom raster renderer* submenu inside the raster layer context menu in the *Date Views* panel.
+
+* added custom *Class fraction/probability* raster renderer: allows to visualize arbitrary many fraction/probability bands at the same time; this will replace the *Create RGB image from class probability/fraction layer* processing algorithm
+* added custom *Decorrelation stretch* raster renderer: remove the high correlation commonly found in optical bands to produce a more colorful color composite image; this will replace the *Decorrelation stretch* processing algorithm
+
+**Processing algorithms**
+
+* added PRISMA L1 product import
+* added Landsat 4-8 Collection 1-2 L2 product import
+* added Sentinel-2 L2A product import
+* added custom processing widget for selecting classification datasets from various sources; improves consistency and look&feel in algorithm dialogs and application GUIs
+* added custom processing widget for Python code with highlighting
+* added custem processing widget for building raster math expressions and code snippets
+* improved raster math algorithms dialog and provided comprehensive cookbook usage recipe on ReadTheDocs
+* added *Layer to mask layer* processing algorithm
+* added *Create mask raster layer* processing algorithm
+* overhauled all spatial and spectral filter algorithms
+* added *Spatial convolution 2D Savitzki-Golay filter* processing algorithm
+* overhauled all spectral resampling algorithms; added more custom sensors for spectral resampling: we now support EnMAP, DESIS, PRISMA, Landsat 4-8 and Sentinel-2; predefined sensor response functions are editable in the algorithm dialog
+* added *Spectral resampling (to response function library)* processing algorithm: allows to specify the target response functions via a spectral library
+* added *Spectral resampling (to spectral raster layer wavelength and FWHM)* processing algorithm: allows to specify the target response functions via a spectral raster layer
+* added *Spectral resampling (to custom sensor)* processing algorithm: allows to specify the target response function via Python code
+* improved *Translate raster layer* processing algorithm: 1) improved source and target no data handling, 2) added option for spectral subsetting to another spectral raster layer, 3) added options for setting/updating band scale and offset values, 4) added option for creating an ENVI header sidecar file for better compatibility to ENVI software
+* added *Save raster layer as* processing algorithm: a slimmed down version of "Translate raster layer"
+* added *Append ENVI header to GeoTiff raster layer* processing algorithm: places a \*.hdr ENVI header file next to a GeoTiff raster to improve compatibility to ENVI software
+* added *Geolocate raster layer* processing algorithm: allows to geolocate a raster given in sensor geometry using X/Y location bands; e.g. usefull for geolocating PRISMA L1 Landcover into PRISMA L2 pixel grid using the Lat/Lon location bands
+
+**Miscellaneous**
+
+* added EnMAP spectral response function library as example dataset
+* change example data vector layer format from Shapefile to GeoPackage
+* added example data to enmapbox repository
+* added unittest data to enmapbox repository
+
+
 Version 3.8
 -----------
 * introduced a Glossary explaining common terms

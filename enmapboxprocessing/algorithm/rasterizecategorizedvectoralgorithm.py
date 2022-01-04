@@ -70,7 +70,7 @@ class RasterizeCategorizedVectorAlgorithm(EnMAPProcessingAlgorithm):
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
         minCoverage = self.parameterAsInt(parameters, self.P_COVERAGE, context) / 100.
         majorityVoting = self.parameterAsBoolean(parameters, self.P_MAJORITY_VOTING, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_CATEGORIZED_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_CATEGORIZED_RASTER, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)

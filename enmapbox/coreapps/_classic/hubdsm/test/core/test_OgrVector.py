@@ -2,7 +2,7 @@ from unittest.case import TestCase
 
 from osgeo import ogr
 
-from enmapboxtestdata import landcover_polygons
+from enmapbox.exampledata import landcover_polygons
 from _classic.hubdsm.core.geometry import Geometry
 from _classic.hubdsm.core.location import Location
 from _classic.hubdsm.core.ogrdriver import MEMORY_DRIVER

@@ -8,7 +8,7 @@ import numpy as np
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsVectorFileWriter)
 
-from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
+from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary, SpectralLibraryUtils
 from enmapbox.externals.qps.speclib.core.spectralprofile import SpectralProfile
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
@@ -50,7 +50,10 @@ class SpectralResamplingByResponseFunctionConvolutionAlgorithmBase(EnMAPProcessi
         raise NotImplementedError()
 
     def defaultCodeAsString(self):
-        lines = [line[8:] for line in inspect.getsource(self.code).split('\n')][1:-2]
+        try:
+            lines = [line[8:] for line in inspect.getsource(self.code).split('\n')][1:-2]
+        except OSError:
+            lines = ['']
         lines = '\n'.join(lines)
         return lines
 
@@ -76,7 +79,7 @@ class SpectralResamplingByResponseFunctionConvolutionAlgorithmBase(EnMAPProcessi
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         responses = self.parameterAsResponses(parameters, self.P_CODE, context)
         saveResponseFunction = self.parameterAsBoolean(parameters, self.P_SAVE_RESPONSE_FUNCTION, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
         maximumMemoryUsage = gdal.GetCacheMax()
 
         with open(filename + '.log', 'w') as logfile:
@@ -175,9 +178,7 @@ class SpectralResamplingByResponseFunctionConvolutionAlgorithmBase(EnMAPProcessi
                 library.startEditing()
                 library.addProfiles(profiles)
                 library.commitChanges()
-                options = QgsVectorFileWriter.SaveVectorOptions()
-                options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteFile
-                library.write(filename + '.srf.gpkg', options=options)
+                library.write(filename + '.srf.gpkg')
 
             result = {self.P_OUTPUT_RASTER: filename}
             self.toc(feedback, result)

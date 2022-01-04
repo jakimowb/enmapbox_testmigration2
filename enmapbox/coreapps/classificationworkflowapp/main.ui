@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>692</width>
+    <width>693</width>
     <height>611</height>
    </rect>
   </property>
@@ -134,6 +134,9 @@
             <property name="filter">
              <string>*.tif</string>
             </property>
+            <property name="storageMode">
+             <enum>QgsFileWidget::SaveFile</enum>
+            </property>
             <property name="relativeStorage">
              <enum>QgsFileWidget::RelativeDefaultPath</enum>
             </property>
@@ -149,6 +152,9 @@
             </property>
             <property name="filter">
              <string>*.tif</string>
+            </property>
+            <property name="storageMode">
+             <enum>QgsFileWidget::SaveFile</enum>
             </property>
             <property name="relativeStorage">
              <enum>QgsFileWidget::RelativeDefaultPath</enum>
@@ -290,7 +296,7 @@
            </sizepolicy>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>5</number>
           </property>
           <property name="documentMode">
            <bool>true</bool>
@@ -391,6 +397,9 @@
                    </property>
                    <property name="defaultRoot">
                     <string/>
+                   </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
                    </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
@@ -913,6 +922,9 @@
                    <property name="filter">
                     <string>*.pkl</string>
                    </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
+                   </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
                    </property>
@@ -982,6 +994,9 @@
                    </property>
                    <property name="filter">
                     <string>*.pkl</string>
+                   </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
                    </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
@@ -1111,6 +1126,9 @@
                 </property>
                 <property name="filter">
                  <string>*.pkl</string>
+                </property>
+                <property name="storageMode">
+                 <enum>QgsFileWidget::SaveFile</enum>
                 </property>
                 <property name="relativeStorage">
                  <enum>QgsFileWidget::RelativeDefaultPath</enum>
@@ -1261,6 +1279,9 @@
                    <property name="filter">
                     <string>*.html</string>
                    </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
+                   </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
                    </property>
@@ -1381,6 +1402,9 @@
                    <property name="filter">
                     <string>*.pkl</string>
                    </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
+                   </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
                    </property>
@@ -1456,6 +1480,9 @@
                    </property>
                    <property name="filter">
                     <string>*.pkl</string>
+                   </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
                    </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
@@ -1650,6 +1677,9 @@
                    <property name="filter">
                     <string>*.html</string>
                    </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
+                   </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
                    </property>
@@ -1770,6 +1800,9 @@
                    <property name="filter">
                     <string>*.pkl</string>
                    </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
+                   </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
                    </property>
@@ -1845,6 +1878,9 @@
                    </property>
                    <property name="filter">
                     <string>*.pkl</string>
+                   </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
                    </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
@@ -2004,6 +2040,9 @@
                    <property name="filter">
                     <string>*.pkl</string>
                    </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
+                   </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
                    </property>
@@ -2128,6 +2167,9 @@
                    </property>
                    <property name="filter">
                     <string>*.html</string>
+                   </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
                    </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
@@ -2255,6 +2297,9 @@
                  <property name="filter">
                   <string>*.tif</string>
                  </property>
+                 <property name="storageMode">
+                  <enum>QgsFileWidget::SaveFile</enum>
+                 </property>
                  <property name="relativeStorage">
                   <enum>QgsFileWidget::RelativeDefaultPath</enum>
                  </property>
@@ -2277,6 +2322,9 @@
                  </property>
                  <property name="filter">
                   <string>*.tif</string>
+                 </property>
+                 <property name="storageMode">
+                  <enum>QgsFileWidget::SaveFile</enum>
                  </property>
                  <property name="relativeStorage">
                   <enum>QgsFileWidget::RelativeDefaultPath</enum>
@@ -2372,6 +2420,9 @@
                    </property>
                    <property name="filter">
                     <string>*.tif</string>
+                   </property>
+                   <property name="storageMode">
+                    <enum>QgsFileWidget::SaveFile</enum>
                    </property>
                    <property name="relativeStorage">
                     <enum>QgsFileWidget::RelativeDefaultPath</enum>
@@ -2747,7 +2798,7 @@ p, li { white-space: pre-wrap; }
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>692</width>
+     <width>693</width>
      <height>21</height>
     </rect>
    </property>
@@ -2775,15 +2826,15 @@ p, li { white-space: pre-wrap; }
    <header>qgsspinbox.h</header>
   </customwidget>
   <customwidget>
-   <class>QWebView</class>
-   <extends>QWidget</extends>
-   <header>PyQt5.QtWebKitWidgets</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>ProcessingParameterClassificationDatasetWidget</class>
    <extends>QWidget</extends>
    <header>enmapboxprocessing.parameter.processingparameterclassificationdatasetwidget</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>QWebView</class>
+   <extends>QWidget</extends>
+   <header>PyQt5.QtWebKitWidgets</header>
    <container>1</container>
   </customwidget>
   <customwidget>

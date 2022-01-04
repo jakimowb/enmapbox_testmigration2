@@ -96,6 +96,16 @@
      </layout>
     </item>
     <item>
+     <widget class="QgsFilterLineEdit" name="mFilterLineEdit">
+      <property name="placeholderText">
+       <string>Filter</string>
+      </property>
+      <property name="qgisRelation" stdset="0">
+       <string notr="true"/>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="SpectralProfileBridgeTreeView" name="treeView">
       <property name="sizeAdjustPolicy">
        <enum>QAbstractScrollArea::AdjustIgnored</enum>
@@ -145,6 +155,11 @@
   </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>QgsFilterLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>qgsfilterlineedit.h</header>
+  </customwidget>
   <customwidget>
    <class>SpectralProfileBridgeTreeView</class>
    <extends>QTreeView</extends>

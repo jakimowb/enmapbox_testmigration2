@@ -4,7 +4,7 @@ from os.path import join, dirname
 import numpy as np
 from qgis._core import QgsRasterLayer, QgsVectorLayer
 
-from enmapboxtestdata import landcover_points, enmap
+from enmapbox.exampledata import landcover_points, enmap
 from _classic.hubdsm.algorithm.uniquebandvaluecounts import uniqueBandValueCounts
 from _classic.hubdsm.core.category import Category
 from _classic.hubdsm.core.color import Color

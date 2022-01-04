@@ -6,17 +6,19 @@ from PyQt5.QtWidgets import QGroupBox, QWidget, QLabel
 from qgis.core import QgsVectorLayer, QgsExpression, QgsFieldProxyModel, QgsField, QgsFieldFormatter, QgsApplication
 
 from qgis.gui import QgsEditorWidgetWrapper, QgsFieldExpressionWidget, QgsEditorConfigWidget, QgsGui, \
-     QgsEditorWidgetFactory
+    QgsEditorWidgetFactory
 from qgis.PyQt.QtCore import NULL
-from .. import speclibUiPath, EDITOR_WIDGET_REGISTRY_KEY
+from .spectrallibraryplotwidget import SpectralProfilePlotXAxisUnitModel
+from .. import speclibUiPath, EDITOR_WIDGET_REGISTRY_KEY, EDITOR_WIDGET_REGISTRY_NAME
 from ..core.spectralprofile import SpectralProfile, encodeProfileValueDict, decodeProfileValueDict
-from ...unitmodel import BAND_INDEX, XUnitModel
+from ...unitmodel import BAND_INDEX
 from ...utils import loadUi
 
 SPECTRAL_PROFILE_FIELD_REPRESENT_VALUE = 'Profile'
 
 SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY: None
 SPECTRAL_PROFILE_FIELD_FORMATTER: None
+
 
 class SpectralProfileTableModel(QAbstractTableModel):
     """
@@ -233,7 +235,7 @@ class SpectralProfileEditorWidget(QGroupBox):
         self.mModel.rowsInserted.connect(self.onBandsChanged)
         self.mModel.rowsRemoved.connect(self.onBandsChanged)
         self.mModel.dataChanged.connect(lambda *args: self.onProfileChanged())
-        self.mXUnitModel: XUnitModel = XUnitModel()
+        self.mXUnitModel: SpectralProfilePlotXAxisUnitModel = SpectralProfilePlotXAxisUnitModel()
         self.cbXUnit.setModel(self.mXUnitModel)
         self.cbXUnit.currentIndexChanged.connect(
             lambda *args: self.mModel.setXUnit(self.cbXUnit.currentData(Qt.UserRole)))
@@ -490,13 +492,22 @@ class SpectralProfileEditorWidgetFactory(QgsEditorWidgetFactory):
 
 def registerSpectralProfileEditorWidget():
     widgetRegistry = QgsGui.editorWidgetRegistry()
-    fieldFormaterRegistry = QgsApplication.instance().fieldFormatterRegistry()
+    fieldFormatterRegistry = QgsApplication.instance().fieldFormatterRegistry()
 
     if not EDITOR_WIDGET_REGISTRY_KEY in widgetRegistry.factories().keys():
         global SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY
         global SPECTRAL_PROFILE_FIELD_FORMATTER
-        SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY = SpectralProfileEditorWidgetFactory(EDITOR_WIDGET_REGISTRY_KEY)
         SPECTRAL_PROFILE_FIELD_FORMATTER = SpectralProfileFieldFormatter()
-        widgetRegistry.registerWidget(EDITOR_WIDGET_REGISTRY_KEY, SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY)
-        fieldFormaterRegistry.addFieldFormatter(SPECTRAL_PROFILE_FIELD_FORMATTER)
-        s = ""
+
+        if True:
+            # workaround as long human-readible name needs to be in QML
+            SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY = SpectralProfileEditorWidgetFactory(EDITOR_WIDGET_REGISTRY_KEY)
+            widgetRegistry.registerWidget(EDITOR_WIDGET_REGISTRY_KEY, SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY)
+        else:
+            # as it should be
+            SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY = SpectralProfileEditorWidgetFactory(EDITOR_WIDGET_REGISTRY_NAME)
+            widgetRegistry.registerWidget(EDITOR_WIDGET_REGISTRY_KEY, SPECTRAL_PROFILE_EDITOR_WIDGET_FACTORY)
+
+        # uncomment when https://github.com/qgis/QGIS/issues/45478 is fixed
+        # fieldFormatterRegistry.addFieldFormatter(SPECTRAL_PROFILE_FIELD_FORMATTER)
+

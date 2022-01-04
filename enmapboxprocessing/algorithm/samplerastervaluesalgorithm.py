@@ -63,7 +63,7 @@ class SampleRasterValuesAlgorithm(EnMAPProcessingAlgorithm):
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         vector = self.parameterAsVectorLayer(parameters, self.P_VECTOR, context)
         coverageMin, coverageMax = self.parameterAsInts(parameters, self.P_COVERAGE_RANGE, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_POINTS, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_POINTS, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)

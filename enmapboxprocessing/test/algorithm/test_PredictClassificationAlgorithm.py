@@ -1,15 +1,12 @@
 import numpy as np
 from sklearn.base import ClassifierMixin
 
+from enmapbox.exampledata import enmap, landcover_polygons
 from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
 from enmapboxprocessing.algorithm.predictclassificationalgorithm import PredictClassificationAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, landcover_polygons, landcover_points
-from enmapboxunittestdata import landcover_raster_30m, classifierDumpPkl
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
+from enmapboxtestdata import landcover_raster_30m, classifierDumpPkl
 
 
 class FitTestClassifierAlgorithm(FitClassifierAlgorithmBase):
@@ -37,7 +34,7 @@ class TestPredictClassificationAlgorithm(TestCase):
         parametersFit = {
             algFit.P_DATASET: classifierDumpPkl,
             algFit.P_CLASSIFIER: algFit.defaultCodeAsString(),
-            algFit.P_OUTPUT_CLASSIFIER: 'c:/vsimem/classifier.pkl',
+            algFit.P_OUTPUT_CLASSIFIER: self.filename('classifier.pkl')
         }
         self.runalg(algFit, parametersFit)
 
@@ -46,7 +43,7 @@ class TestPredictClassificationAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: enmap,
             alg.P_CLASSIFIER: parametersFit[algFit.P_OUTPUT_CLASSIFIER],
-            alg.P_OUTPUT_CLASSIFICATION: c + '/vsimem/classification.tif'
+            alg.P_OUTPUT_CLASSIFICATION: self.filename('classification.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(127249, np.sum(RasterReader(result[alg.P_OUTPUT_CLASSIFICATION]).array()))
@@ -57,7 +54,7 @@ class TestPredictClassificationAlgorithm(TestCase):
         parametersFit = {
             algFit.P_DATASET: classifierDumpPkl,
             algFit.P_CLASSIFIER: algFit.defaultCodeAsString(),
-            algFit.P_OUTPUT_CLASSIFIER: 'c:/vsimem/classifier.pkl',
+            algFit.P_OUTPUT_CLASSIFIER: self.filename('classifier.pkl')
         }
         self.runalg(algFit, parametersFit)
 
@@ -67,7 +64,7 @@ class TestPredictClassificationAlgorithm(TestCase):
             alg.P_RASTER: enmap,
             alg.P_CLASSIFIER: parametersFit[algFit.P_OUTPUT_CLASSIFIER],
             alg.P_MASK: landcover_raster_30m,
-            alg.P_OUTPUT_CLASSIFICATION: c + '/vsimem/classification.tif'
+            alg.P_OUTPUT_CLASSIFICATION: self.filename('classification.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(3277, np.sum(RasterReader(result[alg.P_OUTPUT_CLASSIFICATION]).array()))
@@ -78,7 +75,7 @@ class TestPredictClassificationAlgorithm(TestCase):
         parametersFit = {
             algFit.P_DATASET: classifierDumpPkl,
             algFit.P_CLASSIFIER: algFit.defaultCodeAsString(),
-            algFit.P_OUTPUT_CLASSIFIER: 'c:/vsimem/classifier.pkl',
+            algFit.P_OUTPUT_CLASSIFIER: self.filename('classifier.pkl')
         }
         self.runalg(algFit, parametersFit)
 
@@ -88,7 +85,7 @@ class TestPredictClassificationAlgorithm(TestCase):
             alg.P_RASTER: enmap,
             alg.P_CLASSIFIER: parametersFit[algFit.P_OUTPUT_CLASSIFIER],
             alg.P_MASK: landcover_polygons,
-            alg.P_OUTPUT_CLASSIFICATION: c + '/vsimem/classification.tif'
+            alg.P_OUTPUT_CLASSIFICATION: self.filename('classification.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(3277, np.sum(RasterReader(result[alg.P_OUTPUT_CLASSIFICATION]).array()))

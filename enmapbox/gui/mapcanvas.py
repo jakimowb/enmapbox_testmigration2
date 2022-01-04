@@ -22,17 +22,18 @@ import warnings
 
 import typing
 from PyQt5.QtCore import Qt, QObject, QCoreApplication, pyqtSignal, QEvent, QPointF, QMimeData, QTimer, QSize, \
-    QSettings, QModelIndex, QAbstractListModel, QPoint
-from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent, QKeyEvent
+    QModelIndex, QAbstractListModel
+from PyQt5.QtGui import QMouseEvent, QIcon, QDragEnterEvent, QDropEvent, QResizeEvent, QKeyEvent, QColor
 from PyQt5.QtWidgets import QAction, QToolButton, QFileDialog, QHBoxLayout, QFrame, QMenu, QLabel, QApplication, \
     QWidgetAction, QGridLayout, QSpacerItem, QSizePolicy, QDialog, QVBoxLayout, QComboBox
+from qgis.core import QgsVectorLayer
+from qgis.gui import QgsColorDialog
 
-from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent, qgisAppQgisInterface, spatialPoint2px, \
-    px2spatialPoint
+from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent, qgisAppQgisInterface
 from enmapbox.gui import MapTools, MapToolCenter, PixelScaleExtentMapTool, \
     CursorLocationMapTool, FullExtentMapTool, QgsMapToolAddFeature, QgsMapToolSelect, \
     CrosshairDialog, CrosshairStyle, CrosshairMapCanvasItem
-from enmapbox.gui.docks import Dock, DockLabel
+
 from enmapbox.gui.mimedata import containsMapLayers, extractMapLayers
 from qgis.PyQt import sip
 
@@ -468,6 +469,7 @@ class CanvasLink(QObject):
 
     @staticmethod
     def ShowMapLinkTargets(mapDockOrMapCanvas):
+        from enmapbox.gui.dataviews.docks import MapDock
         if isinstance(mapDockOrMapCanvas, MapDock):
             mapDockOrMapCanvas = mapDockOrMapCanvas.mCanvas
         assert isinstance(mapDockOrMapCanvas, QgsMapCanvas)
@@ -496,7 +498,7 @@ class CanvasLink(QObject):
         :param linktype: str
 
         """
-        from enmapbox.gui.mapcanvas import CanvasLink
+        # from enmapbox.gui.mapcanvas import CanvasLink
         if linktype in [UNLINK, None]:
             CanvasLink.unlinkMapCanvases(canvas1, canvas2)
         else:
@@ -752,7 +754,7 @@ class CanvasLink(QObject):
 
         else:
             raise NotImplementedError()
-
+        dstCanvas.refresh()
         return dstCanvas
 
     def applyTo(self, canvasTo: QgsMapCanvas):
@@ -1120,17 +1122,21 @@ class MapCanvas(QgsMapCanvas):
         action = menu.addAction('Set CRS...')
         action.triggered.connect(self.setCRSfromDialog)
 
+        action = menu.addAction('Set background color')
+        action.triggered.connect(self.setBackgroundColorFromDialog)
+
         from enmapbox import EnMAPBox
-        from enmapbox.gui import SpectralLibrary
         emb = EnMAPBox.instance()
         if isinstance(emb, EnMAPBox):
-            speclibs = emb.spectralLibraries()
-            if len(speclibs) > 0:
+            slws = emb.spectralLibraryWidgets()
+            if len(slws) > 0:
                 m = menu.addMenu('Add Spectral Library')
-                for speclib in speclibs:
-                    a = m.addAction(speclib.name())
-                    a.setToolTip(speclib.source())
-                    a.triggered.connect(lambda *args, slib=speclib: self.setLayers(self.layers() + [slib]))
+                for slw in slws:
+                    speclib = slw.speclib()
+                    if isinstance(speclib, QgsVectorLayer):
+                        a = m.addAction(speclib.name())
+                        a.setToolTip(speclib.source())
+                        a.triggered.connect(lambda *args, slib=speclib: self.setLayers(self.layers() + [slib]))
         menu.addSeparator()
 
         return menu
@@ -1242,6 +1248,9 @@ class MapCanvas(QgsMapCanvas):
         :param args:
         """
         setMapCanvasCRSfromDialog(self)
+
+    def setBackgroundColorFromDialog(self, *args):
+        setMapCanvasBackgroundColorFromDialog(self, self.canvasColor())
 
     def setCrosshairStyle(self, crosshairStyle: CrosshairStyle):
         """
@@ -1357,10 +1366,15 @@ class MapCanvas(QgsMapCanvas):
 
             # add map layers
             mapLayers = extractMapLayers(mimeData)
-
-            if len(mapLayers) > 0:
-                self.setLayers(mapLayers + self.layers())
-                event.accept()
+            to_add = []
+            for l in mapLayers:
+                if l in self.layers():
+                    l = l.clone()
+                to_add.append(l)
+            if len(to_add) > 0:
+                self.setLayers(to_add + self.layers())
+            print(self.layers())
+            event.accept()
 
     def setExtent(self, rectangle):
         """
@@ -1428,9 +1442,12 @@ class MapCanvas(QgsMapCanvas):
         """
         if not isinstance(mapLayers, list):
             mapLayers = [mapLayers]
+        _mapLayers = []
         for l in mapLayers:
             assert isinstance(l, QgsMapLayer)
-
+            if l not in _mapLayers:
+                _mapLayers.append(l)
+        mapLayers = _mapLayers
         lastSet = self.layers()
 
         QgsProject.instance().addMapLayers(mapLayers, False)
@@ -1464,22 +1481,6 @@ class MapCanvas(QgsMapCanvas):
         return self
 
 
-class MapDockLabel(DockLabel):
-
-    def __init__(self, *args, **kwds):
-        super(MapDockLabel, self).__init__(*args, **kwds)
-
-        self.addMapLink = QToolButton(self)
-        self.addMapLink.setToolTip('Link with other map(s)')
-        self.addMapLink.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_basic.svg'))
-        self.mButtons.append(self.addMapLink)
-
-        self.removeMapLink = QToolButton(self)
-        self.removeMapLink.setToolTip('Remove links to this map')
-        self.removeMapLink.setIcon(QIcon(':/enmapbox/gui/ui/icons/link_open.svg'))
-        self.mButtons.append(self.removeMapLink)
-
-
 def setMapCanvasCRSfromDialog(mapCanvas, crs=None):
     assert isinstance(mapCanvas, QgsMapCanvas)
     w = QgsProjectionSelectionWidget(mapCanvas)
@@ -1499,88 +1500,8 @@ def setMapCanvasCRSfromDialog(mapCanvas, crs=None):
     return w
 
 
-class MapDock(Dock):
-    """
-    A dock to visualize geodata that can be mapped
-    """
-    # sigCursorLocationValueRequest = pyqtSignal(QgsPoint, QgsRectangle, float, QgsRectangle)
-    # sigCursorLocationRequest = pyqtSignal(SpatialPoint)
-    # sigSpectrumRequest = pyqtSignal(SpatialPoint)
-    sigLayersAdded = pyqtSignal(list)
-    sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
-
-    def __init__(self, *args, **kwds):
-        initSrc = kwds.pop('initSrc', None)
-        super(MapDock, self).__init__(*args, **kwds)
-        self.mBaseName = self.title()
-
-        self.mCanvas: MapCanvas = MapCanvas(self)
-        self.mCanvas.setWindowTitle(self.title())
-        self.mCanvas.sigNameChanged.connect(self.setTitle)
-
-        self.sigTitleChanged.connect(self.mCanvas.setWindowTitle)
-        self.mCanvas.sigLayersAdded.connect(self.sigLayersAdded.emit)
-        self.mCanvas.sigCrsChanged.connect(self.sigCrsChanged.emit)
-
-        settings = QSettings()
-        assert isinstance(self.mCanvas, QgsMapCanvas)
-        self.mCanvas.setCanvasColor(Qt.black)
-        self.mCanvas.enableAntiAliasing(settings.value('/qgis/enable_anti_aliasing', False, type=bool))
-        self.layout.addWidget(self.mCanvas)
-
-        if initSrc is not None:
-            from enmapbox.gui.datasources import DataSourceFactory
-            dataSources = DataSourceFactory.create(initSrc)
-            lyrs = [ds.createUnregisteredMapLayer() for ds in dataSources]
-            if len(lyrs) > 0:
-                self.mCanvas.setLayers(lyrs)
-
-    def mapCanvas(self) -> MapCanvas:
-        return self.mCanvas
-
-    def populateContextMenu(self, menu: QMenu):
-        """
-        Returns the MapDock context menu
-        :return: QMenu
-        """
-        super(MapDock, self).populateContextMenu(menu)
-
-        self.mCanvas.populateContextMenu(menu, None)
-        return menu
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            s = ""
-        else:
-            super(MapDock, self).mousePressEvent(event)
-
-    def linkWithMapDock(self, mapDock, linkType) -> CanvasLink:
-        assert isinstance(mapDock, MapDock)
-        return self.linkWithCanvas(mapDock.mCanvas, linkType)
-
-    def linkWithCanvas(self, canvas, linkType) -> CanvasLink:
-        assert isinstance(canvas, QgsMapCanvas)
-        return self.mapCanvas().createCanvasLink(canvas, linkType)
-
-    def mapCanvas(self) -> MapCanvas:
-        """
-        Returns the MapCanvas
-        :return: MapCanvas
-        """
-        return self.mCanvas
-
-    def addLayers(self, layers: typing.List[QgsMapLayer]):
-        assert isinstance(layers, list)
-        new_set = self.mapCanvas().layers() + layers
-        self.mapCanvas().setLayers(new_set)
-
-    def insertLayer(self, idx, layerSource):
-        from enmapbox import EnMAPBox
-        from enmapbox.gui.dockmanager import MapDockTreeNode
-
-        enmapBox = EnMAPBox.instance()
-        if enmapBox is not None:
-            mapDockTreeNode: MapDockTreeNode
-            for mapDockTreeNode in enmapBox.dockManagerTreeModel().mapDockTreeNodes():
-                if mapDockTreeNode.dock is self:
-                    mapDockTreeNode.insertLayer(idx=idx, layerSource=layerSource)
+def setMapCanvasBackgroundColorFromDialog(mapCanvas: QgsMapCanvas, color: QColor = None):
+    dialog = QgsColorDialog(mapCanvas)
+    dialog.setColor(color)
+    if dialog.exec() == QgsColorDialog.Accepted:
+        mapCanvas.setCanvasColor(dialog.color())

@@ -8,13 +8,14 @@ from typeguard import typechecked
 class ProcessingFeedback(QgsProcessingFeedback):
 
     def __init__(self,
-            feedback: QgsProcessingFeedback, pushInfo=True, pushDebugInfo=True, pushConsoleInfo=True,
+            feedback: QgsProcessingFeedback, pushInfo=True, pushWarning=True, pushDebugInfo=True, pushConsoleInfo=True,
             pushCommandInfo=True, pushVersionInfo=True, setProgress=True, silenced=False, logfile: TextIO = None,
             isChildFeedback=False
     ):
         super().__init__()
         self.feedback = feedback
         self._pushInfo = pushInfo and not silenced
+        self._pushWarning = pushWarning and not silenced
         self._pushDebugInfo = pushDebugInfo and not silenced
         self._pushConsoleInfo = pushConsoleInfo and not silenced
         self._pushCommandInfo = pushCommandInfo and not silenced
@@ -43,6 +44,14 @@ class ProcessingFeedback(QgsProcessingFeedback):
             info = str(info)
             self.feedback.pushInfo(info)
             self.log(info)
+        else:
+            pass  # silence
+
+    def pushWarting(self, warning):
+        if self._pushWarning:
+            warning = str(warning)
+            self.feedback.pushWarning(warning)
+            self.log(warning)
         else:
             pass  # silence
 

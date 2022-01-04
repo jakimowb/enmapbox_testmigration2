@@ -1,6 +1,7 @@
+import traceback
 from enum import Enum
 from os import makedirs
-from os.path import isabs, join, dirname, exists, splitext
+from os.path import isabs, join, dirname, exists, splitext, abspath
 from time import time
 from typing import Any, Dict, Iterable, Optional, List, Tuple, TextIO
 
@@ -17,7 +18,8 @@ from qgis._core import (QgsProcessingAlgorithm, QgsProcessingParameterRasterLaye
                         QgsProcessingParameterFileDestination, QgsProcessingParameterFile, QgsProcessingParameterRange,
                         QgsProcessingParameterCrs, QgsProcessingParameterVectorDestination, QgsProcessing,
                         QgsProcessingUtils, QgsProcessingParameterMultipleLayers, QgsProcessingException,
-                        QgsProcessingParameterFolderDestination)
+                        QgsProcessingParameterFolderDestination, QgsProcessingParameterRasterDestination,
+                        QgsProcessingDestinationParameter, QgsProcessingOutputLayerDefinition)
 
 import processing
 from enmapboxprocessing.glossary import injectGlossaryLinks
@@ -46,6 +48,7 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
     VectorFileDestination = 'Vector file destination.'
     ReportFileFilter = 'HTML (*.html)'
     ReportFileDestination = 'Output report file destination.'
+    ReportOpen = 'Whether to open the output report in the web browser.'
     FolderDestination = 'Folder destination.'
 
     VrtFormat = 'VRT'
@@ -281,6 +284,23 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             makedirs(dirname(filename))
         return filename
 
+    def parameterAsOutputLayer(
+            self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext
+    ) -> Optional[str]:
+        filename = super().parameterAsOutputLayer(parameters, name, context)
+
+        if filename == '':
+            filename = parameters.get(name, '')
+        if filename == '':
+            return None
+        if not isabs(filename):
+            filename = abspath(filename)
+        if not exists(dirname(filename)):
+            makedirs(dirname(filename))
+        return filename
+
+
+
     def parameterAsRange(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> List[float]:
         return super().parameterAsRange(parameters, name, context)
 
@@ -408,6 +428,8 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             title, text2 = self.helpHeader()
             text += f' <i><h3>{title}</h3> </i><p>{injectGlossaryLinks(text2)}</p>'
         for name, text2 in self.helpParameters():
+            if text2 == '':
+                continue
             text += f'<h3>{name}</h3><p>{injectGlossaryLinks(text2)}</p>'
         return text
 
@@ -677,14 +699,70 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             p.setFlags(p.flags() | QgsProcessingParameterDefinition.FlagHidden)
 
     def asConsoleCommand(self, parameters: Dict[str, Any], context: QgsProcessingContext):
-        cmd = f'qgis_process run enmapbox:{self.id()} '
+        algoId = self.id()
+        if not algoId.startswith('enmapbox:'):  # depending in the environment, the prefix is missing
+            algoId = 'enmapbox:' + algoId
+        cmd = f'qgis_process run {algoId} --'
         parameter: QgsProcessingParameterDefinition
         for parameter in self.parameterDefinitions():
-            value = parameters.get(parameter.name())
-            if value is None:
+
+            if parameters.get(parameter.name()) is None:
                 continue
-            value = parameter.valueAsPythonString(value, context)
-            cmd += f'--{parameter.name()}={value} '
+
+            isListParameter = isinstance(parameter, QgsProcessingParameterField) and parameter.allowMultiple()
+
+            if not isListParameter:
+                if isinstance(parameter, (QgsProcessingParameterString, QgsProcessingParameterRasterLayer,
+                                          QgsProcessingParameterVectorLayer, QgsProcessingParameterMapLayer,
+                                          QgsProcessingDestinationParameter, QgsProcessingParameterField,
+                                          QgsProcessingParameterFile, QgsProcessingParameterCrs)):
+                    if isinstance(parameter, (QgsProcessingParameterString)):
+                        value = parameters[parameter.name()]
+                        value = parameter.valueAsPythonString(value, context)
+                    elif isinstance(parameter, (QgsProcessingDestinationParameter)):
+                        value = parameter.valueAsPythonString(parameters[parameter.name()], context)
+                    elif isinstance(parameter, (QgsProcessingParameterRasterLayer, QgsProcessingParameterVectorLayer,
+                                              QgsProcessingParameterMapLayer)):
+                        value = self.parameterAsLayer(parameters, parameter.name(), context).source()
+                    elif isinstance(parameter, (QgsProcessingParameterFile)):
+                        value = self.parameterAsFile(parameters, parameter.name(), context)
+                    elif isinstance(parameter, (QgsProcessingParameterCrs)):
+                        value = self.parameterAsCrs(parameters, parameter.name(), context).authid()
+                    elif isinstance(parameter, (QgsProcessingParameterField)):
+                        value = self.parameterAsField(parameters, parameter.name(), context)
+                    else:
+                        value = self.parameterAsString(parameters, parameter.name(), context)
+                    if value is None:
+                        assert value is not None
+                    value = value.replace('"', r'\"')  # escape double quotes
+                else:
+                    value = parameter.valueAsPythonString(parameters[parameter.name()], context)  # remove single quotes
+
+                # remove whitespaces if possible
+                if isinstance(parameter, (QgsProcessingParameterExtent)):
+                    value = value.replace(' ', '')
+
+                # strip single quotes
+                if value.startswith("'") and value.endswith("'"):
+                    value = value[1:-1]
+
+                #  wrap in double quotes
+                if ' ' in value:
+                    value = '"' + value + '"'
+
+                cmd += rf'{parameter.name()}={value} '
+
+            else:  # handle list parameters
+                if isinstance(parameter, QgsProcessingParameterField):
+                    values = self.parameterAsFields(parameters, parameter.name(), context)
+                else:
+                    assert 0
+                for value in values:
+                    value = str(value)
+                    if ' ' in value:
+                        value = '"' + value + '"'
+                    cmd += f'{parameter.name()}={value} '
+
         return cmd
 
     def asPythonCommand(self, parameters: Dict[str, Any], context: QgsProcessingContext):
@@ -722,7 +800,13 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
 
     def tic(self, feedback: ProcessingFeedback, parameters: Dict[str, Any], context: QgsProcessingContext):
         feedback.pushPythonCommand(self.asPythonCommand(parameters, context) + '\n')
-        feedback.pushConsoleCommand(self.asConsoleCommand(parameters, context) + '\n')
+        try:
+            feedback.pushConsoleCommand(self.asConsoleCommand(parameters, context) + '\n')
+        except Exception as error:
+            traceback.print_exc()
+            feedback.pushConsoleCommand('Unable to create console command. Please report error traceback shown in the Python console.\n')
+            # raise error  # enable this only for debugging
+
         self._startTime = time()
 
     def toc(self, feedback: ProcessingFeedback, result: Dict):
@@ -753,7 +837,7 @@ class Group(Enum):
     SpectralResampling = 'Spectral resampling'
     Regression = 'Regression'
     Sampling = 'Sampling'
-    Test = 'TEST_'
+    Test = '*'
     Testdata = 'Testdata'
     Transformation = 'Transformation'
 

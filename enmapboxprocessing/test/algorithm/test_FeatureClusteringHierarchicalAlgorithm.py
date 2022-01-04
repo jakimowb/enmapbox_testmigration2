@@ -1,9 +1,6 @@
 from enmapboxprocessing.algorithm.featureclusteringhierarchicalalgorithm import FeatureClusteringHierarchicalAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxunittestdata import classifierDumpPkl
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
+from enmapboxtestdata import classifierDumpPkl
 
 
 class TestFeatureClusteringHierarchicalAlgorithm(TestCase):
@@ -14,6 +11,6 @@ class TestFeatureClusteringHierarchicalAlgorithm(TestCase):
         parameters = {
             alg.P_DATASET: classifierDumpPkl,
             alg.P_OPEN_REPORT: False,
-            alg.P_OUTPUT_REPORT: c + '/vsimem/report.html'
+            alg.P_OUTPUT_REPORT: self.filename('report.html')
         }
         self.runalg(alg, parameters)

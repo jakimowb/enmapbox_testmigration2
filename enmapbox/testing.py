@@ -25,6 +25,7 @@ import sys
 import re
 import io
 import shutil
+import site
 import importlib
 import uuid
 import warnings
@@ -44,7 +45,7 @@ import numpy as np
 from osgeo import gdal, ogr, osr
 
 from enmapbox.gui.utils import file_search
-from enmapbox import DIR_TESTDATA
+from enmapbox import DIR_EXAMPLEDATA
 
 SHOW_GUI = True
 
@@ -67,6 +68,12 @@ def start_app(*args, loadProcessingFramework: bool = True, **kwds) -> QgsApplica
         enmapbox.registerEditorWidgets()
         enmapbox.registerExpressionFunctions()
         enmapbox.registerMapLayerConfigWidgetFactories()
+
+        from .externals.qps import registerSpectralLibraryIOs
+        registerSpectralLibraryIOs()
+
+        from .externals.qps import registerSpectralProfileSamplingModes
+        registerSpectralProfileSamplingModes()
         return app
 
 
@@ -80,10 +87,20 @@ class EnMAPBoxTestCase(TestCase):
         os.chdir(tmpDir)
         super().setUpClass(resources=resources)
 
+        # add test-dir as site lib
+        from enmapbox import DIR_REPO
+        DIR_TESTS = pathlib.Path(DIR_REPO) / 'tests'
+        if DIR_TESTS.is_dir():
+            site.addsitedir(DIR_TESTS)
+
         import enmapbox
         enmapbox.initAll()
 
         s = ""
+
+    def testDataDir(self) -> pathlib.Path:
+        from enmapbox import DIR_REPO
+        return pathlib.Path(DIR_REPO) / 'tests' / 'testdata'
 
     def tempDir(self, subdir: str = None, cleanup: bool = False) -> pathlib.Path:
         """

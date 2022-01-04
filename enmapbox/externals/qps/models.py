@@ -290,7 +290,7 @@ class OptionListModel(QAbstractListModel):
         elif role == Qt.ToolTipRole:
             result = '{}'.format(option.mName if option.mTooltip is None else option.mTooltip)
         elif role == Qt.DecorationRole:
-            result = option.mIcon
+            result = QIcon(option.mIcon)
         elif role == Qt.UserRole:
             result = option
         return result
@@ -720,11 +720,11 @@ class OptionTreeNode(TreeNode):
     def options(self) -> typing.List[Option]:
         return self.mOptionModel.options()
 
+
 class NumpyArrayIterator(object):
     """
     Iterator for numpy.ndArrays
     """
-
 
     def __init__(self, array: np.ndarray):
         assert isinstance(array, np.ndarray)
@@ -800,7 +800,7 @@ class PyObjectTreeNode(TreeNode):
             elif isinstance(self.mPyObject, np.ndarray):
                 # self.mFetchIterator = iter(self.mPyObject[:,])
                 self.mFetchIterator = iter({'array': NumpyArrayIterator(self.mPyObject),
-                                           #'internals': iter(self.mPyObject)
+                                            # 'internals': iter(self.mPyObject)
                                             }.items())
             elif isinstance(self.mPyObject, NumpyArrayIterator):
                 self.mFetchIterator = self.mPyObject
@@ -929,6 +929,7 @@ class TreeModel(QAbstractItemModel):
         idx = self.node2idx(node)
         idx2 = self.index(idx.row(), node.columnCount() - 1, parent=idx.parent())
         self.dataChanged.emit(idx, idx2)
+        s = ""
 
     def headerData(self, section, orientation, role):
         assert isinstance(section, int)
@@ -960,6 +961,7 @@ class TreeModel(QAbstractItemModel):
         else:
             idx = self.node2idx(parentNode)
             return self.createIndex(idx.row(), idx.column(), parentNode)
+        s = ""
 
     def rowCount(self, parent: QModelIndex = None) -> int:
         """
@@ -1247,6 +1249,11 @@ class TreeView(QTreeView):
         self.mAutoExpansionDepth: int = 1
         self.mModel = None
         self.mNodeExpansion: typing.Dict[str, bool] = dict()
+        self.mAutoFirstColumnSpan: bool = True
+
+    def setAutoFirstColumnSpan(self, b: bool):
+        assert isinstance(b, bool)
+        self.mAutoFirstColumnSpan = b
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """
@@ -1277,8 +1284,19 @@ class TreeView(QTreeView):
         assert isinstance(depth, int)
         self.mAutoExpansionDepth = depth
 
-    def updateNodeExpansion(self, restore: bool,
-                            index: QModelIndex = None, prefix='') -> typing.Dict[str, bool]:
+    def expandSelectedNodes(self, expand: bool):
+        indices = self.selectedIndexes()
+        if len(indices) == 0:
+            self.selectAll()
+            indices += self.selectedIndexes()
+            # treeView.clearSelection()
+        for idx in indices:
+            self.setExpanded(idx, expand)
+
+    def updateNodeExpansion(self,
+                            restore: bool,
+                            index: QModelIndex = None,
+                            prefix='') -> typing.Dict[str, bool]:
         """
         Allows to save and restore the state of node expansion
         :param restore: bool, set True to save the state, False to restore it
@@ -1324,14 +1342,14 @@ class TreeView(QTreeView):
         if isinstance(self.mModel, QAbstractItemModel):
             self.mModel.modelReset.connect(self.onModelReset)
             self.mModel.dataChanged.connect(self.onDataChanged)
-            # self.mModel.rowsAboutToBeInserted.connect(self.onAboutRowsInserted)
             self.mModel.rowsInserted.connect(self.onRowsInserted)
 
         # update column spans
-        # self.onModelReset()
+        self.onModelReset()
 
     def onModelReset(self):
-        self.setColumnSpan(QModelIndex(), None, None)
+        if self.mAutoFirstColumnSpan:
+            self.setColumnSpan(QModelIndex(), None, None)
 
     def nodeDepth(self, index: QModelIndex) -> int:
         if not index.isValid():
@@ -1340,29 +1358,34 @@ class TreeView(QTreeView):
 
     def onRowsInserted(self, parent: QModelIndex, first: int, last: int):
 
-        node = self.model().data(parent, Qt.UserRole)
-        if True:
+        if self.mAutoFirstColumnSpan:
             self.setColumnSpan(parent, first, last)
+        else:
+            s = ""
         if True:
             level = self.nodeDepth(parent)
             if level < self.mAutoExpansionDepth:
                 self.setExpanded(parent, True)
 
     def onDataChanged(self, tl: QModelIndex, br: QModelIndex, roles):
-        self.setColumnSpan(tl.parent(), tl.row(), br.row())
+        if self.mAutoFirstColumnSpan:
+            self.setColumnSpan(tl.parent(), tl.row(), br.row())
 
     def setColumnSpan(self, parent: QModelIndex, first: int, last: int):
         """
-        Sets the column span for the rows "first" to "last" recursively
+        Sets the column span for node in rows "first" to "last" recursively
         :param parent:
-        :param idx:
-        :return:
+        :param first: (optional) 1st row to set column span for. Defaults to 0
+        :param last: (optional) last row to set column span for. Defaults to rowCount()-1 of parent
         """
 
         model: QAbstractItemModel = self.model()
         if not isinstance(model, QAbstractItemModel):
             return
         assert isinstance(parent, QModelIndex)
+
+        if parent.column() > 0:
+            return
 
         rows = model.rowCount(parent)
         cols = model.columnCount(parent)
@@ -1375,10 +1398,19 @@ class TreeView(QTreeView):
             last = rows - 1
 
         assert last < rows
+        assert first <= last
+
         for r in range(first, last + 1):
             idx0: QModelIndex = model.index(r, 0, parent)
+            node = idx0.data(Qt.UserRole)
+            if isinstance(node, PyObjectTreeNode):
+                # workaround for EnMAP-Box issue 672 and issue 737
+                # https://bitbucket.org/hu-geomatics/enmap-box/issues/672
+                # https://bitbucket.org/hu-geomatics/enmap-box/issues/737
+                continue
 
-            spanned = True
+            spanned: bool = True
+
             for c in range(1, cols):
                 idx_right = model.index(r, c, parent)
                 if idx_right.isValid():
@@ -1386,10 +1418,15 @@ class TreeView(QTreeView):
                     if txt not in [None, '']:
                         spanned = False
                         break
+
+            # if spanned:
+            #     txt0 = model.index(r, 0, parent).data(Qt.DisplayRole)
+            #     data0 = model.index(r, 0, parent).data(Qt.UserRole)
+            #     print(f'spanned: {data0} {txt0}')
             self.setFirstColumnSpanned(r, parent, spanned)
 
             # traverse sub-trees structure
-            self.setColumnSpan(idx0, None, None)
+            # self.setColumnSpan(idx0, None, None)
         return
 
     def selectedNode(self) -> TreeNode:

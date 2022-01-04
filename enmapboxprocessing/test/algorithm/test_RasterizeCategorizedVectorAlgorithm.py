@@ -1,16 +1,13 @@
 import numpy as np
 from qgis._core import QgsRasterLayer, QgsVectorLayer, QgsPalettedRasterRenderer
 
+from enmapbox.exampledata import enmap, landcover_polygons
 from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.utils import Utils
-from enmapboxtestdata import enmap, landcover_polygons
-from enmapboxunittestdata import (landcover_polygons_3classes_epsg4326, landcover_polygons_3classes_id,
-                                  landcover_points_multipart_epsg3035)
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
+from enmapboxtestdata import (landcover_polygons_3classes_epsg4326, landcover_polygons_3classes_id,
+                              landcover_points_multipart_epsg3035)
 
 
 class TestRasterizeCategorizedVectorAlgorithm(TestCase):
@@ -21,7 +18,7 @@ class TestRasterizeCategorizedVectorAlgorithm(TestCase):
         parameters = {
             alg.P_CATEGORIZED_VECTOR: landcover_polygons_3classes_id,
             alg.P_GRID: enmap,
-            alg.P_OUTPUT_CATEGORIZED_RASTER: c + '/vsimem/landcover_polygons.tif'
+            alg.P_OUTPUT_CATEGORIZED_RASTER: self.filename('landcover_polygons.tif')
         }
         result = self.runalg(alg, parameters)
         classification = QgsRasterLayer(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER])
@@ -41,7 +38,7 @@ class TestRasterizeCategorizedVectorAlgorithm(TestCase):
         parameters = {
             alg.P_CATEGORIZED_VECTOR: QgsVectorLayer(landcover_polygons),
             alg.P_GRID: QgsRasterLayer(enmap),
-            alg.P_OUTPUT_CATEGORIZED_RASTER: c + '/vsimem/landcover_polygons.tif'
+            alg.P_OUTPUT_CATEGORIZED_RASTER: self.filename('landcover_polygons.tif')
         }
         result = self.runalg(alg, parameters)
         classification = QgsRasterLayer(parameters[alg.P_OUTPUT_CATEGORIZED_RASTER])
@@ -59,7 +56,7 @@ class TestRasterizeCategorizedVectorAlgorithm(TestCase):
         parameters = {
             alg.P_CATEGORIZED_VECTOR: QgsVectorLayer(landcover_polygons_3classes_epsg4326),
             alg.P_GRID: QgsRasterLayer(enmap),
-            alg.P_OUTPUT_CATEGORIZED_RASTER: c + '/vsimem/landcover_polygons.tif'
+            alg.P_OUTPUT_CATEGORIZED_RASTER: self.filename('landcover_polygons.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(1678, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))
@@ -70,7 +67,7 @@ class TestRasterizeCategorizedVectorAlgorithm(TestCase):
         parameters = {
             alg.P_CATEGORIZED_VECTOR: QgsVectorLayer(landcover_points_multipart_epsg3035),
             alg.P_GRID: QgsRasterLayer(enmap),
-            alg.P_OUTPUT_CATEGORIZED_RASTER: c + '/vsimem/landcover_points.tif'
+            alg.P_OUTPUT_CATEGORIZED_RASTER: self.filename('landcover_points.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(152, np.sum(RasterReader(result[alg.P_OUTPUT_CATEGORIZED_RASTER]).array()))
@@ -82,7 +79,7 @@ class TestRasterizeCategorizedVectorAlgorithm(TestCase):
             alg.P_CATEGORIZED_VECTOR: QgsVectorLayer(landcover_polygons),
             alg.P_GRID: QgsRasterLayer(enmap),
             alg.P_COVERAGE: 100,
-            alg.P_OUTPUT_CATEGORIZED_RASTER: c + '/vsimem/classification_fullcoverage.tif'
+            alg.P_OUTPUT_CATEGORIZED_RASTER: self.filename('classification_fullcoverage.tif')
         }
 
         result = self.runalg(alg, parameters)

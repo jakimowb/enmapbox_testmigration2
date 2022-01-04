@@ -1,11 +1,9 @@
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtablealgorithm import PrepareClassificationDatasetFromTableAlgorithm
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromtablealgorithm import \
+    PrepareClassificationDatasetFromTableAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapboxunittestdata import classificationDatasetAsCsv
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
+from enmapboxtestdata import classificationDatasetAsCsv
 
 
 class TestPrepareClassificationDatasetFromTableAlgorithm(TestCase):
@@ -16,7 +14,7 @@ class TestPrepareClassificationDatasetFromTableAlgorithm(TestCase):
             alg.P_TABLE: classificationDatasetAsCsv,
             alg.P_FEATURE_FIELDS: [f'Band_{i + 1}' for i in range(177)],
             alg.P_VALUE_FIELD: 'level_1_id',
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
@@ -34,7 +32,7 @@ class TestPrepareClassificationDatasetFromTableAlgorithm(TestCase):
             alg.P_TABLE: classificationDatasetAsCsv,
             alg.P_FEATURE_FIELDS: [f'Band_{i + 1}' for i in range(177)],
             alg.P_VALUE_FIELD: 'level_1',
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
@@ -54,7 +52,7 @@ class TestPrepareClassificationDatasetFromTableAlgorithm(TestCase):
             alg.P_VALUE_FIELD: 'level_1_id',
             alg.P_NAME_FIELD: 'level_1',
             alg.P_COLOR_FIELD: 'colors',
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))

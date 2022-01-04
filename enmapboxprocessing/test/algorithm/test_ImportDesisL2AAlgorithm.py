@@ -8,10 +8,13 @@ from enmapboxprocessing.test.algorithm.testcase import TestCase
 class TestImportDesisL2AAlgorithm(TestCase):
 
     def test(self):
+        if not self.sensorProductsFolderExists():
+            return
+
         alg = ImportDesisL2AAlgorithm()
         parameters = {
             alg.P_FILE: r'D:\data\sensors\desis\DESIS-HSI-L2A-DT1203190212_025-20191203T021128-V0210\DESIS-HSI-L2A-DT1203190212_025-20191203T021128-V0210-METADATA.xml',
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/desisL2A.vrt',
+            alg.P_OUTPUT_RASTER: self.filename('desisL2A.vrt'),
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(

@@ -37,7 +37,7 @@ QGIS2NUMPY_DATA_TYPES = {Qgis.Byte: np.byte,
                          Qgis.Int32: np.int32,
                          Qgis.Float32: np.float32,
                          Qgis.Float64: np.float64,
-                         Qgis.CFloat32: np.complex,
+                         Qgis.CFloat32: complex,
                          Qgis.CFloat64: np.complex64,
                          Qgis.ARGB32: np.uint32,
                          Qgis.ARGB32_Premultiplied: np.uint32}

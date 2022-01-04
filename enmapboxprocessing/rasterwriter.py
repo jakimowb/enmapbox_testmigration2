@@ -105,7 +105,7 @@ class RasterWriter(object):
         gdalBand.SetColorTable(colorTable)
 
     def setWavelength(self, wavelength: Optional[Number], bandNo: int, units: str = None):
-        if bandNo is None:
+        if wavelength is None:
             return
         if units is None:
             units = 'Nanometers'
@@ -113,7 +113,7 @@ class RasterWriter(object):
         self.setMetadataItem('wavelength_units', units, '', bandNo)
 
     def setFwhm(self, fwhm: Optional[Number], bandNo: int, units: str = None):
-        if bandNo is None:
+        if fwhm is None:
             return
         if units is None:
             units = 'Nanometers'
@@ -121,7 +121,7 @@ class RasterWriter(object):
         self.setMetadataItem('wavelength_units', units, '', bandNo)
 
     def setBadBandMultiplier(self, badBandMultiplier: Optional[int], bandNo: int):
-        if bandNo is None:
+        if badBandMultiplier is None:
             return
         self.setMetadataItem('bad_band_multiplier', badBandMultiplier, '', bandNo)
 

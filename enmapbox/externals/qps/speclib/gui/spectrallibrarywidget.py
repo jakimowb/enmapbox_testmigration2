@@ -4,25 +4,25 @@ import typing
 import warnings
 
 from PyQt5.QtCore import pyqtSignal, Qt, QModelIndex
-from PyQt5.QtGui import QIcon, QDragEnterEvent, QContextMenuEvent
+from PyQt5.QtGui import QIcon, QDragEnterEvent, QContextMenuEvent, QDropEvent, QColor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction, QMenu, QToolBar, QToolButton, QWidgetAction, QPushButton, \
-    QHBoxLayout, QFrame, QDialog, QLabel
+    QHBoxLayout, QFrame, QDialog, QLabel, QMessageBox
 from qgis.core import QgsVectorLayer
 
 from qgis.core import QgsFeature
 from qgis.gui import QgsMapCanvas, QgsDualView, QgsAttributeTableView, QgsAttributeTableFilterModel, QgsDockWidget, \
     QgsActionMenu, QgsStatusBar
-from ..core import is_spectral_library
-from ...layerproperties import AttributeTableWidget, showLayerPropertiesDialog
+from ..core import is_spectral_library, profile_field_list
+from ...layerproperties import AttributeTableWidget, showLayerPropertiesDialog, CopyAttributesDialog
 from ...plotstyling.plotstyling import PlotStyle, PlotStyleWidget
-from ..core.spectrallibrary import SpectralLibrary
+from ..core.spectrallibrary import SpectralLibrary, SpectralLibraryUtils
 from ..core.spectrallibraryio import SpectralLibraryIO, SpectralLibraryImportDialog, SpectralLibraryExportDialog
 from ..core.spectralprofile import SpectralProfile
 from .spectrallibraryplotwidget import SpectralProfilePlotWidget, SpectralLibraryPlotWidget, \
     SpectralLibraryPlotItem, SpectralLibraryPlotStats, SpectralProfilePlotControlModel
 from ..processing import SpectralProcessingWidget
 from ...unitmodel import BAND_NUMBER
-from ...utils import SpatialExtent, SpatialPoint
+from ...utils import SpatialExtent, SpatialPoint, nextColor
 
 
 class SpectralLibraryWidget(AttributeTableWidget):
@@ -32,14 +32,18 @@ class SpectralLibraryWidget(AttributeTableWidget):
     sigMapCenterRequested = pyqtSignal(SpatialPoint)
     sigCurrentProfilesChanged = pyqtSignal(list)
 
-    class ViewType(enum.Enum):
+    class ViewType(enum.Flag):
+        Empty = enum.auto()
+        ProfileView = enum.auto()
+        ProfileViewSettings = enum.auto()
         AttributeTable = enum.auto()
         FormView = enum.auto()
         ProcessingView = enum.auto()
+        Standard = ProfileView | AttributeTable
 
     def __init__(self, *args, speclib: SpectralLibrary = None, mapCanvas: QgsMapCanvas = None, **kwds):
 
-        if not is_spectral_library(speclib):
+        if not isinstance(speclib, QgsVectorLayer):
             speclib = SpectralLibrary()
 
         super().__init__(speclib)
@@ -53,14 +57,22 @@ class SpectralLibraryWidget(AttributeTableWidget):
         # self.mQgsStatusBar.addPermanentWidget(self.mStatusLabel, 1, QgsStatusBar.AnchorLeft)
         # self.mQgsStatusBar.setVisible(False)
 
+        self._SHOW_MODEL: bool = False
+
+        self.mToolbar: QToolBar
         self.mIODialogs: typing.List[QWidget] = list()
 
         self.tableView().willShowContextMenu.connect(self.onWillShowContextMenuAttributeTable)
         self.mMainView.showContextMenuExternally.connect(self.onShowContextMenuAttributeEditor)
 
         self.mSpeclibPlotWidget: SpectralLibraryPlotWidget = SpectralLibraryPlotWidget()
+        self.mSpeclibPlotWidget.plotControlModel()._SHOW_MODEL = self._SHOW_MODEL
+
         assert isinstance(self.mSpeclibPlotWidget, SpectralLibraryPlotWidget)
         self.mSpeclibPlotWidget.setDualView(self.mMainView)
+        self.mSpeclibPlotWidget.sigDragEnterEvent.connect(self.dragEnterEvent)
+        self.mSpeclibPlotWidget.sigDropEvent.connect(self.dropEvent)
+
         # self.mStatusLabel.setPlotWidget(self.mSpeclibPlotWidget)
         # self.mSpeclibPlotWidget.plotWidget.mUpdateTimer.timeout.connect(self.mStatusLabel.update)
 
@@ -71,11 +83,13 @@ class SpectralLibraryWidget(AttributeTableWidget):
         # l.addWidget(self.pageProcessingWidget)
         l.setContentsMargins(0, 0, 0, 0)
         l.setSpacing(2)
-        self.widgetRight.setLayout(l)
-        self.widgetRight.setVisible(True)
+        self.widgetLeft.setLayout(l)
+        self.widgetLeft.setVisible(True)
+        self.widgetRight.setVisible(False)
 
         self.widgetCenter.addWidget(self.pageProcessingWidget)
         self.widgetCenter.currentChanged.connect(self.updateToolbarVisibility)
+        # self.widgetCenter.visibilityChanged.connect(self.updateToolbarVisibility)
         self.mMainView.formModeChanged.connect(self.updateToolbarVisibility)
 
         # define Actions and Options
@@ -85,11 +99,6 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.actionSelectProfilesFromMap.setIcon(QIcon(':/qps/ui/icons/profile_identify.svg'))
         self.actionSelectProfilesFromMap.setVisible(False)
         self.actionSelectProfilesFromMap.triggered.connect(self.sigLoadFromMapRequest.emit)
-
-        self.actionAddProfiles = QAction('Add Profile(s)', parent=self)
-        self.actionAddProfiles.setToolTip('Adds currently overlaid profiles to the spectral library')
-        self.actionAddProfiles.setIcon(QIcon(':/qps/ui/icons/plus_green_icon.svg'))
-        self.actionAddProfiles.triggered.connect(self.addCurrentProfilesToSpeclib)
 
         self.actionAddCurrentProfiles = QAction('Add Profiles(s)', parent=self)
         self.actionAddCurrentProfiles.setShortcut(Qt.CTRL + Qt.SHIFT + Qt.Key_A)
@@ -106,16 +115,15 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.optionAddCurrentProfilesAutomatically.setCheckable(True)
         self.optionAddCurrentProfilesAutomatically.setChecked(False)
 
-        self.actionImportVectorRasterSource = QAction('Import profiles from raster + vector source', parent=self)
-        self.actionImportVectorRasterSource.setToolTip('Import spectral profiles from a raster image '
-                                                       'based on vector geometries (Points).')
-        self.actionImportVectorRasterSource.setIcon(QIcon(':/images/themes/default/mActionAddOgrLayer.svg'))
-
-        self.actionImportVectorRasterSource.triggered.connect(self.onImportFromRasterSource)
-
         m = QMenu()
         m.addAction(self.actionAddCurrentProfiles)
         m.addAction(self.optionAddCurrentProfilesAutomatically)
+        m.setDefaultAction(self.actionAddCurrentProfiles)
+
+        self.actionAddProfiles = QAction(self.actionAddCurrentProfiles.text(), self)
+        self.actionAddProfiles.setToolTip(self.actionAddCurrentProfiles.text())
+        self.actionAddProfiles.setIcon(self.actionAddCurrentProfiles.icon())
+        self.actionAddProfiles.triggered.connect(self.actionAddCurrentProfiles.trigger)
         self.actionAddProfiles.setMenu(m)
 
         self.actionImportSpeclib = QAction('Import Spectral Profiles', parent=self)
@@ -128,12 +136,21 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.actionExportSpeclib.setIcon(QIcon(':/qps/ui/icons/speclib_save.svg'))
         self.actionExportSpeclib.triggered.connect(self.onExportProfiles)
 
-        self.tbSpeclibAction = QToolBar('Spectral Profiles')
+        self.actionShowProperties = QAction('Show Spectral Library Properties', parent=self)
+        self.actionShowProperties.setToolTip('Show Spectral Library Properties')
+        self.actionShowProperties.setIcon(QIcon(':/images/themes/default/propertyicons/system.svg'))
+        self.actionShowProperties.triggered.connect(self.showProperties)
+
+        self.tbSpeclibAction = QToolBar('Spectral Library')
         self.tbSpeclibAction.setObjectName('SpectralLibraryToolbar')
+        self.tbSpeclibAction.setFloatable(False)
+        self.tbSpeclibAction.setMovable(False)
+        # self.tbSpeclibAction.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tbSpeclibAction.addAction(self.actionSelectProfilesFromMap)
         self.tbSpeclibAction.addAction(self.actionAddProfiles)
         self.tbSpeclibAction.addAction(self.actionImportSpeclib)
         self.tbSpeclibAction.addAction(self.actionExportSpeclib)
+        self.tbSpeclibAction.addAction(self.actionShowProperties)
 
         # self.tbSpeclibAction.addSeparator()
         # self.cbXAxisUnit = self.mSpeclibPlotWidget.optionXUnit.createUnitComboBox()
@@ -145,6 +162,13 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.actionShowProfileView.setChecked(True)
         self.actionShowProfileView.setIcon(QIcon(self.mSpeclibPlotWidget.windowIcon()))
         self.actionShowProfileView.triggered.connect(self.setCenterView)
+
+        self.actionShowProfileViewSettings = self.mSpeclibPlotWidget.optionShowVisualizationSettings
+        self.actionShowProfileView.toggled.connect(self.actionShowProfileViewSettings.setEnabled)
+
+        # show Attribute Table / Form View buttons in menu bar only
+        self.mAttributeViewButton.setVisible(False)
+        self.mTableViewButton.setVisible(False)
 
         self.actionShowFormView = QAction('Show Form View', parent=self)
         self.actionShowFormView.setCheckable(True)
@@ -160,42 +184,42 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.actionShowProcessingWidget.setCheckable(True)
         self.actionShowProcessingWidget.setIcon(QIcon(':/qps/ui/icons/profile_processing.svg'))
         self.actionShowProcessingWidget.triggered.connect(self.setCenterView)
+        self.actionShowProcessingWidget.setEnabled(self._SHOW_MODEL)
 
         self.mMainViewButtonGroup.buttonClicked.connect(self.updateToolbarVisibility)
 
         self.tbSpectralProcessing = QToolBar('Spectral Processing')
-
+        self.tbSpectralProcessing.setMovable(False)
+        self.tbSpectralProcessing.setFloatable(False)
         self.tbSpectralProcessing.addAction(self.pageProcessingWidget.actionApplyModel)
         self.tbSpectralProcessing.addAction(self.pageProcessingWidget.actionVerifyModel)
         self.tbSpectralProcessing.addAction(self.pageProcessingWidget.actionSaveModel)
         self.tbSpectralProcessing.addAction(self.pageProcessingWidget.actionLoadModel)
         self.tbSpectralProcessing.addAction(self.pageProcessingWidget.actionRemoveFunction)
 
-        self.addToolBar(self.tbSpectralProcessing)
-
         r = self.tbSpeclibAction.addSeparator()
         self.tbSpeclibAction.addAction(self.actionShowProfileView)
+        self.tbSpeclibAction.addAction(self.actionShowProfileViewSettings)
+        self.tbSpeclibAction.addSeparator()
         self.tbSpeclibAction.addAction(self.actionShowFormView)
         self.tbSpeclibAction.addAction(self.actionShowAttributeTable)
-        self.tbSpeclibAction.addAction(self.actionShowProcessingWidget)
+
+        if self._SHOW_MODEL:
+            self.tbSpeclibAction.addAction(self.actionShowProcessingWidget)
+
+        self.insertToolBar(self.mToolbar, self.tbSpeclibAction)
+        self.insertToolBar(self.mToolbar, self.tbSpectralProcessing)
 
         # update toolbar visibilities
         self.updateToolbarVisibility()
+        self.updateActions()
 
-        self.insertToolBar(self.mToolbar, self.tbSpeclibAction)
-
-        self.actionShowProperties = QAction('Show Spectral Library Properties', parent=self)
-        self.actionShowProperties.setToolTip('Show Spectral Library Properties')
-        self.actionShowProperties.setIcon(QIcon(':/images/themes/default/propertyicons/system.svg'))
-        self.actionShowProperties.triggered.connect(self.showProperties)
-
-        self.btnShowProperties = QToolButton()
-        self.btnShowProperties.setAutoRaise(True)
-        self.btnShowProperties.setDefaultAction(self.actionShowProperties)
-
-        self.tbSpeclibAction.addAction(self.actionShowProperties)
-        self.centerBottomLayout.insertWidget(self.centerBottomLayout.indexOf(self.mAttributeViewButton),
-                                             self.btnShowProperties)
+        # property button now shown in speclib action toolbar only
+        # self.btnShowProperties = QToolButton()
+        # self.btnShowProperties.setAutoRaise(True)
+        # self.btnShowProperties.setDefaultAction(self.actionShowProperties)
+        # self.centerBottomLayout.insertWidget(self.centerBottomLayout.indexOf(self.mAttributeViewButton),
+        #                                   self.btnShowProperties)
 
         # show attribute table by default
         self.actionShowAttributeTable.trigger()
@@ -203,22 +227,68 @@ class SpectralLibraryWidget(AttributeTableWidget):
         # QIcon(':/images/themes/default/mActionMultiEdit.svg').pixmap(20,20).isNull()
         self.setAcceptDrops(True)
 
-    def setCenterView(self, view: 'SpectralLibraryWidget.ViewType' = None):
+        self.setViewVisibility(SpectralLibraryWidget.ViewType.Standard)
 
-        sender = self.sender()
+        # if self.speclib().featureCount() > 0:
+        #    for field in profile_field_list(self.speclib()):
+        #        self.spectralLibraryPlotWidget().createProfileVis(field=field)
 
-        self.widgetRight.setVisible(self.actionShowProfileView.isChecked())
+        # try to give the plot widget most space
+        self.splitter.setStretchFactor(0, 4)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setStretchFactor(2, 0)
+        self.splitter.setSizes([200, 10, 0])
+
+    def setViewVisibility(self, viewType: ViewType):
+        """
+        Sets the visibility of views
+        :param views: list of ViewsTypes to set visible
+        :type views:
+        :return:
+        :rtype:
+        """
+        assert isinstance(viewType, SpectralLibraryWidget.ViewType)
+
+        self.actionShowProfileView.setChecked(SpectralLibraryWidget.ViewType.ProfileView in viewType)
+        self.actionShowProfileViewSettings.setChecked(SpectralLibraryWidget.ViewType.ProfileViewSettings in viewType)
 
         exclusive_actions = [self.actionShowAttributeTable,
                              self.actionShowFormView,
                              self.actionShowProcessingWidget]
-        for a in exclusive_actions:
-            if a != sender:
-                a.setChecked(False)
 
+        sender = None
+        if SpectralLibraryWidget.ViewType.AttributeTable in viewType:
+            sender = self.actionShowAttributeTable
+        elif SpectralLibraryWidget.ViewType.FormView in viewType:
+            sender = self.actionShowFormView
+        elif SpectralLibraryWidget.ViewType.ProcessingView in viewType:
+            sender = self.actionShowProcessingWidget
+
+        for a in exclusive_actions:
+            a.setChecked(a == sender)
+
+        self.setCenterView()
+
+    def setCenterView(self):
+
+        sender = self.sender()
+
+        # either show attribute table, form view or processing widget
+        exclusive_actions = [self.actionShowAttributeTable,
+                             self.actionShowFormView,
+                             self.actionShowProcessingWidget]
+
+        if sender in exclusive_actions:
+            for a in exclusive_actions:
+                if a != sender:
+                    a.setChecked(False)
+
+        is_profileview = self.actionShowProfileView.isChecked()
         is_formview = self.actionShowFormView.isChecked()
         is_tableview = self.actionShowAttributeTable.isChecked()
         is_processingview = self.actionShowProcessingWidget.isChecked()
+
+        self.widgetLeft.setVisible(is_profileview)
 
         if not any([is_formview, is_tableview, is_processingview]):
             self.widgetCenter.setVisible(False)
@@ -232,27 +302,13 @@ class SpectralLibraryWidget(AttributeTableWidget):
             elif is_processingview:
                 self.widgetCenter.setCurrentWidget(self.pageProcessingWidget)
             self.widgetCenter.setVisible(True)
-        # legacy code
-        # self.mMainViewButtonGroup.button(QgsDualView.AttributeTable) \
-        #    .setChecked(self.actionShowAttributeTable.isChecked())
-        # self.mMainViewButtonGroup.button(QgsDualView.AttributeEditor) \
 
-    #     .setChecked(self.actionShowFormView.isChecked())
+        self.updateToolbarVisibility()
 
     def updateToolbarVisibility(self, *args):
-        w = self.widgetCenter.currentWidget()
 
-        self.mToolbar.setVisible(w == self.pageAttributeTable)
-        self.tbSpectralProcessing.setVisible(w == self.pageProcessingWidget)
-
-        # self.actionShowProcessingWidget.setChecked(w == self.pageProcessingWidget)
-        # if w == self.pageAttributeTable:
-        #    viewMode: QgsDualView.ViewMode = self.mMainView.view()
-        #    self.actionShowAttributeTable.setChecked(viewMode == QgsDualView.AttributeTable)
-        #    self.actionShowFormView.setChecked(viewMode == QgsDualView.AttributeEditor)
-        # else:
-        #    self.actionShowAttributeTable.setChecked(False)
-        #    self.actionShowFormView.setChecked(False)
+        self.mToolbar.setVisible(self.pageAttributeTable.isVisibleTo(self))
+        self.tbSpectralProcessing.setVisible(self.pageProcessingWidget.isVisibleTo(self))
 
     def tableView(self) -> QgsAttributeTableView:
         return self.mMainView.tableView()
@@ -281,7 +337,6 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
         btnResetProfileStyles = QPushButton('Reset')
         btnApplyProfileStyle = QPushButton('Apply')
-
 
         plotStyle = self.plotWidget().profileRenderer().profileStyle
         if n == 0:
@@ -335,6 +390,15 @@ class SpectralLibraryWidget(AttributeTableWidget):
         """
         return self.plotWidget().getPlotItem()
 
+    def updateActions(self):
+        """
+        Updates action appearance according to internal states
+        :return:
+        :rtype:
+        """
+        self.actionAddCurrentProfiles.setEnabled(len(self.temporaryProfileIDs()) > 0)
+        s = ""
+
     def updatePlot(self):
         self.plotControl().updatePlot()
 
@@ -344,19 +408,37 @@ class SpectralLibraryWidget(AttributeTableWidget):
     def spectralLibrary(self) -> QgsVectorLayer:
         return self.speclib()
 
-    def addSpeclib(self, speclib: QgsVectorLayer):
+    def addSpeclib(self, speclib: QgsVectorLayer, askforNewFields: bool = False):
+        """
+        :param speclib: QgsVectorLayer
+        :param askforNewFields: bool, if True and speclib to add contains other fields, a dialog will be shown
+                that asks to add them first
+        """
         assert is_spectral_library(speclib)
-        sl = self.speclib()
-        wasEditable = sl.isEditable()
+        speclib_dst = self.speclib()
+        wasEditable = speclib_dst.isEditable()
+
+        if askforNewFields:
+            dst_fields = speclib_dst.fields().names()
+            missing = [f for f in speclib.fields() if f.name() not in dst_fields]
+            if len(missing) > 0:
+                result = QMessageBox.question(self, 'Create additional field(s)?',
+                                              f'Data has {len(missing)} other field(s).\n'
+                                              f'Do you like to copy them?')
+
+                if result == QMessageBox.Yes:
+                    if not CopyAttributesDialog.copyLayerFields(speclib_dst, speclib, parent=self):
+                        return
+
         try:
-            sl.startEditing()
+            speclib_dst.startEditing()
             info = 'Add {} profiles from {} ...'.format(len(speclib), speclib.name())
-            sl.beginEditCommand(info)
-            sl.addSpeclib(speclib)
-            sl.endEditCommand()
+            speclib_dst.beginEditCommand(info)
+            SpectralLibraryUtils.addSpeclib(speclib_dst, speclib, addMissingFields=False)
+            speclib_dst.endEditCommand()
 
             if not wasEditable:
-                sl.commitChanges()
+                speclib_dst.commitChanges()
                 s = ""
 
         except Exception as ex:
@@ -373,7 +455,12 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
         fids = list(self.plotControl().mTemporaryProfileIDs)
         self.plotControl().mTemporaryProfileIDs.clear()
+        self.plotControl().mTemporaryProfileColors.clear()
         self.plotControl().updatePlot(fids)
+        self.updateActions()
+
+    def temporaryProfileIDs(self) -> typing.Set[int]:
+        return self.plotControl().mTemporaryProfileIDs
 
     def deleteCurrentProfilesFromSpeclib(self, *args):
         # delete previous current profiles
@@ -388,22 +475,22 @@ class SpectralLibraryWidget(AttributeTableWidget):
             if restart_editing:
                 speclib.startEditing()
 
+        self.updateActions()
+
     def spectralLibraryPlotWidget(self) -> SpectralLibraryPlotWidget:
         return self.mSpeclibPlotWidget
 
-    def setVisualizationBoxCollapsed(self, collapse):
-        self.spectralLibraryPlotWidget().visualizationSettingsBox().setCollapsed(collapse)
-
     def setCurrentProfiles(self,
                            currentProfiles: typing.List[SpectralProfile],
-                           make_permanent: bool = None):
+                           make_permanent: bool = None,
+                           currentProfileColors: typing.List[typing.Tuple[int, QColor]] = None):
         """
         Sets temporary profiles for the spectral library.
         If not made permanent, they will be removes when adding the next set of temporary profiles
+        :param colors:
         :param make_permanent: bool, if not note, overwrite the value returned by optionAddCurrentProfilesAutomatically
         :type make_permanent:
         :param currentProfiles:
-        :param profileStyles:
         :return:
         """
         # print(f'set {currentProfiles}')
@@ -411,7 +498,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
             currentProfiles = list(currentProfiles)
         assert isinstance(currentProfiles, (list,))
 
-        speclib: SpectralLibrary = self.speclib()
+        speclib: QgsVectorLayer = self.speclib()
         plotWidget: SpectralProfilePlotWidget = self.plotWidget()
 
         #  stop plot updates
@@ -419,7 +506,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
         restart_editing: bool = not speclib.startEditing()
 
         addAuto: bool = make_permanent if isinstance(make_permanent, bool) \
-                                       else self.optionAddCurrentProfilesAutomatically.isChecked()
+            else self.optionAddCurrentProfilesAutomatically.isChecked()
 
         if addAuto:
             self.addCurrentProfilesToSpeclib()
@@ -428,6 +515,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
             # now there shouldn't be any PDI or style ref related to an old ID
         self.plotControl().mTemporaryProfileIDs.clear()
+        self.plotControl().mTemporaryProfileColors.clear()
 
         # if necessary, convert QgsFeatures to SpectralProfiles
         # for i in range(len(currentProfiles)):
@@ -439,12 +527,44 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
         # add current profiles to speclib
         oldIDs = set(speclib.allFeatureIds())
-        addedKeys = speclib.addProfiles(currentProfiles)
+
+        speclib.beginEditCommand('Add current profiles')
+        addedKeys = SpectralLibraryUtils.addProfiles(speclib, currentProfiles)
+        speclib.endEditCommand()
 
         if not addAuto:
             # give current spectra the current spectral style
             self.plotControl().mTemporaryProfileIDs.update(addedKeys)
+
+            affected_profile_fields: typing.Dict[str, QColor] = dict()
+
+            if isinstance(currentProfileColors, list):
+                if len(currentProfileColors) == len(addedKeys):
+                    for fid, profile_colors in zip(addedKeys, currentProfileColors):
+                        for t in profile_colors:
+                            attribute, color = t
+                            if isinstance(attribute, int):
+                                attribute = speclib.fields().at(attribute).name()
+                            if attribute not in affected_profile_fields.keys():
+                                affected_profile_fields[attribute] = color
+                            self.plotControl().mTemporaryProfileColors[(fid, attribute)] = color
+
+            visualized_attributes = [v.field().name() for v in self.plotControl().visualizations()]
+            missing_visualization = [a for a in affected_profile_fields.keys() if a not in visualized_attributes]
+
+            for attribute in missing_visualization:
+                if False:
+                    # create new vis color similar to temporal profile overly
+                    color: QColor = affected_profile_fields[attribute]
+                    # make the default color a bit darker
+                    color = nextColor(color, 'darker')
+                else:
+                    color = None
+
+                self.spectralLibraryPlotWidget().createProfileVis(field=attribute, color=color)
+
         self.plotControl().updatePlot()
+        self.updateActions()
         self.speclib().triggerRepaint()
 
     def canvas(self) -> QgsMapCanvas:
@@ -454,17 +574,34 @@ class SpectralLibraryWidget(AttributeTableWidget):
         """
         return self.mMapCanvas
 
-    def dropEvent(self, event):
-        self.plotWidget().dropEvent(event)
+    def dropEvent(self, event: QDropEvent):
+
+        if not isinstance(self.speclib(), QgsVectorLayer):
+            return
+        sl: QgsVectorLayer = self.speclib()
+
+        slNew = SpectralLibraryUtils.readFromMimeData(event.mimeData())
+
+        if isinstance(slNew, QgsVectorLayer) and slNew.featureCount() > 0:
+            self.addSpeclib(slNew, askforNewFields=True)
+            event.acceptProposedAction()
 
     def dragEnterEvent(self, event: QDragEnterEvent):
-        self.plotWidget().dragEnterEvent(event)
+
+        if event.proposedAction() == Qt.CopyAction and SpectralLibraryUtils.canReadFromMimeData(event.mimeData()):
+            event.acceptProposedAction()
 
     def onImportProfiles(self):
         """
         Imports a SpectralLibrary
         """
+        n_p = self.speclib().featureCount()
+        n_v = len(self.spectralLibraryPlotWidget().profileVisualizations())
         SpectralLibraryImportDialog.importProfiles(self.speclib(), parent=self)
+
+        # add a new visualization if no one exists
+        if n_p == 0 and n_v == 0 and self.speclib().featureCount() > 0:
+            self.spectralLibraryPlotWidget().createProfileVis()
 
     def onImportFromRasterSource(self):
         from ..io.rastersources import SpectralProfileImportPointsDialog
@@ -488,11 +625,14 @@ class SpectralLibraryWidget(AttributeTableWidget):
         w.close()
 
     def addProfiles(self, profiles, add_missing_fields: bool = False):
-        stopEditing = self.speclib().startEditing()
-        self.speclib().beginEditCommand('Add {} profiles'.format(len(profiles)))
-        self.speclib().addProfiles(profiles, addMissingFields=add_missing_fields)
-        self.speclib().endEditCommand()
-        self.speclib().commitChanges(stopEditing=stopEditing)
+        sl = self.speclib()
+        if isinstance(sl, QgsVectorLayer):
+            stopEditing = sl.startEditing()
+
+            sl.beginEditCommand('Add {} profiles'.format(len(profiles)))
+            SpectralLibraryUtils.addProfiles(sl, profiles, addMissingFields=add_missing_fields)
+            sl.endEditCommand()
+            sl.commitChanges(stopEditing=stopEditing)
 
     def onExportProfiles(self, *args):
 

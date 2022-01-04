@@ -87,7 +87,7 @@ class GeolocateRasterAlgorithm(EnMAPProcessingAlgorithm):
         lineOffset = self.parameterAsInt(parameters, self.P_LINE_OFFSET, context)
         pixelStep = self.parameterAsInt(parameters, self.P_PIXEL_STEP, context)
         lineStep = self.parameterAsInt(parameters, self.P_LINE_STEP, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
         assert filename.endswith('.vrt')
 
         if xband is None:

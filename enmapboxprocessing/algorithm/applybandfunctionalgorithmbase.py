@@ -46,7 +46,10 @@ class ApplyBandFunctionAlgorithmBase(EnMAPProcessingAlgorithm):
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def defaultCodeAsString(self):
-        lines = [line[8:] for line in inspect.getsource(self.code).split('\n')][1:-2]
+        try:
+            lines = [line[8:] for line in inspect.getsource(self.code).split('\n')][1:-2]
+        except OSError:
+            lines = ['']
         lines = '\n'.join(lines)
         return lines
 
@@ -62,7 +65,7 @@ class ApplyBandFunctionAlgorithmBase(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         raster = self.parameterAsRasterLayer(parameters, self.P_RASTER, context)
         function = self.parameterAsFunction(parameters, self.P_FUNCTION, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
 
         with open(filename + '.log', 'w') as logfile:

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>868</width>
+    <width>867</width>
     <height>669</height>
    </rect>
   </property>
@@ -100,8 +100,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>868</width>
-     <height>26</height>
+     <width>867</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAbout">
@@ -121,7 +121,6 @@
      <property name="title">
       <string>Add Product</string>
      </property>
-     <addaction name="mActionAddSentinel2"/>
      <addaction name="separator"/>
      <addaction name="mActionAddSubDatasets"/>
     </widget>
@@ -241,6 +240,7 @@
    <addaction name="optionMoveCenter"/>
    <addaction name="separator"/>
    <addaction name="mActionMapLinking"/>
+   <addaction name="mActionProcessingToolbox"/>
   </widget>
   <widget class="QToolBar" name="toolBarVectorTools">
    <property name="windowTitle">
@@ -577,6 +577,18 @@
     <string>Specify the linking between different maps</string>
    </property>
   </action>
+  <action name="mActionProcessingToolbox">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/themes/default/processingAlgorithm.svg</normaloff>:/images/themes/default/processingAlgorithm.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Processing Toolbox</string>
+   </property>
+   <property name="toolTip">
+    <string>Toggle processing toolbox visibility</string>
+   </property>
+  </action>
   <action name="mActionOpenOnlineDocumentation">
    <property name="text">
     <string>Online Documentation</string>
@@ -731,14 +743,6 @@
     <string>Opens an installer for required python packages</string>
    </property>
   </action>
-  <action name="mActionAddSentinel2">
-   <property name="text">
-    <string>Sentinel-2</string>
-   </property>
-   <property name="toolTip">
-    <string>Select and add images from Sentinel-2 outputs</string>
-   </property>
-  </action>
   <action name="mActionAddSubDatasets">
    <property name="text">
     <string>Sub-Datasets</string>
@@ -782,7 +786,7 @@
   <customwidget>
    <class>DockArea</class>
    <extends>QWidget</extends>
-   <header>enmapbox.gui.docks</header>
+   <header>enmapbox.gui.dataviews.docks</header>
    <container>1</container>
   </customwidget>
   <customwidget>

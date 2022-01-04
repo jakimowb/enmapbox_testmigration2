@@ -4,7 +4,7 @@ from qgis._core import QgsRasterLayer, QgsRectangle, QgsCoordinateReferenceSyste
 from enmapboxprocessing.algorithm.geolocaterasteralgorithm import GeolocateRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap
+from enmapbox.exampledata import enmap
 
 
 class TestTranslateAlgorithm(TestCase):
@@ -19,7 +19,7 @@ class TestTranslateAlgorithm(TestCase):
             alg.P_Y_RASTER: QgsRasterLayer(
                 'HDF5:"D:/data/sensors/prisma/PRS_L1_STD_OFFL_20201107101404_20201107101408_0001.he5"""://HDFEOS/SWATHS/PRS_L1_HCO/Geolocation_Fields/Latitude_VNIR'),
             alg.P_NO_DATA_VALUE: 255,
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/landcoverOrig.vrt'
+            alg.P_OUTPUT_RASTER: self.filename('landcoverOrig.vrt')
         }
 
         # with default grid

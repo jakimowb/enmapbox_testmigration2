@@ -473,15 +473,15 @@ def missingTestData() -> bool:
     :return: (bool, str)
     """
     try:
-        import enmapboxtestdata
-        assert os.path.isfile(enmapboxtestdata.enmap)
+        import enmapbox.exampledata
+        assert os.path.isfile(enmapbox.exampledata.enmap)
         return False
     except Exception as ex:
         print(ex, file=sys.stderr)
         return True
 
 
-def installTestData(overwrite_existing:bool=False, ask:bool=True):
+def installTestData(overwrite_existing: bool = False, ask: bool = True):
     """
     Downloads and installs the EnMAP-Box Example Data
     """
@@ -495,7 +495,7 @@ def installTestData(overwrite_existing:bool=False, ask:bool=True):
         app = initQgisApplication()
     from enmapbox import URL_TESTDATA
     from pyplugin_installer.unzip import unzip
-    from enmapbox import DIR_TESTDATA
+    from enmapbox import DIR_EXAMPLEDATA
     if ask == True:
         btn = QMessageBox.question(None, 'Testdata is missing or outdated',
                                    'Download testdata from \n{}\n?'.format(URL_TESTDATA))
@@ -503,9 +503,9 @@ def installTestData(overwrite_existing:bool=False, ask:bool=True):
             print('Canceled')
             return
 
-    pathLocalZip = os.path.join(os.path.dirname(DIR_TESTDATA), 'enmapboxtestdata.zip')
+    pathLocalZip = os.path.join(os.path.dirname(DIR_EXAMPLEDATA), 'enmapboxexampledata.zip')
     url = QUrl(URL_TESTDATA)
-    dialog = QgsFileDownloaderDialog(url, pathLocalZip, 'Download enmapboxtestdata.zip')
+    dialog = QgsFileDownloaderDialog(url, pathLocalZip, 'Download enmapboxexampledata.zip')
     from enmapbox.gui.utils import qgisAppQgisInterface
     qgisMainApp = qgisAppQgisInterface()
 
@@ -517,34 +517,44 @@ def installTestData(overwrite_existing:bool=False, ask:bool=True):
         print('Download completed')
         print('Unzip {}...'.format(pathLocalZip))
 
-        targetDir = DIR_TESTDATA
+        targetDir = pathlib.Path(DIR_EXAMPLEDATA)
+        examplePkgName = targetDir.name
         os.makedirs(targetDir, exist_ok=True)
         import zipfile
         zf = zipfile.ZipFile(pathLocalZip)
 
         names = zf.namelist()
-        names = [n for n in names if re.search(r'[^/]/enmapboxtestdata/..*', n) and not n.endswith('/')]
-        for name in names:
+        # [n for n in names if re.search(r'[^/]/exampledata/..*', n) and not n.endswith('/')]
+
+        subPaths = []
+        rx = re.compile(f'/?({examplePkgName}/.+)$')
+        for n in names:
+            if not n.endswith('/'):
+                m = rx.match(n)
+                if isinstance(m, typing.Match):
+                    subPaths.append(pathlib.Path(m.group(1)))
+
+        assert len(subPaths) > 0, \
+            f'Downloaded zip file does not contain data with sub-paths {examplePkgName}/*:\n\t{pathLocalZip}'
+
+        for pathRel in subPaths:
+            pathDst = targetDir.parent / pathRel
             # create directory if doesn't exist
+            os.makedirs(pathDst.parent, exist_ok=True)
 
-            pathRel = re.search(r'[^/]+/enmapboxtestdata/(.*)$', name).group(1)
-            subDir, baseName = os.path.split(pathRel)
-            fullDir = os.path.normpath(os.path.join(targetDir, subDir))
-            os.makedirs(fullDir, exist_ok=True)
-
-            if not name.endswith('/'):
-                fullPath = os.path.normpath(os.path.join(targetDir, pathRel))
-                with open(fullPath, 'wb') as outfile:
-                    outfile.write(zf.read(name))
-                    outfile.flush()
+            with open(pathDst, 'wb') as outfile:
+                outfile.write(zf.read(pathRel.as_posix()))
+                outfile.flush()
 
         zf.close()
         del zf
 
         print('Testdata installed.')
-        spec = importlib.util.spec_from_file_location('enmapboxtestdata', os.path.join(targetDir, '__init__.py'))
+        spec = importlib.util.spec_from_file_location(examplePkgName, os.path.join(targetDir, '__init__.py'))
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        sys.modules[examplePkgName] = module
+        # backward compatibility
         sys.modules['enmapboxtestdata'] = module
 
     def onDownloadError(messages):

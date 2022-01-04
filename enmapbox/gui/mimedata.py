@@ -1,6 +1,12 @@
 import pickle
+import typing
 import uuid
 from os.path import basename, exists
+
+from qgis.PyQt.QtCore import QMimeData, QUrl, QByteArray
+from qgis.PyQt.QtXml import QDomNamedNodeMap, QDomDocument
+
+from qgis.core import QgsLayerItem
 
 from enmapboxprocessing.algorithm.importdesisl1balgorithm import ImportDesisL1BAlgorithm
 from enmapboxprocessing.algorithm.importdesisl1calgorithm import ImportDesisL1CAlgorithm
@@ -15,15 +21,13 @@ from enmapboxprocessing.algorithm.importsentinel2l2aalgorithm import ImportSenti
 from processing import AlgorithmDialog
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsProject, QgsReadWriteContext, \
     QgsMimeDataUtils, QgsLayerTree, QgsLayerTreeLayer
-from PyQt5.QtCore import *
-from PyQt5.QtXml import *
 
 from enmapbox import debugLog
-from enmapbox.gui import SpectralLibrary
-from enmapbox.gui.datasources import DataSource, DataSourceSpatial
-from enmapbox.gui.datasources import DataSourceFactory
+from .datasources.datasources import DataSource
+
 from ..externals.qps.layerproperties import defaultRasterRenderer
 from ..externals.qps.speclib.core import is_spectral_library
+from ..externals.qps.speclib.core.spectrallibrary import SpectralLibrary
 
 MDF_RASTERBANDS = 'application/enmapbox.rasterbanddata'
 
@@ -45,6 +49,20 @@ MDF_QGIS_LAYER_STYLE = 'application/qgis.style'
 QGIS_URILIST_MIMETYPE = "application/x-vnd.qgis.qgis.uri"
 
 
+class AlgorithmDialogWrapper(AlgorithmDialog):
+    def __init__(self, *args, **kwargs):
+        AlgorithmDialog.__init__(self, *args, **kwargs)
+        self.finishedSuccessful = False
+        self.finishResult = None
+
+    def finish(self, successful, result, context, feedback, in_place=False):
+        super().finish(successful, result, context, feedback, in_place)
+        self.finishedSuccessful = successful
+        self.finishResult = result
+        if successful:
+            self.close()
+
+
 def attributesd2dict(attributes: QDomNamedNodeMap) -> str:
     d = {}
     assert isinstance(attributes, QDomNamedNodeMap)
@@ -55,52 +73,40 @@ def attributesd2dict(attributes: QDomNamedNodeMap) -> str:
 
 
 def fromDataSourceList(dataSources):
-    from enmapbox.gui.datasources import DataSource
     if not isinstance(dataSources, list):
         dataSources = [dataSources]
 
-    mimeData = QMimeData()
+    from enmapbox.gui.datasources.datasources import DataSource
 
-    doc = QDomDocument()
-    node = doc.createElement(MDF_DATASOURCETREEMODELDATA_XML)
-    doc.appendChild(node)
-
+    uriList = []
     for ds in dataSources:
+
         assert isinstance(ds, DataSource)
-        ds.writeXml(node)
-    mimeData.setData(MDF_DATASOURCETREEMODELDATA, doc.toByteArray())
+
+        dataItem = ds.dataItem()
+        uris = dataItem.mimeUris()
+        if not isinstance(dataItem, QgsLayerItem):
+            uri = QgsMimeDataUtils.Uri()
+            uri.name = dataItem.name()
+            uri.filePath = dataItem.path()
+            uri.uri = dataItem.path()
+            uri.providerKey = dataItem.providerKey()
+            uris = [uri]
+            # uris = [QUrl.fromLocalFile(dataItem.path())]
+        uriList.extend(uris)
+
+    mimeData = QgsMimeDataUtils.encodeUriList(uriList)
     return mimeData
 
 
-def toDataSourceList(mimeData):
+def toDataSourceList(mimeData) -> typing.List[DataSource]:
     assert isinstance(mimeData, QMimeData)
 
+    uriList = QgsMimeDataUtils.decodeUriList(mimeData)
     dataSources = []
-
-    if MDF_DATASOURCETREEMODELDATA in mimeData.formats():
-        doc = QDomDocument()
-        doc.setContent(mimeData.data(MDF_DATASOURCETREEMODELDATA))
-        node = doc.firstChildElement(MDF_DATASOURCETREEMODELDATA_XML)
-        childs = node.childNodes()
-
-        from enmapbox.gui.datasources import DataSource, DataSourceFactory
-        from enmapbox.gui.datasourcemanager import DataSourceManager
-        from uuid import UUID
-        dsm = DataSourceManager.instance()
-        b = isinstance(dsm, DataSourceManager)
-
-        for i in range(childs.count()):
-            child = childs.at(i).toElement()
-
-            if child.tagName() == 'enmpabox_datasource':
-                attributes = attributesd2dict(child.attributes())
-                if isinstance(dsm, DataSourceManager):
-                    dataSource = dsm.findSourceFromUUID(UUID(attributes['uuid']))
-                    if isinstance(dataSource, DataSource):
-                        dataSources.append(dataSource)
-                        continue
-                dataSources.extend(DataSourceFactory.create(attributes['source'], name=attributes['name']))
-
+    from enmapbox.gui.datasources.manager import DataSourceFactory
+    for uri in uriList:
+        dataSources.extend(DataSourceFactory.create(uri))
     return dataSources
 
 
@@ -155,6 +161,10 @@ def extractMapLayers(mimeData: QMimeData) -> list:
     """
     assert isinstance(mimeData, QMimeData)
 
+    from enmapbox.gui.datasources.datasources import DataSource
+    from enmapbox.gui.datasources.datasources import SpatialDataSource
+    from enmapbox.gui.datasources.manager import DataSourceFactory
+
     newMapLayers = []
 
     QGIS_LAYERTREE_FORMAT = None
@@ -199,13 +209,13 @@ def extractMapLayers(mimeData: QMimeData) -> list:
 
                 elif providerKey in ['ogr', 'WFS']:
                     mapLayer = QgsVectorLayer(src, name, providerKey)
+                    s = ""
 
                 if isinstance(mapLayer, QgsMapLayer):
                     mapLayer.setName(attributes['name'])
 
             if isinstance(mapLayer, (QgsRasterLayer, QgsVectorLayer)):
                 newMapLayers.append(mapLayer)
-
 
     elif MDF_RASTERBANDS in mimeData.formats():
         data = pickle.loads(mimeData.data(MDF_RASTERBANDS))
@@ -223,8 +233,9 @@ def extractMapLayers(mimeData: QMimeData) -> list:
         for uuid4 in dsUUIDs:
             assert isinstance(uuid4, uuid.UUID)
             dataSource = DataSource.fromUUID(uuid4)
-            if isinstance(dataSource, DataSourceSpatial):
-                lyr = dataSource.createUnregisteredMapLayer()
+
+            if isinstance(dataSource, SpatialDataSource):
+                lyr = dataSource.asMapLayer()
                 if isinstance(lyr, QgsRasterLayer):
                     lyr.setRenderer(defaultRasterRenderer(lyr))
                 newMapLayers.append(lyr)
@@ -236,10 +247,11 @@ def extractMapLayers(mimeData: QMimeData) -> list:
 
     elif QGIS_URILIST_MIMETYPE in mimeData.formats():
         for uri in QgsMimeDataUtils.decodeUriList(mimeData):
+
             dataSources = DataSourceFactory.create(uri)
             for dataSource in dataSources:
-                if isinstance(dataSource, DataSourceSpatial):
-                    lyr = dataSource.createUnregisteredMapLayer()
+                if isinstance(dataSource, SpatialDataSource):
+                    lyr = dataSource.asMapLayer()
                     if isinstance(lyr, QgsRasterLayer):
                         lyr.setRenderer(defaultRasterRenderer(lyr))
                     newMapLayers.append(lyr)
@@ -248,28 +260,15 @@ def extractMapLayers(mimeData: QMimeData) -> list:
         for url in mimeData.urls():
             dataSources = DataSourceFactory.create(url)
             for dataSource in dataSources:
-                if isinstance(dataSource, DataSourceSpatial):
-                    lyr = dataSource.createUnregisteredMapLayer()
+                if isinstance(dataSource, SpatialDataSource):
+                    lyr = dataSource.asMapLayer()
                     if isinstance(lyr, QgsRasterLayer):
                         lyr.setRenderer(defaultRasterRenderer(lyr))
                     newMapLayers.append(lyr)
                 else:
 
                     # check if URL is associated with an external product,
-                    # if so, the product in created by running the appropriate processing algorithm
-
-                    class AlgorithmDialogWrapper(AlgorithmDialog):
-                        def __init__(self, *args, **kwargs):
-                            AlgorithmDialog.__init__(self, *args, **kwargs)
-                            self.finishedSuccessful = False
-                            self.finishResult = None
-
-                        def finish(self, successful, result, context, feedback, in_place=False):
-                            super().finish(successful, result, context, feedback, in_place)
-                            self.finishedSuccessful = successful
-                            self.finishResult = result
-                            if successful:
-                                self.close()
+                    # if so, the product is created by running the appropriate processing algorithm
 
                     filename = url.toLocalFile()
                     algs = [
@@ -307,7 +306,7 @@ def extractMapLayers(mimeData: QMimeData) -> list:
                             else:
                                 keys = [alg.P_OUTPUT_RASTER]
                             for key in keys:
-                                layer = QgsRasterLayer(parameters[key], basename(parameters[key])                                )
+                                layer = QgsRasterLayer(parameters[key], basename(parameters[key]))
                                 newMapLayers.append(layer)
 
     else:

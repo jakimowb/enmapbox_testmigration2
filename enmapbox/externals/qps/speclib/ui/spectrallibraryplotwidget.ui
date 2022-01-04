@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>346</width>
-    <height>299</height>
+    <width>627</width>
+    <height>541</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,57 +17,65 @@
    <iconset resource="../../qpsresources.qrc">
     <normaloff>:/qps/ui/icons/speclib_plot.svg</normaloff>:/qps/ui/icons/speclib_plot.svg</iconset>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout_2">
    <property name="spacing">
-    <number>2</number>
+    <number>0</number>
    </property>
    <property name="leftMargin">
-    <number>2</number>
+    <number>0</number>
    </property>
    <property name="topMargin">
-    <number>2</number>
+    <number>0</number>
    </property>
    <property name="rightMargin">
-    <number>2</number>
+    <number>0</number>
    </property>
    <property name="bottomMargin">
-    <number>2</number>
+    <number>0</number>
    </property>
    <item>
     <widget class="QSplitter" name="splitter">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
+     <property name="styleSheet">
+      <string notr="true">
+QSplitter::handle:horizontal {
+    width: 3px;
+}
+
+QSplitter::handle:vertical {
+    height: 3px;
+}
+</string>
      </property>
-     <property name="opaqueResize">
-      <bool>false</bool>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Plain</enum>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="childrenCollapsible">
+      <bool>true</bool>
      </property>
      <widget class="SpectralProfilePlotWidget" name="plotWidget">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
+        <horstretch>1</horstretch>
         <verstretch>3</verstretch>
        </sizepolicy>
       </property>
      </widget>
-     <widget class="QgsCollapsibleGroupBox" name="gbVisualization">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>1</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="title">
-       <string>Visualization</string>
-      </property>
-      <property name="collapsed">
-       <bool>false</bool>
-      </property>
-      <layout class="QGridLayout" name="gridLayout">
+     <widget class="QFrame" name="panelVisualization">
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <property name="spacing">
+        <number>2</number>
+       </property>
        <property name="leftMargin">
         <number>2</number>
        </property>
        <property name="topMargin">
-        <number>2</number>
+        <number>3</number>
        </property>
        <property name="rightMargin">
         <number>2</number>
@@ -75,10 +83,24 @@
        <property name="bottomMargin">
         <number>2</number>
        </property>
-       <property name="spacing">
-        <number>2</number>
-       </property>
-       <item row="0" column="0">
+       <item>
+        <layout class="QHBoxLayout" name="visLayoutTop">
+         <property name="spacing">
+          <number>2</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>X Axis</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
         <layout class="QHBoxLayout" name="visButtonLayout">
          <property name="spacing">
           <number>2</number>
@@ -129,13 +151,57 @@
           </widget>
          </item>
          <item>
+          <widget class="QLabel" name="labelMaxProfiles">
+           <property name="text">
+            <string>Max. Profiles</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="sbMaxProfiles">
+           <property name="readOnly">
+            <bool>false</bool>
+           </property>
+           <property name="buttonSymbols">
+            <enum>QAbstractSpinBox::PlusMinus</enum>
+           </property>
+           <property name="accelerated">
+            <bool>false</bool>
+           </property>
+           <property name="correctionMode">
+            <enum>QAbstractSpinBox::CorrectToNearestValue</enum>
+           </property>
+           <property name="showGroupSeparator" stdset="0">
+            <bool>true</bool>
+           </property>
+           <property name="suffix">
+            <string/>
+           </property>
+           <property name="prefix">
+            <string/>
+           </property>
+           <property name="maximum">
+            <number>32000</number>
+           </property>
+           <property name="singleStep">
+            <number>100</number>
+           </property>
+           <property name="stepType">
+            <enum>QAbstractSpinBox::DefaultStepType</enum>
+           </property>
+           <property name="value">
+            <number>100</number>
+           </property>
+          </widget>
+         </item>
+         <item>
           <spacer name="horizontalSpacer_2">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
            <property name="sizeHint" stdset="0">
             <size>
-             <width>40</width>
+             <width>0</width>
              <height>20</height>
             </size>
            </property>
@@ -143,8 +209,24 @@
          </item>
         </layout>
        </item>
-       <item row="2" column="0">
+       <item>
+        <widget class="QgsFilterLineEdit" name="mFilterLineEdit">
+         <property name="placeholderText">
+          <string>Filter</string>
+         </property>
+         <property name="qgisRelation" stdset="0">
+          <string notr="true"/>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="SpectralProfilePlotControlView" name="treeView">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
          <property name="dragEnabled">
           <bool>true</bool>
          </property>
@@ -262,13 +344,27 @@
     <string>Activate to sort profile data by its x values</string>
    </property>
   </action>
+  <action name="optionShowVisualizationSettings">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/legend.svg</normaloff>:/images/themes/default/legend.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Show Visualization Settings</string>
+   </property>
+   <property name="toolTip">
+    <string>Shows the visualization settings</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QgsCollapsibleGroupBox</class>
-   <extends>QGroupBox</extends>
-   <header>qgscollapsiblegroupbox.h</header>
-   <container>1</container>
+   <class>QgsFilterLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>qgsfilterlineedit.h</header>
   </customwidget>
   <customwidget>
    <class>SpectralProfilePlotWidget</class>

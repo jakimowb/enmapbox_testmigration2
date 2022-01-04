@@ -4,9 +4,9 @@ from typing import Dict, Any, List, Tuple
 import numpy as np
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRectangle, QgsRasterLayer,
-                        QgsRasterDataProvider, QgsPoint, QgsPointXY, QgsProcessingException,
-                        QgsProcessingParameterString, QgsProcessingParameterDefinition)
+                        QgsRasterDataProvider, QgsPoint, QgsPointXY)
 
+from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.rasterwriter import RasterWriter
@@ -25,6 +25,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_SCALE, _SCALE = 'scale', 'Data gain/scale value'
     P_COPY_METADATA, _COPY_METADATA = 'copyMetadata', 'Copy metadata'
     P_COPY_STYLE, _COPY_STYLE = 'copyStyle', 'Copy style'
+    P_WRITE_ENVI_HEADER, _WRITE_ENVI_HEADER = 'writeEnviHeader', 'Write ENVI header'
     P_EXTENT, _EXTENT = 'extent', 'Spatial extent'
     P_SOURCE_COLUMNS, _SOURCE_COLUMNS = 'sourceColumns', 'Column subset'
     P_SOURCE_ROWS, _SOURCE_ROWS = 'sourceRows', 'Row subset'
@@ -52,6 +53,13 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             (self._BAND_LIST, 'Bands to subset and rearrange. '
                               'An empty selection defaults to all bands in native order.'),
             (self._GRID, 'The destination grid.'),
+            (self._COPY_METADATA, 'Whether to copy GDAL metadata from source to destination.'),
+            (self._COPY_STYLE, 'Whether to copy style from source to destination.'),
+            (self._WRITE_ENVI_HEADER, 'Whether to write an ENVI header *.hdr sidecar file with '
+                                      'spectral metadata required for proper visualization in ENVI software.'),
+            (self._CREATION_PROFILE, 'Output format and creation options. '
+                                     'The default format is GeoTiff with creation options: '
+                                     '' + ', '.join(self.DefaultGTiffCreationOptions)),
             (self._SPECTRAL_RASTER, 'A spectral raster layer used for specifying a band subset '
                                     'by matching the center wavelength.'),
             (self._SPECTRAL_BAND_LIST, 'Spectral bands used to match source raster bands.'
@@ -67,13 +75,6 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             (self._EXCLUDE_BAD_BANDS, 'Whether to exclude bad bands (given by BBL metadata item inside ENVI domain). '
                                       'Also see The ENVI Header Format for more details: '
                                       'https://www.l3harrisgeospatial.com/docs/ENVIHeaderFiles.html '),
-            (self._COPY_METADATA, 'Whether to copy metadata from source to destination. '
-                                  'Special care is taken of ENVI list items containing band information. '
-                                  'The following list items will be properly subsetted according to the selected '
-                                  'bands: band names, bbl, data_gain_values, data_offset_values, '
-                                  'data_reflectance_gain_values, data_reflectance_offset_values, fwhm, '
-                                  'wavelength.'),
-            (self._COPY_STYLE, 'Whether to copy style from source to destination.'),
             (self._RESAMPLE_ALG, 'Spatial resample algorithm.'),
             (self._SOURCE_NODATA, 'The value to be used instead of the original raster layer no data value.'),
             (self._NODATA, 'The value to be used instead of the default destination no data value.'),
@@ -126,6 +127,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_GRID, self._GRID, optional=True)
         self.addParameterBoolean(self.P_COPY_METADATA, self._COPY_METADATA, defaultValue=False)
         self.addParameterBoolean(self.P_COPY_STYLE, self._COPY_STYLE, defaultValue=False)
+        self.addParameterBoolean(self.P_WRITE_ENVI_HEADER, self._WRITE_ENVI_HEADER, defaultValue=False)
         self.addParameterRasterLayer(self.P_SPECTRAL_RASTER, self._SPECTRAL_RASTER, None, True, True)
         self.addParameterBandList(
             self.P_SPECTRAL_BAND_LIST, self._SPECTRAL_BAND_LIST, None, self.P_SPECTRAL_RASTER, True, True
@@ -176,7 +178,8 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         dataType = self.parameterAsQgsDataType(parameters, self.P_DATA_TYPE, context, default=provider.dataType(1))
         copyMetadata = self.parameterAsBoolean(parameters, self.P_COPY_METADATA, context)
         copyStyle = self.parameterAsBoolean(parameters, self.P_COPY_STYLE, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        writeEnviHeader = self.parameterAsBoolean(parameters, self.P_WRITE_ENVI_HEADER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
         format, options = self.parameterAsCreationProfile(parameters, self.P_CREATION_PROFILE, context, filename)
         width = int(round(extent.width() / grid.rasterUnitsPerPixelX()))
         height = int(round(extent.height() / grid.rasterUnitsPerPixelY()))
@@ -257,8 +260,8 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                     noData=srcNoDataValue
                 )
                 outGdalDataset: gdal.Dataset = gdal.Translate(
-                        destName=filename, srcDS=gdalDataset, options=translateOptions
-                    )
+                    destName=filename, srcDS=gdalDataset, options=translateOptions
+                )
                 assert outGdalDataset is not None
 
                 # need to explicitely set the GeoTransform tuple, because gdal.Translate extent may deviate slightly
@@ -313,9 +316,16 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                 outraster = QgsRasterLayer(filename)
                 outraster.setRenderer(renderer)
                 outraster.saveDefaultStyle()
+                del outraster
 
             writer.setOffset(offset, overwrite=False)
             writer.setScale(scale, overwrite=False)
+            del writer, outGdalDataset
+
+            if writeEnviHeader:
+                alg = AppendEnviHeaderToGTiffRasterAlgorithm()
+                parameters = {alg.P_RASTER: filename}
+                self.runAlg(alg, parameters, None, feedback2, context, True)
 
             result = {self.P_OUTPUT_RASTER: filename}
             self.toc(feedback, result)

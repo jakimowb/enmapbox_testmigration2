@@ -1,13 +1,9 @@
-from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfieldsalgorithm import  \
+from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvectorandfieldsalgorithm import \
     PrepareClassificationDatasetFromCategorizedVectorAndFieldsAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
-from enmapboxtestdata import landcover_polygons
-from enmapboxunittestdata import classificationDatasetAsVector
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
+from enmapboxtestdata import classificationDatasetAsVector
 
 
 class TestPrepareClassificationDatasetFromVectorAndFieldsAlgorithm(TestCase):
@@ -17,7 +13,7 @@ class TestPrepareClassificationDatasetFromVectorAndFieldsAlgorithm(TestCase):
         parameters = {
             alg.P_CATEGORIZED_VECTOR: classificationDatasetAsVector,
             alg.P_FEATURE_FIELDS: [f'Sample__{i + 1}' for i in range(177)],
-            alg.P_OUTPUT_DATASET: c + '/vsimem/sample.pkl'
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
         }
         self.runalg(alg, parameters)
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))

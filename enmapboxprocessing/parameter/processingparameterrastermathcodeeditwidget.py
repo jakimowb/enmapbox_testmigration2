@@ -388,7 +388,7 @@ class ProcessingParameterRasterMathCodeEdit(QWidget):
 
             font = self.mSourcesTree.font()
             font.setItalic(True)
-            identifier = splitext(basename(layer.name()))[0]
+            identifier = Utils.makeIdentifier(splitext(basename(layer.name()))[0])
             if isinstance(layer, QgsRasterLayer):
                 data = layer.name() + crsid
                 item = RasterItem([identifier, data])

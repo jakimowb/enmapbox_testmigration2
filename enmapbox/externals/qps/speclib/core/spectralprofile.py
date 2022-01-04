@@ -2,27 +2,23 @@ import datetime
 import os
 import pathlib
 import pickle
-import sys
 import warnings
 import typing
-from collections import namedtuple
-import json
 
-from PyQt5.QtCore import pyqtSignal, QObject
-from qgis.core import QgsTask, QgsVectorLayer, QgsField, QgsFeatureRequest, QgsFeature
+from qgis.core import QgsTask, QgsFeatureRequest
 
 from qgis.PyQt.QtCore import QPoint, QVariant, QByteArray
 from qgis.PyQt.QtWidgets import QWidget
 from qgis.core import QgsFeature, QgsPointXY, QgsCoordinateReferenceSystem, QgsField, QgsFields, \
-    QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsGeometry, QgsRaster, QgsPoint, QgsProcessingFeedback
+    QgsRasterLayer, QgsVectorLayer, QgsGeometry, QgsRaster, QgsPoint, QgsProcessingFeedback
 from qgis.gui import QgsMapCanvas
-from osgeo import gdal, ogr
+from osgeo import gdal
 import numpy as np
 
 from . import profile_field_list, profile_field_indices, first_profile_field_index, field_index, profile_fields
 
-from ...utils import SpatialPoint, px2geo, geo2px, parseWavelength, createQgsField, \
-    qgsFields2str, str2QgsFields, qgsFieldAttributes2List, SignalObjectWrapper, spatialPoint2px, saveTransform
+from ...utils import SpatialPoint, px2geo, geo2px, parseWavelength, qgsFields2str, str2QgsFields, qgsFieldAttributes2List, \
+    spatialPoint2px, saveTransform
 from ...plotstyling.plotstyling import PlotStyle
 from ...externals import pyqtgraph as pg
 
@@ -36,6 +32,12 @@ EMPTY_PROFILE_VALUES = {'x': None, 'y': None, 'xUnit': None, 'yUnit': None, 'bbl
 def prepareProfileValueDict(x: None, y: None, xUnit: str = None, yUnit: str = None, bbl=None, prototype: dict = None):
     """
     Creates a profile value dictionary from inputs
+    :param y:
+    :param prototype:
+    :param bbl:
+    :param yUnit:
+    :param xUnit:
+    :param x:
     :param d:
     :return:
     """
@@ -1113,7 +1115,7 @@ class SpectralProfileBlock(object):
                      crs: typing.Union[str, QgsCoordinateReferenceSystem]):
         """
         Sets the geo-positions of each spectral profile in this block.
-        If the, SpectralProfiles returned with .profiles() will contain a QgsGeometry in crs coordinates-
+        If set, SpectralProfiles returned with .profiles() will contain a QgsGeometry in crs coordinates-
         :param pos_x: array with x coordinates
         :param pos_y: array with y coordinates
         :param crs: coordinate reference system

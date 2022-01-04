@@ -1,13 +1,10 @@
 import numpy as np
 
+from enmapbox.exampledata import enmap, landcover_polygons
 from enmapboxprocessing.algorithm.classificationtofractionalgorithm import ClassificationToFractionAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import enmap, landcover_polygons
-from enmapboxunittestdata import landcover_raster_1m
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
+from enmapboxtestdata import landcover_raster_1m
 
 
 class TestClassificationToFractionAlgorithm(TestCase):
@@ -17,7 +14,7 @@ class TestClassificationToFractionAlgorithm(TestCase):
         parameters = {
             alg.P_CATEGORIZED_LAYER: landcover_polygons,
             alg.P_GRID: enmap,
-            alg.P_OUTPUT_FRACTION: c + '/vsimem/fraction.tif'
+            alg.P_OUTPUT_FRACTION: self.filename('fraction.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(-84958, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_FRACTION]).array()[0])))
@@ -27,18 +24,7 @@ class TestClassificationToFractionAlgorithm(TestCase):
         parameters = {
             alg.P_CATEGORIZED_LAYER: landcover_raster_1m,
             alg.P_GRID: enmap,
-            alg.P_OUTPUT_FRACTION: c + '/vsimem/fraction.tif'
-        }
-        result = self.runalg(alg, parameters)
-        self.assertEqual(-84958, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_FRACTION]).array()[0])))
-
-    def test_debug(self):
-        return
-        alg = ClassificationToFractionAlgorithm()
-        parameters = {
-            alg.P_CATEGORIZED_LAYER: r'C:\Users\Andreas\Downloads\testtraining4.shp',
-            alg.P_GRID: r'C:\Users\Andreas\Downloads\stack2020.tif',
-            alg.P_OUTPUT_FRACTION: c + '/vsimem/fractionBig.tif'
+            alg.P_OUTPUT_FRACTION: self.filename('fraction.tif')
         }
         result = self.runalg(alg, parameters)
         self.assertEqual(-84958, np.round(np.sum(RasterReader(result[alg.P_OUTPUT_FRACTION]).array()[0])))

@@ -1,5 +1,7 @@
 import pathlib
 import re
+import site
+site.addsitedir(pathlib.Path(__file__).parents[1])
 
 from enmapbox.gui.utils import file_search
 
@@ -10,8 +12,8 @@ def create_runtests():
     DIR_REPO = DIR_SCRIPTS.parent
 
     TEST_DIRECTORIES = [
-        DIR_REPO / 'enmapboxtesting',
-        DIR_REPO / 'hubdc' / 'test',
+        DIR_REPO / 'tests',
+        DIR_REPO / 'enmapboxprocessing' / 'test',
     ]
 
     assert DIR_REPO.is_dir()
@@ -29,13 +31,14 @@ def create_runtests():
 set CI=True
 set PYTHONPATH=%~dp0/..;%PYTHONPATH%
 set PYTHONPATH
-WHERE python3 >nul 2>&1 && (
-    echo Found "python3" command
-    set PYTHON=python3
-) || (
-    echo Did not found "python3" command. use "python" instead
-    set PYTHON=python
-)
+set PYTHON=python
+::WHERE python3 >nul 2>&1 && (
+::    echo Found "python3" command
+::    set PYTHON=python3
+::) || (
+::    echo Did not found "python3" command. use "python" instead
+::    set PYTHON=python
+::)
 
 ::start %PYTHON% scripts/setup_repository.py
 """
@@ -63,7 +66,7 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd):/usr/share/qgis/python/plugins"
     n = 0
     if True:
         for DIR_TESTS in TEST_DIRECTORIES:
-            for i, file in enumerate(file_search(DIR_TESTS, 'test_*.py')):
+            for i, file in enumerate(file_search(DIR_TESTS, 'test_*.py', recursive=True)):
                 file = pathlib.Path(file)
                 do_append = '' if n == 0 else '--append'
                 pathTest = file.relative_to(DIR_REPO).as_posix()

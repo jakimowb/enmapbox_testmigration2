@@ -55,7 +55,10 @@ class ConvolutionFilterAlgorithmBase(EnMAPProcessingAlgorithm):
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER)
 
     def defaultCodeAsString(self):
-        lines = [line[8:] for line in inspect.getsource(self.code).split('\n')][1:-2]
+        try:
+            lines = [line[8:] for line in inspect.getsource(self.code).split('\n')][1:-2]
+        except OSError:
+            lines = ['']
         lines = '\n'.join(lines)
         return lines
 
@@ -90,7 +93,7 @@ class ConvolutionFilterAlgorithmBase(EnMAPProcessingAlgorithm):
             nan_treatment = 'interpolate'
         else:
             nan_treatment = 'fill'
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_RASTER, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
         format, options = self.GTiffFormat, self.DefaultGTiffCreationOptions
         maximumMemoryUsage = Utils.maximumMemoryUsage()
 

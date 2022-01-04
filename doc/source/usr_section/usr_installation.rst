@@ -176,6 +176,8 @@ Linux
              python is located by running ``import sys; sys.executable`` in the QGIS Python Console). You then might have
              to change the ``python3`` part in the snippet below with the explicit QGIS python path.
 
+             This also applies if you installed QGIS using **flatpak**, in that case install python modules as described `here <https://qgis.org/de/site/forusers/alldownloads.html#flatpak>`_.
+
    .. code-block:: bash
 
       python3 -m pip install -r https://bitbucket.org/hu-geomatics/enmap-box/raw/develop/requirements.txt

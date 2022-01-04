@@ -39,6 +39,7 @@ from PyQt5.QtCore import QVariant
 from PyQt5.QtWidgets import QFileDialog, QMenu, QLabel, QFormLayout
 from osgeo import gdal, gdal_array
 
+from qgis.PyQt.QtCore import NULL
 from qgis.gui import QgsFieldExpressionWidget, QgsFieldComboBox
 
 from qgis.core import QgsVectorLayer, QgsExpressionContext, QgsExpressionContextScope, QgsFieldProxyModel
@@ -311,9 +312,9 @@ def writeCSVMetadata(pathCSV: str, profiles: typing.List[QgsFeature], profile_na
             assert isinstance(p, SpectralProfile)
             d = {}
 
-            if spectrumName is None:
+            if spectrumName in [None, NULL, QVariant()]:
                 spectrumName = ''
-            d['spectra names'] = spectrumName.replace(',', '-')
+            d['spectra names'] = str(spectrumName).replace(',', '-')
             d[CSV_GEOMETRY_COLUMN] = p.geometry().asWkt()
             for name in fieldNames:
                 v = p.attribute(name)
@@ -340,7 +341,11 @@ class EnviSpectralLibraryExportWidget(SpectralLibraryExportWidget):
         return SpectralLibraryIO.spectralLibraryIOInstances(EnviSpectralLibraryIO)
 
     def setSpeclib(self, speclib: QgsVectorLayer):
-        self.mProfileField.setFields(profile_fields(speclib))
+        pfields: QgsFields = profile_fields(speclib)
+        self.mProfileField.setFields(pfields)
+        if pfields.count() > 0 and self.mProfileField.currentIndex() < 0:
+            self.mProfileField.setCurrentIndex(0)
+
         self.mNameExpr.setFields(speclib.fields())
 
     def supportsMultipleSpectralSettings(self) -> bool:
@@ -584,6 +589,7 @@ class EnviSpectralLibraryIO(SpectralLibraryIO):
                        feedback: QgsProcessingFeedback) -> typing.List[str]:
 
         profile_field = exportSettings[EnviSpectralLibraryExportWidget.PROFILE_FIELD]
+        assert profile_field != ''
         expr = QgsExpression(exportSettings[EnviSpectralLibraryExportWidget.PROFILE_NAMES])
 
         path = pathlib.Path(path)

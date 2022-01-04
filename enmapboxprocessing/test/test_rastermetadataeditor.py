@@ -8,7 +8,7 @@ from enmapboxprocessing.test.testcase import TestCase
 class TestRasterMetadataEditor(TestCase):
 
     def setUp(self):
-        self.filename = 'c:/vsimem/raster.tif'
+        self.filename = self.filename('raster.tif')
         self.raster = Driver(self.filename).createFromArray(np.zeros((3, 1, 1)))
 
     def reopen(self):

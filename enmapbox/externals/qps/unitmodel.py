@@ -8,6 +8,7 @@ from .utils import UnitLookup, METRIC_EXPONENTS, datetime64
 BAND_INDEX = 'Band Index'
 BAND_NUMBER = 'Band Number'
 
+
 class UnitModel(QAbstractListModel):
 
     def __init__(self, *args, **kwds):
@@ -73,7 +74,8 @@ class UnitModel(QAbstractListModel):
             self.mUnits.remove(unit)
             self.endRemoveRows()
 
-    def addUnit(self, unit: str,
+    def addUnit(self,
+                unit: str,
                 description: str = None,
                 tooltip: str = None,
                 aliases: typing.List[str] = []):
@@ -146,7 +148,7 @@ class UnitConverterFunctionModel(object):
         self.mLUT = dict()
 
         self.func_return_band_index = lambda v, *args: np.arange(len(v))
-        self.func_return_band_number = lambda v, *args: np.arange(len(v))+1
+        self.func_return_band_number = lambda v, *args: np.arange(len(v)) + 1
         self.func_return_none = lambda v, *args: None
         self.func_return_same = lambda v, *args: v
         self.func_return_decimalyear = lambda v, *args: UnitLookup.convertDateUnit(v, 'DecimalYear')
@@ -202,9 +204,9 @@ class XUnitModel(UnitModel):
             assert isinstance(baseUnit, str), u
             self.addUnit(baseUnit, description='{} [{}]'.format(u, baseUnit))
 
-        self.addUnit('DateTime', description='Date')
-        self.addUnit('DecimalYear', description='Date [Decimal Year]')
-        self.addUnit('DOY', description='Day of Year [DOY]')
+        self.addUnit('DateTime', description='Date Time')
+        self.addUnit('DecimalYear', description='Decimal Year')
+        self.addUnit('DOY', description='Day of Year')
 
     def findUnit(self, unit):
         if unit in [None, NULL]:

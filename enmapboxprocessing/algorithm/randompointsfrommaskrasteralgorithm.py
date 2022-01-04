@@ -59,7 +59,7 @@ class RandomPointsFromMaskRasterAlgorithm(EnMAPProcessingAlgorithm):
         N = self.parameterAsInts(parameters, self.P_N, context)
         distance = self.parameterAsInt(parameters, self.P_DISTANCE, context)
         seed = self.parameterAsInt(parameters, self.P_SEED, context)
-        filename = self.parameterAsFileOutput(parameters, self.P_OUTPUT_POINTS, context)
+        filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_POINTS, context)
 
         with open(filename + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)

@@ -1,3 +1,4 @@
+from enmapbox.exampledata import hires
 from enmapboxprocessing.algorithm.convolutionfilteralgorithmbase import ConvolutionFilterAlgorithmBase
 from enmapboxprocessing.algorithm.spatialconvolutionairydisk2dalgorithm import SpatialConvolutionAiryDisk2DAlgorithm
 from enmapboxprocessing.algorithm.spatialconvolutionbox2dalgorithm import SpatialConvolutionBox2DAlgorithm
@@ -20,10 +21,6 @@ from enmapboxprocessing.algorithm.spectralconvolutionsavitskygolay1dalgorithm im
     SpectralConvolutionSavitskyGolay1DAlgorithm
 from enmapboxprocessing.algorithm.spectralconvolutiontrapezoid1dalgorithm import SpectralConvolutionTrapezoid1DAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import hires
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
 
 
 class ConvolutionFilterAlgorithm(ConvolutionFilterAlgorithmBase):
@@ -51,7 +48,7 @@ class TestConvolutionFilterAlgorithm(TestCase):
         parameters = {
             alg.P_RASTER: hires,
             alg.P_KERNEL: alg.defaultCodeAsString(),
-            alg.P_OUTPUT_RASTER: 'c:/vsimem/filtered.tif',
+            alg.P_OUTPUT_RASTER: self.filename('filteredBox2D.tif')
         }
         self.runalg(alg, parameters)
 
@@ -77,23 +74,23 @@ class TestConvolutionFilterAlgorithm(TestCase):
             parameters = {
                 alg.P_RASTER: hires,
                 alg.P_KERNEL: alg.defaultCodeAsString(),
-                alg.P_OUTPUT_RASTER: 'c:/vsimem/filtered.tif',
+                alg.P_OUTPUT_RASTER: self.filename('filtered.tif')
             }
             self.runalg(alg, parameters)
 
-        algs = [
-            SpatialConvolutionMoffat2DAlgorithm(),
-            SpatialConvolutionRickerWavelet2DAlgorithm(),
-            SpectralConvolutionRickerWavelet1DAlgorithm()
-        ]
-        for alg in algs:
-            print(alg.displayName())
+            algs = [
+                SpatialConvolutionMoffat2DAlgorithm(),
+                SpatialConvolutionRickerWavelet2DAlgorithm(),
+                SpectralConvolutionRickerWavelet1DAlgorithm()
+            ]
+            for alg in algs:
+                print(alg.displayName())
             alg.initAlgorithm()
             alg.shortHelpString()
             parameters = {
                 alg.P_RASTER: hires,
                 alg.P_KERNEL: alg.defaultCodeAsString(),
                 alg.P_INTERPOLATE: False,
-                alg.P_OUTPUT_RASTER: 'c:/vsimem/filtered.tif',
+                alg.P_OUTPUT_RASTER: self.filename('filtered.tif')
             }
             self.runalg(alg, parameters)

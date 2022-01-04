@@ -44,6 +44,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
                               'that was aquired using a stratified random sampling approach.'),
             (self._STRATIFICATION, 'A stratification layer that was used for drawing the observation sample. '
                                    'If not defined, the classification layer is used as stratification layer.'),
+            (self._OPEN_REPORT, self.ReportOpen),
             (self._OUTPUT_REPORT, self.ReportFileDestination)
         ]
 

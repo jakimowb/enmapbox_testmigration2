@@ -1,9 +1,5 @@
 from sklearn.base import ClassifierMixin
 
-from sklearn.base import ClassifierMixin
-from sklearn.exceptions import NotFittedError
-from sklearn.utils.validation import check_is_fitted
-
 from enmapboxprocessing.algorithm.fitclassifieralgorithmbase import FitClassifierAlgorithmBase
 from enmapboxprocessing.algorithm.fitgaussianprocessclassifieralgorithm import FitGaussianProcessClassifierAlgorithm
 from enmapboxprocessing.algorithm.fitgenericclassifieralgorithm import FitGenericClassifierAlgorithm
@@ -12,12 +8,7 @@ from enmapboxprocessing.algorithm.fitrandomforestclassifieralgorithm import FitR
 from enmapboxprocessing.algorithm.fitsvcpolyalgorithm import FitSvcPolyAlgorithm
 from enmapboxprocessing.algorithm.fitsvcrbfalgorithm import FitSvcRbfAlgorithm
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxprocessing.typing import ClassifierDump
-from enmapboxprocessing.utils import Utils
-from enmapboxunittestdata import (classifierDumpPkl)
-
-writeToDisk = True
-c = ['', 'c:'][int(writeToDisk)]
+from enmapboxtestdata import (classifierDumpPkl)
 
 
 class FitTestClassifierAlgorithm(FitClassifierAlgorithmBase):
@@ -44,7 +35,7 @@ class TestFitClassifierAlgorithm(TestCase):
         parameters = {
             alg.P_DATASET: classifierDumpPkl,
             alg.P_CLASSIFIER: alg.defaultCodeAsString(),
-            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+            alg.P_OUTPUT_CLASSIFIER: self.filename('classifier.pkl')
         }
         self.runalg(alg, parameters)
 
@@ -52,7 +43,7 @@ class TestFitClassifierAlgorithm(TestCase):
         alg = FitTestClassifierAlgorithm()
         parameters = {
             alg.P_DATASET: None,
-            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+            alg.P_OUTPUT_CLASSIFIER: self.filename('classifier.pkl')
         }
         self.runalg(alg, parameters)
 
@@ -60,9 +51,9 @@ class TestFitClassifierAlgorithm(TestCase):
         alg = FitGenericClassifierAlgorithm()
         parameters = {
             alg.P_CLASSIFIER: 'from sklearn.linear_model import LogisticRegression\n'
-                        'classifier = LogisticRegression(max_iter=1000)',
+                              'classifier = LogisticRegression(max_iter=1000)',
             alg.P_DATASET: classifierDumpPkl,
-            alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+            alg.P_OUTPUT_CLASSIFIER: self.filename('classifier.pkl')
         }
         self.runalg(alg, parameters)
 
@@ -78,7 +69,6 @@ class TestFitClassifierAlgorithm(TestCase):
             parameters = {
                 alg.P_DATASET: classifierDumpPkl,
                 alg.P_CLASSIFIER: alg.defaultCodeAsString(),
-                alg.P_OUTPUT_CLASSIFIER: c + '/vsimem/classifier.pkl',
+                alg.P_OUTPUT_CLASSIFIER: self.filename('classifier.pkl')
             }
             self.runalg(alg, parameters)
-
