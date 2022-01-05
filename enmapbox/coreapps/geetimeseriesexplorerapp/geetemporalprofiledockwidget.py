@@ -512,12 +512,21 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         self.mInfoLabelItem.setText(text)
 
     def onCurrentLocationChanged(self):
+
         if not self.mIdentify.isChecked():
             return
+
         crs = QgsCoordinateReferenceSystem.fromEpsgId(4326)
         point = self.mainDock.currentLocation().toCrs(crs)
         point = SpatialPoint(crs, point)
         self.setCurrentLocation(point.x(), point.y())
+
+        if not self.isVisible():
+            return
+
+        if not self.mainDock.eeInitialized:
+            return
+
         self.readProfile()
         self.plotProfile()
 
