@@ -13,7 +13,6 @@ from math import nan
 from typing import Optional
 
 import numpy as np
-from numba.cuda import grid
 from qgis._core import QgsRasterLayer, QgsMultiBandColorRenderer, QgsContrastEnhancement, QgsMapLayerProxyModel, \
     QgsSingleBandGrayRenderer, QgsSingleBandPseudoColorRenderer
 from qgis._gui import QgsMapLayerComboBox, QgsRasterBandComboBox
