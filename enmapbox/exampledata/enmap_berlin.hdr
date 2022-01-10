@@ -8,6 +8,7 @@ file type = ENVI Standard
 data type = 2
 interleave = bsq
 sensor type = Unknown
+acquisition time = 2009-08-20T09:44:50
 byte order = 0
 y start = 24
 map info = {UTM, 1.000, 1.000, 380952.370, 5820372.350, 3.0000000000e+001, 3.0000000000e+001, 33, North, WGS-84, units=Meters}
