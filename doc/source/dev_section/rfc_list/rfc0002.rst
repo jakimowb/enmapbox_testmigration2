@@ -173,4 +173,4 @@ To find the band closest to 850 nanometers use::
     bandNo = reader.findWavelength(0.850, 'micrometers')
 
 
-Also check out the RasterReader unittests: https://bitbucket.org/hu-geomatics/enmap-box/src/develop/enmapboxprocessing/test/test_rasterreaderrfc1.py
+Also check out the RasterReader unittests: https://bitbucket.org/hu-geomatics/enmap-box/src/develop/enmapboxprocessing/test/test_rasterreaderrfc2.py
