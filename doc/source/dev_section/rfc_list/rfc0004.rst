@@ -19,7 +19,7 @@ It is proposed to implement functions or methods for reading and writing  band p
 So far we identified the following band properties to be required or useful:
 
 - band **name**
-- Spectral Properties (see RFC 2): **wavelength, wavelength units, bad band multiplier**
+- Spectral Properties (see RFC 2): **wavelength, wavelength units, fwhm, bad band multiplier**
 - Temporal Properties (see RFC 3): **start time, end time**
 - Data Properties: **offset, scale**, **no data value**
 
