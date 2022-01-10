@@ -53,7 +53,14 @@ QGIS
         PyQt5.QtCore.QDateTime(2021, 12, 25, 0, 0, 0, 0)
 
 GDAL
-    In GDAL we don't have that as a general functionality. We only have format/driver specific information available.
+    The GDAL Raster Data Model suggests to specify **ACQUISITIONDATETIME** as dataset-level IMAGERY-domain metadata::
+
+        # see https://gdal.org/user/raster_data_model.html#imagery-domain-remote-sensing
+        <PAMDataset>
+          <Metadata domain="IMAGERY">
+            <MDI key="ACQUISITIONDATETIME">2021-12-24T12:30:42.123</MDI>
+          </Metadata>
+
 
     ENVI files may specify the **acquisition time** as dataset-level ENVI-domain metadata::
 
@@ -158,38 +165,16 @@ This is mainly relevant for GUI applications, where we need to set/update tempor
     endTime = parseDateTimeString(gdalDataset.GetRasterBand(42).GetMetadataItem('end_time'))
 
 
+3. Look at **GDAL PAM** dataset-level IMAGERY-domain.
+This follows the GDAL Raster Data Model specification, that assumes the **ACQUISITIONDATETIME** to be set to this location::
+
+    centerTime = parseDateTimeString(gdalDataset.GetMetadataItem('ACQUISITIONDATETIME', 'IMAGERY'))
+
+
 3. Look at **GDAL PAM** dataset-level ENVI-domain.
 This follows the behaviour of the ENVI driver, that sets the **acquisition time** to this location::
 
     centerTime = parseDateTimeString(gdalDataset.GetMetadataItem('acquisition_time', 'ENVI'))
-
-
-4. Look at **GDAL PAM** dataset-level default-domain for various keys matching the naming conventions
-of supported sensor products and software.
-This is useful for sensor product imported with the EnMAP-Box, which dumps all metadata to this location::
-
-    # Landsat
-    date = gdalDataset.GetMetadataItem('DATE_ACQUIRED')
-    time = gdalDataset.GetMetadataItem('SCENE_CENTER_TIME')
-    centerTime = parseDateTimeString(date + 'T' + time)
-
-    # Sentinel-2
-    startTime = parseDateTimeString(gdalDataset.GetMetadataItem('PRODUCT_START_TIME'))
-    endTime = parseDateTimeString(gdalDataset.GetMetadataItem('PRODUCT_STOP_TIME'))
-
-    # EnMAP and DESIS
-    startTime = parseDateTimeString(gdalDataset.GetMetadataItem('startTime'))
-    endTime = parseDateTimeString(gdalDataset.GetMetadataItem('endTime'))
-
-    # PRISMA
-    startTime = parseDateTimeString(gdalDataset.GetMetadataItem('Product_StartTime'))
-    endTime = parseDateTimeString(gdalDataset.GetMetadataItem('Product_StopTime'))
-
-    # Google Earth Engine
-    startMSecs = gdalDataset.GetMetadataItem('system:time_start')
-    endMSecs = gdalDataset.GetMetadataItem('system:time_end')
-    startTime = QDateTime(1970, 1 ,1, 0, 0, 0).addMSecs(int(startMSecs))
-    endTime = QDateTime(1970, 1 ,1, 0, 0, 0).addMSecs(int(endMSecs))
 
 
 Note that the *parseDateTimeString* function is assumed to parse timestamps into **QDateTime** objects.
@@ -199,6 +184,8 @@ It is proposed to support the following formats::
     2021-12-24T12:30:42.123...  # date time
     1640349042123               # Unix epoche timestamp in milliseconds since 1970-01-01T00:00:00.000
 
+Also note that we don't support the various sensor product and software naming conventions presented in the survey above.
+We assume that the acquisition time is properly set to the **GDAL PAM** dataset-level IMAGERY-domain during product import.
 
 Guide line 1:
     If you need to set band-wise temporal properties in a processing algorithm:
@@ -235,7 +222,6 @@ To query temporal properties for band 42, we can use::
     startTime = reader.startTime(42)
     endTime = reader.endTime(42)
     centerTime = reader.centerTime(42)  # derives temporal range center time
-    startTime, endTime = reader.temporalRange(42)
 
 
 In case of a standart image, where all bands share the same time range, you may skip the band number::
@@ -243,7 +229,6 @@ In case of a standart image, where all bands share the same time range, you may 
     startTime = reader.startTime()
     endTime = reader.endTime()
     centerTime = reader.centerTime()
-    startTime, endTime = reader.temporalRange()
 
 
 To set temporal properties use::
@@ -257,6 +242,11 @@ To set temporal properties use::
     reader.setEndTime(endTime)
 
 
+Find the band whose **center time** is closest to christmas eve.
+If multiple bands match, the first is returned.::
+
+    bandNo = reader.findCenterTime(QDateTime(2021, 12, 24, 18, 00))
+
 Use **temporal properties** and **spectral properties** (see RFC 2) together for a full description of a **spectral-temporal timeseries**::
 
     for bandNo in range(1, layer.bandCount() + 1):
@@ -266,7 +256,4 @@ Use **temporal properties** and **spectral properties** (see RFC 2) together for
         print(startTime, endTime, centerTime, wavelength)
 
 
-Find the band whose **center time** is closest to christmas eve.
-If multiple bands match, the first is returned.::
-
-    bandNo = reader.findCenterTime(QDateTime(2021, 12, 24, 18, 00))
+Also check out the RasterReader unittests: https://bitbucket.org/hu-geomatics/enmap-box/src/develop/enmapboxprocessing/test/test_rasterreaderrfc3.py
