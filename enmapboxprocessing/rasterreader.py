@@ -1,8 +1,8 @@
-from math import isnan, nan
+from math import isnan
 from typing import Iterable, List, Union, Optional, Tuple
 
 import numpy as np
-from PyQt5.QtCore import QSizeF
+from PyQt5.QtCore import QSizeF, QDateTime
 from osgeo import gdal
 from qgis._core import (QgsRasterLayer, QgsRasterDataProvider, QgsCoordinateReferenceSystem, QgsRectangle,
                         QgsRasterRange, QgsPoint, QgsRasterBlockFeedback, QgsRasterBlock, QgsPointXY,
@@ -16,30 +16,25 @@ from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
 
-
-
 @typechecked
 class RasterReader(object):
-
     Nanometers = 'Nanometers'
     Micrometers = 'Micrometers'
 
     def __init__(self, source: RasterSource):
 
-        self.provider: QgsRasterDataProvider
-
         if isinstance(source, QgsRasterLayer):
             self.layer = source
-            self.provider = self.layer.dataProvider()
+            self.provider: QgsRasterDataProvider = self.layer.dataProvider()
         elif isinstance(source, QgsRasterDataProvider):
-            self.provider = QgsRasterLayer()  # invalid layer!; all QGIS PAM items will get lost
+            self.layer = QgsRasterLayer()  # invalid layer!; all QGIS PAM items will get lost
             self.provider = source
         elif isinstance(source, str):
             self.layer = QgsRasterLayer(source)
-            self.provider = self.layer.dataProvider()
+            self.provider: QgsRasterDataProvider = self.layer.dataProvider()
         elif isinstance(source, gdal.Dataset):
             self.layer = QgsRasterLayer(source.GetDescription())
-            self.provider = self.layer.dataProvider()
+            self.provider: QgsRasterDataProvider = self.layer.dataProvider()
         else:
             assert 0
 
@@ -54,8 +49,46 @@ class RasterReader(object):
     def bandCount(self):
         return self.provider.bandCount()
 
+    def bandNumbers(self):
+        for bandNo in range(1, self.provider.bandCount() + 1):
+            yield bandNo
+
     def bandName(self, bandNo: int) -> str:
-        return self.gdalBand(bandNo).GetDescription()
+        return ': '.join(self.layer.bandName(bandNo).split(': ')[1:])  # removes the "Band 042: " prefix
+
+    def userBandName(self, bandNo: int) -> Optional[str]:
+        return self.metadataItem('name', '', bandNo)
+
+    def setUserBandName(self, bandName: str, bandNo: int):
+        self.setMetadataItem('name', bandName, '', bandNo)
+
+    def bandOffset(self, bandNo: int) -> float:
+        return self.provider.bandOffset(bandNo)
+
+    def userBandOffset(self, bandNo: int, default: float = None) -> Optional[float]:
+        offset = self.metadataItem('offset', '', bandNo)
+        if offset is None:
+            offset = default
+        if offset is None:
+            return None
+        return float(offset)
+
+    def setUserBandOffset(self, offset, bandNo: int):
+        self.setMetadataItem('offset', offset, '', bandNo)
+
+    def bandScale(self, bandNo: int) -> float:
+        return self.provider.bandScale(bandNo)
+
+    def userBandScale(self, bandNo: int, default: float = None) -> Optional[float]:
+        scale = self.metadataItem('scale', '', bandNo)
+        if scale is None:
+            scale = default
+        if scale is None:
+            return None
+        return float(scale)
+
+    def setUserBandScale(self, scale, bandNo: int):
+        self.setMetadataItem('scale', scale, '', bandNo)
 
     def crs(self) -> QgsCoordinateReferenceSystem:
         return self.provider.crs()
@@ -73,16 +106,19 @@ class RasterReader(object):
     def extent(self) -> QgsRectangle:
         return self.provider.extent()
 
+    def offset(self, bandNo) -> Optional[float]:
+        return self.provider.bandOffset(bandNo)
+
+    def scale(self, bandNo) -> Optional[float]:
+        return self.provider.bandScale(bandNo)
+
     def noDataValue(self, bandNo: int = None) -> Optional[float]:
         if bandNo is None:
             bandNo = 1
-        return self.gdalBand(bandNo).GetNoDataValue()
+        return self.sourceNoDataValue(bandNo)
 
-    def offset(self, bandNo) -> Optional[float]:
-        return self.gdalBand(bandNo).GetOffset()
-
-    def scale(self, bandNo) -> Optional[float]:
-        return self.gdalBand(bandNo).GetScale()
+    def sourceNoDataValue(self, bandNo: int):
+        return self.provider.sourceNoDataValue(bandNo)
 
     def setUserNoDataValue(self, bandNo: int, noData: Iterable[QgsRasterRange]):
         return self.provider.setUserNoDataValue(bandNo, noData)
@@ -164,6 +200,16 @@ class RasterReader(object):
             assert 0 < bandNo <= self.bandCount()
             block: QgsRasterBlock = self.provider.block(bandNo, boundingBox, width, height, feedback)
             array = Utils.qgsRasterBlockToNumpyArray(block=block)
+            userBandScale = self.userBandScale(bandNo)
+            userBandOffset = self.userBandOffset(bandNo)
+            if userBandOffset is not None or userBandScale is not None:
+                array = array.astype(np.float32)
+                maskArray = self.maskArray(array[None], [bandNo], False)[0]
+                if userBandScale is not None:
+                    array[maskArray] *= userBandScale
+                if userBandOffset is not None:
+                    array[maskArray] += userBandOffset
+
             arrays.append(array)
         return arrays
 
@@ -229,9 +275,6 @@ class RasterReader(object):
                 if rasterRange.bounds() == QgsRasterRange.IncludeMinAndMax:
                     contained = np.greater_equal(a, rasterRange.min())
                     np.less_equal(a, rasterRange.max(), out=contained)
-                if rasterRange.bounds() == QgsRasterRange.IncludeMinAndMax:
-                    contained = np.greater_equal(a, rasterRange.min())
-                    np.less_equal(a, rasterRange.max(), out=contained)
                 elif rasterRange.bounds() == QgsRasterRange.IncludeMin:
                     contained = np.greater_equal(a, rasterRange.min())
                     np.less(a, rasterRange.max(), out=contained)
@@ -250,6 +293,7 @@ class RasterReader(object):
         return maskArray
 
     def propertyKey(self, key: str, domain: str, bandNo: int = None):
+        key = key.replace(' ', '_')
         if bandNo is None:
             propertyKey = f'QGISPAM/dataset/{domain}/{key}'
         else:
@@ -265,7 +309,7 @@ class RasterReader(object):
             bandNo = int(bandNo)
         else:
             raise ValueError('invalid QGIS PAM property key')
-
+        key = key.replace(' ', '_')
         return key, domain, bandNo
 
     def setMetadataItem(self, key: str, value: MetadataValue, domain: str = '', bandNo: int = None):
@@ -391,21 +435,39 @@ class RasterReader(object):
 
         return bandNos[np.argmin(distances)]
 
+    def findTime(self, centerTime: Optional[QDateTime]) -> Optional[int]:
+        if centerTime is None:
+            return None
+
+        bandNos = list()
+        distances = list()
+        for bandNo in range(1, self.bandCount() + 1):
+            centerTime_ = self.centerTime(bandNo)
+            if centerTime_ is None:
+                continue
+            bandNos.append(bandNo)
+            distances.append(abs(centerTime_.msecsTo(centerTime)))
+        if len(bandNos) == 0:
+            return None
+
+        return bandNos[np.argmin(distances)]
+
     def wavelengthUnits(self, bandNo: int) -> Optional[str]:
         """Return wavelength units."""
-        units = self.metadataItem('wavelength units', '', bandNo)
-        if units is None:
-            units = self.metadataItem('wavelength units', 'ENVI')
-            if units is None:
-                return None
 
-        # normalise string
-        if units.lower() in ['micrometers', 'um']:
-            return self.Micrometers
-        elif units.lower() in ['nanometers', 'nm']:
-            return self.Nanometers
-        else:
-            raise ValueError(f'unsupported wavelength units: {units}')
+        # check band-level domains
+        for domain in ['', 'ENVI']:
+            units = self.metadataItem('wavelength_units', domain, bandNo)
+            if units is not None:
+                return Utils.wavelengthUnitsLongName(units)
+
+        # check dataset-level domains
+        for domain in ['', 'ENVI']:
+            units = self.metadataItem('wavelength_units', domain)
+            if units is not None:
+                return Utils.wavelengthUnitsLongName(units)
+
+        return None
 
     def wavelength(self, bandNo: int, units: str = None) -> Optional[float]:
         """Return band center wavelength in nanometers. Optionally, specify destination units."""
@@ -413,61 +475,155 @@ class RasterReader(object):
         if units is None:
             units = self.Nanometers
 
-        wavelength = self.layer.customProperty(self.propertyKey('wavelength', '', bandNo))
-        wavelength_units = self.layer.customProperty(self.propertyKey('wavelength_units', '', bandNo))
+        wavelength_units = self.wavelengthUnits(bandNo)
+        if wavelength_units is None:
+            return None
 
-        if wavelength is None:  # not cached already
-            wavelength = self.metadataItem('wavelength', '', bandNo)
-            if wavelength is None:
-                wavelengths = self.metadataItem('wavelength', 'ENVI')
-                if wavelengths is None:
-                    return None
-                else:
-                    wavelength = wavelengths[bandNo - 1]
-                    wavelength_units = self.metadataItem('wavelength_units', 'ENVI')
-            else:
-                wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
+        conversionFactor = Utils.wavelengthUnitsConversionFactor(wavelength_units, units)
 
-            # cache results for later usage
-            self.setMetadataItem('wavelength', float(wavelength), '', bandNo)
-            self.setMetadataItem('wavelength_units', wavelength_units, '', bandNo)
+        # check band-level domains
+        for domain in ['', 'ENVI']:
+            wavelength = self.metadataItem('wavelength', domain, bandNo)
+            if wavelength is not None:
+                return conversionFactor * float(wavelength)
 
-        # convert to destination units
-        wavelength = Utils.wavelengthUnitsConversionFactor(wavelength_units, units) * float(wavelength)
+        # check dataset-level domains
+        for domain in ['', 'ENVI']:
+            wavelengths = self.metadataItem('wavelength', domain)
+            if wavelengths is not None:
+                wavelength = wavelengths[bandNo - 1]
+                return conversionFactor * float(wavelength)
 
-        return wavelength
+        return None
 
-    def fwhm(self, bandNo: int, units: str = None) -> Optional[float]:
-        """Return band FWHM in nanometers. Optionally, specify destination units."""
+    def setWavelength(self, wavelength: float, bandNo: int, units: str = None, fwhm: float = None):
+
         if units is None:
             units = self.Nanometers
 
-        fwhm = self.metadataItem('fwhm', '', bandNo)
-        if fwhm is None:
-            fwhms = self.metadataItem('fwhm', 'ENVI')
-            if fwhms is None:
-                return None
-            else:
-                fwhm = fwhms[bandNo - 1]
-                wavelength_units = self.metadataItem('wavelength_units', 'ENVI')
-        else:
-            wavelength_units = self.metadataItem('wavelength_units', '', bandNo)
+        self.setMetadataItem('wavelength', float(wavelength), '', bandNo)
+        self.setMetadataItem('wavelength_units', units, '', bandNo)
 
-        # convert to destination units
-        fwhm = Utils.wavelengthUnitsConversionFactor(wavelength_units, units) * float(fwhm)
+        if fwhm is not None:
+            self.setMetadataItem('fwhm', float(fwhm), '', bandNo)
 
-        return fwhm
+    def fwhm(self, bandNo: int, units: str = None) -> Optional[float]:
+        """Return band FWHM in nanometers. Optionally, specify destination units."""
+
+        if units is None:
+            units = self.Nanometers
+
+        wavelength_units = self.wavelengthUnits(bandNo)
+        if wavelength_units is None:
+            return None
+
+        conversionFactor = Utils.wavelengthUnitsConversionFactor(wavelength_units, units)
+
+        # check band-level domains
+        for domain in ['', 'ENVI']:
+            fwhm = self.metadataItem('fwhm', domain, bandNo)
+            if fwhm is not None:
+                return conversionFactor * float(fwhm)
+
+        # check dataset-level domains
+        for domain in ['', 'ENVI']:
+            fwhm = self.metadataItem('fwhm', domain)
+            if fwhm is not None:
+                fwhm = fwhm[bandNo - 1]
+                return conversionFactor * float(fwhm)
+
+        return None
 
     def badBandMultiplier(self, bandNo: int) -> int:
-        """Return bad band multiplier, typically 0 for bad bands and 1 for good bands."""
-        badBandMultiplier = self.metadataItem('bad band multiplier', '', bandNo)
-        if badBandMultiplier is None:
-            bbl = self.metadataItem('bbl', 'ENVI')
-            if bbl is None:
-                return 1
-            else:
+        """Return bad band multiplier, 0 for bad band and 1 for good band."""
+
+        # check band-level domains
+        for domain in ['', 'ENVI']:
+            badBandMultiplier = self.metadataItem('bad_band_multiplier', domain, bandNo)
+            if badBandMultiplier is not None:
+                return int(badBandMultiplier)
+
+        # check dataset-level domains
+        for domain in ['', 'ENVI']:
+            bbl = self.metadataItem('bbl', domain)
+            if bbl is not None:
                 badBandMultiplier = bbl[bandNo - 1]
-        return int(badBandMultiplier)
+                return int(badBandMultiplier)
+
+        return 1
+
+    def setBadBandMultiplier(self, badBandMultiplier: int, bandNo: int):
+        self.setMetadataItem('bad_band_multiplier', badBandMultiplier, '', bandNo)
+
+    def startTime(self, bandNo: int = None) -> Optional[QDateTime]:
+        """Return raster / band start time."""
+
+        # check band-level domain
+        if bandNo is not None:
+            dateTime = self.metadataItem('start_time', '', bandNo)
+            if dateTime == 'None':
+                return None
+            if dateTime is not None:
+                return Utils.parseDateTime(dateTime)
+
+        # check dataset-level default-domain
+        dateTime = self.metadataItem('start_time')
+        if dateTime is not None:
+            return Utils.parseDateTime(dateTime)
+
+        # check dataset-level IMAGERY-domain
+        dateTime = self.metadataItem('ACQUISITIONDATETIME', 'IMAGERY')
+        if dateTime is not None:
+            return Utils.parseDateTime(dateTime)
+
+        # check dataset-level ENVI-domain
+        dateTime = self.metadataItem('acquisition_time', 'ENVI')
+        if dateTime is not None:
+            return Utils.parseDateTime(dateTime)
+
+        return None
+
+    def endTime(self, bandNo: int = None) -> Optional[QDateTime]:
+        """Return raster / band end time."""
+
+        # check band-level domain
+        if bandNo is not None:
+            dateTime = self.metadataItem('end_time', '', bandNo)
+            if dateTime == 'None':
+                return None
+            if dateTime is not None:
+                return Utils.parseDateTime(dateTime)
+
+        # check dataset-level default-domain
+        dateTime = self.metadataItem('end_time')
+        if dateTime is not None:
+            return Utils.parseDateTime(dateTime)
+
+        return None
+
+    def centerTime(self, bandNo: int = None) -> Optional[QDateTime]:
+        """Return raster / band center time."""
+
+        startTime = self.startTime(bandNo)
+        if startTime is None:
+            return None
+
+        endTime = self.endTime(bandNo)
+        if endTime is None:
+            return startTime
+
+        msecs = startTime.msecsTo(endTime)
+        return startTime.addMSecs(int(msecs / 2))
+
+    def setTime(self, startTime: Optional[QDateTime], endTime: QDateTime = None, bandNo: int = None):
+        if startTime is None:
+            self.layer.setCustomProperty(self.propertyKey('start_time', '', bandNo), 'None')
+        else:
+            self.setMetadataItem('start_time', startTime.toString('yyyy-MM-ddTHH:mm:ss'), '', bandNo)
+        if endTime is None:
+            self.layer.setCustomProperty(self.propertyKey('end_time', '', bandNo), 'None')
+        else:
+            self.setMetadataItem('end_time', endTime.toString('yyyy-MM-ddTHH:mm:ss'), '', bandNo)
 
     def lineMemoryUsage(self, nBands: int = None, dataTypeSize: int = None) -> int:
         if nBands is None:

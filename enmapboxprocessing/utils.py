@@ -7,6 +7,7 @@ from random import randint
 from typing import Tuple, Optional, Callable, Any, Dict, Union, List
 
 import numpy as np
+from PyQt5.QtCore import QDateTime, QDate
 from PyQt5.QtGui import QColor
 from PyQt5.QtXml import QDomDocument
 from osgeo import gdal
@@ -363,6 +364,32 @@ class Utils(object):
         raise ValueError('invalid color')
 
     @classmethod
+    def parseDateTime(cls, obj) -> QDateTime:
+        if isinstance(obj, QDateTime):
+            return obj
+
+        if isinstance(obj, int):  # milliseconds since 1970
+            return cls.msecToDateTime(obj)
+
+        if isinstance(obj, str):
+            if obj.isdecimal():  # milliseconds since 1970
+                return cls.msecToDateTime(int(obj))
+            elif len(obj) == 10:  # date, e.g. 2021-12-24
+                dateTime = QDateTime.fromString("2010-10-25", 'yyyy-MM-dd')
+                dateTime.addSecs(12*60*60)
+                return dateTime
+            elif len(obj) >= 19:  # date, e.g. 2021-12-24T12:30:42.123..
+                return QDateTime.fromString(obj[:19], 'yyyy-MM-ddTHH:mm:ss')
+            elif obj == '':  # invalid date
+                return QDateTime()
+
+        raise ValueError(f'invalid datetime: {obj}')
+
+    @classmethod
+    def msecToDateTime(cls, msec: int) -> QDateTime:
+        return QDateTime(QDate(1970, 1, 1)).addMSecs(int(msec))
+
+    @classmethod
     def prepareCategories(
             cls, categories: Categories, valuesToInt=False, removeLastIfEmpty=False
     ) -> Tuple[Categories, Dict]:
@@ -524,22 +551,43 @@ class Utils(object):
         return ''.join([sub(c) for c in string])
 
     @classmethod
-    def wavelengthUnitsShortNames(cls, units: str) -> str:
+    def wavelengthUnitsShortName(cls, units: str) -> str:
         if units.lower() in ['nm', 'nanometers']:
             return 'nm'
         elif units.lower() in ['μm', 'um', 'micrometers']:
             return 'μm'
         elif units.lower() in ['mm', 'millimeters']:
             return 'mm'
+        elif units.lower() in ['cm', 'centimeters']:
+            return 'cm'
         elif units.lower() in ['m', 'meters']:
             return 'm'
         else:
             raise ValueError(f'unknown wavelength unit: {units}')
 
     @classmethod
+    def wavelengthUnitsLongName(cls, units: str) -> str:
+        if units.lower() in ['nm', 'nanometers']:
+            return 'Nanometers'
+        elif units.lower() in ['μm', 'um', 'micrometers']:
+            return 'Micrometers'
+        elif units.lower() in ['mm', 'millimeters']:
+            return 'Millimeters'
+        elif units.lower() in ['cm', 'centimeters']:
+            return 'Centimeters'
+        elif units.lower() in ['m', 'meters']:
+            return 'Meters'
+        else:
+            raise ValueError(f'unknown wavelength unit: {units}')
+
+    @classmethod
     def wavelengthUnitsConversionFactor(cls, srcUnits: str, dstUnits: str) -> float:
-        toNanometers = {'nm': 1., 'μm': 1e3, 'um': 1e3, 'mm': 1e6, 'm': 1e9}[cls.wavelengthUnitsShortNames(srcUnits)]
-        toDstUnits = {'nm': 1., 'μm': 1e-3, 'um': 1e-3, 'mm': 1e-6, 'm': 1e-9}[cls.wavelengthUnitsShortNames(dstUnits)]
+        toNanometers = {
+            'nm': 1., 'μm': 1e3, 'um': 1e3, 'mm': 1e6, 'cm': 1e7, 'm': 1e9
+        }[cls.wavelengthUnitsShortName(srcUnits)]
+        toDstUnits = {
+            'nm': 1., 'μm': 1e-3, 'um': 1e-3, 'mm': 1e-6, 'cm': 1e-7, 'm': 1e-9
+        }[cls.wavelengthUnitsShortName(dstUnits)]
         return toNanometers * toDstUnits
 
     @classmethod

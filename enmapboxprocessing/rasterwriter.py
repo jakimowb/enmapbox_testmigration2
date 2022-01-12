@@ -45,33 +45,30 @@ class RasterWriter(object):
         else:
             self.gdalBand(bandNo).SetNoDataValue(noDataValue)
 
-    def setOffset(self, offset: float = None, bandNo: int = None, overwrite=False):
+    def setOffset(self, offset: float = None, bandNo: int = None):
         if offset is None:
             return
         if bandNo is None:
             for bandNo in range(1, self.bandCount() + 1):
-                self.setOffset(offset, bandNo, overwrite)
+                self.setOffset(offset, bandNo)
         else:
-            if not overwrite:
-                if self.gdalBand(bandNo).GetOffset() is not None:
-                    offset += self.gdalBand(bandNo).GetOffset()
             self.gdalBand(bandNo).SetOffset(offset)
 
-    def setScale(self, scale: float = None, bandNo: int = None, overwrite=False):
+    def setScale(self, scale: float = None, bandNo: int = None):
         if scale is None:
             return
         if bandNo is None:
             for bandNo in range(1, self.bandCount() + 1):
-                self.setScale(scale, bandNo, overwrite)
+                self.setScale(scale, bandNo)
         else:
-            if not overwrite:
-                if self.gdalBand(bandNo).GetScale() is not None:
-                    scale *= self.gdalBand(bandNo).GetScale()
             self.gdalBand(bandNo).SetScale(scale)
 
     def setMetadataItem(self, key: str, value: MetadataValue, domain: str = '', bandNo: int = None):
         if value is None:
             return
+        if bandNo is not None:
+            if key in ['offset', 'scale']:
+                return  # skip user offset and scale; will be set via gdal.Band.SetOffset/SetScale
         self._gdalObject(bandNo).SetMetadataItem(key, Utils.metadateValueToString(value), domain)
 
     def setMetadataDomain(self, metadata: MetadataDomain, domain: str = '', bandNo: int = None):

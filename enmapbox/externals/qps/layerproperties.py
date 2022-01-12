@@ -943,6 +943,7 @@ class LayerPropertiesDialog(QgsOptionsDialogBase):
             RenderingConfigWidgetFactory, LegendConfigWidgetFactory
         from .layerconfigwidgets.vectorlabeling import LabelingConfigWidgetFactory
         from .layerconfigwidgets.rasterbands import RasterBandConfigWidgetFactory
+        from .layerconfigwidgets.rasterbands import RasterBandPropertiesConfigWidgetFactory
         from .layerconfigwidgets.gdalmetadata import GDALMetadataConfigWidgetFactory
         from .layerconfigwidgets.vectorlayerfields import \
             LayerAttributeFormConfigWidgetFactory, \
@@ -952,6 +953,7 @@ class LayerPropertiesDialog(QgsOptionsDialogBase):
             SourceConfigWidgetFactory(),
             SymbologyConfigWidgetFactory(),
             RasterBandConfigWidgetFactory(),
+            RasterBandPropertiesConfigWidgetFactory(),
             LabelingConfigWidgetFactory(),
             TransparencyConfigWidgetFactory(),
             RenderingConfigWidgetFactory(),

@@ -181,10 +181,13 @@ def unregisterExpressionFunctions():
 
 def registerMapLayerConfigWidgetFactories():
     from .layerconfigwidgets.rasterbands import RasterBandConfigWidgetFactory
+    from .layerconfigwidgets.rasterbands import RasterBandPropertiesConfigWidgetFactory
     from .layerconfigwidgets.gdalmetadata import GDALMetadataConfigWidgetFactory
 
     registerMapLayerConfigWidgetFactory(RasterBandConfigWidgetFactory())
+    registerMapLayerConfigWidgetFactory(RasterBandPropertiesConfigWidgetFactory())
     registerMapLayerConfigWidgetFactory(GDALMetadataConfigWidgetFactory())
+
 
 
 def unregisterMapLayerConfigWidgetFactories():

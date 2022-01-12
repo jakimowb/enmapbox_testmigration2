@@ -297,11 +297,15 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
             return None
         if not isabs(filename):
             filename = abspath(filename)
+
+        parameterDefinition: ProcessingParameterRasterDestination = self.parameterDefinition(name)
+        success, message = parameterDefinition.isSupportedOutputValue(filename, context)
+        if not success:
+            raise QgsProcessingException(message)
+
         if not exists(dirname(filename)):
             makedirs(dirname(filename))
         return filename
-
-
 
     def parameterAsRange(self, parameters: Dict[str, Any], name: str, context: QgsProcessingContext) -> List[float]:
         return super().parameterAsRange(parameters, name, context)
@@ -497,19 +501,6 @@ class EnMAPProcessingAlgorithm(QgsProcessingAlgorithm):
         if types is None:
             types = []
         self.addParameter(QgsProcessingParameterVectorLayer(name, description, types, defaultValue, optional))
-        self.flagParameterAsAdvanced(name, advanced)
-
-    def addParameterField(
-            self, name: str, description: str, defaultValue=None, parentLayerParameterName='',
-            type=QgsProcessingParameterField.Any, allowMultiple=False, optional=False, defaultToAllFields=False,
-            advanced=False
-    ):
-        self.addParameter(
-            QgsProcessingParameterField(
-                name, description, defaultValue, parentLayerParameterName, type, allowMultiple, optional,
-                defaultToAllFields
-            )
-        )
         self.flagParameterAsAdvanced(name, advanced)
 
     def addParameterCrs(
