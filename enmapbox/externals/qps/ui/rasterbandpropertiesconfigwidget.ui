@@ -181,7 +181,7 @@
       <item>
        <widget class="QLineEdit" name="mCode">
         <property name="text">
-         <string>'Band ' + str(bandNo)</string>
+         <string/>
         </property>
        </widget>
       </item>

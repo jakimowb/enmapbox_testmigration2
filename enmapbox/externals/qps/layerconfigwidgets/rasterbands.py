@@ -25,15 +25,19 @@
 import traceback
 import typing
 import pathlib
+from os.path import splitext, basename
 from typing import List, Optional
 
 from PyQt5.QtWidgets import QGroupBox, QToolButton, QPushButton, QTableWidget, QCheckBox, QAbstractSpinBox, QComboBox, \
-    QTextEdit, QLineEdit
-from qgis._core import QgsRasterRange, QgsProject
+    QTextEdit, QLineEdit, QMessageBox
+from qgis._core import QgsRasterRange, QgsProject, QgsProcessing, QgsProcessingUtils
 from qgis._gui import QgsFilterLineEdit, QgsDateTimeEdit
 
+import processing
+from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.utils import Utils
+from processing import getTempDirInTempFolder
 from qgis.gui import QgsRasterLayerProperties
 
 from qgis.core import QgsHillshadeRenderer
@@ -558,6 +562,8 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             traceback.print_exc()
             return None
 
+        return rasterRanges
+
     def onCodeChanged(self):
         code = self.mCode.text()
         try:
@@ -606,6 +612,7 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
                 raise NotImplementedError(f'unexpected attribute type: {type(widget)}')
 
     def onAccepted(self):
+        hasChanged = False
         for bandNo in self.mReader.bandNumbers():
             row = bandNo - 1
 
@@ -613,6 +620,7 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             bandName = w.text()
             if bandName != self.mOldState[(row, 0)]:
                 self.mReader.setUserBandName(bandName, bandNo)
+                hasChanged = True
 
             w: QgsFilterLineEdit = self.mTable.cellWidget(row, 1)
             wavelength = w.text()
@@ -620,6 +628,7 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             fwhm = w.text()
             if wavelength != self.mOldState[(row, 1)] or fwhm != self.mOldState[(row, 2)]:
                 self.mReader.setWavelength(float(wavelength), bandNo, None, float(fwhm))
+                hasChanged = True
 
             w: QCheckBox = self.mTable.cellWidget(row, 3)
             isBadBand = w.checkState()
@@ -628,6 +637,7 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
                     self.mReader.setBadBandMultiplier(0, bandNo)
                 else:
                     self.mReader.setBadBandMultiplier(1, bandNo)
+                hasChanged = True
 
             w: QgsDateTimeEdit = self.mTable.cellWidget(row, 4)
             if w.isNull():
@@ -641,16 +651,19 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
                 endTime = w.dateTime()
             if startTime != self.mOldState[(row, 4)] or startTime != self.mOldState[(row, 5)]:
                 self.mReader.setTime(startTime, endTime, bandNo)
+                hasChanged = True
 
             w: QgsFilterLineEdit() = self.mTable.cellWidget(row, 6)
             offset = w.text()
             if offset != self.mOldState[(row, 6)]:
                 self.mReader.setUserBandOffset(offset, bandNo)
+                hasChanged = True
 
             w: QgsFilterLineEdit() = self.mTable.cellWidget(row, 7)
             scale = w.text()
             if scale != self.mOldState[(row, 7)]:
                 self.mReader.setUserBandScale(scale, bandNo)
+                hasChanged = True
 
             w: QgsFilterLineEdit = self.mTable.cellWidget(row, 8)
             noDataValues = w.text()
@@ -658,6 +671,34 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
                 noDataValues = self.bandNoDataValuesFromString(noDataValues)
                 if noDataValues is not None:
                     self.mReader.setUserNoDataValue(bandNo, noDataValues)
+                    hasChanged = True
+
+        if hasChanged:
+            answer = QMessageBox.question(
+                self.parent(), 'Band Properties',
+                'Band properties have been changed by the user.\n'
+                'Most EnMAP-Box applications and algorithms should concider those changes directly.\n'
+                'To assure that all QGIS applications, widgets and algorithms also behave well, '
+                'changes need to be saved as a new raster file.\n\n'
+                'Do you want to quickly save changes to a temporal VRT file? '
+                'If not, you can also save it later manually.'
+            )
+            if answer == QMessageBox.Yes:
+
+                alg = SaveRasterAsAlgorithm()
+                paramaters = {
+                    alg.P_RASTER: self.mReader.layer,
+                    alg.P_COPY_METADATA: True,
+                    alg.P_COPY_STYLE: True,
+                    alg.P_CREATION_PROFILE: alg.DefaultVrtCreationProfile,
+                    alg.P_OUTPUT_RASTER: QgsProcessingUtils().generateTempFilename(
+                        splitext(basename(self.mReader.layer.source()))[0] + '.vrt'
+                    )
+                }
+                result = processing.run(alg, paramaters)
+
+                Utils.setLayerDataSource(self.mReader.layer, 'GDAL', result[alg.P_OUTPUT_RASTER])
+
 
     def icon(self) -> QIcon:
         return QIcon(':/images/themes/default/propertyicons/editmetadata.svg')
