@@ -46,14 +46,16 @@ modified.
 
 QGIS Plugin Support 
 
-
 git subtree add --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master
 
-pull updates
-git fetch git@github.com:EnMAP-Box/qgispluginsupport.git
-git subtree pull --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master --squash
+pull updates:
+  
+  git fetch git@github.com:EnMAP-Box/qgispluginsupport.git
+  git subtree pull --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master --squash
 
-git subtree push --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master
+push changes:
+
+  git subtree push --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master
 
 
 
