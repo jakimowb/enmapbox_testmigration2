@@ -1,0 +1,19 @@
+# depending on your system it might be necessary to install required package with package installers others than pip
+# see https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
+# see https://www.python.org/dev/peps/pep-0440/#version-specifiers
+###### Requirements ######
+
+gdal
+numpy
+scipy
+# scikit-learn>=0.19.2
+
+# clean code
+flake8-qgis
+
+# for unit testing only
+coverage
+xmlrunner
+unittest-xml-reporting
+pytest
+
