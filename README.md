@@ -42,6 +42,20 @@ Developing the EnMAP-Box under this license means that you can (if you want to) 
 will always have access to an EnMAP-Box software that is free of cost and can be freely
 modified.
 
+## Dependencies
+
+QGIS Plugin Support 
+
+
+git subtree add --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master
+
+pull updates
+git fetch git@github.com:EnMAP-Box/qgispluginsupport.git
+git subtree pull --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master --squash
+
+git subtree push --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master
+
+
 
 ## Support
 You can get support in the following ways:
