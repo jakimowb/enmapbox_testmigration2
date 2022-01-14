@@ -38,7 +38,7 @@ from qgis.gui import QgsPluginManagerInterface
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
-from .externals.qps.testing import TestObjects, WFS_Berlin, WMS_GMAPS, WMS_OSM, TestCase, QgisMockup, StartOptions
+from .qgispluginsupport.qps.testing import TestObjects, WFS_Berlin, WMS_GMAPS, WMS_OSM, TestCase, QgisMockup, StartOptions
 import qgis.utils
 import numpy as np
 from osgeo import gdal, ogr, osr
@@ -57,7 +57,7 @@ def start_app(*args, loadProcessingFramework: bool = True, **kwds) -> QgsApplica
     if isinstance(QgsApplication.instance(), QgsApplication):
         return QgsApplication.instance()
     else:
-        from .externals.qps.testing import start_app, StartOptions
+        from .qgispluginsupport.qps.testing import start_app, StartOptions
         app = start_app(*args, options=StartOptions.All, **kwds)
 
         import enmapbox
@@ -68,10 +68,10 @@ def start_app(*args, loadProcessingFramework: bool = True, **kwds) -> QgsApplica
         enmapbox.registerExpressionFunctions()
         enmapbox.registerMapLayerConfigWidgetFactories()
 
-        from .externals.qps import registerSpectralLibraryIOs
+        from .qgspluginsupport.qps import registerSpectralLibraryIOs
         registerSpectralLibraryIOs()
 
-        from .externals.qps import registerSpectralProfileSamplingModes
+        from .qgspluginsupport.qps import registerSpectralProfileSamplingModes
         registerSpectralProfileSamplingModes()
         return app
 

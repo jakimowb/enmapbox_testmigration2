@@ -110,7 +110,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
     def test_resources(self):
 
-        from enmapbox.externals.qps.resources import ResourceBrowser
+        from enmapbox.qgispluginsupport.qps.resources import ResourceBrowser
 
         b = ResourceBrowser()
 
@@ -131,7 +131,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
     @unittest.skipIf(not (pathlib.Path(DIR_REPO) / 'qgisresources').is_dir(), 'qgisresources dir does not exist')
     def test_findqgisresources(self):
-        from enmapbox.externals.qps.resources import findQGISResourceFiles
+        from enmapbox.qgispluginsupport.qps.resources import findQGISResourceFiles
         results = findQGISResourceFiles()
         print('QGIS Resource files:')
         for p in results:

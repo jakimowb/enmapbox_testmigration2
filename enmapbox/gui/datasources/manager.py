@@ -16,9 +16,9 @@ from PyQt5.QtWidgets import QMenu, QAction, QApplication, QAbstractItemView, QTr
 import qgis
 from qgis.core import Qgis
 
-from enmapbox.externals.qps.layerproperties import defaultRasterRenderer
-from enmapbox.externals.qps.models import TreeModel, TreeView, TreeNode
-from enmapbox.externals.qps.utils import defaultBands, bandClosestToWavelength, loadUi, qgisAppQgisInterface
+from enmapbox.qgispluginsupport.qps.layerproperties import defaultRasterRenderer
+from enmapbox.qgispluginsupport.qps.models import TreeModel, TreeView, TreeNode
+from enmapbox.qgispluginsupport.qps.utils import defaultBands, bandClosestToWavelength, loadUi, qgisAppQgisInterface
 
 from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from enmapboxprocessing.algorithm.subsetrasterbandsalgorithm import SubsetRasterBandsAlgorithm
@@ -43,7 +43,7 @@ from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAs
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from ..mimedata import MDF_URILIST, QGIS_URILIST_MIMETYPE, extractMapLayers, fromDataSourceList
 
-from ...externals.qps.speclib.core import is_spectral_library
+from ...qgispluginsupport.qps.speclib.core import is_spectral_library
 
 
 class DataSourceManager(TreeModel):

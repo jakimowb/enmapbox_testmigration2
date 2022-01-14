@@ -41,10 +41,10 @@ from qgis.gui import QgsLayerTreeView, \
     QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget, QgsMessageBar
 
 from enmapbox import debugLog
-from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
-from enmapbox.externals.qps.speclib.core import is_spectral_library, profile_field_list
+from enmapbox.qgispluginsupport.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
+from enmapbox.qgispluginsupport.qps.speclib.core import is_spectral_library, profile_field_list
 from enmapbox.gui import \
-    SpectralLibrary, SpectralLibraryWidget, SpatialExtent, findParent, loadUi, showLayerPropertiesDialog
+    SpectralLibrary, SpectralLibraryWidget, SpatialExtent, showLayerPropertiesDialog
 from enmapbox.gui.datasources.datasources import DataSource
 from enmapbox.gui.datasources.manager import DataSourceManager
 from enmapbox.gui.dataviews.docks import Dock, DockArea, \

@@ -10,7 +10,7 @@ from qgis._core import QgsRasterLayer, QgsSingleBandGrayRenderer, QgsRectangle, 
 from qgis._gui import (QgsDockWidget, QgsRasterBandComboBox, QgsMapLayerComboBox)
 
 from enmapbox import EnMAPBox
-from enmapbox.externals.qps.utils import SpatialExtent
+from enmapbox.qgispluginsupport.qps.utils import SpatialExtent
 from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.utils import Utils

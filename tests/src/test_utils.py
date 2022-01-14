@@ -18,7 +18,7 @@ import xmlrunner
 from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QMenu
 from osgeo import gdal
 
-from enmapbox.externals.qps.utils import gdalDataset, displayBandNames, SpatialPoint, geo2px, layerGeoTransform
+from enmapbox.qgispluginsupport.qps.utils import gdalDataset, displayBandNames, SpatialPoint, geo2px, layerGeoTransform
 from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsPointXY, Qgis
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.gui.utils import *

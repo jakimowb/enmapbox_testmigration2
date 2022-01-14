@@ -10,8 +10,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
-from enmapbox.externals.qps.speclib.core import is_spectral_library
+from enmapbox.qgispluginsupport.qps.speclib.core.spectrallibrary import SpectralLibrary
+from enmapbox.qgispluginsupport.qps.speclib.core import is_spectral_library
 from _classic.hubdsm.core.color import Color as HubdsmColor
 from _classic.hubdsm.core.gdalraster import GdalRaster
 from _classic.hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme
@@ -497,7 +497,7 @@ class CategoryFieldSelectionDialog(QDialog):
 
     @staticmethod
     def openLayerPropertiesDialog(layer: QgsVectorLayer, parent: QWidget):
-        from enmapbox.externals.qps.layerproperties import LayerPropertiesDialog
+        from enmapbox.qgispluginsupport.qps.layerproperties import LayerPropertiesDialog
         dialog = LayerPropertiesDialog(layer, parent=parent)
         dialog.mOptionsListWidget.setCurrentRow(2)
         dialog.setModal(True)

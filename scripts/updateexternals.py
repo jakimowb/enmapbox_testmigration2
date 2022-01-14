@@ -26,8 +26,8 @@ if not DIR_ENMAPBOX_REPO in sys.path:
     sys.path.append(DIR_ENMAPBOX_REPO)
 sys.path.append(pathlib.Path(__file__).parent.as_posix())
 from enmapbox import DIR_REPO
-from enmapbox.externals.qps.make import updateexternals
-from enmapbox.externals.qps.make.updateexternals import RemoteInfo
+from enmapbox.qgispluginsupport.qps.make import updateexternals
+from enmapbox.qgispluginsupport.qps.make.updateexternals import RemoteInfo
 
 import git # install with: pip install gitpython
 
@@ -110,7 +110,7 @@ def updateRemotes(remoteLocations):
     Shortcut to update from terminal
     :param remoteLocations: str or list of str with remote location keys to update.
     """
-    import enmapbox.externals.qps.make.updateexternals as updateexternals
+    import enmapbox.qgispluginsupport.qps.make.updateexternals as updateexternals
     if isinstance(remoteLocations, str):
         remoteLocations = [remoteLocations]
     updateexternals.updateRemoteLocations(remoteLocations)

@@ -36,8 +36,8 @@ from PyQt5.QtWidgets import QAbstractItemView, QStyle, QAction, QTreeView, QFile
 
 import qgis.utils
 from enmapbox import DIR_EXAMPLEDATA, messageLog
-from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB, is_spectral_library
-from enmapbox.externals.qps.utils import bandClosestToWavelength, QGIS_DATATYPE_NAMES
+from enmapbox.qgispluginsupport.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY as EWTYPE_SPECLIB, is_spectral_library
+from enmapbox.qgispluginsupport.qps.utils import bandClosestToWavelength, QGIS_DATATYPE_NAMES
 from enmapbox.gui import \
     ClassificationScheme, TreeNode, TreeView, ClassInfo, TreeModel, PyObjectTreeNode, \
     qgisLayerTreeLayers, qgisAppQgisInterface, SpectralLibrary, SpatialExtent, fileSizeString, defaultBands, \
@@ -320,7 +320,7 @@ class DataSourceManager(QObject):
         self.addSubDatasetsByDialog(title='Add Sentinel-2 Data', filter=';;'.join(filter))
 
     def addSubDatasetsByDialog(self, *args, title='Add Sub-Datasets', filter: str = 'All files (*.*)'):
-        from enmapbox.externals.qps.subdatasets import SubDatasetSelectionDialog
+        from enmapbox.qgispluginsupport.qps.subdatasets import SubDatasetSelectionDialog
         from enmapbox import enmapboxSettings
         SETTINGS = enmapboxSettings()
         defaultRoot = SETTINGS.value('lastsourcedir', None)
@@ -1478,7 +1478,7 @@ class DataSourceManagerTreeModel(TreeModel):
 
                 if False:
                     if isinstance(dataSource, DataSourceSpectralLibrary):
-                        from ..externals.qps.speclib.core import MIMEDATA_SPECLIB_LINK
+                        from ..qgispluginsupport.qps.speclib.core import MIMEDATA_SPECLIB_LINK
                         mimeDataSpeclib = dataSource.speclib().mimeData(formats=[MIMEDATA_SPECLIB_LINK])
                         for f in mimeDataSpeclib.formats():
                             if f not in mimeData.formats():

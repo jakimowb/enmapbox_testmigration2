@@ -26,7 +26,7 @@ from sklearn.svm import SVR
 import ee
 import enmapbox.externals.pyqtgraph as pg
 from enmapbox import EnMAPBox
-from enmapbox.externals.qps.utils import SpatialPoint
+from enmapbox.qgispluginsupport.qps.utils import SpatialPoint
 from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from enmapboxprocessing.utils import Utils
 from geetimeseriesexplorerapp.tasks.downloadimagechiptask import DownloadImageChipTask, DownloadImageChipBandTask

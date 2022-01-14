@@ -27,8 +27,8 @@ from PyQt5.QtWidgets import QApplication
 from osgeo import ogr, gdal
 
 import testdata
-from enmapbox.externals.qps.speclib.core import profile_fields
-from enmapbox.externals.qps.utils import SpatialExtent
+from enmapbox.qgispluginsupport.qps.speclib.core import profile_fields
+from enmapbox.qgispluginsupport.qps.utils import SpatialExtent
 from enmapbox.gui.datasources.datasources import SpatialDataSource, DataSource, RasterDataSource
 from enmapbox.gui.datasources.manager import DataSourceManager, DataSourceManagerPanelUI, DataSourceFactory
 from qgis.PyQt import sip

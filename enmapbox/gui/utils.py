@@ -18,7 +18,7 @@
 ***************************************************************************
 """
 
-from ..externals.qps.utils import *
+from ..qgispluginsupport.qps.utils import *
 
 from qgis.core import Qgis
 

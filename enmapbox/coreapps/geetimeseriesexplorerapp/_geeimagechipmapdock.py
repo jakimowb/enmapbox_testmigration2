@@ -7,8 +7,8 @@ from PyQt5.QtWidgets import QToolButton, QWidget
 from qgis._core import QgsRasterLayer, QgsPointXY, QgsProject, QgsLayerTreeLayer
 from qgis._gui import QgsMapCanvas
 
-from enmapbox.externals.qps.crosshair.crosshair import CrosshairMapCanvasItem
-from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent
+from enmapbox.qgispluginsupport.qps.crosshair.crosshair import CrosshairMapCanvasItem
+from enmapbox.qgispluginsupport.qps.utils import SpatialPoint, SpatialExtent
 from enmapbox.gui.dataviews.docks import MapDock
 from typeguard import typechecked
 

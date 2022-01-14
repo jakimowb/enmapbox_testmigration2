@@ -23,7 +23,7 @@ from enmapbox.exampledata import *
 from enmapbox.gui.datasources.manager import *
 from enmapbox.gui.dataviews.dockmanager import *
 from enmapbox.gui.dataviews.docks import *
-from enmapbox.externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.dockarea.Dock import Dock as pgDock
 
 
 class testDataSources(EnMAPBoxTestCase):

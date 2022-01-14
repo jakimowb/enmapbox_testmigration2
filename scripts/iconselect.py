@@ -1,8 +1,8 @@
 import sys, os, re, pathlib
 from qgis.PyQt.QtWidgets import QApplication
 def run():
-    from enmapbox.externals.qps.resources import ResourceBrowser
-    from enmapbox.externals.qps.testing import start_app
+    from enmapbox.qgispluginsupport.qps.resources import ResourceBrowser
+    from enmapbox.qgispluginsupport.qps.testing import start_app
     from enmapbox.gui.utils import file_search
 
     DIR_REPO = pathlib.Path(__file__).resolve().parents[1]

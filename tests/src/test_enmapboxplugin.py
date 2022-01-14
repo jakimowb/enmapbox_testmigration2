@@ -26,7 +26,7 @@ from qgis.core import QgsProcessingAlgorithm, QgsProject
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-from enmapbox.externals.qps.testing import start_app
+from enmapbox.qgispluginsupport.qps.testing import start_app
 from enmapbox.testing import TestObjects
 
 QGIS_APP = start_app()

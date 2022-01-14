@@ -26,7 +26,7 @@ from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.exampledata import enmap, landcover_polygons
 from enmapbox.gui import *
 from enmapbox.testing import TestObjects
-from enmapbox.externals.qps.cursorlocationvalue import CursorLocationInfoDock
+from enmapbox.qgispluginsupport.qps.cursorlocationvalue import CursorLocationInfoDock
 
 
 class CursorLocationTest(EnMAPBoxTestCase):

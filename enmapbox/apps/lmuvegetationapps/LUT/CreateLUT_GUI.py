@@ -32,7 +32,7 @@ from scipy.interpolate import interp1d
 
 from qgis.gui import *
 # ensure to call QGIS before PyQtGraph
-from enmapbox.externals.qps.externals import pyqtgraph as pg
+from enmapbox.qgispluginsupport.qps.externals import pyqtgraph as pg
 
 from qgis.PyQt.QtWidgets import *
 import lmuvegetationapps.Resources.PROSAIL.call_model as mod

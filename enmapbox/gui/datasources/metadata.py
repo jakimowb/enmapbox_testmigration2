@@ -5,11 +5,11 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QIcon, QColor, QPixmap
 from PyQt5.QtWidgets import QMenu, QApplication
 
-from enmapbox.externals.qps.models import TreeNode, PyObjectTreeNode
+from enmapbox.qgispluginsupport.qps.models import TreeNode, PyObjectTreeNode
 from qgis.core import QgsCoordinateReferenceSystem, QgsUnitTypes, QgsRasterLayer, QgsDataItem, QgsLayerItem, \
     QgsMapLayerType, QgsVectorLayer, QgsMapLayer, QgsRasterDataProvider
 
-from enmapbox.externals.qps.utils import fileSizeString, SpatialExtent, QGIS_DATATYPE_NAMES
+from enmapbox.qgispluginsupport.qps.utils import fileSizeString, SpatialExtent, QGIS_DATATYPE_NAMES
 from enmapbox.gui.utils import dataTypeName
 
 

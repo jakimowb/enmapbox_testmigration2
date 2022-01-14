@@ -39,8 +39,8 @@ import hubdc.core
 
 from enmapbox.gui.applications import EnMAPBoxApplication
 from enmapbox import enmapboxSettings
-from enmapbox.externals.qps.utils import loadUi
-from enmapbox.externals.qps.classification.classificationscheme import \
+from enmapbox.qgispluginsupport.qps.utils import loadUi
+from enmapbox.qgispluginsupport.qps.classification.classificationscheme import \
     ClassificationMapLayerComboBox, ClassInfo, ClassificationScheme, ClassificationSchemeComboBox, \
     ClassificationSchemeWidget
 from enmapbox.gui.utils import gdalDataset as getDataset

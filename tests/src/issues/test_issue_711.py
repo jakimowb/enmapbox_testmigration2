@@ -103,7 +103,7 @@ class TestIssue(EnMAPBoxTestCase):
         self.showGui([EMB.ui])
 
     def test_treeModel(self):
-        from enmapbox.externals.qps.models import TreeView, TreeModel, TreeNode
+        from enmapbox.qgispluginsupport.qps.models import TreeView, TreeModel, TreeNode
 
         model = TreeModel()
 

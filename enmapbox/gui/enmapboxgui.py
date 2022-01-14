@@ -70,20 +70,20 @@ from enmapbox import messageLog, debugLog, DEBUG
 from enmapbox.gui.dataviews.dockmanager import DockManagerTreeModel, MapDockTreeNode, SpeclibDockTreeNode
 from typeguard import typechecked
 from .datasources.datasources import DataSource, RasterDataSource, VectorDataSource, SpatialDataSource
-from enmapbox.externals.qps.cursorlocationvalue import CursorLocationInfoDock
-from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog
-from enmapbox.externals.qps.maptools import QgsMapToolSelectionHandler, MapTools
+from enmapbox.qgispluginsupport.qps.cursorlocationvalue import CursorLocationInfoDock
+from enmapbox.qgispluginsupport.qps.layerproperties import showLayerPropertiesDialog
+from enmapbox.qgispluginsupport.qps.maptools import QgsMapToolSelectionHandler, MapTools
 from enmapbox.algorithmprovider import EnMAPBoxProcessingProvider
-from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
-from enmapbox.externals.qps.speclib.gui.spectralprofilesources import SpectralProfileSourcePanel, \
+from enmapbox.qgispluginsupport.qps.speclib.core.spectrallibrary import SpectralLibrary
+from enmapbox.qgispluginsupport.qps.speclib.gui.spectralprofilesources import SpectralProfileSourcePanel, \
     MapCanvasLayerProfileSource
-from enmapbox.externals.qps.speclib.gui.spectrallibrarywidget import SpectralLibraryWidget
+from enmapbox.qgispluginsupport.qps.speclib.gui.spectrallibrarywidget import SpectralLibraryWidget
 from enmapbox.gui.dataviews.docks import SpectralLibraryDock, Dock, AttributeTableDock, MapDock
 from .mapcanvas import MapCanvas
 from .utils import enmapboxUiPath
-from ..externals.qps.speclib.core import is_spectral_library
-from ..externals.qps.subdatasets import SubDatasetSelectionDialog
-from ..externals.qps.utils import SpatialPoint, loadUi, SpatialExtent, file_search
+from ..qgispluginsupport.qps.speclib.core import is_spectral_library
+from ..qgispluginsupport.qps.subdatasets import SubDatasetSelectionDialog
+from ..qgispluginsupport.qps.utils import SpatialPoint, loadUi, SpatialExtent, file_search
 
 HIDDEN_ENMAPBOX_LAYER_GROUP = 'ENMAPBOX/HIDDEN_ENMAPBOX_LAYER_GROUP'
 
@@ -463,7 +463,7 @@ class EnMAPBox(QgisInterface, QObject):
         self.initActions()
         self.initActionsAddProduct()
 
-        from enmapbox.externals.qps.vectorlayertools import VectorLayerTools
+        from enmapbox.qgispluginsupport.qps.vectorlayertools import VectorLayerTools
         self.mVectorLayerTools = VectorLayerTools()
         self.mVectorLayerTools.sigMessage.connect(lambda title, text, level:
                                                   self.messageBar().pushItem(QgsMessageBarItem(title, text, level)))
@@ -703,7 +703,7 @@ class EnMAPBox(QgisInterface, QObject):
         """
         Opens a browser widget that lists all Qt Resources
         """
-        from ..externals.qps.resources import showResources
+        from ..qgispluginsupport.qps.resources import showResources
         browser = showResources()
         browser.setWindowTitle('Resource Browser')
         self._browser = browser

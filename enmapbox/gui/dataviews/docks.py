@@ -34,16 +34,13 @@ from qgis.PyQt import QtCore
 from qgis.core import QgsVectorLayer
 
 from enmapbox.gui import SpectralLibraryWidget, SpectralLibrary
-from enmapbox.gui.datasources import *
-from enmapbox.gui.utils import *
-
-from enmapbox.externals.qps.externals.pyqtgraph.dockarea import DockArea as pgDockArea
-from enmapbox.externals.qps.externals.pyqtgraph.dockarea.DockArea import TempAreaWindow
-from enmapbox.externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
-from enmapbox.externals.qps.externals.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
-from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.dockarea import DockArea as pgDockArea
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.dockarea.DockArea import TempAreaWindow
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.dockarea.Dock import Dock as pgDock
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
+from enmapbox.qgispluginsupport.qps.layerproperties import pasteStyleFromClipboard
 from enmapbox.gui.mimedata import MDF_QGIS_LAYER_STYLE
-from enmapbox.externals.qps.speclib.core import is_spectral_library
+from enmapbox.qgispluginsupport.qps.speclib.core import is_spectral_library
 from enmapboxprocessing.utils import Utils
 
 
@@ -780,7 +777,7 @@ class AttributeTableDock(Dock):
 
     def __init__(self, layer: QgsVectorLayer, *args, **kwds):
         super(AttributeTableDock, self).__init__(*args, **kwds)
-        from enmapbox.externals.qps.layerproperties import AttributeTableWidget
+        from enmapbox.qgispluginsupport.qps.layerproperties import AttributeTableWidget
         self.attributeTableWidget = AttributeTableWidget(layer)
         self.addWidget(self.attributeTableWidget, 0, 0)
         self.updateTitle(self.attributeTableWidget.windowTitle())
