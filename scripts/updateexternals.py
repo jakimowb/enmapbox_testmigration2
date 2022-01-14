@@ -39,11 +39,12 @@ updateexternals.setProjectRepository(DIR_REPO)
 #                  prefixRemote=r'enmapboxtestdata',
 #                  remoteBranch='master')
 
-RemoteInfo.create(r'https://bitbucket.org/jakimowb/qgispluginsupport.git',
-                  key='qps',
-                  prefixLocal='enmapbox/externals/qps',
-                  prefixRemote=r'qps',
-                  remoteBranch='develop')
+# RemoteInfo.create(r'https://bitbucket.org/jakimowb/qgispluginsupport.git',
+#                   key='qps',
+#                   prefixLocal='enmapbox/externals/qps',
+#                   prefixRemote=r'qps',
+#                  remoteBranch='develop')
+# todo: integrate by git subtree add --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git
 
 RemoteInfo.create(r'https://bitbucket.org/ecstagriculture/enmap-box-lmu-vegetation-apps.git',
                   key='lmu',
