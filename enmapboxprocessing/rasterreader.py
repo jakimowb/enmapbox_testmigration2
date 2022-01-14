@@ -6,7 +6,7 @@ from PyQt5.QtCore import QSizeF, QDateTime
 from osgeo import gdal
 from qgis._core import (QgsRasterLayer, QgsRasterDataProvider, QgsCoordinateReferenceSystem, QgsRectangle,
                         QgsRasterRange, QgsPoint, QgsRasterBlockFeedback, QgsRasterBlock, QgsPointXY,
-                        QgsProcessingFeedback)
+                        QgsProcessingFeedback, QgsProject)
 
 from enmapboxprocessing.gridwalker import GridWalker
 from enmapboxprocessing.rasterblockinfo import RasterBlockInfo
@@ -375,14 +375,17 @@ class RasterReader(object):
 
         return metadata
 
-    def metadata(self, bandNo: int = None, ignoreQgisPam=False) -> Metadata:
-        domains = self._gdalObject(bandNo).GetMetadataDomainList()
+    def metadata(self, bandNo: int = None) -> Metadata:
+        #domains = self._gdalObject(bandNo).GetMetadataDomainList()
+        domains = self.metadataDomainKeys(bandNo)
         return {domain: self.metadataDomain(domain, bandNo) for domain in domains}
 
     def metadataDomainKeys(self, bandNo: int = None, ignoreQgisPam=False) -> List[str]:
 
         # get GDAL PAM domains
         domains: List = self._gdalObject(bandNo).GetMetadataDomainList()
+        if domains is None:
+            domains = []
         if ignoreQgisPam:
             return domains
 
@@ -641,3 +644,61 @@ class RasterReader(object):
 
     def gdalBand(self, bandNo: int) -> gdal.Band:
         return self.gdalDataset.GetRasterBand(bandNo)
+
+    @staticmethod
+    def flushQgisPam(layer: QgsRasterLayer):
+        """Write  all custom layer properties to the GDAL source."""
+
+        if layer.dataProvider().name() != 'gdal':
+            return
+
+        # collect all infos
+        reader = RasterReader(layer)
+        bandNumbers = list(reader.bandNumbers())
+        datasetMetadata = reader.metadata()
+        bandMetadata = [reader.metadata(bandNo) for bandNo in bandNumbers]
+        userBandNames = [reader.userBandName(bandNo) for bandNo in bandNumbers]
+        userBandOffsets = [reader.userBandOffset(bandNo) for bandNo in bandNumbers]
+        userBandScales = [reader.userBandScale(bandNo) for bandNo in bandNumbers]
+        bandOffsets = [reader.bandOffset(bandNo) for bandNo in bandNumbers]
+        bandScales = [reader.bandScale(bandNo) for bandNo in bandNumbers]
+        del reader
+
+        # Flush all project layers that share the same source.
+        # This shall prevent QGIS from overwriting our following external edits.
+        # Fingers crossed!
+        for alayer in QgsProject.instance().mapLayers().values():
+            if alayer.source() == layer.source():
+                Utils.setLayerDataSource(layer, 'GDAL', layer.source())
+
+        # Set metadata via GDAL API. This is external to QGIS!
+        from enmapboxprocessing.rasterwriter import RasterWriter
+        ds = gdal.Open(layer.source())
+        writer = RasterWriter(ds)
+        writer.setMetadata(datasetMetadata)
+        for i in range(layer.bandCount()):
+            bandNo = i +1
+            writer.setMetadata(bandMetadata[i], bandNo)
+            if userBandNames[i] is not None:
+                writer.setBandName(userBandNames[i], bandNo)
+            if userBandOffsets[i] is not None or userBandScales[i] is not None:
+                if userBandScales[i] is None:
+                    userBandScale = 1.
+                else:
+                    userBandScale = userBandScales[i]
+                if userBandOffsets[i] is None:
+                    userBandOffset = 1.
+                else:
+                    userBandOffset = userBandOffsets[i]
+                offset = bandOffsets[i] * userBandScale + userBandOffset
+                writer.setOffset(offset, bandNo)
+            if userBandScales[i] is not None:
+                scale = bandScales[i] * userBandScales[i]
+                writer.setScale(scale, bandNo)
+        del writer, ds
+
+        # Reload all project layers that share the same source.
+        # QGIS should now be aware of the new band names, data offset/scale values and other metadata items.
+        for alayer in QgsProject.instance().mapLayers().values():
+            if alayer.source() == layer.source():
+                Utils.setLayerDataSource(layer, 'GDAL', layer.source())

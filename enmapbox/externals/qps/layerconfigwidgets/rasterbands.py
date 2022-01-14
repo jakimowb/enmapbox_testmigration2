@@ -30,12 +30,14 @@ from typing import List, Optional
 
 from PyQt5.QtWidgets import QGroupBox, QToolButton, QPushButton, QTableWidget, QCheckBox, QAbstractSpinBox, QComboBox, \
     QTextEdit, QLineEdit, QMessageBox
+from osgeo import gdal
 from qgis._core import QgsRasterRange, QgsProject, QgsProcessing, QgsProcessingUtils
 from qgis._gui import QgsFilterLineEdit, QgsDateTimeEdit
 
 import processing
 from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
+from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.utils import Utils
 from processing import getTempDirInTempFolder
 from qgis.gui import QgsRasterLayerProperties
@@ -414,17 +416,19 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
 
         assert isinstance(layer, QgsRasterLayer)
         self.mCanvas = canvas
-        self.mReader = RasterReader(layer)
+        self.mLayer = layer
+
+        reader =  RasterReader(self.mLayer)
 
         # init gui
-        self.mTable.setRowCount(self.mReader.bandCount())
+        self.mTable.setRowCount(reader.bandCount())
         self.mOldState = dict()
-        for bandNo in self.mReader.bandNumbers():
+        for bandNo in reader.bandNumbers():
             row = bandNo - 1
 
-            bandName = self.mReader.userBandName(bandNo)
+            bandName = reader.userBandName(bandNo)
             if bandName is None:
-                bandName = self.mReader.bandName(bandNo)
+                bandName = reader.bandName(bandNo)
             w = QgsFilterLineEdit()
             w.setNullValue(bandName)
             w.setText(bandName)
@@ -432,7 +436,7 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             self.mTable.setCellWidget(row, 0, w)
             self.mOldState[(row, 0)] = bandName
 
-            wavelength = self.mReader.wavelength(bandNo)
+            wavelength = reader.wavelength(bandNo)
             if wavelength is None:
                 wavelength = ''
             else:
@@ -444,7 +448,7 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             self.mTable.setCellWidget(row, 1, w)
             self.mOldState[(row, 1)] = wavelength
 
-            fwhm = self.mReader.fwhm(bandNo)
+            fwhm = reader.fwhm(bandNo)
             if fwhm is None:
                 fwhm = ''
             else:
@@ -456,14 +460,14 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             self.mTable.setCellWidget(row, 2, w)
             self.mOldState[(row, 2)] = fwhm
 
-            isBadBand = self.mReader.badBandMultiplier(bandNo) == 0
+            isBadBand = reader.badBandMultiplier(bandNo) == 0
             w = QCheckBox()
             w.setChecked(isBadBand)
             self.mTable.setCellWidget(row, 3, w)
             self.mOldState[(row, 3)] = isBadBand
 
             self.dateTimeFormat = 'yyyy-MM-ddTHH:mm:ss'
-            startTime = self.mReader.startTime(bandNo)
+            startTime = reader.startTime(bandNo)
             w = QgsDateTimeEdit()
             w.setDisplayFormat(self.dateTimeFormat)
             w.setFrame(False)
@@ -477,7 +481,7 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             self.mTable.setCellWidget(row, 4, w)
             self.mOldState[(row, 4)] = startTime
 
-            endTime = self.mReader.endTime(bandNo)
+            endTime = reader.endTime(bandNo)
             w = QgsDateTimeEdit()
             w.setDisplayFormat(self.dateTimeFormat)
             w.setFrame(False)
@@ -491,7 +495,7 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             self.mTable.setCellWidget(row, 5, w)
             self.mOldState[(row, 5)] = endTime
 
-            offset = self.mReader.userBandOffset(bandNo)
+            offset = reader.userBandOffset(bandNo)
             if offset is None:
                 offset = ''
             else:
@@ -503,7 +507,7 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             self.mTable.setCellWidget(row, 6, w)
             self.mOldState[(row, 6)] = offset
 
-            scale = self.mReader.userBandScale(bandNo)
+            scale = reader.userBandScale(bandNo)
             if scale is None:
                 scale = ''
             else:
@@ -533,12 +537,13 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
         self.parent().accepted.connect(self.onAccepted)
 
     def bandNoDataValuesToString(self, bandNo: int) -> str:
+        reader = RasterReader(self.mLayer)
         items = list()
-        if self.mReader.sourceNoDataValue(bandNo) is not None:
-            items.append(str(self.mReader.sourceNoDataValue(bandNo)))
+        if reader.sourceNoDataValue(bandNo) is not None:
+            items.append(str(reader.sourceNoDataValue(bandNo)))
 
         rasterRange: QgsRasterRange
-        for rasterRange in self.mReader.userNoDataValues(bandNo):
+        for rasterRange in reader.userNoDataValues(bandNo):
             if rasterRange.min() == rasterRange.max() and rasterRange.bounds() == QgsRasterRange.IncludeMinAndMax:
                 items.append(f'{rasterRange.min()}')
             else:
@@ -568,8 +573,8 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
         code = self.mCode.text()
         try:
             values = list()
-            for bandNo in self.mReader.bandNumbers():
-                value = eval(code, {'bandNo': bandNo, 'layer': self.mReader.layer, 'reader': self.mReader})
+            for bandNo in reader.bandNumbers():
+                value = eval(code, {'bandNo': bandNo, 'layer': reader.layer, 'reader': reader})
                 values.append(value)
         except Exception as error:
             self.mPreview.setText(str(error))
@@ -583,7 +588,7 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
 
     def onSetValuesClicked(self):
         column = self.mColumn.currentIndex()
-        for bandNo, value in zip(self.mReader.bandNumbers(), self.mEvalValues):
+        for bandNo, value in zip(reader.bandNumbers(), self.mEvalValues):
             row = bandNo - 1
 
             widget = self.mTable.cellWidget(row, column)
@@ -597,8 +602,9 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
                 raise NotImplementedError(f'unexpected attribute type: {type(widget)}')
 
     def onRevertValuesClicked(self):
+        reader = RasterReader(self.mLayer)
         column = self.mColumn.currentIndex()
-        for bandNo, value in zip(self.mReader.bandNumbers(), self.mEvalValues):
+        for bandNo, value in zip(reader.bandNumbers(), self.mEvalValues):
             row = bandNo - 1
             widget = self.mTable.cellWidget(row, column)
             value = self.mOldState[(row, column)]
@@ -612,14 +618,15 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
                 raise NotImplementedError(f'unexpected attribute type: {type(widget)}')
 
     def onAccepted(self):
+        reader = RasterReader(self.mLayer)
         hasChanged = False
-        for bandNo in self.mReader.bandNumbers():
+        for bandNo in reader.bandNumbers():
             row = bandNo - 1
 
             w: QgsFilterLineEdit = self.mTable.cellWidget(row, 0)
             bandName = w.text()
             if bandName != self.mOldState[(row, 0)]:
-                self.mReader.setUserBandName(bandName, bandNo)
+                reader.setUserBandName(bandName, bandNo)
                 hasChanged = True
 
             w: QgsFilterLineEdit = self.mTable.cellWidget(row, 1)
@@ -627,16 +634,18 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             w: QgsFilterLineEdit = self.mTable.cellWidget(row, 2)
             fwhm = w.text()
             if wavelength != self.mOldState[(row, 1)] or fwhm != self.mOldState[(row, 2)]:
-                self.mReader.setWavelength(float(wavelength), bandNo, None, float(fwhm))
+                fwhm = None if fwhm == '' else float(fwhm)
+                wavelength = None if wavelength == '' else float(wavelength)
+                reader.setWavelength(wavelength, bandNo, None, fwhm)
                 hasChanged = True
 
             w: QCheckBox = self.mTable.cellWidget(row, 3)
             isBadBand = w.checkState()
             if isBadBand != self.mOldState[(row, 3)]:
                 if isBadBand:
-                    self.mReader.setBadBandMultiplier(0, bandNo)
+                    reader.setBadBandMultiplier(0, bandNo)
                 else:
-                    self.mReader.setBadBandMultiplier(1, bandNo)
+                    reader.setBadBandMultiplier(1, bandNo)
                 hasChanged = True
 
             w: QgsDateTimeEdit = self.mTable.cellWidget(row, 4)
@@ -650,19 +659,19 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             else:
                 endTime = w.dateTime()
             if startTime != self.mOldState[(row, 4)] or startTime != self.mOldState[(row, 5)]:
-                self.mReader.setTime(startTime, endTime, bandNo)
+                reader.setTime(startTime, endTime, bandNo)
                 hasChanged = True
 
             w: QgsFilterLineEdit() = self.mTable.cellWidget(row, 6)
             offset = w.text()
             if offset != self.mOldState[(row, 6)]:
-                self.mReader.setUserBandOffset(offset, bandNo)
+                reader.setUserBandOffset(offset, bandNo)
                 hasChanged = True
 
             w: QgsFilterLineEdit() = self.mTable.cellWidget(row, 7)
             scale = w.text()
             if scale != self.mOldState[(row, 7)]:
-                self.mReader.setUserBandScale(scale, bandNo)
+                reader.setUserBandScale(scale, bandNo)
                 hasChanged = True
 
             w: QgsFilterLineEdit = self.mTable.cellWidget(row, 8)
@@ -670,35 +679,11 @@ class RasterBandPropertiesConfigWidget(QpsMapLayerConfigWidget):
             if noDataValues != self.mOldState[(row, 8)]:
                 noDataValues = self.bandNoDataValuesFromString(noDataValues)
                 if noDataValues is not None:
-                    self.mReader.setUserNoDataValue(bandNo, noDataValues)
+                    reader.setUserNoDataValue(bandNo, noDataValues)
                     hasChanged = True
 
         if hasChanged:
-            answer = QMessageBox.question(
-                self.parent(), 'Band Properties',
-                'Band properties have been changed by the user.\n'
-                'Most EnMAP-Box applications and algorithms should concider those changes directly.\n'
-                'To assure that all QGIS applications, widgets and algorithms also behave well, '
-                'changes need to be saved as a new raster file.\n\n'
-                'Do you want to quickly save changes to a temporal VRT file? '
-                'If not, you can also save it later manually.'
-            )
-            if answer == QMessageBox.Yes:
-
-                alg = SaveRasterAsAlgorithm()
-                paramaters = {
-                    alg.P_RASTER: self.mReader.layer,
-                    alg.P_COPY_METADATA: True,
-                    alg.P_COPY_STYLE: True,
-                    alg.P_CREATION_PROFILE: alg.DefaultVrtCreationProfile,
-                    alg.P_OUTPUT_RASTER: QgsProcessingUtils().generateTempFilename(
-                        splitext(basename(self.mReader.layer.source()))[0] + '.vrt'
-                    )
-                }
-                result = processing.run(alg, paramaters)
-
-                Utils.setLayerDataSource(self.mReader.layer, 'GDAL', result[alg.P_OUTPUT_RASTER])
-
+            RasterReader.flushQgisPam(self.mLayer)
 
     def icon(self) -> QIcon:
         return QIcon(':/images/themes/default/propertyicons/editmetadata.svg')
