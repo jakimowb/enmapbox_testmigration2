@@ -10,8 +10,7 @@ This includes, for example
 - Interactive plotting
 - Tools to test python code that uses the QGIS API
 
-QPS is designed as python package that can be included as subpackage of other QGIS python plugins. This  
-
+QPS is designed as python package that can be included as subpackage of other QGIS python plugins. This
 
 QPS is used in other projects, for example:
 QPS is used in other project like:
@@ -28,6 +27,17 @@ Ideally, QPS becomes obsolete by providing every feature  every feature
 
 ## Installation ##
 
+### Include as subtree
+
+Add QPS as a substree:
+
+   git subtree add --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master
+
+Push updates (replace with your fork):
+
+   git subtree add --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git myupdates
+
+### Copy and paste
 
 1. Copy the qgs folder into your source code, e.g. ``mymodule/qps``, and ensure that the Qt resource files are compiled:
 
