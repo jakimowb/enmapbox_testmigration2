@@ -43,6 +43,7 @@ import traceback
 import typing
 import warnings
 import zipfile
+from typing import Optional
 
 import numpy as np
 from osgeo import gdal, ogr, osr, gdal_array
@@ -1770,7 +1771,10 @@ def parseFWHM(dataset) -> np.ndarray:
     return None
 
 
-def checkWavelength(key: str, values: str, expected: int = 1) -> np.ndarray:
+def checkWavelength(key: str, values: Optional[str], expected: int = 1) -> Optional[np.ndarray]:
+    if values is None:
+        return None  # fixes 921
+
     wl: np.ndarray = None
     if re.search(r'^(center[ _]*)?wavelengths?$', key, re.I):
         # remove trailing / ending { } and whitespace
@@ -1791,7 +1795,10 @@ def checkWavelength(key: str, values: str, expected: int = 1) -> np.ndarray:
     return wl
 
 
-def checkWavelengthUnit(key: str, value: str) -> str:
+def checkWavelengthUnit(key: str, value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None  # fixes #921
+
     wlu: str = None
     value = value.strip()
     if re.search(r'^wavelength[ _]?units?', key, re.I):
