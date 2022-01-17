@@ -3,20 +3,17 @@
 Utils functions GEE
 """
 import json
-from warnings import warn
 
-import qgis
 from qgis.core import QgsProject
 from qgis.core import QgsRasterLayer
 from qgis.core import QgsMessageLog
 from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform
 from qgis.core import QgsPointXY, QgsRectangle
-from qgis.utils import iface
 
-import ee
-import geetimeseriesexplorerapp.externals.ee_plugin
-from enmapbox import EnMAPBox
-
+try:
+    import ee
+except:
+    pass
 
 def get_ee_image_url(image):
     map_id = ee.data.getMapId({'image': image})

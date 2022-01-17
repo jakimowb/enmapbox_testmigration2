@@ -21,9 +21,8 @@ from qgis._core import (QgsProject, QgsCoordinateReferenceSystem, QgsPointXY, Qg
                         QgsApplication)
 from qgis._gui import (QgsDockWidget, QgsFeaturePickerWidget,
                        QgsMapLayerComboBox, QgsFieldComboBox, QgsMessageBar, QgsColorButton, QgsFileWidget)
-from sklearn.svm import SVR
 
-import ee
+
 import enmapbox.externals.pyqtgraph as pg
 from enmapbox import EnMAPBox
 from enmapbox.externals.qps.utils import SpatialPoint
@@ -34,6 +33,10 @@ from geetimeseriesexplorerapp.geetimeseriesexplorerdockwidget import GeeTimeseri
 from geetimeseriesexplorerapp.tasks.downloadprofiletask import DownloadProfileTask
 from typeguard import typechecked
 
+try:
+    import ee
+except:
+    pass
 
 @typechecked
 class GeeTemporalProfileDockWidget(QgsDockWidget):
@@ -751,7 +754,7 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
 
         self.mainDock.mAppendId.setChecked(oldAppendIdChecked)
 
-    def downloadFilenameProfile(self, feature: QgsFeature, eeCollection: ee.ImageCollection):
+    def downloadFilenameProfile(self, feature: QgsFeature, eeCollection: 'ee.ImageCollection'):
 
         location: QgsPointXY = feature.geometry().asPoint()
 
@@ -1012,7 +1015,6 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         # Can't execute Pool.map inside QGIS, so we make an CMD call
         # - prepare args file
 
-        import ee
         dirnameGee = dirname(dirname(ee.__file__))
         numReader = 50
         with open(filenamePkl, 'wb') as f:
@@ -1134,7 +1136,7 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         point = self.mainDock.enmapBox.currentLocation().toCrs(self.mainDock.crsEpsg4326)
         self.setCurrentLocation(point.x(), point.y())
 
-    def eePoint(self) -> Optional[ee.Geometry]:
+    def eePoint(self) -> Optional['ee.Geometry']:
         point = self.currentLocation()
         eePoint = ee.Geometry.Point([point.x(), point.y()])
         return eePoint
@@ -1313,6 +1315,7 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
                     except:
                         epsilon = 0
 
+                    from sklearn.svm import SVR
                     svr = SVR(kernel='rbf', gamma=gamma, C=C, epsilon=epsilon)
                     valid = np.isfinite(y)
                     svr.fit(x[valid].reshape(-1, 1), y[valid])

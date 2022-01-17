@@ -19,8 +19,8 @@ from geetimeseriesexplorerapp.utils import utilsMsecToDateTime
 
 try:
     import ee
-except ModuleNotFoundError:
-    ee = Mock()
+except:
+    pass
 
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, QLocale, QDate, pyqtSignal, QModelIndex, QDateTime, QTime

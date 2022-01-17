@@ -6,7 +6,6 @@ from osgeo import gdal
 from qgis._core import QgsTask, QgsRasterLayer, QgsCoordinateReferenceSystem, QgsRectangle, QgsMessageLog, Qgis
 from qgis._gui import QgsMessageBar
 
-import ee
 from enmapbox.externals.qps.utils import SpatialPoint
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
@@ -15,11 +14,15 @@ from enmapboxprocessing.utils import Utils
 from geetimeseriesexplorerapp.imageinfo import ImageInfo
 from typeguard import typechecked
 
+try:
+    import ee
+except:
+    pass
 
 @typechecked
 class DownloadImageChipBandTask(QgsTask):
 
-    def __init__(self, filename: str, location: SpatialPoint, eeImage: ee.Image, bandName: str):
+    def __init__(self, filename: str, location: SpatialPoint, eeImage: 'ee.Image', bandName: str):
         QgsTask.__init__(self, 'Download image chip band task', QgsTask.CanCancel)
         self.filename = filename
         self.location = location

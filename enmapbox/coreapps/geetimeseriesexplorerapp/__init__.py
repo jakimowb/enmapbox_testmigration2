@@ -12,6 +12,10 @@ from geetimeseriesexplorerapp.geetemporalprofiledockwidget import GeeTemporalPro
 from geetimeseriesexplorerapp.geetimeseriesexplorerdockwidget import GeeTimeseriesExplorerDockWidget
 from typeguard import typechecked
 
+try:
+    import ee
+except:
+    pass
 
 def enmapboxApplicationFactory(enmapBox: EnMAPBox):
     # create and store singleton

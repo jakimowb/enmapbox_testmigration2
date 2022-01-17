@@ -4,7 +4,6 @@ from typing import Optional, List
 
 from qgis._core import QgsTask, QgsMessageLog, Qgis
 
-import ee
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
@@ -13,7 +12,7 @@ from typeguard import typechecked
 class DownloadProfileTask(QgsTask):
 
     def __init__(
-            self, filename: Optional[str], eePoint: ee.Geometry, eeCollection: ee.ImageCollection, scale: float,
+            self, filename: Optional[str], eePoint: 'ee.Geometry', eeCollection: 'ee.ImageCollection', scale: float,
             offsets: List[float], scales: List[float]
     ):
         print('DownloadProfileTask.__init__')

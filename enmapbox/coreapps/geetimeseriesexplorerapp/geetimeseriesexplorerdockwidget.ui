@@ -2113,7 +2113,7 @@ OLCI Full Resolution</string>
                </layout>
               </item>
               <item>
-               <widget class="CodeEdit" name="mCode" native="true">
+               <widget class="CodeEditWidget" name="mCode" native="true">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                   <horstretch>1</horstretch>
@@ -5154,9 +5154,9 @@ count cut</string>
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>CodeEdit</class>
+   <class>CodeEditWidget</class>
    <extends>QWidget</extends>
-   <header>geetimeseriesexplorer.codeedit</header>
+   <header>geetimeseriesexplorerapp.codeeditwidget</header>
    <container>1</container>
   </customwidget>
   <customwidget>

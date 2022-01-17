@@ -3,10 +3,13 @@ from typing import List, Optional
 from qgis._core import QgsTask
 from qgis._gui import QgsMessageBar
 
-import ee
 from geetimeseriesexplorerapp.utils import utilsMsecToDateTime
 from typeguard import typechecked
 
+try:
+    import ee
+except:
+    pass
 
 @typechecked
 class QueryAvailableImagesTask(QgsTask):
@@ -15,7 +18,7 @@ class QueryAvailableImagesTask(QgsTask):
     data: List[List[str]]
 
     def __init__(
-            self, eeCollection: ee.ImageCollection, eePoint: ee.Geometry, limit: int,
+            self, eeCollection: 'ee.ImageCollection', eePoint: 'ee.Geometry', limit: int,
             messaqeBar: Optional[QgsMessageBar]
     ):
         QgsTask.__init__(self, 'Query available images at location', QgsTask.CanCancel)
