@@ -1,10 +1,6 @@
-from math import ceil
-
-from PyQt5.QtCore import QDateTime
-
-import processing
 import numpy as np
 
+import processing
 from enmapbox.exampledata import enmap
 from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
@@ -52,4 +48,3 @@ class TestRasterReaderRfc4(TestCase):
         self.assertEqual(123, reader2.bandOffset(42))
         self.assertEqual(1e-4, reader2.bandScale(42))
         self.assertAlmostEqual(123.4503, reader2.array(xoff, yoff, 1, 1, [42])[0][0, 0], 3)
-

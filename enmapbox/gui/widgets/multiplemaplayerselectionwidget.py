@@ -3,7 +3,8 @@ from typing import List, Optional
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QLineEdit, QToolButton, QListWidget, QListWidgetItem, QDialog
 from PyQt5.uic import loadUi
-from qgis._core import QgsMapLayer, QgsProject, QgsCoordinateReferenceSystem
+from qgis._core import QgsMapLayer, QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer, QgsVectorLayer
+from qgis._gui import QgsMapLayerComboBox
 
 from typeguard import typechecked
 
@@ -15,13 +16,17 @@ class MultipleMapLayerSelectionWidget(QWidget):
 
     mLayers: List[QgsMapLayer]
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, allowRaster=True, allowVector=True):
         QWidget.__init__(self, parent)
         loadUi(__file__.replace('.py', '.ui'), self)
+
+        self.allowRaster = allowRaster
+        self.allowVector = allowVector
 
         self.mLayers = list()
 
         self.mButton.clicked.connect(self.onButtonClicked)
+        QgsProject.instance().layersRemoved.connect(self.onLayersRemoved)
 
         self.updateInfo()
 
@@ -36,11 +41,16 @@ class MultipleMapLayerSelectionWidget(QWidget):
         print(self.mLayers)
 
     def onButtonClicked(self):
-        layers = MultipleMapLayerSelectionDialog.getLayers(self, self.currentLayers())
+        layers = MultipleMapLayerSelectionDialog.getLayers(
+            self, self.currentLayers(), self.allowRaster, self.allowVector
+        )
         if layers is not None:
             self.mLayers = layers
             self.updateInfo()
 
+    def onLayersRemoved(self, layerIds: List[str]):
+        self.mLayers = list(QgsProject.instance().mapLayers().values())
+        self.updateInfo()
 
 @typechecked
 class MultipleMapLayerSelectionDialog(QDialog):
@@ -51,22 +61,29 @@ class MultipleMapLayerSelectionDialog(QDialog):
     mOk: QToolButton
     mCancel: QToolButton
 
-    def __init__(self, parent=None, selection: List[QgsMapLayer] = None):
+    def __init__(
+            self, parent=None, selection: List[QgsMapLayer] = None, allowRaster=True, allowVector=True
+    ):
         QWidget.__init__(self, parent)
         loadUi(__file__.replace('widget.py', 'dialog.ui'), self)
         self.accepted = False
 
-        self.mLayers = list()
+        #self.mLayers = list()
         layer: QgsMapLayer
         for layer in QgsProject.instance().mapLayers().values():
+            if isinstance(layer, QgsRasterLayer) and not allowRaster:
+                continue
+            if isinstance(layer, QgsVectorLayer) and not allowVector:
+                continue
             crs: QgsCoordinateReferenceSystem = layer.crs()
             item = QListWidgetItem(f'{layer.name()} [{crs.authid()}]')
+            item.layer = layer
             if selection is not None and layer in selection:
                 item.setCheckState(Qt.Checked)
             else:
                 item.setCheckState(Qt.Unchecked)
             self.mList.addItem(item)
-            self.mLayers.append(layer)
+            #self.mLayers.append(layer)
 
         self.mOk.clicked.connect(self.onOkClicked)
         self.mCancel.clicked.connect(self.close)
@@ -77,8 +94,9 @@ class MultipleMapLayerSelectionDialog(QDialog):
     def currentLayers(self) -> List[QgsMapLayer]:
         layers = list()
         for row in range(self.mList.count()):
-            if self.mList.item(row).checkState() == Qt.Checked:
-                layers.append(self.mLayers[row])
+            item = self.mList.item(row)
+            if item.checkState() == Qt.Checked:
+                layers.append(item.layer)
         return layers
 
     def onOkClicked(self):
@@ -104,8 +122,12 @@ class MultipleMapLayerSelectionDialog(QDialog):
                 item.setCheckState(Qt.Checked)
 
     @staticmethod
-    def getLayers(parent=None, selection: List[QgsMapLayer] = None) -> Optional[List[QgsMapLayer]]:
-        w = MultipleMapLayerSelectionDialog(parent, selection)
+    def getLayers(
+            parent=None, selection: List[QgsMapLayer] = None, allowRaster=True, allowVector=True
+    ) -> Optional[List[QgsMapLayer]]:
+        w = MultipleMapLayerSelectionDialog(
+            parent, selection, allowRaster=allowRaster, allowVector=allowVector
+        )
         w.exec()
 
         if w.accepted:
