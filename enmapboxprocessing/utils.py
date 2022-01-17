@@ -257,24 +257,35 @@ class Utils(object):
     @classmethod
     def singleBandPseudoColorRenderer(
             cls, provider: QgsRasterDataProvider, bandNo: int, minValue: float, maxValue: float,
-            ramp: QgsColorRamp
+            ramp: Optional[QgsColorRamp]
     ) -> QgsSingleBandPseudoColorRenderer:
         shader = QgsRasterShader()
         colorRampShader = QgsColorRampShader()
         colorRampShader.setMinimumValue(minValue)
         colorRampShader.setMaximumValue(maxValue)
         colorRampShader.setColorRampType(QgsColorRampShader.Interpolated)
+
+        # derive ramp items
+        if ramp is not None:
+            rampItems = cls.deriveColorRampShaderRampItems(minValue, maxValue, ramp)
+            colorRampShader.setColorRampItemList(rampItems)
+
+        shader.setRasterShaderFunction(colorRampShader)
+        renderer = QgsSingleBandPseudoColorRenderer(provider, bandNo, shader)
+        return renderer
+
+    @classmethod
+    def deriveColorRampShaderRampItems(
+            cls, minValue: float, maxValue: float, ramp: QgsColorRamp
+    ) -> List[QgsColorRampShader.ColorRampItem]:
+
         # derive ramp items
         delta = maxValue - minValue
         fractionalSteps = [i / ramp.count() for i in range(ramp.count() + 1)]
         colors = [ramp.color(f) for f in fractionalSteps]
         steps = [minValue + f * delta for f in fractionalSteps]
-        rampItems = [QgsColorRampShader.ColorRampItem(step, color, str(step))
-                     for step, color in zip(steps, colors)]
-        colorRampShader.setColorRampItemList(rampItems)
-        shader.setRasterShaderFunction(colorRampShader)
-        renderer = QgsSingleBandPseudoColorRenderer(provider, bandNo, shader)
-        return renderer
+        rampItems = [QgsColorRampShader.ColorRampItem(step, color, str(step)) for step, color in zip(steps, colors)]
+        return rampItems
 
     @classmethod
     def categorizedSymbolRendererFromCategories(

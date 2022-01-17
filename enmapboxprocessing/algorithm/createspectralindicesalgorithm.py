@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List, Tuple, Optional, Iterator
 
 from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsRasterBandStats,
@@ -282,3 +282,37 @@ class CreateSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
     def translateSentinel2Band(cls, name: str):
         return {'B1': 'A', 'B2': 'B', 'B3': 'G', 'B4': 'R', 'B5': 'RE1', 'B6': 'RE2', 'B7': 'RE3', 'B8A': 'RE4',
                 'B8': 'N', 'B11': 'S1', 'B12': 'S2'}[name]
+
+    @classmethod
+    def sentinel2Visualizations(cls) -> Dict[str, Tuple[str, str, str]]:
+        mapping = {
+            'Natural color':  ('B4', 'B3', 'B2'),
+            'False color': ('B4', 'B8', 'B3'),
+            'Color infrared': ('B8', 'B4', 'B3'),
+            'Shortwave infrared 1': ('B12', 'B8', 'B4'),
+            'Shortwave infrared 2': ('B12', 'B8A', 'B4'),
+            'Shortwave infrared 3': ('B12', 'B8A', 'B2'),
+            'Agriculture 1': ('B11', 'B8', 'B2'),
+            'Agriculture 2': ('B11', 'B8A', 'B2'),
+            'Atmospheric penetration / Soil': ('B12', 'B11', 'B8A'),
+            'Geology': ('B12', 'B11', 'B2'),
+            'Bathymetric': ('B4', 'B3', 'B1'),
+            'False color urban': ('B12', 'B11', 'B4'),
+            'Healthy vegetation': ('B8', 'B11', 'B2'),
+            'Vegetation analysis 1': ('B8', 'B11', 'B4'),
+            'Vegetation analysis 2': ('B11', 'B8', 'B4'),
+            'Forestry / Recent harvest areas':  ('B12', 'B8', 'B3')
+        }
+
+        mapping2 = {name: tuple(cls.translateSentinel2Band(bandName) for bandName in bandNames)
+                    for name, bandNames in mapping.items()}
+
+        return mapping2
+
+    @classmethod
+    def filterVisualizations(
+            cls, visualizations: Dict[str, Tuple[str, str, str]], bandNames: List[str]
+    ) -> Dict[str, Tuple[str, str, str]]:
+        return {name: (redBand, greenBand, blueBand)
+                for name, (redBand, greenBand, blueBand) in visualizations.items()
+                if redBand in bandNames and greenBand in bandNames and blueBand in bandNames}
