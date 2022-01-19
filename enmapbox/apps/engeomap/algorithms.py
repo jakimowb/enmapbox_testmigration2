@@ -26,7 +26,7 @@ import gdalnumeric
 import os,numpy
 from engeomap import APP_DIR
 from engeomap import engeomap_aux_funcul as auxfunul
-from PyQt5 import QtGui
+from qgis.PyQt import QtGui
 
 
 def thresholder(guidat):

@@ -33,7 +33,7 @@ from PyQt5.QtWidgets import QFrame, QToolBar, QToolButton, QAction, QMenu, QSpla
     QMainWindow, QApplication, QSizePolicy, QWidget, QDockWidget, QStyle, QFileDialog, QDialog, QStatusBar, \
     QProgressBar, QHBoxLayout
 from PyQt5.QtXml import QDomDocument
-from qgis._core import QgsMapSettings
+from qgis.core import QgsMapSettings
 from qgis.core import QgsRectangle
 
 import enmapbox.gui.datasources.manager

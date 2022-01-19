@@ -1,6 +1,6 @@
 import typing
 
-from PyQt5.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsApplication
 
 from enmapbox.qgispluginsupport.qps.models import TreeNode

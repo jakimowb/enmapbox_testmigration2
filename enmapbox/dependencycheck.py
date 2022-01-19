@@ -812,7 +812,7 @@ class PIPPackageInstaller(QWidget):
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
-        from enmapbox.gui import loadUi
+        from enmapbox.gui.utils import loadUi
         from enmapbox import DIR_UIFILES
         path = pathlib.Path(DIR_UIFILES) / 'pippackageinstaller.ui'
         loadUi(path, self)

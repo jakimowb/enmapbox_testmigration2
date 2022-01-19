@@ -20,6 +20,8 @@
 
 import unittest
 import xmlrunner
+
+import qgis
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui import *
@@ -66,8 +68,8 @@ class TestIssue(EnMAPBoxTestCase):
             sources += [enmapbox.exampledata.enmap,
                         enmapbox.exampledata.landcover_polygons,
                         enmapbox.exampledata.landcover_points,
-                        enmapbox.exampledata.library,
-                        re.sub(r'\.sli$', '.gpkg', enmapbox.exampledata.library),
+                        enmapbox.exampledata.library_gpkg,
+                        enmapbox.exampledata.library_sli,
                         enmapbox.exampledata.enmap_srf_library
                         ]
 

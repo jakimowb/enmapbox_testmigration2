@@ -38,7 +38,7 @@ from qgis.gui import QgsPluginManagerInterface
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
-from .qgispluginsupport.qps.testing import TestObjects, WFS_Berlin, WMS_GMAPS, WMS_OSM, TestCase, QgisMockup, StartOptions
+from .qgispluginsupport.qps.testing import TestObjects, get_iface, WFS_Berlin, WMS_GMAPS, WMS_OSM, TestCase, QgisMockup, StartOptions
 import qgis.utils
 import numpy as np
 from osgeo import gdal, ogr, osr
@@ -68,16 +68,17 @@ def start_app(*args, loadProcessingFramework: bool = True, **kwds) -> QgsApplica
         enmapbox.registerExpressionFunctions()
         enmapbox.registerMapLayerConfigWidgetFactories()
 
-        from .qgspluginsupport.qps import registerSpectralLibraryIOs
+        from .qgispluginsupport.qps import registerSpectralLibraryIOs
         registerSpectralLibraryIOs()
 
-        from .qgspluginsupport.qps import registerSpectralProfileSamplingModes
+        from .qgispluginsupport.qps import registerSpectralProfileSamplingModes
         registerSpectralProfileSamplingModes()
         return app
 
 
 initQgisApplication = start_app
 
+# get_iface()
 
 class EnMAPBoxTestCase(TestCase):
     @classmethod

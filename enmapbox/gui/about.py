@@ -18,20 +18,19 @@
 ***************************************************************************
 """
 
-
 import os
 import pathlib
 
 from PyQt5.QtWidgets import QDialog
 
 from enmapbox import DIR_REPO, ABOUT
-from enmapbox.gui.utils import loadUi, jp
+from enmapbox.gui.utils import loadUi
 
 
 class AboutDialog(QDialog):
-    def __init__(self, *args , **kwds):
+    def __init__(self, *args, **kwds):
         """Constructor."""
-        super().__init__(*args , **kwds)
+        super().__init__(*args, **kwds)
         from enmapbox import DIR_UIFILES
         pathUi = pathlib.Path(DIR_UIFILES) / 'aboutdialog.ui'
         loadUi(pathUi, self)
@@ -42,8 +41,6 @@ class AboutDialog(QDialog):
         self.labelVersion.setText('Version {}'.format(__version__))
         self.setAboutTitle()
 
-        #loadTextFile = lambda p: (open(p, 'r','UTF-8').read())
-
         def loadTextFile(p):
             if not os.path.isfile(p):
                 return 'File not found "{}"'.format(p)
@@ -52,10 +49,11 @@ class AboutDialog(QDialog):
             lines = f.read()
             f.close()
             return lines
+
         self.labelAboutText.setText(f'<html><head/><body>{ABOUT}</body></html>')
-        self.tbLicense.setText(loadTextFile(jp(DIR_REPO, 'LICENSE.txt')))
-        self.tbContributors.setText(loadTextFile(jp(DIR_REPO, 'CONTRIBUTORS.rst')))
-        self.tbChanges.setText(loadTextFile(jp(DIR_REPO, 'CHANGELOG.rst')))
+        self.tbLicense.setText(loadTextFile(os.path.join(DIR_REPO, 'LICENSE.txt')))
+        self.tbContributors.setText(loadTextFile(os.path.join(DIR_REPO, 'CONTRIBUTORS.rst')))
+        self.tbChanges.setText(loadTextFile(os.path.join(DIR_REPO, 'CHANGELOG.rst')))
 
     def setAboutTitle(self, suffix=None):
         item = self.listWidget.currentItem()
@@ -69,10 +67,9 @@ class AboutDialog(QDialog):
         self.setWindowTitle(title)
 
 
-
 if __name__ == '__main__':
-
     from enmapbox.testing import initQgisApplication
+
     app = initQgisApplication()
     d = AboutDialog()
     d.show()

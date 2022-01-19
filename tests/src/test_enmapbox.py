@@ -16,18 +16,26 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-
-
+import os
+import pathlib
 import unittest
 import xmlrunner
+from PyQt5.QtWidgets import QApplication, QMenu
 
+import qgis
 from enmapbox import DIR_REPO
 from enmapbox.gui.datasources.datasources import SpatialDataSource
+from enmapbox.gui.dataviews.docks import SpectralLibraryDock, MapDock, Dock
+from enmapbox.gui.mapcanvas import MapCanvas
+from enmapbox.qgispluginsupport.qps.speclib.core.spectralprofile import SpectralProfile
+from enmapbox.qgispluginsupport.qps.speclib.gui.spectrallibrarywidget import SpectralLibraryWidget
+from enmapbox.qgispluginsupport.qps.utils import SpatialPoint
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
 from enmapbox.gui.enmapboxgui import EnMAPBox
-from enmapbox.gui.dataviews.docks import *
-from enmapbox.gui.mapcanvas import *
-from enmapbox.gui import *
+from qgis._core import QgsProcessingParameterDefinition, QgsProject, QgsMapLayer, QgsRasterLayer, QgsVectorLayer, \
+    QgsLayerTree, QgsApplication, QgsProcessingAlgorithm, QgsProcessingParameterRasterLayer
+
+from qgis._gui import QgisInterface
 
 
 class MyOutputRaster(QgsProcessingParameterDefinition):

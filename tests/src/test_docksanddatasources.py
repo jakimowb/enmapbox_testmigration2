@@ -42,7 +42,7 @@ class testDataSources(EnMAPBoxTestCase):
 
         DSM.addSource(enmap)
         DSM.addSource(landcover_polygons)
-        DSM.addSource(library)
+        DSM.addSource(library_gpkg)
 
         self.assertTrue(len(signalArgs) == 3)
         self.assertIsInstance(signalArgs[0], RasterDataSource)
@@ -160,7 +160,7 @@ class testDataSources(EnMAPBoxTestCase):
         da = DockArea()
         dock = MimeDataDock()
         da.addDock(dock)
-        # self.showGui(da)
+        self.showGui(da)
 
     def test_TextDock(self):
         da = DockArea()
@@ -196,7 +196,6 @@ class testDataSources(EnMAPBoxTestCase):
     def test_SpeclibDock(self):
         da = DockArea()
         profile = SpectralProfile()
-        profile.setName('Test')
         profile.setValues(x=[1, 2, 3, 4, 5], y=[2, 1, 2, 3, 2])
         dock = SpectralLibraryDock()
         dock.speclib().startEditing()

@@ -44,13 +44,9 @@ class EnMAPBoxPlugin(object):
             os.environ['JOBLIB_MULTIPROCESSING'] = '0'
 
         pathes = sys.path[:]
-        dirPlugin = pathlib.Path(__file__).parent
-        site.addsitedir(dirPlugin)
-        site.addsitedir(dirPlugin / 'site-packages')
-        site.addsitedir(pathlib.Path(__file__).parent.parent / 'enmapbox/coreapps')
 
         import enmapbox
-
+        enmapbox.initPythonPaths()
         # run a minimum dependency check
         self.initialDependencyCheck()
 
@@ -112,6 +108,7 @@ class EnMAPBoxPlugin(object):
         :rtype:
         """
         import enmapbox
+        enmapbox.initPythonPaths()
 
     def run(self):
         from enmapbox.gui.enmapboxgui import EnMAPBox

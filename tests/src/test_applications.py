@@ -8,6 +8,7 @@
 
 """
 import os
+import shutil
 
 import xmlrunner
 
@@ -18,6 +19,10 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 import unittest
 import pathlib
 from collections import namedtuple
+
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QApplication, QAction, QWidget
+
 from enmapbox.testing import EnMAPBoxTestCase, TestObjects
 from qgis.core import QgsApplication
 from enmapbox import EnMAPBox, DIR_ENMAPBOX, DIR_REPO

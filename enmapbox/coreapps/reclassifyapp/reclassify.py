@@ -43,7 +43,7 @@ from enmapbox.qgispluginsupport.qps.utils import loadUi
 from enmapbox.qgispluginsupport.qps.classification.classificationscheme import \
     ClassificationMapLayerComboBox, ClassInfo, ClassificationScheme, ClassificationSchemeComboBox, \
     ClassificationSchemeWidget
-from enmapbox.gui.utils import gdalDataset as getDataset
+from enmapbox.qgispluginsupport.qps.utils import gdalDataset as getDataset
 from . import APP_DIR
 
 SETTINGS_KEY = 'ENMAPBOX_RECLASSIFY_APP'

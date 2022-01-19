@@ -28,7 +28,7 @@ from qgis.PyQt.QtWidgets import *
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox import EnMAPBox, DIR_EXAMPLEDATA
 
-from enmapbox.exampledata import enmap, hires, library, landcover_polygons
+from enmapbox.exampledata import enmap, hires, library_gpkg, landcover_polygons
 import enmapbox.gui.mimedata as mimedata
 
 
@@ -69,7 +69,7 @@ class MimeDataTests(EnMAPBoxTestCase):
         from enmapbox.gui.datasources.datasources import DataSource
         from enmapbox.gui.datasources.manager import DataSourceManager, DataSourceFactory
 
-        dataSources = DataSourceFactory.create([enmap, hires, library, landcover_polygons])
+        dataSources = DataSourceFactory.create([enmap, hires, library_gpkg, landcover_polygons])
         dataSourceObjectIDs = [id(ds) for ds in dataSources]
 
         md = mimedata.fromDataSourceList(dataSources)
@@ -172,7 +172,7 @@ class MimeDataTests(EnMAPBoxTestCase):
         # drop on spectral library widget
         from enmapbox.gui.dataviews.docks import SpectralLibraryDock
         from enmapbox.gui import SpectralLibraryWidget
-        from enmapbox.exampledata import library
+        from enmapbox.exampledata import library_gpkg
         EB = EnMAPBox(load_other_apps=False, load_core_apps=False)
         sld = EB.createDock('SPECLIB')
         self.assertIsInstance(sld, SpectralLibraryDock)
@@ -181,7 +181,7 @@ class MimeDataTests(EnMAPBoxTestCase):
 
         # drop a speclib
         self.assertTrue(len(w.speclib()) == 0)
-        w.dropEvent(self.file2DropEvent(library))
+        w.dropEvent(self.file2DropEvent(library_gpkg))
         QApplication.processEvents()
         self.assertTrue(len(w.speclib()) > 0)
 

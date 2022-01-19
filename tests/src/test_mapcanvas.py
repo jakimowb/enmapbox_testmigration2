@@ -22,7 +22,7 @@ from PyQt5.QtCore import *
 from enmapbox.gui.mimedata import fromLayerList
 from enmapbox.testing import EnMAPBoxTestCase
 
-from enmapbox.exampledata import enmap, hires, landcover_polygons, library
+from enmapbox.exampledata import enmap, hires, landcover_polygons, library_gpkg
 from enmapbox.gui.mapcanvas import *
 from enmapbox.testing import TestObjects
 
@@ -157,7 +157,7 @@ class MapCanvasTests(EnMAPBoxTestCase):
     def test_dropEvents(self):
 
         mapCanvas = MapCanvas()
-        allFiles = [enmap, hires, landcover_polygons, library]
+        allFiles = [enmap, hires, landcover_polygons, library_gpkg]
         spatialFiles = [enmap, hires, landcover_polygons]
 
         md = QMimeData()

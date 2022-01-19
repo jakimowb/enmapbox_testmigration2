@@ -1,9 +1,9 @@
 import os
 
 import numpy as np
-from PyQt5.QtCore import QSize
-from PyQt5.QtGui import QIcon, QColor, QPixmap
-from PyQt5.QtWidgets import QMenu, QApplication
+from qgis.PyQt.QtCore import QSize
+from qgis.PyQt.QtGui import QIcon, QColor, QPixmap
+from qgis.PyQt.QtWidgets import QMenu, QApplication
 
 from enmapbox.qgispluginsupport.qps.models import TreeNode, PyObjectTreeNode
 from qgis.core import QgsCoordinateReferenceSystem, QgsUnitTypes, QgsRasterLayer, QgsDataItem, QgsLayerItem, \

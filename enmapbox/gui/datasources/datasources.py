@@ -2,7 +2,7 @@ import json
 import pickle
 import warnings
 
-from PyQt5.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsDataItem, QgsLayerItem, QgsCoordinateReferenceSystem, QgsMapLayer, QgsUnitTypes, \
     QgsMapLayerType, QgsVectorLayer, QgsRasterLayer, Qgis, QgsWkbTypes, QgsField
 

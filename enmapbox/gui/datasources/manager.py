@@ -9,9 +9,9 @@ from tempfile import gettempdir
 
 import processing
 from qgis.core import QgsMimeDataUtils
-from PyQt5.QtCore import QMimeData, QModelIndex, Qt, QUrl, QSortFilterProxyModel, pyqtSignal
-from PyQt5.QtGui import QContextMenuEvent, QIcon
-from PyQt5.QtWidgets import QMenu, QAction, QApplication, QAbstractItemView, QTreeView
+from qgis.PyQt.QtCore import QMimeData, QModelIndex, Qt, QUrl, QSortFilterProxyModel, pyqtSignal
+from qgis.PyQt.QtGui import QContextMenuEvent, QIcon
+from qgis.PyQt.QtWidgets import QMenu, QAction, QApplication, QAbstractItemView, QTreeView
 
 import qgis
 from qgis.core import Qgis

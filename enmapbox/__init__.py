@@ -37,6 +37,11 @@ import warnings
 
 import qgis
 import site
+
+# provide shortcuts
+from .qgispluginsupport.qps.pyqtgraph import pyqtgraph
+from .qgispluginsupport import qps
+from enmapbox.qgispluginsupport.qps import registerEditorWidgets
 from qgis.gui import QgisInterface, QgsMapLayerConfigWidgetFactory
 from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider, QgsProcessingAlgorithm
 from qgis.PyQt.QtCore import QSettings, QResource
@@ -250,7 +255,7 @@ def registerEditorWidgets():
     """
     debugLog('started initEditorWidgets')
 
-    from .qgspluginsupport.qps import registerEditorWidgets
+    from enmapbox.qgispluginsupport.qps import registerEditorWidgets
     registerEditorWidgets()
 
     debugLog('finished initEditorWidgets')
@@ -343,10 +348,10 @@ def registerMapLayerConfigWidgetFactories():
     """
     debugLog('started initMapLayerConfigWidgetFactories')
     global _ENMAPBOX_MAPLAYER_CONFIG_WIDGET_FACTORIES
-    from .qgspluginsupport.qps import mapLayerConfigWidgetFactories, registerMapLayerConfigWidgetFactory
+    from enmapbox.qgispluginsupport.qps import mapLayerConfigWidgetFactories, registerMapLayerConfigWidgetFactory
 
-    from .qgispluginsupport.qps.layerconfigwidgets.rasterbands import RasterBandConfigWidgetFactory
-    from .qgispluginsupport.qps.layerconfigwidgets.gdalmetadata import GDALMetadataConfigWidgetFactory
+    from enmapbox.qgispluginsupport.qps.layerconfigwidgets.rasterbands import RasterBandConfigWidgetFactory
+    from enmapbox.qgispluginsupport.qps.layerconfigwidgets.gdalmetadata import GDALMetadataConfigWidgetFactory
     for factory in [RasterBandConfigWidgetFactory(),
                     GDALMetadataConfigWidgetFactory()]:
 
@@ -361,7 +366,7 @@ def unregisterMapLayerConfigWidgetFactories():
     """
     Removes MapLayerConfigWidgetFactories which had been registered with the EnMAP-Box
     """
-    from .qgspluginsupport.qps import unregisterMapLayerConfigWidgetFactory
+    from .qgispluginsupport.qps import unregisterMapLayerConfigWidgetFactory
     for factory in _ENMAPBOX_MAPLAYER_CONFIG_WIDGET_FACTORIES:
         unregisterMapLayerConfigWidgetFactory(factory)
 
@@ -391,11 +396,9 @@ def initAll():
     registerExpressionFunctions()
     registerEnMAPBoxProcessingProvider()
     registerMapLayerConfigWidgetFactories()
-
-    from .qgspluginsupport.qps import registerSpectralLibraryIOs
+    from enmapbox.qgispluginsupport.qps import registerSpectralLibraryIOs
     registerSpectralLibraryIOs()
-
-    from .qgspluginsupport.qps import registerSpectralProfileSamplingModes
+    from enmapbox.qgispluginsupport.qps import registerSpectralProfileSamplingModes
     registerSpectralProfileSamplingModes()
 
 
