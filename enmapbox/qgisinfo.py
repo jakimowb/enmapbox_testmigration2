@@ -4,10 +4,10 @@ specificially the PKGDATAPATH={path to library}
 To be used from the CLI, e.g. calling python qgisinfo.py
 """
 import pathlib
-import qgis
-from qgis.core import QgsApplication
-from qgis.testing import start_app
-app = start_app()
+from qgis.core import QgsApplication, Qgis
+
+
 pkg = pathlib.Path(QgsApplication.pkgDataPath())
+print(f'QGIS Version:{Qgis.version()}\nRevision: {Qgis.devVersion()}')
 print(f'PKGDATAPATH={pkg}')
-app.quit()
+
