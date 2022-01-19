@@ -3643,6 +3643,8 @@ class SpectralLibraryPlotWidget(QWidget):
                      renderer.setBlueContrastEnhancement]
             ):
                 bandNo = mBand.currentBand()
+                if bandNo < 1:
+                    return
                 units = self.optionXUnit.unit()
                 if units == 'Band Number':
                     pos = bandNo
@@ -3662,6 +3664,7 @@ class SpectralLibraryPlotWidget(QWidget):
                 setBand(bandNo)
                 contrastEnhancement = QgsContrastEnhancement(layer.dataProvider().dataType(bandNo))
                 contrastEnhancement.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
+
                 vmin, vmax = layer.dataProvider().cumulativeCut(
                     bandNo, 0.02, 0.98, sampleSize=QgsRasterLayer.SAMPLE_SIZE
                 )
@@ -3708,15 +3711,14 @@ class SpectralLibraryPlotWidget(QWidget):
             contrastEnhancement.setMaximumValue(vmax)
             renderer.setContrastEnhancement(contrastEnhancement)
 
-            layer.setRenderer(renderer)
-            layer.rendererChanged.emit()
-            layer.triggerRepaint()
-
         else:
             # for now, just hide the bars
             self.hideRenderBars()
             print(f'Renderer not yet supported: {renderer}')
 
+        layer.setRenderer(renderer)
+        layer.rendererChanged.emit()
+        layer.triggerRepaint()
 
     def setPlotWidgetStyle(self, style: SpectralLibraryPlotWidgetStyle):
         assert isinstance(style, SpectralLibraryPlotWidgetStyle)

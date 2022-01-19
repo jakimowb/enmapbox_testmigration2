@@ -181,7 +181,7 @@ def unregisterExpressionFunctions():
 
 def registerMapLayerConfigWidgetFactories():
     from .layerconfigwidgets.rasterbands import RasterBandConfigWidgetFactory
-    from .layerconfigwidgets.rasterbands import RasterBandPropertiesConfigWidgetFactory
+    from enmapbox.gui.layerconfigwidgets.rasterbandpropertiesconfigwidget import RasterBandPropertiesConfigWidgetFactory
     from .layerconfigwidgets.gdalmetadata import GDALMetadataConfigWidgetFactory
 
     registerMapLayerConfigWidgetFactory(RasterBandConfigWidgetFactory())

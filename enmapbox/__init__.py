@@ -346,7 +346,7 @@ def registerMapLayerConfigWidgetFactories():
     from .externals.qps import mapLayerConfigWidgetFactories, registerMapLayerConfigWidgetFactory
 
     from .externals.qps.layerconfigwidgets.rasterbands import RasterBandConfigWidgetFactory
-    from .externals.qps.layerconfigwidgets.rasterbands import RasterBandPropertiesConfigWidgetFactory
+    from enmapbox.gui.layerconfigwidgets.rasterbandpropertiesconfigwidget import RasterBandPropertiesConfigWidgetFactory
     from .externals.qps.layerconfigwidgets.gdalmetadata import GDALMetadataConfigWidgetFactory
 
     for factory in [RasterBandConfigWidgetFactory(),
