@@ -8,6 +8,7 @@ from enmapboxprocessing.algorithm.classificationtofractionalgorithm import Class
 from enmapboxprocessing.algorithm.classifierfeaturerankingpermutationimportancealgorithm import \
     ClassifierFeatureRankingPermutationImportanceAlgorithm
 from enmapboxprocessing.algorithm.classifierperformancealgorithm import ClassifierPerformanceAlgorithm
+from enmapboxprocessing.algorithm.convexhullalgorithm import ConvexHullAlgorithm
 from enmapboxprocessing.algorithm.createdefaultpalettedrasterrendereralgorithm import \
     CreateDefaultPalettedRasterRendererAlgorithm
 from enmapboxprocessing.algorithm.creategridalgorithm import CreateGridAlgorithm
@@ -147,6 +148,7 @@ def algorithms():
         ClassificationToFractionAlgorithm(),
         ClassifierPerformanceAlgorithm(),
         ClassifierFeatureRankingPermutationImportanceAlgorithm(),
+        ConvexHullAlgorithm(),
         CreateDefaultPalettedRasterRendererAlgorithm(),
         CreateGridAlgorithm(),
         CreateMaskAlgorithm(),
