@@ -266,7 +266,7 @@ class CreateSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
     @classmethod
     def findSpectralReflectanceScaleFactor(cls, raster: QgsRasterLayer) -> float:
         stats: QgsRasterBandStats = raster.dataProvider().bandStatistics(
-            1, QgsRasterBandStats.Mean, sampleSize=QgsRasterLayer.SAMPLE_SIZE
+            1, QgsRasterBandStats.Mean, sampleSize=int(QgsRasterLayer.SAMPLE_SIZE)
         )
 
         if 1. < stats.mean < 100:

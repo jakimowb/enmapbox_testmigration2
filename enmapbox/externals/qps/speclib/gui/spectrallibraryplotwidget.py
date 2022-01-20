@@ -3666,7 +3666,7 @@ class SpectralLibraryPlotWidget(QWidget):
                 contrastEnhancement.setContrastEnhancementAlgorithm(QgsContrastEnhancement.StretchToMinimumMaximum, True)
 
                 vmin, vmax = layer.dataProvider().cumulativeCut(
-                    bandNo, 0.02, 0.98, sampleSize=QgsRasterLayer.SAMPLE_SIZE
+                    bandNo, 0.02, 0.98, sampleSize=int(QgsRasterLayer.SAMPLE_SIZE)
                 )
                 contrastEnhancement.setMinimumValue(vmin)
                 contrastEnhancement.setMaximumValue(vmax)
@@ -3705,7 +3705,7 @@ class SpectralLibraryPlotWidget(QWidget):
                 QgsContrastEnhancement.StretchToMinimumMaximum, True
             )
             vmin, vmax = layer.dataProvider().cumulativeCut(
-                bandNo, 0.02, 0.98, sampleSize=QgsRasterLayer.SAMPLE_SIZE
+                bandNo, 0.02, 0.98, sampleSize=int(QgsRasterLayer.SAMPLE_SIZE)
             )
             contrastEnhancement.setMinimumValue(vmin)
             contrastEnhancement.setMaximumValue(vmax)
