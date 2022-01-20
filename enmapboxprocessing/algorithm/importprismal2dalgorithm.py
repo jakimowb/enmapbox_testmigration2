@@ -96,7 +96,12 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
         return {
             self.P_FILE: file,
             self.P_OUTPUT_SPECTRAL_CUBE: file.replace('.he5', '_SPECTRAL.tif'),
-            self.P_OUTPUT_PAN_CUBE: file.replace('.he5', '._PAN.tif'),
+            self.P_OUTPUT_PAN_CUBE: file.replace('.he5', '_PAN.vrt'),
+            self.P_OUTPUT_SPECTRAL_GEOLOCATION: file.replace('.he5', '_SPECTRAL_GEOLOCATION.vrt'),
+            self.P_OUTPUT_SPECTRAL_GEOMETRIC: file.replace('.he5', '_SPECTRAL_GEOMETRIC.vrt'),
+            self.P_OUTPUT_SPECTRAL_ERROR: file.replace('.he5', '_SPECTRAL_ERROR.tif'),
+            self.P_OUTPUT_PAN_GEOLOCATION: file.replace('.he5', '_PAN_GEOLOCATION.vrt'),
+            self.P_OUTPUT_PAN_ERROR: file.replace('.he5', '_PAN_ERROR.vrt')
         }
 
     def isValidFile(self, file: str) -> bool:
