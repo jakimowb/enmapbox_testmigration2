@@ -44,19 +44,26 @@ modified.
 
 ## Dependencies
 
-QGIS Plugin Support 
+### QGIS Plugin Support: 
 
-git subtree add --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master
+Repository: https://github.com/EnMAP-Box/qgispluginsupport
 
-pull updates:
+Included into EnMAP-Box code by git subtree. The following commands can be
+used to sync QPS:
+
+Add subtree:
+
+* `git subtree add --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master`
   
-  git fetch git@github.com:EnMAP-Box/qgispluginsupport.git
-  git subtree pull --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master --squash
-
-push changes:
-
-  git subtree push --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master
-
+Pull updates:
+    
+* `git fetch git@github.com:EnMAP-Box/qgispluginsupport.git`
+* `git subtree pull --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master --squash`
+  
+Push updates:
+  
+* `git subtree push --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git updates`
+* required writing access to target branch. Replace `master` with writable branch and create a PR
 
 
 ## Support
