@@ -18,7 +18,7 @@ class ImportLandsatL2Algorithm(EnMAPProcessingAlgorithm):
 
     def shortDescription(self):
         return 'Prepare a spectral raster layer from the given product. ' \
-               'Wavelength information is set and data is scaled into the 0 to 10000 range.' \
+               'Wavelength information is set and data is scaled into the 0 to 1 range.' \
                'Supports Landsat 4 to 8, collection 1 and 2. '
 
     def helpParameters(self) -> List[Tuple[str, str]]:
@@ -72,8 +72,8 @@ class ImportLandsatL2Algorithm(EnMAPProcessingAlgorithm):
                 gain = offset = None  # already scaled between 0 and 10000
             elif collectionNumber == '02':
                 pattern = 'SR_B{}.TIF'
-                gain = 0.0000275 * 1e4  # see https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2-level-2-science-products
-                offset = -0.2 * 1e4
+                gain = 0.0000275  # see https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2-level-2-science-products
+                offset = -0.2
             else:
                 raise QgsProcessingException(f'unknown collection number: {collectionNumber}')
 

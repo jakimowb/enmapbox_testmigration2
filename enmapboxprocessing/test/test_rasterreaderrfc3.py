@@ -53,3 +53,9 @@ class TestRasterReaderRfc3(TestCase):
         result = processing.run(alg, parameters)
         reader2 = RasterReader(result[alg.P_OUTPUT_RASTER])
         self.assertEqual(QDateTime(2019, 7, 2, 13, 0, 0), reader2.centerTime(42))
+
+        # remove temporal properties
+        reader.setTime(None, None, 42)
+        self.assertIsNone(reader.startTime(42))
+        self.assertIsNone(reader.endTime(42))
+

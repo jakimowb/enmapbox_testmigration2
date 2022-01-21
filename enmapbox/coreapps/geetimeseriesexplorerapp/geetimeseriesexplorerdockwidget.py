@@ -19,8 +19,8 @@ from geetimeseriesexplorerapp.utils import utilsMsecToDateTime
 
 try:
     import ee
-except ModuleNotFoundError:
-    ee = Mock()
+except:
+    pass
 
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, QLocale, QDate, pyqtSignal, QModelIndex, QDateTime, QTime
@@ -350,7 +350,7 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
                 with open(self.pyFilename) as file:
                     return file.read()
 
-        root = join(__file__, '../user_collections')
+        root = join(dirname(__file__), 'user_collections')
         self.userCollections = [UserCollection(join(root, name)) for name in listdir(root) if name.endswith('.py')]
         self.mUserCollection.setRowCount(len(self.userCollections))
         for row, userCollection in enumerate(self.userCollections):

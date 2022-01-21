@@ -73,8 +73,8 @@ class TestClassificationPerformanceSimpleAlgorithm(TestCase):
         alg = ClassificationPerformanceSimpleAlgorithm()
         alg.initAlgorithm()
         parameters = {
-            alg.P_CLASSIFICATION: r'C:\Users\Andreas\Downloads\SE_data\rf_classification_v2.bsq',
-            alg.P_REFERENCE: r'C:\Users\Andreas\Downloads\SE_data\validation_data.shp',
+            alg.P_CLASSIFICATION: r'C:\Users\Andreas\Downloads\accass\2015-2020 Reclassification',
+            alg.P_REFERENCE: r'C:\Users\Andreas\Downloads\accass\2015-2020 reclassified Validierung.shp',
             alg.P_OPEN_REPORT: True,
             alg.P_OUTPUT_REPORT: self.filename('report.html'),
         }

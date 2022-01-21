@@ -21,7 +21,7 @@ import re
 import time
 import typing
 import uuid
-from typing import Optional
+from typing import Optional, List
 
 from PyQt5.QtWidgets import QToolButton, QAction
 
@@ -534,7 +534,7 @@ class DockManager(QObject):
     def dataSourceManager(self) -> DataSourceManager:
         return self.mDataSourceManager
 
-    def mapDocks(self) -> typing.List[SpectralLibraryDock]:
+    def mapDocks(self) -> List[MapDock]:
         return [d for d in self if isinstance(d, MapDock)]
 
     def spectraLibraryDocks(self) -> typing.List[SpectralLibraryDock]:

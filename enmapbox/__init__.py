@@ -350,9 +350,14 @@ def registerMapLayerConfigWidgetFactories():
     global _ENMAPBOX_MAPLAYER_CONFIG_WIDGET_FACTORIES
     from enmapbox.qgispluginsupport.qps import mapLayerConfigWidgetFactories, registerMapLayerConfigWidgetFactory
 
+    from .externals.qps.layerconfigwidgets.rasterbands import RasterBandConfigWidgetFactory
+    from enmapbox.gui.layerconfigwidgets.rasterbandpropertiesconfigwidget import RasterBandPropertiesConfigWidgetFactory
+    from .externals.qps.layerconfigwidgets.gdalmetadata import GDALMetadataConfigWidgetFactory
+
     from enmapbox.qgispluginsupport.qps.layerconfigwidgets.rasterbands import RasterBandConfigWidgetFactory
     from enmapbox.qgispluginsupport.qps.layerconfigwidgets.gdalmetadata import GDALMetadataConfigWidgetFactory
     for factory in [RasterBandConfigWidgetFactory(),
+                    RasterBandPropertiesConfigWidgetFactory(),
                     GDALMetadataConfigWidgetFactory()]:
 
         registered = registerMapLayerConfigWidgetFactory(factory)

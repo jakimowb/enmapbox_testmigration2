@@ -296,20 +296,16 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
 
             writer = RasterWriter(outGdalDataset)
             reader = RasterReader(raster)
+            if bandList is None:
+                bandList = range(1, reader.bandCount() + 1)
             if copyMetadata:
                 metadata = reader.metadata()
-                # if '' in metadata:
-                #     metadata[''] = {key: value for key, value in metadata[''].items() if not key.startswith('Band_')}
                 writer.setMetadata(metadata)
-                if bandList is None:
-                    bandList = range(1, reader.bandCount() + 1)
                 for dstBandNo, srcBandNo in enumerate(bandList, 1):
                     metadata = reader.metadata(srcBandNo)
                     writer.setMetadata(metadata, dstBandNo)
-                    units = reader.wavelengthUnits(srcBandNo)
-                    writer.setWavelength(reader.wavelength(srcBandNo, units), dstBandNo, units)
-                    writer.setFwhm(reader.fwhm(srcBandNo, units), dstBandNo, units)
-                    writer.setBadBandMultiplier(reader.badBandMultiplier(srcBandNo), dstBandNo)
+                    bandName = reader.bandName(srcBandNo)
+                    writer.setBandName(bandName, dstBandNo)
 
             if copyStyle:
                 renderer = raster.renderer().clone()
@@ -318,8 +314,28 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                 outraster.saveDefaultStyle()
                 del outraster
 
-            writer.setOffset(offset, overwrite=False)
-            writer.setScale(scale, overwrite=False)
+            # set user band names
+            for dstBandNo, srcBandNo in enumerate(bandList, 1):
+                if reader.userBandName(srcBandNo) is not None:
+                    writer.setBandName(reader.userBandName(srcBandNo), dstBandNo)
+
+            # set band gain and offset values
+            if offset is None:
+                for dstBandNo, srcBandNo in enumerate(bandList, 1):
+                    if reader.userBandOffset(srcBandNo) is not None or reader.userBandScale(srcBandNo) is not None:
+                        offset = reader.bandOffset(srcBandNo) * reader.userBandScale(srcBandNo, 1.) + \
+                                 reader.userBandOffset(srcBandNo, 0.)
+                        writer.setOffset(offset, dstBandNo)
+            else:
+                writer.setOffset(offset)
+            if scale is None:
+                for dstBandNo, srcBandNo in enumerate(bandList, 1):
+                    if reader.userBandScale(srcBandNo) is not None:
+                        scale = reader.bandScale(srcBandNo) * reader.userBandScale(srcBandNo)
+                        writer.setScale(scale, dstBandNo)
+            else:
+                writer.setScale(scale)
+
             del writer, outGdalDataset
 
             if writeEnviHeader:

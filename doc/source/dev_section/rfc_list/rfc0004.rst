@@ -39,12 +39,11 @@ We need for example:
 - **time** information for plotting temporal profiles
 - **bad band multipliers** to exclude noisy bands from specific plotting/analysis tasks
 - data **offset** and **scale** information for scaling data stored as integer into 0 to 1 reflectance range
-- band **no data value** for proper masking of values
 
 Spectral and Temporal Properties is already detailed in RFC 2 and 3.
 
-Band **no data value** handling is fully supported by QGIS API directly via **QgsRasterDataProvider** methods:
-**setNoDataValue, setUserNoDataValue, setUseSourceNoDataValue, sourceHasNoDataValue, sourceNoDataValue, userNoDataValues, useSourceNoDataValue**
+Note that band **no data value** handling is fully supported by QGIS API directly via **QgsRasterDataProvider** methods:
+**setNoDataValue, setUserNoDataValue, setUseSourceNoDataValue, sourceHasNoDataValue, sourceNoDataValue, userNoDataValues, useSourceNoDataValue**.
 
 Problem
     Band **name**, **offset** and **scale** information can be accessed via **QgsRasterLayer** methods,
@@ -129,7 +128,6 @@ To query band properties for band 42, we can use::
     bandName = reader.bandName(42)
     bandOffset = reader.bandOffset(42)
     bandScale = reader.bandScale(42)
-    noDataValue = reader.noDataValue(42)
 
 
 To set band properties use::
@@ -138,9 +136,10 @@ To set band properties use::
     reader.setBandOffset(0, 42)
     reader.setBandScale(10000, 42)
 
-
 To read (scaled) band data use::
 
     array = reader.array(bandList=[42])
     maskArray = reader.maskArray(array, bandList=[42])
 
+
+Also check out the RasterReader unittests: https://bitbucket.org/hu-geomatics/enmap-box/src/develop/enmapboxprocessing/test/test_rasterreaderrfc4.py

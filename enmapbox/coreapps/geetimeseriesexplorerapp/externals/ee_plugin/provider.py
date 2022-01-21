@@ -25,6 +25,11 @@ from qgis.core import (
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
+try:
+    import ee
+except:
+    pass
+
 BAND_TYPES = {
     'int8': Qgis.Int16,
     'int16': Qgis.Int16,
@@ -178,7 +183,6 @@ class GeetseEarthEngineRasterDataProvider(QgsRasterDataProvider):
         return identifyResult
 
     def block(self, bandNo, boundingBox, width, height, feedback=None):
-        import ee
         from geetimeseriesexplorerapp.externals.ee_plugin import utils
 
         if width == 1 and height == 1:

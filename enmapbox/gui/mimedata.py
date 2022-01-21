@@ -1,33 +1,22 @@
 import pickle
 import typing
 import uuid
-from os.path import basename, exists
-
-from qgis.PyQt.QtCore import QMimeData, QUrl, QByteArray
-from qgis.PyQt.QtXml import QDomNamedNodeMap, QDomDocument
-
-from qgis.core import QgsLayerItem
-
-from enmapboxprocessing.algorithm.importdesisl1balgorithm import ImportDesisL1BAlgorithm
-from enmapboxprocessing.algorithm.importdesisl1calgorithm import ImportDesisL1CAlgorithm
-from enmapboxprocessing.algorithm.importdesisl2aalgorithm import ImportDesisL2AAlgorithm
-from enmapboxprocessing.algorithm.importenmapl1balgorithm import ImportEnmapL1BAlgorithm
-from enmapboxprocessing.algorithm.importenmapl1calgorithm import ImportEnmapL1CAlgorithm
-from enmapboxprocessing.algorithm.importenmapl2aalgorithm import ImportEnmapL2AAlgorithm
-from enmapboxprocessing.algorithm.importlandsatl2algorithm import ImportLandsatL2Algorithm
-from enmapboxprocessing.algorithm.importprismal1algorithm import ImportPrismaL1Algorithm
-from enmapboxprocessing.algorithm.importprismal2dalgorithm import ImportPrismaL2DAlgorithm
-from enmapboxprocessing.algorithm.importsentinel2l2aalgorithm import ImportSentinel2L2AAlgorithm
-from processing import AlgorithmDialog
-from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsProject, QgsReadWriteContext, \
-    QgsMimeDataUtils, QgsLayerTree, QgsLayerTreeLayer
 
 from enmapbox import debugLog
+from enmapboxprocessing.algorithm.importproductsdraganddropsupport import tryToImportSensorProducts
+from qgis.PyQt.QtCore import QMimeData, QUrl, QByteArray
+from qgis.PyQt.QtXml import QDomNamedNodeMap, QDomDocument
+from qgis.core import QgsLayerItem
+from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsProject, QgsReadWriteContext, \
+    QgsMimeDataUtils, QgsLayerTree, QgsLayerTreeLayer
 from .datasources.datasources import DataSource
 
 from ..qgispluginsupport.qps.layerproperties import defaultRasterRenderer
 from ..qgispluginsupport.qps.speclib.core import is_spectral_library
 from ..qgispluginsupport.qps.speclib.core.spectrallibrary import SpectralLibrary
+from ..externals.qps.layerproperties import defaultRasterRenderer
+from ..externals.qps.speclib.core import is_spectral_library
+from ..externals.qps.speclib.core.spectrallibrary import SpectralLibrary
 
 MDF_RASTERBANDS = 'application/enmapbox.rasterbanddata'
 
@@ -47,20 +36,6 @@ MDF_TEXT_PLAIN = 'text/plain'
 
 MDF_QGIS_LAYER_STYLE = 'application/qgis.style'
 QGIS_URILIST_MIMETYPE = "application/x-vnd.qgis.qgis.uri"
-
-
-class AlgorithmDialogWrapper(AlgorithmDialog):
-    def __init__(self, *args, **kwargs):
-        AlgorithmDialog.__init__(self, *args, **kwargs)
-        self.finishedSuccessful = False
-        self.finishResult = None
-
-    def finish(self, successful, result, context, feedback, in_place=False):
-        super().finish(successful, result, context, feedback, in_place)
-        self.finishedSuccessful = successful
-        self.finishResult = result
-        if successful:
-            self.close()
 
 
 def attributesd2dict(attributes: QDomNamedNodeMap) -> str:
@@ -266,48 +241,12 @@ def extractMapLayers(mimeData: QMimeData) -> list:
                         lyr.setRenderer(defaultRasterRenderer(lyr))
                     newMapLayers.append(lyr)
                 else:
-
                     # check if URL is associated with an external product,
                     # if so, the product is created by running the appropriate processing algorithm
-
                     filename = url.toLocalFile()
-                    algs = [
-                        ImportDesisL1BAlgorithm(),
-                        ImportDesisL1CAlgorithm(),
-                        ImportDesisL2AAlgorithm(),
-                        ImportEnmapL1BAlgorithm(),
-                        ImportEnmapL1CAlgorithm(),
-                        ImportEnmapL2AAlgorithm(),
-                        ImportLandsatL2Algorithm(),
-                        ImportPrismaL1Algorithm(),
-                        ImportPrismaL2DAlgorithm(),
-                        ImportSentinel2L2AAlgorithm()
-                    ]
-                    for alg in algs:
-                        if alg.isValidFile(url.path()):
-                            import enmapbox
-                            parameters = alg.defaultParameters(filename)
+                    mapLayers = tryToImportSensorProducts(filename)
+                    newMapLayers.extend(mapLayers)
 
-                            if isinstance(alg, ImportEnmapL1BAlgorithm):
-                                alreadyExists = exists(parameters[alg.P_OUTPUT_VNIR_RASTER]) & \
-                                                exists(parameters[alg.P_OUTPUT_SWIR_RASTER])
-                            else:
-                                alreadyExists = exists(parameters[alg.P_OUTPUT_RASTER])
-
-                            if not alreadyExists:
-                                eb = enmapbox.EnMAPBox.instance()
-                                dialog: AlgorithmDialogWrapper = eb.showProcessingAlgorithmDialog(
-                                    alg, parameters, True, True, AlgorithmDialogWrapper, True
-                                )
-                                if not dialog.finishedSuccessful:
-                                    continue
-                            if isinstance(alg, ImportEnmapL1BAlgorithm):
-                                keys = [alg.P_OUTPUT_VNIR_RASTER, alg.P_OUTPUT_SWIR_RASTER]
-                            else:
-                                keys = [alg.P_OUTPUT_RASTER]
-                            for key in keys:
-                                layer = QgsRasterLayer(parameters[key], basename(parameters[key]))
-                                newMapLayers.append(layer)
 
     else:
         s = ""

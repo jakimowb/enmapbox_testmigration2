@@ -1,6 +1,11 @@
 import numpy as np
-from qgis._core import QgsRasterRange, QgsRasterLayer
+from qgis._core import QgsRasterRange, QgsRasterLayer, QgsProcessing
 
+import processing
+from enmapboxprocessing.algorithm.importlandsatl2algorithm import ImportLandsatL2Algorithm
+from enmapboxprocessing.algorithm.importprismal2dalgorithm import ImportPrismaL2DAlgorithm
+from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
+from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.testcase import TestCase
@@ -228,3 +233,119 @@ class TestRasterMaskReader(TestCase):
         gold[0, 0, 0:5] = False
         lead = self.reader.maskArray(self.array)
         self.assertArrayEqual(lead, gold)
+
+class TestDataScaling(TestCase):
+
+    def test_toVrt(self):
+        # import Landsat 8 spectral raster VRT which already has data scale and offset values
+        alg = ImportLandsatL2Algorithm()
+        parameters = {
+            alg.P_FILE: r'D:\data\sensors\landsat\C2L2\LC08_L2SP_192023_20210724_20210730_02_T1\LC08_L2SP_192023_20210724_20210730_02_T1_MTL.txt',
+            alg.P_OUTPUT_RASTER: self.filename('landsat8L2C2.vrt')
+        }
+        result = processing.run(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(-0.2, reader.bandOffset(1))
+        self.assertEqual(2.75e-05, reader.bandScale(1))
+        sum1 = np.sum(reader.array(bandList=[1]))
+
+        # translate to another VRT
+        alg = SaveRasterAsAlgorithm()
+        parameters = {
+            alg.P_RASTER: reader.layer,
+            alg.P_OUTPUT_RASTER: self.filename('landsat8L2C2_copy1.vrt')
+        }
+        result = processing.run(alg, parameters)
+        reader2 = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(-0.2, reader2.bandOffset(1))
+        self.assertEqual(2.75e-05, reader2.bandScale(1))
+        sum2 = np.sum(reader.array(bandList=[1]))
+        self.assertEqual(sum1, sum2)
+
+    def test_toGTiff(self):
+        # import Landsat 8 spectral raster VRT which already has data scale and offset values
+        alg = ImportLandsatL2Algorithm()
+        parameters = {
+            alg.P_FILE: r'D:\data\sensors\landsat\C2L2\LC08_L2SP_192023_20210724_20210730_02_T1\LC08_L2SP_192023_20210724_20210730_02_T1_MTL.txt',
+            alg.P_OUTPUT_RASTER: self.filename('landsat8L2C2.vrt')
+        }
+        result = processing.run(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(-0.2, reader.bandOffset(1))
+        self.assertEqual(2.75e-05, reader.bandScale(1))
+        sum1 = np.sum(reader.array(bandList=[1]))
+
+        # translate to another GTiff
+        alg = SaveRasterAsAlgorithm()
+        parameters = {
+            alg.P_RASTER: reader.layer,
+            alg.P_OUTPUT_RASTER: self.filename('landsat8L2C2_copy2.tif')
+        }
+        result = processing.run(alg, parameters)
+        reader2 = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(2.75e-05, reader2.bandScale(1))  # GDAL Translate hasn't scaled the data!
+        self.assertEqual(-0.2, reader2.bandOffset(1))
+        sum2 = np.sum(reader.array(bandList=[1]))
+        self.assertEqual(sum1, sum2)
+
+    def test_scaleAnd_toGTiff(self):
+        # import Landsat 8 spectral raster VRT which already has data scale and offset values
+        alg = ImportLandsatL2Algorithm()
+        parameters = {
+            alg.P_FILE: r'D:\data\sensors\landsat\C2L2\LC08_L2SP_192023_20210724_20210730_02_T1\LC08_L2SP_192023_20210724_20210730_02_T1_MTL.txt',
+            alg.P_OUTPUT_RASTER: self.filename('landsat8L2C2.vrt')
+        }
+        result = processing.run(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(-0.2, reader.bandOffset(5))
+        self.assertEqual(2.75e-05, reader.bandScale(5))
+        mean1 = np.mean(reader.array(bandList=[5]))
+
+        # set scaling
+        reader.setUserBandScale(100, 5)
+        #reader.setUserBandOffset(123, 5)
+
+        # translate to another GTiff
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: reader.layer,
+            alg.P_BAND_LIST: [5],
+            alg.P_OUTPUT_RASTER: self.filename('landsat8L2C2_copy2.tif')
+        }
+        result = processing.run(alg, parameters)
+        reader2 = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(2.75e-05 * 100, reader2.bandScale(1))  # GDAL Translate hasn't scaled the data!
+        #self.assertEqual(-0.2 * 100 + 123, reader2.bandOffset(5))
+        mean2 = np.mean(reader2.array())
+        self.assertAlmostEqual(mean1 * 100, mean2, 3)
+
+    def test_scaleAnd_toVrt(self):
+        # import Landsat 8 spectral raster VRT which already has data scale and offset values
+        alg = ImportLandsatL2Algorithm()
+        parameters = {
+            alg.P_FILE: r'D:\data\sensors\landsat\C2L2\LC08_L2SP_192023_20210724_20210730_02_T1\LC08_L2SP_192023_20210724_20210730_02_T1_MTL.txt',
+            alg.P_OUTPUT_RASTER: self.filename('landsat8L2C2.vrt')
+        }
+        result = processing.run(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(-0.2, reader.bandOffset(5))
+        self.assertEqual(2.75e-05, reader.bandScale(5))
+        mean1 = np.mean(reader.array(bandList=[5]))
+
+        # set scaling
+        reader.setUserBandScale(100, 5)
+        #reader.setUserBandOffset(123, 5)
+
+        # translate to another GTiff
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: reader.layer,
+            alg.P_BAND_LIST: [5],
+            alg.P_OUTPUT_RASTER: self.filename('landsat8L2C2_copy3.vrt')
+        }
+        result = processing.run(alg, parameters)
+        reader2 = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertAlmostEqual(2.75e-05 * 100, reader2.bandScale(1), 3)  # GDAL Translate hasn't scaled the data!
+        #self.assertEqual(-0.2 * 100 + 123, reader2.bandOffset(5))
+        mean2 = np.mean(reader2.array())
+        self.assertAlmostEqual(mean1 * 100, mean2, 3)
