@@ -24,12 +24,14 @@ import uuid
 from typing import Optional, List
 
 from PyQt5.QtWidgets import QToolButton, QAction
+
+from enmapbox.qgispluginsupport.qps.utils import loadUi, findParent
 from processing import Processing
 from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
 from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
 from qgis.PyQt.QtWidgets import QHeaderView, QMenu, QAbstractItemView, QApplication
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
-from qgis._core import QgsMultiBandColorRenderer
+from qgis.core import QgsMultiBandColorRenderer
 from qgis.core import Qgis
 from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
     QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
@@ -41,10 +43,10 @@ from qgis.gui import QgsLayerTreeView, \
     QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget, QgsMessageBar
 
 from enmapbox import debugLog
-from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
-from enmapbox.externals.qps.speclib.core import is_spectral_library, profile_field_list
+from enmapbox.qgispluginsupport.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
+from enmapbox.qgispluginsupport.qps.speclib.core import is_spectral_library, profile_field_list
 from enmapbox.gui import \
-    SpectralLibrary, SpectralLibraryWidget, SpatialExtent, findParent, loadUi, showLayerPropertiesDialog
+    SpectralLibrary, SpectralLibraryWidget, SpatialExtent, showLayerPropertiesDialog
 from enmapbox.gui.datasources.datasources import DataSource
 from enmapbox.gui.datasources.manager import DataSourceManager
 from enmapbox.gui.dataviews.docks import Dock, DockArea, \
@@ -56,7 +58,6 @@ from enmapbox.gui.mimedata import \
     MDF_TEXT_HTML, MDF_URILIST, MDF_TEXT_PLAIN, MDF_QGIS_LAYER_STYLE, \
     extractMapLayers, containsMapLayers, textToByteArray
 from enmapbox.gui.utils import enmapboxUiPath
-from enmapbox.gui.utils import getDOMAttributes
 from enmapboxplugins.classfractionrenderer import ClassFractionRendererWidget
 from enmapboxplugins.colorspaceexplorer import ColorSpaceExplorerWidget
 from enmapboxplugins.decorrelationstretchrenderer import DecorrelationStretchRendererWidget
@@ -718,7 +719,10 @@ class DockManager(QObject):
             dock = cls(*args, **kwds)
             if isinstance(self.mDataSourceManager, DataSourceManager):
                 dock.sigLayersAdded.connect(self.mDataSourceManager.addDataSources)
-            dock.sigRenderStateChanged.connect(self.mEnMAPBoxInstance.ui.mProgressBarRendering.toggleVisibility)
+
+            from enmapbox import EnMAPBox
+            if isinstance(self.mEnMAPBoxInstance, EnMAPBox):
+                dock.sigRenderStateChanged.connect(self.mEnMAPBoxInstance.ui.mProgressBarRendering.toggleVisibility)
             dock.mapCanvas().enableMapTileRendering(True)
             dock.mapCanvas().setParallelRenderingEnabled(True)
             dock.mapCanvas().setPreviewJobsEnabled(True)

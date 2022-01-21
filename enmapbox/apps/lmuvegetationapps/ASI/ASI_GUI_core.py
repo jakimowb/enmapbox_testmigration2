@@ -35,7 +35,7 @@ from hubflow.core import *
 import numpy as np
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
-from enmapbox.externals.qps.externals import pyqtgraph as pg
+from enmapbox.qgispluginsupport.qps.externals import pyqtgraph as pg
 import sys, os
 from lmuvegetationapps.ASI.peakdetect import *
 from lmuvegetationapps import APP_DIR

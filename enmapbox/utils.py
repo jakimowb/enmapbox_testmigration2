@@ -1,6 +1,6 @@
 from typing import Optional
 
-from qgis._core import QgsRasterLayer
+from qgis.core import QgsRasterLayer
 
 from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from typeguard import typechecked

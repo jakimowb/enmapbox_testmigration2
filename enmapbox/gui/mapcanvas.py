@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import QAction, QToolButton, QFileDialog, QHBoxLayout, QFra
 from qgis.core import QgsVectorLayer
 from qgis.gui import QgsColorDialog
 
-from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent, qgisAppQgisInterface
+from enmapbox.qgispluginsupport.qps.utils import SpatialPoint, SpatialExtent, qgisAppQgisInterface
 from enmapbox.gui import MapTools, MapToolCenter, PixelScaleExtentMapTool, \
     CursorLocationMapTool, FullExtentMapTool, QgsMapToolAddFeature, QgsMapToolSelect, \
     CrosshairDialog, CrosshairStyle, CrosshairMapCanvasItem

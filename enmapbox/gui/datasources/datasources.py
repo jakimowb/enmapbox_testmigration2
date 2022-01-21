@@ -2,15 +2,15 @@ import json
 import pickle
 import warnings
 
-from PyQt5.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsDataItem, QgsLayerItem, QgsCoordinateReferenceSystem, QgsMapLayer, QgsUnitTypes, \
     QgsMapLayerType, QgsVectorLayer, QgsRasterLayer, Qgis, QgsWkbTypes, QgsField
 
 from enmapbox import messageLog, debugLog
-from ...externals.qps.classification.classificationscheme import ClassificationScheme
-from ...externals.qps.models import TreeNode, PyObjectTreeNode
-from ...externals.qps.utils import SpatialExtent, parseWavelength, iconForFieldType
-from ...externals.qps.speclib.core import is_spectral_library
+from ...qgispluginsupport.qps.classification.classificationscheme import ClassificationScheme
+from ...qgispluginsupport.qps.models import TreeNode, PyObjectTreeNode
+from ...qgispluginsupport.qps.utils import SpatialExtent, parseWavelength, iconForFieldType
+from ...qgispluginsupport.qps.speclib.core import is_spectral_library
 from .metadata import CRSLayerTreeNode, RasterBandTreeNode, DataSourceSizesTreeNode
 
 from qgis.core import QgsDataItem, QgsLayerItem, QgsMapLayer, QgsRasterLayer

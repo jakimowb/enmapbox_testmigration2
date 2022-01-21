@@ -10,7 +10,7 @@ class Scripts(TestCase):
 
         from enmapbox.gui import SpectralLibrary, SpectralProfile
         from enmapbox.gui.utils import file_search
-        from enmapbox.externals.qps.speclib.io.asd import ASDSpectralLibraryIO, ASDBinaryFile
+        from enmapbox.qgispluginsupport.qps.speclib.io.asd import ASDSpectralLibraryIO, ASDBinaryFile
         import pathlib
         import os
         import numpy as np

@@ -76,7 +76,7 @@ class VTest(EnMAPBoxTestCase):
         job = ImageCubeRenderJob(GLItem.TopPlane, lyr, lyr.renderer())
 
         self.assertEqual(job.id(), GLItem.TopPlane)
-        from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
+        from enmapbox.qgispluginsupport.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
         xml1 = rendererToXml(lyr.renderer()).toString()
         xml2 = rendererToXml(job.renderer()).toString()
         self.assertEqual(xml1, xml2)

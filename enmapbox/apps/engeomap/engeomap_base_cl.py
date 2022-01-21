@@ -132,7 +132,7 @@ class Ui_dialog(object):
         self.Ready = QtWidgets.QGraphicsView(dialog)
         self.Ready.setGeometry(QtCore.QRect(950, 150, 181, 161))
         self.Ready.setObjectName("Ready")
-	   self.Ready.type
+
         self.retranslateUi(dialog)
         QtCore.QMetaObject.connectSlotsByName(dialog)
 

@@ -27,8 +27,8 @@ from PyQt5.QtWidgets import QApplication
 from osgeo import ogr, gdal
 
 import testdata
-from enmapbox.externals.qps.speclib.core import profile_fields
-from enmapbox.externals.qps.utils import SpatialExtent
+from enmapbox.qgispluginsupport.qps.speclib.core import profile_fields
+from enmapbox.qgispluginsupport.qps.utils import SpatialExtent
 from enmapbox.gui.datasources.datasources import SpatialDataSource, DataSource, RasterDataSource
 from enmapbox.gui.datasources.manager import DataSourceManager, DataSourceManagerPanelUI, DataSourceFactory
 from qgis.PyQt import sip
@@ -40,7 +40,7 @@ from qgis.gui import QgsMapCanvas
 from enmapbox import EnMAPBox
 
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-from enmapbox.exampledata import enmap, hires, landcover_polygons, library, enmap_srf_library
+from enmapbox.exampledata import enmap, hires, landcover_polygons, library_gpkg, enmap_srf_library
 from enmapbox.gui.datasources import *
 
 
@@ -109,7 +109,7 @@ class DataSourceTests(EnMAPBoxTestCase):
     def createTestSources(self) -> list:
 
         # return [library, self.wfsUri, self.wmsUri, enmap, landcover_polygons]
-        return [library, enmap, landcover_polygons]
+        return [library_gpkg, enmap, landcover_polygons]
 
     def createOGCSources(self) -> list:
         # todo: add WCS
@@ -173,7 +173,7 @@ class DataSourceTests(EnMAPBoxTestCase):
         dsm = DataSourceManager()
         panel = DataSourceManagerPanelUI()
         panel.connectDataSourceManager(dsm)
-        uris = [library, enmap, landcover_polygons]
+        uris = [library_gpkg, enmap, landcover_polygons]
         dsm.addDataSources(uris)
         self.showGui(panel)
 

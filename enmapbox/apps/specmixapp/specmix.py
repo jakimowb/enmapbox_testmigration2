@@ -5,16 +5,16 @@ import enum
 
 from qgis._core import QgsVectorLayer
 
-from enmapbox.externals.qps.speclib.core import is_spectral_library
+from enmapbox.qgispluginsupport.qps.speclib.core import is_spectral_library
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.core import QgsField
-from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
-from enmapbox.externals.qps.speclib.core.spectralprofile import SpectralProfile
-from enmapbox.externals.qps.speclib.gui.spectrallibraryplotwidget import SpectralLibraryPlotWidget, SpectralProfilePlotDataItem
-from enmapbox.externals.qps.utils import loadUi
-from enmapbox.externals.qps.plotstyling.plotstyling import PlotStyle, PlotStyleButton
+from enmapbox.qgispluginsupport.qps.speclib.core.spectrallibrary import SpectralLibrary
+from enmapbox.qgispluginsupport.qps.speclib.core.spectralprofile import SpectralProfile
+from enmapbox.qgispluginsupport.qps.speclib.gui.spectrallibraryplotwidget import SpectralLibraryPlotWidget, SpectralProfilePlotDataItem
+from enmapbox.qgispluginsupport.qps.utils import loadUi
+from enmapbox.qgispluginsupport.qps.plotstyling.plotstyling import PlotStyle, PlotStyleButton
 import numpy as np
 from . import APP_DIR, APP_NAME
 

@@ -33,7 +33,7 @@ from scipy.interpolate import interp1d
 from qgis.PyQt.QtGui import *
 
 from qgis.PyQt.QtWidgets import *
-from enmapbox.externals.qps.externals import pyqtgraph as pg
+from enmapbox.qgispluginsupport.qps import pyqtgraph as pg
 from lmuvegetationapps.Resources.PROSAIL import call_model as mod
 from lmuvegetationapps.Resources.Spec2Sensor.Spec2Sensor_core import Spec2Sensor, BuildSRF
 from lmuvegetationapps import APP_DIR

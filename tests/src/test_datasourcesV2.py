@@ -12,7 +12,7 @@ class DataSourceV2Tests(EnMAPBoxTestCase):
         super().setUp()
 
     def test_DataSourceModel(self):
-        from enmapbox.exampledata import enmap, landcover_polygons, library, enmap_srf_library
+        from enmapbox.exampledata import enmap, landcover_polygons, library_gpkg, library_sli, enmap_srf_library
         from testdata import classifier_pkl
         from testdata.asd import filenames_binary
         sources = [enmap,
@@ -21,8 +21,8 @@ class DataSourceV2Tests(EnMAPBoxTestCase):
                    landcover_polygons,
                    enmap_srf_library,
                    enmap_srf_library,
-                   library,
-                   library,
+                   library_gpkg,
+                   library_sli,
                    classifier_pkl,
                    classifier_pkl,
                    filenames_binary[0],

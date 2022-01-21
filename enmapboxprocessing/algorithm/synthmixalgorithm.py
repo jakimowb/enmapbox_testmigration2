@@ -9,7 +9,7 @@ import numpy as np
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsVectorLayer, QgsRasterLayer, QgsUnitTypes,
                         QgsCategorizedSymbolRenderer, QgsProcessingException)
 
-from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary
+from enmapbox.qgispluginsupport.qps.speclib.core.spectrallibrary import SpectralLibrary
 from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedlibraryalgorithm import \
     PrepareClassificationDatasetFromCategorizedLibraryAlgorithm
 from enmapboxprocessing.algorithm.rasterizecategorizedvectoralgorithm import RasterizeCategorizedVectorAlgorithm

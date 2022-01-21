@@ -3,7 +3,7 @@ from typing import Dict, List
 import numpy as np
 from PyQt5.QtGui import QColor
 
-from enmapbox.externals.qps.utils import SpatialPoint
+from enmapbox.qgispluginsupport.qps.utils import SpatialPoint
 from enmapboxprocessing.utils import Utils
 from geetimeseriesexplorerapp.externals.ee_plugin.provider import BAND_TYPES
 from typeguard import typechecked

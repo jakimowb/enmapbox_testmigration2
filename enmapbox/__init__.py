@@ -37,6 +37,11 @@ import warnings
 
 import qgis
 import site
+
+# provide shortcuts
+from .qgispluginsupport.qps.pyqtgraph import pyqtgraph
+from .qgispluginsupport import qps
+from enmapbox.qgispluginsupport.qps import registerEditorWidgets
 from qgis.gui import QgisInterface, QgsMapLayerConfigWidgetFactory
 from qgis.core import Qgis, QgsApplication, QgsProcessingRegistry, QgsProcessingProvider, QgsProcessingAlgorithm
 from qgis.PyQt.QtCore import QSettings, QResource
@@ -164,9 +169,9 @@ site.addsitedir(DIR_SITEPACKAGES)
 # test if PyQtGraph is available
 try:
     import pyqtgraph
-except:
+except ModuleNotFoundError:
     # use PyQtGraph brought by QPS
-    pSrc = pathlib.Path(DIR_ENMAPBOX) / 'externals' / 'qps' / 'externals'
+    pSrc = pathlib.Path(DIR_ENMAPBOX) / 'qgispluginsupport' / 'qps' / 'pyqtgraph'
     assert pSrc.is_dir()
     site.addsitedir(pSrc)
     # import pyqtgraph
@@ -239,7 +244,7 @@ def initEnMAPBoxResources():
     Loads (or reloads) all Qt resource files
     """
     debugLog('started initEnMAPBoxResources')
-    from .externals.qps.resources import initQtResources, initResourceFile
+    from .qgispluginsupport.qps.resources import initQtResources, initResourceFile
     initQtResources(DIR_ENMAPBOX)
     debugLog('finished initEnMAPBoxResources')
 
@@ -250,7 +255,7 @@ def registerEditorWidgets():
     """
     debugLog('started initEditorWidgets')
 
-    from .externals.qps import registerEditorWidgets
+    from enmapbox.qgispluginsupport.qps import registerEditorWidgets
     registerEditorWidgets()
 
     debugLog('finished initEditorWidgets')
@@ -343,12 +348,14 @@ def registerMapLayerConfigWidgetFactories():
     """
     debugLog('started initMapLayerConfigWidgetFactories')
     global _ENMAPBOX_MAPLAYER_CONFIG_WIDGET_FACTORIES
-    from .externals.qps import mapLayerConfigWidgetFactories, registerMapLayerConfigWidgetFactory
+    from enmapbox.qgispluginsupport.qps import mapLayerConfigWidgetFactories, registerMapLayerConfigWidgetFactory
 
     from .externals.qps.layerconfigwidgets.rasterbands import RasterBandConfigWidgetFactory
     from enmapbox.gui.layerconfigwidgets.rasterbandpropertiesconfigwidget import RasterBandPropertiesConfigWidgetFactory
     from .externals.qps.layerconfigwidgets.gdalmetadata import GDALMetadataConfigWidgetFactory
 
+    from enmapbox.qgispluginsupport.qps.layerconfigwidgets.rasterbands import RasterBandConfigWidgetFactory
+    from enmapbox.qgispluginsupport.qps.layerconfigwidgets.gdalmetadata import GDALMetadataConfigWidgetFactory
     for factory in [RasterBandConfigWidgetFactory(),
                     RasterBandPropertiesConfigWidgetFactory(),
                     GDALMetadataConfigWidgetFactory()]:
@@ -364,7 +371,7 @@ def unregisterMapLayerConfigWidgetFactories():
     """
     Removes MapLayerConfigWidgetFactories which had been registered with the EnMAP-Box
     """
-    from .externals.qps import unregisterMapLayerConfigWidgetFactory
+    from .qgispluginsupport.qps import unregisterMapLayerConfigWidgetFactory
     for factory in _ENMAPBOX_MAPLAYER_CONFIG_WIDGET_FACTORIES:
         unregisterMapLayerConfigWidgetFactory(factory)
 
@@ -373,7 +380,7 @@ def registerExpressionFunctions():
     """
     Adds Expression functions for the QGIS expression editor
     """
-    from .externals.qps.qgsfunctions import registerQgsExpressionFunctions
+    from .qgispluginsupport.qps.qgsfunctions import registerQgsExpressionFunctions
     registerQgsExpressionFunctions()
 
 
@@ -381,7 +388,7 @@ def unregisterExpressionFunctions():
     """
     Removes added expression functions
     """
-    from .externals.qps.qgsfunctions import unregisterQgsExpressionFunctions
+    from .qgispluginsupport.qps.qgsfunctions import unregisterQgsExpressionFunctions
     unregisterQgsExpressionFunctions()
 
 
@@ -394,11 +401,9 @@ def initAll():
     registerExpressionFunctions()
     registerEnMAPBoxProcessingProvider()
     registerMapLayerConfigWidgetFactories()
-
-    from .externals.qps import registerSpectralLibraryIOs
+    from enmapbox.qgispluginsupport.qps import registerSpectralLibraryIOs
     registerSpectralLibraryIOs()
-
-    from .externals.qps import registerSpectralProfileSamplingModes
+    from enmapbox.qgispluginsupport.qps import registerSpectralProfileSamplingModes
     registerSpectralProfileSamplingModes()
 
 

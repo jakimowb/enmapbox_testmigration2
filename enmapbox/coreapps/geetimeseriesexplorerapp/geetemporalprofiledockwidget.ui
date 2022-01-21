@@ -1621,7 +1621,7 @@ Image Chips</string>
   <customwidget>
    <class>GraphicsLayoutWidget</class>
    <extends>QGraphicsView</extends>
-   <header>enmapbox.externals.qps.externals.pyqtgraph</header>
+   <header>enmapbox.qgispluginsupport.qps.externals.pyqtgraph</header>
   </customwidget>
  </customwidgets>
  <resources>

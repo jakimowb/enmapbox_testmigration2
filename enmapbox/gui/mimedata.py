@@ -10,6 +10,10 @@ from qgis.core import QgsLayerItem
 from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer, QgsProject, QgsReadWriteContext, \
     QgsMimeDataUtils, QgsLayerTree, QgsLayerTreeLayer
 from .datasources.datasources import DataSource
+
+from ..qgispluginsupport.qps.layerproperties import defaultRasterRenderer
+from ..qgispluginsupport.qps.speclib.core import is_spectral_library
+from ..qgispluginsupport.qps.speclib.core.spectrallibrary import SpectralLibrary
 from ..externals.qps.layerproperties import defaultRasterRenderer
 from ..externals.qps.speclib.core import is_spectral_library
 from ..externals.qps.speclib.core.spectrallibrary import SpectralLibrary

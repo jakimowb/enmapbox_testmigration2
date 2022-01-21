@@ -34,7 +34,7 @@ import warnings
 site.addsitedir(pathlib.Path(__file__).parents[1])
 import enmapbox
 from enmapbox import DIR_REPO, __version__
-from enmapbox.externals.qps.make.deploy import QGISMetadataFileWriter
+from enmapbox.qgispluginsupport.qps.make.deploy import QGISMetadataFileWriter
 from enmapbox.gui.utils import zipdir
 from qgis.core import QgsFileUtils
 

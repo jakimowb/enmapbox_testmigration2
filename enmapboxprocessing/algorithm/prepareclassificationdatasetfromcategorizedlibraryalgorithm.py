@@ -5,7 +5,7 @@ import numpy as np
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsCategorizedSymbolRenderer,
                         QgsProcessingParameterField, QgsProcessingException)
 
-from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibrary, FIELD_VALUES, SpectralLibraryUtils
+from enmapbox.qgispluginsupport.qps.speclib.core.spectrallibrary import SpectralLibrary, FIELD_VALUES, SpectralLibraryUtils
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.typing import checkSampleShape, ClassifierDump
 from enmapboxprocessing.utils import Utils

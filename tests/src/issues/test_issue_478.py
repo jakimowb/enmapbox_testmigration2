@@ -2,6 +2,8 @@
 
 import unittest
 import xmlrunner
+from qgis.PyQt.QtWidgets import QTreeView
+
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.gui.enmapboxgui import EnMAPBox
 from enmapbox.gui import *
@@ -34,7 +36,7 @@ class TestIssue(EnMAPBoxTestCase):
         EB.addSource(wms)
         tv = EB.dataSourceManagerTreeView()
         self.assertIsInstance(tv, DataSourceManagerTreeView)
-        for src in EB.dataSourceManager().sources('RASTER'):
+        for src in EB.dataSourceManager().dataSources('RASTER'):
             tv.openInMap(src, rgb=[0])
             self.assertIsInstance(tv, QTreeView)
 

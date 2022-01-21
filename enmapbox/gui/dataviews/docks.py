@@ -18,14 +18,23 @@
 """
 
 import codecs
+import os
 import typing
 import enum
 import uuid
+import warnings
 from math import ceil
 
-from PyQt5.QtCore import pyqtSignal, QSettings, Qt
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QToolButton, QMenu
+from qgis.PyQt.QtCore import pyqtSignal, QSettings, Qt, QMimeData, QPoint, QUrl, QObject, QSize, QByteArray
+from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDragLeaveEvent, QDropEvent, QResizeEvent, \
+    QContextMenuEvent, QTextCursor
+from qgis.PyQt.QtWidgets import QToolButton, QMenu, QMainWindow, QFileDialog, QWidget, QMessageBox, QWidgetItem, \
+    QApplication, QStyle, QProgressBar, QTextEdit
+
+from qgis.core import QgsLayerTreeLayer
+
+from enmapbox.gui.utils import enmapboxUiPath
+from enmapbox.qgispluginsupport.qps.utils import loadUi
 from qgis.core import QgsCoordinateReferenceSystem, QgsMapLayer
 from qgis.gui import QgsMapCanvas
 
@@ -34,16 +43,13 @@ from qgis.PyQt import QtCore
 from qgis.core import QgsVectorLayer
 
 from enmapbox.gui import SpectralLibraryWidget, SpectralLibrary
-from enmapbox.gui.datasources import *
-from enmapbox.gui.utils import *
-
-from enmapbox.externals.qps.externals.pyqtgraph.dockarea import DockArea as pgDockArea
-from enmapbox.externals.qps.externals.pyqtgraph.dockarea.DockArea import TempAreaWindow
-from enmapbox.externals.qps.externals.pyqtgraph.dockarea.Dock import Dock as pgDock
-from enmapbox.externals.qps.externals.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
-from enmapbox.externals.qps.layerproperties import pasteStyleFromClipboard
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.dockarea import DockArea as pgDockArea
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.dockarea.DockArea import TempAreaWindow
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.dockarea.Dock import Dock as pgDock
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.dockarea.Dock import DockLabel as pgDockLabel
+from enmapbox.qgispluginsupport.qps.layerproperties import pasteStyleFromClipboard
 from enmapbox.gui.mimedata import MDF_QGIS_LAYER_STYLE
-from enmapbox.externals.qps.speclib.core import is_spectral_library
+from enmapbox.qgispluginsupport.qps.speclib.core import is_spectral_library
 from enmapboxprocessing.utils import Utils
 
 
@@ -750,7 +756,7 @@ class WebViewDock(Dock):
         super(WebViewDock, self).__init__(*args, **kwargs)
         # self.setLineWrapMode(QTextEdit.FixedColumnWidth)
 
-        from PyQt5.QtWebKitWidgets import QWebView
+        from qgis.PyQt.QtWebKitWidgets import QWebView
         self.webView = QWebView(self)
         self.layout.addWidget(self.webView)
 
@@ -766,7 +772,7 @@ class WebViewDock(Dock):
             url = QUrl(uri)
         self.webView.load(url)
         settings = self.webView.page().settings()
-        from PyQt5.QtWebKit import QWebSettings
+        from qgis.PyQt.QtWebKit import QWebSettings
         settings.setAttribute(QWebSettings.LocalContentCanAccessRemoteUrls, True)
         settings.setAttribute(QWebSettings.LocalContentCanAccessFileUrls, True)
         settings.setAttribute(QWebSettings.LocalStorageEnabled, True)
@@ -780,7 +786,7 @@ class AttributeTableDock(Dock):
 
     def __init__(self, layer: QgsVectorLayer, *args, **kwds):
         super(AttributeTableDock, self).__init__(*args, **kwds)
-        from enmapbox.externals.qps.layerproperties import AttributeTableWidget
+        from enmapbox.qgispluginsupport.qps.layerproperties import AttributeTableWidget
         self.attributeTableWidget = AttributeTableWidget(layer)
         self.addWidget(self.attributeTableWidget, 0, 0)
         self.updateTitle(self.attributeTableWidget.windowTitle())
