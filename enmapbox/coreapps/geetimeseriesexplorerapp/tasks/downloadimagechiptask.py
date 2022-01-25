@@ -106,17 +106,13 @@ class DownloadImageChipTask(QgsTask):
     """Build image chip VRT."""
 
     def __init__(self, filename: str, filenames: List[str], location: SpatialPoint):
-        print('DownloadImageChipTask.init')
         QgsTask.__init__(self, 'Create image chip task', QgsTask.CanCancel)
         self.filename = filename
         self.filenames = filenames
         self.location = location
         self.exception: Optional[Exception] = None
 
-        print('DownloadImageChipTask.init')
-
     def run(self):
-        print('DownloadImageChipTask.run')
         try:
             self.alreadyExists = QgsRasterLayer(self.filename).isValid()
             if self.alreadyExists:
@@ -135,12 +131,9 @@ class DownloadImageChipTask(QgsTask):
             self.exception = e
             return False
 
-        print('DownloadImageChipTask.run')
-
         return True
 
     def finished(self, result):
-        print('DownloadImageChipTask.finished')
         if self.isCanceled():
             return
         elif not result:
@@ -152,4 +145,3 @@ class DownloadImageChipTask(QgsTask):
         else:
             QgsMessageLog.logMessage(f'downloaded: {self.filename}', tag="GEE Time Series Explorer",
                                  level=Qgis.Success)
-        print('DownloadImageChipTask.finished')

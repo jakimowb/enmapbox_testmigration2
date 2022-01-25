@@ -1,4 +1,5 @@
 import json
+import warnings
 import webbrowser
 from collections import OrderedDict
 from math import isnan, isfinite
@@ -131,15 +132,11 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
     mCompositeExtent: QComboBox
 
     # update layer
-    mLayerModeWms: QRadioButton
-    mLayerModeImageChip: QRadioButton
-    mImageChipBands: QgsCheckableComboBox
     mAppendName: QCheckBox
     mLayerName: QLineEdit
     mAppendId: QCheckBox
     mAppendDate: QCheckBox
     mAppendBandNames: QCheckBox
-    mAppendType: QCheckBox
     mLayerNamePreview: QLineEdit
     mCenterLayer: QToolButton
     mLiveStretchLayer: QCheckBox
@@ -224,7 +221,6 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
         self.mAvailableImages.itemSelectionChanged.connect(self.onAvailableImagesSelectionChanged)
         self.mAvailableImages.horizontalHeader().setSectionsMovable(True)
         self.mImageId.textChanged.connect(self.onImageIdChanged)
-        self.mImageId.textChanged.connect(self.updateTemporalRange)
         # - compositing and mosaicking
         self.mCompositeSeasonStart.setLocale(QLocale(QLocale.English, QLocale.UnitedKingdom))
         self.mCompositeSeasonEnd.setLocale(QLocale(QLocale.English, QLocale.UnitedKingdom))
@@ -233,15 +229,8 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
         self.mImageExplorerTab.currentChanged.connect(self.updateLayerNamePreview)
         self.mImageId.textChanged.connect(self.updateLayerNamePreview)
         self.mLayerName.textChanged.connect(self.updateLayerNamePreview)
-        for w in [self.mLayerModeWms, self.mLayerModeImageChip, self.mAppendName, self.mAppendId, self.mAppendDate,
-                  self.mAppendBandNames, self.mAppendType]:
+        for w in [self.mAppendName, self.mAppendId, self.mAppendDate, self.mAppendBandNames]:
             w.toggled.connect(self.updateLayerNamePreview)
-        self.mImageChipBands.checkedItemsChanged.connect(self.updateLayerNamePreview)
-        self.mTemporalEnabled.clicked.connect(self.updateTemporalRange)
-        self.mTemporalRangeValue.valueChanged.connect(self.updateTemporalRange)
-        self.mTemporalRangeUnits.currentIndexChanged.connect(self.updateTemporalRange)
-        self.mTemporalStartFixed.clicked.connect(self.updateTemporalRange)
-        self.mTemporalEndFixed.clicked.connect(self.updateTemporalRange)
 
         # task manager
         # self.taskManager = QgsTaskManager()  # using this manager gives me crashes, when connected to a progress bar
@@ -251,10 +240,6 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
         self.mCancelTaskManager.clicked.connect(self.taskManager.cancelAll)
         self.mProgressBarFrame.hide()
         self.mProgressBar.setRange(0, 0)
-
-        # init gui settings
-        self.mImageChipBands.setItemCheckState(0, Qt.Checked)
-        self.updateTemporalRange()
 
     def setProfileDock(self, profileDock):
         from geetimeseriesexplorerapp import GeeTemporalProfileDockWidget
@@ -402,7 +387,9 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
 
         namespace = dict(ee=ee)
         code = self.mCode.text()
-        exec(code, namespace)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            exec(code, namespace)
 
         with GeeWaitCursor():
             try:
@@ -455,42 +442,26 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
     def onUpdateLayerClicked(self, cumulativeCountCut=False):
 
         layerName = self.currentLayerName()
-        temporalRange = self.currentImageLayerTemporalRange()
 
         if self.mImageExplorerTab.currentIndex() == 0:  # image viewer
 
             if self.eeImage() is None:
                 return
 
-            if self.mLayerModeWms.isChecked():
-                eeImageProfile, eeImageRgb, visParams, visBands = self.eeImage()
-                self.createWmsLayer(eeImageProfile, eeImageRgb, visParams, layerName, temporalRange)
-            if self.mLayerModeImageChip.isChecked():
-                eeImage, _, visParams, visBands = self.eeImage()
-                renderTypeName = self.mRendererType.currentText()
-                bandNames = self.currentImageChipBandNames()
-                self.createImageChipLayer(
-                    eeImage, bandNames, layerName, self.currentImageId(), self.currentLocation(), visParams, visBands,
-                    renderTypeName, cumulativeCountCut, temporalRange
-                )
+            eeImageProfile, eeImageRgb, visParams, visBands = self.eeImage()
+            self.createWmsLayer(eeImageProfile, eeImageRgb, visParams, layerName)
 
         if self.mImageExplorerTab.currentIndex() == 1:  # compositing
 
             if self.eeComposite() is None:
                 return
 
-            if self.mLayerModeWms.isChecked():
-                eeCompositeProfile, eeCompositeRgb, visParams = self.eeComposite()
-                self.createWmsLayer(eeCompositeProfile, eeCompositeRgb, visParams, layerName, temporalRange)
-            if self.mLayerModeImageChip.isChecked():
-                assert 0
+            eeCompositeProfile, eeCompositeRgb, visParams = self.eeComposite()
+            self.createWmsLayer(eeCompositeProfile, eeCompositeRgb, visParams, layerName)
 
     def onStretchAndUpdateLayerClicked(self):
-        if self.mLayerModeWms.isChecked():
-            self.calculateCumulativeCountCutStretch()
-            self.onUpdateLayerClicked()
-        if self.mLayerModeImageChip.isChecked():
-            self.onUpdateLayerClicked(cumulativeCountCut=True)
+        self.calculateCumulativeCountCutStretch()
+        self.onUpdateLayerClicked()
 
     def onOpenCatalogClicked(self):
         webbrowser.open_new_tab(self.mOpenCatalog.url)
@@ -521,10 +492,14 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
                     self.mMessageBar.pushCritical('Error', str(error))
                     self.eeFullCollectionJson = None
                     return
+
             code = 'collection = ee.ImageCollection("' + data['id'] + '")\n\n'
-            filename = join(__file__, '../standard_collections', id + '.py')
+            filename = join(__file__, '..', 'standard_collections', id + '.py')
             if exists(filename):
-                code += Utils.fileLoad(filename)
+                code = Utils.fileLoad(filename)
+            filename = join(__file__, '..', 'user_collections', id + '.py')
+            if exists(filename):
+                code = Utils.fileLoad(filename)
 
         elif isinstance(self.sender(), QTableWidget):
             indices: List[QModelIndex] = self.mUserCollection.selectedIndexes()
@@ -536,6 +511,7 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
             jsonUrl = collection.jsonFilename
             data = collection.json.data
             code = collection.code()
+            assert 0, 'todo: check code snippet'
         else:
             assert 0
 
@@ -551,11 +527,12 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
         self.mAvailableImages.setColumnCount(2)
         self.mImageId.setText('')
         self.onLoadCollectionClicked()
-        self.mIconList.setCurrentRow(5)  # show image viewer tab
 
     def eeInitialize(self):
         if not self.eeInitialized:
-            ee.Initialize()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                ee.Initialize()
         self.eeInitialized = True
 
     def currentImageLayerTemporalRange(self) -> Optional[QgsDateTimeRange]:
@@ -571,29 +548,6 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
             return QgsDateTimeRange(start, end)
         else:
             return None
-
-    def updateTemporalRange(self):
-        imageId = self.currentImageId()
-        if imageId is None or not self.mTemporalEnabled.isChecked():
-            self.mTemporalFrame.hide()
-            return
-
-        self.mTemporalFrame.show()
-        dateTime = self.currentImageAcquisitionDate()
-        units = self.mTemporalRangeUnits.currentText()
-        if units == 'days':
-            secs = self.mTemporalRangeValue.value() * 24 * 60 * 60
-            dateTime.setTime(QTime(12, 0, 0, 0))
-            self.mTemporalStart.setDateTime(dateTime.addSecs(-int(secs / 2)))
-            self.mTemporalEnd.setDateTime(dateTime.addSecs(int(secs / 2)))
-        else:
-            raise NotImplementedError()
-
-        # check for infinite range
-        if not self.mTemporalStartFixed.isChecked():
-            self.mTemporalStart.clear()
-        if not self.mTemporalEndFixed.isChecked():
-            self.mTemporalEnd.clear()
 
     def updateBandProperties(self):
         self.mBandProperty.setRowCount(len(self.eeFullCollectionInfo.bandNames))
@@ -840,10 +794,7 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
         self.mIconList.setCurrentRow(5)
 
     def calculateCumulativeCountCutStretch(self):
-        if self.mLayerModeWms.isChecked():
-            self.calculateCumulativeCountCutStretchForWms()
-        elif self.mLayerModeImageChip.isChecked():
-            self.calculateCumulativeCountCutStretchForImageChip()
+        self.calculateCumulativeCountCutStretchForWms()
 
     def calculateCumulativeCountCutStretchForWms(self):
 
@@ -895,53 +846,6 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
             self.mPseudoColorMin.setText(str(tofloat(percentiles[f'vis-pseudo_p{percentageMin}'], 0, ndigits)))
             self.mPseudoColorMax.setText(str(tofloat(percentiles[f'vis-pseudo_p{percentageMax}'], 0, ndigits)))
 
-    def calculateCumulativeCountCutStretchForImageChip(self, layer: QgsRasterLayer = None):
-
-        if self.currentMapCanvas() is None:
-            return
-
-        # find layer
-        layerName = self.currentImageLayerName()
-        if layer is None:
-            for alayer in self.currentMapCanvas().layers():
-                if isinstance(alayer, QgsRasterLayer) and alayer.name() == layerName:
-                    layer = alayer
-                    break
-
-        assert layer is not None
-
-        extent = self.currentExtent().toCrs(layer.crs())
-        percentageMin = self.mPercentileMin.value() / 100.
-        percentageMax = self.mPercentileMax.value() / 100.
-
-        # calculate percentile stretch
-        reader = RasterReader(layer)
-
-        # update min-max range
-        ndigits = 3
-        if self.mRendererType.currentIndex() == self.MultibandColorRenderer:
-            vmin, vmax = reader.provider.cumulativeCut(
-                reader.findBandName(self.mRedBand.currentText()), percentageMin, percentageMax, extent
-            )
-            self.mRedMin.setText(str(tofloat(vmin, 0, ndigits)))
-            self.mRedMax.setText(str(tofloat(vmax, 0, ndigits)))
-            vmin, vmax = reader.provider.cumulativeCut(
-                reader.findBandName(self.mGreenBand.currentText()), percentageMin, percentageMax, extent
-            )
-            self.mGreenMin.setText(str(tofloat(vmin, 0, ndigits)))
-            self.mGreenMax.setText(str(tofloat(vmax, 0, ndigits)))
-            vmin, vmax = reader.provider.cumulativeCut(
-                reader.findBandName(self.mBlueBand.currentText()), percentageMin, percentageMax, extent
-            )
-            self.mBlueMin.setText(str(tofloat(vmin, 0, ndigits)))
-            self.mBlueMax.setText(str(tofloat(vmax, 0, ndigits)))
-        elif self.mRendererType.currentIndex() == self.SinglebandPseudocolorRenderer:
-            vmin, vmax = reader.provider.cumulativeCut(
-                reader.findBandName(self.mPseudoColorBand.currentText()), percentageMin, percentageMax, extent
-            )
-            self.mPseudoColorMin.setText(str(tofloat(vmin, 0, ndigits)))
-            self.mPseudoColorMax.setText(str(tofloat(vmax, 0, ndigits)))
-
     def eeVisualizationParameters(self) -> Dict:
 
         if self.mRendererType.currentIndex() == self.MultibandColorRenderer:
@@ -965,7 +869,7 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
 
     def eeCollection(
             self, addIndices=True, filterDate=True, filterProperty=True, filterQuality=True
-    ) -> Optional[ee.ImageCollection]:
+    ) -> Optional['ee.ImageCollection']:
         eeCollection = self.eeFullCollection
 
         if eeCollection is None:
@@ -984,7 +888,9 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
             return eeImage
 
         if addIndices:
-            eeCollection = eeCollection.map(addSpectralIndexBands)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                eeCollection = eeCollection.map(addSpectralIndexBands)
 
         # filter date range
         if filterDate:
@@ -1030,7 +936,9 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
                 mask = ee.ImageCollection.fromImages(masks).reduce(ee.Reducer.bitwiseAnd())
                 return eeImage.updateMask(mask)
 
-            eeCollection = eeCollection.map(maskPixel)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                eeCollection = eeCollection.map(maskPixel)
 
         return eeCollection
 
@@ -1042,7 +950,7 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
         else:
             return dateEnd, dateStart
 
-    def eeComposite(self, limit: int = None) -> Optional[Tuple[ee.Image, ee.Image, Dict]]:
+    def eeComposite(self, limit: int = None) -> Optional[Tuple['ee.Image', 'ee.Image', Dict]]:
 
         eeCollection = self.eeCollection()
 
@@ -1098,10 +1006,12 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
                        for bandNo in range(1, self.eeFullCollectionInfo.bandCount + spectralIndexCount + 1)]
             scales = [self.eeFullCollectionJson.bandScale(bandNo)
                       for bandNo in range(1, self.eeFullCollectionInfo.bandCount + spectralIndexCount + 1)]
-            if any([scale != 1. for scale in scales]):
-                eeCollection = eeCollection.map(lambda eeImage: eeImage.multiply(ee.Image(scales)))
-            if any([offset != 0. for offset in offsets]):
-                eeCollection = eeCollection.map(lambda eeImage: eeImage.add(ee.Image(offsets)))
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                if any([scale != 1. for scale in scales]):
+                    eeCollection = eeCollection.map(lambda eeImage: eeImage.multiply(ee.Image(scales)))
+                if any([offset != 0. for offset in offsets]):
+                    eeCollection = eeCollection.map(lambda eeImage: eeImage.add(ee.Image(offsets)))
 
         # composite
         eeReducers = self.eeReducers()
@@ -1192,16 +1102,10 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
             elif self.mRendererType.currentIndex() == self.SinglebandPseudocolorRenderer:
                 items.append(self.mPseudoColorBand.currentText())
 
-        if self.mAppendType.isChecked():
-            if self.mLayerModeWms.isChecked():
-                items.append('WMS')
-            if self.mLayerModeImageChip.isChecked():
-                items.append('Image Chip')
-
         name = seperator.join(items)
         return name
 
-    def eeImage(self, imageId: str = None) -> Optional[Tuple[ee.Image, ee.Image, Dict, List[str]]]:
+    def eeImage(self, imageId: str = None) -> Optional[Tuple['ee.Image', 'ee.Image', Dict, List[str]]]:
         eeCollection = self.eeCollection(filterDate=False, filterProperty=False)
 
         if eeCollection is None:
@@ -1289,12 +1193,6 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
             elif self.mRendererType.currentIndex() == self.SinglebandPseudocolorRenderer:
                 items.append(self.mPseudoColorBand.currentText())
 
-        if self.mAppendType.isChecked():
-            if self.mLayerModeWms.isChecked():
-                items.append('WMS')
-            if self.mLayerModeImageChip.isChecked():
-                items.append('Image Chip')
-
         name = seperator.join(items)
         return name
 
@@ -1308,10 +1206,6 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
 
     def updateLayerNamePreview(self):
         self.mLayerNamePreview.setText(self.currentLayerName())
-
-    #    def enmapBoxOrQgisIface(self):
-    #        assert 0
-    #        return self.app.enmapbox
 
     def currentImageId(self) -> Optional[str]:
         imageId = self.mImageId.text()
@@ -1335,13 +1229,13 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
 
         VisualizationBands, ReflectanceBands, PixelQualityBands, SpectralIndexBands, ProfileBands, \
         AllBands = range(6)
-        if self.mImageChipBands.itemCheckState(VisualizationBands) == Qt.Checked:
+        if self.profileDock.mImageChipBands.itemCheckState(VisualizationBands) == Qt.Checked:
             selectedBandNames.update(self.currentVisualizationBandNames())
-        if self.mImageChipBands.itemCheckState(ReflectanceBands) == Qt.Checked:
+        if self.profileDock.mImageChipBands.itemCheckState(ReflectanceBands) == Qt.Checked:
             reflectanceBandNames = [bandName for bandNo, bandName in enumerate(self.eeFullCollectionInfo.bandNames, 1)
                                     if isfinite(self.eeFullCollectionJson.bandWavelength(bandNo))]
             selectedBandNames.update(reflectanceBandNames)
-        if self.mImageChipBands.itemCheckState(PixelQualityBands) == Qt.Checked:
+        if self.profileDock.mImageChipBands.itemCheckState(PixelQualityBands) == Qt.Checked:
             bitmaskBandNames = [bandName for bandNo, bandName in enumerate(self.eeFullCollectionInfo.bandNames, 1)
                                 if self.eeFullCollectionJson.isBitmaskBand(bandNo)]
             classificationBandNames = [bandName for bandNo, bandName in
@@ -1349,13 +1243,13 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
                                        if self.eeFullCollectionJson.isClassificationBand(bandNo)]
             selectedBandNames.update(bitmaskBandNames)
             selectedBandNames.update(classificationBandNames)
-        if self.mImageChipBands.itemCheckState(SpectralIndexBands) == Qt.Checked:
+        if self.profileDock.mImageChipBands.itemCheckState(SpectralIndexBands) == Qt.Checked:
             selectedBandNames.update(self.currentSpectralIndexBandNames())
-        if self.mImageChipBands.itemCheckState(ProfileBands) == Qt.Checked:
+        if self.profileDock.mImageChipBands.itemCheckState(ProfileBands) == Qt.Checked:
             profileBandNames = self.profileDock.selectedBandNames()
             if profileBandNames is not None:
                 selectedBandNames.update(profileBandNames)
-        if self.mImageChipBands.itemCheckState(AllBands) == Qt.Checked:
+        if self.profileDock.mImageChipBands.itemCheckState(AllBands) == Qt.Checked:
             selectedBandNames.update(allBandNames)
 
         bandNames = [bandName for bandName in allBandNames if bandName in selectedBandNames]  # this assures band order
@@ -1427,8 +1321,7 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
         return filename
 
     def createWmsLayer(
-            self, eeImage: ee.Image, eeImageRgb: ee.Image, visParams: Dict, layerName: str,
-            temporalRange: Optional[QgsDateTimeRange]
+            self, eeImage: 'ee.Image', eeImageRgb: 'ee.Image', visParams: Dict, layerName: str
     ):
 
         if self.currentMapCanvas() is None:
@@ -1451,16 +1344,10 @@ class GeeTimeseriesExplorerDockWidget(QgsDockWidget):
                              for row in range(self.mBandProperty.rowCount())]
         provider.setImageForProfile(eeImage, showBandInProfile)
 
-        # set temporal properties
-        if temporalRange is not None:
-            temporalProperties: QgsMapLayerTemporalProperties = layer.temporalProperties()
-            temporalProperties.setFixedTemporalRange(temporalRange)
-            temporalProperties.setIsActive(True)
-
         self.setCurrentLayer(layer)
 
     def createImageChipLayer(
-            self, eeImage: ee.Image, bandNames: List[str], layerName: str, imageId: str,
+            self, eeImage: 'ee.Image', bandNames: List[str], layerName: str, imageId: str,
             location: SpatialPoint, visParams: Dict, visBands: List['str'], renderTypeName: str,
             cumulativeCountCut=False, temporalRange: QgsDateTimeRange = None
     ):
@@ -1578,7 +1465,7 @@ class CategoryMaskItem(QTreeWidgetItem):
         self.bandName = bandName
         self.value = value
 
-    def eeMask(self, eeImage: ee.Image) -> ee.Image:
+    def eeMask(self, eeImage: 'ee.Image') -> 'ee.Image':
         return eeImage.select(self.bandName).neq(self.value)
 
 
@@ -1592,7 +1479,7 @@ class PixelQualityBitmaskItem(QTreeWidgetItem):
         self.bitCount = bitCount
         self.value = value
 
-    def eeMask(self, eeImage: ee.Image) -> ee.Image:
+    def eeMask(self, eeImage: 'ee.Image') -> 'ee.Image':
         return eeImage.select(self.bandName).rightShift(self.firstBit).bitwiseAnd(2 ** self.bitCount - 1).neq(
             self.value)
 

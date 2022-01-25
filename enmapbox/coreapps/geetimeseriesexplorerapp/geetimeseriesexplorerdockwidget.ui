@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>605</width>
-    <height>658</height>
+    <height>638</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -240,7 +240,7 @@ QListWidget::item::selected {
          </sizepolicy>
         </property>
         <property name="currentIndex">
-         <number>5</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="page">
          <layout class="QVBoxLayout" name="verticalLayout_12" stretch="0">
@@ -260,7 +260,7 @@ QListWidget::item::selected {
              </font>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>2</number>
             </property>
             <widget class="QWidget" name="tab_10">
              <attribute name="title">
@@ -282,8 +282,8 @@ QListWidget::item::selected {
                  <property name="geometry">
                   <rect>
                    <x>0</x>
-                   <y>0</y>
-                   <width>629</width>
+                   <y>-167</y>
+                   <width>466</width>
                    <height>590</height>
                   </rect>
                  </property>
@@ -369,7 +369,7 @@ Surface Reflectance</string>
                        </property>
                        <property name="icon">
                         <iconset>
-                         <normaloff>C:/Users/Andreas/Downloads/landsat_le07_c01_t1_sr.jpg</normaloff>C:/Users/Andreas/Downloads/landsat_le07_c01_t1_sr.jpg</iconset>
+                         <normaloff>icons/landsat_le07_c01_t1_sr.jpg</normaloff>icons/landsat_le07_c01_t1_sr.jpg</iconset>
                        </property>
                        <property name="iconSize">
                         <size>
@@ -483,7 +483,7 @@ Surface Reflectance</string>
                        </property>
                        <property name="icon">
                         <iconset>
-                         <normaloff>C:/Users/Andreas/Downloads/landsat_lc08_c01_t1_sr.jpg</normaloff>C:/Users/Andreas/Downloads/landsat_lc08_c01_t1_sr.jpg</iconset>
+                         <normaloff>icons/landsat_lc08_c01_t1_sr.jpg</normaloff>icons/landsat_lc08_c01_t1_sr.jpg</iconset>
                        </property>
                        <property name="iconSize">
                         <size>
@@ -610,7 +610,7 @@ Surface Reflectance</string>
                        </property>
                        <property name="icon">
                         <iconset>
-                         <normaloff>C:/Users/Andreas/Downloads/landsat_lt05_c01_t1_sr.jpg</normaloff>C:/Users/Andreas/Downloads/landsat_lt05_c01_t1_sr.jpg</iconset>
+                         <normaloff>icons/landsat_lt05_c01_t1_sr.jpg</normaloff>icons/landsat_lt05_c01_t1_sr.jpg</iconset>
                        </property>
                        <property name="iconSize">
                         <size>
@@ -724,7 +724,7 @@ Surface Reflectance</string>
                        </property>
                        <property name="icon">
                         <iconset>
-                         <normaloff>C:/Users/Andreas/Downloads/landsat_lt04_c01_t1_sr_aral_sea.jpg</normaloff>C:/Users/Andreas/Downloads/landsat_lt04_c01_t1_sr_aral_sea.jpg</iconset>
+                         <normaloff>icons/landsat_lt04_c01_t1_sr_aral_sea.jpg</normaloff>icons/landsat_lt04_c01_t1_sr_aral_sea.jpg</iconset>
                        </property>
                        <property name="iconSize">
                         <size>
@@ -958,7 +958,7 @@ Surface Reflectance</string>
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>422</width>
+                   <width>466</width>
                    <height>843</height>
                   </rect>
                  </property>
@@ -1606,8 +1606,8 @@ Terra Surface Reflectance
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>422</width>
-                   <height>380</height>
+                   <width>483</width>
+                   <height>423</height>
                   </rect>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_3">
@@ -2084,33 +2084,6 @@ OLCI Full Resolution</string>
                  <string>Collection Editor</string>
                 </property>
                </widget>
-              </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_17">
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QLabel" name="label_8">
-                  <property name="text">
-                   <string>Collection</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QComboBox" name="mPredefinedCollection">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                    <horstretch>1</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="toolTip">
-                   <string>Select a prediefined image collection.</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
               </item>
               <item>
                <widget class="CodeEditWidget" name="mCode" native="true">
@@ -2627,8 +2600,8 @@ OLCI Full Resolution</string>
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>670</width>
-               <height>521</height>
+               <width>411</width>
+               <height>405</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_22">
@@ -4345,95 +4318,6 @@ count cut</string>
          <number>0</number>
         </property>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_7">
-          <item>
-           <widget class="QLabel" name="label_36">
-            <property name="minimumSize">
-             <size>
-              <width>25</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Type</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="mLayerModeWms">
-            <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Create a Web Map Service (WMS) layer with rendered visualization band data.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="text">
-             <string>WMS</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="mLayerModeImageChip">
-            <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Create a raster layer with actual data, for a 500 x 500 pixel neightbourhood around the crosshair location.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="text">
-             <string>Image Chip</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QgsCheckableComboBox" name="mImageChipBands">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-              <horstretch>1</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string>Set of image chip bands to be downloaded.</string>
-            </property>
-            <property name="checkedItems">
-             <stringlist/>
-            </property>
-            <item>
-             <property name="text">
-              <string>Visualization bands</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Reflectance bands</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Pixel quality bands</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Spectral index bands</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Profile bands</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>All bands</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
          <layout class="QHBoxLayout" name="horizontalLayout_24">
           <item>
            <widget class="QCheckBox" name="mAppendName">
@@ -4482,22 +4366,6 @@ count cut</string>
             </property>
             <property name="text">
              <string>Bands</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="mAppendType">
-            <property name="toolTip">
-             <string/>
-            </property>
-            <property name="text">
-             <string>Type</string>
-            </property>
-            <property name="checkable">
-             <bool>true</bool>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -4742,287 +4610,6 @@ count cut</string>
           </item>
          </layout>
         </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_15">
-          <item>
-           <widget class="QCheckBox" name="mTemporalEnabled">
-            <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Whether to enable temporal control by the&lt;span style=&quot; font-style:italic;&quot;&gt; QGIS Temporal Controller&lt;/span&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="text">
-             <string>Temporal</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>1</width>
-              <height>1</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QFrame" name="mTemporalFrame">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-              <horstretch>2</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="frameShape">
-             <enum>QFrame::NoFrame</enum>
-            </property>
-            <property name="frameShadow">
-             <enum>QFrame::Raised</enum>
-            </property>
-            <layout class="QHBoxLayout" name="horizontalLayout_20">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <property name="rightMargin">
-              <number>0</number>
-             </property>
-             <property name="bottomMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <widget class="QSpinBox" name="mTemporalRangeValue">
-               <property name="enabled">
-                <bool>true</bool>
-               </property>
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The temporal range width. It defines the actual start and end dates, that are placed around the image acquisition time.&lt;/p&gt;&lt;p&gt;Depending on the selected time unit, dates are rounded accordingly. E.g. for a 1 day range and a given aquisition time of 2015-04-01T11:08:07, the resulting date range is from 2015-04-01T00:00:00 to 2015-04-02T00:00:00, or in short: 2015-04-01 to 2015-04-02 &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-               </property>
-               <property name="buttonSymbols">
-                <enum>QAbstractSpinBox::UpDownArrows</enum>
-               </property>
-               <property name="showGroupSeparator" stdset="0">
-                <bool>false</bool>
-               </property>
-               <property name="minimum">
-                <number>1</number>
-               </property>
-               <property name="maximum">
-                <number>999999</number>
-               </property>
-               <property name="value">
-                <number>1</number>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QComboBox" name="mTemporalRangeUnits">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="toolTip">
-                <string/>
-               </property>
-               <property name="currentIndex">
-                <number>3</number>
-               </property>
-               <item>
-                <property name="text">
-                 <string>seconds</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>minutes</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>hours</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>days</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_51">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>from</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="mTemporalStartFixed">
-               <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Whether to use a fixed start date.&lt;/p&gt;&lt;p&gt;If deactivated, the bound is considered to be infinite. E.g.  together with an end date of 2017-01-01, the date range is treated as a range containing all dates before 2017-01-01.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QgsDateTimeEdit" name="mTemporalStart">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>2</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="toolTip">
-                <string/>
-               </property>
-               <property name="readOnly">
-                <bool>true</bool>
-               </property>
-               <property name="buttonSymbols">
-                <enum>QAbstractSpinBox::NoButtons</enum>
-               </property>
-               <property name="specialValueText">
-                <string/>
-               </property>
-               <property name="showGroupSeparator" stdset="0">
-                <bool>false</bool>
-               </property>
-               <property name="time">
-                <time>
-                 <hour>0</hour>
-                 <minute>0</minute>
-                 <second>0</second>
-                </time>
-               </property>
-               <property name="currentSection">
-                <enum>QDateTimeEdit::YearSection</enum>
-               </property>
-               <property name="displayFormat">
-                <string>yyyy-MM-ddTHH:mm</string>
-               </property>
-               <property name="calendarPopup">
-                <bool>false</bool>
-               </property>
-               <property name="allowNull">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_49">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="text">
-                <string>to</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="mTemporalEndFixed">
-               <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Whether to use a fixed end date.&lt;/p&gt;&lt;p&gt;If deactivated, the bound is considered to be infinite. E.g. together with an start date of 2017-01-01, the date range is treated as a range containing all dates after 2017-01-01.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QgsDateTimeEdit" name="mTemporalEnd">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>2</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="readOnly">
-                <bool>true</bool>
-               </property>
-               <property name="buttonSymbols">
-                <enum>QAbstractSpinBox::NoButtons</enum>
-               </property>
-               <property name="currentSection">
-                <enum>QDateTimeEdit::YearSection</enum>
-               </property>
-               <property name="displayFormat">
-                <string>yyyy-MM-ddTHH:mm</string>
-               </property>
-               <property name="calendarPopup">
-                <bool>false</bool>
-               </property>
-               <property name="allowNull">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-         </layout>
-        </item>
        </layout>
       </widget>
      </widget>
@@ -5127,25 +4714,20 @@ count cut</string>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QgsCheckableComboBox</class>
-   <extends>QComboBox</extends>
-   <header>qgscheckablecombobox.h</header>
-  </customwidget>
-  <customwidget>
    <class>QgsCollapsibleGroupBox</class>
    <extends>QGroupBox</extends>
    <header>qgscollapsiblegroupbox.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>QgsDateTimeEdit</class>
-   <extends>QDateTimeEdit</extends>
-   <header>qgsdatetimeedit.h</header>
-  </customwidget>
-  <customwidget>
    <class>QgsSpinBox</class>
    <extends>QSpinBox</extends>
    <header>qgsspinbox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsColorRampButton</class>
+   <extends>QToolButton</extends>
+   <header>qgis.gui</header>
   </customwidget>
   <customwidget>
    <class>QgsMessageBar</class>
@@ -5158,11 +4740,6 @@ count cut</string>
    <extends>QWidget</extends>
    <header>geetimeseriesexplorerapp.codeeditwidget</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>QgsColorRampButton</class>
-   <extends>QToolButton</extends>
-   <header>qgis.gui</header>
   </customwidget>
  </customwidgets>
  <resources>

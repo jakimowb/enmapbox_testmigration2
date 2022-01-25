@@ -1,5 +1,6 @@
 import pickle
 import traceback
+import warnings
 from math import nan, isnan
 from os import remove, makedirs
 from os.path import join, dirname, exists
@@ -9,7 +10,7 @@ from typing import Optional, List, Tuple, Dict
 
 import numpy as np
 from PyQt5 import QtGui
-from PyQt5.QtCore import Qt, QDateTime, QDate, QModelIndex, QPoint, QRectF, QStandardPaths, pyqtSignal
+from PyQt5.QtCore import Qt, QDateTime, QDate, QModelIndex, QPoint, QRectF, QStandardPaths, pyqtSignal, QCoreApplication
 from PyQt5.QtGui import QColor, QPen, QBrush, QIcon, QPixmap
 from PyQt5.QtWidgets import (QToolButton, QListWidget, QApplication, QSpinBox,
                              QColorDialog, QComboBox, QCheckBox, QLineEdit,
@@ -20,7 +21,8 @@ from qgis._core import (QgsProject, QgsCoordinateReferenceSystem, QgsPointXY, Qg
                         QgsFeature, QgsVectorLayer, QgsMapLayerProxyModel, QgsFields, QgsTask, QgsTaskManager,
                         QgsApplication)
 from qgis._gui import (QgsDockWidget, QgsFeaturePickerWidget,
-                       QgsMapLayerComboBox, QgsFieldComboBox, QgsMessageBar, QgsColorButton, QgsFileWidget)
+                       QgsMapLayerComboBox, QgsFieldComboBox, QgsMessageBar, QgsColorButton, QgsFileWidget,
+                       QgsCheckableComboBox)
 
 
 import enmapbox.externals.pyqtgraph as pg
@@ -99,6 +101,7 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
     mLayer: QgsMapLayerComboBox
     mField: QgsFieldComboBox
     mFeaturePicker: QgsFeaturePickerWidget
+    mImageChipBands: QgsCheckableComboBox
     mDownloadFolder: QgsFileWidget
     mDownloadLocationChips: QToolButton
     mDownloadLayerProfiles: QToolButton
@@ -250,7 +253,6 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         self.mField.fieldChanged.connect(self.mFeaturePicker.setDisplayExpression)
         self.mFeaturePicker.featureChanged.connect(self.onFeaturePickerFeatureChanged)
         self.mDownloadLayerProfiles.clicked.connect(self.onDownloadLayerProfilesClicked)
-        self.mDownloadLayerChips.clicked.connect(self.onDownloadLayerChipsClicked)
         self.mDownloadLocationChips.clicked.connect(self.onDownloadLocationChipsClicked)
 
         self.mPan.clicked.connect(self.onPanClicked)
@@ -260,7 +262,6 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         self.mPrevious.clicked.connect(self.onPreviousClicked)
         self.mNext.clicked.connect(self.onNextClicked)
         self.mLast.clicked.connect(self.onLastClicked)
-        self.mExplodeLayers.clicked.connect(self.onExplodeLayers)
 
         self.sigCurrentLocationChanged.connect(self.onCurrentLocationChanged)
         self.mainDock.sigCollectionChanged.connect(self.onCollectionChanged)
@@ -737,23 +738,6 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
                 assert 0
             self.setComposite(dateStart, dateEnd)
 
-    def onExplodeLayers(self):
-        # just walk over every observation using the navigation buttons
-
-        oldAppendIdChecked = self.mainDock.mAppendId.isChecked()
-        self.mainDock.mAppendId.setChecked(True)
-
-        self.onFirstClicked()
-        for i in range(self.dataN() - 1):
-            QApplication.processEvents()
-            self.onNextClicked()
-
-            #if self.mainDock.mStretchAndUpdateLayer.is
-
-
-
-        self.mainDock.mAppendId.setChecked(oldAppendIdChecked)
-
     def downloadFilenameProfile(self, feature: QgsFeature, eeCollection: 'ee.ImageCollection'):
 
         location: QgsPointXY = feature.geometry().asPoint()
@@ -782,56 +766,68 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         if bandNames is None:
             self.pushInfoMissingBand()
             return
-        if self.isDataAvailable():
-            imageIds = self.dataIds()
-        else:
-            eePoint = self.eePoint()
+
+        layer: QgsVectorLayer = self.mLayer.currentLayer()
+        if layer is None:
+            self.pushInfoMissingLayer()
+            return
+
+        for feature in layer.getFeatures():
+            assert isinstance(feature, QgsFeature)
+            point: QgsPointXY = QgsGeometry(feature.geometry()).asPoint()
+            point = SpatialPoint(layer.crs(), point).toCrs(self.mainDock.crsEpsg4326)
+            #point = self.utilsTransformCrsToWgs84(point, layer.crs())
+            eePoint = ee.Geometry.Point([point.x(), point.y()])
+
             eeCollection = self.mainDock.eeCollection(False, True, True, False)
             if eeCollection is None:
                 self.pushInfoMissingCollection()
                 return
-            imageIds = eeCollection.filterBounds(eePoint)\
-                .toList(999999) \
-                .map(lambda eeImage: ee.Image(eeImage).get('system:index'))\
-                .getInfo()
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                imageIds = eeCollection.filterBounds(eePoint)\
+                    .toList(999999) \
+                    .map(lambda eeImage: ee.Image(eeImage).get('system:index'))\
+                    .getInfo()
 
-        #imageIds = imageIds[0:2]
+            location = point  # self.currentLocation()
+            for imageId in imageIds:
+                #eeImage = self.mainDock.eeFullCollection.filter(ee.Filter.eq('system:index', imageId)).first()
+                eeImage, *_ = self.mainDock.eeImage(imageId)
 
-        location = self.currentLocation()
-        for imageId in imageIds:
-            #eeImage = self.mainDock.eeFullCollection.filter(ee.Filter.eq('system:index', imageId)).first()
-            eeImage, *_ = self.mainDock.eeImage(imageId)
+                alreadyExists = True
+                subFilenames = list()
+                subTasks = list()
+                for bandName in bandNames:
+                    subFilename = self.mainDock.downloadFilenameImageChipBandTif(location, imageId, bandName)
+                    subFilenames.append(subFilename)
+                    subTasks.append(DownloadImageChipBandTask(subFilename, location, eeImage, bandName))
+                    alreadyExists &= exists(subFilename)
+                mainFilename = self.mainDock.downloadFilenameImageChipVrt(location, imageId, bandNames)
+                alreadyExists &= exists(mainFilename)
 
-            alreadyExists = True
-            subFilenames = list()
-            subTasks = list()
-            for bandName in bandNames:
-                subFilename = self.mainDock.downloadFilenameImageChipBandTif(location, imageId, bandName)
-                subFilenames.append(subFilename)
-                subTasks.append(DownloadImageChipBandTask(subFilename, location, eeImage, bandName))
-                alreadyExists &= exists(subFilename)
-            mainFilename = self.mainDock.downloadFilenameImageChipVrt(location, imageId, bandNames)
-            alreadyExists &= exists(mainFilename)
+                if alreadyExists:
+                    continue
 
-            if alreadyExists:
-                continue
+                if not exists(dirname(mainFilename)):
+                    makedirs(mainFilename)
 
-            if not exists(dirname(mainFilename)):
-                makedirs(mainFilename)
+                # create task
+                #mainTask = DownloadImageChipTask(mainFilename, subFilenames, location)
+                for subTask in subTasks:
+                #    mainTask.addSubTask(subTask, [], QgsTask.ParentDependsOnSubTask)
+                    #subTask.run()
+                    self.taskManager.addTask(subTask)
+                    QCoreApplication.processEvents()  # get progress
+                    #print('added', subTask.filename)
+                    #break
 
-            # create task
-            mainTask = DownloadImageChipTask(mainFilename, subFilenames, location)
-            for subTask in subTasks:
-                mainTask.addSubTask(subTask, [], QgsTask.ParentDependsOnSubTask)
-                #subTask.run()
+                #mainTask.run()
+                #self.taskManager.addTask(mainTask)
 
-            #mainTask.run()
-            self.taskManager.addTask(mainTask)
-
-            # not sure if we need to keep the refs
-            self.refs.append(mainTask)
-            self.refs.append(subTasks)
-
+                # not sure if we need to keep the refs
+                #self.refs.append(mainTask)
+                self.refs.append(subTasks)
 
     def onDownloadLayerChipsClicked(self, *args, onlySelected=False, updateUi=False):
         assert 0
@@ -878,7 +874,9 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         eeCollection = self.mainDock.eeCollection()
         if eeCollection is None:
             return
-        eeCollection = eeCollection.select(bandNames)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            eeCollection = eeCollection.select(bandNames)
         scale = self.mainDock.eeFullCollectionJson.groundSamplingDistance()
         offsets = [self.mainDock.eeFullCollectionJson.bandOffset(bandNo) for bandNo in bandNumbers]
         scales = [self.mainDock.eeFullCollectionJson.bandScale(bandNo) for bandNo in bandNumbers]
@@ -1138,7 +1136,9 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
 
     def eePoint(self) -> Optional['ee.Geometry']:
         point = self.currentLocation()
-        eePoint = ee.Geometry.Point([point.x(), point.y()])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            eePoint = ee.Geometry.Point([point.x(), point.y()])
         return eePoint
 
     def readProfile(self):
@@ -1157,7 +1157,9 @@ class GeeTemporalProfileDockWidget(QgsDockWidget):
         if eeCollection is None:
             return
 
-        eeCollection = eeCollection.select(bandNames)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            eeCollection = eeCollection.select(bandNames)
         scale = self.mainDock.eeFullCollectionJson.groundSamplingDistance()
         offsets, scales = self.currentDataScaling()
 
