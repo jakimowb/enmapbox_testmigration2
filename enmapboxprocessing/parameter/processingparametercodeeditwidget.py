@@ -51,25 +51,25 @@ class ProcessingParameterCodeEditWidgetWrapper(WidgetWrapper):
     widget: ProcessingParameterCodeEdit
 
     def createWidget(self):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            return ProcessingParameterCodeEdit()
+        #if self.dialogType == DIALOG_MODELER:
+        #    return ProcessingParameterCodeEdit()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        return ProcessingParameterCodeEdit()
 
     def setValue(self, value):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            self.widget.codeEdit.setText(value)
+        #if self.dialogType == DIALOG_MODELER:
+        #    raise NotImplementedError()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        self.widget.codeEdit.setText(value)
 
     def value(self):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            return self.widget.codeEdit.value()
+        #if self.dialogType == DIALOG_MODELER:
+        #    raise NotImplementedError()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        return self.widget.codeEdit.value()
