@@ -1,29 +1,11 @@
-import traceback
-from collections import OrderedDict, defaultdict
-from math import ceil
-from os.path import basename, splitext, join, dirname
-from re import finditer, Match
-from typing import Dict, Any, List, Tuple, Union
+from typing import Dict, Any, List, Tuple
 
-import numpy
-import numpy as np
-from unittest.mock import Mock
 from osgeo import gdal
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingException, QgsProcessing,
-                        QgsProcessingParameterString, QgsProject, QgsRasterLayer, Qgis, QgsVectorLayer, QgsFields)
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsProcessingParameterString)
 
-from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
-from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
-from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.parameter.processingparametercodeeditwidget import ProcessingParameterCodeEditWidgetWrapper
-from enmapboxprocessing.parameter.processingparameterrastermathcodeeditwidget import \
-    ProcessingParameterRasterMathCodeEditWidgetWrapper
-from enmapboxprocessing.processingfeedback import ProcessingFeedback
-from enmapboxprocessing.rasterblockinfo import RasterBlockInfo
-from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.rasterwriter import RasterWriter
-from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
 
@@ -53,19 +35,19 @@ class VrtBandMathAlgorithm(EnMAPProcessingAlgorithm):
     def helpParameters(self) -> List[Tuple[str, str]]:
 
         return [
-                   (self._RASTER, 'Input raster layer.'),
-                   (self._BAND_LIST, 'List of input bands.'),
-                   (self._CODE, 'The mathematical calculation to be performed on the selected input bands in_ar.'
-                                'Result must be copied to out_ar.\n'
-                                f'For detailed usage information read the {self.linkVrtPixelFunction} docs.'),
-                   (self._DATA_TYPE, 'Output data type.'),
-                   (self._NODATA, 'Output no data value.'),
-                   (self._BAND_NAME, 'Output band name.'),
-                   (self._OVERLAP, 'The number of columns and rows to read from the neighbouring blocks. '
-                                   'Needs to be specified only when performing spatial operations, '
-                                   'to avoid artifacts at block borders.'),
-                   (self._OUTPUT_VRT, 'VRT file destination.'),
-               ]
+            (self._RASTER, 'Input raster layer.'),
+            (self._BAND_LIST, 'List of input bands.'),
+            (self._CODE, 'The mathematical calculation to be performed on the selected input bands in_ar.'
+                         'Result must be copied to out_ar.\n'
+                         f'For detailed usage information read the {self.linkVrtPixelFunction} docs.'),
+            (self._DATA_TYPE, 'Output data type.'),
+            (self._NODATA, 'Output no data value.'),
+            (self._BAND_NAME, 'Output band name.'),
+            (self._OVERLAP, 'The number of columns and rows to read from the neighbouring blocks. '
+                            'Needs to be specified only when performing spatial operations, '
+                            'to avoid artifacts at block borders.'),
+            (self._OUTPUT_VRT, 'VRT file destination.'),
+        ]
 
     def group(self):
         return Group.Test.value + Group.RasterCreation.value

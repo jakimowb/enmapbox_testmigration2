@@ -1532,7 +1532,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
                     action: QAction = submenu.addAction('Class fraction/probability rendering')
                     action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
-                    action.triggered.connect(lambda: self.showClassFractionRendererDialog(lyr))
+                    action.triggered.connect(lambda: self.showClassFractionRendererDialog(lyr, canvas))
 
                     action: QAction = submenu.addAction('Decorrelation stretch rendering')
                     action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
@@ -1623,8 +1623,8 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             messageBar = emb.messageBar()
         showLayerPropertiesDialog(layer, canvas=canvas, messageBar=messageBar, modal=True, useQGISDialog=False)
 
-    def showClassFractionRendererDialog(self, layer: QgsRasterLayer):
-        widget = ClassFractionRendererWidget(layer, parent=self.mDockTreeView)
+    def showClassFractionRendererDialog(self, layer: QgsRasterLayer, mapCanvas: QgsMapCanvas):
+        widget = ClassFractionRendererWidget(layer, mapCanvas, parent=self.mDockTreeView)
         widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
         widget.show()
 
