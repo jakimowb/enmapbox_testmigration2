@@ -23,7 +23,7 @@ import os
 import collections
 import time
 
-from enmapbox.externals.qps.utils import loadUi
+from enmapbox.qgispluginsupport.qps.utils import loadUi
 from qgis.gui import QgsFileWidget
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *

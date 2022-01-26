@@ -4,7 +4,7 @@ import numpy as np
 
 from qgis._core import QgsVectorLayer, QgsRasterLayer
 
-from enmapbox.externals.qps.speclib.core import SpectralLibrary
+from enmapbox.qgispluginsupport.qps.speclib.core import SpectralLibrary
 from _classic.classificationapp.script import classificationWorkflow
 from _classic.hubdsm.core.gdalraster import GdalRaster
 from _classic.hubdsm.core.qgsvectorclassificationscheme import QgsVectorClassificationScheme

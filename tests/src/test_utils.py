@@ -18,7 +18,7 @@ import xmlrunner
 from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QMenu
 from osgeo import gdal
 
-from enmapbox.externals.qps.utils import gdalDataset, displayBandNames, SpatialPoint, geo2px, layerGeoTransform
+from enmapbox.qgispluginsupport.qps.utils import gdalDataset, displayBandNames, SpatialPoint, geo2px, layerGeoTransform
 from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsPointXY, Qgis
 from enmapbox.testing import EnMAPBoxTestCase
 from enmapbox.gui.utils import *
@@ -28,7 +28,7 @@ from enmapbox.utils import findBroadBand
 
 
 class testClassUtils(EnMAPBoxTestCase):
-    """Test rerources work."""
+    """Test resources work."""
 
     def setUp(self):
         self.w = QMainWindow()
@@ -44,45 +44,35 @@ class testClassUtils(EnMAPBoxTestCase):
     def tearDown(self):
         self.w.close()
 
-
     def test_spatialObjects(self):
         from enmapbox.gui.utils import SpatialPoint, SpatialExtent
 
-        pt1 = SpatialPoint('EPSG:4326', 300,300)
+        pt1 = SpatialPoint('EPSG:4326', 300, 300)
         self.assertIsInstance(pt1, SpatialPoint)
         d = pickle.dumps(pt1)
         pt2 = pickle.loads(d)
 
-
         self.assertEqual(pt1, pt2)
 
-
     def test_gdalDataset(self):
-
         ds1 = gdalDataset(enmap)
         self.assertIsInstance(ds1, gdal.Dataset)
         ds2 = gdalDataset(ds1)
         self.assertEqual(ds1, ds2)
 
-
     def test_dataTypeName(self):
-
         self.assertEqual(dataTypeName(Qgis.Byte), 'Byte')
         self.assertEqual(dataTypeName(Qgis.ARGB32_Premultiplied), 'ARGB32_Premultiplied')
 
-
     def test_bandNames(self):
-
-        validSources = [QgsRasterLayer(self.wmsUri,'', 'wms'),enmap, QgsRasterLayer(enmap), gdal.Open(enmap)]
+        validSources = [QgsRasterLayer(self.wmsUri, '', 'wms'), enmap, QgsRasterLayer(enmap), gdal.Open(enmap)]
 
         for src in validSources:
             names = displayBandNames(src, leadingBandNumber=True)
             self.assertIsInstance(names, list, msg='Unable to derive band names from {}'.format(src))
             self.assertTrue(len(names) > 0)
 
-
     def test_coordinateTransformations(self):
-
         ds = gdalDataset(enmap)
         lyr = QgsRasterLayer(enmap)
 
@@ -93,44 +83,21 @@ class testClassUtils(EnMAPBoxTestCase):
         gt = ds.GetGeoTransform()
         crs = QgsCoordinateReferenceSystem(ds.GetProjection())
 
-        #self.assertTrue(crs.isValid())
+        # self.assertTrue(crs.isValid())
 
         geoCoordinate = QgsPointXY(gt[0], gt[3])
         pxCoordinate = geo2px(geoCoordinate, gt)
         pxCoordinate2 = geo2px(geoCoordinate, lyr)
         self.assertEqual(pxCoordinate.x(), 0)
         self.assertEqual(pxCoordinate.y(), 0)
-        #self.assertTrue(px2geo(pxCoordinate, gt) == geoCoordinate)
+        # self.assertTrue(px2geo(pxCoordinate, gt) == geoCoordinate)
 
         spatialPoint = SpatialPoint(crs, geoCoordinate)
         pxCoordinate = geo2px(spatialPoint, gt)
         self.assertEqual(pxCoordinate.x(), 0)
         self.assertEqual(pxCoordinate.y(), 0)
-        #self.assertTrue(px2geo(pxCoordinate, gt) == geoCoordinate)
+        # self.assertTrue(px2geo(pxCoordinate, gt) == geoCoordinate)
 
-
-
-
-    def test_wavelength_information(self):
-
-        from enmapbox.exampledata import enmap
-        from enmapbox.gui.utils import parseWavelength, parseFWHM
-        wl, wlu = parseWavelength(enmap)
-        fwhm = parseFWHM(enmap)
-
-        s = ""
-
-
-
-    def test_appendItemsToMenu(self):
-        from enmapbox.gui.utils import appendItemsToMenu
-
-        B = QMenu()
-        action = B.addAction('Do something')
-
-        appendItemsToMenu(self.menuA, B)
-
-        self.assertTrue(action in self.menuA.children())
 
 class TestEnmapboxUtils(EnMAPBoxTestCase):
 
@@ -138,9 +105,5 @@ class TestEnmapboxUtils(EnMAPBoxTestCase):
         findBroadBand(QgsRasterLayer(enmap))
 
 
-
 if __name__ == "__main__":
     unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
-
-
-

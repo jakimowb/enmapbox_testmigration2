@@ -14,8 +14,8 @@ from qgis._core import QgsRasterRenderer, QgsRasterInterface, QgsRectangle, QgsR
     Qgis, QgsRasterLayer, QgsRasterDataProvider, QgsRasterHistogram
 from qgis._gui import QgsRasterBandComboBox, QgsColorButton, QgsMapCanvas
 
-from enmapbox.externals.qps.externals.pyqtgraph.widgets.PlotWidget import PlotWidget, PlotItem
-from enmapbox.externals.qps.layerproperties import rendererFromXml
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.widgets.PlotWidget import PlotWidget, PlotItem
+from enmapbox.qgispluginsupport.qps.layerproperties import rendererFromXml
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.typing import Categories, Category
 from enmapboxprocessing.utils import Utils

@@ -2,7 +2,7 @@ import os
 import unittest
 import xmlrunner
 
-from enmapbox.externals.qps.speclib.core.spectrallibrary import SpectralLibraryUtils
+from enmapbox.qgispluginsupport.qps.speclib.core.spectrallibrary import SpectralLibraryUtils
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsApplication
@@ -46,7 +46,7 @@ class TestIssue(EnMAPBoxTestCase):
         del lyr
 
 
-        from enmapbox.externals.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY
+        from enmapbox.qgispluginsupport.qps.speclib.core import EDITOR_WIDGET_REGISTRY_KEY
         filename = path.as_posix()
         reg: QgsEditorWidgetRegistry = QgsGui.editorWidgetRegistry()
         print('Available editor types:')

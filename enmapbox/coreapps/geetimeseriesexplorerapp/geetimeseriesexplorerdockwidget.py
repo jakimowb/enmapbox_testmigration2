@@ -30,7 +30,7 @@ from PyQt5.QtWidgets import (QToolButton, QApplication, QComboBox, QLineEdit,
                              QTableWidget, QDateEdit, QRadioButton, QListWidget, QCheckBox, QTableWidgetItem,
                              QPlainTextEdit, QTreeWidget, QTreeWidgetItem, QTabWidget, QLabel, QMainWindow,
                              QStackedWidget, QListWidgetItem, QProgressBar, QFrame)
-from enmapbox.externals.qps.utils import SpatialPoint, SpatialExtent
+from enmapbox.qgispluginsupport.qps.utils import SpatialPoint, SpatialExtent
 from enmapboxprocessing.utils import Utils
 from geetimeseriesexplorerapp.codeeditwidget import CodeEditWidget
 from geetimeseriesexplorerapp.externals.ee_plugin.provider import GeetseEarthEngineRasterDataProvider

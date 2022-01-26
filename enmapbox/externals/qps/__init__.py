@@ -32,6 +32,7 @@ import warnings
 from qgis.core import QgsApplication, Qgis
 from qgis.gui import QgsMapLayerConfigWidgetFactory, QgisInterface
 
+warnings.warn('Deprecated. Use QPS has been moved to enmapbox/qgispluginsupport/qps', stacklevel=2)
 # os.environ['PYQTGRAPH_QT_LIB'] = 'qgis.PyQt'
 
 MIN_QGIS_VERSION = '3.16'

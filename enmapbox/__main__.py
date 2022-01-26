@@ -29,7 +29,7 @@ from qgis.core import QgsApplication
 site.addsitedir(pathlib.Path(__file__).parents[1])
 
 from enmapbox.testing import start_app, QgisMockup
-from enmapbox.externals.qps.resources import findQGISResourceFiles
+from enmapbox.qgispluginsupport.qps.resources import findQGISResourceFiles
 import qgis.utils
 
 qApp: QgsApplication = None

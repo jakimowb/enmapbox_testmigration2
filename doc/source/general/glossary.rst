@@ -273,7 +273,7 @@ GIS and Remote Sensing
         * `yUnit`: y value units (e.g. ???)
         * `bbl`: the list of :term:`bad band multiplier`
 
-        See `enmapbox.externals.qps.speclib.core.SpectralLibraryUtils` for details.
+        See `enmapbox.qgispluginsupport.qps.speclib.core.SpectralLibraryUtils` for details.
 
         .. image:: img/spectral_library.png
 

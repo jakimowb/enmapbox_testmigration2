@@ -42,6 +42,29 @@ Developing the EnMAP-Box under this license means that you can (if you want to) 
 will always have access to an EnMAP-Box software that is free of cost and can be freely
 modified.
 
+## Dependencies
+
+### QGIS Plugin Support: 
+
+Repository: https://github.com/EnMAP-Box/qgispluginsupport
+
+Included into EnMAP-Box code by git subtree. The following commands can be
+used to sync QPS:
+
+Add subtree:
+
+* `git subtree add --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master`
+  
+Pull updates:
+    
+* `git fetch git@github.com:EnMAP-Box/qgispluginsupport.git`
+* `git subtree pull --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master --squash`
+  
+Push updates:
+  
+* `git subtree push --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git updates`
+* required writing access to target branch. Replace `master` with writable branch and create a PR
+
 
 ## Support
 You can get support in the following ways:

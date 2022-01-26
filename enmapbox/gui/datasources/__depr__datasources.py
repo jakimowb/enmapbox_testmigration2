@@ -46,9 +46,9 @@ from enmapbox.gui.utils import SpatialExtent, SpatialPoint, guessDataProvider
 from enmapbox.gui import subLayerDefinitions, openRasterLayerSilent, \
     SpectralLibrary, ClassificationScheme
 from enmapbox import debugLog, messageLog
-from ..externals.qps.layerproperties import defaultRasterRenderer
-from ..externals.qps.speclib.core import is_spectral_library
-from ..externals.qps.utils import parseWavelength
+from ..qgispluginsupport.qps.layerproperties import defaultRasterRenderer
+from ..qgispluginsupport.qps.speclib.core import is_spectral_library
+from ..qgispluginsupport.qps.utils import parseWavelength
 
 
 

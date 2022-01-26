@@ -2,8 +2,8 @@ from typing import Dict, Any, List, Tuple
 
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsField, QgsFeature)
 
-from enmapbox.externals.qps.speclib.core import is_profile_field
-from enmapbox.externals.qps.speclib.core.spectralprofile import SpectralProfile
+from enmapbox.qgispluginsupport.qps.speclib.core import is_profile_field
+from enmapbox.qgispluginsupport.qps.speclib.core.spectralprofile import SpectralProfile
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked

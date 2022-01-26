@@ -17,8 +17,11 @@
 *                                                                         *
 ***************************************************************************
 """
+import pathlib
+import re
 
-from ..externals.qps.utils import *
+from ..qgispluginsupport.qps.utils import loadUi, SpatialExtent, SpatialPoint, findParent, \
+    file_search, appendItemsToMenu
 
 from qgis.core import Qgis
 

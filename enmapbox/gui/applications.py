@@ -16,11 +16,19 @@
 *                                                                         *
 ***************************************************************************
 """
-
+import importlib
 import inspect
+import os
 import site
+import sys
 import traceback
 import collections
+
+from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QMenu
+
+from enmapbox.qgispluginsupport.qps.utils import file_search
 from qgis.core import QgsProcessingAlgorithm
 from qgis.gui import QgisInterface
 from enmapbox import messageLog

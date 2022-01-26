@@ -4,7 +4,7 @@ DIR_REPO = pathlib.Path(__file__).parents[1]
 
 
 def compileEnMAPBoxResources():
-    from enmapbox.externals.qps.resources import compileResourceFiles
+    from enmapbox.qgispluginsupport.qps.resources import compileResourceFiles
     directories = [DIR_REPO / 'enmapbox',
                    # DIR_REPO / 'site-packages'
                    ]

@@ -84,7 +84,7 @@ class Tests(EnMAPBoxTestCase):
         self.showGui(emb.ui)
 
     def test_resources(self):
-        from enmapbox.externals.qps.resources import ResourceBrowser
+        from enmapbox.qgispluginsupport.qps.resources import ResourceBrowser
         B = ResourceBrowser()
         B.show()
 

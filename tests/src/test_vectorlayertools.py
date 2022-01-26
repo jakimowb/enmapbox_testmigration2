@@ -1,7 +1,7 @@
 import unittest
 import xmlrunner
 from enmapbox.testing import TestObjects, EnMAPBoxTestCase
-from enmapbox.externals.qps.vectorlayertools import VectorLayerTools
+from enmapbox.qgispluginsupport.qps.vectorlayertools import VectorLayerTools
 
 
 class TestCasesVectorLayerTools(EnMAPBoxTestCase):

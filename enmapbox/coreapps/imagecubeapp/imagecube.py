@@ -22,10 +22,10 @@ from qgis.core import QgsRasterLayer, Qgis, QgsRasterRenderer, QgsRectangle, Qgs
 from qgis.gui import QgsMapCanvas, QgsMapLayerComboBox
 
 from enmapbox.gui import SliderSpinBox, DoubleSliderSpinBox, SpatialExtentMapTool
-import enmapbox.externals.qps.externals.pyqtgraph.opengl as gl
-from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLGraphicsItem import GLGraphicsItem, GLOptions
-from enmapbox.externals.qps.externals.pyqtgraph.opengl.GLViewWidget import GLViewWidget
-from enmapbox.externals.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
+import enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.opengl as gl
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.opengl.GLGraphicsItem import GLGraphicsItem, GLOptions
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.opengl.GLViewWidget import GLViewWidget
+from enmapbox.qgispluginsupport.qps.layerproperties import showLayerPropertiesDialog, rendererFromXml, rendererToXml
 from enmapbox.gui.utils import loadUi, SpatialExtent
 
 KEY_GL_ITEM_GROUP = 'CUBEVIEW/GL_ITEM_GROUP'

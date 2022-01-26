@@ -8,7 +8,7 @@ from urlchecker.core.check import UrlChecker, UrlCheckResult
 from urlchecker.core.urlproc import UrlCheckResult
 import pathlib
 from enmapbox.testing import TestCase
-from enmapbox.externals.qps.utils import file_search, loadUi
+from enmapbox.qgispluginsupport.qps.utils import file_search, loadUi
 
 DIR_REPO = pathlib.Path(__file__).parents[1]
 
