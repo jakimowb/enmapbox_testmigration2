@@ -38,7 +38,7 @@ from qgis.core import QgsLayerTreeGroup, QgsLayerTreeLayer, QgsMapLayer, QgsProj
     QgsRasterDataProvider, QgsRasterRenderer, QgsVectorLayer, QgsDataItem, QgsLayerItem, Qgis
 
 from enmapbox.gui.utils import enmapboxUiPath
-from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
+from enmapboxprocessing.algorithm.writeenviheaderalgorithm import WriteEnviHeaderAlgorithm
 from enmapboxprocessing.algorithm.saverasterlayerasalgorithm import SaveRasterAsAlgorithm
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from ..mimedata import MDF_URILIST, QGIS_URILIST_MIMETYPE, extractMapLayers, fromDataSourceList
@@ -437,13 +437,13 @@ class DataSourceManagerTreeView(TreeView):
                     )
                 )
 
-                if splitext(node.source())[1].lower() in ['.tif', '.tiff']:
-                    parameters = {AppendEnviHeaderToGTiffRasterAlgorithm.P_RASTER: node.source()}
-                    a: QAction = m.addAction('Append ENVI header')
+                if splitext(node.source())[1].lower() in ['.tif', '.tiff', '.bsq', '.bil', '.bip']:
+                    parameters = {WriteEnviHeaderAlgorithm.P_RASTER: node.source()}
+                    a: QAction = m.addAction('Create/update ENVI header')
                     a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
                     a.triggered.connect(
                         lambda src: EnMAPBox.instance().showProcessingAlgorithmDialog(
-                            AppendEnviHeaderToGTiffRasterAlgorithm(), parameters, parent=self
+                            WriteEnviHeaderAlgorithm(), parameters, parent=self
                         )
                     )
 
