@@ -1243,12 +1243,14 @@ class SpectralProcessingWidget(QgsProcessingAlgorithmDialogBase):
             widget.setStyleSheet('background-color: rgba(255, 0, 0, 150);')
             QTimer.singleShot(1000, lambda *args, w=widget, c=css: w.setStyleSheet(c))
 
-    def createProcessingParameters(self, flags=QgsProcessingParametersGenerator.Flags()):
+    def createProcessingParameters(self, flags=None):
 
         if self.mainWidget() is None:
             return {}
 
         try:
+            if flags is None:
+                flags = QgsProcessingParametersGenerator.Flags()
             return self.mainWidget().createProcessingParameters(flags)
         except AlgorithmDialogBase.InvalidParameterValue as e:
             self.flag_invalid_parameter_value(e.parameter.description(), e.widget)
