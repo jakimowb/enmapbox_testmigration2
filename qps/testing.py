@@ -47,6 +47,7 @@ from qgis.PyQt.QtWidgets import QToolBar, QFrame, QHBoxLayout, QVBoxLayout, QMai
 from osgeo import gdal, ogr, osr, gdal_array
 
 import qgis.testing
+import qgis.testing.mocked
 import qgis.utils
 from qgis.PyQt import sip
 from qgis.core import QgsLayerTreeLayer
@@ -222,11 +223,7 @@ def start_app(cleanup: bool = True,
                     'Settings directory might be outdated: {}'.format(QgsApplication.instance().qgisSettingsDirPath())]
             print('\n'.join(info), file=sys.stderr)
 
-        if not isinstance(qgis.utils.iface, QgisInterface):
-            if not isinstance(_QGIS_MOCKUP, QgisMockup):
-                _QGIS_MOCKUP = QgisMockup()
-            qgis.utils.initInterface(sip.unwrapinstance(_QGIS_MOCKUP))
-            assert _QGIS_MOCKUP == qgis.utils.iface
+        get_iface()  # creates a QGIS Mockup
 
         # set 'home_plugin_path', which is required from the QGIS Plugin manager
         qgis.utils.home_plugin_path = (pathlib.Path(QgsApplication.instance().qgisSettingsDirPath())
@@ -450,7 +447,16 @@ class QgisMockup(QgisInterface):
         self.mCanvas.zoomToFullExtent()
 
 
+def get_iface() -> QgisInterface:
+    if not isinstance(qgis.utils.iface, QgisInterface):
+        iface = QgisMockup()
+        qgis.utils.initInterface(sip.unwrapinstance(iface))
+
+    return qgis.utils.iface
+
+
 class TestCase(qgis.testing.TestCase):
+    IFACE = None
 
     @staticmethod
     def runsInCI() -> True:
@@ -464,8 +470,15 @@ class TestCase(qgis.testing.TestCase):
     def setUpClass(cls, cleanup: bool = True, options=StartOptions.All, resources: list = None) -> None:
         if not isinstance(QgsApplication.instance(), QgsApplication):
             qgis.testing.start_app()
+
+            if TestCase.IFACE is None:
+                TestCase.IFACE = get_iface()
+
             from processing.core.Processing import Processing
             Processing.initialize()
+
+            QgsGui.editorWidgetRegistry().initEditors()
+
         return
 
         if resources is None:
@@ -950,13 +963,13 @@ class TestObjects(object):
                             path: typing.Union[str, pathlib.Path] = None,
                             drv: typing.Union[str, gdal.Driver] = None,
                             wlu: str = None,
+                            pixel_size: float = None,
                             no_data_rectangle: int = 0,
                             no_data_value: typing.Union[int, float] = -9999) -> gdal.Dataset:
         """
         Generates a gdal.Dataset of arbitrary size based on true data from a smaller EnMAP raster image
         """
         from .classification.classificationscheme import ClassificationScheme
-
         scheme = None
         if nc is None:
             nc = 0
@@ -995,6 +1008,10 @@ class TestObjects(object):
                 band.SetNoDataValue(no_data_value)
 
         coredata, core_wl, core_wlu, core_gt, core_wkt = TestObjects.coreData()
+
+        if pixel_size:
+            core_gt = (core_gt[0], abs(pixel_size), core_gt[2],
+                       core_gt[3], core_gt[4], -abs(pixel_size))
 
         dt_out = gdal_array.flip_code(eType)
         if isinstance(crs, str) or gt is not None:

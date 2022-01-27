@@ -48,6 +48,7 @@ import zipfile
 from collections import defaultdict
 
 import numpy as np
+from qgis.PyQt.QtWidgets import QHBoxLayout
 from qgis.PyQt.QtCore import QPoint, QRect, QObject, QPointF, QDirIterator, QDateTime, QDate, QVariant, QByteArray, QUrl
 from qgis.PyQt.QtGui import QIcon, QColor
 from qgis.PyQt.QtWidgets import QComboBox, QWidget
@@ -1848,6 +1849,19 @@ def parseWavelength(dataset) -> typing.Tuple[np.ndarray, str]:
     :param dataset:
     :return: (wl, wl_u) or (None, None), if not existing
     """
+    # try to get wavelength from provider
+
+    if isinstance(dataset, QgsRasterLayer):
+
+        # temporary workaround, as it uses none-QGIS API
+        # will re replaces with future QEP specification of remote-sensing specific raster metadata
+        provider: QgsRasterDataProvider = dataset.dataProvider()
+
+        # note that wavelength() is only available for custom provider like EE
+        if hasattr(provider, 'wavelength'):
+            wl = np.array([provider.wavelength(bandNo) for bandNo in range(1, provider.bandCount() + 1)])
+            wlu = 'Nanometers'
+            return wl, wlu
 
     def sort_domains(domains) -> typing.List[str]:
         if not isinstance(domains, list):
@@ -1886,7 +1900,7 @@ def parseWavelength(dataset) -> typing.Tuple[np.ndarray, str]:
                 return domainWL, domainWLU
 
         # 2. check on band level. collect wl from each single band
-        # first domain that defines wl and wlu is prototyp domain for all other bands
+        # first domain that defines wl and wlu is prototype domain for all other bands
 
         wl = []  # list of wavelength values
         wlu: str = None  # wavelength unit string
@@ -2988,6 +3002,28 @@ def setToolButtonDefaultActionMenu(toolButton: QToolButton, actions: list):
 
     menu.triggered.connect(toolButton.setDefaultAction)
     toolButton.setMenu(menu)
+
+
+class SelectMapLayerDialog(QgsDialog):
+
+    def __init__(self, *args, **kwds):
+        super().__init__(*args, buttons=QDialogButtonBox.Cancel | QDialogButtonBox.Ok, **kwds)
+        self.mBox = QgsMapLayerComboBox(parent=self)
+        self.mLabel = QLabel('Layer', parent=self)
+        self.hl = QHBoxLayout()
+        self.hl.addWidget(self.mLabel)
+        self.hl.addWidget(self.mBox)
+        self.hl.setStretchFactor(self.mBox, 2)
+        self.layout().insertLayout(0, self.hl)
+
+    def setProject(self, project: QgsProject):
+        self.mBox.setProject(project)
+
+    def mapLayerComboBox(self) -> QgsMapLayerComboBox:
+        return self.mBox
+
+    def layer(self) -> QgsMapLayer:
+        return self.mBox.currentLayer()
 
 
 class SelectMapLayersDialog(QgsDialog):

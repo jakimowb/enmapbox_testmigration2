@@ -19,8 +19,9 @@ from qgis.gui import QgsGui, QgsProcessingParameterWidgetContext, QgsProcessingG
 from qgis.gui import QgsProcessingGuiRegistry, QgsProcessingParameterDefinitionDialog
 from qps import initAll
 from qps.speclib.core.spectrallibrary import SpectralLibrary
+from qps.speclib.core.spectralprofile import SpectralSetting
 from qps.speclib.gui.spectrallibrarywidget import SpectralLibraryWidget
-from qps.speclib.gui.spectralprocessingwidget import SpectralProcessingWidget, \
+from qps.speclib.gui.spectralprocessingdialog import SpectralProcessingDialog, \
     SpectralProcessingRasterLayerWidgetWrapper
 from qps.testing import TestCase, ExampleAlgorithmProvider
 from qps.testing import TestObjects, StartOptions
@@ -187,7 +188,7 @@ class SpectralProcessingTests(TestCase):
         speclib: QgsVectorLayer
 
         speclib.startEditing()
-        procw = SpectralProcessingWidget(speclib=speclib)
+        procw = SpectralProcessingDialog(speclib=speclib)
         # procw.setSpeclib(speclib)
         reg: QgsProcessingRegistry = QgsApplication.instance().processingRegistry()
         alg1 = reg.algorithmById('gdal:rearrange_bands')
@@ -206,13 +207,25 @@ class SpectralProcessingTests(TestCase):
         speclib: QgsVectorLayer
 
         speclib.startEditing()
-        procw = SpectralProcessingWidget()
+        procw = SpectralProcessingDialog()
         procw.setSpeclib(speclib)
         reg: QgsProcessingRegistry = QgsApplication.instance().processingRegistry()
         alg1 = reg.algorithmById('gdal:rearrange_bands')
         alg2 = reg.algorithmById('native:rescaleraster')
+        procw.setAlgorithm(alg2)
+        wrapper = procw.processingModelWrapper()
+        cbInputField = wrapper.parameterWidget('INPUT')
+        cbInputField.setCurrentIndex(1)
+        currentInputFieldName = cbInputField.currentText()
 
-        # procw.setAlgorithm(alg2)
+        cb2 = wrapper.outputWidget('OUTPUT')
+        cb2.setCurrentText('newfield')
+
+        procw.runAlgorithm(fail_fast=True)
+        tempFiles = procw.temporaryRaster()
+        for file in tempFiles:
+            setting = SpectralSetting.fromRasterLayer(file)
+            assert setting.xUnit() not in [None, '']
 
         self.showGui(procw)
 
@@ -279,7 +292,7 @@ class SpectralProcessingTests(TestCase):
         d = D()
         d.exec_()
 
-    def test_SpectralProcessingWidget(self):
+    def test_SpectralLibraryWidget(self):
         self.initProcessingRegistry()
 
         from qps.speclib.core.spectrallibraryrasterdataprovider import registerDataProvider
