@@ -507,10 +507,10 @@ class EnMAPBox(QgisInterface, QObject):
         debugLog('Set ui visible...')
         self.ui.setVisible(True)
 
-        debugLog('Set pyqtgraph config')
-        from ..externals.pyqtgraph import setConfigOption
-        setConfigOption('background', 'k')
-        setConfigOption('foreground', 'w')
+        # debugLog('Set pyqtgraph config')
+        # from ..externals.pyqtgraph import setConfigOption
+        # setConfigOption('background', 'k')
+        # setConfigOption('foreground', 'w')
 
         # check missing packages and show a message
         # see https://bitbucket.org/hu-geomatics/enmap-box/issues/366/start-enmap-box-in-standard-qgis
