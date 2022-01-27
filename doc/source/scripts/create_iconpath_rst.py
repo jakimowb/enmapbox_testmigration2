@@ -6,7 +6,7 @@ from os.path import basename, abspath, dirname, join
 basedir = join(dirname(abspath(__file__)), '..')
 # list of icon dirs relative to basedir
 icondirs = ['../../enmapbox/gui/ui/icons/',
-            '../../enmapbox/externals/qps/ui/icons/',
+            '../../enmapbox/qgispluginsupport/qps/ui/icons/',
             'img/icons/']
 extentions = ('.svg', '.png')
 

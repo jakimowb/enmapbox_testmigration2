@@ -25,7 +25,7 @@ from qgis._gui import (QgsDockWidget, QgsFeaturePickerWidget,
                        QgsCheckableComboBox)
 
 
-import enmapbox.externals.pyqtgraph as pg
+import enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph as pg
 from enmapbox import EnMAPBox
 from enmapbox.qgispluginsupport.qps.utils import SpatialPoint
 from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm

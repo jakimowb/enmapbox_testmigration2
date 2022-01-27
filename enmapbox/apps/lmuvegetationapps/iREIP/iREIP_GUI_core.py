@@ -29,7 +29,7 @@ from hubflow.core import *
 import numpy as np
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import Qt
-from enmapbox.externals import pyqtgraph as pg
+from enmapbox._deprecated_will__be_removed_externals import pyqtgraph as pg
 from lmuvegetationapps import APP_DIR
 import warnings
 

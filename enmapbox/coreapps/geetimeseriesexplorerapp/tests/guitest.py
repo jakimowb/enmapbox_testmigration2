@@ -7,8 +7,8 @@ from enmapbox.testing import start_app
 from geetimeseriesexplorerapp import GeeTimeseriesExplorerApp
 
 
-import pyqtgraph.examples
-pyqtgraph.examples.run()
+import enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.examples
+enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.examples.run()
 exit(0)
 from tests.testdata import landcover_berlin_point_singlepart_3035_gpkg
 
