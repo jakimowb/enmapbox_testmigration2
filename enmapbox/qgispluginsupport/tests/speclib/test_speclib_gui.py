@@ -43,9 +43,9 @@ from qps.speclib import FIELD_VALUES
 from qps.speclib.core import profile_field_list, is_spectral_library
 from qps.speclib.core.spectrallibrary import defaultCurvePlotStyle, SpectralLibrary
 from qps.speclib.core.spectralprofile import SpectralProfile
-from qps.speclib.gui.spectrallibraryplotwidget import SpectralProfilePlotDataItem, \
-    SpectralProfilePlotWidget, SpectralLibraryPlotWidgetStyleWidget, \
+from qps.speclib.gui.spectrallibraryplotwidget import SpectralLibraryPlotWidgetStyleWidget, \
     SpectralLibraryPlotWidget, SpectralProfilePlotXAxisUnitModel
+from qps.speclib.gui.spectrallibraryplotitems import SpectralProfilePlotDataItem, SpectralProfilePlotWidget
 from qps.speclib.gui.spectrallibrarywidget import SpectralLibraryWidget, SpectralLibraryPanel
 from qps.speclib.gui.spectralprofileeditor import SpectralProfileTableModel, SpectralProfileEditorWidget, \
     SpectralProfileEditorWidgetWrapper, SpectralProfileEditorConfigWidget, SpectralProfileEditorWidgetFactory, \
@@ -483,7 +483,8 @@ class TestSpeclibWidgets(TestCase):
         l1 = QgsRasterLayer(enmap, 'EnMAP')
         l2 = QgsVectorLayer(landcover, 'LandCover')
         l3 = QgsVectorLayer(enmap_pixel, 'Points of Interest')
-        QgsProject.instance().addMapLayers([l1, l2, l3])
+        l4 = QgsRasterLayer(enmap, 'EnMAP-2')
+        QgsProject.instance().addMapLayers([l1, l2, l3, l4])
 
         sl1 = TestObjects.createSpectralLibrary(5, wlu='Nanometers', n_bands=[177, 6])
         sl1.setName(' My Speclib')
@@ -616,7 +617,7 @@ class TestSpeclibWidgets(TestCase):
             speclib = SpectralLibrary.readFrom(pathSL)
 
             dt = datetime.datetime.now() - t0
-            print('Reading required : {}'.format(dt))
+            # print('Reading required : {}'.format(dt))
         else:
             speclib = TestObjects.createSpectralLibrary(5000)
 
@@ -625,9 +626,9 @@ class TestSpeclibWidgets(TestCase):
         w = SpectralLibraryWidget()
         w.addSpeclib(speclib)
         for field in profile_field_list(speclib):
-            w.spectralLibraryPlotWidget().createProfileVis(field=field)
+            w.spectralLibraryPlotWidget().createProfileVisualization(field=field)
         dt = datetime.datetime.now() - t0
-        print('Adding speclib required : {}'.format(dt))
+        # print('Adding speclib required : {}'.format(dt))
 
         self.showGui(w)
 

@@ -4,23 +4,24 @@ import typing
 import warnings
 
 from qgis.PyQt.QtCore import pyqtSignal, Qt, QModelIndex
-from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QContextMenuEvent, QDropEvent, QColor
+from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDropEvent, QColor
 from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout, QAction, QMenu, QToolBar, QWidgetAction, QPushButton, \
-    QHBoxLayout, QFrame, QDialog, QLabel, QMessageBox
+    QHBoxLayout, QFrame, QDialog, QMessageBox
 from qgis.core import QgsProcessingAlgorithm, QgsApplication, QgsProcessingRegistry
+from qgis.core import QgsProject
 from qgis.core import QgsVectorLayer
-from qgis.gui import QgsMapCanvas, QgsDualView, QgsAttributeTableView, QgsAttributeTableFilterModel, QgsDockWidget, \
+from qgis.gui import QgsMapCanvas, QgsDualView, QgsAttributeTableView, QgsDockWidget, \
     QgsActionMenu
-from .spectrallibraryplotwidget import SpectralProfilePlotWidget, SpectralLibraryPlotWidget, \
-    SpectralLibraryPlotItem, SpectralLibraryPlotStats, SpectralProfilePlotControlModel
-from .spectralprocessingwidget import SpectralProcessingWidget
+from .spectrallibraryplotitems import SpectralLibraryPlotItem, SpectralProfilePlotWidget
+from .spectrallibraryplotwidget import SpectralLibraryPlotWidget, \
+    SpectralProfilePlotModel
+from .spectralprocessingdialog import SpectralProcessingDialog
 from ..core import is_spectral_library
 from ..core.spectrallibrary import SpectralLibrary, SpectralLibraryUtils
 from ..core.spectrallibraryio import SpectralLibraryImportDialog, SpectralLibraryExportDialog
 from ..core.spectralprofile import SpectralProfile
 from ...layerproperties import AttributeTableWidget, showLayerPropertiesDialog, CopyAttributesDialog
 from ...plotstyling.plotstyling import PlotStyle, PlotStyleWidget
-from ...unitmodel import BAND_NUMBER
 from ...utils import SpatialExtent, SpatialPoint, nextColor
 
 
@@ -55,8 +56,8 @@ class SpectralLibraryWidget(AttributeTableWidget):
         # self.mStatusLabel.setTextFormat(Qt.RichText)
         # self.mQgsStatusBar.addPermanentWidget(self.mStatusLabel, 1, QgsStatusBar.AnchorLeft)
         # self.mQgsStatusBar.setVisible(False)
-
-        self.mSpectralProcessingWidget: SpectralProcessingWidget = None
+        self.mProject = QgsProject.instance()
+        self.mSpectralProcessingWidget: SpectralProcessingDialog = None
 
         self.mToolbar: QToolBar
         self.mIODialogs: typing.List[QWidget] = list()
@@ -218,6 +219,11 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.splitter.setStretchFactor(2, 0)
         self.splitter.setSizes([200, 10, 0])
 
+    def setProject(self, project: QgsProject):
+        assert isinstance(project, QgsProject)
+        self.mProject = project
+        self.mSpeclibPlotWidget.setProject(project)
+
     def editingToggled(self):
         super().editingToggled()
         self.actionShowSpectralProcessingDialog.setEnabled(self.speclib().isEditable())
@@ -357,7 +363,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
     def plotWidget(self) -> SpectralProfilePlotWidget:
         return self.mSpeclibPlotWidget.plotWidget
 
-    def plotControl(self) -> SpectralProfilePlotControlModel:
+    def plotControl(self) -> SpectralProfilePlotModel:
         return self.mSpeclibPlotWidget.mPlotControlModel
 
     def plotItem(self) -> SpectralLibraryPlotItem:
@@ -423,27 +429,21 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
     def showSpectralProcessingWidget(self):
         alg_key = 'qps/processing/last_alg_id'
-        if not isinstance(self.mSpectralProcessingWidget, SpectralProcessingWidget):
-            self.mSpectralProcessingWidget = SpectralProcessingWidget(speclib=self.speclib())
-            self.mSpectralProcessingWidget.setMainMessageBar(self.mainMessageBar())
+        reg: QgsProcessingRegistry = QgsApplication.instance().processingRegistry()
+        if not isinstance(self.mSpectralProcessingWidget, SpectralProcessingDialog):
+            dialog = SpectralProcessingDialog(speclib=self.speclib())
+            dialog.setMainMessageBar(self.mainMessageBar())
 
             alg_id = self.property(alg_key)
             if isinstance(alg_id, str):
-                reg: QgsProcessingRegistry = QgsApplication.instance().processingRegistry()
                 alg = reg.algorithmById(alg_id)
                 if isinstance(alg, QgsProcessingAlgorithm):
-                    self.mSpectralProcessingWidget.setAlgorithm(alg_id)
+                    dialog.setAlgorithm(alg_id)
 
-            def disconnect():
-                if isinstance(self.mSpectralProcessingWidget, SpectralProcessingWidget):
-                    alg = self.mSpectralProcessingWidget.processingAlgorithm()
-                    if isinstance(alg, QgsProcessingAlgorithm):
-                        self.setProperty(alg_key, alg.id())
-
-                    self.mSpectralProcessingWidget = None
-
-            self.mSpectralProcessingWidget.sigAboutToBeClosed.connect(disconnect)
-        self.mSpectralProcessingWidget.show()
+            dialog.exec_()
+            alg = dialog.algorithm()
+            if isinstance(alg, QgsProcessingAlgorithm):
+                self.setProperty(alg_key, alg.id())
 
     def addCurrentProfilesAutomatically(self, b: bool):
         self.optionAddCurrentProfilesAutomatically.setChecked(b)
@@ -550,7 +550,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
                                 affected_profile_fields[attribute] = color
                             self.plotControl().mTemporaryProfileColors[(fid, attribute)] = color
 
-            visualized_attributes = [v.field().name() for v in self.plotControl().visualizations()]
+            visualized_attributes = [v.field().name() for v in self.plotControl().visualizations() if v.isComplete()]
             missing_visualization = [a for a in affected_profile_fields.keys() if a not in visualized_attributes]
 
             for attribute in missing_visualization:
@@ -562,7 +562,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
                 else:
                     color = None
 
-                self.spectralLibraryPlotWidget().createProfileVis(field=attribute, color=color)
+                self.spectralLibraryPlotWidget().createProfileVisualization(field=attribute, color=color)
 
         self.plotControl().updatePlot()
         self.updateActions()
@@ -602,7 +602,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
         # add a new visualization if no one exists
         if n_p == 0 and n_v == 0 and self.speclib().featureCount() > 0:
-            self.spectralLibraryPlotWidget().createProfileVis()
+            self.spectralLibraryPlotWidget().createProfileVisualization()
 
     def onImportFromRasterSource(self):
         from ..io.rastersources import SpectralProfileImportPointsDialog
@@ -646,106 +646,6 @@ class SpectralLibraryWidget(AttributeTableWidget):
         Removes all SpectralProfiles and additional fields
         """
         warnings.warn('Deprectated and desimplemented', DeprecationWarning)
-
-
-class SpectralLibraryInfoLabel(QLabel):
-
-    def __init__(self, *args, **kwds):
-        super().__init__(*args, **kwds)
-        self.mPW: SpectralProfilePlotWidget = None
-
-        self.mLastStats: SpectralLibraryPlotStats = None
-        self.setStyleSheet('QToolTip{width:300px}')
-
-    def setPlotWidget(self, pw: SpectralLibraryPlotWidget):
-        assert isinstance(pw, SpectralLibraryPlotWidget)
-        self.mPW = pw
-
-    def plotWidget(self) -> SpectralLibraryPlotWidget:
-        return self.mPW
-
-    def update(self):
-        if not isinstance(self.plotWidget(), SpectralProfilePlotWidget):
-            self.setText('')
-            self.setToolTip('')
-            return
-
-        stats = self.plotWidget().profileStats()
-        if self.mLastStats == stats:
-            return
-
-        msg = '<html><head/><body>'
-        ttp = '<html><head/><body><p>'
-
-        # total + filtering
-        if stats.filter_mode == QgsAttributeTableFilterModel.ShowFilteredList:
-            msg += f'{stats.profiles_filtered}f'
-            ttp += f'{stats.profiles_filtered} profiles filtered out of {stats.profiles_total}<br/>'
-        else:
-            # show all
-            msg += f'{stats.profiles_total}'
-            ttp += f'{stats.profiles_total} profiles in total<br/>'
-
-        # show selected
-        msg += f'/{stats.profiles_selected}'
-        ttp += f'{stats.profiles_selected} selected in plot<br/>'
-
-        if stats.profiles_empty > 0:
-            msg += f'/<span style="color:red">{stats.profiles_empty}N</span>'
-            ttp += f'<span style="color:red">At least {stats.profiles_empty} profile fields empty (NULL)<br/>'
-
-        if stats.profiles_error > 0:
-            msg += f'/<span style="color:red">{stats.profiles_error}E</span>'
-            ttp += f'<span style="color:red">At least {stats.profiles_error} profiles ' \
-                   f'can not be converted to X axis unit "{self.plotWidget().xUnit()}" (ERROR)</span><br/>'
-
-        if stats.profiles_plotted >= stats.profiles_plotted_max and stats.profiles_total > stats.profiles_plotted_max:
-            msg += f'/<span style="color:red">{stats.profiles_plotted}</span>'
-            ttp += f'<span style="color:red">{stats.profiles_plotted} profiles plotted. Increase plot ' \
-                   f'limit ({stats.profiles_plotted_max}) to show more at same time.</span><br/>'
-        else:
-            msg += f'/{stats.profiles_plotted}'
-            ttp += f'{stats.profiles_plotted} profiles plotted<br/>'
-
-        msg += '</body></html>'
-        ttp += '</p></body></html>'
-
-        self.setText(msg)
-        self.setToolTip(ttp)
-        self.setMinimumWidth(self.sizeHint().width())
-
-        self.mLastStats = stats
-
-    def contextMenuEvent(self, event: QContextMenuEvent):
-        m = QMenu()
-
-        stats = self.plotWidget().profileStats()
-
-        a = m.addAction('Select axis-unit incompatible profiles')
-        a.setToolTip(f'Selects all profiles that cannot be displayed in {self.plotWidget().xUnit()}')
-        a.triggered.connect(self.onSelectAxisUnitIncompatibleProfiles)
-
-        a = m.addAction('Reset to band number')
-        a.setToolTip('Resets the x-axis to show the band number.')
-        a.triggered.connect(lambda *args: self.plotWidget().setXUnit(BAND_NUMBER))
-
-        m.exec_(event.globalPos())
-
-    def onSelectAxisUnitIncompatibleProfiles(self):
-        incompatible = []
-        pw: SpectralProfilePlotWidget = self.plotWidget()
-        if not isinstance(pw, SpectralProfilePlotWidget) or \
-                not is_spectral_library(pw.speclib()):
-            return
-
-        targetUnit = pw.xUnit()
-        for p in pw.speclib():
-            if isinstance(p, SpectralProfile):
-                f = pw.unitConversionFunction(p.xUnit(), targetUnit)
-                if f == pw.mUnitConverter.func_return_none:
-                    incompatible.append(p.id())
-
-        pw.speclib().selectByIds(incompatible)
 
 
 class SpectralLibraryPanel(QgsDockWidget):
