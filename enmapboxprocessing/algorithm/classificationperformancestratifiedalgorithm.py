@@ -2,6 +2,7 @@ import json
 import webbrowser
 from collections import defaultdict
 from dataclasses import dataclass
+from math import isnan
 from os import makedirs
 from os.path import exists, dirname
 from typing import Dict, Any, List, Tuple, NamedTuple, Iterable
@@ -202,6 +203,17 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
     @classmethod
     def writeReport(cls, filename: str, stats: 'StratifiedAccuracyAssessmentResult', pixelUnits='pixel', pixelArea=1.):
 
+        def smartRound(obj, ndigits):
+            if isinstance(obj, list):
+                return [smartRound(item, ndigits) for item in obj]
+            else:
+                obj = round(obj, ndigits)
+                if isnan(obj):
+                    return obj
+                if obj == int(obj):
+                    obj = int(obj)
+                return obj
+
         if pixelUnits == 'degrees':
             pixelUnits = 'pixel'
         if pixelUnits != 'pixel':
@@ -218,26 +230,25 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
             report.writeHeader('Classification layer accuracy and area report')
 
             report.writeParagraph(f'Sample size: {stats.n} px')
-            report.writeParagraph(f'Area size: {round(stats.N, 2)} {pixelUnits}')
+            report.writeParagraph(f'Area size: {smartRound(stats.N, 2)} {pixelUnits}')
 
-            values = np.round(stats.confusion_matrix_counts, 2).tolist()
+            values = smartRound(stats.confusion_matrix_counts, 2)
             report.writeTable(
-                values, 'Adjusted confusion matrix counts',
+                values, 'Adjusted confusion matrix counts: predicted (rows) vs. observed (columns)',
+                [f'({i + 1})' for i in range(len(stats.class_names))],
+                [f'{name} ({i + 1})' for i, name in enumerate(stats.class_names)]
+            )
+
+            values = smartRound(stats.confusion_matrix_proportions, 4)
+            report.writeTable(
+                values, 'Adjusted confusion matrix area proportions: predicted (rows) vs. observed (columns)',
                 [f'({i + 1})' for i in range(len(stats.class_names))],
                 stats.class_names
             )
 
-            values = np.round(stats.confusion_matrix_proportions, 4).tolist()
-            report.writeTable(
-                values, 'Adjusted confusion matrix area proportions',
-                [f'({i + 1})' for i in range(len(stats.class_names))],
-                stats.class_names
-            )
-
-            values = np.round(
-                [[stats.overall_accuracy, *confidenceIntervall(stats.overall_accuracy, stats.overall_accuracy_se)]],
-                4
-            ).tolist()
+            values = smartRound([
+                [stats.overall_accuracy, *confidenceIntervall(stats.overall_accuracy, stats.overall_accuracy_se)]
+            ], 4)
             report.writeTable(
                 values, 'Overall accuracies',
                 None,
@@ -255,7 +266,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
                      stats.f1[i],
                      *confidenceIntervall(stats.f1[i], stats.f1_se[i])]
                 )
-            values = np.round(values, 4).tolist()
+            values = smartRound(values, 4)
             report.writeTable(
                 values, 'Class-wise accuracies',
                 None,
@@ -276,7 +287,7 @@ class ClassificationPerformanceStratifiedAlgorithm(EnMAPProcessingAlgorithm):
                 )
             values = np.round(values, 4)
             values[:, -3:] = np.round(values[:, -3:], 2)
-            values = values.tolist()
+            values = smartRound(values.tolist(), 4)
             report.writeTable(
                 values, 'Class-wise proportion and area estimates',
                 None,

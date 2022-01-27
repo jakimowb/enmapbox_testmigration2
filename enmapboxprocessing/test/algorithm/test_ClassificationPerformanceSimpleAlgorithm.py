@@ -1,11 +1,14 @@
 from math import isnan
+import numpy as np
 
-from qgis._core import QgsProcessingException
+from qgis._core import QgsProcessingException, QgsRasterLayer
 
 from enmapbox.exampledata import landcover_polygons, enmap
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
+from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.test.algorithm.testcase import TestCase
+from enmapboxprocessing.typing import Category
 from enmapboxprocessing.utils import Utils
 from enmapboxtestdata import landcover_map_l3
 
@@ -20,7 +23,7 @@ class TestClassificationPerformanceSimpleAlgorithm(TestCase):
         parameters = {
             alg.P_CLASSIFICATION: landcover_map_l3,
             alg.P_REFERENCE: landcover_polygons,
-            alg.P_OPEN_REPORT: False,
+            alg.P_OPEN_REPORT: True,
             alg.P_OUTPUT_REPORT: self.filename('report.html'),
         }
         self.runalg(alg, parameters)
@@ -70,6 +73,31 @@ class TestClassificationPerformanceSimpleAlgorithm(TestCase):
             )
 
     def test_debug(self):
+        alg = ClassificationPerformanceSimpleAlgorithm()
+
+        categories = [Category(1, 'A', '#ff0000'), Category(2, 'B', '#ff0000'), Category(3, 'C', '#ff0000')]
+        Driver(self.filename('observed.tif')).createFromArray(np.array([[[1, 2, 3]]]))
+        Driver(self.filename('predicted.tif')).createFromArray(np.array([[[1, 1, 1]]]))
+
+        predicted = QgsRasterLayer(self.filename('predicted.tif'))
+        observed = QgsRasterLayer(self.filename('observed.tif'))
+
+        renderer = Utils.palettedRasterRendererFromCategories(predicted.dataProvider(), 1, categories)
+        predicted.setRenderer(renderer)
+
+        renderer = Utils.palettedRasterRendererFromCategories(observed.dataProvider(), 1, categories)
+        observed.setRenderer(renderer)
+
+
+        parameters = {
+            alg.P_CLASSIFICATION: predicted,
+            alg.P_REFERENCE: observed,
+            alg.P_OPEN_REPORT: True,
+            alg.P_OUTPUT_REPORT: self.filename('report.html'),
+        }
+        self.runalg(alg, parameters)
+
+    def _test_debug(self):
         alg = ClassificationPerformanceSimpleAlgorithm()
         alg.initAlgorithm()
         parameters = {
