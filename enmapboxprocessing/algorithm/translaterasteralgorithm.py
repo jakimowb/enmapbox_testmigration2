@@ -6,7 +6,7 @@ from osgeo import gdal
 from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRectangle, QgsRasterLayer,
                         QgsRasterDataProvider, QgsPoint, QgsPointXY)
 
-from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
+from enmapboxprocessing.algorithm.writeenviheaderalgorithm import WriteEnviHeaderAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.rasterwriter import RasterWriter
@@ -129,7 +129,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterRasterLayer(self.P_GRID, self._GRID, optional=True)
         self.addParameterBoolean(self.P_COPY_METADATA, self._COPY_METADATA, defaultValue=False)
         self.addParameterBoolean(self.P_COPY_STYLE, self._COPY_STYLE, defaultValue=False)
-        self.addParameterBoolean(self.P_WRITE_ENVI_HEADER, self._WRITE_ENVI_HEADER, defaultValue=False)
+        self.addParameterBoolean(self.P_WRITE_ENVI_HEADER, self._WRITE_ENVI_HEADER, defaultValue=True)
         self.addParameterRasterLayer(self.P_SPECTRAL_RASTER, self._SPECTRAL_RASTER, None, True, True)
         self.addParameterBandList(
             self.P_SPECTRAL_BAND_LIST, self._SPECTRAL_BAND_LIST, None, self.P_SPECTRAL_RASTER, True, True
@@ -352,7 +352,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             del writer, outGdalDataset
 
             if writeEnviHeader:
-                alg = AppendEnviHeaderToGTiffRasterAlgorithm()
+                alg = WriteEnviHeaderAlgorithm()
                 parameters = {alg.P_RASTER: filename}
                 self.runAlg(alg, parameters, None, feedback2, context, True)
 

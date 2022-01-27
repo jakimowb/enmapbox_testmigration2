@@ -2,13 +2,13 @@ from osgeo import gdal
 from qgis._core import QgsProcessingException
 
 from enmapbox.exampledata import enmap
-from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
+from enmapboxprocessing.algorithm.writeenviheaderalgorithm import WriteEnviHeaderAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.rasterwriter import RasterWriter
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 
 
-class TestAppendEnviHeaderToGTiffRasterAlgorithm(TestCase):
+class TestWriteEnviHeaderAlgorithm(TestCase):
 
     def test_tif(self):
 
@@ -25,7 +25,7 @@ class TestAppendEnviHeaderToGTiffRasterAlgorithm(TestCase):
             writer.setMetadata(reader.metadata(i+1), i+1)
         del ds1, ds2, reader, writer
 
-        alg = AppendEnviHeaderToGTiffRasterAlgorithm()
+        alg = WriteEnviHeaderAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_RASTER: filename,
@@ -48,7 +48,7 @@ data ignore value = -99.0
             text
         )
 
-    def test_noTif(self):
+    def test_envi(self):
 
         filename = self.filename('enmap.bsq')
         ds1: gdal.Dataset = gdal.Open(enmap)
@@ -57,7 +57,7 @@ data ignore value = -99.0
         ds2.SetMetadata(ds1.GetMetadata())
         del ds1, ds2
 
-        alg = AppendEnviHeaderToGTiffRasterAlgorithm()
+        alg = WriteEnviHeaderAlgorithm()
         alg.initAlgorithm()
         parameters = {
             alg.P_RASTER: filename,

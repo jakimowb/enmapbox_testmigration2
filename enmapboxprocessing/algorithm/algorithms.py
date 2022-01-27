@@ -1,5 +1,5 @@
 from enmapboxprocessing.algorithm.aggregaterasterbandsalgorithm import AggregateRasterBandsAlgorithm
-from enmapboxprocessing.algorithm.appendenviheadertogtiffrasteralgorithm import AppendEnviHeaderToGTiffRasterAlgorithm
+from enmapboxprocessing.algorithm.writeenviheaderalgorithm import WriteEnviHeaderAlgorithm
 from enmapboxprocessing.algorithm.applymaskalgorithm import ApplyMaskAlgorithm
 from enmapboxprocessing.algorithm.classificationperformancesimplealgorithm import \
     ClassificationPerformanceSimpleAlgorithm
@@ -142,7 +142,7 @@ from enmapboxprocessing.algorithm.vrtbandmathalgorithm import VrtBandMathAlgorit
 def algorithms():
     algos = [
         AggregateRasterBandsAlgorithm(),
-        AppendEnviHeaderToGTiffRasterAlgorithm(),
+        WriteEnviHeaderAlgorithm(),
         ApplyMaskAlgorithm(),
         CreateSpectralIndicesAlgorithm(),
         ClassificationPerformanceSimpleAlgorithm(),
