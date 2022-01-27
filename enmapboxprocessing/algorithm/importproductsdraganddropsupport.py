@@ -62,7 +62,12 @@ def tryToImportSensorProducts(filename: str) -> List[QgsMapLayer]:
                     )
                     if not dialog.finishedSuccessful:
                         continue
-                for key, value in dialog.finishResult.items():
+                    result = dialog.finishResult
+                else:
+                    result = {key: value for key, value in parameters.items()
+                              if key.startswith('output')}
+
+                for key, value in result.items():
                     layer = QgsRasterLayer(parameters[key], basename(value))
                     mapLayers.append(layer)
         return mapLayers

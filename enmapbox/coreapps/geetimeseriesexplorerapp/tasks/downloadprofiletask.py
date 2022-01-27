@@ -7,6 +7,10 @@ from qgis._core import QgsTask, QgsMessageLog, Qgis
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
+try:
+    import ee
+except:
+    pass
 
 @typechecked
 class DownloadProfileTask(QgsTask):
@@ -15,7 +19,6 @@ class DownloadProfileTask(QgsTask):
             self, filename: Optional[str], eePoint: 'ee.Geometry', eeCollection: 'ee.ImageCollection', scale: float,
             offsets: List[float], scales: List[float]
     ):
-        print('DownloadProfileTask.__init__')
         QgsTask.__init__(self, 'Download profile task', QgsTask.CanCancel)
         self.filename = filename
         self.eePoint = eePoint
@@ -27,7 +30,6 @@ class DownloadProfileTask(QgsTask):
         self.exception: Optional[Exception] = None
 
     def run(self):
-        print('DownloadProfileTask.run')
         try:
 
             if self.filename is not None:
@@ -64,7 +66,6 @@ class DownloadProfileTask(QgsTask):
         return True
 
     def finished(self, result):
-        print('DownloadProfileTask.finished')
         if self.isCanceled():
             return
         elif not result:

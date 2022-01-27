@@ -40,25 +40,25 @@ class ProcessingParameterCreationProfileWidgetWrapper(WidgetWrapper):
     widget: ProcessingParameterCreationProfileWidget
 
     def createWidget(self):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            return ProcessingParameterCreationProfileWidget()
+        #if self.dialogType == DIALOG_MODELER:
+        #    raise NotImplementedError()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        return ProcessingParameterCreationProfileWidget()
 
     def setValue(self, value: str):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            self.widget.mOptions.setText(value)
+        #if self.dialogType == DIALOG_MODELER:
+        #    raise NotImplementedError()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        self.widget.mOptions.setText(value)
 
     def value(self):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            return self.widget.mOptions.text()
+        #if self.dialogType == DIALOG_MODELER:
+        #    raise NotImplementedError()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        return self.widget.mOptions.text()

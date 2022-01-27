@@ -462,28 +462,28 @@ class ProcessingParameterRasterMathCodeEditWidgetWrapper(WidgetWrapper):
     widget: ProcessingParameterRasterMathCodeEdit
 
     def createWidget(self):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            return ProcessingParameterRasterMathCodeEdit()
+        #if self.dialogType == DIALOG_MODELER:
+        #    raise NotImplementedError()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        return ProcessingParameterRasterMathCodeEdit()
 
     def setValue(self, value):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            self.widget.mCode.setText(value)
+        #if self.dialogType == DIALOG_MODELER:
+        #    raise NotImplementedError()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        self.widget.mCode.setText(value)
 
     def value(self):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            return self.widget.value()
+        #if self.dialogType == DIALOG_MODELER:
+        #    raise NotImplementedError()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        return self.widget.value()
 
 
 class LayerItem(QTreeWidgetItem):

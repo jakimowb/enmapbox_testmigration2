@@ -1,9 +1,9 @@
-collection = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
+collection = ee.ImageCollection("LANDSAT/LT04/C02/T1_L2")
 
 # default colors for bands and spectral indices
 bandColors = {
-    'SR_B1': '55bbff', 'SR_B2': '#003fbd', 'SR_B3': '#008700', 'SR_B4': '#c50003', 'SR_B5': '#af54ff',
-    'SR_B6': '#ffaf25', 'SR_B7': '#b87e1a',
+    'SR_B1': '#003fbd', 'SR_B2': '#008700', 'SR_B3': '#c50003', 'SR_B4': '#af54ff', 'SR_B5': '#ffaf25',
+    'SR_B7': '#b87e1a',
     # vegetation
     'NDVI': '#aaff00', 'EVI': '#007d00', 'ARVI': '#007d00', 'SAVI': '#007d00', 'SARVI': '#007d00', 'NDMI': '#007d00',
     # burn
@@ -21,4 +21,4 @@ bandColors = {
 }
 
 # mapping from spectral index formular identifiers to image bands
-wavebandMapping = {'B': 'SR_B2', 'G': 'SR_B3', 'R': 'SR_B4', 'N': 'SR_B5', 'S1': 'SR_B6', 'S2': 'SR_B7', 'T1': 'SR_B10'}
+wavebandMapping = {'B': 'SR_B1', 'G': 'SR_B2', 'R': 'SR_B3', 'N': 'SR_B4', 'S1': 'SR_B5', 'S2': 'SR_B7', 'T1': 'SR_B6'}
