@@ -4,7 +4,6 @@ from enmapboxgeoalgorithms.estimators import parseClusterers, parseRegressors, p
 from enmapboxgeoalgorithms.provider import (EnMAPAlgorithm, EnMAPAlgorithmParameterValueError, Cookbook,
                                             ALGORITHMS)
 from enmapboxprocessing.algorithm.algorithms import algorithms
-from hubdsm.processing.aggregatebands import AggregateBands
 from hubdsm.processing.changemap import ChangeMap
 from hubdsm.processing.classificationstatistics import ClassificationStatistics
 from hubdsm.processing.saveasenvi import SaveAsEnvi
@@ -14,7 +13,6 @@ from hubflow.core import *
 
 ALGORITHMS.append(UniqueBandValueCounts())
 ALGORITHMS.append(SaveLayerAsClassification())
-ALGORITHMS.append(AggregateBands())
 ALGORITHMS.append(ClassificationStatistics())
 ALGORITHMS.append(SaveAsEnvi())
 # ALGORITHMS.append(ChangeMap())  # outdated in v3.9, needs to overhauled
