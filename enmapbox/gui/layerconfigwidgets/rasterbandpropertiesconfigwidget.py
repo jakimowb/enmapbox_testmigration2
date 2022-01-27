@@ -7,8 +7,8 @@ from qgis._core import QgsRasterLayer, QgsRasterRange, QgsMapLayer
 from qgis._gui import QgsMapCanvas, QgsFilterLineEdit, QgsDateTimeEdit, QgsMapLayerConfigWidgetFactory, \
     QgsMapLayerConfigWidget, QgsRasterLayerProperties
 
-from enmapbox.externals.qps.layerconfigwidgets.core import QpsMapLayerConfigWidget
-from enmapbox.externals.qps.utils import loadUi
+from enmapbox.qgispluginsupport.qps.layerconfigwidgets.core import QpsMapLayerConfigWidget
+from enmapbox.qgispluginsupport.qps.utils import loadUi
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.utils import Utils
 

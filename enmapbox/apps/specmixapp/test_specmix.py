@@ -1,7 +1,7 @@
 import unittest
 from enmapbox.qgispluginsupport.qps.testing import TestCase, TestObjects
 from enmapbox.qgispluginsupport.qps.speclib.gui import SpectralLibraryWidget
-from enmapbox.externals.qps import initResources
+from enmapbox.qgispluginsupport.qps import initResources
 from specmixapp.specmix import *
 
 

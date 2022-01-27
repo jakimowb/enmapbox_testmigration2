@@ -20,7 +20,10 @@
 """
 import argparse
 import datetime
+import fnmatch
+import functools
 import io
+import itertools
 import os
 import pathlib
 import re
@@ -30,6 +33,7 @@ import sys
 import typing
 # noinspection PyPep8Naming
 import warnings
+import configparser
 
 site.addsitedir(pathlib.Path(__file__).parents[1])
 import enmapbox
@@ -38,57 +42,56 @@ from enmapbox.qgispluginsupport.qps.make.deploy import QGISMetadataFileWriter
 from enmapbox.gui.utils import zipdir
 from qgis.core import QgsFileUtils
 
+########## Config Section
 MAX_PLUGIN_SIZE = 10  # max plugin size in MB
 CHECK_COMMITS = False
 
-########## Config Section
-
-MD = QGISMetadataFileWriter()
-MD.mName = 'EnMAP-Box 3'
-MD.mDescription = 'Imaging Spectroscopy and Remote Sensing for QGIS'
-MD.mTags = ['raster', 'analysis', 'imaging spectroscopy', 'spectral', 'hyperspectral', 'multispectral',
-            'landsat', 'sentinel', 'enmap', 'desis', 'prisma', 'land cover', 'landscape',
-            'classification', 'regression', 'unmixing', 'remote sensing',
-            'mask', 'accuracy', 'clip', 'spectral signature', 'supervised classification', 'clustering',
-            'machine learning']
-MD.mCategory = 'Analysis'
-MD.mAuthor = 'Andreas Rabe, Benjamin Jakimow, Sebastian van der Linden'
-MD.mIcon = 'enmapbox/gui/ui/icons/enmapbox.png'
-MD.mHomepage = 'http://www.enmap.org/'
-MD.mAbout = enmapbox.ABOUT
-MD.mTracker = enmapbox.ISSUE_TRACKER
-MD.mRepository = enmapbox.REPOSITORY
-MD.mQgisMinimumVersion = enmapbox.MIN_VERSION_QGIS
-MD.mEmail = 'enmapbox@enmap.org'
-MD.mHasProcessingProvider = True
-
+DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
+PATH_CONFIG_FILE = DIR_REPO / '.plugin.ini'
 
 ########## End of config section
+assert PATH_CONFIG_FILE.is_file()
 
-def scantree(path: typing.Union[str, pathlib.Path],
-             pattern: typing.Union[str, typing.Pattern] = re.compile(r'.$'),
-             recursive: bool = True) -> typing.Iterator[pathlib.Path]:
+
+def scanfiles(root: typing.Union[str, pathlib.Path]) -> typing.Iterator[pathlib.Path]:
     """
     Recursively returns file paths in directory
-    :param recursive: bool, (default True)
-    :param path: root directory to search in
-    :param pattern: regex pattern to match files. (based on posix file paths)
+    :param root: root directory to search in
     :return: pathlib.Path
     """
-    if isinstance(pattern, str):
-        pattern = re.compile(pattern)
 
-    for entry in os.scandir(path):
-        if entry.is_dir(follow_symlinks=False) and recursive:
-            yield from scantree(entry.path, pattern=pattern)
+    for entry in os.scandir(root):
+        if entry.is_dir(follow_symlinks=False):
+            yield from scanfiles(entry.path)
         else:
             path = pathlib.Path(entry.path)
-            if path.is_file() and pattern.search(path.as_posix()):
+            if path.is_file():
                 yield path
 
 
+def fileRegex(root: str, pattern: str) -> typing.Pattern:
+    """
+    Create a regex to match a file pattern
+    :param root:
+    :param pattern:
+    :return:
+    """
+
+    is_regex = False
+    if pattern.startswith('rx:'):
+        is_regex = True
+        pattern = pattern[3:]
+
+    if root:
+        pattern = f'{root}/{pattern}'
+
+    if is_regex:
+        return re.compile(pattern)
+    else:
+        return re.compile(fnmatch.translate(pattern))
+
+
 def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False) -> pathlib.Path:
-    DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
     assert (DIR_REPO / '.git').is_dir()
 
     DIR_DEPLOY = DIR_REPO / 'deploy'
@@ -119,42 +122,53 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     os.makedirs(PLUGIN_DIR, exist_ok=True)
 
     PATH_METADATAFILE = PLUGIN_DIR / 'metadata.txt'
+
+    config = configparser.ConfigParser()
+    config.read(PATH_CONFIG_FILE)
+
+    # set QGIS Metadata file values
+    MD = QGISMetadataFileWriter()
+    MD.mName = config['metadata']['name']
+    MD.mDescription = config['metadata']['description']
+    MD.mTags = config['metadata']['tags'].split()
+    MD.mCategory = config['metadata']['category']
+    MD.mAuthor = config['metadata']['authors'].split()
+    MD.mIcon = config['metadata']['icon']
+    MD.mHomepage = config['metadata']['homepage']
+    MD.mAbout = enmapbox.ABOUT
+    MD.mTracker = enmapbox.ISSUE_TRACKER
+    MD.mRepository = enmapbox.REPOSITORY
+    MD.mQgisMinimumVersion = enmapbox.MIN_VERSION_QGIS
+    MD.mEmail = config['metadata']['email']
+    MD.mHasProcessingProvider = True
+
     MD.mVersion = BUILD_NAME
     MD.writeMetadataTxt(PATH_METADATAFILE)
 
-    # 1. (re)-compile all enmapbox resource files
+    # (re)-compile all enmapbox resource files
     from scripts.compile_resourcefiles import compileEnMAPBoxResources
     compileEnMAPBoxResources()
 
     # copy python and other resource files
-    pattern = re.compile(r'\.(sli|hdr|py|svg|png|jpg|txt|ui|tif|qml|md|js|css|json|aux\.xml)$')
-    files = list(scantree(DIR_REPO / 'enmapbox', pattern=pattern))
+    root = DIR_REPO.as_posix()
+    ignore_rx = [fileRegex(None, p) for p in config['files'].get('ignore').split()]
+    include_rx = [fileRegex(root, p) for p in config['files'].get('include').split()]
+    exclude_rx = [fileRegex(root, p) for p in config['files'].get('exclude').split()]
 
-    # exclude exampledata folder, except it's package definition
-    DIR_EXAMPLEDATA = DIR_REPO / 'enmapbox' / 'exampledata'
-    files = [f for f in files if not (f.parent == DIR_EXAMPLEDATA and f.name != '__init__.py')]
-
-    files.extend(list(scantree(DIR_REPO / 'site-packages', pattern=pattern)))
-    files.extend(list(scantree(DIR_REPO / 'enmapboxprocessing', pattern=pattern)))
-    files.extend(list(scantree(DIR_REPO / 'enmapboxplugins', pattern=pattern)))
-    files.extend(list(scantree(DIR_REPO / 'enmapboxgeoalgorithms', pattern=pattern)))
-
-    # add special files required by EnMAP-Box Applications
-    files.extend(list(scantree(DIR_REPO / 'enmapbox' / 'apps' / 'lmuvegetationapps',
-                               pattern=re.compile(r'\.(meta|srf)$'))))
-
-    # add unit tests
-    files.extend(list(scantree(DIR_REPO / 'enmapbox' / 'exampledata', pattern=re.compile(r'\.py$'))))
-    files.append(DIR_REPO / '__init__.py')
-    files.append(DIR_REPO / 'CHANGELOG.rst')
-    files.append(DIR_REPO / 'CONTRIBUTORS.rst')
-    files.append(DIR_REPO / 'LICENSE.md')
-    files.append(DIR_REPO / 'LICENSE.txt')
-    files.append(DIR_REPO / 'requirements.txt')
-    files.append(DIR_REPO / 'requirements_developer.txt')
-
-    # add glossary RST
-    files.append(DIR_REPO / 'doc/source/general/glossary.rst')
+    files = []
+    for file in scanfiles(DIR_REPO):
+        path = file.as_posix()
+        ignored = False
+        for rx in ignore_rx + exclude_rx:
+            if rx.match(path):
+                ignored = True
+                break
+        if ignored:
+            continue
+        for rx in include_rx:
+            if rx.match(path):
+                files.append(file)
+                break
 
     for fileSrc in files:
         assert fileSrc.is_file()
@@ -310,7 +324,7 @@ if __name__ == "__main__":
                   '\n  Change log up-to-date?' \
                   '\n  Processing algo documentation up-to-date (run create_processing_rst)' \
                   '\n  Run weblink checker (in doc folder make linkcheck)' \
-                  '\n  Check if box runs without optional dependencies (see tests/non-blocking-dependencies/readme.txt).'\
+                  '\n  Check if box runs without optional dependencies (see tests/non-blocking-dependencies/readme.txt).' \
                   '\n  Version number increased? (enmapbox/__init__.py -> __version__)' \
                   '\n  QGIS Min-Version? (enmapbox/__init__.py -> MIN_VERSION_QGIS)' \
                   '\n  ZIP containing branch (i.e. master) information (GIT installed)?' \

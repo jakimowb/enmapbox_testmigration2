@@ -6,7 +6,7 @@ from osgeo import gdal
 from qgis._core import QgsTask, QgsRasterLayer, QgsCoordinateReferenceSystem, QgsRectangle, QgsMessageLog, Qgis
 from qgis._gui import QgsMessageBar
 
-from enmapbox.externals.qps.utils import SpatialPoint
+from enmapbox.qgispluginsupport.qps.utils import SpatialPoint
 from enmapboxprocessing.driver import Driver
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.rasterwriter import RasterWriter

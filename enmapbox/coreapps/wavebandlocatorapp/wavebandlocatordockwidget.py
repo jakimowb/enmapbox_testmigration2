@@ -11,7 +11,7 @@ from qgis._gui import (QgsDockWidget, QgsRasterBandComboBox, QgsMapLayerComboBox
                        QgsColorRampButton)
 
 from enmapbox import EnMAPBox
-from enmapbox.externals.qps.utils import SpatialExtent
+from enmapbox.qgispluginsupport.qps.utils import SpatialExtent
 from enmapbox.gui.mapcanvas import MapCanvas
 from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader

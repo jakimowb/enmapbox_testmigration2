@@ -21,7 +21,7 @@ import pathlib
 import re
 
 from ..qgispluginsupport.qps.utils import loadUi, SpatialExtent, SpatialPoint, findParent, \
-    file_search, appendItemsToMenu
+    file_search, appendItemsToMenu, zipdir
 
 from qgis.core import Qgis
 
