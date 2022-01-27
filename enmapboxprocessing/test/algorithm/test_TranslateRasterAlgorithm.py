@@ -347,3 +347,16 @@ class TestTranslateAlgorithm(TestCase):
         self.assertEqual(Qgis.Float32, reader.dataType(1))
         self.assertAlmostEqual(0.52, np.max(np.unique(reader.array())))
 
+    def test_debug_issue888(self):
+
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: enmap,
+            alg.P_WRITE_ENVI_HEADER: True,
+            alg.P_OUTPUT_RASTER: self.filename('enmap.bsq'),
+        }
+        self.runalg(alg, parameters)
+
+        with open(self.filename('enmap.hdr')) as file:
+            text = file.read()
+        self.assertEqual(8451, len(text))
