@@ -492,6 +492,17 @@ class DataSourceManagerTreeView(TreeView):
             a = m.addAction('Open in new map')
             a.triggered.connect(lambda *args, n=node: self.openInMap(n.rasterSource(), rgb=[n.bandIndex()]))
 
+            sub = m.addMenu('Open in existing map...')
+            if len(mapDocks) > 0:
+                for mapDock in mapDocks:
+                    from ..dataviews.docks import MapDock
+                    assert isinstance(mapDock, MapDock)
+                    a = sub.addAction(mapDock.title())
+                    a.node = node
+                    a.mapCanvas = mapDock.mapCanvas()
+                    a.triggered.connect(self.onOpenBandInExistingMap)
+            else:
+                sub.setEnabled(False)
         else:
             aRemove.setEnabled(False)
 
@@ -509,6 +520,12 @@ class DataSourceManagerTreeView(TreeView):
         self.sigPopulateContextMenu.emit(m, node)
 
         m.exec_(self.viewport().mapToGlobal(event.pos()))
+
+    def onOpenBandInExistingMap(self):
+        action: QAction = self.sender()
+        node: RasterBandTreeNode = action.node
+        mapCanvas: QgsMapCanvas = action.mapCanvas
+        self.openInMap(node.rasterSource(), mapCanvas, [node.bandIndex()])
 
     def openInMap(self, dataSource: typing.Union[VectorDataSource, RasterDataSource],
                   target: typing.Union[QgsMapCanvas, QgsProject, 'MapDock'] = None,
