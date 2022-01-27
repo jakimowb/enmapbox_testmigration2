@@ -3,8 +3,7 @@ from typing import Dict, Any, List, Tuple
 
 import numpy as np
 from osgeo import gdal
-from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer, QgsPalettedRasterRenderer,
-                        QgsRasterRenderer)
+from qgis._core import (QgsProcessingContext, QgsProcessingFeedback, QgsRasterLayer, QgsPalettedRasterRenderer)
 
 from enmapboxprocessing.algorithm.translatecategorizedrasteralgorithm import TranslateCategorizedRasterAlgorithm
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm, Group
@@ -129,28 +128,35 @@ class PrepareClassificationDatasetFromCategorizedRasterAlgorithm(EnMAPProcessing
         assert (raster.width(), raster.height()) == (classification.width(), classification.height())
 
         maximumMemoryUsage = gdal.GetCacheMax()
-        rasterReader = RasterReader(raster)
+        reader = RasterReader(raster)
         classificationReader = RasterReader(classification)
-        lineMemoryUsage = rasterReader.lineMemoryUsage(1)
+        lineMemoryUsage = reader.lineMemoryUsage(1)
         lineMemoryUsage += classificationReader.width() * classificationReader.dataTypeSize()
         blockSizeY = min(raster.height(), ceil(maximumMemoryUsage / lineMemoryUsage))
         blockSizeX = raster.width()
 
         X = list()
         y = list()
-        for block in rasterReader.walkGrid(blockSizeX, blockSizeY, feedback):
+        for block in reader.walkGrid(blockSizeX, blockSizeY, feedback):
             blockClassification = classificationReader.arrayFromBlock(block, [classBandNo])[0]
             labeled = np.full_like(blockClassification, False, bool)
             for c in categories:
                 np.logical_or(labeled, blockClassification == c.value, out=labeled)
             blockY = blockClassification[labeled]
             blockX = list()
-            for bandNo in range(1, rasterReader.bandCount() + 1):
-                blockBand = rasterReader.arrayFromBlock(block, [bandNo])[0]
+            for bandNo in range(1, reader.bandCount() + 1):
+                blockBand = reader.arrayFromBlock(block, [bandNo])[0]
                 blockX.append(blockBand[labeled])
             X.append(blockX)
             y.append(blockY)
         X = np.concatenate(X, axis=1).T
         y = np.expand_dims(np.concatenate(y), 1)
+
+        # skip samples that contain a no data value
+        noDataValues = np.array([reader.noDataValue(bandNo) for bandNo in reader.bandNumbers()])
+        valid = np.all(np.not_equal(X, noDataValues.T), axis=1)
+        X = X[valid]
+        y = y[valid]
+
         checkSampleShape(X, y)
         return X, y

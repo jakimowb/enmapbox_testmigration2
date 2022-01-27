@@ -4,6 +4,7 @@ from enmapboxprocessing.algorithm.prepareclassificationdatasetfromcategorizedvec
 from enmapboxprocessing.test.algorithm.testcase import TestCase
 from enmapboxprocessing.typing import ClassifierDump
 from enmapboxprocessing.utils import Utils
+from enmapboxtestdata import points_in_no_data_region
 
 
 class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
@@ -79,3 +80,15 @@ class TestPrepareClassificationSampleFromCategorizedVectorAlgorithm(TestCase):
         dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
         self.assertEqual((1481, 177), dump.X.shape)
         self.assertEqual((1481, 1), dump.y.shape)
+
+    def test_sample_in_noDataRegion(self):
+        alg = PrepareClassificationDatasetFromCategorizedVectorAlgorithm()
+        parameters = {
+            alg.P_FEATURE_RASTER: enmap,
+            alg.P_CATEGORIZED_VECTOR: points_in_no_data_region,
+            alg.P_OUTPUT_DATASET: self.filename('sample.pkl')
+        }
+        self.runalg(alg, parameters)
+        dump = ClassifierDump(**Utils.pickleLoad(parameters[alg.P_OUTPUT_DATASET]))
+        self.assertEqual((1, 177), dump.X.shape)
+        self.assertEqual((1, 1), dump.y.shape)
