@@ -35,6 +35,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
     P_NODATA, _NODATA = 'noData', 'No data value'
     P_UNSET_SOURCE_NODATA, _UNSET_SOURCE_NODATA = 'unsetSourceNoData', 'Unset source no data value'
     P_UNSET_NODATA, _UNSET_NODATA = 'unsetNoData', 'Unset no data value'
+    P_WORKING_DATA_TYPE, _WORKING_DATA_TYPE = 'dataType', 'Working Data type'
     P_DATA_TYPE, _DATA_TYPE = 'dataType', 'Data type'
     P_CREATION_PROFILE, _CREATION_PROFILE = 'creationProfile', 'Output options'
     P_OUTPUT_RASTER, _OUTPUT_RASTER = 'outputTranslatedRaster', 'Output raster layer'
@@ -80,6 +81,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
             (self._NODATA, 'The value to be used instead of the default destination no data value.'),
             (self._UNSET_SOURCE_NODATA, 'Whether to unset (i.e. not use) the source no data value.'),
             (self._UNSET_NODATA, 'Whether to unset the destination no data value.'),
+            (self._WORKING_DATA_TYPE, 'Working data type that is applied before resampling.'),
             (self._DATA_TYPE, 'Output data type.'),
             (self._CREATION_PROFILE, 'Output format and creation options.'),
             (self._OUTPUT_RASTER, self.RasterFileDestination)
@@ -143,6 +145,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         self.addParameterFloat(self.P_NODATA, self._NODATA, None, True, None, None, True)
         self.addParameterBoolean(self.P_UNSET_SOURCE_NODATA, self._UNSET_SOURCE_NODATA, False, False, True)
         self.addParameterBoolean(self.P_UNSET_NODATA, self._UNSET_NODATA, False, False, True)
+        self.addParameterDataType(self.P_WORKING_DATA_TYPE, self._WORKING_DATA_TYPE, None, True, True)
         self.addParameterDataType(self.P_DATA_TYPE, self._DATA_TYPE, optional=True, advanced=True)
         self.addParameterCreationProfile(self.P_CREATION_PROFILE, self._CREATION_PROFILE, '', True, False)
         self.addParameterRasterDestination(self.P_OUTPUT_RASTER, self._OUTPUT_RASTER, allowEnvi=True, allowVrt=True)
@@ -176,6 +179,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
         unsetSrcNoDataValue = self.parameterAsBoolean(parameters, self.P_UNSET_SOURCE_NODATA, context)
         unsetDstNoDataValue = self.parameterAsBoolean(parameters, self.P_UNSET_NODATA, context)
         dataType = self.parameterAsQgsDataType(parameters, self.P_DATA_TYPE, context, default=provider.dataType(1))
+        workingDataType = self.parameterAsQgsDataType(parameters, self.P_WORKING_DATA_TYPE, context)
         copyMetadata = self.parameterAsBoolean(parameters, self.P_COPY_METADATA, context)
         copyStyle = self.parameterAsBoolean(parameters, self.P_COPY_STYLE, context)
         writeEnviHeader = self.parameterAsBoolean(parameters, self.P_WRITE_ENVI_HEADER, context)
@@ -211,7 +215,7 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                     spectralBandList = [i + 1 for i in range(spectralRaster.bandCount())]
 
                 wavelength = np.array([reader.wavelength(bandNo) for bandNo in bandList])
-                bandList = [np.argmin(np.abs(wavelength - spectralReader.wavelength(bandNo))) + 1
+                bandList = [int(np.argmin(np.abs(wavelength - spectralReader.wavelength(bandNo))) + 1)
                             for bandNo in spectralBandList]
 
             if bandList is None:
@@ -242,7 +246,16 @@ class TranslateRasterAlgorithm(EnMAPProcessingAlgorithm):
                 infoTail += f' -co {" ".join(options)}'
             infoTail += f' {filename}'
 
-            gdalDataset = gdal.Open(raster.source())
+            if workingDataType is None:
+                rasterSource = raster.source()
+            else:
+                rasterSource = Utils.tmpFilename(filename, 'workingRaster.tif')
+                gdal.Translate(
+                    rasterSource, raster.source(),
+                    options = gdal.TranslateOptions(outputType=Utils.qgisDataTypeToGdalDataType(workingDataType))
+                )
+
+            gdalDataset = gdal.Open(rasterSource)
             assert gdalDataset is not None
 
             callback = Utils.qgisFeedbackToGdalCallback(feedback)

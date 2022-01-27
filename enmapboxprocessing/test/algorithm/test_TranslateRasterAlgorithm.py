@@ -1,13 +1,13 @@
 from os.path import exists
 
 import numpy as np
-from qgis._core import QgsRasterLayer, QgsRasterRenderer
+from qgis._core import QgsRasterLayer, QgsRasterRenderer, Qgis
 
 from enmapbox.exampledata import enmap, hires
 from enmapboxprocessing.algorithm.translaterasteralgorithm import TranslateRasterAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.test.algorithm.testcase import TestCase
-from enmapboxtestdata import landcover_raster_30m_epsg3035
+from enmapboxtestdata import landcover_raster_30m_epsg3035, water_mask_30m, grid_300m
 
 
 class TestTranslateAlgorithm(TestCase):
@@ -327,3 +327,23 @@ class TestTranslateAlgorithm(TestCase):
         }
         self.runalg(alg, parameters)
         self.assertTrue(exists(filename + '.hdr'))
+
+    def test_debug_issue388(self):
+
+        # resample 30m binary byte mask into 300m fractions with AverageResampling fails because of byte output type
+        alg = TranslateRasterAlgorithm()
+        parameters = {
+            alg.P_RASTER: water_mask_30m,
+            alg.P_GRID: grid_300m,
+            alg.P_RESAMPLE_ALG: alg.AverageResampleAlg,
+            alg.P_OUTPUT_RASTER: self.filename('waterFraction1.tif'),
+        }
+
+        # use proper working type
+        parameters[alg.P_WORKING_DATA_TYPE] = alg.Float32
+        parameters[alg.P_OUTPUT_RASTER] = self.filename('waterFraction2.tif')
+        result = self.runalg(alg, parameters)
+        reader = RasterReader(result[alg.P_OUTPUT_RASTER])
+        self.assertEqual(Qgis.Float32, reader.dataType(1))
+        self.assertAlmostEqual(0.52, np.max(np.unique(reader.array())))
+
