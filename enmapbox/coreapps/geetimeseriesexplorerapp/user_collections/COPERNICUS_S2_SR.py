@@ -1,4 +1,11 @@
-collection = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
+collection = ee.ImageCollection("COPERNICUS/S2_SR")
+
+# remove MSK_CLDPRB and MSK_SNWPRB bands, because they aren't available for all images
+# remove QA_10 and QA_20 bands, because they are always empty
+collection = collection.select([
+    'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B8A', 'B9', 'B11', 'B12', 'AOT', 'WVP', 'SCL', 'TCI_R', 'TCI_G',
+    'TCI_B', 'QA60'
+    ])
 
 # default colors for bands and spectral indices
 bandColors = {
@@ -21,4 +28,7 @@ bandColors = {
 }
 
 # mapping from spectral index formular identifiers to image bands
-wavebandMapping = {'B': 'SR_B2', 'G': 'SR_B3', 'R': 'SR_B4', 'N': 'SR_B5', 'S1': 'SR_B6', 'S2': 'SR_B7', 'T1': 'SR_B10'}
+wavebandMapping = {
+    'A': 'B1', 'B': 'B2', 'G': 'B3', 'R': 'B4', 'RE1': 'B5', 'RE2': 'B6', 'RE3': 'B7', 'RE4': 'B8A',
+    'N': 'B8', 'S1': 'B11', 'S2': 'B12'
+}

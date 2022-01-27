@@ -64,8 +64,6 @@ def update_ee_image_layer(image, layer, mapCanvas, shown=True, opacity=1.0):
     url = "type=xyz&url=" + get_ee_image_url(image)
 
     provider = layer.dataProvider()
-    msg = 'Updating layer with provider %s' % (type(provider).__name__, )
-    QgsMessageLog.logMessage(msg, 'GEE Time Series Explorer')
 
     provider.setDataSourceUri(url)
     provider.reloadData()

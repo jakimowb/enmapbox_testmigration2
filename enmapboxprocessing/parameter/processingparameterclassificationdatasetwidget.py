@@ -117,25 +117,25 @@ class ProcessingParameterClassificationDatasetWidgetWrapper(WidgetWrapper):
     widget: ProcessingParameterClassificationDatasetWidget
 
     def createWidget(self):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            return ProcessingParameterClassificationDatasetWidget()
+        #if self.dialogType == DIALOG_MODELER:
+        #    raise NotImplementedError()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        return ProcessingParameterClassificationDatasetWidget()
 
     def setValue(self, value):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            self.widget.setValue(value)
+        #if self.dialogType == DIALOG_MODELER:
+        #    raise NotImplementedError()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        self.widget.setValue(value)
 
     def value(self):
-        if self.dialogType == DIALOG_MODELER:
-            raise NotImplementedError()
-        elif self.dialogType == DIALOG_BATCH:
-            raise NotImplementedError()
-        else:
-            return self.widget.value()
+        #if self.dialogType == DIALOG_MODELER:
+        #    raise NotImplementedError()
+        #elif self.dialogType == DIALOG_BATCH:
+        #    raise NotImplementedError()
+        #else:
+        return self.widget.value()
