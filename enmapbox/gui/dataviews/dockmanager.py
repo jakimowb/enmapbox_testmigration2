@@ -61,6 +61,7 @@ from enmapbox.gui.utils import enmapboxUiPath
 from enmapboxplugins.classfractionrenderer import ClassFractionRendererWidget
 from enmapboxplugins.colorspaceexplorer import ColorSpaceExplorerWidget
 from enmapboxplugins.decorrelationstretchrenderer import DecorrelationStretchRendererWidget
+from typeguard import typechecked
 
 
 class LayerTreeNode(QgsLayerTree):
@@ -1512,11 +1513,15 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                     action.setToolTip('Opens the vector layer in a spectral library view')
                     action.triggered.connect(lambda *args, l=lyr: self.openSpectralLibraryView(l))
 
-                # add processing algorithm shortcuts
+                # add processing algorithm & application shortcuts
                 menu.addSeparator()
                 if isinstance(lyr, QgsRasterLayer):
-                    action = menu.addAction('Image Statistics')
-                    action.triggered.connect(lambda: self.runImageStatistics(lyr))
+
+                    # add BandStatisticsApp
+                    from bandstatisticsapp import BandStatisticsApp
+                    action = menu.addAction('Band Statistics')
+                    action.setIcon(BandStatisticsApp.icon())
+                    action.triggered.connect(lambda: self.onBandStatisticsClicked(lyr))
 
                     if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
                         action = menu.addAction('Classification Statistics')
@@ -1642,13 +1647,13 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
         widget.show()
 
-    def runImageStatistics(self, layer):
-
-        from enmapboxapplications import ImageStatisticsApp
-        widget = ImageStatisticsApp(parent=self.mDockTreeView)
-        widget.uiRaster().setLayer(layer)
-        widget.show()
-        widget.uiExecute().clicked.emit()
+    @typechecked
+    def onBandStatisticsClicked(self, layer: QgsRasterLayer):
+        from bandstatisticsapp import BandStatisticsDialog
+        self.bandStatisticsDialog = BandStatisticsDialog(parent=self.mDockTreeView)
+        self.bandStatisticsDialog.show()
+        self.bandStatisticsDialog.mLayer.setLayer(layer)
+        self.bandStatisticsDialog.mAddRendererBands.click()
 
     def runClassificationStatistics(self, layer):
         from hubdsm.processing.classificationstatistics import ClassificationStatistics, ClassificationStatisticsPlot
