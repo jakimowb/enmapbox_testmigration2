@@ -14,10 +14,6 @@ If you like to develop an EnMAP-Box application, or more general, a QGIS and Qt 
 a state-of-the-art Integrated Development Environment (IDE) like `PyCharm`_. It offers run-time debugging,
 code completion, spell-checking, syntax highlighting, SCM support, unit-testing and many other helpful things.
 
-Furthermore, we recommend to install QGIS within a `conda <https://docs.conda.io>`_ /
-`anaconda <https://www.anaconda.com/>`_ environment. The installation is (almost) the same on macOS, windows or linux,
-it is much easier to install additional python packages and does not require admin rights.
-
 1. Have Git installed
 =====================
 
@@ -57,8 +53,24 @@ EnMAP-Box repository:
 
 .. _dev_installation_create_conda_qgis:
 
-3. Create a QGIS conda environment
-==================================
+3. Setup a QGIS environment
+============================
+
+This section gives examples how to setup plattform-specific development environments.
+
+a) Conda
+--------
+
+
+
+The installation of QGIS within a `conda <https://docs.conda.io>`_ /
+`anaconda <https://www.anaconda.com/>`_ environment is (almost) the same on macOS, windows or linux. Using conda
+it is often much easier to install additional python packages while admin rights are not required.`
+
+.. note::
+
+    The distribution of QGIS via conda is so far not officially supported by the QGIS core development team.
+    The recent official QGIS versions might therefore be not available in conda.
 
 1. Make sure `conda <https://docs.conda.io/en/latest/miniconda.html>`_ is installed on your system.
 
@@ -152,6 +164,115 @@ EnMAP-Box repository:
 
         alias pycharm=
 
+b) OSGeo4W
+----------
+
+1. Install or update packages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. Download the OSGeo4W installer from https://qgis.org/en/site/forusers/download.html
+
+2. Install the OSGeo4W environment to a folder of choice (preferably one you have permanent writing access to).
+   In following this is called `OSGeo4W`.
+
+2. Start the OSGeo4W Setup.
+
+3. Go forward to these steps by clicking `next`. Usually the default settings should be fine
+    * 'Advanced Install'
+    * 'Install from Internet'
+    * 'Root Directory' (should be your `OSGEO4W` directory)
+    * Select Local Package Directory (default)
+    * Select Your Internet Connect (default Direct Connection)
+    * Choose A Download Site (default http://download.osgeo.org )
+
+4. Select Packages to install / update
+
+    +-----------------+--------+
+    | Package         | Note   |
+    + ================+======= +
+    | qgis             | recent official QGIS version |
+    | qt5-tools        | |
+    +----------+-------+
+    |python3-scikit-learn |  |
+    +----------+-------+
+
+5. Press Next to install packages / updates
+
+2. Setup development environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. Create a `qgis-env.bat` which is used to specify your local QGIS environment.
+   By default, the script establishes an environment for the QGIS that was installed by the `qgis` package.
+   If other QGIS builds have been installed,  like the `qgis-dev` master version, you can give them as argument
+   `qgis-env.bat qgis-dev`
+
+.. code-block:: batch
+
+    @echo off
+
+    :: ### CONFIG SECTION ###
+    :: root of local OSGEO4W installation
+    set OSGEO4W_ROOT=F:\OSGeo4W
+    :: git binaries
+    set BIN_GIT=C:\Program Files\Git\bin
+    :: git lfs binaries
+    set BIN_LFS=C:\Program Files\Git LFS
+
+    :: start with clean python path
+    set PYTHONPATH=
+    :: #### CONFIG SECTION END ###
+
+    IF "%~1"=="" (
+      :: use qgis-dev by default
+      set QGIS_ENV=qgis
+    ) else (
+      ::
+      set QGIS_ENV=%~1
+    )
+
+    echo QGIS_ENV=%QGIS_ENV%
+
+    call "%OSGEO4W_ROOT%\bin\o4w_env.bat"
+
+    path %OSGEO4W_ROOT%\apps\%QGIS_ENV%\bin;%BIN_GIT%;%BIN_LFS%;%PATH%
+
+    set QGIS_PREFIX_PATH=%OSGEO4W_ROOT:\=/%/apps/%QGIS_ENV%
+
+    if not exist %QGIS_PREFIX_PATH%\ (
+       echo QGIS environment does not exists 1>&2
+       exit /b
+    ) else (
+      echo QGIS_PREFIX_PATH:%QGIS_PREFIX_PATH%
+    )
+
+    set GDAL_FILENAME_IS_UTF8=YES
+    rem Set VSI cache to be used as buffer, see #6448
+    set VSI_CACHE=TRUE
+    set VSI_CACHE_SIZE=1000000
+
+    set QT_PLUGIN_PATH=^
+    %OSGEO4W_ROOT%\apps\%QGIS_ENV%\qtplugins;^
+    %OSGEO4W_ROOT%\apps\qt5\plugins
+
+    set PYTHONPATH=^
+    %OSGEO4W_ROOT%\apps\%QGIS_ENV%\python;^
+    %OSGEO4W_ROOT%\apps\%QGIS_ENV%\python\plugins;^
+    %PYTHONPATH%
+
+
+2. Create a `qgis-pycharm.bat` that creates the environment and starts PyCharm.
+
+.. code-block:: batch
+
+    call "%~dp0\qgis-env.bat" qgis
+    start "PYCHARM" /B "C:\Program Files (x86)\JetBrains\PyCharm 2021.3.1\bin\pycharm64.exe"
+
+
+
+c) Docker
+---------
+
+ to be described
 
 
 4. Setup PyCharm

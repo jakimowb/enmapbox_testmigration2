@@ -3,6 +3,7 @@
 
 ###### Requirements to build the documentation with sphinx ######
 sphinx>2 # >=1.7.7
+sphinxnotes-strike
 docutils<0.17
 sphinx_rtd_theme  # >=0.3.0
 PyQt5

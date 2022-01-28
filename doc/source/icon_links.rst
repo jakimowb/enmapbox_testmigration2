@@ -24,6 +24,8 @@
    :width: 28px
 .. |enmapbox600dpi| image:: /../../enmapbox/gui/ui/icons/enmapbox600dpi.png
    :width: 28px
+.. |enmapSensor| image:: /../../enmapbox/gui/ui/icons/enmapSensor.png
+   :width: 28px
 .. |fileInfo| image:: /../../enmapbox/gui/ui/icons/fileInfo.svg
    :width: 28px
 .. |filelist_classification| image:: /../../enmapbox/gui/ui/icons/filelist_classification.svg
@@ -242,101 +244,101 @@
    :width: 28px
 .. |zoomToFullExtent| image:: /../../enmapbox/gui/ui/icons/zoomToFullExtent.svg
    :width: 28px
-.. |center_map| image:: /../../enmapbox/externals/qps/ui/icons/center_map.svg
+.. |center_map| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/center_map.svg
    :width: 28px
-.. |classinfo| image:: /../../enmapbox/externals/qps/ui/icons/classinfo.svg
+.. |classinfo| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/classinfo.svg
    :width: 28px
-.. |classinfo_add| image:: /../../enmapbox/externals/qps/ui/icons/classinfo_add.svg
+.. |classinfo_add| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/classinfo_add.svg
    :width: 28px
-.. |classinfo_remove| image:: /../../enmapbox/externals/qps/ui/icons/classinfo_remove.svg
+.. |classinfo_remove| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/classinfo_remove.svg
    :width: 28px
-.. |crosshair| image:: /../../enmapbox/externals/qps/ui/icons/crosshair.svg
+.. |crosshair| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/crosshair.svg
    :width: 28px
-.. |cross_red| image:: /../../enmapbox/externals/qps/ui/icons/cross_red.svg
+.. |cross_red| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/cross_red.svg
    :width: 28px
-.. |cursorlocationinfo| image:: /../../enmapbox/externals/qps/ui/icons/cursorlocationinfo.svg
+.. |cursorlocationinfo| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/cursorlocationinfo.svg
    :width: 28px
-.. |cursor_zoom_fullextent| image:: /../../enmapbox/externals/qps/ui/icons/cursor_zoom_fullextent.svg
+.. |cursor_zoom_fullextent| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/cursor_zoom_fullextent.svg
    :width: 28px
-.. |cursor_zoom_pixelscale| image:: /../../enmapbox/externals/qps/ui/icons/cursor_zoom_pixelscale.svg
+.. |cursor_zoom_pixelscale| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/cursor_zoom_pixelscale.svg
    :width: 28px
-.. |edit_gdal_metadata| image:: /../../enmapbox/externals/qps/ui/icons/edit_gdal_metadata.svg
+.. |edit_gdal_metadata| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/edit_gdal_metadata.svg
    :width: 28px
-.. |edit_ogr_metadata| image:: /../../enmapbox/externals/qps/ui/icons/edit_ogr_metadata.svg
+.. |edit_ogr_metadata| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/edit_ogr_metadata.svg
    :width: 28px
-.. |export_symbology| image:: /../../enmapbox/externals/qps/ui/icons/export_symbology.svg
+.. |export_symbology| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/export_symbology.svg
    :width: 28px
-.. |import_symbology| image:: /../../enmapbox/externals/qps/ui/icons/import_symbology.svg
+.. |import_symbology| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/import_symbology.svg
    :width: 28px
-.. |pan_center| image:: /../../enmapbox/externals/qps/ui/icons/pan_center.svg
+.. |pan_center| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/pan_center.svg
    :width: 28px
-.. |plus_green| image:: /../../enmapbox/externals/qps/ui/icons/plus_green.svg
+.. |plus_green| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/plus_green.svg
    :width: 28px
-.. |plus_green_icon| image:: /../../enmapbox/externals/qps/ui/icons/plus_green_icon.svg
+.. |plus_green_icon| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/plus_green_icon.svg
    :width: 28px
-.. |poly2speclib| image:: /../../enmapbox/externals/qps/ui/icons/poly2speclib.svg
+.. |poly2speclib| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/poly2speclib.svg
    :width: 28px
-.. |profile| image:: /../../enmapbox/externals/qps/ui/icons/profile.svg
+.. |profile| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/profile.svg
    :width: 28px
-.. |profiletheme_bright| image:: /../../enmapbox/externals/qps/ui/icons/profiletheme_bright.svg
+.. |profiletheme_bright| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/profiletheme_bright.svg
    :width: 28px
-.. |profiletheme_dark| image:: /../../enmapbox/externals/qps/ui/icons/profiletheme_dark.svg
+.. |profiletheme_dark| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/profiletheme_dark.svg
    :width: 28px
-.. |profile_add_auto| image:: /../../enmapbox/externals/qps/ui/icons/profile_add_auto.svg
+.. |profile_add_auto| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/profile_add_auto.svg
    :width: 28px
-.. |profile_dontreceive| image:: /../../enmapbox/externals/qps/ui/icons/profile_dontreceive.svg
+.. |profile_dontreceive| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/profile_dontreceive.svg
    :width: 28px
-.. |profile_expression| image:: /../../enmapbox/externals/qps/ui/icons/profile_expression.svg
+.. |profile_expression| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/profile_expression.svg
    :width: 28px
-.. |profile_identify| image:: /../../enmapbox/externals/qps/ui/icons/profile_identify.svg
+.. |profile_identify| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/profile_identify.svg
    :width: 28px
-.. |profile_processing| image:: /../../enmapbox/externals/qps/ui/icons/profile_processing.svg
+.. |profile_processing| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/profile_processing.svg
    :width: 28px
-.. |profile_reload| image:: /../../enmapbox/externals/qps/ui/icons/profile_reload.svg
+.. |profile_reload| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/profile_reload.svg
    :width: 28px
-.. |profile_save| image:: /../../enmapbox/externals/qps/ui/icons/profile_save.svg
+.. |profile_save| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/profile_save.svg
    :width: 28px
-.. |raster| image:: /../../enmapbox/externals/qps/ui/icons/raster.svg
+.. |raster| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/raster.svg
    :width: 28px
-.. |rasterband_select| image:: /../../enmapbox/externals/qps/ui/icons/rasterband_select.svg
+.. |rasterband_select| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/rasterband_select.svg
    :width: 28px
-.. |raster_classification| image:: /../../enmapbox/externals/qps/ui/icons/raster_classification.svg
+.. |raster_classification| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/raster_classification.svg
    :width: 28px
-.. |raster_mask| image:: /../../enmapbox/externals/qps/ui/icons/raster_mask.svg
+.. |raster_mask| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/raster_mask.svg
    :width: 28px
-.. |raster_multispectral| image:: /../../enmapbox/externals/qps/ui/icons/raster_multispectral.svg
+.. |raster_multispectral| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/raster_multispectral.svg
    :width: 28px
-.. |raster_timeseries| image:: /../../enmapbox/externals/qps/ui/icons/raster_timeseries.svg
+.. |raster_timeseries| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/raster_timeseries.svg
    :width: 28px
-.. |refresh_green| image:: /../../enmapbox/externals/qps/ui/icons/refresh_green.svg
+.. |refresh_green| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/refresh_green.svg
    :width: 28px
-.. |refresh_orange| image:: /../../enmapbox/externals/qps/ui/icons/refresh_orange.svg
+.. |refresh_orange| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/refresh_orange.svg
    :width: 28px
-.. |selectcursor| image:: /../../enmapbox/externals/qps/ui/icons/selectcursor.svg
+.. |selectcursor| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/selectcursor.svg
    :width: 28px
-.. |select_location| image:: /../../enmapbox/externals/qps/ui/icons/select_location.svg
+.. |select_location| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/select_location.svg
    :width: 28px
-.. |speclib| image:: /../../enmapbox/externals/qps/ui/icons/speclib.svg
+.. |speclib| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/speclib.svg
    :width: 28px
-.. |speclibV2| image:: /../../enmapbox/externals/qps/ui/icons/speclibV2.svg
+.. |speclibV2| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/speclibV2.svg
    :width: 28px
-.. |speclib_add| image:: /../../enmapbox/externals/qps/ui/icons/speclib_add.svg
+.. |speclib_add| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/speclib_add.svg
    :width: 28px
-.. |speclib_clear| image:: /../../enmapbox/externals/qps/ui/icons/speclib_clear.svg
+.. |speclib_clear| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/speclib_clear.svg
    :width: 28px
-.. |speclib_plot| image:: /../../enmapbox/externals/qps/ui/icons/speclib_plot.svg
+.. |speclib_plot| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/speclib_plot.svg
    :width: 28px
-.. |speclib_reload| image:: /../../enmapbox/externals/qps/ui/icons/speclib_reload.svg
+.. |speclib_reload| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/speclib_reload.svg
    :width: 28px
-.. |speclib_save| image:: /../../enmapbox/externals/qps/ui/icons/speclib_save.svg
+.. |speclib_save| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/speclib_save.svg
    :width: 28px
-.. |speclib_usevectorrenderer| image:: /../../enmapbox/externals/qps/ui/icons/speclib_usevectorrenderer.svg
+.. |speclib_usevectorrenderer| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/speclib_usevectorrenderer.svg
    :width: 28px
-.. |temporalProfile| image:: /../../enmapbox/externals/qps/ui/icons/temporalProfile.svg
+.. |temporalProfile| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/temporalProfile.svg
    :width: 28px
-.. |undo_green| image:: /../../enmapbox/externals/qps/ui/icons/undo_green.svg
+.. |undo_green| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/undo_green.svg
    :width: 28px
-.. |undo_orange| image:: /../../enmapbox/externals/qps/ui/icons/undo_orange.svg
+.. |undo_orange| image:: /../../enmapbox/qgispluginsupport/qps/ui/icons/undo_orange.svg
    :width: 28px
 .. |action| image:: /img/icons/action.svg
    :width: 28px

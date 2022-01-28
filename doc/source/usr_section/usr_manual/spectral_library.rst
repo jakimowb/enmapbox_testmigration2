@@ -15,7 +15,7 @@ stored as pickled dictionaries inside (multiple) binary fields. Dictionary items
 
 
 Spectral Library Window |viewlist_spectrumdock|
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The *Spectral Library Window* can be used to visualize, collect and label spectra. It directly interacts with the Map Window(s), which
 means spectra can be directly collected from an image. Furthermore, external libraries (ENVI Spectral Library) can be imported.
@@ -170,7 +170,7 @@ means spectra can be directly collected from an image. Furthermore, external lib
 
 
 Spectral Profile Sources
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 This menu manages the connection between raster sources and spectral library windows.
 
@@ -219,7 +219,7 @@ This menu manages the connection between raster sources and spectral library win
 
 
 Spectral Library Formats
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The EnMAP-Box supports several external spectral library formats, e.g. the ENVI standard spectral library format (:file:`.sli` + :file:`.hdr`).
 
@@ -231,7 +231,7 @@ Click the |mIconCollapse| button next to |speclib_add| :sup:`Import spectral pro
 
 
 Labelled Spectral Library
-~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The labelled spectral library extents the default .sli format by adding additional metadata information (e.g., class labels, class colors).
 This information is stored by adding a .csv and .json file to the default spectral library, so that the labelled spectral library consists of

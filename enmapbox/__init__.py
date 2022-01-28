@@ -96,7 +96,7 @@ except ModuleNotFoundError as ex:
 
             print(ex)
 
-__version__ = '3.10'  # subsub-version information is added during build process
+__version__ = 'master'  # true version is added from .plugin.ini during plugin build process
 __version_exampledata__ = '3.9'  # still use 3.9 data; note that the exampledata folder is part of the repo, but will be removed from the plugin ZIP
 
 HOMEPAGE = 'https://bitbucket.org/hu-geomatics/enmap-box'

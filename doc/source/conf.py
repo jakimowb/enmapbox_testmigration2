@@ -11,7 +11,7 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
+import configparser
 import datetime
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -113,6 +113,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.intersphinx',
               # 'sphinx.ext.autosectionlabel',
+              'sphinxnotes.strike',
               'sphinx.ext.todo',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
@@ -135,6 +136,10 @@ source_suffix = ['.rst', '.md']
 # The master toctree document.
 master_doc = 'index'
 
+config = configparser.ConfigParser()
+config.read(REPO_ROOT / '.plugin.ini')
+version = config['metadata']['version']
+
 # General information about the project.
 project = u'EnMAP-Box 3'
 copyright = u'2018-2021, Andreas Rabe, Benjamin Jakimow, \nFabian Thiel, Sebastian van der Linden, Patrick Hostert'
@@ -144,14 +149,11 @@ author = u'Fabian Thiel,\nAndreas Rabe,\nBenjamin Jakimow, \nSebastian van der L
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
-
-import enmapbox
-
 timestamp = ''.join(np.datetime64(datetime.datetime.now()).astype(str).split(':')[0:-1]).replace('-', '')
-buildID = '{}.{}'.format(re.search(r'(\.?[^.]*){2}', enmapbox.__version__).group(), timestamp)
+buildID = '{}.{}'.format(re.search(r'(\.?[^.]*){2}', version).group(), timestamp)
 
 # The short X.Y version.
-version = u'{}'.format(re.search(r'(\.?[^.]*){2}', enmapbox.__version__).group())
+version = u'{}'.format(re.search(r'(\.?[^.]*){2}', version).group())
 # The full version, including alpha/beta/rc tags.
 release = u'{}'.format(buildID)
 
