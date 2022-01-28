@@ -93,6 +93,8 @@ def fileRegex(root: str, pattern: str) -> typing.Pattern:
 
 def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False) -> pathlib.Path:
     assert (DIR_REPO / '.git').is_dir()
+    config = configparser.ConfigParser()
+    config.read(PATH_CONFIG_FILE)
 
     DIR_DEPLOY = DIR_REPO / 'deploy'
 
@@ -111,7 +113,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
 
         timestamp = re.split(r'[.+]', datetime.datetime.now().isoformat())[0]
 
-    BUILD_NAME = '{}.{}.{}'.format(__version__, timestamp, currentBranch)
+    BUILD_NAME = '{}.{}.{}'.format(config['metadata']['version'], timestamp, currentBranch)
     BUILD_NAME = re.sub(r'[:-]', '', BUILD_NAME)
     BUILD_NAME = re.sub(r'[\\/]', '_', BUILD_NAME)
     PLUGIN_DIR = DIR_DEPLOY / 'enmapboxplugin'
@@ -122,9 +124,6 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     os.makedirs(PLUGIN_DIR, exist_ok=True)
 
     PATH_METADATAFILE = PLUGIN_DIR / 'metadata.txt'
-
-    config = configparser.ConfigParser()
-    config.read(PATH_CONFIG_FILE)
 
     # set QGIS Metadata file values
     MD = QGISMetadataFileWriter()
