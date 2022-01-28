@@ -56,21 +56,22 @@ EnMAP-Box repository:
 3. Setup a QGIS environment
 ============================
 
-This section gives examples how to setup plattform-specific development environments.
+This section gives examples how you can setup a QGIS & EnMAP-Box development used by PyCharm on different platforms.
 
-a) Conda
---------
+a) Setup Conda (all platforms)
+--------------------------------
+.. warning::
 
+    Installing QGIS via conda is not officially supported by the QGIS core development team.
+    The QGIS versions available in conda can therefore differ from the official QGIS versions.
+
+    At this date (2022-01-18) conda is stucked at QGIS 3.18, which the official QGIS is at 3.22
 
 
 The installation of QGIS within a `conda <https://docs.conda.io>`_ /
 `anaconda <https://www.anaconda.com/>`_ environment is (almost) the same on macOS, windows or linux. Using conda
 it is often much easier to install additional python packages while admin rights are not required.`
 
-.. note::
-
-    The distribution of QGIS via conda is so far not officially supported by the QGIS core development team.
-    The recent official QGIS versions might therefore be not available in conda.
 
 1. Make sure `conda <https://docs.conda.io/en/latest/miniconda.html>`_ is installed on your system.
 
@@ -164,13 +165,14 @@ it is often much easier to install additional python packages while admin rights
 
         alias pycharm=
 
-b) OSGeo4W
-----------
+b) OSGeo4W (Windows)
+--------------------
+
 
 1. Install or update packages
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. Download the OSGeo4W installer from https://qgis.org/en/site/forusers/download.html
+1. Install QGIS using the OSGeo4W Network installer https://qgis.org/en/site/forusers/download.html
 
 2. Install the OSGeo4W environment to a folder of choice (preferably one you have permanent writing access to).
    In following this is called `OSGeo4W`.
@@ -267,12 +269,20 @@ b) OSGeo4W
     call "%~dp0\qgis-env.bat" qgis
     start "PYCHARM" /B "C:\Program Files (x86)\JetBrains\PyCharm 2021.3.1\bin\pycharm64.exe"
 
+c) macOS
+--------
+1. Install QGIS as described in https://qgis.org/en/site/forusers/download.html
+
+d) Linux
+--------
+
+1. Install QGI  as described in https://qgis.org/en/site/forusers/download.html
 
 
-c) Docker
+e) Docker
 ---------
 
- to be described
+ tbd.
 
 
 4. Setup PyCharm
