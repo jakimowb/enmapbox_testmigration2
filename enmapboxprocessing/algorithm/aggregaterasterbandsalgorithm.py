@@ -87,16 +87,15 @@ class AggregateRasterBandsAlgorithm(EnMAPProcessingAlgorithm):
             for block in reader.walkGrid(blockSizeX, blockSizeY, feedback):
                 array = np.array(reader.arrayFromBlock(block), dtype=np.float32)
                 invalid = ~np.all(reader.maskArray(array), axis=0)
-                for i in functions:
-                    funcName, func = list(self.FUNCTIONS.items())[i]
+                for bandNo, fi in enumerate(functions, 1):
+                    funcName, func = list(self.FUNCTIONS.items())[fi]
                     outarray = func(array, axis=0)
                     outarray = np.array(outarray, dtype=np.float32)
                     outarray[invalid] = noDataValue
-                    writer.writeArray2d(outarray, i + 1, xOffset=block.xOffset, yOffset=block.yOffset)
+                    writer.writeArray2d(outarray, bandNo, xOffset=block.xOffset, yOffset=block.yOffset)
 
-            for i in functions:
-                bandNo = i + 1
-                funcName, func = list(self.FUNCTIONS.items())[i]
+            for bandNo, fi in enumerate(functions, 1):
+                funcName, func = list(self.FUNCTIONS.items())[fi]
                 writer.setBandName(funcName, bandNo)
 
             writer.setNoDataValue(noDataValue)
