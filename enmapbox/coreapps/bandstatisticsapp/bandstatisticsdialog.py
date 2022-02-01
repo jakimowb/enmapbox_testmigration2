@@ -45,6 +45,7 @@ class BandStatisticsDialog(QMainWindow):
 
         self.mMapCanvas: Optional[QgsMapCanvas] = None
         self.mLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mHistogramBinCount.setClearValue(self.mHistogramBinCount.value())  #valueChanged.connect(self.onLiveUpdate)
         self.mHistogramMinimum.clearValue()
         self.mHistogramMaximum.clearValue()
 
