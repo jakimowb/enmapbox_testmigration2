@@ -9,12 +9,12 @@ from PyQt5.QtWidgets import QToolButton, QMainWindow, QTableWidget, QComboBox, Q
 from PyQt5.uic import loadUi
 from osgeo import gdal
 from qgis._core import QgsMapLayerProxyModel, QgsRasterLayer, QgsMapSettings, QgsPalettedRasterRenderer, QgsProject, \
-    QgsRasterRange, QgsRectangle, QgsFeature, QgsVectorDataProvider, QgsGeometry, QgsCoordinateTransform, \
-    QgsCoordinateReferenceSystem, QgsVectorLayer, QgsProcessing, QgsVectorFileWriter, QgsUnitTypes
+    QgsRasterRange, QgsRectangle, QgsFeature, QgsCoordinateTransform, \
+    QgsVectorLayer, QgsVectorFileWriter, QgsUnitTypes
 from qgis._gui import QgsMapLayerComboBox, QgsMapCanvas, QgsFieldComboBox, QgsFeaturePickerWidget
 
 from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph import PlotWidget, GraphicsObject, mkBrush, mkPen
-from enmapbox.qgispluginsupport.qps.utils import SpatialExtent, saveTransform
+from enmapbox.qgispluginsupport.qps.utils import SpatialExtent
 from enmapboxprocessing.enmapalgorithm import EnMAPProcessingAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.typing import Category
@@ -205,7 +205,6 @@ class ClassificationStatisticsDialog(QMainWindow):
         width = max(min(int(round(width)), reader.width()), 1)  # 1 <= width <= layerWidth
         height = max(min(int(round(height)), reader.height()), 1)  # 1 <= height <= layerHeight
 
-
         sampleSize = self.currentSampleSize()
         if sampleSize != 0:
             sampleFraction = sqrt(min(sampleSize / (width * height), 1))
@@ -316,7 +315,6 @@ class ClassificationStatisticsDialog(QMainWindow):
             else:
                 self.mTable.item(row, 5).setText(str(round(area, 2)))
 
-
     def onLiveUpdate(self):
         if not self.mLiveUpdate.isChecked():
             return
@@ -353,7 +351,7 @@ class ClassificationStatisticsDialog(QMainWindow):
             raise RuntimeError(f'Fail error {error}:{message}')
 
         options = gdal.RasterizeOptions(
-            #format='MEM',
+            # format='MEM',
             outputType=gdal.GDT_Byte,
             creationOptions=EnMAPProcessingAlgorithm.DefaultGTiffCreationOptions,
             initValues=0,
@@ -411,37 +409,3 @@ class RectItem(GraphicsObject):
 
     def boundingRect(self):
         return QRectF(self.picture.boundingRect())
-
-    #
-    # @typechecked
-    # class TableModel(QAbstractTableModel):
-    #     def __init__(self, categories: List[Category], parent:QObject=None):
-    #         super().__init__(parent)
-    #
-    #         self.categories = categories
-    #         self.values = list()
-    #         for category in categories:
-    #             self.values.append([category.value, category.name, None, 0., 0, 0.])
-    #                    data = [[v['short_name'], v['long_name'], v['formula'], v['type'], v['reference']]
-    #                 for v in data if v['type'] != 'kernel']
-    #         self._data = data
-    #         self._header = ['Value', 'Label', 'Histogram', 'Percentage', 'Pixel', 'Area']
-    #
-    #     def data(self, index, role):
-    #         if role == Qt.DisplayRole:
-    #             return self._data[index.row()][index.column()]
-    #
-    #     def rowCount(self, index):
-    #         return len(self._data)
-    #
-    #     def columnCount(self, index):
-    #         return len(self._data[0])
-    #
-    #     def headerData(self, section, orientation, role=Qt.DisplayRole):
-    #         if (role != Qt.DisplayRole):
-    #             return QVariant()
-    #
-    #         if (orientation == Qt.Horizontal):
-    #             return self._header[section]
-    #
-    #         return section + 1
