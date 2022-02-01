@@ -1517,11 +1517,16 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 menu.addSeparator()
                 if isinstance(lyr, QgsRasterLayer):
 
-                    # add BandStatisticsApp
                     from bandstatisticsapp import BandStatisticsApp
                     action = menu.addAction('Band Statistics')
                     action.setIcon(BandStatisticsApp.icon())
                     action.triggered.connect(lambda: self.onBandStatisticsClicked(lyr))
+
+                    if lyr.bandCount() >= 2:
+                        from scatterplotapp import ScatterPlotApp
+                        action = menu.addAction('Scatter Plot')
+                        action.setIcon(ScatterPlotApp.icon())
+                        action.triggered.connect(lambda: self.onScatterPlotClicked(lyr))
 
                     if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
                         from classificationstatisticsapp import ClassificationStatisticsApp
@@ -1657,6 +1662,16 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         self.bandStatisticsDialog.mLayer.setLayer(layer)
         self.bandStatisticsDialog.mAddRendererBands.click()
 
+    @typechecked
+    def onScatterPlotClicked(self, layer: QgsRasterLayer):
+        from scatterplotapp import ScatterPlotDialog
+        self.scatterPlotDialog = ScatterPlotDialog(parent=self.mDockTreeView)
+        self.scatterPlotDialog.show()
+        self.scatterPlotDialog.mLayer.setLayer(layer)
+        self.scatterPlotDialog.mBandX.setBand(1)
+        self.scatterPlotDialog.mBandY.setBand(2)
+
+    @typechecked
     def onClassificationStatisticsClicked(self, layer: QgsRasterLayer):
         from classificationstatisticsapp import ClassificationStatisticsDialog
         self.classificationStatisticsDialog = ClassificationStatisticsDialog(parent=self.mDockTreeView)

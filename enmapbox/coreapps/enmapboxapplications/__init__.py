@@ -6,7 +6,6 @@ from PyQt5.QtWidgets import QMenu, QAction
 from enmapbox.gui.applications import EnMAPBoxApplication
 from enmapboxapplications.imagemathapp.core import ImageMathApp
 from enmapboxapplications.regressionapp.core import RegressionWorkflowApp
-from enmapboxapplications.scatterplotapp.core import ScatterPlotApp
 from enmapboxapplications.synthmixapp.core import SynthmixApp
 from hubdsm.processing.classificationstatistics import ClassificationStatistics
 
@@ -14,7 +13,6 @@ from hubdsm.processing.classificationstatistics import ClassificationStatistics
 def enmapboxApplicationFactory(enmapBox):
     return [
         EnMAPBoxImageMathApp(enmapBox),
-        EnMAPBoxScatterPlotApp(enmapBox),
         EnMAPBoxSynthmixApp(enmapBox),
         EnMAPBoxRegressionWorkflowApp(enmapBox),
     ]
@@ -47,35 +45,6 @@ class EnMAPBoxImageMathApp(EnMAPBoxApplication):
         w = ImageMathApp(parent=self.enmapbox.ui)
         w.addInput()
         w.show()
-
-
-class EnMAPBoxScatterPlotApp(EnMAPBoxApplication):
-    def __init__(self, enmapBox, parent=None):
-        super().__init__(enmapBox, parent=parent)
-
-        self.name = 'ScatterPlot'
-        self.version = 'dev'
-        self.licence = 'GNU GPL-3'
-
-    def icon(self):
-        return QIcon(None)
-
-    def menu(self, appMenu):
-        appMenu = self.enmapbox.menu('Tools')
-        assert isinstance(appMenu, QMenu)
-        a = appMenu.addAction('Scatter plot')
-        assert isinstance(a, QAction)
-        a.setIcon(self.icon())
-        a.triggered.connect(self.startGUI)
-        return appMenu
-
-    def geoAlgorithms(self):
-        return []
-
-    def startGUI(self, *args):
-        w = ScatterPlotApp(parent=self.enmapbox.ui)
-        w.show()
-
 
 class EnMAPBoxSynthmixApp(EnMAPBoxApplication):
     def __init__(self, enmapBox, parent=None):
