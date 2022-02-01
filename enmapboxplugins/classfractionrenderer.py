@@ -2,7 +2,7 @@ import traceback
 from copy import deepcopy
 from os.path import splitext
 from random import randint
-from typing import List, Tuple, Generator
+from typing import List
 
 import numpy as np
 from PyQt5.QtCore import Qt
@@ -14,8 +14,8 @@ from qgis._core import QgsRasterRenderer, QgsRasterInterface, QgsRectangle, QgsR
     Qgis, QgsRasterLayer, QgsRasterDataProvider, QgsRasterHistogram
 from qgis._gui import QgsRasterBandComboBox, QgsColorButton, QgsMapCanvas
 
-from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.widgets.PlotWidget import PlotWidget, PlotItem
 from enmapbox.qgispluginsupport.qps.layerproperties import rendererFromXml
+from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.widgets.PlotWidget import PlotWidget
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.typing import Categories, Category
 from enmapboxprocessing.utils import Utils

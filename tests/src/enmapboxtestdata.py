@@ -18,9 +18,9 @@ grid_300m = join(root, 'grid_300m.vrt')
 landcover_polygons_3classes = join(root, 'landcover_berlin_polygon_3classes.gpkg')
 landcover_polygons_3classes_id = join(root, 'landcover_berlin_polygon_3classes_id.gpkg')
 landcover_polygons_3classes_epsg4326 = join(root, 'landcover_berlin_polygon_3classes_EPSG4326.gpkg')
-
 landcover_points_singlepart_epsg3035 = join(root, 'landcover_berlin_point_singlepart_3035.gpkg')
 landcover_points_multipart_epsg3035 = join(root, 'landcover_berlin_point_multipart_3035.gpkg')
+points_in_no_data_region = join(root, 'points_in_no_data_region.gpkg')
 
 # library
 library = join(root, 'library.gpkg')

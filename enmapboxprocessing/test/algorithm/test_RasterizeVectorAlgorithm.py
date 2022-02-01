@@ -1,6 +1,5 @@
-from qgis._core import Qgis, QgsProcessingContext
+from qgis._core import Qgis
 
-import processing
 from enmapbox.exampledata import enmap, landcover_polygons
 from enmapboxprocessing.algorithm.rasterizevectoralgorithm import RasterizeVectorAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader

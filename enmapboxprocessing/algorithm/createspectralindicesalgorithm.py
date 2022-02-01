@@ -285,6 +285,9 @@ class CreateSpectralIndicesAlgorithm(EnMAPProcessingAlgorithm):
 
     @classmethod
     def sentinel2Visualizations(cls) -> Dict[str, Tuple[str, str, str]]:
+        # rgb visualizations adopted from:
+        # https://github.com/sandroklippel/qgis_gee_data_catalog/blob/master/datasets.py
+
         mapping = {
             'Natural color':  ('B4', 'B3', 'B2'),
             'False color': ('B4', 'B8', 'B3'),
