@@ -17,7 +17,7 @@ from qgis._core import (QgsRasterBlock, QgsProcessingFeedback, QgsPalettedRaster
                         QgsFeature, QgsRasterRenderer, QgsFeatureRenderer, QgsMapLayer, QgsCoordinateTransform,
                         QgsProject, QgsCoordinateReferenceSystem, QgsUnitTypes, QgsReadWriteContext,
                         QgsMultiBandColorRenderer, QgsContrastEnhancement, QgsSingleBandPseudoColorRenderer,
-                        QgsRasterShader, QgsColorRampShader, QgsColorRamp, QgsSingleBandGrayRenderer)
+                        QgsRasterShader, QgsColorRampShader, QgsColorRamp, QgsSingleBandGrayRenderer, QgsGeometry)
 from qgis._gui import QgsMapCanvas
 
 from enmapboxprocessing.enmapalgorithm import AlgorithmCanceledException
@@ -658,8 +658,10 @@ class Utils(object):
         return scaleAtNativeResolution
 
     @classmethod
-    def sortedBy(cls, lists: List[List], by: List):
-        argsort = np.argsort(by)
+    def sortedBy(cls, lists: List[List], by: List, reverse=False):
+        argsort = np.argsort(by, )
+        if reverse:
+            argsort = list(reversed(argsort))
         return [list(np.array(l)[argsort]) for l in lists]
 
     @classmethod
@@ -694,3 +696,4 @@ class Utils(object):
         XMLDocument.appendChild(XMLMapLayers)
         layer.readLayerXml(XMLMapLayer, context)
         layer.reload()
+

@@ -1524,8 +1524,10 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                     action.triggered.connect(lambda: self.onBandStatisticsClicked(lyr))
 
                     if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
+                        from classificationstatisticsapp import ClassificationStatisticsApp
                         action = menu.addAction('Classification Statistics')
-                        action.triggered.connect(lambda: self.runClassificationStatistics(lyr))
+                        action.setIcon(ClassificationStatisticsApp.icon())
+                        action.triggered.connect(lambda: self.onClassificationStatisticsClicked(lyr))
 
                 if isinstance(lyr, (QgsRasterLayer, QgsVectorLayer)):
                     menu.addSeparator()
@@ -1655,19 +1657,12 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         self.bandStatisticsDialog.mLayer.setLayer(layer)
         self.bandStatisticsDialog.mAddRendererBands.click()
 
-    def runClassificationStatistics(self, layer):
-        from hubdsm.processing.classificationstatistics import ClassificationStatistics, ClassificationStatisticsPlot
-        alg = ClassificationStatistics()
-        io = {alg.P_CLASSIFICATION: layer}
-        result = Processing.runAlgorithm(alg, parameters=io, feedback=QgsProcessingFeedback())
-
-        from hubdsm.core.color import Color
-        from hubdsm.core.category import Category
-        categories = eval(result[alg.P_OUTPUT_CATEGORIES], {'Category': Category, 'Color': Color})
-        counts = eval(result[alg.P_OUTPUT_COUNTS])
-        widget = ClassificationStatisticsPlot(categories=categories, counts=counts, layer=layer,
-                                              parent=self.mDockTreeView)
-        widget.show()
+    def onClassificationStatisticsClicked(self, layer: QgsRasterLayer):
+        from classificationstatisticsapp import ClassificationStatisticsDialog
+        self.classificationStatisticsDialog = ClassificationStatisticsDialog(parent=self.mDockTreeView)
+        self.classificationStatisticsDialog.show()
+        self.classificationStatisticsDialog.mLayer.setLayer(layer)
+        self.classificationStatisticsDialog.mApply.click()
 
 
 class DockPanelUI(QgsDockWidget):
