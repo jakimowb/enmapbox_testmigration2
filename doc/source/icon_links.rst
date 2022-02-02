@@ -354,7 +354,11 @@
    :width: 28px
 .. |iconClearConsole| image:: /img/icons/iconClearConsole.svg
    :width: 28px
+.. |legend| image:: /img/icons/legend.svg
+   :width: 28px
 .. |mAction| image:: /img/icons/mAction.svg
+   :width: 28px
+.. |mActionAddLegend| image:: /img/icons/mActionAddLegend.svg
    :width: 28px
 .. |mActionAddRasterLayer| image:: /img/icons/mActionAddRasterLayer.svg
    :width: 28px

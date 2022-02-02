@@ -20,16 +20,18 @@ Spectral Library Window |viewlist_spectrumdock|
 The *Spectral Library Window* can be used to visualize, collect and label spectra. It directly interacts with the Map Window(s), which
 means spectra can be directly collected from an image. Furthermore, external libraries (ENVI Spectral Library) can be imported.
 
-* Add a new **Spectral Library Window** using the |viewlist_spectrumdock| :sup:`Add Spectral Library Window` button in the toolbar or from the menu bar
-  :menuselection:`View --> Add Spectral Library Window`
+You can add a new **Spectral Library Window** using the *Add Spectral Library Window* |viewlist_spectrumdock| button in the toolbar or from the menu bar
+:menuselection:`View --> Add Spectral Library Window`.
 
-* You can import and open existing libraries using the |speclib_add| :sup:`Import Spectral Library` button
+A new view appears where you can start to collect spectra or import an existing library by using the *Import Spectral Library* |speclib_add| button.
 
-.. figure:: /img/SpectralLibrary.png
+* Import of different formats is possible, e.g. ENVI Spectral Library, Geopackage, ASD Field Spectrometer measurements, Raster Layer.
+
+
+.. figure:: /img/SpecLib_overview.png
    :width: 100%
 
-   Spectral Library Window with several collected and labeled spectra
-
+   Overview of the Spectral Library Window with several collected and labeled spectra and main tools
 
 **Buttons of the Spectral Library Window:**
 
@@ -49,6 +51,8 @@ means spectra can be directly collected from an image. Furthermore, external lib
      - Import Spectral Library
    * - |speclib_save|
      - Save Spectral Library
+   * - |legend|
+     - Activate to change spectra representation
    * - |speclib_usevectorrenderer|
      - Activate to use colors from map vector symbology
    * - |system|
@@ -101,7 +105,6 @@ means spectra can be directly collected from an image. Furthermore, external lib
    * - |mActionOpenTable|
      - Switch to table view
 
-
 **Collecting spectra:**
 
 * Make sure to enable the |profile| button in the menu bar and open a raster from which you want to collect spectra in a new *Map Window*.
@@ -110,20 +113,30 @@ means spectra can be directly collected from an image. Furthermore, external lib
 * To add/save a selected spectrum to the library, click the |plus_green| button: A new table entry on the right of the window is added.
 * If spectra should be added automatically to the library while a pixel is selected or clicked, enable the |profile_add_auto| button.
 
-
 .. tip::
 
    Have a look at the :ref:`Spectral Profile Sources <spectral_profile_sources>` window for more advanced settings
    collecting spectra.
 
+**Changing the units**
+
+* You can change the unit of the axis by right-clicking into the spectral library and navigating to the respective option.
+
+.. figure:: /img/SpectralLib_Units.png
+   :width: 100%
+
+   Spectral Library Window showing how to change the unit of the x-axis
+
+* You can also change the units in the *Visualization View* in the **X Axis** field (see picture above)
+
 
 **Add information to the attribute table:**
 
-* You can add additional fields to the table, e.g. in order to add information to every spectrum (id, name, classification label, ...).
+* Add additional fields to the table, e.g. in order to add information to every spectrum (id, name, classification label, ...).
 * To do so, enable the *Editing mode* by activating  |mActionToggleEditing|.
 * Now you can use the |mActionNewAttribute| button to add a new field (mind the type!).
 
-  .. figure:: ../../img/speclib_add_field.png
+  .. figure:: /img/speclib_add_field.png
 
      Example: Add a new text field (maximum 100 characters)
 
@@ -136,34 +149,47 @@ means spectra can be directly collected from an image. Furthermore, external lib
 
 * Locations of spectra (if available) can be visualized as a point layer by right-clicking into a map window, and selecting :guilabel:`Add Spectral Library`
 
-  .. figure:: ../../img/AddCoordinates_Speclib.png
+  .. figure:: /img/AddCoordinates_Speclib.png
+     :width: 100%
 
      Add point coordinates to image
 
-* Spectra can be selected in the table and in the plot window itself. Selected spectra will be highlighted (blue background
+* Spectra can be selected in the attribute table and in the plot window itself. Selected spectra will be highlighted (blue background
   in the table; thicker line in a different color in the plot window).
 * Hold the :kbd:`Shift` key to select multiple spectra.
 * A selection can be removed by clicking the |mActionDeselectAll| button.
 
-  .. figure:: ../../img/SelectionSpectra.png
+  .. figure:: /img/SelectSpectra.png
+     :width: 100%
 
      Selection of spectra in the Spectral Library Window
 
 * Spectra can be removed by using the |mActionDeleteSelected| button.
-* Save the collected spectra with the *Save Profiles in spectral library* |speclib_save| button.
+* Save the collected spectra with the *Save Profiles in Spectral Library* |speclib_save| button.
 
 .. tip:: You can inspect an individual value of a spectrum by holding the :kbd:`Alt` key and clicking some position along the spectrum
 
+You can also select and filter spectra with the common vector filter and selection tools.
+
+  .. figure:: /img/FilterSpectra.png
+     :width: 100%
+
 **Colorize spectra by attribute:**
 
-* Open the *Spectral Library Properties* using the |system| button on the lower right.
+* In order to colorize your spectra according to their attributes, you have to categorize the points accordingly.
+* In the *Data Views* section on the left, right click on the spectral library data that we are currently using and select the *Layer Properties*
 * Switch to the |symbology| :guilabel:`Symbology` tab and select the :guilabel:`Categorized` renderer at the top
 * In the :guilabel:`Column` droplist select the desired column and click :guilabel:`Classify`
+* Confirm with :guilabel:`Ok` and close the window.
 
-  .. image:: ../../img/speclib_properties.png
+  ..  figure:: /img/PropertiesSpecLib.png
+      :width: 100%
 
-* Confirm with :guilabel:`Apply` and close the window.
-* In the *Spectral Library Window*, activate |speclib_usevectorrenderer|  to use the previously given colors.
+* In the Spectral Library Window activate the visualization settings with the |mActionAddLegend| button.
+* Right-click on **Color** and select *Use vector symbol colors* |speclib_usevectorrenderer|.
+
+  ..  figure:: /img/ColorizeSpectra.png
+      :width: 100%
 
 
 .. _spectral_profile_sources:
@@ -174,9 +200,10 @@ Spectral Profile Sources
 
 This menu manages the connection between raster sources and spectral library windows.
 
-  .. image:: ../../img/SpectralProfileSources.png
+  .. figure:: /img/SpectralProfileSources.png
+     :width: 80%
 
-**Buttons of the Spectral Library Window**
+**Buttons of the Profile Sources Window**
 
 .. csv-table::
    :header-rows: 1
@@ -186,13 +213,20 @@ This menu manages the connection between raster sources and spectral library win
    |plus_green|,  add a new profile source entry
    |cross_red|, remove selected entries
 
-**Source**
+**Profiles**
+ * This section is used to define the input data from where to take the spectral information from.
+ * You can also select or define a color for the spectra and choose between two different sampling methods.
+
+*Source*
  * Here you can specify a source raster dataset
  * Double-clicking in the cell will open up a dropdown menu where you can select from all loaded raster datasets.
 
-**Sampling**
+*Sampling*
+ * Select *Single Profile* or *Kernel* by double-clicking into the cell
+
+*Scaling*
  * Choose how spectra are sampled.
- * Double-click into the cell to open the dropdown menu, where you have several options available:
+ * Define the scaling factors by setting the *Offset* and *Scale* value.
 
 .. csv-table::
    :header-rows: 1
@@ -213,10 +247,34 @@ This menu manages the connection between raster sources and spectral library win
  * Scale factor for on-the-fly conversion.
  * E.g. if your raster is scaled between 0-10000 but you want to store values between 0 and 1 in the spectral library
 
-  .. figure:: ../../img/SpectralProfileSourcesDemo.png
 
-     Example: How to use the *Spectral Profile Sources Panel*
+If you want to only collect spectra for one class, e.g. cropland, define the class in the Spectral Profile Source under **name**.
+If you now click into the image, the spectra is automatically added and named as cropland.
 
+  .. figure:: /img/SpectralProfileSourcesDemo.png
+     :width: 100%
+
+     Example: How to use the Spectral Profile Sources Panel
+
+* Calculate different spectral profiles *
+
+* You can calculate new spectral profiles, e.g. a 5x5 mean in the **Spectral Profile Sources** window.
+* Add a new column in the attribute table with a meaningful name and select **Type** *Spectral Profile*
+* In the Spectral Profile Sources window navigate to the newly created attribute, select the **Source** and switch from *Single Profile* to *Kernel*.
+* Choose the **Kernel** you want to use and the **Aggregation** method.
+
+   .. figure:: /img/CalculateSpectra.png
+      :width: 100%
+
+      Example: Calculating spectral profiles
+
+* You can now collect spectra in the image and visualize the profiles in different colors using the visualization settings.
+* Change the color of the different profiles (see also section **Colorize spectra by attribute**).
+
+   .. figure:: /img/CalculateSpectraVisualization.png
+      :width: 100%
+
+       Example: How to colorize spectra according to their attribute
 
 Spectral Library Formats
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -250,7 +308,7 @@ This information is stored by adding a .csv and .json file to the default spectr
 
   * Example from the EnMAP-Box test dataset:
 
-    .. figure:: ../../img/speclib_csv_example.png
+    .. figure:: /img/speclib_csv_example.png
        :width: 100%
 
 * .json file (stores class name and class color information)
@@ -277,7 +335,7 @@ This information is stored by adding a .csv and .json file to the default spectr
   * ``no data value`` should be supplied
   * Example from the EnMAP-Box test dataset:
 
-    .. figure:: ../../img/speclib_json_example.png
+    .. figure:: /img/speclib_json_example.png
        :width: 100%
 
 
