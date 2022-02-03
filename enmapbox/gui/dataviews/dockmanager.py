@@ -25,26 +25,7 @@ from typing import Optional, List
 
 from PyQt5.QtWidgets import QToolButton, QAction
 
-from enmapbox.qgispluginsupport.qps.utils import loadUi, findParent
-from processing import Processing
-from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
-from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
-from qgis.PyQt.QtWidgets import QHeaderView, QMenu, QAbstractItemView, QApplication
-from qgis.PyQt.QtXml import QDomDocument, QDomElement
-from qgis.core import QgsMultiBandColorRenderer
-from qgis.core import Qgis
-from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
-    QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
-    QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils, \
-    QgsPalettedRasterRenderer, QgsProcessingFeedback
-from qgis.core import QgsWkbTypes
-from qgis.gui import QgsLayerTreeProxyModel
-from qgis.gui import QgsLayerTreeView, \
-    QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget, QgsMessageBar
-
 from enmapbox import debugLog
-from enmapbox.qgispluginsupport.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
-from enmapbox.qgispluginsupport.qps.speclib.core import is_spectral_library, profile_field_list
 from enmapbox.gui import \
     SpectralLibrary, SpectralLibraryWidget, SpatialExtent, showLayerPropertiesDialog
 from enmapbox.gui.datasources.datasources import DataSource
@@ -58,9 +39,25 @@ from enmapbox.gui.mimedata import \
     MDF_TEXT_HTML, MDF_URILIST, MDF_TEXT_PLAIN, MDF_QGIS_LAYER_STYLE, \
     extractMapLayers, containsMapLayers, textToByteArray
 from enmapbox.gui.utils import enmapboxUiPath
+from enmapbox.qgispluginsupport.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
+from enmapbox.qgispluginsupport.qps.speclib.core import is_spectral_library, profile_field_list
+from enmapbox.qgispluginsupport.qps.utils import loadUi, findParent
 from enmapboxplugins.classfractionrenderer import ClassFractionRendererWidget
-from enmapboxplugins.colorspaceexplorer import ColorSpaceExplorerWidget
+# from enmapboxplugins.colorspaceexplorer import ColorSpaceExplorerWidget
 from enmapboxplugins.decorrelationstretchrenderer import DecorrelationStretchRendererWidget
+from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
+from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
+from qgis.PyQt.QtWidgets import QHeaderView, QMenu, QAbstractItemView, QApplication
+from qgis.PyQt.QtXml import QDomDocument, QDomElement
+from qgis.core import Qgis
+from qgis.core import QgsMapLayer, QgsVectorLayer, QgsRasterLayer, QgsProject, QgsReadWriteContext, \
+    QgsLayerTreeLayer, QgsLayerTreeNode, QgsLayerTreeGroup, \
+    QgsLayerTreeModelLegendNode, QgsLayerTree, QgsLayerTreeModel, QgsLayerTreeUtils, \
+    QgsPalettedRasterRenderer
+from qgis.core import QgsWkbTypes
+from qgis.gui import QgsLayerTreeProxyModel
+from qgis.gui import QgsLayerTreeView, \
+    QgsMapCanvas, QgsLayerTreeViewMenuProvider, QgsLayerTreeMapCanvasBridge, QgsDockWidget, QgsMessageBar
 from typeguard import typechecked
 
 
@@ -1432,7 +1429,7 @@ class DockTreeView(QgsLayerTreeView):
 
 
 class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
-    #class Signals(QObject):
+    # class Signals(QObject):
     #    sigPopulateContextMenu = pyqtSignal(QMenu)
     #
     #    def __init__(self, *args, **kwds):
@@ -1528,6 +1525,12 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                         action.setIcon(ScatterPlotApp.icon())
                         action.triggered.connect(lambda: self.onScatterPlotClicked(lyr))
 
+                    if lyr.bandCount() >= 3:
+                        from colorspaceexplorerapp import ColorSpaceExplorerApp
+                        action = menu.addAction('Color Space Explorer')
+                        action.setIcon(ColorSpaceExplorerApp.icon())
+                        action.triggered.connect(lambda: self.onColorSpaceExplorerClicked(lyr))
+
                     if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
                         from classificationstatisticsapp import ClassificationStatisticsApp
                         action = menu.addAction('Classification Statistics')
@@ -1553,11 +1556,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                     action: QAction = submenu.addAction('Decorrelation stretch rendering')
                     action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
                     action.triggered.connect(lambda: self.showDecorrelationStretchRendererDialog(lyr, canvas))
-
-                    if isinstance(lyr.renderer(), QgsMultiBandColorRenderer):
-                        action: QAction = submenu.addAction('Color space explorer')
-                        action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
-                        action.triggered.connect(lambda: self.showColorSpaceExplorerDialog(lyr, canvas))
 
             if isinstance(lyr, QgsMapLayer):
                 action = menu.addAction('Layer properties')
@@ -1649,11 +1647,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
         widget.show()
 
-    def showColorSpaceExplorerDialog(self, layer: QgsRasterLayer, canvas: QgsMapCanvas):
-        widget = ColorSpaceExplorerWidget(layer, canvas, parent=self.mDockTreeView)
-        widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
-        widget.show()
-
     @typechecked
     def onBandStatisticsClicked(self, layer: QgsRasterLayer):
         from bandstatisticsapp import BandStatisticsDialog
@@ -1678,6 +1671,13 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         self.classificationStatisticsDialog.show()
         self.classificationStatisticsDialog.mLayer.setLayer(layer)
         self.classificationStatisticsDialog.mApply.click()
+
+    @typechecked
+    def onColorSpaceExplorerClicked(self, layer: QgsRasterLayer):
+        from colorspaceexplorerapp import ColorSpaceExplorerDialog
+        self.colorSpaceExplorerDialog = ColorSpaceExplorerDialog(parent=self.mDockTreeView)
+        self.colorSpaceExplorerDialog.show()
+        self.colorSpaceExplorerDialog.mLayer.setLayer(layer)
 
 
 class DockPanelUI(QgsDockWidget):

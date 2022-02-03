@@ -30,6 +30,7 @@ from typeguard import typechecked
 class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     P_CODE, _CODE = 'code', 'Code'
     P_GRID, _GRID = 'grid', 'Grid'
+    P_FLOAT_INPUT, _FLOAT_INPUT = 'floatInput', '32-bit floating-point inputs'
     P_OVERLAP, _OVERLAP = 'overlap', 'Block overlap'
     P_MONOLITHIC, _MONOLITHIC = 'monolithic', 'Monolithic processing'
     P_R1 = 'R1'
@@ -77,6 +78,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                                 'In the code snippets section you can find some prepdefined code snippets ready to use.\n'
                                 f'See the {self.linkRecipe} for detailed usage instructions.'),
                    (self._GRID, 'The destination grid. If not specified, the grid of the first raster layer is used.'),
+                   (self._FLOAT_INPUT, 'Whether to  cast inputs to 32-bit floating point.'),
                    (self._OVERLAP, 'The number of columns and rows to read from the neighbouring blocks. '
                                    'Needs to be specified only when performing spatial operations, '
                                    'to avoid artifacts at block borders.'),
@@ -125,6 +127,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterMathCode(self.P_CODE, self._CODE, None)
         self.addParameterRasterLayer(self.P_GRID, self._GRID, optional=True)
+        self.addParameterBoolean(self.P_FLOAT_INPUT, self._FLOAT_INPUT, True, False, True)
         self.addParameterInt(self.P_OVERLAP, self._OVERLAP, None, True, 0)
         self.addParameterBoolean(self.P_MONOLITHIC, self._MONOLITHIC, False, True)
         for name, description in self.inputRasterNames():
@@ -146,6 +149,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         code = self.parameterAsString(parameters, self.P_CODE, context)
         grid = self.parameterAsRasterLayer(parameters, self.P_GRID, context)
+        floatInput = self.parameterAsBoolean(parameters, self.P_FLOAT_INPUT, context)
         overlap = self.parameterAsInt(parameters, self.P_OVERLAP, context)
         monolithic = self.parameterAsBoolean(parameters, self.P_MONOLITHIC, context)
         filename = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_RASTER, context)
@@ -261,7 +265,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
             readers2 = {rasterName: RasterReader(raster) for rasterName, raster in rasters2.items()}
 
             # init output raster layer
-            writers = self.makeWriter(code, filename, grid, readers, readers2, feedback)
+            writers = self.makeWriter(code, filename, grid, readers, readers2, floatInput, feedback)
 
             # get block size
             lineMemoryUsage = 0
@@ -275,14 +279,12 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                 blockSizeY = grid.height()
                 blockSizeX = grid.width()
 
-            # blockSizeY = 100
-
             # process
             if overlap is None:
                 overlap = 0
             for block in grid.walkGrid(blockSizeX, blockSizeY, feedback):
                 results = self.processBlock(
-                    code, block, readers, readers2, writers, overlap, feedback
+                    code, block, readers, readers2, writers, floatInput, overlap, feedback
                 )
                 for key in results:
                     writer = writers[key]
@@ -301,7 +303,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
 
     def makeWriter(
             self, code: str, filename: str, grid: RasterReader, readers: Dict[str, RasterReader],
-            readers2: Dict[str, RasterReader], feedback: ProcessingFeedback
+            readers2: Dict[str, RasterReader], floatInput: bool, feedback: ProcessingFeedback
     ) -> Dict[str, Union[RasterWriter, Mock]]:
         # We derive output data types and band counts by executing the code on a minimal extent (i.e. one pixel).
         # We call this a dry-run.
@@ -318,7 +320,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
                     writers[identifier] = Mock()  # silently ignore all writer interaction
 
         for block in grid.walkGrid(1, 1, None):
-            results = self.processBlock(code, block, readers, readers2, writers, 0, feedback, dryRun=True)
+            results = self.processBlock(code, block, readers, readers2, writers, floatInput, 0, feedback, dryRun=True)
             break  # stop after processing the first pixel
 
         for name, result in results.items():
@@ -340,7 +342,7 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
     def processBlock(
             self, code: str, block: RasterBlockInfo, readers: Dict[str, RasterReader],
             readers2: Dict[str, RasterReader], writers: Dict[str, Union[RasterWriter, Mock]],
-            overlap: int, feedback: ProcessingFeedback, dryRun=False
+            floatInput: bool, overlap: int, feedback: ProcessingFeedback, dryRun=False
     ) -> Dict[str, np.ndarray]:
 
         # add modules
@@ -506,6 +508,15 @@ class RasterMathAlgorithm(EnMAPProcessingAlgorithm):
 
         # replace @
         code = code.replace('@', 'At')
+
+        # cast inputs to float32
+        if floatInput:
+            for key, value in namespace.items():
+                if not isinstance(value, np.ndarray):
+                    continue
+                if value.dtype in [bool, np.float32, np.float64]:
+                    continue
+                namespace[key] = value.astype(np.float32)
 
         # execute code
         try:

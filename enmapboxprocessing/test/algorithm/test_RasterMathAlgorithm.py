@@ -1,6 +1,7 @@
 from os.path import normpath
 
 import numpy as np
+from qgis._core import Qgis
 
 from enmapbox.exampledata import enmap, hires, landcover_polygons
 from enmapboxprocessing.algorithm.rastermathalgorithm.rastermathalgorithm import RasterMathAlgorithm
@@ -230,11 +231,24 @@ class TestRasterMathAlgorithm(TestCase):
         reader = RasterReader(result[alg.P_OUTPUT_RASTER])
         self.assertEqual(2028, np.sum(reader.array(), dtype=float))
 
-    def test_debug(self):
+    def test_floatInput(self):
         alg = RasterMathAlgorithm()
         parameters = {
             alg.P_R1: enmap,
-            alg.P_CODE: 'a=R1\nb=R1',
+            alg.P_CODE: 'raster=R1',
+            alg.P_FLOAT_INPUT: True,
             alg.P_OUTPUT_RASTER: self.filename('raster.tif')
         }
         result = self.runalg(alg, parameters)
+        self.assertEqual(Qgis.Float32, RasterReader(result[alg.P_OUTPUT_RASTER]).dataType(1))
+
+    def test_not_floatInput(self):
+        alg = RasterMathAlgorithm()
+        parameters = {
+            alg.P_R1: enmap,
+            alg.P_CODE: 'raster=R1',
+            alg.P_FLOAT_INPUT: False,
+            alg.P_OUTPUT_RASTER: self.filename('raster.tif')
+        }
+        result = self.runalg(alg, parameters)
+        self.assertEqual(Qgis.Int16, RasterReader(result[alg.P_OUTPUT_RASTER]).dataType(1))
