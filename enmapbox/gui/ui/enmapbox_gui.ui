@@ -129,7 +129,7 @@
      </property>
      <property name="icon">
       <iconset>
-       <normaloff>icons/enmapSensor.png</normaloff>icons/enmapSensor.png</iconset>
+       <normaloff>../../coreapps/geetimeseriesexplorerapp/icons/sensor.png</normaloff>../../coreapps/geetimeseriesexplorerapp/icons/sensor.png</iconset>
      </property>
      <property name="toolTipsVisible">
       <bool>false</bool>
@@ -354,7 +354,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../externals/qps/qpsresources.qrc">
+    <iconset>
      <normaloff>:/qps/ui/icons/select_location.svg</normaloff>
      <normalon>:/enmapbox/icons/mActionIdentify.svg</normalon>:/qps/ui/icons/select_location.svg</iconset>
    </property>
@@ -538,7 +538,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../externals/qps/qpsresources.qrc">
+    <iconset>
      <normaloff>:/qps/ui/icons/pan_center.svg</normaloff>:/qps/ui/icons/pan_center.svg</iconset>
    </property>
    <property name="text">
@@ -612,7 +612,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="../../externals/qps/qpsresources.qrc">
+    <iconset>
      <normaloff>:/qps/ui/icons/profile.svg</normaloff>:/qps/ui/icons/profile.svg</iconset>
    </property>
    <property name="text">
