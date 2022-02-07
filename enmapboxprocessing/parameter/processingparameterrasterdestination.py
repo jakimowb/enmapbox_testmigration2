@@ -16,9 +16,6 @@ class ProcessingParameterRasterDestination(QgsProcessingParameterRasterDestinati
         self.allowVrt = allowVrt
 
     def clone(self):
-        print(self)
-        print(self.name(), self.description(), self.defaultValue(), self.optional, self.createByDefault(),
-            self.allowTif, self.allowEnvi, self.allowVrt)
         copy = ProcessingParameterRasterDestination(
             self.name(), self.description(), self.defaultValue(), self.optional, self.createByDefault(),
             self.allowTif, self.allowEnvi, self.allowVrt

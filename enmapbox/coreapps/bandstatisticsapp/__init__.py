@@ -29,7 +29,7 @@ class BandStatisticsApp(EnMAPBoxApplication):
 
     def menu(self, appMenu: QMenu):
         appMenu: QMenu = self.enmapbox.menu('Tools')
-        a = appMenu.addAction('Band Statistics')
+        a = appMenu.addAction(self.title())
         assert isinstance(a, QAction)
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
