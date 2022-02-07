@@ -4,8 +4,10 @@ import pickle
 import re
 import typing
 import warnings
-from os.path import splitext, join, basename, exists, sep
+from os.path import splitext, join, basename, exists, sep, dirname
 from tempfile import gettempdir
+
+from PyQt5.QtGui import QDesktopServices
 
 import processing
 from qgis.core import QgsMimeDataUtils
@@ -629,16 +631,20 @@ class DataSourceManagerTreeView(TreeView):
     def onOpenInExplorer(self, dataSource: DataSource):
         """Open source in system file explorer."""
         import platform
-        filename = dataSource.source().replace('/', sep)
+        filename = dataSource.source()
+        if not exists(filename):
+            return
+
         system = platform.system()
 
         if system == 'Windows':
             import subprocess
+            filename = filename.replace('/', sep)
             cmd = rf'explorer.exe /select,"{filename}"'
-            print(cmd)
             subprocess.Popen(cmd)
         else:
-            raise NotImplementedError(system)
+            url = QUrl.fromLocalFile(dirname(filename))
+            QDesktopServices.openUrl(url)
 
     def addDataSourceByDialog(self):
         """
