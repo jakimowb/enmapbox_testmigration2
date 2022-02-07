@@ -4,7 +4,7 @@ import pickle
 import re
 import typing
 import warnings
-from os.path import splitext, join, basename
+from os.path import splitext, join, basename, exists, sep
 from tempfile import gettempdir
 
 import processing
@@ -23,6 +23,7 @@ from enmapbox.qgispluginsupport.qps.utils import defaultBands, bandClosestToWave
 from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from enmapboxprocessing.algorithm.subsetrasterbandsalgorithm import SubsetRasterBandsAlgorithm
 from enmapboxprocessing.utils import Utils
+from typeguard import typechecked
 from .metadata import RasterBandTreeNode
 from .datasources import DataSource, SpatialDataSource, VectorDataSource, RasterDataSource, \
     ModelDataSource, FileDataSource
@@ -413,8 +414,11 @@ class DataSourceManagerTreeView(TreeView):
                 else:
                     sub.setEnabled(False)
 
-                # AR: add some useful processing algo shortcuts
+                a: QAction = m.addAction('Open in Explorer')
+                a.setIcon(QIcon(':/images/themes/default/mIconFolderOpen.svg'))
+                a.triggered.connect(lambda *args, src=node: self.onOpenInExplorer(src))
 
+                # AR: add some useful processing algo shortcuts
                 a: QAction = m.addAction('Save as')
                 a.setIcon(QIcon(':/images/themes/default/mActionFileSaveAs.svg'))
                 a.triggered.connect(lambda *args, src=node: self.onSaveAs(src))
@@ -620,6 +624,21 @@ class DataSourceManagerTreeView(TreeView):
             parameters = dict(INPUT=dataSource.source())
             dlg = emb.showProcessingAlgorithmDialog('native:savefeatures', parameters, parent=self)
             s = ""
+
+    @typechecked
+    def onOpenInExplorer(self, dataSource: DataSource):
+        """Open source in system file explorer."""
+        import platform
+        filename = dataSource.source().replace('/', sep)
+        system = platform.system()
+
+        if system == 'Windows':
+            import subprocess
+            cmd = rf'explorer.exe /select,"{filename}"'
+            print(cmd)
+            subprocess.Popen(cmd)
+        else:
+            raise NotImplementedError(system)
 
     def addDataSourceByDialog(self):
         """
