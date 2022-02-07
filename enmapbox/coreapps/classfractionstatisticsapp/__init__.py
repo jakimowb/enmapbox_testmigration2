@@ -1,21 +1,22 @@
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMenu, QAction
 
-from classificationstatisticsapp.classificationstatisticsdialog import ClassificationStatisticsDialog
+from classfractionstatisticsapp.classfractionstatisticsdialog import ClassFractionStatisticsDialog
 from enmapbox.gui.applications import EnMAPBoxApplication
 from typeguard import typechecked
 
 
 def enmapboxApplicationFactory(enmapBox):
-    return [ClassificationStatisticsApp(enmapBox)]
+    return [ClassFractionStatisticsApp(enmapBox)]
 
 
 @typechecked
-class ClassificationStatisticsApp(EnMAPBoxApplication):
+class ClassFractionStatisticsApp(EnMAPBoxApplication):
+
     def __init__(self, enmapBox, parent=None):
         super().__init__(enmapBox, parent=parent)
 
-        self.name = ClassificationStatisticsApp.__name__
+        self.name = ClassFractionStatisticsApp.__name__
         self.version = 'dev'
         self.licence = 'GNU GPL-3'
 
@@ -25,16 +26,15 @@ class ClassificationStatisticsApp(EnMAPBoxApplication):
 
     @classmethod
     def title(cls):
-        return 'Classification Statistics'
+        return 'Class Fraction/Probability Renderer and Statistics'
 
     def menu(self, appMenu: QMenu):
         appMenu: QMenu = self.enmapbox.menu('Tools')
-        a = appMenu.addAction('Classification Statistics')
-        assert isinstance(a, QAction)
+        a: QAction = appMenu.addAction(self.title())
         a.setIcon(self.icon())
         a.triggered.connect(self.startGUI)
         return appMenu
 
     def startGUI(self):
-        w = ClassificationStatisticsDialog(parent=self.enmapbox.ui)
+        w = ClassFractionStatisticsDialog(parent=self.enmapbox.ui)
         w.show()

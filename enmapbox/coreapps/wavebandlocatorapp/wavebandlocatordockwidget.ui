@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>391</width>
-    <height>393</height>
+    <width>483</width>
+    <height>524</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -29,7 +29,7 @@
    <bool>false</bool>
   </property>
   <property name="windowTitle">
-   <string>Waveband Locator</string>
+   <string>Raster Layer Styling</string>
   </property>
   <widget class="QWidget" name="dockWidgetContents">
    <property name="sizePolicy">
@@ -110,7 +110,7 @@
        </sizepolicy>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="icon">
@@ -134,8 +134,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>349</width>
-             <height>102</height>
+             <width>441</width>
+             <height>223</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -164,7 +164,7 @@
                    </sizepolicy>
                   </property>
                   <property name="text">
-                   <string>Visualization</string>
+                   <string>Predefined</string>
                   </property>
                  </widget>
                 </item>
@@ -232,8 +232,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>349</width>
-             <height>102</height>
+             <width>441</width>
+             <height>223</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -316,8 +316,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>349</width>
-             <height>72</height>
+             <width>441</width>
+             <height>193</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -367,7 +367,7 @@
       </widget>
       <widget class="QWidget" name="tab_5">
        <attribute name="title">
-        <string>Spectral Linking</string>
+        <string>Style Linking</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_8">
         <item>
@@ -725,15 +725,15 @@ count cut</string>
    <header>qgsmaplayercombobox.h</header>
   </customwidget>
   <customwidget>
+   <class>QgsColorRampButton</class>
+   <extends>QToolButton</extends>
+   <header>qgis.gui</header>
+  </customwidget>
+  <customwidget>
    <class>WavebandLocatorBandWidget</class>
    <extends>QWidget</extends>
    <header>wavebandlocatorapp.wavebandlocatorbandwidget</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>QgsColorRampButton</class>
-   <extends>QToolButton</extends>
-   <header>qgis.gui</header>
   </customwidget>
  </customwidgets>
  <resources/>

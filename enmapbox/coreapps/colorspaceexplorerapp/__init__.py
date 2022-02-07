@@ -23,6 +23,10 @@ class ColorSpaceExplorerApp(EnMAPBoxApplication):
     def icon(cls):
         return QIcon(':/images/themes/default/styleicons/color.svg')
 
+    @classmethod
+    def title(cls):
+        return 'Color Space Explorer'
+
     def menu(self, appMenu: QMenu):
         appMenu: QMenu = self.enmapbox.menu('Tools')
         a = appMenu.addAction('Color Space Explorer')

@@ -23,6 +23,10 @@ class BandStatisticsApp(EnMAPBoxApplication):
     def icon(cls):
         return QIcon(':/images/themes/default/histogram.svg')
 
+    @classmethod
+    def title(cls):
+        return 'Band Statistics'
+
     def menu(self, appMenu: QMenu):
         appMenu: QMenu = self.enmapbox.menu('Tools')
         a = appMenu.addAction('Band Statistics')
