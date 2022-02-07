@@ -1,6 +1,6 @@
 import traceback
 from random import randint
-from typing import Optional
+from typing import Optional, List
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QMouseEvent, QColor
@@ -15,7 +15,6 @@ from enmapbox.qgispluginsupport.qps.layerproperties import rendererFromXml
 from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph import PlotWidget
 from enmapbox.qgispluginsupport.qps.utils import SpatialExtent
 from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.typing import Categories, Category
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
@@ -59,8 +58,6 @@ class ClassFractionStatisticsDialog(QMainWindow):
 
     def onLayerChanged(self):
 
-        self.removeAllItems()
-
         # disconnect old map canvas
         if self.mMapCanvas is not None:
             try:
@@ -80,15 +77,36 @@ class ClassFractionStatisticsDialog(QMainWindow):
         if self.mMapCanvas is not None:
             self.mMapCanvas.extentsChanged.connect(self.onMapCanvasExtentsChanged)
 
+        # clear table
+        for i in reversed(range(self.mTable.rowCount())):
+            self.mTable.removeRow(i)
+
         # init table
+        renderer = layer.renderer()
+        if isinstance(renderer, ClassFractionRenderer):
+            colors = renderer.colors
+        else:
+            colors = None
+
+        if colors is None:
+            colors = [None] * layer.bandCount()
+
         self.mTable.setRowCount(layer.bandCount())
-        for row in range(layer.bandCount()):
+        for row, color in enumerate(colors):
+            if color is None:
+                color = QColor(randint(0, 255), randint(0, 255), randint(0, 255))
+            if color.alpha() == 255:
+                checkState = Qt.Checked
+            else:
+                checkState = Qt.Unchecked
+                color.setAlpha(255)
+
             bandNo = row + 1
-            color = QColor(randint(0, 255), randint(0, 255), randint(0, 255))
             bandName = RasterReader(layer).bandName(bandNo)
 
             w = QCheckBox(bandName)
-            w.setCheckState(Qt.Checked)
+            w.setCheckState(checkState)
+
             w.stateChanged.connect(self.onLiveUpdate)
             self.mTable.setCellWidget(row, 0, w)
 
@@ -148,11 +166,6 @@ class ClassFractionStatisticsDialog(QMainWindow):
             w.setColor(QColor(category.color))
         self.onLiveUpdate()
 
-    def removeAllItems(self):
-        for i in reversed(range(self.mTable.rowCount())):
-            self.mTable.removeRow(i)
-        self.onLiveUpdate()
-
     def currentItemValues(self):
         for row in range(self.mTable.rowCount()):
             bandNo: int = row + 1
@@ -162,19 +175,18 @@ class ClassFractionStatisticsDialog(QMainWindow):
             plotWidget: HistogramPlotWidget = self.mTable.cellWidget(row, 2)
             yield checked, bandNo, color, name, plotWidget
 
-    def currentCategories(self) -> Categories:
-        categories = list()
+    def currentColors(self) -> List[QColor]:
+        colors = list()
         for checked, bandNo, color, name, plotItem in self.currentItemValues():
             if not checked:
-                continue
-            categories.append(Category(bandNo, name, color.name()))
-        return categories
+                color.setAlpha(0)
+            colors.append(color)
+        return colors
 
     def currentRenderer(self) -> ClassFractionRenderer:
-        renderer = ClassFractionRenderer()
-        categories = self.currentCategories()
-        for category in categories:
-            renderer.addCategory(category)
+        layer = self.currentLayer()
+        renderer = ClassFractionRenderer(layer.dataProvider())
+        renderer.setColors(self.currentColors())
         return renderer
 
     def onApplyClicked(self):

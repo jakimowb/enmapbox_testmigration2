@@ -1,23 +1,11 @@
-import traceback
 from copy import deepcopy
-from os.path import splitext
-from random import randint
-from typing import List
+from typing import List, Optional
 
 import numpy as np
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QMouseEvent
-from PyQt5.QtWidgets import QWidget, QToolButton, QTreeWidget, QTreeWidgetItem, QLineEdit, QCheckBox, \
-    QApplication, QMessageBox, QMainWindow, QSpinBox
-from PyQt5.uic import loadUi
+from PyQt5.QtGui import QColor
 from qgis._core import QgsRasterRenderer, QgsRasterInterface, QgsRectangle, QgsRasterBlockFeedback, QgsRasterBlock, \
-    Qgis, QgsRasterLayer, QgsRasterDataProvider, QgsRasterHistogram
-from qgis._gui import QgsRasterBandComboBox, QgsColorButton, QgsMapCanvas
+    Qgis
 
-from enmapbox.qgispluginsupport.qps.layerproperties import rendererFromXml
-from enmapbox.qgispluginsupport.qps.pyqtgraph.pyqtgraph.widgets.PlotWidget import PlotWidget
-from enmapboxprocessing.rasterreader import RasterReader
-from enmapboxprocessing.typing import Categories, Category
 from enmapboxprocessing.utils import Utils
 from typeguard import typechecked
 
@@ -25,12 +13,14 @@ from typeguard import typechecked
 @typechecked
 class ClassFractionRenderer(QgsRasterRenderer):
 
-    def __init__(self, input: QgsRasterInterface = None, type: str = ''):
+    def __init__(self, input: QgsRasterInterface, type: str = ''):
         super().__init__(input, type)
-        self.categories: List[Category] = list()
+        self.colors: Optional[List[QColor]] = None
 
-    def addCategory(self, category: Category):
-        self.categories.append(category)
+    def setColors(self, colors: List[Optional[QColor]]):
+        if len(colors) != self.input().bandCount():
+            raise ValueError('number of colors must match number of bands.')
+        self.colors = colors
 
     def usesBands(self) -> List[int]:
         return [c.value for c in self.categories]
@@ -46,17 +36,18 @@ class ClassFractionRenderer(QgsRasterRenderer):
         g = np.zeros((height, width), dtype=np.float32)
         b = np.zeros((height, width), dtype=np.float32)
         a = np.zeros((height, width), dtype=np.float32)
-        for category in self.categories:
-            bandNo = category.value
-            color = QColor(category.color)
-            if bandNo < 1 or bandNo > self.input().bandCount():
-                continue
-            block: QgsRasterBlock = self.input().block(bandNo, extent, width, height)
-            weight = Utils.qgsRasterBlockToNumpyArray(block)
-            r += color.red() * weight
-            g += color.green() * weight
-            b += color.blue() * weight
-            a[weight > 0] = 255  # every used pixel gets full opacity
+
+        if self.colors is not None:
+            for bandNo, color in enumerate(self.colors, 1):
+                if color.alpha() == 0:
+                    continue
+
+                block: QgsRasterBlock = self.input().block(bandNo, extent, width, height)
+                weight = Utils.qgsRasterBlockToNumpyArray(block)
+                r += color.red() * weight
+                g += color.green() * weight
+                b += color.blue() * weight
+                a[weight > 0] = 255  # every used pixel gets full opacity
 
         # clip RGBs to 0-255, in case the assumptions where violated
         np.clip(r, 0, 255, r)
@@ -69,6 +60,6 @@ class ClassFractionRenderer(QgsRasterRenderer):
         return Utils.numpyArrayToQgsRasterBlock(outarray, Qgis.ARGB32_Premultiplied)
 
     def clone(self) -> QgsRasterRenderer:
-        renderer = ClassFractionRenderer()
-        renderer.categories = deepcopy(self.categories)
+        renderer = ClassFractionRenderer(self.input())
+        renderer.colors = deepcopy(self.colors)
         return renderer
