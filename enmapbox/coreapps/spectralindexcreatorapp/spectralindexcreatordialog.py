@@ -7,11 +7,13 @@ import processing
 from PyQt5.QtCore import Qt, QAbstractTableModel, QVariant, QSortFilterProxyModel, QModelIndex
 from PyQt5.QtWidgets import QToolButton, QMainWindow, QTableView, QTableWidget, QMessageBox
 from PyQt5.uic import loadUi
+
+from enmapbox.gui.widgets.mapviewcombobox import MapViewComboBox
 from processing import getTempDirInTempFolder
 from qgis._core import QgsMapLayerProxyModel, QgsRasterLayer
 from qgis._gui import QgsRasterBandComboBox, QgsMapLayerComboBox, QgsFilterLineEdit, QgsDoubleSpinBox, QgsMessageBar
 
-from enmapboxplugins.widgets.mapviewcombobox import MapViewComboBox
+
 from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from typeguard import typechecked
