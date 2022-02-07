@@ -1,2 +1,0 @@
-RasterDriver(name='ENVI')
-RasterDriver(name='GTiff')
