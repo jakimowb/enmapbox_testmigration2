@@ -42,8 +42,7 @@ from enmapbox.gui.utils import enmapboxUiPath
 from enmapbox.qgispluginsupport.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
 from enmapbox.qgispluginsupport.qps.speclib.core import is_spectral_library, profile_field_list
 from enmapbox.qgispluginsupport.qps.utils import loadUi, findParent
-from enmapboxplugins.classfractionrenderer import ClassFractionRendererWidget
-# from enmapboxplugins.colorspaceexplorer import ColorSpaceExplorerWidget
+
 from enmapboxplugins.decorrelationstretchrenderer import DecorrelationStretchRendererWidget
 from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
 from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
@@ -1515,27 +1514,32 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 if isinstance(lyr, QgsRasterLayer):
 
                     from bandstatisticsapp import BandStatisticsApp
-                    action = menu.addAction('Band Statistics')
+                    action = menu.addAction(BandStatisticsApp.title())
                     action.setIcon(BandStatisticsApp.icon())
                     action.triggered.connect(lambda: self.onBandStatisticsClicked(lyr))
 
                     if lyr.bandCount() >= 2:
                         from scatterplotapp import ScatterPlotApp
-                        action = menu.addAction('Scatter Plot')
+                        action = menu.addAction(ScatterPlotApp.title())
                         action.setIcon(ScatterPlotApp.icon())
                         action.triggered.connect(lambda: self.onScatterPlotClicked(lyr))
 
                     if lyr.bandCount() >= 3:
                         from colorspaceexplorerapp import ColorSpaceExplorerApp
-                        action = menu.addAction('Color Space Explorer')
+                        action = menu.addAction(ColorSpaceExplorerApp.title())
                         action.setIcon(ColorSpaceExplorerApp.icon())
                         action.triggered.connect(lambda: self.onColorSpaceExplorerClicked(lyr))
 
                     if isinstance(lyr.renderer(), QgsPalettedRasterRenderer):
                         from classificationstatisticsapp import ClassificationStatisticsApp
-                        action = menu.addAction('Classification Statistics')
+                        action = menu.addAction(ClassificationStatisticsApp.title())
                         action.setIcon(ClassificationStatisticsApp.icon())
                         action.triggered.connect(lambda: self.onClassificationStatisticsClicked(lyr))
+
+                    from classfractionstatisticsapp import ClassFractionStatisticsApp
+                    action: QAction = menu.addAction(ClassFractionStatisticsApp.title())
+                    action.setIcon(ClassFractionStatisticsApp.icon())
+                    action.triggered.connect(lambda: self.onClassFractionStatisticsClicked(lyr))
 
                 if isinstance(lyr, (QgsRasterLayer, QgsVectorLayer)):
                     menu.addSeparator()
@@ -1548,10 +1552,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                 if isinstance(lyr, QgsRasterLayer):
                     submenu = menu.addMenu('Custom raster rendering')
                     submenu.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
-
-                    action: QAction = submenu.addAction('Class fraction/probability rendering')
-                    action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
-                    action.triggered.connect(lambda: self.showClassFractionRendererDialog(lyr, canvas))
 
                     action: QAction = submenu.addAction('Decorrelation stretch rendering')
                     action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
@@ -1637,11 +1637,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             messageBar = emb.messageBar()
         showLayerPropertiesDialog(layer, canvas=canvas, messageBar=messageBar, modal=True, useQGISDialog=False)
 
-    def showClassFractionRendererDialog(self, layer: QgsRasterLayer, mapCanvas: QgsMapCanvas):
-        widget = ClassFractionRendererWidget(layer, mapCanvas, parent=self.mDockTreeView)
-        widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
-        widget.show()
-
     def showDecorrelationStretchRendererDialog(self, layer: QgsRasterLayer, canvas: QgsMapCanvas):
         widget = DecorrelationStretchRendererWidget(layer, canvas, parent=self.mDockTreeView)
         widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
@@ -1670,7 +1665,13 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         self.classificationStatisticsDialog = ClassificationStatisticsDialog(parent=self.mDockTreeView)
         self.classificationStatisticsDialog.show()
         self.classificationStatisticsDialog.mLayer.setLayer(layer)
-        self.classificationStatisticsDialog.mApply.click()
+
+    @typechecked
+    def onClassFractionStatisticsClicked(self, layer: QgsRasterLayer):
+        from classfractionstatisticsapp.classfractionstatisticsdialog import ClassFractionStatisticsDialog
+        self.classFractionStatisticsDialog = ClassFractionStatisticsDialog(parent=self.mDockTreeView)
+        self.classFractionStatisticsDialog.show()
+        self.classFractionStatisticsDialog.mLayer.setLayer(layer)
 
     @typechecked
     def onColorSpaceExplorerClicked(self, layer: QgsRasterLayer):

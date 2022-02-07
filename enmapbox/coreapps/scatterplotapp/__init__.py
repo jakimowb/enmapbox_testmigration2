@@ -26,6 +26,10 @@ class ScatterPlotApp(EnMAPBoxApplication):
     def icon(cls):
         return QIcon(join(dirname(__file__), 'scatterplotdialog.svg'))
 
+    @classmethod
+    def title(cls):
+        return 'Scatter Plot'
+
     def menu(self, appMenu: QMenu):
         appMenu: QMenu = self.enmapbox.menu('Tools')
         a = appMenu.addAction('Scatter Plot')
