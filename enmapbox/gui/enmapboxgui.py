@@ -504,6 +504,10 @@ class EnMAPBox(QgisInterface, QObject):
         self.ui.optionShowHiddenLayersNode.toggled.connect(self.showHiddenLayersNode)
         m.addAction(self.ui.optionShowHiddenLayersNode)
 
+        a: QAction = m.addAction('Remove non-EnMAP-Box layers from project')
+        a.setIcon(QIcon(':/images/themes/default/mActionRemoveLayer.svg'))
+        a.triggered.connect(self.onRemoveNonEnmapBoxLayerFromPoject)
+
         debugLog('Set ui visible...')
         self.ui.setVisible(True)
 
@@ -707,6 +711,16 @@ class EnMAPBox(QgisInterface, QObject):
         browser = showResources()
         browser.setWindowTitle('Resource Browser')
         self._browser = browser
+
+    def onRemoveNonEnmapBoxLayerFromPoject(self):
+        """Remove non-EnMAP-Box layers from project (see #973)."""
+        enmapBoxLayers = self.mapLayers()
+        unwantedLayerIds = list()
+        for layerId, layer in QgsProject.instance().mapLayers().items():
+            if layer not in enmapBoxLayers:
+                unwantedLayerIds.append(layerId)
+
+        QgsProject.instance().removeMapLayers(unwantedLayerIds)
 
     def disconnectQGISSignals(self):
         try:
