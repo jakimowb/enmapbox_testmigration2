@@ -1399,7 +1399,7 @@ class MapCanvas(QgsMapCanvas):
                 to_add.append(l)
             if len(to_add) > 0:
                 self.setLayers(to_add + self.layers())
-            print(self.layers())
+
             event.accept()
 
     def setExtent(self, rectangle):

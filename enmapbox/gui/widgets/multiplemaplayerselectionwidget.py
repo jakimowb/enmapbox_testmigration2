@@ -38,7 +38,6 @@ class MultipleMapLayerSelectionWidget(QWidget):
 
     def updateInfo(self):
         self.mInfo.setText(f'{len(self.mLayers)} layers selected')
-        print(self.mLayers)
 
     def onButtonClicked(self):
         layers = MultipleMapLayerSelectionDialog.getLayers(
