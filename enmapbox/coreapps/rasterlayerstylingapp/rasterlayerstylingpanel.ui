@@ -181,13 +181,13 @@
                </layout>
               </item>
               <item>
-               <widget class="WavebandLocatorBandWidget" name="mRedBand" native="true"/>
+               <widget class="RasterLayerStylingBandWidget" name="mRedBand" native="true"/>
               </item>
               <item>
-               <widget class="WavebandLocatorBandWidget" name="mGreenBand" native="true"/>
+               <widget class="RasterLayerStylingBandWidget" name="mGreenBand" native="true"/>
               </item>
               <item>
-               <widget class="WavebandLocatorBandWidget" name="mBlueBand" native="true"/>
+               <widget class="RasterLayerStylingBandWidget" name="mBlueBand" native="true"/>
               </item>
               <item>
                <spacer name="verticalSpacer">
@@ -250,7 +250,7 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="WavebandLocatorBandWidget" name="mGrayBand" native="true"/>
+             <widget class="RasterLayerStylingBandWidget" name="mGrayBand" native="true"/>
             </item>
            </layout>
           </widget>
@@ -334,7 +334,7 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="WavebandLocatorBandWidget" name="mPseudoBand" native="true"/>
+             <widget class="RasterLayerStylingBandWidget" name="mPseudoBand" native="true"/>
             </item>
            </layout>
           </widget>
@@ -730,9 +730,9 @@ count cut</string>
    <header>qgis.gui</header>
   </customwidget>
   <customwidget>
-   <class>WavebandLocatorBandWidget</class>
+   <class>RasterLayerStylingBandWidget</class>
    <extends>QWidget</extends>
-   <header>wavebandlocatorapp.wavebandlocatorbandwidget</header>
+   <header>rasterlayerstylingapp.rasterlayerstylingbandwidget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

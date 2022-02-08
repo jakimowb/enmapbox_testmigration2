@@ -6,7 +6,7 @@ from typeguard import typechecked
 
 
 @typechecked
-class WavebandLocatorBandWidget(QWidget):
+class RasterLayerStylingBandWidget(QWidget):
     mName: QLabel
     mBandNo: QgsRasterBandComboBox
     mMin: QLineEdit

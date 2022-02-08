@@ -5,7 +5,7 @@ from typeguard import typechecked
 
 
 @typechecked
-class WavebandLocatorPercentilesWidget(QWidget):
+class RasterLayerStylingPercentilesWidget(QWidget):
     mP1: QDoubleSpinBox
     mP2: QDoubleSpinBox
 

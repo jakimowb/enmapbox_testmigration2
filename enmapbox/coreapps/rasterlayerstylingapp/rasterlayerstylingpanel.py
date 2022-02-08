@@ -1,29 +1,29 @@
 from math import nan
 from typing import Optional
 
-from PyQt5.QtWidgets import QSlider, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QToolButton, QLabel, QTabWidget, \
+from PyQt5.QtWidgets import QDoubleSpinBox, QComboBox, QCheckBox, QToolButton, QLabel, QTabWidget, \
     QLineEdit, QTableWidget
-from qgis.PyQt import uic
 from qgis._core import QgsRasterLayer, QgsSingleBandGrayRenderer, QgsRectangle, \
     QgsContrastEnhancement, QgsRasterRenderer, QgsMultiBandColorRenderer, QgsSingleBandPseudoColorRenderer, \
     QgsMapLayerProxyModel, QgsRasterDataProvider, QgsRasterShader
-from qgis._gui import (QgsDockWidget, QgsRasterBandComboBox, QgsMapLayerComboBox, QgsCollapsibleGroupBox,
+from qgis._gui import (QgsDockWidget, QgsMapLayerComboBox, QgsCollapsibleGroupBox,
                        QgsColorRampButton)
 
 from enmapbox import EnMAPBox
-from enmapbox.qgispluginsupport.qps.utils import SpatialExtent
 from enmapbox.gui.mapcanvas import MapCanvas
+from enmapbox.qgispluginsupport.qps.utils import SpatialExtent
+from enmapbox.utils import BlockSignals
 from enmapboxprocessing.algorithm.createspectralindicesalgorithm import CreateSpectralIndicesAlgorithm
 from enmapboxprocessing.rasterreader import RasterReader
 from enmapboxprocessing.utils import Utils
+from qgis.PyQt import uic
+from rasterlayerstylingapp.rasterlayerstylingbandwidget import RasterLayerStylingBandWidget
+from rasterlayerstylingapp.rasterlayerstylingpercentileswidget import RasterLayerStylingPercentilesWidget
 from typeguard import typechecked
-from wavebandlocatorapp.wavebandlocatorbandwidget import WavebandLocatorBandWidget
-from wavebandlocatorapp.wavebandlocatorpercentileswidget import WavebandLocatorPercentilesWidget
 
 
 @typechecked
-class WavebandLocatorDockWidget(QgsDockWidget):
-
+class RasterLayerStylingPanel(QgsDockWidget):
     # main layer
     mInfo: QLabel
     mLayer: QgsMapLayerComboBox
@@ -33,11 +33,11 @@ class WavebandLocatorDockWidget(QgsDockWidget):
     mRenderer: QTabWidget
     mVisualization: QComboBox
     mPseudoColorRamp: QgsColorRampButton
-    mRedBand: WavebandLocatorBandWidget
-    mGreenBand: WavebandLocatorBandWidget
-    mBlueBand: WavebandLocatorBandWidget
-    mGrayBand: WavebandLocatorBandWidget
-    mPseudoBand: WavebandLocatorBandWidget
+    mRedBand: RasterLayerStylingBandWidget
+    mGreenBand: RasterLayerStylingBandWidget
+    mBlueBand: RasterLayerStylingBandWidget
+    mGrayBand: RasterLayerStylingBandWidget
+    mPseudoBand: RasterLayerStylingBandWidget
 
     # linked layers
     mAddLink: QToolButton
@@ -71,9 +71,9 @@ class WavebandLocatorDockWidget(QgsDockWidget):
 
         self.visibilityChanged.connect(self.onPanelVisibilityChanged)
 
-        # self.enmapBox.currentLayerChanged.connect(self.mLayer.setLayer)  # do we want this?
-        self.mLayer.layerChanged.connect(self.onCurrentLayerChanged)
-        self.mRefresh.clicked.connect(self.onCurrentLayerChanged)
+        self.enmapBox.currentLayerChanged.connect(self.mLayer.setLayer)
+        self.mLayer.layerChanged.connect(self.onLayerChanged)
+        self.mRefresh.clicked.connect(self.onLayerChanged)
 
         self.mRenderer.currentChanged.connect(self.onRendererTabChanged)
 
@@ -140,7 +140,7 @@ class WavebandLocatorDockWidget(QgsDockWidget):
         w.setCurrentIndex(1)
         self.mLinkedLayers.setCellWidget(row, 2, w)
 
-        w = WavebandLocatorPercentilesWidget()  # percentiles
+        w = RasterLayerStylingPercentilesWidget()  # percentiles
         self.mLinkedLayers.setCellWidget(row, 3, w)
 
         w = QLineEdit()  # red min
@@ -213,18 +213,24 @@ class WavebandLocatorDockWidget(QgsDockWidget):
             mWaveband.click()
 
     def onPanelVisibilityChanged(self):
-        self.onCurrentLayerChanged()  # trigger GUI initialization
+        self.onLayerChanged()  # trigger GUI initialization
 
     def onWavebandClicked(self):
         mWaveband: QToolButton = self.sender()
-        mBand: WavebandLocatorBandWidget = mWaveband.parent()
+        mBand: RasterLayerStylingBandWidget = mWaveband.parent()
         _, sname = mWaveband.objectName().split('Waveband')
         wavelength, fwhm = CreateSpectralIndicesAlgorithm.WavebandMapping[sname]
         reader = RasterReader(self.mLayer.currentLayer())
         bandNo = reader.findWavelength(wavelength)
         mBand.mBandNo.setBand(bandNo)
 
-    def onCurrentLayerChanged(self):
+    def onEnmapBoxCurrentLayerChanged(self):
+        if self.isHidden():
+            return
+
+        self.mLayer.setLayer(self.enmapBox.currentLayer())
+
+    def onLayerChanged(self):
 
         if self.isHidden():  # do nothing if panel is hidden
             return
@@ -238,17 +244,17 @@ class WavebandLocatorDockWidget(QgsDockWidget):
 
         self.defaultRenderer = layer.renderer().clone()
 
-        self.mRenderer.blockSignals(True)
-        renderer = layer.renderer()
-        if isinstance(renderer, QgsMultiBandColorRenderer):
-            self.mRenderer.setCurrentIndex(0)
-        elif isinstance(renderer, QgsSingleBandGrayRenderer):
-            self.mRenderer.setCurrentIndex(1)
-        elif isinstance(renderer, QgsSingleBandPseudoColorRenderer):
-            self.mRenderer.setCurrentIndex(2)
-        else:
-            self.mRenderer.setCurrentIndex(3)
-        self.mRenderer.blockSignals(False)
+        with BlockSignals(self.mRenderer):
+            renderer = layer.renderer()
+
+            if isinstance(renderer, QgsMultiBandColorRenderer):
+                self.mRenderer.setCurrentIndex(0)
+            elif isinstance(renderer, QgsSingleBandGrayRenderer):
+                self.mRenderer.setCurrentIndex(1)
+            elif isinstance(renderer, QgsSingleBandPseudoColorRenderer):
+                self.mRenderer.setCurrentIndex(2)
+            else:
+                self.mRenderer.setCurrentIndex(3)
 
         self.onRendererTabChanged()
 
@@ -276,13 +282,10 @@ class WavebandLocatorDockWidget(QgsDockWidget):
                 (self.mGreenBand, renderer.greenContrastEnhancement(), renderer.greenBand()),
                 (self.mBlueBand, renderer.blueContrastEnhancement(), renderer.blueBand())
             ]:
-                mBand.mMin.blockSignals(True)
-                mBand.mMax.blockSignals(True)
-                mBand.mMin.setText(str(ce.minimumValue()))
-                mBand.mMax.setText(str(ce.maximumValue()))
-                mBand.mMin.blockSignals(False)
-                mBand.mMax.blockSignals(False)
-                mBand.mBandNo.setBand(bandNo)
+                with BlockSignals(mBand.mMin, mBand.mMax, mBand.mBandNo):
+                    mBand.mMin.setText(str(ce.minimumValue()))
+                    mBand.mMax.setText(str(ce.maximumValue()))
+                    mBand.mBandNo.setBand(bandNo)
 
         elif self.mRenderer.currentIndex() == self.GrayRendererTab:
             self.mGrayBand.mBandNo.setLayer(layer)
@@ -293,13 +296,12 @@ class WavebandLocatorDockWidget(QgsDockWidget):
                 renderer = Utils.singleBandGrayRenderer(layer.dataProvider(), 1, nan, nan)
                 layer.setRenderer(renderer)
             ce: QgsContrastEnhancement = renderer.contrastEnhancement()
-            self.mGrayBand.mMin.blockSignals(True)
-            self.mGrayBand.mMax.blockSignals(True)
-            self.mGrayBand.mMin.setText(str(ce.minimumValue()))
-            self.mGrayBand.mMax.setText(str(ce.maximumValue()))
-            self.mGrayBand.mMin.blockSignals(False)
-            self.mGrayBand.mMax.blockSignals(False)
-            self.mGrayBand.mBandNo.setBand(renderer.grayBand())
+
+            with BlockSignals(self.mGrayBand.mMin, self.mGrayBand.mMax, self.mGrayBand.mBandNo):
+                self.mGrayBand.mMin.setText(str(ce.minimumValue()))
+                self.mGrayBand.mMax.setText(str(ce.maximumValue()))
+                self.mGrayBand.mBandNo.setBand(renderer.grayBand())
+
         elif self.mRenderer.currentIndex() == self.PseudoRendererTab:
             self.mPseudoBand.mBandNo.setLayer(layer)
             self.mPseudoBand.mSlider.setRange(1, layer.bandCount())
@@ -309,13 +311,11 @@ class WavebandLocatorDockWidget(QgsDockWidget):
                 renderer = Utils.singleBandPseudoColorRenderer(layer.dataProvider(), 1, nan, nan, None)
                 layer.setRenderer(renderer)
             shader: QgsRasterShader = renderer.shader()
-            self.mGrayBand.mMin.blockSignals(True)
-            self.mGrayBand.mMax.blockSignals(True)
-            self.mGrayBand.mMin.setText(str(shader.minimumValue()))
-            self.mGrayBand.mMax.setText(str(shader.maximumValue()))
-            self.mGrayBand.mMin.blockSignals(False)
-            self.mGrayBand.mMax.blockSignals(False)
-            self.mGrayBand.mBandNo.setBand(renderer.band())
+
+            with BlockSignals(self.mPseudoBand.mMin, self.mPseudoBand.mMax, self.mPseudoBand.mBandNo):
+                self.mPseudoBand.mMin.setText(str(shader.minimumValue()))
+                self.mGrayBand.mMax.setText(str(shader.maximumValue()))
+                self.mGrayBand.mBandNo.setBand(renderer.band())
 
         elif self.mRenderer.currentIndex() == self.DefaultRendererTab:
             layer.setRenderer(self.defaultRenderer.clone())
@@ -345,7 +345,7 @@ class WavebandLocatorDockWidget(QgsDockWidget):
 
     def onBandChanged(self):
 
-        mBand: WavebandLocatorBandWidget = self.sender().parent()
+        mBand: RasterLayerStylingBandWidget = self.sender().parent()
 
         layer: QgsRasterLayer = self.mLayer.currentLayer()
         if layer is None:
@@ -371,7 +371,10 @@ class WavebandLocatorDockWidget(QgsDockWidget):
             raise ValueError()
 
         # update wavelength info
-        wavelength = RasterReader(layer).wavelength(bandNo)
+        if bandNo == -1:
+            wavelength = None
+        else:
+            wavelength = RasterReader(layer).wavelength(bandNo)
         if wavelength is None:
             mBand.mWavelength.hide()
         else:
@@ -392,12 +395,10 @@ class WavebandLocatorDockWidget(QgsDockWidget):
                 self.currentExtent(layer, self.mExtent.currentIndex()),
                 self.currentSampleSize(self.mAccuracy.currentIndex())
             )
-            mBandMin.blockSignals(True)
-            mBandMax.blockSignals(True)
-            mBandMin.setText(str(vmin))
-            mBandMax.setText(str(vmax))
-            mBandMin.blockSignals(False)
-            mBandMax.blockSignals(False)
+
+            with BlockSignals(mBandMin, mBandMax):
+                mBandMin.setText(str(vmin))
+                mBandMax.setText(str(vmax))
 
         if self.mRenderer.currentIndex() == self.RgbRendererTab:
             if self.mMinMaxPercentile.isChecked():
@@ -474,7 +475,7 @@ class WavebandLocatorDockWidget(QgsDockWidget):
             w: QComboBox = self.mLinkedLayers.cellWidget(row, 2)
             stretchType = w.currentIndex()
 
-            w: WavebandLocatorPercentilesWidget = self.mLinkedLayers.cellWidget(row, 3)
+            w: RasterLayerStylingPercentilesWidget = self.mLinkedLayers.cellWidget(row, 3)
             p1 = w.mP1.value()
             p2 = w.mP2.value()
 
