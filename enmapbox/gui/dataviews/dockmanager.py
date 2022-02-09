@@ -42,8 +42,6 @@ from enmapbox.gui.utils import enmapboxUiPath
 from enmapbox.qgispluginsupport.qps.layerproperties import pasteStyleFromClipboard, pasteStyleToClipboard
 from enmapbox.qgispluginsupport.qps.speclib.core import is_spectral_library, profile_field_list
 from enmapbox.qgispluginsupport.qps.utils import loadUi, findParent
-
-from enmapboxplugins.decorrelationstretchrenderer import DecorrelationStretchRendererWidget
 from qgis.PyQt.QtCore import Qt, QMimeData, QModelIndex, QObject, QTimer, pyqtSignal, QEvent, QSortFilterProxyModel
 from qgis.PyQt.QtGui import QIcon, QDragEnterEvent, QDragMoveEvent, QDropEvent, QDragLeaveEvent
 from qgis.PyQt.QtWidgets import QHeaderView, QMenu, QAbstractItemView, QApplication
@@ -1541,21 +1539,17 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
                     action.setIcon(ClassFractionStatisticsApp.icon())
                     action.triggered.connect(lambda: self.onClassFractionStatisticsClicked(lyr))
 
+                    from decorrelationstretchapp import DecorrelationStretchApp
+                    action: QAction = menu.addAction(DecorrelationStretchApp.title())
+                    action.setIcon(DecorrelationStretchApp.icon())
+                    action.triggered.connect(lambda: self.onClassFractionStatisticsClicked(lyr))
+
                 if isinstance(lyr, (QgsRasterLayer, QgsVectorLayer)):
                     menu.addSeparator()
                     action = menu.addAction('Save as...')
                     action.triggered.connect(lambda *args, l=lyr: self.onSaveAs(l))
 
                 menu.addSeparator()
-
-                # add raster renderer here, because we can't register; QgsRendererRegistry.addRenderer only supports vector renderer :-(
-                if isinstance(lyr, QgsRasterLayer):
-                    submenu = menu.addMenu('Custom raster rendering')
-                    submenu.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
-
-                    action: QAction = submenu.addAction('Decorrelation stretch rendering')
-                    action.setIcon(QIcon(':/images/themes/default/propertyicons/symbology.svg'))
-                    action.triggered.connect(lambda: self.showDecorrelationStretchRendererDialog(lyr, canvas))
 
             if isinstance(lyr, QgsMapLayer):
                 action = menu.addAction('Layer properties')
@@ -1637,11 +1631,6 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
             messageBar = emb.messageBar()
         showLayerPropertiesDialog(layer, canvas=canvas, messageBar=messageBar, modal=True, useQGISDialog=False)
 
-    def showDecorrelationStretchRendererDialog(self, layer: QgsRasterLayer, canvas: QgsMapCanvas):
-        widget = DecorrelationStretchRendererWidget(layer, canvas, parent=self.mDockTreeView)
-        widget.setWindowTitle(widget.windowTitle().format(layerName=layer.name()))
-        widget.show()
-
     @typechecked
     def onBandStatisticsClicked(self, layer: QgsRasterLayer):
         from bandstatisticsapp import BandStatisticsDialog
@@ -1668,7 +1657,7 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
 
     @typechecked
     def onClassFractionStatisticsClicked(self, layer: QgsRasterLayer):
-        from classfractionstatisticsapp.classfractionstatisticsdialog import ClassFractionStatisticsDialog
+        from classfractionstatisticsapp import ClassFractionStatisticsDialog
         self.classFractionStatisticsDialog = ClassFractionStatisticsDialog(parent=self.mDockTreeView)
         self.classFractionStatisticsDialog.show()
         self.classFractionStatisticsDialog.mLayer.setLayer(layer)
@@ -1679,6 +1668,13 @@ class DockManagerLayerTreeModelMenuProvider(QgsLayerTreeViewMenuProvider):
         self.colorSpaceExplorerDialog = ColorSpaceExplorerDialog(parent=self.mDockTreeView)
         self.colorSpaceExplorerDialog.show()
         self.colorSpaceExplorerDialog.mLayer.setLayer(layer)
+
+    @typechecked
+    def onDecorrelationStretchClicked(self, layer: QgsRasterLayer):
+        from decorrelationstretchapp import DecorrelationStretchDialog
+        self.decorrelationStretchDialog = DecorrelationStretchDialog(parent=self.mDockTreeView)
+        self.decorrelationStretchDialog.show()
+        self.decorrelationStretchDialog.mLayer.setLayer(layer)
 
 
 class DockPanelUI(QgsDockWidget):

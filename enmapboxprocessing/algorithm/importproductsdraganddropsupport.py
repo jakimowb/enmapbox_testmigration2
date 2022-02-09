@@ -68,6 +68,8 @@ def tryToImportSensorProducts(filename: str) -> List[QgsMapLayer]:
                               if key.startswith('output')}
 
                 for key, value in result.items():
+                    if parameters[key] is None or value is None:
+                        continue
                     layer = QgsRasterLayer(parameters[key], basename(value))
                     mapLayers.append(layer)
         return mapLayers

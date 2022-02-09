@@ -1,5 +1,5 @@
 from os.path import basename
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 
 import numpy as np
 from osgeo import gdal
@@ -17,7 +17,12 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
     P_FILE, _FILE = 'file', 'File'
     P_SPECTRAL_REGION, _SPECTRAL_REGION = 'spectralRegion', 'Spectral Region'
     O_SPECTRAL_REGION = ['VNIR/SWIR combined', 'VNIR only', 'SWIR only', ]
-    VnirSwirRegion, VnirRegion, SwirRegion, = range(len(O_SPECTRAL_REGION))
+    VnirSwirRegion, VnirRegion, SwirRegion, = range(3)
+    P_BAD_BAND_THRESHOLD, _BAD_BAND_THRESHOLD = 'badBandThreshold', 'Bad band threshold'
+    P_BAD_PIXEL_TYPE, _BAD_PIXEL_TYPE = 'badPixelType', 'Select bad pixel'
+    O_BAD_PIXEL_TYPE = ['Invalid pixel from L1 product', 'Negative value after atmospheric correction',
+                        'Saturated value after atmospheric correction']
+    InvalidL1Pixel, NegativeAtmosphericCorrectionPixel, SaturatedAtmosphericCorrectionPixel = range(3)
     P_OUTPUT_SPECTRAL_CUBE, _OUTPUT_SPECTRAL_CUBE = 'outputPrismaL2D_spectralCube', 'Output VNIR/SWIR Cube raster layer'
     P_OUTPUT_PAN_CUBE, _OUTPUT_PAN_CUBE = 'outputPrismaL2D_panCube', 'Output PAN raster layer'
 
@@ -50,9 +55,15 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
         return [
             (self._FILE, 'The HE5 product file.\n'
                          'Instead of executing this algorithm, '
-                         'you may drag&drop the HE5 file directly from your system file browser onto '
+                         'you may drag&drop the HE5 file directly from your system file browser on '
                          'the EnMAP-Box map view area.'),
             (self._SPECTRAL_REGION, 'Spectral region to be imported.'),
+            (self._BAD_BAND_THRESHOLD, 'If the proportion of erroneous pixels in the VNIR/SWIR Pixel Error Matrix,'
+                                        'exceeds the bad band threshold (a value between 0 and 1), '
+                                        'the band is marked as a bad band.\n'
+                                        'If specified, Output VNIR/SWIR Error Matrix raster layer needs to be '
+                                        'specified as well.'),
+            (self._BAD_PIXEL_TYPE, 'Pixels concidered to be erroneous.'),
             (self._OUTPUT_SPECTRAL_CUBE, 'VNIR/SWIR Cube GTiff raster file destination.'),
             (self._OUTPUT_PAN_CUBE, 'PAN VRT raster file destination.'),
             (self._OUTPUT_SPECTRAL_GEOLOCATION, 'VNIR/SWIR Geolocation Fields VRT raster file destination. '
@@ -72,8 +83,10 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
     def initAlgorithm(self, configuration: Dict[str, Any] = None):
         self.addParameterFile(self.P_FILE, self._FILE, extension='he5')
         self.addParameterEnum(self.P_SPECTRAL_REGION, self._SPECTRAL_REGION, self.O_SPECTRAL_REGION, False, 0)
+        self.addParameterFloat(self.P_BAD_BAND_THRESHOLD, self._BAD_BAND_THRESHOLD, None, True, 0, 1, False)
+        self.addParameterEnum(self.P_BAD_PIXEL_TYPE, self._BAD_PIXEL_TYPE, self.O_BAD_PIXEL_TYPE, True, [0], True)
         self.addParameterRasterDestination(self.P_OUTPUT_SPECTRAL_CUBE, self._OUTPUT_SPECTRAL_CUBE)
-        self.addParameterVrtDestination(self.P_OUTPUT_PAN_CUBE, self._OUTPUT_PAN_CUBE)
+        self.addParameterVrtDestination(self.P_OUTPUT_PAN_CUBE, self._OUTPUT_PAN_CUBE, None, True, False)
 
         self.addParameterVrtDestination(
             self.P_OUTPUT_SPECTRAL_GEOLOCATION, self._OUTPUT_SPECTRAL_GEOLOCATION, None, True, False
@@ -120,6 +133,8 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
     ) -> Dict[str, Any]:
         he5Filename = self.parameterAsFile(parameters, self.P_FILE, context)
         spectralRegion = self.parameterAsEnum(parameters, self.P_SPECTRAL_REGION, context)
+        badBandThreshold = self.parameterAsFloat(parameters, self.P_BAD_BAND_THRESHOLD, context)
+        badPixelTypes = self.parameterAsEnums(parameters, self.P_BAD_PIXEL_TYPE, context)
         filenameSpectralCube = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_SPECTRAL_CUBE, context)
         filenameSpectralGeolocation = self.parameterAsOutputLayer(
             parameters, self.P_OUTPUT_SPECTRAL_GEOLOCATION, context
@@ -131,6 +146,10 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
         filenamePanGeolocation = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_PAN_GEOLOCATION, context)
         filenamePanError = self.parameterAsOutputLayer(parameters, self.P_OUTPUT_PAN_ERROR, context)
 
+        if badBandThreshold is not None:
+            if filenameSpectralError is None:
+                raise QgsProcessingException(f'Wrong or missing parameter value: {self._OUTPUT_SPECTRAL_ERROR}')
+
         with open(filenameSpectralCube + '.log', 'w') as logfile:
             feedback, feedback2 = self.createLoggingFeedback(feedback, logfile)
             self.tic(feedback, parameters, context)
@@ -141,10 +160,12 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
                 message = f'not a valid PRISMA L2D product: {he5Filename}'
                 raise QgsProcessingException(message)
 
-            self.writeSpectralCube(filenameSpectralCube, he5Filename, spectralRegion)
+            badBandMultipliers = self.writeSpectralErrorMatrix(
+                filenameSpectralError, he5Filename, spectralRegion, badBandThreshold, badPixelTypes, feedback
+            )
+            self.writeSpectralCube(filenameSpectralCube, he5Filename, spectralRegion, badBandMultipliers)
             self.writeSpectralGeolocationFields(filenameSpectralGeolocation, he5Filename)
             self.writeSpectralGeometricFields(filenameSpectralGeometric, he5Filename)
-            self.writeSpectralErrorMatrix(filenameSpectralError, he5Filename, spectralRegion)
 
             self.writePanCube(filenamePanCube, he5Filename)
             self.writePanGeolocationFields(filenamePanGeolocation, he5Filename)
@@ -153,7 +174,7 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
             result = {
                 self.P_OUTPUT_SPECTRAL_CUBE: filenameSpectralCube,
                 self.P_OUTPUT_SPECTRAL_GEOLOCATION: filenameSpectralGeolocation,
-                self.P_OUTPUT_SPECTRAL_GEOMETRIC: filenameSpectralGeolocation,
+                self.P_OUTPUT_SPECTRAL_GEOMETRIC: filenameSpectralGeometric,
                 self.P_OUTPUT_SPECTRAL_ERROR: filenameSpectralError,
                 self.P_OUTPUT_PAN_CUBE: filenamePanCube,
                 self.P_OUTPUT_PAN_GEOLOCATION: filenamePanGeolocation,
@@ -164,7 +185,9 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
 
         return result
 
-    def writeSpectralCube(self, filenameSpectralCube, he5Filename, spectralRegion):
+    def writeSpectralCube(
+            self, filenameSpectralCube, he5Filename, spectralRegion, badBandMultipliers: Optional[List[int]]
+    ):
         parseFloatList = lambda text: [float(item) for item in text.split()]
         array = list()
         metadata = dict()
@@ -226,9 +249,16 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
             writer.setFwhm(fwhm[bandNo - 1], bandNo)
             writer.setScale(1. / 65535., bandNo)
 
-    def writeSpectralErrorMatrix(self, filenameSpectralError, he5Filename, spectralRegion):
+        if badBandMultipliers is not None:
+            for bandNo, badBandMultiplier in enumerate(badBandMultipliers, 1):
+                writer.setBadBandMultiplier(badBandMultiplier, bandNo)
+
+    def writeSpectralErrorMatrix(
+            self, filenameSpectralError, he5Filename, spectralRegion, badPixelThreshold: Optional[float],
+            badPixelTypes: List[int], feedback: QgsProcessingFeedback
+    ) -> Optional[List[int]]:
         if filenameSpectralError is None:
-            return
+            return None
         parseFloatList = lambda text: [float(item) for item in text.split()]
         array = list()
         metadata = dict()
@@ -271,6 +301,34 @@ class ImportPrismaL2DAlgorithm(EnMAPProcessingAlgorithm):
             wl = wavelength[bandNo - 1]
             writer.setBandName(f'Pixel Error Band {bandNo} ({wl} Nanometers)', bandNo)
             writer.setWavelength(wl, bandNo)
+
+        # bad pixel thresholding
+        if badPixelThreshold is None:
+            badBandMultipliers = None
+        else:
+            badBandMultipliers = list()
+            for bandNo, a in enumerate(array, 1):
+                badPixelMask = np.full_like(a, False, bool)
+                # Note that we just compare against individual bit flags.
+                # That should be fine, because all flags are mutually exclusive.
+                # We wouldn't expect values other than 0, 1, 2 and 4.'
+                if self.InvalidL1Pixel in badPixelTypes:
+                    np.logical_or(badPixelMask, a == 1, out=badPixelMask)
+                if self.NegativeAtmosphericCorrectionPixel in badPixelTypes:
+                    np.logical_or(badPixelMask, a == 2, out=badPixelMask)
+                if self.SaturatedAtmosphericCorrectionPixel in badPixelTypes:
+                    np.logical_or(badPixelMask, a == 4, out=badPixelMask)
+                badPixelProportion = np.mean(badPixelMask)
+                message = f'Band {bandNo} bad pixel proportion: {round(badPixelProportion, 4)}'
+                if badPixelProportion < badPixelThreshold:
+                    badBandMultiplier = 1
+                else:
+                    badBandMultiplier = 0
+                    message += ' (marked as bad band)'
+                badBandMultipliers.append(badBandMultiplier)
+                feedback.pushInfo(message)
+
+        return badBandMultipliers
 
     def writeSpectralGeolocationFields(self, filenameSpectralGeolocation, he5Filename):
         if filenameSpectralGeolocation is None:
