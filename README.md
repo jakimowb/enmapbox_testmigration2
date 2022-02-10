@@ -28,6 +28,57 @@ Documentation: http://enmap-box.readthedocs.io
 
 Git Repository: https://bitbucket.org/hu-geomatics/enmap-box
 
+## How to clone
+
+Use the following commands to clone the EnMAP-Box and update its submodules:
+
+### TL;DR:
+
+````bash
+git clone --recurse-submodules git@bitbucket.org:hu-geomatics/enmap-box.git
+cd enmapbox
+git config --local include.path ../.gitconfig
+````
+
+### Detailed description
+
+````bash
+git clone git@bitbucket.org:hu-geomatics/enmap-box.git
+````
+
+After cloning, update the submodules which are hosted in other repositories
+````bash
+cd enmapbox
+git submodule update --recursive
+````
+
+Of course, cloning and updating submodules can be done in one step
+````bash
+
+git clone --recurse-submodules git@bitbucket.org:hu-geomatics/enmap-box.git
+````
+
+
+At any time you can update the submodule with:
+
+````bash
+cd enmapbox
+git submodule update --remote
+````
+
+Updating submodules automatically can be done by enabling:
+````bash
+git config --set submodule.recurse true
+````
+
+This setting (and maybe more in future) is also defined in the `.gitconfig`. 
+You can add include it to your local repository by
+
+````bash
+git config --local include.path ../.gitconfig
+````
+
+
 ## How to contribute
 
 Our online documentation at [http://enmap-box.readthedocs.io](http://enmap-box.readthedocs.io/en/latest/general/contribute.html) describes how you can support the development of the EnMAP-Box.
@@ -48,22 +99,15 @@ modified.
 
 Repository: https://github.com/EnMAP-Box/qgispluginsupport
 
-Included into EnMAP-Box code by git subtree. The following commands can be
-used to sync QPS:
+Included into EnMAP-Box code by git submodule. The following commands can be
 
-Add subtree:
+1. To update QPS run: `git submodule update --remote`
 
-* `git subtree add --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master`
-  
-Pull updates:
-    
-* `git fetch git@github.com:EnMAP-Box/qgispluginsupport.git`
-* `git subtree pull --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git master --squash`
-  
-Push updates:
-  
-* `git subtree push --prefix enmapbox/qgispluginsupport git@github.com:EnMAP-Box/qgispluginsupport.git updates`
-* required writing access to target branch. Replace `master` with writable branch and create a PR
+2. You can automatically update submodules, for example when calling git pull, by:
+   `git config --set submodule.recurse true`
+
+3. This is already defined in the repositories `.gitconfig`. You can add include it to your local repository by
+   `git config --local include.path ../.gitconfig`
 
 
 ## Support

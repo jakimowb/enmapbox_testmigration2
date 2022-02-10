@@ -83,14 +83,14 @@ deploy/enmapboxplugin.3.X...zip  Zipped version of a EnMAP-box Plugin build.
 Install the EnMAP-Box repository
 ================================
 
-#. Open your shell, clone the EnMAP-Box repository and pull large binary files:
+#. Open your shell, clone the EnMAP-Box repository including its submodules:
 
     .. code-block:: batch
 
         cd <my_repositories>
-        git clone https://bitbucket.org/hu-geomatics/enmap-box.git
-        cd enmap-box
-        git lfs pull
+        git clone --recurse-submodules git@bitbucket.org:hu-geomatics/enmap-box.git
+        cd enmapbox
+        git config --local include.path ../.gitconfig
 
 #. Add ``<my_repositories>/enmapbox/`` as source location to your PyCharm project
     (instead of that in your QGIS active profile!)
@@ -169,8 +169,19 @@ The testdata can be download explicitly:
 Get Updates from other Repositories
 ===================================
 
-The EnMAP-Box includes source-code from external projects. How these source contribute to the EnMAP-Box repository
-is described in ``scripts/updateexternals.py``. In general, such remote locations are desribed by a ``RemoteInfo`` entry:
+The EnMAP-Box includes source-code from external projects.
+
+Some of them are includes as git submodule. You can update them by
+
+.. code-block:: bash
+
+        cd enmapbox
+        git submodule update --remote
+
+Some other projects are includes using an older mechanism. How these source contribute to the EnMAP-Box
+repository is described in ``scripts/updateexternals.py``.
+
+In general, such remote locations are described by a ``RemoteInfo`` entry:
 
 .. code-block:: python
 
