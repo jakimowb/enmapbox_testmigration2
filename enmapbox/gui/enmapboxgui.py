@@ -1785,6 +1785,7 @@ class EnMAPBox(QgisInterface, QObject):
 
         if bSP:
             self.loadCurrentMapSpectra(spatialPoint, mapCanvas)
+            s = ""
 
     def currentLocation(self) -> Optional[SpatialPoint]:
         """

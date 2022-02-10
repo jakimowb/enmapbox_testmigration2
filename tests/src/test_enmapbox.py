@@ -161,11 +161,7 @@ class TestEnMAPBox(EnMAPBoxTestCase):
 
     def test_instance_coreapps(self):
         EMB = EnMAPBox(load_core_apps=True, load_other_apps=False)
-
-        for f in os.scandir(self.createTestOutputDirectory()):
-            if os.path.isfile(f.path):
-                EMB.addSource(f.path)
-
+        self.assertIsInstance(EMB, EnMAPBox)
         self.showGui(EMB.ui)
 
     def test_instance_coreapps_and_data(self):

@@ -79,6 +79,16 @@ git config --local include.path ../.gitconfig
 ````
 
 
+Todo: push changes into submodule repository
+
+````bash
+cd <submodule>
+git add .
+git commit -m "my changes"
+git push origin HEAD:master
+````
+
+
 ## How to contribute
 
 Our online documentation at [http://enmap-box.readthedocs.io](http://enmap-box.readthedocs.io/en/latest/general/contribute.html) describes how you can support the development of the EnMAP-Box.
