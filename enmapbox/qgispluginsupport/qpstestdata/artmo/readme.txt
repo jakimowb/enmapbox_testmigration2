@@ -1,1 +1,0 @@
-"The PROSAIL look-up table (LUT) was generated with the ARTMO toolbox. For more information and generation of new LUTs see: https://artmotoolbox.com/"

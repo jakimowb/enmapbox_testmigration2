@@ -1,0 +1,4 @@
+[submodule "enmapbox/qgispluginsupport"]
+	path = enmapbox/qgispluginsupport
+	url = git@github.com:EnMAP-Box/qgispluginsupport.git
+	branch = master
