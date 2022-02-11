@@ -36,50 +36,56 @@ Use the following commands to clone the EnMAP-Box and update its submodules:
 
 ````bash
 git clone --recurse-submodules git@bitbucket.org:hu-geomatics/enmap-box.git
-cd enmapbox
+cd enmap-box
 git config --local include.path ../.gitconfig
 ````
 
 ### Detailed description
 
+1. Ensure that your shell environment has git available and allows to start QGIS, e.g. calling `qgis`.
+
+
+2. Clone the EnMAP-Box repository. 
+
 ````bash
 git clone git@bitbucket.org:hu-geomatics/enmap-box.git
 ````
 
-After cloning, update the submodules which are hosted in other repositories
+3. Initialize submodules and pull their code, which is hosted in different repositories
 ````bash
 cd enmapbox
-git submodule update --recursive
+git submodule update --init --remote --recursive
 ````
 
-Of course, cloning and updating submodules can be done in one step
+4. Once initialized, you can update submodules at any later point by:
+````bash
+git submodule update --remote
+````
+
+Of course cloning and submodule updating can be done in one step:
 ````bash
 
 git clone --recurse-submodules git@bitbucket.org:hu-geomatics/enmap-box.git
 ````
 
-
-At any time you can update the submodule with:
-
+At any later point, you can pull in submodule updates by
 ````bash
-cd enmapbox
 git submodule update --remote
 ````
 
-Updating submodules automatically can be done by enabling:
+Doing so automatically can be enabled by:
 ````bash
 git config --set submodule.recurse true
 ````
 
-This setting (and maybe more in future) is also defined in the `.gitconfig`. 
-You can add include it to your local repository by
+This setting (and maybe more in future) is already defined in the `.gitconfig`. 
+You can enable it for your local repository by:
 
 ````bash
 git config --local include.path ../.gitconfig
 ````
 
-
-Todo: push changes into submodule repository
+If you have writing access to a submodule's repository, you can push changes upstream by:
 
 ````bash
 cd <submodule>
@@ -87,6 +93,21 @@ git add .
 git commit -m "my changes"
 git push origin HEAD:master
 ````
+
+5. Compile resource files and download the test data:
+````bash
+python scripts/setup_repository.py
+````
+
+6. Now you can start the EnMAP-Box from shell by:
+````bash
+python enmapbox
+````
+
+
+
+
+
 
 
 ## How to contribute
