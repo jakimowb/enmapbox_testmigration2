@@ -47,67 +47,62 @@ git config --local include.path ../.gitconfig
 
 2. Clone the EnMAP-Box repository. 
 
-````bash
-git clone git@bitbucket.org:hu-geomatics/enmap-box.git
-````
+    ````bash
+    git clone git@bitbucket.org:hu-geomatics/enmap-box.git
+    ````
 
 3. Initialize submodules and pull their code, which is hosted in different repositories
-````bash
-cd enmapbox
-git submodule update --init --remote --recursive
-````
+    ````bash
+    cd enmapbox
+    git submodule update --init --remote --recursive
+    ````
 
 4. Once initialized, you can update submodules at any later point by:
-````bash
-git submodule update --remote
-````
+    ````bash
+    git submodule update --remote
+    ````
 
-Of course cloning and submodule updating can be done in one step:
-````bash
-
-git clone --recurse-submodules git@bitbucket.org:hu-geomatics/enmap-box.git
-````
-
-At any later point, you can pull in submodule updates by
-````bash
-git submodule update --remote
-````
-
-Doing so automatically can be enabled by:
-````bash
-git config --set submodule.recurse true
-````
-
-This setting (and maybe more in future) is already defined in the `.gitconfig`. 
-You can enable it for your local repository by:
-
-````bash
-git config --local include.path ../.gitconfig
-````
-
-If you have writing access to a submodule's repository, you can push changes upstream by:
-
-````bash
-cd <submodule>
-git add .
-git commit -m "my changes"
-git push origin HEAD:master
-````
+    Of course cloning and submodule updating can be done in one step:
+    ````bash
+    
+    git clone --recurse-submodules git@bitbucket.org:hu-geomatics/enmap-box.git
+    ````
+    
+    At any later point, you can pull in submodule updates by
+    ````bash
+    git submodule update --remote
+    ````
+    
+    Doing so automatically can be enabled by:
+    ````bash
+    git config --set submodule.recurse true
+    ````
+    
+    This setting (and maybe more in future) is already defined in the `.gitconfig`. 
+    You can enable it for your local repository by:
+    
+    ````bash
+    git config --local include.path ../.gitconfig
+    ````
+    
+    If you have writing access to a submodule's repository, you can push changes upstream by:
+    
+    ````bash
+    cd <submodule>
+    git add .
+    git commit -m "my changes"
+    git push origin HEAD:master
+    ````
 
 5. Compile resource files and download the test data:
-````bash
-python scripts/setup_repository.py
-````
+    ````bash
+    python scripts/setup_repository.py
+    ````
 
 6. Now you can start the EnMAP-Box from shell by:
-````bash
-python enmapbox
-````
-
-
-
-
-
+    ````bash
+    python enmapbox
+    ````
 
 
 ## How to contribute
